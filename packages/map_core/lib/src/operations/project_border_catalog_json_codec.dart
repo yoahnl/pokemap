@@ -65,7 +65,7 @@ Map<String, Object?> encodeProjectBorderCatalogJson(
   };
 }
 
-/// Decodes a standalone strict V1 or V2 project Border catalog.
+/// Decodes a standalone strict V1 through V4 project Border catalog.
 ///
 /// Legacy manifest tolerance belongs to the manifest migration boundary. This
 /// standalone codec rejects absent, null, malformed, and future catalog data.
@@ -142,9 +142,11 @@ ProjectBorderCatalog decodeProjectBorderCatalogJson(
 
 void _requireSupportedVersion(int value, String path) {
   if (value != ProjectBorderCatalog.formatVersionV1 &&
-      value != ProjectBorderCatalog.formatVersionV2) {
+      value != ProjectBorderCatalog.formatVersionV2 &&
+      value != ProjectBorderCatalog.formatVersionV3 &&
+      value != ProjectBorderCatalog.formatVersionV4) {
     throw FormatException(
-      '$path: expected ProjectBorderCatalog format version 1 or 2',
+      '$path: expected ProjectBorderCatalog format version 1, 2, 3, or 4',
     );
   }
 }

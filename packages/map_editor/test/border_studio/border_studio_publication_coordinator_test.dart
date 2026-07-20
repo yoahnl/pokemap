@@ -99,7 +99,11 @@ void main() {
       final target = _record(
         template: BorderBlueprintTemplate.masonryLine,
         primitives: <BorderPrimitiveDraft>[
-          _primitive(id: 'block', sourceElementId: 'element-block'),
+          _primitive(
+            id: 'block',
+            sourceElementId: 'element-block',
+            allowFlipX: true,
+          ),
         ],
       );
       final manifest = _manifest(
@@ -155,6 +159,13 @@ void main() {
         manifest: manifest,
         projectRootPath: '/project',
         draftRecord: target,
+      );
+      expect(
+        preview.diagnostics.hasErrors,
+        isFalse,
+        reason: preview.diagnostics.diagnostics
+            .map((diagnostic) => diagnostic.code)
+            .join(', '),
       );
       final result = await coordinator.publish(
         preview: preview,

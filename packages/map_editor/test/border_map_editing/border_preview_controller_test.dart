@@ -305,6 +305,191 @@ void main() {
       expect(map.toJson(), before);
     });
 
+    test('resume drawing requires the exact transaction layer and feature', () {
+      final map = _map();
+      final controller = BorderPreviewController(resolver: _success);
+      controller.begin(
+        map: map,
+        layerId: 'borders',
+        featureId: 'coast',
+        context: _contextFor(map),
+      );
+      controller.resolve(
+        blueprintRevision: _revision(),
+        tileSizePx: const GridSize(width: 16, height: 16),
+        visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
+        resolverVersion: 1,
+      );
+      final resolved = controller.state;
+
+      expect(
+        controller.resumeDrawing(
+          layerId: 'borders',
+          featureId: 'other-feature',
+        ),
+        isFalse,
+      );
+      expect(controller.state, same(resolved));
+
+      expect(
+        controller.resumeDrawing(
+          layerId: 'borders',
+          featureId: 'coast',
+        ),
+        isTrue,
+      );
+      expect(controller.state.phase, BorderPreviewPhase.drawing);
+      expect(controller.state.transaction, same(resolved.transaction));
+    });
+
+    test('rolling back an invalid second gesture keeps the resolved preview',
+        () {
+      final map = _map();
+      final controller = BorderPreviewController(resolver: _success);
+      controller.begin(
+        map: map,
+        layerId: 'borders',
+        featureId: 'coast',
+        context: _contextFor(map),
+      );
+      controller.previewGeometry(
+        _region(<int>{0, 1, 4}),
+        blueprintRevision: _revision(),
+        tileSizePx: const GridSize(width: 16, height: 16),
+        visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
+        resolverVersion: 1,
+      );
+      controller.finishDrawing();
+      final firstResolved = controller.state.transaction!;
+
+      expect(
+        controller.resumeDrawing(layerId: 'borders', featureId: 'coast'),
+        isTrue,
+      );
+      controller.updateGeometry(_region(<int>{2, 3, 6}));
+      controller.rollbackDrawingGesture();
+
+      expect(controller.state.phase, BorderPreviewPhase.resolved);
+      expect(controller.state.transaction, same(firstResolved));
+      expect(
+        controller.state.transaction!.proposedFeature.geometry,
+        _region(<int>{0, 1, 4}),
+      );
+    });
+
+    test('invalid second resolution restores the last resolved preview', () {
+      final map = _map();
+      var resolutionCount = 0;
+      final controller = BorderPreviewController(
+        resolver: (request) {
+          resolutionCount += 1;
+          if (resolutionCount == 1) return _success(request);
+          return BorderResolutionResult(
+            materialization: null,
+            diagnosticReport: BorderDiagnosticsReport(
+              diagnostics: <BorderDiagnostic>[
+                BorderDiagnostic(
+                  code: 'border.test.invalid_second_gesture',
+                  severity: BorderDiagnosticSeverity.error,
+                  phase: BorderDiagnosticPhase.resolution,
+                  scope: BorderDiagnosticScope.feature,
+                  featureId: 'coast',
+                  suggestedAction: 'border.action.edit_geometry',
+                ),
+              ],
+            ),
+          );
+        },
+      );
+      controller.begin(
+        map: map,
+        layerId: 'borders',
+        featureId: 'coast',
+        context: _contextFor(map),
+      );
+      controller.previewGeometry(
+        _region(<int>{0, 1, 4}),
+        blueprintRevision: _revision(),
+        tileSizePx: const GridSize(width: 16, height: 16),
+        visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
+        resolverVersion: 1,
+      );
+      controller.finishDrawing();
+      final firstResolved = controller.state.transaction!;
+
+      expect(
+        controller.resumeDrawing(layerId: 'borders', featureId: 'coast'),
+        isTrue,
+      );
+      controller.previewGeometry(
+        _region(<int>{0, 1, 2, 4}),
+        blueprintRevision: _revision(),
+        tileSizePx: const GridSize(width: 16, height: 16),
+        visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
+        resolverVersion: 1,
+      );
+      expect(controller.state.transaction!.result!.canApply, isFalse);
+
+      controller.finishDrawing();
+
+      expect(controller.state.phase, BorderPreviewPhase.resolved);
+      expect(controller.state.transaction, same(firstResolved));
+      expect(controller.state.transaction!.result!.canApply, isTrue);
+      expect(
+        controller.state.transaction!.proposedFeature.geometry,
+        _region(<int>{0, 1, 4}),
+      );
+    });
+
+    test('resolved feature refinement preserves the drawing transaction', () {
+      final map = _map();
+      final controller = BorderPreviewController(resolver: _success);
+      controller.begin(
+        map: map,
+        layerId: 'borders',
+        featureId: 'coast',
+        context: _contextFor(map),
+      );
+      controller.previewGeometry(
+        _region(<int>{0, 1, 4}),
+        blueprintRevision: _revision(),
+        tileSizePx: const GridSize(width: 16, height: 16),
+        visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
+        resolverVersion: 1,
+      );
+      controller.finishDrawing();
+      final drawn = controller.state.transaction!;
+      final proposed = drawn.proposedFeature;
+      final inverted = BorderFeature(
+        id: proposed.id,
+        name: proposed.name,
+        blueprintId: proposed.blueprintId,
+        seed: proposed.seed,
+        geometry: proposed.geometry,
+        lineSide: BorderLineSide.inverted,
+        paramsOverride: proposed.paramsOverride,
+        overrides: proposed.overrides,
+        keepOutRegions: proposed.keepOutRegions,
+        materialization: proposed.materialization,
+      );
+
+      controller.previewResolvedFeatureDraft(
+        inverted,
+        blueprintRevision: _revision(),
+        tileSizePx: const GridSize(width: 16, height: 16),
+        visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
+        resolverVersion: 1,
+      );
+
+      final refined = controller.state.transaction!;
+      expect(controller.state.phase, BorderPreviewPhase.resolved);
+      expect(refined.baseFeatureFingerprint, drawn.baseFeatureFingerprint);
+      expect(refined.variationOrdinal, drawn.variationOrdinal);
+      expect(refined.proposedFeature.geometry, proposed.geometry);
+      expect(refined.proposedFeature.lineSide, BorderLineSide.inverted);
+      expect(refined.proposedFeature.materialization, isNull);
+    });
+
     test('resolve, New Variation and Apply form one atomic map mutation', () {
       final map = _map();
       final before = map.toJson();

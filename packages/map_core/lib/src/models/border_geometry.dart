@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
 import '../exceptions/map_exceptions.dart';
+import 'border_value_objects.dart';
 import 'geometry.dart';
 
 /// Geometry families supported by Border features.
@@ -149,12 +150,15 @@ final class BorderStroke {
 /// Ordered collection of independent V1 strokes.
 @immutable
 final class BorderStrokeGeometry extends BorderFeatureGeometry {
-  BorderStrokeGeometry({required List<BorderStroke> strokes})
-      : _strokes = List<BorderStroke>.unmodifiable(strokes) {
+  BorderStrokeGeometry({
+    required List<BorderStroke> strokes,
+    this.alignment = BorderStrokeAlignment.cellCenters,
+  }) : _strokes = List<BorderStroke>.unmodifiable(strokes) {
     _validateIndependentStrokes();
   }
 
   final List<BorderStroke> _strokes;
+  final BorderStrokeAlignment alignment;
 
   List<BorderStroke> get strokes => _strokes;
 
@@ -197,10 +201,12 @@ final class BorderStrokeGeometry extends BorderFeatureGeometry {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is BorderStrokeGeometry && _listsEqual(_strokes, other._strokes);
+      other is BorderStrokeGeometry &&
+          alignment == other.alignment &&
+          _listsEqual(_strokes, other._strokes);
 
   @override
-  int get hashCode => Object.hashAll(_strokes);
+  int get hashCode => Object.hash(alignment, Object.hashAll(_strokes));
 }
 
 /// Stable region excluded from Border resolution.

@@ -370,11 +370,17 @@ BorderStrokeGeometry _resizeStrokeGeometry({
   };
   final resized = <BorderStroke>[];
   var changed = false;
+  final pointBounds = geometry.alignment == BorderStrokeAlignment.gridEdges
+      ? GridSize(
+          width: newMapSize.width + 1,
+          height: newMapSize.height + 1,
+        )
+      : newMapSize;
 
   for (final stroke in geometry.strokes) {
     final sourceIdentity = resolveBorderStrokeLineageIdentityV1(stroke);
     final clippedPoints = stroke.points
-        .where((point) => !_containsCell(newMapSize, point.x, point.y))
+        .where((point) => !_containsCell(pointBounds, point.x, point.y))
         .toList(growable: false);
     if (clippedPoints.isEmpty) {
       resized.add(stroke);
@@ -402,8 +408,8 @@ BorderStrokeGeometry _resizeStrokeGeometry({
     );
 
     final runs = stroke.closed
-        ? _splitClippedClosedStroke(stroke.points, newMapSize)
-        : _splitClippedOpenStroke(stroke.points, newMapSize);
+        ? _splitClippedClosedStroke(stroke.points, pointBounds)
+        : _splitClippedOpenStroke(stroke.points, pointBounds);
     var retainedFragmentCount = 0;
     var removedFragmentCount = 0;
     GridPos? firstRemovedFragmentCell;
@@ -486,7 +492,12 @@ BorderStrokeGeometry _resizeStrokeGeometry({
     }
   }
 
-  return changed ? BorderStrokeGeometry(strokes: resized) : geometry;
+  return changed
+      ? BorderStrokeGeometry(
+          strokes: resized,
+          alignment: geometry.alignment,
+        )
+      : geometry;
 }
 
 List<_ResizeStrokeRun> _splitClippedOpenStroke(

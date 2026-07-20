@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('Border template enums', () {
-    test('templates retain V1 order and append connectedLine', () {
+    test('templates retain historical order and append stoneChainLine', () {
       expect(
         BorderBlueprintTemplate.values.map((value) => value.name),
         <String>[
@@ -11,6 +11,7 @@ void main() {
           'masonryLine',
           'postAndRailLine',
           'connectedLine',
+          'stoneChainLine',
         ],
       );
       expect(
@@ -18,6 +19,12 @@ void main() {
           BorderBlueprintTemplate.connectedLine,
         ),
         'connectedLine',
+      );
+      expect(
+        borderBlueprintTemplateV1WireName(
+          BorderBlueprintTemplate.stoneChainLine,
+        ),
+        'stoneChainLine',
       );
     });
 

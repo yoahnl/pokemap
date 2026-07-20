@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart'
     show
+        DragStartBehavior,
         PointerScrollEvent,
         PointerSignalEvent,
         kSecondaryButton,
@@ -34,6 +35,7 @@ import '../../features/editor/state/environment_mask_brush_size_provider.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/narrative/state/narrative_event_map_bridge_state.dart';
 import '../../features/border_map_editing/application/border_feature_hit_test.dart';
+import '../../features/border_map_editing/application/border_grid_edge_snapping.dart';
 import '../../features/border_map_editing/application/border_region_editing.dart';
 import '../../features/border_map_editing/application/border_tool_availability.dart';
 import '../../features/border_map_editing/application/border_preview_transaction.dart';
@@ -57,6 +59,11 @@ import '../../theme/theme.dart';
 // des part files dédiés pour rendre cette surface re-reviewable.
 part 'map_canvas/map_canvas_assets.dart';
 part 'map_canvas/map_grid_painter.dart';
+
+const bool _showMapGrid = bool.fromEnvironment(
+  'POKEMAP_MARIONETTE_SHOW_MAP_GRID',
+  defaultValue: true,
+);
 
 bool _isEnvironmentMaskEditing(EditorState state, MapData map) {
   final mode = state.environmentMaskEditMode;
@@ -179,6 +186,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       const {};
   Future<Map<String, ui.Image?>>? _tilesetImagesFuture;
   GridPos? _hoveredTile;
+  GridPos? _hoveredBorderVertex;
 
   /// Clic droit + glisser (souris Apple / macOS) ou clic molette + glisser : panoramique.
   int? _rightPanPointerId;
@@ -398,11 +406,56 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           activeLayerId: state.activeLayerId,
           activeFeatureId: activeBorderFeature.activeFeatureId,
         );
+        final canResumeResolvedLinearBorder = borderPreviewState.phase ==
+                BorderPreviewPhase.resolved &&
+            borderPreviewState.transaction?.layerId == state.activeLayerId &&
+            borderPreviewState.transaction?.featureId ==
+                activeBorderFeature.activeFeatureId &&
+            borderPreviewState.transaction?.proposedFeature.geometry
+                is BorderStrokeGeometry;
         final isBorderEditing = borderToolAvailability.isEnabled &&
             (state.activeTool == EditorToolType.borderPaint ||
                 state.activeTool == EditorToolType.borderErase) &&
             (borderPreviewState.phase == BorderPreviewPhase.idle ||
-                borderPreviewState.phase == BorderPreviewPhase.drawing);
+                borderPreviewState.phase == BorderPreviewPhase.drawing ||
+                canResumeResolvedLinearBorder);
+        BorderLayer? activeBorderLayer;
+        for (final layer in activeMap.layers) {
+          if (layer.id == state.activeLayerId && layer is BorderLayer) {
+            activeBorderLayer = layer;
+            break;
+          }
+        }
+        final persistedActiveBorderFeature = activeBorderLayer?.content
+            .featureById(activeBorderFeature.activeFeatureId ?? '');
+        final usesGridEdgeSnapping =
+            switch (persistedActiveBorderFeature?.geometry) {
+          BorderStrokeGeometry(:final alignment) =>
+            alignment == BorderStrokeAlignment.gridEdges,
+          _ => false,
+        };
+
+        GridPos? screenToActiveToolGrid(Offset localPosition) {
+          if (isBorderEditing && usesGridEdgeSnapping) {
+            return snapBorderGridVertex(
+              localPosition: localPosition,
+              pan: state.panOffset,
+              zoom: state.zoom,
+              mapSize: activeMap.size,
+              tileWidth: tileWidth,
+              tileHeight: tileHeight,
+            );
+          }
+          return _screenToGrid(
+            localPosition,
+            state.panOffset,
+            state.zoom,
+            activeMap.size,
+            tileWidth,
+            tileHeight,
+          );
+        }
+
         final isLegacyStrokeEditingTool =
             state.activeTool == EditorToolType.tilePaint ||
                 state.activeTool == EditorToolType.terrainPaint ||
@@ -477,6 +530,13 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 featureId: activeBorderFeature.activeFeatureId!,
                 context: previewContext,
               );
+            } else if (borderPreviewController.current.phase ==
+                BorderPreviewPhase.resolved) {
+              final resumed = borderPreviewController.resumeDrawing(
+                layerId: state.activeLayerId!,
+                featureId: activeBorderFeature.activeFeatureId!,
+              );
+              if (!resumed) return;
             }
             final transaction = borderPreviewController.current.transaction;
             final geometry = transaction?.proposedFeature.geometry;
@@ -509,15 +569,20 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               final sampledDraft = currentDraft.sample(gridPos);
               try {
                 final updated = sampledDraft.previewGeometry;
-                if (updated != null) previewBorderGeometry(updated);
+                if (updated != null) {
+                  // Linear chains can contain hundreds of snapped vertices.
+                  // Keep the authored draft live during the drag, then run the
+                  // expensive deterministic resolver once on pointer release.
+                  borderPreviewController.updateGeometry(updated);
+                }
                 _borderStrokeEditingDraft = sampledDraft;
               } on ValidationException {
-                // Invalid V1 input is a rejected editor gesture, not a Flutter
-                // failure. Drop the whole transient proposal so a previously
-                // valid prefix can never be applied as a silent truncation.
+                // Invalid input rejects this gesture. If it was extending a
+                // resolved multi-stroke proposal, keep that exact checkpoint;
+                // a malformed second stroke must not erase the first one.
                 _borderStrokeEditingDraft = null;
                 _borderStrokeGestureRejected = true;
-                borderPreviewController.cancel();
+                borderPreviewController.rollbackDrawingGesture();
               }
             }
             return;
@@ -585,9 +650,14 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             if (geometry is BorderRegionGeometry) {
               previewBorderGeometry(geometry);
             } else if (geometry is BorderStrokeGeometry) {
-              _borderStrokeEditingDraft = null;
-              borderPreviewController.cancel();
-              return;
+              final completedGeometry =
+                  _borderStrokeEditingDraft?.previewGeometry;
+              if (completedGeometry == null) {
+                _borderStrokeEditingDraft = null;
+                borderPreviewController.rollbackDrawingGesture();
+                return;
+              }
+              previewBorderGeometry(completedGeometry);
             }
           }
           borderPreviewController.finishDrawing();
@@ -603,20 +673,15 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           onPointerSignal: _onMapPointerSignal,
           onPointerHover: (event) => _onMapPointerHover(event.localPosition),
           child: GestureDetector(
+            key: const ValueKey<String>('map-canvas-gesture-detector'),
+            dragStartBehavior: DragStartBehavior.down,
             onTapUp: (details) {
-              final gridPos = _screenToGrid(
-                details.localPosition,
-                state.panOffset,
-                state.zoom,
-                activeMap.size,
-                tileWidth,
-                tileHeight,
-              );
-              if (gridPos == null) return;
+              final gridPos = screenToActiveToolGrid(details.localPosition);
 
               if (bridgeState.pendingReturn != null &&
                   bridgeState.navigationMode ==
                       NarrativeEventMapNavigationMode.create) {
+                if (gridPos == null) return;
                 final kind = bridgeState.sourceCreationKind;
                 if (kind != null && !bridgeState.isSourceCreationBusy) {
                   final proposal = notifier.proposeNarrativeEventSourceAt(
@@ -637,13 +702,23 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               final eventBuilderPositionChosen =
                   widget.onEventBuilderPositionChosen;
               if (eventBuilderPositionChosen != null) {
-                eventBuilderPositionChosen(gridPos);
+                final eventGridPos = _screenToGrid(
+                  details.localPosition,
+                  state.panOffset,
+                  state.zoom,
+                  activeMap.size,
+                  tileWidth,
+                  tileHeight,
+                );
+                if (eventGridPos == null) return;
+                eventBuilderPositionChosen(eventGridPos);
                 return;
               }
 
               if (bridgeState.pendingReturn != null &&
                   bridgeState.navigationMode ==
                       NarrativeEventMapNavigationMode.choose) {
+                if (gridPos == null) return;
                 final candidate = resolveNarrativeEventMapCandidateAt(
                   map: activeMap,
                   pos: gridPos,
@@ -670,6 +745,27 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 return;
               }
 
+              if (state.activeTool == EditorToolType.selection &&
+                  activeBorderLayer != null) {
+                final hit = hitTestBorderFeatureAtScreenPosition(
+                  layer: activeBorderLayer,
+                  localPosition: details.localPosition,
+                  pan: state.panOffset,
+                  zoom: state.zoom,
+                  tileWidth: tileWidth,
+                  tileHeight: tileHeight,
+                );
+                if (hit != null) {
+                  notifier.selectBorderFeature(
+                    layerId: activeBorderLayer.id,
+                    featureId: hit.id,
+                  );
+                }
+                return;
+              }
+
+              if (gridPos == null) return;
+
               // Mode secondaire explicite: placement visuel de waypoint NPC.
               // Tant qu'il est actif, le clic map est routé vers l'ajout d'un
               // waypoint, avant d'appliquer les outils classiques.
@@ -692,26 +788,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 return;
               }
 
-              if (state.activeTool == EditorToolType.selection) {
-                MapLayer? activeLayer;
-                for (final layer in activeMap.layers) {
-                  if (layer.id == state.activeLayerId) {
-                    activeLayer = layer;
-                    break;
-                  }
-                }
-                if (activeLayer is BorderLayer) {
-                  final hit = hitTestBorderFeature(
-                    layer: activeLayer,
-                    position: gridPos,
-                  );
-                  if (hit != null) {
-                    notifier.selectBorderFeature(
-                      layerId: activeLayer.id,
-                      featureId: hit.id,
-                    );
-                  }
-                }
+              if (state.activeTool == EditorToolType.selection &&
+                  !isEnvironmentMaskEditing) {
                 return;
               }
 
@@ -748,14 +826,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 return;
               }
               if (!isStrokeEditingTool) return;
-              final gridPos = _screenToGrid(
-                details.localPosition,
-                state.panOffset,
-                state.zoom,
-                activeMap.size,
-                tileWidth,
-                tileHeight,
-              );
+              final gridPos = screenToActiveToolGrid(details.localPosition);
               if (gridPos == null) return;
               if (isEnvironmentMaskEditing) {
                 _lastEnvironmentMaskPaintCell = null;
@@ -795,14 +866,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 return;
               }
               if (!isStrokeEditingTool) return;
-              final gridPos = _screenToGrid(
-                details.localPosition,
-                state.panOffset,
-                state.zoom,
-                activeMap.size,
-                tileWidth,
-                tileHeight,
-              );
+              final gridPos = screenToActiveToolGrid(details.localPosition);
               if (gridPos != null) {
                 if (isEnvironmentMaskEditing &&
                     _lastEnvironmentMaskPaintCell == gridPos) {
@@ -857,7 +921,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 if (isBorderEditing) {
                   _lastBorderPaintCell = null;
                   _borderStrokeEditingDraft = null;
-                  borderPreviewController.cancel();
+                  borderPreviewController.rollbackDrawingGesture();
                 } else {
                   notifier.endMapStroke();
                 }
@@ -865,9 +929,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             },
             child: MouseRegion(
               onExit: (_) {
-                if (_hoveredTile != null) {
+                if (_hoveredTile != null || _hoveredBorderVertex != null) {
                   setState(() {
                     _hoveredTile = null;
+                    _hoveredBorderVertex = null;
                   });
                 }
               },
@@ -919,6 +984,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           project: state.project,
                           shadowLightPreviewPreset: shadowLightPreviewPreset,
                           editorEntityAnimationMs: _editorEntityAnimationMs,
+                          showGrid: _showMapGrid,
                           environmentMaskOverlay: environmentMaskOverlay,
                           environmentBrushCursorOverlay:
                               environmentBrushCursorOverlay,
@@ -938,6 +1004,27 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                         ),
                       ),
                     ),
+                    if (isBorderEditing &&
+                        usesGridEdgeSnapping &&
+                        _hoveredBorderVertex != null)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: CustomPaint(
+                            key: const ValueKey<String>(
+                              'border-grid-edge-guide',
+                            ),
+                            painter: _BorderGridEdgeGuidePainter(
+                              vertex: _hoveredBorderVertex!,
+                              mapSize: activeMap.size,
+                              pan: state.panOffset,
+                              zoom: state.zoom,
+                              tileWidth: tileWidth,
+                              tileHeight: tileHeight,
+                              color: colors.brandPrimary,
+                            ),
+                          ),
+                        ),
+                      ),
                     if (bridgeState.pendingReturn != null ||
                         narrativeNavigation.pendingReturn != null)
                       const Positioned(
@@ -1221,9 +1308,35 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       tileW,
       tileH,
     );
-    if (_hoveredTile != gridPos) {
+    final activeBorderSelection =
+        ref.read(activeBorderFeatureControllerProvider);
+    BorderFeature? activeBorderFeature;
+    if (s.activeTool == EditorToolType.borderPaint ||
+        s.activeTool == EditorToolType.borderErase) {
+      for (final layer in map.layers.whereType<BorderLayer>()) {
+        if (layer.id != s.activeLayerId) continue;
+        activeBorderFeature = layer.content.featureById(
+          activeBorderSelection.activeFeatureId ?? '',
+        );
+        break;
+      }
+    }
+    final borderVertex = switch (activeBorderFeature?.geometry) {
+      BorderStrokeGeometry(alignment: BorderStrokeAlignment.gridEdges) =>
+        snapBorderGridVertex(
+          localPosition: localPosition,
+          pan: s.panOffset,
+          zoom: s.zoom,
+          mapSize: map.size,
+          tileWidth: tileW,
+          tileHeight: tileH,
+        ),
+      _ => null,
+    };
+    if (_hoveredTile != gridPos || _hoveredBorderVertex != borderVertex) {
       setState(() {
         _hoveredTile = gridPos;
+        _hoveredBorderVertex = borderVertex;
       });
     }
   }
@@ -1542,4 +1655,67 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     }
     return null;
   }
+}
+
+final class _BorderGridEdgeGuidePainter extends CustomPainter {
+  const _BorderGridEdgeGuidePainter({
+    required this.vertex,
+    required this.mapSize,
+    required this.pan,
+    required this.zoom,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.color,
+  });
+
+  final GridPos vertex;
+  final GridSize mapSize;
+  final Offset pan;
+  final double zoom;
+  final double tileWidth;
+  final double tileHeight;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(
+      pan.dx + vertex.x * tileWidth * zoom,
+      pan.dy + vertex.y * tileHeight * zoom,
+    );
+    final edgePaint = Paint()
+      ..color = color.withValues(alpha: 0.76)
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    final horizontalStep = tileWidth * zoom;
+    final verticalStep = tileHeight * zoom;
+    if (vertex.x > 0) {
+      canvas.drawLine(center, center - Offset(horizontalStep, 0), edgePaint);
+    }
+    if (vertex.x < mapSize.width) {
+      canvas.drawLine(center, center + Offset(horizontalStep, 0), edgePaint);
+    }
+    if (vertex.y > 0) {
+      canvas.drawLine(center, center - Offset(0, verticalStep), edgePaint);
+    }
+    if (vertex.y < mapSize.height) {
+      canvas.drawLine(center, center + Offset(0, verticalStep), edgePaint);
+    }
+    canvas.drawCircle(
+      center,
+      4,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.fill,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_BorderGridEdgeGuidePainter oldDelegate) =>
+      vertex != oldDelegate.vertex ||
+      mapSize != oldDelegate.mapSize ||
+      pan != oldDelegate.pan ||
+      zoom != oldDelegate.zoom ||
+      tileWidth != oldDelegate.tileWidth ||
+      tileHeight != oldDelegate.tileHeight ||
+      color != oldDelegate.color;
 }

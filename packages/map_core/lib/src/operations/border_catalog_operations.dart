@@ -288,10 +288,10 @@ ProjectBorderCatalog _copyCatalogWithRecords(
   ProjectBorderCatalog catalog,
   List<BorderBlueprintRecord> records,
 ) {
-  final requiresV2 = records.any(borderBlueprintRecordRequiresFormatV2);
+  final minimumVersion = minimumBorderCatalogFormatVersionForRecords(records);
   return ProjectBorderCatalog(
-    formatVersion: requiresV2
-        ? ProjectBorderCatalog.formatVersionV2
+    formatVersion: minimumVersion > catalog.formatVersion
+        ? minimumVersion
         : catalog.formatVersion,
     records: records,
     visualSnapshots: catalog.visualSnapshots,

@@ -9,6 +9,7 @@ import '../models/border_value_objects.dart';
 import '../models/border_visual_snapshot.dart';
 import 'border_fingerprints.dart';
 import 'border_rle_codec.dart';
+import 'border_template_capabilities.dart';
 
 /// Explicit stable order for Border V1 staleness reasons.
 const List<BorderStalenessReason> borderStalenessReasonV1Order =
@@ -331,16 +332,21 @@ bool _geometryIsCompatibleAndUsable(BorderResolutionRequest request) {
       return false;
     }
   } else {
-    if (geometry is! BorderStrokeGeometry || geometry.strokes.isEmpty) {
+    if (geometry is! BorderStrokeGeometry ||
+        geometry.strokes.isEmpty ||
+        geometry.alignment != borderTemplateStrokeAlignment(template)) {
       return false;
     }
+    final includesOuterVertices =
+        geometry.alignment == BorderStrokeAlignment.gridEdges;
     for (final stroke in geometry.strokes) {
       if (stroke.points.any(
-        (point) => !_cellIsInsideMap(
+        (point) => !_strokePointIsInsideMap(
           point.x,
           point.y,
           request.mapSize.width,
           request.mapSize.height,
+          includesOuterVertices: includesOuterVertices,
         ),
       )) {
         return false;
@@ -557,6 +563,18 @@ bool _materializationStructureIsValid(
 
 bool _cellIsInsideMap(int x, int y, int width, int height) =>
     x >= 0 && y >= 0 && x < width && y < height;
+
+bool _strokePointIsInsideMap(
+  int x,
+  int y,
+  int width,
+  int height, {
+  required bool includesOuterVertices,
+}) =>
+    x >= 0 &&
+    y >= 0 &&
+    (includesOuterVertices ? x <= width : x < width) &&
+    (includesOuterVertices ? y <= height : y < height);
 
 bool _rectIntersectsCanvas(
   int x,

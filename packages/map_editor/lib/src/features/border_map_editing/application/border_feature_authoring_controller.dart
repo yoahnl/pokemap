@@ -112,8 +112,14 @@ final class BorderFeatureAuthoringController {
           ),
         BorderBlueprintTemplate.masonryLine ||
         BorderBlueprintTemplate.postAndRailLine ||
-        BorderBlueprintTemplate.connectedLine =>
-          BorderStrokeGeometry(strokes: const <BorderStroke>[]),
+        BorderBlueprintTemplate.connectedLine ||
+        BorderBlueprintTemplate.stoneChainLine =>
+          BorderStrokeGeometry(
+            alignment: borderTemplateStrokeAlignment(
+              published.definition.template,
+            ),
+            strokes: const <BorderStroke>[],
+          ),
       },
       overrides: const <BorderSlotOverride>[],
       keepOutRegions: const <BorderKeepOutRegion>[],
@@ -631,6 +637,7 @@ BorderFeature _copyFeatureWithMaterialization(
 String _familyLabel(BorderGeometryFamily family) => switch (family) {
       BorderGeometryFamily.region => 'région',
       BorderGeometryFamily.linear => 'ligne',
+      BorderGeometryFamily.gridEdgeLinear => 'ligne sur les arêtes',
     };
 
 String _lossLabel(BorderRelinkLoss loss) => switch (loss) {

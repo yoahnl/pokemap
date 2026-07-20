@@ -6,6 +6,7 @@ import 'package:test/test.dart';
 import '../fixtures/border/masonry_line_fixture.dart';
 import '../fixtures/border/organic_edge_reference_coast_fixture.dart';
 import '../fixtures/border/post_and_rail_line_fixture.dart';
+import '../fixtures/border/two_tier_stone_chain_fixture.dart';
 
 void main() {
   group('Border dirty halo', () {
@@ -1072,6 +1073,146 @@ void main() {
           local.recomputedSourceCells,
           isNot(contains(beforeBySlot[distantSlots.first]!.anchorCell)),
           reason: '${scenario.name}: distant loop branch must not run',
+        );
+      }
+    });
+
+    test('local regeneration preserves distant face slots', () {
+      final stroke = BorderStroke(
+        id: 'two-tier-locality',
+        points: <GridPos>[
+          for (var x = 2; x <= 22; x += 1) GridPos(x: x, y: 4),
+          for (var y = 5; y <= 18; y += 1) GridPos(x: 22, y: y),
+          for (var x = 21; x >= 4; x -= 1) GridPos(x: x, y: 18),
+        ],
+        closed: false,
+      );
+      final source = TwoTierStoneChainFixture().request;
+      final beforeRequest = _copyRequestWithGeometry(
+        source,
+        BorderStrokeGeometry(
+          strokes: <BorderStroke>[stroke],
+          alignment: BorderStrokeAlignment.gridEdges,
+        ),
+      );
+      final beforeState = resolveBorderFeatureLocalBaseline(beforeRequest);
+      expect(
+        beforeState.result.canApply,
+        isTrue,
+        reason: beforeState.result.diagnostics
+            .map((diagnostic) => '${diagnostic.code}:${diagnostic.parameters}')
+            .join(', '),
+      );
+      expect(computeBorderDirtyHaloRadiusForRequestPx(beforeRequest),
+          greaterThanOrEqualTo(32));
+
+      const distantTurn = GridPos(x: 22, y: 18);
+      final distantFaceSlots = <String>[
+        for (final rank in const <int>[0, 1])
+          buildBorderStoneChainNodeSlotKey(
+            featureId: beforeRequest.feature.id,
+            strokeId: borderStrokeLineageNamespaceV1(stroke.id),
+            vertex: distantTurn,
+            passIndex: 1,
+            role: BorderPrimitiveRole.structureMedium,
+            rank: rank,
+          ),
+      ];
+      final beforeBySlot = <String, BorderResolvedPlacement>{
+        for (final placement in beforeState.materialization.placements)
+          placement.slotKey: placement,
+      };
+      expect(beforeBySlot.keys, containsAll(distantFaceSlots));
+
+      const erasedCell = GridPos(x: 6, y: 4);
+      final erasedGeometry = BorderStrokeEditingDraft.begin(
+        baseGeometry: beforeRequest.feature.geometry as BorderStrokeGeometry,
+        mode: BorderStrokeEditingMode.erase,
+        pointerDown: erasedCell,
+      ).previewGeometry!;
+      final erasedRequest = _copyRequestWithGeometry(
+        beforeRequest,
+        erasedGeometry,
+      );
+      final full = resolveBorderFeature(erasedRequest);
+      expect(
+        full.canApply,
+        isTrue,
+        reason: full.diagnostics
+            .map((diagnostic) => '${diagnostic.code}:${diagnostic.parameters}')
+            .join(', '),
+      );
+      final fullBySlot = <String, BorderResolvedPlacement>{
+        for (final placement in full.materialization!.placements)
+          placement.slotKey: placement,
+      };
+      final changedSharedSlots = <String>[
+        for (final slotKey in beforeBySlot.keys)
+          if (fullBySlot[slotKey] case final after?)
+            if (beforeBySlot[slotKey] != after) slotKey,
+      ];
+      expect(
+        changedSharedSlots,
+        isNotEmpty,
+        reason: 'The strict run planner must expose the prefix dependency.',
+      );
+      final edit = BorderLocalEdit.forCells(
+        cells: const <GridPos>[erasedCell],
+        tileSizePx: erasedRequest.tileSizePx,
+      );
+      final local = resolveBorderFeatureLocally(
+        request: erasedRequest,
+        previousState: beforeState,
+        edits: <BorderLocalEdit>[edit],
+      );
+
+      expect(local.result, full);
+      for (final slotKey in changedSharedSlots) {
+        expect(
+          local.dirtyHalo.intersects(
+                beforeBySlot[slotKey]!.opaqueWorldBoundsPx,
+              ) ||
+              local.dirtyHalo.intersects(
+                fullBySlot[slotKey]!.opaqueWorldBoundsPx,
+              ),
+          isTrue,
+          reason: '$slotKey belongs to the touched strict planner run.',
+        );
+        expect(
+          local.reusedDistantPlacementSlotKeys,
+          isNot(contains(slotKey)),
+          reason: '$slotKey changed in the canonical full solve.',
+        );
+      }
+      for (final cell in local.recomputedSourceCells) {
+        final cellBounds = BorderLocalEdit.forCells(
+          cells: <GridPos>[cell],
+          tileSizePx: erasedRequest.tileSizePx,
+        ).sourceBoundsPx.single;
+        expect(
+          local.dirtyHalo.intersects(cellBounds),
+          isTrue,
+          reason: '$cell must belong to the declared dependency domain.',
+        );
+      }
+      expect(
+        local.reusedDistantPlacementSlotKeys,
+        containsAll(distantFaceSlots),
+      );
+      final localBySlot = <String, BorderResolvedPlacement>{
+        for (final placement in local.result.materialization!.placements)
+          placement.slotKey: placement,
+      };
+      for (final slotKey in distantFaceSlots) {
+        expect(localBySlot[slotKey], same(beforeBySlot[slotKey]));
+        expect(
+          _placementBytes(localBySlot[slotKey]!),
+          _placementBytes(beforeBySlot[slotKey]!),
+        );
+        expect(
+          local.dirtyHalo
+              .intersects(beforeBySlot[slotKey]!.opaqueWorldBoundsPx),
+          isFalse,
         );
       }
     });

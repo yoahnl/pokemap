@@ -398,6 +398,27 @@ void main() {
   });
 
   group('BorderStrokeGeometry', () {
+    test('alignment participates in equality and hashing', () {
+      final stroke = _openStroke('edge');
+      final cellCenters = BorderStrokeGeometry(
+        strokes: <BorderStroke>[stroke],
+      );
+      final equalCellCenters = BorderStrokeGeometry(
+        strokes: <BorderStroke>[_openStroke('edge')],
+      );
+      final gridEdges = BorderStrokeGeometry(
+        strokes: <BorderStroke>[_openStroke('edge')],
+        alignment: BorderStrokeAlignment.gridEdges,
+      );
+
+      expect(cellCenters, equalCellCenters);
+      expect(cellCenters.hashCode, equalCellCenters.hashCode);
+      expect(gridEdges, isNot(cellCenters));
+      expect(gridEdges.hashCode, isNot(cellCenters.hashCode));
+      expect(<BorderStrokeGeometry>{cellCenters, equalCellCenters, gridEdges},
+          hasLength(2));
+    });
+
     test('owns ordered strokes without canonicalizing their order', () {
       final input = <BorderStroke>[
         _openStroke('west', x: -3, y: 0),

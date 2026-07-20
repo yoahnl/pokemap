@@ -9420,12 +9420,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'loadBorderAssets',
         () => _loadBorderRuntimeAssets(newBundle),
       );
-      if (transitionSpec.style == _WarpTransitionStyle.fade) {
-        debugPrint(
-          '[warp] fade out durationMs=${transitionSpec.fadeOut.inMilliseconds}',
-        );
-        await overlay.fadeOut(duration: transitionSpec.fadeOut);
-      }
       newBundle = await _traceAsync(
         'warp',
         'revalidateBorderBeforeSwap',

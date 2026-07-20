@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/models/map_history_snapshot.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_feature_authoring_controller.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_preview_controller.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_preview_transaction.dart';
@@ -483,6 +484,473 @@ void main() {
     expect(applied.lineSide, BorderLineSide.inverted);
     expect(notifier.state.mapUndoStack, hasLength(historyBefore + 1));
   });
+
+  test('stone-chain side inversion preserves grid edges until one Apply', () {
+    final preview = BorderPreviewController(
+      resolver: (request) => BorderResolutionResult(
+        materialization: _materialization(
+          placementY:
+              request.feature.lineSide == BorderLineSide.primary ? 4 : -4,
+        ),
+        diagnosticReport: const BorderDiagnosticsReport.empty(),
+      ),
+      applier: _applyProposedFeature,
+    );
+    final container = ProviderContainer(
+      overrides: <Override>[
+        borderPreviewControllerProvider.overrideWith((ref) => preview),
+      ],
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = EditorState(
+      projectRootPath: '/projects/stone-chain',
+      project: _project(<BorderBlueprintRecord>[
+        _record(
+          'stone-chain',
+          template: BorderBlueprintTemplate.stoneChainLine,
+        ),
+      ]),
+      activeMap: MapData(
+        id: 'map',
+        name: 'Map',
+        version: ProjectVersion.v2,
+        size: const GridSize(width: 4, height: 3),
+        layers: <MapLayer>[
+          MapLayer.border(
+            id: 'borders',
+            name: 'Bordures',
+            content: BorderLayerContent(
+              formatVersion: BorderLayerContent.formatVersionV3,
+            ),
+          ),
+        ],
+      ),
+      activeMapPath: '/projects/stone-chain/maps/map.json',
+      activeLayerId: 'borders',
+    );
+    container.read(activeBorderFeatureControllerProvider);
+    notifier.createBorderFeature(
+      layerId: 'borders',
+      blueprintId: 'stone-chain',
+      name: 'Falaise',
+    );
+    final authoredMap = updateBorderFeatureGeometry(
+      notifier.state.activeMap!,
+      layerId: 'borders',
+      featureId: 'border_feature',
+      geometry: BorderStrokeGeometry(
+        alignment: BorderStrokeAlignment.gridEdges,
+        strokes: <BorderStroke>[
+          BorderStroke(
+            id: 'coast-edge',
+            points: const <GridPos>[
+              GridPos(x: 0, y: 0),
+              GridPos(x: 1, y: 0),
+              GridPos(x: 2, y: 0),
+            ],
+            closed: false,
+          ),
+        ],
+      ),
+    );
+    notifier.state = notifier.state.copyWith(activeMap: authoredMap);
+    container
+        .read(activeBorderFeatureControllerProvider.notifier)
+        .selectFeature(
+          map: authoredMap,
+          layerId: 'borders',
+          featureId: 'border_feature',
+        );
+    final beforeJson = authoredMap.toJson();
+    final historyBefore = notifier.state.mapUndoStack.length;
+
+    expect(
+      notifier.previewBorderFeatureLineSideToggle(
+        layerId: 'borders',
+        featureId: 'border_feature',
+      ),
+      isTrue,
+    );
+    final proposed = preview.state.transaction!.proposedFeature;
+    expect(proposed.lineSide, BorderLineSide.inverted);
+    expect(
+        proposed.geometry,
+        authoredMap.layers
+            .whereType<BorderLayer>()
+            .single
+            .content
+            .features
+            .single
+            .geometry);
+    final primaryPlacement = _materialization(placementY: 4).placements.single;
+    final invertedPlacement =
+        preview.state.transaction!.result!.materialization!.placements.single;
+    expect(invertedPlacement.id, primaryPlacement.id);
+    expect(invertedPlacement.slotKey, primaryPlacement.slotKey);
+    expect(invertedPlacement.primitiveId, primaryPlacement.primitiveId);
+    expect(
+        invertedPlacement.topLeftWorldPx.y, -primaryPlacement.topLeftWorldPx.y);
+    expect(invertedPlacement.transform.flipX, isFalse);
+    expect(invertedPlacement.transform.quarterTurns, 0);
+    expect(notifier.state.activeMap!.toJson(), beforeJson);
+    expect(notifier.state.mapUndoStack, hasLength(historyBefore));
+
+    expect(notifier.applyPendingBorderPreview(), isTrue);
+    expect(notifier.state.mapUndoStack, hasLength(historyBefore + 1));
+
+    final appliedMap = notifier.state.activeMap!;
+    final applied = appliedMap.layers
+        .whereType<BorderLayer>()
+        .single
+        .content
+        .features
+        .single;
+    final reloadedMap = MapData.fromJson(appliedMap.toJson());
+    final reloaded = reloadedMap.layers
+        .whereType<BorderLayer>()
+        .single
+        .content
+        .features
+        .single;
+    expect(reloaded.lineSide, BorderLineSide.inverted);
+    expect(
+      (reloaded.geometry as BorderStrokeGeometry).alignment,
+      BorderStrokeAlignment.gridEdges,
+    );
+    expect(reloaded.geometry, applied.geometry);
+    expect(reloaded.materialization, applied.materialization);
+    expect(
+      computeBorderFeatureEditFingerprint(reloaded),
+      computeBorderFeatureEditFingerprint(applied),
+    );
+  });
+
+  test('new stone-chain draw can invert side before its first atomic Apply',
+      () {
+    final preview = BorderPreviewController(
+      resolver: (request) => BorderResolutionResult(
+        materialization: _materialization(
+          placementY:
+              request.feature.lineSide == BorderLineSide.primary ? 4 : -4,
+        ),
+        diagnosticReport: const BorderDiagnosticsReport.empty(),
+      ),
+      applier: _applyProposedFeature,
+    );
+    final container = ProviderContainer(
+      overrides: <Override>[
+        borderPreviewControllerProvider.overrideWith((ref) => preview),
+      ],
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = EditorState(
+      projectRootPath: '/projects/stone-chain-new-draw',
+      project: _project(<BorderBlueprintRecord>[
+        _record(
+          'stone-chain',
+          template: BorderBlueprintTemplate.stoneChainLine,
+        ),
+      ]),
+      activeMap: MapData(
+        id: 'map',
+        name: 'Map',
+        version: ProjectVersion.v2,
+        size: const GridSize(width: 4, height: 3),
+        layers: <MapLayer>[
+          MapLayer.border(
+            id: 'borders',
+            name: 'Bordures',
+            content: BorderLayerContent(
+              formatVersion: BorderLayerContent.formatVersionV3,
+            ),
+          ),
+        ],
+      ),
+      activeMapPath: '/projects/stone-chain-new-draw/maps/map.json',
+      activeLayerId: 'borders',
+    );
+    container.read(activeBorderFeatureControllerProvider);
+    notifier.createBorderFeature(
+      layerId: 'borders',
+      blueprintId: 'stone-chain',
+      name: 'Nouvelle côte',
+    );
+    final mapBeforeApply = notifier.state.activeMap!;
+    final persisted = mapBeforeApply.layers
+        .whereType<BorderLayer>()
+        .single
+        .content
+        .features
+        .single;
+    container
+        .read(activeBorderFeatureControllerProvider.notifier)
+        .selectFeature(
+          map: mapBeforeApply,
+          layerId: 'borders',
+          featureId: persisted.id,
+        );
+    final drawn = BorderFeature(
+      id: persisted.id,
+      name: persisted.name,
+      blueprintId: persisted.blueprintId,
+      seed: persisted.seed,
+      geometry: BorderStrokeGeometry(
+        alignment: BorderStrokeAlignment.gridEdges,
+        strokes: <BorderStroke>[
+          BorderStroke(
+            id: 'coast-edge',
+            points: const <GridPos>[
+              GridPos(x: 0, y: 0),
+              GridPos(x: 1, y: 0),
+              GridPos(x: 2, y: 0),
+            ],
+            closed: false,
+          ),
+        ],
+      ),
+      lineSide: persisted.lineSide,
+      paramsOverride: persisted.paramsOverride,
+      overrides: persisted.overrides,
+      keepOutRegions: persisted.keepOutRegions,
+    );
+    preview.begin(
+      map: mapBeforeApply,
+      layerId: 'borders',
+      featureId: persisted.id,
+      context: createEditorBorderPreviewContext(
+        projectRootPath: notifier.state.projectRootPath!,
+        activeMapPath: notifier.state.activeMapPath!,
+        project: notifier.state.project!,
+        map: mapBeforeApply,
+      ),
+    );
+    preview.previewFeatureDraft(
+      drawn,
+      blueprintRevision: notifier.state.project!.borderCatalog
+          .recordById('stone-chain')!
+          .latestPublished,
+      tileSizePx: GridSize(
+        width: notifier.state.project!.settings.tileWidth,
+        height: notifier.state.project!.settings.tileHeight,
+      ),
+      visualSnapshots: notifier.state.project!.borderCatalog.visualSnapshots,
+      resolverVersion: borderResolverVersion,
+    );
+    final drawnTransaction = preview.state.transaction!;
+    final beforeJson = mapBeforeApply.toJson();
+    final historyBeforeApply = notifier.state.mapUndoStack.length;
+
+    expect(
+      notifier.previewBorderFeatureLineSideToggle(
+        layerId: 'borders',
+        featureId: persisted.id,
+      ),
+      isTrue,
+    );
+
+    final inverted = preview.state.transaction!;
+    expect(inverted.baseFeatureFingerprint,
+        drawnTransaction.baseFeatureFingerprint);
+    expect(inverted.proposedFeature.geometry, drawn.geometry);
+    expect(inverted.proposedFeature.lineSide, BorderLineSide.inverted);
+    expect(notifier.state.activeMap!.toJson(), beforeJson);
+    expect(notifier.state.mapUndoStack, hasLength(historyBeforeApply));
+
+    expect(
+      notifier.previewBorderFeatureLineSideToggle(
+        layerId: 'borders',
+        featureId: persisted.id,
+      ),
+      isTrue,
+    );
+    final primaryAgain = preview.state.transaction!;
+    expect(primaryAgain.baseFeatureFingerprint,
+        drawnTransaction.baseFeatureFingerprint);
+    expect(primaryAgain.proposedFeature.geometry, drawn.geometry);
+    expect(primaryAgain.proposedFeature.lineSide, BorderLineSide.primary);
+    expect(
+      primaryAgain.result!.materialization!.placements.single.topLeftWorldPx.y,
+      4,
+    );
+    expect(notifier.state.activeMap!.toJson(), beforeJson);
+    expect(notifier.state.mapUndoStack, hasLength(historyBeforeApply));
+
+    expect(
+      notifier.previewBorderFeatureLineSideToggle(
+        layerId: 'borders',
+        featureId: persisted.id,
+      ),
+      isTrue,
+    );
+    expect(
+      preview.state.transaction!.proposedFeature.lineSide,
+      BorderLineSide.inverted,
+    );
+    expect(
+      preview.state.transaction!.result!.materialization!.placements.single
+          .topLeftWorldPx.y,
+      -4,
+    );
+    expect(notifier.state.activeMap!.toJson(), beforeJson);
+    expect(notifier.state.mapUndoStack, hasLength(historyBeforeApply));
+
+    expect(notifier.applyPendingBorderPreview(), isTrue);
+    final applied = notifier.state.activeMap!.layers
+        .whereType<BorderLayer>()
+        .single
+        .content
+        .features
+        .single;
+    expect(applied.geometry, drawn.geometry);
+    expect(applied.lineSide, BorderLineSide.inverted);
+    expect(notifier.state.mapUndoStack, hasLength(historyBeforeApply + 1));
+  });
+
+  test('stone-chain auto-rotation refinement stays preview-only', () {
+    final preview = BorderPreviewController(
+      resolver: (request) => BorderResolutionResult(
+        materialization: _materialization(
+          quarterTurns:
+              request.feature.paramsOverride?.allowAutoRotation == true ? 1 : 0,
+        ),
+        diagnosticReport: const BorderDiagnosticsReport.empty(),
+      ),
+    );
+    final container = ProviderContainer(
+      overrides: <Override>[
+        borderPreviewControllerProvider.overrideWith((ref) => preview),
+      ],
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    final feature = BorderFeature(
+      id: 'border-feature',
+      name: 'Falaise',
+      blueprintId: 'stone-chain',
+      seed: BorderSignedInt64.zero,
+      geometry: BorderStrokeGeometry(
+        alignment: BorderStrokeAlignment.gridEdges,
+        strokes: <BorderStroke>[
+          BorderStroke(
+            id: 'coast-edge',
+            points: const <GridPos>[
+              GridPos(x: 0, y: 0),
+              GridPos(x: 1, y: 0),
+              GridPos(x: 2, y: 0),
+            ],
+            closed: false,
+          ),
+        ],
+      ),
+      overrides: const <BorderSlotOverride>[],
+      keepOutRegions: const <BorderKeepOutRegion>[],
+    );
+    final map = MapData(
+      id: 'map',
+      name: 'Map',
+      version: ProjectVersion.v2,
+      size: const GridSize(width: 4, height: 3),
+      layers: <MapLayer>[
+        MapLayer.border(
+          id: 'borders',
+          name: 'Bordures',
+          content: BorderLayerContent(
+            formatVersion: BorderLayerContent.formatVersionV3,
+            features: <BorderFeature>[feature],
+          ),
+        ),
+      ],
+    );
+    final undo = MapHistorySnapshot(map: map.copyWith(name: 'Before'));
+    final redo = MapHistorySnapshot(map: map.copyWith(name: 'After'));
+    notifier.state = EditorState(
+      projectRootPath: '/projects/stone-chain',
+      project: _project(<BorderBlueprintRecord>[
+        _record(
+          'stone-chain',
+          template: BorderBlueprintTemplate.stoneChainLine,
+        ),
+      ]),
+      activeMap: map,
+      activeMapPath: '/projects/stone-chain/maps/map.json',
+      activeLayerId: 'borders',
+      mapUndoStack: <MapHistorySnapshot>[undo],
+      mapRedoStack: <MapHistorySnapshot>[redo],
+      canUndoMap: true,
+      canRedoMap: true,
+    );
+    final beforeJson = map.toJson();
+    final historyBefore = notifier.state.mapUndoStack;
+    expect(
+      notifier.previewBorderFeatureUpdate(
+        layerId: 'borders',
+        featureId: feature.id,
+      ),
+      isTrue,
+    );
+    final initial = preview.state.transaction!;
+    final initialSlots = initial.result!.materialization!.placements
+        .map((placement) => placement.slotKey)
+        .toSet();
+
+    expect(
+      notifier.previewBorderFeatureAutoRotation(
+        layerId: 'borders',
+        featureId: feature.id,
+        enabled: true,
+      ),
+      isTrue,
+    );
+    final rotationOn = preview.state.transaction!;
+    expect(rotationOn.baseFeatureFingerprint, initial.baseFeatureFingerprint);
+    expect(rotationOn.proposedFeature.geometry, feature.geometry);
+    expect(
+      rotationOn.proposedFeature.paramsOverride!.allowAutoRotation,
+      isTrue,
+    );
+    expect(
+      rotationOn
+          .result!.materialization!.placements.single.transform.quarterTurns,
+      1,
+    );
+    expect(
+      rotationOn.result!.materialization!.placements
+          .map((placement) => placement.slotKey)
+          .toSet(),
+      initialSlots,
+    );
+    expect(notifier.state.activeMap, same(map));
+    expect(notifier.state.activeMap!.toJson(), beforeJson);
+    expect(notifier.state.mapUndoStack, orderedEquals(historyBefore));
+    expect(notifier.state.mapUndoStack.single, same(undo));
+    expect(notifier.state.mapRedoStack.single, same(redo));
+
+    expect(
+      notifier.previewBorderFeatureAutoRotation(
+        layerId: 'borders',
+        featureId: feature.id,
+        enabled: false,
+      ),
+      isTrue,
+    );
+    final rotationOff = preview.state.transaction!;
+    expect(
+      rotationOff.proposedFeature.paramsOverride!.allowAutoRotation,
+      isFalse,
+    );
+    expect(
+      rotationOff
+          .result!.materialization!.placements.single.transform.quarterTurns,
+      0,
+    );
+    expect(notifier.state.activeMap, same(map));
+    expect(notifier.state.activeMap!.toJson(), beforeJson);
+    expect(notifier.state.mapUndoStack, orderedEquals(historyBefore));
+    expect(notifier.state.mapUndoStack.single, same(undo));
+    expect(notifier.state.mapRedoStack.single, same(redo));
+  });
 }
 
 ProjectManifest _project(List<BorderBlueprintRecord> records) =>
@@ -495,10 +963,16 @@ ProjectManifest _project(List<BorderBlueprintRecord> records) =>
         formatVersion: records.any(
           (record) =>
               record.draft.definition.template ==
-              BorderBlueprintTemplate.connectedLine,
+              BorderBlueprintTemplate.stoneChainLine,
         )
-            ? ProjectBorderCatalog.formatVersionV2
-            : ProjectBorderCatalog.formatVersionV1,
+            ? ProjectBorderCatalog.formatVersionV3
+            : records.any(
+                (record) =>
+                    record.draft.definition.template ==
+                    BorderBlueprintTemplate.connectedLine,
+              )
+                ? ProjectBorderCatalog.formatVersionV2
+                : ProjectBorderCatalog.formatVersionV1,
         records: records,
         visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
       ),
@@ -589,7 +1063,11 @@ BorderVisualSnapshot _snapshot() => BorderVisualSnapshot(
 const _snapshotId =
     'border-snapshot-sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
-BorderMaterialization _materialization() => BorderMaterialization(
+BorderMaterialization _materialization({
+  int placementY = 0,
+  int quarterTurns = 0,
+}) =>
+    BorderMaterialization(
       receipt: BorderResolutionReceipt(
         resolverVersion: 1,
         blueprintRevision: 1,
@@ -614,7 +1092,31 @@ BorderMaterialization _materialization() => BorderMaterialization(
           resolvedRole: SurfaceVariantRole.isolated,
         ),
       ],
-      placements: const <BorderResolvedPlacement>[],
+      placements: <BorderResolvedPlacement>[
+        BorderResolvedPlacement(
+          id: 'placement-a',
+          slotKey: 'slot-a',
+          primitiveId: 'structure',
+          visualSnapshotId: _snapshotId,
+          anchorCell: const GridPos(x: 0, y: 0),
+          topLeftWorldPx: BorderPixelPos(x: 0, y: placementY),
+          opaqueWorldBoundsPx:
+              BorderPixelRect(x: 0, y: placementY, width: 16, height: 16),
+          transform: BorderSpriteTransform(
+            quarterTurns: quarterTurns,
+            flipX: false,
+          ),
+          drawBand: BorderDrawBand.structure,
+          stableOrderKey: BorderStableOrderKey(
+            drawBandIndex: borderDrawBandV1Index(BorderDrawBand.structure),
+            anchorRowMajor: 0,
+            passIndex: 0,
+            rank: 0,
+            ordinalLocal: 0,
+            slotKey: 'slot-a',
+          ),
+        ),
+      ],
     );
 
 MapData _applyProposedFeature({
@@ -648,7 +1150,7 @@ MapData _applyProposedFeature({
   final layers = List<MapLayer>.from(map.layers);
   layers[layerIndex] = layer.copyWith(
     content: BorderLayerContent(
-      formatVersion: BorderLayerContent.formatVersionV2,
+      formatVersion: layer.content.formatVersion,
       features: features,
     ),
   );

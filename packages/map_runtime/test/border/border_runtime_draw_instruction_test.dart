@@ -90,12 +90,83 @@ void main() {
       );
     },
   );
+
+  test('keeps the two-tier cliff face before its top lip', () {
+    final layer = MapLayer.border(
+      id: 'two-tier-border',
+      name: 'Two-tier Border',
+      content: BorderLayerContent(
+        features: <BorderFeature>[
+          _featureWithPlacements(
+            id: 'two-tier-cliff',
+            groundSnapshotId: 'border-snapshot-sha256:$_digestA',
+            placements: <BorderResolvedPlacement>[
+              _placement(
+                id: 'face',
+                snapshotId: 'border-snapshot-sha256:$_digestB',
+                ordinal: 9,
+                drawBand: BorderDrawBand.outerAccent,
+              ),
+              _placement(
+                id: 'top-lip',
+                snapshotId: 'border-snapshot-sha256:$_digestC',
+                ordinal: 1,
+                drawBand: BorderDrawBand.structure,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    final collection = buildBorderRuntimeDrawInstructions(
+      layer: layer as BorderLayer,
+      tileWidthPx: 32,
+      tileHeightPx: 32,
+    );
+    final placementIds = collection.instructions
+        .whereType<BorderRuntimePlacementInstruction>()
+        .map((instruction) => instruction.placementId);
+    final placementsById = <String, BorderResolvedPlacement>{
+      for (final placement
+          in layer.content.features.single.materialization!.placements)
+        placement.id: placement,
+    };
+    final persistedBandsInRuntimeOrder = placementIds.map(
+      (placementId) => (
+        placementId,
+        placementsById[placementId]!.drawBand,
+      ),
+    );
+
+    expect(
+      persistedBandsInRuntimeOrder,
+      orderedEquals(<(String, BorderDrawBand)>[
+        ('face', BorderDrawBand.outerAccent),
+        ('top-lip', BorderDrawBand.structure),
+      ]),
+      reason: 'The darker face is persisted first so the flat top lip can '
+          'overpaint its seam without re-sorting in runtime.',
+    );
+  });
 }
 
 BorderFeature _feature({
   required String id,
   required String groundSnapshotId,
   required BorderResolvedPlacement placement,
+}) {
+  return _featureWithPlacements(
+    id: id,
+    groundSnapshotId: groundSnapshotId,
+    placements: <BorderResolvedPlacement>[placement],
+  );
+}
+
+BorderFeature _featureWithPlacements({
+  required String id,
+  required String groundSnapshotId,
+  required List<BorderResolvedPlacement> placements,
 }) {
   return BorderFeature(
     id: id,
@@ -119,7 +190,7 @@ BorderFeature _feature({
           resolvedRole: SurfaceVariantRole.isolated,
         ),
       ],
-      placements: <BorderResolvedPlacement>[placement],
+      placements: placements,
     ),
   );
 }

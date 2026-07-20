@@ -173,6 +173,212 @@ void main() {
       expect(decodeBorderBlueprintRecordJson(encoded), record);
     });
 
+    test('V4 round-trips every draft and published orientation spelling', () {
+      const cases = <BorderPrimitiveOrientation, String>{
+        BorderPrimitiveOrientation.legacyAxis: 'legacyAxis',
+        BorderPrimitiveOrientation.east: 'east',
+        BorderPrimitiveOrientation.south: 'south',
+        BorderPrimitiveOrientation.west: 'west',
+        BorderPrimitiveOrientation.north: 'north',
+      };
+
+      for (final entry in cases.entries) {
+        final record = _record(
+          draftOrientation: entry.key,
+          publishedOrientation: entry.key,
+          withGround: false,
+        );
+        final encoded = encodeBorderBlueprintRecordJson(
+          record,
+          formatVersion: ProjectBorderCatalog.formatVersionV4,
+        );
+        final draftPrimitive =
+            _primitiveJsonList(encoded, published: false).single;
+        final publishedPrimitive =
+            _primitiveJsonList(encoded, published: true).single;
+
+        if (entry.key == BorderPrimitiveOrientation.legacyAxis) {
+          expect(draftPrimitive, isNot(contains('authoredOrientation')));
+          expect(publishedPrimitive, isNot(contains('authoredOrientation')));
+
+          final explicitLegacy = _copy(encoded);
+          _primitiveJsonList(explicitLegacy, published: false)
+              .single['authoredOrientation'] = entry.value;
+          _primitiveJsonList(explicitLegacy, published: true)
+              .single['authoredOrientation'] = entry.value;
+          expect(
+            decodeBorderBlueprintRecordJson(
+              explicitLegacy,
+              formatVersion: ProjectBorderCatalog.formatVersionV4,
+            ),
+            record,
+          );
+        } else {
+          expect(draftPrimitive['authoredOrientation'], entry.value);
+          expect(publishedPrimitive['authoredOrientation'], entry.value);
+        }
+        expect(
+          decodeBorderBlueprintRecordJson(
+            encoded,
+            formatVersion: ProjectBorderCatalog.formatVersionV4,
+          ),
+          record,
+        );
+      }
+    });
+
+    test('V1 through V3 decode absent orientation as legacyAxis', () {
+      for (final formatVersion in <int>[1, 2, 3]) {
+        final encoded = encodeBorderBlueprintRecordJson(
+          _record(withGround: false),
+          formatVersion: formatVersion,
+        );
+        expect(
+          _primitiveJsonList(encoded, published: false).single,
+          isNot(contains('authoredOrientation')),
+        );
+        expect(
+          _primitiveJsonList(encoded, published: true).single,
+          isNot(contains('authoredOrientation')),
+        );
+
+        final decoded = decodeBorderBlueprintRecordJson(
+          encoded,
+          formatVersion: formatVersion,
+        );
+        expect(
+          decoded.draft.definition.primitives.single.authoredOrientation,
+          BorderPrimitiveOrientation.legacyAxis,
+        );
+        expect(
+          decoded.latestPublished!.definition.primitives.single
+              .authoredOrientation,
+          BorderPrimitiveOrientation.legacyAxis,
+        );
+      }
+    });
+
+    test('V1 through V3 reject cardinal orientation at its exact path', () {
+      for (final formatVersion in <int>[1, 2, 3]) {
+        expect(
+          () => encodeBorderBlueprintRecordJson(
+            _record(
+              draftOrientation: BorderPrimitiveOrientation.west,
+              withGround: false,
+            ),
+            formatVersion: formatVersion,
+          ),
+          _formatAt(
+            r'$.draft.definition.primitives[0].authoredOrientation',
+          ),
+          reason: 'draft V$formatVersion',
+        );
+        expect(
+          () => encodeBorderBlueprintRecordJson(
+            _record(
+              publishedOrientation: BorderPrimitiveOrientation.north,
+              withGround: false,
+            ),
+            formatVersion: formatVersion,
+          ),
+          _formatAt(
+            r'$.latestPublished.definition.primitives[0]'
+            r'.authoredOrientation',
+          ),
+          reason: 'published V$formatVersion',
+        );
+      }
+    });
+
+    test('orientation key strictness follows the selected format version', () {
+      for (final formatVersion in <int>[1, 2, 3]) {
+        final encoded = encodeBorderBlueprintRecordJson(
+          _record(withGround: false),
+          formatVersion: formatVersion,
+        );
+        _primitiveJsonList(encoded, published: false)
+            .single['authoredOrientation'] = 'west';
+
+        expect(
+          () => decodeBorderBlueprintRecordJson(
+            encoded,
+            formatVersion: formatVersion,
+          ),
+          _formatAt(
+            r'$.draft.definition.primitives[0].authoredOrientation',
+          ),
+          reason: 'future key in V$formatVersion',
+        );
+
+        final published = encodeBorderBlueprintRecordJson(
+          _record(withGround: false),
+          formatVersion: formatVersion,
+        );
+        _primitiveJsonList(published, published: true)
+            .single['authoredOrientation'] = 'north';
+        expect(
+          () => decodeBorderBlueprintRecordJson(
+            published,
+            formatVersion: formatVersion,
+          ),
+          _formatAt(
+            r'$.latestPublished.definition.primitives[0]'
+            r'.authoredOrientation',
+          ),
+          reason: 'future published key in V$formatVersion',
+        );
+      }
+
+      final v4 = encodeBorderBlueprintRecordJson(
+        _record(withGround: false),
+        formatVersion: ProjectBorderCatalog.formatVersionV4,
+      );
+      _primitiveJsonList(v4, published: true).single['futureOrientation'] =
+          'west';
+      expect(
+        () => decodeBorderBlueprintRecordJson(
+          v4,
+          formatVersion: ProjectBorderCatalog.formatVersionV4,
+        ),
+        _formatAt(
+          r'$.latestPublished.definition.primitives[0].futureOrientation',
+        ),
+      );
+    });
+
+    test('V4 rejects unknown orientation spellings at the primitive path', () {
+      final draft = encodeBorderBlueprintRecordJson(
+        _record(withGround: false),
+        formatVersion: ProjectBorderCatalog.formatVersionV4,
+      );
+      _primitiveJsonList(draft, published: false)
+          .single['authoredOrientation'] = 'northWest';
+      expect(
+        () => decodeBorderBlueprintRecordJson(
+          draft,
+          formatVersion: ProjectBorderCatalog.formatVersionV4,
+        ),
+        _formatAt(r'$.draft.definition.primitives[0].authoredOrientation'),
+      );
+
+      final published = encodeBorderBlueprintRecordJson(
+        _record(withGround: false),
+        formatVersion: ProjectBorderCatalog.formatVersionV4,
+      );
+      _primitiveJsonList(published, published: true)
+          .single['authoredOrientation'] = 'northWest';
+      expect(
+        () => decodeBorderBlueprintRecordJson(
+          published,
+          formatVersion: ProjectBorderCatalog.formatVersionV4,
+        ),
+        _formatAt(
+          r'$.latestPublished.definition.primitives[0]'
+          r'.authoredOrientation',
+        ),
+      );
+    });
+
     test('rejects nonblank but non-trimmed record IDs at the id path', () {
       for (final id in <String>[' ', ' coast', 'coast ']) {
         final encoded = encodeBorderBlueprintRecordJson(
@@ -648,6 +854,10 @@ void main() {
 
 BorderBlueprintRecord _record({
   BorderBlueprintTemplate template = BorderBlueprintTemplate.organicEdge,
+  BorderPrimitiveOrientation draftOrientation =
+      BorderPrimitiveOrientation.legacyAxis,
+  BorderPrimitiveOrientation publishedOrientation =
+      BorderPrimitiveOrientation.legacyAxis,
   List<BorderPrimitiveRole> draftRoles = const <BorderPrimitiveRole>[
     BorderPrimitiveRole.structureLarge,
   ],
@@ -677,6 +887,7 @@ BorderBlueprintRecord _record({
               id: 'draft-$index',
               sourceElementId: 'element-$index',
               role: draftRoles[index],
+              authoredOrientation: draftOrientation,
               weight: index,
               anchorPx: const BorderPixelPos(x: -2, y: 5),
               transforms: _transforms(),
@@ -708,6 +919,7 @@ BorderBlueprintRecord _record({
                     sourceElementId: 'element-$index',
                     visualSnapshotId: 'snapshot-$index',
                     role: publishedRoles[index],
+                    authoredOrientation: publishedOrientation,
                     weight: index + 1,
                     anchorPx: const BorderPixelPos(x: -2, y: 5),
                     transforms: _transforms(),

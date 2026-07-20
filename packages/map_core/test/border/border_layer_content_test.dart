@@ -8,7 +8,7 @@ void main() {
           BorderLayerContent.formatVersionV1);
       expect(
         BorderLayerContent.latestSupportedFormatVersion,
-        BorderLayerContent.formatVersionV2,
+        BorderLayerContent.formatVersionV3,
       );
       expect(
         BorderLayerContent.currentFormatVersion,
@@ -62,14 +62,18 @@ void main() {
       expect(first, isNot(reordered));
     });
 
-    test('accepts V2 and rejects unsupported versions and duplicate ids', () {
-      expect(
-        BorderLayerContent(
-          formatVersion: BorderLayerContent.formatVersionV2,
-        ).formatVersion,
+    test('accepts V2/V3 and rejects unsupported versions and duplicate ids',
+        () {
+      for (final version in <int>[
         BorderLayerContent.formatVersionV2,
-      );
-      for (final version in <int>[0, 3]) {
+        BorderLayerContent.formatVersionV3,
+      ]) {
+        expect(
+          BorderLayerContent(formatVersion: version).formatVersion,
+          version,
+        );
+      }
+      for (final version in <int>[0, 4]) {
         expect(
           () => BorderLayerContent(formatVersion: version),
           throwsA(isA<ValidationException>()),

@@ -11,6 +11,41 @@ const String _hashB =
     'sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 
 void main() {
+  test('resize keeps inclusive right and bottom grid-edge vertices', () {
+    final geometry = BorderStrokeGeometry(
+      strokes: <BorderStroke>[
+        BorderStroke(
+          id: 'edge',
+          points: const <GridPos>[
+            GridPos(x: 2, y: 2),
+            GridPos(x: 3, y: 2),
+            GridPos(x: 4, y: 2),
+          ],
+          closed: false,
+        ),
+      ],
+      alignment: BorderStrokeAlignment.gridEdges,
+    );
+    final result = resizeBorderLayerContent(
+      content: BorderLayerContent(
+        formatVersion: BorderLayerContent.formatVersionV3,
+        features: <BorderFeature>[_feature(geometry: geometry)],
+      ),
+      oldMapSize: const GridSize(width: 4, height: 3),
+      newMapSize: const GridSize(width: 3, height: 2),
+      tileSizePx: const GridSize(width: 16, height: 16),
+    );
+
+    expect(result.canApply, isTrue);
+    final resized =
+        result.content!.features.single.geometry as BorderStrokeGeometry;
+    expect(resized.alignment, BorderStrokeAlignment.gridEdges);
+    expect(resized.strokes.single.points, const <GridPos>[
+      GridPos(x: 2, y: 2),
+      GridPos(x: 3, y: 2),
+    ]);
+  });
+
   group('resizeBorderLayerContent regions', () {
     test('crops region and several keep-outs without translating or reordering',
         () {

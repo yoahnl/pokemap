@@ -55,46 +55,49 @@ class PokeMapTextField extends StatelessWidget {
           textField: true,
           enabled: enabled,
           label: label,
-          child: TextField(
-            key: fieldKey,
-            controller: controller,
-            focusNode: focusNode,
-            autofocus: autofocus,
-            enabled: enabled,
-            keyboardType: keyboardType,
-            textInputAction: textInputAction,
-            onChanged: onChanged,
-            onSubmitted: onSubmitted,
-            style: TextStyle(
-              color: enabled ? colors.textPrimary : colors.textDisabled,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-            decoration: InputDecoration(
-              isDense: true,
-              filled: true,
-              fillColor: colors.surfaceSubtle,
-              hintText: hintText ?? placeholder,
-              hintStyle: TextStyle(
-                color: colors.textMuted,
+          child: Material(
+            type: MaterialType.transparency,
+            child: TextField(
+              key: fieldKey,
+              controller: controller,
+              focusNode: focusNode,
+              autofocus: autofocus,
+              enabled: enabled,
+              keyboardType: keyboardType,
+              textInputAction: textInputAction,
+              onChanged: onChanged,
+              onSubmitted: onSubmitted,
+              style: TextStyle(
+                color: enabled ? colors.textPrimary : colors.textDisabled,
                 fontSize: 13,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: colors.borderSubtle),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: colors.focusRing, width: 1.5),
-              ),
-              disabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: colors.controlBorder),
+              decoration: InputDecoration(
+                isDense: true,
+                filled: true,
+                fillColor: colors.surfaceSubtle,
+                hintText: hintText ?? placeholder,
+                hintStyle: TextStyle(
+                  color: colors.textMuted,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: colors.borderSubtle),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: colors.focusRing, width: 1.5),
+                ),
+                disabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: colors.controlBorder),
+                ),
               ),
             ),
           ),

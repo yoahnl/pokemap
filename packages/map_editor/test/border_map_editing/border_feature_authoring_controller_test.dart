@@ -86,6 +86,30 @@ void main() {
       );
     });
 
+    test('creates stone chains on inclusive grid edges', () {
+      final created = controller.createFeature(
+        map: _map(),
+        layerId: 'borders',
+        blueprint: _record(
+          id: 'stone-chain',
+          template: BorderBlueprintTemplate.stoneChainLine,
+        ),
+        name: 'Falaise de pierres',
+      );
+
+      final geometry = created.feature.geometry as BorderStrokeGeometry;
+      expect(geometry.alignment, BorderStrokeAlignment.gridEdges);
+      expect(geometry.strokes, isEmpty);
+      expect(
+        created.map.layers
+            .whereType<BorderLayer>()
+            .single
+            .content
+            .formatVersion,
+        BorderLayerContent.formatVersionV3,
+      );
+    });
+
     test('promotes an empty V1 layer when creating a primary connected line',
         () {
       final map = _map();

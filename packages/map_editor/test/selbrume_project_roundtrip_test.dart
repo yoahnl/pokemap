@@ -8167,6 +8167,7 @@ Directory _copySelbrumeFixture() {
               'tsf_selbrume_beta_passage',
               'tsf_selbrume_beta_lighthouse',
               'tsf_selbrume_beta_fx',
+              'tsf_selbrume_beta_borders',
             }.contains((entry as Map<String, dynamic>)['id']),
           )
           .toList(growable: false);
@@ -8186,6 +8187,11 @@ Directory _copySelbrumeFixture() {
           'ts_selbrume_lighthouse_exterior',
           'ts_selbrume_lighthouse_interior',
           'ts_selbrume_lighthouse_fx',
+          'ts_selbrume_cliff_connected_v1',
+          'falaises_selbrume_pierres_unitaires_v4',
+          'ts_selbrume_cliff_stone_chain_v1',
+          'ts_selbrume_cliff_two_tier_v2',
+          'ts_selbrume_cliff_two_tier_v3_organic',
         }.contains((entry as Map<String, dynamic>)['id']),
       )
       .toList(growable: true)
@@ -8204,6 +8210,7 @@ Directory _copySelbrumeFixture() {
               'cat_selbrume_passage',
               'cat_selbrume_lighthouse',
               'cat_selbrume_fx',
+              'cat_selbrume_borders',
             }.contains((entry as Map<String, dynamic>)['id']),
           )
           .toList(growable: false);
@@ -8218,7 +8225,8 @@ Directory _copySelbrumeFixture() {
         !_passageElementContracts.containsKey(id) &&
         !_lighthouseExteriorElementContracts.containsKey(id) &&
         !_lighthouseInteriorElementContracts.containsKey(id) &&
-        !_lighthouseFxElementContracts.containsKey(id);
+        !_lighthouseFxElementContracts.containsKey(id) &&
+        !id.startsWith('el_selbrume_cliff_');
   }).toList(growable: true)
         ..addAll(<Map<String, dynamic>>[
           _legacyObjectiveElement(),
@@ -8250,6 +8258,11 @@ Directory _copySelbrumeFixture() {
     _legacyNouveauCheminPattern('nouveau-chemin-pattern'),
     _legacyNouveauCheminPattern('nouveau-chemin-pattern-duplicate'),
   ];
+  projectJson['borderCatalog'] = <String, dynamic>{
+    'formatVersion': 1,
+    'records': <dynamic>[],
+    'visualSnapshots': <dynamic>[],
+  };
   targetProject.writeAsStringSync(
     '${const JsonEncoder.withIndent('  ').convert(projectJson)}\n',
   );

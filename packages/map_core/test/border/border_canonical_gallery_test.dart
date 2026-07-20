@@ -4,6 +4,9 @@ import 'package:test/test.dart';
 import '../fixtures/border/masonry_line_fixture.dart';
 import '../fixtures/border/organic_edge_reference_coast_fixture.dart';
 import '../fixtures/border/post_and_rail_line_fixture.dart';
+import '../fixtures/border/selbrume_two_tier_stone_chain_v4_fixture.dart';
+import '../fixtures/border/stone_chain_line_fixture.dart';
+import '../fixtures/border/two_tier_stone_chain_fixture.dart';
 
 void main() {
   group('resolveBorderCanonicalGallery', () {
@@ -268,6 +271,276 @@ void main() {
       }
     });
 
+    test('resolves the exact stone-chain cases with grid-edge evidence', () {
+      final fixture = StoneChainLineFixture();
+      final request = fixture.request;
+
+      final gallery = _galleryFor(request);
+
+      expect(gallery.template, BorderBlueprintTemplate.stoneChainLine);
+      expect(gallery.allCasesResolved, isTrue);
+      expect(
+        gallery.cases.map((item) => item.galleryCase),
+        orderedEquals(const <BorderCanonicalGalleryCase>[
+          BorderCanonicalGalleryCase.longEdge,
+          BorderCanonicalGalleryCase.sharpCorner,
+          BorderCanonicalGalleryCase.endpoint,
+          BorderCanonicalGalleryCase.sBend,
+          BorderCanonicalGalleryCase.closedLoop,
+        ]),
+      );
+      final longEdge = gallery.cases.first.geometry as BorderStrokeGeometry;
+      expect(longEdge.alignment, BorderStrokeAlignment.gridEdges);
+      expect(
+        longEdge.strokes.map((stroke) => stroke.id),
+        orderedEquals(const <String>['horizontal', 'vertical']),
+      );
+      final sharpCorner = gallery.cases.singleWhere(
+        (item) => item.galleryCase == BorderCanonicalGalleryCase.sharpCorner,
+      );
+      expect(sharpCorner.invertedResolverResult?.canApply, isTrue);
+      for (final caseResult in gallery.cases) {
+        expect(caseResult.resolverResult.canApply, isTrue);
+        expect(caseResult.invertedResolverResult?.canApply, isTrue);
+        final geometry = caseResult.geometry as BorderStrokeGeometry;
+        expect(geometry.alignment, BorderStrokeAlignment.gridEdges);
+        final evidence = resolveStoneChainLineBorderWithEvidence(
+          _requestForCase(request, caseResult),
+        );
+        final invertedEvidence = resolveStoneChainLineBorderWithEvidence(
+          _requestForCase(
+            request,
+            caseResult,
+            lineSide: BorderLineSide.inverted,
+          ),
+        );
+        expect(evidence.result, caseResult.resolverResult);
+        expect(invertedEvidence.result, caseResult.invertedResolverResult);
+        expect(evidence.primaryPlacementCount, greaterThan(0));
+        expect(evidence.maximumGapPx, greaterThanOrEqualTo(0));
+        expect(evidence.maximumTangentOverlapPx, greaterThanOrEqualTo(0));
+        expect(
+          caseResult
+              .publicationSample.coverageChecks.single.longestContiguousGapPx,
+          evidence.maximumGapPx > invertedEvidence.maximumGapPx
+              ? evidence.maximumGapPx
+              : invertedEvidence.maximumGapPx,
+        );
+        expect(
+          caseResult.publicationSample.primaryStoneChainEvidence,
+          isNull,
+        );
+        expect(
+          caseResult.publicationSample.invertedStoneChainEvidence,
+          isNull,
+        );
+      }
+    });
+
+    test('generates V2 two-tier evidence for all seven canonical shapes', () {
+      final fixture = TwoTierStoneChainFixture();
+
+      final gallery = _galleryFor(fixture.request);
+
+      expect(borderCanonicalGalleryVersion, 2);
+      expect(gallery.report.canonicalGalleryVersion, 2);
+      final geometries = <BorderCanonicalGalleryCase, BorderStrokeGeometry>{
+        for (final item in gallery.cases)
+          item.galleryCase: item.geometry as BorderStrokeGeometry,
+      };
+      expect(
+        geometries[BorderCanonicalGalleryCase.longEdge]!
+            .strokes
+            .map((stroke) => stroke.id),
+        orderedEquals(const <String>['horizontal', 'vertical']),
+      );
+      expect(
+        geometries[BorderCanonicalGalleryCase.sharpCorner]!
+            .strokes
+            .map((stroke) => stroke.id),
+        orderedEquals(const <String>['convexL', 'concaveL']),
+      );
+      expect(
+        geometries.values.fold<int>(
+          0,
+          (count, geometry) => count + geometry.strokes.length,
+        ),
+        7,
+      );
+
+      for (final caseResult in gallery.cases) {
+        if (!caseResult.resolverResult.canApply ||
+            caseResult.invertedResolverResult?.canApply != true) {
+          continue;
+        }
+        final sample = caseResult.publicationSample;
+        expect(
+          sample.coverageChecks.map((check) => check.component),
+          orderedEquals(const <BorderCanonicalCoverageComponent>[
+            BorderCanonicalCoverageComponent.lip,
+            BorderCanonicalCoverageComponent.face,
+          ]),
+        );
+        expect(
+          sample.coverageChecks,
+          everyElement(
+            isA<BorderPublicationCoverageCheck>().having(
+              (check) => check.isWithinTolerance,
+              'conservative two-sided coverage',
+              isTrue,
+            ),
+          ),
+          reason: '${caseResult.galleryCase.name}: '
+              '${sample.coverageChecks.map((check) => '${check.component.name}=gap${check.longestContiguousGapPx}/overlap${check.maximumPairwiseOverlapPx}/limits${check.gapTolerancePx},${check.maxOverlapPx}').join(';')}',
+        );
+        for (final side in <(String, BorderPublicationStoneChainEvidence?)>[
+          ('primary', sample.primaryStoneChainEvidence),
+          (
+            'inverted',
+            sample.invertedStoneChainEvidence,
+          ),
+        ]) {
+          final evidence = side.$2;
+          final reason = '${caseResult.galleryCase.name}:${side.$1}';
+          expect(evidence, isNotNull);
+          expect(evidence!.lipPlacementCount, greaterThan(0));
+          expect(evidence.facePlacementCount, greaterThan(0));
+          expect(
+            evidence.minimumCrossRowInterlockPixels,
+            greaterThanOrEqualTo(8),
+            reason: reason,
+          );
+          expect(
+            evidence.minimumVisibleFaceDepthPx,
+            greaterThanOrEqualTo(12),
+            reason: reason,
+          );
+          expect(
+            evidence.alignedJointRatioPermille,
+            inInclusiveRange(0, 1000),
+            reason: reason,
+          );
+          expect(evidence.lipConnectedComponentCount, 1, reason: reason);
+          expect(evidence.faceConnectedComponentCount, 1, reason: reason);
+          expect(evidence.combinedConnectedComponentCount, 1, reason: reason);
+        }
+      }
+      expect(
+        gallery.allCasesResolved,
+        isTrue,
+        reason: <String>[
+          for (final item in gallery.cases)
+            '${item.galleryCase.name}:primary='
+                '${item.resolverResult.canApply},inverted='
+                '${item.invertedResolverResult?.canApply}',
+          'diagnostics=${gallery.resolutionDiagnostics.diagnostics.map((item) => item.code).toList()}',
+        ].join('; '),
+      );
+    });
+
+    test(
+      'keeps the inverted sharp-corner face in its outgoing topological run',
+      () {
+        final primitives = selbrumeTwoTierNeckPublishedPrimitives();
+        final gallery = resolveBorderCanonicalGallery(
+          blueprintId: 'border-blueprint-4',
+          blueprintRevision: selbrumeTwoTierV4Revision(primitives),
+          visualSnapshots: selbrumeTwoTierV4Snapshots(primitives),
+          tileSizePx: selbrumeTwoTierV4TileSize,
+        );
+        final sharpCorner = gallery.cases.singleWhere(
+          (item) => item.galleryCase == BorderCanonicalGalleryCase.sharpCorner,
+        );
+
+        expect(sharpCorner.invertedResolverResult?.canApply, isTrue);
+        final evidence =
+            sharpCorner.publicationSample.invertedStoneChainEvidence!;
+        expect(
+            evidence.minimumCrossRowInterlockPixels, greaterThanOrEqualTo(8));
+        expect(evidence.minimumVisibleFaceDepthPx, greaterThanOrEqualTo(12));
+        expect(evidence.faceConnectedComponentCount, 1);
+      },
+    );
+
+    test('uses outgoing slot identity to disambiguate parallel S-bend runs',
+        () {
+      final primitives = selbrumeTwoTierNeckPublishedPrimitives();
+      final gallery = resolveBorderCanonicalGallery(
+        blueprintId: 'border-blueprint-4',
+        blueprintRevision: selbrumeTwoTierV4Revision(primitives),
+        visualSnapshots: selbrumeTwoTierV4Snapshots(primitives),
+        tileSizePx: selbrumeTwoTierV4TileSize,
+      );
+      final bend = gallery.cases.singleWhere(
+        (item) => item.galleryCase == BorderCanonicalGalleryCase.sBend,
+      );
+      expect(bend.invertedResolverResult?.canApply, isTrue);
+
+      // The inverted outgoing face shoulders the empty cell between two
+      // parallel runs. Proximity alone is ambiguous, but the rank-one node
+      // slot encodes the turn vertex and therefore its exact outgoing run.
+      final evidence = bend.publicationSample.invertedStoneChainEvidence!;
+      expect(evidence.minimumCrossRowInterlockPixels, greaterThanOrEqualTo(8));
+      expect(evidence.minimumVisibleFaceDepthPx, greaterThanOrEqualTo(12));
+      expect(evidence.faceConnectedComponentCount, 1);
+    });
+
+    test('planner avoids aligned joints for nearby face asset shifts', () {
+      int alignedRatioForShift(int shiftPx) {
+        final fixture = TwoTierStoneChainFixture(
+          publishedPrimitives: twoTierStoneChainPublishedPrimitives(
+            uniformTangentSpan: 20,
+            faceTangentShiftPx: shiftPx,
+          ),
+        );
+        return _galleryFor(fixture.request)
+            .cases
+            .singleWhere(
+              (item) => item.galleryCase == BorderCanonicalGalleryCase.longEdge,
+            )
+            .publicationSample
+            .primaryStoneChainEvidence!
+            .alignedJointRatioPermille;
+      }
+
+      // The canonical planner now prioritizes staggered joints, so these
+      // end-to-end cases deliberately avoid alignment even when a source face
+      // asset is shifted inside the measurement tolerance.
+      expect(alignedRatioForShift(-2), 0);
+      expect(alignedRatioForShift(2), 0);
+      expect(alignedRatioForShift(-3), 0);
+      expect(alignedRatioForShift(3), 0);
+    });
+
+    test('counts two-pixel joint deltas as aligned but excludes three pixels',
+        () {
+      int alignedRatioForShift(int shiftPx) {
+        final fixture = TwoTierStoneChainFixture(
+          publishedPrimitives: twoTierStoneChainPublishedPrimitives(
+            uniformTangentSpan: 20,
+            faceTangentShiftPx: shiftPx,
+          ),
+        );
+        return _galleryFor(fixture.request)
+            .cases
+            .singleWhere(
+              (item) => item.galleryCase == BorderCanonicalGalleryCase.longEdge,
+            )
+            .publicationSample
+            .primaryStoneChainEvidence!
+            .alignedJointRatioPermille;
+      }
+
+      // With a uniform 20 px span, the canonical lip/face phases put their
+      // unshifted joints seven pixels apart. These shifts therefore exercise
+      // both signs of the exact public evidence boundary: +/-2 px must match,
+      // while the immediately adjacent +/-3 px cases must not.
+      expect(alignedRatioForShift(5), 1000, reason: 'joint delta -2 px');
+      expect(alignedRatioForShift(9), 1000, reason: 'joint delta +2 px');
+      expect(alignedRatioForShift(4), 0, reason: 'joint delta -3 px');
+      expect(alignedRatioForShift(10), 0, reason: 'joint delta +3 px');
+    });
+
     test('measures connected-line gaps and overlaps from real placements', () {
       PostAndRailLineFixture connectedFixture(int size, String suffix) =>
           PostAndRailLineFixture(
@@ -354,6 +627,64 @@ void main() {
         expect(adapted.geometry, source.geometry);
         expect(adapted.resolverResult, source.resolverEvidence.result);
         expect(adapted.publicationSample, source.publicationSample);
+        expect(adapted.publicationSample.primaryStoneChainEvidence, isNull);
+        expect(adapted.publicationSample.invertedStoneChainEvidence, isNull);
+      }
+    });
+
+    test('keeps historical line templates free of two-tier evidence', () {
+      for (final request in <BorderResolutionRequest>[
+        MasonryLineFixture().request,
+        PostAndRailLineFixture().request,
+        PostAndRailLineFixture(
+          template: BorderBlueprintTemplate.connectedLine,
+          primitives: <BorderPublishedPrimitive>[
+            fencePrimitive(
+              id: 'cap-history',
+              fingerprintCharacter: 'a',
+              role: BorderPrimitiveRole.lineCap,
+              width: 16,
+              height: 16,
+              allowFlipX: true,
+            ),
+            fencePrimitive(
+              id: 'straight-history',
+              fingerprintCharacter: 'b',
+              role: BorderPrimitiveRole.lineStraight,
+              width: 16,
+              height: 16,
+              allowFlipX: true,
+            ),
+            fencePrimitive(
+              id: 'corner-history',
+              fingerprintCharacter: 'c',
+              role: BorderPrimitiveRole.lineCorner,
+              width: 16,
+              height: 16,
+              allowFlipX: true,
+            ),
+          ],
+        ).request,
+        StoneChainLineFixture().request,
+      ]) {
+        final gallery = _galleryFor(request);
+        expect(
+          gallery.report.samples,
+          everyElement(
+            isA<BorderPublicationGallerySample>()
+                .having(
+                  (sample) => sample.primaryStoneChainEvidence,
+                  'primary evidence',
+                  isNull,
+                )
+                .having(
+                  (sample) => sample.invertedStoneChainEvidence,
+                  'inverted evidence',
+                  isNull,
+                ),
+          ),
+          reason: request.blueprintRevision!.definition.template.name,
+        );
       }
     });
 
@@ -428,8 +759,9 @@ BorderCanonicalGalleryResult _galleryFor(BorderResolutionRequest request) =>
 
 BorderResolutionRequest _requestForCase(
   BorderResolutionRequest source,
-  BorderCanonicalGalleryCaseResult caseResult,
-) =>
+  BorderCanonicalGalleryCaseResult caseResult, {
+  BorderLineSide lineSide = BorderLineSide.primary,
+}) =>
     BorderResolutionRequest(
       mapSize: caseResult.mapSize,
       tileSizePx: source.tileSizePx,
@@ -441,6 +773,7 @@ BorderResolutionRequest _requestForCase(
         blueprintId: source.blueprintId,
         seed: source.blueprintRevision!.definition.previewSeed,
         geometry: caseResult.geometry,
+        lineSide: lineSide,
         overrides: const <BorderSlotOverride>[],
         keepOutRegions: const <BorderKeepOutRegion>[],
       ),

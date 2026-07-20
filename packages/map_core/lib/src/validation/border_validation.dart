@@ -200,7 +200,8 @@ void _diagnoseFeatureGeometry(
     null || BorderBlueprintTemplate.organicEdge => true,
     BorderBlueprintTemplate.masonryLine ||
     BorderBlueprintTemplate.postAndRailLine ||
-    BorderBlueprintTemplate.connectedLine =>
+    BorderBlueprintTemplate.connectedLine ||
+    BorderBlueprintTemplate.stoneChainLine =>
       false,
   };
   final intentErrorSeverity =
@@ -244,12 +245,18 @@ void _diagnoseFeatureGeometry(
         ));
       }
       empty = !cells.contains(true);
-    case BorderStrokeGeometry(:final strokes):
+    case BorderStrokeGeometry(:final strokes, :final alignment):
       empty = strokes.isEmpty;
       for (final stroke in strokes) {
         for (var index = 0; index < stroke.points.length; index += 1) {
           final point = stroke.points[index];
-          if (!_cellInside(point, request.mapSize)) {
+          final inside = alignment == BorderStrokeAlignment.gridEdges
+              ? point.x >= 0 &&
+                  point.y >= 0 &&
+                  point.x <= request.mapSize.width &&
+                  point.y <= request.mapSize.height
+              : _cellInside(point, request.mapSize);
+          if (!inside) {
             diagnostics.add(_diagnostic(
               code: 'border.feature.stroke_cell_out_of_bounds',
               severity: intentErrorSeverity,

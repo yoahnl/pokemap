@@ -14,7 +14,7 @@ import 'border_format_version.dart';
 import 'border_resolver.dart';
 
 /// The two persisted geometry families supported by Border V1.
-enum BorderGeometryFamily { region, linear }
+enum BorderGeometryFamily { region, linear, gridEdgeLinear }
 
 /// Whether a blueprint change retains geometry or needs an explicit reset.
 enum BorderRelinkKind { sameFamily, requiresFamilyReset }
@@ -267,7 +267,10 @@ MapData applyBorderFeatureFamilyReset(
 BorderGeometryFamily borderGeometryFamily(BorderFeatureGeometry geometry) =>
     switch (geometry) {
       BorderRegionGeometry() => BorderGeometryFamily.region,
-      BorderStrokeGeometry() => BorderGeometryFamily.linear,
+      BorderStrokeGeometry(:final alignment) =>
+        alignment == BorderStrokeAlignment.gridEdges
+            ? BorderGeometryFamily.gridEdgeLinear
+            : BorderGeometryFamily.linear,
     };
 
 BorderGeometryFamily borderTemplateGeometryFamily(
@@ -279,6 +282,8 @@ BorderGeometryFamily borderTemplateGeometryFamily(
       BorderBlueprintTemplate.postAndRailLine ||
       BorderBlueprintTemplate.connectedLine =>
         BorderGeometryFamily.linear,
+      BorderBlueprintTemplate.stoneChainLine =>
+        BorderGeometryFamily.gridEdgeLinear,
     };
 
 BorderFeatureGeometry _emptyGeometryFor(
@@ -293,6 +298,10 @@ BorderFeatureGeometry _emptyGeometryFor(
         ),
       BorderGeometryFamily.linear =>
         BorderStrokeGeometry(strokes: const <BorderStroke>[]),
+      BorderGeometryFamily.gridEdgeLinear => BorderStrokeGeometry(
+          strokes: const <BorderStroke>[],
+          alignment: BorderStrokeAlignment.gridEdges,
+        ),
     };
 
 List<BorderRelinkLoss> _actualResetLosses(BorderFeature feature) =>
@@ -346,14 +355,22 @@ MapData _replaceFeature(
   final features = List<BorderFeature>.from(layer.content.features);
   features[featureIndex] = feature;
   final layers = List<MapLayer>.from(map.layers);
+  var minimumFormatVersion =
+      minimumBorderLayerFormatVersionForFeatures(features);
+  if (template == BorderBlueprintTemplate.connectedLine &&
+      minimumFormatVersion < BorderLayerContent.formatVersionV2) {
+    minimumFormatVersion = BorderLayerContent.formatVersionV2;
+  }
+  if (template == BorderBlueprintTemplate.stoneChainLine &&
+      minimumFormatVersion < BorderLayerContent.formatVersionV3) {
+    minimumFormatVersion = BorderLayerContent.formatVersionV3;
+  }
   layers[layerIndex] = layer.copyWith(
     content: BorderLayerContent(
-      formatVersion:
-          layer.content.formatVersion == BorderLayerContent.formatVersionV2 ||
-                  template == BorderBlueprintTemplate.connectedLine ||
-                  borderFeaturesRequireFormatV2(features)
-              ? BorderLayerContent.formatVersionV2
-              : BorderLayerContent.formatVersionV1,
+      formatVersion: _maximumFormatVersion(
+        layer.content.formatVersion,
+        minimumFormatVersion,
+      ),
       features: features,
     ),
   );
@@ -411,3 +428,6 @@ bool _listEquals<T>(List<T> first, List<T> second) {
   }
   return true;
 }
+
+int _maximumFormatVersion(int first, int second) =>
+    first > second ? first : second;

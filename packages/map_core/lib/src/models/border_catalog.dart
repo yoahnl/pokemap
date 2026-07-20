@@ -9,7 +9,9 @@ import 'border_visual_snapshot.dart';
 final class ProjectBorderCatalog {
   static const int formatVersionV1 = 1;
   static const int formatVersionV2 = 2;
-  static const int latestSupportedFormatVersion = formatVersionV2;
+  static const int formatVersionV3 = 3;
+  static const int formatVersionV4 = 4;
+  static const int latestSupportedFormatVersion = formatVersionV4;
 
   /// Backward-compatible alias for [latestSupportedFormatVersion].
   ///
@@ -29,9 +31,12 @@ final class ProjectBorderCatalog {
   })  : _records = List<BorderBlueprintRecord>.unmodifiable(records),
         _visualSnapshots =
             List<BorderVisualSnapshot>.unmodifiable(visualSnapshots) {
-    if (formatVersion != formatVersionV1 && formatVersion != formatVersionV2) {
+    if (formatVersion != formatVersionV1 &&
+        formatVersion != formatVersionV2 &&
+        formatVersion != formatVersionV3 &&
+        formatVersion != formatVersionV4) {
       throw ValidationException(
-        'ProjectBorderCatalog.formatVersion must be 1 or 2',
+        'ProjectBorderCatalog.formatVersion must be 1, 2, 3, or 4',
       );
     }
     _rejectDuplicateIds<BorderBlueprintRecord>(

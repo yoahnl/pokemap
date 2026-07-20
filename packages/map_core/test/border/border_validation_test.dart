@@ -11,6 +11,64 @@ const _validHash =
     'sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc';
 
 void main() {
+  test('grid-edge vertices use inclusive map bounds', () {
+    BorderResolutionRequest edgeRequest(BorderStrokeGeometry geometry) =>
+        _request(
+          template: BorderBlueprintTemplate.stoneChainLine,
+          feature: BorderFeature(
+            id: 'feature',
+            name: 'Feature',
+            blueprintId: 'blueprint',
+            seed: BorderSignedInt64.zero,
+            geometry: geometry,
+            overrides: const <BorderSlotOverride>[],
+            keepOutRegions: const <BorderKeepOutRegion>[],
+          ),
+        );
+
+    BorderStrokeGeometry geometry(
+      List<GridPos> points, {
+      BorderStrokeAlignment alignment = BorderStrokeAlignment.gridEdges,
+    }) =>
+        BorderStrokeGeometry(
+          strokes: <BorderStroke>[
+            BorderStroke(id: 'edge', points: points, closed: false),
+          ],
+          alignment: alignment,
+        );
+
+    BorderDiagnosticsReport diagnose(BorderStrokeGeometry value) =>
+        diagnoseBorderFeature(
+          edgeRequest(value),
+          materialization: null,
+          purpose: BorderFeatureValidationPurpose.resolution,
+          snapshotIntegrity: _integrity(),
+        );
+
+    final boundary = geometry(const <GridPos>[
+      GridPos(x: 2, y: 2),
+      GridPos(x: 3, y: 2),
+    ]);
+    expect(_codes(diagnose(boundary)),
+        isNot(contains('border.feature.stroke_cell_out_of_bounds')));
+    expect(
+      _codes(diagnose(geometry(
+        const <GridPos>[GridPos(x: 2, y: 2), GridPos(x: 3, y: 2)],
+        alignment: BorderStrokeAlignment.cellCenters,
+      ))),
+      contains('border.feature.stroke_cell_out_of_bounds'),
+    );
+    for (final invalid in <List<GridPos>>[
+      const <GridPos>[GridPos(x: -1, y: 0), GridPos(x: 0, y: 0)],
+      const <GridPos>[GridPos(x: 3, y: 2), GridPos(x: 4, y: 2)],
+    ]) {
+      expect(
+        _codes(diagnose(geometry(invalid))),
+        contains('border.feature.stroke_cell_out_of_bounds'),
+      );
+    }
+  });
+
   group('diagnoseBorderBlueprint', () {
     test('a valid published record has no diagnostics', () {
       final report = diagnoseBorderBlueprint(

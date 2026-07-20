@@ -17,6 +17,30 @@ const String _snapshotB = 'border-snapshot-sha256:$_hexB';
 const String _snapshotC = 'border-snapshot-sha256:$_hexC';
 
 void main() {
+  test('geometry fingerprint distinguishes grid-edge alignment', () {
+    final stroke = BorderStroke(
+      id: 'edge',
+      points: const <GridPos>[GridPos(x: 0, y: 0), GridPos(x: 1, y: 0)],
+      closed: false,
+    );
+    String fingerprint(BorderStrokeAlignment alignment) =>
+        computeBorderNonVisualInputFingerprints(
+          _request(
+            template: BorderBlueprintTemplate.stoneChainLine,
+            geometry: BorderStrokeGeometry(
+              strokes: <BorderStroke>[stroke],
+              alignment: alignment,
+            ),
+            includeGround: false,
+          ),
+        ).geometryAndSeed;
+
+    expect(
+      fingerprint(BorderStrokeAlignment.gridEdges),
+      isNot(fingerprint(BorderStrokeAlignment.cellCenters)),
+    );
+  });
+
   test('literal JCS preimages independently reproduce all nine goldens', () {
     final vectors = <(String, String)>[
       (
@@ -130,6 +154,33 @@ void main() {
       expect(
         fingerprints.visualSnapshots,
         borderVisualSnapshotsFingerprintGolden,
+      );
+    });
+
+    test('blueprint fingerprint tracks only non-legacy orientation', () {
+      final legacy = computeBorderInputFingerprints(_request()).blueprint;
+      String oriented(BorderPrimitiveOrientation orientation) =>
+          computeBorderInputFingerprints(
+            _request(
+              primitives: <BorderPublishedPrimitive>[
+                _primitive(
+                  id: 'b',
+                  snapshotId: _snapshotB,
+                  authoredOrientation: orientation,
+                ),
+                _primitive(id: 'a', snapshotId: _snapshotA),
+              ],
+            ),
+          ).blueprint;
+
+      expect(legacy, borderBlueprintFingerprintGolden);
+      expect(
+        oriented(BorderPrimitiveOrientation.west),
+        isNot(oriented(BorderPrimitiveOrientation.north)),
+      );
+      expect(
+        oriented(BorderPrimitiveOrientation.west),
+        isNot(legacy),
       );
     });
 
@@ -1118,6 +1169,8 @@ BorderPublishedPrimitive _primitive({
   BorderPixelPos? anchorPx,
   BorderTransformPolicy? transforms,
   BorderPrimitiveAssetMetrics? metrics,
+  BorderPrimitiveOrientation authoredOrientation =
+      BorderPrimitiveOrientation.legacyAxis,
 }) =>
     BorderPublishedPrimitive(
       id: id,
@@ -1127,6 +1180,7 @@ BorderPublishedPrimitive _primitive({
           (id == 'a'
               ? BorderPrimitiveRole.structureLarge
               : BorderPrimitiveRole.filler),
+      authoredOrientation: authoredOrientation,
       weight: weight ?? (id == 'a' ? 700 : 300),
       anchorPx: anchorPx ?? const BorderPixelPos(x: 8, y: 15),
       transforms: transforms ??

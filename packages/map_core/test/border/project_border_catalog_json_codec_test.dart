@@ -115,14 +115,22 @@ void main() {
       }
     });
 
-    test('accepts V1/V2 and rejects unsupported strict integer versions', () {
+    test('accepts V1/V2/V3/V4 and rejects unsupported strict versions', () {
+      for (final formatVersion in <int>[1, 2, 3, 4]) {
+        final encoded = _emptyJson()..['formatVersion'] = formatVersion;
+        final decoded = decodeProjectBorderCatalogJson(encoded);
+
+        expect(decoded.formatVersion, formatVersion);
+        expect(encodeProjectBorderCatalogJson(decoded), encoded);
+      }
+
       for (final invalidVersion in <Object?>[
         null,
         true,
         1.0,
         '1',
         0,
-        3,
+        5,
       ]) {
         final invalid = _emptyJson()..['formatVersion'] = invalidVersion;
         expect(
@@ -142,6 +150,71 @@ void main() {
           );
         }
       }
+    });
+
+    test('legacy primitive wire stays stable through V1/V2/V3 re-encode', () {
+      for (final formatVersion in <int>[1, 2, 3]) {
+        final catalog = ProjectBorderCatalog(
+          formatVersion: formatVersion,
+          records: <BorderBlueprintRecord>[
+            _record(publishedSnapshotId: 'snapshot-published'),
+          ],
+        );
+
+        final encoded = encodeProjectBorderCatalogJson(catalog);
+        final record = (encoded['records']! as List<Object?>).single!
+            as Map<String, Object?>;
+        final draft = ((record['draft']! as Map<String, Object?>)['definition']!
+            as Map<String, Object?>)['primitives']! as List<Object?>;
+        final published =
+            ((record['latestPublished']! as Map<String, Object?>)['definition']!
+                as Map<String, Object?>)['primitives']! as List<Object?>;
+
+        expect(
+          draft.single! as Map<String, Object?>,
+          isNot(contains('authoredOrientation')),
+        );
+        expect(
+          published.single! as Map<String, Object?>,
+          isNot(contains('authoredOrientation')),
+        );
+        expect(
+          encodeProjectBorderCatalogJson(
+            decodeProjectBorderCatalogJson(encoded),
+          ),
+          encoded,
+        );
+      }
+    });
+
+    test('V4 persists west orientation in draft and published primitives', () {
+      final catalog = ProjectBorderCatalog(
+        formatVersion: ProjectBorderCatalog.formatVersionV4,
+        records: <BorderBlueprintRecord>[
+          _record(
+            publishedSnapshotId: 'snapshot-published',
+            orientation: BorderPrimitiveOrientation.west,
+          ),
+        ],
+      );
+
+      final encoded = encodeProjectBorderCatalogJson(catalog);
+      final record = (encoded['records']! as List<Object?>).single!
+          as Map<String, Object?>;
+      final draft = ((record['draft']! as Map<String, Object?>)['definition']!
+          as Map<String, Object?>)['primitives']! as List<Object?>;
+      final published =
+          ((record['latestPublished']! as Map<String, Object?>)['definition']!
+              as Map<String, Object?>)['primitives']! as List<Object?>;
+      expect(
+        (draft.single! as Map<String, Object?>)['authoredOrientation'],
+        'west',
+      );
+      expect(
+        (published.single! as Map<String, Object?>)['authoredOrientation'],
+        'west',
+      );
+      expect(decodeProjectBorderCatalogJson(encoded), catalog);
     });
 
     test('V2 round-trips connectedLine while V1 rejects its enum values', () {
@@ -331,6 +404,8 @@ BorderBlueprintRecord _record({
   String occupancyMaskRle = 'border-rle-v1:4:1:4',
   BorderBlueprintTemplate template = BorderBlueprintTemplate.organicEdge,
   BorderPrimitiveRole role = BorderPrimitiveRole.structureLarge,
+  BorderPrimitiveOrientation orientation =
+      BorderPrimitiveOrientation.legacyAxis,
 }) {
   final metrics = BorderPrimitiveAssetMetrics(
     assetFingerprint: 'asset-sha256:fixture',
@@ -362,6 +437,7 @@ BorderBlueprintRecord _record({
           id: 'draft-stone',
           sourceElementId: 'stone-element',
           role: role,
+          authoredOrientation: orientation,
           weight: 100,
           anchorPx: const BorderPixelPos(x: 1, y: 2),
           transforms: transforms,
@@ -389,6 +465,7 @@ BorderBlueprintRecord _record({
                   sourceElementId: 'stone-element',
                   visualSnapshotId: publishedSnapshotId,
                   role: role,
+                  authoredOrientation: orientation,
                   weight: 100,
                   anchorPx: const BorderPixelPos(x: 1, y: 2),
                   transforms: transforms,

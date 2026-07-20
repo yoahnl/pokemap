@@ -202,6 +202,62 @@
         {"id":"el_selbrume_fx_etincelle_f3","file":"el_selbrume_fx_etincelle_f3.png","x":4,"y":14,"width":2,"height":2},
         {"id":"el_selbrume_fx_etincelle_f4","file":"el_selbrume_fx_etincelle_f4.png","x":6,"y":14,"width":2,"height":2}
       ]
+    },
+    "ts_selbrume_cliff_stone_chain_v1": {
+      "widthCells": 4,
+      "heightCells": 4,
+      "tileWidth": 32,
+      "tileHeight": 32,
+      "items": [
+        {"id":"stone_chain_primary_01","file":"primary_01.png","x":0,"y":0,"width":1,"height":1},
+        {"id":"stone_chain_primary_02","file":"primary_02.png","x":1,"y":0,"width":1,"height":1},
+        {"id":"stone_chain_primary_03","file":"primary_03.png","x":2,"y":0,"width":1,"height":1},
+        {"id":"stone_chain_primary_04","file":"primary_04.png","x":3,"y":0,"width":1,"height":1},
+        {"id":"stone_chain_primary_05","file":"primary_05.png","x":0,"y":1,"width":1,"height":1},
+        {"id":"stone_chain_secondary_01","file":"secondary_01.png","x":1,"y":1,"width":1,"height":1},
+        {"id":"stone_chain_secondary_02","file":"secondary_02.png","x":2,"y":1,"width":1,"height":1},
+        {"id":"stone_chain_secondary_03","file":"secondary_03.png","x":3,"y":1,"width":1,"height":1},
+        {"id":"stone_chain_secondary_04","file":"secondary_04.png","x":0,"y":2,"width":1,"height":1},
+        {"id":"stone_chain_filler_01","file":"filler_01.png","x":1,"y":2,"width":1,"height":1},
+        {"id":"stone_chain_filler_02","file":"filler_02.png","x":2,"y":2,"width":1,"height":1},
+        {"id":"stone_chain_filler_03","file":"filler_03.png","x":3,"y":2,"width":1,"height":1},
+        {"id":"stone_chain_corner_01","file":"corner_01.png","x":0,"y":3,"width":1,"height":1},
+        {"id":"stone_chain_corner_02","file":"corner_02.png","x":1,"y":3,"width":1,"height":1},
+        {"id":"stone_chain_cap_01","file":"cap_01.png","x":2,"y":3,"width":1,"height":1},
+        {"id":"stone_chain_cap_02","file":"cap_02.png","x":3,"y":3,"width":1,"height":1}
+      ]
+    },
+    "ts_selbrume_cliff_two_tier_v2": {
+      "widthCells": 6,
+      "heightCells": 4,
+      "tileWidth": 32,
+      "tileHeight": 32,
+      "items": [
+        {"id":"el_selbrume_cliff_top_n_01","file":"top_n_01.png","x":0,"y":0,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_top_n_02","file":"top_n_02.png","x":1,"y":0,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_top_n_03","file":"top_n_03.png","x":2,"y":0,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_top_e_01","file":"top_e_01.png","x":3,"y":0,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_top_e_02","file":"top_e_02.png","x":4,"y":0,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_top_e_03","file":"top_e_03.png","x":5,"y":0,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_top_s_01","file":"top_s_01.png","x":0,"y":1,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_top_s_02","file":"top_s_02.png","x":1,"y":1,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_top_s_03","file":"top_s_03.png","x":2,"y":1,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_top_w_01","file":"top_w_01.png","x":3,"y":1,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_top_w_02","file":"top_w_02.png","x":4,"y":1,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_top_w_03","file":"top_w_03.png","x":5,"y":1,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_face_n_01","file":"face_n_01.png","x":0,"y":2,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_face_n_02","file":"face_n_02.png","x":1,"y":2,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_face_n_03","file":"face_n_03.png","x":2,"y":2,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_face_e_01","file":"face_e_01.png","x":3,"y":2,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_face_e_02","file":"face_e_02.png","x":4,"y":2,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_face_e_03","file":"face_e_03.png","x":5,"y":2,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_face_s_01","file":"face_s_01.png","x":0,"y":3,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_face_s_02","file":"face_s_02.png","x":1,"y":3,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_face_s_03","file":"face_s_03.png","x":2,"y":3,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_face_w_01","file":"face_w_01.png","x":3,"y":3,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_face_w_02","file":"face_w_02.png","x":4,"y":3,"width":1,"height":1},
+        {"id":"el_selbrume_cliff_face_w_03","file":"face_w_03.png","x":5,"y":3,"width":1,"height":1}
+      ]
     }
   }
 }

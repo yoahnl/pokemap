@@ -44,6 +44,7 @@ BorderToolAvailability assessBorderToolAvailability({
     BorderBlueprintTemplate.masonryLine,
     BorderBlueprintTemplate.postAndRailLine,
     BorderBlueprintTemplate.connectedLine,
+    BorderBlueprintTemplate.stoneChainLine,
   },
 }) {
   if (map == null || activeLayerId == null) {
@@ -110,7 +111,9 @@ bool _geometryMatchesTemplate(
     BorderBlueprintTemplate.organicEdge => geometry is BorderRegionGeometry,
     BorderBlueprintTemplate.masonryLine ||
     BorderBlueprintTemplate.postAndRailLine ||
-    BorderBlueprintTemplate.connectedLine =>
-      geometry is BorderStrokeGeometry,
+    BorderBlueprintTemplate.connectedLine ||
+    BorderBlueprintTemplate.stoneChainLine =>
+      geometry is BorderStrokeGeometry &&
+          geometry.alignment == borderTemplateStrokeAlignment(template),
   };
 }

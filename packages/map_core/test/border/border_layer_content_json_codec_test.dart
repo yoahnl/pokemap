@@ -71,14 +71,15 @@ void main() {
       }
     });
 
-    test('accepts V1/V2 and rejects unsupported strict integer versions', () {
+    test('accepts V1/V2/V3 and rejects unsupported strict integer versions',
+        () {
       for (final invalidVersion in <Object?>[
         null,
         true,
         1.0,
         '1',
         0,
-        3,
+        4,
       ]) {
         final invalid = _emptyJson()..['formatVersion'] = invalidVersion;
         expect(

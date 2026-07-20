@@ -148,6 +148,173 @@ String _connectedLineNodeRoleWireName(BorderPrimitiveRole role) =>
         ),
     };
 
+/// Builds a side- and transform-independent key for a stone-chain vertex.
+String buildBorderStoneChainNodeSlotKey({
+  required String featureId,
+  required String strokeId,
+  required GridPos vertex,
+  required int passIndex,
+  required BorderPrimitiveRole role,
+  required int rank,
+}) {
+  _requireStableText(featureId, 'featureId');
+  _requireStableText(strokeId, 'strokeId');
+  _requireNonNegativeCell(vertex, 'vertex');
+  _requireNonNegative(passIndex, 'passIndex');
+  _requireNonNegative(rank, 'rank');
+  _requireStoneChainRole(role);
+  return _slotKey(<_SlotComponent>[
+    const _TextSlotComponent('stone-chain-node'),
+    _TextSlotComponent(featureId),
+    _TextSlotComponent(strokeId),
+    _IntegerSlotComponent(vertex.x),
+    _IntegerSlotComponent(vertex.y),
+    _IntegerSlotComponent(passIndex),
+    _TextSlotComponent(borderPrimitiveRoleV1WireName(role)),
+    _IntegerSlotComponent(rank),
+  ]);
+}
+
+/// Builds a stable key for one sampled station on a canonical stone run.
+String buildBorderStoneChainStationSlotKey({
+  required String featureId,
+  required String strokeId,
+  required GridPos runStart,
+  required GridPos runEnd,
+  required int stationOrdinal,
+  required int passIndex,
+  required BorderPrimitiveRole role,
+  required int rank,
+}) {
+  _requireStableText(featureId, 'featureId');
+  _requireStableText(strokeId, 'strokeId');
+  _requireNonNegativeCell(runStart, 'runStart');
+  _requireNonNegativeCell(runEnd, 'runEnd');
+  _requireNonNegative(stationOrdinal, 'stationOrdinal');
+  _requireNonNegative(passIndex, 'passIndex');
+  _requireNonNegative(rank, 'rank');
+  _requireStoneChainRole(role);
+  final startComesFirst = runStart.y < runEnd.y ||
+      (runStart.y == runEnd.y && runStart.x <= runEnd.x);
+  final endpointA = startComesFirst ? runStart : runEnd;
+  final endpointB = startComesFirst ? runEnd : runStart;
+  return _slotKey(<_SlotComponent>[
+    const _TextSlotComponent('stone-chain-station'),
+    _TextSlotComponent(featureId),
+    _TextSlotComponent(strokeId),
+    _IntegerSlotComponent(endpointA.x),
+    _IntegerSlotComponent(endpointA.y),
+    _IntegerSlotComponent(endpointB.x),
+    _IntegerSlotComponent(endpointB.y),
+    _IntegerSlotComponent(stationOrdinal),
+    _IntegerSlotComponent(passIndex),
+    _TextSlotComponent(borderPrimitiveRoleV1WireName(role)),
+    _IntegerSlotComponent(rank),
+  ]);
+}
+
+/// Builds a stable identity for an independently sampled stone-chain row.
+///
+/// Unlike the legacy station key, this tuple is measured from the canonical
+/// stroke origin. It therefore survives authored traversal reversal, visual
+/// side inversion, and transform-policy changes without coupling face slots
+/// to the lip lattice that happened to be selected for a previous receipt.
+String buildBorderStoneChainDistanceSlotKey({
+  required String featureId,
+  required String strokeId,
+  required GridPos runStart,
+  required GridPos runEnd,
+  required int canonicalDistancePx,
+  required int passIndex,
+  required BorderPrimitiveRole role,
+  required int rank,
+}) {
+  _requireStableText(featureId, 'featureId');
+  _requireStableText(strokeId, 'strokeId');
+  _requireNonNegativeCell(runStart, 'runStart');
+  _requireNonNegativeCell(runEnd, 'runEnd');
+  _requireNonNegative(canonicalDistancePx, 'canonicalDistancePx');
+  _requireNonNegative(passIndex, 'passIndex');
+  _requireNonNegative(rank, 'rank');
+  _requireStoneChainRole(role);
+  final startComesFirst = runStart.y < runEnd.y ||
+      (runStart.y == runEnd.y && runStart.x <= runEnd.x);
+  final endpointA = startComesFirst ? runStart : runEnd;
+  final endpointB = startComesFirst ? runEnd : runStart;
+  return _slotKey(<_SlotComponent>[
+    const _TextSlotComponent('stone-chain-distance'),
+    _TextSlotComponent(featureId),
+    _TextSlotComponent(strokeId),
+    _IntegerSlotComponent(endpointA.x),
+    _IntegerSlotComponent(endpointA.y),
+    _IntegerSlotComponent(endpointB.x),
+    _IntegerSlotComponent(endpointB.y),
+    _IntegerSlotComponent(canonicalDistancePx),
+    _IntegerSlotComponent(passIndex),
+    _TextSlotComponent(borderPrimitiveRoleV1WireName(role)),
+    _IntegerSlotComponent(rank),
+  ]);
+}
+
+/// Builds a split-stable key for a station owned by one lineage edge.
+///
+/// Whole-run endpoints are deliberately absent from this identity. A local
+/// erase can split or shorten the containing run without renaming stations on
+/// untouched source edges. [canonicalEdgeOffsetPx] is measured from the
+/// row-major lesser endpoint, so authored traversal reversal is also neutral.
+String buildBorderStoneChainLineageStationSlotKey({
+  required String featureId,
+  required String strokeId,
+  required GridPos edgeStart,
+  required GridPos edgeEnd,
+  required int generationEdgeIndex,
+  required int canonicalEdgeOffsetPx,
+  required int passIndex,
+  required BorderPrimitiveRole role,
+  required int rank,
+}) {
+  _requireStableText(featureId, 'featureId');
+  _requireStableText(strokeId, 'strokeId');
+  _requireNonNegativeCell(edgeStart, 'edgeStart');
+  _requireNonNegativeCell(edgeEnd, 'edgeEnd');
+  _requireUnitCardinalEdge(edgeStart, edgeEnd);
+  _requireNonNegative(generationEdgeIndex, 'generationEdgeIndex');
+  _requireNonNegative(canonicalEdgeOffsetPx, 'canonicalEdgeOffsetPx');
+  _requireNonNegative(passIndex, 'passIndex');
+  _requireNonNegative(rank, 'rank');
+  _requireStoneChainRole(role);
+  final startComesFirst = edgeStart.y < edgeEnd.y ||
+      (edgeStart.y == edgeEnd.y && edgeStart.x <= edgeEnd.x);
+  final endpointA = startComesFirst ? edgeStart : edgeEnd;
+  final endpointB = startComesFirst ? edgeEnd : edgeStart;
+  return _slotKey(<_SlotComponent>[
+    const _TextSlotComponent('stone-chain-lineage-station'),
+    _TextSlotComponent(featureId),
+    _TextSlotComponent(strokeId),
+    _IntegerSlotComponent(endpointA.x),
+    _IntegerSlotComponent(endpointA.y),
+    _IntegerSlotComponent(endpointB.x),
+    _IntegerSlotComponent(endpointB.y),
+    _IntegerSlotComponent(generationEdgeIndex),
+    _IntegerSlotComponent(canonicalEdgeOffsetPx),
+    _IntegerSlotComponent(passIndex),
+    _TextSlotComponent(borderPrimitiveRoleV1WireName(role)),
+    _IntegerSlotComponent(rank),
+  ]);
+}
+
+void _requireStoneChainRole(BorderPrimitiveRole role) {
+  if (role != BorderPrimitiveRole.structureLarge &&
+      role != BorderPrimitiveRole.structureMedium &&
+      role != BorderPrimitiveRole.filler &&
+      role != BorderPrimitiveRole.lineCorner &&
+      role != BorderPrimitiveRole.lineCap) {
+    throw const ValidationException(
+      'stone-chain slot role is not supported',
+    );
+  }
+}
+
 /// Captures the complete persisted V1 draw-order tuple at resolution time.
 BorderStableOrderKey buildBorderStableOrderKey({
   required BorderDrawBand drawBand,

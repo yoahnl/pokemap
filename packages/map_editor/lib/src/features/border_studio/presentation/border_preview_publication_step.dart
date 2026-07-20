@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
+import '../../border_map_editing/presentation/border_diagnostic_presentation.dart';
 import '../application/border_studio_draft.dart';
 import '../application/border_studio_publication_coordinator.dart';
 import 'border_canonical_gallery_canvas.dart';
@@ -45,8 +46,8 @@ class BorderPreviewPublicationStep extends StatelessWidget {
         ? const <String>[]
         : unresolvedBorderRoleLabels(definition);
     final publication = state.publicationAvailability;
-    final isConnectedLine =
-        definition?.template == BorderBlueprintTemplate.connectedLine;
+    final requiresInvertedGallery = definition != null &&
+        borderTemplateRequiresInvertedCanonicalGallery(definition.template);
     final expectedCases = definition == null
         ? 0
         : borderCanonicalGalleryCasesForTemplate(definition.template).length;
@@ -55,7 +56,8 @@ class BorderPreviewPublicationStep extends StatelessWidget {
         preview!.canonicalGalleryCases.every(
           (sample) =>
               sample.resolution.canApply &&
-              (!isConnectedLine || sample.invertedResolution?.canApply == true),
+              (!requiresInvertedGallery ||
+                  sample.invertedResolution?.canApply == true),
         );
     final canPublish = preview != null &&
         hasCompleteGallery &&
@@ -80,6 +82,14 @@ class BorderPreviewPublicationStep extends StatelessWidget {
             'border.publication.connected_line_transform_unavailable')
           _connectedLineRoleLabel(diagnostic.parameters['role']),
     };
+    final stoneChainErrorMessages =
+        definition?.template == BorderBlueprintTemplate.stoneChainLine
+            ? <String>{
+                for (final diagnostic in state.diagnostics.diagnostics)
+                  if (diagnostic.severity == BorderDiagnosticSeverity.error)
+                    _stoneChainErrorMessage(diagnostic),
+              }.toList(growable: false)
+            : const <String>[];
 
     return BorderStudioStepScaffold(
       title: '5. Aperçu et publication',
@@ -101,7 +111,7 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                     padding: const EdgeInsets.all(12),
                     child: PokeMapSectionHeader(
                       title: 'Bac à sable neutre',
-                      description: isConnectedLine
+                      description: requiresInvertedGallery
                           ? 'Chaque cas montre le côté principal et le côté inversé. Le cas d’angle couvre les virages à gauche et à droite.'
                           : 'Chaque vignette ci-dessous provient du solveur réel et des snapshots immuables candidats.',
                       trailing: Wrap(
@@ -160,7 +170,7 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                                 key: ValueKey<String>(
                                   'border-studio-gallery-case-${sample.galleryCase.name}',
                                 ),
-                                width: isConnectedLine ? 544 : 272,
+                                width: requiresInvertedGallery ? 544 : 272,
                                 child: PokeMapCard(
                                   padding: const EdgeInsets.all(10),
                                   child: Column(
@@ -175,7 +185,7 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
-                                      if (isConnectedLine &&
+                                      if (requiresInvertedGallery &&
                                           sample.galleryCase ==
                                               BorderCanonicalGalleryCase
                                                   .sharpCorner) ...[
@@ -189,7 +199,7 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                                         ),
                                       ],
                                       const SizedBox(height: 8),
-                                      if (isConnectedLine)
+                                      if (requiresInvertedGallery)
                                         Wrap(
                                           spacing: 8,
                                           runSpacing: 8,
@@ -347,6 +357,37 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                     if (roleLabel != connectedLineTransformRoleLabels.last)
                       const SizedBox(height: 8),
                   ],
+                ],
+                if (stoneChainErrorMessages.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  PokeMapPanel(
+                    key: const ValueKey<String>(
+                      'border-studio-stone-chain-errors',
+                    ),
+                    header: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: PokeMapSectionHeader(
+                        title: 'Corrections de la chaîne de pierres',
+                        description:
+                            'Corrigez ces erreurs puis régénérez la galerie.',
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final message in stoneChainErrorMessages) ...[
+                          BorderStudioNotice(
+                            title: 'Erreur du solveur',
+                            description: message,
+                            tone: PokeMapTone.danger,
+                            icon: CupertinoIcons.exclamationmark_triangle,
+                          ),
+                          if (message != stoneChainErrorMessages.last)
+                            const SizedBox(height: 8),
+                        ],
+                      ],
+                    ),
+                  ),
                 ],
                 if (state.warningCodes.isNotEmpty) ...[
                   const SizedBox(height: 12),
@@ -528,14 +569,36 @@ class BorderPreviewPublicationStep extends StatelessWidget {
         BorderCanonicalGalleryCase.sharpCorner => 'Angle prononcé',
         BorderCanonicalGalleryCase.endpoint => 'Extrémité',
         BorderCanonicalGalleryCase.opening => 'Ouverture',
+        BorderCanonicalGalleryCase.sBend => 'Courbe en S',
+        BorderCanonicalGalleryCase.closedLoop => 'Boucle fermée',
       };
 
   String _warningLabel(String code) {
+    if (code == 'border.publication.stone_chain_primary_variety_low') {
+      return 'Ajoutez idéalement au moins trois variantes de Sommet plat pour rendre la falaise moins répétitive.';
+    }
+    if (code == 'border.publication.stone_chain_gap_not_zero') {
+      return 'L’espacement est supérieur à 0 px : vérifiez qu’aucune ouverture ne coupe les deux rangées.';
+    }
+    if (code == 'border.publication.stone_chain_interlock_too_low') {
+      return 'Augmentez l’imbrication des pierres pour mieux relier le sommet à la face.';
+    }
     if (code.contains('repetition')) {
       return 'Certaines séquences visuelles se répètent. Vérifiez que le résultat reste naturel sur tous les cas.';
     }
     return 'Le solveur a détecté un point non bloquant qui demande votre validation visuelle.';
   }
+
+  String _stoneChainErrorMessage(BorderDiagnostic diagnostic) =>
+      switch (diagnostic.code) {
+        'border.publication.stone_chain_face_role_missing' =>
+          'Assignez au moins un asset au rôle Face de falaise.',
+        'border.publication.stone_chain_directional_coverage_missing' =>
+          'Renseignez l’orientation dessinée des assets pour couvrir Nord, Est, Sud et Ouest.',
+        'border.publication.stone_chain_mixed_orientation_modes' =>
+          'Choisissez un mode d’orientation cohérent pour tous les assets du sommet et de la face.',
+        _ => localizeEditorBorderDiagnostic(diagnostic),
+      };
 
   String _connectedLineRoleLabel(Object? wireName) => switch (wireName) {
         'lineCap' => 'Extrémité',

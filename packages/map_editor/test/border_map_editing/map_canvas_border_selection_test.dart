@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -288,9 +289,14 @@ void main() {
   testWidgets(
       'line Border drag previews one stroke from pointer-down without mutating the map',
       (tester) async {
+    var resolverCalls = 0;
     final fixture = await _pumpLineCanvas(
       tester,
       tool: EditorToolType.borderPaint,
+      resolver: (request) {
+        resolverCalls += 1;
+        return _successfulLinePreview(request);
+      },
     );
     final feature = fixture.map.layers
         .whereType<BorderLayer>()
@@ -309,7 +315,8 @@ void main() {
 
     final drawing = fixture.container.read(borderPreviewControllerProvider);
     expect(drawing.phase, BorderPreviewPhase.drawing);
-    expect(drawing.transaction?.result, isNotNull);
+    expect(drawing.transaction?.result, isNull);
+    expect(resolverCalls, 0);
     final geometry =
         drawing.transaction!.proposedFeature.geometry as BorderStrokeGeometry;
     expect(geometry.strokes, hasLength(1));
@@ -329,6 +336,7 @@ void main() {
       fixture.container.read(borderPreviewControllerProvider).phase,
       BorderPreviewPhase.resolved,
     );
+    expect(resolverCalls, 1);
     expect(
       fixture.container.read(editorNotifierProvider).activeMap!.toJson(),
       beforeJson,
@@ -413,7 +421,7 @@ void main() {
           .read(borderPreviewControllerProvider)
           .transaction
           ?.result,
-      isNotNull,
+      isNull,
     );
 
     // Returning through an already sampled cell violates the V1 canonical
@@ -485,7 +493,7 @@ void main() {
           .read(borderPreviewControllerProvider)
           .transaction
           ?.result,
-      isNotNull,
+      isNull,
     );
 
     // Independent strokes represent openings and may not share a cell or
@@ -607,6 +615,299 @@ void main() {
         fixture.container.read(editorNotifierProvider).mapUndoStack, isEmpty);
   });
 
+  testWidgets(
+      'stone-chain drag snaps to inclusive right and bottom grid edges without map writes',
+      (tester) async {
+    final fixture = await _pumpLineCanvas(
+      tester,
+      tool: EditorToolType.borderPaint,
+      template: BorderBlueprintTemplate.stoneChainLine,
+    );
+    final beforeJson = fixture.map.toJson();
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(
+      location: fixture.canvas.topLeft + const Offset(32, 32),
+    );
+    await mouse.moveTo(
+      fixture.canvas.topLeft + const Offset(32, 32),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('border-grid-edge-guide')),
+      findsOneWidget,
+    );
+
+    final gesture = await tester.startGesture(
+      fixture.canvas.topLeft + const Offset(0.5, 0.5),
+    );
+    await gesture.moveTo(
+      fixture.canvas.topLeft + const Offset(160, 0.5),
+    );
+    await tester.pump();
+    await gesture.moveTo(
+      fixture.canvas.topLeft + const Offset(160, 160),
+    );
+    await tester.pump();
+
+    final drawing = fixture.container.read(borderPreviewControllerProvider);
+    expect(drawing.phase, BorderPreviewPhase.drawing);
+    final geometry =
+        drawing.transaction!.proposedFeature.geometry as BorderStrokeGeometry;
+    expect(geometry.alignment, BorderStrokeAlignment.gridEdges);
+    expect(geometry.strokes.single.points.first, const GridPos(x: 0, y: 0));
+    expect(geometry.strokes.single.points.last, const GridPos(x: 5, y: 5));
+    expect(
+      fixture.container.read(editorNotifierProvider).activeMap!.toJson(),
+      beforeJson,
+    );
+    expect(
+        fixture.container.read(editorNotifierProvider).mapUndoStack, isEmpty);
+
+    await gesture.up();
+    await tester.pump();
+
+    expect(
+      fixture.container.read(borderPreviewControllerProvider).phase,
+      BorderPreviewPhase.resolved,
+    );
+    expect(
+      fixture.container.read(editorNotifierProvider).activeMap!.toJson(),
+      beforeJson,
+    );
+  });
+
+  testWidgets(
+      'resolved stone-chain preview accepts a second stroke before one Apply',
+      (tester) async {
+    final fixture = await _pumpLineCanvas(
+      tester,
+      tool: EditorToolType.borderPaint,
+      template: BorderBlueprintTemplate.stoneChainLine,
+      applier: ({required map, required transaction}) =>
+          updateBorderFeatureGeometry(
+        map,
+        layerId: transaction.layerId,
+        featureId: transaction.featureId,
+        geometry: transaction.proposedFeature.geometry,
+      ),
+    );
+    final beforeJson = fixture.map.toJson();
+
+    Future<void> drawHorizontalStroke(double y) async {
+      final gesture = await tester.startGesture(
+        fixture.canvas.topLeft + Offset(0.5, y),
+      );
+      await gesture.moveTo(
+        fixture.canvas.topLeft + Offset(128, y),
+      );
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+    }
+
+    await drawHorizontalStroke(32);
+    final firstPreview =
+        fixture.container.read(borderPreviewControllerProvider);
+    expect(firstPreview.phase, BorderPreviewPhase.resolved);
+    expect(
+      (firstPreview.transaction!.proposedFeature.geometry
+              as BorderStrokeGeometry)
+          .strokes
+          .map((stroke) => stroke.id),
+      orderedEquals(<String>['stroke']),
+    );
+
+    await drawHorizontalStroke(128);
+
+    final secondPreview =
+        fixture.container.read(borderPreviewControllerProvider);
+    expect(secondPreview.phase, BorderPreviewPhase.resolved);
+    expect(secondPreview.transaction!.baseFeatureFingerprint,
+        firstPreview.transaction!.baseFeatureFingerprint);
+    expect(secondPreview.transaction!.variationOrdinal,
+        firstPreview.transaction!.variationOrdinal);
+    expect(
+      (secondPreview.transaction!.proposedFeature.geometry
+              as BorderStrokeGeometry)
+          .strokes
+          .map((stroke) => stroke.id),
+      orderedEquals(<String>['stroke', 'stroke_2']),
+    );
+    expect(
+      fixture.container.read(editorNotifierProvider).activeMap!.toJson(),
+      beforeJson,
+    );
+    expect(
+      fixture.container.read(editorNotifierProvider).mapUndoStack,
+      isEmpty,
+    );
+
+    expect(
+      fixture.container
+          .read(editorNotifierProvider.notifier)
+          .applyPendingBorderPreview(),
+      isTrue,
+    );
+    final persistedGeometry = fixture.container
+        .read(editorNotifierProvider)
+        .activeMap!
+        .layers
+        .whereType<BorderLayer>()
+        .single
+        .content
+        .features
+        .single
+        .geometry as BorderStrokeGeometry;
+    expect(
+      persistedGeometry.strokes.map((stroke) => stroke.id),
+      orderedEquals(<String>['stroke', 'stroke_2']),
+    );
+    expect(
+      fixture.container.read(editorNotifierProvider).mapUndoStack,
+      hasLength(1),
+    );
+    expect(
+      fixture.container.read(borderPreviewControllerProvider),
+      const BorderPreviewState.idle(),
+    );
+  });
+
+  testWidgets(
+      'cancelling a second stone-chain gesture preserves the first preview',
+      (tester) async {
+    final fixture = await _pumpLineCanvas(
+      tester,
+      tool: EditorToolType.borderPaint,
+      template: BorderBlueprintTemplate.stoneChainLine,
+    );
+    final beforeJson = fixture.map.toJson();
+    final firstGesture = await tester.startGesture(
+      fixture.canvas.topLeft + const Offset(0.5, 32),
+    );
+    await firstGesture.moveTo(
+      fixture.canvas.topLeft + const Offset(128, 32),
+    );
+    await tester.pump();
+    await firstGesture.up();
+    await tester.pump();
+    final firstPreview =
+        fixture.container.read(borderPreviewControllerProvider);
+    expect(firstPreview.phase, BorderPreviewPhase.resolved);
+    final firstTransaction = firstPreview.transaction!;
+
+    final cancelledGesture = await tester.startGesture(
+      fixture.canvas.topLeft + const Offset(0.5, 128),
+    );
+    await cancelledGesture.moveTo(
+      fixture.canvas.topLeft + const Offset(128, 128),
+    );
+    await tester.pump();
+    tester
+        .widget<GestureDetector>(
+          find.byKey(
+            const ValueKey<String>('map-canvas-gesture-detector'),
+          ),
+        )
+        .onPanCancel!();
+    await tester.pump();
+    await cancelledGesture.cancel();
+    await tester.pump();
+
+    final restored = fixture.container.read(borderPreviewControllerProvider);
+    expect(restored.phase, BorderPreviewPhase.resolved);
+    expect(restored.transaction!.baseFeatureFingerprint,
+        firstTransaction.baseFeatureFingerprint);
+    expect(restored.transaction!.variationOrdinal,
+        firstTransaction.variationOrdinal);
+    expect(
+      (restored.transaction!.proposedFeature.geometry as BorderStrokeGeometry)
+          .strokes
+          .map((stroke) => stroke.id),
+      orderedEquals(<String>['stroke']),
+    );
+    expect(
+      fixture.container.read(editorNotifierProvider).activeMap!.toJson(),
+      beforeJson,
+    );
+    expect(
+        fixture.container.read(editorNotifierProvider).mapUndoStack, isEmpty);
+  });
+
+  testWidgets(
+      'resolved preview cannot resume after another Border feature is selected',
+      (tester) async {
+    final secondFeature = _lineFeature(
+      'wall-b',
+      alignment: BorderStrokeAlignment.gridEdges,
+    );
+    final fixture = await _pumpLineCanvas(
+      tester,
+      tool: EditorToolType.borderPaint,
+      template: BorderBlueprintTemplate.stoneChainLine,
+      additionalFeatures: <BorderFeature>[secondFeature],
+    );
+    final beforeJson = fixture.map.toJson();
+    final firstGesture = await tester.startGesture(
+      fixture.canvas.topLeft + const Offset(0.5, 32),
+    );
+    await firstGesture.moveTo(
+      fixture.canvas.topLeft + const Offset(128, 32),
+    );
+    await tester.pump();
+    await firstGesture.up();
+    await tester.pump();
+    final resolvedForA =
+        fixture.container.read(borderPreviewControllerProvider);
+    expect(resolvedForA.phase, BorderPreviewPhase.resolved);
+    expect(resolvedForA.transaction!.featureId, 'wall');
+
+    fixture.container
+        .read(activeBorderFeatureControllerProvider.notifier)
+        .selectFeature(
+          map: fixture.map,
+          layerId: 'borders',
+          featureId: secondFeature.id,
+        );
+    await tester.pump();
+    expect(
+      fixture.container
+          .read(activeBorderFeatureControllerProvider)
+          .activeFeatureId,
+      secondFeature.id,
+    );
+
+    final secondGesture = await tester.startGesture(
+      fixture.canvas.topLeft + const Offset(0.5, 128),
+    );
+    await secondGesture.moveTo(
+      fixture.canvas.topLeft + const Offset(128, 128),
+    );
+    await tester.pump();
+    await secondGesture.up();
+    await tester.pump();
+
+    final afterRejectedResume =
+        fixture.container.read(borderPreviewControllerProvider);
+    expect(afterRejectedResume, same(resolvedForA));
+    expect(afterRejectedResume.transaction!.featureId, 'wall');
+    expect(
+      (afterRejectedResume.transaction!.proposedFeature.geometry
+              as BorderStrokeGeometry)
+          .strokes
+          .map((stroke) => stroke.id),
+      orderedEquals(<String>['stroke']),
+    );
+    expect(
+      fixture.container.read(editorNotifierProvider).activeMap!.toJson(),
+      beforeJson,
+    );
+    expect(
+      fixture.container.read(editorNotifierProvider).mapUndoStack,
+      isEmpty,
+    );
+  });
+
   testWidgets('line erase creates an explicit opening without mutating the map',
       (tester) async {
     final sourceStroke = BorderStroke(
@@ -677,8 +978,17 @@ Future<
   required EditorToolType tool,
   List<BorderStroke> strokes = const <BorderStroke>[],
   BorderBlueprintTemplate template = BorderBlueprintTemplate.masonryLine,
+  BorderPreviewMapApplier? applier,
+  BorderFeatureResolver? resolver,
+  List<BorderFeature> additionalFeatures = const <BorderFeature>[],
 }) async {
-  final feature = _lineFeature('wall', strokes: strokes);
+  final feature = _lineFeature(
+    'wall',
+    strokes: strokes,
+    alignment: template == BorderBlueprintTemplate.stoneChainLine
+        ? BorderStrokeAlignment.gridEdges
+        : BorderStrokeAlignment.cellCenters,
+  );
   final map = MapData(
     id: 'map',
     name: 'Map',
@@ -688,11 +998,19 @@ Future<
       MapLayer.border(
         id: 'borders',
         name: 'Bordures',
-        content: BorderLayerContent(features: <BorderFeature>[feature]),
+        content: BorderLayerContent(
+          formatVersion: template == BorderBlueprintTemplate.stoneChainLine
+              ? BorderLayerContent.formatVersionV3
+              : BorderLayerContent.formatVersionV1,
+          features: <BorderFeature>[feature, ...additionalFeatures],
+        ),
       ),
     ],
   );
-  final preview = BorderPreviewController(resolver: _successfulLinePreview);
+  final preview = BorderPreviewController(
+    resolver: resolver ?? _successfulLinePreview,
+    applier: applier,
+  );
   final container = ProviderContainer(
     overrides: <Override>[
       borderPreviewControllerProvider.overrideWith((ref) => preview),
@@ -773,13 +1091,14 @@ BorderFeature _featureForSize(
 BorderFeature _lineFeature(
   String id, {
   List<BorderStroke> strokes = const <BorderStroke>[],
+  BorderStrokeAlignment alignment = BorderStrokeAlignment.cellCenters,
 }) =>
     BorderFeature(
       id: id,
       name: id,
       blueprintId: 'wall-blueprint',
       seed: BorderSignedInt64.fromInt(23),
-      geometry: BorderStrokeGeometry(strokes: strokes),
+      geometry: BorderStrokeGeometry(alignment: alignment, strokes: strokes),
       overrides: const <BorderSlotOverride>[],
       keepOutRegions: const <BorderKeepOutRegion>[],
     );
@@ -847,9 +1166,11 @@ ProjectManifest _publishedLineManifest({
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     borderCatalog: ProjectBorderCatalog(
-      formatVersion: template == BorderBlueprintTemplate.connectedLine
-          ? ProjectBorderCatalog.formatVersionV2
-          : ProjectBorderCatalog.formatVersionV1,
+      formatVersion: template == BorderBlueprintTemplate.stoneChainLine
+          ? ProjectBorderCatalog.formatVersionV3
+          : template == BorderBlueprintTemplate.connectedLine
+              ? ProjectBorderCatalog.formatVersionV2
+              : ProjectBorderCatalog.formatVersionV1,
       records: <BorderBlueprintRecord>[
         BorderBlueprintRecord(
           id: 'wall-blueprint',

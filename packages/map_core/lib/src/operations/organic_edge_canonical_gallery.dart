@@ -248,7 +248,9 @@ BorderRegionGeometry _geometryFor(BorderCanonicalGalleryCase galleryCase) =>
         ),
       BorderCanonicalGalleryCase.sharpCorner ||
       BorderCanonicalGalleryCase.endpoint ||
-      BorderCanonicalGalleryCase.opening =>
+      BorderCanonicalGalleryCase.opening ||
+      BorderCanonicalGalleryCase.sBend ||
+      BorderCanonicalGalleryCase.closedLoop =>
         throw const ValidationException(
           'Line-only case is not valid in the organic gallery',
         ),
@@ -272,6 +274,8 @@ int _coverageComponentRank(BorderCanonicalCoverageComponent component) =>
       BorderCanonicalCoverageComponent.innerLoop => 2,
       BorderCanonicalCoverageComponent.leadingStroke => 3,
       BorderCanonicalCoverageComponent.trailingStroke => 4,
+      BorderCanonicalCoverageComponent.lip => 5,
+      BorderCanonicalCoverageComponent.face => 6,
     };
 
 bool _listEquals<T>(List<T> left, List<T> right) {

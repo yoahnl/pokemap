@@ -8,6 +8,48 @@ import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
 void main() {
   group('MapGridPainter foreground split helpers', () {
+    test('can hide the editor grid for clean visual QA captures', () async {
+      const map = MapData(
+        id: 'grid-qa',
+        name: 'Grid QA',
+        size: GridSize(width: 2, height: 2),
+      );
+
+      Future<int> alphaAtGridLine({required bool showGrid}) async {
+        final recorder = ui.PictureRecorder();
+        final canvas = ui.Canvas(recorder);
+        MapGridPainter(
+          map: map,
+          zoom: 1,
+          offset: ui.Offset.zero,
+          tileWidth: 32,
+          tileHeight: 32,
+          tilesetImagesById: const <String, ui.Image?>{},
+          sourceTileWidth: 32,
+          sourceTileHeight: 32,
+          tilesPerRowById: const <String, int>{},
+          warps: const <MapWarp>[],
+          gameplayZones: const <MapGameplayZone>[],
+          connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+          pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
+          terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+          showGrid: showGrid,
+        ).paint(canvas, const ui.Size(64, 64));
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(64, 64);
+        final pixels =
+            await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+        final pixelOffset = ((16 * image.width) + 32) * 4;
+        final alpha = pixels!.getUint8(pixelOffset + 3);
+        picture.dispose();
+        image.dispose();
+        return alpha;
+      }
+
+      expect(await alphaAtGridLine(showGrid: true), greaterThan(0));
+      expect(await alphaAtGridLine(showGrid: false), 0);
+    });
+
     test(
         'marks only non-collision cells of multi-tile placed elements as foreground',
         () {

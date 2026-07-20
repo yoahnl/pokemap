@@ -141,7 +141,7 @@ final class BorderStudioDraftController
       previewSeed: _initialPreviewSeed(id),
       template: template,
       primitives: const <BorderPrimitiveDraft>[],
-      defaults: _defaultGenerationParams(),
+      defaults: _defaultGenerationParams(template),
       sortOrder: manifest.borderCatalog.recordCount,
     );
     _loadedFingerprintsByBlueprintId = <String, Map<String, String>>{
@@ -228,8 +228,17 @@ final class BorderStudioDraftController
   void setTemplate(BorderBlueprintTemplate template) {
     final definition = _requireWorkingDraft().blueprint.definition;
     _validatePrimitiveRoles(definition.primitives, template);
+    final usesUntouchedTemplateDefaults = definition.primitives.isEmpty &&
+        definition.ground == null &&
+        definition.defaults == _defaultGenerationParams(definition.template);
     _updateDefinition(
-      (current) => _copyDefinition(current, template: template),
+      (current) => _copyDefinition(
+        current,
+        template: template,
+        defaults: usesUntouchedTemplateDefaults
+            ? _defaultGenerationParams(template)
+            : current.defaults,
+      ),
     );
   }
 
@@ -276,9 +285,9 @@ final class BorderStudioDraftController
 
   /// Replaces only the metrics produced by an explicit current-source read.
   ///
-  /// Reanalysis must not become a back door for changing role, weight,
-  /// transforms, or provenance. When pixels changed, the existing divergence
-  /// machinery records that republishing is still required.
+  /// Reanalysis must not become a back door for changing role, orientation,
+  /// weight, transforms, or provenance. When pixels changed, the existing
+  /// divergence machinery records that republishing is still required.
   void replacePrimitiveAfterReanalysis(BorderPrimitiveDraft primitive) {
     final primitives = _requireWorkingDraft().blueprint.definition.primitives;
     final index = primitives.indexWhere(
@@ -294,6 +303,7 @@ final class BorderStudioDraftController
     final previous = primitives[index];
     if (previous.sourceElementId != primitive.sourceElementId ||
         previous.role != primitive.role ||
+        previous.authoredOrientation != primitive.authoredOrientation ||
         previous.weight != primitive.weight ||
         previous.anchorPx != primitive.anchorPx ||
         previous.transforms != primitive.transforms) {
@@ -323,6 +333,39 @@ final class BorderStudioDraftController
     replacePrimitives(<BorderPrimitiveDraft>[
       for (final primitive in primitives)
         if (primitive.id != primitiveId) primitive,
+    ]);
+  }
+
+  void setPrimitiveAuthoredOrientation(
+    String primitiveId,
+    BorderPrimitiveOrientation orientation,
+  ) {
+    final primitives = _requireWorkingDraft().blueprint.definition.primitives;
+    final current = primitives
+        .where((primitive) => primitive.id == primitiveId)
+        .firstOrNull;
+    if (current == null) {
+      throw ArgumentError.value(
+        primitiveId,
+        'primitiveId',
+        'does not exist in the working draft',
+      );
+    }
+    if (current.authoredOrientation == orientation) return;
+    replacePrimitives(<BorderPrimitiveDraft>[
+      for (final primitive in primitives)
+        primitive.id == primitiveId
+            ? BorderPrimitiveDraft(
+                id: primitive.id,
+                sourceElementId: primitive.sourceElementId,
+                role: primitive.role,
+                authoredOrientation: orientation,
+                weight: primitive.weight,
+                anchorPx: primitive.anchorPx,
+                transforms: primitive.transforms,
+                currentMetrics: primitive.currentMetrics,
+              )
+            : primitive,
     ]);
   }
 
@@ -770,16 +813,32 @@ Set<String> _sourceDivergenceIds(
   });
 }
 
-BorderGenerationParams _defaultGenerationParams() {
-  return BorderGenerationParams(
-    irregularityPermille: 250,
-    detailDensityPermille: 500,
-    variationPermille: 300,
-    maxOverlapPx: 4,
-    gapTolerancePx: 1,
-    depthRows: 1,
-  );
-}
+BorderGenerationParams _defaultGenerationParams(
+  BorderBlueprintTemplate template,
+) =>
+    switch (template) {
+      BorderBlueprintTemplate.stoneChainLine => BorderGenerationParams(
+          irregularityPermille: 180,
+          detailDensityPermille: 0,
+          variationPermille: 1000,
+          maxOverlapPx: 8,
+          gapTolerancePx: 0,
+          depthRows: 2,
+          allowAutoRotation: false,
+        ),
+      BorderBlueprintTemplate.organicEdge ||
+      BorderBlueprintTemplate.masonryLine ||
+      BorderBlueprintTemplate.postAndRailLine ||
+      BorderBlueprintTemplate.connectedLine =>
+        BorderGenerationParams(
+          irregularityPermille: 250,
+          detailDensityPermille: 500,
+          variationPermille: 300,
+          maxOverlapPx: 4,
+          gapTolerancePx: 1,
+          depthRows: 1,
+        ),
+    };
 
 BorderSignedInt64 _initialPreviewSeed(String blueprintId) {
   final rng = BorderDeterministicRng.fromComponents(

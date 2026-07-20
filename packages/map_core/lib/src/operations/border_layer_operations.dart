@@ -6,6 +6,7 @@ import '../models/enums.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import 'border_format_version.dart';
+import 'border_template_capabilities.dart';
 import 'map_layers.dart';
 
 /// Adds one dedicated Border layer using the generic layer identity rules.
@@ -46,12 +47,13 @@ MapData setBorderLayerContent(
 }
 
 BorderLayerContent _contentForCompleteWrite(BorderLayerContent content) {
-  if (content.formatVersion == BorderLayerContent.formatVersionV2 ||
-      !borderFeaturesRequireFormatV2(content.features)) {
+  final minimumVersion =
+      minimumBorderLayerFormatVersionForFeatures(content.features);
+  if (content.formatVersion >= minimumVersion) {
     return content;
   }
   return BorderLayerContent(
-    formatVersion: BorderLayerContent.formatVersionV2,
+    formatVersion: minimumVersion,
     features: content.features,
   );
 }
@@ -95,12 +97,12 @@ int _formatVersionForFeatureWrite(
   required List<BorderFeature> features,
   required BorderBlueprintTemplate? template,
 }) {
-  if (content.formatVersion == BorderLayerContent.formatVersionV2 ||
-      template == BorderBlueprintTemplate.connectedLine ||
-      borderFeaturesRequireFormatV2(features)) {
-    return BorderLayerContent.formatVersionV2;
-  }
-  return BorderLayerContent.formatVersionV1;
+  final templateVersion = template == null
+      ? BorderLayerContent.formatVersionV1
+      : minimumBorderCatalogFormatVersionForTemplate(template);
+  final featureVersion = minimumBorderLayerFormatVersionForFeatures(features);
+  return <int>[content.formatVersion, templateVersion, featureVersion]
+      .reduce((left, right) => left > right ? left : right);
 }
 
 /// Removes one feature while preserving every other feature in authored order.

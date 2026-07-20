@@ -12,7 +12,8 @@ import 'border_feature.dart';
 final class BorderLayerContent {
   static const int formatVersionV1 = 1;
   static const int formatVersionV2 = 2;
-  static const int latestSupportedFormatVersion = formatVersionV2;
+  static const int formatVersionV3 = 3;
+  static const int latestSupportedFormatVersion = formatVersionV3;
 
   /// Backward-compatible alias for [latestSupportedFormatVersion].
   ///
@@ -30,9 +31,11 @@ final class BorderLayerContent {
     this.formatVersion = formatVersionV1,
     List<BorderFeature> features = const <BorderFeature>[],
   }) : _features = List<BorderFeature>.unmodifiable(features) {
-    if (formatVersion != formatVersionV1 && formatVersion != formatVersionV2) {
+    if (formatVersion != formatVersionV1 &&
+        formatVersion != formatVersionV2 &&
+        formatVersion != formatVersionV3) {
       throw ValidationException(
-        'BorderLayerContent.formatVersion must be 1 or 2',
+        'BorderLayerContent.formatVersion must be 1, 2, or 3',
       );
     }
 

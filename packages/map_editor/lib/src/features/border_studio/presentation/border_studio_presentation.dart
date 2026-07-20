@@ -11,6 +11,7 @@ String borderTemplateLabel(BorderBlueprintTemplate template) =>
       BorderBlueprintTemplate.masonryLine => 'Muret maçonné',
       BorderBlueprintTemplate.postAndRailLine => 'Clôture poteaux-traverses',
       BorderBlueprintTemplate.connectedLine => 'Ligne connectée',
+      BorderBlueprintTemplate.stoneChainLine => 'Chaîne de pierres',
     };
 
 String borderTemplateDescription(BorderBlueprintTemplate template) =>
@@ -23,9 +24,28 @@ String borderTemplateDescription(BorderBlueprintTemplate template) =>
         'Clôtures avec poteaux, traverses et futures ouvertures.',
       BorderBlueprintTemplate.connectedLine =>
         'Falaises, murs et bordures libres assemblés sur un tracé cardinal.',
+      BorderBlueprintTemplate.stoneChainLine =>
+        'Falaises et bordures naturelles composées de petites pierres le long d\'un tracé sur la grille.',
     };
 
-String borderRoleLabel(BorderPrimitiveRole role) => switch (role) {
+String borderRoleLabel(
+  BorderPrimitiveRole role, {
+  BorderBlueprintTemplate? template,
+}) {
+  if (template == BorderBlueprintTemplate.stoneChainLine) {
+    return switch (role) {
+      BorderPrimitiveRole.structureLarge => 'Sommet plat',
+      BorderPrimitiveRole.structureMedium => 'Face de falaise',
+      BorderPrimitiveRole.filler => 'Pierre libre facultative',
+      BorderPrimitiveRole.lineCorner => 'Pierre de sommet à un angle',
+      BorderPrimitiveRole.lineCap => 'Pierre de sommet à une extrémité',
+      _ => _defaultBorderRoleLabel(role),
+    };
+  }
+  return _defaultBorderRoleLabel(role);
+}
+
+String _defaultBorderRoleLabel(BorderPrimitiveRole role) => switch (role) {
       BorderPrimitiveRole.structureLarge => 'Structure principale',
       BorderPrimitiveRole.structureMedium => 'Structure secondaire',
       BorderPrimitiveRole.filler => 'Remplissage',
@@ -44,12 +64,12 @@ List<BorderPrimitiveRole> orderedBorderRoles(
 ) {
   final allowed = roles.toSet();
   return <BorderPrimitiveRole>[
-    BorderPrimitiveRole.lineCap,
-    BorderPrimitiveRole.lineStraight,
-    BorderPrimitiveRole.lineCorner,
     BorderPrimitiveRole.structureLarge,
     BorderPrimitiveRole.structureMedium,
     BorderPrimitiveRole.filler,
+    BorderPrimitiveRole.lineCap,
+    BorderPrimitiveRole.lineStraight,
+    BorderPrimitiveRole.lineCorner,
     BorderPrimitiveRole.post,
     BorderPrimitiveRole.span,
     BorderPrimitiveRole.surfacePatch,
@@ -87,13 +107,22 @@ List<String> unresolvedBorderRoleLabels(BorderBlueprintDraftDefinition draft) {
           'Segment droit',
         if (!assigned.contains(BorderPrimitiveRole.lineCorner)) 'Angle',
       ];
+    case BorderBlueprintTemplate.stoneChainLine:
+      return <String>[
+        if (!assigned.contains(BorderPrimitiveRole.structureLarge))
+          'Sommet plat',
+        if (draft.defaults.depthRows == 2 &&
+            !assigned.contains(BorderPrimitiveRole.structureMedium))
+          'Face de falaise',
+      ];
   }
 }
 
 bool isRequiredBorderRole(
   BorderBlueprintTemplate template,
-  BorderPrimitiveRole role,
-) =>
+  BorderPrimitiveRole role, {
+  int depthRows = 1,
+}) =>
     switch (template) {
       BorderBlueprintTemplate.organicEdge ||
       BorderBlueprintTemplate.masonryLine =>
@@ -106,6 +135,9 @@ bool isRequiredBorderRole(
         role == BorderPrimitiveRole.lineCap ||
             role == BorderPrimitiveRole.lineStraight ||
             role == BorderPrimitiveRole.lineCorner,
+      BorderBlueprintTemplate.stoneChainLine =>
+        role == BorderPrimitiveRole.structureLarge ||
+            (depthRows == 2 && role == BorderPrimitiveRole.structureMedium),
     };
 
 class BorderStudioNotice extends StatelessWidget {

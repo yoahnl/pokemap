@@ -38,6 +38,7 @@ void main() {
       'border.resolution.connected_line_transform_unavailable',
       'border.resolution.duplicate_primitive_id',
       'border.resolution.ground_snapshot_missing',
+      'border.resolution.grid_edge_geometry_required',
       'border.resolution.keep_out_size_mismatch',
       'border.resolution.keep_outs_not_supported',
       'border.resolution.linear_ground_not_supported',
@@ -64,6 +65,10 @@ void main() {
       'border.resolution.stroke_invalid',
       'border.resolution.stroke_not_canonical',
       'border.resolution.stroke_out_of_bounds',
+      'border.resolution.stone_chain_depth_rows_invalid',
+      'border.resolution.stone_chain_primary_role_missing',
+      'border.resolution.stone_chain_required_node_unresolved',
+      'border.resolution.stone_chain_transform_unavailable',
       'border.resolution.structural_occupancy_empty',
       'border.resolution.structural_occupancy_invalid',
       'border.resolution.structural_role_missing',
@@ -111,6 +116,26 @@ void main() {
           code: code,
           severity: BorderDiagnosticSeverity.warning,
         ),
+      );
+      expect(
+        localized,
+        isNot('Diagnostic de bordure à vérifier.'),
+        reason: code,
+      );
+      expect(localized, isNot(contains(code)), reason: code);
+    }
+  });
+
+  test('localizes every stone-chain publication diagnostic', () {
+    const codes = <String>[
+      'border.publication.stone_chain_depth_rows_invalid',
+      'border.publication.stone_chain_primary_variety_low',
+      'border.publication.stone_chain_transform_unavailable',
+    ];
+
+    for (final code in codes) {
+      final localized = localizeEditorBorderDiagnostic(
+        _diagnostic(code: code, severity: BorderDiagnosticSeverity.error),
       );
       expect(
         localized,

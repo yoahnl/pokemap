@@ -6,7 +6,6 @@ import '../../editor/state/editor_notifier.dart';
 import '../../editor/tools/editor_tool.dart';
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
-import '../../../ui/shared/cupertino_editor_widgets.dart';
 import '../application/border_feature_authoring_controller.dart';
 import '../application/border_preview_transaction.dart';
 import '../application/border_tool_availability.dart';
@@ -195,16 +194,20 @@ class _BorderLayerInspectorPanelState
               lineGeometry: activeFeature?.geometry is BorderStrokeGeometry,
             ),
             if (activeFeature != null &&
-                (activeRevision?.definition.template ==
-                        BorderBlueprintTemplate.connectedLine ||
-                    activeRevision?.definition.template ==
-                        BorderBlueprintTemplate.masonryLine)) ...[
+                activeRevision != null &&
+                borderTemplateSupportsLineSide(
+                  activeRevision.definition.template,
+                )) ...[
               const SizedBox(height: 10),
               _lineSideControls(
                 notifier,
                 activeLayer,
                 correctionDraft!,
-                canStartPreview: previewState.phase == BorderPreviewPhase.idle,
+                template: activeRevision.definition.template,
+                canToggleSide: previewState.phase == BorderPreviewPhase.idle ||
+                    (previewTargetsFeature &&
+                        (previewState.phase == BorderPreviewPhase.resolved ||
+                            previewState.phase == BorderPreviewPhase.invalid)),
               ),
             ],
             if (resizeDiagnostics.isNotEmpty) ...[
@@ -639,7 +642,8 @@ class _BorderLayerInspectorPanelState
     EditorNotifier notifier,
     BorderLayer layer,
     BorderFeature feature, {
-    required bool canStartPreview,
+    required BorderBlueprintTemplate template,
+    required bool canToggleSide,
   }) {
     return PokeMapCard(
       child: Column(
@@ -647,8 +651,9 @@ class _BorderLayerInspectorPanelState
         children: [
           PokeMapSectionHeader(
             title: 'Orientation visuelle',
-            description:
-                'Change le côté occupé par les rochers sans redessiner la ligne.',
+            description: template == BorderBlueprintTemplate.stoneChainLine
+                ? 'Déplace les pierres de l\'autre côté du tracé sans retourner leurs pixels.'
+                : 'Change le côté occupé par les rochers sans redessiner la ligne.',
             trailing: PokeMapBadge(
               label: switch (feature.lineSide) {
                 BorderLineSide.primary => 'Côté principal',
@@ -661,7 +666,7 @@ class _BorderLayerInspectorPanelState
             alignment: Alignment.centerLeft,
             child: PokeMapButton(
               key: const ValueKey('border-invert-side-button'),
-              onPressed: canStartPreview
+              onPressed: canToggleSide
                   ? () => notifier.previewBorderFeatureLineSideToggle(
                         layerId: layer.id,
                         featureId: feature.id,
@@ -760,6 +765,11 @@ class _BorderLayerInspectorPanelState
   }) {
     final record = manifest?.borderCatalog.recordById(feature.blueprintId);
     final revision = record?.latestPublished;
+    final stoneMetrics = revision?.definition.template ==
+                BorderBlueprintTemplate.stoneChainLine &&
+            revision!.definition.defaults.depthRows == 2
+        ? _twoTierStoneMetrics(feature.materialization)
+        : null;
     return PokeMapCard(
       key: ValueKey('border-feature-${feature.id}'),
       selected: selected,
@@ -793,6 +803,51 @@ class _BorderLayerInspectorPanelState
                     fontSize: 10,
                   ),
                 ),
+                if (stoneMetrics case final metrics?) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Sommet : ${metrics.topCount} pierres',
+                    key: const ValueKey('border-stone-top-count'),
+                    style: TextStyle(
+                      color: context.pokeMapColors.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    'Gap maximal du sommet : ${metrics.topMaximumGapPx} px',
+                    key: const ValueKey('border-stone-top-gap'),
+                    style: TextStyle(
+                      color: context.pokeMapColors.textMuted,
+                      fontSize: 10,
+                    ),
+                  ),
+                  Text(
+                    'Face : ${metrics.faceCount} pierres',
+                    key: const ValueKey('border-stone-face-count'),
+                    style: TextStyle(
+                      color: context.pokeMapColors.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    'Profondeur médiane : ${metrics.medianFaceDepthPx} px',
+                    key: const ValueKey('border-stone-face-depth'),
+                    style: TextStyle(
+                      color: context.pokeMapColors.textMuted,
+                      fontSize: 10,
+                    ),
+                  ),
+                  Text(
+                    'Gap maximal de la face : ${metrics.faceMaximumGapPx} px',
+                    key: const ValueKey('border-stone-face-gap'),
+                    style: TextStyle(
+                      color: context.pokeMapColors.textMuted,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1293,7 +1348,7 @@ class _BorderLayerInspectorPanelState
     final controller = TextEditingController(
       text: 'Bordure ${layer.content.features.length + 1}',
     );
-    final confirmed = await showMacosEditorPromptSheet(
+    final confirmed = await showPokeMapPromptDialog(
       context,
       title: 'Créer une bordure',
       controller: controller,
@@ -1318,7 +1373,7 @@ class _BorderLayerInspectorPanelState
     BorderFeature feature,
   ) async {
     final controller = TextEditingController(text: feature.name);
-    final confirmed = await showMacosEditorPromptSheet(
+    final confirmed = await showPokeMapPromptDialog(
       context,
       title: 'Renommer la bordure',
       controller: controller,
@@ -1342,7 +1397,7 @@ class _BorderLayerInspectorPanelState
     BorderLayer layer,
     BorderFeature feature,
   ) async {
-    final confirmed = await showMacosEditorTwoChoiceAlert(
+    final confirmed = await showPokeMapConfirmationDialog(
       context,
       title: 'Supprimer la bordure',
       message: 'Supprimer « ${feature.name} » de ce calque ?',
@@ -1362,7 +1417,7 @@ class _BorderLayerInspectorPanelState
     EditorNotifier notifier,
     BorderBlueprintChangePreview preview,
   ) async {
-    final confirmed = await showMacosEditorTwoChoiceAlert(
+    final confirmed = await showPokeMapConfirmationDialog(
       context,
       title: 'Confirmer le changement de blueprint',
       message:
@@ -1384,7 +1439,7 @@ class _BorderLayerInspectorPanelState
     final controller = TextEditingController(
       text: '${preview.before.feature.name} — ${preview.after.blueprintName}',
     );
-    final confirmed = await showMacosEditorPromptSheet(
+    final confirmed = await showPokeMapPromptDialog(
       context,
       title: 'Créer une nouvelle bordure',
       controller: controller,
@@ -1407,7 +1462,7 @@ class _BorderLayerInspectorPanelState
     EditorNotifier notifier,
     BorderBlueprintChangePreview preview,
   ) async {
-    final confirmed = await showMacosEditorTwoChoiceAlert(
+    final confirmed = await showPokeMapConfirmationDialog(
       context,
       title: 'Remettre la bordure à zéro',
       message:
@@ -1430,6 +1485,96 @@ class _BorderLayerInspectorPanelState
       _pendingBeforeBlueprintId = null;
     });
   }
+}
+
+_TwoTierStoneMetrics _twoTierStoneMetrics(
+  BorderMaterialization? materialization,
+) {
+  final placements =
+      materialization?.placements ?? const <BorderResolvedPlacement>[];
+  final top = <BorderResolvedPlacement>[
+    for (final placement in placements)
+      if (placement.stableOrderKey.passIndex == 0) placement,
+  ];
+  final face = <BorderResolvedPlacement>[
+    for (final placement in placements)
+      if (placement.stableOrderKey.passIndex == 1) placement,
+  ];
+  final faceDepths = <int>[
+    for (final placement in face)
+      placement.opaqueWorldBoundsPx.width > placement.opaqueWorldBoundsPx.height
+          ? placement.opaqueWorldBoundsPx.width
+          : placement.opaqueWorldBoundsPx.height,
+  ]..sort();
+  return _TwoTierStoneMetrics(
+    topCount: top.length,
+    faceCount: face.length,
+    medianFaceDepthPx: _integerMedian(faceDepths),
+    topMaximumGapPx: _maximumPlacementGap(top),
+    faceMaximumGapPx: _maximumPlacementGap(face),
+  );
+}
+
+int _integerMedian(List<int> sortedValues) {
+  if (sortedValues.isEmpty) return 0;
+  final middle = sortedValues.length ~/ 2;
+  if (sortedValues.length.isOdd) return sortedValues[middle];
+  return (sortedValues[middle - 1] + sortedValues[middle]) ~/ 2;
+}
+
+int _maximumPlacementGap(List<BorderResolvedPlacement> placements) {
+  if (placements.length < 2) return 0;
+  final ordered = List<BorderResolvedPlacement>.of(placements)
+    ..sort(
+        (left, right) => left.stableOrderKey.compareTo(right.stableOrderKey));
+  var maximum = 0;
+  for (var index = 1; index < ordered.length; index += 1) {
+    final previous = ordered[index - 1].opaqueWorldBoundsPx;
+    final current = ordered[index].opaqueWorldBoundsPx;
+    final previousCenterX = previous.x * 2 + previous.width;
+    final currentCenterX = current.x * 2 + current.width;
+    final previousCenterY = previous.y * 2 + previous.height;
+    final currentCenterY = current.y * 2 + current.height;
+    final horizontal = (currentCenterX - previousCenterX).abs() >=
+        (currentCenterY - previousCenterY).abs();
+    final gap = horizontal
+        ? _intervalGap(
+            previous.x,
+            previous.x + previous.width,
+            current.x,
+            current.x + current.width,
+          )
+        : _intervalGap(
+            previous.y,
+            previous.y + previous.height,
+            current.y,
+            current.y + current.height,
+          );
+    if (gap > maximum) maximum = gap;
+  }
+  return maximum;
+}
+
+int _intervalGap(int firstStart, int firstEnd, int secondStart, int secondEnd) {
+  if (firstEnd < secondStart) return secondStart - firstEnd;
+  if (secondEnd < firstStart) return firstStart - secondEnd;
+  return 0;
+}
+
+final class _TwoTierStoneMetrics {
+  const _TwoTierStoneMetrics({
+    required this.topCount,
+    required this.faceCount,
+    required this.medianFaceDepthPx,
+    required this.topMaximumGapPx,
+    required this.faceMaximumGapPx,
+  });
+
+  final int topCount;
+  final int faceCount;
+  final int medianFaceDepthPx;
+  final int topMaximumGapPx;
+  final int faceMaximumGapPx;
 }
 
 List<BorderBlueprintRecord> _publishedBlueprints(ProjectManifest? manifest) {
@@ -1467,6 +1612,7 @@ String _templateLabel(BorderBlueprintTemplate template) => switch (template) {
       BorderBlueprintTemplate.masonryLine => 'Muret linéaire',
       BorderBlueprintTemplate.postAndRailLine => 'Clôture linéaire',
       BorderBlueprintTemplate.connectedLine => 'Ligne connectée',
+      BorderBlueprintTemplate.stoneChainLine => 'Chaîne de pierres',
     };
 
 String _featurePreviewStateLabel(BorderBlueprintFeaturePreviewState state) {

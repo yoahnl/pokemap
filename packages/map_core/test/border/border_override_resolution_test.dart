@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../fixtures/border/masonry_line_fixture.dart';
+import '../fixtures/border/two_tier_stone_chain_fixture.dart';
 
 void main() {
   group('resolveBorderOverrides', () {
@@ -524,6 +525,116 @@ void main() {
       );
       expect(resolved.placements, base.placements);
     });
+
+    test('face and lip overrides do not cross semantic rows', () {
+      final stroke = BorderStroke(
+        id: 'two-tier-override-rows',
+        points: <GridPos>[
+          for (var x = 4; x <= 10; x += 1) GridPos(x: x, y: 6),
+          for (var y = 7; y <= 13; y += 1) GridPos(x: 10, y: y),
+        ],
+        closed: false,
+      );
+      final source = TwoTierStoneChainFixture().request;
+      final baseRequest = _copyRequest(
+        source,
+        geometry: BorderStrokeGeometry(
+          strokes: <BorderStroke>[stroke],
+          alignment: BorderStrokeAlignment.gridEdges,
+        ),
+      );
+      final baseResult = resolveStoneChainLineBorder(baseRequest);
+      expect(
+        baseResult.canApply,
+        isTrue,
+        reason: baseResult.diagnostics
+            .map((diagnostic) => '${diagnostic.code}:${diagnostic.parameters}')
+            .join(', '),
+      );
+      final base = baseResult.materialization!;
+      const turn = GridPos(x: 10, y: 6);
+      final lineage = borderStrokeLineageNamespaceV1(stroke.id);
+      final lipSlot = buildBorderStoneChainNodeSlotKey(
+        featureId: baseRequest.feature.id,
+        strokeId: lineage,
+        vertex: turn,
+        passIndex: 0,
+        role: BorderPrimitiveRole.lineCorner,
+        rank: 0,
+      );
+      final incomingFaceSlot = buildBorderStoneChainNodeSlotKey(
+        featureId: baseRequest.feature.id,
+        strokeId: lineage,
+        vertex: turn,
+        passIndex: 1,
+        role: BorderPrimitiveRole.structureMedium,
+        rank: 0,
+      );
+      final outgoingFaceSlot = buildBorderStoneChainNodeSlotKey(
+        featureId: baseRequest.feature.id,
+        strokeId: lineage,
+        vertex: turn,
+        passIndex: 1,
+        role: BorderPrimitiveRole.structureMedium,
+        rank: 1,
+      );
+      final baseBySlot = <String, BorderResolvedPlacement>{
+        for (final placement in base.placements) placement.slotKey: placement,
+      };
+      expect(
+        baseBySlot.keys,
+        containsAll(<String>[lipSlot, incomingFaceSlot, outgoingFaceSlot]),
+      );
+
+      final faceSuppressed = resolveBorderOverrides(
+        request: _copyRequest(
+          baseRequest,
+          overrides: <BorderSlotOverride>[
+            _override(slotKey: incomingFaceSlot, suppressed: true),
+          ],
+        ),
+        baseGround: base.ground,
+        basePlacements: base.placements,
+      );
+      final afterFaceBySlot = <String, BorderResolvedPlacement>{
+        for (final placement in faceSuppressed.placements)
+          placement.slotKey: placement,
+      };
+      expect(faceSuppressed.diagnosticReport.hasErrors, isFalse);
+      expect(faceSuppressed.intentionalGapSlotKeys, <String>{incomingFaceSlot});
+      expect(afterFaceBySlot, isNot(contains(incomingFaceSlot)));
+      expect(afterFaceBySlot[lipSlot], same(baseBySlot[lipSlot]));
+      expect(
+        afterFaceBySlot[outgoingFaceSlot],
+        same(baseBySlot[outgoingFaceSlot]),
+      );
+
+      final lipSuppressed = resolveBorderOverrides(
+        request: _copyRequest(
+          baseRequest,
+          overrides: <BorderSlotOverride>[
+            _override(slotKey: lipSlot, suppressed: true),
+          ],
+        ),
+        baseGround: base.ground,
+        basePlacements: base.placements,
+      );
+      final afterLipBySlot = <String, BorderResolvedPlacement>{
+        for (final placement in lipSuppressed.placements)
+          placement.slotKey: placement,
+      };
+      expect(lipSuppressed.diagnosticReport.hasErrors, isFalse);
+      expect(lipSuppressed.intentionalGapSlotKeys, <String>{lipSlot});
+      expect(afterLipBySlot, isNot(contains(lipSlot)));
+      expect(
+        afterLipBySlot[incomingFaceSlot],
+        same(baseBySlot[incomingFaceSlot]),
+      );
+      expect(
+        afterLipBySlot[outgoingFaceSlot],
+        same(baseBySlot[outgoingFaceSlot]),
+      );
+    });
   });
 }
 
@@ -552,6 +663,7 @@ BorderResolutionRequest _copyRequest(
   BorderResolutionRequest source, {
   List<BorderSlotOverride>? overrides,
   List<BorderKeepOutRegion>? keepOutRegions,
+  BorderFeatureGeometry? geometry,
 }) =>
     BorderResolutionRequest(
       mapSize: source.mapSize,
@@ -563,7 +675,7 @@ BorderResolutionRequest _copyRequest(
         name: source.feature.name,
         blueprintId: source.feature.blueprintId,
         seed: source.feature.seed,
-        geometry: source.feature.geometry,
+        geometry: geometry ?? source.feature.geometry,
         paramsOverride: source.feature.paramsOverride,
         overrides: overrides ?? source.feature.overrides,
         keepOutRegions: keepOutRegions ?? source.feature.keepOutRegions,

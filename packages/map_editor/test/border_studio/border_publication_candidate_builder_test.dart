@@ -156,6 +156,138 @@ void main() {
       );
     });
 
+    test('publishes one main stone and promotes the catalog to V3', () {
+      final preparation =
+          _preparation('e', sourceElementId: 'element-main-stone');
+      final target = _record(
+        id: 'stone-chain',
+        template: BorderBlueprintTemplate.stoneChainLine,
+        primitives: <BorderPrimitiveDraft>[
+          _draftPrimitive(
+            id: 'main-stone',
+            sourceElementId: 'element-main-stone',
+            role: BorderPrimitiveRole.structureLarge,
+          ),
+        ],
+      );
+      final manifest = _manifest(
+        records: <BorderBlueprintRecord>[target],
+        elements: <ProjectElementEntry>[_element('element-main-stone')],
+      );
+
+      final result = const BorderPublicationCandidateBuilder().build(
+        manifest: manifest,
+        draftRecord: target,
+        primitiveSnapshotsByPrimitiveId: <String,
+            BorderAssetSnapshotPreparation>{
+          'main-stone': preparation,
+        },
+      );
+
+      expect(
+        result.nextManifest.borderCatalog.formatVersion,
+        ProjectBorderCatalog.formatVersionV3,
+      );
+      expect(
+        result.nextManifest.borderCatalog.records.single.latestPublished!
+            .definition.primitives.single.role,
+        BorderPrimitiveRole.structureLarge,
+      );
+    });
+
+    test('publishes cardinal orientation and promotes the catalog to V4', () {
+      final preparation =
+          _preparation('f', sourceElementId: 'element-oriented');
+      final target = _record(
+        id: 'oriented-coast',
+        primitives: <BorderPrimitiveDraft>[
+          _draftPrimitive(
+            id: 'oriented',
+            sourceElementId: 'element-oriented',
+            authoredOrientation: BorderPrimitiveOrientation.west,
+          ),
+        ],
+      );
+      final manifest = _manifest(
+        records: <BorderBlueprintRecord>[target],
+        elements: <ProjectElementEntry>[_element('element-oriented')],
+      );
+
+      final result = const BorderPublicationCandidateBuilder().build(
+        manifest: manifest,
+        draftRecord: target,
+        primitiveSnapshotsByPrimitiveId: <String,
+            BorderAssetSnapshotPreparation>{
+          'oriented': preparation,
+        },
+      );
+
+      expect(
+        result.nextManifest.borderCatalog.records.single.latestPublished!
+            .definition.primitives.single.authoredOrientation,
+        BorderPrimitiveOrientation.west,
+      );
+      expect(
+        result.nextManifest.borderCatalog.formatVersion,
+        ProjectBorderCatalog.formatVersionV4,
+      );
+    });
+
+    test('candidate fingerprint includes cardinal and omits legacy orientation',
+        () {
+      BorderBlueprintPublishedDefinition publish(
+        BorderPrimitiveOrientation orientation,
+      ) {
+        final preparation = _preparation(
+          'f',
+          sourceElementId: 'element-oriented',
+        );
+        final target = _record(
+          id: 'fingerprinted-coast',
+          primitives: <BorderPrimitiveDraft>[
+            _draftPrimitive(
+              id: 'oriented',
+              sourceElementId: 'element-oriented',
+              authoredOrientation: orientation,
+            ),
+          ],
+        );
+        final result = const BorderPublicationCandidateBuilder().build(
+          manifest: _manifest(
+            records: <BorderBlueprintRecord>[target],
+            elements: <ProjectElementEntry>[_element('element-oriented')],
+          ),
+          draftRecord: target,
+          primitiveSnapshotsByPrimitiveId: <String,
+              BorderAssetSnapshotPreparation>{
+            'oriented': preparation,
+          },
+        );
+        return result.nextManifest.borderCatalog.records.single.latestPublished!
+            .definition;
+      }
+
+      String fingerprint(BorderPrimitiveOrientation orientation) =>
+          computeBorderPublicationCandidateFingerprint(
+            blueprintId: 'fingerprinted-coast',
+            definition: publish(orientation),
+            resolverVersion: borderResolverVersion,
+            canonicalGalleryVersion: 1,
+          );
+
+      final legacy = fingerprint(BorderPrimitiveOrientation.legacyAxis);
+      final east = fingerprint(BorderPrimitiveOrientation.east);
+      final west = fingerprint(BorderPrimitiveOrientation.west);
+
+      expect(
+        legacy,
+        'sha256:f9dd002dfd0e8a48a3005e9bf51ceb28a21805ee6b9276fca75363e98dec794a',
+      );
+      expect(east, isNot(legacy));
+      expect(west, isNot(legacy));
+      expect(east, isNot(west));
+    });
+
     test('validates every draft source element including disabled entries', () {
       final target = _record(
         id: 'coast',
@@ -691,12 +823,15 @@ BorderPrimitiveDraft _draftPrimitive({
   required String id,
   required String sourceElementId,
   BorderPrimitiveRole role = BorderPrimitiveRole.structureLarge,
+  BorderPrimitiveOrientation authoredOrientation =
+      BorderPrimitiveOrientation.legacyAxis,
   int weight = 100,
 }) {
   return BorderPrimitiveDraft(
     id: id,
     sourceElementId: sourceElementId,
     role: role,
+    authoredOrientation: authoredOrientation,
     weight: weight,
     anchorPx: const BorderPixelPos(x: 1, y: 1),
     transforms: _transforms(),

@@ -130,6 +130,114 @@ void main() {
     expect(find.textContaining(diagnosticCode), findsNothing);
   });
 
+  testWidgets(
+      'details actionable stone-chain errors without exposing diagnostic codes',
+      (tester) async {
+    const requiredNodeCode =
+        'border.resolution.stone_chain_required_node_unresolved';
+    const transformCode =
+        'border.publication.stone_chain_transform_unavailable';
+    await _pumpStep(
+      tester,
+      state: _state(
+        template: BorderBlueprintTemplate.stoneChainLine,
+        diagnostics: BorderDiagnosticsReport(
+          diagnostics: <BorderDiagnostic>[
+            BorderDiagnostic(
+              code: requiredNodeCode,
+              severity: BorderDiagnosticSeverity.error,
+              phase: BorderDiagnosticPhase.resolution,
+              scope: BorderDiagnosticScope.segment,
+              blueprintId: 'coast',
+              suggestedAction: 'border.action.reduce_stone_node_overlap',
+            ),
+            BorderDiagnostic(
+              code: transformCode,
+              severity: BorderDiagnosticSeverity.error,
+              phase: BorderDiagnosticPhase.publication,
+              scope: BorderDiagnosticScope.blueprint,
+              blueprintId: 'coast',
+              suggestedAction: 'border.action.allow_required_transform',
+            ),
+          ],
+        ),
+      ),
+      preview: _preview(template: BorderBlueprintTemplate.stoneChainLine),
+    );
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('border-studio-stone-chain-errors'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Corrections de la chaîne de pierres'), findsOneWidget);
+    expect(
+      find.text(
+        'Ajustez le tracé ou réduisez le chevauchement afin de placer chaque '
+        'angle et extrémité.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Autorisez les orientations requises pour les pierres, puis régénérez '
+        'la galerie.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining(requiredNodeCode), findsNothing);
+    expect(find.textContaining(transformCode), findsNothing);
+  });
+
+  testWidgets(
+      'explains missing two-tier roles and orientations in plain French',
+      (tester) async {
+    const faceCode = 'border.publication.stone_chain_face_role_missing';
+    const orientationCode =
+        'border.publication.stone_chain_directional_coverage_missing';
+    await _pumpStep(
+      tester,
+      state: _state(
+        template: BorderBlueprintTemplate.stoneChainLine,
+        diagnostics: BorderDiagnosticsReport(
+          diagnostics: <BorderDiagnostic>[
+            BorderDiagnostic(
+              code: faceCode,
+              severity: BorderDiagnosticSeverity.error,
+              phase: BorderDiagnosticPhase.publication,
+              scope: BorderDiagnosticScope.blueprint,
+              blueprintId: 'coast',
+              suggestedAction: 'border.action.assign_stone_chain_face',
+            ),
+            BorderDiagnostic(
+              code: orientationCode,
+              severity: BorderDiagnosticSeverity.error,
+              phase: BorderDiagnosticPhase.publication,
+              scope: BorderDiagnosticScope.blueprint,
+              blueprintId: 'coast',
+              suggestedAction: 'border.action.complete_directional_coverage',
+            ),
+          ],
+        ),
+      ),
+      preview: _preview(template: BorderBlueprintTemplate.stoneChainLine),
+    );
+
+    expect(
+      find.text('Assignez au moins un asset au rôle Face de falaise.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Renseignez l’orientation dessinée des assets pour couvrir Nord, Est, Sud et Ouest.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining(faceCode), findsNothing);
+    expect(find.textContaining(orientationCode), findsNothing);
+  });
+
   testWidgets('previews every frame that the candidate will publish',
       (tester) async {
     final preview = _preview(animated: true);
@@ -243,6 +351,56 @@ void main() {
     expect(find.byType(Image), findsNWidgets(8));
   });
 
+  testWidgets(
+      'stone chain previews five grid-edge cases on both sides without mirroring pixels',
+      (tester) async {
+    await _pumpStep(
+      tester,
+      state: _state(template: BorderBlueprintTemplate.stoneChainLine),
+      preview: _preview(template: BorderBlueprintTemplate.stoneChainLine),
+    );
+
+    final galleryCases = borderCanonicalGalleryCasesForTemplate(
+      BorderBlueprintTemplate.stoneChainLine,
+    );
+    expect(galleryCases, hasLength(5));
+    expect(find.text('5/5'), findsOneWidget);
+    expect(find.text('Côté principal'), findsNWidgets(5));
+    expect(find.text('Côté inversé'), findsNWidgets(5));
+    expect(find.byType(Image), findsNWidgets(10));
+
+    for (final galleryCase in galleryCases) {
+      final primary = tester.widget<BorderCanonicalGalleryCanvas>(
+        find.byKey(
+          ValueKey<String>(
+            'border-studio-gallery-${galleryCase.name}-primary',
+          ),
+        ),
+      );
+      final inverted = tester.widget<BorderCanonicalGalleryCanvas>(
+        find.byKey(
+          ValueKey<String>(
+            'border-studio-gallery-${galleryCase.name}-inverted',
+          ),
+        ),
+      );
+      expect(
+        (primary.geometry as BorderStrokeGeometry).alignment,
+        BorderStrokeAlignment.gridEdges,
+      );
+      expect(
+        primary.materialization!.placements
+            .map((placement) => placement.transform.flipX),
+        everyElement(isFalse),
+      );
+      expect(
+        inverted.materialization!.placements
+            .map((placement) => placement.transform.flipX),
+        everyElement(isFalse),
+      );
+    }
+  });
+
   testWidgets('connected line cannot publish with a missing inverted preview',
       (tester) async {
     await _pumpStep(
@@ -334,6 +492,7 @@ BorderStudioPublicationPreview _preview({
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     borderCatalog: ProjectBorderCatalog(
+      formatVersion: minimumBorderCatalogFormatVersionForTemplate(template),
       records: <BorderBlueprintRecord>[record],
       visualSnapshots: <BorderVisualSnapshot>[snapshot],
     ),
@@ -406,9 +565,12 @@ BorderStudioPublicationPreview _preview({
           ),
           resolution: _resolution(index),
           invertedResolution:
-              template == BorderBlueprintTemplate.connectedLine &&
+              borderTemplateRequiresInvertedCanonicalGallery(template) &&
                       includeInvertedConnectedSide
-                  ? _resolution(index, flipX: true)
+                  ? _resolution(
+                      index,
+                      flipX: template == BorderBlueprintTemplate.connectedLine,
+                    )
                   : null,
           publicationSample: samples[index],
         ),
@@ -456,7 +618,8 @@ BorderBlueprintRecord _record({
             variationPermille: 300,
             maxOverlapPx: 4,
             gapTolerancePx: 2,
-            depthRows: 1,
+            depthRows:
+                template == BorderBlueprintTemplate.stoneChainLine ? 2 : 1,
           ),
           sortOrder: 0,
         ),
@@ -524,6 +687,7 @@ BorderFeatureGeometry _galleryGeometry({
     );
   }
   return BorderStrokeGeometry(
+    alignment: borderTemplateStrokeAlignment(template),
     strokes: <BorderStroke>[
       BorderStroke(
         id: 'line',

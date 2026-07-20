@@ -63,10 +63,15 @@ void main() {
         BorderBlueprintTemplate.masonryLine,
         BorderBlueprintTemplate.postAndRailLine,
         BorderBlueprintTemplate.connectedLine,
+        BorderBlueprintTemplate.stoneChainLine,
       ]) {
         final result = assessBorderToolAvailability(
           manifest: _manifest(template),
-          map: _lineMap(),
+          map: _lineMap(
+            alignment: template == BorderBlueprintTemplate.stoneChainLine
+                ? BorderStrokeAlignment.gridEdges
+                : BorderStrokeAlignment.cellCenters,
+          ),
           activeLayerId: 'borders',
           activeFeatureId: 'wall',
         );
@@ -75,6 +80,26 @@ void main() {
         expect(result.disabledReason, isNull, reason: template.name);
         expect(result.blueprintRevision, 1, reason: template.name);
       }
+    });
+
+    test('rejects a stroke whose alignment belongs to another template', () {
+      final stoneOnCenters = assessBorderToolAvailability(
+        manifest: _manifest(BorderBlueprintTemplate.stoneChainLine),
+        map: _lineMap(alignment: BorderStrokeAlignment.cellCenters),
+        activeLayerId: 'borders',
+        activeFeatureId: 'wall',
+      );
+      final connectedOnEdges = assessBorderToolAvailability(
+        manifest: _manifest(BorderBlueprintTemplate.connectedLine),
+        map: _lineMap(alignment: BorderStrokeAlignment.gridEdges),
+        activeLayerId: 'borders',
+        activeFeatureId: 'wall',
+      );
+
+      expect(stoneOnCenters.isEnabled, isFalse);
+      expect(stoneOnCenters.disabledReason, contains('géométrie'));
+      expect(connectedOnEdges.isEnabled, isFalse);
+      expect(connectedOnEdges.disabledReason, contains('géométrie'));
     });
 
     test('rejects a deprecated published blueprint', () {
@@ -169,7 +194,10 @@ MapData _map() => MapData(
       ],
     );
 
-MapData _lineMap() => MapData(
+MapData _lineMap({
+  BorderStrokeAlignment alignment = BorderStrokeAlignment.cellCenters,
+}) =>
+    MapData(
       id: 'line-map',
       name: 'Line Map',
       version: ProjectVersion.v2,
@@ -186,6 +214,7 @@ MapData _lineMap() => MapData(
                 blueprintId: 'blueprint',
                 seed: BorderSignedInt64.zero,
                 geometry: BorderStrokeGeometry(
+                  alignment: alignment,
                   strokes: <BorderStroke>[
                     BorderStroke(
                       id: 'wall-stroke',

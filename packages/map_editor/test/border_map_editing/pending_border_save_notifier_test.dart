@@ -307,6 +307,87 @@ void main() {
     expect(reloadedFeature.materialization?.receipt,
         expectedFeature.materialization?.receipt);
   });
+
+  test('filesystem round-trip preserves inclusive grid-edge geometry',
+      () async {
+    final root = await Directory.systemTemp.createTemp('border_grid_edges_');
+    addTearDown(() async {
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+    final mapPath = p.join(root.path, 'maps', 'grid-edges.json');
+    final source = MapData(
+      id: 'grid-edges',
+      name: 'Grid edges',
+      version: ProjectVersion.v2,
+      size: const GridSize(width: 4, height: 4),
+      layers: <MapLayer>[
+        MapLayer.border(
+          id: 'borders',
+          name: 'Bordures',
+          content: BorderLayerContent(
+            formatVersion: BorderLayerContent.formatVersionV3,
+            features: <BorderFeature>[
+              BorderFeature(
+                id: 'stone-chain',
+                name: 'Chaîne de pierres',
+                blueprintId: 'stone-chain-blueprint',
+                seed: BorderSignedInt64.fromInt(17),
+                geometry: BorderStrokeGeometry(
+                  alignment: BorderStrokeAlignment.gridEdges,
+                  strokes: <BorderStroke>[
+                    BorderStroke(
+                      id: 'right-bottom-edge',
+                      points: const <GridPos>[
+                        GridPos(x: 0, y: 0),
+                        GridPos(x: 1, y: 0),
+                        GridPos(x: 2, y: 0),
+                        GridPos(x: 3, y: 0),
+                        GridPos(x: 4, y: 0),
+                        GridPos(x: 4, y: 1),
+                        GridPos(x: 4, y: 2),
+                        GridPos(x: 4, y: 3),
+                        GridPos(x: 4, y: 4),
+                      ],
+                      closed: false,
+                    ),
+                  ],
+                ),
+                overrides: const <BorderSlotOverride>[],
+                keepOutRegions: const <BorderKeepOutRegion>[],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    final repository = FileMapRepository();
+
+    await repository.saveMap(source, mapPath);
+    final reloaded = await repository.loadMap(mapPath);
+
+    expect(reloaded, source);
+    final reloadedFeature = _feature(reloaded);
+    final reloadedGeometry = reloadedFeature.geometry as BorderStrokeGeometry;
+    expect(reloadedGeometry.alignment, BorderStrokeAlignment.gridEdges);
+    expect(
+      reloadedGeometry.strokes.single.points,
+      const <GridPos>[
+        GridPos(x: 0, y: 0),
+        GridPos(x: 1, y: 0),
+        GridPos(x: 2, y: 0),
+        GridPos(x: 3, y: 0),
+        GridPos(x: 4, y: 0),
+        GridPos(x: 4, y: 1),
+        GridPos(x: 4, y: 2),
+        GridPos(x: 4, y: 3),
+        GridPos(x: 4, y: 4),
+      ],
+    );
+    expect(
+      computeBorderFeatureEditFingerprint(reloadedFeature),
+      computeBorderFeatureEditFingerprint(_feature(source)),
+    );
+  });
 }
 
 _NotifierFixture _fixture({

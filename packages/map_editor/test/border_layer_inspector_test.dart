@@ -300,6 +300,70 @@ void main() {
     expect(find.text('Peindre le contour'), findsNothing);
   });
 
+  testWidgets('two-tier stone features show separate top and face metrics',
+      (tester) async {
+    final project = _project(<BorderBlueprintRecord>[_twoTierStoneRecord()]);
+    final map = MapData(
+      id: 'stone-map',
+      name: 'Falaise',
+      version: ProjectVersion.v2,
+      size: const GridSize(width: 8, height: 4),
+      layers: <MapLayer>[
+        MapLayer.border(
+          id: 'border',
+          name: 'Falaise',
+          content: BorderLayerContent(
+            features: <BorderFeature>[
+              BorderFeature(
+                id: 'cliff',
+                name: 'Falaise du port',
+                blueprintId: 'two-tier',
+                seed: BorderSignedInt64.zero,
+                geometry: BorderStrokeGeometry(
+                  strokes: <BorderStroke>[
+                    BorderStroke(
+                      id: 'shore',
+                      points: const <GridPos>[
+                        GridPos(x: 1, y: 1),
+                        GridPos(x: 2, y: 1),
+                        GridPos(x: 3, y: 1),
+                        GridPos(x: 4, y: 1),
+                        GridPos(x: 5, y: 1),
+                        GridPos(x: 6, y: 1),
+                      ],
+                      closed: false,
+                    ),
+                  ],
+                ),
+                overrides: const <BorderSlotOverride>[],
+                keepOutRegions: const <BorderKeepOutRegion>[],
+                materialization: _twoTierStoneMaterialization(),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    await pumpEditorShellPage(
+      tester,
+      initialState: EditorState(
+        projectRootPath: '/tmp/border_inspector_two_tier',
+        project: project,
+        workspaceMode: EditorWorkspaceMode.map,
+        activeMap: map,
+        activeLayerId: 'border',
+      ),
+    );
+
+    expect(find.text('Sommet : 3 pierres'), findsOneWidget);
+    expect(find.text('Face : 2 pierres'), findsOneWidget);
+    expect(find.text('Profondeur médiane : 24 px'), findsOneWidget);
+    expect(find.text('Gap maximal du sommet : 2 px'), findsOneWidget);
+    expect(find.text('Gap maximal de la face : 2 px'), findsOneWidget);
+    expect(find.textContaining('border.resolution.'), findsNothing);
+  });
+
   testWidgets(
       'Border inspector keeps lifecycle and local corrections preview-only until shared Apply',
       (tester) async {
@@ -460,10 +524,12 @@ void main() {
   for (final template in <BorderBlueprintTemplate>[
     BorderBlueprintTemplate.connectedLine,
     BorderBlueprintTemplate.masonryLine,
+    BorderBlueprintTemplate.stoneChainLine,
   ]) {
     final templateLabel = switch (template) {
       BorderBlueprintTemplate.connectedLine => 'connected line',
       BorderBlueprintTemplate.masonryLine => 'masonry line',
+      BorderBlueprintTemplate.stoneChainLine => 'stone chain',
       _ => throw StateError('Unsupported line template: $template'),
     };
     testWidgets(
@@ -486,6 +552,9 @@ void main() {
             id: 'border',
             name: 'Falaises',
             content: BorderLayerContent(
+              formatVersion: template == BorderBlueprintTemplate.stoneChainLine
+                  ? BorderLayerContent.formatVersionV3
+                  : BorderLayerContent.formatVersionV1,
               features: <BorderFeature>[
                 BorderFeature(
                   id: 'cliff-feature',
@@ -493,6 +562,10 @@ void main() {
                   blueprintId: 'cliff',
                   seed: BorderSignedInt64.fromInt(7),
                   geometry: BorderStrokeGeometry(
+                    alignment:
+                        template == BorderBlueprintTemplate.stoneChainLine
+                            ? BorderStrokeAlignment.gridEdges
+                            : BorderStrokeAlignment.cellCenters,
                     strokes: <BorderStroke>[
                       BorderStroke(
                         id: 'stroke',
@@ -536,6 +609,14 @@ void main() {
       );
 
       expect(find.text('Côté principal'), findsOneWidget);
+      if (template == BorderBlueprintTemplate.stoneChainLine) {
+        expect(
+          find.text(
+            'Déplace les pierres de l\'autre côté du tracé sans retourner leurs pixels.',
+          ),
+          findsOneWidget,
+        );
+      }
       final invert = tester.widget<PokeMapButton>(
         find.byKey(const ValueKey('border-invert-side-button')),
       );
@@ -550,6 +631,16 @@ void main() {
         BorderLineSide.inverted,
       );
       expect(find.text('Côté inversé'), findsOneWidget);
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(const ValueKey('border-invert-side-button')),
+            )
+            .onPressed,
+        isNotNull,
+        reason:
+            'A resolved draw must remain invertible before its first Apply.',
+      );
       expect(container.read(editorNotifierProvider).activeMap, same(map));
       expect(
           container.read(editorNotifierProvider).activeMap!.toJson(), before);
@@ -940,10 +1031,16 @@ ProjectManifest _project(List<BorderBlueprintRecord> records) =>
         formatVersion: records.any(
           (record) =>
               record.draft.definition.template ==
-              BorderBlueprintTemplate.connectedLine,
+              BorderBlueprintTemplate.stoneChainLine,
         )
-            ? ProjectBorderCatalog.formatVersionV2
-            : ProjectBorderCatalog.formatVersionV1,
+            ? ProjectBorderCatalog.formatVersionV3
+            : records.any(
+                (record) =>
+                    record.draft.definition.template ==
+                    BorderBlueprintTemplate.connectedLine,
+              )
+                ? ProjectBorderCatalog.formatVersionV2
+                : ProjectBorderCatalog.formatVersionV1,
         records: records,
         visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
       ),
@@ -991,6 +1088,133 @@ BorderBlueprintRecord _record(
     isDeprecated: isDeprecated,
   );
 }
+
+BorderBlueprintRecord _twoTierStoneRecord() {
+  final primitives = <BorderPublishedPrimitive>[
+    _stonePrimitive('top', BorderPrimitiveRole.structureLarge),
+    _stonePrimitive('face', BorderPrimitiveRole.structureMedium),
+  ];
+  final defaults = BorderGenerationParams(
+    irregularityPermille: 180,
+    detailDensityPermille: 0,
+    variationPermille: 1000,
+    maxOverlapPx: 8,
+    gapTolerancePx: 0,
+    depthRows: 2,
+    allowAutoRotation: false,
+  );
+  return BorderBlueprintRecord(
+    id: 'two-tier',
+    draft: BorderBlueprintDraft(
+      baseRevision: 1,
+      definition: BorderBlueprintDraftDefinition(
+        name: 'Falaise deux étages',
+        previewSeed: BorderSignedInt64.zero,
+        template: BorderBlueprintTemplate.stoneChainLine,
+        primitives: const <BorderPrimitiveDraft>[],
+        defaults: defaults,
+        sortOrder: 0,
+      ),
+    ),
+    latestPublished: BorderBlueprintRevision(
+      revision: 1,
+      definition: BorderBlueprintPublishedDefinition(
+        name: 'Falaise deux étages',
+        previewSeed: BorderSignedInt64.zero,
+        template: BorderBlueprintTemplate.stoneChainLine,
+        primitives: primitives,
+        defaults: defaults,
+        sortOrder: 0,
+      ),
+    ),
+  );
+}
+
+BorderPublishedPrimitive _stonePrimitive(
+  String id,
+  BorderPrimitiveRole role,
+) =>
+    BorderPublishedPrimitive(
+      id: id,
+      sourceElementId: '$id-source',
+      visualSnapshotId: _snapshotId,
+      role: role,
+      authoredOrientation: BorderPrimitiveOrientation.south,
+      weight: 1000,
+      anchorPx: const BorderPixelPos(x: 5, y: 5),
+      transforms: BorderTransformPolicy(
+        allowFlipX: false,
+        allowedQuarterTurns: const <int>[0],
+      ),
+      publishedMetrics: BorderPrimitiveAssetMetrics(
+        assetFingerprint: 'asset-$id',
+        pixelSize: const GridSize(width: 12, height: 24),
+        opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 12, height: 24),
+        defaultAnchorPx: const BorderPixelPos(x: 5, y: 5),
+        occupancyMaskRle: encodeBorderRleMask(
+          List<bool>.filled(12 * 24, true),
+        ),
+      ),
+    );
+
+BorderMaterialization _twoTierStoneMaterialization() => BorderMaterialization(
+      receipt: _materialization().receipt,
+      ground: const <BorderResolvedGroundCell>[],
+      placements: <BorderResolvedPlacement>[
+        _stonePlacement('top-1', 'top', passIndex: 0, x: 0, width: 10),
+        _stonePlacement('top-2', 'top', passIndex: 0, x: 10, width: 10),
+        _stonePlacement('top-3', 'top', passIndex: 0, x: 22, width: 10),
+        _stonePlacement(
+          'face-1',
+          'face',
+          passIndex: 1,
+          x: 0,
+          width: 12,
+          height: 24,
+        ),
+        _stonePlacement(
+          'face-2',
+          'face',
+          passIndex: 1,
+          x: 14,
+          width: 12,
+          height: 24,
+        ),
+      ],
+    );
+
+BorderResolvedPlacement _stonePlacement(
+  String id,
+  String primitiveId, {
+  required int passIndex,
+  required int x,
+  required int width,
+  int height = 12,
+}) =>
+    BorderResolvedPlacement(
+      id: id,
+      slotKey: 'slot-$id',
+      primitiveId: primitiveId,
+      visualSnapshotId: _snapshotId,
+      anchorCell: GridPos(x: x ~/ 16, y: passIndex),
+      topLeftWorldPx: BorderPixelPos(x: x, y: passIndex * 12),
+      opaqueWorldBoundsPx: BorderPixelRect(
+        x: x,
+        y: passIndex * 12,
+        width: width,
+        height: height,
+      ),
+      transform: BorderSpriteTransform(quarterTurns: 0, flipX: false),
+      drawBand: BorderDrawBand.structure,
+      stableOrderKey: BorderStableOrderKey(
+        drawBandIndex: borderDrawBandV1Index(BorderDrawBand.structure),
+        anchorRowMajor: passIndex * 1000 + x,
+        passIndex: passIndex,
+        rank: 0,
+        ordinalLocal: x,
+        slotKey: 'slot-$id',
+      ),
+    );
 
 BorderGenerationParams _params() => BorderGenerationParams(
       irregularityPermille: 0,

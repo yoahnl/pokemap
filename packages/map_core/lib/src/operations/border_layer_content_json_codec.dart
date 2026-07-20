@@ -100,9 +100,10 @@ BorderLayerContent decodeBorderLayerContentJson(
 
 void _requireSupportedVersion(int value, String path) {
   if (value != BorderLayerContent.formatVersionV1 &&
-      value != BorderLayerContent.formatVersionV2) {
+      value != BorderLayerContent.formatVersionV2 &&
+      value != BorderLayerContent.formatVersionV3) {
     throw FormatException(
-      '$path: expected BorderLayerContent format version 1 or 2',
+      '$path: expected BorderLayerContent format version 1, 2, or 3',
     );
   }
 }

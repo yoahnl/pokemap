@@ -1,6 +1,8 @@
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../fixtures/border/stone_chain_line_fixture.dart';
+
 const _hexA =
     'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const _hexB =
@@ -12,6 +14,63 @@ const _wrongHash =
 
 void main() {
   group('unit Border feature updates', () {
+    test('all non-geometry updates preserve grid-edge alignment and V3', () {
+      final fixture = _fixture();
+      final gridEdges = BorderStrokeGeometry(
+        strokes: <BorderStroke>[
+          BorderStroke(
+            id: 'edge',
+            points: const <GridPos>[
+              GridPos(x: 2, y: 2),
+              GridPos(x: 3, y: 2),
+            ],
+            closed: false,
+          ),
+        ],
+        alignment: BorderStrokeAlignment.gridEdges,
+      );
+      final promoted = updateBorderFeatureGeometry(
+        fixture.map,
+        layerId: 'border',
+        featureId: 'feature',
+        geometry: gridEdges,
+      );
+      final maps = <MapData>[
+        promoted,
+        updateBorderFeatureSeed(
+          promoted,
+          layerId: 'border',
+          featureId: 'feature',
+          seed: BorderSignedInt64.fromInt(99),
+        ),
+        updateBorderFeatureOverrides(
+          promoted,
+          layerId: 'border',
+          featureId: 'feature',
+          overrides: <BorderSlotOverride>[_override('edge-slot')],
+        ),
+        updateBorderFeatureParameters(
+          promoted,
+          layerId: 'border',
+          featureId: 'feature',
+          paramsOverride: _params(depthRows: 2),
+        ),
+        updateBorderFeatureKeepOutRegions(
+          promoted,
+          layerId: 'border',
+          featureId: 'feature',
+          keepOutRegions: <BorderKeepOutRegion>[_keepOut('edge-keep-out')],
+        ),
+      ];
+
+      for (final map in maps) {
+        final content = (map.layers.first as BorderLayer).content;
+        final geometry = _featureOf(map).geometry as BorderStrokeGeometry;
+        expect(content.formatVersion, BorderLayerContent.formatVersionV3);
+        expect(geometry.alignment, BorderStrokeAlignment.gridEdges);
+      }
+    });
+
     test('all authored fields replace only their requested field', () {
       final fixture = _fixture();
       final original = fixture.feature;
@@ -235,6 +294,37 @@ void main() {
   });
 
   group('computeBorderFeatureEditFingerprint', () {
+    test('selects V3 for grid-edge geometry', () {
+      final feature = BorderFeature(
+        id: 'grid-edge',
+        name: 'Grid edge',
+        blueprintId: 'stone-chain',
+        seed: BorderSignedInt64.zero,
+        geometry: BorderStrokeGeometry(
+          strokes: <BorderStroke>[
+            BorderStroke(
+              id: 'edge',
+              points: const <GridPos>[
+                GridPos(x: 0, y: 0),
+                GridPos(x: 1, y: 0),
+              ],
+              closed: false,
+            ),
+          ],
+          alignment: BorderStrokeAlignment.gridEdges,
+        ),
+        overrides: const <BorderSlotOverride>[],
+        keepOutRegions: const <BorderKeepOutRegion>[],
+      );
+      final expected =
+          'sha256:${narrativeEventCanonicalSha256(<String, Object?>{
+            'schema': 'border-feature-edit-v1',
+            'feature': encodeBorderFeatureJson(feature, formatVersion: 3),
+          })}';
+
+      expect(computeBorderFeatureEditFingerprint(feature), expected);
+    });
+
     test('is exact SHA-256 JCS and includes materialization', () {
       final fixture = _fixture();
       final expected =
@@ -384,7 +474,13 @@ void main() {
         resolverVersion: borderResolverVersion,
       );
       final result = resolveBorderFeature(request);
-      expect(result.canApply, isTrue);
+      expect(
+        result.canApply,
+        isTrue,
+        reason: result.diagnosticReport.diagnostics
+            .map((diagnostic) => '${diagnostic.code} ${diagnostic.parameters}')
+            .join('\n'),
+      );
 
       final updated = applyBorderFeaturePreview(
         fixture.map,
@@ -402,6 +498,82 @@ void main() {
         BorderLayerContent.formatVersionV2,
       );
       expect(_featureOf(updated).lineSide, BorderLineSide.primary);
+    });
+
+    test('applied grid-edge preview promotes the layer to format V3', () {
+      final fixture = _fixture();
+      final primitives = stoneChainPrimitives();
+      final parameters = stoneChainParameters();
+      final feature = BorderFeature(
+        id: fixture.feature.id,
+        name: fixture.feature.name,
+        blueprintId: fixture.feature.blueprintId,
+        seed: fixture.feature.seed,
+        geometry: BorderStrokeGeometry(
+          strokes: <BorderStroke>[
+            BorderStroke(
+              id: 'coast',
+              points: const <GridPos>[
+                GridPos(x: 0, y: 1),
+                GridPos(x: 1, y: 1),
+              ],
+              closed: false,
+            ),
+          ],
+          alignment: BorderStrokeAlignment.gridEdges,
+        ),
+        paramsOverride: parameters,
+        overrides: const <BorderSlotOverride>[],
+        keepOutRegions: const <BorderKeepOutRegion>[],
+      );
+      final request = BorderResolutionRequest(
+        mapSize: fixture.map.size,
+        tileSizePx: const GridSize(width: 32, height: 32),
+        blueprintId: fixture.feature.blueprintId,
+        blueprintRevision: BorderBlueprintRevision(
+          revision: 1,
+          definition: BorderBlueprintPublishedDefinition(
+            name: 'Stone chain',
+            previewSeed: BorderSignedInt64.zero,
+            template: BorderBlueprintTemplate.stoneChainLine,
+            primitives: primitives,
+            defaults: parameters,
+            sortOrder: 0,
+          ),
+        ),
+        feature: feature,
+        visualSnapshots: <BorderVisualSnapshot>[
+          for (final primitive in primitives) stoneChainSnapshotFor(primitive),
+        ],
+        resolverVersion: borderResolverVersion,
+      );
+      final result = resolveBorderFeature(request);
+      expect(
+        result.canApply,
+        isTrue,
+        reason: result.diagnosticReport.diagnostics
+            .map((diagnostic) => '${diagnostic.code} ${diagnostic.parameters}')
+            .join('\n'),
+      );
+
+      final updated = applyBorderFeaturePreview(
+        fixture.map,
+        expectedMapId: fixture.map.id,
+        layerId: 'border',
+        featureId: fixture.feature.id,
+        expectedBaseFeatureFingerprint:
+            computeBorderFeatureEditFingerprint(fixture.feature),
+        proposedRequest: request,
+        proposedResult: result,
+      );
+      final content = (updated.layers.first as BorderLayer).content;
+
+      expect(content.formatVersion, BorderLayerContent.formatVersionV3);
+      expect(
+        (_featureOf(updated).geometry as BorderStrokeGeometry).alignment,
+        BorderStrokeAlignment.gridEdges,
+      );
+      expect(() => encodeBorderLayerContentJson(content), returnsNormally);
     });
 
     test('error result is an identity no-op before coherence checks', () {

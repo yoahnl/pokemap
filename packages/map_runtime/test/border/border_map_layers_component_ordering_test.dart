@@ -168,6 +168,50 @@ void main() {
       expect(await pixelAt(image, 16, 16), rgba(255, 0, 0, 255));
     });
 
+    test('keeps ocean visible around transparent two-tier cliff stones',
+        () async {
+      final cliffImage = await _transparentCliffStoneImage();
+      final component = MapLayersComponent(
+        bundle: surfaceTestBundle(
+          map: MapData(
+            id: 'ocean-with-cliff',
+            name: 'Ocean with cliff',
+            size: const GridSize(width: 1, height: 1),
+            properties: const <String, dynamic>{
+              'tileLayerOrder': 'bottom_to_top',
+            },
+            layers: <MapLayer>[
+              surfaceTestLayer(),
+              _borderPlacementLayer(
+                id: 'two-tier-cliff',
+                snapshotId: _snapshotA,
+              ),
+            ],
+          ),
+        ),
+        tileImagesByTilesetId: {
+          'surface-water': await runtimeTilesetImage(
+            const <Color>[Color(0xFF0000FF)],
+          ),
+        },
+        borderAssets: BorderRuntimeAssetBundle(
+          snapshots: <BorderRuntimeLoadedSnapshot>[
+            _loadedSnapshot(
+              snapshotId: _snapshotA,
+              digest: _digestA,
+              image: cliffImage,
+            ),
+          ],
+        ),
+      );
+
+      final image = await renderSurfaceTestComponent(component);
+
+      expect(await pixelAt(image, 4, 16), rgba(0, 0, 255, 255));
+      expect(await pixelAt(image, 16, 16), rgba(255, 255, 0, 255));
+      expect(await pixelAt(image, 28, 16), rgba(0, 0, 255, 255));
+    });
+
     test('keeps paintAfterTileLayerId paths immediately above their ground',
         () async {
       final component = MapLayersComponent(
@@ -505,6 +549,67 @@ BorderLayer _borderLayer({
   );
 }
 
+BorderLayer _borderPlacementLayer({
+  required String id,
+  required String snapshotId,
+}) {
+  const slotKey = 'slot-two-tier-cliff';
+  return BorderLayer(
+    id: id,
+    name: id,
+    content: BorderLayerContent(
+      features: <BorderFeature>[
+        BorderFeature(
+          id: 'feature-$id',
+          name: 'Feature $id',
+          blueprintId: 'blueprint',
+          seed: BorderSignedInt64.zero,
+          geometry: BorderRegionGeometry(
+            width: 1,
+            height: 1,
+            cells: const <bool>[true],
+          ),
+          overrides: const <BorderSlotOverride>[],
+          keepOutRegions: const <BorderKeepOutRegion>[],
+          materialization: BorderMaterialization(
+            receipt: _receipt(),
+            ground: const <BorderResolvedGroundCell>[],
+            placements: <BorderResolvedPlacement>[
+              BorderResolvedPlacement(
+                id: 'placement-two-tier-cliff',
+                slotKey: slotKey,
+                primitiveId: 'primitive-two-tier-cliff',
+                visualSnapshotId: snapshotId,
+                anchorCell: const GridPos(x: 0, y: 0),
+                topLeftWorldPx: const BorderPixelPos(x: 0, y: 0),
+                opaqueWorldBoundsPx: BorderPixelRect(
+                  x: 12,
+                  y: 0,
+                  width: 8,
+                  height: 32,
+                ),
+                transform: BorderSpriteTransform(
+                  quarterTurns: 0,
+                  flipX: false,
+                ),
+                drawBand: BorderDrawBand.structure,
+                stableOrderKey: BorderStableOrderKey(
+                  drawBandIndex: BorderDrawBand.structure.stableV1Index,
+                  anchorRowMajor: 0,
+                  passIndex: 0,
+                  rank: 0,
+                  ordinalLocal: 0,
+                  slotKey: slotKey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 BorderResolutionReceipt _receipt() {
   return BorderResolutionReceipt(
     resolverVersion: 1,
@@ -543,6 +648,31 @@ Future<BorderRuntimeAssetBundle> _borderAssets() async {
         image: magenta,
       ),
     ],
+  );
+}
+
+Future<RuntimeTilesetImage> _transparentCliffStoneImage() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(12, 0, 8, 32),
+    ui.Paint()..color = const ui.Color(0xFFFFFF00),
+  );
+  final image = await recorder.endRecording().toImage(
+        surfaceTestTileSize,
+        surfaceTestTileSize,
+      );
+  return RuntimeTilesetImage(
+    images: <ui.Image>[image],
+    chunks: const <RuntimeTilesetChunk>[
+      RuntimeTilesetChunk(
+        top: 0,
+        height: surfaceTestTileSize,
+        width: surfaceTestTileSize,
+      ),
+    ],
+    width: surfaceTestTileSize,
+    height: surfaceTestTileSize,
   );
 }
 

@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -9,8 +10,7 @@ import 'package:map_editor/src/features/border_map_editing/presentation/border_p
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
 void main() {
-  test('paints a Border layer at its authored position below a later Tile',
-      () async {
+  test('paints a Border above ordinary background Tiles', () async {
     final borderImage = await _solidImage(const ui.Color(0xFFFF0000));
     final tileImage = await _solidImage(const ui.Color(0xFF0000FF));
     final map = MapData(
@@ -47,7 +47,7 @@ void main() {
       },
     );
 
-    expect(color, const ui.Color(0xFF0000FF));
+    expect(color, const ui.Color(0xFFFF0000));
     borderImage.dispose();
     tileImage.dispose();
   });
@@ -142,7 +142,7 @@ void main() {
     green.dispose();
   });
 
-  test('a hidden unique Border keeps the authored dispatcher without painting',
+  test('a hidden Border never changes the historical background dispatcher',
       () async {
     final surfaceImage = await _solidImage(const ui.Color(0xFFFF0000));
     final tileImage = await _solidImage(const ui.Color(0xFF0000FF));
@@ -187,7 +187,7 @@ void main() {
       },
     );
 
-    expect(color, const ui.Color(0xFF0000FF));
+    expect(color, const ui.Color(0xFFFF0000));
     surfaceImage.dispose();
     tileImage.dispose();
   });
@@ -241,6 +241,175 @@ void main() {
     );
 
     expect(withHiddenBorderColor, baselineColor);
+  });
+
+  test(
+      'bottom_to_top maps keep ocean pixels when a Border is hidden or visible',
+      () async {
+    final borderImage = await _solidImage(const ui.Color(0xFFFF0000));
+    const backgroundLayers = <MapLayer>[
+      PathLayer(
+        id: 'ocean',
+        name: 'Ocean',
+        presetId: 'ocean',
+        cells: <bool>[true, true],
+      ),
+      TerrainLayer(
+        id: 'terrain',
+        name: 'Terrain',
+        terrains: <TerrainType>[TerrainType.grass, TerrainType.grass],
+      ),
+    ];
+    const baseline = MapData(
+      id: 'bottom-to-top-ocean-baseline',
+      name: 'Bottom-to-top ocean baseline',
+      version: ProjectVersion.v2,
+      size: GridSize(width: 2, height: 1),
+      properties: <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
+      layers: backgroundLayers,
+    );
+    const withHiddenBorder = MapData(
+      id: 'bottom-to-top-ocean-hidden-border',
+      name: 'Bottom-to-top ocean hidden Border',
+      version: ProjectVersion.v2,
+      size: GridSize(width: 2, height: 1),
+      properties: <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
+      layers: <MapLayer>[
+        ...backgroundLayers,
+        BorderLayer(
+          id: 'border-hidden',
+          name: 'Border hidden',
+          isVisible: false,
+        ),
+      ],
+    );
+    final withVisibleBorder = MapData(
+      id: 'bottom-to-top-ocean-visible-border',
+      name: 'Bottom-to-top ocean visible Border',
+      version: ProjectVersion.v2,
+      size: const GridSize(width: 2, height: 1),
+      properties: const <String, dynamic>{
+        'tileLayerOrder': 'bottom_to_top',
+      },
+      layers: <MapLayer>[
+        ...backgroundLayers,
+        MapLayer.border(
+          id: 'border-visible',
+          name: 'Border visible',
+          content: BorderLayerContent(features: <BorderFeature>[_feature()]),
+        ),
+      ],
+    );
+
+    final baselineOcean = await _paintPixel(
+      baseline,
+      project: _manifest(),
+      images: const <String, ui.Image?>{},
+      x: 24,
+      y: 8,
+    );
+    final hiddenOcean = await _paintPixel(
+      withHiddenBorder,
+      project: _manifest(),
+      images: const <String, ui.Image?>{},
+      x: 24,
+      y: 8,
+    );
+    final visibleOcean = await _paintPixel(
+      withVisibleBorder,
+      project: _manifest(),
+      images: <String, ui.Image?>{
+        editorBorderFrameImageKey(_snapshotId, 0): borderImage,
+      },
+      x: 24,
+      y: 8,
+    );
+    final borderPixel = await _paintPixel(
+      withVisibleBorder,
+      project: _manifest(),
+      images: <String, ui.Image?>{
+        editorBorderFrameImageKey(_snapshotId, 0): borderImage,
+      },
+      x: 8,
+      y: 8,
+    );
+
+    expect(hiddenOcean, baselineOcean);
+    expect(visibleOcean, baselineOcean);
+    expect(borderPixel, const ui.Color(0xFFFF0000));
+    borderImage.dispose();
+  });
+
+  test('empty or hidden Border is pixel-neutral for bottom_to_top base layers',
+      () async {
+    const backgroundLayers = <MapLayer>[
+      PathLayer(
+        id: 'ocean',
+        name: 'Ocean',
+        presetId: 'ocean',
+        cells: <bool>[true, true],
+      ),
+      TerrainLayer(
+        id: 'terrain',
+        name: 'Terrain',
+        terrains: <TerrainType>[TerrainType.grass, TerrainType.grass],
+      ),
+    ];
+    const baseline = MapData(
+      id: 'bottom-to-top-baseline',
+      name: 'Bottom-to-top baseline',
+      version: ProjectVersion.v2,
+      size: GridSize(width: 2, height: 1),
+      properties: <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
+      layers: backgroundLayers,
+    );
+    const withEmptyBorder = MapData(
+      id: 'bottom-to-top-empty-border',
+      name: 'Bottom-to-top empty Border',
+      version: ProjectVersion.v2,
+      size: GridSize(width: 2, height: 1),
+      properties: <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
+      layers: <MapLayer>[
+        ...backgroundLayers,
+        BorderLayer(id: 'border-empty', name: 'Border empty'),
+      ],
+    );
+    const withHiddenBorder = MapData(
+      id: 'bottom-to-top-hidden-border',
+      name: 'Bottom-to-top hidden Border',
+      version: ProjectVersion.v2,
+      size: GridSize(width: 2, height: 1),
+      properties: <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
+      layers: <MapLayer>[
+        ...backgroundLayers,
+        BorderLayer(
+          id: 'border-hidden',
+          name: 'Border hidden',
+          isVisible: false,
+        ),
+      ],
+    );
+
+    final baselineRgba = await _paintRgba(
+      baseline,
+      project: _manifest(),
+      images: const <String, ui.Image?>{},
+    );
+    final emptyBorderRgba = await _paintRgba(
+      withEmptyBorder,
+      project: _manifest(),
+      images: const <String, ui.Image?>{},
+    );
+    final hiddenBorderRgba = await _paintRgba(
+      withHiddenBorder,
+      project: _manifest(),
+      images: const <String, ui.Image?>{},
+    );
+
+    // Compare the complete raster, not one representative ocean pixel. This
+    // guards every base-layer draw operation against a no-op Border sentinel.
+    expect(emptyBorderRgba, baselineRgba);
+    expect(hiddenBorderRgba, baselineRgba);
   });
 
   test('an appended Border paints above legacy background passes', () async {
@@ -676,6 +845,47 @@ Future<ui.Color> _paintPixel(
   picture.dispose();
   image.dispose();
   return color;
+}
+
+Future<Uint8List> _paintRgba(
+  MapData map, {
+  required ProjectManifest project,
+  required Map<String, ui.Image?> images,
+}) async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  MapGridPainter(
+    map: map,
+    zoom: 1,
+    offset: ui.Offset.zero,
+    tileWidth: 16,
+    tileHeight: 16,
+    tilesetImagesById: images,
+    sourceTileWidth: 16,
+    sourceTileHeight: 16,
+    tilesPerRowById: const <String, int>{'tiles': 1},
+    warps: const <MapWarp>[],
+    gameplayZones: const <MapGameplayZone>[],
+    connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+    pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
+    terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+    project: project,
+  ).paint(
+    canvas,
+    ui.Size(map.size.width * 16, map.size.height * 16),
+  );
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(
+    map.size.width * 16,
+    map.size.height * 16,
+  );
+  final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+  final rgba = Uint8List.fromList(
+    bytes!.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),
+  );
+  picture.dispose();
+  image.dispose();
+  return rgba;
 }
 
 Future<ui.Color> _paintCenter(

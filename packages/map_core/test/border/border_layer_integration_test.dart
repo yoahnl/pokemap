@@ -58,7 +58,7 @@ void main() {
         (true, r'$.content'),
         (
           <String, Object?>{
-            'formatVersion': 3,
+            'formatVersion': 4,
             'features': <Object?>[],
           },
           r'$.content.formatVersion',

@@ -9,6 +9,9 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/main.dart' show MapEditorApp;
 import 'package:map_editor/src/debug/marionette_project_bootstrap.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_feature_authoring_controller.dart';
+import 'package:map_editor/src/features/border_map_editing/application/border_feature_inspection.dart';
+import 'package:map_editor/src/features/border_map_editing/state/border_map_editing_providers.dart';
+import 'package:map_editor/src/features/border_map_editing/state/border_preview_providers.dart';
 import 'package:map_editor/src/features/border_studio/application/border_asset_snapshot_service.dart';
 import 'package:map_editor/src/features/border_studio/application/border_project_element_asset_service.dart';
 import 'package:map_editor/src/features/border_studio/application/border_surface_ground_snapshot_service.dart';
@@ -16,6 +19,7 @@ import 'package:map_editor/src/features/border_studio/state/border_studio_provid
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_selectors.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
 /// Debug-only entrypoint for deterministic, observable macOS QA.
@@ -97,6 +101,87 @@ void main() {
     },
   );
   developer.registerExtension(
+    'ext.flutter.pokemap.marionette.prepareBorderQAPreview',
+    (_, parameters) async {
+      final relativePath = parameters['relativePath'];
+      final blueprintId = parameters['blueprintId'];
+      if (relativePath == null ||
+          relativePath.isEmpty ||
+          blueprintId == null ||
+          blueprintId.isEmpty) {
+        return developer.ServiceExtensionResponse.result(
+          jsonEncode(<String, Object?>{
+            'prepared': false,
+            'error': 'relativePath and blueprintId are required.',
+          }),
+        );
+      }
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.selectMapWorkspace();
+      await notifier.loadMap(relativePath);
+      var activeEditor = container.read(editorNotifierProvider);
+      final loadedMap = activeEditor.activeMap;
+      if (loadedMap == null) {
+        return developer.ServiceExtensionResponse.result(
+          jsonEncode(<String, Object?>{
+            'prepared': false,
+            'error': 'The requested map could not be loaded.',
+            'errorMessage': activeEditor.errorMessage,
+          }),
+        );
+      }
+      final hiddenLayerIds = <String>[];
+      for (final layer in loadedMap.layers.whereType<BorderLayer>()) {
+        if (!layer.isVisible) continue;
+        notifier.setMapLayerVisibility(layer.id, false);
+        hiddenLayerIds.add(layer.id);
+      }
+      notifier.addMapLayer(
+        kind: MapLayerKind.border,
+        name: parameters['layerName'] ?? 'Bordures QA',
+      );
+      activeEditor = container.read(editorNotifierProvider);
+      final qaMap = activeEditor.activeMap;
+      final qaLayer = qaMap?.layers
+          .whereType<BorderLayer>()
+          .where((layer) => layer.id == activeEditor.activeLayerId)
+          .firstOrNull;
+      if (qaMap == null || qaLayer == null) {
+        return developer.ServiceExtensionResponse.result(
+          jsonEncode(<String, Object?>{
+            'prepared': false,
+            'error': 'The in-memory Border QA layer was not created.',
+            'errorMessage': activeEditor.errorMessage,
+          }),
+        );
+      }
+      notifier.createBorderFeature(
+        layerId: qaLayer.id,
+        blueprintId: blueprintId,
+        name: parameters['featureName'] ?? 'Bordure QA',
+      );
+      activeEditor = container.read(editorNotifierProvider);
+      final preparedLayer = activeEditor.activeMap?.layers
+          .whereType<BorderLayer>()
+          .where((layer) => layer.id == qaLayer.id)
+          .firstOrNull;
+      final feature = preparedLayer?.content.features.lastOrNull;
+      return developer.ServiceExtensionResponse.result(
+        jsonEncode(<String, Object?>{
+          'prepared': feature != null,
+          'activeMapId': activeEditor.activeMap?.id,
+          'layerId': preparedLayer?.id,
+          'featureId': feature?.id,
+          'blueprintId': feature?.blueprintId,
+          'hiddenLayerIds': hiddenLayerIds,
+          'mapDirty': activeEditor.isDirty,
+          'errorMessage': activeEditor.errorMessage,
+          'statusMessage': activeEditor.statusMessage,
+        }),
+      );
+    },
+  );
+  developer.registerExtension(
     'ext.flutter.pokemap.marionette.setMapViewport',
     (_, parameters) async {
       final requestedZoom = double.tryParse(parameters['zoom'] ?? '');
@@ -135,6 +220,61 @@ void main() {
         }),
       );
     },
+  );
+  developer.registerExtension(
+    'ext.flutter.pokemap.marionette.inspectBorderFeature',
+    (_, parameters) async {
+      final activeEditor = container.read(editorNotifierProvider);
+      final preview = container.read(borderPreviewControllerProvider);
+      final transaction = preview.transaction;
+      return developer.ServiceExtensionResponse.result(
+        jsonEncode(
+          <String, Object?>{
+            ...inspectBorderFeature(
+              map: activeEditor.activeMap,
+              project: activeEditor.project,
+              layerId: parameters['layerId'],
+              featureId: parameters['featureId'],
+              preview: transaction == null
+                  ? null
+                  : BorderFeatureInspectionPreview(
+                      layerId: transaction.layerId,
+                      feature: transaction.proposedFeature,
+                      materialization: transaction.result?.materialization,
+                    ),
+            ),
+            'previewPhase': preview.phase.name,
+            'previewDiagnostics': transaction?.result == null
+                ? const <Object?>[]
+                : _borderDiagnosticsJson(
+                    transaction!.result!.diagnosticReport,
+                  ),
+          },
+        ),
+      );
+    },
+  );
+  developer.registerExtension(
+    'ext.flutter.pokemap.marionette.selectEditorTool',
+    (_, parameters) async => developer.ServiceExtensionResponse.result(
+      jsonEncode(
+        selectEditorToolForMarionette(
+          container: container,
+          parameters: parameters,
+        ),
+      ),
+    ),
+  );
+  developer.registerExtension(
+    'ext.flutter.pokemap.marionette.setBorderPreviewAutoRotation',
+    (_, parameters) async => developer.ServiceExtensionResponse.result(
+      jsonEncode(
+        setBorderPreviewAutoRotationForMarionette(
+          container: container,
+          parameters: parameters,
+        ),
+      ),
+    ),
   );
   developer.registerExtension(
     'ext.flutter.pokemap.marionette.selectBorderBlueprint',
@@ -306,6 +446,111 @@ final class _MarionetteSeededEditorNotifier extends EditorNotifier {
   EditorState build() => initialState;
 }
 
+/// Selects the sole editor tool needed by the Border Marionette QA flow.
+///
+/// This dev-only adapter deliberately delegates to [EditorNotifier.selectTool]
+/// and performs no map authoring, history mutation or persistence action.
+Map<String, Object?> selectEditorToolForMarionette({
+  required ProviderContainer container,
+  required Map<String, String> parameters,
+}) {
+  if (parameters['tool'] != EditorToolType.borderPaint.name) {
+    return <String, Object?>{
+      'selected': false,
+      'error': 'tool must be borderPaint.',
+    };
+  }
+  container
+      .read(editorNotifierProvider.notifier)
+      .selectTool(EditorToolType.borderPaint);
+  final editor = container.read(editorNotifierProvider);
+  final activeBorder = container.read(activeBorderFeatureControllerProvider);
+  return <String, Object?>{
+    'selected': editor.activeTool == EditorToolType.borderPaint,
+    'activeTool': editor.activeTool.name,
+    'activeLayerId': editor.activeLayerId,
+    'activeBorderFeatureId': activeBorder.activeFeatureId,
+    'featureId': activeBorder.activeFeatureId,
+  };
+}
+
+/// Disables decorative filler assets without changing their authored metadata.
+///
+/// The Border QA publication flow uses this to isolate the two structural
+/// cliff rows. Cardinal orientation is intentionally preserved because a
+/// missing value decodes as the legacy-axis mode and invalidates rotation-off
+/// coverage.
+List<BorderPrimitiveDraft> disableFillerPrimitivesForMarionette(
+  List<BorderPrimitiveDraft> primitives,
+) =>
+    <BorderPrimitiveDraft>[
+      for (final primitive in primitives)
+        BorderPrimitiveDraft(
+          id: primitive.id,
+          sourceElementId: primitive.sourceElementId,
+          role: primitive.role,
+          authoredOrientation: primitive.authoredOrientation,
+          weight: primitive.role == BorderPrimitiveRole.filler
+              ? 0
+              : primitive.weight,
+          anchorPx: primitive.anchorPx,
+          transforms: primitive.transforms,
+          currentMetrics: primitive.currentMetrics,
+        ),
+    ];
+
+/// Refines only the resolved Border preview used by visual QA.
+///
+/// The editor notifier owns the no-Apply/no-history contract. This dev-only
+/// adapter validates a strict boolean wire and returns enough identity and
+/// slot evidence for Marionette to reject an accidental target change.
+Map<String, Object?> setBorderPreviewAutoRotationForMarionette({
+  required ProviderContainer container,
+  required Map<String, String> parameters,
+}) {
+  final layerId = parameters['layerId']?.trim();
+  final featureId = parameters['featureId']?.trim();
+  final enabledWire = parameters['enabled'];
+  if (layerId == null ||
+      layerId.isEmpty ||
+      featureId == null ||
+      featureId.isEmpty ||
+      (enabledWire != 'true' && enabledWire != 'false')) {
+    return <String, Object?>{
+      'updated': false,
+      'error': 'layerId, featureId and enabled=true|false are required.',
+    };
+  }
+  final enabled = enabledWire == 'true';
+  final notifier = container.read(editorNotifierProvider.notifier);
+  final updated = notifier.previewBorderFeatureAutoRotation(
+    layerId: layerId,
+    featureId: featureId,
+    enabled: enabled,
+  );
+  final editor = container.read(editorNotifierProvider);
+  final preview = container.read(borderPreviewControllerProvider);
+  final transaction = preview.transaction;
+  final placements = transaction?.result?.materialization?.placements ??
+      const <BorderResolvedPlacement>[];
+  final slotKeys = placements
+      .map((placement) => placement.slotKey)
+      .toList(growable: false)
+    ..sort();
+  return <String, Object?>{
+    'updated': updated,
+    'layerId': transaction?.layerId,
+    'featureId': transaction?.featureId,
+    'allowAutoRotation':
+        transaction?.proposedFeature.paramsOverride?.allowAutoRotation,
+    'previewPhase': preview.phase.name,
+    'canApply': transaction?.result?.canApply,
+    'placementCount': placements.length,
+    'slotKeys': slotKeys,
+    'errorMessage': editor.errorMessage,
+  };
+}
+
 Future<developer.ServiceExtensionResponse>
     _reanalyzeSavePublishBorderBlueprint({
   required ProviderContainer container,
@@ -360,9 +605,50 @@ Future<developer.ServiceExtensionResponse>
       throw StateError('The requested Border blueprint was not selected.');
     }
 
+    final requestedDetailDensity =
+        int.tryParse(parameters['detailDensityPermille'] ?? '');
+    final requestedIrregularity =
+        int.tryParse(parameters['irregularityPermille'] ?? '');
+    final requestedMaximumOverlap =
+        int.tryParse(parameters['maxOverlapPx'] ?? '');
+    final requestedGapTolerance =
+        int.tryParse(parameters['gapTolerancePx'] ?? '');
+    if (requestedDetailDensity != null ||
+        requestedIrregularity != null ||
+        requestedMaximumOverlap != null ||
+        requestedGapTolerance != null) {
+      final defaults = working.blueprint.definition.defaults;
+      controller.setGenerationParams(
+        BorderGenerationParams(
+          irregularityPermille:
+              requestedIrregularity ?? defaults.irregularityPermille,
+          detailDensityPermille:
+              requestedDetailDensity ?? defaults.detailDensityPermille,
+          variationPermille: defaults.variationPermille,
+          maxOverlapPx: requestedMaximumOverlap ?? defaults.maxOverlapPx,
+          gapTolerancePx: requestedGapTolerance ?? defaults.gapTolerancePx,
+          depthRows: defaults.depthRows,
+          allowAutoRotation: defaults.allowAutoRotation,
+        ),
+      );
+    }
+    if (parameters['disableFillerPrimitives'] == 'true') {
+      final current = container
+          .read(borderStudioDraftControllerProvider)
+          .workingDraft!
+          .blueprint
+          .definition
+          .primitives;
+      controller.replacePrimitives(
+        disableFillerPrimitivesForMarionette(current),
+      );
+    }
+
     stage = 'reanalyze-primitives';
+    final configuredWorking =
+        container.read(borderStudioDraftControllerProvider).workingDraft!;
     final primitives = List<BorderPrimitiveDraft>.of(
-      working.blueprint.definition.primitives,
+      configuredWorking.blueprint.definition.primitives,
     );
     for (final primitive in primitives) {
       final prepared = await assetService.reanalyze(

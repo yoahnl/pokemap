@@ -860,7 +860,9 @@ BorderPublishedPrimitive _publishedPrimitive(
 }
 
 BorderTransformPolicy _coreTransforms() => BorderTransformPolicy(
-      allowFlipX: false,
+      // The shared fixture is also projected as masonry below; masonry's
+      // complete orientation contract requires the reflected side.
+      allowFlipX: true,
       allowedQuarterTurns: const <int>[0, 1, 2, 3],
     );
 

@@ -113,7 +113,7 @@ MapData updateBorderFeatureKeepOutRegions(
 String computeBorderFeatureEditFingerprint(BorderFeature feature) {
   final encodedFeature = encodeBorderFeatureJson(
     feature,
-    formatVersion: borderFeatureRequiresFormatV2(feature) ? 2 : 1,
+    formatVersion: minimumBorderLayerFormatVersionForFeature(feature),
   );
   _validatePortableFingerprintJson(encodedFeature, path: r'$.feature');
   return 'sha256:${narrativeEventCanonicalSha256(<String, Object?>{
@@ -195,15 +195,19 @@ MapData applyBorderFeaturePreview(
   final features = List<BorderFeature>.from(layer.content.features);
   features[featureIndex] = updatedFeature;
   final layers = List<MapLayer>.from(map.layers);
+  var minimumFormatVersion =
+      minimumBorderLayerFormatVersionForFeatures(features);
+  if (proposedRequest.blueprintRevision?.definition.template ==
+          BorderBlueprintTemplate.connectedLine &&
+      minimumFormatVersion < BorderLayerContent.formatVersionV2) {
+    minimumFormatVersion = BorderLayerContent.formatVersionV2;
+  }
   layers[layerIndex] = layer.copyWith(
     content: BorderLayerContent(
-      formatVersion:
-          layer.content.formatVersion == BorderLayerContent.formatVersionV2 ||
-                  proposedRequest.blueprintRevision?.definition.template ==
-                      BorderBlueprintTemplate.connectedLine ||
-                  borderFeaturesRequireFormatV2(features)
-              ? BorderLayerContent.formatVersionV2
-              : BorderLayerContent.formatVersionV1,
+      formatVersion: _maximumFormatVersion(
+        layer.content.formatVersion,
+        minimumFormatVersion,
+      ),
       features: features,
     ),
   );
@@ -426,16 +430,18 @@ MapData _updateBorderFeature(
   final layers = List<MapLayer>.from(map.layers);
   layers[layerIndex] = layer.copyWith(
     content: BorderLayerContent(
-      formatVersion:
-          layer.content.formatVersion == BorderLayerContent.formatVersionV2 ||
-                  borderFeaturesRequireFormatV2(features)
-              ? BorderLayerContent.formatVersionV2
-              : BorderLayerContent.formatVersionV1,
+      formatVersion: _maximumFormatVersion(
+        layer.content.formatVersion,
+        minimumBorderLayerFormatVersionForFeatures(features),
+      ),
       features: features,
     ),
   );
   return map.copyWith(layers: layers);
 }
+
+int _maximumFormatVersion(int first, int second) =>
+    first > second ? first : second;
 
 BorderFeature _copyFeature(
   BorderFeature feature, {

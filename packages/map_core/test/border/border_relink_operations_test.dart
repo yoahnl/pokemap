@@ -5,7 +5,130 @@ import '../fixtures/border/masonry_line_fixture.dart';
 import '../fixtures/border/post_and_rail_line_fixture.dart';
 
 void main() {
+  test('grid-edge strokes form a distinct relink family', () {
+    final geometry = BorderStrokeGeometry(
+      strokes: <BorderStroke>[
+        BorderStroke(
+          id: 'edge',
+          points: const <GridPos>[
+            GridPos(x: 0, y: 0),
+            GridPos(x: 1, y: 0),
+          ],
+          closed: false,
+        ),
+      ],
+      alignment: BorderStrokeAlignment.gridEdges,
+    );
+
+    expect(borderGeometryFamily(geometry), BorderGeometryFamily.gridEdgeLinear);
+    expect(
+      borderTemplateGeometryFamily(BorderBlueprintTemplate.stoneChainLine),
+      BorderGeometryFamily.gridEdgeLinear,
+    );
+    expect(
+      borderTemplateGeometryFamily(BorderBlueprintTemplate.connectedLine),
+      BorderGeometryFamily.linear,
+    );
+  });
+
   group('Border blueprint relink preview', () {
+    test('linear to grid-edge relink is blocked until an explicit V3 reset',
+        () {
+      final source = MasonryLineFixture(
+        parameters: masonryParameters(),
+      ).request.feature;
+      final map = _mapWith(source);
+
+      final preview = prepareBorderFeatureRelink(
+        map: map,
+        layerId: 'border',
+        featureId: source.id,
+        targetBlueprintId: 'stone-chain-target',
+        targetBlueprintRevision: _stoneChainRevision(),
+        visualSnapshots: const <BorderVisualSnapshot>[],
+        tileSizePx: const GridSize(width: 16, height: 16),
+        resolverVersion: borderResolverVersion,
+      );
+
+      expect(preview.sourceFamily, BorderGeometryFamily.linear);
+      expect(preview.targetFamily, BorderGeometryFamily.gridEdgeLinear);
+      expect(preview.kind, BorderRelinkKind.requiresFamilyReset);
+      expect(preview.losses, <BorderRelinkLoss>[
+        BorderRelinkLoss.geometry,
+        BorderRelinkLoss.parameters,
+      ]);
+      expect(
+        () => applyBorderFeatureRelinkPreview(map, preview: preview),
+        throwsStateError,
+      );
+
+      final reset = applyBorderFeatureFamilyReset(map, preview: preview);
+      final content = (reset.layers.first as BorderLayer).content;
+      final geometry = content.features.single.geometry as BorderStrokeGeometry;
+      expect(content.formatVersion, BorderLayerContent.formatVersionV3);
+      expect(geometry.alignment, BorderStrokeAlignment.gridEdges);
+      expect(geometry.strokes, isEmpty);
+      expect(() => encodeBorderLayerContentJson(content), returnsNormally);
+    });
+
+    test(
+        'grid-edge to linear relink reports geometry loss before resetting alignment',
+        () {
+      final source = BorderFeature(
+        id: 'stone-feature',
+        name: 'Stone feature',
+        blueprintId: 'stone-source',
+        seed: BorderSignedInt64.fromInt(8),
+        geometry: BorderStrokeGeometry(
+          strokes: <BorderStroke>[
+            BorderStroke(
+              id: 'coast',
+              points: const <GridPos>[
+                GridPos(x: 0, y: 0),
+                GridPos(x: 1, y: 0),
+              ],
+              closed: false,
+            ),
+          ],
+          alignment: BorderStrokeAlignment.gridEdges,
+        ),
+        overrides: const <BorderSlotOverride>[],
+        keepOutRegions: const <BorderKeepOutRegion>[],
+      );
+      final map = _mapWith(
+        source,
+        formatVersion: BorderLayerContent.formatVersionV3,
+      );
+      final target = MasonryLineFixture().request;
+
+      final preview = prepareBorderFeatureRelink(
+        map: map,
+        layerId: 'border',
+        featureId: source.id,
+        targetBlueprintId: 'masonry-target',
+        targetBlueprintRevision: target.blueprintRevision!,
+        visualSnapshots: target.visualSnapshots,
+        tileSizePx: target.tileSizePx,
+        resolverVersion: target.resolverVersion,
+      );
+
+      expect(preview.sourceFamily, BorderGeometryFamily.gridEdgeLinear);
+      expect(preview.targetFamily, BorderGeometryFamily.linear);
+      expect(preview.kind, BorderRelinkKind.requiresFamilyReset);
+      expect(preview.losses, <BorderRelinkLoss>[BorderRelinkLoss.geometry]);
+      expect(
+        () => applyBorderFeatureRelinkPreview(map, preview: preview),
+        throwsStateError,
+      );
+
+      final reset = applyBorderFeatureFamilyReset(map, preview: preview);
+      final content = (reset.layers.first as BorderLayer).content;
+      final geometry = content.features.single.geometry as BorderStrokeGeometry;
+      expect(content.formatVersion, BorderLayerContent.formatVersionV3);
+      expect(geometry.alignment, BorderStrokeAlignment.cellCenters);
+      expect(geometry.strokes, isEmpty);
+    });
+
     test('linear-to-linear preserves authored data and applies atomically', () {
       final sourceRequest = MasonryLineFixture(
         parameters: masonryParameters(),
@@ -277,7 +400,11 @@ void main() {
   });
 }
 
-MapData _mapWith(BorderFeature feature) => MapData(
+MapData _mapWith(
+  BorderFeature feature, {
+  int formatVersion = BorderLayerContent.formatVersionV1,
+}) =>
+    MapData(
       id: 'relink-map',
       name: 'Relink map',
       size: const GridSize(width: 8, height: 8),
@@ -286,7 +413,10 @@ MapData _mapWith(BorderFeature feature) => MapData(
         MapLayer.border(
           id: 'border',
           name: 'Borders',
-          content: BorderLayerContent(features: <BorderFeature>[feature]),
+          content: BorderLayerContent(
+            formatVersion: formatVersion,
+            features: <BorderFeature>[feature],
+          ),
         ),
         MapLayer.collision(
           id: 'collision',
@@ -324,6 +454,18 @@ BorderBlueprintRevision _organicRevision() => BorderBlueprintRevision(
         name: 'Organic target',
         previewSeed: BorderSignedInt64.zero,
         template: BorderBlueprintTemplate.organicEdge,
+        primitives: const <BorderPublishedPrimitive>[],
+        defaults: masonryParameters(),
+        sortOrder: 0,
+      ),
+    );
+
+BorderBlueprintRevision _stoneChainRevision() => BorderBlueprintRevision(
+      revision: 1,
+      definition: BorderBlueprintPublishedDefinition(
+        name: 'Stone chain target',
+        previewSeed: BorderSignedInt64.zero,
+        template: BorderBlueprintTemplate.stoneChainLine,
         primitives: const <BorderPublishedPrimitive>[],
         defaults: masonryParameters(),
         sortOrder: 0,

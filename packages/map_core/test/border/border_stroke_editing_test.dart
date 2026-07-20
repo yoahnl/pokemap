@@ -74,6 +74,21 @@ void main() {
 
       expect(draft.previewGeometry, isNull);
     });
+
+    test('preserves grid-edge alignment in the draw preview', () {
+      final source = BorderStrokeGeometry(
+        strokes: const <BorderStroke>[],
+        alignment: BorderStrokeAlignment.gridEdges,
+      );
+
+      final preview = BorderStrokeEditingDraft.begin(
+        baseGeometry: source,
+        mode: BorderStrokeEditingMode.draw,
+        pointerDown: const GridPos(x: 0, y: 0),
+      ).sample(const GridPos(x: 2, y: 0)).previewGeometry!;
+
+      expect(preview.alignment, BorderStrokeAlignment.gridEdges);
+    });
   });
 
   group('BorderStrokeEditingDraft erase', () {
@@ -243,6 +258,22 @@ void main() {
         ],
       );
       expect(source.strokes, hasLength(2));
+    });
+
+    test('preserves grid-edge alignment in a changed erase preview', () {
+      final source = BorderStrokeGeometry(
+        strokes: <BorderStroke>[_openStroke('wall', 0, 4)],
+        alignment: BorderStrokeAlignment.gridEdges,
+      );
+
+      final preview = BorderStrokeEditingDraft.begin(
+        baseGeometry: source,
+        mode: BorderStrokeEditingMode.erase,
+        pointerDown: const GridPos(x: 2, y: 0),
+      ).previewGeometry!;
+
+      expect(preview, isNot(same(source)));
+      expect(preview.alignment, BorderStrokeAlignment.gridEdges);
     });
   });
 }

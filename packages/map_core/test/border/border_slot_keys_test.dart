@@ -150,6 +150,202 @@ void main() {
       );
     });
 
+    test('stone-chain station canonicalizes run direction', () {
+      final forward = buildBorderStoneChainStationSlotKey(
+        featureId: 'feature-cliff',
+        strokeId: 'stroke-lineage',
+        runStart: const GridPos(x: 2, y: 4),
+        runEnd: const GridPos(x: 8, y: 4),
+        stationOrdinal: 3,
+        passIndex: 0,
+        role: BorderPrimitiveRole.structureLarge,
+        rank: 0,
+      );
+      final reverse = buildBorderStoneChainStationSlotKey(
+        featureId: 'feature-cliff',
+        strokeId: 'stroke-lineage',
+        runStart: const GridPos(x: 8, y: 4),
+        runEnd: const GridPos(x: 2, y: 4),
+        stationOrdinal: 3,
+        passIndex: 0,
+        role: BorderPrimitiveRole.structureLarge,
+        rank: 0,
+      );
+
+      expect(reverse, forward);
+      expect(
+        buildBorderStoneChainNodeSlotKey(
+          featureId: 'feature-cliff',
+          strokeId: 'stroke-lineage',
+          vertex: const GridPos(x: 4, y: 4),
+          passIndex: 0,
+          role: BorderPrimitiveRole.lineCorner,
+          rank: 1,
+        ),
+        isNot(forward),
+      );
+    });
+
+    test('stone-chain distance slots canonicalize run endpoints', () {
+      final forward = buildBorderStoneChainDistanceSlotKey(
+        featureId: 'feature-cliff',
+        strokeId: 'stroke-lineage',
+        runStart: const GridPos(x: 2, y: 4),
+        runEnd: const GridPos(x: 8, y: 4),
+        canonicalDistancePx: 37,
+        passIndex: 1,
+        role: BorderPrimitiveRole.structureMedium,
+        rank: 0,
+      );
+      final reverse = buildBorderStoneChainDistanceSlotKey(
+        featureId: 'feature-cliff',
+        strokeId: 'stroke-lineage',
+        runStart: const GridPos(x: 8, y: 4),
+        runEnd: const GridPos(x: 2, y: 4),
+        canonicalDistancePx: 37,
+        passIndex: 1,
+        role: BorderPrimitiveRole.structureMedium,
+        rank: 0,
+      );
+
+      expect(reverse, forward);
+    });
+
+    test('stone-chain distance slots include canonical distance', () {
+      String keyAt(int distance) => buildBorderStoneChainDistanceSlotKey(
+            featureId: 'feature-cliff',
+            strokeId: 'stroke-lineage',
+            runStart: const GridPos(x: 2, y: 4),
+            runEnd: const GridPos(x: 8, y: 4),
+            canonicalDistancePx: distance,
+            passIndex: 1,
+            role: BorderPrimitiveRole.structureMedium,
+            rank: 0,
+          );
+
+      expect(keyAt(38), isNot(keyAt(37)));
+    });
+
+    test('stone-chain lineage stations survive split run endpoints', () {
+      String station({
+        GridPos edgeStart = const GridPos(x: 7, y: 4),
+        GridPos edgeEnd = const GridPos(x: 8, y: 4),
+        int passIndex = 1,
+        BorderPrimitiveRole role = BorderPrimitiveRole.structureMedium,
+      }) =>
+          buildBorderStoneChainLineageStationSlotKey(
+            featureId: 'feature-two-tier-cliff',
+            strokeId: 'stroke-lineage',
+            edgeStart: edgeStart,
+            edgeEnd: edgeEnd,
+            generationEdgeIndex: 17,
+            canonicalEdgeOffsetPx: 9,
+            passIndex: passIndex,
+            role: role,
+            rank: 0,
+          );
+
+      final beforeSplit = station();
+      final afterSplit = station();
+      final reversedTraversal = station(
+        edgeStart: const GridPos(x: 8, y: 4),
+        edgeEnd: const GridPos(x: 7, y: 4),
+      );
+
+      expect(afterSplit, beforeSplit);
+      expect(reversedTraversal, beforeSplit);
+      expect(
+        station(
+          passIndex: 0,
+          role: BorderPrimitiveRole.structureLarge,
+        ),
+        isNot(beforeSplit),
+      );
+    });
+
+    test('stone-chain distance slots reject invalid tuple fields', () {
+      String build({
+        String featureId = 'feature-cliff',
+        int canonicalDistancePx = 37,
+        int passIndex = 1,
+        BorderPrimitiveRole role = BorderPrimitiveRole.structureMedium,
+        int rank = 0,
+      }) =>
+          buildBorderStoneChainDistanceSlotKey(
+            featureId: featureId,
+            strokeId: 'stroke-lineage',
+            runStart: const GridPos(x: 2, y: 4),
+            runEnd: const GridPos(x: 8, y: 4),
+            canonicalDistancePx: canonicalDistancePx,
+            passIndex: passIndex,
+            role: role,
+            rank: rank,
+          );
+
+      for (final invocation in <void Function()>[
+        () => build(featureId: ' feature-cliff'),
+        () => build(canonicalDistancePx: -1),
+        () => build(passIndex: -1),
+        () => build(role: BorderPrimitiveRole.accent),
+        () => build(rank: -1),
+      ]) {
+        expect(invocation, throwsA(isA<ValidationException>()));
+      }
+    });
+
+    test('publishes resolver contract version 3', () {
+      expect(borderResolverVersion, 3);
+    });
+
+    test('stone-chain row identities distinguish lip and face passes', () {
+      String stationKey({
+        required int passIndex,
+        required BorderPrimitiveRole role,
+      }) =>
+          buildBorderStoneChainStationSlotKey(
+            featureId: 'feature-two-tier-cliff',
+            strokeId: 'stroke-lineage',
+            runStart: const GridPos(x: 2, y: 4),
+            runEnd: const GridPos(x: 8, y: 4),
+            stationOrdinal: 64,
+            passIndex: passIndex,
+            role: role,
+            rank: 0,
+          );
+
+      final lip = stationKey(
+        passIndex: 0,
+        role: BorderPrimitiveRole.structureLarge,
+      );
+      final face = stationKey(
+        passIndex: 1,
+        role: BorderPrimitiveRole.structureMedium,
+      );
+
+      expect(face, isNot(lip));
+      expect(
+        stationKey(
+          passIndex: 0,
+          role: BorderPrimitiveRole.structureLarge,
+        ),
+        lip,
+      );
+    });
+
+    test('stone-chain keys reject roles outside the template matrix', () {
+      expect(
+        () => buildBorderStoneChainNodeSlotKey(
+          featureId: 'feature-cliff',
+          strokeId: 'stroke-lineage',
+          vertex: const GridPos(x: 4, y: 4),
+          passIndex: 0,
+          role: BorderPrimitiveRole.accent,
+          rank: 0,
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
     test('rejects unstable text, negative tuple values, and non-unit edges',
         () {
       expect(

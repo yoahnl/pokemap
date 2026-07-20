@@ -217,6 +217,7 @@ class MapGridPainter extends CustomPainter {
   final ProjectManifest? project;
   final EditorShadowLightPreviewPreset? shadowLightPreviewPreset;
   final int editorEntityAnimationMs;
+  final bool showGrid;
 
   /// Lot Environment-22 : surcouche semi-transparente des cellules masque actives.
   final EnvironmentAreaMask? environmentMaskOverlay;
@@ -258,6 +259,7 @@ class MapGridPainter extends CustomPainter {
     this.project,
     this.shadowLightPreviewPreset,
     this.editorEntityAnimationMs = 0,
+    this.showGrid = true,
     this.environmentMaskOverlay,
     this.environmentBrushCursorOverlay,
     this.environmentGeneratedAddPreview,
@@ -276,20 +278,12 @@ class MapGridPainter extends CustomPainter {
     final gridHeight = map.size.height * tileHeight;
 
     final visibleLayers = map.layers.where((layer) => layer.isVisible).toList();
-    final usesAuthoredBorderOrder =
-        map.properties['tileLayerOrder'] == 'bottom_to_top' &&
-            map.layers.any((layer) => layer is BorderLayer);
     final layerPaintOrder = buildEditorMapLayerPaintOrder(map);
-    final tileLayersInPaintOrder = usesAuthoredBorderOrder
-        ? layerPaintOrder.authoredLayers
-            .where((entry) =>
-                entry.kind == EditorMapAuthoredLayerPaintKind.tileBackground)
-            .map((entry) => entry.layer as TileLayer)
-            .toList(growable: false)
-        : ((map.properties['tileLayerOrder'] == 'bottom_to_top'
+    final tileLayersInPaintOrder =
+        (map.properties['tileLayerOrder'] == 'bottom_to_top'
                 ? visibleLayers.whereType<TileLayer>()
                 : visibleLayers.whereType<TileLayer>().toList().reversed)
-            .toList(growable: false));
+            .toList(growable: false);
     final foregroundTileCellIndicesByLayerId =
         buildEditorForegroundTileCellIndicesByLayerId(
       map: map,
@@ -314,173 +308,119 @@ class MapGridPainter extends CustomPainter {
             lightPreviewPreset: shadowLightPreviewPreset,
           );
 
-    if (usesAuthoredBorderOrder) {
-      final borderCatalog = project?.borderCatalog;
-      for (final entry in layerPaintOrder.authoredLayers) {
-        switch (entry.kind) {
-          case EditorMapAuthoredLayerPaintKind.terrain:
-            _paintTerrainLayer(canvas, entry.layer as TerrainLayer);
-          case EditorMapAuthoredLayerPaintKind.path:
-            _paintPathLayer(canvas, entry.layer as PathLayer);
-          case EditorMapAuthoredLayerPaintKind.surface:
-            final layer = entry.layer as SurfaceLayer;
-            paintSurfaceLayerAtlasTilePreview(
-              canvas: canvas,
-              layer: layer,
-              mapSize: map.size,
-              project: project,
-              tilesetImagesById: tilesetImagesById,
-              tileWidth: tileWidth,
-              tileHeight: tileHeight,
-              zoom: zoom,
-              elapsedMs: editorEntityAnimationMs,
-            );
-          case EditorMapAuthoredLayerPaintKind.tileBackground:
-            _paintTileLayer(
-              canvas,
-              entry.layer as TileLayer,
-              renderPass: _EditorMapTileRenderPass.background,
-              foregroundTileCellIndicesByLayerId:
-                  foregroundTileCellIndicesByLayerId,
-            );
-          case EditorMapAuthoredLayerPaintKind.border:
-            if (borderCatalog != null) {
-              const BorderPreviewPainter().paintLayer(
-                canvas,
-                map: map,
-                layer: entry.layer as BorderLayer,
-                catalog: borderCatalog,
-                frameImagesByKey: tilesetImagesById,
-                sourceTileWidth: sourceTileWidth,
-                sourceTileHeight: sourceTileHeight,
-                displayScale:
-                    sourceTileWidth <= 0 ? 1 : tileWidth / sourceTileWidth,
-                elapsedMs: editorEntityAnimationMs,
-                preview: borderPreview,
-              );
-            }
-          case EditorMapAuthoredLayerPaintKind.objectNoop:
-          case EditorMapAuthoredLayerPaintKind.environmentNoop:
-            // Data-only authoring layers keep their slot without drawing.
-            break;
-        }
+    // Border is an additive visual pass. Existing Terrain, Path, Surface and
+    // Tile pixels must retain their historical composition when a Border
+    // layer is added, previewed or materialized.
+    for (var index = visibleLayers.length - 1; index >= 0; index--) {
+      final layer = visibleLayers[index];
+      if (layer is TerrainLayer) {
+        _paintTerrainLayer(canvas, layer);
       }
-    } else {
-      // Characterized legacy dispatcher: maps without Border layers keep the
-      // exact historical type passes and the path-after-ground opt-in.
-      for (var index = visibleLayers.length - 1; index >= 0; index--) {
-        final layer = visibleLayers[index];
-        if (layer is TerrainLayer) {
-          _paintTerrainLayer(canvas, layer);
-        }
-      }
+    }
 
-      TileLayer? deferredPathGroundLayer;
-      final deferredPathLayers = <PathLayer>[];
-      if (tileLayersInPaintOrder.isNotEmpty) {
-        final candidate = tileLayersInPaintOrder.first;
-        final isForeground = _isExplicitForegroundTileLayerForEditor(
-          layerId: candidate.id,
-          layerName: candidate.name,
-        );
-        if (!isForeground) {
-          for (var index = visibleLayers.length - 1; index >= 0; index--) {
-            final layer = visibleLayers[index];
-            if (layer is! PathLayer) continue;
-            final targetId =
-                layer.properties['paintAfterTileLayerId']?.trim() ?? '';
-            if (targetId == candidate.id) {
-              deferredPathLayers.add(layer);
-            }
-          }
-          if (deferredPathLayers.isNotEmpty) {
-            deferredPathGroundLayer = candidate;
-          }
-        }
-      }
-      final deferredPathLayerIds = <String>{
-        for (final layer in deferredPathLayers) layer.id,
-      };
-
-      for (var index = visibleLayers.length - 1; index >= 0; index--) {
-        final layer = visibleLayers[index];
-        if (layer is PathLayer) {
-          if (deferredPathLayerIds.contains(layer.id)) continue;
-          _paintPathLayer(canvas, layer);
-        }
-      }
-
-      void paintVisibleSurfaceLayers() {
+    TileLayer? deferredPathGroundLayer;
+    final deferredPathLayers = <PathLayer>[];
+    if (tileLayersInPaintOrder.isNotEmpty) {
+      final candidate = tileLayersInPaintOrder.first;
+      final isForeground = _isExplicitForegroundTileLayerForEditor(
+        layerId: candidate.id,
+        layerName: candidate.name,
+      );
+      if (!isForeground) {
         for (var index = visibleLayers.length - 1; index >= 0; index--) {
           final layer = visibleLayers[index];
-          if (layer is SurfaceLayer) {
-            paintSurfaceLayerAtlasTilePreview(
-              canvas: canvas,
-              layer: layer,
-              mapSize: map.size,
-              project: project,
-              tilesetImagesById: tilesetImagesById,
-              tileWidth: tileWidth,
-              tileHeight: tileHeight,
-              zoom: zoom,
-              elapsedMs: editorEntityAnimationMs,
-            );
+          if (layer is! PathLayer) continue;
+          final targetId =
+              layer.properties['paintAfterTileLayerId']?.trim() ?? '';
+          if (targetId == candidate.id) {
+            deferredPathLayers.add(layer);
           }
         }
+        if (deferredPathLayers.isNotEmpty) {
+          deferredPathGroundLayer = candidate;
+        }
       }
+    }
+    final deferredPathLayerIds = <String>{
+      for (final layer in deferredPathLayers) layer.id,
+    };
 
-      if (deferredPathGroundLayer != null) {
-        paintVisibleSurfaceLayers();
+    for (var index = visibleLayers.length - 1; index >= 0; index--) {
+      final layer = visibleLayers[index];
+      if (layer is PathLayer) {
+        if (deferredPathLayerIds.contains(layer.id)) continue;
+        _paintPathLayer(canvas, layer);
+      }
+    }
+
+    void paintVisibleSurfaceLayers() {
+      for (var index = visibleLayers.length - 1; index >= 0; index--) {
+        final layer = visibleLayers[index];
+        if (layer is SurfaceLayer) {
+          paintSurfaceLayerAtlasTilePreview(
+            canvas: canvas,
+            layer: layer,
+            mapSize: map.size,
+            project: project,
+            tilesetImagesById: tilesetImagesById,
+            tileWidth: tileWidth,
+            tileHeight: tileHeight,
+            zoom: zoom,
+            elapsedMs: editorEntityAnimationMs,
+          );
+        }
+      }
+    }
+
+    if (deferredPathGroundLayer != null) {
+      paintVisibleSurfaceLayers();
+      _paintTileLayer(
+        canvas,
+        deferredPathGroundLayer,
+        renderPass: _EditorMapTileRenderPass.background,
+        foregroundTileCellIndicesByLayerId: foregroundTileCellIndicesByLayerId,
+      );
+      for (final layer in deferredPathLayers) {
+        _paintPathLayer(canvas, layer);
+      }
+      for (var index = 1; index < tileLayersInPaintOrder.length; index++) {
         _paintTileLayer(
           canvas,
-          deferredPathGroundLayer,
+          tileLayersInPaintOrder[index],
           renderPass: _EditorMapTileRenderPass.background,
           foregroundTileCellIndicesByLayerId:
               foregroundTileCellIndicesByLayerId,
         );
-        for (final layer in deferredPathLayers) {
-          _paintPathLayer(canvas, layer);
-        }
-        for (var index = 1; index < tileLayersInPaintOrder.length; index++) {
-          _paintTileLayer(
-            canvas,
-            tileLayersInPaintOrder[index],
-            renderPass: _EditorMapTileRenderPass.background,
-            foregroundTileCellIndicesByLayerId:
-                foregroundTileCellIndicesByLayerId,
-          );
-        }
-      } else {
-        for (final layer in tileLayersInPaintOrder) {
-          _paintTileLayer(
-            canvas,
-            layer,
-            renderPass: _EditorMapTileRenderPass.background,
-            foregroundTileCellIndicesByLayerId:
-                foregroundTileCellIndicesByLayerId,
-          );
-        }
-        paintVisibleSurfaceLayers();
       }
+    } else {
+      for (final layer in tileLayersInPaintOrder) {
+        _paintTileLayer(
+          canvas,
+          layer,
+          renderPass: _EditorMapTileRenderPass.background,
+          foregroundTileCellIndicesByLayerId:
+              foregroundTileCellIndicesByLayerId,
+        );
+      }
+      paintVisibleSurfaceLayers();
+    }
 
-      final borderCatalog = project?.borderCatalog;
-      if (borderCatalog != null) {
-        for (final entry in layerPaintOrder.authoredLayers) {
-          if (entry.kind != EditorMapAuthoredLayerPaintKind.border) continue;
-          const BorderPreviewPainter().paintLayer(
-            canvas,
-            map: map,
-            layer: entry.layer as BorderLayer,
-            catalog: borderCatalog,
-            frameImagesByKey: tilesetImagesById,
-            sourceTileWidth: sourceTileWidth,
-            sourceTileHeight: sourceTileHeight,
-            displayScale:
-                sourceTileWidth <= 0 ? 1 : tileWidth / sourceTileWidth,
-            elapsedMs: editorEntityAnimationMs,
-            preview: borderPreview,
-          );
-        }
+    final borderCatalog = project?.borderCatalog;
+    if (borderCatalog != null) {
+      for (final entry in layerPaintOrder.authoredLayers) {
+        if (entry.kind != EditorMapAuthoredLayerPaintKind.border) continue;
+        const BorderPreviewPainter().paintLayer(
+          canvas,
+          map: map,
+          layer: entry.layer as BorderLayer,
+          catalog: borderCatalog,
+          frameImagesByKey: tilesetImagesById,
+          sourceTileWidth: sourceTileWidth,
+          sourceTileHeight: sourceTileHeight,
+          displayScale: sourceTileWidth <= 0 ? 1 : tileWidth / sourceTileWidth,
+          elapsedMs: editorEntityAnimationMs,
+          preview: borderPreview,
+        );
       }
     }
 
@@ -510,24 +450,26 @@ class MapGridPainter extends CustomPainter {
       );
     }
 
-    final gridPaint = Paint()
-      ..color = PokeMapLegacyColors.white10
-      ..strokeWidth = 1.0 / zoom
-      ..style = PaintingStyle.stroke;
+    if (showGrid) {
+      final gridPaint = Paint()
+        ..color = PokeMapLegacyColors.white10
+        ..strokeWidth = 1.0 / zoom
+        ..style = PaintingStyle.stroke;
 
-    for (int x = 0; x <= map.size.width; x++) {
-      canvas.drawLine(
-        Offset(x * tileWidth, 0),
-        Offset(x * tileWidth, gridHeight),
-        gridPaint,
-      );
-    }
-    for (int y = 0; y <= map.size.height; y++) {
-      canvas.drawLine(
-        Offset(0, y * tileHeight),
-        Offset(gridWidth, y * tileHeight),
-        gridPaint,
-      );
+      for (int x = 0; x <= map.size.width; x++) {
+        canvas.drawLine(
+          Offset(x * tileWidth, 0),
+          Offset(x * tileWidth, gridHeight),
+          gridPaint,
+        );
+      }
+      for (int y = 0; y <= map.size.height; y++) {
+        canvas.drawLine(
+          Offset(0, y * tileHeight),
+          Offset(gridWidth, y * tileHeight),
+          gridPaint,
+        );
+      }
     }
 
     if (hoveredTile != null) {
@@ -2858,6 +2800,7 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.sourceTileHeight != sourceTileHeight ||
         !mapEquals(oldDelegate.tilesPerRowById, tilesPerRowById) ||
         oldDelegate.editorEntityAnimationMs != editorEntityAnimationMs ||
+        oldDelegate.showGrid != showGrid ||
         oldDelegate.environmentGeneratedAddPreview !=
             environmentGeneratedAddPreview ||
         oldDelegate.environmentGeneratedDeletePreviewId !=

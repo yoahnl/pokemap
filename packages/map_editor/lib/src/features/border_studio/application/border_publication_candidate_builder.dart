@@ -224,6 +224,7 @@ final class BorderPublicationCandidateBuilder {
           sourceElementId: primitive.sourceElementId,
           visualSnapshotId: snapshotId,
           role: primitive.role,
+          authoredOrientation: primitive.authoredOrientation,
           weight: primitive.weight,
           anchorPx: primitive.anchorPx,
           transforms: primitive.transforms,
@@ -313,10 +314,12 @@ final class BorderPublicationCandidateBuilder {
       manifest.borderCatalog.records,
     );
     records[recordIndex] = replacement;
+    final minimumCatalogVersion =
+        minimumBorderCatalogFormatVersionForRecord(replacement);
     final nextCatalog = ProjectBorderCatalog(
       formatVersion:
-          draftDefinition.template == BorderBlueprintTemplate.connectedLine
-              ? ProjectBorderCatalog.formatVersionV2
+          manifest.borderCatalog.formatVersion < minimumCatalogVersion
+              ? minimumCatalogVersion
               : manifest.borderCatalog.formatVersion,
       records: records,
       visualSnapshots: snapshots,

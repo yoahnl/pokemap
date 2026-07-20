@@ -277,6 +277,71 @@ void main() {
     },
   );
 
+  testWidgets('stone assets expose and persist their authored orientation',
+      (tester) async {
+    final projectRoot = Directory.systemTemp.createTempSync(
+      'pokemap_border_studio_orientation_ui_',
+    );
+    addTearDown(() {
+      if (projectRoot.existsSync()) {
+        projectRoot.deleteSync(recursive: true);
+      }
+    });
+    final atlas = File(
+      p.join(projectRoot.path, 'assets', 'tilesets', 'coast.png'),
+    );
+    atlas.parent.createSync(recursive: true);
+    atlas.writeAsBytesSync(_atlasBytes(), flush: true);
+    final container = await _pumpWorkspace(
+      tester,
+      _manifestWithAsset(),
+      projectRoot.path,
+    );
+    final controller =
+        container.read(borderStudioDraftControllerProvider.notifier)
+          ..createBlueprint(
+            id: 'oriented-cliff',
+            name: 'Falaise orientée',
+            template: BorderBlueprintTemplate.stoneChainLine,
+          );
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('border-studio-step-Assets')),
+    );
+    await tester.pump();
+    await tester.runAsync(
+      () => tester
+          .widget<BorderAssetsStep>(find.byType(BorderAssetsStep))
+          .onAnalyzeSelected(),
+    );
+    await tester.pump();
+
+    final primitive =
+        controller.state.workingDraft!.blueprint.definition.primitives.single;
+    final picker = find.byKey(
+      ValueKey<String>(
+        'border-studio-authored-orientation-picker-${primitive.id}',
+      ),
+    );
+    expect(picker, findsOneWidget);
+    expect(find.text('Orientation dessinée dans l\'asset'), findsOneWidget);
+    final orientationField =
+        tester.widget<PokeMapDropdownField<BorderPrimitiveOrientation>>(picker);
+    expect(
+      orientationField.items.map((item) => item.label),
+      <String>['Historique', 'Nord', 'Est', 'Sud', 'Ouest'],
+    );
+    orientationField.onChanged(BorderPrimitiveOrientation.west);
+    await tester.pump();
+
+    expect(
+      controller.state.workingDraft!.blueprint.definition.primitives.single
+          .authoredOrientation,
+      BorderPrimitiveOrientation.west,
+    );
+    expect(controller.state.diagnosticsAreCurrent, isFalse);
+  });
+
   testWidgets('edits the three guided rules and preserves advanced values',
       (tester) async {
     final container = await _pumpWorkspace(
@@ -409,6 +474,169 @@ void main() {
       expect(strictRules.gapTolerancePx, 1);
     },
   );
+
+  testWidgets('stone-chain rules expose guided stone controls and profiles',
+      (tester) async {
+    final container = await _pumpWorkspace(
+      tester,
+      _emptyManifest(),
+      Directory.systemTemp.path,
+    );
+    container
+        .read(borderStudioDraftControllerProvider.notifier)
+        .createBlueprint(
+          id: 'stone-chain-rules',
+          name: 'Chaîne de pierres',
+          template: BorderBlueprintTemplate.stoneChainLine,
+        );
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('border-studio-step-Règles')),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('border-studio-stone-spacing-control'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('border-studio-stone-irregularity-control'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'border-studio-stone-secondary-density-control',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('border-studio-variety-control')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('border-studio-auto-rotation-toggle'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('border-studio-two-tier-toggle'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Deux étages continus'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('border-studio-stone-interlock-control'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Imbrication des pierres'), findsWidgets);
+    expect(
+      find.text(
+        'Conserve l\'éclairage et l\'orientation d\'origine des pierres.',
+      ),
+      findsOneWidget,
+    );
+
+    final twoTierToggle = find.byKey(
+      const ValueKey<String>('border-studio-two-tier-toggle'),
+    );
+    tester.widget<PokeMapToggleTile>(twoTierToggle).onChanged(false);
+    await tester.pump();
+    expect(
+      container
+          .read(borderStudioDraftControllerProvider)
+          .workingDraft!
+          .blueprint
+          .definition
+          .defaults
+          .depthRows,
+      1,
+    );
+    tester.widget<PokeMapToggleTile>(twoTierToggle).onChanged(true);
+    await tester.pump();
+
+    _changeSlider(tester, 'border-studio-stone-interlock-control', 50);
+    await tester.pump();
+    expect(
+      container
+          .read(borderStudioDraftControllerProvider)
+          .workingDraft!
+          .blueprint
+          .definition
+          .defaults
+          .maxOverlapPx,
+      6,
+    );
+
+    _changeSlider(tester, 'border-studio-stone-spacing-control', 75);
+    await tester.pump();
+    expect(find.text('Espacement visible entre les pierres'), findsOneWidget);
+    _changeSlider(tester, 'border-studio-stone-irregularity-control', 41);
+    await tester.pump();
+    _changeSlider(
+      tester,
+      'border-studio-stone-secondary-density-control',
+      32,
+    );
+    await tester.pump();
+
+    var rules = container
+        .read(borderStudioDraftControllerProvider)
+        .workingDraft!
+        .blueprint
+        .definition
+        .defaults;
+    expect(rules.gapTolerancePx, 6);
+    expect(rules.irregularityPermille, 410);
+    expect(rules.detailDensityPermille, 320);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('border-studio-profile-wild')),
+    );
+    await tester.pump();
+    rules = container
+        .read(borderStudioDraftControllerProvider)
+        .workingDraft!
+        .blueprint
+        .definition
+        .defaults;
+    expect(find.text('Naturel et irrégulier'), findsOneWidget);
+    expect(rules.irregularityPermille, 420);
+    expect(rules.detailDensityPermille, 330);
+    expect(rules.variationPermille, 1000);
+    expect(rules.maxOverlapPx, 2);
+    expect(rules.gapTolerancePx, 3);
+    expect(rules.depthRows, 2);
+    expect(rules.allowAutoRotation, isFalse);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('border-studio-profile-strict')),
+    );
+    await tester.pump();
+    rules = container
+        .read(borderStudioDraftControllerProvider)
+        .workingDraft!
+        .blueprint
+        .definition
+        .defaults;
+    expect(find.text('Fin et côtier'), findsOneWidget);
+    expect(rules.irregularityPermille, 180);
+    expect(rules.detailDensityPermille, 0);
+    expect(rules.variationPermille, 1000);
+    expect(rules.maxOverlapPx, 8);
+    expect(rules.gapTolerancePx, 0);
+    expect(rules.depthRows, 2);
+    expect(rules.allowAutoRotation, isFalse);
+  });
 
   testWidgets('masonry rules expose the automatic rotation toggle',
       (tester) async {

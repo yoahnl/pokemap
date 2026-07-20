@@ -5,10 +5,11 @@ import 'connected_line_border_resolver.dart';
 import 'masonry_line_border_resolver.dart';
 import 'organic_edge_border_resolver.dart';
 import 'post_and_rail_line_border_resolver.dart';
+import 'stone_chain_line_border_resolver.dart';
 
 /// Current deterministic Border resolver contract used by editor/runtime
 /// freshness checks.
-const int borderResolverVersion = 2;
+const int borderResolverVersion = 3;
 
 /// Dispatches a Border request to the closed V1 template solver set.
 ///
@@ -30,6 +31,8 @@ BorderResolutionResult resolveBorderFeature(BorderResolutionRequest request) {
       resolvePostAndRailLineBorder(request),
     BorderBlueprintTemplate.connectedLine =>
       resolveConnectedLineBorder(request),
+    BorderBlueprintTemplate.stoneChainLine =>
+      resolveStoneChainLineBorder(request),
   };
 }
 

@@ -1,0 +1,166 @@
+import 'package:flutter/material.dart';
+
+import '../../theme/theme.dart';
+import 'pokemap_button.dart';
+import 'pokemap_panel.dart';
+import 'pokemap_text_field.dart';
+
+/// Token-driven confirmation dialog for editor workflows.
+Future<bool> showPokeMapConfirmationDialog(
+  BuildContext context, {
+  required String title,
+  required String message,
+  required String secondaryLabel,
+  required String primaryLabel,
+  bool primaryIsDestructive = false,
+  IconData? icon,
+}) async {
+  final result = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => _PokeMapDialogFrame(
+      title: title,
+      message: message,
+      icon: icon,
+      footer: _PokeMapDialogActions(
+        secondaryLabel: secondaryLabel,
+        primaryLabel: primaryLabel,
+        primaryIsDestructive: primaryIsDestructive,
+        onSecondary: () => Navigator.of(dialogContext).pop(false),
+        onPrimary: () => Navigator.of(dialogContext).pop(true),
+      ),
+    ),
+  );
+  return result ?? false;
+}
+
+/// Token-driven single-field prompt for editor workflows.
+Future<bool> showPokeMapPromptDialog(
+  BuildContext context, {
+  required String title,
+  required TextEditingController controller,
+  required String placeholder,
+  required String cancelLabel,
+  required String confirmLabel,
+}) async {
+  final result = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => _PokeMapDialogFrame(
+      title: title,
+      footer: _PokeMapDialogActions(
+        secondaryLabel: cancelLabel,
+        primaryLabel: confirmLabel,
+        onSecondary: () => Navigator.of(dialogContext).pop(false),
+        onPrimary: () => Navigator.of(dialogContext).pop(true),
+      ),
+      child: PokeMapTextField(
+        label: placeholder,
+        controller: controller,
+        placeholder: placeholder,
+        autofocus: true,
+        onSubmitted: (_) => Navigator.of(dialogContext).pop(true),
+      ),
+    ),
+  );
+  return result ?? false;
+}
+
+class _PokeMapDialogFrame extends StatelessWidget {
+  const _PokeMapDialogFrame({
+    required this.title,
+    required this.footer,
+    this.message,
+    this.icon,
+    this.child,
+  });
+
+  final String title;
+  final String? message;
+  final IconData? icon;
+  final Widget? child;
+  final Widget footer;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Dialog(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: PokeMapPanel(
+          header: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+            child: Row(
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, color: colors.brandPrimary, size: 20),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          footer: Padding(
+            padding: const EdgeInsets.all(12),
+            child: footer,
+          ),
+          child: child ??
+              Text(
+                message ?? '',
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PokeMapDialogActions extends StatelessWidget {
+  const _PokeMapDialogActions({
+    required this.secondaryLabel,
+    required this.primaryLabel,
+    required this.onSecondary,
+    required this.onPrimary,
+    this.primaryIsDestructive = false,
+  });
+
+  final String secondaryLabel;
+  final String primaryLabel;
+  final VoidCallback onSecondary;
+  final VoidCallback onPrimary;
+  final bool primaryIsDestructive;
+
+  @override
+  Widget build(BuildContext context) => Wrap(
+        alignment: WrapAlignment.end,
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          PokeMapButton(
+            onPressed: onSecondary,
+            variant: PokeMapButtonVariant.secondary,
+            child: Text(secondaryLabel),
+          ),
+          PokeMapButton(
+            onPressed: onPrimary,
+            variant: primaryIsDestructive
+                ? PokeMapButtonVariant.danger
+                : PokeMapButtonVariant.primary,
+            child: Text(primaryLabel),
+          ),
+        ],
+      );
+}

@@ -2,9 +2,67 @@
 
 ## Statut et mode d'exécution
 
-Ce registre couvre exactement les 138 modules de `ATLAS_LAYOUTS.json`, désormais tous exécutés et acceptés. Chaque ligne contient le statut observé, le hash brut accepté et, le cas échéant, une raison de rejet factuelle; les itérations exceptionnelles reçoivent en plus un registre détaillé sous le tableau. Les hashes normalisés et d'atlas sont consignés dans `ASSET_PROVENANCE.md`. Le mode utilisé est le built-in `imagegen`, à raison d'un module, état ou frame par appel. Aucun fallback CLI ou changement silencieux de modèle n'a été utilisé.
+Ce registre couvre les 154 modules historiques et le kit de 24 pierres à deux étages désormais déclarés dans `ATLAS_LAYOUTS.json`. Chaque ligne historique contient le statut observé, le hash brut accepté et, le cas échéant, une raison de rejet factuelle; les itérations exceptionnelles et le nouveau kit reçoivent en plus un registre détaillé sous le tableau. Les hashes normalisés et d'atlas sont consignés dans `ASSET_PROVENANCE.md`. Le mode utilisé est le built-in `imagegen`; les seize modules `stone_chain_*` actifs proviennent de la planche finale de remplacement 4×4 documentée ci-dessous. La planche originale 4×4 et sa correction coins/caps 2×2 sont conservées comme provenance historique avec le statut `superseded`. Les autres modules suivent le mode historique d'un module, état ou frame par appel. Aucun fallback de génération ni changement silencieux de modèle n'a été utilisé.
 
-Les cartes complètes citées comme références sont `composition-only` et ne doivent jamais être recopiées ni intégrées comme underlays. Le chroma est **`#ff00ff` uniquement pour les atlas forêt et marais**; les six autres atlas utilisent **`#00ff00`**. La couleur clé est interdite dans le sujet.
+Les cartes complètes citées comme références sont `composition-only` et ne doivent jamais être recopiées ni intégrées comme underlays. Le chroma est **`#ff00ff` pour les atlas forêt, marais et `ts_selbrume_cliff_stone_chain_v1`**; les six autres atlas utilisent **`#00ff00`**. La couleur clé est interdite dans le sujet.
+
+## Kit actif 6×4 — falaise Selbrume à deux étages V2
+
+- Date : `2026-07-18`.
+- Mode : appels built-in `imagegen`, puis builder Dart déterministe ; le modèle
+  exact n'est pas rapporté par l'outil.
+- Références : `cliff.png` pour le langage et les deux étages, puis le crop
+  vertical de la côte objectif pour l'échelle et l'intégration. Références de
+  style/composition uniquement, sans copie, crop, trace ou underlay.
+- Sortie brute active : V4, SHA-256
+  `a03924a707298ef86cb164f207b58794b9a9e23a7f5dcd62a79d3113ef999f63`;
+  exactement 24 composants 4-connexes à la tolérance chroma 48.
+- Sorties conservées mais rejetées : V1
+  `85a2352c17d76efdf07b128d4e86c8758764e4da256fed782628bce85cd11599`
+  (faces encore lues comme empilements), V2
+  `39c06740118e3f8a1cb1f9d9086bb177624be3d7056f37d087c24c44bed896a0`
+  (26 composants), V3
+  `2ae1d34bc1ad7b8bf435a3c070539a7aab8c1aab49b2455e618188e1dad9cf2e`
+  (28 composants), V5
+  `6993315100234682adfdcca812ca4259da0806eea890bf48665b25f311177d54`
+  (25 composants), V6
+  `c4b68d37f312c95fb11404f0c43c913085605447fec866a770795e74b3e1b6b7`
+  (30 composants), V7
+  `947811d840850f7f0ff4d431d704b9a048f75fa3087a6cb15dc01a2387202d3e`
+  (35 composants) et V8
+  `e9dcf412fb808896150eb68e163c9e1a73b9d008b324ce0a71ba45209020bc14`
+  (damier de transparence aplati dans le raster).
+- La V4 est normalisée en 24 PNG 32×32. Le builder conserve la géométrie,
+  quantifie nearest-colour, puis ajuste uniquement le minimum de pixels requis
+  entre les deux moitiés de la palette pour obtenir 55–65 % clair/moyen sur la
+  lèvre et 55–65 % sombre sur la face.
+
+Prompt exact de la V4 active :
+
+```text
+Use case: stylized-concept
+
+Asset type: raw sprite-source contact sheet for deterministic segmentation
+
+Input images: Image 1 is the narrow cliff reference; Image 2 is the vertical coast crop showing the desired in-map scale and two-level construction. Use them for rock language, light, proportions and silhouette only.
+
+Generate exactly 24 disconnected SINGLE-STONE pixel-art sprites in a strict 6 columns × 4 rows contact sheet. Large empty gutters must separate every item and a very wide empty outer border must surround the grid.
+
+Semantic order:
+
+- row 1: top capstones N01 N02 N03, then E01 E02 E03
+- row 2: top capstones S01 S02 S03, then W01 W02 W03
+- row 3: tall face stones N01 N02 N03, then E01 E02 E03
+- row 4: tall face stones S01 S02 S03, then W01 W02 W03
+
+Each top sprite is exactly one small, flat, compact stone slab with one continuous silhouette, readable top plane, irregular pixel outline, and no seams suggesting multiple boulders. Each face sprite is exactly one elongated vertical cliff stone with one continuous silhouette, a narrow upper ledge and darker long face, with no horizontal seams or stacked-rock appearance. Three distinct variants per direction. Purpose-authored cardinal directions with coherent upper-left world lighting; not mechanically rotated copies.
+
+Visual style: crisp original Pokémon-like coastal pixel art; warm grey, taupe and charcoal; hard square pixels; no smoothing; designed to survive normalization into 32×32 sprites and to overlap tightly into two continuous rows.
+
+Background/segmentation: perfectly flat pure #FF00FF chroma field. Keep the outer 64 pixels completely empty solid magenta. Keep at least 80 pixels of solid magenta between sprites. Do not place any subject pixel, shadow, halo or decoration near an image edge.
+
+Avoid: grass, moss, sand, foam, water, soil, shadows, black, text, labels, grid lines, wall strips, clusters, piles, connected modules, extra specks, missing sprites, antialiasing, blur, gradients, watermark.
+```
 
 ## Construction byte-for-byte du prompt final exact
 
@@ -258,6 +316,122 @@ Composition/framing: exactly one isolated prop, fully visible, centered horizont
 Lighting/mood: subtle upper-left lighting consistent with the references, applied only to the object.
 Constraints: preserve the requested pixel-art language and Selbrume palette; output exactly one object; make the bollard visibly low and squat, much wider relative to its height than Image 1; use a plain rounded mooring head and clearly bolted base; clean hard silhouette; no background variation.
 Avoid: absolutely no luminaire, no lantern, no bulb, no emitted light, no glowing part, no window, no glass, no roof, no tall pole, no large column, no streetlamp silhouette, no rope, no boat, no dock, no floor, no ground patch, no cast shadow, no contact shadow, no reflection, no gradient, no texture or lighting variation in the background, no text, no watermark. Do not use #00ff00 anywhere in the subject.
+```
+
+## Registre d'exécution — `ts_selbrume_cliff_stone_chain_v1`
+
+- Statut de cette passe initiale : `superseded` par la passe finale de
+  remplacement 4×4 documentée plus bas.
+- Date : `2026-07-17`.
+- Mode : un appel built-in `imagegen` pour une planche de contact originale
+  4×4 ; le modèle exact n'est pas rapporté par l'outil et n'est donc pas
+  inventé.
+- Références, dans l'ordre : `cliff.png`, `objectif.png`. Elles ont servi
+  uniquement au langage visuel, à l'échelle et à la composition ; aucun pixel
+  n'a été découpé, copié ou intégré comme underlay.
+- Sortie brute historique : SHA-256
+  `685be70e81d3f566d29b89787f726fdb0792432a43362a5b457ec2cc8ea6fb73`.
+- Détourage : `remove_chroma_key.py --key-color '#FF00FF' --tolerance 12
+  --spill-cleanup`; SHA-256 de la planche RGBA
+  `77642e18161ab56dde5431c7d0262f2eecf3ccc18776fbce402088c1102278d9` ;
+  1 333 651 pixels transparents sur 1 572 516 et 0 pixel partiellement
+  transparent.
+- Normalisation : découpe row-major, nearest-neighbour vers les footprints du
+  contrat, quantification sur huit couleurs pierre, alpha binaire, marge 2 px,
+  ancre `(16,29)`, puis normalisation PokeMap et atlas 4×4 déterministe.
+- Sortie atlas historique après correction : SHA-256
+  `5cb4a84ebd37c5e360c5910a533765c98d26fb556ad8d73d9d1960f654408a68`.
+- Statut : `superseded` ; `license status: unverified`.
+
+Prompt exact historique (`superseded`) :
+
+```text
+Create a brand-new ORIGINAL pixel-art contact sheet of exactly 16 isolated individual coastal cliff stones, arranged in a precise 4 columns by 4 rows grid. These are source modules for a tile-map editor, not a finished cliff and not copied/cropped from either reference. Use the references only to understand the warm grey/taupe/charcoal Selbrume stone language and upper-left lighting. Every cell must contain exactly ONE compact stone or pebble with generous empty space around it; no connected wall segments, no piles spanning cells. Row 1: four medium squat primary stones. Row 2: one additional medium primary followed by three smaller secondary stones. Row 3: one secondary stone followed by three tiny filler pebbles. Row 4: two compact corner-anchor stones followed by two tapered cap stones. All 16 silhouettes must visibly differ. Strict crisp low-resolution pixel art, hard pixel edges, no antialiasing, no blur, no drop shadows, no outlines outside the sprite. Background must be a single uniform pure chroma magenta #FF00FF across all empty space. STONES ONLY: absolutely no green, grass, moss, plants, sand, dirt, soil, water, ocean, foam, waves, beach, wood, text, labels, grid lines, frame, or scenery. Keep highlights upper-left, darkest pixels lower-right. Square contact sheet, orthographic game-sprite view, coherent Pokemon-like coastal village pixel-art style, but entirely original.
+```
+
+Les 16 prompts de rôle, hashes source, hashes normalisés, footprints et cellules
+d'atlas sont consignés dans
+`assets/provenance/selbrume_stone_chain_v1.json`.
+
+### Passe corrective coins/caps
+
+- Statut : `superseded` avec la passe initiale par la passe finale de
+  remplacement 4×4.
+- Mode : un second appel built-in `imagegen` pour une planche originale 2×2 ;
+  le modèle exact n'est pas rapporté.
+- Références : `cliff.png`, `objectif.png`, puis l'atlas accepté uniquement
+  comme référence de palette et densité. Aucun pixel de référence n'a été
+  copié, détouré ou utilisé comme underlay.
+- Sortie brute : SHA-256
+  `f3fbf78b6d2dd512c5e6bc2ee0d906a792cae06eb7245bc01a17a181e28b1d35`.
+- Détourage historique : `remove_chroma_key.py --auto-key border --soft-matte
+  --transparent-threshold 12 --opaque-threshold 220 --despill` ; SHA-256
+  `2ec72f056cf2bb9bc0c1f63be376716ea7763bae74a341e75f59d0721f6bfd7c`.
+  Les 4 501 pixels partiellement transparents ont été convertis en alpha
+  binaire pendant la normalisation déterministe.
+- Remplacements exclusifs : `stone_chain_corner_01` (22×16),
+  `stone_chain_corner_02` (20×14), `stone_chain_cap_01` (11×8) et
+  `stone_chain_cap_02` (9×6). Les douze autres sources sont byte-identiques.
+
+Prompt exact historique (`superseded`) :
+
+```text
+Use case: stylized-concept
+Asset type: corrective pixel-art contact sheet for four isolated tile-map stone sprites
+Input images: Image 1 is a stone-language style reference only; Image 2 is a coastal-map scale and lighting reference only; Image 3 is the existing accepted stone-chain palette and pixel-density reference only. Do not copy, crop, trace, composite, or use any reference as an underlay.
+Primary request: Create one brand-new ORIGINAL square contact sheet containing exactly FOUR isolated coastal stone sprites in a precise 2 columns by 2 rows arrangement. Top-left: corner stone variant 1, a low rounded compact chain rock, naturally wide and squat, never tall, vertical, cubic, pillar-like, or monolithic. Top-right: corner stone variant 2, a visibly different low rounded compact chain rock, naturally wide and squat, able to cover a bend without becoming a block. Bottom-left: cap stone variant 1, one tiny rounded compact terminal pebble, not pointed and not elongated. Bottom-right: cap stone variant 2, one visibly different tiny rounded compact terminal pebble, not pointed and not elongated.
+Scene/backdrop: perfectly flat, perfectly uniform solid chroma-key magenta #FF00FF across every empty pixel; no grid lines, borders, labels, frames, gradients, texture, lighting variation, floor, or horizon.
+Style/medium: crisp handcrafted low-resolution top-down three-quarter RPG pixel art; hard pixel edges; coherent with the existing Selbrume individual stones; entirely original.
+Composition/framing: exactly one fully isolated stone centered in each quadrant with generous magenta padding and no overlap between quadrants. The two corner stones must read as low horizontal rounded rocks with approximate width-to-height ratio 1.35–1.7. The two cap stones must read as very small compact rounded pebbles with approximate width-to-height ratio 1.1–1.5. No diagonal silhouette.
+Lighting/mood: identical upper-left highlight and lower-right dark pixels across all four, matching the accepted stone-chain atlas.
+Color palette: warm grey, taupe, muted charcoal and restrained beige highlights matching Image 3; do not use magenta in the stones.
+Constraints: STONES ONLY; exactly four sprites; all four silhouettes unique; no antialiasing, blur, soft edges, cast shadow, contact shadow, detached fragments, or extra pebbles. Corners must be small low rounded chain rocks, never vertical or cubic. Caps must be compact rounded pebbles, never long diagonal slivers.
+Avoid: grass, green, moss, plants, sand, dirt, soil, water, ocean, foam, waves, beach, wood, scenery, text, symbols, watermark, grid, connected wall, rock pile spanning cells, cliff segment, tall column, cube, monolith, shard, spike, slash, long diagonal fragment.
+```
+
+### Passe finale de remplacement 4×4 — active
+
+- Date : `2026-07-17`.
+- Mode : un troisième appel built-in `imagegen`, suivi du traitement local
+  déterministe ; le modèle exact n'est pas rapporté par l'outil et n'est donc
+  pas inventé.
+- Références : la carte objectif de Selbrume et l'atlas stone-chain alors en
+  cours, utilisés uniquement pour la palette, l'échelle, la densité de pixels
+  et l'éclairage haut-gauche. Aucun pixel de référence n'a été copié, détouré,
+  tracé, composé ou utilisé comme underlay.
+- Sortie brute finale : SHA-256
+  `a2da7f3b3ace55006033102d8f9cbf82d7b015a31381fbc82100512a4461c528`.
+- Détourage : seuil RGB déterministe du chroma `#FF00FF` avant quantification
+  de palette, avec alpha binaire.
+- Remplacement : les seize entrées `stone_chain_*` ont été reconstruites à
+  partir de cette planche. Les deux passes précédentes ne fournissent plus
+  aucun module actif et restent uniquement dans la provenance historique.
+- Sortie atlas finale active : SHA-256
+  `357d8a242d688102a0d1cc6f8d1aa54cc5e76f15a21b60cf3692003a21169119`.
+- Fillers : `stone_chain_filler_01`, `stone_chain_filler_02` et
+  `stone_chain_filler_03` restent présents dans les sources et l'atlas pour
+  être récupérables, mais le blueprint Selbrume publié leur attribue un poids
+  de `0` ; ils ne participent donc pas à l'assemblage actif.
+- Statut : passe active ; `license status: unverified`.
+
+Prompt exact final :
+
+```text
+Create a brand-new ORIGINAL production
+contact sheet for a tile-map editor. Use the supplied Selbrume objective map
+and current atlas only as references for palette, scale, pixel density and
+upper-left lighting; do not copy, crop, trace or composite any pixels. Exactly
+16 disconnected single coastal cliff stones in a strict 4 columns by 4 rows
+arrangement, one isolated stone centered in each equal cell, on uniform pure
+#FF00FF. Reading order 1-5: compact primary stones, wider than or roughly as
+wide as tall, with a pale cap and short darker face, never tall pillars. 6-9:
+smaller secondary face stones for a staggered lower row. 10-12: tiny compact
+filler pebbles. 13-14: compact corner stones covering a bend without an L, T,
+cross or shelf silhouette. 15-16: tiny tapered endpoint stones. All silhouettes
+unique, crisp hard-edged low-resolution RPG pixel art in warm grey, taupe,
+charcoal and beige. Stones only: no grass, moss, plants, sand, soil, water,
+foam, beach, shadow patch, scenery, connected wall, rock pile, grid, labels,
+text, frame, antialiasing, blur, glow or watermark.
 ```
 
 ## Workflow après chaque appel accepté

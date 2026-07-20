@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../fixtures/border/stone_chain_line_fixture.dart';
+
 const int _resolverVersion = 1;
 
 void main() {
@@ -71,6 +73,16 @@ void main() {
             fixture.primitive('accent', BorderPrimitiveRole.lineCorner),
           ],
           <String>['lineStraight'],
+        ),
+        (
+          BorderBlueprintTemplate.stoneChainLine,
+          <BorderPublishedPrimitive>[
+            fixture.primitive(
+              'accent',
+              BorderPrimitiveRole.structureMedium,
+            ),
+          ],
+          <String>['structureLarge'],
         ),
       ];
 
@@ -144,6 +156,17 @@ void main() {
             'structureLarge',
             'structureMedium',
           ],
+        ),
+        (
+          BorderBlueprintTemplate.stoneChainLine,
+          <BorderPublishedPrimitive>[
+            fixture.primitive(
+              'large-a',
+              BorderPrimitiveRole.structureLarge,
+            ),
+            fixture.primitive('accent', BorderPrimitiveRole.accent),
+          ],
+          <String>['accent'],
         ),
       ];
 
@@ -227,6 +250,305 @@ void main() {
           BorderPrimitiveRole.lineStraight,
           BorderPrimitiveRole.lineCorner,
         },
+      );
+      expect(
+        borderAllowedPrimitiveRolesForTemplate(
+          BorderBlueprintTemplate.stoneChainLine,
+        ),
+        <BorderPrimitiveRole>{
+          BorderPrimitiveRole.structureLarge,
+          BorderPrimitiveRole.structureMedium,
+          BorderPrimitiveRole.filler,
+          BorderPrimitiveRole.lineCorner,
+          BorderPrimitiveRole.lineCap,
+        },
+      );
+      expect(
+        borderTemplateRequiredPrimitiveRoles(
+          template: BorderBlueprintTemplate.stoneChainLine,
+          depthRows: 1,
+        ),
+        const <BorderPrimitiveRole>{BorderPrimitiveRole.structureLarge},
+      );
+      expect(
+        borderTemplateRequiredPrimitiveRoles(
+          template: BorderBlueprintTemplate.stoneChainLine,
+          depthRows: 2,
+        ),
+        const <BorderPrimitiveRole>{
+          BorderPrimitiveRole.structureLarge,
+          BorderPrimitiveRole.structureMedium,
+        },
+      );
+    });
+
+    test('stone-chain optional roles remain optional', () {
+      final fixture = _Fixture.complete();
+      final definition = fixture.definitionFor(
+        template: BorderBlueprintTemplate.stoneChainLine,
+        primitives: <BorderPublishedPrimitive>[
+          fixture.primitive(
+            'large-a',
+            BorderPrimitiveRole.structureLarge,
+          ),
+          fixture.primitive(
+            'large-b',
+            BorderPrimitiveRole.structureLarge,
+            snapshot: 1,
+          ),
+          fixture.primitive(
+            'large-c',
+            BorderPrimitiveRole.structureLarge,
+            snapshot: 2,
+          ),
+        ],
+        defaults: _stoneChainParams(depthRows: 1),
+      );
+
+      final result = _assess(fixture, definition: definition);
+
+      expect(result.canPublish, isTrue);
+      expect(_codes(result),
+          isNot(contains('border.publication.required_role_missing')));
+    });
+
+    test('stone-chain rotation and depth rules are blocking and explicit', () {
+      final fixture = _Fixture.complete();
+      BorderBlueprintPublishedDefinition definition({
+        required bool allowAutoRotation,
+        required int depthRows,
+      }) =>
+          fixture.definitionFor(
+            template: BorderBlueprintTemplate.stoneChainLine,
+            primitives: <BorderPublishedPrimitive>[
+              fixture.primitive(
+                'large-a',
+                BorderPrimitiveRole.structureLarge,
+                quarterTurns: const <int>[0],
+              ),
+            ],
+            defaults: BorderGenerationParams(
+              irregularityPermille: 0,
+              detailDensityPermille: 0,
+              variationPermille: 0,
+              maxOverlapPx: 1,
+              gapTolerancePx: 1,
+              depthRows: depthRows,
+              allowAutoRotation: allowAutoRotation,
+            ),
+          );
+
+      final rotationOff = _assess(
+        fixture,
+        definition: definition(allowAutoRotation: false, depthRows: 1),
+      );
+      final rotationOn = _assess(
+        fixture,
+        definition: definition(allowAutoRotation: true, depthRows: 1),
+      );
+      final invalidDepth = _assess(
+        fixture,
+        definition: definition(allowAutoRotation: false, depthRows: 3),
+      );
+
+      expect(rotationOff.canPublish, isTrue);
+      expect(
+        _codes(rotationOff),
+        isNot(contains('border.publication.stone_chain_transform_unavailable')),
+      );
+      expect(rotationOn.canPublish, isFalse);
+      expect(
+        _codes(rotationOn),
+        contains('border.publication.stone_chain_transform_unavailable'),
+      );
+      expect(invalidDepth.canPublish, isFalse);
+      expect(
+        _codes(invalidDepth),
+        contains('border.publication.stone_chain_depth_rows_invalid'),
+      );
+    });
+
+    test('stone-chain with fewer than three primary variants only warns', () {
+      final fixture = _Fixture.complete();
+      final definition = fixture.definitionFor(
+        template: BorderBlueprintTemplate.stoneChainLine,
+        primitives: <BorderPublishedPrimitive>[
+          fixture.primitive(
+            'large-a',
+            BorderPrimitiveRole.structureLarge,
+          ),
+        ],
+        defaults: _stoneChainParams(depthRows: 1),
+      );
+
+      final result = _assess(fixture, definition: definition);
+      final warning = result.diagnosticReport.diagnostics.singleWhere(
+        (diagnostic) =>
+            diagnostic.code ==
+            'border.publication.stone_chain_primary_variety_low',
+      );
+
+      expect(result.canPublish, isTrue);
+      expect(warning.severity, BorderDiagnosticSeverity.warning);
+    });
+
+    test('stone-chain cardinal assets require the two-tier planner', () {
+      final fixture = _Fixture.complete();
+      final definition = fixture.definitionFor(
+        template: BorderBlueprintTemplate.stoneChainLine,
+        primitives: <BorderPublishedPrimitive>[
+          fixture.primitive(
+            'large-north',
+            BorderPrimitiveRole.structureLarge,
+            authoredOrientation: BorderPrimitiveOrientation.north,
+          ),
+        ],
+        defaults: _stoneChainParams(depthRows: 1),
+      );
+
+      final result = _assess(fixture, definition: definition);
+
+      expect(result.canPublish, isFalse);
+      expect(
+        _codes(result),
+        contains(
+          'border.publication.stone_chain_cardinal_depth_one_unsupported',
+        ),
+      );
+    });
+
+    test('two-tier stone-chain requires an explicit face role', () {
+      final fixture = _Fixture.complete();
+      final definition = _twoTierStoneChainDefinition(
+        fixture,
+        faceOrientations: const <BorderPrimitiveOrientation>[],
+      );
+
+      final result = _assess(fixture, definition: definition);
+
+      expect(result.canPublish, isFalse);
+      expect(
+        _codes(result),
+        contains('border.publication.stone_chain_face_role_missing'),
+      );
+    });
+
+    test('two-tier stone-chain rejects incomplete cardinal coverage', () {
+      final fixture = _Fixture.complete();
+      final definition = _twoTierStoneChainDefinition(
+        fixture,
+        faceOrientations: const <BorderPrimitiveOrientation>[
+          BorderPrimitiveOrientation.north,
+          BorderPrimitiveOrientation.east,
+          BorderPrimitiveOrientation.south,
+        ],
+      );
+
+      final result = _assess(fixture, definition: definition);
+
+      expect(result.canPublish, isFalse);
+      expect(
+        _codes(result),
+        contains('border.publication.stone_chain_directional_coverage_missing'),
+      );
+    });
+
+    test('two-tier stone-chain rejects mixed legacy and cardinal modes', () {
+      final fixture = _Fixture.complete();
+      final definition = _twoTierStoneChainDefinition(
+        fixture,
+        lipOrientations: const <BorderPrimitiveOrientation>[
+          BorderPrimitiveOrientation.legacyAxis,
+          BorderPrimitiveOrientation.east,
+          BorderPrimitiveOrientation.south,
+          BorderPrimitiveOrientation.west,
+        ],
+      );
+
+      final result = _assess(fixture, definition: definition);
+
+      expect(result.canPublish, isFalse);
+      expect(
+        _codes(result),
+        contains('border.publication.stone_chain_mixed_orientation_modes'),
+      );
+    });
+
+    test('two-tier auto-rotation can cover every direction by transform', () {
+      final fixture = _Fixture.complete();
+      final definition = _twoTierStoneChainDefinition(
+        fixture,
+        allowAutoRotation: true,
+        lipOrientations: const <BorderPrimitiveOrientation>[
+          BorderPrimitiveOrientation.east,
+        ],
+        faceOrientations: const <BorderPrimitiveOrientation>[
+          BorderPrimitiveOrientation.east,
+        ],
+        quarterTurns: const <int>[0, 1, 2, 3],
+      );
+
+      final result = _assess(fixture, definition: definition);
+
+      expect(result.canPublish, isTrue);
+      expect(
+        _codes(result),
+        isNot(
+          contains(
+            'border.publication.stone_chain_directional_coverage_missing',
+          ),
+        ),
+      );
+    });
+
+    test('two-tier rotation-off requires exact N/E/S/W authored assets', () {
+      final fixture = _Fixture.complete();
+      final incomplete = _twoTierStoneChainDefinition(
+        fixture,
+        lipOrientations: const <BorderPrimitiveOrientation>[
+          BorderPrimitiveOrientation.east,
+        ],
+        faceOrientations: const <BorderPrimitiveOrientation>[
+          BorderPrimitiveOrientation.east,
+        ],
+        quarterTurns: const <int>[0, 1, 2, 3],
+      );
+      final complete = _twoTierStoneChainDefinition(fixture);
+
+      final incompleteResult = _assess(fixture, definition: incomplete);
+      final completeResult = _assess(fixture, definition: complete);
+
+      expect(incompleteResult.canPublish, isFalse);
+      expect(
+        _codes(incompleteResult),
+        contains('border.publication.stone_chain_directional_coverage_missing'),
+      );
+      expect(completeResult.canPublish, isTrue);
+    });
+
+    test('two-tier gap and low interlock budgets have stable warnings', () {
+      final fixture = _Fixture.complete();
+      final definition = _twoTierStoneChainDefinition(
+        fixture,
+        gapTolerancePx: 1,
+        maxOverlapPx: 3,
+      );
+
+      final result = _assess(fixture, definition: definition);
+      final diagnostics = <String, BorderDiagnostic>{
+        for (final diagnostic in result.diagnosticReport.diagnostics)
+          diagnostic.code: diagnostic,
+      };
+
+      expect(result.canPublish, isTrue);
+      expect(
+        diagnostics['border.publication.stone_chain_gap_not_zero']?.severity,
+        BorderDiagnosticSeverity.warning,
+      );
+      expect(
+        diagnostics['border.publication.stone_chain_interlock_too_low']
+            ?.severity,
+        BorderDiagnosticSeverity.warning,
       );
     });
 
@@ -845,6 +1167,27 @@ void main() {
           ground: ground,
         ),
         fixture.definitionFor(
+          template: BorderBlueprintTemplate.stoneChainLine,
+          primitives: <BorderPublishedPrimitive>[
+            fixture.primitive(
+              'large-a',
+              BorderPrimitiveRole.structureLarge,
+            ),
+            fixture.primitive(
+              'large-b',
+              BorderPrimitiveRole.structureLarge,
+              snapshot: 1,
+            ),
+            fixture.primitive(
+              'large-c',
+              BorderPrimitiveRole.structureLarge,
+              snapshot: 2,
+            ),
+          ],
+          ground: ground,
+          defaults: _stoneChainParams(depthRows: 1),
+        ),
+        fixture.definitionFor(
           template: BorderBlueprintTemplate.postAndRailLine,
           primitives: <BorderPublishedPrimitive>[
             fixture.primitive('post', BorderPrimitiveRole.post, snapshot: 0),
@@ -1046,6 +1389,97 @@ void main() {
       );
       expect(absent.canPublish, isFalse);
       expect(gap.canPublish, isFalse);
+    });
+
+    test('blocks stone-chain publication for a measured closed-loop seam gap',
+        () {
+      final fixture = _Fixture.complete();
+      final definition = fixture.definitionFor(
+        template: BorderBlueprintTemplate.stoneChainLine,
+        primitives: <BorderPublishedPrimitive>[
+          fixture.primitive(
+            'large-a',
+            BorderPrimitiveRole.structureLarge,
+          ),
+          fixture.primitive(
+            'large-b',
+            BorderPrimitiveRole.structureLarge,
+            snapshot: 1,
+          ),
+          fixture.primitive(
+            'large-c',
+            BorderPrimitiveRole.structureLarge,
+            snapshot: 2,
+          ),
+        ],
+        defaults: BorderGenerationParams(
+          irregularityPermille: 0,
+          detailDensityPermille: 0,
+          variationPermille: 0,
+          maxOverlapPx: 3,
+          gapTolerancePx: 2,
+          depthRows: 1,
+          allowAutoRotation: false,
+        ),
+      );
+      final stroke = stoneChainRectangularLoop(id: 'publication-gap-loop');
+      final baselineRequest =
+          StoneChainLineFixture(strokes: <BorderStroke>[stroke]).request;
+      final baseline = resolveStoneChainLineBorder(baselineRequest);
+      final seamX = stroke.points.first.x * baselineRequest.tileSizePx.width;
+      final seamY = stroke.points.first.y * baselineRequest.tileSizePx.height;
+      final placementsBySeamDistance =
+          baseline.materialization!.placements.toList(growable: false)
+            ..sort((left, right) {
+              int squaredDistance(BorderResolvedPlacement placement) {
+                final bounds = placement.opaqueWorldBoundsPx;
+                final dx = bounds.x + bounds.width ~/ 2 - seamX;
+                final dy = bounds.y + bounds.height ~/ 2 - seamY;
+                return dx * dx + dy * dy;
+              }
+
+              final byDistance =
+                  squaredDistance(left).compareTo(squaredDistance(right));
+              return byDistance != 0
+                  ? byDistance
+                  : left.slotKey.compareTo(right.slotKey);
+            });
+      final evidence = resolveStoneChainLineBorderWithEvidence(
+        StoneChainLineFixture(
+          strokes: <BorderStroke>[stroke],
+          overrides: <BorderSlotOverride>[
+            for (final placement in placementsBySeamDistance.take(4))
+              BorderSlotOverride(
+                slotKey: placement.slotKey,
+                variationSalt: BorderSignedInt64.zero,
+                suppressed: true,
+                locked: false,
+              ),
+          ],
+        ).request,
+      );
+      final result = _assess(
+        fixture,
+        definition: definition,
+        samples: _samplesWith(
+          definition,
+          _gapSample(
+            BorderCanonicalGalleryCase.closedLoop,
+            definition,
+            longestGapPx: evidence.maximumGapPx,
+          ),
+        ),
+      );
+
+      expect(
+        evidence.maximumGapPx,
+        greaterThan(definition.defaults.gapTolerancePx),
+      );
+      expect(
+        _codes(result),
+        contains('border.publication.coverage_gap_exceeded'),
+      );
+      expect(result.canPublish, isFalse);
     });
 
     for (final (
@@ -1425,6 +1859,86 @@ void main() {
       );
     });
 
+    test('requires both stone-chain evidence sides only at depth two', () {
+      final fixture = _Fixture.complete();
+      final definition = _twoTierStoneChainDefinition(fixture);
+      final passing = _passingSample(
+        BorderCanonicalGalleryCase.endpoint,
+        definition,
+      );
+      for (final missingPrimary in const <bool>[true, false]) {
+        final missingSide = BorderPublicationGallerySample(
+          galleryCase: passing.galleryCase,
+          coverageChecks: passing.coverageChecks,
+          structuralRuns: passing.structuralRuns,
+          primaryStoneChainEvidence:
+              missingPrimary ? null : _passingStoneChainEvidence(),
+          invertedStoneChainEvidence:
+              missingPrimary ? _passingStoneChainEvidence() : null,
+        );
+        final strictResult = _assess(
+          fixture,
+          definition: definition,
+          samples: _samplesWith(definition, missingSide),
+        );
+        expect(strictResult.canPublish, isFalse, reason: '$missingPrimary');
+      }
+      final historicalResult = _assess(fixture);
+
+      expect(historicalResult.canPublish, isTrue);
+      expect(
+        _passingSamplesFor(fixture.definition),
+        everyElement(
+          isA<BorderPublicationGallerySample>()
+              .having(
+                (sample) => sample.primaryStoneChainEvidence,
+                'primary evidence',
+                isNull,
+              )
+              .having(
+                (sample) => sample.invertedStoneChainEvidence,
+                'inverted evidence',
+                isNull,
+              ),
+        ),
+      );
+    });
+
+    test('blocks every two-tier evidence threshold independently per side', () {
+      final fixture = _Fixture.complete();
+      final definition = _twoTierStoneChainDefinition(fixture);
+      final invalidInvertedEvidence = <BorderPublicationStoneChainEvidence>[
+        _passingStoneChainEvidence(minimumCrossRowInterlockPixels: 7),
+        _passingStoneChainEvidence(minimumVisibleFaceDepthPx: 11),
+        _passingStoneChainEvidence(alignedJointRatioPermille: 251),
+        _passingStoneChainEvidence(lipConnectedComponentCount: 2),
+        _passingStoneChainEvidence(faceConnectedComponentCount: 2),
+        _passingStoneChainEvidence(combinedConnectedComponentCount: 2),
+      ];
+
+      for (final invalidEvidence in invalidInvertedEvidence) {
+        final passing = _passingSample(
+          BorderCanonicalGalleryCase.endpoint,
+          definition,
+        );
+        final invertedOnlyFailure = BorderPublicationGallerySample(
+          galleryCase: passing.galleryCase,
+          coverageChecks: passing.coverageChecks,
+          structuralRuns: passing.structuralRuns,
+          primaryStoneChainEvidence: _passingStoneChainEvidence(),
+          invertedStoneChainEvidence: invalidEvidence,
+        );
+
+        final result = _assess(
+          fixture,
+          definition: definition,
+          samples: _samplesWith(definition, invertedOnlyFailure),
+        );
+
+        expect(result.canPublish, isFalse, reason: '$invalidEvidence');
+      }
+    });
+
     test(
         'sorts deterministic JSON-safe diagnostics independently of input order',
         () {
@@ -1455,6 +1969,57 @@ void main() {
   });
 
   group('publication gallery values', () {
+    test('stone-chain evidence has value semantics and validates metrics', () {
+      final first = _passingStoneChainEvidence();
+      final same = _passingStoneChainEvidence();
+      final different = _passingStoneChainEvidence(
+        medianVisibleFaceDepthPx: 17,
+      );
+      final sample = BorderPublicationGallerySample(
+        galleryCase: BorderCanonicalGalleryCase.endpoint,
+        coverageChecks: const <BorderPublicationCoverageCheck>[],
+        structuralRuns: const <BorderPublicationStructuralRun>[],
+        primaryStoneChainEvidence: first,
+        invertedStoneChainEvidence: same,
+      );
+      final sameSample = BorderPublicationGallerySample(
+        galleryCase: BorderCanonicalGalleryCase.endpoint,
+        coverageChecks: const <BorderPublicationCoverageCheck>[],
+        structuralRuns: const <BorderPublicationStructuralRun>[],
+        primaryStoneChainEvidence: same,
+        invertedStoneChainEvidence: first,
+      );
+
+      expect(first, same);
+      expect(first.hashCode, same.hashCode);
+      expect(first, isNot(different));
+      expect(sample, sameSample);
+      expect(sample.hashCode, sameSample.hashCode);
+      expect(
+        () => _passingStoneChainEvidence(lipPlacementCount: -1),
+        throwsA(anyOf(isA<AssertionError>(), isA<ValidationException>())),
+      );
+      expect(
+        () => _passingStoneChainEvidence(alignedJointRatioPermille: 1001),
+        throwsA(anyOf(isA<AssertionError>(), isA<ValidationException>())),
+      );
+    });
+
+    test('lip and face coverage wire names are stable', () {
+      expect(
+        borderCanonicalCoverageComponentV1WireName(
+          BorderCanonicalCoverageComponent.lip,
+        ),
+        'lip',
+      );
+      expect(
+        borderCanonicalCoverageComponentV1WireName(
+          BorderCanonicalCoverageComponent.face,
+        ),
+        'face',
+      );
+    });
+
     test('copy input collections and adapt coverage assessments', () {
       final primitiveIds = <String>['a'];
       final run = BorderPublicationStructuralRun(
@@ -1554,6 +2119,100 @@ BorderPublicationGalleryReport _validGalleryReport({
       samples: samples ?? _passingSamplesFor(definition),
     );
 
+const List<BorderPrimitiveOrientation> _allCardinalOrientations =
+    <BorderPrimitiveOrientation>[
+  BorderPrimitiveOrientation.north,
+  BorderPrimitiveOrientation.east,
+  BorderPrimitiveOrientation.south,
+  BorderPrimitiveOrientation.west,
+];
+
+BorderGenerationParams _stoneChainParams({
+  required int depthRows,
+  int gapTolerancePx = 0,
+  int maxOverlapPx = 4,
+  bool allowAutoRotation = false,
+}) =>
+    BorderGenerationParams(
+      irregularityPermille: 0,
+      detailDensityPermille: 1000,
+      variationPermille: 1000,
+      maxOverlapPx: maxOverlapPx,
+      gapTolerancePx: gapTolerancePx,
+      depthRows: depthRows,
+      allowAutoRotation: allowAutoRotation,
+    );
+
+BorderBlueprintPublishedDefinition _twoTierStoneChainDefinition(
+  _Fixture fixture, {
+  List<BorderPrimitiveOrientation> lipOrientations = _allCardinalOrientations,
+  List<BorderPrimitiveOrientation> faceOrientations = _allCardinalOrientations,
+  List<int> quarterTurns = const <int>[0],
+  bool allowAutoRotation = false,
+  int gapTolerancePx = 0,
+  int maxOverlapPx = 4,
+}) {
+  const ids = <String>[
+    'large-a',
+    'large-b',
+    'large-c',
+    'large',
+    'post',
+    'span',
+    'accent',
+    'same',
+  ];
+  var idIndex = 0;
+  return fixture.definitionFor(
+    template: BorderBlueprintTemplate.stoneChainLine,
+    primitives: <BorderPublishedPrimitive>[
+      for (final orientation in lipOrientations)
+        fixture.primitive(
+          ids[idIndex++],
+          BorderPrimitiveRole.structureLarge,
+          authoredOrientation: orientation,
+          quarterTurns: quarterTurns,
+        ),
+      for (final orientation in faceOrientations)
+        fixture.primitive(
+          ids[idIndex++],
+          BorderPrimitiveRole.structureMedium,
+          authoredOrientation: orientation,
+          quarterTurns: quarterTurns,
+        ),
+    ],
+    defaults: _stoneChainParams(
+      depthRows: 2,
+      gapTolerancePx: gapTolerancePx,
+      maxOverlapPx: maxOverlapPx,
+      allowAutoRotation: allowAutoRotation,
+    ),
+  );
+}
+
+BorderPublicationStoneChainEvidence _passingStoneChainEvidence({
+  int lipPlacementCount = 8,
+  int facePlacementCount = 8,
+  int minimumCrossRowInterlockPixels = 8,
+  int minimumVisibleFaceDepthPx = 12,
+  int medianVisibleFaceDepthPx = 16,
+  int alignedJointRatioPermille = 250,
+  int lipConnectedComponentCount = 1,
+  int faceConnectedComponentCount = 1,
+  int combinedConnectedComponentCount = 1,
+}) =>
+    BorderPublicationStoneChainEvidence(
+      lipPlacementCount: lipPlacementCount,
+      facePlacementCount: facePlacementCount,
+      minimumCrossRowInterlockPixels: minimumCrossRowInterlockPixels,
+      minimumVisibleFaceDepthPx: minimumVisibleFaceDepthPx,
+      medianVisibleFaceDepthPx: medianVisibleFaceDepthPx,
+      alignedJointRatioPermille: alignedJointRatioPermille,
+      lipConnectedComponentCount: lipConnectedComponentCount,
+      faceConnectedComponentCount: faceConnectedComponentCount,
+      combinedConnectedComponentCount: combinedConnectedComponentCount,
+    );
+
 List<BorderPublicationGallerySample> _passingSamplesFor(
   BorderBlueprintPublishedDefinition definition,
 ) =>
@@ -1615,6 +2274,16 @@ BorderPublicationGallerySample _passingSample(
             ),
           ]
         : const <BorderPublicationStructuralRun>[],
+    primaryStoneChainEvidence:
+        definition.template == BorderBlueprintTemplate.stoneChainLine &&
+                definition.defaults.depthRows == 2
+            ? _passingStoneChainEvidence()
+            : null,
+    invertedStoneChainEvidence:
+        definition.template == BorderBlueprintTemplate.stoneChainLine &&
+                definition.defaults.depthRows == 2
+            ? _passingStoneChainEvidence()
+            : null,
   );
 }
 
@@ -1629,6 +2298,7 @@ BorderPublicationGallerySample _gapSample(
         for (final component in borderCanonicalCoverageComponentsForCase(
           template: definition.template,
           galleryCase: galleryCase,
+          depthRows: definition.defaults.depthRows,
         ))
           BorderPublicationCoverageCheck(
             component: component,
@@ -1655,6 +2325,7 @@ List<BorderPublicationCoverageCheck> _passingCoverageChecks(
       for (final component in borderCanonicalCoverageComponentsForCase(
         template: definition.template,
         galleryCase: galleryCase,
+        depthRows: definition.defaults.depthRows,
       ))
         _passingCoverage(component, definition),
     ];
@@ -1703,6 +2374,18 @@ int _passIndex(
             BorderPrimitiveRole.lineCorner,
       ) =>
         0,
+      (
+        BorderBlueprintTemplate.stoneChainLine,
+        BorderPrimitiveRole.structureLarge ||
+            BorderPrimitiveRole.lineCap ||
+            BorderPrimitiveRole.lineCorner,
+      ) =>
+        0,
+      (
+        BorderBlueprintTemplate.stoneChainLine,
+        BorderPrimitiveRole.structureMedium || BorderPrimitiveRole.filler,
+      ) =>
+        1,
       _ => throw StateError('Non-structural publication run role'),
     };
 
@@ -1722,6 +2405,12 @@ bool _isStructural(
         role == BorderPrimitiveRole.lineCap ||
             role == BorderPrimitiveRole.lineStraight ||
             role == BorderPrimitiveRole.lineCorner,
+      BorderBlueprintTemplate.stoneChainLine =>
+        role == BorderPrimitiveRole.structureLarge ||
+            role == BorderPrimitiveRole.structureMedium ||
+            role == BorderPrimitiveRole.filler ||
+            role == BorderPrimitiveRole.lineCorner ||
+            role == BorderPrimitiveRole.lineCap,
     };
 
 BorderPublishedGround _ground({
@@ -1792,12 +2481,15 @@ final class _Fixture {
     BorderPixelPos anchor = const BorderPixelPos(x: 1, y: 1),
     BorderPrimitiveAssetMetrics? metrics,
     bool allowFlipX = false,
+    BorderPrimitiveOrientation authoredOrientation =
+        BorderPrimitiveOrientation.legacyAxis,
   }) =>
       BorderPublishedPrimitive(
         id: id,
         sourceElementId: 'element-$id',
         visualSnapshotId: snapshotId(snapshot),
         role: role,
+        authoredOrientation: authoredOrientation,
         weight: 100,
         anchorPx: anchor,
         transforms: BorderTransformPolicy(

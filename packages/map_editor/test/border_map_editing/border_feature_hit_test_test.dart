@@ -58,6 +58,129 @@ void main() {
         isNull,
       );
     });
+
+    test('hits grid-edge strokes by screen-pixel distance', () {
+      final layer = _layer(<BorderFeature>[
+        BorderFeature(
+          id: 'edge-stroke',
+          name: 'Edge stroke',
+          blueprintId: 'stone-chain',
+          seed: BorderSignedInt64.zero,
+          geometry: BorderStrokeGeometry(
+            alignment: BorderStrokeAlignment.gridEdges,
+            strokes: <BorderStroke>[
+              BorderStroke(
+                id: 'coast-edge',
+                points: const <GridPos>[
+                  GridPos(x: 1, y: 0),
+                  GridPos(x: 1, y: 1),
+                  GridPos(x: 1, y: 2),
+                  GridPos(x: 1, y: 3),
+                ],
+                closed: false,
+              ),
+            ],
+          ),
+          overrides: const <BorderSlotOverride>[],
+          keepOutRegions: const <BorderKeepOutRegion>[],
+        ),
+      ]);
+
+      expect(
+        hitTestBorderFeatureAtScreenPosition(
+          layer: layer,
+          localPosition: const Offset(28, 42),
+          pan: const Offset(10, 10),
+          zoom: 0.5,
+          tileWidth: 32,
+          tileHeight: 32,
+          toleranceScreenPx: 3,
+        )?.id,
+        'edge-stroke',
+      );
+      expect(
+        hitTestBorderFeatureAtScreenPosition(
+          layer: layer,
+          localPosition: const Offset(36, 42),
+          pan: const Offset(10, 10),
+          zoom: 0.5,
+          tileWidth: 32,
+          tileHeight: 32,
+          toleranceScreenPx: 3,
+        ),
+        isNull,
+      );
+    });
+
+    test('hits inclusive right and bottom grid edges at every supported zoom',
+        () {
+      final layer = _layer(<BorderFeature>[
+        BorderFeature(
+          id: 'map-boundary',
+          name: 'Map boundary',
+          blueprintId: 'stone-chain',
+          seed: BorderSignedInt64.zero,
+          geometry: BorderStrokeGeometry(
+            alignment: BorderStrokeAlignment.gridEdges,
+            strokes: <BorderStroke>[
+              BorderStroke(
+                id: 'right-and-bottom',
+                points: const <GridPos>[
+                  GridPos(x: 5, y: 0),
+                  GridPos(x: 5, y: 1),
+                  GridPos(x: 5, y: 2),
+                  GridPos(x: 5, y: 3),
+                  GridPos(x: 5, y: 4),
+                  GridPos(x: 4, y: 4),
+                  GridPos(x: 3, y: 4),
+                  GridPos(x: 2, y: 4),
+                  GridPos(x: 1, y: 4),
+                  GridPos(x: 0, y: 4),
+                ],
+                closed: false,
+              ),
+            ],
+          ),
+          overrides: const <BorderSlotOverride>[],
+          keepOutRegions: const <BorderKeepOutRegion>[],
+        ),
+      ]);
+      const pan = Offset(13, 17);
+
+      for (final zoom in <double>[0.3, 0.5, 1]) {
+        final rightEdgeX = pan.dx + 5 * 32 * zoom;
+        final rightEdgeMidY = pan.dy + 2 * 32 * zoom;
+        final bottomEdgeMidX = pan.dx + 2 * 32 * zoom;
+        final bottomEdgeY = pan.dy + 4 * 32 * zoom;
+
+        expect(
+          hitTestBorderFeatureAtScreenPosition(
+            layer: layer,
+            localPosition: Offset(rightEdgeX - 2, rightEdgeMidY),
+            pan: pan,
+            zoom: zoom,
+            tileWidth: 32,
+            tileHeight: 32,
+            toleranceScreenPx: 3,
+          )?.id,
+          'map-boundary',
+          reason: 'right edge at zoom=$zoom',
+        );
+        expect(
+          hitTestBorderFeatureAtScreenPosition(
+            layer: layer,
+            localPosition: Offset(bottomEdgeMidX, bottomEdgeY - 2),
+            pan: pan,
+            zoom: zoom,
+            tileWidth: 32,
+            tileHeight: 32,
+            toleranceScreenPx: 3,
+          )?.id,
+          'map-boundary',
+          reason: 'bottom edge at zoom=$zoom',
+        );
+      }
+    });
   });
 }
 

@@ -75,6 +75,8 @@ final class BorderProjectElementAssetService {
     required BorderPrimitiveRole role,
     required int weight,
     required BorderTransformPolicy transforms,
+    BorderPrimitiveOrientation authoredOrientation =
+        BorderPrimitiveOrientation.legacyAxis,
     BorderPixelPos? anchorPx,
   }) async {
     final root = await _resolveProjectRoot(projectRootPath);
@@ -134,6 +136,7 @@ final class BorderProjectElementAssetService {
         id: primitiveId,
         sourceElementId: sourceElementId,
         role: role,
+        authoredOrientation: authoredOrientation,
         weight: weight,
         anchorPx: anchorPx ?? preparation.metrics.defaultAnchorPx,
         transforms: transforms,
@@ -143,7 +146,7 @@ final class BorderProjectElementAssetService {
   }
 
   /// Re-reads the element identified by [primitive] while preserving authored
-  /// role, weight, transforms, and anchor.
+  /// role, orientation, weight, transforms, and anchor.
   Future<BorderPreparedProjectElementAsset> reanalyze({
     required ProjectManifest manifest,
     required String projectRootPath,
@@ -155,6 +158,7 @@ final class BorderProjectElementAssetService {
       sourceElementId: primitive.sourceElementId,
       primitiveId: primitive.id,
       role: primitive.role,
+      authoredOrientation: primitive.authoredOrientation,
       weight: primitive.weight,
       transforms: primitive.transforms,
       anchorPx: primitive.anchorPx,

@@ -53,7 +53,10 @@ class BorderRolesStep extends StatelessWidget {
                           for (final role in roles)
                             PokeMapDropdownItem<BorderPrimitiveRole>(
                               value: role,
-                              label: borderRoleLabel(role),
+                              label: borderRoleLabel(
+                                role,
+                                template: definition.template,
+                              ),
                             ),
                         ],
                         onChanged: (role) => onRoleChanged(
@@ -74,6 +77,21 @@ class BorderRolesStep extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 if (definition.template ==
+                    BorderBlueprintTemplate.stoneChainLine)
+                  for (final role in roles) ...[
+                    _StoneChainRoleStatus(
+                      role: role,
+                      depthRows: definition.defaults.depthRows,
+                      variantCount: definition.primitives
+                          .where(
+                            (primitive) =>
+                                primitive.role == role && primitive.weight > 0,
+                          )
+                          .length,
+                    ),
+                    const SizedBox(height: 8),
+                  ]
+                else if (definition.template ==
                     BorderBlueprintTemplate.connectedLine)
                   for (final role in roles) ...[
                     _ConnectedLineRoleStatus(
@@ -94,7 +112,10 @@ class BorderRolesStep extends StatelessWidget {
                         definition.template,
                         role,
                       ),
-                      value: borderRoleLabel(role),
+                      value: borderRoleLabel(
+                        role,
+                        template: definition.template,
+                      ),
                       icon: _roleIcon(role),
                       tone: definition.primitives.any(
                         (primitive) =>
@@ -142,6 +163,8 @@ class BorderRolesStep extends StatelessWidget {
           'Poteau et Traverse sont requis. Les autres rôles sont optionnels.',
         BorderBlueprintTemplate.connectedLine =>
           'Extrémité, Segment droit et Angle sont requis. Ajoutez plusieurs assets à un même rôle pour créer des variantes.',
+        BorderBlueprintTemplate.stoneChainLine =>
+          'Sommet plat et Face de falaise sont requis pour deux étages. Les pierres libres, angles et extrémités restent facultatifs.',
       };
 
   String _roleRequirementLabel(
@@ -155,8 +178,82 @@ class BorderRolesStep extends StatelessWidget {
         'Alternative de structure requise',
       BorderBlueprintTemplate.postAndRailLine => 'Rôle requis',
       BorderBlueprintTemplate.connectedLine => 'Raccord requis',
+      BorderBlueprintTemplate.stoneChainLine => 'Rôle requis',
     };
   }
+}
+
+class _StoneChainRoleStatus extends StatelessWidget {
+  const _StoneChainRoleStatus({
+    required this.role,
+    required this.depthRows,
+    required this.variantCount,
+  });
+
+  final BorderPrimitiveRole role;
+  final int depthRows;
+  final int variantCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final isRequired = isRequiredBorderRole(
+      BorderBlueprintTemplate.stoneChainLine,
+      role,
+      depthRows: depthRows,
+    );
+    final isReady = variantCount > 0;
+    return PokeMapCard(
+      key: ValueKey<String>('border-studio-role-status-${role.name}'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PokeMapSectionHeader(
+            title: borderRoleLabel(
+              role,
+              template: BorderBlueprintTemplate.stoneChainLine,
+            ),
+            description: _stoneRoleDescription(role),
+            trailing: PokeMapBadge(
+              label: isRequired ? 'Requis' : 'Facultatif',
+              variant: isRequired
+                  ? PokeMapBadgeVariant.info
+                  : PokeMapBadgeVariant.neutral,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: PokeMapBadge(
+              label: isReady
+                  ? '$variantCount variante${variantCount > 1 ? 's' : ''}'
+                  : isRequired
+                      ? 'Manquant'
+                      : 'Repli automatique',
+              variant: isReady
+                  ? PokeMapBadgeVariant.success
+                  : isRequired
+                      ? PokeMapBadgeVariant.warning
+                      : PokeMapBadgeVariant.neutral,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _stoneRoleDescription(BorderPrimitiveRole role) => switch (role) {
+        BorderPrimitiveRole.structureLarge =>
+          'Dessine la lèvre supérieure continue de la falaise.',
+        BorderPrimitiveRole.structureMedium =>
+          'Dessine la rangée verticale sous le sommet lorsque deux étages sont actifs.',
+        BorderPrimitiveRole.filler =>
+          'Place quelques pierres facultatives hors de la structure continue.',
+        BorderPrimitiveRole.lineCorner =>
+          'Adoucit les virages du sommet. Repli : assemblage de sommets plats.',
+        BorderPrimitiveRole.lineCap =>
+          'Termine les tracés ouverts du sommet. Repli : Sommet plat.',
+        _ => '',
+      };
 }
 
 class _ConnectedLineRoleStatus extends StatelessWidget {

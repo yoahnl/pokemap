@@ -1,4 +1,5 @@
 import '../models/border_geometry.dart';
+import '../models/border_value_objects.dart';
 import '../models/geometry.dart';
 import 'border_json_codec_helpers.dart';
 import 'border_rle_codec.dart';
@@ -10,6 +11,7 @@ const Set<String> _regionKeys = <String>{
   'cellsRle',
 };
 const Set<String> _strokeGeometryKeys = <String>{'kind', 'strokes'};
+const Set<String> _strokeGeometryOptionalKeysV3 = <String>{'alignment'};
 const Set<String> _strokeKeys = <String>{'id', 'points', 'closed'};
 const Set<String> _pointKeys = <String>{'x', 'y'};
 const Set<String> _keepOutKeys = <String>{'id', 'region'};
@@ -21,10 +23,13 @@ const Set<String> _keepOutKeys = <String>{'id', 'region'};
 Map<String, Object?> encodeBorderFeatureGeometryJson(
   BorderFeatureGeometry geometry, {
   String path = r'$',
+  int formatVersion = 1,
 }) {
+  _requireSupportedGeometryFormatVersion(formatVersion, path);
   return switch (geometry) {
     BorderRegionGeometry() => _encodeRegionGeometry(geometry, path),
-    BorderStrokeGeometry() => _encodeStrokeGeometry(geometry, path),
+    BorderStrokeGeometry() =>
+      _encodeStrokeGeometry(geometry, path, formatVersion),
   };
 }
 
@@ -32,7 +37,9 @@ Map<String, Object?> encodeBorderFeatureGeometryJson(
 BorderFeatureGeometry decodeBorderFeatureGeometryJson(
   Object? json, {
   String path = r'$',
+  int formatVersion = 1,
 }) {
+  _requireSupportedGeometryFormatVersion(formatVersion, path);
   final value = borderJsonRequireObject(json, path);
   final kindPath = borderJsonPropertyPath(path, 'kind');
   final kind = borderJsonRequireString(
@@ -42,7 +49,7 @@ BorderFeatureGeometry decodeBorderFeatureGeometryJson(
 
   return switch (kind) {
     'region' => _decodeRegionGeometry(value, path),
-    'stroke' => _decodeStrokeGeometry(value, path),
+    'stroke' => _decodeStrokeGeometry(value, path, formatVersion),
     _ => throw FormatException(
         '$kindPath: unsupported Border geometry kind: $kind',
       ),
@@ -172,10 +179,20 @@ BorderRegionGeometry _decodeRegionGeometry(
 Map<String, Object?> _encodeStrokeGeometry(
   BorderStrokeGeometry geometry,
   String path,
+  int formatVersion,
 ) {
+  final alignmentPath = borderJsonPropertyPath(path, 'alignment');
+  if (geometry.alignment == BorderStrokeAlignment.gridEdges &&
+      formatVersion < 3) {
+    throw FormatException(
+      '$alignmentPath: requires Border layer format version 3',
+    );
+  }
   final strokesPath = borderJsonPropertyPath(path, 'strokes');
   return <String, Object?>{
     'kind': 'stroke',
+    if (geometry.alignment != BorderStrokeAlignment.cellCenters)
+      'alignment': borderStrokeAlignmentV1WireName(geometry.alignment),
     'strokes': <Object?>[
       for (var index = 0; index < geometry.strokes.length; index += 1)
         _encodeStroke(
@@ -201,12 +218,26 @@ Map<String, Object?> _encodeStroke(BorderStroke stroke, String path) {
 BorderStrokeGeometry _decodeStrokeGeometry(
   BorderJsonObject value,
   String path,
+  int formatVersion,
 ) {
   borderJsonRequireExactKeys(
     value,
     path: path,
     requiredKeys: _strokeGeometryKeys,
+    optionalKeys:
+        formatVersion >= 3 ? _strokeGeometryOptionalKeysV3 : const <String>{},
   );
+  final alignmentPath = borderJsonPropertyPath(path, 'alignment');
+  final alignmentValue = value['alignment'];
+  final alignment = alignmentValue == null
+      ? BorderStrokeAlignment.cellCenters
+      : switch (borderJsonRequireString(alignmentValue, alignmentPath)) {
+          'cellCenters' => BorderStrokeAlignment.cellCenters,
+          'gridEdges' => BorderStrokeAlignment.gridEdges,
+          _ => throw FormatException(
+              '$alignmentPath: unknown Border stroke alignment',
+            ),
+        };
   final strokesPath = borderJsonPropertyPath(path, 'strokes');
   final strokeValues = borderJsonRequireList(
     borderJsonRequireField(value, 'strokes', path),
@@ -228,8 +259,14 @@ BorderStrokeGeometry _decodeStrokeGeometry(
 
   return borderJsonConstructAtPath(
     strokesPath,
-    () => BorderStrokeGeometry(strokes: strokes),
+    () => BorderStrokeGeometry(strokes: strokes, alignment: alignment),
   );
+}
+
+void _requireSupportedGeometryFormatVersion(int value, String path) {
+  if (value < 1 || value > 3) {
+    throw FormatException('$path: unsupported Border geometry format version');
+  }
 }
 
 BorderStroke _decodeStroke(Object? json, String path) {

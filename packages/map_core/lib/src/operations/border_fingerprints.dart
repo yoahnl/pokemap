@@ -188,6 +188,11 @@ Object _blueprintProjection({
           'id': primitive.id,
           'visualSnapshotId': primitive.visualSnapshotId,
           'role': borderPrimitiveRoleV1WireName(primitive.role),
+          if (primitive.authoredOrientation !=
+              BorderPrimitiveOrientation.legacyAxis)
+            'authoredOrientation': borderPrimitiveOrientationV1WireName(
+              primitive.authoredOrientation,
+            ),
           'weight': primitive.weight,
           'anchorPx': _pixelPosProjection(primitive.anchorPx),
           'transforms': _transformPolicyProjection(primitive.transforms),
@@ -216,7 +221,8 @@ Object _geometryAndSeedProjection(
       'featureId': feature.id,
       'seed': feature.seed.toString(),
       'geometry': _geometryProjection(feature.geometry),
-      if (template == BorderBlueprintTemplate.connectedLine)
+      if (template == BorderBlueprintTemplate.connectedLine ||
+          template == BorderBlueprintTemplate.stoneChainLine)
         'lineSide': switch (feature.lineSide) {
           BorderLineSide.primary => 'primary',
           BorderLineSide.inverted => 'inverted',
@@ -232,8 +238,11 @@ Object _geometryProjection(BorderFeatureGeometry geometry) =>
           'height': _jsonInteger(height),
           'cellsRle': encodeBorderRleMask(cells),
         },
-      BorderStrokeGeometry(:final strokes) => <String, Object?>{
+      BorderStrokeGeometry(:final strokes, :final alignment) =>
+        <String, Object?>{
           'kind': 'stroke',
+          if (alignment != BorderStrokeAlignment.cellCenters)
+            'alignment': borderStrokeAlignmentV1WireName(alignment),
           'strokes': <Object?>[
             for (final stroke in strokes)
               <String, Object?>{

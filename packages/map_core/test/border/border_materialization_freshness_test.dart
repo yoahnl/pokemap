@@ -12,6 +12,68 @@ const _wrongHash =
 
 void main() {
   group('assessBorderMaterializationFreshness', () {
+    test('inclusive grid-edge boundary remains fresh and regenerable', () {
+      final request = _request(
+        template: BorderBlueprintTemplate.stoneChainLine,
+        geometry: BorderStrokeGeometry(
+          strokes: <BorderStroke>[
+            BorderStroke(
+              id: 'bottom-edge',
+              points: const <GridPos>[
+                GridPos(x: 2, y: 2),
+                GridPos(x: 3, y: 2),
+              ],
+              closed: false,
+            ),
+          ],
+          alignment: BorderStrokeAlignment.gridEdges,
+        ),
+      );
+
+      final result = assessBorderMaterializationFreshness(
+        request,
+        materialization: _materialization(request),
+        snapshotIntegrity: _integrity(),
+      );
+
+      expect(result.state, BorderMaterializationState.fresh);
+      expect(result.reasons, isEmpty);
+      expect(result.canRegenerate, isTrue);
+    });
+
+    test('alignment change is stale and incompatible with stone-chain', () {
+      final stroke = BorderStroke(
+        id: 'edge',
+        points: const <GridPos>[
+          GridPos(x: 0, y: 1),
+          GridPos(x: 1, y: 1),
+        ],
+        closed: false,
+      );
+      final base = _request(
+        template: BorderBlueprintTemplate.stoneChainLine,
+        geometry: BorderStrokeGeometry(
+          strokes: <BorderStroke>[stroke],
+          alignment: BorderStrokeAlignment.gridEdges,
+        ),
+      );
+      final changed = _request(
+        template: BorderBlueprintTemplate.stoneChainLine,
+        geometry: BorderStrokeGeometry(strokes: <BorderStroke>[stroke]),
+      );
+
+      final result = assessBorderMaterializationFreshness(
+        changed,
+        materialization: _materialization(base),
+        snapshotIntegrity: _integrity(),
+      );
+
+      expect(result.state, BorderMaterializationState.stale);
+      expect(result.reasons,
+          <BorderStalenessReason>{BorderStalenessReason.geometryOrSeedChanged});
+      expect(result.canRegenerate, isFalse);
+    });
+
     test('null is unmaterialized, nonrenderable, and regenerable when valid',
         () {
       final result = assessBorderMaterializationFreshness(
@@ -708,6 +770,7 @@ BorderResolutionRequest _request({
   int primitiveWeight = 1,
   BorderPrimitiveAssetMetrics? primitiveMetrics,
   List<BorderVisualSnapshot>? snapshots,
+  BorderBlueprintTemplate template = BorderBlueprintTemplate.organicEdge,
 }) {
   final feature = BorderFeature(
     id: 'feature',
@@ -734,7 +797,7 @@ BorderResolutionRequest _request({
             definition: BorderBlueprintPublishedDefinition(
               name: 'Blueprint',
               previewSeed: BorderSignedInt64.zero,
-              template: BorderBlueprintTemplate.organicEdge,
+              template: template,
               primitives: <BorderPublishedPrimitive>[
                 _primitive(
                   snapshotId: primitiveSnapshotId,

@@ -332,6 +332,12 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
                     ),
                     onRemovePrimitive: (primitiveId) =>
                         _removeAsset(controller, primitiveId),
+                    onAuthoredOrientationChanged: (primitiveId, orientation) =>
+                        _changeAuthoredOrientation(
+                      controller,
+                      primitiveId,
+                      orientation,
+                    ),
                     previewBytesByPrimitiveId: _assetPreviewBytesByBlueprintId[
                             state.selectedBlueprintId] ??
                         const <String, Uint8List>{},
@@ -681,6 +687,7 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
                 id: primitive.id,
                 sourceElementId: primitive.sourceElementId,
                 role: role,
+                authoredOrientation: primitive.authoredOrientation,
                 weight: primitive.weight,
                 anchorPx: primitive.anchorPx,
                 transforms: primitive.transforms,
@@ -688,6 +695,18 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
               )
             : primitive,
     ]);
+  }
+
+  void _changeAuthoredOrientation(
+    BorderStudioDraftController controller,
+    String primitiveId,
+    BorderPrimitiveOrientation orientation,
+  ) {
+    controller.setPrimitiveAuthoredOrientation(primitiveId, orientation);
+    setState(() {
+      _publicationPreview = null;
+      _feedback = 'Orientation mise à jour. Regénérez l’aperçu canonique.';
+    });
   }
 
   BorderStudioPublicationPreview? _currentPublicationPreview({

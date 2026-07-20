@@ -50,6 +50,7 @@ class BorderAssetsStep extends StatelessWidget {
     required this.onAnalyzeSelected,
     required this.onReanalyzePrimitive,
     required this.onRemovePrimitive,
+    required this.onAuthoredOrientationChanged,
     required this.previewBytesByPrimitiveId,
     this.feedback,
     this.isAnalyzing = false,
@@ -62,6 +63,10 @@ class BorderAssetsStep extends StatelessWidget {
   final Future<void> Function() onAnalyzeSelected;
   final Future<void> Function(String primitiveId) onReanalyzePrimitive;
   final ValueChanged<String> onRemovePrimitive;
+  final void Function(
+    String primitiveId,
+    BorderPrimitiveOrientation orientation,
+  ) onAuthoredOrientationChanged;
   final Map<String, Uint8List> previewBytesByPrimitiveId;
   final BorderAssetStepFeedback? feedback;
   final bool isAnalyzing;
@@ -70,6 +75,7 @@ class BorderAssetsStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final primitives = state.workingDraft?.blueprint.definition.primitives ??
         const <BorderPrimitiveDraft>[];
+    final template = state.workingDraft?.blueprint.definition.template;
     final elements = manifest.elements;
     final selectedElementId = _selectedElementId(elements);
     return BorderStudioStepScaffold(
@@ -184,13 +190,63 @@ class BorderAssetsStep extends StatelessWidget {
                         children: [
                           Text(_elementName(primitive.sourceElementId)),
                           const SizedBox(height: 3),
-                          Text(borderRoleLabel(primitive.role)),
+                          Text(
+                            borderRoleLabel(
+                              primitive.role,
+                              template: state
+                                  .workingDraft?.blueprint.definition.template,
+                            ),
+                          ),
                           const SizedBox(height: 6),
                           PokeMapBadge(
                             label:
                                 '${primitive.currentMetrics.pixelSize.width} × ${primitive.currentMetrics.pixelSize.height} px',
                             variant: PokeMapBadgeVariant.info,
                           ),
+                          if (template ==
+                              BorderBlueprintTemplate.stoneChainLine) ...[
+                            const SizedBox(height: 10),
+                            PokeMapDropdownField<BorderPrimitiveOrientation>(
+                              key: ValueKey<String>(
+                                'border-studio-authored-orientation-picker-${primitive.id}',
+                              ),
+                              label: 'Orientation dessinée dans l\'asset',
+                              value: primitive.authoredOrientation,
+                              items: const <PokeMapDropdownItem<
+                                  BorderPrimitiveOrientation>>[
+                                PokeMapDropdownItem<BorderPrimitiveOrientation>(
+                                  value: BorderPrimitiveOrientation.legacyAxis,
+                                  label: 'Historique',
+                                ),
+                                PokeMapDropdownItem<BorderPrimitiveOrientation>(
+                                  value: BorderPrimitiveOrientation.north,
+                                  label: 'Nord',
+                                ),
+                                PokeMapDropdownItem<BorderPrimitiveOrientation>(
+                                  value: BorderPrimitiveOrientation.east,
+                                  label: 'Est',
+                                ),
+                                PokeMapDropdownItem<BorderPrimitiveOrientation>(
+                                  value: BorderPrimitiveOrientation.south,
+                                  label: 'Sud',
+                                ),
+                                PokeMapDropdownItem<BorderPrimitiveOrientation>(
+                                  value: BorderPrimitiveOrientation.west,
+                                  label: 'Ouest',
+                                ),
+                              ],
+                              enabled: !isAnalyzing,
+                              onChanged: (orientation) =>
+                                  onAuthoredOrientationChanged(
+                                primitive.id,
+                                orientation,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'La direction indique le côté vers lequel descend la falaise.',
+                            ),
+                          ],
                         ],
                       ),
                     ),

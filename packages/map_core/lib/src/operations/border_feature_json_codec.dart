@@ -106,8 +106,9 @@ Map<String, Object?> encodeBorderFeatureJson(
     'geometry': encodeBorderFeatureGeometryJson(
       feature.geometry,
       path: borderJsonPropertyPath(path, 'geometry'),
+      formatVersion: formatVersion,
     ),
-    if (formatVersion == 2 && feature.lineSide != BorderLineSide.primary)
+    if (formatVersion >= 2 && feature.lineSide != BorderLineSide.primary)
       'lineSide': _encodeLineSide(feature.lineSide),
     if (params != null)
       'paramsOverride': encodeBorderGenerationParamsJson(
@@ -156,6 +157,7 @@ BorderFeature decodeBorderFeatureJson(
   final geometry = decodeBorderFeatureGeometryJson(
     borderJsonRequireField(value, 'geometry', path),
     path: geometryPath,
+    formatVersion: formatVersion,
   );
   final lineSide = _decodeOptionalLineSide(value, path);
 
@@ -237,7 +239,7 @@ BorderFeature decodeBorderFeatureJson(
 }
 
 void _requireSupportedFeatureFormatVersion(int value, String path) {
-  if (value != 1 && value != 2) {
+  if (value < 1 || value > 3) {
     throw FormatException('$path: unsupported Border feature format version');
   }
 }

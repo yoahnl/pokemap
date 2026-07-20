@@ -1,16 +1,20 @@
 import '../exceptions/map_exceptions.dart';
 import '../models/border_feature.dart';
+import '../models/border_geometry.dart';
 import '../models/border_materialization.dart';
 import '../models/border_resolution.dart';
 import '../models/border_value_objects.dart';
 import '../models/geometry.dart';
 import 'border_fingerprints.dart';
+import 'border_linear_lattice.dart';
 import 'border_local_resolution_scope.dart';
 import 'masonry_line_border_resolver.dart';
 import 'organic_edge_border_resolver.dart';
 import 'post_and_rail_line_border_resolver.dart';
 import 'border_sprite_geometry.dart';
+import 'border_stroke_canonicalization.dart';
 import 'connected_line_border_resolver.dart';
+import 'stone_chain_line_border_resolver.dart';
 
 /// One authoring edit expressed as the pixel domains it can influence.
 final class BorderLocalEdit {
@@ -149,7 +153,29 @@ int computeBorderDirtyHaloRadiusForRequestPx(
   final groundRadius = revision.definition.ground == null
       ? 0
       : revision.definition.ground!.edgeBandCells * tileSizePx;
-  return placementRadius > groundRadius ? placementRadius : groundRadius;
+  var semanticFaceReachPx = 0;
+  if (revision.definition.template == BorderBlueprintTemplate.stoneChainLine &&
+      parameters.depthRows >= 2) {
+    for (final primitive in revision.definition.primitives) {
+      if (primitive.weight <= 0 ||
+          primitive.role != BorderPrimitiveRole.structureMedium) {
+        continue;
+      }
+      final bounds = primitive.publishedMetrics.opaqueBounds;
+      final reach = bounds.width > bounds.height ? bounds.width : bounds.height;
+      if (reach > semanticFaceReachPx) semanticFaceReachPx = reach;
+    }
+    // A two-tier face can change one complete grid-edge station even when its
+    // current synthetic mask is shallower. Keep that 32px-on-the-reference-
+    // grid semantic reach explicit instead of deriving locality solely from
+    // whichever face variant happened to be selected.
+    if (tileSizePx > semanticFaceReachPx) semanticFaceReachPx = tileSizePx;
+  }
+  final structuralRadius =
+      placementRadius > groundRadius ? placementRadius : groundRadius;
+  return structuralRadius > semanticFaceReachPx
+      ? structuralRadius
+      : semanticFaceReachPx;
 }
 
 /// Expands every edit source by the approved request-local pixel radius.
@@ -206,6 +232,11 @@ BorderLocalResolutionState resolveBorderFeatureLocalBaseline(
         request,
         localCapture: capture,
       ).result,
+    BorderBlueprintTemplate.stoneChainLine =>
+      resolveStoneChainLineBorderWithEvidence(
+        request,
+        localCapture: capture,
+      ).result,
   };
   return capture.finish(request: request, result: result);
 }
@@ -221,7 +252,12 @@ BorderLocalResolutionResult resolveBorderFeatureLocally({
   required Iterable<BorderLocalEdit> edits,
 }) {
   _validateLocalBaselineCompatibility(request, previousState);
-  final dirtyHalo = computeBorderDirtyHalo(request: request, edits: edits);
+  final editList = edits.toList(growable: false);
+  final dirtyHalo = _computeLocalDirtyHalo(
+    currentRequest: request,
+    previousRequest: previousState.request,
+    edits: editList,
+  );
   final changedOverrideSlotKeys = _validateChangedOverrideInputs(
     request: request,
     previousState: previousState,
@@ -252,6 +288,12 @@ BorderLocalResolutionResult resolveBorderFeatureLocally({
       ).result,
     BorderBlueprintTemplate.connectedLine =>
       resolveConnectedLineBorderWithEvidence(
+        request,
+        localScope: scope,
+        localCapture: capture,
+      ).result,
+    BorderBlueprintTemplate.stoneChainLine =>
+      resolveStoneChainLineBorderWithEvidence(
         request,
         localScope: scope,
         localCapture: capture,
@@ -298,6 +340,199 @@ BorderLocalResolutionResult resolveBorderFeatureLocally({
     recomputedSourceCells: scope.recomputedSourceCells,
   );
 }
+
+BorderDirtyHalo _computeLocalDirtyHalo({
+  required BorderResolutionRequest currentRequest,
+  required BorderResolutionRequest previousRequest,
+  required List<BorderLocalEdit> edits,
+}) {
+  final base = computeBorderDirtyHalo(
+    request: currentRequest,
+    edits: edits,
+  );
+  final plannerRunBounds = <BorderPixelRect>[
+    ..._strictStoneChainPlannerRunBoundsPx(previousRequest),
+    ..._strictStoneChainPlannerRunBoundsPx(currentRequest),
+  ];
+  if (plannerRunBounds.isEmpty) return base;
+
+  // A strict topology row is solved as one coupled run. Select against the
+  // original edit halo only: recursively selecting neighboring runs at turns
+  // would incorrectly turn one local edit into a whole-stroke regeneration.
+  final affected = <BorderPixelRect>{...base.affectedBoundsPx};
+  for (final runBounds in plannerRunBounds) {
+    if (base.affectedBoundsPx.any(
+      (dirty) => _rectanglesIntersect(dirty, runBounds),
+    )) {
+      affected.add(_expand(runBounds, base.radiusPx));
+    }
+  }
+  final ordered = affected.toList(growable: false)
+    ..sort((left, right) {
+      var result = left.y.compareTo(right.y);
+      if (result != 0) return result;
+      result = left.x.compareTo(right.x);
+      if (result != 0) return result;
+      result = left.height.compareTo(right.height);
+      return result != 0 ? result : left.width.compareTo(right.width);
+    });
+  return BorderDirtyHalo._(
+    radiusPx: base.radiusPx,
+    affectedBoundsPx: ordered,
+  );
+}
+
+List<BorderPixelRect> _strictStoneChainPlannerRunBoundsPx(
+  BorderResolutionRequest request,
+) {
+  final revision = request.blueprintRevision;
+  if (revision == null ||
+      revision.definition.template != BorderBlueprintTemplate.stoneChainLine) {
+    return const <BorderPixelRect>[];
+  }
+  final parameters =
+      request.feature.paramsOverride ?? revision.definition.defaults;
+  if (parameters.depthRows < 2) return const <BorderPixelRect>[];
+  final structural = revision.definition.primitives
+      .where(
+        (primitive) =>
+            primitive.weight > 0 &&
+            (primitive.role == BorderPrimitiveRole.structureLarge ||
+                primitive.role == BorderPrimitiveRole.structureMedium),
+      )
+      .toList(growable: false);
+  final supportsStrictTopology = structural.any(
+        (primitive) => primitive.role == BorderPrimitiveRole.structureLarge,
+      ) &&
+      structural.any(
+        (primitive) => primitive.role == BorderPrimitiveRole.structureMedium,
+      ) &&
+      structural.every(
+        (primitive) =>
+            primitive.authoredOrientation !=
+            BorderPrimitiveOrientation.legacyAxis,
+      );
+  final geometry = request.feature.geometry;
+  if (!supportsStrictTopology ||
+      geometry is! BorderStrokeGeometry ||
+      geometry.alignment != BorderStrokeAlignment.gridEdges) {
+    return const <BorderPixelRect>[];
+  }
+
+  final paths = <_BorderLocalPlannerPath>[];
+  for (final stroke in geometry.strokes) {
+    try {
+      final lineage = resolveBorderStrokeLineageIdentityV1(stroke);
+      final normalized = lineage.preserveTraversal
+          ? stroke
+          : canonicalizeBorderStrokeV1(
+              id: stroke.id,
+              sampledPoints: stroke.points,
+              closed: stroke.closed,
+            );
+      final edges = <_BorderLocalPlannerEdge>[];
+      final edgeCount =
+          normalized.points.length - 1 + (normalized.closed ? 1 : 0);
+      for (var index = 0; index < edgeCount; index += 1) {
+        final start = normalized.points[index];
+        final end = index + 1 < normalized.points.length
+            ? normalized.points[index + 1]
+            : normalized.points.first;
+        final dx = end.x - start.x;
+        final dy = end.y - start.y;
+        if (dx.abs() + dy.abs() != 1) {
+          throw const ValidationException(
+            'Strict stone-chain locality requires unit cardinal edges',
+          );
+        }
+        edges.add((start: start, end: end, dx: dx, dy: dy));
+      }
+      if (edges.isNotEmpty) {
+        paths.add((lineageId: lineage.lineageNamespace, edges: edges));
+      }
+    } on ValidationException {
+      // The resolver owns canonical diagnostics for invalid strokes. Locality
+      // must not invent a dependency run for geometry it cannot normalize.
+    }
+  }
+  final topologyLineages = <String>{
+    for (final path in paths)
+      if (!_borderLocalPlannerPathIsStraight(path)) path.lineageId,
+  };
+  if (topologyLineages.isEmpty) return const <BorderPixelRect>[];
+
+  final result = <BorderPixelRect>[];
+  for (final path in paths) {
+    if (!topologyLineages.contains(path.lineageId)) continue;
+    var runStart = 0;
+    void addRun(int endExclusive) {
+      result.add(
+        _borderLocalPlannerRunBoundsPx(
+          path.edges.sublist(runStart, endExclusive),
+          request.tileSizePx,
+        ),
+      );
+    }
+
+    for (var index = 1; index < path.edges.length; index += 1) {
+      final previous = path.edges[index - 1];
+      final current = path.edges[index];
+      if (previous.dx == current.dx && previous.dy == current.dy) continue;
+      addRun(index);
+      runStart = index;
+    }
+    addRun(path.edges.length);
+  }
+  return List<BorderPixelRect>.unmodifiable(result);
+}
+
+bool _borderLocalPlannerPathIsStraight(_BorderLocalPlannerPath path) {
+  final first = path.edges.first;
+  return path.edges.every(
+    (edge) => edge.dx == first.dx && edge.dy == first.dy,
+  );
+}
+
+BorderPixelRect _borderLocalPlannerRunBoundsPx(
+  List<_BorderLocalPlannerEdge> edges,
+  GridSize tileSizePx,
+) {
+  var minimumX = edges.first.start.x;
+  var maximumX = minimumX;
+  var minimumY = edges.first.start.y;
+  var maximumY = minimumY;
+  for (final edge in edges) {
+    for (final point in <GridPos>[edge.start, edge.end]) {
+      if (point.x < minimumX) minimumX = point.x;
+      if (point.x > maximumX) maximumX = point.x;
+      if (point.y < minimumY) minimumY = point.y;
+      if (point.y > maximumY) maximumY = point.y;
+    }
+  }
+  final left = BigInt.from(minimumX) * BigInt.from(tileSizePx.width);
+  final top = BigInt.from(minimumY) * BigInt.from(tileSizePx.height);
+  final right = BigInt.from(maximumX) * BigInt.from(tileSizePx.width);
+  final bottom = BigInt.from(maximumY) * BigInt.from(tileSizePx.height);
+  return BorderPixelRect(
+    x: left.toInt(),
+    y: top.toInt(),
+    // Include the terminal grid-line pixel in the dependency envelope.
+    width: (right - left + BigInt.one).toInt(),
+    height: (bottom - top + BigInt.one).toInt(),
+  );
+}
+
+typedef _BorderLocalPlannerEdge = ({
+  GridPos start,
+  GridPos end,
+  int dx,
+  int dy,
+});
+
+typedef _BorderLocalPlannerPath = ({
+  String lineageId,
+  List<_BorderLocalPlannerEdge> edges,
+});
 
 void _validateLocalBaselineCompatibility(
   BorderResolutionRequest request,

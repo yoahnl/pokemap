@@ -153,6 +153,69 @@ void main() {
       expect(controller.state.isDirty, isTrue);
     });
 
+    test('creates a stone chain with sparse two-row defaults', () {
+      final controller = BorderStudioDraftController()
+        ..loadFromManifest(_manifest())
+        ..createBlueprint(
+          id: 'stone-chain',
+          name: 'Chaîne de pierres',
+          template: BorderBlueprintTemplate.stoneChainLine,
+        );
+
+      final definition = controller.state.workingDraft!.blueprint.definition;
+      expect(
+        definition.defaults,
+        BorderGenerationParams(
+          irregularityPermille: 180,
+          detailDensityPermille: 0,
+          variationPermille: 1000,
+          maxOverlapPx: 8,
+          gapTolerancePx: 0,
+          depthRows: 2,
+          allowAutoRotation: false,
+        ),
+      );
+      expect(
+        controller.state.allowedPrimitiveRoles,
+        const <BorderPrimitiveRole>{
+          BorderPrimitiveRole.structureLarge,
+          BorderPrimitiveRole.structureMedium,
+          BorderPrimitiveRole.filler,
+          BorderPrimitiveRole.lineCorner,
+          BorderPrimitiveRole.lineCap,
+        },
+      );
+      expect(
+        controller.saveDraft().borderCatalog.formatVersion,
+        ProjectBorderCatalog.formatVersionV3,
+      );
+    });
+
+    test('applies stone defaults when an untouched new blueprint changes type',
+        () {
+      final controller = BorderStudioDraftController()
+        ..loadFromManifest(_manifest())
+        ..createBlueprint(
+          id: 'new-border',
+          name: 'Nouvelle bordure',
+          template: BorderBlueprintTemplate.organicEdge,
+        )
+        ..setTemplate(BorderBlueprintTemplate.stoneChainLine);
+
+      expect(
+        controller.state.workingDraft!.blueprint.definition.defaults,
+        BorderGenerationParams(
+          irregularityPermille: 180,
+          detailDensityPermille: 0,
+          variationPermille: 1000,
+          maxOverlapPx: 8,
+          gapTolerancePx: 0,
+          depthRows: 2,
+          allowAutoRotation: false,
+        ),
+      );
+    });
+
     test('saves by replacing only the draft and preserving publication data',
         () {
       final published = _publishedRevision(name: 'Cote publiee');
@@ -215,6 +278,110 @@ void main() {
         ],
       );
       expect(controller.state.isDirty, isFalse);
+    });
+
+    test('reanalysis with the same authored orientation preserves it', () {
+      final controller = BorderStudioDraftController()
+        ..loadFromManifest(
+          _manifest(
+            records: <BorderBlueprintRecord>[
+              _record(
+                id: 'coast',
+                name: 'Côte',
+                primitives: <BorderPrimitiveDraft>[
+                  _primitive(
+                    id: 'rock',
+                    role: BorderPrimitiveRole.structureLarge,
+                    authoredOrientation: BorderPrimitiveOrientation.west,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+
+      controller.replacePrimitiveAfterReanalysis(
+        _primitive(
+          id: 'rock',
+          role: BorderPrimitiveRole.structureLarge,
+          authoredOrientation: BorderPrimitiveOrientation.west,
+          fingerprint: 'fingerprint-refreshed',
+        ),
+      );
+
+      final primitive =
+          controller.state.workingDraft!.blueprint.definition.primitives.single;
+      expect(
+        primitive.authoredOrientation,
+        BorderPrimitiveOrientation.west,
+      );
+      expect(
+        primitive.currentMetrics.assetFingerprint,
+        'fingerprint-refreshed',
+      );
+    });
+
+    test('reanalysis rejects a changed authored orientation', () {
+      final controller = BorderStudioDraftController()
+        ..loadFromManifest(
+          _manifest(
+            records: <BorderBlueprintRecord>[
+              _record(
+                id: 'coast',
+                name: 'Côte',
+                primitives: <BorderPrimitiveDraft>[
+                  _primitive(
+                    id: 'rock',
+                    role: BorderPrimitiveRole.structureLarge,
+                    authoredOrientation: BorderPrimitiveOrientation.west,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+
+      expect(
+        () => controller.replacePrimitiveAfterReanalysis(
+          _primitive(
+            id: 'rock',
+            role: BorderPrimitiveRole.structureLarge,
+            authoredOrientation: BorderPrimitiveOrientation.north,
+            fingerprint: 'fingerprint-refreshed',
+          ),
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('changes authored orientation without changing the primitive role',
+        () {
+      final controller = BorderStudioDraftController()
+        ..loadFromManifest(_manifest())
+        ..createBlueprint(
+          id: 'oriented-cliff',
+          name: 'Falaise orientée',
+          template: BorderBlueprintTemplate.stoneChainLine,
+        )
+        ..replacePrimitives(<BorderPrimitiveDraft>[
+          _primitive(
+            id: 'face',
+            role: BorderPrimitiveRole.structureMedium,
+            authoredOrientation: BorderPrimitiveOrientation.north,
+          ),
+        ])
+        ..setDiagnostics(const BorderDiagnosticsReport.empty());
+
+      controller.setPrimitiveAuthoredOrientation(
+        'face',
+        BorderPrimitiveOrientation.west,
+      );
+
+      final primitive =
+          controller.state.workingDraft!.blueprint.definition.primitives.single;
+      expect(primitive.role, BorderPrimitiveRole.structureMedium);
+      expect(primitive.authoredOrientation, BorderPrimitiveOrientation.west);
+      expect(controller.state.diagnosticsAreCurrent, isFalse);
     });
 
     test('copies a draft as a new unpublished identity and adds it on save',
@@ -358,6 +525,7 @@ void main() {
         BorderBlueprintTemplate.masonryLine,
         BorderBlueprintTemplate.postAndRailLine,
         BorderBlueprintTemplate.connectedLine,
+        BorderBlueprintTemplate.stoneChainLine,
       ]) {
         final manifest = _manifest(
           records: <BorderBlueprintRecord>[
@@ -1066,11 +1234,14 @@ BorderPrimitiveDraft _primitive({
   required String id,
   required BorderPrimitiveRole role,
   String fingerprint = 'fingerprint-current',
+  BorderPrimitiveOrientation authoredOrientation =
+      BorderPrimitiveOrientation.legacyAxis,
 }) {
   return BorderPrimitiveDraft(
     id: id,
     sourceElementId: 'element-$id',
     role: role,
+    authoredOrientation: authoredOrientation,
     weight: 100,
     anchorPx: const BorderPixelPos(x: 4, y: 8),
     transforms: BorderTransformPolicy(

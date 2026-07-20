@@ -13,6 +13,7 @@ final class BorderPrimitiveDraft {
     required this.id,
     required this.sourceElementId,
     required this.role,
+    this.authoredOrientation = BorderPrimitiveOrientation.legacyAxis,
     required this.weight,
     required this.anchorPx,
     required this.transforms,
@@ -33,6 +34,7 @@ final class BorderPrimitiveDraft {
   final String id;
   final String sourceElementId;
   final BorderPrimitiveRole role;
+  final BorderPrimitiveOrientation authoredOrientation;
   final int weight;
   final BorderPixelPos anchorPx;
   final BorderTransformPolicy transforms;
@@ -45,6 +47,7 @@ final class BorderPrimitiveDraft {
           id == other.id &&
           sourceElementId == other.sourceElementId &&
           role == other.role &&
+          authoredOrientation == other.authoredOrientation &&
           weight == other.weight &&
           anchorPx == other.anchorPx &&
           transforms == other.transforms &&
@@ -55,6 +58,7 @@ final class BorderPrimitiveDraft {
         id,
         sourceElementId,
         role,
+        authoredOrientation,
         weight,
         anchorPx,
         transforms,
@@ -70,6 +74,7 @@ final class BorderPublishedPrimitive {
     required this.sourceElementId,
     required this.visualSnapshotId,
     required this.role,
+    this.authoredOrientation = BorderPrimitiveOrientation.legacyAxis,
     required this.weight,
     required this.anchorPx,
     required this.transforms,
@@ -95,6 +100,7 @@ final class BorderPublishedPrimitive {
   final String sourceElementId;
   final String visualSnapshotId;
   final BorderPrimitiveRole role;
+  final BorderPrimitiveOrientation authoredOrientation;
   final int weight;
   final BorderPixelPos anchorPx;
   final BorderTransformPolicy transforms;
@@ -108,6 +114,7 @@ final class BorderPublishedPrimitive {
           sourceElementId == other.sourceElementId &&
           visualSnapshotId == other.visualSnapshotId &&
           role == other.role &&
+          authoredOrientation == other.authoredOrientation &&
           weight == other.weight &&
           anchorPx == other.anchorPx &&
           transforms == other.transforms &&
@@ -119,6 +126,7 @@ final class BorderPublishedPrimitive {
         sourceElementId,
         visualSnapshotId,
         role,
+        authoredOrientation,
         weight,
         anchorPx,
         transforms,

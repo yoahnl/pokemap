@@ -39,12 +39,26 @@ void main() {
           const ValueKey<String>('border-studio-template-connected-line'),
         ),
       );
+      final stoneChainButton = tester.widget<PokeMapButton>(
+        find.byKey(
+          const ValueKey<String>('border-studio-template-stone-chain'),
+        ),
+      );
 
       expect(masonryButton.onPressed, isNotNull);
+      expect(stoneChainButton.onPressed, isNotNull);
       expect(fenceButton.onPressed, isNull);
       expect(connectedButton.onPressed, isNull);
       expect(find.text('Ligne connectée'), findsOneWidget);
-      expect(find.text('Publication disponible'), findsNWidgets(4));
+      expect(find.text('Chaîne de pierres'), findsOneWidget);
+      expect(
+        find.text(
+          'Falaises et bordures naturelles composées de petites pierres le '
+          'long d\'un tracé sur la grille.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Publication disponible'), findsNWidgets(5));
       expect(find.text('Publication après BORD-03'), findsNothing);
       expect(
         find.text(

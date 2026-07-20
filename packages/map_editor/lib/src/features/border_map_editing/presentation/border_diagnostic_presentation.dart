@@ -28,6 +28,8 @@ String localizeEditorBorderDiagnostic(BorderDiagnostic diagnostic) {
       'Attribuez un identifiant unique à chaque élément du blueprint.',
     'border.resolution.ground_snapshot_missing' =>
       'Publiez le visuel de sol utilisé par cette bordure.',
+    'border.resolution.grid_edge_geometry_required' =>
+      'Redessinez cette chaîne de pierres sur les arêtes de la grille.',
     'border.resolution.keep_out_size_mismatch' =>
       'Adaptez les zones d’exclusion aux dimensions de la carte.',
     'border.resolution.keep_outs_not_supported' =>
@@ -66,6 +68,14 @@ String localizeEditorBorderDiagnostic(BorderDiagnostic diagnostic) {
       'Recréez le tracé afin de le remettre dans son ordre canonique.',
     'border.resolution.stroke_out_of_bounds' =>
       'Replacez le tracé entièrement dans les limites de la carte.',
+    'border.resolution.stone_chain_depth_rows_invalid' =>
+      'Choisissez une profondeur de une ou deux rangées de pierres.',
+    'border.resolution.stone_chain_primary_role_missing' =>
+      'Ajoutez au moins une Pierre principale au blueprint.',
+    'border.resolution.stone_chain_required_node_unresolved' =>
+      'Ajustez le tracé ou réduisez le chevauchement afin de placer chaque angle et extrémité.',
+    'border.resolution.stone_chain_transform_unavailable' =>
+      'Autorisez l’orientation requise pour cette pierre, puis régénérez l’aperçu.',
     'border.resolution.structural_occupancy_empty' =>
       'Ajoutez des pixels opaques à l’élément structurel publié.',
     'border.resolution.structural_occupancy_invalid' =>
@@ -94,6 +104,12 @@ String localizeEditorBorderDiagnostic(BorderDiagnostic diagnostic) {
       'Ajoutez des éléments compatibles pour générer la bordure.',
     'border.resolution.visual_snapshot_invalid' =>
       'Republiez le visuel absent ou invalide utilisé par le blueprint.',
+    'border.publication.stone_chain_depth_rows_invalid' =>
+      'Choisissez une profondeur de une ou deux rangées avant de publier.',
+    'border.publication.stone_chain_primary_variety_low' =>
+      'Ajoutez idéalement trois variantes de Pierre principale pour un résultat plus naturel.',
+    'border.publication.stone_chain_transform_unavailable' =>
+      'Autorisez les orientations requises pour les pierres, puis régénérez la galerie.',
     'invalid_tile_size' =>
       'Choisissez des dimensions de tuile strictement positives.',
     'tile_size_exceeds_portable_integer_range' =>

@@ -8,7 +8,7 @@ void main() {
           ProjectBorderCatalog.formatVersionV1);
       expect(
         ProjectBorderCatalog.latestSupportedFormatVersion,
-        ProjectBorderCatalog.formatVersionV2,
+        ProjectBorderCatalog.formatVersionV4,
       );
       expect(
         ProjectBorderCatalog.currentFormatVersion,
@@ -62,15 +62,20 @@ void main() {
       expect(() => catalog.records.add(_record('x')), throwsUnsupportedError);
     });
 
-    test('accepts V2 and rejects unknown versions and duplicate identities',
+    test(
+        'accepts V2/V3/V4 and rejects unknown versions and duplicate identities',
         () {
-      expect(
-        ProjectBorderCatalog(
-          formatVersion: ProjectBorderCatalog.formatVersionV2,
-        ).formatVersion,
+      for (final version in <int>[
         ProjectBorderCatalog.formatVersionV2,
-      );
-      for (final version in <int>[0, 3]) {
+        ProjectBorderCatalog.formatVersionV3,
+        ProjectBorderCatalog.formatVersionV4,
+      ]) {
+        expect(
+          ProjectBorderCatalog(formatVersion: version).formatVersion,
+          version,
+        );
+      }
+      for (final version in <int>[0, 5]) {
         expect(
           () => ProjectBorderCatalog(formatVersion: version),
           throwsA(isA<ValidationException>()),

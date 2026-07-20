@@ -11,10 +11,17 @@ enum BorderBlueprintTemplate {
   masonryLine,
   postAndRailLine,
   connectedLine,
+  stoneChainLine,
 }
+
+/// Coordinate space used by authored stroke points.
+enum BorderStrokeAlignment { cellCenters, gridEdges }
 
 /// Visual normal selected for an entire connected-line feature.
 enum BorderLineSide { primary, inverted }
+
+/// Authored cardinal orientation of one Border primitive.
+enum BorderPrimitiveOrientation { legacyAxis, east, south, west, north }
 
 /// Functional primitive roles supported by V1.
 enum BorderPrimitiveRole {
@@ -40,6 +47,26 @@ String borderBlueprintTemplateV1WireName(
       BorderBlueprintTemplate.masonryLine => 'masonryLine',
       BorderBlueprintTemplate.postAndRailLine => 'postAndRailLine',
       BorderBlueprintTemplate.connectedLine => 'connectedLine',
+      BorderBlueprintTemplate.stoneChainLine => 'stoneChainLine',
+    };
+
+/// Stable persisted spelling shared by strict codecs and fingerprints.
+String borderStrokeAlignmentV1WireName(BorderStrokeAlignment alignment) =>
+    switch (alignment) {
+      BorderStrokeAlignment.cellCenters => 'cellCenters',
+      BorderStrokeAlignment.gridEdges => 'gridEdges',
+    };
+
+/// Stable persisted spelling shared by strict codecs and fingerprints.
+String borderPrimitiveOrientationV1WireName(
+  BorderPrimitiveOrientation orientation,
+) =>
+    switch (orientation) {
+      BorderPrimitiveOrientation.legacyAxis => 'legacyAxis',
+      BorderPrimitiveOrientation.east => 'east',
+      BorderPrimitiveOrientation.south => 'south',
+      BorderPrimitiveOrientation.west => 'west',
+      BorderPrimitiveOrientation.north => 'north',
     };
 
 /// Fixed cardinal vocabulary used by V1 Border geometry and slot keys.

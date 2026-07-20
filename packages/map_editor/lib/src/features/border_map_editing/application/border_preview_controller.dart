@@ -15,6 +15,7 @@ final class BorderPreviewController extends StateNotifier<BorderPreviewState> {
 
   final BorderFeatureResolver _resolver;
   final BorderPreviewMapApplier _applier;
+  BorderPreviewTransaction? _drawingCheckpoint;
 
   BorderPreviewState get current => state;
 
@@ -59,6 +60,7 @@ final class BorderPreviewController extends StateNotifier<BorderPreviewState> {
         'must identify the map used to begin the preview',
       );
     }
+    _drawingCheckpoint = null;
     final feature = _feature(map, layerId: layerId, featureId: featureId);
     state = BorderPreviewState(
       phase: BorderPreviewPhase.drawing,
@@ -169,6 +171,62 @@ final class BorderPreviewController extends StateNotifier<BorderPreviewState> {
     );
   }
 
+  /// Re-resolves a resolved proposal without reopening a map transaction.
+  ///
+  /// Inspector actions such as changing the visual side must keep geometry,
+  /// seed, variation and the optimistic-edit boundary produced by drawing.
+  void previewResolvedFeatureDraft(
+    BorderFeature feature, {
+    required BorderBlueprintRevision? blueprintRevision,
+    required GridSize tileSizePx,
+    required Iterable<BorderVisualSnapshot> visualSnapshots,
+    required int resolverVersion,
+  }) {
+    final transaction = state.transaction;
+    if (transaction == null ||
+        (state.phase != BorderPreviewPhase.resolved &&
+            state.phase != BorderPreviewPhase.invalid)) {
+      throw StateError(
+        'A resolved or invalid Border preview is required for refinement',
+      );
+    }
+    if (feature.id != transaction.featureId ||
+        feature.blueprintId != transaction.proposedFeature.blueprintId) {
+      throw ArgumentError(
+        'A Border feature refinement must keep the transaction feature and '
+        'blueprint identities',
+      );
+    }
+    final draft = BorderFeature(
+      id: feature.id,
+      name: feature.name,
+      blueprintId: feature.blueprintId,
+      seed: feature.seed,
+      geometry: feature.geometry,
+      lineSide: feature.lineSide,
+      paramsOverride: feature.paramsOverride,
+      overrides: feature.overrides,
+      keepOutRegions: feature.keepOutRegions,
+      materialization: null,
+    );
+    final request = BorderResolutionRequest(
+      mapSize: transaction.mapSize,
+      tileSizePx: tileSizePx,
+      blueprintId: draft.blueprintId,
+      blueprintRevision: blueprintRevision,
+      feature: draft,
+      visualSnapshots: visualSnapshots,
+      resolverVersion: resolverVersion,
+    );
+    _drawingCheckpoint = null;
+    _publishResolution(
+      transaction: transaction,
+      feature: draft,
+      request: request,
+      variationOrdinal: transaction.variationOrdinal,
+    );
+  }
+
   /// Freezes the last transient result as resolved or invalid on release.
   void finishDrawing() {
     final transaction = _requireTransaction(BorderPreviewPhase.drawing);
@@ -176,12 +234,57 @@ final class BorderPreviewController extends StateNotifier<BorderPreviewState> {
     if (result == null) {
       throw StateError('A Border drag must be previewed before it is finished');
     }
+    if (!result.canApply && _drawingCheckpoint != null) {
+      state = BorderPreviewState(
+        phase: BorderPreviewPhase.resolved,
+        transaction: _drawingCheckpoint,
+      );
+    } else {
+      state = BorderPreviewState(
+        phase: result.canApply
+            ? BorderPreviewPhase.resolved
+            : BorderPreviewPhase.invalid,
+        transaction: transaction,
+      );
+    }
+    _drawingCheckpoint = null;
+  }
+
+  /// Reopens one resolved proposal so another linear gesture can extend it.
+  ///
+  /// The exact transaction is retained: no map mutation, new seed, variation,
+  /// or Apply boundary is introduced between the two gestures.
+  bool resumeDrawing({
+    required String layerId,
+    required String featureId,
+  }) {
+    final transaction = _requireTransaction(BorderPreviewPhase.resolved);
+    if (transaction.layerId != layerId || transaction.featureId != featureId) {
+      return false;
+    }
+    _drawingCheckpoint = transaction;
     state = BorderPreviewState(
-      phase: result.canApply
-          ? BorderPreviewPhase.resolved
-          : BorderPreviewPhase.invalid,
+      phase: BorderPreviewPhase.drawing,
       transaction: transaction,
     );
+    return true;
+  }
+
+  /// Rejects only the gesture currently extending a resolved proposal.
+  ///
+  /// A first invalid gesture still dismisses its empty transaction. When a
+  /// second stroke is cancelled or malformed, the last resolved multi-stroke
+  /// proposal remains available for Apply.
+  void rollbackDrawingGesture() {
+    if (state.phase != BorderPreviewPhase.drawing) return;
+    final checkpoint = _drawingCheckpoint;
+    _drawingCheckpoint = null;
+    state = checkpoint == null
+        ? const BorderPreviewState.idle()
+        : BorderPreviewState(
+            phase: BorderPreviewPhase.resolved,
+            transaction: checkpoint,
+          );
   }
 
   void resolve({
@@ -282,6 +385,7 @@ final class BorderPreviewController extends StateNotifier<BorderPreviewState> {
   }
 
   void cancel() {
+    _drawingCheckpoint = null;
     state = const BorderPreviewState.idle();
   }
 

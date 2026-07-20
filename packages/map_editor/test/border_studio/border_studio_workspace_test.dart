@@ -41,7 +41,8 @@ void main() {
     expect(find.text('Muret maçonné'), findsOneWidget);
     expect(find.text('Clôture poteaux-traverses'), findsOneWidget);
     expect(find.text('Ligne connectée'), findsOneWidget);
-    expect(find.text('Publication disponible'), findsNWidgets(4));
+    expect(find.text('Chaîne de pierres'), findsOneWidget);
+    expect(find.text('Publication disponible'), findsNWidgets(5));
     expect(find.text('Publication après BORD-06'), findsNothing);
 
     final fenceTemplate =
@@ -142,6 +143,68 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets(
+      'two-tier stone-chain roles require a top and a face with optional fallbacks',
+      (tester) async {
+    final container = await _pumpWorkspace(tester, _manifest());
+    final controller =
+        container.read(borderStudioDraftControllerProvider.notifier)
+          ..createBlueprint(
+            id: 'stone-chain',
+            name: 'Chaîne de pierres',
+            template: BorderBlueprintTemplate.stoneChainLine,
+          );
+    await tester.pump();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('border-studio-step-Rôles')),
+    );
+    await tester.pump();
+
+    for (final label in const <String>[
+      'Sommet plat',
+      'Face de falaise',
+      'Pierre libre facultative',
+      'Pierre de sommet à un angle',
+      'Pierre de sommet à une extrémité',
+    ]) {
+      expect(find.text(label), findsWidgets);
+    }
+    expect(find.text('Requis'), findsNWidgets(2));
+    expect(find.text('Facultatif'), findsNWidgets(3));
+    expect(find.text('Repli automatique'), findsNWidgets(3));
+    expect(find.text('Manquant'), findsNWidgets(2));
+    expect(find.text('Poteau'), findsNothing);
+    expect(find.text('Traverse'), findsNothing);
+    expect(find.text('Finition intérieure'), findsNothing);
+
+    controller.replacePrimitives(<BorderPrimitiveDraft>[
+      _primitive(
+        id: 'main-stone',
+        role: BorderPrimitiveRole.structureLarge,
+      ),
+    ]);
+    await tester.pump();
+
+    expect(find.text('Manquant'), findsOneWidget);
+    expect(find.text('Rôles non résolus'), findsOneWidget);
+
+    controller.replacePrimitives(<BorderPrimitiveDraft>[
+      _primitive(
+        id: 'main-stone',
+        role: BorderPrimitiveRole.structureLarge,
+      ),
+      _primitive(
+        id: 'cliff-face',
+        role: BorderPrimitiveRole.structureMedium,
+      ),
+    ]);
+    await tester.pump();
+
+    expect(find.text('Manquant'), findsNothing);
+    expect(find.text('Rôles non résolus'), findsNothing);
   });
 
   testWidgets('reports asset validation without exposing internal identifiers',
@@ -274,6 +337,7 @@ void main() {
       _primitive(
         id: 'rock',
         role: BorderPrimitiveRole.structureLarge,
+        authoredOrientation: BorderPrimitiveOrientation.west,
       ),
     ]);
     await tester.pump();
@@ -296,6 +360,11 @@ void main() {
       controller
           .state.workingDraft!.blueprint.definition.primitives.single.role,
       BorderPrimitiveRole.outerAccent,
+    );
+    expect(
+      controller.state.workingDraft!.blueprint.definition.primitives.single
+          .authoredOrientation,
+      BorderPrimitiveOrientation.west,
     );
   });
 
@@ -600,11 +669,14 @@ ProjectManifest _manifest({
 BorderPrimitiveDraft _primitive({
   required String id,
   required BorderPrimitiveRole role,
+  BorderPrimitiveOrientation authoredOrientation =
+      BorderPrimitiveOrientation.legacyAxis,
 }) {
   return BorderPrimitiveDraft(
     id: id,
     sourceElementId: 'element-$id',
     role: role,
+    authoredOrientation: authoredOrientation,
     weight: 100,
     anchorPx: const BorderPixelPos(x: 4, y: 8),
     transforms: BorderTransformPolicy(

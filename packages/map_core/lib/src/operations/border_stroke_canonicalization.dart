@@ -178,23 +178,60 @@ List<GridPos> _minimumOpenDirection(List<GridPos> points) {
 }
 
 List<GridPos> _minimumClosedRotation(List<GridPos> points) {
-  List<GridPos>? best;
-  for (final direction in <List<GridPos>>[
-    List<GridPos>.of(points, growable: false),
-    List<GridPos>.of(points.reversed, growable: false),
-  ]) {
-    for (var offset = 0; offset < direction.length; offset += 1) {
-      final candidate = <GridPos>[
-        ...direction.skip(offset),
-        ...direction.take(offset),
-      ];
-      if (best == null || _comparePointSequences(candidate, best) < 0) {
-        best = candidate;
-      }
-    }
-  }
-  return List<GridPos>.unmodifiable(best!);
+  final forward = List<GridPos>.of(points, growable: false);
+  final reverse = List<GridPos>.of(points.reversed, growable: false);
+  final forwardRotation = _rotateFrom(
+    forward,
+    _minimumRotationIndex(forward),
+  );
+  final reverseRotation = _rotateFrom(
+    reverse,
+    _minimumRotationIndex(reverse),
+  );
+  return List<GridPos>.unmodifiable(
+    _comparePointSequences(forwardRotation, reverseRotation) <= 0
+        ? forwardRotation
+        : reverseRotation,
+  );
 }
+
+/// Booth's minimum-rotation search specialized to the row-major point order.
+///
+/// Each candidate start is discarded once, so closed-stroke
+/// canonicalization stays linear even for long authored cycles.
+int _minimumRotationIndex(List<GridPos> points) {
+  final length = points.length;
+  var first = 0;
+  var second = 1;
+  var matched = 0;
+  while (first < length && second < length && matched < length) {
+    final comparison = _comparePoint(
+      points[(first + matched) % length],
+      points[(second + matched) % length],
+    );
+    if (comparison == 0) {
+      matched += 1;
+      continue;
+    }
+    if (comparison > 0) {
+      first += matched + 1;
+      if (first <= second) first = second + 1;
+    } else {
+      second += matched + 1;
+      if (second <= first) second = first + 1;
+    }
+    matched = 0;
+  }
+  final result = first < second ? first : second;
+  return result < length ? result : 0;
+}
+
+List<GridPos> _rotateFrom(List<GridPos> points, int offset) =>
+    List<GridPos>.generate(
+      points.length,
+      (index) => points[(offset + index) % points.length],
+      growable: false,
+    );
 
 int _comparePointSequences(List<GridPos> left, List<GridPos> right) {
   final commonLength = left.length < right.length ? left.length : right.length;

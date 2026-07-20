@@ -350,10 +350,10 @@ final class _GalleryGeometryPainter extends CustomPainter {
     for (final stroke in geometry.strokes) {
       if (stroke.points.isEmpty) continue;
       final path = Path();
-      final first = _cellCenter(stroke.points.first);
+      final first = _strokePoint(geometry, stroke.points.first);
       path.moveTo(first.dx, first.dy);
       for (final point in stroke.points.skip(1)) {
-        final center = _cellCenter(point);
+        final center = _strokePoint(geometry, point);
         path.lineTo(center.dx, center.dy);
       }
       if (stroke.closed) path.close();
@@ -365,6 +365,15 @@ final class _GalleryGeometryPainter extends CustomPainter {
         (point.x + 0.5) * tileSizePx.width,
         (point.y + 0.5) * tileSizePx.height,
       );
+
+  Offset _strokePoint(BorderStrokeGeometry geometry, GridPos point) =>
+      switch (geometry.alignment) {
+        BorderStrokeAlignment.cellCenters => _cellCenter(point),
+        BorderStrokeAlignment.gridEdges => Offset(
+            point.x * tileSizePx.width.toDouble(),
+            point.y * tileSizePx.height.toDouble(),
+          ),
+      };
 
   @override
   bool shouldRepaint(_GalleryGeometryPainter oldDelegate) =>

@@ -43,6 +43,9 @@ const Set<String> _publishedPrimitiveKeys = <String>{
   'transforms',
   'publishedMetrics',
 };
+const Set<String> _primitiveOptionalKeysV4 = <String>{
+  'authoredOrientation',
+};
 const Set<String> _transformKeys = <String>{
   'allowFlipX',
   'allowedQuarterTurns',
@@ -223,7 +226,7 @@ Map<String, Object?> encodeBorderGenerationParamsJson(
     'maxOverlapPx': value.maxOverlapPx,
     'gapTolerancePx': value.gapTolerancePx,
     'depthRows': value.depthRows,
-    if (formatVersion == 2 && !value.allowAutoRotation)
+    if (formatVersion >= 2 && !value.allowAutoRotation)
       'allowAutoRotation': false,
   };
 }
@@ -241,7 +244,7 @@ BorderGenerationParams decodeBorderGenerationParamsJson(
     path: path,
     requiredKeys: _generationParamKeys,
     optionalKeys:
-        formatVersion == 2 ? _generationParamOptionalKeysV2 : const <String>{},
+        formatVersion >= 2 ? _generationParamOptionalKeysV2 : const <String>{},
   );
 
   final irregularityPath = borderJsonPropertyPath(path, 'irregularityPermille');
@@ -687,6 +690,11 @@ Map<String, Object?> _encodeDraftPrimitive(
     minimumWeight: 0,
     path: path,
   );
+  final authoredOrientation = _encodeAuthoredOrientation(
+    value.authoredOrientation,
+    formatVersion,
+    borderJsonPropertyPath(path, 'authoredOrientation'),
+  );
   return <String, Object?>{
     'id': value.id,
     'sourceElementId': value.sourceElementId,
@@ -695,6 +703,7 @@ Map<String, Object?> _encodeDraftPrimitive(
       formatVersion,
       borderJsonPropertyPath(path, 'role'),
     ),
+    if (authoredOrientation != null) 'authoredOrientation': authoredOrientation,
     'weight': value.weight,
     'anchorPx': _encodePixelPos(value.anchorPx),
     'transforms': _encodeTransformPolicy(
@@ -718,6 +727,8 @@ BorderPrimitiveDraft _decodeDraftPrimitive(
     value,
     path: path,
     requiredKeys: _draftPrimitiveKeys,
+    optionalKeys:
+        formatVersion >= 4 ? _primitiveOptionalKeysV4 : const <String>{},
   );
   final identity = _decodePrimitiveIdentityAndWeight(
     value,
@@ -730,6 +741,7 @@ BorderPrimitiveDraft _decodeDraftPrimitive(
       id: identity.id,
       sourceElementId: identity.sourceElementId,
       role: _decodePrimitiveRoleField(value, path, formatVersion),
+      authoredOrientation: _decodeAuthoredOrientationField(value, path),
       weight: identity.weight,
       anchorPx: _decodePixelPos(
         borderJsonRequireField(value, 'anchorPx', path),
@@ -763,6 +775,11 @@ Map<String, Object?> _encodePublishedPrimitive(
     value.visualSnapshotId,
     borderJsonPropertyPath(path, 'visualSnapshotId'),
   );
+  final authoredOrientation = _encodeAuthoredOrientation(
+    value.authoredOrientation,
+    formatVersion,
+    borderJsonPropertyPath(path, 'authoredOrientation'),
+  );
   return <String, Object?>{
     'id': value.id,
     'sourceElementId': value.sourceElementId,
@@ -772,6 +789,7 @@ Map<String, Object?> _encodePublishedPrimitive(
       formatVersion,
       borderJsonPropertyPath(path, 'role'),
     ),
+    if (authoredOrientation != null) 'authoredOrientation': authoredOrientation,
     'weight': value.weight,
     'anchorPx': _encodePixelPos(value.anchorPx),
     'transforms': _encodeTransformPolicy(
@@ -795,6 +813,8 @@ BorderPublishedPrimitive _decodePublishedPrimitive(
     value,
     path: path,
     requiredKeys: _publishedPrimitiveKeys,
+    optionalKeys:
+        formatVersion >= 4 ? _primitiveOptionalKeysV4 : const <String>{},
   );
   final identity = _decodePrimitiveIdentityAndWeight(
     value,
@@ -814,6 +834,7 @@ BorderPublishedPrimitive _decodePublishedPrimitive(
       sourceElementId: identity.sourceElementId,
       visualSnapshotId: visualSnapshotId,
       role: _decodePrimitiveRoleField(value, path, formatVersion),
+      authoredOrientation: _decodeAuthoredOrientationField(value, path),
       weight: identity.weight,
       anchorPx: _decodePixelPos(
         borderJsonRequireField(value, 'anchorPx', path),
@@ -896,6 +917,44 @@ BorderPrimitiveRole _decodePrimitiveRoleField(
     rolePath,
     formatVersion,
   );
+}
+
+String? _encodeAuthoredOrientation(
+  BorderPrimitiveOrientation value,
+  int formatVersion,
+  String path,
+) {
+  if (value == BorderPrimitiveOrientation.legacyAxis) {
+    return null;
+  }
+  if (formatVersion < 4) {
+    throw FormatException('$path: requires catalog format version 4');
+  }
+  return borderPrimitiveOrientationV1WireName(value);
+}
+
+BorderPrimitiveOrientation _decodeAuthoredOrientationField(
+  BorderJsonObject value,
+  String path,
+) {
+  if (!value.containsKey('authoredOrientation')) {
+    return BorderPrimitiveOrientation.legacyAxis;
+  }
+  final orientationPath = borderJsonPropertyPath(path, 'authoredOrientation');
+  final orientation = borderJsonRequireString(
+    value['authoredOrientation'],
+    orientationPath,
+  );
+  return switch (orientation) {
+    'legacyAxis' => BorderPrimitiveOrientation.legacyAxis,
+    'east' => BorderPrimitiveOrientation.east,
+    'south' => BorderPrimitiveOrientation.south,
+    'west' => BorderPrimitiveOrientation.west,
+    'north' => BorderPrimitiveOrientation.north,
+    _ => throw FormatException(
+        '$orientationPath: unknown Border primitive orientation',
+      ),
+  };
 }
 
 Map<String, Object?> _encodeTransformPolicy(
@@ -1181,8 +1240,15 @@ String _encodeTemplate(
   int formatVersion,
   String path,
 ) {
-  if (formatVersion == 1 && value == BorderBlueprintTemplate.connectedLine) {
-    throw FormatException('$path: template requires catalog format version 2');
+  final minimumVersion = switch (value) {
+    BorderBlueprintTemplate.stoneChainLine => 3,
+    BorderBlueprintTemplate.connectedLine => 2,
+    _ => 1,
+  };
+  if (formatVersion < minimumVersion) {
+    throw FormatException(
+      '$path: template requires catalog format version $minimumVersion',
+    );
   }
   return borderBlueprintTemplateV1WireName(value);
 }
@@ -1197,10 +1263,18 @@ BorderBlueprintTemplate _decodeTemplate(
     'masonryLine' => BorderBlueprintTemplate.masonryLine,
     'postAndRailLine' => BorderBlueprintTemplate.postAndRailLine,
     'connectedLine' => BorderBlueprintTemplate.connectedLine,
+    'stoneChainLine' => BorderBlueprintTemplate.stoneChainLine,
     _ => throw FormatException('$path: unknown Border blueprint template'),
   };
-  if (formatVersion == 1 && template == BorderBlueprintTemplate.connectedLine) {
-    throw FormatException('$path: template requires catalog format version 2');
+  final minimumVersion = switch (template) {
+    BorderBlueprintTemplate.stoneChainLine => 3,
+    BorderBlueprintTemplate.connectedLine => 2,
+    _ => 1,
+  };
+  if (formatVersion < minimumVersion) {
+    throw FormatException(
+      '$path: template requires catalog format version $minimumVersion',
+    );
   }
   return template;
 }
@@ -1250,7 +1324,7 @@ bool _isConnectedLineRole(BorderPrimitiveRole role) => switch (role) {
     };
 
 void _requireBlueprintFormatVersion(int value, String path) {
-  if (value != 1 && value != 2) {
+  if (value < 1 || value > 4) {
     throw FormatException('$path: unsupported Border blueprint format version');
   }
 }

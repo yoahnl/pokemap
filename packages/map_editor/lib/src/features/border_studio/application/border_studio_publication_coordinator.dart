@@ -131,7 +131,7 @@ final class BorderStudioCanonicalGalleryCasePreview {
   final BorderFeatureGeometry geometry;
   final BorderResolutionResult resolution;
 
-  /// Opposite-side rendering for a connected line; absent for V1 templates.
+  /// Opposite-side rendering for templates supporting [BorderLineSide].
   final BorderResolutionResult? invertedResolution;
   final BorderPublicationGallerySample publicationSample;
 }

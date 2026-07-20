@@ -152,6 +152,48 @@ void main() {
       },
     );
 
+    test('reanalyze preserves the primitive authored orientation', () async {
+      final atlas = File(
+        p.join(projectRoot.path, 'assets', 'tilesets', 'coast.png'),
+      );
+      await atlas.parent.create(recursive: true);
+      await atlas.writeAsBytes(_twoTileAtlas(), flush: true);
+      const service = BorderProjectElementAssetService();
+      final prepared = await service.prepare(
+        manifest: _manifest(),
+        projectRootPath: projectRoot.path,
+        sourceElementId: 'coast-rock',
+        primitiveId: 'oriented',
+        role: BorderPrimitiveRole.structureLarge,
+        weight: 750,
+        transforms: BorderTransformPolicy(
+          allowFlipX: true,
+          allowedQuarterTurns: const <int>[0, 1, 2, 3],
+        ),
+      );
+      final oriented = BorderPrimitiveDraft(
+        id: prepared.primitive.id,
+        sourceElementId: prepared.primitive.sourceElementId,
+        role: prepared.primitive.role,
+        authoredOrientation: BorderPrimitiveOrientation.south,
+        weight: prepared.primitive.weight,
+        anchorPx: prepared.primitive.anchorPx,
+        transforms: prepared.primitive.transforms,
+        currentMetrics: prepared.primitive.currentMetrics,
+      );
+
+      final refreshed = await service.reanalyze(
+        manifest: _manifest(),
+        projectRootPath: projectRoot.path,
+        primitive: oriented,
+      );
+
+      expect(
+        refreshed.primitive.authoredOrientation,
+        BorderPrimitiveOrientation.south,
+      );
+    });
+
     test('rejects an element ID that is absent from the project manifest',
         () async {
       final manifest = _manifest().copyWith(

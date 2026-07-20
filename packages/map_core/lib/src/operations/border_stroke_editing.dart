@@ -77,6 +77,7 @@ final class BorderStrokeEditingDraft {
     );
     return BorderStrokeGeometry(
       strokes: <BorderStroke>[...baseGeometry.strokes, stroke],
+      alignment: baseGeometry.alignment,
     );
   }
 
@@ -124,7 +125,10 @@ final class BorderStrokeEditingDraft {
     }
 
     if (!changed) return baseGeometry;
-    return BorderStrokeGeometry(strokes: output);
+    return BorderStrokeGeometry(
+      strokes: output,
+      alignment: baseGeometry.alignment,
+    );
   }
 }
 

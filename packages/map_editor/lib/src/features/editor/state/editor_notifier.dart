@@ -908,7 +908,6 @@ class EditorNotifier extends _$EditorNotifier {
     if (_rejectNarrativeEventSourceCleanupMapMutation()) {
       return ActiveMapSaveOutcome.unavailable;
     }
-    endMapStroke();
 
     final activeBorderFeature = ref.read(activeBorderFeatureControllerProvider);
     final preparation = ref.read(pendingBorderSaveGuardProvider).prepare(
@@ -974,6 +973,7 @@ class EditorNotifier extends _$EditorNotifier {
       if (!_canAdoptMapDiskMutation(lease)) {
         return ActiveMapSaveOutcome.unavailable;
       }
+      endMapStroke();
       switch (ready.postSaveAction) {
         case PendingBorderPostSaveAction.none:
           break;
@@ -983,6 +983,7 @@ class EditorNotifier extends _$EditorNotifier {
             updatedMap: candidateMap,
             preferredActiveLayerId: ready.transaction?.layerId,
             statusMessage: 'Bordure appliquée',
+            mapWriteLeaseToken: lease.token,
           );
         case PendingBorderPostSaveAction.discardPreview:
           break;
@@ -9236,23 +9237,140 @@ class EditorNotifier extends _$EditorNotifier {
           .recordById(feature.blueprintId)
           ?.latestPublished;
       final template = revision?.definition.template;
-      if (template != BorderBlueprintTemplate.connectedLine &&
-          template != BorderBlueprintTemplate.masonryLine) {
+      if (template == null || !borderTemplateSupportsLineSide(template)) {
         throw StateError(
-          'L’inversion du côté visuel est réservée aux lignes connectées '
-          'et aux murets maçonnés.',
+          'Ce type de bordure ne prend pas en charge l’inversion du côté '
+          'visuel.',
         );
       }
+      final preview = ref.read(borderPreviewControllerProvider.notifier);
+      final previewState = preview.current;
+      final transaction = previewState.transaction;
+      final refinesCurrentPreview = transaction?.layerId == layerId &&
+          transaction?.featureId == featureId &&
+          (previewState.phase == BorderPreviewPhase.resolved ||
+              previewState.phase == BorderPreviewPhase.invalid);
+      final source =
+          refinesCurrentPreview ? transaction!.proposedFeature : feature;
       final draft =
-          _borderFeatureAuthoringController.previewLineSideToggle(feature);
-      return previewBorderFeatureDraft(
-        layerId: layerId,
-        featureId: featureId,
-        draft: draft,
+          _borderFeatureAuthoringController.previewLineSideToggle(source);
+      if (!refinesCurrentPreview) {
+        return previewBorderFeatureDraft(
+          layerId: layerId,
+          featureId: featureId,
+          draft: draft,
+        );
+      }
+      preview.previewResolvedFeatureDraft(
+        draft,
+        blueprintRevision: revision,
+        tileSizePx: GridSize(
+          width: project.settings.tileWidth,
+          height: project.settings.tileHeight,
+        ),
+        visualSnapshots: project.borderCatalog.visualSnapshots,
+        resolverVersion: borderResolverVersion,
       );
+      state = state.copyWith(
+        statusMessage: 'Orientation visuelle préparée dans l’aperçu',
+        errorMessage: null,
+      );
+      return true;
     } catch (error) {
       state = state.copyWith(
         errorMessage: 'Impossible d’inverser le côté de la bordure : $error',
+      );
+      return false;
+    }
+  }
+
+  /// Re-resolves an existing stone-chain preview with auto-rotation changed.
+  ///
+  /// This is a transient refinement seam used by deterministic visual QA. It
+  /// requires an already resolved/invalid preview and never writes the active
+  /// map or either history stack; Apply remains the sole commit boundary.
+  bool previewBorderFeatureAutoRotation({
+    required String layerId,
+    required String featureId,
+    required bool enabled,
+  }) {
+    final map = state.activeMap;
+    final project = state.project;
+    if (map == null || project == null) return false;
+    try {
+      final layer = map.layers
+          .whereType<BorderLayer>()
+          .where((candidate) => candidate.id == layerId)
+          .firstOrNull;
+      final persisted = layer?.content.featureById(featureId);
+      if (persisted == null) {
+        throw StateError('Bordure introuvable : $layerId/$featureId');
+      }
+      final revision = project.borderCatalog
+          .recordById(persisted.blueprintId)
+          ?.latestPublished;
+      if (revision == null ||
+          revision.definition.template !=
+              BorderBlueprintTemplate.stoneChainLine) {
+        throw StateError(
+          'La rotation automatique exige une bordure en chaîne publiée.',
+        );
+      }
+      final preview = ref.read(borderPreviewControllerProvider.notifier);
+      final previewState = preview.current;
+      final transaction = previewState.transaction;
+      if (transaction == null ||
+          transaction.layerId != layerId ||
+          transaction.featureId != featureId ||
+          (previewState.phase != BorderPreviewPhase.resolved &&
+              previewState.phase != BorderPreviewPhase.invalid)) {
+        throw StateError(
+          'Un aperçu résolu de cette bordure est requis avant de changer la '
+          'rotation automatique.',
+        );
+      }
+      final source = transaction.proposedFeature;
+      final current = source.paramsOverride ?? revision.definition.defaults;
+      final draft = BorderFeature(
+        id: source.id,
+        name: source.name,
+        blueprintId: source.blueprintId,
+        seed: source.seed,
+        geometry: source.geometry,
+        lineSide: source.lineSide,
+        paramsOverride: BorderGenerationParams(
+          irregularityPermille: current.irregularityPermille,
+          detailDensityPermille: current.detailDensityPermille,
+          variationPermille: current.variationPermille,
+          maxOverlapPx: current.maxOverlapPx,
+          gapTolerancePx: current.gapTolerancePx,
+          depthRows: current.depthRows,
+          allowAutoRotation: enabled,
+        ),
+        overrides: source.overrides,
+        keepOutRegions: source.keepOutRegions,
+        materialization: null,
+      );
+      preview.previewResolvedFeatureDraft(
+        draft,
+        blueprintRevision: revision,
+        tileSizePx: GridSize(
+          width: project.settings.tileWidth,
+          height: project.settings.tileHeight,
+        ),
+        visualSnapshots: project.borderCatalog.visualSnapshots,
+        resolverVersion: borderResolverVersion,
+      );
+      state = state.copyWith(
+        statusMessage: enabled
+            ? 'Rotation automatique préparée dans l’aperçu'
+            : 'Rotation automatique désactivée dans l’aperçu',
+        errorMessage: null,
+      );
+      return true;
+    } catch (error) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de modifier la rotation automatique : $error',
       );
       return false;
     }
