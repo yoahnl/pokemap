@@ -7,6 +7,7 @@ import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import '../narrative_studio/narrative_studio_route_presentation.dart';
 import '../narrative_studio/narrative_studio_workspace_page.dart';
+import 'world_state_simulator_panel.dart';
 
 enum FactsWorldRulesWorkspaceMode {
   facts,
@@ -191,7 +192,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
               Expanded(
                 child: _mode == FactsWorldRulesWorkspaceMode.facts
                     ? _buildFactsManager(context, readModel)
-                    : _buildWorldRulesManager(context, readModel),
+                    : _buildWorldRulesManager(context, readModel, maps),
               ),
             ],
           ),
@@ -601,6 +602,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
   Widget _buildWorldRulesManager(
     BuildContext context,
     FactsWorldRulesManagerReadModel readModel,
+    List<MapData> maps,
   ) {
     final selectedEntry = _selectedRuleId == null
         ? null
@@ -684,6 +686,14 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                           ),
               ),
             ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        SizedBox(
+          width: 360,
+          child: WorldStateSimulatorPanel(
+            project: widget.project,
+            maps: maps,
           ),
         ),
       ],
