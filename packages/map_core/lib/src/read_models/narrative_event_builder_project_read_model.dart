@@ -1365,7 +1365,8 @@ final class _ProjectReadIndexes {
                   ? expectedValue.boolValue
                   : false,
               resolved: resolved,
-              humanLabel: '$label ${operator.name} ${expectedValue.toJson()}',
+              humanLabel: '$label ${_factOperatorLabel(operator)} '
+                  '${_narrativeValueLabel(expectedValue)}',
             ),
           );
         },
@@ -1455,6 +1456,21 @@ final class _ProjectReadIndexes {
         );
   }
 }
+
+String _factOperatorLabel(NarrativeFactOperator operator) => switch (operator) {
+      NarrativeFactOperator.equals => '=',
+      NarrativeFactOperator.notEquals => '≠',
+      NarrativeFactOperator.greaterThan => '>',
+      NarrativeFactOperator.greaterThanOrEqual => '≥',
+      NarrativeFactOperator.lessThan => '<',
+      NarrativeFactOperator.lessThanOrEqual => '≤',
+    };
+
+String _narrativeValueLabel(NarrativeValue value) => switch (value.kind) {
+      NarrativeValueKind.boolean => value.boolValue ? 'vrai' : 'faux',
+      NarrativeValueKind.integer => '${value.intValue}',
+      NarrativeValueKind.string => '« ${value.stringValue} »',
+    };
 
 Map<String, List<NarrativeEventProjectReadDiagnostic>>
     _indexProjectDiagnosticsByEvent(
