@@ -39,6 +39,7 @@ class EventBuilderV2Workspace extends StatefulWidget {
     required this.onFilterChanged,
     required this.onSelectEvent,
     required this.onCreateEvent,
+    this.onOpenLifecycleActions,
     this.onCreateTemplate,
     this.hasPendingTemplate = false,
     required this.onOpenLibrary,
@@ -63,6 +64,7 @@ class EventBuilderV2Workspace extends StatefulWidget {
   final ValueChanged<NarrativeEventBuilderV2Filter> onFilterChanged;
   final ValueChanged<NarrativeEventProjectSummary> onSelectEvent;
   final VoidCallback? onCreateEvent;
+  final ValueChanged<NarrativeEventProjectSummary>? onOpenLifecycleActions;
   final VoidCallback? onCreateTemplate;
   final bool hasPendingTemplate;
   final VoidCallback? onOpenLibrary;
@@ -175,6 +177,9 @@ class _EventBuilderV2WorkspaceState extends State<EventBuilderV2Workspace> {
               onSelectEvent: widget.onSelectEvent,
               onCreateEvent:
                   widget.state.isReadOnly ? null : widget.onCreateEvent,
+              onOpenLifecycleActions: widget.state.isReadOnly
+                  ? null
+                  : widget.onOpenLifecycleActions,
               scrollController: widget.eventListScrollController,
               focusNodeForStableKey: widget.eventFocusNodeForStableKey,
             ),

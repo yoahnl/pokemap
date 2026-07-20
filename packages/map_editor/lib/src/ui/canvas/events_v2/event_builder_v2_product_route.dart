@@ -85,6 +85,7 @@ class _EventBuilderV2ProductRouteState
   String? _migrationMessage;
   bool _globalDiagnosticsExpanded = false;
   NarrativeTemplatePreview? _lastTemplatePreview;
+  String? _lastEventUndoPath;
   final ScrollController _eventListScrollController = ScrollController();
   final Map<String, FocusNode> _eventFocusNodes = <String, FocusNode>{};
   int? _eventRestorationRevisionInFlight;
@@ -317,6 +318,8 @@ class _EventBuilderV2ProductRouteState
       onQueryChanged: (value) => setState(() => _query = value),
       onFilterChanged: (value) => setState(() => _filter = value),
       onSelectEvent: _selectEvent,
+      onOpenLifecycleActions:
+          canMutateSelected && !_isAuthoring ? _openLifecycleSheet : null,
       onCreateEvent:
           state.isReadOnly || _isAuthoring ? null : _openCreationSheet,
       onCreateTemplate:
@@ -1384,7 +1387,9 @@ class _EventBuilderV2ProductRouteState
             result.status == NarrativeEventBuilderV2WriteStatus.noOp
                 ? 'Aucune modification n’était nécessaire.'
                 : 'La modification est enregistrée.';
-        _pendingSelectionEventId = result.eventId;
+        _pendingSelectionEventId =
+            authoring?.nextRecord == null ? null : result.eventId;
+        _lastEventUndoPath = result.persistenceResult?.undoPath;
       });
       return null;
     }
@@ -1400,6 +1405,233 @@ class _EventBuilderV2ProductRouteState
       _authoringMessage = message;
     });
     return message;
+  }
+
+  Future<void> _openLifecycleSheet(
+    NarrativeEventProjectSummary event,
+  ) {
+    final eventId = event.eventId;
+    if (eventId == null || event.readOnly) return Future.value();
+    final lifecycle = narrativeEventLifecyclePresentation(event);
+    return showPokeMapDesktopSideSheet<void>(
+      context: context,
+      title: 'Cycle de vie de l’événement',
+      semanticLabel: 'Actions de cycle de vie pour ${event.title}',
+      width: 440,
+      builder: (sheetContext) => _EventLifecycleSheet(
+        event: event,
+        lifecycle: lifecycle,
+        canUndo: _lastEventUndoPath != null,
+        onRename: () async {
+          Navigator.of(sheetContext).pop();
+          await _renameLifecycleEvent(event);
+        },
+        onDuplicate: () async {
+          Navigator.of(sheetContext).pop();
+          await _runWrite(
+            (useCase, path, environment) => useCase.duplicate(
+              projectPath: path,
+              eventId: eventId,
+              environment: environment,
+            ),
+          );
+        },
+        onPublish: lifecycle.isDraft
+            ? () async {
+                Navigator.of(sheetContext).pop();
+                await _runWrite(
+                  (useCase, path, environment) => useCase.publish(
+                    projectPath: path,
+                    eventId: eventId,
+                    environment: environment,
+                  ),
+                );
+              }
+            : null,
+        onSetEnabled: lifecycle.isPublished
+            ? () async {
+                Navigator.of(sheetContext).pop();
+                await _runWrite(
+                  (useCase, path, environment) => useCase.setEnabled(
+                    projectPath: path,
+                    eventId: eventId,
+                    enabled: !lifecycle.isRuntimeEnabled,
+                    environment: environment,
+                  ),
+                );
+              }
+            : null,
+        onUnpublish: lifecycle.isPublished
+            ? () async {
+                Navigator.of(sheetContext).pop();
+                final confirmed = await showPokeMapBinaryConfirmationDialog(
+                  context,
+                  title: 'Dépublier ${event.title} ?',
+                  message: lifecycle.isRuntimeEnabled
+                      ? 'L’événement actif redeviendra un brouillon et ne sera '
+                          'plus joué. Sa source, ses conditions, sa Scene et '
+                          'son comportement seront conservés.'
+                      : 'L’événement redeviendra un brouillon. Sa source, ses '
+                          'conditions, sa Scene et son comportement seront '
+                          'conservés.',
+                  secondaryLabel: 'Annuler',
+                  primaryLabel: 'Dépublier',
+                );
+                if (!confirmed) return;
+                await _runWrite(
+                  (useCase, path, environment) => useCase.unpublish(
+                    projectPath: path,
+                    eventId: eventId,
+                    environment: environment,
+                  ),
+                );
+              }
+            : null,
+        onDelete: () async {
+          Navigator.of(sheetContext).pop();
+          await _deleteLifecycleEvent(event);
+        },
+        onUndo: _lastEventUndoPath == null
+            ? null
+            : () async {
+                Navigator.of(sheetContext).pop();
+                await _undoLastEventWrite();
+              },
+      ),
+    );
+  }
+
+  Future<void> _renameLifecycleEvent(
+    NarrativeEventProjectSummary event,
+  ) async {
+    final eventId = event.eventId;
+    if (eventId == null) return;
+    final controller = TextEditingController(text: event.title);
+    final confirmed = await showPokeMapPromptDialog(
+      context,
+      title: 'Renommer l’événement',
+      controller: controller,
+      placeholder: 'Nom lisible',
+      cancelLabel: 'Annuler',
+      confirmLabel: 'Renommer',
+    );
+    final name = controller.text;
+    controller.dispose();
+    if (!confirmed) return;
+    await _runWrite(
+      (useCase, path, environment) => useCase.rename(
+        projectPath: path,
+        eventId: eventId,
+        name: name,
+        environment: environment,
+      ),
+    );
+  }
+
+  Future<void> _deleteLifecycleEvent(
+    NarrativeEventProjectSummary event,
+  ) async {
+    final projectPath = _projectFilePath();
+    final eventId = event.eventId;
+    if (projectPath == null || eventId == null) return;
+    setState(() {
+      _isAuthoring = true;
+      _authoringMessage = null;
+      _authoringStatus = null;
+    });
+    late final NarrativeEventAuthoringResult inspection;
+    try {
+      inspection = await _authoringUseCase().previewDelete(
+        projectPath: projectPath,
+        eventId: eventId,
+      );
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _isAuthoring = false;
+        _authoringStatus = NarrativeEventBuilderV2WriteStatus.failed;
+        _authoringMessage =
+            'Les dépendances de cet événement ne peuvent pas être inspectées.';
+      });
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _isAuthoring = false);
+    final preview = inspection.deletionPreview;
+    if (preview != null && !preview.canDelete) {
+      final consumers = preview.consumers
+          .map((usage) => '• ${usage.owner}\n  ${usage.path}')
+          .join('\n');
+      await showPokeMapConfirmationDialog<bool>(
+        context: context,
+        title: 'Suppression bloquée',
+        message: 'Cet événement est encore utilisé par :\n\n$consumers',
+        actions: const [
+          PokeMapDialogAction(label: 'Compris', value: false),
+        ],
+      );
+      return;
+    }
+    final confirmed = await showPokeMapBinaryConfirmationDialog(
+      context,
+      title: 'Supprimer ${event.title} ?',
+      message: 'Cette suppression retire uniquement l’Event V2. '
+          'L’élément physique de la map n’est pas supprimé.',
+      secondaryLabel: 'Annuler',
+      primaryLabel: 'Supprimer',
+      primaryIsDestructive: true,
+      icon: CupertinoIcons.trash,
+    );
+    if (!confirmed) return;
+    await _runWrite(
+      (useCase, path, environment) => useCase.delete(
+        projectPath: path,
+        eventId: eventId,
+        environment: environment,
+      ),
+    );
+  }
+
+  Future<void> _undoLastEventWrite() async {
+    final undoPath = _lastEventUndoPath;
+    if (undoPath == null) return;
+    final editor = ref.read(editorNotifierProvider);
+    setState(() {
+      _isAuthoring = true;
+      _authoringMessage = null;
+      _authoringStatus = null;
+    });
+    final result = await _authoringUseCase().undo(undoPath: undoPath);
+    final entry = result.persistenceResult?.undoEntry;
+    final nextRegistry = entry?.nextRegistry;
+    var adopted = true;
+    if (result.succeeded && entry != null && nextRegistry != null) {
+      adopted = ref
+          .read(editorNotifierProvider.notifier)
+          .applyPersistedNarrativeEventRegistry(
+            expectedProjectRootPath: editor.projectRootPath!,
+            expectedPreviousRegistry: entry.previousRegistry,
+            nextRegistry: nextRegistry,
+          );
+    }
+    if (!mounted) return;
+    final status = adopted
+        ? result.status
+        : NarrativeEventBuilderV2WriteStatus.recoveryRequired;
+    final eventId = result.eventId;
+    final restored = eventId != null &&
+        nextRegistry?.records.any((record) => record.id == eventId) == true;
+    setState(() {
+      _isAuthoring = false;
+      _authoringStatus = status;
+      _authoringMessage = result.succeeded && adopted
+          ? 'La dernière modification de l’événement a été annulée.'
+          : adopted
+              ? result.message
+              : 'L’annulation est sur disque, mais la vue doit être rechargée.';
+      _pendingSelectionEventId = restored ? eventId : null;
+      _lastEventUndoPath = result.persistenceResult?.undoPath;
+    });
   }
 
   Future<void> _openSourceSheet(
@@ -1688,6 +1920,170 @@ Map<String, NarrativeTemplatePhysicalSourceKind> _templatePhysicalSourceKinds(
     }
   }
   return Map<String, NarrativeTemplatePhysicalSourceKind>.unmodifiable(result);
+}
+
+class _EventLifecycleSheet extends StatelessWidget {
+  const _EventLifecycleSheet({
+    required this.event,
+    required this.lifecycle,
+    required this.canUndo,
+    required this.onRename,
+    required this.onDuplicate,
+    required this.onPublish,
+    required this.onSetEnabled,
+    required this.onUnpublish,
+    required this.onDelete,
+    required this.onUndo,
+  });
+
+  final NarrativeEventProjectSummary event;
+  final NarrativeEventLifecyclePresentation lifecycle;
+  final bool canUndo;
+  final VoidCallback onRename;
+  final VoidCallback onDuplicate;
+  final VoidCallback? onPublish;
+  final VoidCallback? onSetEnabled;
+  final VoidCallback? onUnpublish;
+  final VoidCallback onDelete;
+  final VoidCallback? onUndo;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      key: const ValueKey('event-builder-v2-lifecycle-actions'),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PokeMapCard(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                PokeMapStatusLabel(
+                  label: lifecycle.label,
+                  tone: lifecycle.isRuntimeEnabled
+                      ? PokeMapTone.success
+                      : lifecycle.isDraft
+                          ? PokeMapTone.warning
+                          : PokeMapTone.neutral,
+                  icon: lifecycle.isRuntimeEnabled
+                      ? CupertinoIcons.play_fill
+                      : lifecycle.isDraft
+                          ? CupertinoIcons.pencil
+                          : CupertinoIcons.pause_fill,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  lifecycle.description,
+                  style: const TextStyle(fontSize: 12, height: 1.35),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          _lifecycleButton(
+            key: const ValueKey('event-builder-v2-lifecycle-rename'),
+            label: 'Renommer',
+            icon: CupertinoIcons.pencil,
+            onPressed: onRename,
+          ),
+          const SizedBox(height: 8),
+          _lifecycleButton(
+            key: const ValueKey('event-builder-v2-lifecycle-duplicate'),
+            label: 'Dupliquer',
+            icon: CupertinoIcons.square_on_square,
+            onPressed: onDuplicate,
+          ),
+          if (onPublish != null) ...[
+            const SizedBox(height: 8),
+            _lifecycleButton(
+              key: const ValueKey('event-builder-v2-lifecycle-publish'),
+              label: 'Publier',
+              icon: CupertinoIcons.check_mark_circled,
+              onPressed: onPublish!,
+              variant: PokeMapButtonVariant.successOutline,
+            ),
+          ],
+          if (onSetEnabled != null) ...[
+            const SizedBox(height: 8),
+            _lifecycleButton(
+              key: const ValueKey('event-builder-v2-lifecycle-enabled'),
+              label: lifecycle.isRuntimeEnabled ? 'Désactiver' : 'Activer',
+              icon: lifecycle.isRuntimeEnabled
+                  ? CupertinoIcons.pause_fill
+                  : CupertinoIcons.play_fill,
+              onPressed: onSetEnabled!,
+              variant: lifecycle.isRuntimeEnabled
+                  ? PokeMapButtonVariant.secondary
+                  : PokeMapButtonVariant.successOutline,
+            ),
+          ],
+          if (onUnpublish != null) ...[
+            const SizedBox(height: 8),
+            _lifecycleButton(
+              key: const ValueKey('event-builder-v2-lifecycle-unpublish'),
+              label: 'Dépublier',
+              icon: CupertinoIcons.arrow_uturn_left_circle,
+              onPressed: onUnpublish!,
+            ),
+          ],
+          const SizedBox(height: 16),
+          const PokeMapSectionHeader(title: 'Actions protégées'),
+          const SizedBox(height: 8),
+          if (canUndo && onUndo != null) ...[
+            _lifecycleButton(
+              key: const ValueKey('event-builder-v2-lifecycle-undo'),
+              label: 'Annuler la dernière modification',
+              icon: CupertinoIcons.arrow_uturn_left,
+              onPressed: onUndo!,
+            ),
+            const SizedBox(height: 8),
+          ],
+          _lifecycleButton(
+            key: const ValueKey('event-builder-v2-lifecycle-delete'),
+            label: 'Supprimer',
+            icon: CupertinoIcons.trash,
+            onPressed: onDelete,
+            variant: PokeMapButtonVariant.danger,
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Supprimer l’Event ne supprime jamais le PNJ, l’objet ou la zone '
+            'placé sur la map.',
+            style: TextStyle(fontSize: 11, height: 1.35),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _lifecycleButton({
+    required Key key,
+    required String label,
+    required IconData icon,
+    required VoidCallback onPressed,
+    PokeMapButtonVariant variant = PokeMapButtonVariant.secondary,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: PokeMapButton(
+        key: key,
+        onPressed: onPressed,
+        variant: variant,
+        leading: Icon(icon),
+        child: Text(label),
+      ),
+    );
+  }
 }
 
 class _GlobalDiagnosticsPanel extends StatelessWidget {

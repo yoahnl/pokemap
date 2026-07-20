@@ -420,6 +420,141 @@ void main() {
       expect(result.code, 'mustDisableFirst');
       expect(gateway.persistCalls, 0);
     });
+
+    test('duplicates, unpublishes, deletes and undoes through durable writes',
+        () async {
+      final fixture = await EventBuilderV2ProductRouteFixture.create(
+        mode: EventSystemMode.dualRead,
+      );
+      addTearDown(fixture.dispose);
+      var operation = 0;
+      final useCase = NarrativeEventBuilderV2UseCase(
+        persistenceGateway: FileProjectRepository(),
+        operationIdFactory: () => 'nsc40_lifecycle_${operation++}',
+      );
+      const environment = NarrativeEventBuilderV2WriteEnvironment.clean();
+
+      final duplicate = await useCase.duplicate(
+        projectPath: fixture.projectPath,
+        eventId: productRoutePortEventId,
+        environment: environment,
+      );
+      expect(duplicate.status, NarrativeEventBuilderV2WriteStatus.committed);
+      expect(duplicate.eventId, isNot(productRoutePortEventId));
+      final cloneId = duplicate.eventId!;
+      var reopened = await NarrativeEventAuthoringSession.prepare(
+        fixture.projectPath,
+      );
+      final clone = reopened.context.registryOrNull!.records.singleWhere(
+        (record) => record.id == cloneId,
+      );
+      expect(clone.draftOrNull, isNotNull);
+      expect(clone.draftOrNull!.name, contains('copie'));
+
+      final unpublish = await useCase.unpublish(
+        projectPath: fixture.projectPath,
+        eventId: productRoutePortEventId,
+        environment: environment,
+      );
+      expect(unpublish.status, NarrativeEventBuilderV2WriteStatus.committed);
+      reopened = await NarrativeEventAuthoringSession.prepare(
+        fixture.projectPath,
+      );
+      final unpublished = reopened.context.registryOrNull!.records.singleWhere(
+        (record) => record.id == productRoutePortEventId,
+      );
+      expect(unpublished.draftOrNull, isNotNull);
+      expect(unpublished.draftOrNull!.source, isNotNull);
+      expect(unpublished.draftOrNull!.sceneId, isNotNull);
+      expect(unpublished.draftOrNull!.reusePolicy, isNotNull);
+
+      final deletion = await useCase.delete(
+        projectPath: fixture.projectPath,
+        eventId: cloneId,
+        environment: environment,
+      );
+      expect(deletion.status, NarrativeEventBuilderV2WriteStatus.committed);
+      expect(deletion.persistenceResult!.undoPath, isNotNull);
+      reopened = await NarrativeEventAuthoringSession.prepare(
+        fixture.projectPath,
+      );
+      expect(
+        reopened.context.registryOrNull!.records
+            .where((record) => record.id == cloneId),
+        isEmpty,
+      );
+
+      final undo = await useCase.undo(
+        undoPath: deletion.persistenceResult!.undoPath!,
+      );
+      expect(undo.status, NarrativeEventBuilderV2WriteStatus.committed);
+      reopened = await NarrativeEventAuthoringSession.prepare(
+        fixture.projectPath,
+      );
+      expect(
+        reopened.context.registryOrNull!.records
+            .where((record) => record.id == cloneId),
+        hasLength(1),
+      );
+    });
+
+    test('maps a lifecycle persistence exception without adopting bytes',
+        () async {
+      final fixture = await EventBuilderV2ProductRouteFixture.create(
+        mode: EventSystemMode.dualRead,
+      );
+      addTearDown(fixture.dispose);
+      final useCase = NarrativeEventBuilderV2UseCase(
+        persistenceGateway: _ThrowingGateway(),
+      );
+      final before = await NarrativeEventAuthoringSession.prepare(
+        fixture.projectPath,
+      );
+      final beforeIds = [
+        for (final record in before.context.registryOrNull!.records) record.id,
+      ];
+
+      final result = await useCase.duplicate(
+        projectPath: fixture.projectPath,
+        eventId: productRoutePortEventId,
+        environment: const NarrativeEventBuilderV2WriteEnvironment.clean(),
+      );
+
+      expect(result.status, NarrativeEventBuilderV2WriteStatus.failed);
+      expect(result.code, 'persistenceException');
+      final reopened = await NarrativeEventAuthoringSession.prepare(
+        fixture.projectPath,
+      );
+      expect(
+        [
+          for (final record in reopened.context.registryOrNull!.records)
+            record.id
+        ],
+        beforeIds,
+      );
+    });
+
+    test('previews canonical consumers before deleting an Event', () async {
+      final fixture = await EventBuilderV2ProductRouteFixture.create(
+        mode: EventSystemMode.dualRead,
+      );
+      addTearDown(fixture.dispose);
+      final useCase = NarrativeEventBuilderV2UseCase(
+        persistenceGateway: _RecordingGateway(),
+      );
+
+      final preview = await useCase.previewDelete(
+        projectPath: fixture.projectPath,
+        eventId: productRouteForestEventId,
+      );
+
+      expect(preview.rejectionCode, 'eventReferenced');
+      expect(preview.deletionPreview!.canDelete, isFalse);
+      expect(
+        preview.deletionPreview!.consumers.map((usage) => usage.owner),
+        contains(const NarrativeDependencyKey.eventV2(productRoutePortEventId)),
+      );
+    });
   });
 }
 
@@ -508,4 +643,32 @@ final class _RecordingGateway
       message: 'Aucune annulation.',
     );
   }
+}
+
+final class _ThrowingGateway
+    implements NarrativeEventRegistryPersistenceGateway {
+  @override
+  Future<NarrativeEventRegistryPersistenceResult> persist(
+    NarrativeEventRegistryWriteRequest request,
+  ) =>
+      throw const FileSystemException('write failed');
+
+  @override
+  Future<NarrativeEventRegistryRecoveryInspection> inspectRecovery(
+    String projectPath,
+  ) async =>
+      NarrativeEventRegistryRecoveryInspection(
+        status: NarrativeEventRegistryRecoveryGateStatus.clear,
+        issues: const [],
+      );
+
+  @override
+  Future<List<NarrativeEventRegistryPersistenceResult>> recover(
+    String projectPath,
+  ) async =>
+      const [];
+
+  @override
+  Future<NarrativeEventRegistryPersistenceResult> undo(String undoPath) =>
+      throw const FileSystemException('undo failed');
 }

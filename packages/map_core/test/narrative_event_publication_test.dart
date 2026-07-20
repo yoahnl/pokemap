@@ -205,5 +205,36 @@ void main() {
       expect(result.nextRecord!.toJson().keys,
           unorderedEquals(['state', 'definition', 'enabled']));
     });
+
+    test('unpublish then publish preserves the complete definition', () {
+      final original = configuredRecord(
+        name: 'Cycle complet',
+        source: outcomeSource,
+        conditions: [NarrativeEventCondition.fact('fact_a', false)],
+        reusePolicy: NarrativeEventReusePolicy.reusable,
+        priority: -4,
+        order: 12,
+        enabled: true,
+      );
+      final registry = registryWithRecords([original]);
+      final unpublished = unpublishNarrativeEvent(
+        context: configuredAuthoringContext(registry: registry),
+        expectedRevision: authoringRevision,
+        eventId: eventIdA,
+      );
+
+      final republished = publishNarrativeEvent(
+        context: configuredAuthoringContext(
+          registry: unpublished.nextRegistry!,
+          revision: unpublished.conceptualNextRevision!,
+        ),
+        expectedRevision: unpublished.conceptualNextRevision!,
+        eventId: eventIdA,
+      );
+
+      expect(
+          republished.nextRecord!.definitionOrNull, original.definitionOrNull);
+      expect(republished.nextRecord!.enabledOrNull, isFalse);
+    });
   });
 }

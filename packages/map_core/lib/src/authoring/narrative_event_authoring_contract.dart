@@ -6,6 +6,7 @@ import '../models/narrative_event_registry.dart';
 import '../operations/narrative_event_canonical_json.dart';
 import '../operations/narrative_event_registry_codec.dart';
 import '../read_models/narrative_event_navigation_intent.dart';
+import '../read_models/narrative_dependency_index.dart';
 import '../read_models/narrative_event_source_index.dart';
 
 enum NarrativeEventAuthoringStatus {
@@ -19,6 +20,9 @@ enum NarrativeEventAuthoringStatus {
 
 enum NarrativeEventAuthoringMutation {
   createDraft,
+  duplicate,
+  delete,
+  unpublish,
   selectSource,
   replaceSource,
   removeSource,
@@ -32,6 +36,20 @@ enum NarrativeEventAuthoringMutation {
   publish,
   activate,
   deactivate,
+}
+
+@immutable
+final class NarrativeEventDeletionPreview {
+  NarrativeEventDeletionPreview({
+    required String eventId,
+    required List<NarrativeDependencyUsage> consumers,
+  })  : eventId = _identity(eventId, 'eventId'),
+        consumers = List.unmodifiable(consumers);
+
+  final String eventId;
+  final List<NarrativeDependencyUsage> consumers;
+
+  bool get canDelete => consumers.isEmpty;
 }
 
 @immutable
@@ -258,6 +276,7 @@ final class NarrativeEventAuthoringResult {
     required this.conceptualNextRevision,
     required List<NarrativeEventAuthoringDiagnostic> diagnostics,
     required this.impactPreview,
+    required this.deletionPreview,
     required this.undoable,
     required this.metadataOnly,
   }) : diagnostics = List.unmodifiable(diagnostics);
@@ -267,9 +286,10 @@ final class NarrativeEventAuthoringResult {
     required NarrativeEventRegistry? previousRegistry,
     required NarrativeEventRegistry nextRegistry,
     required NarrativeEventRecord? previousRecord,
-    required NarrativeEventRecord nextRecord,
+    required NarrativeEventRecord? nextRecord,
     required String expectedRevision,
     NarrativeEventSourceImpactPreview? impactPreview,
+    NarrativeEventDeletionPreview? deletionPreview,
     bool metadataOnly = false,
     List<NarrativeEventAuthoringDiagnostic> diagnostics = const [],
   }) {
@@ -294,6 +314,7 @@ final class NarrativeEventAuthoringResult {
           ),
         ],
         impactPreview: impactPreview,
+        deletionPreview: deletionPreview,
         undoable: false,
         metadataOnly: false,
       );
@@ -309,6 +330,7 @@ final class NarrativeEventAuthoringResult {
       conceptualNextRevision: nextRevision,
       diagnostics: diagnostics,
       impactPreview: impactPreview,
+      deletionPreview: deletionPreview,
       undoable: true,
       metadataOnly: metadataOnly,
     );
@@ -320,6 +342,7 @@ final class NarrativeEventAuthoringResult {
     required NarrativeEventRecord? record,
     required String expectedRevision,
     NarrativeEventSourceImpactPreview? impactPreview,
+    NarrativeEventDeletionPreview? deletionPreview,
     List<NarrativeEventAuthoringDiagnostic> diagnostics = const [],
   }) {
     return NarrativeEventAuthoringResult._(
@@ -333,6 +356,7 @@ final class NarrativeEventAuthoringResult {
       conceptualNextRevision: null,
       diagnostics: diagnostics,
       impactPreview: impactPreview,
+      deletionPreview: deletionPreview,
       undoable: false,
       metadataOnly: false,
     );
@@ -348,6 +372,7 @@ final class NarrativeEventAuthoringResult {
     required String message,
     String? path,
     NarrativeEventSourceImpactPreview? impactPreview,
+    NarrativeEventDeletionPreview? deletionPreview,
   }) {
     if (status == NarrativeEventAuthoringStatus.applied ||
         status == NarrativeEventAuthoringStatus.noOp) {
@@ -370,6 +395,7 @@ final class NarrativeEventAuthoringResult {
         ),
       ],
       impactPreview: impactPreview,
+      deletionPreview: deletionPreview,
       undoable: false,
       metadataOnly: false,
     );
@@ -385,6 +411,7 @@ final class NarrativeEventAuthoringResult {
   final String? conceptualNextRevision;
   final List<NarrativeEventAuthoringDiagnostic> diagnostics;
   final NarrativeEventSourceImpactPreview? impactPreview;
+  final NarrativeEventDeletionPreview? deletionPreview;
   final bool undoable;
   final bool metadataOnly;
 
@@ -392,7 +419,7 @@ final class NarrativeEventAuthoringResult {
       diagnostics.isEmpty ? null : diagnostics.first.code;
   String? get humanReason =>
       diagnostics.isEmpty ? null : diagnostics.first.message;
-  String? get eventId => nextRecord?.id;
+  String? get eventId => nextRecord?.id ?? previousRecord?.id;
 }
 
 String narrativeEventRegistryFingerprint(NarrativeEventRegistry registry) {

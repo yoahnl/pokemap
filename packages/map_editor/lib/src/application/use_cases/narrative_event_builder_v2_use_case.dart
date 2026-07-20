@@ -368,6 +368,101 @@ final class NarrativeEventBuilderV2UseCase {
     );
   }
 
+  Future<NarrativeEventBuilderV2WriteResult> duplicate({
+    required String projectPath,
+    required String eventId,
+    required NarrativeEventBuilderV2WriteEnvironment environment,
+  }) {
+    return _execute(
+      projectPath: projectPath,
+      environment: environment,
+      author: (session) => duplicateNarrativeEvent(
+        context: session.context,
+        expectedRevision: session.projectRevision,
+        eventId: eventId,
+        idGenerator: _idGeneratorFactory(),
+      ),
+    );
+  }
+
+  Future<NarrativeEventBuilderV2WriteResult> unpublish({
+    required String projectPath,
+    required String eventId,
+    required NarrativeEventBuilderV2WriteEnvironment environment,
+  }) {
+    return _executeForEvent(
+      projectPath: projectPath,
+      eventId: eventId,
+      environment: environment,
+      author: (session) => unpublishNarrativeEvent(
+        context: session.context,
+        expectedRevision: session.projectRevision,
+        eventId: eventId,
+      ),
+    );
+  }
+
+  Future<NarrativeEventBuilderV2WriteResult> delete({
+    required String projectPath,
+    required String eventId,
+    required NarrativeEventBuilderV2WriteEnvironment environment,
+  }) {
+    return _executeForEvent(
+      projectPath: projectPath,
+      eventId: eventId,
+      environment: environment,
+      author: (session) => deleteNarrativeEvent(
+        context: session.context,
+        expectedRevision: session.projectRevision,
+        eventId: eventId,
+        dependencyIndex: buildNarrativeDependencyIndex(
+          project: session.manifest,
+          maps: session.maps,
+        ),
+      ),
+    );
+  }
+
+  Future<NarrativeEventAuthoringResult> previewDelete({
+    required String projectPath,
+    required String eventId,
+  }) async {
+    final session = await _prepareSession(projectPath);
+    return deleteNarrativeEvent(
+      context: session.context,
+      expectedRevision: session.projectRevision,
+      eventId: eventId,
+      dependencyIndex: buildNarrativeDependencyIndex(
+        project: session.manifest,
+        maps: session.maps,
+      ),
+    );
+  }
+
+  Future<NarrativeEventBuilderV2WriteResult> undo({
+    required String undoPath,
+  }) async {
+    late final NarrativeEventRegistryPersistenceResult persistence;
+    try {
+      persistence = await _persistenceGateway.undo(undoPath);
+    } on Object {
+      return const NarrativeEventBuilderV2WriteResult(
+        status: NarrativeEventBuilderV2WriteStatus.failed,
+        code: 'undoException',
+        message: 'La dernière modification n’a pas pu être annulée.',
+      );
+    }
+    return NarrativeEventBuilderV2WriteResult(
+      status: _writeStatus(persistence),
+      code: persistence.code,
+      message: persistence.message,
+      eventId: persistence.undoEntry?.eventIds.length == 1
+          ? persistence.undoEntry!.eventIds.single
+          : null,
+      persistenceResult: persistence,
+    );
+  }
+
   Future<NarrativeEventBuilderV2WriteResult> rename({
     required String projectPath,
     required String eventId,

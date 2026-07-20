@@ -342,6 +342,24 @@ void main() {
       expect(index.index.containsSource(entitySource), isFalse);
       expect(index.conflicts, isEmpty);
     });
+
+    test('duplicates an incomplete draft without publishing it implicitly', () {
+      final original = draftRecord(name: 'À terminer', order: 6);
+      final registry = registryWithRecords([original]);
+
+      final result = duplicateNarrativeEvent(
+        context: authoringContext(registry: registry),
+        expectedRevision: authoringRevision,
+        eventId: eventIdA,
+        idGenerator: deterministicGenerator(eventIdB),
+      );
+
+      expect(result.nextRecord!.draftOrNull!.source, isNull);
+      expect(result.nextRecord!.draftOrNull!.sceneId, isNull);
+      expect(result.nextRecord!.draftOrNull!.reusePolicy, isNull);
+      expect(result.nextRecord!.draftOrNull!.order, 7);
+      expect(result.nextRecord!.definitionOrNull, isNull);
+    });
   });
 }
 

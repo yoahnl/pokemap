@@ -78,6 +78,10 @@ final class NarrativeEventRegistryPersistence {
           final verification = verifyNarrativeEventAuthoringResult(
             context: freshSession.context,
             result: request.authoringResult,
+            dependencyIndex: buildNarrativeDependencyIndex(
+              project: freshSession.manifest,
+              maps: freshSession.maps,
+            ),
           );
           if (verification != null) {
             return NarrativeEventRegistryPersistenceResult(
@@ -934,6 +938,7 @@ final class NarrativeEventRegistryPersistence {
         afterRevision: afterHash,
         journal: journal,
         undoEntry: undoEntry,
+        undoPath: paths.undoPath,
       );
     } on FileSystemException catch (error) {
       if (!renameVisible) rethrow;

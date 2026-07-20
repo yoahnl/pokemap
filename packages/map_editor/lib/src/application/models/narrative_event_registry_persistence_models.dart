@@ -105,6 +105,10 @@ final class NarrativeEventRegistryWriteRequest {
     final verification = verifyNarrativeEventAuthoringResult(
       context: session.context,
       result: result,
+      dependencyIndex: buildNarrativeDependencyIndex(
+        project: session.manifest,
+        maps: session.maps,
+      ),
     );
     if (verification != null) {
       throw ArgumentError.value(
@@ -177,6 +181,7 @@ final class NarrativeEventRegistryPersistenceResult {
     this.afterRevision,
     this.journal,
     this.undoEntry,
+    this.undoPath,
     this.recoveryInspection,
   })  : code = _identity(code, 'code'),
         message = _identity(message, 'message');
@@ -188,6 +193,7 @@ final class NarrativeEventRegistryPersistenceResult {
   final String? afterRevision;
   final NarrativeEventRegistryWriteJournal? journal;
   final NarrativeEventRegistryUndoEntry? undoEntry;
+  final String? undoPath;
   final NarrativeEventRegistryRecoveryInspection? recoveryInspection;
 
   bool get succeeded =>

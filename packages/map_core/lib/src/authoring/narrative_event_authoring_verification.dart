@@ -3,6 +3,8 @@ import '../models/narrative_event_registry.dart';
 import '../models/narrative_event_source_ref.dart';
 import '../operations/narrative_event_canonical_json.dart';
 import '../operations/narrative_event_id_generator.dart';
+import '../operations/narrative_event_record_operations.dart';
+import '../read_models/narrative_dependency_index.dart';
 import 'narrative_event_activation_operations.dart';
 import 'narrative_event_authoring_contract.dart';
 import 'narrative_event_configuration_operations.dart';
@@ -13,6 +15,7 @@ import 'narrative_event_source_operations_v2.dart';
 NarrativeEventAuthoringDiagnostic? verifyNarrativeEventAuthoringResult({
   required NarrativeEventAuthoringContext context,
   required NarrativeEventAuthoringResult result,
+  NarrativeDependencyIndex? dependencyIndex,
 }) {
   final contextIssue = context.inspect(result.expectedRevision);
   if (contextIssue != null) {
@@ -23,12 +26,16 @@ NarrativeEventAuthoringDiagnostic? verifyNarrativeEventAuthoringResult({
   }
   if (result.status != NarrativeEventAuthoringStatus.applied ||
       result.nextRegistry == null ||
-      result.nextRecord == null ||
+      result.eventId == null ||
       !_registryEquals(context.registryOrNull, result.previousRegistry)) {
     return _unverified();
   }
   try {
-    final replayed = _replay(context, result);
+    final replayed = _replay(
+      context,
+      result,
+      dependencyIndex: dependencyIndex,
+    );
     if (replayed.status != NarrativeEventAuthoringStatus.applied ||
         replayed.mutation != result.mutation ||
         replayed.expectedRevision != result.expectedRevision ||
@@ -44,10 +51,17 @@ NarrativeEventAuthoringDiagnostic? verifyNarrativeEventAuthoringResult({
   }
 }
 
-NarrativeEventAuthoringResult _replay(
-  NarrativeEventAuthoringContext context,
-  NarrativeEventAuthoringResult result,
-) {
+NarrativeEventAuthoringResult _replay(NarrativeEventAuthoringContext context,
+    NarrativeEventAuthoringResult result,
+    {NarrativeDependencyIndex? dependencyIndex}) {
+  if (result.mutation == NarrativeEventAuthoringMutation.delete) {
+    return deleteNarrativeEvent(
+      context: context,
+      expectedRevision: result.expectedRevision,
+      eventId: result.previousRecord!.id,
+      dependencyIndex: dependencyIndex ?? NarrativeDependencyIndex(),
+    );
+  }
   final nextRecord = result.nextRecord!;
   final nextDraft = nextRecord.draftOrNull;
   return switch (result.mutation) {
@@ -59,6 +73,21 @@ NarrativeEventAuthoringResult _replay(
         idGenerator: NarrativeEventIdGenerator(
           rawUuidFactory: () => nextRecord.id.substring(4),
         ),
+      ),
+    NarrativeEventAuthoringMutation.duplicate => duplicateNarrativeEvent(
+        context: context,
+        expectedRevision: result.expectedRevision,
+        eventId: result.previousRecord!.id,
+        idGenerator: NarrativeEventIdGenerator(
+          rawUuidFactory: () => nextRecord.id.substring(4),
+        ),
+      ),
+    NarrativeEventAuthoringMutation.delete =>
+      throw StateError('Delete replay is handled before the switch.'),
+    NarrativeEventAuthoringMutation.unpublish => unpublishNarrativeEvent(
+        context: context,
+        expectedRevision: result.expectedRevision,
+        eventId: result.previousRecord!.id,
       ),
     NarrativeEventAuthoringMutation.selectSource => selectNarrativeEventSource(
         context: context,

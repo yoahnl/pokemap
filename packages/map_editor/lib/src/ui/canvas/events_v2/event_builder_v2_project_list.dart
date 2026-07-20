@@ -14,6 +14,7 @@ class EventBuilderV2ProjectList extends StatelessWidget {
     required this.hasNoMatchingEvents,
     required this.onSelectEvent,
     required this.onCreateEvent,
+    this.onOpenLifecycleActions,
     this.scrollController,
     this.focusNodeForStableKey,
   });
@@ -26,6 +27,7 @@ class EventBuilderV2ProjectList extends StatelessWidget {
   final bool hasNoMatchingEvents;
   final ValueChanged<NarrativeEventProjectSummary> onSelectEvent;
   final VoidCallback? onCreateEvent;
+  final ValueChanged<NarrativeEventProjectSummary>? onOpenLifecycleActions;
   final ScrollController? scrollController;
   final FocusNode Function(String stableKey)? focusNodeForStableKey;
 
@@ -57,6 +59,7 @@ class EventBuilderV2ProjectList extends StatelessWidget {
                     group: group,
                     selectedStableKey: selectedStableKey,
                     onSelectEvent: onSelectEvent,
+                    onOpenLifecycleActions: onOpenLifecycleActions,
                     focusNodeForStableKey: focusNodeForStableKey,
                   );
                 },
@@ -124,12 +127,14 @@ class _ProjectGroup extends StatelessWidget {
     required this.group,
     required this.selectedStableKey,
     required this.onSelectEvent,
+    required this.onOpenLifecycleActions,
     required this.focusNodeForStableKey,
   });
 
   final NarrativeEventProjectGroup group;
   final String? selectedStableKey;
   final ValueChanged<NarrativeEventProjectSummary> onSelectEvent;
+  final ValueChanged<NarrativeEventProjectSummary>? onOpenLifecycleActions;
   final FocusNode Function(String stableKey)? focusNodeForStableKey;
 
   @override
@@ -171,21 +176,45 @@ class _ProjectGroup extends StatelessWidget {
           for (final event in group.events)
             Padding(
               padding: const EdgeInsets.only(bottom: 3),
-              child: PokeMapSidebarItem(
-                key: ValueKey('event-builder-v2-event-${event.stableKey}'),
-                label: event.title,
-                icon: Icon(_eventIcon(event)),
-                compact: true,
-                trailing: PokeMapStatusLabel(
-                  label: _statusLabel(event),
-                  tone: _statusTone(event),
-                  icon: event.readOnly
-                      ? CupertinoIcons.lock_fill
-                      : CupertinoIcons.circle_fill,
-                ),
-                selected: selectedStableKey == event.stableKey,
-                focusNode: focusNodeForStableKey?.call(event.stableKey),
-                onTap: () => onSelectEvent(event),
+              child: Builder(
+                builder: (context) {
+                  final selected = selectedStableKey == event.stableKey;
+                  return PokeMapSidebarItem(
+                    key: ValueKey('event-builder-v2-event-${event.stableKey}'),
+                    label: event.title,
+                    icon: Icon(_eventIcon(event)),
+                    compact: true,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PokeMapStatusLabel(
+                          label: _statusLabel(event),
+                          tone: _statusTone(event),
+                          icon: event.readOnly
+                              ? CupertinoIcons.lock_fill
+                              : CupertinoIcons.circle_fill,
+                        ),
+                        if (selected &&
+                            !event.readOnly &&
+                            onOpenLifecycleActions != null) ...[
+                          const SizedBox(width: 3),
+                          PokeMapIconButton(
+                            key: ValueKey(
+                              'event-builder-v2-lifecycle-${event.stableKey}',
+                            ),
+                            onPressed: () => onOpenLifecycleActions!(event),
+                            icon: const Icon(CupertinoIcons.ellipsis),
+                            tooltip: 'Cycle de vie de l’événement',
+                            size: 24,
+                          ),
+                        ],
+                      ],
+                    ),
+                    selected: selected,
+                    focusNode: focusNodeForStableKey?.call(event.stableKey),
+                    onTap: () => onSelectEvent(event),
+                  );
+                },
               ),
             ),
         ],

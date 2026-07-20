@@ -27,6 +27,50 @@ extension NarrativeEventBuilderV2FilterLabel on NarrativeEventBuilderV2Filter {
       };
 }
 
+@immutable
+final class NarrativeEventLifecyclePresentation {
+  const NarrativeEventLifecyclePresentation({
+    required this.label,
+    required this.description,
+    required this.isDraft,
+    required this.isRuntimeEnabled,
+  });
+
+  final String label;
+  final String description;
+  final bool isDraft;
+  final bool isRuntimeEnabled;
+
+  bool get isPublished => !isDraft;
+}
+
+NarrativeEventLifecyclePresentation narrativeEventLifecyclePresentation(
+  NarrativeEventProjectSummary event,
+) {
+  if (event.status == NarrativeEventProjectStatus.draftIncomplete) {
+    return const NarrativeEventLifecyclePresentation(
+      label: 'Brouillon',
+      description: 'Non publié et jamais joué par le runtime.',
+      isDraft: true,
+      isRuntimeEnabled: false,
+    );
+  }
+  if (event.enabled == true) {
+    return const NarrativeEventLifecyclePresentation(
+      label: 'Publié · actif',
+      description: 'Publié et joué par le runtime.',
+      isDraft: false,
+      isRuntimeEnabled: true,
+    );
+  }
+  return const NarrativeEventLifecyclePresentation(
+    label: 'Publié · inactif',
+    description: 'Publié, mais ignoré par le runtime tant qu’il reste inactif.',
+    isDraft: false,
+    isRuntimeEnabled: false,
+  );
+}
+
 typedef SelectNarrativeEventBuilderV2Event = bool Function({
   required String eventId,
   required NarrativeEventGroupContext groupContext,

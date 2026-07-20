@@ -78,5 +78,36 @@ void main() {
 
       expect(issue?.code, 'unverifiedAuthoringResult');
     });
+
+    test('rejects a delete replay when the attested index has a consumer', () {
+      final record = configuredRecord();
+      final registry = registryWithRecords([record]);
+      final context = configuredAuthoringContext(registry: registry);
+      final resultWithoutConsumers = deleteNarrativeEvent(
+        context: context,
+        expectedRevision: authoringRevision,
+        eventId: eventIdA,
+        dependencyIndex: NarrativeDependencyIndex(),
+      );
+      final owner = const NarrativeDependencyKey.scene('scene_consumer');
+      final attestedIndex = NarrativeDependencyIndex(
+        usages: [
+          NarrativeDependencyUsage(
+            target: const NarrativeDependencyKey.eventV2(eventIdA),
+            owner: owner,
+            path: 'scenes.scene_consumer.conditions.eventId',
+            criticality: NarrativeDependencyCriticality.runtimeBlocking,
+          ),
+        ],
+      );
+
+      final issue = verifyNarrativeEventAuthoringResult(
+        context: context,
+        result: resultWithoutConsumers,
+        dependencyIndex: attestedIndex,
+      );
+
+      expect(issue?.code, 'unverifiedAuthoringResult');
+    });
   });
 }
