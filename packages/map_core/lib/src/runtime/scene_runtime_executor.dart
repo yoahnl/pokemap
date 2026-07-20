@@ -207,7 +207,7 @@ final class SceneRuntimeExecutor {
         return _callbackOutput(
           intent,
           callbacks.startBattle,
-          const {'victory', 'defeat'},
+          intent.declaredOutputPortIds.toSet(),
         );
       case SceneRuntimePlanIntentKind.playCinematic:
         return _callbackOutput(

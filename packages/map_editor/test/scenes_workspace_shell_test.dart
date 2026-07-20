@@ -3693,7 +3693,7 @@ void main() {
       expect(find.text('dialogue_test_intro'), findsOneWidget);
       expect(find.text('yarn_node_test_intro'), findsOneWidget);
       expect(find.textContaining('accept'), findsWidgets);
-      expect(find.textContaining('decline'), findsOneWidget);
+      expect(find.textContaining('decline'), findsWidgets);
       expect(find.text('speaker_test'), findsOneWidget);
       expect(find.text('edge_start_yarn'), findsOneWidget);
       expect(find.text('edge_yarn_battle'), findsOneWidget);

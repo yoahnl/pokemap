@@ -72,6 +72,22 @@ void main() {
       expect(diagnostic.outcomeId, 'outcome_done');
     });
 
+    test('declared outcomes require every end node to emit one', () {
+      final scene = _scene(
+        declaredOutcomes: [
+          SceneOutcome(id: 'outcome_done', label: 'Done'),
+        ],
+      );
+
+      final diagnostic = diagnoseScene(scene)
+          .byCode(SceneDiagnosticCode.endOutcomeMissing)
+          .single;
+
+      expect(diagnostic.severity, SceneDiagnosticSeverity.error);
+      expect(diagnostic.nodeId, 'node_end');
+      expect(diagnostic.target, SceneDiagnosticTarget.outcome);
+    });
+
     test('incomplete layout emits layoutMissingNode warning', () {
       final scene = _scene(
         layout: SceneGraphLayout(

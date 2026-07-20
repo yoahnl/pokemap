@@ -9,6 +9,7 @@ import '../design_system/design_system.dart';
 import 'narrative_studio/narrative_studio_route_presentation.dart';
 import 'narrative_studio/narrative_studio_workspace_page.dart';
 import 'scenes/scene_cinematic_picker.dart';
+import 'scenes/scene_graph_editor.dart';
 import 'scenes/scene_graph_read_only_view.dart';
 import 'scenes/scene_library_panel.dart';
 import 'scenes/scene_node_read_only_inspector.dart';
@@ -58,6 +59,11 @@ typedef SceneEdgeDraftRemover = Future<bool> Function({
 });
 
 typedef SceneNodeDraftRemover = Future<bool> Function({
+  required String sceneId,
+  required String nodeId,
+});
+
+typedef SceneNodeDraftDuplicator = Future<String?> Function({
   required String sceneId,
   required String nodeId,
 });
@@ -156,6 +162,7 @@ class ScenesWorkspace extends StatefulWidget {
     required this.onAddEdgeDraft,
     required this.onRemoveEdgeDraft,
     required this.onRemoveNodeDraft,
+    this.onDuplicateNodeDraft,
     required this.onUpdateNodeLayout,
     required this.onUpdateConditionSource,
     required this.onUpdateYarnDialoguePayload,
@@ -192,6 +199,7 @@ class ScenesWorkspace extends StatefulWidget {
   final SceneEdgeDraftCreator onAddEdgeDraft;
   final SceneEdgeDraftRemover onRemoveEdgeDraft;
   final SceneNodeDraftRemover onRemoveNodeDraft;
+  final SceneNodeDraftDuplicator? onDuplicateNodeDraft;
   final SceneNodeLayoutUpdater onUpdateNodeLayout;
   final SceneConditionSourceUpdater onUpdateConditionSource;
   final SceneYarnDialoguePayloadUpdater onUpdateYarnDialoguePayload;
@@ -733,6 +741,9 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
               onStartConnection: _startConnection,
               onCancelConnection: _cancelConnection,
               onUpdateNodeLayout: _updateNodeLayout,
+              onDuplicateNode: widget.onDuplicateNodeDraft == null
+                  ? null
+                  : (nodeId) => _duplicateNodeDraft(nodeId),
             ),
           ),
         ),
@@ -1041,6 +1052,21 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
       _selectedNodeId = _preferredNodeIdAfterRemoving(selected, nodeId);
       _pendingConnection = null;
     });
+  }
+
+  Future<String?> _duplicateNodeDraft(String nodeId) async {
+    final selected = _selectedScene;
+    final duplicate = widget.onDuplicateNodeDraft;
+    if (selected == null || duplicate == null) return null;
+    final createdId = await duplicate(sceneId: selected.id, nodeId: nodeId);
+    if (!mounted || createdId == null) return createdId;
+    setState(() {
+      _selectedSceneId = selected.id;
+      _selectedNodeId = createdId;
+      _selectedEdgeId = null;
+      _pendingConnection = null;
+    });
+    return createdId;
   }
 
   Future<void> _updateNodeLayout({
@@ -1678,6 +1704,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
     required this.onStartConnection,
     required this.onCancelConnection,
     required this.onUpdateNodeLayout,
+    this.onDuplicateNode,
   });
 
   final NarrativeSceneSummary? scene;
@@ -1700,6 +1727,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
   final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
   final VoidCallback onCancelConnection;
   final SceneNodeLayoutUpdater onUpdateNodeLayout;
+  final SceneGraphNodeDuplicator? onDuplicateNode;
 
   @override
   Widget build(BuildContext context) {
@@ -1729,6 +1757,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
               onStartConnection: onStartConnection,
               onCancelConnection: onCancelConnection,
               onUpdateNodeLayout: onUpdateNodeLayout,
+              onDuplicateNode: onDuplicateNode,
             ),
     );
   }
@@ -1770,6 +1799,7 @@ class _SelectedSceneSummary extends StatelessWidget {
     required this.onStartConnection,
     required this.onCancelConnection,
     required this.onUpdateNodeLayout,
+    this.onDuplicateNode,
   });
 
   final NarrativeSceneSummary scene;
@@ -1792,6 +1822,7 @@ class _SelectedSceneSummary extends StatelessWidget {
   final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
   final VoidCallback onCancelConnection;
   final SceneNodeLayoutUpdater onUpdateNodeLayout;
+  final SceneGraphNodeDuplicator? onDuplicateNode;
 
   @override
   Widget build(BuildContext context) {
@@ -1845,7 +1876,7 @@ class _SelectedSceneSummary extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Expanded(
-            child: SceneGraphReadOnlyView(
+            child: SceneGraphEditor(
               scene: scene,
               selectedNodeId: selectedNodeId,
               selectedEdgeId: selectedEdgeId,
@@ -1874,7 +1905,7 @@ class _SelectedSceneSummary extends StatelessWidget {
                 x: x,
                 y: y,
               ),
-              expandToFill: true,
+              onDuplicateNode: onDuplicateNode,
             ),
           ),
         ],

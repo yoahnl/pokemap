@@ -202,6 +202,24 @@ final class SceneRuntimePlanIntent {
   final String? cinematicId;
   final SceneConsequence? consequence;
 
+  List<String> get declaredOutputPortIds => switch (kind) {
+        SceneRuntimePlanIntentKind.start ||
+        SceneRuntimePlanIntentKind.merge ||
+        SceneRuntimePlanIntentKind.playCinematic ||
+        SceneRuntimePlanIntentKind.applyConsequence =>
+          const ['completed'],
+        SceneRuntimePlanIntentKind.evaluateCondition => const ['true', 'false'],
+        SceneRuntimePlanIntentKind.showDialogue => [
+            'completed',
+            for (final outcome in expectedOutcomes)
+              if (outcome != 'completed') outcome,
+          ],
+        SceneRuntimePlanIntentKind.startBattle => battleDeclaredOutcomes.isEmpty
+            ? const ['victory', 'defeat']
+            : battleDeclaredOutcomes,
+        SceneRuntimePlanIntentKind.end => const [],
+      };
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

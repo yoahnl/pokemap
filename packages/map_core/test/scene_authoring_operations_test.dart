@@ -454,10 +454,17 @@ void main() {
           SceneNode(
             id: 'node_dialogue',
             kind: SceneNodeKind.yarnDialogue,
-            payload: SceneYarnDialoguePayload(dialogueId: 'dialogue_test'),
+            payload: SceneYarnDialoguePayload(
+              dialogueId: 'dialogue_test',
+              expectedOutcomes: const ['accept', 'leave'],
+            ),
           ),
         ).map((port) => (port.id, port.edgeKind)),
-        [('completed', SceneEdgeKind.defaultFlow)],
+        [
+          ('completed', SceneEdgeKind.defaultFlow),
+          ('accept', SceneEdgeKind.dialogueOutcome),
+          ('leave', SceneEdgeKind.dialogueOutcome),
+        ],
       );
       expect(
         authorableSceneOutputPortsForNode(
@@ -476,6 +483,36 @@ void main() {
           ('defeat', SceneEdgeKind.battleDefeat),
         ],
       );
+    });
+
+    test('duplicates a node payload and layout without copying its edges', () {
+      final scene = _edgeAuthoringSceneWithYarnSource(
+        edges: [
+          SceneEdge(
+            id: 'edge_node_yarn_accept_node_end',
+            fromNodeId: 'node_yarn',
+            fromPortId: 'accept',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.dialogueOutcome,
+          ),
+        ],
+      );
+
+      final result = duplicateSceneNodeDraft(scene, 'node_yarn');
+
+      expect(result.createdNode.id, 'node_yarn_dialogue');
+      expect(result.createdNode.kind, SceneNodeKind.yarnDialogue);
+      expect(result.createdNode.payload, scene.graph.nodes[1].payload);
+      expect(result.createdNode.title, scene.graph.nodes[1].title);
+      expect(result.updatedScene.graph.edges, scene.graph.edges);
+      final originalLayout = scene.layout.nodeLayouts
+          .firstWhere((layout) => layout.nodeId == 'node_yarn');
+      final duplicateLayout = result.updatedScene.layout.nodeLayouts
+          .firstWhere((layout) => layout.nodeId == result.createdNode.id);
+      expect(duplicateLayout.x, originalLayout.x + 32);
+      expect(duplicateLayout.y, originalLayout.y + 32);
+      expect(() => duplicateSceneNodeDraft(scene, 'node_start'),
+          throwsArgumentError);
     });
 
     test('adds a setFact consequence action node without fake refs', () {
@@ -1290,15 +1327,13 @@ void main() {
         ),
         throwsArgumentError,
       );
-      expect(
-        () => addSceneEdgeDraft(
-          _edgeAuthoringSceneWithYarnSource(),
-          fromNodeId: 'node_yarn',
-          fromPortId: 'accept',
-          toNodeId: 'node_end',
-        ),
-        throwsArgumentError,
+      final dialogueEdge = addSceneEdgeDraft(
+        _edgeAuthoringSceneWithYarnSource(),
+        fromNodeId: 'node_yarn',
+        fromPortId: 'accept',
+        toNodeId: 'node_end',
       );
+      expect(dialogueEdge.createdEdge.kind, SceneEdgeKind.dialogueOutcome);
       expect(
         () => addSceneEdgeDraft(
           _edgeAuthoringSceneWithBattleSource(),

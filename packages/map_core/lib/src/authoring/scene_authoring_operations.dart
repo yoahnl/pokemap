@@ -457,6 +457,37 @@ SceneDraftCreationResult createSceneDraftInProject(
 List<SceneAuthorableOutputPort> authorableSceneOutputPortsForNode(
   SceneNode node,
 ) {
+  final payload = node.payload;
+  if (payload is SceneYarnDialoguePayload) {
+    return [
+      const SceneAuthorableOutputPort(
+        id: 'completed',
+        label: 'completed',
+        edgeKind: SceneEdgeKind.defaultFlow,
+      ),
+      for (final outcomeId in payload.expectedOutcomes)
+        if (outcomeId != 'completed')
+          SceneAuthorableOutputPort(
+            id: outcomeId,
+            label: outcomeId,
+            edgeKind: SceneEdgeKind.dialogueOutcome,
+          ),
+    ];
+  }
+  if (payload is SceneBattlePayload && payload.declaredOutcomes.isNotEmpty) {
+    return [
+      for (final outcomeId in payload.declaredOutcomes)
+        SceneAuthorableOutputPort(
+          id: outcomeId,
+          label: outcomeId,
+          edgeKind: switch (outcomeId) {
+            'victory' => SceneEdgeKind.battleVictory,
+            'defeat' => SceneEdgeKind.battleDefeat,
+            _ => SceneEdgeKind.branchOutcome,
+          },
+        ),
+    ];
+  }
   return authorableSceneOutputPortsForKind(node.kind);
 }
 
@@ -1000,6 +1031,91 @@ SceneNodeDraftCreationResult addSceneNodeDraft(
 
   return SceneNodeDraftCreationResult(
     updatedScene: updatedScene,
+    createdNode: createdNode,
+  );
+}
+
+SceneNodeDraftCreationResult duplicateSceneNodeDraft(
+  SceneAsset scene,
+  String nodeId,
+) {
+  final source = _findNodeOrThrow(
+    scene,
+    _trimRequired(
+      nodeId,
+      'nodeId',
+      'Scene node duplication requires a node id.',
+    ),
+    'nodeId',
+  );
+  if (source.kind == SceneNodeKind.start ||
+      source.kind == SceneNodeKind.branchByOutcome) {
+    throw ArgumentError.value(
+      nodeId,
+      'nodeId',
+      'Scene node kind ${source.kind.name} cannot be duplicated yet.',
+    );
+  }
+  final nodeIdBase = switch (source.kind) {
+    SceneNodeKind.yarnDialogue ||
+    SceneNodeKind.battle ||
+    SceneNodeKind.cinematic =>
+      _linkedAssetNodeIdBaseForKind(source.kind),
+    SceneNodeKind.action => 'node_action',
+    SceneNodeKind.condition ||
+    SceneNodeKind.merge ||
+    SceneNodeKind.end =>
+      _nodeIdBaseForKind(source.kind),
+    SceneNodeKind.start ||
+    SceneNodeKind.branchByOutcome =>
+      throw StateError('Unsupported duplicate node kind.'),
+  };
+  final duplicatedNodeId = _uniqueNodeId(
+    nodeIdBase,
+    scene.graph.nodes.map((node) => node.id),
+  );
+  final createdNode = SceneNode(
+    id: duplicatedNodeId,
+    kind: source.kind,
+    title: source.title,
+    description: source.description,
+    payload: source.payload,
+  );
+  SceneNodeLayout? sourceLayout;
+  for (final layout in scene.layout.nodeLayouts) {
+    if (layout.nodeId == source.id) {
+      sourceLayout = layout;
+      break;
+    }
+  }
+  final createdLayout = sourceLayout == null
+      ? _layoutForNewNode(scene,
+          nodeId: duplicatedNodeId, afterNodeId: source.id)
+      : SceneNodeLayout(
+          nodeId: duplicatedNodeId,
+          x: sourceLayout.x + 32,
+          y: sourceLayout.y + 32,
+        );
+  return SceneNodeDraftCreationResult(
+    updatedScene: SceneAsset(
+      id: scene.id,
+      name: scene.name,
+      description: scene.description,
+      storylineId: scene.storylineId,
+      chapterId: scene.chapterId,
+      tags: scene.tags,
+      graph: SceneGraph(
+        startNodeId: scene.graph.startNodeId,
+        nodes: [...scene.graph.nodes, createdNode],
+        edges: scene.graph.edges,
+      ),
+      layout: SceneGraphLayout(
+        nodeLayouts: [...scene.layout.nodeLayouts, createdLayout],
+        edgeLayouts: scene.layout.edgeLayouts,
+      ),
+      declaredOutcomes: scene.declaredOutcomes,
+      metadata: scene.metadata,
+    ),
     createdNode: createdNode,
   );
 }

@@ -21,6 +21,7 @@ enum SceneDiagnosticCode {
   layoutMissingNode,
   declaredOutcomeUnused,
   endOutcomeUndeclared,
+  endOutcomeMissing,
   conditionSourceMissing,
   conditionSourceUnknown,
   conditionOperatorMissing,
@@ -347,6 +348,19 @@ SceneDiagnosticsReport diagnoseScene(SceneAsset scene) {
     }
     final outcomeId = payload.sceneOutcomeId;
     if (outcomeId == null) {
+      if (declaredOutcomeIds.isNotEmpty) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.endOutcomeMissing,
+            severity: SceneDiagnosticSeverity.error,
+            message: 'Une fin doit émettre un outcome déclaré.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.outcome,
+            suggestedFixLabel: 'Choisir un outcome de scène pour cette fin.',
+          ),
+        );
+      }
       continue;
     }
     emittedSceneOutcomeIds.add(outcomeId);
@@ -1297,18 +1311,7 @@ List<_SceneOutputPortSpec>? _v0OutputPortSpecsForNode(SceneNode node) {
         ),
       ],
     SceneNodeKind.yarnDialogue => _yarnDialogueOutputPortSpecs(node),
-    SceneNodeKind.battle => const [
-        _SceneOutputPortSpec(
-          id: 'victory',
-          edgeKinds: {SceneEdgeKind.battleVictory},
-          required: true,
-        ),
-        _SceneOutputPortSpec(
-          id: 'defeat',
-          edgeKinds: {SceneEdgeKind.battleDefeat},
-          required: true,
-        ),
-      ],
+    SceneNodeKind.battle => _battleOutputPortSpecs(node),
     SceneNodeKind.action => const [
         _SceneOutputPortSpec(
           id: 'completed',
@@ -1346,6 +1349,27 @@ List<_SceneOutputPortSpec> _yarnDialogueOutputPortSpecs(SceneNode node) {
           edgeKinds: const {SceneEdgeKind.dialogueOutcome},
           required: true,
         ),
+  ];
+}
+
+List<_SceneOutputPortSpec> _battleOutputPortSpecs(SceneNode node) {
+  final payload = node.payload as SceneBattlePayload;
+  final outcomes = payload.declaredOutcomes.isEmpty
+      ? const ['victory', 'defeat']
+      : payload.declaredOutcomes;
+  return [
+    for (final outcomeId in outcomes)
+      _SceneOutputPortSpec(
+        id: outcomeId,
+        edgeKinds: {
+          switch (outcomeId) {
+            'victory' => SceneEdgeKind.battleVictory,
+            'defeat' => SceneEdgeKind.battleDefeat,
+            _ => SceneEdgeKind.branchOutcome,
+          },
+        },
+        required: true,
+      ),
   ];
 }
 
