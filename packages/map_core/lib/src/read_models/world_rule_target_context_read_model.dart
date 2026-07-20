@@ -118,7 +118,9 @@ bool _matchesTargetContext(
     WorldRuleTargetKind.mapEntity ||
     WorldRuleTargetKind.npcDialogue =>
       target.entityId == entityId,
-    WorldRuleTargetKind.mapEvent => target.eventId == eventId,
+    WorldRuleTargetKind.mapEvent ||
+    WorldRuleTargetKind.narrativeEvent =>
+      target.eventId == eventId,
   };
 }
 
@@ -177,6 +179,8 @@ String _targetLabel(
             .firstOrNull ??
         target.eventId ??
         'Event inconnu',
+    WorldRuleTargetKind.narrativeEvent =>
+      target.label ?? target.eventId ?? 'Narrative Event V2 inconnu',
   };
 }
 

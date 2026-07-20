@@ -207,9 +207,15 @@ void main() {
       label: 'Gate open',
       category: 'World',
     );
+    final secondFact = NarrativeFactDefinition(
+      id: 'fact_second_signal',
+      label: 'Second signal',
+      category: 'World',
+      defaultValue: true,
+    );
     final container = await _pumpNarrativeShell(
       tester,
-      project: _project(facts: [fact]),
+      project: _project(facts: [fact, secondFact]),
       workspaceMode: EditorWorkspaceMode.worldRules,
       activeMap: _map(),
     );
@@ -224,7 +230,7 @@ void main() {
     expect(find.text('Règles du monde'), findsWidgets);
     expect(find.text('Gate open'), findsWidgets);
     expect(find.text('Gate event'), findsWidgets);
-    expect(find.text('Event désactivé'), findsWidgets);
+    expect(find.text('Event de map legacy désactivé'), findsWidgets);
 
     await tester.tap(find.byKey(const ValueKey('world-rule-create-submit')));
     await tester.pumpAndSettle();
@@ -238,11 +244,17 @@ void main() {
     expect(updatedProject.worldRules.single.effect.kind,
         WorldRuleEffectKind.eventDisabled);
     expect(
-      find.text('Si Gate open est vrai alors Event désactivé sur Gate event'),
+      find.text(
+        'Si Gate open est vrai alors Event de map legacy désactivé sur Event de map legacy · Gate event',
+      ),
       findsWidgets,
     );
 
-    await tester.tap(find.byKey(const ValueKey('world-rule-toggle-enabled')));
+    final toggleEnabled =
+        find.byKey(const ValueKey('world-rule-toggle-enabled'));
+    await tester.ensureVisible(toggleEnabled);
+    await tester.pumpAndSettle();
+    await tester.tap(toggleEnabled);
     await tester.pumpAndSettle();
     updatedProject = container.read(editorNotifierProvider).project!;
     expect(updatedProject.worldRules.single.enabled, isFalse);
@@ -255,13 +267,54 @@ void main() {
       find.byKey(const ValueKey('world-rule-editor-priority-field')),
       '7',
     );
-    await tester.tap(find.byKey(const ValueKey('world-rule-editor-save')));
+    dynamic sourcePicker = tester.widget(
+      find.byKey(const ValueKey('world-rule-editor-source-picker')),
+    );
+    sourcePicker.onChanged('fact:isTrue:fact_second_signal');
+    await tester.pumpAndSettle();
+    dynamic targetPicker = tester.widget(
+      find.byKey(const ValueKey('world-rule-editor-target-picker')),
+    );
+    targetPicker.onChanged('mapEntity:map_gate:entity_gate:');
+    await tester.pumpAndSettle();
+    dynamic effectPicker = tester.widget(
+      find.byKey(const ValueKey('world-rule-editor-effect-picker')),
+    );
+    effectPicker.onChanged('entityHidden');
+    await tester.pumpAndSettle();
+    final saveRule = find.byKey(const ValueKey('world-rule-editor-save'));
+    await tester.ensureVisible(saveRule);
+    await tester.pumpAndSettle();
+    await tester.tap(saveRule);
     await tester.pumpAndSettle();
     updatedProject = container.read(editorNotifierProvider).project!;
     expect(updatedProject.worldRules.single.label, 'Disable gate while open');
     expect(updatedProject.worldRules.single.priority, 7);
+    expect(
+      updatedProject.worldRules.single.source.sourceId,
+      'fact_second_signal',
+    );
+    expect(
+      updatedProject.worldRules.single.source.resolvedExpectedFactValue,
+      const NarrativeValue.boolean(true),
+    );
+    expect(
+      updatedProject.worldRules.single.target.kind,
+      WorldRuleTargetKind.mapEntity,
+    );
+    expect(
+      updatedProject.worldRules.single.target.entityId,
+      'entity_gate',
+    );
+    expect(
+      updatedProject.worldRules.single.effect.kind,
+      WorldRuleEffectKind.entityHidden,
+    );
 
-    await tester.tap(find.byKey(const ValueKey('world-rule-editor-delete')));
+    final deleteRule = find.byKey(const ValueKey('world-rule-editor-delete'));
+    await tester.ensureVisible(deleteRule);
+    await tester.pumpAndSettle();
+    await tester.tap(deleteRule);
     await tester.pumpAndSettle();
     final confirmDelete =
         find.byKey(const ValueKey('world-rules-confirm-delete'));

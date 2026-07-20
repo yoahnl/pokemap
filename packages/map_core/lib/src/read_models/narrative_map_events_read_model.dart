@@ -432,6 +432,8 @@ NarrativeMapWorldRuleRow _worldRuleRow(
           maps.any(
             (map) => map.events.any((event) => event.id == rule.target.eventId),
           ),
+    WorldRuleTargetKind.narrativeEvent =>
+      events.any((event) => event.eventId == rule.target.eventId),
   };
   return NarrativeMapWorldRuleRow(
     stableKey: 'rule:${rule.id}',

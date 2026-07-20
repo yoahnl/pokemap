@@ -25,12 +25,21 @@ final class RuntimeWorldRuleProjectionState {
     Set<String> disabledEventIds = const <String>{},
     Set<String> hiddenEventIds = const <String>{},
     Set<String> enabledEventIds = const <String>{},
+    Set<String> disabledNarrativeEventIds = const <String>{},
+    Set<String> hiddenNarrativeEventIds = const <String>{},
+    Set<String> enabledNarrativeEventIds = const <String>{},
     Map<String, String> npcDialogueOverrides = const <String, String>{},
   })  : hiddenEntityIds = Set<String>.unmodifiable(hiddenEntityIds),
         visibleEntityIds = Set<String>.unmodifiable(visibleEntityIds),
         disabledEventIds = Set<String>.unmodifiable(disabledEventIds),
         hiddenEventIds = Set<String>.unmodifiable(hiddenEventIds),
         enabledEventIds = Set<String>.unmodifiable(enabledEventIds),
+        disabledNarrativeEventIds =
+            Set<String>.unmodifiable(disabledNarrativeEventIds),
+        hiddenNarrativeEventIds =
+            Set<String>.unmodifiable(hiddenNarrativeEventIds),
+        enabledNarrativeEventIds =
+            Set<String>.unmodifiable(enabledNarrativeEventIds),
         npcDialogueOverrides =
             Map<String, String>.unmodifiable(npcDialogueOverrides);
 
@@ -40,6 +49,9 @@ final class RuntimeWorldRuleProjectionState {
         disabledEventIds = const <String>{},
         hiddenEventIds = const <String>{},
         enabledEventIds = const <String>{},
+        disabledNarrativeEventIds = const <String>{},
+        hiddenNarrativeEventIds = const <String>{},
+        enabledNarrativeEventIds = const <String>{},
         npcDialogueOverrides = const <String, String>{};
 
   factory RuntimeWorldRuleProjectionState.fromResolvedEffects(
@@ -50,6 +62,9 @@ final class RuntimeWorldRuleProjectionState {
     final disabledEventIds = <String>{};
     final hiddenEventIds = <String>{};
     final enabledEventIds = <String>{};
+    final disabledNarrativeEventIds = <String>{};
+    final hiddenNarrativeEventIds = <String>{};
+    final enabledNarrativeEventIds = <String>{};
     final npcDialogueOverrides = <String, String>{};
 
     for (final effect in effects) {
@@ -73,25 +88,43 @@ final class RuntimeWorldRuleProjectionState {
           if (eventId == null || eventId.trim().isEmpty) {
             continue;
           }
-          disabledEventIds.remove(eventId);
-          hiddenEventIds.remove(eventId);
-          enabledEventIds.add(eventId);
+          if (effect.target.kind == WorldRuleTargetKind.narrativeEvent) {
+            disabledNarrativeEventIds.remove(eventId);
+            hiddenNarrativeEventIds.remove(eventId);
+            enabledNarrativeEventIds.add(eventId);
+          } else {
+            disabledEventIds.remove(eventId);
+            hiddenEventIds.remove(eventId);
+            enabledEventIds.add(eventId);
+          }
         case WorldRuleEffectKind.eventDisabled:
           final eventId = effect.target.eventId;
           if (eventId == null || eventId.trim().isEmpty) {
             continue;
           }
-          enabledEventIds.remove(eventId);
-          hiddenEventIds.remove(eventId);
-          disabledEventIds.add(eventId);
+          if (effect.target.kind == WorldRuleTargetKind.narrativeEvent) {
+            enabledNarrativeEventIds.remove(eventId);
+            hiddenNarrativeEventIds.remove(eventId);
+            disabledNarrativeEventIds.add(eventId);
+          } else {
+            enabledEventIds.remove(eventId);
+            hiddenEventIds.remove(eventId);
+            disabledEventIds.add(eventId);
+          }
         case WorldRuleEffectKind.eventHidden:
           final eventId = effect.target.eventId;
           if (eventId == null || eventId.trim().isEmpty) {
             continue;
           }
-          enabledEventIds.remove(eventId);
-          disabledEventIds.remove(eventId);
-          hiddenEventIds.add(eventId);
+          if (effect.target.kind == WorldRuleTargetKind.narrativeEvent) {
+            enabledNarrativeEventIds.remove(eventId);
+            disabledNarrativeEventIds.remove(eventId);
+            hiddenNarrativeEventIds.add(eventId);
+          } else {
+            enabledEventIds.remove(eventId);
+            disabledEventIds.remove(eventId);
+            hiddenEventIds.add(eventId);
+          }
         case WorldRuleEffectKind.npcDialogueOverride:
           final entityId = effect.target.entityId;
           final dialogueId = effect.effect.dialogueId;
@@ -111,6 +144,9 @@ final class RuntimeWorldRuleProjectionState {
       disabledEventIds: disabledEventIds,
       hiddenEventIds: hiddenEventIds,
       enabledEventIds: enabledEventIds,
+      disabledNarrativeEventIds: disabledNarrativeEventIds,
+      hiddenNarrativeEventIds: hiddenNarrativeEventIds,
+      enabledNarrativeEventIds: enabledNarrativeEventIds,
       npcDialogueOverrides: npcDialogueOverrides,
     );
   }
@@ -120,6 +156,9 @@ final class RuntimeWorldRuleProjectionState {
   final Set<String> disabledEventIds;
   final Set<String> hiddenEventIds;
   final Set<String> enabledEventIds;
+  final Set<String> disabledNarrativeEventIds;
+  final Set<String> hiddenNarrativeEventIds;
+  final Set<String> enabledNarrativeEventIds;
   final Map<String, String> npcDialogueOverrides;
 
   bool get isEmpty =>
@@ -128,6 +167,9 @@ final class RuntimeWorldRuleProjectionState {
       disabledEventIds.isEmpty &&
       hiddenEventIds.isEmpty &&
       enabledEventIds.isEmpty &&
+      disabledNarrativeEventIds.isEmpty &&
+      hiddenNarrativeEventIds.isEmpty &&
+      enabledNarrativeEventIds.isEmpty &&
       npcDialogueOverrides.isEmpty;
 
   bool isMapEntityVisible(
@@ -174,5 +216,17 @@ final class RuntimeWorldRuleProjectionState {
 
   String? dialogueOverrideForEntity(String entityId) {
     return npcDialogueOverrides[entityId];
+  }
+
+  bool canDispatchNarrativeEvent(
+    String eventId, {
+    bool defaultEnabled = true,
+  }) {
+    if (hiddenNarrativeEventIds.contains(eventId) ||
+        disabledNarrativeEventIds.contains(eventId)) {
+      return false;
+    }
+    if (enabledNarrativeEventIds.contains(eventId)) return true;
+    return defaultEnabled;
   }
 }

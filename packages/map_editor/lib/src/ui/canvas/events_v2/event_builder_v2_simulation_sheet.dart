@@ -494,6 +494,10 @@ String _reasonLabel(NarrativeEventSimulationReason reason) => switch (reason) {
         'Autorité de dispatch bloquée',
       NarrativeEventSimulationReason.draft => 'Brouillon non exécutable',
       NarrativeEventSimulationReason.disabled => 'Event inactif',
+      NarrativeEventSimulationReason.worldRuleDisabled =>
+        'Event désactivé par une règle du monde',
+      NarrativeEventSimulationReason.worldRuleHidden =>
+        'Event masqué par une règle du monde',
       NarrativeEventSimulationReason.sourceMismatch =>
         'Source différente de la simulation',
       NarrativeEventSimulationReason.factConditionFalse =>

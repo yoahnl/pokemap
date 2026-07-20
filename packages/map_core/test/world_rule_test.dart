@@ -142,5 +142,32 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test('keeps legacy Map Events distinct from Narrative Event V2 targets',
+        () {
+      const legacyTarget = WorldRuleTarget(
+        kind: WorldRuleTargetKind.mapEvent,
+        mapId: 'map_port',
+        eventId: 'legacy_event',
+      );
+      const narrativeTarget = WorldRuleTarget(
+        kind: WorldRuleTargetKind.narrativeEvent,
+        mapId: '',
+        eventId: 'evt_019abcde-5200-7000-8000-000000000001',
+      );
+
+      expect(WorldRuleTarget.fromJson(legacyTarget.toJson()), legacyTarget);
+      expect(
+        WorldRuleTarget.fromJson(narrativeTarget.toJson()),
+        narrativeTarget,
+      );
+      expect(
+        isWorldRuleEffectCompatibleWithTarget(
+          WorldRuleTargetKind.narrativeEvent,
+          WorldRuleEffectKind.eventDisabled,
+        ),
+        isTrue,
+      );
+    });
   });
 }

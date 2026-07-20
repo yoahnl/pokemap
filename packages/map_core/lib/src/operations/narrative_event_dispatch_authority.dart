@@ -4,11 +4,14 @@ import '../catalogs/narrative_event_project_catalog.dart';
 import '../catalogs/narrative_outcome_event_source_catalog.dart';
 import '../catalogs/narrative_spatial_event_source_catalog.dart';
 import '../models/game_state.dart';
+import '../models/map_data.dart';
 import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_occurrence.dart';
 import '../models/narrative_event_registry.dart';
 import '../models/narrative_event_source_ref.dart';
-import '../read_models/narrative_event_source_index.dart';
+import '../models/project_manifest.dart';
+import '../models/world_rule.dart';
+import '../projection/world_rule_projection.dart';
 import '../read_models/narrative_event_validation_read_model.dart';
 import 'narrative_event_registry_codec.dart';
 import 'narrative_fact_runtime.dart';
@@ -29,6 +32,8 @@ enum NarrativeEventDispatchAuthorityBlockReason {
 enum NarrativeEventDispatchReason {
   draft,
   disabled,
+  worldRuleDisabled,
+  worldRuleHidden,
   sourceMismatch,
   factConditionFalse,
   narrativeEventConsumedConditionFalse,
@@ -68,23 +73,26 @@ final class NarrativeEventDispatchAuthorityReady
     required this.occurrence,
     required this.mode,
     required NarrativeEventRegistry registry,
-    required NarrativeEventSourceIndex sourceIndex,
     required NarrativeFactRuntimeResolver factResolver,
     required NarrativeEventProjectCatalog projectCatalog,
     required _LegacyClaimAuthorityResolution claimResolution,
+    required ProjectManifest? worldRuleProject,
+    required List<MapData> worldRuleMaps,
   })  : _registry = registry,
-        _sourceIndex = sourceIndex,
         _factResolver = factResolver,
         _projectCatalog = projectCatalog,
-        _claimResolution = claimResolution;
+        _claimResolution = claimResolution,
+        _worldRuleProject = worldRuleProject,
+        _worldRuleMaps = List.unmodifiable(worldRuleMaps);
 
   final NarrativeEventOccurrence occurrence;
   final EventSystemMode mode;
   final NarrativeEventRegistry _registry;
-  final NarrativeEventSourceIndex _sourceIndex;
   final NarrativeFactRuntimeResolver _factResolver;
   final NarrativeEventProjectCatalog _projectCatalog;
   final _LegacyClaimAuthorityResolution _claimResolution;
+  final ProjectManifest? _worldRuleProject;
+  final List<MapData> _worldRuleMaps;
 
   @override
   bool get isReady => true;
@@ -189,9 +197,14 @@ final class NarrativeEventDispatchAuthorityReady
     }
 
     final reasons = <NarrativeEventDispatchReason>{};
-    _collectStructuralReasons(source, reasons);
-    for (final record in _sourceIndex.recordsFor(source)) {
+    _collectStructuralReasons(source, gameState, reasons);
+    for (final record in _candidateRecords(source)) {
       final definition = record.definitionOrNull!;
+      final ruleState = _worldRuleState(definition.id, gameState);
+      if (!_isEffectivelyEnabled(record, ruleState)) {
+        reasons.add(_reasonForWorldRuleState(ruleState));
+        continue;
+      }
       final evaluation = _evaluateDefinition(
         definition,
         gameState,
@@ -245,11 +258,11 @@ final class NarrativeEventDispatchAuthorityReady
     );
     final selectedId =
         decision is NarrativeEventDispatchHandled ? decision.eventId : null;
+    final sourceCandidates = _candidateRecords(occurrence.source);
     final records = <NarrativeEventRecord>[
-      ..._sourceIndex.recordsFor(occurrence.source),
+      ...sourceCandidates,
       for (final record in _registry.records)
-        if (record.id == targetEventId &&
-            !_sourceIndex.recordsFor(occurrence.source).contains(record))
+        if (record.id == targetEventId && !sourceCandidates.contains(record))
           record,
     ];
     final candidates = <NarrativeEventSimulationCandidateTrace>[
@@ -287,6 +300,7 @@ final class NarrativeEventDispatchAuthorityReady
 
   void _collectStructuralReasons(
     NarrativeEventSourceRef source,
+    GameState gameState,
     Set<NarrativeEventDispatchReason> reasons,
   ) {
     for (final record in _registry.records) {
@@ -297,13 +311,93 @@ final class NarrativeEventDispatchAuthorityReady
           }
         },
         configured: (definition, enabled) {
-          if (definition.source == source && !enabled) {
-            reasons.add(NarrativeEventDispatchReason.disabled);
+          if (definition.source != source) return;
+          final state = _worldRuleState(definition.id, gameState);
+          if (!_isEffectivelyEnabled(record, state)) {
+            reasons.add(
+              state == _NarrativeEventWorldRuleState.none
+                  ? NarrativeEventDispatchReason.disabled
+                  : _reasonForWorldRuleState(state),
+            );
           }
         },
       );
     }
   }
+
+  List<NarrativeEventRecord> _candidateRecords(
+    NarrativeEventSourceRef source,
+  ) {
+    final records = [
+      for (final record in _registry.records)
+        if (record.definitionOrNull?.source == source) record,
+    ]..sort((left, right) {
+        final a = left.definitionOrNull!;
+        final b = right.definitionOrNull!;
+        final priority = b.priority.compareTo(a.priority);
+        if (priority != 0) return priority;
+        final order = a.order.compareTo(b.order);
+        if (order != 0) return order;
+        return a.id.compareTo(b.id);
+      });
+    return records;
+  }
+
+  _NarrativeEventWorldRuleState _worldRuleState(
+    String eventId,
+    GameState gameState,
+  ) {
+    final project = _worldRuleProject;
+    if (project == null) return _NarrativeEventWorldRuleState.none;
+    var state = _NarrativeEventWorldRuleState.none;
+    for (final resolved in projectWorldRuleEffects(
+      project,
+      gameState,
+      maps: _worldRuleMaps,
+    )) {
+      if (resolved.target.kind != WorldRuleTargetKind.narrativeEvent ||
+          resolved.target.eventId != eventId) {
+        continue;
+      }
+      state = switch (resolved.effect.kind) {
+        WorldRuleEffectKind.eventEnabled =>
+          _NarrativeEventWorldRuleState.enabled,
+        WorldRuleEffectKind.eventDisabled =>
+          _NarrativeEventWorldRuleState.disabled,
+        WorldRuleEffectKind.eventHidden => _NarrativeEventWorldRuleState.hidden,
+        WorldRuleEffectKind.entityVisible ||
+        WorldRuleEffectKind.entityHidden ||
+        WorldRuleEffectKind.npcDialogueOverride =>
+          state,
+      };
+    }
+    return state;
+  }
+
+  bool _isEffectivelyEnabled(
+    NarrativeEventRecord record,
+    _NarrativeEventWorldRuleState state,
+  ) =>
+      switch (state) {
+        _NarrativeEventWorldRuleState.enabled => true,
+        _NarrativeEventWorldRuleState.disabled ||
+        _NarrativeEventWorldRuleState.hidden =>
+          false,
+        _NarrativeEventWorldRuleState.none => record.enabledOrNull == true,
+      };
+
+  NarrativeEventDispatchReason _reasonForWorldRuleState(
+    _NarrativeEventWorldRuleState state,
+  ) =>
+      switch (state) {
+        _NarrativeEventWorldRuleState.hidden =>
+          NarrativeEventDispatchReason.worldRuleHidden,
+        _NarrativeEventWorldRuleState.disabled =>
+          NarrativeEventDispatchReason.worldRuleDisabled,
+        _NarrativeEventWorldRuleState.none ||
+        _NarrativeEventWorldRuleState.enabled =>
+          NarrativeEventDispatchReason.disabled,
+      };
 
   _NarrativeEventCandidateEvaluation _evaluateDefinition(
     NarrativeEventDefinition definition,
@@ -509,8 +603,10 @@ final class NarrativeEventDispatchAuthorityReady
         conditions: const [],
       ),
       configured: (definition, enabled) {
+        final worldRuleState = _worldRuleState(definition.id, gameState);
+        final effectiveEnabled = _isEffectivelyEnabled(record, worldRuleState);
         final sourceMatches = definition.source == occurrence.source;
-        final evaluation = sourceMatches
+        final evaluation = sourceMatches && effectiveEnabled
             ? _evaluateDefinition(
                 definition,
                 gameState,
@@ -521,16 +617,23 @@ final class NarrativeEventDispatchAuthorityReady
           eventId: definition.id,
           name: definition.name,
           configured: true,
-          enabled: enabled,
+          enabled: effectiveEnabled,
           sourceMatches: sourceMatches,
           reusePolicy: definition.reusePolicy,
           priority: definition.priority,
           order: definition.order,
           selected: definition.id == selectedId,
           reasons: [
-            if (!enabled) NarrativeEventSimulationReason.disabled,
+            if (!effectiveEnabled)
+              switch (worldRuleState) {
+                _NarrativeEventWorldRuleState.disabled =>
+                  NarrativeEventSimulationReason.worldRuleDisabled,
+                _NarrativeEventWorldRuleState.hidden =>
+                  NarrativeEventSimulationReason.worldRuleHidden,
+                _ => NarrativeEventSimulationReason.disabled,
+              },
             if (!sourceMatches) NarrativeEventSimulationReason.sourceMismatch,
-            if (enabled && sourceMatches && evaluation.reason != null)
+            if (effectiveEnabled && sourceMatches && evaluation.reason != null)
               _simulationReason(evaluation.reason!),
           ],
           conditions: evaluation.conditions,
@@ -557,6 +660,8 @@ final class _ConditionExpressionEvaluation {
   final bool unavailable;
 }
 
+enum _NarrativeEventWorldRuleState { none, enabled, disabled, hidden }
+
 NarrativeEventSimulationReason _simulationReason(
   NarrativeEventDispatchReason reason,
 ) =>
@@ -565,6 +670,10 @@ NarrativeEventSimulationReason _simulationReason(
         NarrativeEventSimulationReason.draft,
       NarrativeEventDispatchReason.disabled =>
         NarrativeEventSimulationReason.disabled,
+      NarrativeEventDispatchReason.worldRuleDisabled =>
+        NarrativeEventSimulationReason.worldRuleDisabled,
+      NarrativeEventDispatchReason.worldRuleHidden =>
+        NarrativeEventSimulationReason.worldRuleHidden,
       NarrativeEventDispatchReason.sourceMismatch =>
         NarrativeEventSimulationReason.sourceMismatch,
       NarrativeEventDispatchReason.factConditionFalse =>
@@ -592,6 +701,8 @@ abstract final class NarrativeEventDispatchAuthority {
     required NarrativeFactRuntimeResolver factResolver,
     ValidatedLegacyClaimIndex? legacyClaimIndex,
     NarrativeEventProjectCatalog? projectCatalog,
+    ProjectManifest? project,
+    List<MapData> maps = const <MapData>[],
   }) {
     final failed = registryResult.when<NarrativeEventDispatchAuthorityBlocked?>(
       absent: () => null,
@@ -695,15 +806,15 @@ abstract final class NarrativeEventDispatchAuthority {
       claimResolution = resolution;
     }
 
-    final sourceIndex = buildNarrativeEventSourceIndex(registry.records).index;
     return NarrativeEventDispatchAuthorityReady._(
       occurrence: occurrence,
       mode: registry.mode,
       registry: registry,
-      sourceIndex: sourceIndex,
       factResolver: factResolver,
       projectCatalog: projectCatalog ?? _legacyOnlyCatalog,
       claimResolution: claimResolution,
+      worldRuleProject: project,
+      worldRuleMaps: maps,
     );
   }
 }

@@ -2,6 +2,8 @@ import '../diagnostics/world_rule_diagnostics.dart';
 import '../models/enums.dart';
 import '../models/map_data.dart';
 import '../models/map_event_definition.dart';
+import '../models/narrative_event_definition.dart';
+import '../models/narrative_event_source_ref.dart';
 import '../models/narrative_fact.dart';
 import '../models/narrative_fact_runtime_state.dart';
 import '../models/narrative_value.dart';
@@ -402,7 +404,11 @@ WorldRuleManagerEntry _buildWorldRuleEntry(
 }) {
   final sourceLabel = _sourceLabel(rule.source, factById);
   final targetLabel = _targetLabel(rule.target, mapById);
-  final effectLabel = _effectLabel(rule.effect, dialogueById);
+  final effectLabel = _effectLabel(
+    rule.effect,
+    dialogueById,
+    targetKind: rule.target.kind,
+  );
   return WorldRuleManagerEntry(
     rule: rule,
     sourceLabel: sourceLabel,
@@ -427,25 +433,43 @@ List<WorldRuleSourcePickerOption> _buildSourceOptions(
         subtitle: fact.category.isEmpty ? 'Fact booléen' : fact.category,
         debugTechnicalLabel: fact.legacyFlagName ?? fact.id,
       ),
-    for (final step in _storySteps(project))
+    for (final step in _storySteps(project)) ...[
       WorldRuleSourcePickerOption(
         kind: WorldRuleSourceKind.storyStepCompletion,
         sourceId: step.id,
         predicate: WorldRuleSourcePredicate.completed,
-        label: step.title,
-        subtitle: 'Étape narrative',
+        label: '${step.title} · terminée',
+        subtitle: 'Étape narrative · prédicat positif',
         debugTechnicalLabel: step.id,
       ),
+      WorldRuleSourcePickerOption(
+        kind: WorldRuleSourceKind.storyStepCompletion,
+        sourceId: step.id,
+        predicate: WorldRuleSourcePredicate.notCompleted,
+        label: '${step.title} · non terminée',
+        subtitle: 'Étape narrative · prédicat négatif',
+        debugTechnicalLabel: step.id,
+      ),
+    ],
     for (final map in maps)
-      for (final event in map.events)
+      for (final event in map.events) ...[
         WorldRuleSourcePickerOption(
           kind: WorldRuleSourceKind.consumedEvent,
           sourceId: event.id,
           predicate: WorldRuleSourcePredicate.consumed,
-          label: _eventLabel(event),
-          subtitle: map.name,
+          label: '${_eventLabel(event)} · consommé',
+          subtitle: '${map.name} · Event de map legacy',
           debugTechnicalLabel: '${map.id}:${event.id}',
         ),
+        WorldRuleSourcePickerOption(
+          kind: WorldRuleSourceKind.consumedEvent,
+          sourceId: event.id,
+          predicate: WorldRuleSourcePredicate.notConsumed,
+          label: '${_eventLabel(event)} · non consommé',
+          subtitle: '${map.name} · Event de map legacy',
+          debugTechnicalLabel: '${map.id}:${event.id}',
+        ),
+      ],
   ];
   options.sort((a, b) {
     final byKind = a.kind.index.compareTo(b.kind.index);
@@ -499,11 +523,24 @@ List<WorldRuleTargetPickerOption> _buildTargetOptions(
           mapId: map.id,
           eventId: event.id,
           label: _eventLabel(event),
-          subtitle: '$mapLabel · event',
+          subtitle: '$mapLabel · Event de map legacy',
           debugTechnicalLabel: '${map.id}:${event.id}',
         ),
       );
     }
+  }
+  for (final record
+      in project.eventRegistry?.records ?? const <NarrativeEventRecord>[]) {
+    options.add(
+      WorldRuleTargetPickerOption(
+        kind: WorldRuleTargetKind.narrativeEvent,
+        mapId: _narrativeEventMapId(record) ?? '',
+        eventId: record.id,
+        label: _narrativeEventLabel(record),
+        subtitle: 'Narrative Event V2 · registre projet',
+        debugTechnicalLabel: record.id,
+      ),
+    );
   }
   options.sort((a, b) {
     final byKind = a.kind.index.compareTo(b.kind.index);
@@ -515,12 +552,35 @@ List<WorldRuleTargetPickerOption> _buildTargetOptions(
   return options;
 }
 
+String _narrativeEventLabel(NarrativeEventRecord record) => record.when(
+      draft: (draft) => draft.name,
+      configured: (definition, _) => definition.name,
+    );
+
 List<WorldRuleEffectPickerOption> _buildEffectOptions() {
   return const [
     WorldRuleEffectPickerOption(
       effectKind: WorldRuleEffectKind.entityVisible,
       compatibleTargetKind: WorldRuleTargetKind.mapEntity,
       label: 'Entité visible',
+      requiresDialogue: false,
+    ),
+    WorldRuleEffectPickerOption(
+      effectKind: WorldRuleEffectKind.eventEnabled,
+      compatibleTargetKind: WorldRuleTargetKind.narrativeEvent,
+      label: 'Narrative Event V2 activé',
+      requiresDialogue: false,
+    ),
+    WorldRuleEffectPickerOption(
+      effectKind: WorldRuleEffectKind.eventDisabled,
+      compatibleTargetKind: WorldRuleTargetKind.narrativeEvent,
+      label: 'Narrative Event V2 désactivé',
+      requiresDialogue: false,
+    ),
+    WorldRuleEffectPickerOption(
+      effectKind: WorldRuleEffectKind.eventHidden,
+      compatibleTargetKind: WorldRuleTargetKind.narrativeEvent,
+      label: 'Narrative Event V2 masqué',
       requiresDialogue: false,
     ),
     WorldRuleEffectPickerOption(
@@ -538,19 +598,19 @@ List<WorldRuleEffectPickerOption> _buildEffectOptions() {
     WorldRuleEffectPickerOption(
       effectKind: WorldRuleEffectKind.eventEnabled,
       compatibleTargetKind: WorldRuleTargetKind.mapEvent,
-      label: 'Event activé',
+      label: 'Event de map legacy activé',
       requiresDialogue: false,
     ),
     WorldRuleEffectPickerOption(
       effectKind: WorldRuleEffectKind.eventDisabled,
       compatibleTargetKind: WorldRuleTargetKind.mapEvent,
-      label: 'Event désactivé',
+      label: 'Event de map legacy désactivé',
       requiresDialogue: false,
     ),
     WorldRuleEffectPickerOption(
       effectKind: WorldRuleEffectKind.eventHidden,
       compatibleTargetKind: WorldRuleTargetKind.mapEvent,
-      label: 'Event masqué',
+      label: 'Event de map legacy masqué',
       requiresDialogue: false,
     ),
   ];
@@ -614,25 +674,41 @@ String _targetLabel(
         _entityLabelOrNull(_findEntity(map, target.entityId)) ??
         target.entityId ??
         'PNJ inconnu',
-    WorldRuleTargetKind.mapEvent => target.label ??
-        _eventLabelOrNull(_findEvent(map, target.eventId)) ??
-        target.eventId ??
-        'Event inconnu',
+    WorldRuleTargetKind.mapEvent =>
+      'Event de map legacy · ${target.label ?? _eventLabelOrNull(_findEvent(map, target.eventId)) ?? target.eventId ?? 'inconnu'}',
+    WorldRuleTargetKind.narrativeEvent =>
+      'Narrative Event V2 · ${target.label ?? target.eventId ?? 'inconnu'}',
   };
 }
 
+String? _narrativeEventMapId(NarrativeEventRecord record) => record.when(
+      draft: (draft) => _sourceMapId(draft.source),
+      configured: (definition, _) => _sourceMapId(definition.source),
+    );
+
+String? _sourceMapId(NarrativeEventSourceRef? source) => source?.when(
+      entityInteract: (mapId, _) => mapId,
+      triggerEnter: (mapId, _) => mapId,
+      mapEnter: (mapId) => mapId,
+      outcomeReceived: (_) => null,
+    );
+
 String _effectLabel(
   WorldRuleEffect effect,
-  Map<String, ProjectDialogueEntry> dialogueById,
-) {
+  Map<String, ProjectDialogueEntry> dialogueById, {
+  required WorldRuleTargetKind targetKind,
+}) {
+  final eventPrefix = targetKind == WorldRuleTargetKind.narrativeEvent
+      ? 'Narrative Event V2'
+      : 'Event de map legacy';
   return switch (effect.kind) {
     WorldRuleEffectKind.entityVisible => 'Entité visible',
     WorldRuleEffectKind.entityHidden => 'Entité cachée',
     WorldRuleEffectKind.npcDialogueOverride =>
       'Dialogue remplacé par ${dialogueById[effect.dialogueId]?.name ?? effect.dialogueId ?? 'dialogue inconnu'}',
-    WorldRuleEffectKind.eventEnabled => 'Event activé',
-    WorldRuleEffectKind.eventDisabled => 'Event désactivé',
-    WorldRuleEffectKind.eventHidden => 'Event masqué',
+    WorldRuleEffectKind.eventEnabled => '$eventPrefix activé',
+    WorldRuleEffectKind.eventDisabled => '$eventPrefix désactivé',
+    WorldRuleEffectKind.eventHidden => '$eventPrefix masqué',
   };
 }
 

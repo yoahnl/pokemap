@@ -13,6 +13,7 @@ const _eventId = 'event_gate';
 const _factId = 'fact_gate_closed';
 const _sceneId = 'scene_close_gate';
 const _sceneEventId = 'event_scene_closes_gate';
+const _narrativeEventId = 'evt_019abcde-5200-7000-8000-000000000001';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -141,6 +142,140 @@ void main() {
         ),
         isTrue,
       );
+    });
+
+    test('keeps Narrative Event V2 projection separate from legacy Map Events',
+        () {
+      final registry = NarrativeEventRegistry(
+        schemaVersion: 1,
+        mode: EventSystemMode.v2Only,
+        records: [
+          NarrativeEventRecord.configuredStructurallyUnchecked(
+            NarrativeEventDefinition(
+              id: _narrativeEventId,
+              name: 'Narrative gate',
+              source: NarrativeEventSourceRef.mapEnter(_mapId),
+              conditions: const [],
+              sceneId: _sceneId,
+              reusePolicy: NarrativeEventReusePolicy.reusable,
+              priority: 0,
+              order: 0,
+            ),
+            enabled: true,
+          ),
+        ],
+        legacyClaims: const [],
+      );
+      final fixture = _fixture(
+        eventRegistry: registry,
+        worldRules: [
+          WorldRuleDefinition(
+            id: 'world_rule_disable_narrative_event',
+            label: 'Disable Narrative Event V2',
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.fact,
+              sourceId: _factId,
+              predicate: WorldRuleSourcePredicate.isTrue,
+            ),
+            target: const WorldRuleTarget(
+              kind: WorldRuleTargetKind.narrativeEvent,
+              mapId: _mapId,
+              eventId: _narrativeEventId,
+            ),
+            effect: const WorldRuleEffect(
+              kind: WorldRuleEffectKind.eventDisabled,
+            ),
+          ),
+        ],
+      );
+
+      final projection = const RuntimeWorldRuleProjectionHook().resolve(
+        project: fixture.project,
+        gameState: const GameState(
+          saveId: _saveId,
+          storyFlags: StoryFlags(activeFlags: {_factId}),
+        ),
+        map: fixture.map,
+      );
+
+      expect(
+        projection.disabledNarrativeEventIds,
+        contains(_narrativeEventId),
+      );
+      expect(projection.disabledEventIds, isEmpty);
+      expect(
+        projection.canDispatchNarrativeEvent(_narrativeEventId),
+        isFalse,
+      );
+      expect(projection.canTriggerMapEvent(fixture.gateEvent), isTrue);
+    });
+
+    test('restores hidden Narrative Event V2 projection after save/load',
+        () async {
+      final registry = NarrativeEventRegistry(
+        schemaVersion: 1,
+        mode: EventSystemMode.v2Only,
+        records: [
+          NarrativeEventRecord.configuredStructurallyUnchecked(
+            NarrativeEventDefinition(
+              id: _narrativeEventId,
+              name: 'Narrative gate',
+              source: NarrativeEventSourceRef.mapEnter(_mapId),
+              conditions: const [],
+              sceneId: _sceneId,
+              reusePolicy: NarrativeEventReusePolicy.reusable,
+              priority: 0,
+              order: 0,
+            ),
+            enabled: true,
+          ),
+        ],
+        legacyClaims: const [],
+      );
+      final fixture = _fixture(
+        eventRegistry: registry,
+        worldRules: [
+          WorldRuleDefinition(
+            id: 'world_rule_hide_narrative_event',
+            label: 'Hide Narrative Event V2',
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.fact,
+              sourceId: _factId,
+              predicate: WorldRuleSourcePredicate.isTrue,
+            ),
+            target: const WorldRuleTarget(
+              kind: WorldRuleTargetKind.narrativeEvent,
+              mapId: _mapId,
+              eventId: _narrativeEventId,
+            ),
+            effect: const WorldRuleEffect(
+              kind: WorldRuleEffectKind.eventHidden,
+            ),
+          ),
+        ],
+      );
+      final reloaded = await _saveAndReload(
+        const GameState(
+          saveId: _saveId,
+          storyFlags: StoryFlags(activeFlags: {_factId}),
+        ),
+      );
+
+      final projection = const RuntimeWorldRuleProjectionHook().resolve(
+        project: fixture.project,
+        gameState: reloaded,
+        map: fixture.map,
+      );
+
+      expect(
+        projection.hiddenNarrativeEventIds,
+        contains(_narrativeEventId),
+      );
+      expect(
+        projection.canDispatchNarrativeEvent(_narrativeEventId),
+        isFalse,
+      );
+      expect(projection.canTriggerMapEvent(fixture.gateEvent), isTrue);
     });
 
     test('hides map events from consumed-event-backed eventHidden rules', () {
@@ -539,6 +674,7 @@ _ProjectionFixture _fixture({
   List<SceneAsset> scenes = const [],
   List<StorylineAsset> storylines = const [],
   List<WorldRuleDefinition> worldRules = const [],
+  NarrativeEventRegistry? eventRegistry,
 }) {
   const npc = MapEntity(
     id: _npcId,
@@ -598,6 +734,7 @@ _ProjectionFixture _fixture({
     scenes: scenes,
     storylines: storylines,
     worldRules: worldRules,
+    eventRegistry: eventRegistry,
     surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
   return _ProjectionFixture(

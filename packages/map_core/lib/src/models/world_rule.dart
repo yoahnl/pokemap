@@ -20,7 +20,12 @@ enum WorldRuleSourcePredicate {
 enum WorldRuleTargetKind {
   mapEntity,
   npcDialogue,
+
+  /// Historical event authored inside `MapData.events`.
   mapEvent,
+
+  /// Project-owned Event V2 stored in `NarrativeEventRegistry`.
+  narrativeEvent,
 }
 
 enum WorldRuleEffectKind {
@@ -358,7 +363,8 @@ bool isWorldRuleEffectCompatibleWithTarget(
           effectKind == WorldRuleEffectKind.entityHidden,
     WorldRuleTargetKind.npcDialogue =>
       effectKind == WorldRuleEffectKind.npcDialogueOverride,
-    WorldRuleTargetKind.mapEvent =>
+    WorldRuleTargetKind.mapEvent ||
+    WorldRuleTargetKind.narrativeEvent =>
       effectKind == WorldRuleEffectKind.eventEnabled ||
           effectKind == WorldRuleEffectKind.eventDisabled ||
           effectKind == WorldRuleEffectKind.eventHidden,

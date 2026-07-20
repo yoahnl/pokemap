@@ -1011,6 +1011,110 @@ void main() {
       );
     });
 
+    test('keeps legacy Map Event and Narrative Event V2 targets distinct', () {
+      final eventV2 = _event(
+        id: _eventA,
+        sceneId: 'scene.event',
+        source: NarrativeEventSourceRef.mapEnter('map.port'),
+      );
+      final rules = <WorldRuleDefinition>[
+        WorldRuleDefinition(
+          id: 'rule.legacy.target',
+          label: 'Legacy target',
+          source: const WorldRuleSource(
+            kind: WorldRuleSourceKind.fact,
+            sourceId: 'fact.world',
+            predicate: WorldRuleSourcePredicate.isTrue,
+          ),
+          target: const WorldRuleTarget(
+            kind: WorldRuleTargetKind.mapEvent,
+            mapId: 'map.port',
+            eventId: _eventA,
+          ),
+          effect: const WorldRuleEffect(
+            kind: WorldRuleEffectKind.eventDisabled,
+          ),
+        ),
+        WorldRuleDefinition(
+          id: 'rule.v2.target',
+          label: 'V2 target',
+          source: const WorldRuleSource(
+            kind: WorldRuleSourceKind.fact,
+            sourceId: 'fact.world',
+            predicate: WorldRuleSourcePredicate.isTrue,
+          ),
+          target: const WorldRuleTarget(
+            kind: WorldRuleTargetKind.narrativeEvent,
+            mapId: '',
+            eventId: _eventA,
+          ),
+          effect: const WorldRuleEffect(
+            kind: WorldRuleEffectKind.eventHidden,
+          ),
+        ),
+      ];
+      final index = buildNarrativeDependencyIndex(
+        project: _project(
+          maps: const [
+            ProjectMapEntry(
+              id: 'map.port',
+              name: 'Port',
+              relativePath: 'maps/port.json',
+            ),
+          ],
+          facts: [
+            NarrativeFactDefinition(id: 'fact.world', label: 'World'),
+          ],
+          scenes: [_emptyScene('scene.event')],
+          eventRegistry: _registry([eventV2]),
+          worldRules: rules,
+        ),
+        maps: const [
+          MapData(
+            id: 'map.port',
+            name: 'Port',
+            size: GridSize(width: 4, height: 4),
+            events: [
+              MapEventDefinition(
+                id: _eventA,
+                title: 'Legacy event with colliding id',
+                pages: [MapEventPage(pageNumber: 0)],
+                position: EventPosition(layerId: 'events', x: 1, y: 1),
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final legacyUsage = index
+          .usagesOwnedBy(
+            const NarrativeDependencyKey(
+              NarrativeDependencyTargetKind.worldRule,
+              'rule.legacy.target',
+            ),
+          )
+          .singleWhere((usage) => usage.path.endsWith('.target.eventId'));
+      final v2Usage = index
+          .usagesOwnedBy(
+            const NarrativeDependencyKey(
+              NarrativeDependencyTargetKind.worldRule,
+              'rule.v2.target',
+            ),
+          )
+          .singleWhere((usage) => usage.path.endsWith('.target.eventId'));
+
+      expect(
+        legacyUsage.target,
+        const NarrativeDependencyKey.mapSource(
+          mapId: 'map.port',
+          sourceKind: 'event',
+          sourceId: _eventA,
+        ),
+      );
+      expect(v2Usage.target, const NarrativeDependencyKey.eventV2(_eventA));
+      expect(legacyUsage.target, isNot(v2Usage.target));
+    });
+
     test('marks a duplicated definition as ambiguous', () {
       final project = _project(
         facts: <NarrativeFactDefinition>[

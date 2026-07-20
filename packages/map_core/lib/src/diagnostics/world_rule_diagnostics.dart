@@ -1,6 +1,7 @@
 import '../models/enums.dart';
 import '../models/game_state.dart';
 import '../models/map_data.dart';
+import '../models/narrative_event_definition.dart';
 import '../models/narrative_fact_runtime_state.dart';
 import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
@@ -134,7 +135,7 @@ WorldRuleDiagnosticsReport diagnoseWorldRules(
   final factResolver = NarrativeFactRuntimeResolver.fromFacts(project.facts);
   final dialogueIds = project.dialogues.map((dialogue) => dialogue.id).toSet();
   final storyStepIds = _storyStepIds(project);
-  final consumedEventIds = _eventIds(maps);
+  final consumedEventIds = _eventIds(project, maps);
   final producibleFactValues = _producibleFactValues(project);
   final producibleStoryStepIds = _producibleStoryStepIds(project);
 
@@ -156,6 +157,11 @@ WorldRuleDiagnosticsReport diagnoseWorldRules(
     _diagnoseTarget(
       rule,
       diagnostics,
+      narrativeEventIds: {
+        for (final record
+            in project.eventRegistry?.records ?? const <NarrativeEventRecord>[])
+          record.id,
+      },
       projectMapIds: projectMapIds,
       mapsById: mapsById,
     );
@@ -293,7 +299,17 @@ void _diagnoseTarget(
   List<WorldRuleDiagnostic> diagnostics, {
   required Set<String> projectMapIds,
   required Map<String, MapData> mapsById,
+  required Set<String> narrativeEventIds,
 }) {
+  if (rule.target.kind == WorldRuleTargetKind.narrativeEvent) {
+    final eventId = rule.target.eventId?.trim() ?? '';
+    if (eventId.isEmpty) {
+      diagnostics.add(_missingTarget(rule, 'Narrative Event V2 cible'));
+    } else if (!narrativeEventIds.contains(eventId)) {
+      diagnostics.add(_unknownTarget(rule, eventId, 'Narrative Event V2'));
+    }
+    return;
+  }
   if (rule.target.mapId.trim().isEmpty) {
     diagnostics.add(
       WorldRuleDiagnostic(
@@ -365,6 +381,8 @@ void _diagnoseTarget(
       if (!map.events.any((event) => event.id == eventId)) {
         diagnostics.add(_unknownTarget(rule, eventId, 'event'));
       }
+    case WorldRuleTargetKind.narrativeEvent:
+      throw StateError('Narrative Event targets are diagnosed project-wide.');
   }
 }
 
@@ -815,10 +833,13 @@ Set<String> _storyStepIds(ProjectManifest project) {
   };
 }
 
-Set<String> _eventIds(List<MapData> maps) {
+Set<String> _eventIds(ProjectManifest project, List<MapData> maps) {
   return {
     for (final map in maps)
       for (final event in map.events) event.id,
+    for (final record
+        in project.eventRegistry?.records ?? const <NarrativeEventRecord>[])
+      record.id,
   };
 }
 
@@ -830,5 +851,7 @@ String _targetIdentity(WorldRuleTarget target) {
       '${target.mapId}:npcDialogue:${target.entityId ?? ''}',
     WorldRuleTargetKind.mapEvent =>
       '${target.mapId}:event:${target.eventId ?? ''}',
+    WorldRuleTargetKind.narrativeEvent =>
+      'narrativeEvent:${target.eventId ?? ''}',
   };
 }

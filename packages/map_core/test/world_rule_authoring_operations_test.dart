@@ -189,6 +189,99 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test(
+        'authors a Narrative Event V2 target without treating it as MapData.events',
+        () {
+      const eventId = 'evt_019abcde-5200-7000-8000-000000000001';
+      final registry = NarrativeEventRegistry(
+        schemaVersion: 1,
+        mode: EventSystemMode.v2Only,
+        records: [
+          NarrativeEventRecord.configuredStructurallyUnchecked(
+            NarrativeEventDefinition(
+              id: eventId,
+              name: 'Port V2',
+              source: NarrativeEventSourceRef.mapEnter('map_test'),
+              conditions: const [],
+              sceneId: 'scene_test',
+              reusePolicy: NarrativeEventReusePolicy.reusable,
+              priority: 0,
+              order: 0,
+            ),
+            enabled: true,
+          ),
+        ],
+        legacyClaims: const [],
+      );
+      final manifest = _manifest(
+        facts: [
+          NarrativeFactDefinition(id: 'fact_known', label: 'Known'),
+        ],
+        eventRegistry: registry,
+      );
+
+      final result = addWorldRule(
+        manifest,
+        label: 'Disable V2',
+        source: _factSource('fact_known'),
+        target: const WorldRuleTarget(
+          kind: WorldRuleTargetKind.narrativeEvent,
+          mapId: '',
+          eventId: eventId,
+        ),
+        effect: const WorldRuleEffect(
+          kind: WorldRuleEffectKind.eventDisabled,
+        ),
+      );
+
+      expect(
+          result.createdRule.target.kind, WorldRuleTargetKind.narrativeEvent);
+      expect(result.createdRule.target.eventId, eventId);
+    });
+
+    test('authors a rule against an inactive project map', () {
+      final inactiveMap = _mapWithNpc().copyWith(
+        id: 'map_inactive',
+        name: 'Inactive map',
+      );
+      final manifest = _manifest(
+        facts: [
+          NarrativeFactDefinition(id: 'fact_known', label: 'Known'),
+        ],
+      ).copyWith(
+        maps: const [
+          ProjectMapEntry(
+            id: 'map_test',
+            name: 'Map test',
+            relativePath: 'maps/map_test.json',
+          ),
+          ProjectMapEntry(
+            id: 'map_inactive',
+            name: 'Inactive map',
+            relativePath: 'maps/map_inactive.json',
+          ),
+        ],
+      );
+
+      final result = addWorldRule(
+        manifest,
+        label: 'Hide inactive NPC',
+        source: _factSource('fact_known'),
+        target: const WorldRuleTarget(
+          kind: WorldRuleTargetKind.mapEntity,
+          mapId: 'map_inactive',
+          entityId: 'npc_test',
+        ),
+        effect: const WorldRuleEffect(
+          kind: WorldRuleEffectKind.entityHidden,
+        ),
+        maps: [_mapWithNpc(), inactiveMap],
+      );
+
+      expect(result.createdRule.target.mapId, 'map_inactive');
+      expect(result.createdRule.target.entityId, 'npc_test');
+    });
   });
 }
 
@@ -197,6 +290,7 @@ ProjectManifest _manifest({
   List<ProjectDialogueEntry> dialogues = const [],
   List<SceneAsset> scenes = const [],
   List<WorldRuleDefinition> worldRules = const [],
+  NarrativeEventRegistry? eventRegistry,
 }) {
   return ProjectManifest(
     name: 'World rules test',
@@ -212,6 +306,7 @@ ProjectManifest _manifest({
     facts: facts,
     scenes: scenes,
     worldRules: worldRules,
+    eventRegistry: eventRegistry,
   );
 }
 

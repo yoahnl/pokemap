@@ -1,6 +1,8 @@
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+const _eventV2 = 'evt_019abcde-0000-7000-8000-000000000052';
+
 void main() {
   group('Facts and World Rules manager read model', () {
     test('lists facts with usages from scenes and world rules', () {
@@ -74,7 +76,7 @@ void main() {
       );
       expect(
         readModel.worldRules.first.humanSummary,
-        'Si Gate open est vrai alors Event désactivé sur Gate event',
+        'Si Gate open est vrai alors Event de map legacy désactivé sur Event de map legacy · Gate event',
       );
       expect(
         readModel.worldRules.last.diagnostics.single.code,
@@ -146,6 +148,56 @@ void main() {
       expect(runtimeOverride.runtimeOverrideValue, isFalse);
       expect(runtimeOverride.effectiveValue, isFalse);
     });
+
+    test(
+        'lists project-wide targets and labels legacy and V2 Events distinctly',
+        () {
+      final project = _manifest(
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          records: [
+            NarrativeEventRecord.draft(
+              NarrativeEventDraft(
+                id: _eventV2,
+                name: 'Port arrival V2',
+                conditions: const [],
+                priority: 0,
+                order: 0,
+              ),
+            ),
+          ],
+          legacyClaims: const [],
+        ),
+      );
+      final inactiveMap = _mapWithEvent().copyWith(
+        id: 'map_inactive',
+        name: 'Inactive map',
+      );
+
+      final readModel = buildFactsWorldRulesManagerReadModel(
+        project,
+        maps: [_mapWithEvent(), inactiveMap],
+      );
+
+      expect(
+        readModel.targetOptions.where(
+          (option) =>
+              option.kind == WorldRuleTargetKind.mapEvent &&
+              option.mapId == 'map_inactive',
+        ),
+        isNotEmpty,
+      );
+      final legacy = readModel.targetOptions.firstWhere(
+        (option) => option.kind == WorldRuleTargetKind.mapEvent,
+      );
+      final eventV2 = readModel.targetOptions.singleWhere(
+        (option) => option.kind == WorldRuleTargetKind.narrativeEvent,
+      );
+      expect(legacy.subtitle, contains('Event de map legacy'));
+      expect(eventV2.eventId, _eventV2);
+      expect(eventV2.subtitle, contains('Narrative Event V2'));
+    });
   });
 }
 
@@ -154,6 +206,7 @@ ProjectManifest _manifest({
   List<ProjectDialogueEntry> dialogues = const [],
   List<SceneAsset> scenes = const [],
   List<WorldRuleDefinition> worldRules = const [],
+  NarrativeEventRegistry? eventRegistry,
 }) {
   return ProjectManifest(
     name: 'Facts manager test',
@@ -169,6 +222,7 @@ ProjectManifest _manifest({
     facts: facts,
     scenes: scenes,
     worldRules: worldRules,
+    eventRegistry: eventRegistry,
   );
 }
 

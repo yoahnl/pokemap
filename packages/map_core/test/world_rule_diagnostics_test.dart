@@ -191,6 +191,49 @@ void main() {
       );
     });
 
+    test('reports missing Narrative Event V2 targets and typed Fact mismatch',
+        () {
+      final project = _manifest(
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_counter',
+            label: 'Counter',
+            initialValue: NarrativeValue.integer(1),
+          ),
+        ],
+        worldRules: [
+          WorldRuleDefinition(
+            id: 'world_rule_missing_v2',
+            label: 'Missing V2 target',
+            source: WorldRuleSource.factValue(
+              factId: 'fact_counter',
+              operator: NarrativeFactOperator.equals,
+              expectedValue: const NarrativeValue.string('one'),
+            ),
+            target: const WorldRuleTarget(
+              kind: WorldRuleTargetKind.narrativeEvent,
+              mapId: '',
+              eventId: 'evt_019abcde-0000-7000-8000-000000000099',
+            ),
+            effect: const WorldRuleEffect(
+              kind: WorldRuleEffectKind.eventDisabled,
+            ),
+          ),
+        ],
+      );
+
+      final report = diagnoseWorldRules(project, maps: [_mapWithNpc()]);
+
+      expect(
+        report.byCode(WorldRuleDiagnosticCode.worldRuleTargetUnknown),
+        hasLength(1),
+      );
+      expect(
+        report.byCode(WorldRuleDiagnosticCode.worldRuleFactTypeMismatch),
+        hasLength(1),
+      );
+    });
+
     test('reports a Fact predicate that no initial state or Scene can produce',
         () {
       final project = _manifest(

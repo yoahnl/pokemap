@@ -1718,12 +1718,14 @@ final class _NarrativeDependencyIndexBuilder {
         path: 'worldRules[${rule.id}].source.sourceId',
         criticality: NarrativeDependencyCriticality.runtimeBlocking,
       );
-      _usage(
-        target: _mapKey(rule.target.mapId),
-        owner: owner,
-        path: 'worldRules[${rule.id}].target.mapId',
-        criticality: NarrativeDependencyCriticality.runtimeBlocking,
-      );
+      if (rule.target.kind != WorldRuleTargetKind.narrativeEvent) {
+        _usage(
+          target: _mapKey(rule.target.mapId),
+          owner: owner,
+          path: 'worldRules[${rule.id}].target.mapId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+      }
       final entityId = rule.target.entityId;
       if (entityId != null) {
         _usage(
@@ -1736,7 +1738,12 @@ final class _NarrativeDependencyIndexBuilder {
       final eventId = rule.target.eventId;
       if (eventId != null) {
         _usage(
-          target: _mapSourceChildKey(rule.target.mapId, 'event', eventId),
+          target: rule.target.kind == WorldRuleTargetKind.narrativeEvent
+              ? NarrativeDependencyKey(
+                  NarrativeDependencyTargetKind.eventV2,
+                  eventId,
+                )
+              : _mapSourceChildKey(rule.target.mapId, 'event', eventId),
           owner: owner,
           path: 'worldRules[${rule.id}].target.eventId',
           criticality: NarrativeDependencyCriticality.runtimeBlocking,

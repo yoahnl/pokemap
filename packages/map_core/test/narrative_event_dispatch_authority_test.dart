@@ -268,6 +268,85 @@ void main() {
       expect(decision.legacyFallbackAllowed, isFalse);
     });
 
+    test('applies Narrative Event World Rules before selecting a candidate',
+        () {
+      final registry = _registry(
+        mode: EventSystemMode.v2Only,
+        records: [_record(_eventA)],
+      );
+      final baseProject = ProjectManifest(
+        name: 'World Rule dispatch',
+        maps: const [],
+        tilesets: const [],
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_gate',
+            label: 'Gate',
+            defaultValue: true,
+          ),
+        ],
+        eventRegistry: registry,
+      );
+      WorldRuleDefinition rule(
+        String id,
+        WorldRuleEffectKind effect,
+        int priority,
+      ) =>
+          WorldRuleDefinition(
+            id: id,
+            label: id,
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.fact,
+              sourceId: 'fact_gate',
+              predicate: WorldRuleSourcePredicate.isTrue,
+            ),
+            target: const WorldRuleTarget(
+              kind: WorldRuleTargetKind.narrativeEvent,
+              mapId: '',
+              eventId: _eventA,
+            ),
+            effect: WorldRuleEffect(kind: effect),
+            priority: priority,
+          );
+      final disabled = _prepare(
+        registry,
+        project: baseProject.copyWith(
+          worldRules: [
+            rule('world_rule_disable', WorldRuleEffectKind.eventDisabled, 10),
+          ],
+        ),
+      ).plan(gameState: const GameState(saveId: 'disabled'));
+      final reenabled = _prepare(
+        registry,
+        project: baseProject.copyWith(
+          worldRules: [
+            rule('world_rule_disable', WorldRuleEffectKind.eventDisabled, 10),
+            rule('world_rule_enable', WorldRuleEffectKind.eventEnabled, 20),
+          ],
+        ),
+      ).plan(gameState: const GameState(saveId: 'enabled'));
+      final hidden = _prepare(
+        registry,
+        project: baseProject.copyWith(
+          worldRules: [
+            rule('world_rule_hide', WorldRuleEffectKind.eventHidden, 10),
+          ],
+        ),
+      ).plan(gameState: const GameState(saveId: 'hidden'));
+
+      expect(disabled, isA<NarrativeEventDispatchNoMatch>());
+      expect(
+        disabled.reasons,
+        contains(NarrativeEventDispatchReason.worldRuleDisabled),
+      );
+      expect(reenabled, isA<NarrativeEventDispatchHandled>());
+      expect(hidden, isA<NarrativeEventDispatchNoMatch>());
+      expect(
+        hidden.reasons,
+        contains(NarrativeEventDispatchReason.worldRuleHidden),
+      );
+    });
+
     test('unavailable runtime Scene makes the candidate ineligible', () {
       final registry = _registry(
         mode: EventSystemMode.v2Only,
@@ -834,6 +913,7 @@ NarrativeEventDispatchAuthorityReady _prepare(
   LegacySourceRef? provenance,
   ValidatedLegacyClaimIndex? claimIndex,
   NarrativeFactRuntimeResolver? factResolver,
+  ProjectManifest? project,
 }) {
   final result = NarrativeEventDispatchAuthority.prepare(
     registryResult: EventRegistryDecodeResult.decoded(registry),
@@ -845,6 +925,7 @@ NarrativeEventDispatchAuthorityReady _prepare(
         factResolver ?? NarrativeFactRuntimeResolver.fromFacts(const []),
     legacyClaimIndex: claimIndex,
     projectCatalog: f1ProjectCatalogForRegistry(registry),
+    project: project,
   );
   expect(result, isA<NarrativeEventDispatchAuthorityReady>());
   return result as NarrativeEventDispatchAuthorityReady;

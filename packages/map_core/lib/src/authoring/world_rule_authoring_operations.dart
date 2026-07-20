@@ -1,5 +1,6 @@
 import '../models/enums.dart';
 import '../models/map_data.dart';
+import '../models/narrative_event_definition.dart';
 import '../models/project_manifest.dart';
 import '../models/world_rule.dart';
 
@@ -160,7 +161,8 @@ void _validateWorldRuleForAuthoring(
       'World rule effect is not compatible with its target.',
     );
   }
-  if (rule.target.mapId.trim().isEmpty) {
+  if (rule.target.kind != WorldRuleTargetKind.narrativeEvent &&
+      rule.target.mapId.trim().isEmpty) {
     throw ArgumentError.value(
       rule.target.mapId,
       'target.mapId',
@@ -178,6 +180,7 @@ void _validateWorldRuleForAuthoring(
         );
       }
     case WorldRuleTargetKind.mapEvent:
+    case WorldRuleTargetKind.narrativeEvent:
       if ((rule.target.eventId ?? '').trim().isEmpty) {
         throw ArgumentError.value(
           rule.target.eventId,
@@ -224,7 +227,7 @@ void _validateSourceReferences(
         );
       }
     case WorldRuleSourceKind.consumedEvent:
-      final eventIds = _eventIds(maps);
+      final eventIds = _eventIds(manifest, maps);
       if (eventIds.isNotEmpty && !eventIds.contains(rule.source.sourceId)) {
         throw ArgumentError.value(
           rule.source.sourceId,
@@ -240,6 +243,21 @@ void _validateTargetReferences(
   WorldRuleDefinition rule, {
   required List<MapData> maps,
 }) {
+  if (rule.target.kind == WorldRuleTargetKind.narrativeEvent) {
+    final eventIds = {
+      for (final record
+          in manifest.eventRegistry?.records ?? const <NarrativeEventRecord>[])
+        record.id,
+    };
+    if (!eventIds.contains(rule.target.eventId)) {
+      throw ArgumentError.value(
+        rule.target.eventId,
+        'target.eventId',
+        'Unknown Narrative Event V2 for world rule target.',
+      );
+    }
+    return;
+  }
   final manifestMapIds = manifest.maps.map((map) => map.id).toSet();
   final mapsById = {for (final map in maps) map.id: map};
   if (!manifestMapIds.contains(rule.target.mapId) &&
@@ -289,6 +307,8 @@ void _validateTargetReferences(
           'Unknown map event for world rule target.',
         );
       }
+    case WorldRuleTargetKind.narrativeEvent:
+      throw StateError('Narrative Event targets are validated project-wide.');
   }
 }
 
@@ -326,10 +346,13 @@ Set<String> _storyStepIds(ProjectManifest manifest) {
   };
 }
 
-Set<String> _eventIds(List<MapData> maps) {
+Set<String> _eventIds(ProjectManifest manifest, List<MapData> maps) {
   return {
     for (final map in maps)
       for (final event in map.events) event.id,
+    for (final record
+        in manifest.eventRegistry?.records ?? const <NarrativeEventRecord>[])
+      record.id,
   };
 }
 

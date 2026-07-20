@@ -4,7 +4,9 @@ import 'package:map_core/map_core.dart';
 
 import '../../app/providers/core_providers.dart';
 import '../../application/services/narrative_activity_journal.dart';
+import '../../application/services/narrative_project_snapshot_loader.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
+import '../../domain/repositories/repositories.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/narrative/application/overview/narrative_overview_read_model.dart';
@@ -1615,6 +1617,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       EditorWorkspaceMode.facts => _buildFactsWorldRulesWorkspace(
           editor: editor,
           editorNotifier: editorNotifier,
+          mapRepository: ref.read(mapRepositoryProvider),
           readLatestProject: () => ref.read(editorNotifierProvider).project,
           initialMode: FactsWorldRulesWorkspaceMode.facts,
           requestedFactId: studioNavigation.location.destination ==
@@ -1628,6 +1631,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       EditorWorkspaceMode.worldRules => _buildFactsWorldRulesWorkspace(
           editor: editor,
           editorNotifier: editorNotifier,
+          mapRepository: ref.read(mapRepositoryProvider),
           readLatestProject: () => ref.read(editorNotifierProvider).project,
           initialMode: FactsWorldRulesWorkspaceMode.worldRules,
           requestedWorldRuleId: studioNavigation.location.destination ==
@@ -1811,6 +1815,7 @@ String _mapLayerLabel(MapLayer layer) {
 Widget _buildFactsWorldRulesWorkspace({
   required EditorState editor,
   required EditorNotifier editorNotifier,
+  required MapRepository mapRepository,
   required ProjectManifest? Function() readLatestProject,
   required FactsWorldRulesWorkspaceMode initialMode,
   String? requestedFactId,
@@ -1821,11 +1826,77 @@ Widget _buildFactsWorldRulesWorkspace({
   if (project == null) {
     return const SizedBox.shrink();
   }
-  final maps =
-      editor.activeMap == null ? const <MapData>[] : [editor.activeMap!];
+  final projectRootPath = editor.projectRootPath;
+  if (projectRootPath == null || projectRootPath.trim().isEmpty) {
+    return _buildFactsWorldRulesWorkspaceFromSnapshot(
+      editor: editor,
+      editorNotifier: editorNotifier,
+      readLatestProject: readLatestProject,
+      project: project,
+      maps: editor.activeMap == null ? const [] : [editor.activeMap!],
+      initialMode: initialMode,
+      requestedFactId: requestedFactId,
+      requestedWorldRuleId: requestedWorldRuleId,
+      requestedSelectionNonce: requestedSelectionNonce,
+    );
+  }
+  return FutureBuilder<NarrativeProjectSnapshot>(
+    future: NarrativeProjectSnapshotLoader(mapRepository: mapRepository).load(
+      project: project,
+      projectRootPath: projectRootPath,
+      activeMap: editor.activeMap,
+    ),
+    builder: (context, snapshot) {
+      if (!snapshot.hasData && !snapshot.hasError) {
+        return const Center(
+          child: PokeMapEmptyState(
+            title: 'Chargement du projet narratif',
+            description: 'Lecture des maps du projet…',
+            icon: Icon(CupertinoIcons.arrow_2_circlepath),
+          ),
+        );
+      }
+      if (snapshot.hasError) {
+        return const Center(
+          child: PokeMapEmptyState(
+            title: 'Projet narratif incomplet',
+            description:
+                'Impossible de charger toutes les maps. Corrigez le manifeste avant d’éditer les règles du monde.',
+            icon: Icon(CupertinoIcons.exclamationmark_triangle),
+          ),
+        );
+      }
+      final maps = snapshot.requireData.maps;
+      return _buildFactsWorldRulesWorkspaceFromSnapshot(
+        editor: editor,
+        editorNotifier: editorNotifier,
+        readLatestProject: readLatestProject,
+        project: project,
+        maps: maps,
+        initialMode: initialMode,
+        requestedFactId: requestedFactId,
+        requestedWorldRuleId: requestedWorldRuleId,
+        requestedSelectionNonce: requestedSelectionNonce,
+      );
+    },
+  );
+}
+
+Widget _buildFactsWorldRulesWorkspaceFromSnapshot({
+  required EditorState editor,
+  required EditorNotifier editorNotifier,
+  required ProjectManifest? Function() readLatestProject,
+  required ProjectManifest project,
+  required List<MapData> maps,
+  required FactsWorldRulesWorkspaceMode initialMode,
+  String? requestedFactId,
+  String? requestedWorldRuleId,
+  int? requestedSelectionNonce,
+}) {
   return FactsWorldRulesWorkspace(
     project: project,
     activeMap: editor.activeMap,
+    maps: maps,
     initialMode: initialMode,
     requestedFactId: requestedFactId,
     requestedWorldRuleId: requestedWorldRuleId,

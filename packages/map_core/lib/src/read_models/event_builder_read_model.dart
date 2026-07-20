@@ -1119,6 +1119,8 @@ String _worldRuleTargetId(WorldRuleTarget target) {
       target.entityId ?? target.eventId ?? target.mapId,
     WorldRuleTargetKind.mapEvent =>
       target.eventId ?? target.entityId ?? target.mapId,
+    WorldRuleTargetKind.narrativeEvent =>
+      target.eventId ?? target.entityId ?? target.mapId,
   };
 }
 

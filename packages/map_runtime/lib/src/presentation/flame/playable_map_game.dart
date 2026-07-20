@@ -506,6 +506,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         factResolver: snapshot.factResolver,
         legacyClaimIndex: snapshot.legacyClaimIndex,
         projectCatalog: snapshot.projectCatalog,
+        project: snapshot.project,
+        maps: snapshot.mapsById.values.toList(growable: false),
       );
     }
     await afterNarrativeAuthorityPreparation?.call(occurrence, preparation);

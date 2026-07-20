@@ -25,6 +25,8 @@ enum NarrativeEventSimulationReason {
   authorityBlocked,
   draft,
   disabled,
+  worldRuleDisabled,
+  worldRuleHidden,
   sourceMismatch,
   factConditionFalse,
   narrativeEventConsumedConditionFalse,

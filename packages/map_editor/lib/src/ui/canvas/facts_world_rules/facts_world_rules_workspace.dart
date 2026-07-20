@@ -18,6 +18,7 @@ class FactsWorldRulesWorkspace extends StatefulWidget {
     super.key,
     required this.project,
     required this.activeMap,
+    this.maps = const <MapData>[],
     required this.initialMode,
     required this.onCreateFact,
     required this.onDuplicateFact,
@@ -34,6 +35,7 @@ class FactsWorldRulesWorkspace extends StatefulWidget {
 
   final ProjectManifest project;
   final MapData? activeMap;
+  final List<MapData> maps;
   final FactsWorldRulesWorkspaceMode initialMode;
   final String? requestedFactId;
   final String? requestedWorldRuleId;
@@ -98,6 +100,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
   final _ruleDescriptionController = TextEditingController();
   final _rulePriorityController = TextEditingController();
   final _ruleFactValueController = TextEditingController();
+  final _ruleEditFactValueController = TextEditingController();
 
   String? _selectedFactId;
   String? _loadedFactId;
@@ -118,6 +121,11 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
   String? _dialogueId;
   String? _ruleTypedSourceId;
   NarrativeFactOperator _ruleFactOperator = NarrativeFactOperator.equals;
+  String? _editSourceKey;
+  String? _editTargetKey;
+  String? _editEffectKey;
+  String? _editDialogueId;
+  NarrativeFactOperator _editRuleFactOperator = NarrativeFactOperator.equals;
   Object? _lastAppliedSelectionRequest;
   bool _requestedFactUnavailable = false;
   bool _requestedWorldRuleUnavailable = false;
@@ -143,14 +151,17 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
     _ruleLabelController.dispose();
     _ruleDescriptionController.dispose();
     _rulePriorityController.dispose();
+    _ruleEditFactValueController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final maps = widget.activeMap == null
-        ? const <MapData>[]
-        : <MapData>[widget.activeMap!];
+    final maps = widget.maps.isNotEmpty
+        ? widget.maps
+        : widget.activeMap == null
+            ? const <MapData>[]
+            : <MapData>[widget.activeMap!];
     final readModel = buildFactsWorldRulesManagerReadModel(
       widget.project,
       maps: maps,
@@ -666,7 +677,11 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                                   'Créez une règle depuis les pickers no-code.',
                             ),
                           )
-                        : _buildWorldRuleEditor(context, selectedEntry),
+                        : _buildWorldRuleEditor(
+                            context,
+                            readModel,
+                            selectedEntry,
+                          ),
               ),
             ],
           ),
@@ -830,8 +845,28 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
 
   Widget _buildWorldRuleEditor(
     BuildContext context,
+    FactsWorldRulesManagerReadModel readModel,
     WorldRuleManagerEntry entry,
   ) {
+    final source = _selectedEditSource(readModel);
+    final sourceFact = source?.kind == WorldRuleSourceKind.fact
+        ? widget.project.facts
+            .where((fact) => fact.id == source!.sourceId)
+            .firstOrNull
+        : null;
+    final typedFactValue = sourceFact == null
+        ? null
+        : _ruleEditFactInputValue(sourceFact.valueKind);
+    final target = _selectedEditTarget(readModel);
+    final effects = _compatibleEffects(readModel, target);
+    final effect = _selectedEditEffect(effects);
+    final hasDialogue = effect?.requiresDialogue == true;
+    final dialogueId = _selectedEditDialogueId(readModel);
+    final canSave = source != null &&
+        target != null &&
+        effect != null &&
+        (sourceFact == null || typedFactValue != null) &&
+        (!hasDialogue || dialogueId != null);
     return PokeMapPanel(
       expandChild: true,
       padding: const EdgeInsets.all(14),
@@ -869,6 +904,144 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
               label: 'Description',
               minLines: 3,
               maxLines: 5,
+            ),
+            const SizedBox(height: 12),
+            PokeMapCard(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const _PanelTitle(
+                    title: 'Configuration',
+                    subtitle:
+                        'Source, prédicat, cible et effet restent modifiables.',
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      SizedBox(
+                        width: 240,
+                        child: _SourceDropdown(
+                          key: const ValueKey(
+                            'world-rule-editor-source-picker',
+                          ),
+                          value:
+                              source == null ? null : _sourceOptionKey(source),
+                          options: readModel.sourceOptions,
+                          onChanged: (value) {
+                            setState(() {
+                              _editSourceKey = value;
+                              final selected = _optionByKey(
+                                readModel.sourceOptions,
+                                value,
+                                _sourceOptionKey,
+                              );
+                              _syncEditRuleFactInput(selected);
+                            });
+                          },
+                        ),
+                      ),
+                      if (sourceFact != null) ...[
+                        SizedBox(
+                          width: 240,
+                          child: PokeMapDropdownField<NarrativeFactOperator>(
+                            key: const ValueKey(
+                              'world-rule-editor-fact-operator-picker',
+                            ),
+                            label: 'Comparaison',
+                            value: _editRuleFactOperator,
+                            items: [
+                              for (final operator
+                                  in sourceFact.valueKind.compatibleOperators)
+                                PokeMapDropdownItem(
+                                  value: operator,
+                                  label: _factOperatorLabel(operator),
+                                ),
+                            ],
+                            onChanged: (operator) {
+                              setState(() => _editRuleFactOperator = operator);
+                            },
+                          ),
+                        ),
+                        SizedBox(
+                          width: 240,
+                          child:
+                              sourceFact.valueKind == NarrativeValueKind.boolean
+                                  ? _ToggleRow(
+                                      key: const ValueKey(
+                                        'world-rule-editor-fact-bool-value',
+                                      ),
+                                      label: 'Valeur comparée',
+                                      value: typedFactValue?.boolValue ?? false,
+                                      onChanged: (value) => setState(() {
+                                        _ruleEditFactValueController.text =
+                                            '$value';
+                                      }),
+                                    )
+                                  : _TokenTextField(
+                                      key: const ValueKey(
+                                        'world-rule-editor-fact-value-field',
+                                      ),
+                                      controller: _ruleEditFactValueController,
+                                      label: sourceFact.valueKind ==
+                                              NarrativeValueKind.integer
+                                          ? 'Valeur entière comparée'
+                                          : 'Texte comparé',
+                                      onChanged: (_) => setState(() {}),
+                                    ),
+                        ),
+                      ],
+                      SizedBox(
+                        width: 240,
+                        child: _TargetDropdown(
+                          key: const ValueKey(
+                            'world-rule-editor-target-picker',
+                          ),
+                          value:
+                              target == null ? null : _targetOptionKey(target),
+                          options: readModel.targetOptions,
+                          onChanged: (value) {
+                            setState(() {
+                              _editTargetKey = value;
+                              _editEffectKey = null;
+                            });
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: 240,
+                        child: _EffectDropdown(
+                          key: const ValueKey(
+                            'world-rule-editor-effect-picker',
+                          ),
+                          value:
+                              effect == null ? null : _effectOptionKey(effect),
+                          options: effects,
+                          onChanged: (value) {
+                            setState(() => _editEffectKey = value);
+                          },
+                        ),
+                      ),
+                      if (hasDialogue)
+                        SizedBox(
+                          width: 240,
+                          child: _DialogueDropdown(
+                            key: const ValueKey(
+                              'world-rule-editor-dialogue-picker',
+                            ),
+                            value: dialogueId,
+                            options: readModel.dialogueOptions,
+                            onChanged: (value) {
+                              setState(() => _editDialogueId = value);
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -909,7 +1082,16 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
               children: [
                 PokeMapButton(
                   key: const ValueKey('world-rule-editor-save'),
-                  onPressed: () => _saveWorldRule(entry.rule),
+                  onPressed: canSave
+                      ? () => _saveWorldRule(
+                            entry.rule,
+                            source: source,
+                            target: target,
+                            effect: effect,
+                            dialogueId: dialogueId,
+                            typedFactValue: typedFactValue,
+                          )
+                      : null,
                   leading: const Icon(CupertinoIcons.check_mark),
                   child: const Text('Enregistrer'),
                 ),
@@ -1102,6 +1284,54 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
     _ruleLabelController.text = rule?.label ?? '';
     _ruleDescriptionController.text = rule?.description ?? '';
     _rulePriorityController.text = rule == null ? '0' : '${rule.priority}';
+    final editablePredicate = rule?.source.kind == WorldRuleSourceKind.fact
+        ? WorldRuleSourcePredicate.isTrue
+        : rule?.source.predicate;
+    _editSourceKey = rule == null
+        ? null
+        : '${rule.source.kind.name}:${editablePredicate!.name}:'
+            '${rule.source.sourceId}';
+    _editTargetKey = rule == null
+        ? null
+        : '${rule.target.kind.name}:${rule.target.mapId}:'
+            '${rule.target.entityId ?? ''}:${rule.target.eventId ?? ''}';
+    _editEffectKey = rule?.effect.kind.name;
+    _editDialogueId = rule?.effect.dialogueId;
+    _editRuleFactOperator =
+        rule?.source.resolvedFactOperator ?? NarrativeFactOperator.equals;
+    _ruleEditFactValueController.text =
+        switch (rule?.source.expectedFactValue) {
+      NarrativeValue(kind: NarrativeValueKind.boolean) =>
+        '${rule!.source.expectedFactValue!.boolValue}',
+      NarrativeValue(kind: NarrativeValueKind.integer) =>
+        '${rule!.source.expectedFactValue!.intValue}',
+      NarrativeValue(kind: NarrativeValueKind.string) =>
+        rule!.source.expectedFactValue!.stringValue,
+      _ when rule?.source.kind == WorldRuleSourceKind.fact =>
+        '${rule!.source.predicate == WorldRuleSourcePredicate.isTrue}',
+      _ => '',
+    };
+  }
+
+  void _syncEditRuleFactInput(WorldRuleSourcePickerOption? source) {
+    if (source?.kind != WorldRuleSourceKind.fact) {
+      _ruleEditFactValueController.clear();
+      _editRuleFactOperator = NarrativeFactOperator.equals;
+      return;
+    }
+    final fact = widget.project.facts
+        .where((candidate) => candidate.id == source!.sourceId)
+        .firstOrNull;
+    _editRuleFactOperator = NarrativeFactOperator.equals;
+    _ruleEditFactValueController.text = switch (fact?.initialValue) {
+      NarrativeValue(kind: NarrativeValueKind.boolean) =>
+        '${fact!.initialValue.boolValue}',
+      NarrativeValue(kind: NarrativeValueKind.integer) =>
+        '${fact!.initialValue.intValue}',
+      NarrativeValue(kind: NarrativeValueKind.string) =>
+        fact!.initialValue.stringValue,
+      _ => '',
+    };
   }
 
   void _syncRuleFactInput(NarrativeFactDefinition? fact) {
@@ -1131,6 +1361,20 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
           },
         NarrativeValueKind.string =>
           NarrativeValue.string(_ruleFactValueController.text),
+      };
+
+  NarrativeValue? _ruleEditFactInputValue(NarrativeValueKind kind) =>
+      switch (kind) {
+        NarrativeValueKind.boolean => NarrativeValue.boolean(
+            _ruleEditFactValueController.text.trim().toLowerCase() == 'true',
+          ),
+        NarrativeValueKind.integer => switch (
+              int.tryParse(_ruleEditFactValueController.text.trim())) {
+            final value? => NarrativeValue.integer(value),
+            null => null,
+          },
+        NarrativeValueKind.string =>
+          NarrativeValue.string(_ruleEditFactValueController.text),
       };
 
   Future<void> _createFact() async {
@@ -1230,6 +1474,15 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
         _defaultSource(options);
   }
 
+  WorldRuleSourcePickerOption? _selectedEditSource(
+    FactsWorldRulesManagerReadModel readModel,
+  ) =>
+      _optionByKey(
+        readModel.sourceOptions,
+        _editSourceKey,
+        _sourceOptionKey,
+      );
+
   WorldRuleTargetPickerOption? _selectedTarget(
     FactsWorldRulesManagerReadModel readModel,
   ) {
@@ -1241,6 +1494,15 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
         _defaultTarget(options);
   }
 
+  WorldRuleTargetPickerOption? _selectedEditTarget(
+    FactsWorldRulesManagerReadModel readModel,
+  ) =>
+      _optionByKey(
+        readModel.targetOptions,
+        _editTargetKey,
+        _targetOptionKey,
+      );
+
   WorldRuleEffectPickerOption? _selectedEffect(
     List<WorldRuleEffectPickerOption> options,
   ) {
@@ -1250,6 +1512,11 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
     return _optionByKey(options, _effectKey, _effectOptionKey) ??
         _defaultEffect(options);
   }
+
+  WorldRuleEffectPickerOption? _selectedEditEffect(
+    List<WorldRuleEffectPickerOption> options,
+  ) =>
+      _optionByKey(options, _editEffectKey, _effectOptionKey);
 
   List<WorldRuleEffectPickerOption> _compatibleEffects(
     FactsWorldRulesManagerReadModel readModel,
@@ -1274,6 +1541,17 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
       return _dialogueId;
     }
     return readModel.dialogueOptions.first.dialogueId;
+  }
+
+  String? _selectedEditDialogueId(
+    FactsWorldRulesManagerReadModel readModel,
+  ) {
+    final ids =
+        readModel.dialogueOptions.map((option) => option.dialogueId).toSet();
+    if (_editDialogueId != null && ids.contains(_editDialogueId)) {
+      return _editDialogueId;
+    }
+    return readModel.dialogueOptions.firstOrNull?.dialogueId;
   }
 
   Future<void> _createWorldRule({
@@ -1331,16 +1609,51 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
     });
   }
 
-  Future<void> _saveWorldRule(WorldRuleDefinition rule) async {
+  Future<void> _saveWorldRule(
+    WorldRuleDefinition rule, {
+    required WorldRuleSourcePickerOption source,
+    required WorldRuleTargetPickerOption target,
+    required WorldRuleEffectPickerOption effect,
+    required String? dialogueId,
+    required NarrativeValue? typedFactValue,
+  }) async {
     final priority = int.tryParse(_rulePriorityController.text.trim()) ?? 0;
+    final sourceModel =
+        source.kind == WorldRuleSourceKind.fact && typedFactValue != null
+            ? WorldRuleSource.factValue(
+                factId: source.sourceId,
+                operator: _editRuleFactOperator,
+                expectedValue: typedFactValue,
+                label: source.label,
+                debugTechnicalLabel: source.debugTechnicalLabel,
+              )
+            : WorldRuleSource(
+                kind: source.kind,
+                sourceId: source.sourceId,
+                predicate: source.predicate,
+                label: source.label,
+                debugTechnicalLabel: source.debugTechnicalLabel,
+              );
+    final targetModel = WorldRuleTarget(
+      kind: target.kind,
+      mapId: target.mapId,
+      entityId: target.entityId,
+      eventId: target.eventId,
+      label: target.label,
+    );
+    final effectModel = WorldRuleEffect(
+      kind: effect.effectKind,
+      dialogueId: effect.requiresDialogue ? dialogueId : null,
+      label: effect.label,
+    );
     final ok = await widget.onUpdateWorldRule(
       ruleId: rule.id,
       label: _ruleLabelController.text,
       description: _ruleDescriptionController.text,
       enabled: rule.enabled,
-      source: rule.source,
-      target: rule.target,
-      effect: rule.effect,
+      source: sourceModel,
+      target: targetModel,
+      effect: effectModel,
       priority: priority,
     );
     if (!mounted) {
@@ -1604,6 +1917,7 @@ class _WorldRuleList extends StatelessWidget {
 
 class _SourceDropdown extends StatelessWidget {
   const _SourceDropdown({
+    super.key,
     required this.value,
     required this.options,
     required this.onChanged,
@@ -1632,6 +1946,7 @@ class _SourceDropdown extends StatelessWidget {
 
 class _TargetDropdown extends StatelessWidget {
   const _TargetDropdown({
+    super.key,
     required this.value,
     required this.options,
     required this.onChanged,
@@ -1660,6 +1975,7 @@ class _TargetDropdown extends StatelessWidget {
 
 class _EffectDropdown extends StatelessWidget {
   const _EffectDropdown({
+    super.key,
     required this.value,
     required this.options,
     required this.onChanged,
@@ -1688,6 +2004,7 @@ class _EffectDropdown extends StatelessWidget {
 
 class _DialogueDropdown extends StatelessWidget {
   const _DialogueDropdown({
+    super.key,
     required this.value,
     required this.options,
     required this.onChanged,
