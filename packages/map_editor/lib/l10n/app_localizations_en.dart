@@ -70,4 +70,96 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unsavedChanges => 'Unsaved changes';
+
+  @override
+  String get narrativeUnsavedTitle => 'Pending Cinematics changes';
+
+  @override
+  String get narrativeUnsavedMessage =>
+      'Save or discard local changes before leaving this narrative context.';
+
+  @override
+  String get narrativeStayHere => 'Stay here';
+
+  @override
+  String get narrativeDiscard => 'Discard';
+
+  @override
+  String get narrativeSave => 'Save';
+
+  @override
+  String get narrativeStatusSaved => 'Saved';
+
+  @override
+  String get narrativeStatusDirty => 'Modified';
+
+  @override
+  String get narrativeStatusSaving => 'Saving…';
+
+  @override
+  String get narrativeStatusFailed => 'Failed';
+
+  @override
+  String get narrativeStatusConflicted => 'Conflict';
+
+  @override
+  String get narrativeStatusRecovered => 'Recovered';
+
+  @override
+  String get narrativeUndoTooltip => 'Undo the latest narrative intention';
+
+  @override
+  String get narrativeRedoTooltip => 'Redo the latest narrative intention';
+
+  @override
+  String get narrativeSaveTooltip => 'Save narrative changes';
+
+  @override
+  String get narrativeAutosaveDisableTooltip => 'Disable autosave';
+
+  @override
+  String get narrativeAutosaveEnableTooltip => 'Enable autosave';
+
+  @override
+  String get narrativeCompareTooltip => 'Compare local and external versions';
+
+  @override
+  String get narrativeReloadTooltip => 'Reload the external version';
+
+  @override
+  String get narrativeKeepLocalTooltip =>
+      'Keep the local version on the new baseline';
+
+  @override
+  String get narrativeDiscardTooltip => 'Discard local narrative changes';
+
+  @override
+  String get narrativeCompareTitle => 'Compare Cinematics versions';
+
+  @override
+  String get narrativeCompareSemantics => 'Narrative version comparison';
+
+  @override
+  String get narrativeCompareBaseline => 'Session baseline';
+
+  @override
+  String get narrativeCompareLocal => 'Recoverable local version';
+
+  @override
+  String get narrativeCompareExternal => 'External version on disk';
+
+  @override
+  String get narrativeNoCinematics => 'No Cinematics';
+
+  @override
+  String narrativeCinematicCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Cinematics',
+      one: '1 Cinematic',
+      zero: 'No Cinematics',
+    );
+    return '$_temp0';
+  }
 }

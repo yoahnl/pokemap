@@ -7,6 +7,7 @@ export 'narrative/pokemap_narrative_reference_picker.dart';
 export 'pokemap_badge.dart';
 export 'pokemap_button.dart';
 export 'pokemap_card.dart';
+export 'pokemap_confirmation_dialog.dart';
 export 'pokemap_dashboard_primitives.dart';
 export 'pokemap_desktop_side_sheet.dart';
 export 'pokemap_diagnostic_callout.dart';

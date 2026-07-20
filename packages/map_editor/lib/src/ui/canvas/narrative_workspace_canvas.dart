@@ -1968,45 +1968,58 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     required String description,
     required String notes,
   }) async {
-    final result =
-        await widget.editorNotifier.executeNarrativeAuthoringMutation(
-      (project) {
-        final existing = findCinematicById(project, cinematicId);
-        if (existing == null) {
-          return NarrativeAssetRejected(
-            project: project,
-            code: 'assetNotFound',
-            message: 'The cinematic to update does not exist.',
-          );
-        }
-        return NarrativeAssetMutation.updateCinematic(
-          project,
-          cinematicId: cinematicId,
-          cinematic: CinematicAsset(
-            id: existing.id,
-            title: title.trim(),
-            description: description.trim(),
-            storylineId: existing.storylineId,
-            chapterId: existing.chapterId,
-            mapId: existing.mapId,
-            tags: existing.tags,
-            requiredActors: existing.requiredActors,
-            movementTargets: existing.movementTargets,
-            stageContext: existing.stageContext,
-            timeline: existing.timeline,
-            notes: notes.trim(),
-            metadata: existing.metadata,
-            legacyBridge: existing.legacyBridge,
-          ),
-        );
-      },
-      operationId: _cinematicAuthoringOperationId('update'),
-    );
-    if (result == null) {
+    final project = widget.project;
+    if (project == null) {
       return false;
     }
-    return result.status == NarrativeAuthoringTransactionStatus.committed ||
-        result.status == NarrativeAuthoringTransactionStatus.noChange;
+    final existing = findCinematicById(project, cinematicId);
+    if (existing == null) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'La cinématique à modifier est introuvable.',
+      );
+      return false;
+    }
+    final mutation = NarrativeAssetMutation.updateCinematic(
+      project,
+      cinematicId: cinematicId,
+      cinematic: CinematicAsset(
+        id: existing.id,
+        title: title.trim(),
+        description: description.trim(),
+        storylineId: existing.storylineId,
+        chapterId: existing.chapterId,
+        mapId: existing.mapId,
+        tags: existing.tags,
+        requiredActors: existing.requiredActors,
+        movementTargets: existing.movementTargets,
+        stageContext: existing.stageContext,
+        timeline: existing.timeline,
+        notes: notes.trim(),
+        metadata: existing.metadata,
+        legacyBridge: existing.legacyBridge,
+      ),
+    );
+    if (mutation is NarrativeAssetRejected) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(mutation.message);
+      return false;
+    }
+    if (mutation is NarrativeAssetNoChange) {
+      if (widget.editorNotifier.narrativeDocumentBlocksNavigation) {
+        return widget.editorNotifier.saveNarrativeDocument();
+      }
+      return true;
+    }
+    final applied = await _applyCinematicDocumentEdit(
+      mutation.after,
+      action: 'metadata',
+      label: 'Modifier les informations de la cinématique',
+      statusMessage: 'Informations de la cinématique modifiées.',
+    );
+    if (!applied) return false;
+    // The metadata form exposes an explicit "save" action. Preserve that
+    // durable contract while still recording the intention in the shared
+    // document history before persistence.
+    return widget.editorNotifier.saveNarrativeDocument();
   }
 
   Future<bool> _removeCinematic({required String cinematicId}) async {
@@ -2038,10 +2051,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         cinematicId: cinematicId,
         afterStepId: afterStepId,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic timeline draft created',
+        action: 'timeline_draft_add',
+        label: 'Ajouter une étape brouillon',
+        statusMessage: 'Étape brouillon ajoutée.',
       );
+      if (!applied) return null;
       return result.step.id;
     } on ArgumentError {
       return null;
@@ -2062,11 +2078,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         cinematicId: cinematicId,
         stepId: stepId,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic timeline draft removed',
+        action: 'timeline_draft_remove',
+        label: 'Supprimer une étape brouillon',
+        statusMessage: 'Étape brouillon supprimée.',
       );
-      return true;
+      return applied;
     } on ArgumentError {
       return false;
     }
@@ -2088,10 +2106,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         blockKind: blockKind,
         afterStepId: afterStepId,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic timeline basic block created',
+        action: 'timeline_block_add',
+        label: 'Ajouter un bloc de timeline',
+        statusMessage: 'Bloc de timeline ajouté.',
       );
+      if (!applied) return null;
       return result.step.id;
     } on ArgumentError {
       return null;
@@ -2120,11 +2141,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         cameraMode: cameraMode,
         cameraFocusBinding: cameraFocusBinding,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic timeline basic block updated',
+        action: 'timeline_block_update',
+        label: 'Modifier un bloc de timeline',
+        statusMessage: 'Bloc de timeline modifié.',
       );
-      return true;
+      return applied;
     } on ArgumentError {
       return false;
     }
@@ -2144,10 +2167,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         cinematicId: cinematicId,
         label: label ?? 'Acteur',
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic required actor created',
+        action: 'actor_add',
+        label: 'Ajouter un acteur requis',
+        statusMessage: 'Acteur requis ajouté.',
       );
+      if (!applied) return null;
       return result.actor.actorId;
     } on ArgumentError {
       return null;
@@ -2170,11 +2196,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         actorId: actorId,
         label: label,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic required actor renamed',
+        action: 'actor_rename',
+        label: 'Renommer un acteur requis',
+        statusMessage: 'Acteur requis renommé.',
       );
-      return true;
+      return applied;
     } on ArgumentError {
       return false;
     }
@@ -2194,11 +2222,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         cinematicId: cinematicId,
         actorId: actorId,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic required actor removed',
+        action: 'actor_remove',
+        label: 'Supprimer un acteur requis',
+        statusMessage: 'Acteur requis supprimé.',
       );
-      return true;
+      return applied;
     } on ArgumentError {
       return false;
     }
@@ -2217,10 +2247,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         cinematicId: cinematicId,
         label: 'Destination',
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic movement target created',
+        action: 'target_add',
+        label: 'Ajouter une destination',
+        statusMessage: 'Destination ajoutée.',
       );
+      if (!applied) return null;
       return result.target.targetId;
     } on ArgumentError {
       return null;
@@ -2245,11 +2278,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         label: label,
         description: description,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic movement target updated',
+        action: 'target_update',
+        label: 'Modifier une destination',
+        statusMessage: 'Destination modifiée.',
       );
-      return result.target.targetId == targetId;
+      return applied && result.target.targetId == targetId;
     } on ArgumentError {
       return false;
     }
@@ -2269,11 +2304,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         cinematicId: cinematicId,
         targetId: targetId,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic movement target removed',
+        action: 'target_remove',
+        label: 'Supprimer une destination',
+        statusMessage: 'Destination supprimée.',
       );
-      return result.removedTarget.targetId == targetId;
+      return applied && result.removedTarget.targetId == targetId;
     } on ArgumentError {
       return false;
     }
@@ -2297,10 +2334,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         direction: direction,
         afterStepId: afterStepId,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic actor facing block created',
+        action: 'actor_facing_add',
+        label: 'Ajouter une orientation d’acteur',
+        statusMessage: 'Orientation d’acteur ajoutée.',
       );
+      if (!applied) return null;
       return result.step.id;
     } on ArgumentError {
       return null;
@@ -2327,11 +2367,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         direction: direction,
         durationMs: durationMs,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic actor facing block updated',
+        action: 'actor_facing_update',
+        label: 'Modifier une orientation d’acteur',
+        statusMessage: 'Orientation d’acteur modifiée.',
       );
-      return result.step.id == stepId;
+      return applied && result.step.id == stepId;
     } on ArgumentError {
       return false;
     }
@@ -2359,10 +2401,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         movementMode: movementMode,
         afterStepId: afterStepId,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic actor movement block created',
+        action: 'actor_move_add',
+        label: 'Ajouter un déplacement d’acteur',
+        statusMessage: 'Déplacement d’acteur ajouté.',
       );
+      if (!applied) return null;
       return result.step.id;
     } on ArgumentError {
       return null;
@@ -2391,11 +2436,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         durationMs: durationMs,
         movementMode: movementMode,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic actor movement block updated',
+        action: 'actor_move_update',
+        label: 'Modifier un déplacement d’acteur',
+        statusMessage: 'Déplacement d’acteur modifié.',
       );
-      return result.step.id == stepId;
+      return applied && result.step.id == stepId;
     } on ArgumentError {
       return false;
     }
@@ -2421,10 +2468,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         durationMs: durationMs,
         afterStepId: afterStepId,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic actor emote block created',
+        action: 'actor_emote_add',
+        label: 'Ajouter une emote d’acteur',
+        statusMessage: 'Emote d’acteur ajoutée.',
       );
+      if (!applied) return null;
       return result.step.id;
     } on ArgumentError {
       return null;
@@ -2451,11 +2501,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         emoteId: emoteId,
         durationMs: durationMs,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic actor emote block updated',
+        action: 'actor_emote_update',
+        label: 'Modifier une emote d’acteur',
+        statusMessage: 'Emote d’acteur modifiée.',
       );
-      return result.step.id == stepId;
+      return applied && result.step.id == stepId;
     } on ArgumentError {
       return false;
     }
@@ -2475,11 +2527,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         cinematicId: cinematicId,
         stepId: stepId,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic timeline authoring step removed',
+        action: 'timeline_step_remove',
+        label: 'Supprimer une étape de timeline',
+        statusMessage: 'Étape de timeline supprimée.',
       );
-      return result.removedStep.id == stepId;
+      return applied && result.removedStep.id == stepId;
     } on ArgumentError {
       return false;
     }
@@ -2499,11 +2553,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         cinematicId: cinematicId,
         mapId: mapId,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic stage map updated',
+        action: 'stage_map_update',
+        label: 'Modifier la carte de mise en scène',
+        statusMessage: 'Carte de mise en scène modifiée.',
       );
-      return true;
+      return applied;
     } on ArgumentError {
       return false;
     }
@@ -2523,11 +2579,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         cinematicId: cinematicId,
         stageContext: stageContext,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic stage context updated',
+        action: 'stage_context_update',
+        label: 'Modifier le contexte de mise en scène',
+        statusMessage: 'Contexte de mise en scène modifié.',
       );
-      return true;
+      return applied;
     } on ArgumentError {
       return false;
     }
@@ -2546,11 +2604,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         project,
         cinematic,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic asset updated',
+        action: 'asset_update',
+        label: 'Modifier la cinématique',
+        statusMessage: 'Cinématique modifiée.',
       );
-      return true;
+      return applied;
     } on ArgumentError {
       return false;
     }
@@ -2570,11 +2630,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         cinematicId: cinematicId,
         binding: binding,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic actor binding updated',
+        action: 'actor_binding_update',
+        label: 'Modifier la liaison d’un acteur',
+        statusMessage: 'Liaison d’acteur modifiée.',
       );
-      return true;
+      return applied;
     } on ArgumentError {
       return false;
     }
@@ -2594,11 +2656,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         cinematicId: cinematicId,
         binding: binding,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic actor appearance updated',
+        action: 'actor_appearance_update',
+        label: 'Modifier l’apparence d’un acteur',
+        statusMessage: 'Apparence d’acteur modifiée.',
       );
-      return true;
+      return applied;
     } on ArgumentError {
       return false;
     }
@@ -2618,11 +2682,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         cinematicId: cinematicId,
         actorId: actorId,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic actor appearance removed',
+        action: 'actor_appearance_remove',
+        label: 'Retirer l’apparence d’un acteur',
+        statusMessage: 'Apparence d’acteur retirée.',
       );
-      return true;
+      return applied;
     } on ArgumentError {
       return false;
     }
@@ -2642,11 +2708,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         cinematicId: cinematicId,
         placement: placement,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic actor placement updated',
+        action: 'actor_placement_update',
+        label: 'Modifier le placement d’un acteur',
+        statusMessage: 'Placement d’acteur modifié.',
       );
-      return true;
+      return applied;
     } on ArgumentError {
       return false;
     }
@@ -2666,14 +2734,30 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         cinematicId: cinematicId,
         binding: binding,
       );
-      widget.editorNotifier.applyInMemoryProjectManifest(
+      final applied = await _applyCinematicDocumentEdit(
         result.updatedProject,
-        statusMessage: 'Cinematic target binding updated',
+        action: 'target_binding_update',
+        label: 'Modifier la liaison d’une destination',
+        statusMessage: 'Liaison de destination modifiée.',
       );
-      return true;
+      return applied;
     } on ArgumentError {
       return false;
     }
+  }
+
+  Future<bool> _applyCinematicDocumentEdit(
+    ProjectManifest project, {
+    required String action,
+    required String label,
+    required String statusMessage,
+  }) {
+    return widget.editorNotifier.applyNarrativeDocumentEdit(
+      project,
+      operationId: _cinematicAuthoringOperationId(action),
+      label: label,
+      statusMessage: statusMessage,
+    );
   }
 }
 

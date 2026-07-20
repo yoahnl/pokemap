@@ -75,6 +75,7 @@ Future<ProviderContainer> pumpEditorShellPage(
   String? fontFamily,
   String? cupertinoFontFamily,
   List<Override> overrides = const <Override>[],
+  bool settleInitialFrame = true,
 }) async {
   _installMacosAccentColorMock();
   final container = ProviderContainer(overrides: overrides);
@@ -136,7 +137,11 @@ Future<ProviderContainer> pumpEditorShellPage(
     ),
   );
   await tester.pump();
-  await tester.pumpAndSettle(const Duration(milliseconds: 1));
+  if (settleInitialFrame) {
+    await tester.pumpAndSettle(const Duration(milliseconds: 1));
+  } else {
+    await tester.pump(const Duration(milliseconds: 220));
+  }
   if (fontFamily != null) {
     final context = tester.element(find.byType(EditorShellPage));
     await tester.runAsync(() async {

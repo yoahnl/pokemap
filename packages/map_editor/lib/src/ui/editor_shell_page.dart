@@ -29,12 +29,29 @@ import '../features/editor/state/editor_notifier.dart';
 import '../features/editor/state/editor_selectors.dart';
 import '../features/editor/state/editor_state.dart';
 import '../features/narrative/state/narrative_event_builder_v2_providers.dart';
+import '../application/services/narrative_document_session.dart';
 
 const double _kRightInspectorDefaultWidth = 336;
 const double _kRightInspectorMinWidth = 280;
 const double _kRightInspectorMaxWidth = 560;
 const double _kRightInspectorResizeHandleWidth = 12;
 const double _kCenterStageMinWidth = 320;
+const narrativeDocumentUndoActionKey =
+    ValueKey<String>('narrative-document-undo-action');
+const narrativeDocumentRedoActionKey =
+    ValueKey<String>('narrative-document-redo-action');
+const narrativeDocumentSaveActionKey =
+    ValueKey<String>('narrative-document-save-action');
+const narrativeDocumentAutosaveActionKey =
+    ValueKey<String>('narrative-document-autosave-action');
+const narrativeDocumentCompareActionKey =
+    ValueKey<String>('narrative-document-compare-action');
+const narrativeDocumentReloadActionKey =
+    ValueKey<String>('narrative-document-reload-action');
+const narrativeDocumentKeepLocalActionKey =
+    ValueKey<String>('narrative-document-keep-local-action');
+const narrativeDocumentDiscardActionKey =
+    ValueKey<String>('narrative-document-discard-action');
 
 class EditorShellPage extends ConsumerStatefulWidget {
   const EditorShellPage({super.key});
@@ -138,7 +155,38 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       ref.invalidate(narrativeEventValidationSnapshotProvider(request));
     }
 
-    void selectNarrativeDestination(
+    Future<bool> guardNarrativeNavigation() async {
+      if (!notifier.narrativeDocumentBlocksNavigation) return true;
+      final l10n = context.pokeMapL10n;
+      final choice = await showPokeMapConfirmationDialog<_UnsavedChoice>(
+        context: context,
+        title: l10n.narrativeUnsavedTitle,
+        message: l10n.narrativeUnsavedMessage,
+        actions: [
+          PokeMapDialogAction(
+            label: l10n.narrativeStayHere,
+            value: _UnsavedChoice.cancel,
+          ),
+          PokeMapDialogAction(
+            label: l10n.narrativeDiscard,
+            value: _UnsavedChoice.discard,
+            variant: PokeMapButtonVariant.danger,
+          ),
+          PokeMapDialogAction(
+            label: l10n.narrativeSave,
+            value: _UnsavedChoice.save,
+            variant: PokeMapButtonVariant.success,
+          ),
+        ],
+      );
+      return switch (choice) {
+        _UnsavedChoice.save => await notifier.saveNarrativeDocument(),
+        _UnsavedChoice.discard => await notifier.discardNarrativeDocument(),
+        _ => false,
+      };
+    }
+
+    void applyNarrativeDestination(
       NarrativeStudioDestination destination,
     ) {
       switch (destination) {
@@ -163,6 +211,13 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       }
     }
 
+    Future<void> selectNarrativeDestination(
+      NarrativeStudioDestination destination,
+    ) async {
+      if (!await guardNarrativeNavigation()) return;
+      applyNarrativeDestination(destination);
+    }
+
     void openNarrativeWorkspaceForLocation(
       NarrativeStudioRouteLocation location,
     ) {
@@ -174,18 +229,22 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         case NarrativeStudioChildRoute.cinematicBuilder:
           notifier.selectCutsceneWorkspace();
         default:
-          selectNarrativeDestination(location.destination);
+          applyNarrativeDestination(location.destination);
       }
     }
 
-    void selectNarrativeLocation(NarrativeStudioRouteLocation location) {
+    Future<void> selectNarrativeLocation(
+      NarrativeStudioRouteLocation location,
+    ) async {
+      if (!await guardNarrativeNavigation()) return;
       ref
           .read(narrativeStudioNavigationControllerProvider.notifier)
           .replace(location);
       openNarrativeWorkspaceForLocation(location);
     }
 
-    void restoreNarrativeLocation() {
+    Future<void> restoreNarrativeLocation() async {
+      if (!await guardNarrativeNavigation()) return;
       final expectation = ref
           .read(narrativeStudioNavigationControllerProvider.notifier)
           .restoreReturn();
@@ -224,6 +283,10 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       EditorWorkspaceMode.narrativeValidator => true,
       _ => false,
     };
+    // NSC-13 adopts only Cinematics. Other Narrative Studio destinations keep
+    // their existing undo stack until a later lot opts into this contract.
+    final usesNarrativeDocumentSession =
+        workspaceMode == EditorWorkspaceMode.cutscene;
 
     final supportsRightInspector = switch (workspaceMode) {
       _ when isNarrativeWorkspace => false,
@@ -327,6 +390,11 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
             _UndoIntent: CallbackAction<_UndoIntent>(
               onInvoke: (_) {
                 if (_isTextInputFocused()) return null;
+                if (usesNarrativeDocumentSession &&
+                    notifier.canUndoNarrativeDocument) {
+                  unawaited(notifier.undoNarrativeDocument());
+                  return null;
+                }
                 if (!shell.canUndoMap) return null;
                 notifier.undoMap();
                 return null;
@@ -335,6 +403,11 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
             _RedoIntent: CallbackAction<_RedoIntent>(
               onInvoke: (_) {
                 if (_isTextInputFocused()) return null;
+                if (usesNarrativeDocumentSession &&
+                    notifier.canRedoNarrativeDocument) {
+                  unawaited(notifier.redoNarrativeDocument());
+                  return null;
+                }
                 if (!shell.canRedoMap) return null;
                 notifier.redoMap();
                 return null;
@@ -349,7 +422,11 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                   return null;
                 }
                 if (project == null) return null;
-                notifier.saveProjectManifest();
+                if (notifier.narrativeDocumentBlocksNavigation) {
+                  unawaited(notifier.saveNarrativeDocument());
+                } else {
+                  unawaited(notifier.saveProjectManifest());
+                }
                 return null;
               },
             ),
@@ -369,8 +446,12 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                         onSelectLocation: selectNarrativeLocation,
                         onReturn: navigationState.pendingReturn == null
                             ? null
-                            : restoreNarrativeLocation,
-                        onOpenMaps: notifier.selectMapWorkspace,
+                            : () => unawaited(restoreNarrativeLocation()),
+                        onOpenMaps: () async {
+                          if (await guardNarrativeNavigation()) {
+                            notifier.selectMapWorkspace();
+                          }
+                        },
                         project: project == null
                             ? null
                             : _NarrativeStudioProjectCard(
@@ -381,6 +462,11 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                             : _NarrativeStudioSaveStatus(
                                 isDirty: projectIsDirty,
                               ),
+                        documentActions: project == null ||
+                                (!usesNarrativeDocumentSession &&
+                                    !notifier.narrativeDocumentBlocksNavigation)
+                            ? null
+                            : const _NarrativeDocumentActions(),
                         workspace: workspaceMode == EditorWorkspaceMode.events
                             ? NarrativeStudioWorkspacePage(
                                 presentation:
@@ -1563,6 +1649,236 @@ bool _isTextInputFocused() {
   if (focusedContext == null) return false;
   return focusedContext.widget is EditableText ||
       focusedContext.findAncestorWidgetOfExactType<EditableText>() != null;
+}
+
+enum _UnsavedChoice { cancel, discard, save }
+
+class _NarrativeDocumentActions extends ConsumerWidget {
+  const _NarrativeDocumentActions();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // The session lives beside EditorState, so observing the state keeps these
+    // controls synchronized with session notifications without exposing a
+    // second Riverpod source of truth.
+    ref.watch(editorNotifierProvider);
+    final notifier = ref.read(editorNotifierProvider.notifier);
+    final l10n = context.pokeMapL10n;
+    final status = notifier.narrativeDocumentStatus;
+    if (status == null) return const SizedBox.shrink();
+    final isSaving = status == NarrativeDocumentSessionStatus.saving;
+    final isConflicted = status == NarrativeDocumentSessionStatus.conflicted;
+    final blocksNavigation = notifier.narrativeDocumentBlocksNavigation;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        PokeMapBadge(
+          label: _narrativeDocumentStatusLabel(context, status),
+          variant: _narrativeDocumentStatusVariant(status),
+        ),
+        const SizedBox(width: 8),
+        PokeMapIconButton(
+          key: narrativeDocumentUndoActionKey,
+          onPressed: !isSaving && notifier.canUndoNarrativeDocument
+              ? () => unawaited(notifier.undoNarrativeDocument())
+              : null,
+          tooltip: l10n.narrativeUndoTooltip,
+          variant: PokeMapIconButtonVariant.soft,
+          icon: const Icon(CupertinoIcons.arrow_uturn_left),
+        ),
+        const SizedBox(width: 4),
+        PokeMapIconButton(
+          key: narrativeDocumentRedoActionKey,
+          onPressed: !isSaving && notifier.canRedoNarrativeDocument
+              ? () => unawaited(notifier.redoNarrativeDocument())
+              : null,
+          tooltip: l10n.narrativeRedoTooltip,
+          variant: PokeMapIconButtonVariant.soft,
+          icon: const Icon(CupertinoIcons.arrow_uturn_right),
+        ),
+        const SizedBox(width: 4),
+        PokeMapIconButton(
+          key: narrativeDocumentSaveActionKey,
+          onPressed: !isSaving && !isConflicted && blocksNavigation
+              ? () => unawaited(notifier.saveNarrativeDocument())
+              : null,
+          tooltip: l10n.narrativeSaveTooltip,
+          variant: PokeMapIconButtonVariant.soft,
+          icon: const Icon(CupertinoIcons.floppy_disk),
+        ),
+        const SizedBox(width: 4),
+        PokeMapIconButton(
+          key: narrativeDocumentAutosaveActionKey,
+          onPressed: isSaving
+              ? null
+              : () => unawaited(
+                    notifier.setNarrativeDocumentAutosaveEnabled(
+                      !notifier.narrativeDocumentAutosaveEnabled,
+                    ),
+                  ),
+          tooltip: notifier.narrativeDocumentAutosaveEnabled
+              ? l10n.narrativeAutosaveDisableTooltip
+              : l10n.narrativeAutosaveEnableTooltip,
+          variant: PokeMapIconButtonVariant.soft,
+          isSelected: notifier.narrativeDocumentAutosaveEnabled,
+          icon: const Icon(CupertinoIcons.arrow_2_circlepath),
+        ),
+        if (isConflicted) ...[
+          const SizedBox(width: 4),
+          PokeMapIconButton(
+            key: narrativeDocumentCompareActionKey,
+            onPressed: () => _showNarrativeDocumentComparison(
+              context,
+              notifier.narrativeDocumentComparison,
+            ),
+            tooltip: l10n.narrativeCompareTooltip,
+            variant: PokeMapIconButtonVariant.soft,
+            icon: const Icon(CupertinoIcons.rectangle_split_3x1),
+          ),
+          const SizedBox(width: 4),
+          PokeMapIconButton(
+            key: narrativeDocumentReloadActionKey,
+            onPressed: () =>
+                unawaited(notifier.reloadExternalNarrativeDocument()),
+            tooltip: l10n.narrativeReloadTooltip,
+            variant: PokeMapIconButtonVariant.soft,
+            icon: const Icon(CupertinoIcons.arrow_clockwise),
+          ),
+          const SizedBox(width: 4),
+          PokeMapIconButton(
+            key: narrativeDocumentKeepLocalActionKey,
+            onPressed: () => unawaited(notifier.keepLocalNarrativeDocument()),
+            tooltip: l10n.narrativeKeepLocalTooltip,
+            variant: PokeMapIconButtonVariant.soft,
+            icon: const Icon(CupertinoIcons.square_arrow_down),
+          ),
+        ],
+        if (blocksNavigation) ...[
+          const SizedBox(width: 4),
+          PokeMapIconButton(
+            key: narrativeDocumentDiscardActionKey,
+            onPressed: isSaving
+                ? null
+                : () => unawaited(notifier.discardNarrativeDocument()),
+            tooltip: l10n.narrativeDiscardTooltip,
+            variant: PokeMapIconButtonVariant.danger,
+            icon: const Icon(CupertinoIcons.trash),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+String _narrativeDocumentStatusLabel(
+  BuildContext context,
+  NarrativeDocumentSessionStatus status,
+) {
+  final l10n = context.pokeMapL10n;
+  return switch (status) {
+    NarrativeDocumentSessionStatus.saved => l10n.narrativeStatusSaved,
+    NarrativeDocumentSessionStatus.dirty => l10n.narrativeStatusDirty,
+    NarrativeDocumentSessionStatus.saving => l10n.narrativeStatusSaving,
+    NarrativeDocumentSessionStatus.failed => l10n.narrativeStatusFailed,
+    NarrativeDocumentSessionStatus.conflicted => l10n.narrativeStatusConflicted,
+    NarrativeDocumentSessionStatus.recovered => l10n.narrativeStatusRecovered,
+  };
+}
+
+PokeMapBadgeVariant _narrativeDocumentStatusVariant(
+  NarrativeDocumentSessionStatus status,
+) {
+  return switch (status) {
+    NarrativeDocumentSessionStatus.saved => PokeMapBadgeVariant.success,
+    NarrativeDocumentSessionStatus.dirty => PokeMapBadgeVariant.warning,
+    NarrativeDocumentSessionStatus.saving => PokeMapBadgeVariant.info,
+    NarrativeDocumentSessionStatus.failed => PokeMapBadgeVariant.error,
+    NarrativeDocumentSessionStatus.conflicted => PokeMapBadgeVariant.error,
+    NarrativeDocumentSessionStatus.recovered => PokeMapBadgeVariant.warning,
+  };
+}
+
+void _showNarrativeDocumentComparison(
+  BuildContext context,
+  NarrativeDocumentComparison<ProjectManifest>? comparison,
+) {
+  if (comparison == null) return;
+  final l10n = context.pokeMapL10n;
+  unawaited(
+    showPokeMapDesktopSideSheet<void>(
+      context: context,
+      title: l10n.narrativeCompareTitle,
+      semanticLabel: l10n.narrativeCompareSemantics,
+      width: 520,
+      builder: (context) => SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _NarrativeManifestComparisonCard(
+              title: l10n.narrativeCompareBaseline,
+              manifest: comparison.baseline,
+            ),
+            const SizedBox(height: 12),
+            _NarrativeManifestComparisonCard(
+              title: l10n.narrativeCompareLocal,
+              manifest: comparison.local,
+            ),
+            const SizedBox(height: 12),
+            _NarrativeManifestComparisonCard(
+              title: l10n.narrativeCompareExternal,
+              manifest: comparison.external,
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _NarrativeManifestComparisonCard extends StatelessWidget {
+  const _NarrativeManifestComparisonCard({
+    required this.title,
+    required this.manifest,
+  });
+
+  final String title;
+  final ProjectManifest manifest;
+
+  @override
+  Widget build(BuildContext context) {
+    return PokeMapCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PokeMapSectionHeader(
+            title: title,
+            description: context.pokeMapL10n.narrativeCinematicCount(
+              manifest.cinematics.length,
+            ),
+          ),
+          if (manifest.cinematics.isEmpty)
+            Text(
+              context.pokeMapL10n.narrativeNoCinematics,
+              style: TextStyle(color: context.pokeMapColors.textMuted),
+            )
+          else
+            for (final cinematic in manifest.cinematics)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  '${cinematic.title} · ${cinematic.id}',
+                  style: TextStyle(
+                    color: context.pokeMapColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
 }
 
 class _UndoIntent extends Intent {

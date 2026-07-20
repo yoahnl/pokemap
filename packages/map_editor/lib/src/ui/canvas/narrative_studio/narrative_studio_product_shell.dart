@@ -69,6 +69,7 @@ class NarrativeStudioProductShell extends StatelessWidget {
     this.project,
     this.status,
     this.appMark,
+    this.documentActions,
   });
 
   final NarrativeStudioDestination selectedDestination;
@@ -81,6 +82,7 @@ class NarrativeStudioProductShell extends StatelessWidget {
   final Widget? project;
   final Widget? status;
   final Widget? appMark;
+  final Widget? documentActions;
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +99,10 @@ class NarrativeStudioProductShell extends StatelessWidget {
             color: colors.chromeBackground,
             child: Column(
               children: [
-                _NarrativeStudioProductHeader(appMark: appMark),
+                _NarrativeStudioProductHeader(
+                  appMark: appMark,
+                  documentActions: documentActions,
+                ),
                 Expanded(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -159,9 +164,13 @@ class NarrativeStudioProductShell extends StatelessWidget {
 }
 
 class _NarrativeStudioProductHeader extends StatelessWidget {
-  const _NarrativeStudioProductHeader({required this.appMark});
+  const _NarrativeStudioProductHeader({
+    required this.appMark,
+    required this.documentActions,
+  });
 
   final Widget? appMark;
+  final Widget? documentActions;
 
   @override
   Widget build(BuildContext context) {
@@ -208,6 +217,10 @@ class _NarrativeStudioProductHeader extends StatelessWidget {
               label: l10n.beta,
               variant: PokeMapBadgeVariant.info,
             ),
+            if (documentActions != null) ...[
+              const Spacer(),
+              documentActions!,
+            ],
           ],
         ),
       ),

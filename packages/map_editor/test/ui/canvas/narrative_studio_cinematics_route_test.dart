@@ -17,6 +17,7 @@ import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_produ
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_destination.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_navigation.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
+import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:map_editor/src/ui/editor_shell_page.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 
@@ -321,11 +322,9 @@ void main() {
         find.byKey(const ValueKey('cinematics-library-title-field')),
         'Départ du phare',
       );
-      await tester.tap(
-        find.byKey(const ValueKey('cinematics-library-save-button')),
-      );
-      await _pumpUntil(
+      await _invokeAsyncPokeMapButton(
         tester,
+        find.byKey(const ValueKey('cinematics-library-save-button')),
         () =>
             !container.read(editorNotifierProvider).isSaving &&
             container
@@ -400,9 +399,9 @@ void main() {
       final saveButton =
           find.byKey(const ValueKey('cinematics-library-save-button'));
       await tester.enterText(titleField, 'Intro locale non enregistrée');
-      await tester.tap(saveButton);
-      await _pumpUntil(
+      await _invokeAsyncPokeMapButton(
         tester,
+        saveButton,
         () =>
             !container.read(editorNotifierProvider).isSaving &&
             container
@@ -427,13 +426,19 @@ void main() {
         isNot('Intro locale non enregistrée'),
       );
 
-      await tester.tap(saveButton);
-      await tester.pumpAndSettle();
+      await _invokeAsyncPokeMapButton(
+        tester,
+        saveButton,
+        () => container.read(editorNotifierProvider).errorMessage != null,
+      );
 
       expect(gateway.calls, 1);
       expect(container.read(editorNotifierProvider).isProjectDirty, isTrue);
-      expect(container.read(editorNotifierProvider).errorMessage,
-          contains('seulement localement'));
+      expect(
+        container.read(editorNotifierProvider).errorMessage,
+        contains('Conflit narratif détecté'),
+      );
+      expect(find.byKey(narrativeDocumentCompareActionKey), findsOneWidget);
       expect(find.text('Métadonnées sauvegardées.'), findsNothing);
       expect(
         find.text(
@@ -592,6 +597,26 @@ Future<void> _pumpUntil(
     if (condition()) return;
   }
   fail('Timed out while waiting for the narrative authoring transaction.');
+}
+
+Future<void> _invokeAsyncPokeMapButton(
+  WidgetTester tester,
+  Finder finder,
+  bool Function() condition,
+) async {
+  final button = tester.widget<PokeMapButton>(finder);
+  await tester.runAsync(() async {
+    button.onPressed!.call();
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    final deadline = DateTime.now().add(const Duration(seconds: 2));
+    while (!condition()) {
+      if (DateTime.now().isAfter(deadline)) {
+        fail('Timed out while waiting for the async narrative action.');
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+  });
+  await tester.pump();
 }
 
 final class _SynchronousManifestGateway

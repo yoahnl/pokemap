@@ -15,6 +15,7 @@ void main() {
     final opened = <NarrativeStudioDestination>[];
     var mapsOpenCount = 0;
     var actionCount = 0;
+    var documentActionCount = 0;
 
     await _pumpShell(
       tester,
@@ -23,6 +24,12 @@ void main() {
       onOpenMaps: () => mapsOpenCount += 1,
       project: const PokeMapCard(child: Text('Selbrume Demo')),
       status: const Text('Tous les changements enregistrés'),
+      documentActions: PokeMapIconButton(
+        key: const ValueKey('narrative-document-save-action'),
+        onPressed: () => documentActionCount += 1,
+        tooltip: 'Enregistrer le document',
+        icon: const Icon(Icons.save_outlined),
+      ),
       workspace: NarrativeStudioWorkspacePage(
         presentation: const NarrativeStudioRoutePresentation(
           destination: NarrativeStudioDestination.events,
@@ -95,6 +102,9 @@ void main() {
     await tester.tap(
       find.byKey(const ValueKey('narrative-studio-contract-action')),
     );
+    await tester.tap(
+      find.byKey(const ValueKey('narrative-document-save-action')),
+    );
     await tester.pump();
 
     expect(opened, const [
@@ -103,6 +113,7 @@ void main() {
     ]);
     expect(mapsOpenCount, 1);
     expect(actionCount, 1);
+    expect(documentActionCount, 1);
   });
 
   testWidgets('omits optional project and status slots without reserved space',
@@ -187,6 +198,7 @@ Future<void> _pumpShell(
   VoidCallback? onOpenMaps,
   Widget? project,
   Widget? status,
+  Widget? documentActions,
   Widget? workspace,
 }) async {
   tester.view.devicePixelRatio = 1;
@@ -206,6 +218,7 @@ Future<void> _pumpShell(
           onOpenMaps: onOpenMaps ?? () {},
           project: project,
           status: status,
+          documentActions: documentActions,
           workspace: workspace ??
               const NarrativeStudioWorkspacePage(
                 presentation: NarrativeStudioRoutePresentation(

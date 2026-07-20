@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
@@ -247,6 +248,9 @@ void main() {
       (tester) async {
     final project = _project();
     final manifestPath = '${projectRoot.path}/project.json';
+    await tester.runAsync(
+      () => File(manifestPath).writeAsString(jsonEncode(project.toJson())),
+    );
     final container = await pumpEditorShellPage(
       tester,
       initialState: EditorState(
@@ -276,9 +280,11 @@ void main() {
         .read(narrativeStudioNavigationControllerProvider)
         .projectIdentity;
 
-    await container
-        .read(editorNotifierProvider.notifier)
-        .loadProject(manifestPath, rememberAsRecent: false);
+    await tester.runAsync(
+      () => container
+          .read(editorNotifierProvider.notifier)
+          .loadProject(manifestPath, rememberAsRecent: false),
+    );
     await tester.pump();
     await tester.pump();
 

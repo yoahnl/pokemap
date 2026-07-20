@@ -43,6 +43,7 @@ import '../../../application/services/gameplay_zone_editing_service.dart';
 import '../../../application/services/map_connection_editing_service.dart';
 import '../../../application/services/narrative_event_legacy_authoring_guard.dart';
 import '../../../application/services/narrative_event_source_dependency_guard.dart';
+import '../../../application/services/narrative_document_session.dart';
 import '../../../application/services/path_autotile_resolver.dart';
 import '../../../application/services/path_layer_editing_coordinator.dart';
 import '../../../application/services/placed_element_instance_indexer.dart';
@@ -102,6 +103,11 @@ class EditorNotifier extends _$EditorNotifier {
   Object _projectSessionIdentity = Object();
   int _projectSessionRevision = 0;
   _NarrativeAuthoringSaveInterlock? _narrativeAuthoringSaveInterlock;
+  NarrativeDocumentSession<ProjectManifest>? _narrativeDocumentSession;
+  ProjectManifest? _lastNarrativeDocument;
+  NarrativeDocumentSessionStatus? _lastNarrativeDocumentStatus;
+  String? _narrativeDocumentProjectPath;
+  bool _registeredNarrativeDocumentDisposal = false;
 
   int get projectSessionRevision => _projectSessionRevision;
 
@@ -193,6 +199,10 @@ class EditorNotifier extends _$EditorNotifier {
 
   @override
   EditorState build() {
+    if (!_registeredNarrativeDocumentDisposal) {
+      _registeredNarrativeDocumentDisposal = true;
+      ref.onDispose(_disposeNarrativeDocumentSession);
+    }
     return const EditorState();
   }
 
@@ -296,6 +306,7 @@ class EditorNotifier extends _$EditorNotifier {
       );
       _renewProjectSessionIdentity();
       _narrativeAuthoringSaveInterlock = null;
+      await initializeNarrativeDocumentSession();
       await _rememberLastOpenedProjectManifest(
         p.join(directory, 'project.json'),
       );
@@ -349,6 +360,7 @@ class EditorNotifier extends _$EditorNotifier {
       );
       _renewProjectSessionIdentity();
       _narrativeAuthoringSaveInterlock = null;
+      await initializeNarrativeDocumentSession();
       didAdoptProject = true;
       _refreshMapDiskMutationLeaseBaseline(effectiveLeaseToken);
       _republishNarrativeEventSourceMapWriteLease(effectiveLeaseToken);
@@ -524,6 +536,195 @@ class EditorNotifier extends _$EditorNotifier {
           );
   }
 
+  NarrativeDocumentSessionStatus? get narrativeDocumentStatus =>
+      _narrativeDocumentSession?.state.status;
+
+  bool get canUndoNarrativeDocument {
+    final session = _narrativeDocumentSession;
+    return session != null &&
+        state.project == session.state.document &&
+        session.state.canUndo;
+  }
+
+  bool get canRedoNarrativeDocument {
+    final session = _narrativeDocumentSession;
+    return session != null &&
+        state.project == session.state.document &&
+        session.state.canRedo;
+  }
+
+  bool get narrativeDocumentBlocksNavigation =>
+      _narrativeDocumentSession?.state.blocksNavigation ?? false;
+
+  bool get narrativeDocumentAutosaveEnabled =>
+      _narrativeDocumentSession?.state.autosaveEnabled ?? false;
+
+  NarrativeDocumentComparison<ProjectManifest>?
+      get narrativeDocumentComparison => _narrativeDocumentSession?.comparison;
+
+  /// Starts or restores the crash-safe Narrative Studio document session.
+  ///
+  /// This is eager when a project is opened and remains callable for tests or
+  /// embedders that install [EditorState] directly.
+  Future<bool> initializeNarrativeDocumentSession() async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) {
+      _disposeNarrativeDocumentSession();
+      return false;
+    }
+    final projectPath = workspace.projectManifestPath;
+    final existing = _narrativeDocumentSession;
+    if (existing != null && _narrativeDocumentProjectPath == projectPath) {
+      await existing.initialize();
+      return existing.state.isInitialized;
+    }
+
+    _disposeNarrativeDocumentSession();
+    final factory = ref.read(narrativeProjectDocumentSessionFactoryProvider);
+    final session = factory(
+      projectPath: projectPath,
+      initialDocument: project,
+    );
+    _narrativeDocumentSession = session;
+    _narrativeDocumentProjectPath = projectPath;
+    _lastNarrativeDocument = project;
+    _lastNarrativeDocumentStatus = null;
+    session.addListener(_onNarrativeDocumentSessionChanged);
+    await session.initialize();
+    return identical(_narrativeDocumentSession, session) &&
+        session.state.isInitialized;
+  }
+
+  Future<bool> applyNarrativeDocumentEdit(
+    ProjectManifest document, {
+    required String operationId,
+    required String label,
+    String? statusMessage,
+  }) async {
+    if (!await initializeNarrativeDocumentSession()) {
+      state = state.copyWith(
+        errorMessage: 'La session documentaire narrative est indisponible.',
+      );
+      return false;
+    }
+    final session = _narrativeDocumentSession!;
+    if (state.project != session.state.document) {
+      state = state.copyWith(
+        errorMessage: 'Le projet contient des modifications extérieures à la '
+            'session Cinématiques. Enregistrez-les avant de continuer.',
+      );
+      return false;
+    }
+    final applied = await session.apply(
+      operationId: operationId,
+      label: label,
+      document: document,
+    );
+    if (applied && statusMessage != null) {
+      state = state.copyWith(statusMessage: statusMessage, errorMessage: null);
+    }
+    return applied;
+  }
+
+  Future<bool> undoNarrativeDocument() async {
+    if (!await initializeNarrativeDocumentSession()) return false;
+    return _narrativeDocumentSession!.undo();
+  }
+
+  Future<bool> redoNarrativeDocument() async {
+    if (!await initializeNarrativeDocumentSession()) return false;
+    return _narrativeDocumentSession!.redo();
+  }
+
+  Future<bool> saveNarrativeDocument() async {
+    if (!await initializeNarrativeDocumentSession()) return false;
+    return _narrativeDocumentSession!.save(
+      operationId: 'cinematics_save_${DateTime.now().microsecondsSinceEpoch}',
+    );
+  }
+
+  Future<bool> keepLocalNarrativeDocument() async {
+    if (!await initializeNarrativeDocumentSession()) return false;
+    return _narrativeDocumentSession!.keepLocal();
+  }
+
+  Future<bool> reloadExternalNarrativeDocument() async {
+    if (!await initializeNarrativeDocumentSession()) return false;
+    return _narrativeDocumentSession!.reloadExternal();
+  }
+
+  Future<bool> discardNarrativeDocument() async {
+    if (!await initializeNarrativeDocumentSession()) return false;
+    return _narrativeDocumentSession!.discard();
+  }
+
+  Future<void> setNarrativeDocumentAutosaveEnabled(bool enabled) async {
+    if (!await initializeNarrativeDocumentSession()) return;
+    _narrativeDocumentSession!.setAutosaveEnabled(enabled);
+  }
+
+  void _onNarrativeDocumentSessionChanged() {
+    final session = _narrativeDocumentSession;
+    if (session == null) return;
+    final sessionState = session.state;
+    final previousDocument = _lastNarrativeDocument;
+    final previousStatus = _lastNarrativeDocumentStatus;
+    final visibleProject = state.project;
+
+    _lastNarrativeDocument = sessionState.document;
+    _lastNarrativeDocumentStatus = sessionState.status;
+    if (visibleProject != previousDocument &&
+        visibleProject != sessionState.document) {
+      // A newer non-session edit is visible. Never replace it from an async
+      // autosave/session callback.
+      return;
+    }
+
+    final isSaved = sessionState.status == NarrativeDocumentSessionStatus.saved;
+    final isSaving =
+        sessionState.status == NarrativeDocumentSessionStatus.saving;
+    final errorMessage = switch (sessionState.status) {
+      NarrativeDocumentSessionStatus.failed =>
+        'Modification narrative locale conservée : '
+            '${sessionState.message ?? sessionState.code ?? 'échec inconnu'}',
+      NarrativeDocumentSessionStatus.conflicted => 'Conflit narratif détecté : '
+          '${sessionState.message ?? 'une version externe existe.'}',
+      _ => null,
+    };
+    final statusMessage = switch (sessionState.status) {
+      NarrativeDocumentSessionStatus.dirty =>
+        sessionState.message ?? 'Modifications narratives en attente.',
+      NarrativeDocumentSessionStatus.saving =>
+        'Enregistrement des modifications narratives…',
+      NarrativeDocumentSessionStatus.recovered =>
+        'Modifications Cinématiques non enregistrées récupérées.',
+      NarrativeDocumentSessionStatus.saved
+          when previousStatus == NarrativeDocumentSessionStatus.saving =>
+        'Modifications narratives enregistrées.',
+      _ => state.statusMessage,
+    };
+    state = state.copyWith(
+      project: sessionState.document,
+      isProjectDirty: !isSaved,
+      isSaving: isSaving,
+      statusMessage: statusMessage,
+      errorMessage: errorMessage,
+    );
+  }
+
+  void _disposeNarrativeDocumentSession() {
+    final session = _narrativeDocumentSession;
+    if (session != null) {
+      session.removeListener(_onNarrativeDocumentSessionChanged);
+      session.dispose();
+    }
+    _narrativeDocumentSession = null;
+    _narrativeDocumentProjectPath = null;
+    _lastNarrativeDocument = null;
+    _lastNarrativeDocumentStatus = null;
+  }
+
   void reportNarrativeNavigationFailure(String message) {
     state = state.copyWith(errorMessage: message);
   }
@@ -670,6 +871,10 @@ class EditorNotifier extends _$EditorNotifier {
                     'plus récentes restent à enregistrer.',
             errorMessage: null,
           );
+          if (_narrativeDocumentSession != null && exactSnapshotStillVisible) {
+            _disposeNarrativeDocumentSession();
+            await initializeNarrativeDocumentSession();
+          }
         case NarrativeAuthoringTransactionStatus.persistenceFailed:
         case NarrativeAuthoringTransactionStatus.recoveryRequired:
           _narrativeAuthoringSaveInterlock = _NarrativeAuthoringSaveInterlock(
@@ -810,6 +1015,19 @@ class EditorNotifier extends _$EditorNotifier {
         errorMessage: 'No project open to save.',
       );
       return false;
+    }
+    final narrativeSession = _narrativeDocumentSession;
+    if (narrativeSession != null &&
+        narrativeSession.state.status != NarrativeDocumentSessionStatus.saved) {
+      if (project != narrativeSession.state.document) {
+        state = state.copyWith(
+          errorMessage: 'Sauvegarde bloquée : le projet contient à la fois '
+              'une session Cinématiques et des modifications extérieures. '
+              'Résolvez ou annulez la session narrative avant de continuer.',
+        );
+        return false;
+      }
+      return saveNarrativeDocument();
     }
     final interlock = _narrativeAuthoringSaveInterlock;
     if (interlock != null && interlock.projectPath == fs.projectManifestPath) {

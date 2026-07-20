@@ -223,6 +223,168 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Modifications non enregistrées'**
   String get unsavedChanges;
+
+  /// Unsaved narrative navigation guard title.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifications Cinématiques en attente'**
+  String get narrativeUnsavedTitle;
+
+  /// Unsaved narrative navigation guard message.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrez ou abandonnez les modifications locales avant de quitter ce contexte narratif.'**
+  String get narrativeUnsavedMessage;
+
+  /// Cancel narrative navigation action.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rester ici'**
+  String get narrativeStayHere;
+
+  /// Discard local narrative document action.
+  ///
+  /// In fr, this message translates to:
+  /// **'Abandonner'**
+  String get narrativeDiscard;
+
+  /// Save narrative document action.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer'**
+  String get narrativeSave;
+
+  /// Narrative document saved status.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistré'**
+  String get narrativeStatusSaved;
+
+  /// Narrative document dirty status.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifié'**
+  String get narrativeStatusDirty;
+
+  /// Narrative document saving status.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrement…'**
+  String get narrativeStatusSaving;
+
+  /// Narrative document failed status.
+  ///
+  /// In fr, this message translates to:
+  /// **'Échec'**
+  String get narrativeStatusFailed;
+
+  /// Narrative document conflict status.
+  ///
+  /// In fr, this message translates to:
+  /// **'Conflit'**
+  String get narrativeStatusConflicted;
+
+  /// Narrative document recovered status.
+  ///
+  /// In fr, this message translates to:
+  /// **'Récupéré'**
+  String get narrativeStatusRecovered;
+
+  /// Narrative undo tooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler la dernière intention narrative'**
+  String get narrativeUndoTooltip;
+
+  /// Narrative redo tooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rétablir la dernière intention narrative'**
+  String get narrativeRedoTooltip;
+
+  /// Narrative save tooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer les modifications narratives'**
+  String get narrativeSaveTooltip;
+
+  /// Disable narrative autosave tooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Désactiver l’enregistrement automatique'**
+  String get narrativeAutosaveDisableTooltip;
+
+  /// Enable narrative autosave tooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Activer l’enregistrement automatique'**
+  String get narrativeAutosaveEnableTooltip;
+
+  /// Narrative conflict comparison tooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comparer les versions locale et externe'**
+  String get narrativeCompareTooltip;
+
+  /// Reload external narrative version tooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recharger la version externe'**
+  String get narrativeReloadTooltip;
+
+  /// Keep local narrative version tooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Conserver la version locale sur la nouvelle base'**
+  String get narrativeKeepLocalTooltip;
+
+  /// Discard narrative document tooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Abandonner les modifications narratives locales'**
+  String get narrativeDiscardTooltip;
+
+  /// Narrative comparison side sheet title.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comparer les versions Cinématiques'**
+  String get narrativeCompareTitle;
+
+  /// Accessible narrative comparison label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comparaison des versions narratives'**
+  String get narrativeCompareSemantics;
+
+  /// Narrative comparison baseline section.
+  ///
+  /// In fr, this message translates to:
+  /// **'Base de la session'**
+  String get narrativeCompareBaseline;
+
+  /// Narrative comparison local section.
+  ///
+  /// In fr, this message translates to:
+  /// **'Version locale récupérable'**
+  String get narrativeCompareLocal;
+
+  /// Narrative comparison external section.
+  ///
+  /// In fr, this message translates to:
+  /// **'Version externe sur disque'**
+  String get narrativeCompareExternal;
+
+  /// Empty Cinematics comparison label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune cinématique'**
+  String get narrativeNoCinematics;
+
+  /// Cinematic count in comparison.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucune cinématique} =1{1 cinématique} other{{count} cinématiques}}'**
+  String narrativeCinematicCount(int count);
 }
 
 class _AppLocalizationsDelegate
