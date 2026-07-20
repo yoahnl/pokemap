@@ -5,6 +5,9 @@ import 'scene_runtime_plan.dart';
 SceneRuntimePlanBuildResult buildSceneRuntimePlan(SceneAsset scene) {
   final diagnostics = <SceneRuntimePlanDiagnostic>[];
   final sceneDiagnostics = diagnoseScene(scene);
+  final nodeById = <String, SceneNode>{
+    for (final node in scene.graph.nodes) node.id: node,
+  };
 
   for (final diagnostic in sceneDiagnostics.diagnostics) {
     if (diagnostic.severity != SceneDiagnosticSeverity.error) {
@@ -40,15 +43,45 @@ SceneRuntimePlanBuildResult buildSceneRuntimePlan(SceneAsset scene) {
           );
         }
       case SceneNodeKind.branchByOutcome:
-        diagnostics.add(
-          SceneRuntimePlanDiagnostic(
-            code: SceneRuntimePlanDiagnosticCode.unsupportedBranchByOutcome,
-            severity: SceneRuntimePlanDiagnosticSeverity.error,
-            message: 'BranchByOutcome attend un mapping outcome -> edge futur.',
-            sceneId: scene.id,
-            nodeId: node.id,
-          ),
-        );
+        final payload = node.payload as SceneBranchByOutcomePayload;
+        final sourceNodeId = payload.sourceNodeId;
+        if (sourceNodeId == null) {
+          diagnostics.add(
+            SceneRuntimePlanDiagnostic(
+              code: SceneRuntimePlanDiagnosticCode.branchSourceMissing,
+              severity: SceneRuntimePlanDiagnosticSeverity.error,
+              message: 'BranchByOutcome doit choisir un nœud source.',
+              sceneId: scene.id,
+              nodeId: node.id,
+            ),
+          );
+          break;
+        }
+        final sourceNode = nodeById[sourceNodeId];
+        if (sourceNode == null) {
+          diagnostics.add(
+            SceneRuntimePlanDiagnostic(
+              code: SceneRuntimePlanDiagnosticCode.branchSourceUnknown,
+              severity: SceneRuntimePlanDiagnosticSeverity.error,
+              message: 'BranchByOutcome référence un nœud source introuvable.',
+              sceneId: scene.id,
+              nodeId: node.id,
+            ),
+          );
+          break;
+        }
+        if (_declaredOutcomePortsForNode(sourceNode).isEmpty) {
+          diagnostics.add(
+            SceneRuntimePlanDiagnostic(
+              code: SceneRuntimePlanDiagnosticCode.branchSourceHasNoOutcomes,
+              severity: SceneRuntimePlanDiagnosticSeverity.error,
+              message:
+                  'Le nœud source de BranchByOutcome ne produit aucun outcome.',
+              sceneId: scene.id,
+              nodeId: node.id,
+            ),
+          );
+        }
       case SceneNodeKind.cinematic:
         diagnostics.add(
           SceneRuntimePlanDiagnostic(
@@ -92,7 +125,7 @@ SceneRuntimePlanBuildResult buildSceneRuntimePlan(SceneAsset scene) {
             kind: node.kind,
             title: node.title,
             description: node.description,
-            intent: _runtimeIntentForNode(node),
+            intent: _runtimeIntentForNode(node, nodeById),
           ),
       ],
       edges: [
@@ -112,7 +145,10 @@ SceneRuntimePlanBuildResult buildSceneRuntimePlan(SceneAsset scene) {
   );
 }
 
-SceneRuntimePlanIntent _runtimeIntentForNode(SceneNode node) {
+SceneRuntimePlanIntent _runtimeIntentForNode(
+  SceneNode node,
+  Map<String, SceneNode> nodeById,
+) {
   return switch (node.kind) {
     SceneNodeKind.start => SceneRuntimePlanIntent.start(),
     SceneNodeKind.end => SceneRuntimePlanIntent.end(
@@ -134,9 +170,50 @@ SceneRuntimePlanIntent _runtimeIntentForNode(SceneNode node) {
     SceneNodeKind.action => _actionIntent(
         node.payload as SceneActionPayload,
       ),
-    SceneNodeKind.branchByOutcome => throw StateError(
-        'BranchByOutcome must be blocked before runtime intent creation.',
+    SceneNodeKind.branchByOutcome => _branchIntent(
+        node.payload as SceneBranchByOutcomePayload,
+        nodeById,
       ),
+  };
+}
+
+SceneRuntimePlanIntent _branchIntent(
+  SceneBranchByOutcomePayload payload,
+  Map<String, SceneNode> nodeById,
+) {
+  final sourceNodeId = payload.sourceNodeId;
+  final sourceNode = sourceNodeId == null ? null : nodeById[sourceNodeId];
+  if (sourceNodeId == null || sourceNode == null) {
+    throw StateError(
+      'Invalid BranchByOutcome must be blocked before intent creation.',
+    );
+  }
+  return SceneRuntimePlanIntent.branchByOutcome(
+    sourceNodeId: sourceNodeId,
+    fallbackPolicy: payload.fallbackPolicy,
+    sourceOutcomes: _declaredOutcomePortsForNode(sourceNode),
+  );
+}
+
+List<String> _declaredOutcomePortsForNode(SceneNode node) {
+  return switch (node.payload) {
+    SceneYarnDialoguePayload(:final expectedOutcomes) => <String>[
+        'completed',
+        for (final outcome in expectedOutcomes)
+          if (outcome != 'completed') outcome,
+      ],
+    SceneBattlePayload(:final declaredOutcomes) => declaredOutcomes.isEmpty
+        ? const <String>['victory', 'defeat']
+        : declaredOutcomes,
+    SceneConditionPayload() => const <String>['true', 'false'],
+    SceneStartPayload() ||
+    SceneActionPayload() ||
+    SceneCinematicPayload() ||
+    SceneMergePayload() ||
+    SceneEndPayload() ||
+    SceneBranchByOutcomePayload() =>
+      const <String>[],
+    _ => const <String>[],
   };
 }
 

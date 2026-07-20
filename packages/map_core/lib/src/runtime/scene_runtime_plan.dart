@@ -8,6 +8,7 @@ enum SceneRuntimePlanIntentKind {
   start,
   end,
   evaluateCondition,
+  branchByOutcome,
   merge,
   showDialogue,
   startBattle,
@@ -25,6 +26,9 @@ enum SceneRuntimePlanDiagnosticCode {
   planBuildBlockedBySceneDiagnostics,
   unsupportedAction,
   unsupportedBranchByOutcome,
+  branchSourceMissing,
+  branchSourceUnknown,
+  branchSourceHasNoOutcomes,
   cinematicBridgeOnly,
 }
 
@@ -102,6 +106,9 @@ final class SceneRuntimePlanIntent {
     required this.kind,
     this.sceneOutcomeId,
     this.conditionSource,
+    this.branchSourceNodeId,
+    this.branchFallbackPolicy,
+    List<String> branchSourceOutcomes = const <String>[],
     this.dialogueId,
     this.yarnNodeName,
     List<String> expectedOutcomes = const <String>[],
@@ -112,7 +119,8 @@ final class SceneRuntimePlanIntent {
     List<String> battleDeclaredOutcomes = const <String>[],
     this.cinematicId,
     this.consequence,
-  })  : expectedOutcomes = List<String>.unmodifiable(expectedOutcomes),
+  })  : branchSourceOutcomes = List<String>.unmodifiable(branchSourceOutcomes),
+        expectedOutcomes = List<String>.unmodifiable(expectedOutcomes),
         battleDeclaredOutcomes =
             List<String>.unmodifiable(battleDeclaredOutcomes);
 
@@ -133,6 +141,19 @@ final class SceneRuntimePlanIntent {
     return SceneRuntimePlanIntent._(
       kind: SceneRuntimePlanIntentKind.evaluateCondition,
       conditionSource: source,
+    );
+  }
+
+  factory SceneRuntimePlanIntent.branchByOutcome({
+    required String sourceNodeId,
+    required SceneBranchOutcomeFallbackPolicy fallbackPolicy,
+    required List<String> sourceOutcomes,
+  }) {
+    return SceneRuntimePlanIntent._(
+      kind: SceneRuntimePlanIntentKind.branchByOutcome,
+      branchSourceNodeId: sourceNodeId,
+      branchFallbackPolicy: fallbackPolicy,
+      branchSourceOutcomes: sourceOutcomes,
     );
   }
 
@@ -191,6 +212,9 @@ final class SceneRuntimePlanIntent {
   final SceneRuntimePlanIntentKind kind;
   final String? sceneOutcomeId;
   final SceneConditionSource? conditionSource;
+  final String? branchSourceNodeId;
+  final SceneBranchOutcomeFallbackPolicy? branchFallbackPolicy;
+  final List<String> branchSourceOutcomes;
   final String? dialogueId;
   final String? yarnNodeName;
   final List<String> expectedOutcomes;
@@ -209,6 +233,17 @@ final class SceneRuntimePlanIntent {
         SceneRuntimePlanIntentKind.applyConsequence =>
           const ['completed'],
         SceneRuntimePlanIntentKind.evaluateCondition => const ['true', 'false'],
+        SceneRuntimePlanIntentKind.branchByOutcome => [
+            ...branchSourceOutcomes,
+            if (branchFallbackPolicy ==
+                    SceneBranchOutcomeFallbackPolicy.defaultRoute &&
+                !branchSourceOutcomes.contains('default'))
+              'default',
+            if (branchFallbackPolicy ==
+                    SceneBranchOutcomeFallbackPolicy.errorRoute &&
+                !branchSourceOutcomes.contains('error'))
+              'error',
+          ],
         SceneRuntimePlanIntentKind.showDialogue => [
             'completed',
             for (final outcome in expectedOutcomes)
@@ -227,6 +262,9 @@ final class SceneRuntimePlanIntent {
           other.kind == kind &&
           other.sceneOutcomeId == sceneOutcomeId &&
           other.conditionSource == conditionSource &&
+          other.branchSourceNodeId == branchSourceNodeId &&
+          other.branchFallbackPolicy == branchFallbackPolicy &&
+          _listEquals(other.branchSourceOutcomes, branchSourceOutcomes) &&
           other.dialogueId == dialogueId &&
           other.yarnNodeName == yarnNodeName &&
           _listEquals(other.expectedOutcomes, expectedOutcomes) &&
@@ -246,6 +284,9 @@ final class SceneRuntimePlanIntent {
         kind,
         sceneOutcomeId,
         conditionSource,
+        branchSourceNodeId,
+        branchFallbackPolicy,
+        Object.hashAll(branchSourceOutcomes),
         dialogueId,
         yarnNodeName,
         Object.hashAll(expectedOutcomes),

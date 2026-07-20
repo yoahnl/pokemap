@@ -430,26 +430,73 @@ void main() {
       expect(actionNode.intent.consequence, consequence);
     });
 
-    test('branchByOutcome nodes produce unsupported diagnostics and no plan',
-        () {
-      final scene = _sceneWithSingleMiddleNode(
-        SceneNode(
-          id: 'node_branch',
-          kind: SceneNodeKind.branchByOutcome,
-          payload: SceneBranchByOutcomePayload(sourceNodeId: 'node_dialogue'),
+    test('branchByOutcome compiles typed source outcomes and fallback', () {
+      final scene = SceneAsset(
+        id: 'scene_branch_plan',
+        name: 'Branch plan',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_dialogue',
+              kind: SceneNodeKind.yarnDialogue,
+              payload: SceneYarnDialoguePayload(
+                dialogueId: 'dialogue_intro',
+                expectedOutcomes: const ['accept', 'refuse'],
+              ),
+            ),
+            SceneNode(
+              id: 'node_branch',
+              kind: SceneNodeKind.branchByOutcome,
+              payload: SceneBranchByOutcomePayload(
+                sourceNodeId: 'node_dialogue',
+                fallbackPolicy: SceneBranchOutcomeFallbackPolicy.defaultRoute,
+              ),
+            ),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'edge_start_dialogue',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_dialogue',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            for (final port in const ['completed', 'accept', 'refuse'])
+              SceneEdge(
+                id: 'edge_dialogue_${port}_branch',
+                fromNodeId: 'node_dialogue',
+                fromPortId: port,
+                toNodeId: 'node_branch',
+                kind: port == 'completed'
+                    ? SceneEdgeKind.defaultFlow
+                    : SceneEdgeKind.dialogueOutcome,
+              ),
+            SceneEdge(
+              id: 'edge_branch_default_end',
+              fromNodeId: 'node_branch',
+              fromPortId: 'default',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.branchOutcome,
+            ),
+          ],
         ),
-        outgoingEdgeKind: SceneEdgeKind.branchOutcome,
       );
 
       final result = buildSceneRuntimePlan(scene);
-
-      expect(result.canBuild, isFalse);
-      expect(result.plan, isNull);
-      expect(
-        result.diagnostics.single.code,
-        SceneRuntimePlanDiagnosticCode.unsupportedBranchByOutcome,
+      final branch = result.plan!.nodes.singleWhere(
+        (node) => node.id == 'node_branch',
       );
-      expect(result.diagnostics.single.nodeId, 'node_branch');
+
+      expect(result.canBuild, isTrue);
+      expect(branch.intent.kind, SceneRuntimePlanIntentKind.branchByOutcome);
+      expect(branch.intent.branchSourceNodeId, 'node_dialogue');
+      expect(branch.intent.branchSourceOutcomes,
+          ['completed', 'accept', 'refuse']);
+      expect(branch.intent.declaredOutputPortIds,
+          ['completed', 'accept', 'refuse', 'default']);
     });
 
     test('does not mutate the original SceneAsset', () {

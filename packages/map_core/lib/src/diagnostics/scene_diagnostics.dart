@@ -53,6 +53,9 @@ enum SceneDiagnosticCode {
   cycleUnsupported,
   actionNodeUnsupported,
   branchByOutcomeUnsupported,
+  branchSourceMissing,
+  branchSourceUnknown,
+  branchSourceHasNoOutcomes,
   dialogueRefUnknown,
   dialogueExpectedOutcomeUnknown,
   battleTrainerRefUnknown,
@@ -287,19 +290,7 @@ SceneDiagnosticsReport diagnoseScene(SceneAsset scene) {
     } else if (node.kind == SceneNodeKind.action) {
       _diagnoseActionNode(scene, node, diagnostics);
     } else if (node.kind == SceneNodeKind.branchByOutcome) {
-      diagnostics.add(
-        SceneDiagnostic(
-          code: SceneDiagnosticCode.branchByOutcomeUnsupported,
-          severity: SceneDiagnosticSeverity.warning,
-          message:
-              'BranchByOutcome attend un mapping explicite outcome -> sortie.',
-          sceneId: scene.id,
-          nodeId: node.id,
-          target: SceneDiagnosticTarget.node,
-          suggestedFixLabel:
-              'Garder le nœud en draft ou attendre BranchByOutcome V0.',
-        ),
-      );
+      _diagnoseBranchByOutcomeNode(scene, node, nodeById, diagnostics);
     }
   }
 
@@ -613,6 +604,58 @@ void _diagnoseActionNode(
   }
 
   _diagnoseConsequenceShape(scene, node, consequence, diagnostics);
+}
+
+void _diagnoseBranchByOutcomeNode(
+  SceneAsset scene,
+  SceneNode node,
+  Map<String, SceneNode> nodeById,
+  List<SceneDiagnostic> diagnostics,
+) {
+  final payload = node.payload as SceneBranchByOutcomePayload;
+  final sourceNodeId = payload.sourceNodeId;
+  if (sourceNodeId == null) {
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.branchSourceMissing,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'La branche doit choisir un nœud producteur d’outcome.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Choisir un Dialogue, Combat ou autre décision.',
+      ),
+    );
+    return;
+  }
+  final sourceNode = nodeById[sourceNodeId];
+  if (sourceNode == null) {
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.branchSourceUnknown,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'Le nœud producteur d’outcome n’existe plus.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Choisir un nœud source existant.',
+      ),
+    );
+    return;
+  }
+  if (_outcomePortIdsForBranchSource(sourceNode).isEmpty) {
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.branchSourceHasNoOutcomes,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'Le nœud choisi ne produit aucun outcome routable.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Choisir un Dialogue, Combat ou Condition.',
+      ),
+    );
+  }
 }
 
 void _diagnoseConsequenceShape(
@@ -952,7 +995,7 @@ void _diagnosePorts(
     if (fromNode == null) {
       continue;
     }
-    final portSpecs = _v0OutputPortSpecsForNode(fromNode);
+    final portSpecs = _v0OutputPortSpecsForNode(fromNode, nodeById);
     if (portSpecs == null) {
       continue;
     }
@@ -1009,7 +1052,7 @@ void _diagnosePorts(
   }
 
   for (final node in scene.graph.nodes) {
-    final portSpecs = _v0OutputPortSpecsForNode(node);
+    final portSpecs = _v0OutputPortSpecsForNode(node, nodeById);
     if (portSpecs == null) {
       continue;
     }
@@ -1282,7 +1325,10 @@ final class _SceneOutputPortSpec {
   final bool required;
 }
 
-List<_SceneOutputPortSpec>? _v0OutputPortSpecsForNode(SceneNode node) {
+List<_SceneOutputPortSpec>? _v0OutputPortSpecsForNode(
+  SceneNode node,
+  Map<String, SceneNode> nodeById,
+) {
   return switch (node.kind) {
     SceneNodeKind.start => const [
         _SceneOutputPortSpec(
@@ -1330,7 +1376,65 @@ List<_SceneOutputPortSpec>? _v0OutputPortSpecsForNode(SceneNode node) {
         ),
       ],
     SceneNodeKind.end => const [],
-    SceneNodeKind.branchByOutcome => null,
+    SceneNodeKind.branchByOutcome => _branchOutputPortSpecs(node, nodeById),
+  };
+}
+
+List<_SceneOutputPortSpec> _branchOutputPortSpecs(
+  SceneNode node,
+  Map<String, SceneNode> nodeById,
+) {
+  final payload = node.payload as SceneBranchByOutcomePayload;
+  final sourceNodeId = payload.sourceNodeId;
+  final sourceNode = sourceNodeId == null ? null : nodeById[sourceNodeId];
+  if (sourceNode == null) return const <_SceneOutputPortSpec>[];
+  final sourcePorts = _outcomePortIdsForBranchSource(sourceNode);
+  final exactPortsRequired =
+      payload.fallbackPolicy == SceneBranchOutcomeFallbackPolicy.exact;
+  return <_SceneOutputPortSpec>[
+    for (final portId in sourcePorts)
+      _SceneOutputPortSpec(
+        id: portId,
+        edgeKinds: const {SceneEdgeKind.branchOutcome},
+        required: exactPortsRequired,
+      ),
+    if (payload.fallbackPolicy ==
+            SceneBranchOutcomeFallbackPolicy.defaultRoute &&
+        !sourcePorts.contains('default'))
+      const _SceneOutputPortSpec(
+        id: 'default',
+        edgeKinds: {SceneEdgeKind.branchOutcome},
+        required: true,
+      ),
+    if (payload.fallbackPolicy == SceneBranchOutcomeFallbackPolicy.errorRoute &&
+        !sourcePorts.contains('error'))
+      const _SceneOutputPortSpec(
+        id: 'error',
+        edgeKinds: {SceneEdgeKind.error},
+        required: true,
+      ),
+  ];
+}
+
+List<String> _outcomePortIdsForBranchSource(SceneNode node) {
+  return switch (node.payload) {
+    SceneYarnDialoguePayload(:final expectedOutcomes) => <String>[
+        'completed',
+        for (final outcome in expectedOutcomes)
+          if (outcome != 'completed') outcome,
+      ],
+    SceneBattlePayload(:final declaredOutcomes) => declaredOutcomes.isEmpty
+        ? const <String>['victory', 'defeat']
+        : declaredOutcomes,
+    SceneConditionPayload() => const <String>['true', 'false'],
+    SceneStartPayload() ||
+    SceneActionPayload() ||
+    SceneCinematicPayload() ||
+    SceneMergePayload() ||
+    SceneEndPayload() ||
+    SceneBranchByOutcomePayload() =>
+      const <String>[],
+    _ => const <String>[],
   };
 }
 

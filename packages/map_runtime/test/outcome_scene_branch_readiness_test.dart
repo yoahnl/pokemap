@@ -4,7 +4,8 @@ import 'package:map_runtime/map_runtime.dart';
 
 // ignore_for_file: prefer_const_constructors
 
-/// Characterization tests proving the Yarn/Dialogue outcome → Scene branch chain.
+/// Characterization tests preserving the legacy Scenario outcome-as-flag chain
+/// and proving the canonical Scene BranchByOutcome contract.
 ///
 /// The mechanism works as follows:
 /// 1. emitOutcome('outcomeId') sets a flag `scenario.outcome.outcomeId`
@@ -151,8 +152,7 @@ void main() {
         ),
       ],
       edges: const <ScenarioEdge>[
-        ScenarioEdge(
-            id: 'e1', fromNodeId: 'source', toNodeId: 'check_outcome'),
+        ScenarioEdge(id: 'e1', fromNodeId: 'source', toNodeId: 'check_outcome'),
         ScenarioEdge(
           id: 'e2',
           fromNodeId: 'check_outcome',
@@ -165,10 +165,8 @@ void main() {
           toNodeId: 'action_false',
           kind: ScenarioEdgeKind.falseBranch,
         ),
-        ScenarioEdge(
-            id: 'e4', fromNodeId: 'action_true', toNodeId: 'end'),
-        ScenarioEdge(
-            id: 'e5', fromNodeId: 'action_false', toNodeId: 'end'),
+        ScenarioEdge(id: 'e4', fromNodeId: 'action_true', toNodeId: 'end'),
+        ScenarioEdge(id: 'e5', fromNodeId: 'action_false', toNodeId: 'end'),
       ],
     );
   }
@@ -548,6 +546,76 @@ void main() {
         state.storyFlags.activeFlags,
         contains('test_flag_confident_path'),
       );
+    });
+
+    test('canonical Scene branch reads an outcome by source node id', () async {
+      final plan = SceneRuntimePlan(
+        sceneId: 'scene_generic_branch',
+        startNodeId: 'start',
+        nodes: [
+          SceneRuntimePlanNode(
+            id: 'start',
+            kind: SceneNodeKind.start,
+            intent: SceneRuntimePlanIntent.start(),
+          ),
+          SceneRuntimePlanNode(
+            id: 'branch',
+            kind: SceneNodeKind.branchByOutcome,
+            intent: SceneRuntimePlanIntent.branchByOutcome(
+              sourceNodeId: 'dialogue_generic',
+              fallbackPolicy: SceneBranchOutcomeFallbackPolicy.exact,
+              sourceOutcomes: const ['confident', 'hesitant'],
+            ),
+          ),
+          SceneRuntimePlanNode(
+            id: 'end',
+            kind: SceneNodeKind.end,
+            intent: SceneRuntimePlanIntent.end(
+              sceneOutcomeId: 'confident_path',
+            ),
+          ),
+        ],
+        edges: const [
+          SceneRuntimePlanEdge(
+            id: 'start_branch',
+            fromNodeId: 'start',
+            fromPortId: 'completed',
+            toNodeId: 'branch',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneRuntimePlanEdge(
+            id: 'branch_confident',
+            fromNodeId: 'branch',
+            fromPortId: 'confident',
+            toNodeId: 'end',
+            kind: SceneEdgeKind.branchOutcome,
+          ),
+        ],
+        declaredOutcomes: [
+          SceneOutcome(id: 'confident_path', label: 'Confident path'),
+        ],
+      );
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: SceneRuntimeExecutionCallbacks(
+          evaluateCondition: (_) => 'true',
+          showDialogue: (_) => 'completed',
+          startBattle: (_) => 'victory',
+          playCinematic: (_) => 'completed',
+          applyConsequence: (_) => 'completed',
+        ),
+      ).execute(
+        plan,
+        context: SceneExecutionContext.empty.recordOutcome(
+          nodeId: 'dialogue_generic',
+          outcome: 'confident',
+        ),
+      );
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.sceneOutcomeId, 'confident_path');
+      expect(result.context.branchProvenance.single.sourceNodeId,
+          'dialogue_generic');
     });
   });
 }

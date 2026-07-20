@@ -508,7 +508,10 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
   ) {
     final placements = <_SceneGraphOutputPortPlacement>[];
     for (final node in scene.graph.nodes) {
-      final ports = authorableSceneOutputPortsForNode(node);
+      final ports = authorableSceneOutputPortsForNodeInGraph(
+        node,
+        scene.graph,
+      );
       for (var index = 0; index < ports.length; index++) {
         placements.add(
           _SceneGraphOutputPortPlacement(

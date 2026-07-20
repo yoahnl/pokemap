@@ -301,6 +301,126 @@ void main() {
       );
     });
 
+    test('routes a deferred dialogue outcome through BranchByOutcome',
+        () async {
+      final plan = _deferredDialogueBranchPlan();
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(showDialogue: (_) => 'accept'),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end_accept');
+      expect(result.context.lastOutcomeByNodeId['node_dialogue'], 'accept');
+      expect(result.context.branchProvenance, hasLength(1));
+      expect(result.context.branchProvenance.single.routedPortId, 'accept');
+      expect(result.context.branchProvenance.single.usedFallback, isFalse);
+    });
+
+    test('routes an unknown resumed outcome through the typed default fallback',
+        () async {
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(),
+      ).execute(
+        _deferredDialogueBranchPlan(
+          fallbackPolicy: SceneBranchOutcomeFallbackPolicy.defaultRoute,
+          includeDefaultEdge: true,
+          executeSource: false,
+        ),
+        context: SceneExecutionContext.empty.recordOutcome(
+          nodeId: 'node_dialogue',
+          outcome: 'legacy_unknown',
+        ),
+      );
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end_default');
+      expect(result.context.branchProvenance.single.usedFallback, isTrue);
+      expect(result.context.branchProvenance.single.sourceOutcome,
+          'legacy_unknown');
+    });
+
+    test('fails with unroutedOutcome when exact policy has no route', () async {
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(),
+      ).execute(
+        _deferredDialogueBranchPlan(executeSource: false),
+        context: SceneExecutionContext.empty.recordOutcome(
+          nodeId: 'node_dialogue',
+          outcome: 'legacy_unknown',
+        ),
+      );
+
+      expect(result.status, SceneRuntimeExecutionStatus.failed);
+      expect(result.errorCode, SceneRuntimeExecutionErrorCode.unroutedOutcome);
+      expect(result.message, contains('legacy_unknown'));
+    });
+
+    test('does not reapply a persistent node already present in the context',
+        () async {
+      final consequence = SceneConsequence.setFact(
+        factId: 'fact_once',
+        value: true,
+      );
+      final plan = _plan(
+        nodes: [_startNode(), _consequenceNode(consequence), _endNode()],
+        edges: [
+          _edge('start_action', 'node_start', 'completed', 'node_consequence'),
+          _edge(
+            'action_end',
+            'node_consequence',
+            'completed',
+            'node_end',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+        ],
+      );
+      var writes = 0;
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(applyConsequence: (_) {
+          writes++;
+          return 'completed';
+        }),
+      ).execute(
+        plan,
+        context: SceneExecutionContext(
+          appliedPersistentNodeIds: const {'node_consequence'},
+        ),
+      );
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(writes, 0);
+      expect(result.context.appliedPersistentNodeIds,
+          contains('node_consequence'));
+    });
+
+    test('preserves applied persistent nodes when a later transition fails',
+        () async {
+      final consequence = SceneConsequence.setFact(
+        factId: 'fact_before_failure',
+        value: true,
+      );
+      final plan = _plan(
+        nodes: [_startNode(), _consequenceNode(consequence)],
+        edges: [
+          _edge('start_action', 'node_start', 'completed', 'node_consequence'),
+        ],
+      );
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.failed);
+      expect(
+          result.errorCode, SceneRuntimeExecutionErrorCode.missingTransition);
+      expect(
+        result.context.appliedPersistentNodeIds,
+        contains('node_consequence'),
+      );
+    });
+
     test('executes cinematic completed via callback', () async {
       final plan = _plan(
         nodes: [_startNode(), _cinematicNode(), _endNode()],
@@ -678,6 +798,85 @@ SceneRuntimePlan _conditionBranchPlan() {
   );
 }
 
+SceneRuntimePlan _deferredDialogueBranchPlan({
+  SceneBranchOutcomeFallbackPolicy fallbackPolicy =
+      SceneBranchOutcomeFallbackPolicy.exact,
+  bool includeDefaultEdge = false,
+  bool executeSource = true,
+}) {
+  return _plan(
+    nodes: [
+      _startNode(),
+      if (executeSource)
+        _dialogueNode(expectedOutcomes: const ['accept', 'refuse']),
+      if (executeSource) _mergeNode(),
+      _branchNode(fallbackPolicy: fallbackPolicy),
+      _endNode(id: 'node_end_accept'),
+      _endNode(id: 'node_end_refuse'),
+      if (includeDefaultEdge) _endNode(id: 'node_end_default'),
+    ],
+    edges: [
+      if (executeSource) ...[
+        _edge(
+          'edge_start_dialogue',
+          'node_start',
+          'completed',
+          'node_dialogue',
+        ),
+        _edge(
+          'edge_dialogue_completed_merge',
+          'node_dialogue',
+          'completed',
+          'node_merge',
+        ),
+        _edge(
+          'edge_dialogue_accept_merge',
+          'node_dialogue',
+          'accept',
+          'node_merge',
+          kind: SceneEdgeKind.dialogueOutcome,
+        ),
+        _edge(
+          'edge_dialogue_refuse_merge',
+          'node_dialogue',
+          'refuse',
+          'node_merge',
+          kind: SceneEdgeKind.dialogueOutcome,
+        ),
+        _edge(
+          'edge_merge_branch',
+          'node_merge',
+          'completed',
+          'node_branch',
+        ),
+      ] else
+        _edge('edge_start_branch', 'node_start', 'completed', 'node_branch'),
+      _edge(
+        'edge_branch_accept',
+        'node_branch',
+        'accept',
+        'node_end_accept',
+        kind: SceneEdgeKind.branchOutcome,
+      ),
+      _edge(
+        'edge_branch_refuse',
+        'node_branch',
+        'refuse',
+        'node_end_refuse',
+        kind: SceneEdgeKind.branchOutcome,
+      ),
+      if (includeDefaultEdge)
+        _edge(
+          'edge_branch_default',
+          'node_branch',
+          'default',
+          'node_end_default',
+          kind: SceneEdgeKind.branchOutcome,
+        ),
+    ],
+  );
+}
+
 SceneRuntimePlan _plan({
   required List<SceneRuntimePlanNode> nodes,
   required List<SceneRuntimePlanEdge> edges,
@@ -734,6 +933,21 @@ SceneRuntimePlanNode _conditionNode() {
         sourceId: 'fact_test',
         operator: SceneConditionOperator.isTrue,
       ),
+    ),
+  );
+}
+
+SceneRuntimePlanNode _branchNode({
+  SceneBranchOutcomeFallbackPolicy fallbackPolicy =
+      SceneBranchOutcomeFallbackPolicy.exact,
+}) {
+  return SceneRuntimePlanNode(
+    id: 'node_branch',
+    kind: SceneNodeKind.branchByOutcome,
+    intent: SceneRuntimePlanIntent.branchByOutcome(
+      sourceNodeId: 'node_dialogue',
+      fallbackPolicy: fallbackPolicy,
+      sourceOutcomes: const ['completed', 'accept', 'refuse'],
     ),
   );
 }

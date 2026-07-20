@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import 'scene_execution_context.dart';
 import 'scene_runtime_plan.dart';
 
 typedef SceneRuntimeIntentCallback = FutureOr<String> Function(
@@ -23,6 +25,8 @@ enum SceneRuntimeExecutionErrorCode {
   targetNodeMissing,
   unsupportedIntent,
   unsupportedPortResult,
+  missingBranchSourceOutcome,
+  unroutedOutcome,
   callbackFailed,
   stepLimitExceeded,
 }
@@ -64,7 +68,9 @@ final class SceneRuntimeExecutionResult {
     required this.errorCode,
     required this.message,
     required List<SceneRuntimeExecutionTraceEntry> trace,
-  }) : trace = List<SceneRuntimeExecutionTraceEntry>.unmodifiable(trace);
+    SceneExecutionContext? context,
+  })  : trace = List<SceneRuntimeExecutionTraceEntry>.unmodifiable(trace),
+        context = context ?? SceneExecutionContext.empty;
 
   final SceneRuntimeExecutionStatus status;
   final String sceneId;
@@ -73,6 +79,7 @@ final class SceneRuntimeExecutionResult {
   final SceneRuntimeExecutionErrorCode? errorCode;
   final String? message;
   final List<SceneRuntimeExecutionTraceEntry> trace;
+  final SceneExecutionContext context;
 }
 
 final class SceneRuntimeExecutor {
@@ -92,12 +99,16 @@ final class SceneRuntimeExecutor {
   final SceneRuntimeExecutionCallbacks callbacks;
   final int maxSteps;
 
-  Future<SceneRuntimeExecutionResult> execute(SceneRuntimePlan plan) async {
+  Future<SceneRuntimeExecutionResult> execute(
+    SceneRuntimePlan plan, {
+    SceneExecutionContext? context,
+  }) async {
     final nodesById = {
       for (final node in plan.nodes) node.id: node,
     };
     final startNode = nodesById[plan.startNodeId];
     final trace = <SceneRuntimeExecutionTraceEntry>[];
+    var executionContext = context ?? SceneExecutionContext.empty;
 
     if (startNode == null) {
       return _failed(
@@ -105,12 +116,18 @@ final class SceneRuntimeExecutor {
         SceneRuntimeExecutionErrorCode.missingStartNode,
         'Scene runtime start node "${plan.startNodeId}" is missing.',
         trace,
+        context: executionContext,
       );
     }
 
     var currentNode = startNode;
     for (var step = 0; step < maxSteps; step++) {
-      final outputPortResult = await _resolveOutputPort(currentNode.intent);
+      final outputPortResult = await _resolveOutputPort(
+        plan,
+        currentNode,
+        executionContext,
+      );
+      executionContext = outputPortResult.context ?? executionContext;
       if (outputPortResult.errorCode != null) {
         trace.add(
           SceneRuntimeExecutionTraceEntry(
@@ -124,6 +141,7 @@ final class SceneRuntimeExecutor {
           outputPortResult.errorCode!,
           outputPortResult.message!,
           trace,
+          context: executionContext,
         );
       }
 
@@ -145,6 +163,7 @@ final class SceneRuntimeExecutor {
           errorCode: null,
           message: null,
           trace: trace,
+          context: executionContext,
         );
       }
 
@@ -159,6 +178,7 @@ final class SceneRuntimeExecutor {
           transition.errorCode!,
           transition.message!,
           trace,
+          context: executionContext,
         );
       }
 
@@ -169,6 +189,7 @@ final class SceneRuntimeExecutor {
           SceneRuntimeExecutionErrorCode.targetNodeMissing,
           'Scene runtime target node "${transition.edge!.toNodeId}" is missing.',
           trace,
+          context: executionContext,
         );
       }
       currentNode = nextNode;
@@ -179,12 +200,16 @@ final class SceneRuntimeExecutor {
       SceneRuntimeExecutionErrorCode.stepLimitExceeded,
       'Scene runtime exceeded maxSteps=$maxSteps.',
       trace,
+      context: executionContext,
     );
   }
 
   Future<_OutputPortResult> _resolveOutputPort(
-    SceneRuntimePlanIntent intent,
+    SceneRuntimePlan plan,
+    SceneRuntimePlanNode node,
+    SceneExecutionContext context,
   ) async {
+    final intent = node.intent;
     switch (intent.kind) {
       case SceneRuntimePlanIntentKind.start:
       case SceneRuntimePlanIntentKind.merge:
@@ -192,37 +217,132 @@ final class SceneRuntimeExecutor {
       case SceneRuntimePlanIntentKind.end:
         return const _OutputPortResult();
       case SceneRuntimePlanIntentKind.evaluateCondition:
-        return _callbackOutput(
-          intent,
-          callbacks.evaluateCondition,
-          const {'true', 'false'},
+        return _recordCallbackOutcome(
+          node.id,
+          context,
+          await _callbackOutput(
+            intent,
+            callbacks.evaluateCondition,
+            const {'true', 'false'},
+          ),
         );
+      case SceneRuntimePlanIntentKind.branchByOutcome:
+        return _branchOutput(plan, node, context);
       case SceneRuntimePlanIntentKind.showDialogue:
-        return _callbackOutput(
-          intent,
-          callbacks.showDialogue,
-          {'completed', ...intent.expectedOutcomes},
+        return _recordCallbackOutcome(
+          node.id,
+          context,
+          await _callbackOutput(
+            intent,
+            callbacks.showDialogue,
+            {'completed', ...intent.expectedOutcomes},
+          ),
         );
       case SceneRuntimePlanIntentKind.startBattle:
-        return _callbackOutput(
-          intent,
-          callbacks.startBattle,
-          intent.declaredOutputPortIds.toSet(),
+        return _recordCallbackOutcome(
+          node.id,
+          context,
+          await _callbackOutput(
+            intent,
+            callbacks.startBattle,
+            intent.declaredOutputPortIds.toSet(),
+          ),
         );
       case SceneRuntimePlanIntentKind.playCinematic:
-        return _callbackOutput(
-          intent,
-          callbacks.playCinematic,
-          const {'completed'},
+        return _recordCallbackOutcome(
+          node.id,
+          context,
+          await _callbackOutput(
+            intent,
+            callbacks.playCinematic,
+            const {'completed'},
+          ),
         );
       case SceneRuntimePlanIntentKind.applyConsequence:
-        return _consequenceCallbackOutput(intent);
+        return _consequenceCallbackOutput(node.id, intent, context);
     }
   }
 
+  _OutputPortResult _recordCallbackOutcome(
+    String nodeId,
+    SceneExecutionContext context,
+    _OutputPortResult result,
+  ) {
+    final outputPortId = result.outputPortId;
+    if (result.errorCode != null || outputPortId == null) return result;
+    return _OutputPortResult(
+      outputPortId: outputPortId,
+      context: context.recordOutcome(nodeId: nodeId, outcome: outputPortId),
+    );
+  }
+
+  _OutputPortResult _branchOutput(
+    SceneRuntimePlan plan,
+    SceneRuntimePlanNode node,
+    SceneExecutionContext context,
+  ) {
+    final intent = node.intent;
+    final sourceNodeId = intent.branchSourceNodeId;
+    if (sourceNodeId == null) {
+      return const _OutputPortResult(
+        errorCode: SceneRuntimeExecutionErrorCode.unsupportedIntent,
+        message: 'Scene branch intent is missing sourceNodeId.',
+      );
+    }
+    final sourceOutcome = context.lastOutcomeByNodeId[sourceNodeId];
+    if (sourceOutcome == null) {
+      return _OutputPortResult(
+        errorCode: SceneRuntimeExecutionErrorCode.missingBranchSourceOutcome,
+        message: 'Scene branch "${node.id}" has no recorded outcome for '
+            'source "$sourceNodeId".',
+      );
+    }
+    final hasExactRoute = plan.edges.any(
+      (edge) => edge.fromNodeId == node.id && edge.fromPortId == sourceOutcome,
+    );
+    var routedPortId = sourceOutcome;
+    var usedFallback = false;
+    if (!hasExactRoute) {
+      usedFallback = true;
+      routedPortId = switch (intent.branchFallbackPolicy) {
+        SceneBranchOutcomeFallbackPolicy.defaultRoute => 'default',
+        SceneBranchOutcomeFallbackPolicy.errorRoute => 'error',
+        SceneBranchOutcomeFallbackPolicy.exact || null => '',
+      };
+      if (routedPortId.isEmpty) {
+        return _OutputPortResult(
+          outputPortId: sourceOutcome,
+          errorCode: SceneRuntimeExecutionErrorCode.unroutedOutcome,
+          message: 'Scene branch "${node.id}" has no exact route for '
+              'outcome "$sourceOutcome".',
+        );
+      }
+    }
+    return _OutputPortResult(
+      outputPortId: routedPortId,
+      context: context.recordBranch(
+        SceneBranchProvenanceEntry(
+          branchNodeId: node.id,
+          sourceNodeId: sourceNodeId,
+          sourceOutcome: sourceOutcome,
+          routedPortId: routedPortId,
+          usedFallback: usedFallback,
+        ),
+      ),
+    );
+  }
+
   Future<_OutputPortResult> _consequenceCallbackOutput(
+    String nodeId,
     SceneRuntimePlanIntent intent,
+    SceneExecutionContext context,
   ) async {
+    if (context.appliedPersistentNodeIds.contains(nodeId)) {
+      return _OutputPortResult(
+        outputPortId: 'completed',
+        context: context,
+      );
+    }
     final consequence = intent.consequence;
     if (consequence == null) {
       return _OutputPortResult(
@@ -249,7 +369,10 @@ final class SceneRuntimeExecutor {
             'for ${intent.kind.name}.',
       );
     }
-    return _OutputPortResult(outputPortId: outputPortId);
+    return _OutputPortResult(
+      outputPortId: outputPortId,
+      context: context.markPersistentNodeApplied(nodeId),
+    );
   }
 
   Future<_OutputPortResult> _callbackOutput(
@@ -317,8 +440,9 @@ SceneRuntimeExecutionResult _failed(
   SceneRuntimePlan plan,
   SceneRuntimeExecutionErrorCode errorCode,
   String message,
-  List<SceneRuntimeExecutionTraceEntry> trace,
-) {
+  List<SceneRuntimeExecutionTraceEntry> trace, {
+  required SceneExecutionContext context,
+}) {
   return SceneRuntimeExecutionResult(
     status: SceneRuntimeExecutionStatus.failed,
     sceneId: plan.sceneId,
@@ -327,6 +451,7 @@ SceneRuntimeExecutionResult _failed(
     errorCode: errorCode,
     message: message,
     trace: trace,
+    context: context,
   );
 }
 
@@ -335,11 +460,13 @@ final class _OutputPortResult {
     this.outputPortId,
     this.errorCode,
     this.message,
+    this.context,
   });
 
   final String? outputPortId;
   final SceneRuntimeExecutionErrorCode? errorCode;
   final String? message;
+  final SceneExecutionContext? context;
 }
 
 final class _TransitionResult {

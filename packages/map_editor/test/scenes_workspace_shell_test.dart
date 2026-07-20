@@ -292,7 +292,7 @@ void main() {
       expect(find.text('node_end_2'), findsWidgets);
     });
 
-    testWidgets('keeps unsupported kinds disabled and action available',
+    testWidgets('keeps unavailable kinds disabled and branch/action available',
         (tester) async {
       await _pumpNarrativeShell(
         tester,
@@ -305,7 +305,6 @@ void main() {
         'scenes-add-node-yarn-disabled',
         'scenes-add-node-battle-disabled',
         'scenes-add-node-cinematic-disabled',
-        'scenes-add-node-branch-disabled',
       ]) {
         final button = tester.widget<PokeMapButton>(
           find.byKey(ValueKey(key)).first,
@@ -322,8 +321,55 @@ void main() {
             .onPressed,
         isNotNull,
       );
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(const ValueKey('scenes-add-node-branch')),
+            )
+            .onPressed,
+        isNotNull,
+      );
       expect(find.text('Selbrume Demo'), findsNothing);
       expect(find.text('Annonce au port'), findsNothing);
+    });
+
+    testWidgets('creates a typed BranchByOutcome from an existing node',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      final branchButton = find.byKey(const ValueKey('scenes-add-node-branch'));
+      await tester.ensureVisible(branchButton);
+      await tester.pumpAndSettle();
+      await tester.tap(branchButton);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-branch-source-node_yarn')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-branch-fallback-exact')),
+      );
+      await tester.pumpAndSettle();
+
+      final branch = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .nodes
+          .singleWhere((node) => node.kind == SceneNodeKind.branchByOutcome);
+      final payload = branch.payload as SceneBranchByOutcomePayload;
+      expect(payload.sourceNodeId, 'node_yarn');
+      expect(payload.fallbackPolicy, SceneBranchOutcomeFallbackPolicy.exact);
+      expect(
+        find.byKey(ValueKey('scene-graph-node-selected-${branch.id}')),
+        findsOneWidget,
+      );
     });
 
     testWidgets(
@@ -1635,7 +1681,7 @@ void main() {
       expect(actionButton.onPressed, isNotNull);
       expect(branchButton.onPressed, isNull);
       expect(find.textContaining('bridges legacy'), findsOneWidget);
-      expect(find.textContaining('mapping futur'), findsOneWidget);
+      expect(find.textContaining('aucun résultat source'), findsOneWidget);
       expect(find.text('CinematicAsset final'), findsNothing);
       expect(find.text('mael_intro'), findsNothing);
       expect(find.text('lysa_rival'), findsNothing);

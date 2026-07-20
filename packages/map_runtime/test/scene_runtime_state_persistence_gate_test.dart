@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/application/narrative_runtime_activity_gate.dart';
 
 const _saveId = 'save_scene_persistence_gate';
 const _mapId = 'map_persistence_test';
@@ -143,7 +145,99 @@ void main() {
       );
       expect(persisted.reloadedGameState.toJson(), stateBeforeProjection);
     });
+
+    test('awaitable Scene refuses save without writing then saves after End',
+        () async {
+      final directory =
+          await Directory.systemTemp.createTemp('scene_checkpoint_gate_');
+      try {
+        final gate = NarrativeRuntimeActivityGate();
+        final repository = _TempFileGameSaveRepository(directory, gate: gate);
+        final saveGame = SaveGameUseCase(repository);
+        final dialogueStarted = Completer<void>();
+        final dialogueRelease = Completer<void>();
+        final executor = SceneRuntimeExecutor(
+          callbacks: SceneRuntimeExecutionCallbacks(
+            evaluateCondition: (_) => 'true',
+            showDialogue: (_) async {
+              dialogueStarted.complete();
+              await dialogueRelease.future;
+              return 'completed';
+            },
+            startBattle: (_) => 'victory',
+            playCinematic: (_) => 'completed',
+            applyConsequence: (_) => 'completed',
+          ),
+        );
+        final execution = gate.runWithActivity(
+          NarrativeRuntimeActivity.sceneSuspended,
+          () => executor.execute(_awaitableCheckpointPlan()),
+        );
+        await dialogueStarted.future;
+
+        expect(
+          await saveGame.execute(const GameState(saveId: 'save_busy_scene')),
+          isFalse,
+        );
+        expect(await repository.exists(), isFalse);
+
+        dialogueRelease.complete();
+        final completed = await execution;
+        expect(completed.status, SceneRuntimeExecutionStatus.completed);
+        expect(gate.activity, NarrativeRuntimeActivity.idle);
+        expect(
+          await saveGame.execute(const GameState(saveId: 'save_busy_scene')),
+          isTrue,
+        );
+        expect(await repository.exists(), isTrue);
+      } finally {
+        if (await directory.exists()) await directory.delete(recursive: true);
+      }
+    });
   });
+}
+
+SceneRuntimePlan _awaitableCheckpointPlan() {
+  return SceneRuntimePlan(
+    sceneId: 'scene_checkpoint',
+    startNodeId: 'start',
+    nodes: [
+      SceneRuntimePlanNode(
+        id: 'start',
+        kind: SceneNodeKind.start,
+        intent: SceneRuntimePlanIntent.start(),
+      ),
+      SceneRuntimePlanNode(
+        id: 'dialogue',
+        kind: SceneNodeKind.yarnDialogue,
+        intent: SceneRuntimePlanIntent.showDialogue(
+          dialogueId: 'dialogue_checkpoint',
+        ),
+      ),
+      SceneRuntimePlanNode(
+        id: 'end',
+        kind: SceneNodeKind.end,
+        intent: SceneRuntimePlanIntent.end(),
+      ),
+    ],
+    edges: const [
+      SceneRuntimePlanEdge(
+        id: 'start_dialogue',
+        fromNodeId: 'start',
+        fromPortId: 'completed',
+        toNodeId: 'dialogue',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+      SceneRuntimePlanEdge(
+        id: 'dialogue_end',
+        fromNodeId: 'dialogue',
+        fromPortId: 'completed',
+        toNodeId: 'end',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+    ],
+    declaredOutcomes: const [],
+  );
 }
 
 Future<_PersistenceRunResult> _runWriteSceneSaveAndReload() async {
@@ -543,7 +637,10 @@ final class _PersistenceRunResult {
 }
 
 class _TempFileGameSaveRepository extends FileGameSaveRepository {
-  _TempFileGameSaveRepository(this._testDirectory);
+  _TempFileGameSaveRepository(
+    this._testDirectory, {
+    NarrativeRuntimeActivityGate? gate,
+  }) : super(activityGate: gate);
 
   final Directory _testDirectory;
 

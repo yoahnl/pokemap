@@ -1857,6 +1857,7 @@ class _SelectedSceneSummary extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _SceneNodeDraftPalette(
+            scene: scene,
             linkedAssetContracts: linkedAssetContracts,
             cinematicsLibrary: cinematicsLibrary,
             consequenceFactOptions: consequenceFactOptions,
@@ -1916,6 +1917,7 @@ class _SelectedSceneSummary extends StatelessWidget {
 
 class _SceneNodeDraftPalette extends StatelessWidget {
   const _SceneNodeDraftPalette({
+    required this.scene,
     required this.linkedAssetContracts,
     required this.cinematicsLibrary,
     required this.consequenceFactOptions,
@@ -1926,6 +1928,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
     required this.onAddConsequenceActionNodeDraft,
   });
 
+  final NarrativeSceneSummary scene;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
@@ -1946,6 +1949,14 @@ class _SceneNodeDraftPalette extends StatelessWidget {
     final canonicalCinematics = library?.canonicalEntries ?? const [];
     final bridgeCinematics = library?.bridgeEntries ?? const [];
     final hasCanonicalCinematics = canonicalCinematics.isNotEmpty;
+    final branchSources = scene.graph.nodes
+        .where(
+          (node) =>
+              node.kind == SceneNodeKind.yarnDialogue ||
+              node.kind == SceneNodeKind.battle ||
+              node.kind == SceneNodeKind.condition,
+        )
+        .toList(growable: false);
     final cinematicReason = hasCanonicalCinematics
         ? null
         : bridgeCinematics.isNotEmpty
@@ -2041,11 +2052,20 @@ class _SceneNodeDraftPalette extends StatelessWidget {
                         ? () => _pickCinematicAndAddNode(context, library!)
                         : null,
                   ),
-                  const _NodeDraftButton(
-                    buttonKey: ValueKey('scenes-add-node-branch-disabled'),
+                  _NodeDraftButton(
+                    buttonKey: branchSources.isEmpty
+                        ? const ValueKey('scenes-add-node-branch-disabled')
+                        : const ValueKey('scenes-add-node-branch'),
                     label: 'Branche',
                     icon: CupertinoIcons.arrow_branch,
-                    disabledReason: 'mapping futur requis',
+                    disabledReason:
+                        branchSources.isEmpty ? 'aucun résultat source' : null,
+                    onPressed: branchSources.isEmpty
+                        ? null
+                        : () => _pickBranchAndAddNode(
+                              context,
+                              branchSources,
+                            ),
                   ),
                 ],
               ),
@@ -2135,6 +2155,34 @@ class _SceneNodeDraftPalette extends StatelessWidget {
       return;
     }
     await onAddConsequenceActionNodeDraft(consequence: consequence);
+  }
+
+  Future<void> _pickBranchAndAddNode(
+    BuildContext context,
+    List<SceneNode> sources,
+  ) async {
+    final source = await showCupertinoDialog<SceneNode>(
+      context: context,
+      builder: (context) => _BranchSourcePickerDialog(sources: sources),
+    );
+    if (source == null || !context.mounted) return;
+    final policy = await showCupertinoDialog<SceneBranchOutcomeFallbackPolicy>(
+      context: context,
+      builder: (context) => const _BranchFallbackPickerDialog(),
+    );
+    if (policy == null) return;
+    await onAddLinkedAssetNodeDraft(
+      payload: SceneBranchByOutcomePayload(
+        sourceNodeId: source.id,
+        sourceOutcomeSetRef: switch (source.payload) {
+          SceneYarnDialoguePayload(:final dialogueId) => dialogueId,
+          SceneBattlePayload(:final trainerId) => trainerId ?? source.id,
+          _ => source.id,
+        },
+        fallbackPolicy: policy,
+      ),
+      title: 'Branche · ${source.title ?? source.id}',
+    );
   }
 }
 
@@ -2658,6 +2706,84 @@ class _ConsequencePickerCard extends StatelessWidget {
   }
 }
 
+class _BranchSourcePickerDialog extends StatelessWidget {
+  const _BranchSourcePickerDialog({required this.sources});
+
+  final List<SceneNode> sources;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoAlertDialog(
+      key: const ValueKey('scene-branch-source-picker-dialog'),
+      title: const Text('Résultat à observer'),
+      content: _PayloadPickerContent(
+        children: [
+          for (final source in sources)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: PokeMapCard(
+                key: ValueKey('scene-branch-source-${source.id}'),
+                onTap: () => Navigator.of(context).pop(source),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(source.title ?? source.id),
+                ),
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        CupertinoDialogAction(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Annuler'),
+        ),
+      ],
+    );
+  }
+}
+
+class _BranchFallbackPickerDialog extends StatelessWidget {
+  const _BranchFallbackPickerDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoAlertDialog(
+      key: const ValueKey('scene-branch-fallback-picker-dialog'),
+      title: const Text('Si le résultat n’est pas relié'),
+      content: const Text(
+        'Exact bloque la scène. Par défaut suit une sortie commune. '
+        'Erreur suit une sortie d’erreur explicite.',
+      ),
+      actions: [
+        CupertinoDialogAction(
+          key: const ValueKey('scene-branch-fallback-exact'),
+          onPressed: () =>
+              Navigator.of(context).pop(SceneBranchOutcomeFallbackPolicy.exact),
+          child: const Text('Exact'),
+        ),
+        CupertinoDialogAction(
+          key: const ValueKey('scene-branch-fallback-default'),
+          onPressed: () => Navigator.of(context)
+              .pop(SceneBranchOutcomeFallbackPolicy.defaultRoute),
+          child: const Text('Par défaut'),
+        ),
+        CupertinoDialogAction(
+          key: const ValueKey('scene-branch-fallback-error'),
+          onPressed: () => Navigator.of(context)
+              .pop(SceneBranchOutcomeFallbackPolicy.errorRoute),
+          child: const Text('Erreur'),
+        ),
+        CupertinoDialogAction(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Annuler'),
+        ),
+      ],
+    );
+  }
+}
+
 class _DialoguePayloadPickerDialog extends StatelessWidget {
   const _DialoguePayloadPickerDialog({required this.dialogues});
 
@@ -2903,7 +3029,7 @@ class _SceneEdgeDraftToolbar extends StatelessWidget {
         height: 34,
       );
     }
-    final ports = authorableSceneOutputPortsForNode(node);
+    final ports = authorableSceneOutputPortsForNodeInGraph(node, scene.graph);
     if (ports.isEmpty) {
       return const _NoOutputPortsBar();
     }

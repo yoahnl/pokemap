@@ -2667,7 +2667,7 @@ List<Widget> _payloadRows(SceneNodePayload payload) {
         ),
         _InspectorRow(
           label: 'fallbackPolicy',
-          value: fallbackPolicy ?? 'Aucune policy.',
+          value: fallbackPolicy.name,
         ),
       ],
     SceneMergePayload(:final label, :final notes) => [

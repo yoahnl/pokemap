@@ -4055,8 +4055,10 @@ SceneAsset _hostedBattleScene({
     id: id,
     name: id,
     declaredOutcomes: <SceneOutcome>[
-      if (sceneOutcomeId != null)
+      if (sceneOutcomeId != null) ...<SceneOutcome>[
         SceneOutcome(id: sceneOutcomeId, label: sceneOutcomeId),
+        SceneOutcome(id: 'scene.defeated', label: 'Scene defeated'),
+      ],
     ],
     graph: SceneGraph(
       startNodeId: 'start',
@@ -4087,7 +4089,13 @@ SceneAsset _hostedBattleScene({
               ? null
               : SceneEndPayload(sceneOutcomeId: sceneOutcomeId),
         ),
-        SceneNode(id: 'defeat_end', kind: SceneNodeKind.end),
+        SceneNode(
+          id: 'defeat_end',
+          kind: SceneNodeKind.end,
+          payload: sceneOutcomeId == null
+              ? null
+              : SceneEndPayload(sceneOutcomeId: 'scene.defeated'),
+        ),
       ],
       edges: <SceneEdge>[
         SceneEdge(

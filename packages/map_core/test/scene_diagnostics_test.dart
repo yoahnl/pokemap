@@ -920,8 +920,7 @@ void main() {
       expect(diagnostic.nodeId, 'node_condition');
     });
 
-    test('legacy action and branch nodes remain unsupported authoring warnings',
-        () {
+    test('legacy action warns while an unconfigured branch is blocking', () {
       final scene = _scene(
         nodes: [
           SceneNode(id: 'node_start', kind: SceneNodeKind.start),
@@ -971,11 +970,8 @@ void main() {
         SceneDiagnosticSeverity.warning,
       );
       expect(
-        report
-            .byCode(SceneDiagnosticCode.branchByOutcomeUnsupported)
-            .single
-            .severity,
-        SceneDiagnosticSeverity.warning,
+        report.byCode(SceneDiagnosticCode.branchSourceMissing).single.severity,
+        SceneDiagnosticSeverity.error,
       );
     });
 

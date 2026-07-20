@@ -29,6 +29,12 @@ enum SceneEdgeKind {
   blocked,
 }
 
+enum SceneBranchOutcomeFallbackPolicy {
+  exact,
+  defaultRoute,
+  errorRoute,
+}
+
 enum SceneConditionSourceKind {
   fact,
   factLikeStoryFlag,
@@ -1013,7 +1019,7 @@ final class SceneBranchByOutcomePayload extends SceneNodePayload {
   SceneBranchByOutcomePayload({
     this.sourceNodeId,
     this.sourceOutcomeSetRef,
-    this.fallbackPolicy,
+    this.fallbackPolicy = SceneBranchOutcomeFallbackPolicy.exact,
   }) {
     _requireOptionalNotBlank(
       sourceNodeId,
@@ -1023,17 +1029,13 @@ final class SceneBranchByOutcomePayload extends SceneNodePayload {
       sourceOutcomeSetRef,
       'SceneBranchByOutcomePayload.sourceOutcomeSetRef',
     );
-    _requireOptionalNotBlank(
-      fallbackPolicy,
-      'SceneBranchByOutcomePayload.fallbackPolicy',
-    );
   }
 
   factory SceneBranchByOutcomePayload.fromJson(Map<String, dynamic> json) {
     return SceneBranchByOutcomePayload(
       sourceNodeId: _readOptionalString(json, 'sourceNodeId'),
       sourceOutcomeSetRef: _readOptionalString(json, 'sourceOutcomeSetRef'),
-      fallbackPolicy: _readOptionalString(json, 'fallbackPolicy'),
+      fallbackPolicy: _readSceneBranchFallbackPolicy(json['fallbackPolicy']),
     );
   }
 
@@ -1042,14 +1044,14 @@ final class SceneBranchByOutcomePayload extends SceneNodePayload {
 
   final String? sourceNodeId;
   final String? sourceOutcomeSetRef;
-  final String? fallbackPolicy;
+  final SceneBranchOutcomeFallbackPolicy fallbackPolicy;
 
   @override
   Map<String, dynamic> toJson() => _withoutNulls({
         'kind': _enumToJson(kind),
         'sourceNodeId': sourceNodeId,
         'sourceOutcomeSetRef': sourceOutcomeSetRef,
-        'fallbackPolicy': fallbackPolicy,
+        'fallbackPolicy': _sceneBranchFallbackPolicyToJson(fallbackPolicy),
       });
 
   @override
@@ -1385,6 +1387,32 @@ SceneEdgeKind _readSceneEdgeKind(Object? value, String field) {
     }
   }
   throw FormatException('Unknown $field value: $value');
+}
+
+SceneBranchOutcomeFallbackPolicy _readSceneBranchFallbackPolicy(
+  Object? value,
+) {
+  return switch (value) {
+    null || 'exact' => SceneBranchOutcomeFallbackPolicy.exact,
+    'default' ||
+    'defaultRoute' =>
+      SceneBranchOutcomeFallbackPolicy.defaultRoute,
+    'error' ||
+    'errorRoute' ||
+    'blocked' =>
+      SceneBranchOutcomeFallbackPolicy.errorRoute,
+    _ => throw FormatException('Unknown fallbackPolicy value: $value'),
+  };
+}
+
+String _sceneBranchFallbackPolicyToJson(
+  SceneBranchOutcomeFallbackPolicy policy,
+) {
+  return switch (policy) {
+    SceneBranchOutcomeFallbackPolicy.exact => 'exact',
+    SceneBranchOutcomeFallbackPolicy.defaultRoute => 'default',
+    SceneBranchOutcomeFallbackPolicy.errorRoute => 'error',
+  };
 }
 
 String _enumToJson(Enum value) => value.name;

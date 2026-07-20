@@ -223,7 +223,6 @@ void main() {
 
       for (final payload in [
         SceneActionPayload(actionKind: 'test_action'),
-        SceneBranchByOutcomePayload(),
         SceneConditionPayload(),
         SceneEndPayload(),
         SceneMergePayload(),
@@ -1837,6 +1836,39 @@ void main() {
       expect(result.isApplied, isTrue);
       expect(result.previousScene!.id, 'scene_remove');
       expect(result.after.scenes, [same(sibling)]);
+    });
+
+    test('authors BranchByOutcome from a source with graph-aware ports', () {
+      final source = _edgeAuthoringSceneWithYarnSource();
+
+      final created = addSceneLinkedAssetNodeDraft(
+        source,
+        payload: SceneBranchByOutcomePayload(
+          sourceNodeId: 'node_yarn',
+          fallbackPolicy: SceneBranchOutcomeFallbackPolicy.defaultRoute,
+        ),
+      );
+      final ports = authorableSceneOutputPortsForNodeInGraph(
+        created.createdNode,
+        created.updatedScene.graph,
+      );
+
+      expect(created.createdNode.kind, SceneNodeKind.branchByOutcome);
+      expect(created.createdNode.id, 'node_branch');
+      expect(ports.map((port) => port.id), ['completed', 'accept', 'default']);
+      expect(
+          ports.map((port) => port.edgeKind),
+          everyElement(
+            SceneEdgeKind.branchOutcome,
+          ));
+
+      final connected = addSceneEdgeDraft(
+        created.updatedScene,
+        fromNodeId: created.createdNode.id,
+        fromPortId: 'accept',
+        toNodeId: 'node_end',
+      );
+      expect(connected.createdEdge.kind, SceneEdgeKind.branchOutcome);
     });
   });
 }

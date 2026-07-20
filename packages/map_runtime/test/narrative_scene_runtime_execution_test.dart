@@ -203,7 +203,11 @@ SceneAsset _battleThenFactScene() {
           kind: SceneNodeKind.end,
           payload: SceneEndPayload(sceneOutcomeId: 'scene.completed'),
         ),
-        SceneNode(id: 'defeat_end', kind: SceneNodeKind.end),
+        SceneNode(
+          id: 'defeat_end',
+          kind: SceneNodeKind.end,
+          payload: SceneEndPayload(sceneOutcomeId: 'scene.completed'),
+        ),
       ],
       edges: <SceneEdge>[
         SceneEdge(

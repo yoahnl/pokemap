@@ -87,7 +87,6 @@ class _SceneGraphEditorState extends State<SceneGraphEditor> {
     final selectedNode = _selectedNode;
     final canDuplicate = selectedNode != null &&
         selectedNode.kind != SceneNodeKind.start &&
-        selectedNode.kind != SceneNodeKind.branchByOutcome &&
         widget.onDuplicateNode != null;
     return Wrap(
       spacing: 8,

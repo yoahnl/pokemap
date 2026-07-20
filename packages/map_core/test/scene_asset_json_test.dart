@@ -68,7 +68,7 @@ void main() {
         SceneBranchByOutcomePayload(
           sourceNodeId: 'node_dialogue',
           sourceOutcomeSetRef: 'dialogue_intro',
-          fallbackPolicy: 'blocked',
+          fallbackPolicy: SceneBranchOutcomeFallbackPolicy.errorRoute,
         ),
         SceneMergePayload(label: 'Return to main flow'),
       ];

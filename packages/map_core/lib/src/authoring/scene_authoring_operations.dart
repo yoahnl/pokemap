@@ -491,6 +491,54 @@ List<SceneAuthorableOutputPort> authorableSceneOutputPortsForNode(
   return authorableSceneOutputPortsForKind(node.kind);
 }
 
+List<SceneAuthorableOutputPort> authorableSceneOutputPortsForNodeInGraph(
+  SceneNode node,
+  SceneGraph graph,
+) {
+  final payload = node.payload;
+  if (payload is! SceneBranchByOutcomePayload) {
+    return authorableSceneOutputPortsForNode(node);
+  }
+  final sourceNodeId = payload.sourceNodeId;
+  SceneNode? sourceNode;
+  for (final candidate in graph.nodes) {
+    if (candidate.id == sourceNodeId) {
+      sourceNode = candidate;
+      break;
+    }
+  }
+  if (sourceNode == null ||
+      (sourceNode.kind != SceneNodeKind.yarnDialogue &&
+          sourceNode.kind != SceneNodeKind.battle &&
+          sourceNode.kind != SceneNodeKind.condition)) {
+    return const <SceneAuthorableOutputPort>[];
+  }
+  final sourcePorts = authorableSceneOutputPortsForNode(sourceNode);
+  return <SceneAuthorableOutputPort>[
+    for (final port in sourcePorts)
+      SceneAuthorableOutputPort(
+        id: port.id,
+        label: port.label,
+        edgeKind: SceneEdgeKind.branchOutcome,
+      ),
+    if (payload.fallbackPolicy ==
+            SceneBranchOutcomeFallbackPolicy.defaultRoute &&
+        !sourcePorts.any((port) => port.id == 'default'))
+      const SceneAuthorableOutputPort(
+        id: 'default',
+        label: 'default',
+        edgeKind: SceneEdgeKind.branchOutcome,
+      ),
+    if (payload.fallbackPolicy == SceneBranchOutcomeFallbackPolicy.errorRoute &&
+        !sourcePorts.any((port) => port.id == 'error'))
+      const SceneAuthorableOutputPort(
+        id: 'error',
+        label: 'error',
+        edgeKind: SceneEdgeKind.error,
+      ),
+  ];
+}
+
 bool isSceneNodeDraftRemovable(SceneNode node) {
   return isSceneNodeDraftKindRemovable(node.kind);
 }
@@ -1048,8 +1096,7 @@ SceneNodeDraftCreationResult duplicateSceneNodeDraft(
     ),
     'nodeId',
   );
-  if (source.kind == SceneNodeKind.start ||
-      source.kind == SceneNodeKind.branchByOutcome) {
+  if (source.kind == SceneNodeKind.start) {
     throw ArgumentError.value(
       nodeId,
       'nodeId',
@@ -1059,16 +1106,15 @@ SceneNodeDraftCreationResult duplicateSceneNodeDraft(
   final nodeIdBase = switch (source.kind) {
     SceneNodeKind.yarnDialogue ||
     SceneNodeKind.battle ||
-    SceneNodeKind.cinematic =>
+    SceneNodeKind.cinematic ||
+    SceneNodeKind.branchByOutcome =>
       _linkedAssetNodeIdBaseForKind(source.kind),
     SceneNodeKind.action => 'node_action',
     SceneNodeKind.condition ||
     SceneNodeKind.merge ||
     SceneNodeKind.end =>
       _nodeIdBaseForKind(source.kind),
-    SceneNodeKind.start ||
-    SceneNodeKind.branchByOutcome =>
-      throw StateError('Unsupported duplicate node kind.'),
+    SceneNodeKind.start => throw StateError('Unsupported duplicate node kind.'),
   };
   final duplicatedNodeId = _uniqueNodeId(
     nodeIdBase,
@@ -1196,7 +1242,11 @@ SceneEdgeDraftCreationResult addSceneEdgeDraft(
     );
   }
 
-  final port = _authorableOutputPortOrThrow(fromNode, fromPortId);
+  final port = _authorableOutputPortOrThrow(
+    fromNode,
+    fromPortId,
+    graph: scene.graph,
+  );
   for (final edge in scene.graph.edges) {
     if (edge.fromNodeId == fromNodeId && edge.fromPortId == fromPortId) {
       throw ArgumentError.value(
@@ -1957,9 +2007,12 @@ CinematicAsset _canonicalCinematicOrThrow(
 
 SceneAuthorableOutputPort _authorableOutputPortOrThrow(
   SceneNode node,
-  String fromPortId,
-) {
-  final ports = authorableSceneOutputPortsForNode(node);
+  String fromPortId, {
+  SceneGraph? graph,
+}) {
+  final ports = graph == null
+      ? authorableSceneOutputPortsForNode(node)
+      : authorableSceneOutputPortsForNodeInGraph(node, graph);
   for (final port in ports) {
     if (port.id == fromPortId) {
       return port;
@@ -2065,13 +2118,13 @@ bool _isSupportedLinkedAssetPayloadKind(SceneNodeKind kind) {
   return switch (kind) {
     SceneNodeKind.yarnDialogue ||
     SceneNodeKind.battle ||
-    SceneNodeKind.cinematic =>
+    SceneNodeKind.cinematic ||
+    SceneNodeKind.branchByOutcome =>
       true,
     SceneNodeKind.start ||
     SceneNodeKind.end ||
     SceneNodeKind.condition ||
     SceneNodeKind.action ||
-    SceneNodeKind.branchByOutcome ||
     SceneNodeKind.merge =>
       false,
   };
@@ -2097,11 +2150,11 @@ String _linkedAssetNodeIdBaseForKind(SceneNodeKind kind) {
     SceneNodeKind.yarnDialogue => 'node_yarn_dialogue',
     SceneNodeKind.battle => 'node_battle',
     SceneNodeKind.cinematic => 'node_cinematic',
+    SceneNodeKind.branchByOutcome => 'node_branch',
     SceneNodeKind.start ||
     SceneNodeKind.end ||
     SceneNodeKind.condition ||
     SceneNodeKind.action ||
-    SceneNodeKind.branchByOutcome ||
     SceneNodeKind.merge =>
       throw ArgumentError.value(
         kind,
@@ -2131,11 +2184,11 @@ String _defaultLinkedAssetTitleForKind(SceneNodeKind kind) {
     SceneNodeKind.yarnDialogue => 'Dialogue',
     SceneNodeKind.battle => 'Combat',
     SceneNodeKind.cinematic => 'Cinématique',
+    SceneNodeKind.branchByOutcome => 'Branche par résultat',
     SceneNodeKind.start ||
     SceneNodeKind.end ||
     SceneNodeKind.condition ||
     SceneNodeKind.action ||
-    SceneNodeKind.branchByOutcome ||
     SceneNodeKind.merge =>
       throw ArgumentError.value(
         kind,
