@@ -27,6 +27,58 @@ const _defaultBuilderSurfaceSize = Size(1280, 860);
 const _referenceTimelineSurfaceSize = Size(1663, 926);
 
 void main() {
+  testWidgets(
+    'NSC-60 characterizes palette, stage, timeline and inspector boundaries',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final project = _project(cinematics: [_richCinematic()]);
+
+      await _pumpBuilder(
+        tester,
+        _entry(project, 'cinematic_rich'),
+        asset: _asset(project, 'cinematic_rich'),
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      // These keys are the stable seams NSC-61 must preserve while moving the
+      // monolithic implementation into independently owned panels.
+      for (final key in const <String>[
+        'cinematic-builder-workspace',
+        'cinematic-builder-preview-placeholder',
+        'cinematic-builder-timeline-placeholder',
+        'cinematic-builder-inspector-placeholder',
+      ]) {
+        expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
+      }
+      expect(find.text('Ajouter au déroulé'), findsOneWidget);
+      expect(find.text('Timeline cinématique'), findsOneWidget);
+
+      // Dialogue, FX and sound are intentionally visible but locked at this
+      // baseline. NSC-66/67 must not unlock them before editor/runtime parity.
+      for (final lockedKind in const <String>['Dialogue', 'FX', 'Son']) {
+        expect(find.text(lockedKind), findsWidgets);
+      }
+      for (final unsupportedButton in const <String>[
+        'cinematic-builder-palette-dialogueLine-button',
+        'cinematic-builder-palette-fx-button',
+        'cinematic-builder-palette-sound-button',
+      ]) {
+        expect(find.byKey(ValueKey<String>(unsupportedButton)), findsNothing);
+      }
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('cinematic-builder-step-card-step_dialogue'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Durée non éditable — bloc en lecture seule.'),
+        findsOneWidget,
+      );
+    },
+  );
+
   testWidgets('shows populated cinematic builder in the shared workspace page',
       (
     tester,

@@ -33,6 +33,20 @@ Future<void> _loadNarrativeStudioArialCaptureFonts() async {
 }
 
 void main() {
+  test('NSC-60 tracks every canonical Cinematics golden at 1672x941', () {
+    for (final state in const <String>['library', 'builder', 'legacy']) {
+      final golden = File(
+        'test/goldens/narrative_studio/cinematics/'
+        'cinematics_${state}_full_product_route_1672x941.png',
+      );
+      expect(golden.existsSync(), isTrue, reason: 'Golden absent: $state');
+      final bytes = golden.readAsBytesSync();
+      expect(bytes.length, greaterThan(24), reason: 'PNG invalide: $state');
+      expect(_pngUint32(bytes, 16), 1672, reason: 'Largeur: $state');
+      expect(_pngUint32(bytes, 20), 941, reason: 'Hauteur: $state');
+    }
+  });
+
   testWidgets(
     'Storylines full route owns one product shell and one real create action',
     (tester) async {
@@ -493,6 +507,12 @@ void main() {
     });
   }
 }
+
+int _pngUint32(List<int> bytes, int offset) =>
+    (bytes[offset] << 24) |
+    (bytes[offset + 1] << 16) |
+    (bytes[offset + 2] << 8) |
+    bytes[offset + 3];
 
 bool _primaryFocusIsInside(Finder finder) {
   final target = finder.evaluate().single;

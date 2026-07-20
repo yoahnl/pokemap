@@ -532,6 +532,49 @@ void main() {
     }
   });
 
+  testWidgets(
+    'NSC-60 characterizes the builder route semantics and shell ownership',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      final project = _cinematicsProject();
+      final before = project.toJson();
+
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          project: project,
+          workspaceMode: EditorWorkspaceMode.cutscene,
+        ),
+        surfaceSize: const Size(1672, 941),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('cinematics-library-open-builder-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NarrativeStudioProductShell), findsOneWidget);
+      expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+      expect(find.byType(CinematicBuilderWorkspace), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Retour à la bibliothèque de cinématiques'),
+        findsOneWidget,
+      );
+      expect(
+        tester.getSemantics(
+          find.byKey(const ValueKey('cinematic-builder-workspace')),
+        ),
+        isNotNull,
+      );
+      expect(project.toJson(), before);
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    },
+  );
+
   for (final goldenState in <String>['library', 'builder', 'legacy']) {
     testWidgets(
       'matches the full Cinematics $goldenState route at 1672x941',
