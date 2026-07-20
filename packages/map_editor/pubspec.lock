@@ -492,6 +492,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  map_gameplay:
+    dependency: "direct main"
+    description:
+      path: "../map_gameplay"
+      relative: true
+    source: path
+    version: "0.1.0"
   marionette_flutter:
     dependency: "direct dev"
     description:

@@ -1,5 +1,8 @@
 library map_runtime;
 
+export 'src/application/narrative_runtime_smoke_evidence.dart'
+    show buildNarrativeRuntimeSmokeEvidence;
+
 export 'src/application/battle_start_request.dart'
     show
         RuntimeBattleKind,

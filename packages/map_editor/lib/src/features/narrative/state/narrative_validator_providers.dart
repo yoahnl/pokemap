@@ -3,8 +3,10 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../application/models/narrative_event_authoring_session.dart';
+import '../../../application/services/narrative_studio_validation_coordinator.dart';
 import '../../../application/services/pokemon_project_data_reader.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
+import '../../../infrastructure/repositories/narrative_runtime_smoke_receipt_repository.dart';
 
 class NarrativeValidatorPokemonCatalogSnapshot {
   NarrativeValidatorPokemonCatalogSnapshot({
@@ -212,6 +214,58 @@ final narrativeValidatorReportProvider = FutureProvider.autoDispose.family<
       pokemonCatalogs,
     );
   });
+});
+
+final narrativeStudioValidationCoordinatorProvider =
+    Provider<NarrativeStudioValidationCoordinator>((ref) {
+  return const NarrativeStudioValidationCoordinator();
+});
+
+final narrativeRuntimeSmokeReceiptRepositoryProvider =
+    Provider<NarrativeRuntimeSmokeReceiptRepository>((ref) {
+  return const NarrativeRuntimeSmokeReceiptRepository();
+});
+
+/// Publication-oriented report. The historical provider above remains the
+/// authoring read model; this provider is the single four-dimensional gate.
+final narrativeStudioValidationReportProvider = FutureProvider.autoDispose
+    .family<NarrativeMultidimensionalValidationReport,
+        NarrativeValidatorSnapshotRequest>((ref, request) async {
+  final projectReport = await ref.watch(
+    narrativeValidatorReportProvider(request).future,
+  );
+  final session = await NarrativeEventAuthoringSession.prepare(
+    p.join(request.projectRootPath, 'project.json'),
+  );
+  final maps = session.maps.toList(growable: true);
+  final activeMap = request.activeMap;
+  if (activeMap != null) {
+    final index = maps.indexWhere((map) => map.id == activeMap.id);
+    if (index < 0) {
+      maps.add(activeMap);
+    } else {
+      maps[index] = activeMap;
+    }
+  }
+  final repository = ref.watch(
+    narrativeRuntimeSmokeReceiptRepositoryProvider,
+  );
+  final fingerprint = await repository.computeProjectFingerprint(
+    request.projectRootPath,
+  );
+  final receipt = await repository.read(
+    projectRoot: request.projectRootPath,
+    expectedFingerprint: fingerprint,
+    profile: selbrumeReleaseV1Profile,
+  );
+  return ref.watch(narrativeStudioValidationCoordinatorProvider).coordinate(
+        project: request.project,
+        maps: maps,
+        projectReport: projectReport,
+        projectFingerprint: fingerprint,
+        profile: selbrumeReleaseV1Profile,
+        runtimeReceipt: receipt,
+      );
 });
 
 Future<Set<String>?> _loadSpeciesIds(

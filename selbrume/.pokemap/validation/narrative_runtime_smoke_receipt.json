@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "projectFingerprint": "sha256:7c312f02c6b3a9e3411079bf59d6c3ddc91f59be3fe5f4f7725896ab83659bf1",
+  "validatorVersion": "narrative-validator-v1",
+  "profileId": "selbrume-release-v1",
+  "profileVersion": 1,
+  "suiteIds": [
+    "selbrume-lighthouse-retry",
+    "selbrume-player-journey"
+  ],
+  "fixtureId": "selbrume",
+  "result": "pass",
+  "completedAt": "2026-07-20T18:47:36.400917Z",
+  "limitations": []
+}

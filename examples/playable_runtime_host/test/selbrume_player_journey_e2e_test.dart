@@ -656,6 +656,9 @@ final class _SelbrumeJourney {
     final consumedBefore = Set<String>.from(
       state.narrativeEventProgress.consumedNarrativeEventIds,
     );
+    final resetTokensBefore = List<String>.from(
+      state.narrativeEventProgress.appliedNarrativeResetTokens,
+    );
     expect(
       consumedBefore,
       unorderedEquals(expectedConsumedEventIds),
@@ -669,7 +672,29 @@ final class _SelbrumeJourney {
           !game.debugIsMapActivationDispatchInFlight,
       label: 'reload checkpoint $name',
     );
-    expect(saveDataFromGameState(state).toJson(), before.toJson());
+    final after = saveDataFromGameState(state);
+    expect(
+      _withoutInternalResetTokens(after.toJson()),
+      _withoutInternalResetTokens(before.toJson()),
+      reason: 'Reload must preserve gameplay state at checkpoint $name. '
+          'The per-activation idempotency token is compared separately.',
+    );
+    final resetTokensAfter =
+        state.narrativeEventProgress.appliedNarrativeResetTokens;
+    expect(
+      resetTokensAfter.take(resetTokensBefore.length),
+      resetTokensBefore,
+      reason: 'Reload must preserve the existing reset ledger.',
+    );
+    expect(
+      resetTokensAfter.length,
+      inInclusiveRange(resetTokensBefore.length, resetTokensBefore.length + 1),
+      reason:
+          'A save restore may append at most its single map activation token.',
+    );
+    if (resetTokensAfter.length > resetTokensBefore.length) {
+      expect(resetTokensAfter.last, startsWith('map:mapact_'));
+    }
     expect(
       state.narrativeEventProgress.consumedNarrativeEventIds,
       consumedBefore,
@@ -970,6 +995,18 @@ final class _SelbrumeJourney {
         driveCinematic: true,
       );
       await completeOpenDialogue(dialogue);
+    } else if (battleFactId != null) {
+      await _pumpUntil(
+        () =>
+            game.debugFlowPhaseName == 'dialogue' ||
+            game.debugFlowPhaseName == 'battleTransition' ||
+            game.debugFlowPhaseName == 'battle',
+        label: 'authored dialogue or battle handoff',
+        driveCinematic: true,
+      );
+      if (game.debugFlowPhaseName == 'dialogue') {
+        await completeOpenDialogue(const _DialogueChoice());
+      }
     } else if (game.debugFlowPhaseName == 'dialogue') {
       await completeOpenDialogue(const _DialogueChoice());
     }
@@ -1813,6 +1850,19 @@ RuntimeInputControl _controlForConnection(MapConnectionDirection direction) {
 
 String _edgeKey(GridPos from, Direction direction) =>
     '${from.x}:${from.y}:${direction.name}';
+
+Map<String, dynamic> _withoutInternalResetTokens(
+  Map<String, dynamic> value,
+) {
+  final copy = Map<String, dynamic>.from(
+    jsonDecode(jsonEncode(value)) as Map,
+  );
+  final progress = copy['narrativeEventProgress'];
+  if (progress is Map) {
+    progress.remove('appliedNarrativeResetTokens');
+  }
+  return copy;
+}
 
 Directory _findRepositoryRoot() {
   var current = Directory.current.absolute;
