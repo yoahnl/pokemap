@@ -211,6 +211,30 @@ List<DialogueValidationIssue> validateDialogueDocument(
   final out = <DialogueValidationIssue>[];
   void emit(DialogueValidationIssue i) => out.add(i);
 
+  if (doc.nodes.isEmpty) {
+    emit(const DialogueValidationIssue(
+      severity: DialogueValidationSeverity.error,
+      message: 'Le document ne contient aucun nœud Yarn valide.',
+    ));
+  }
+  final entryNodeId = doc.effectiveEntryNodeId;
+  if (doc.nodes.isNotEmpty &&
+      (entryNodeId == null || doc.nodeById(entryNodeId) == null)) {
+    emit(const DialogueValidationIssue(
+      severity: DialogueValidationSeverity.error,
+      message: "Le nœud d'entrée du document est absent.",
+    ));
+  }
+  if (doc.sourcePreservation?.hasNonCanonicalFormatting ?? false) {
+    emit(const DialogueValidationIssue(
+      severity: DialogueValidationSeverity.warning,
+      message:
+          'Ce fichier utilise une mise en forme Yarn non canonique. Elle est '
+          'conservée exactement tant que le document reste inchangé ; une '
+          'édition peut normaliser les espaces ou les lignes vides.',
+    ));
+  }
+
   final titles = doc.nodeTitles();
   final normalizedDeclaredOutcomeIds = declaredOutcomeIds
       .map((outcomeId) => outcomeId.trim())

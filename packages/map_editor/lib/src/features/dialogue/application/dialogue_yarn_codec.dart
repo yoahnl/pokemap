@@ -10,9 +10,12 @@
 //   ou [DeConditionStep]) au lieu d’être ignorées — nécessaire pour un aller-retour honnête.
 // - Les nœuds **sans** lignes de corps sont acceptés (brouillon vide dans l’éditeur).
 //
-// Limites (documentées aussi dans le rapport) :
-// - Pas de support Yarn Spinner « node headers » avancés au-delà de `title:` + `---`.
-// - Les tags/metadata hors corps ne sont pas modélisés séparément.
+// Politique de fidélité :
+// - tous les headers autres que `title` sont conservés dans le modèle ;
+// - un document inchangé réémet son texte source exact (espaces et fins de ligne) ;
+// - après une édition, le codec produit un Yarn canonique sans supprimer les
+//   headers ni les commandes inconnues. La validation avertit lorsque cette
+//   canonicalisation peut normaliser une mise en forme source particulière.
 // -----------------------------------------------------------------------------
 
 import 'dialogue_editor_model.dart';
@@ -53,8 +56,13 @@ class _PRaw extends _PStep {
 }
 
 class _ParsedNode {
-  _ParsedNode({required this.title, required this.steps});
+  _ParsedNode({
+    required this.title,
+    required this.headers,
+    required this.steps,
+  });
   final String title;
+  final List<DialogueEditorNodeHeader> headers;
   final List<_PStep> steps;
 }
 
@@ -62,6 +70,7 @@ class _ParsedNode {
 List<_ParsedNode> _parseYarnToParsedNodes(String content) {
   final nodes = <_ParsedNode>[];
   String? currentTitle;
+  final currentHeaders = <DialogueEditorNodeHeader>[];
   var inBody = false;
   final rootSteps = <_PStep>[];
   var inChoiceBlock = false;
@@ -100,10 +109,12 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
     nodes.add(
       _ParsedNode(
         title: currentTitle!,
+        headers: List<DialogueEditorNodeHeader>.from(currentHeaders),
         steps: List<_PStep>.from(rootSteps),
       ),
     );
     currentTitle = null;
+    currentHeaders.clear();
     rootSteps.clear();
     inChoiceBlock = false;
     currentChoices.clear();
@@ -127,6 +138,16 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
         currentChoiceText = null;
         currentChoiceOutcomeId = null;
         currentChoiceSteps.clear();
+      } else if (currentTitle != null) {
+        final headerMatch = RegExp(r'^([^:]+):(.*)$').firstMatch(line);
+        if (headerMatch != null) {
+          currentHeaders.add(
+            DialogueEditorNodeHeader(
+              name: headerMatch.group(1)!.trim(),
+              value: headerMatch.group(2)!.trim(),
+            ),
+          );
+        }
       }
     } else {
       final trimmed = line.trim();
@@ -256,21 +277,35 @@ DialogueEditorDocument parseYarnToDocument(String content) {
       DialogueEditorNode(
         id: newDialogueEditorId(),
         title: p.title,
+        headers: p.headers,
         steps: p.steps.map(_convertParsedStep).toList(),
       ),
     );
   }
-  final doc = DialogueEditorDocument(nodes: nodes);
+  var doc = DialogueEditorDocument(
+    nodes: nodes,
+    entryNodeId: nodes.isEmpty ? null : nodes.first.id,
+  );
   _ensureStartMarker(doc);
+  final canonical = _emitCanonicalDocument(doc);
+  doc = doc.copyWith(
+    sourcePreservation: DialogueSourcePreservation(
+      originalText: content,
+      canonicalAtParse: canonical,
+      hasNonCanonicalFormatting: content != canonical,
+    ),
+  );
   return doc;
 }
 
 /// Document minimal si le parse n’a rien produit (fichier vide ou invalide).
 DialogueEditorDocument emptyDialogueDocument({String startTitle = 'Start'}) {
+  final nodeId = newDialogueEditorId();
   final doc = DialogueEditorDocument(
+    entryNodeId: nodeId,
     nodes: [
       DialogueEditorNode(
-        id: newDialogueEditorId(),
+        id: nodeId,
         title: startTitle,
         steps: [
           DeStartStep(id: newDialogueEditorId()),
@@ -322,10 +357,23 @@ void _emitStep(StringBuffer sb, DialogueEditorStep step, String indent) {
 }
 
 /// Sérialise le document vers le texte `.yarn` (un bloc `title` / `---` / `===` par nœud).
-String emitDocumentToYarn(DialogueEditorDocument doc) {
+String _emitCanonicalDocument(DialogueEditorDocument doc) {
   final sb = StringBuffer();
-  for (final node in doc.nodes) {
+  // The simplified Yarn wire has no document-level entry field. Emitting the
+  // selected entry first makes the choice survive a disk reload even if a
+  // caller reordered the in-memory list independently.
+  final entryId = doc.effectiveEntryNodeId;
+  final orderedNodes = <DialogueEditorNode>[
+    if (entryId != null) ...doc.nodes.where((node) => node.id == entryId),
+    ...doc.nodes.where((node) => node.id != entryId),
+  ];
+  for (final node in orderedNodes) {
     sb.writeln('title: ${node.title.trim()}');
+    for (final header in node.headers) {
+      final name = header.name.trim();
+      if (name.isEmpty || name.toLowerCase() == 'title') continue;
+      sb.writeln('$name: ${header.value}');
+    }
     sb.writeln('---');
     for (final step in node.steps) {
       _emitStep(sb, step, '');
@@ -333,4 +381,14 @@ String emitDocumentToYarn(DialogueEditorDocument doc) {
     sb.writeln('===');
   }
   return sb.toString();
+}
+
+/// Serializes the document while honoring the two-level fidelity policy.
+String emitDocumentToYarn(DialogueEditorDocument doc) {
+  final canonical = _emitCanonicalDocument(doc);
+  final source = doc.sourcePreservation;
+  if (source != null && canonical == source.canonicalAtParse) {
+    return source.originalText;
+  }
+  return canonical;
 }

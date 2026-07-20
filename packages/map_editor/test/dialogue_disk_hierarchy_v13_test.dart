@@ -7,6 +7,7 @@ import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/use_cases/project_dialogue_library_use_cases.dart';
 import 'package:map_editor/src/application/use_cases/project_dialogue_use_cases.dart';
 import 'package:map_editor/src/domain/repositories/repositories.dart';
+import 'package:map_editor/src/features/dialogue/application/dialogue_yarn_codec.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -294,6 +295,34 @@ void main() {
           .exists(),
       isTrue,
     );
+  });
+
+  test('existing Selbrume multi-node Yarn reloads without codec loss',
+      () async {
+    final source = File(
+      p.normalize(
+        p.join(
+          Directory.current.path,
+          '..',
+          '..',
+          'selbrume',
+          'dialogues',
+          'goelise_port.yarn',
+        ),
+      ),
+    );
+    final yarn = await source.readAsString();
+
+    final document = parseYarnToDocument(yarn);
+
+    expect(document.nodes.length, greaterThan(1));
+    expect(
+      document.nodes.every(
+        (node) => node.headers.any((header) => header.name == 'tags'),
+      ),
+      isTrue,
+    );
+    expect(emitDocumentToYarn(document), yarn);
   });
 }
 

@@ -97,5 +97,65 @@ Guide: Merci.
         ['return_item', 'keep_item'],
       );
     });
+
+    test('rich headers unicode and formatting round-trip byte for byte', () {
+      const yarn = 'title: Phare\n'
+          'tags: selbrume quête secondaire\n'
+          'color: mist-blue\n'
+          '---\n'
+          'Maël:  Écoute la brume.  \n'
+          '\n'
+          '<<extension inconnue:été>>\n'
+          '===\n';
+
+      final document = parseYarnToDocument(yarn);
+
+      expect(document.nodes.single.headers, [
+        const DialogueEditorNodeHeader(
+          name: 'tags',
+          value: 'selbrume quête secondaire',
+        ),
+        const DialogueEditorNodeHeader(name: 'color', value: 'mist-blue'),
+      ]);
+      expect(emitDocumentToYarn(document), yarn);
+    });
+
+    test('edited rich document preserves extensions in canonical output', () {
+      const yarn = 'title: Start\n'
+          'tags: selbrume lore\n'
+          'custom-extension: valeur\n'
+          '---\n'
+          'Guide: Bonjour  \n'
+          '\n'
+          '<<unknown data>>\n'
+          '===\n';
+      final parsed = parseYarnToDocument(yarn);
+
+      final renamed = parsed.renameNode(parsed.nodes.single.id, 'Accueil');
+      final emitted = emitDocumentToYarn(renamed);
+
+      expect(emitted, contains('title: Accueil'));
+      expect(emitted, contains('tags: selbrume lore'));
+      expect(emitted, contains('custom-extension: valeur'));
+      expect(emitted, contains('<<unknown data>>'));
+    });
+
+    test('explicit entry node survives reload even after independent reorder',
+        () {
+      final document = DialogueEditorDocument(
+        entryNodeId: 'second',
+        nodes: [
+          DialogueEditorNode(id: 'first', title: 'First', steps: []),
+          DialogueEditorNode(id: 'second', title: 'Second', steps: []),
+        ],
+      );
+
+      final emitted = emitDocumentToYarn(document);
+      final reloaded = parseYarnToDocument(emitted);
+
+      expect(emitted, startsWith('title: Second'));
+      expect(reloaded.nodes.first.title, 'Second');
+      expect(reloaded.effectiveEntryNodeId, reloaded.nodes.first.id);
+    });
   });
 }

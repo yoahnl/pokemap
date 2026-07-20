@@ -16,6 +16,111 @@ void main() {
   });
 
   group('Dialogue validation', () {
+    test('rejects a document without a valid node or entry node', () {
+      final emptyIssues = validateDialogueDocument(
+        const DialogueEditorDocument(nodes: <DialogueEditorNode>[]),
+      );
+      final missingEntryIssues = validateDialogueDocument(
+        DialogueEditorDocument(
+          entryNodeId: 'missing',
+          nodes: [
+            DialogueEditorNode(
+              id: 'existing',
+              title: 'Start',
+              steps: [
+                DeLineStep(id: 'line', speaker: 'Guide', body: 'Bonjour.'),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        emptyIssues.any((issue) => issue.message.contains('aucun nœud')),
+        isTrue,
+      );
+      expect(
+        missingEntryIssues.any(
+          (issue) => issue.message.contains("nœud d'entrée"),
+        ),
+        isTrue,
+      );
+    });
+
+    test('warns before editing a source with non canonical formatting', () {
+      final document = DialogueEditorDocument(
+        entryNodeId: 'start',
+        sourcePreservation: const DialogueSourcePreservation(
+          originalText: 'title: Start\r\n---\r\nGuide: Bonjour\r\n===\r\n',
+          canonicalAtParse: 'title: Start\n---\nGuide: Bonjour\n===\n',
+          hasNonCanonicalFormatting: true,
+        ),
+        nodes: [
+          DialogueEditorNode(
+            id: 'start',
+            title: 'Start',
+            steps: [
+              DeLineStep(id: 'line', speaker: 'Guide', body: 'Bonjour'),
+            ],
+          ),
+        ],
+      );
+
+      expect(
+        validateDialogueDocument(document).any(
+          (issue) =>
+              issue.severity == DialogueValidationSeverity.warning &&
+              issue.message.contains('mise en forme'),
+        ),
+        isTrue,
+      );
+    });
+
+    test('node lifecycle keeps entry and rewrites renamed jumps', () {
+      final initial = DialogueEditorDocument(
+        entryNodeId: 'start',
+        nodes: [
+          DialogueEditorNode(
+            id: 'start',
+            title: 'Start',
+            steps: [DeJumpStep(id: 'jump', targetTitle: 'Second')],
+          ),
+          DialogueEditorNode(
+            id: 'second',
+            title: 'Second',
+            steps: [
+              DeLineStep(id: 'line', speaker: 'Guide', body: 'Suite.'),
+            ],
+          ),
+        ],
+      );
+
+      final renamed = initial.renameNode('second', 'Arrival');
+      expect(
+        renamed.nodes.first.steps.whereType<DeJumpStep>().single.targetTitle,
+        'Arrival',
+      );
+
+      final duplicated = renamed.duplicateNode('second');
+      expect(duplicated.nodes, hasLength(3));
+      expect(duplicated.nodes[2].title, 'Arrival 2');
+      expect(duplicated.nodes[2].id, isNot('second'));
+      expect(duplicated.nodes[2].steps.single.id, isNot('line'));
+
+      final reordered = duplicated.moveNode(2, 1).selectEntryNode('second');
+      expect(reordered.nodes.first.id, 'second');
+      expect(reordered.entryNodeId, 'second');
+      expect(reordered.nodes.first.steps.first, isA<DeStartStep>());
+
+      final deleted = reordered.deleteNode('second');
+      expect(deleted.nodes, hasLength(2));
+      expect(deleted.entryNodeId, deleted.nodes.first.id);
+
+      final created = deleted.createNode(title: 'Epilogue');
+      expect(created.nodes.last.title, 'Epilogue');
+      expect(created.nodes.last.id, isNotEmpty);
+    });
+
     test('flags empty replica body', () {
       final doc = DialogueEditorDocument(
         nodes: [

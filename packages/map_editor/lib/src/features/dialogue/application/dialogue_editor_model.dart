@@ -70,13 +70,76 @@ String availableDialogueOutcomeId(
 }
 
 /// Document édité dans Dialogue Studio : liste ordonnée de nœuds (= blocs `title:` Yarn).
+class DialogueSourcePreservation {
+  const DialogueSourcePreservation({
+    required this.originalText,
+    required this.canonicalAtParse,
+    required this.hasNonCanonicalFormatting,
+  });
+
+  /// Exact bytes decoded as text when the document was loaded.
+  ///
+  /// The codec may return this value while the semantic document is unchanged.
+  /// This protects comments, blank lines and whitespace that do not have a
+  /// dedicated no-code representation yet.
+  final String originalText;
+  final String canonicalAtParse;
+  final bool hasNonCanonicalFormatting;
+}
+
+/// Header Yarn other than `title`.
+///
+/// Keeping the ordered name/value pairs is the minimum contract required to
+/// prevent Selbrume `tags:` and third-party extensions from disappearing when
+/// a document is edited and canonically emitted.
+class DialogueEditorNodeHeader {
+  const DialogueEditorNodeHeader({required this.name, required this.value});
+
+  final String name;
+  final String value;
+
+  @override
+  bool operator ==(Object other) =>
+      other is DialogueEditorNodeHeader &&
+      other.name == name &&
+      other.value == value;
+
+  @override
+  int get hashCode => Object.hash(name, value);
+}
+
 class DialogueEditorDocument {
-  const DialogueEditorDocument({required this.nodes});
+  const DialogueEditorDocument({
+    required this.nodes,
+    this.entryNodeId,
+    this.sourcePreservation,
+  });
 
   final List<DialogueEditorNode> nodes;
 
-  DialogueEditorDocument copyWith({List<DialogueEditorNode>? nodes}) {
-    return DialogueEditorDocument(nodes: nodes ?? this.nodes);
+  /// Stable editor id of the node used to start the conversation.
+  ///
+  /// Legacy in-memory documents can omit it and still use the first node. The
+  /// codec always makes it explicit, and persists the choice by emitting the
+  /// entry node first because the simplified Yarn wire has no separate entry
+  /// header.
+  final String? entryNodeId;
+
+  final DialogueSourcePreservation? sourcePreservation;
+
+  String? get effectiveEntryNodeId =>
+      entryNodeId ?? (nodes.isEmpty ? null : nodes.first.id);
+
+  DialogueEditorDocument copyWith({
+    List<DialogueEditorNode>? nodes,
+    String? entryNodeId,
+    DialogueSourcePreservation? sourcePreservation,
+  }) {
+    return DialogueEditorDocument(
+      nodes: nodes ?? this.nodes,
+      entryNodeId: entryNodeId ?? this.entryNodeId,
+      sourcePreservation: sourcePreservation ?? this.sourcePreservation,
+    );
   }
 
   /// Titres Yarn de tous les nœuds (utile pour validation des sauts).
@@ -89,6 +152,139 @@ class DialogueEditorDocument {
     }
     return null;
   }
+
+  /// Adds a new valid Yarn node without mutating the current document.
+  DialogueEditorDocument createNode({
+    required String title,
+    int? index,
+  }) {
+    final normalizedTitle = _availableDialogueNodeTitle(title, nodes);
+    final node = DialogueEditorNode(
+      id: newDialogueEditorId(),
+      title: normalizedTitle,
+      steps: <DialogueEditorStep>[],
+    );
+    final next = nodes.map(_cloneDialogueNode).toList();
+    final insertAt = index == null ? next.length : index.clamp(0, next.length);
+    next.insert(insertAt, node);
+    final nextEntry = effectiveEntryNodeId ?? node.id;
+    return _normalizeDialogueEntryMarkers(
+      DialogueEditorDocument(
+        nodes: next,
+        entryNodeId: nextEntry,
+        sourcePreservation: sourcePreservation,
+      ),
+    );
+  }
+
+  /// Deletes a node and promotes the first remaining node when it was entry.
+  DialogueEditorDocument deleteNode(String nodeId) {
+    if (nodeById(nodeId) == null) {
+      throw ArgumentError.value(nodeId, 'nodeId', 'Unknown dialogue node.');
+    }
+    final next = nodes
+        .where((node) => node.id != nodeId)
+        .map(_cloneDialogueNode)
+        .toList();
+    final previousEntry = effectiveEntryNodeId;
+    final nextEntry = previousEntry == nodeId
+        ? (next.isEmpty ? null : next.first.id)
+        : previousEntry;
+    return _normalizeDialogueEntryMarkers(
+      DialogueEditorDocument(
+        nodes: next,
+        entryNodeId: nextEntry,
+        sourcePreservation: sourcePreservation,
+      ),
+    );
+  }
+
+  /// Renames a node and every structured jump that targets its old title.
+  DialogueEditorDocument renameNode(String nodeId, String title) {
+    final target = nodeById(nodeId);
+    if (target == null) {
+      throw ArgumentError.value(nodeId, 'nodeId', 'Unknown dialogue node.');
+    }
+    final normalized = title.trim();
+    if (normalized.isEmpty) {
+      throw ArgumentError.value(title, 'title', 'Title must not be empty.');
+    }
+    if (nodes.any(
+      (node) => node.id != nodeId && node.title.trim() == normalized,
+    )) {
+      throw ArgumentError.value(title, 'title', 'Title must be unique.');
+    }
+    final previousTitle = target.title.trim();
+    final next = nodes.map(_cloneDialogueNode).toList();
+    for (final node in next) {
+      if (node.id == nodeId) node.title = normalized;
+      _rewriteDialogueJumps(node.steps, previousTitle, normalized);
+    }
+    return DialogueEditorDocument(
+      nodes: next,
+      entryNodeId: effectiveEntryNodeId,
+      sourcePreservation: sourcePreservation,
+    );
+  }
+
+  /// Duplicates one node with fresh editor ids and a collision-free title.
+  DialogueEditorDocument duplicateNode(String nodeId) {
+    final sourceIndex = nodes.indexWhere((node) => node.id == nodeId);
+    if (sourceIndex < 0) {
+      throw ArgumentError.value(nodeId, 'nodeId', 'Unknown dialogue node.');
+    }
+    final source = nodes[sourceIndex];
+    final duplicateTitle = _availableDialogueNodeTitle(source.title, nodes);
+    final duplicate = _cloneDialogueNode(source, freshIds: true)
+      ..title = duplicateTitle;
+    _rewriteDialogueJumps(
+      duplicate.steps,
+      source.title.trim(),
+      duplicateTitle,
+    );
+    final next = nodes.map(_cloneDialogueNode).toList()
+      ..insert(sourceIndex + 1, duplicate);
+    return DialogueEditorDocument(
+      nodes: next,
+      entryNodeId: effectiveEntryNodeId,
+      sourcePreservation: sourcePreservation,
+    );
+  }
+
+  DialogueEditorDocument moveNode(int fromIndex, int toIndex) {
+    if (fromIndex < 0 || fromIndex >= nodes.length) {
+      throw RangeError.index(fromIndex, nodes, 'fromIndex');
+    }
+    if (toIndex < 0 || toIndex >= nodes.length) {
+      throw RangeError.index(toIndex, nodes, 'toIndex');
+    }
+    final next = nodes.map(_cloneDialogueNode).toList();
+    final moved = next.removeAt(fromIndex);
+    next.insert(toIndex, moved);
+    return DialogueEditorDocument(
+      nodes: next,
+      entryNodeId: effectiveEntryNodeId,
+      sourcePreservation: sourcePreservation,
+    );
+  }
+
+  /// Selects and persists an entry by moving the node to the first Yarn block.
+  DialogueEditorDocument selectEntryNode(String nodeId) {
+    final sourceIndex = nodes.indexWhere((node) => node.id == nodeId);
+    if (sourceIndex < 0) {
+      throw ArgumentError.value(nodeId, 'nodeId', 'Unknown dialogue node.');
+    }
+    final next = nodes.map(_cloneDialogueNode).toList();
+    final entry = next.removeAt(sourceIndex);
+    next.insert(0, entry);
+    return _normalizeDialogueEntryMarkers(
+      DialogueEditorDocument(
+        nodes: next,
+        entryNodeId: nodeId,
+        sourcePreservation: sourcePreservation,
+      ),
+    );
+  }
 }
 
 /// Un nœud Yarn (`title: …` … `===`).
@@ -97,6 +293,7 @@ class DialogueEditorNode {
     required this.id,
     required this.title,
     required this.steps,
+    this.headers = const <DialogueEditorNodeHeader>[],
   });
 
   /// Identifiant éditeur (pas le titre Yarn).
@@ -108,16 +305,129 @@ class DialogueEditorNode {
   /// Séquence verticale principale du nœud (hors branches indentées des choix).
   List<DialogueEditorStep> steps;
 
+  /// Ordered Yarn headers other than `title`.
+  List<DialogueEditorNodeHeader> headers;
+
   DialogueEditorNode copyWith({
     String? id,
     String? title,
     List<DialogueEditorStep>? steps,
+    List<DialogueEditorNodeHeader>? headers,
   }) {
     return DialogueEditorNode(
       id: id ?? this.id,
       title: title ?? this.title,
       steps: steps ?? List<DialogueEditorStep>.from(this.steps),
+      headers: headers ?? List<DialogueEditorNodeHeader>.from(this.headers),
     );
+  }
+}
+
+String _availableDialogueNodeTitle(
+  String requested,
+  Iterable<DialogueEditorNode> nodes,
+) {
+  final base = requested.trim().isEmpty ? 'Nouveau noeud' : requested.trim();
+  final used = nodes.map((node) => node.title.trim()).toSet();
+  if (!used.contains(base)) return base;
+  var suffix = 2;
+  while (used.contains('$base $suffix')) {
+    suffix += 1;
+  }
+  return '$base $suffix';
+}
+
+DialogueEditorDocument _normalizeDialogueEntryMarkers(
+  DialogueEditorDocument document,
+) {
+  final entryId = document.effectiveEntryNodeId;
+  final next = document.nodes.map(_cloneDialogueNode).toList();
+  for (final node in next) {
+    node.steps.removeWhere((step) => step is DeStartStep);
+    if (node.id == entryId) {
+      node.steps.insert(0, DeStartStep(id: newDialogueEditorId()));
+    }
+  }
+  return DialogueEditorDocument(
+    nodes: next,
+    entryNodeId: entryId,
+    sourcePreservation: document.sourcePreservation,
+  );
+}
+
+DialogueEditorNode _cloneDialogueNode(
+  DialogueEditorNode node, {
+  bool freshIds = false,
+}) {
+  return DialogueEditorNode(
+    id: freshIds ? newDialogueEditorId() : node.id,
+    title: node.title,
+    headers: List<DialogueEditorNodeHeader>.from(node.headers),
+    steps: node.steps
+        .map((step) => _cloneDialogueStep(step, freshIds: freshIds))
+        .toList(),
+  );
+}
+
+DialogueEditorStep _cloneDialogueStep(
+  DialogueEditorStep step, {
+  required bool freshIds,
+}) {
+  String nextId(String current) => freshIds ? newDialogueEditorId() : current;
+  return switch (step) {
+    DeStartStep(:final id) => DeStartStep(id: nextId(id)),
+    DeLineStep(:final id, :final speaker, :final body) => DeLineStep(
+        id: nextId(id),
+        speaker: speaker,
+        body: body,
+      ),
+    DeNarrationStep(:final id, :final text) =>
+      DeNarrationStep(id: nextId(id), text: text),
+    DeChoiceStep(:final id, :final branches) => DeChoiceStep(
+        id: nextId(id),
+        branches: branches
+            .map(
+              (branch) => DeChoiceBranch(
+                id: nextId(branch.id),
+                label: branch.label,
+                outcomeId: branch.outcomeId,
+                steps: branch.steps
+                    .map(
+                      (inner) => _cloneDialogueStep(inner, freshIds: freshIds),
+                    )
+                    .toList(),
+              ),
+            )
+            .toList(),
+      ),
+    DeJumpStep(:final id, :final targetTitle) =>
+      DeJumpStep(id: nextId(id), targetTitle: targetTitle),
+    DeConditionStep(:final id, :final raw) =>
+      DeConditionStep(id: nextId(id), raw: raw),
+    DeCommandStep(:final id, :final raw) =>
+      DeCommandStep(id: nextId(id), raw: raw),
+    DeEndStep(:final id) => DeEndStep(id: nextId(id)),
+  };
+}
+
+void _rewriteDialogueJumps(
+  List<DialogueEditorStep> steps,
+  String previousTitle,
+  String nextTitle,
+) {
+  for (final step in steps) {
+    switch (step) {
+      case DeJumpStep(:final targetTitle):
+        if (targetTitle.trim() == previousTitle) {
+          step.targetTitle = nextTitle;
+        }
+      case DeChoiceStep(:final branches):
+        for (final branch in branches) {
+          _rewriteDialogueJumps(branch.steps, previousTitle, nextTitle);
+        }
+      default:
+        break;
+    }
   }
 }
 
