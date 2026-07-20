@@ -9,6 +9,7 @@ final class NarrativeStudioReturnExpectation {
   NarrativeStudioReturnExpectation({
     required this.location,
     this.scrollOffset,
+    this.zoom,
     this.focusAnchorId,
   }) {
     if (scrollOffset != null &&
@@ -17,6 +18,13 @@ final class NarrativeStudioReturnExpectation {
         scrollOffset,
         'scrollOffset',
         'Must be finite and non-negative',
+      );
+    }
+    if (zoom != null && (!zoom!.isFinite || zoom! <= 0)) {
+      throw ArgumentError.value(
+        zoom,
+        'zoom',
+        'Must be finite and strictly positive',
       );
     }
     if (focusAnchorId != null && focusAnchorId!.trim().isEmpty) {
@@ -30,6 +38,7 @@ final class NarrativeStudioReturnExpectation {
 
   final NarrativeStudioRouteLocation location;
   final double? scrollOffset;
+  final double? zoom;
   final String? focusAnchorId;
 
   @override
@@ -38,10 +47,11 @@ final class NarrativeStudioReturnExpectation {
       other is NarrativeStudioReturnExpectation &&
           other.location == location &&
           other.scrollOffset == scrollOffset &&
+          other.zoom == zoom &&
           other.focusAnchorId == focusAnchorId;
 
   @override
-  int get hashCode => Object.hash(location, scrollOffset, focusAnchorId);
+  int get hashCode => Object.hash(location, scrollOffset, zoom, focusAnchorId);
 }
 
 @immutable
@@ -167,8 +177,9 @@ class NarrativeStudioNavigationController
     final expectation = state.pendingReturn;
     if (expectation == null) return null;
     final revision = state.revision + 1;
-    final requiresViewportRestoration =
-        expectation.scrollOffset != null || expectation.focusAnchorId != null;
+    final requiresViewportRestoration = expectation.scrollOffset != null ||
+        expectation.zoom != null ||
+        expectation.focusAnchorId != null;
     state = state.copyWith(
       location: expectation.location,
       clearPendingReturn: true,

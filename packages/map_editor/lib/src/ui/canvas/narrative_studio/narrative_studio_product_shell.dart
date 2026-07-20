@@ -1,9 +1,12 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
+import 'package:map_core/map_core.dart';
 
 import '../../../../l10n/l10n.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import 'narrative_studio_destination.dart';
+import 'narrative_command_palette.dart';
 import 'narrative_studio_product_navigation.dart';
 
 const narrativeStudioProductShellKey =
@@ -70,6 +73,9 @@ class NarrativeStudioProductShell extends StatelessWidget {
     this.status,
     this.appMark,
     this.documentActions,
+    this.globalSearchIndex,
+    this.onOpenSearchEntry,
+    this.commandPaletteActions = const [],
   });
 
   final NarrativeStudioDestination selectedDestination;
@@ -83,6 +89,25 @@ class NarrativeStudioProductShell extends StatelessWidget {
   final Widget? status;
   final Widget? appMark;
   final Widget? documentActions;
+  final NarrativeGlobalSearchIndex? globalSearchIndex;
+  final ValueChanged<NarrativeGlobalSearchEntry>? onOpenSearchEntry;
+  final List<NarrativeCommandPaletteAction> commandPaletteActions;
+
+  Future<void> _openCommandPalette(BuildContext context) async {
+    final index = globalSearchIndex;
+    final onOpen = onOpenSearchEntry;
+    if (index == null || onOpen == null) return;
+    final previousFocus = FocusManager.instance.primaryFocus;
+    await showNarrativeCommandPalette(
+      context: context,
+      index: index,
+      actions: commandPaletteActions,
+      onOpenEntry: onOpen,
+    );
+    if (context.mounted && previousFocus?.canRequestFocus == true) {
+      previousFocus!.requestFocus();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,70 +116,84 @@ class NarrativeStudioProductShell extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final rail = narrativeStudioRailPresentation(constraints.maxWidth);
-        return Semantics(
-          key: narrativeStudioProductShellKey,
-          container: true,
-          label: l10n.shellSemantics,
-          child: ColoredBox(
-            color: colors.chromeBackground,
-            child: Column(
-              children: [
-                _NarrativeStudioProductHeader(
-                  appMark: appMark,
-                  documentActions: documentActions,
-                ),
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(
-                        width: rail.width,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (project != null)
-                              SizedBox(
-                                key: narrativeStudioProductShellProjectKey,
-                                height: 52,
+        return CallbackShortcuts(
+          bindings: <ShortcutActivator, VoidCallback>{
+            const SingleActivator(LogicalKeyboardKey.keyK, meta: true): () =>
+                _openCommandPalette(context),
+            const SingleActivator(LogicalKeyboardKey.keyK, control: true): () =>
+                _openCommandPalette(context),
+          },
+          child: Semantics(
+            key: narrativeStudioProductShellKey,
+            container: true,
+            label: l10n.shellSemantics,
+            child: ColoredBox(
+              color: colors.chromeBackground,
+              child: Column(
+                children: [
+                  _NarrativeStudioProductHeader(
+                    appMark: appMark,
+                    documentActions: documentActions,
+                    onOpenCommandPalette:
+                        globalSearchIndex == null || onOpenSearchEntry == null
+                            ? null
+                            : () => _openCommandPalette(context),
+                  ),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          width: rail.width,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (project != null)
+                                SizedBox(
+                                  key: narrativeStudioProductShellProjectKey,
+                                  height: 52,
+                                  child: Padding(
+                                    padding:
+                                        const EdgeInsets.fromLTRB(8, 8, 0, 8),
+                                    child: project,
+                                  ),
+                                ),
+                              Expanded(
                                 child: Padding(
                                   padding:
                                       const EdgeInsets.fromLTRB(8, 8, 0, 8),
-                                  child: project,
+                                  child: NarrativeStudioProductNavigation(
+                                    key:
+                                        narrativeStudioProductShellNavigationKey,
+                                    selectedDestination: selectedDestination,
+                                    selectedLocation: selectedLocation,
+                                    onSelectDestination: onSelectDestination,
+                                    onSelectLocation: onSelectLocation,
+                                    onReturn: onReturn,
+                                    onOpenMaps: onOpenMaps,
+                                    status: status,
+                                    collapsed: rail.collapsed,
+                                  ),
                                 ),
                               ),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(8, 8, 0, 8),
-                                child: NarrativeStudioProductNavigation(
-                                  key: narrativeStudioProductShellNavigationKey,
-                                  selectedDestination: selectedDestination,
-                                  selectedLocation: selectedLocation,
-                                  onSelectDestination: onSelectDestination,
-                                  onSelectLocation: onSelectLocation,
-                                  onReturn: onReturn,
-                                  onOpenMaps: onOpenMaps,
-                                  status: status,
-                                  collapsed: rail.collapsed,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 8, bottom: 8),
-                          child: SizedBox.expand(
-                            key: narrativeStudioProductShellWorkspaceKey,
-                            child: workspace,
+                            ],
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 8, bottom: 8),
+                            child: SizedBox.expand(
+                              key: narrativeStudioProductShellWorkspaceKey,
+                              child: workspace,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -167,10 +206,12 @@ class _NarrativeStudioProductHeader extends StatelessWidget {
   const _NarrativeStudioProductHeader({
     required this.appMark,
     required this.documentActions,
+    required this.onOpenCommandPalette,
   });
 
   final Widget? appMark;
   final Widget? documentActions;
+  final VoidCallback? onOpenCommandPalette;
 
   @override
   Widget build(BuildContext context) {
@@ -217,9 +258,20 @@ class _NarrativeStudioProductHeader extends StatelessWidget {
               label: l10n.beta,
               variant: PokeMapBadgeVariant.info,
             ),
-            if (documentActions != null) ...[
+            if (documentActions != null || onOpenCommandPalette != null) ...[
               const Spacer(),
-              documentActions!,
+              if (onOpenCommandPalette != null)
+                PokeMapIconButton(
+                  key: const ValueKey('narrative-command-palette-open'),
+                  onPressed: onOpenCommandPalette,
+                  tooltip: 'Recherche globale (⌘K)',
+                  variant: PokeMapIconButtonVariant.soft,
+                  icon: const Icon(CupertinoIcons.search),
+                ),
+              if (documentActions != null) ...[
+                if (onOpenCommandPalette != null) const SizedBox(width: 8),
+                documentActions!,
+              ],
             ],
           ],
         ),

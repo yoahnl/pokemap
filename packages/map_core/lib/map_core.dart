@@ -208,6 +208,7 @@ export 'src/authoring/narrative_reference_rewrite.dart';
 export 'src/authoring/storyline_legacy_import_preview.dart';
 export 'src/read_models/narrative_reference_picker_read_models.dart';
 export 'src/read_models/narrative_dependency_index.dart';
+export 'src/read_models/narrative_global_search_index.dart';
 export 'src/read_models/narrative_command_catalog.dart';
 export 'src/diagnostics/narrative_command_diagnostics.dart';
 export 'src/read_models/narrative_event_source_index.dart';

@@ -5,7 +5,8 @@ import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_navig
 
 void main() {
   group('NSC-10 navigation session', () {
-    test('restores a single-use route selection scroll and focus snapshot', () {
+    test('restores a single-use route selection viewport and focus snapshot',
+        () {
       final controller = NarrativeStudioNavigationController();
       final source = NarrativeStudioRouteLocation.events(
         selection: NarrativeStudioAssetSelection(
@@ -23,6 +24,7 @@ void main() {
       final expectedReturn = NarrativeStudioReturnExpectation(
         location: source,
         scrollOffset: 236,
+        zoom: 1.35,
         focusAnchorId: 'v2:evt_port',
       );
 
@@ -40,6 +42,22 @@ void main() {
       expect(controller.consumeRestoration(revision), isTrue);
       expect(controller.state.restorationRequest, isNull);
       expect(controller.restoreReturn(), isNull);
+    });
+
+    test('rejects invalid viewport snapshots', () {
+      final location = NarrativeStudioRouteLocation.scenes();
+
+      expect(
+        () => NarrativeStudioReturnExpectation(location: location, zoom: 0),
+        throwsArgumentError,
+      );
+      expect(
+        () => NarrativeStudioReturnExpectation(
+          location: location,
+          zoom: double.nan,
+        ),
+        throwsArgumentError,
+      );
     });
 
     test('top-level replacement clears stale return and restoration state', () {

@@ -11,6 +11,7 @@ import '../../l10n/l10n.dart';
 import 'shared/pokemap_macos_ui_shim.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_destination.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_command_palette.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_navigation.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_route_presentation.dart';
@@ -31,6 +32,7 @@ import '../features/editor/state/editor_notifier.dart';
 import '../features/editor/state/editor_selectors.dart';
 import '../features/editor/state/editor_state.dart';
 import '../features/narrative/state/narrative_event_builder_v2_providers.dart';
+import '../features/narrative/state/narrative_validator_providers.dart';
 import '../application/services/narrative_document_session.dart';
 import '../features/border_studio/state/border_studio_providers.dart';
 
@@ -78,6 +80,41 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
   /// When false, the left ResizablePane is collapsed to a narrow toggle strip.
   bool _leftSidebarVisible = true;
   bool _isHandlingBorderExit = false;
+  ProjectManifest? _indexedNarrativeProject;
+  MapData? _indexedNarrativeMap;
+  String? _indexedNarrativeDiagnostics;
+  int _narrativeSearchRevision = 0;
+  NarrativeGlobalSearchIndex _narrativeSearchIndex =
+      NarrativeGlobalSearchIndex.fromEntries(revision: 0, entries: const []);
+
+  NarrativeGlobalSearchIndex _globalSearchIndexFor({
+    required ProjectManifest project,
+    required MapData? activeMap,
+    required List<NarrativeProjectDiagnostic> diagnostics,
+  }) {
+    final diagnosticsFingerprint =
+        diagnostics.map((item) => item.stableKey).join('\n');
+    if (identical(_indexedNarrativeProject, project) &&
+        identical(_indexedNarrativeMap, activeMap) &&
+        _indexedNarrativeDiagnostics == diagnosticsFingerprint) {
+      return _narrativeSearchIndex;
+    }
+    _indexedNarrativeProject = project;
+    _indexedNarrativeMap = activeMap;
+    _indexedNarrativeDiagnostics = diagnosticsFingerprint;
+    _narrativeSearchRevision++;
+    final dependencyIndex = buildNarrativeDependencyIndex(
+      project: project,
+      maps: [if (activeMap != null) activeMap],
+    );
+    _narrativeSearchIndex = buildNarrativeGlobalSearchIndex(
+      project: project,
+      dependencyIndex: dependencyIndex,
+      diagnostics: diagnostics,
+      revision: _narrativeSearchRevision,
+    );
+    return _narrativeSearchIndex;
+  }
 
   @override
   void initState() {
@@ -148,6 +185,32 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     );
     final canRevalidateEventProject =
         project != null && (projectRootPath?.trim().isNotEmpty ?? false);
+    final narrativeValidatorRequest = usesNarrativeStudioProductShell &&
+            project != null &&
+            (projectRootPath?.trim().isNotEmpty ?? false)
+        ? NarrativeValidatorSnapshotRequest.fromProject(
+            projectRootPath: projectRootPath!.trim(),
+            project: project,
+            activeMap: activeMap,
+          )
+        : null;
+    final narrativeDiagnostics = narrativeValidatorRequest == null
+        ? const <NarrativeProjectDiagnostic>[]
+        : ref
+                .watch(
+                  narrativeValidatorReportProvider(narrativeValidatorRequest),
+                )
+                .asData
+                ?.value
+                .diagnostics ??
+            const <NarrativeProjectDiagnostic>[];
+    final narrativeSearchIndex = project == null
+        ? null
+        : _globalSearchIndexFor(
+            project: project,
+            activeMap: activeMap,
+            diagnostics: narrativeDiagnostics,
+          );
 
     void revalidateEventProject() {
       final root = projectRootPath?.trim();
@@ -247,6 +310,69 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       openNarrativeWorkspaceForLocation(location);
     }
 
+    Future<void> openNarrativeSearchEntry(
+      NarrativeGlobalSearchEntry entry,
+    ) async {
+      final diagnostic = entry.diagnostic;
+      final resolution = diagnostic == null
+          ? entry.navigationIntent == null
+              ? const NarrativeStudioNavigationResolution.unavailable(
+                  'Cet élément ne possède pas encore de destination ouvrable.',
+                )
+              : resolveNarrativeDependencyNavigationIntent(
+                  entry.navigationIntent!,
+                )
+          : resolveNarrativeProjectDiagnostic(diagnostic);
+      final location = resolution.location;
+      if (resolution.kind == NarrativeStudioNavigationResolutionKind.internal &&
+          location != null) {
+        await selectNarrativeLocation(location);
+        return;
+      }
+      final mapTarget = resolution.externalMapTarget;
+      if (resolution.kind !=
+              NarrativeStudioNavigationResolutionKind.externalMap ||
+          mapTarget == null) {
+        _flashToast(
+          resolution.reason ?? 'Cette destination ne peut pas être ouverte.',
+          isError: true,
+        );
+        return;
+      }
+      if (!await guardNarrativeNavigation()) return;
+      final currentEditor = ref.read(editorNotifierProvider);
+      if (currentEditor.activeMap?.id != mapTarget.mapId &&
+          currentEditor.isDirty) {
+        _flashToast(
+          'Enregistrez la map active avant d’ouvrir ${mapTarget.mapId}.',
+          isError: true,
+        );
+        return;
+      }
+      final map = currentEditor.activeMap?.id == mapTarget.mapId
+          ? currentEditor.activeMap
+          : await notifier.loadMapSnapshotById(mapTarget.mapId);
+      if (map == null || !notifier.activateNarrativeEventMapSnapshot(map)) {
+        _flashToast(
+          'Impossible d’ouvrir la map ${mapTarget.mapId}.',
+          isError: true,
+        );
+        return;
+      }
+      if (mapTarget.sourceKind == 'map') {
+        notifier.focusNarrativeEventMapSource(
+          NarrativeEditorFocusTarget.map(mapTarget.mapId),
+        );
+      }
+      ref
+          .read(narrativeStudioNavigationControllerProvider.notifier)
+          .rememberExternalReturn(
+            NarrativeStudioReturnExpectation(
+              location: selectedNarrativeLocation,
+            ),
+          );
+    }
+
     Future<void> restoreNarrativeLocation() async {
       if (!await guardNarrativeNavigation()) return;
       final expectation = ref
@@ -255,6 +381,44 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       if (expectation == null) return;
       openNarrativeWorkspaceForLocation(expectation.location);
     }
+
+    final narrativeCommandPaletteActions = <NarrativeCommandPaletteAction>[
+      for (final destination in NarrativeStudioDestination.values)
+        if (destination != NarrativeStudioDestination.validator)
+          NarrativeCommandPaletteAction(
+            id: 'navigate.${destination.name}',
+            label: _narrativeDestinationCommandLabel(destination),
+            description: 'Ouvrir cet espace du Narrative Studio',
+            kind: NarrativeCommandPaletteActionKind.navigation,
+            onInvoke: () => unawaited(
+              selectNarrativeDestination(destination),
+            ),
+          ),
+      NarrativeCommandPaletteAction(
+        id: 'project.validate',
+        label: 'Valider le projet narratif',
+        description: 'Ouvrir le Validateur et ses diagnostics',
+        kind: NarrativeCommandPaletteActionKind.validate,
+        onInvoke: () => unawaited(
+          selectNarrativeDestination(NarrativeStudioDestination.validator),
+        ),
+      ),
+      NarrativeCommandPaletteAction(
+        id: 'project.save',
+        label: 'Enregistrer le projet',
+        description: 'Sauvegarder les changements narratifs courants',
+        shortcutLabel: '⌘ S',
+        kind: NarrativeCommandPaletteActionKind.save,
+        enabled: project != null,
+        onInvoke: () {
+          if (notifier.narrativeDocumentBlocksNavigation) {
+            unawaited(notifier.saveNarrativeDocument());
+          } else {
+            unawaited(notifier.saveProjectManifest());
+          }
+        },
+      ),
+    ];
 
     final normalizedProjectIdentity = _narrativeProjectIdentity(
       projectRootPath: projectRootPath,
@@ -456,6 +620,10 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                         selectedLocation: selectedNarrativeLocation,
                         onSelectDestination: selectNarrativeDestination,
                         onSelectLocation: selectNarrativeLocation,
+                        globalSearchIndex: narrativeSearchIndex,
+                        onOpenSearchEntry: (entry) =>
+                            unawaited(openNarrativeSearchEntry(entry)),
+                        commandPaletteActions: narrativeCommandPaletteActions,
                         onReturn: navigationState.pendingReturn == null
                             ? null
                             : () => unawaited(restoreNarrativeLocation()),
@@ -1901,6 +2069,21 @@ String _narrativeDocumentStatusLabel(
     NarrativeDocumentSessionStatus.recovered => l10n.narrativeStatusRecovered,
   };
 }
+
+String _narrativeDestinationCommandLabel(
+  NarrativeStudioDestination destination,
+) =>
+    switch (destination) {
+      NarrativeStudioDestination.overview => 'Ouvrir l’aperçu narratif',
+      NarrativeStudioDestination.storylines => 'Ouvrir les storylines',
+      NarrativeStudioDestination.scenes => 'Ouvrir les scènes',
+      NarrativeStudioDestination.events => 'Ouvrir les événements',
+      NarrativeStudioDestination.cinematics => 'Ouvrir les cinématiques',
+      NarrativeStudioDestination.dialogues => 'Ouvrir les dialogues',
+      NarrativeStudioDestination.facts => 'Ouvrir les facts',
+      NarrativeStudioDestination.worldRules => 'Ouvrir les règles du monde',
+      NarrativeStudioDestination.validator => 'Ouvrir le validateur',
+    };
 
 PokeMapBadgeVariant _narrativeDocumentStatusVariant(
   NarrativeDocumentSessionStatus status,
