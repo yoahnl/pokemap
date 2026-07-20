@@ -127,3 +127,12 @@ export 'src/narrative_outcome_outbox_processor.dart'
         NarrativeOutcomeOutboxTerminalized,
         NarrativeOutcomeOutboxDataInconsistency,
         NarrativeOutcomeOutboxProcessor;
+export 'src/validation/narrative_physical_reachability_validator.dart'
+    show
+        NarrativePhysicalReachabilityVerdict,
+        NarrativePhysicalSourceStatus,
+        NarrativePhysicalIssueCode,
+        NarrativePhysicalReachabilityIssue,
+        NarrativePhysicalSourceResult,
+        NarrativePhysicalReachabilityReport,
+        validateNarrativePhysicalReachability;
