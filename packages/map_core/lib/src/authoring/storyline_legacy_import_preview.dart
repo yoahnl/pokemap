@@ -10,6 +10,118 @@ const String _globalStoryDocumentMetadataKey =
 const String _stepStudioDocumentMetadataKey = 'authoring.stepStudioDocument';
 const String _legacyGlobalStorySourceKind = 'scenario.globalStory';
 
+/// Outcome of the explicit, non-destructive legacy Global Story import.
+enum StorylineLegacyImportDisposition { imported, noChange, rejected }
+
+/// Before/after envelope used to keep import failures and retries atomic.
+class StorylineLegacyGlobalStoryImportResult {
+  const StorylineLegacyGlobalStoryImportResult({
+    required this.before,
+    required this.after,
+    required this.disposition,
+    this.importedStoryline,
+    this.code,
+    this.message,
+  });
+
+  final ProjectManifest before;
+  final ProjectManifest after;
+  final StorylineLegacyImportDisposition disposition;
+  final StorylineAsset? importedStoryline;
+  final String? code;
+  final String? message;
+}
+
+/// Imports exactly one selected preview candidate into canonical Storylines.
+///
+/// The legacy Scenario remains untouched as rollback evidence. A source marked
+/// as imported is an idempotent no-op, never a second canonical asset.
+StorylineLegacyGlobalStoryImportResult applyLegacyGlobalStoryImport(
+  ProjectManifest manifest, {
+  required String sourceScenarioId,
+}) {
+  final sourceId = sourceScenarioId.trim();
+  for (final storyline in manifest.storylines) {
+    final legacySource = storyline.legacySource;
+    if (legacySource?.kind == _legacyGlobalStorySourceKind &&
+        legacySource?.sourceId == sourceId &&
+        legacySource?.metadata['imported'] == 'true') {
+      return StorylineLegacyGlobalStoryImportResult(
+        before: manifest,
+        after: manifest,
+        disposition: StorylineLegacyImportDisposition.noChange,
+        importedStoryline: storyline,
+        code: 'alreadyImported',
+        message: 'This legacy Global Story is already imported.',
+      );
+    }
+  }
+
+  final preview = buildLegacyGlobalStoryImportPreview(manifest);
+  StorylineLegacyGlobalStoryImportCandidate? candidate;
+  for (final current in preview.candidates) {
+    if (current.sourceScenarioId == sourceId) {
+      candidate = current;
+      break;
+    }
+  }
+  if (candidate == null) {
+    return StorylineLegacyGlobalStoryImportResult(
+      before: manifest,
+      after: manifest,
+      disposition: StorylineLegacyImportDisposition.noChange,
+      code: 'candidateNotFound',
+      message: 'No legacy Global Story matches this source id.',
+    );
+  }
+  if (_hasBlockingIssue(candidate.issues)) {
+    return StorylineLegacyGlobalStoryImportResult(
+      before: manifest,
+      after: manifest,
+      disposition: StorylineLegacyImportDisposition.rejected,
+      code: 'candidateBlocked',
+      message: 'The legacy Global Story preview contains blocking issues.',
+    );
+  }
+
+  final draft = candidate.draftStoryline;
+  final imported = draft.copyWith(
+    legacySource: StorylineLegacySource(
+      kind: draft.legacySource!.kind,
+      sourceId: draft.legacySource!.sourceId,
+      metadata: <String, String>{
+        ...draft.legacySource!.metadata,
+        'preview': 'false',
+        'imported': 'true',
+      },
+    ),
+    metadata: <String, String>{
+      for (final entry in draft.metadata.entries)
+        if (entry.key != 'legacyImportPreview') entry.key: entry.value,
+      'legacyImported': 'true',
+    },
+  );
+  try {
+    final after = manifest.copyWith(
+      storylines: [...manifest.storylines, imported],
+    );
+    return StorylineLegacyGlobalStoryImportResult(
+      before: manifest,
+      after: after,
+      disposition: StorylineLegacyImportDisposition.imported,
+      importedStoryline: imported,
+    );
+  } on Object catch (error) {
+    return StorylineLegacyGlobalStoryImportResult(
+      before: manifest,
+      after: manifest,
+      disposition: StorylineLegacyImportDisposition.rejected,
+      code: 'invalidImportedProjection',
+      message: 'The imported StorylineAsset projection is invalid: $error',
+    );
+  }
+}
+
 StorylineLegacyGlobalStoryImportPreview buildLegacyGlobalStoryImportPreview(
   ProjectManifest manifest,
 ) {

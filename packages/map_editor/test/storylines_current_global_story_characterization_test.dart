@@ -102,6 +102,34 @@ void main() {
         );
       },
     );
+
+    test('keeps manifest storylines canonical until an explicit legacy import',
+        () {
+      final canonical = StorylineAsset(
+        id: 'canonical_story',
+        type: StorylineType.main,
+        status: StorylineStatus.active,
+        title: 'Canonical Story',
+      );
+      final project = _auditProject().copyWith(storylines: [canonical]);
+      final before = project.toJson();
+
+      final preview = buildLegacyGlobalStoryImportPreview(project);
+
+      expect(project.toJson(), before);
+      expect(project.storylines, [canonical]);
+      expect(preview.candidates.single.sourceScenarioId, 'audit_global_story');
+
+      final imported = applyLegacyGlobalStoryImport(
+        project,
+        sourceScenarioId: 'audit_global_story',
+      );
+
+      expect(imported.disposition, StorylineLegacyImportDisposition.imported);
+      expect(imported.after.storylines.first, canonical);
+      expect(imported.after.storylines, hasLength(2));
+      expect(imported.after.scenarios, equals(project.scenarios));
+    });
   });
 }
 

@@ -233,6 +233,84 @@ void main() {
           _containsRule('invalidStepStudioMetadata'));
     });
   });
+
+  group('applyLegacyGlobalStoryImport', () {
+    test('imports one selected preview without deleting the legacy scenario',
+        () {
+      final manifest = _manifest(
+        scenarios: [_globalStory(id: 'global_story', name: 'Global')],
+      );
+
+      final result = applyLegacyGlobalStoryImport(
+        manifest,
+        sourceScenarioId: 'global_story',
+      );
+
+      expect(result.disposition, StorylineLegacyImportDisposition.imported);
+      expect(result.after.scenarios, equals(manifest.scenarios));
+      expect(result.after.storylines, hasLength(1));
+      final imported = result.importedStoryline!;
+      expect(imported.id, 'legacy_global_story');
+      expect(imported.legacySource!.sourceId, 'global_story');
+      expect(imported.legacySource!.metadata['imported'], 'true');
+      expect(imported.metadata['legacyImportPreview'], isNull);
+      expect(imported.metadata['legacyImported'], 'true');
+    });
+
+    test('is idempotent for an already imported legacy source', () {
+      final manifest = _manifest(
+        scenarios: [_globalStory(id: 'global_story', name: 'Global')],
+      );
+      final imported = applyLegacyGlobalStoryImport(
+        manifest,
+        sourceScenarioId: 'global_story',
+      );
+
+      final repeated = applyLegacyGlobalStoryImport(
+        imported.after,
+        sourceScenarioId: 'global_story',
+      );
+
+      expect(repeated.disposition, StorylineLegacyImportDisposition.noChange);
+      expect(repeated.after, same(imported.after));
+      expect(repeated.importedStoryline, same(imported.importedStoryline));
+    });
+
+    test('rejects an id collision and leaves the manifest unchanged', () {
+      final existing = StorylineAsset(
+        id: 'legacy_global_story',
+        type: StorylineType.main,
+        title: 'Existing',
+      );
+      final manifest = _manifest(
+        scenarios: [_globalStory(id: 'global_story', name: 'Global')],
+        storylines: [existing],
+      );
+
+      final result = applyLegacyGlobalStoryImport(
+        manifest,
+        sourceScenarioId: 'global_story',
+      );
+
+      expect(result.disposition, StorylineLegacyImportDisposition.rejected);
+      expect(result.code, 'candidateBlocked');
+      expect(result.after, same(manifest));
+      expect(result.importedStoryline, isNull);
+    });
+
+    test('returns a no-op when the selected legacy source does not exist', () {
+      final manifest = _manifest();
+
+      final result = applyLegacyGlobalStoryImport(
+        manifest,
+        sourceScenarioId: 'missing',
+      );
+
+      expect(result.disposition, StorylineLegacyImportDisposition.noChange);
+      expect(result.code, 'candidateNotFound');
+      expect(result.after, same(manifest));
+    });
+  });
 }
 
 Matcher _containsRule(String ruleId) {

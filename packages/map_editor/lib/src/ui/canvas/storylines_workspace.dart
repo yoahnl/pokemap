@@ -81,12 +81,41 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
     final legacyStep =
         widget.projection.steps.isEmpty ? null : widget.projection.steps.first;
     final legacyStepCount = widget.projection.steps.length;
+    final legacyPreview =
+        project == null ? null : buildLegacyGlobalStoryImportPreview(project);
+    // Preview stays read-only: only this explicit header action may promote one
+    // legacy Global Story, and imported sources disappear from the next choice.
+    final pendingLegacyCandidates = legacyPreview == null
+        ? const <StorylineLegacyGlobalStoryImportCandidate>[]
+        : legacyPreview.candidates.where(
+            (candidate) => !storylines.any(
+              (storyline) =>
+                  storyline.legacySource?.kind == 'scenario.globalStory' &&
+                  storyline.legacySource?.sourceId ==
+                      candidate.sourceScenarioId &&
+                  storyline.legacySource?.metadata['imported'] == 'true',
+            ),
+          );
+    final legacyImportCandidate =
+        pendingLegacyCandidates.isEmpty ? null : pendingLegacyCandidates.first;
 
     return NarrativeStudioWorkspacePage(
       presentation: narrativeStudioRoutePresentationFor(
         EditorWorkspaceMode.globalStory,
       )!,
       actions: [
+        if (project != null && legacyImportCandidate != null)
+          PokeMapButton(
+            key: const ValueKey('storylines-import-legacy-action'),
+            onPressed: () => _importLegacyGlobalStory(
+              project,
+              legacyImportCandidate.sourceScenarioId,
+            ),
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.compact,
+            leading: const Icon(CupertinoIcons.arrow_down_doc, size: 16),
+            child: const Text('Importer la Global Story'),
+          ),
         PokeMapButton(
           key: const ValueKey('storylines-create-main-cta'),
           focusNode: _createStorylineFocusNode,
@@ -182,6 +211,30 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
                 selectedChapter: _selectedTab == _StorylineContentTab.structure
                     ? selectedChapter
                     : null,
+                onEdit: project == null || selectedStoryline == null
+                    ? null
+                    : () => _openEditStorylineDialog(
+                          project,
+                          selectedStoryline,
+                        ),
+                onDuplicate: project == null || selectedStoryline == null
+                    ? null
+                    : () => _duplicateSelectedStoryline(
+                          project,
+                          selectedStoryline,
+                        ),
+                onArchive: project == null || selectedStoryline == null
+                    ? null
+                    : () => _archiveSelectedStoryline(
+                          project,
+                          selectedStoryline,
+                        ),
+                onDelete: project == null || selectedStoryline == null
+                    ? null
+                    : () => _deleteSelectedStoryline(
+                          project,
+                          selectedStoryline,
+                        ),
               ),
             ),
           ],
@@ -367,15 +420,15 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
       title: draft.title,
       description: draft.description,
     );
-    final updated = project.copyWith(
-      storylines: [...project.storylines, storyline],
+    final result = createStoryline(project, storyline: storyline);
+    if (!result.isApplied) {
+      await _showStorylineMutationFailure(result);
+      return;
+    }
+    _applyStorylineMutation(
+      result,
+      statusMessage: 'Storyline créée',
     );
-    ref.read(editorNotifierProvider.notifier).applyInMemoryProjectManifest(
-          updated,
-          statusMessage: draft.type == StorylineType.sideQuest
-              ? 'Quête annexe créée'
-              : 'Storyline principale créée',
-        );
     setState(() {
       _selectedStorylineId = storyline.id;
       _selectedChapterId = null;
@@ -383,6 +436,175 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
           ? _StorylineContentTab.structure
           : _StorylineContentTab.graph;
     });
+  }
+
+  Future<void> _importLegacyGlobalStory(
+    ProjectManifest project,
+    String sourceScenarioId,
+  ) async {
+    final result = applyLegacyGlobalStoryImport(
+      project,
+      sourceScenarioId: sourceScenarioId,
+    );
+    if (result.disposition == StorylineLegacyImportDisposition.rejected) {
+      await _showStorylineMessage(
+        title: 'Import impossible',
+        message: result.message ?? 'La Global Story ne peut pas être importée.',
+      );
+      return;
+    }
+    final imported = result.importedStoryline;
+    if (result.disposition != StorylineLegacyImportDisposition.imported ||
+        imported == null) {
+      return;
+    }
+    ref.read(editorNotifierProvider.notifier).applyInMemoryProjectManifest(
+          result.after,
+          statusMessage: 'Global Story importée explicitement',
+        );
+    setState(() {
+      _selectedStorylineId = imported.id;
+      _selectedChapterId =
+          imported.chapters.isEmpty ? null : imported.chapters.first.id;
+      _selectedStepId = null;
+      _selectedTab = _StorylineContentTab.graph;
+    });
+  }
+
+  Future<void> _openEditStorylineDialog(
+    ProjectManifest project,
+    StorylineAsset storyline,
+  ) async {
+    final draft = await showCupertinoDialog<_StorylineEditDraft>(
+      context: context,
+      builder: (context) => _EditStorylineDialog(storyline: storyline),
+    );
+    if (draft == null || !mounted) return;
+    final result = updateStoryline(
+      project,
+      storylineId: storyline.id,
+      storyline: storyline.copyWith(
+        type: draft.type,
+        status: draft.status,
+        title: draft.title,
+        description: draft.description,
+        authorNotes: draft.authorNotes,
+      ),
+    );
+    if (!result.isApplied) {
+      if (result.disposition == StorylineMutationDisposition.rejected) {
+        await _showStorylineMutationFailure(result);
+      }
+      return;
+    }
+    _applyStorylineMutation(result, statusMessage: 'Storyline modifiée');
+  }
+
+  Future<void> _duplicateSelectedStoryline(
+    ProjectManifest project,
+    StorylineAsset storyline,
+  ) async {
+    final title = '${storyline.title} (copie)';
+    final result = duplicateStoryline(
+      project,
+      storylineId: storyline.id,
+      duplicateId:
+          _generateStorylineId(title, storyline.type, project.storylines),
+      title: title,
+    );
+    if (!result.isApplied || result.storyline == null) {
+      await _showStorylineMutationFailure(result);
+      return;
+    }
+    _applyStorylineMutation(result, statusMessage: 'Storyline dupliquée');
+    setState(() {
+      _selectedStorylineId = result.storyline!.id;
+      _selectedChapterId = result.storyline!.chapters.isEmpty
+          ? null
+          : result.storyline!.chapters.first.id;
+      _selectedStepId = null;
+    });
+  }
+
+  Future<void> _archiveSelectedStoryline(
+    ProjectManifest project,
+    StorylineAsset storyline,
+  ) async {
+    final result = archiveStoryline(project, storylineId: storyline.id);
+    if (result.disposition == StorylineMutationDisposition.rejected) {
+      await _showStorylineMutationFailure(result);
+      return;
+    }
+    if (result.isApplied) {
+      _applyStorylineMutation(result, statusMessage: 'Storyline archivée');
+    }
+  }
+
+  Future<void> _deleteSelectedStoryline(
+    ProjectManifest project,
+    StorylineAsset storyline,
+  ) async {
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => _ConfirmStructureDeleteDialog(
+        title: 'Supprimer la storyline',
+        message:
+            'La storyline "${storyline.title}" sera supprimée uniquement si aucun élément narratif ne la référence.',
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final result = deleteStoryline(project, storylineId: storyline.id);
+    if (!result.isApplied) {
+      await _showStorylineMutationFailure(result);
+      return;
+    }
+    _applyStorylineMutation(result, statusMessage: 'Storyline supprimée');
+    final remaining = result.after.storylines;
+    setState(() {
+      _selectedStorylineId = remaining.isEmpty ? null : remaining.first.id;
+      _selectedChapterId = remaining.isEmpty || remaining.first.chapters.isEmpty
+          ? null
+          : remaining.first.chapters.first.id;
+      _selectedStepId = null;
+    });
+  }
+
+  void _applyStorylineMutation(
+    StorylineMutationResult result, {
+    required String statusMessage,
+  }) {
+    ref.read(editorNotifierProvider.notifier).applyInMemoryProjectManifest(
+          result.after,
+          statusMessage: statusMessage,
+        );
+  }
+
+  Future<void> _showStorylineMutationFailure(
+    StorylineMutationResult result,
+  ) {
+    final consumers = result.referencePaths.isEmpty
+        ? ''
+        : '\n\nConsommateurs :\n${result.referencePaths.join('\n')}';
+    return _showStorylineMessage(
+      title: result.code == 'storylineReferenced'
+          ? 'Suppression protégée'
+          : 'Modification impossible',
+      message:
+          '${result.message ?? 'La modification a été refusée.'}$consumers',
+    );
+  }
+
+  Future<void> _showStorylineMessage({
+    required String title,
+    required String message,
+  }) {
+    return showCupertinoDialog<void>(
+      context: context,
+      builder: (context) => _StorylineMessageDialog(
+        title: title,
+        message: message,
+      ),
+    );
   }
 
   Future<void> _openCreateChapterDialog(
@@ -1169,6 +1391,13 @@ class _StorylinesV1SecondaryPanel extends StatelessWidget {
     final sideQuests = storylines
         .where((storyline) => storyline.type == StorylineType.sideQuest)
         .toList(growable: false);
+    final otherStorylines = storylines
+        .where(
+          (storyline) =>
+              storyline.type != StorylineType.main &&
+              storyline.type != StorylineType.sideQuest,
+        )
+        .toList(growable: false);
     return PokeMapPanel(
       key: const ValueKey('storylines-secondary-panel'),
       expandChild: true,
@@ -1228,6 +1457,24 @@ class _StorylinesV1SecondaryPanel extends StatelessWidget {
                   ),
                 ),
               ),
+            if (otherStorylines.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _StorylinesSectionLabel(
+                label: 'AUTRES RÉCITS',
+                color: colors.textMuted,
+              ),
+              const SizedBox(height: 8),
+              ...otherStorylines.map(
+                (storyline) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _StorylinesV1Row(
+                    storyline: storyline,
+                    selected: storyline.id == selectedStorylineId,
+                    onTap: () => onStorylineSelected(storyline),
+                  ),
+                ),
+              ),
+            ],
           ],
           const Spacer(),
           if (storylines.isEmpty && legacyGlobalStory != null)
@@ -1257,7 +1504,7 @@ class _StorylinesV1SecondaryPanel extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Import manuel à venir.',
+                    'Import explicite disponible dans la barre d’actions.',
                     style: TextStyle(
                       color: colors.textMuted,
                       fontSize: 11,
@@ -1545,7 +1792,9 @@ class _StorylinesV1Header extends StatelessWidget {
                     _StorylinesV1Badge(
                       label: _storylineTypeLabel(selectedStoryline!.type),
                     ),
-                    const _StorylinesV1Badge(label: 'Brouillon'),
+                    _StorylinesV1Badge(
+                      label: _storylineStatusLabel(selectedStoryline!.status),
+                    ),
                     if (selectedStoryline!.type == StorylineType.sideQuest)
                       _StorylinesV1Badge(
                         label: _sideQuestAttachmentStatus(selectedStoryline!),
@@ -1585,7 +1834,9 @@ class _StorylinesV1Header extends StatelessWidget {
                       _StorylinesV1Badge(
                         label: _storylineTypeLabel(selectedStoryline!.type),
                       ),
-                      const _StorylinesV1Badge(label: 'Brouillon'),
+                      _StorylinesV1Badge(
+                        label: _storylineStatusLabel(selectedStoryline!.status),
+                      ),
                       if (selectedStoryline!.type == StorylineType.sideQuest)
                         _StorylinesV1Badge(
                           label: _sideQuestAttachmentStatus(
@@ -1992,10 +2243,18 @@ class _StorylinesV1InspectorPanel extends StatelessWidget {
   const _StorylinesV1InspectorPanel({
     required this.selectedStoryline,
     required this.selectedChapter,
+    required this.onEdit,
+    required this.onDuplicate,
+    required this.onArchive,
+    required this.onDelete,
   });
 
   final StorylineAsset? selectedStoryline;
   final StorylineChapter? selectedChapter;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDuplicate;
+  final VoidCallback? onArchive;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -2069,65 +2328,113 @@ class _StorylinesV1InspectorPanel extends StatelessWidget {
                     ),
                   ],
                 )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'DÉTAILS STORYLINE',
-                      style: TextStyle(
-                        color: colors.textMuted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
+              : SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'DÉTAILS STORYLINE',
+                        style: TextStyle(
+                          color: colors.textMuted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      selectedStoryline!.title,
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
+                      const SizedBox(height: 14),
+                      Text(
+                        selectedStoryline!.title,
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      selectedStoryline!.description ?? 'Aucune description.',
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: 12,
-                        height: 1.35,
+                      const SizedBox(height: 8),
+                      Text(
+                        selectedStoryline!.description ?? 'Aucune description.',
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 12,
+                          height: 1.35,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    _StorylineInspectorTextLine(
-                      label: 'Type',
-                      value: _storylineTypeLabel(selectedStoryline!.type),
-                    ),
-                    const _StorylineInspectorTextLine(
-                      label: 'Statut',
-                      value: 'Draft',
-                    ),
-                    _StorylineInspectorTextLine(
-                      label: 'Chapitres',
-                      value: selectedStoryline!.chapters.length.toString(),
-                    ),
-                    _StorylineInspectorTextLine(
-                      label: 'Étapes',
-                      value: _storylineStepCount(selectedStoryline!).toString(),
-                    ),
-                    _StorylineInspectorTextLine(
-                      label: 'Scene links',
-                      value: selectedStoryline!.sceneLinks.length.toString(),
-                    ),
-                    if (selectedStoryline!.type == StorylineType.sideQuest)
+                      const SizedBox(height: 16),
                       _StorylineInspectorTextLine(
-                        label: 'Relation principale',
-                        value:
-                            _sideQuestMainAttachment(selectedStoryline!) == null
-                                ? 'Non reliée'
-                                : 'Reliée',
+                        label: 'Type',
+                        value: _storylineTypeLabel(selectedStoryline!.type),
                       ),
-                  ],
+                      _StorylineInspectorTextLine(
+                        label: 'Statut',
+                        value: _storylineStatusLabel(selectedStoryline!.status),
+                      ),
+                      _StorylineInspectorTextLine(
+                        label: 'Chapitres',
+                        value: selectedStoryline!.chapters.length.toString(),
+                      ),
+                      _StorylineInspectorTextLine(
+                        label: 'Étapes',
+                        value:
+                            _storylineStepCount(selectedStoryline!).toString(),
+                      ),
+                      _StorylineInspectorTextLine(
+                        label: 'Scene links',
+                        value: selectedStoryline!.sceneLinks.length.toString(),
+                      ),
+                      if (selectedStoryline!.type == StorylineType.sideQuest)
+                        _StorylineInspectorTextLine(
+                          label: 'Relation principale',
+                          value: _sideQuestMainAttachment(selectedStoryline!) ==
+                                  null
+                              ? 'Non reliée'
+                              : 'Reliée',
+                        ),
+                      if (selectedStoryline!.authorNotes != null) ...[
+                        const SizedBox(height: 14),
+                        Text(
+                          selectedStoryline!.authorNotes!,
+                          style: TextStyle(
+                            color: colors.textSecondary,
+                            fontSize: 12,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 18),
+                      PokeMapButton(
+                        key: const ValueKey('storylines-edit-storyline-action'),
+                        onPressed: onEdit,
+                        variant: PokeMapButtonVariant.primary,
+                        leading: const Icon(CupertinoIcons.pencil, size: 15),
+                        child: const Text('Modifier'),
+                      ),
+                      const SizedBox(height: 8),
+                      PokeMapButton(
+                        key: const ValueKey('storylines-duplicate-action'),
+                        onPressed: onDuplicate,
+                        variant: PokeMapButtonVariant.secondary,
+                        leading:
+                            const Icon(CupertinoIcons.doc_on_doc, size: 15),
+                        child: const Text('Dupliquer'),
+                      ),
+                      const SizedBox(height: 8),
+                      PokeMapButton(
+                        key: const ValueKey('storylines-archive-action'),
+                        onPressed: onArchive,
+                        variant: PokeMapButtonVariant.secondary,
+                        leading:
+                            const Icon(CupertinoIcons.archivebox, size: 15),
+                        child: const Text('Archiver'),
+                      ),
+                      const SizedBox(height: 8),
+                      PokeMapButton(
+                        key: const ValueKey('storylines-delete-action'),
+                        onPressed: onDelete,
+                        variant: PokeMapButtonVariant.danger,
+                        leading: const Icon(CupertinoIcons.trash, size: 15),
+                        child: const Text('Supprimer'),
+                      ),
+                    ],
+                  ),
                 ),
     );
   }
@@ -2143,6 +2450,22 @@ class _CreateStorylineDraft {
   final StorylineType type;
   final String title;
   final String? description;
+}
+
+class _StorylineEditDraft {
+  const _StorylineEditDraft({
+    required this.type,
+    required this.status,
+    required this.title,
+    required this.description,
+    required this.authorNotes,
+  });
+
+  final StorylineType type;
+  final StorylineStatus status;
+  final String title;
+  final String? description;
+  final String? authorNotes;
 }
 
 class _StructureItemDraft {
@@ -2872,6 +3195,243 @@ class _ConfirmStructureDeleteDialog extends StatelessWidget {
   }
 }
 
+class _StorylineMessageDialog extends StatelessWidget {
+  const _StorylineMessageDialog({
+    required this.title,
+    required this.message,
+  });
+
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Center(
+      child: SizedBox(
+        width: 480,
+        child: PokeMapPanel(
+          key: const ValueKey('storylines-message-dialog'),
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                message,
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 12.5,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: PokeMapButton(
+                  key: const ValueKey('storylines-message-close'),
+                  onPressed: () => Navigator.of(context).pop(),
+                  variant: PokeMapButtonVariant.primary,
+                  child: const Text('Fermer'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditStorylineDialog extends StatefulWidget {
+  const _EditStorylineDialog({required this.storyline});
+
+  final StorylineAsset storyline;
+
+  @override
+  State<_EditStorylineDialog> createState() => _EditStorylineDialogState();
+}
+
+class _EditStorylineDialogState extends State<_EditStorylineDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+  late final TextEditingController _notesController;
+  late StorylineType _type;
+  late StorylineStatus _status;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.storyline.title);
+    _descriptionController =
+        TextEditingController(text: widget.storyline.description ?? '');
+    _notesController =
+        TextEditingController(text: widget.storyline.authorNotes ?? '');
+    _type = widget.storyline.type;
+    _status = widget.storyline.status;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final title = _titleController.text.trim();
+    final maxDialogHeight =
+        (MediaQuery.sizeOf(context).height - 48).clamp(420.0, 820.0);
+    return Center(
+      child: SizedBox(
+        width: 560,
+        child: PokeMapPanel(
+          key: const ValueKey('storylines-edit-dialog'),
+          padding: const EdgeInsets.all(18),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxDialogHeight),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Modifier la storyline',
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _StorylinesV1TextField(
+                          key: const ValueKey('storylines-edit-title-field'),
+                          controller: _titleController,
+                          placeholder: 'Titre',
+                          onChanged: (_) => setState(() {}),
+                        ),
+                        const SizedBox(height: 10),
+                        _StorylinesV1TextField(
+                          key: const ValueKey(
+                            'storylines-edit-description-field',
+                          ),
+                          controller: _descriptionController,
+                          placeholder: 'Description optionnelle',
+                          maxLines: 3,
+                        ),
+                        const SizedBox(height: 10),
+                        _StorylinesV1TextField(
+                          key: const ValueKey('storylines-edit-notes-field'),
+                          controller: _notesController,
+                          placeholder: 'Notes auteur optionnelles',
+                          maxLines: 3,
+                        ),
+                        const SizedBox(height: 16),
+                        _StorylinesSectionLabel(
+                          label: 'TYPE',
+                          color: colors.textMuted,
+                        ),
+                        const SizedBox(height: 8),
+                        for (final type in StorylineType.values)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _StorylineTypeChoice(
+                              key: ValueKey(
+                                'storylines-edit-type-${type.name.toLowerCase()}',
+                              ),
+                              label: _storylineTypeLabel(type),
+                              description: _storylineTypeDescription(type),
+                              selected: _type == type,
+                              enabled: true,
+                              disabledReason: null,
+                              onTap: () => setState(() => _type = type),
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                        _StorylinesSectionLabel(
+                          label: 'STATUT',
+                          color: colors.textMuted,
+                        ),
+                        const SizedBox(height: 8),
+                        for (final status in StorylineStatus.values)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _StorylineTypeChoice(
+                              key: ValueKey(
+                                'storylines-edit-status-${status.name}',
+                              ),
+                              label: _storylineStatusLabel(status),
+                              description: _storylineStatusDescription(status),
+                              selected: _status == status,
+                              enabled: true,
+                              disabledReason: null,
+                              onTap: () => setState(() => _status = status),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    PokeMapButton(
+                      key: const ValueKey('storylines-edit-cancel'),
+                      onPressed: () => Navigator.of(context).pop(),
+                      variant: PokeMapButtonVariant.secondary,
+                      child: const Text('Annuler'),
+                    ),
+                    const SizedBox(width: 10),
+                    PokeMapButton(
+                      key: const ValueKey('storylines-edit-submit'),
+                      onPressed: title.isEmpty
+                          ? null
+                          : () {
+                              final description =
+                                  _descriptionController.text.trim();
+                              final notes = _notesController.text.trim();
+                              Navigator.of(context).pop(
+                                _StorylineEditDraft(
+                                  type: _type,
+                                  status: _status,
+                                  title: title,
+                                  description:
+                                      description.isEmpty ? null : description,
+                                  authorNotes: notes.isEmpty ? null : notes,
+                                ),
+                              );
+                            },
+                      variant: PokeMapButtonVariant.primary,
+                      child: const Text('Enregistrer'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CreateStorylineDialog extends StatefulWidget {
   const _CreateStorylineDialog({required this.storylines});
 
@@ -2897,7 +3457,7 @@ class _CreateStorylineDialogState extends State<_CreateStorylineDialog> {
     return switch (_selectedType) {
       StorylineType.main => _canCreateMain,
       StorylineType.sideQuest => _canCreateSideQuest,
-      _ => false,
+      _ => true,
     };
   }
 
@@ -2939,32 +3499,44 @@ class _CreateStorylineDialogState extends State<_CreateStorylineDialog> {
                 ),
               ),
               const SizedBox(height: 14),
-              _StorylineTypeChoice(
-                key: const ValueKey('storylines-create-type-main'),
-                label: 'Histoire principale',
-                description: 'Structure principale du jeu.',
-                selected: _selectedType == StorylineType.main,
-                enabled: _canCreateMain,
-                disabledReason: _hasMainStoryline
-                    ? 'Une histoire principale existe déjà.'
-                    : null,
-                onTap: () => setState(() {
-                  _selectedType = StorylineType.main;
-                }),
-              ),
-              const SizedBox(height: 8),
-              _StorylineTypeChoice(
-                key: const ValueKey('storylines-create-type-sidequest'),
-                label: 'Quête annexe',
-                description: 'Histoire secondaire optionnelle.',
-                selected: _selectedType == StorylineType.sideQuest,
-                enabled: _canCreateSideQuest,
-                disabledReason: _canCreateSideQuest
-                    ? null
-                    : 'Créez d’abord une histoire principale pour organiser les quêtes annexes.',
-                onTap: () => setState(() {
-                  _selectedType = StorylineType.sideQuest;
-                }),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 300),
+                child: SingleChildScrollView(
+                  key: const ValueKey('storylines-create-type-scroll'),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final type in StorylineType.values)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _StorylineTypeChoice(
+                            key: ValueKey(
+                              'storylines-create-type-${type.name.toLowerCase()}',
+                            ),
+                            label: _storylineTypeLabel(type),
+                            description: _storylineTypeDescription(type),
+                            selected: _selectedType == type,
+                            enabled: switch (type) {
+                              StorylineType.main => _canCreateMain,
+                              StorylineType.sideQuest => _canCreateSideQuest,
+                              _ => true,
+                            },
+                            disabledReason: switch (type) {
+                              StorylineType.main when _hasMainStoryline =>
+                                'Une histoire principale existe déjà.',
+                              StorylineType.sideQuest
+                                  when !_canCreateSideQuest =>
+                                'Créez d’abord une histoire principale pour organiser les quêtes annexes.',
+                              _ => null,
+                            },
+                            onTap: () => setState(() {
+                              _selectedType = type;
+                            }),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 14),
               _StorylinesV1TextField(
@@ -3158,6 +3730,36 @@ String _storylineTypeLabel(StorylineType type) {
     StorylineType.episode => 'Épisode',
     StorylineType.postGame => 'Post-game',
     StorylineType.hiddenEvent => 'Événement caché',
+  };
+}
+
+String _storylineTypeDescription(StorylineType type) {
+  return switch (type) {
+    StorylineType.main => 'Structure principale du jeu.',
+    StorylineType.sideQuest => 'Histoire secondaire optionnelle.',
+    StorylineType.tutorial => 'Parcours guidé pour apprendre une mécanique.',
+    StorylineType.epilogue => 'Conclusion narrative après l’histoire.',
+    StorylineType.episode => 'Arc narratif autonome ou sérialisé.',
+    StorylineType.postGame => 'Contenu narratif débloqué après la fin.',
+    StorylineType.hiddenEvent => 'Récit secret déclenché par des conditions.',
+  };
+}
+
+String _storylineStatusLabel(StorylineStatus status) {
+  return switch (status) {
+    StorylineStatus.draft => 'Brouillon',
+    StorylineStatus.active => 'Actif',
+    StorylineStatus.archived => 'Archivé',
+    StorylineStatus.disabled => 'Désactivé',
+  };
+}
+
+String _storylineStatusDescription(StorylineStatus status) {
+  return switch (status) {
+    StorylineStatus.draft => 'En construction et non prête à publier.',
+    StorylineStatus.active => 'Disponible pour la progression narrative.',
+    StorylineStatus.archived => 'Conservée hors du parcours actif.',
+    StorylineStatus.disabled => 'Temporairement désactivée sans suppression.',
   };
 }
 

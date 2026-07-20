@@ -86,6 +86,167 @@ void main() {
       expect(harness.project.scenarios.single.scope, ScenarioScope.globalStory);
     });
 
+    testWidgets('imports legacy Global Story only from the explicit action',
+        (tester) async {
+      final harness = await _pumpStorylinesShell(
+        tester,
+        project: _legacyOnlyProject(),
+      );
+
+      expect(harness.project.storylines, isEmpty);
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-import-legacy-action')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(harness.project.storylines, hasLength(1));
+      expect(harness.project.scenarios, hasLength(1));
+      expect(harness.project.scenarios.single.id, 'legacy_global_story');
+      expect(
+        harness.project.storylines.single.legacySource!.sourceId,
+        'legacy_global_story',
+      );
+      expect(
+        harness.project.storylines.single.legacySource!.metadata['imported'],
+        'true',
+      );
+    });
+
+    testWidgets('creates the non-main canonical storyline types',
+        (tester) async {
+      final harness = await _pumpStorylinesShell(tester);
+
+      await _openCreateDialog(tester);
+      final episodeChoice =
+          find.byKey(const ValueKey('storylines-create-type-episode'));
+      await tester.ensureVisible(episodeChoice);
+      await tester.tap(episodeChoice);
+      await tester.enterText(
+        find.byKey(const ValueKey('storylines-create-title-field')),
+        'Episode pilote',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('storylines-create-submit')));
+      await tester.pumpAndSettle();
+
+      expect(harness.project.storylines.single.type, StorylineType.episode);
+      expect(harness.project.storylines.single.title, 'Episode pilote');
+    });
+
+    testWidgets('edits, duplicates, archives and deletes a storyline',
+        (tester) async {
+      final harness = await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+          ),
+        ]),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-edit-storyline-action')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('storylines-edit-title-field')),
+        'Renamed episode',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('storylines-edit-notes-field')),
+        'Review notes',
+      );
+      final episodeChoice =
+          find.byKey(const ValueKey('storylines-edit-type-episode'));
+      await tester.ensureVisible(episodeChoice);
+      await tester.tap(episodeChoice);
+      final activeChoice =
+          find.byKey(const ValueKey('storylines-edit-status-active'));
+      await tester.ensureVisible(activeChoice);
+      await tester.tap(activeChoice);
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-edit-submit')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(harness.project.storylines.single.title, 'Renamed episode');
+      expect(harness.project.storylines.single.type, StorylineType.episode);
+      expect(harness.project.storylines.single.status, StorylineStatus.active);
+      expect(harness.project.storylines.single.authorNotes, 'Review notes');
+
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-duplicate-action')),
+      );
+      await tester.pumpAndSettle();
+      expect(harness.project.storylines, hasLength(2));
+      final duplicate = harness.project.storylines.last;
+      expect(duplicate.status, StorylineStatus.draft);
+      expect(duplicate.metadata['duplicatedFrom'], 'storyline_existing_main');
+
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-archive-action')),
+      );
+      await tester.pumpAndSettle();
+      expect(harness.project.storylines.last.status, StorylineStatus.archived);
+
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-delete-action')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-confirm-delete-submit')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(harness.project.storylines, hasLength(1));
+      expect(harness.project.storylines.single.id, 'storyline_existing_main');
+    });
+
+    testWidgets('shows dependency consumers before refusing a deletion',
+        (tester) async {
+      final main = StorylineAsset(
+        id: 'story_main',
+        type: StorylineType.main,
+        title: 'Protected main',
+      );
+      final side = StorylineAsset(
+        id: 'story_side',
+        type: StorylineType.sideQuest,
+        title: 'Consumer side quest',
+        relationships: [
+          StorylineRelationship(
+            id: 'side_requires_main',
+            kind: StorylineRelationshipKind.requires,
+            sourceStorylineId: 'story_side',
+            targetStorylineId: 'story_main',
+          ),
+        ],
+      );
+      final harness = await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([main, side]),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-delete-action')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-confirm-delete-submit')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('storylines-message-dialog')),
+        findsOneWidget,
+      );
+      expect(find.text('Suppression protégée'), findsOneWidget);
+      expect(find.textContaining('relationships'), findsOneWidget);
+      expect(harness.project.storylines, hasLength(2));
+    });
+
     testWidgets(
         'opens and cancels create main storyline dialog without mutation',
         (tester) async {

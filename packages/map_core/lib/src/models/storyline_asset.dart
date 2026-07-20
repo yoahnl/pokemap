@@ -3,6 +3,8 @@ import 'package:meta/meta.dart' show immutable;
 import '../exceptions/map_exceptions.dart';
 import 'script_conditions.dart';
 
+const Object _storylineCopyUnset = Object();
+
 enum StorylineType {
   main,
   sideQuest,
@@ -200,6 +202,52 @@ final class StorylineAsset {
   final StorylineLegacySource? legacySource;
   final String? authorNotes;
   final Map<String, String> metadata;
+
+  /// Rebuilds this immutable aggregate while allowing nullable authoring fields
+  /// to be cleared explicitly through the private sentinel defaults.
+  StorylineAsset copyWith({
+    String? id,
+    int? schemaVersion,
+    StorylineType? type,
+    StorylineStatus? status,
+    String? title,
+    Object? description = _storylineCopyUnset,
+    Object? sortOrder = _storylineCopyUnset,
+    Object? locale = _storylineCopyUnset,
+    List<StorylineChapter>? chapters,
+    List<StorylineSceneLink>? sceneLinks,
+    List<StorylineRelationship>? relationships,
+    Object? legacySource = _storylineCopyUnset,
+    Object? authorNotes = _storylineCopyUnset,
+    Map<String, String>? metadata,
+  }) {
+    return StorylineAsset(
+      id: id ?? this.id,
+      schemaVersion: schemaVersion ?? this.schemaVersion,
+      type: type ?? this.type,
+      status: status ?? this.status,
+      title: title ?? this.title,
+      description: identical(description, _storylineCopyUnset)
+          ? this.description
+          : description as String?,
+      sortOrder: identical(sortOrder, _storylineCopyUnset)
+          ? this.sortOrder
+          : sortOrder as int?,
+      locale: identical(locale, _storylineCopyUnset)
+          ? this.locale
+          : locale as String?,
+      chapters: chapters ?? this.chapters,
+      sceneLinks: sceneLinks ?? this.sceneLinks,
+      relationships: relationships ?? this.relationships,
+      legacySource: identical(legacySource, _storylineCopyUnset)
+          ? this.legacySource
+          : legacySource as StorylineLegacySource?,
+      authorNotes: identical(authorNotes, _storylineCopyUnset)
+          ? this.authorNotes
+          : authorNotes as String?,
+      metadata: metadata ?? this.metadata,
+    );
+  }
 
   @override
   bool operator ==(Object other) =>

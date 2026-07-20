@@ -2,6 +2,37 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('StorylineAsset copyWith', () {
+    test('updates lifecycle fields while preserving authored structure', () {
+      final source = StorylineAsset(
+        id: 'story_main',
+        type: StorylineType.main,
+        title: 'Original title',
+        description: 'Original description',
+        authorNotes: 'Original notes',
+        chapters: [
+          StorylineChapter(id: 'chapter_intro', title: 'Intro', order: 0),
+        ],
+      );
+
+      final updated = source.copyWith(
+        type: StorylineType.episode,
+        status: StorylineStatus.active,
+        title: 'Renamed title',
+        description: null,
+        authorNotes: 'Updated notes',
+      );
+
+      expect(updated.id, source.id);
+      expect(updated.type, StorylineType.episode);
+      expect(updated.status, StorylineStatus.active);
+      expect(updated.title, 'Renamed title');
+      expect(updated.description, isNull);
+      expect(updated.authorNotes, 'Updated notes');
+      expect(updated.chapters, source.chapters);
+    });
+  });
+
   group('StorylineAsset construction', () {
     test('accepts minimal main draft with default schema and empty structure',
         () {
