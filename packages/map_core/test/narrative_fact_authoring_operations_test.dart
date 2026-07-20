@@ -71,6 +71,35 @@ void main() {
       expect(result.updatedFact.defaultValue, isTrue);
       expect(result.updatedProject.scenes, [scene]);
       expect(result.updatedProject.facts.single.tags, ['story', 'intro']);
+      expect(result.updatedProject.facts.single.id, 'fact_intro');
+    });
+
+    test('duplicates every authoring field under a new stable identity', () {
+      final source = NarrativeFactDefinition(
+        id: 'fact_port_open',
+        label: 'Port ouvert',
+        description: 'État du port.',
+        category: 'Port',
+        defaultValue: true,
+        tags: const ['main', 'port'],
+        legacyFlagName: 'legacy.port.open',
+      );
+      final manifest = _manifest(facts: [source]);
+
+      final result = duplicateNarrativeFact(
+        manifest,
+        factId: source.id,
+      );
+
+      expect(result.createdFact.id, 'fact_port_ouvert_copie');
+      expect(result.createdFact.label, 'Port ouvert (copie)');
+      expect(result.createdFact.description, source.description);
+      expect(result.createdFact.category, source.category);
+      expect(result.createdFact.defaultValue, source.defaultValue);
+      expect(result.createdFact.tags, source.tags);
+      expect(result.createdFact.legacyFlagName, isNull,
+          reason: 'A legacy alias cannot have two canonical owners.');
+      expect(result.updatedProject.facts, [source, result.createdFact]);
     });
 
     test('removes an unreferenced fact and refuses referenced facts', () {
@@ -130,6 +159,57 @@ void main() {
       );
       expect(manifest.facts, [worldRuleFact, consequenceFact]);
     });
+
+    test('dependency index blocks Event V2 and New Game consumers', () {
+      final fact = NarrativeFactDefinition(
+        id: 'fact_progress',
+        label: 'Progression',
+      );
+      final event = NarrativeEventDefinition(
+        id: 'evt_019abcde-8000-7000-8000-000000000001',
+        name: 'Progression event',
+        source: NarrativeEventSourceRef.mapEnter('map_start'),
+        conditions: [NarrativeEventCondition.fact(fact.id, true)],
+        sceneId: 'scene_test',
+        reusePolicy: NarrativeEventReusePolicy.reusable,
+        priority: 0,
+        order: 0,
+      );
+      final eventProject = _manifest(
+        facts: [fact],
+        scenes: [_scene()],
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          records: [
+            NarrativeEventRecord.configuredStructurallyUnchecked(
+              event,
+              enabled: true,
+            ),
+          ],
+          legacyClaims: const [],
+        ),
+      );
+      final newGameProject = _manifest(
+        facts: [fact],
+        newGame: ProjectNewGameConfig(
+          initialFacts: {fact.id: false},
+          existingPartyFactId: fact.id,
+        ),
+      );
+
+      for (final project in [eventProject, newGameProject]) {
+        final index = buildNarrativeDependencyIndex(project: project);
+        expect(
+          () => removeNarrativeFact(
+            project,
+            factId: fact.id,
+            dependencyIndex: index,
+          ),
+          throwsArgumentError,
+        );
+      }
+    });
   });
 }
 
@@ -137,6 +217,8 @@ ProjectManifest _manifest({
   List<NarrativeFactDefinition> facts = const [],
   List<SceneAsset> scenes = const [],
   List<WorldRuleDefinition> worldRules = const [],
+  NarrativeEventRegistry? eventRegistry,
+  ProjectNewGameConfig newGame = const ProjectNewGameConfig(),
 }) {
   return ProjectManifest(
     name: 'Facts test',
@@ -145,6 +227,8 @@ ProjectManifest _manifest({
     facts: facts,
     scenes: scenes,
     worldRules: worldRules,
+    eventRegistry: eventRegistry,
+    newGame: newGame,
   );
 }
 

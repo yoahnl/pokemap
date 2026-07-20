@@ -3,6 +3,7 @@ import '../models/enums.dart';
 import '../models/map_data.dart';
 import '../models/map_event_definition.dart';
 import '../models/narrative_fact.dart';
+import '../models/narrative_fact_runtime_state.dart';
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
@@ -28,6 +29,7 @@ final class FactsWorldRulesManagerReadModel {
     required List<WorldRuleTargetPickerOption> targetOptions,
     required List<WorldRuleEffectPickerOption> effectOptions,
     required List<WorldRuleDialoguePickerOption> dialogueOptions,
+    required List<String> factCategories,
   })  : facts = List<FactManagerEntry>.unmodifiable(facts),
         worldRules = List<WorldRuleManagerEntry>.unmodifiable(worldRules),
         sourceOptions =
@@ -37,7 +39,8 @@ final class FactsWorldRulesManagerReadModel {
         effectOptions =
             List<WorldRuleEffectPickerOption>.unmodifiable(effectOptions),
         dialogueOptions =
-            List<WorldRuleDialoguePickerOption>.unmodifiable(dialogueOptions);
+            List<WorldRuleDialoguePickerOption>.unmodifiable(dialogueOptions),
+        factCategories = List<String>.unmodifiable(factCategories);
 
   final List<FactManagerEntry> facts;
   final List<WorldRuleManagerEntry> worldRules;
@@ -45,6 +48,7 @@ final class FactsWorldRulesManagerReadModel {
   final List<WorldRuleTargetPickerOption> targetOptions;
   final List<WorldRuleEffectPickerOption> effectOptions;
   final List<WorldRuleDialoguePickerOption> dialogueOptions;
+  final List<String> factCategories;
 
   int get factCount => facts.length;
 
@@ -76,12 +80,28 @@ final class FactManagerEntry {
   FactManagerEntry({
     required this.fact,
     required List<FactManagerUsage> usages,
+    required this.hasRuntimeOverride,
+    required this.runtimeOverrideValue,
   }) : usages = List<FactManagerUsage>.unmodifiable(usages);
 
   final NarrativeFactDefinition fact;
   final List<FactManagerUsage> usages;
+  final bool hasRuntimeOverride;
+  final bool? runtimeOverrideValue;
 
   bool get isUsed => usages.isNotEmpty;
+
+  bool get initialValue => fact.defaultValue;
+
+  bool get effectiveValue => runtimeOverrideValue ?? initialValue;
+
+  List<FactManagerUsage> get readerUsages => List.unmodifiable(
+        usages.where((usage) => !_isFactWriterUsage(usage)),
+      );
+
+  List<FactManagerUsage> get writerUsages => List.unmodifiable(
+        usages.where(_isFactWriterUsage),
+      );
 }
 
 final class FactManagerUsage {
@@ -194,6 +214,7 @@ FactsWorldRulesManagerReadModel buildFactsWorldRulesManagerReadModel(
   ProjectManifest project, {
   List<MapData> maps = const <MapData>[],
   NarrativeDependencyIndex? dependencyIndex,
+  NarrativeFactRuntimeState? runtimeState,
 }) {
   final usagesByFactId = <String, List<FactManagerUsage>>{
     for (final fact in project.facts) fact.id: <FactManagerUsage>[],
@@ -217,6 +238,11 @@ FactsWorldRulesManagerReadModel buildFactsWorldRulesManagerReadModel(
   final diagnosticsReport = diagnoseWorldRules(project, maps: maps);
   final worldRules = project.worldRules.toList(growable: false)
     ..sort(_compareWorldRules);
+  final categories = <String>{
+    '',
+    ...project.facts.map((fact) => fact.category),
+  }.toList()
+    ..sort();
 
   return FactsWorldRulesManagerReadModel(
     facts: [
@@ -224,6 +250,9 @@ FactsWorldRulesManagerReadModel buildFactsWorldRulesManagerReadModel(
         FactManagerEntry(
           fact: fact,
           usages: usagesByFactId[fact.id] ?? const <FactManagerUsage>[],
+          hasRuntimeOverride:
+              runtimeState?.overridesByFactId.containsKey(fact.id) ?? false,
+          runtimeOverrideValue: runtimeState?.overridesByFactId[fact.id],
         ),
     ],
     worldRules: [
@@ -240,7 +269,23 @@ FactsWorldRulesManagerReadModel buildFactsWorldRulesManagerReadModel(
     targetOptions: _buildTargetOptions(project, maps: maps),
     effectOptions: _buildEffectOptions(),
     dialogueOptions: _buildDialogueOptions(project),
+    factCategories: categories,
   );
+}
+
+bool _isFactWriterUsage(FactManagerUsage usage) {
+  return switch (usage.kind) {
+    FactManagerUsageKind.sceneConsequence ||
+    FactManagerUsageKind.storylineEffect =>
+      true,
+    FactManagerUsageKind.newGame =>
+      (usage.dependencyPath ?? usage.details).contains('.initialFacts['),
+    FactManagerUsageKind.sceneCondition ||
+    FactManagerUsageKind.worldRuleSource ||
+    FactManagerUsageKind.eventV2 ||
+    FactManagerUsageKind.legacySource =>
+      false,
+  };
 }
 
 Iterable<FactManagerUsage> _collectFactUsagesFromDependencyIndex(

@@ -1,8 +1,7 @@
+import '../models/map_data.dart';
 import '../models/narrative_fact.dart';
 import '../models/project_manifest.dart';
-import '../models/scene_asset.dart';
-import '../models/scene_consequence.dart';
-import '../models/world_rule.dart';
+import '../read_models/narrative_dependency_index.dart';
 
 final class NarrativeFactCreationResult {
   const NarrativeFactCreationResult({
@@ -72,10 +71,8 @@ NarrativeFactUpdateResult updateNarrativeFact(
   List<String> tags = const <String>[],
   String? legacyFlagName,
 }) {
-  final index = manifest.facts.indexWhere((fact) => fact.id == factId);
-  if (index < 0) {
-    throw ArgumentError.value(factId, 'factId', 'Unknown narrative fact.');
-  }
+  final currentFact = _uniqueFact(manifest, factId);
+  final index = manifest.facts.indexOf(currentFact);
   final updatedFact = NarrativeFactDefinition(
     id: factId,
     label: label,
@@ -93,40 +90,58 @@ NarrativeFactUpdateResult updateNarrativeFact(
   );
 }
 
-NarrativeFactRemovalResult removeNarrativeFact(
+/// Duplicates author-facing metadata without duplicating a legacy alias.
+///
+/// A legacy flag is an identity bridge, not ordinary metadata. Copying it would
+/// make dependency resolution ambiguous, so the new Fact deliberately starts
+/// without one and can be linked explicitly by a later migration workflow.
+NarrativeFactCreationResult duplicateNarrativeFact(
   ProjectManifest manifest, {
   required String factId,
 }) {
-  final index = manifest.facts.indexWhere((fact) => fact.id == factId);
-  if (index < 0) {
-    throw ArgumentError.value(factId, 'factId', 'Unknown narrative fact.');
-  }
-  final referencingScene = _firstSceneReferencingFact(manifest, factId);
-  if (referencingScene != null) {
+  final source = _uniqueFact(manifest, factId);
+  final label = '${source.label} (copie)';
+  final duplicated = NarrativeFactDefinition(
+    id: _uniqueFactId(label, manifest.facts.map((fact) => fact.id)),
+    label: label,
+    description: source.description,
+    category: source.category,
+    defaultValue: source.defaultValue,
+    tags: source.tags,
+  );
+  return NarrativeFactCreationResult(
+    updatedProject: manifest.copyWith(facts: [...manifest.facts, duplicated]),
+    createdFact: duplicated,
+  );
+}
+
+NarrativeFactRemovalResult removeNarrativeFact(
+  ProjectManifest manifest, {
+  required String factId,
+  List<MapData> maps = const <MapData>[],
+  NarrativeDependencyIndex? dependencyIndex,
+}) {
+  final removedFact = _uniqueFact(manifest, factId);
+  final index = manifest.facts.indexOf(removedFact);
+  final canonicalIndex =
+      buildNarrativeDependencyIndex(project: manifest, maps: maps);
+  final target = NarrativeDependencyKey(
+    NarrativeDependencyTargetKind.fact,
+    factId,
+  );
+  final usages = <NarrativeDependencyUsage>[
+    ...canonicalIndex.usagesFor(target),
+    if (dependencyIndex != null && !identical(dependencyIndex, canonicalIndex))
+      ...dependencyIndex.usagesFor(target),
+  ];
+  if (usages.isNotEmpty) {
+    final first = usages.first;
     throw ArgumentError.value(
       factId,
       'factId',
-      'Cannot remove narrative fact referenced by scene ${referencingScene.id}.',
+      'Cannot remove narrative fact referenced at ${first.path}.',
     );
   }
-  final producingScene = _firstSceneProducingFact(manifest, factId);
-  if (producingScene != null) {
-    throw ArgumentError.value(
-      factId,
-      'factId',
-      'Cannot remove narrative fact produced by scene ${producingScene.id}.',
-    );
-  }
-  final referencingWorldRule = _firstWorldRuleReferencingFact(manifest, factId);
-  if (referencingWorldRule != null) {
-    throw ArgumentError.value(
-      factId,
-      'factId',
-      'Cannot remove narrative fact referenced by world rule '
-          '${referencingWorldRule.id}.',
-    );
-  }
-  final removedFact = manifest.facts[index];
   final facts = manifest.facts.toList(growable: true)..removeAt(index);
   return NarrativeFactRemovalResult(
     updatedProject: manifest.copyWith(facts: facts),
@@ -134,52 +149,22 @@ NarrativeFactRemovalResult removeNarrativeFact(
   );
 }
 
-SceneAsset? _firstSceneProducingFact(ProjectManifest manifest, String factId) {
-  for (final scene in manifest.scenes) {
-    for (final node in scene.graph.nodes) {
-      final payload = node.payload;
-      if (payload is! SceneActionPayload) {
-        continue;
-      }
-      final consequence = payload.consequence;
-      if (consequence is SceneSetFactConsequence &&
-          consequence.factId == factId) {
-        return scene;
-      }
-    }
-  }
-  return null;
-}
-
-WorldRuleDefinition? _firstWorldRuleReferencingFact(
+NarrativeFactDefinition _uniqueFact(
   ProjectManifest manifest,
   String factId,
 ) {
-  for (final rule in manifest.worldRules) {
-    if (rule.source.kind == WorldRuleSourceKind.fact &&
-        rule.source.sourceId == factId) {
-      return rule;
-    }
+  final matches = manifest.facts.where((fact) => fact.id == factId).toList();
+  if (matches.isEmpty) {
+    throw ArgumentError.value(factId, 'factId', 'Unknown narrative fact.');
   }
-  return null;
-}
-
-SceneAsset? _firstSceneReferencingFact(
-    ProjectManifest manifest, String factId) {
-  for (final scene in manifest.scenes) {
-    for (final node in scene.graph.nodes) {
-      final payload = node.payload;
-      if (payload is! SceneConditionPayload) {
-        continue;
-      }
-      final source = payload.conditionSource;
-      if (source?.sourceKind == SceneConditionSourceKind.fact &&
-          source?.sourceId == factId) {
-        return scene;
-      }
-    }
+  if (matches.length != 1) {
+    throw ArgumentError.value(
+      factId,
+      'factId',
+      'Ambiguous narrative fact identity.',
+    );
   }
-  return null;
+  return matches.single;
 }
 
 String _uniqueFactId(String label, Iterable<String> existingIds) {

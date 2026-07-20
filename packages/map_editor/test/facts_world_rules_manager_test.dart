@@ -114,12 +114,89 @@ void main() {
     expect(updatedProject.facts.single.category, 'Progression');
     expect(updatedProject.facts.single.defaultValue, isTrue);
 
+    await tester.tap(find.byKey(const ValueKey('fact-editor-duplicate')));
+    await tester.pumpAndSettle();
+
+    updatedProject = container.read(editorNotifierProvider).project!;
+    expect(updatedProject.facts, hasLength(2));
+    expect(updatedProject.facts.last.id, 'fact_bridge_is_lowered_copie');
+    expect(updatedProject.facts.last.label, 'Bridge is lowered (copie)');
+    expect(updatedProject.facts.last.defaultValue, isTrue);
+    expect(find.text('Valeur initiale : Vrai'), findsOneWidget);
+    expect(find.text('Valeur runtime : absente'), findsOneWidget);
+
     await tester.tap(find.byKey(const ValueKey('fact-editor-delete')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('facts-confirm-delete')));
     await tester.pumpAndSettle();
 
-    expect(container.read(editorNotifierProvider).project!.facts, isEmpty);
+    expect(container.read(editorNotifierProvider).project!.facts, hasLength(1));
+  });
+
+  testWidgets('Facts manager filters the project registry by category and role',
+      (tester) async {
+    final reader = NarrativeFactDefinition(
+      id: 'fact_gate_open',
+      label: 'Gate open',
+      category: 'World',
+    );
+    final writer = NarrativeFactDefinition(
+      id: 'fact_reward_claimed',
+      label: 'Reward claimed',
+      category: 'Progression',
+    );
+    final unused = NarrativeFactDefinition(
+      id: 'fact_unused',
+      label: 'Unused marker',
+      category: 'World',
+    );
+    await _pumpNarrativeShell(
+      tester,
+      project: _project(
+        facts: [reader, writer, unused],
+        scenes: [_sceneProducingFact(writer.id)],
+        worldRules: [_worldRule()],
+      ),
+      workspaceMode: EditorWorkspaceMode.facts,
+      activeMap: _map(),
+    );
+
+    expect(
+        find.byKey(const ValueKey('fact-list-fact_gate_open')), findsOneWidget);
+    expect(find.byKey(const ValueKey('fact-list-fact_reward_claimed')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('fact-list-fact_unused')), findsOneWidget);
+
+    dynamic categoryPicker = tester.widget(
+      find.byKey(const ValueKey('facts-category-filter')),
+    );
+    categoryPicker.onChanged('World');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('fact-list-fact_reward_claimed')),
+        findsNothing);
+
+    dynamic rolePicker = tester.widget(
+      find.byKey(const ValueKey('facts-role-filter')),
+    );
+    rolePicker.onChanged('unused');
+    await tester.pumpAndSettle();
+    expect(
+        find.byKey(const ValueKey('fact-list-fact_gate_open')), findsNothing);
+    expect(find.byKey(const ValueKey('fact-list-fact_unused')), findsOneWidget);
+
+    categoryPicker = tester.widget(
+      find.byKey(const ValueKey('facts-category-filter')),
+    );
+    categoryPicker.onChanged('__all__');
+    await tester.pumpAndSettle();
+    rolePicker = tester.widget(
+      find.byKey(const ValueKey('facts-role-filter')),
+    );
+    rolePicker.onChanged('writers');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('fact-list-fact_reward_claimed')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('fact-list-fact_unused')), findsNothing);
   });
 
   testWidgets(
@@ -285,6 +362,7 @@ Future<void> _pumpFactsWorldRulesWorkspace(
                 activeMap: _map(),
                 initialMode: currentMode,
                 onCreateFact: ({required label}) async => null,
+                onDuplicateFact: ({required factId}) async => null,
                 onUpdateFact: ({
                   required factId,
                   required label,
@@ -369,6 +447,7 @@ Future<ProviderContainer> _pumpNarrativeShell(
 
 ProjectManifest _project({
   List<NarrativeFactDefinition> facts = const [],
+  List<SceneAsset> scenes = const [],
   List<WorldRuleDefinition> worldRules = const [],
 }) {
   return ProjectManifest(
@@ -382,7 +461,33 @@ ProjectManifest _project({
     ],
     tilesets: const [],
     facts: facts,
+    scenes: scenes,
     worldRules: worldRules,
+  );
+}
+
+SceneAsset _sceneProducingFact(String factId) {
+  return SceneAsset(
+    id: 'scene_reward',
+    name: 'Reward scene',
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'node_action',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(
+            SceneConsequence.setFact(
+              factId: factId,
+              value: true,
+              label: 'Claim reward',
+            ),
+          ),
+        ),
+      ],
+      edges: const [],
+    ),
   );
 }
 

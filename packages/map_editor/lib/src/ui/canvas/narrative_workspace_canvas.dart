@@ -1842,6 +1842,22 @@ Widget _buildFactsWorldRulesWorkspace({
         return null;
       }
     },
+    onDuplicateFact: ({required String factId}) async {
+      try {
+        final latest = readLatestProject();
+        if (latest == null) {
+          return null;
+        }
+        final result = duplicateNarrativeFact(latest, factId: factId);
+        editorNotifier.applyInMemoryProjectManifest(
+          result.updatedProject,
+          statusMessage: 'Fact duplicated',
+        );
+        return result.createdFact.id;
+      } on ArgumentError {
+        return null;
+      }
+    },
     onUpdateFact: ({
       required String factId,
       required String label,
@@ -1877,7 +1893,15 @@ Widget _buildFactsWorldRulesWorkspace({
         if (latest == null) {
           return false;
         }
-        final result = removeNarrativeFact(latest, factId: factId);
+        final result = removeNarrativeFact(
+          latest,
+          factId: factId,
+          maps: maps,
+          dependencyIndex: buildNarrativeDependencyIndex(
+            project: latest,
+            maps: maps,
+          ),
+        );
         editorNotifier.applyInMemoryProjectManifest(
           result.updatedProject,
           statusMessage: 'Fact removed',

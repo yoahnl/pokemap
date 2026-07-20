@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -45,6 +47,56 @@ void main() {
     expect(
       () => canonicalizeNarrativeEventJson(manifest.toJson()),
       returnsNormally,
+    );
+  });
+
+  test('ProjectManifest canonical JSON preserves explicit false Facts', () {
+    final manifest = ProjectManifest(
+      name: 'Fact canonical regression',
+      maps: const [],
+      tilesets: const [],
+      facts: [
+        NarrativeFactDefinition(
+          id: 'fact_explicit_false',
+          label: 'Explicit false',
+          defaultValue: false,
+        ),
+      ],
+    );
+
+    final canonical = canonicalizeNarrativeEventJson(manifest.toJson());
+    final decoded = ProjectManifest.fromJson(
+      jsonDecode(canonical) as Map<String, dynamic>,
+    );
+
+    expect(canonical, contains('"defaultValue":false'));
+    expect(decoded.facts.single.defaultValue, isFalse);
+    expect(decoded.facts.single.id, 'fact_explicit_false');
+  });
+
+  test('legacy absent false defaults safely and a broken Fact id is refused',
+      () {
+    final base = ProjectManifest(
+      name: 'Fact legacy regression',
+      maps: const [],
+      tilesets: const [],
+    ).toJson();
+    final legacy = ProjectManifest.fromJson({
+      ...base,
+      'facts': [
+        {'id': 'fact_legacy', 'label': 'Legacy Fact'},
+      ],
+    });
+
+    expect(legacy.facts.single.defaultValue, isFalse);
+    expect(
+      () => ProjectManifest.fromJson({
+        ...base,
+        'facts': [
+          {'id': '', 'label': 'Broken Fact'},
+        ],
+      }),
+      throwsArgumentError,
     );
   });
 }

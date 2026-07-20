@@ -104,6 +104,48 @@ void main() {
         contains('Guard dialogue'),
       );
     });
+
+    test('exposes categories roles and explicit runtime value presence', () {
+      final project = _manifest(
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_false',
+            label: 'Explicit false',
+            category: 'Progression',
+            defaultValue: false,
+          ),
+          NarrativeFactDefinition(
+            id: 'fact_true',
+            label: 'Runtime override',
+            category: 'World',
+            defaultValue: true,
+          ),
+        ],
+        scenes: [_sceneReferencingAndProducingFact('fact_false')],
+      );
+      final dependencyIndex = buildNarrativeDependencyIndex(project: project);
+
+      final readModel = buildFactsWorldRulesManagerReadModel(
+        project,
+        dependencyIndex: dependencyIndex,
+        runtimeState: NarrativeFactRuntimeState(
+          overridesByFactId: const {'fact_true': false},
+        ),
+      );
+
+      expect(readModel.factCategories, ['', 'Progression', 'World']);
+      final explicitFalse = readModel.factById('fact_false')!;
+      expect(explicitFalse.initialValue, isFalse);
+      expect(explicitFalse.hasRuntimeOverride, isFalse);
+      expect(explicitFalse.effectiveValue, isFalse);
+      expect(explicitFalse.readerUsages, isNotEmpty);
+      expect(explicitFalse.writerUsages, isNotEmpty);
+      final runtimeOverride = readModel.factById('fact_true')!;
+      expect(runtimeOverride.initialValue, isTrue);
+      expect(runtimeOverride.hasRuntimeOverride, isTrue);
+      expect(runtimeOverride.runtimeOverrideValue, isFalse);
+      expect(runtimeOverride.effectiveValue, isFalse);
+    });
   });
 }
 

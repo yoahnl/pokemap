@@ -20,6 +20,7 @@ class FactsWorldRulesWorkspace extends StatefulWidget {
     required this.activeMap,
     required this.initialMode,
     required this.onCreateFact,
+    required this.onDuplicateFact,
     required this.onUpdateFact,
     required this.onRemoveFact,
     required this.onCreateWorldRule,
@@ -28,6 +29,7 @@ class FactsWorldRulesWorkspace extends StatefulWidget {
     this.requestedFactId,
     this.requestedWorldRuleId,
     this.requestedSelectionNonce,
+    this.runtimeState,
   });
 
   final ProjectManifest project;
@@ -36,9 +38,13 @@ class FactsWorldRulesWorkspace extends StatefulWidget {
   final String? requestedFactId;
   final String? requestedWorldRuleId;
   final int? requestedSelectionNonce;
+  final NarrativeFactRuntimeState? runtimeState;
   final Future<String?> Function({
     required String label,
   }) onCreateFact;
+  final Future<String?> Function({
+    required String factId,
+  }) onDuplicateFact;
   final Future<bool> Function({
     required String factId,
     required String label,
@@ -96,6 +102,8 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
   bool _factDefaultValue = false;
   String? _pendingFactDeleteId;
   String? _factFeedback;
+  String _factCategoryFilter = '__all__';
+  String _factRoleFilter = 'all';
 
   String? _selectedRuleId;
   String? _loadedRuleId;
@@ -139,6 +147,11 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
     final readModel = buildFactsWorldRulesManagerReadModel(
       widget.project,
       maps: maps,
+      dependencyIndex: buildNarrativeDependencyIndex(
+        project: widget.project,
+        maps: maps,
+      ),
+      runtimeState: widget.runtimeState,
     );
     _ensureValidSelections(readModel);
     final workspaceMode = switch (_mode) {
@@ -197,6 +210,60 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                   controller: _factSearchController,
                   label: 'Rechercher',
                   onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: PokeMapDropdownField<String>(
+                        key: const ValueKey('facts-category-filter'),
+                        label: 'Catégorie',
+                        value: _factCategoryFilter,
+                        items: [
+                          const PokeMapDropdownItem(
+                            value: '__all__',
+                            label: 'Toutes',
+                          ),
+                          for (final category in readModel.factCategories)
+                            PokeMapDropdownItem(
+                              value: category,
+                              label: category.isEmpty
+                                  ? 'Sans catégorie'
+                                  : category,
+                            ),
+                        ],
+                        onChanged: (value) {
+                          setState(() => _factCategoryFilter = value);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: PokeMapDropdownField<String>(
+                        key: const ValueKey('facts-role-filter'),
+                        label: 'Portée',
+                        value: _factRoleFilter,
+                        items: const [
+                          PokeMapDropdownItem(value: 'all', label: 'Tous'),
+                          PokeMapDropdownItem(
+                            value: 'readers',
+                            label: 'Lus',
+                          ),
+                          PokeMapDropdownItem(
+                            value: 'writers',
+                            label: 'Écrits',
+                          ),
+                          PokeMapDropdownItem(
+                            value: 'unused',
+                            label: 'Non utilisés',
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() => _factRoleFilter = value);
+                        },
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 10),
                 _CreateFactPanel(
@@ -279,6 +346,38 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
               ),
             ),
             const SizedBox(height: 12),
+            PokeMapCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _StrongText(
+                    'Valeur initiale : ${_boolLabel(entry.initialValue)}',
+                  ),
+                  const SizedBox(height: 4),
+                  _SmallText(
+                    entry.hasRuntimeOverride
+                        ? 'Valeur runtime : ${_boolLabel(entry.runtimeOverrideValue!)}'
+                        : 'Valeur runtime : absente',
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      PokeMapBadge(
+                        label: '${entry.readerUsages.length} lecture(s)',
+                        variant: PokeMapBadgeVariant.info,
+                      ),
+                      PokeMapBadge(
+                        label: '${entry.writerUsages.length} écriture(s)',
+                        variant: PokeMapBadgeVariant.narrative,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
             _TokenTextField(
               key: const ValueKey('fact-editor-label-field'),
               controller: _factLabelController,
@@ -319,6 +418,13 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                   onPressed: () => _saveFact(entry.fact.id),
                   leading: const Icon(CupertinoIcons.check_mark),
                   child: const Text('Enregistrer le Fact'),
+                ),
+                PokeMapButton(
+                  key: const ValueKey('fact-editor-duplicate'),
+                  onPressed: () => _duplicateFact(entry.fact.id),
+                  variant: PokeMapButtonVariant.secondary,
+                  leading: const Icon(CupertinoIcons.doc_on_doc),
+                  child: const Text('Dupliquer'),
                 ),
                 if (entry.isUsed)
                   PokeMapButton(
@@ -384,7 +490,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
         children: [
           const _PanelTitle(
             title: 'Usages',
-            subtitle: 'Références Scene V1 et World Rules.',
+            subtitle: 'Lecteurs et producteurs du projet.',
           ),
           const SizedBox(height: 10),
           if (entry == null || entry.usages.isEmpty)
@@ -408,6 +514,15 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _StrongText(usage.ownerLabel),
+                        const SizedBox(height: 4),
+                        PokeMapBadge(
+                          label: entry.writerUsages.contains(usage)
+                              ? 'Écriture'
+                              : 'Lecture',
+                          variant: entry.writerUsages.contains(usage)
+                              ? PokeMapBadgeVariant.narrative
+                              : PokeMapBadgeVariant.info,
+                        ),
                         const SizedBox(height: 4),
                         _SmallText(usage.details),
                       ],
@@ -816,14 +931,20 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
     FactsWorldRulesManagerReadModel readModel,
   ) {
     final query = _factSearchController.text.trim().toLowerCase();
-    if (query.isEmpty) {
-      return readModel.facts;
-    }
     return [
       for (final entry in readModel.facts)
-        if (entry.fact.label.toLowerCase().contains(query) ||
-            entry.fact.id.toLowerCase().contains(query) ||
-            entry.fact.category.toLowerCase().contains(query))
+        if ((_factCategoryFilter == '__all__' ||
+                entry.fact.category == _factCategoryFilter) &&
+            switch (_factRoleFilter) {
+              'readers' => entry.readerUsages.isNotEmpty,
+              'writers' => entry.writerUsages.isNotEmpty,
+              'unused' => !entry.isUsed,
+              _ => true,
+            } &&
+            (query.isEmpty ||
+                entry.fact.label.toLowerCase().contains(query) ||
+                entry.fact.id.toLowerCase().contains(query) ||
+                entry.fact.category.toLowerCase().contains(query)))
           entry,
     ];
   }
@@ -899,6 +1020,18 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
     setState(() {
       _loadedFactId = null;
       _factFeedback = ok ? 'Fact enregistré.' : 'Enregistrement impossible.';
+    });
+  }
+
+  Future<void> _duplicateFact(String factId) async {
+    final duplicatedId = await widget.onDuplicateFact(factId: factId);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _selectedFactId = duplicatedId ?? factId;
+      _loadedFactId = null;
+      _factFeedback = duplicatedId == null ? 'Duplication impossible.' : null;
     });
   }
 
@@ -1197,6 +1330,7 @@ class _FactList extends StatelessWidget {
       itemBuilder: (context, index) {
         final entry = facts[index];
         return PokeMapCard(
+          key: ValueKey('fact-list-${entry.fact.id}'),
           selected: entry.fact.id == selectedFactId,
           onTap: () => onSelect(entry.fact.id),
           padding: const EdgeInsets.all(10),
@@ -1220,6 +1354,8 @@ class _FactList extends StatelessWidget {
     );
   }
 }
+
+String _boolLabel(bool value) => value ? 'Vrai' : 'Faux';
 
 class _WorldRuleList extends StatelessWidget {
   const _WorldRuleList({
