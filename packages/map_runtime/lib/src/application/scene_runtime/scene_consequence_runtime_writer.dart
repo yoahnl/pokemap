@@ -16,6 +16,17 @@ final class SceneConsequenceRuntimeWriter {
 
   static const int _maxPartySize = 6;
 
+  /// Prevalidates and applies one canonical Action-node consequence.
+  ///
+  /// The returned state is a new immutable checkpoint. A rejected write
+  /// returns the original [gameState] and never exposes a partial mutation.
+  SceneConsequenceRuntimeWriteResult applyOne(
+    GameState gameState,
+    SceneConsequence consequence,
+  ) {
+    return applyAll(gameState, <SceneConsequence>[consequence]);
+  }
+
   SceneConsequenceRuntimeWriteResult applyAll(
     GameState gameState,
     List<SceneConsequence> consequences,

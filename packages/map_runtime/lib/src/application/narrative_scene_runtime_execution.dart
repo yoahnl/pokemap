@@ -65,9 +65,25 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   // Scene completes, those authoritative writes are kept by rebasing the
   // buffered consequences onto the latest host GameState.
   final pendingConsequences = <SceneConsequence>[];
+  final consequenceWriter = SceneConsequenceRuntimeWriter(
+    project: project,
+    mapsById: mapsById,
+  );
+  var validationState = request.gameState;
   final execution = await SceneRuntimeExecutor(
     callbacks: callbacks.toExecutionCallbacks(
       applyConsequence: (consequence) {
+        final validation = consequenceWriter.applyOne(
+          validationState,
+          consequence,
+        );
+        if (!validation.success) {
+          throw StateError(
+            validation.message ??
+                'Scene consequence ${consequence.kind.name} was rejected.',
+          );
+        }
+        validationState = validation.gameState;
         pendingConsequences.add(consequence);
         return 'completed';
       },
@@ -83,10 +99,8 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
     );
   }
 
-  final writeResult = SceneConsequenceRuntimeWriter(
-    project: project,
-    mapsById: mapsById,
-  ).applyAll(currentGameState(), pendingConsequences);
+  final writeResult =
+      consequenceWriter.applyAll(currentGameState(), pendingConsequences);
   if (!writeResult.success) {
     return NarrativeSceneExecutionResult.failed(
       StateError(

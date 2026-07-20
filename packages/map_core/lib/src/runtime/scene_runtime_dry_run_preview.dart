@@ -1,4 +1,5 @@
 import '../models/scene_asset.dart';
+import '../models/scene_consequence.dart';
 import 'scene_execution_context.dart';
 import 'scene_runtime_plan.dart';
 
@@ -12,10 +13,50 @@ final class SceneDryRunInputState {
   const SceneDryRunInputState({
     this.outputPortByNodeId = const <String, String>{},
     this.executionContext,
+    this.consequenceState,
   });
 
   final Map<String, String> outputPortByNodeId;
   final SceneExecutionContext? executionContext;
+  final SceneDryRunConsequenceState? consequenceState;
+}
+
+final class SceneDryRunConsequenceState {
+  SceneDryRunConsequenceState({
+    Map<String, bool> factValueById = const <String, bool>{},
+    Set<String> consumedEventKeys = const <String>{},
+    Set<String> completedStoryStepIds = const <String>{},
+    Map<String, int> itemQuantityById = const <String, int>{},
+    this.money = 0,
+    this.partyMemberCount = 0,
+  })  : factValueById = Map<String, bool>.unmodifiable(factValueById),
+        consumedEventKeys = Set<String>.unmodifiable(consumedEventKeys),
+        completedStoryStepIds = Set<String>.unmodifiable(completedStoryStepIds),
+        itemQuantityById = Map<String, int>.unmodifiable(itemQuantityById);
+
+  static final SceneDryRunConsequenceState empty =
+      SceneDryRunConsequenceState();
+
+  final Map<String, bool> factValueById;
+  final Set<String> consumedEventKeys;
+  final Set<String> completedStoryStepIds;
+  final Map<String, int> itemQuantityById;
+  final int money;
+  final int partyMemberCount;
+}
+
+final class SceneDryRunConsequenceChange {
+  const SceneDryRunConsequenceChange({
+    required this.nodeId,
+    required this.consequence,
+    required this.beforeSummary,
+    required this.afterSummary,
+  });
+
+  final String nodeId;
+  final SceneConsequence consequence;
+  final String beforeSummary;
+  final String afterSummary;
 }
 
 final class SceneDryRunTraceEntry {
@@ -39,10 +80,18 @@ final class SceneDryRunPreviewResult {
     List<String> acceptedOutputPortIds = const <String>[],
     this.message,
     SceneExecutionContext? context,
+    SceneDryRunConsequenceState? consequenceState,
+    List<SceneDryRunConsequenceChange> consequenceChanges =
+        const <SceneDryRunConsequenceChange>[],
   })  : trace = List<SceneDryRunTraceEntry>.unmodifiable(trace),
         acceptedOutputPortIds =
             List<String>.unmodifiable(acceptedOutputPortIds),
-        context = context ?? SceneExecutionContext.empty;
+        context = context ?? SceneExecutionContext.empty,
+        consequenceState =
+            consequenceState ?? SceneDryRunConsequenceState.empty,
+        consequenceChanges = List<SceneDryRunConsequenceChange>.unmodifiable(
+          consequenceChanges,
+        );
 
   final SceneDryRunPreviewStatus status;
   final List<SceneDryRunTraceEntry> trace;
@@ -51,6 +100,8 @@ final class SceneDryRunPreviewResult {
   final List<String> acceptedOutputPortIds;
   final String? message;
   final SceneExecutionContext context;
+  final SceneDryRunConsequenceState consequenceState;
+  final List<SceneDryRunConsequenceChange> consequenceChanges;
 }
 
 SceneDryRunPreviewResult previewSceneRuntimePath(
@@ -65,8 +116,16 @@ SceneDryRunPreviewResult previewSceneRuntimePath(
   var current = nodesById[plan.startNodeId];
   final trace = <SceneDryRunTraceEntry>[];
   var context = input.executionContext ?? SceneExecutionContext.empty;
+  var consequenceState =
+      input.consequenceState ?? SceneDryRunConsequenceState.empty;
+  final consequenceChanges = <SceneDryRunConsequenceChange>[];
   if (current == null) {
-    return _failed(trace, 'Start node "${plan.startNodeId}" is missing.');
+    return _failed(
+      trace,
+      'Start node "${plan.startNodeId}" is missing.',
+      consequenceState: consequenceState,
+      consequenceChanges: consequenceChanges,
+    );
   }
 
   for (var step = 0; step < maxSteps; step++) {
@@ -82,6 +141,8 @@ SceneDryRunPreviewResult previewSceneRuntimePath(
         trace: trace,
         sceneOutcomeId: current.intent.sceneOutcomeId,
         context: context,
+        consequenceState: consequenceState,
+        consequenceChanges: consequenceChanges,
       );
     }
 
@@ -95,7 +156,13 @@ SceneDryRunPreviewResult previewSceneRuntimePath(
         ),
       );
       if (branch.message != null) {
-        return _failed(trace, branch.message!, context: context);
+        return _failed(
+          trace,
+          branch.message!,
+          context: context,
+          consequenceState: consequenceState,
+          consequenceChanges: consequenceChanges,
+        );
       }
       context = branch.context!;
       final next = _nextNode(
@@ -105,7 +172,13 @@ SceneDryRunPreviewResult previewSceneRuntimePath(
         branch.outputPortId!,
       );
       if (next.message != null) {
-        return _failed(trace, next.message!, context: context);
+        return _failed(
+          trace,
+          next.message!,
+          context: context,
+          consequenceState: consequenceState,
+          consequenceChanges: consequenceChanges,
+        );
       }
       current = next.node;
       continue;
@@ -128,6 +201,8 @@ SceneDryRunPreviewResult previewSceneRuntimePath(
         acceptedOutputPortIds: acceptedPorts,
         message: 'Choose an explicit output for node "${current.id}".',
         context: context,
+        consequenceState: consequenceState,
+        consequenceChanges: consequenceChanges,
       );
     }
     final outputPortId = explicitPort ?? acceptedPorts.single;
@@ -143,6 +218,8 @@ SceneDryRunPreviewResult previewSceneRuntimePath(
         trace,
         'Output "$outputPortId" is unknown for node "${current.id}".',
         context: context,
+        consequenceState: consequenceState,
+        consequenceChanges: consequenceChanges,
       );
     }
     trace.add(
@@ -159,6 +236,34 @@ SceneDryRunPreviewResult previewSceneRuntimePath(
       );
     } else if (current.intent.kind ==
         SceneRuntimePlanIntentKind.applyConsequence) {
+      final consequence = current.intent.consequence;
+      if (consequence == null) {
+        return _failed(
+          trace,
+          'Action node "${current.id}" has no typed consequence.',
+          context: context,
+          consequenceState: consequenceState,
+          consequenceChanges: consequenceChanges,
+        );
+      }
+      if (!context.appliedPersistentNodeIds.contains(current.id)) {
+        final change = _previewConsequence(
+          nodeId: current.id,
+          consequence: consequence,
+          state: consequenceState,
+        );
+        if (change.message != null) {
+          return _failed(
+            trace,
+            change.message!,
+            context: context,
+            consequenceState: consequenceState,
+            consequenceChanges: consequenceChanges,
+          );
+        }
+        consequenceState = change.state!;
+        consequenceChanges.add(change.change!);
+      }
       context = context.markPersistentNodeApplied(current.id);
     }
     final matchingEdges = plan.edges
@@ -174,17 +279,150 @@ SceneDryRunPreviewResult previewSceneRuntimePath(
             ? 'No transition for ${current.id}:$outputPortId.'
             : 'Ambiguous transition for ${current.id}:$outputPortId.',
         context: context,
+        consequenceState: consequenceState,
+        consequenceChanges: consequenceChanges,
       );
     }
     current = nodesById[matchingEdges.single.toNodeId];
     if (current == null) {
-      return _failed(trace, 'Transition target is missing.', context: context);
+      return _failed(
+        trace,
+        'Transition target is missing.',
+        context: context,
+        consequenceState: consequenceState,
+        consequenceChanges: consequenceChanges,
+      );
     }
   }
   return _failed(
     trace,
     'Dry-run exceeded maxSteps=$maxSteps.',
     context: context,
+    consequenceState: consequenceState,
+    consequenceChanges: consequenceChanges,
+  );
+}
+
+_PreviewConsequenceResult _previewConsequence({
+  required String nodeId,
+  required SceneConsequence consequence,
+  required SceneDryRunConsequenceState state,
+}) {
+  late final SceneDryRunConsequenceState next;
+  late final String before;
+  late final String after;
+  switch (consequence) {
+    case SceneSetFactConsequence():
+      final previous = state.factValueById[consequence.factId];
+      before = '${consequence.factId}=${previous ?? 'unset'}';
+      after = '${consequence.factId}=${consequence.value}';
+      next = _copyConsequenceState(
+        state,
+        factValueById: {
+          ...state.factValueById,
+          consequence.factId: consequence.value,
+        },
+      );
+    case SceneMarkEventConsumedConsequence():
+      final key = '${consequence.mapId}:${consequence.eventId}';
+      before = '$key=${state.consumedEventKeys.contains(key)}';
+      after = '$key=true';
+      next = _copyConsequenceState(
+        state,
+        consumedEventKeys: {...state.consumedEventKeys, key},
+      );
+    case SceneCompleteStoryStepConsequence():
+      before = '${consequence.stepId}='
+          '${state.completedStoryStepIds.contains(consequence.stepId)}';
+      after = '${consequence.stepId}=true';
+      next = _copyConsequenceState(
+        state,
+        completedStoryStepIds: {
+          ...state.completedStoryStepIds,
+          consequence.stepId,
+        },
+      );
+    case SceneGiveItemConsequence():
+      final quantity = state.itemQuantityById[consequence.itemId] ?? 0;
+      final updated = quantity + consequence.quantity;
+      before = '${consequence.itemId}=$quantity';
+      after = '${consequence.itemId}=$updated';
+      next = _copyConsequenceState(
+        state,
+        itemQuantityById: {
+          ...state.itemQuantityById,
+          consequence.itemId: updated,
+        },
+      );
+    case SceneTakeItemConsequence():
+      final quantity = state.itemQuantityById[consequence.itemId] ?? 0;
+      if (consequence.quantity <= 0 || quantity < consequence.quantity) {
+        return _PreviewConsequenceResult(
+          message: 'Cannot take ${consequence.quantity} '
+              '"${consequence.itemId}" from dry-run quantity $quantity.',
+        );
+      }
+      final updated = quantity - consequence.quantity;
+      before = '${consequence.itemId}=$quantity';
+      after = '${consequence.itemId}=$updated';
+      next = _copyConsequenceState(
+        state,
+        itemQuantityById: {
+          ...state.itemQuantityById,
+          consequence.itemId: updated,
+        },
+      );
+    case SceneGiveMoneyConsequence():
+      before = 'money=${state.money}';
+      after = 'money=${state.money + consequence.amount}';
+      next = _copyConsequenceState(
+        state,
+        money: state.money + consequence.amount,
+      );
+    case SceneGivePokemonConsequence():
+      before = 'party=${state.partyMemberCount}';
+      after = 'party=${state.partyMemberCount + 1} '
+          '(${consequence.speciesId} niv. ${consequence.level})';
+      next = _copyConsequenceState(
+        state,
+        partyMemberCount: state.partyMemberCount + 1,
+      );
+    case SceneGiveConfiguredStarterConsequence():
+      before = 'party=${state.partyMemberCount}';
+      after = 'party=${state.partyMemberCount + 1} '
+          '(${consequence.starterOptionId})';
+      next = _copyConsequenceState(
+        state,
+        partyMemberCount: state.partyMemberCount + 1,
+      );
+  }
+  return _PreviewConsequenceResult(
+    state: next,
+    change: SceneDryRunConsequenceChange(
+      nodeId: nodeId,
+      consequence: consequence,
+      beforeSummary: before,
+      afterSummary: after,
+    ),
+  );
+}
+
+SceneDryRunConsequenceState _copyConsequenceState(
+  SceneDryRunConsequenceState state, {
+  Map<String, bool>? factValueById,
+  Set<String>? consumedEventKeys,
+  Set<String>? completedStoryStepIds,
+  Map<String, int>? itemQuantityById,
+  int? money,
+  int? partyMemberCount,
+}) {
+  return SceneDryRunConsequenceState(
+    factValueById: factValueById ?? state.factValueById,
+    consumedEventKeys: consumedEventKeys ?? state.consumedEventKeys,
+    completedStoryStepIds: completedStoryStepIds ?? state.completedStoryStepIds,
+    itemQuantityById: itemQuantityById ?? state.itemQuantityById,
+    money: money ?? state.money,
+    partyMemberCount: partyMemberCount ?? state.partyMemberCount,
   );
 }
 
@@ -288,13 +526,26 @@ SceneDryRunPreviewResult _failed(
   List<SceneDryRunTraceEntry> trace,
   String message, {
   SceneExecutionContext? context,
+  SceneDryRunConsequenceState? consequenceState,
+  List<SceneDryRunConsequenceChange> consequenceChanges =
+      const <SceneDryRunConsequenceChange>[],
 }) {
   return SceneDryRunPreviewResult(
     status: SceneDryRunPreviewStatus.failed,
     trace: trace,
     message: message,
     context: context,
+    consequenceState: consequenceState,
+    consequenceChanges: consequenceChanges,
   );
+}
+
+final class _PreviewConsequenceResult {
+  const _PreviewConsequenceResult({this.state, this.change, this.message});
+
+  final SceneDryRunConsequenceState? state;
+  final SceneDryRunConsequenceChange? change;
+  final String? message;
 }
 
 final class _PreviewBranchResult {

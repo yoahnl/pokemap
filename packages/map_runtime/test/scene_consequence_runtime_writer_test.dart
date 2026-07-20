@@ -4,6 +4,26 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   group('SceneConsequenceRuntimeWriter', () {
+    test('applyOne validates and commits exactly one immutable consequence',
+        () {
+      const state = GameState(saveId: 'save_test');
+      final writer = SceneConsequenceRuntimeWriter(
+        project: _project(
+          facts: [NarrativeFactDefinition(id: 'fact_one', label: 'One')],
+        ),
+      );
+
+      final result = writer.applyOne(
+        state,
+        SceneConsequence.setFact(factId: 'fact_one', value: true),
+      );
+
+      expect(result.success, isTrue);
+      expect(result.appliedConsequences, hasLength(1));
+      expect(result.gameState.storyFlags.activeFlags, contains('fact_one'));
+      expect(state.storyFlags.activeFlags, isEmpty);
+    });
+
     test('setFact true activates Fact runtime key', () {
       const state = GameState(saveId: 'save_test');
       final writer = SceneConsequenceRuntimeWriter(

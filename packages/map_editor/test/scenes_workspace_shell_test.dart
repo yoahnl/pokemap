@@ -1086,6 +1086,83 @@ void main() {
       expect(node.title, 'Donner un starter configuré');
     });
 
+    testWidgets('creates and edits completeStoryStep from a guided picker',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithConsequenceAuthoringTargets(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-consequence-kind-completeStoryStep'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Quitter le port'), findsOneWidget);
+      expect(find.text('step_leave_port'), findsNothing);
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-consequence-story-step-option-step_leave_port',
+          ),
+        ),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-create-action')),
+      );
+      await tester.pumpAndSettle();
+
+      final node = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .nodes
+          .last;
+      final consequence = (node.payload as SceneActionPayload).consequence
+          as SceneCompleteStoryStepConsequence;
+      expect(consequence.stepId, 'step_leave_port');
+      expect(node.title, 'Terminer une étape narrative');
+      expect(
+        find.byKey(const ValueKey('scene-consequence-edit-story-step-action')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-edit-story-step-action')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-consequence-story-step-edit-option-step_find_lighthouse',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final edited = (container
+              .read(editorNotifierProvider)
+              .project!
+              .scenes
+              .single
+              .graph
+              .nodes
+              .last
+              .payload as SceneActionPayload)
+          .consequence as SceneCompleteStoryStepConsequence;
+      expect(edited.stepId, 'step_find_lighthouse');
+    });
+
     testWidgets(
         'inspector resolves and edits takeItem through the local item catalog',
         (tester) async {
@@ -4921,6 +4998,32 @@ ProjectManifest _projectWithConsequenceAuthoringTargets() {
         label: 'Alarme activée',
         description: 'Etat persistant de test.',
         category: 'Système',
+      ),
+    ],
+    storylines: [
+      StorylineAsset(
+        id: 'story_main',
+        type: StorylineType.main,
+        title: 'Histoire principale',
+        chapters: [
+          StorylineChapter(
+            id: 'chapter_port',
+            title: 'Le port',
+            order: 0,
+            steps: [
+              StorylineStep(
+                id: 'step_leave_port',
+                title: 'Quitter le port',
+                order: 0,
+              ),
+              StorylineStep(
+                id: 'step_find_lighthouse',
+                title: 'Trouver le phare',
+                order: 1,
+              ),
+            ],
+          ),
+        ],
       ),
     ],
     scenes: [_sceneWithId('scene_consequence_authoring')],

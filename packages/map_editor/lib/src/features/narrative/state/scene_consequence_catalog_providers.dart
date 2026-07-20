@@ -53,6 +53,11 @@ final class SceneConsequenceCatalogs {
   const SceneConsequenceCatalogs({
     required this.items,
     required this.species,
+    this.storySteps = const SceneConsequenceCatalogSection(
+      status: SceneConsequenceCatalogStatus.unavailable,
+      options: <SceneConsequenceCatalogOption>[],
+      message: 'Créez une étape dans une Storyline.',
+    ),
     this.configuredStarters = const SceneConsequenceCatalogSection(
       status: SceneConsequenceCatalogStatus.unavailable,
       options: <SceneConsequenceCatalogOption>[],
@@ -63,6 +68,7 @@ final class SceneConsequenceCatalogs {
   const SceneConsequenceCatalogs.loading()
       : items = const SceneConsequenceCatalogSection.loading(),
         species = const SceneConsequenceCatalogSection.loading(),
+        storySteps = const SceneConsequenceCatalogSection.loading(),
         configuredStarters = const SceneConsequenceCatalogSection.loading();
 
   const SceneConsequenceCatalogs.unavailable()
@@ -76,6 +82,11 @@ final class SceneConsequenceCatalogs {
           options: <SceneConsequenceCatalogOption>[],
           message: 'Ouvrez un projet contenant des espèces locales.',
         ),
+        storySteps = const SceneConsequenceCatalogSection(
+          status: SceneConsequenceCatalogStatus.unavailable,
+          options: <SceneConsequenceCatalogOption>[],
+          message: 'Créez une étape dans une Storyline.',
+        ),
         configuredStarters = const SceneConsequenceCatalogSection(
           status: SceneConsequenceCatalogStatus.unavailable,
           options: <SceneConsequenceCatalogOption>[],
@@ -84,6 +95,7 @@ final class SceneConsequenceCatalogs {
 
   final SceneConsequenceCatalogSection items;
   final SceneConsequenceCatalogSection species;
+  final SceneConsequenceCatalogSection storySteps;
   final SceneConsequenceCatalogSection configuredStarters;
 
   SceneConsequenceCatalogs withConfiguredStarters(
@@ -104,6 +116,7 @@ final class SceneConsequenceCatalogs {
     return SceneConsequenceCatalogs(
       items: items,
       species: species,
+      storySteps: storySteps,
       configuredStarters: options.isEmpty
           ? const SceneConsequenceCatalogSection(
               status: SceneConsequenceCatalogStatus.unavailable,
@@ -116,6 +129,87 @@ final class SceneConsequenceCatalogs {
                   List<SceneConsequenceCatalogOption>.unmodifiable(options),
               message: '${options.length} starter(s) configuré(s).',
             ),
+    );
+  }
+
+  SceneConsequenceCatalogs withStorySteps(
+    List<NarrativeStoryStepPickerOption> steps,
+  ) {
+    final options = <SceneConsequenceCatalogOption>[
+      for (final step in steps)
+        SceneConsequenceCatalogOption(
+          id: step.stepId,
+          label: step.humanLabel,
+          details: <String>[step.debugTechnicalLabel],
+        ),
+    ];
+    return SceneConsequenceCatalogs(
+      items: items,
+      species: species,
+      storySteps: options.isEmpty
+          ? const SceneConsequenceCatalogSection(
+              status: SceneConsequenceCatalogStatus.unavailable,
+              options: <SceneConsequenceCatalogOption>[],
+              message: 'Créez une étape dans une Storyline.',
+            )
+          : SceneConsequenceCatalogSection(
+              status: SceneConsequenceCatalogStatus.ready,
+              options:
+                  List<SceneConsequenceCatalogOption>.unmodifiable(options),
+              message: '${options.length} étape(s) narrative(s) disponible(s).',
+            ),
+      configuredStarters: configuredStarters,
+    );
+  }
+
+  SceneConsequenceCatalogs withProjectStorySteps(ProjectManifest project) {
+    final optionsById = <String, SceneConsequenceCatalogOption>{};
+    for (final storyline in project.storylines) {
+      for (final chapter in storyline.chapters) {
+        for (final step in chapter.steps) {
+          optionsById.putIfAbsent(
+            step.id,
+            () => SceneConsequenceCatalogOption(
+              id: step.id,
+              label: step.title,
+              details: <String>[
+                '${storyline.title} · ${chapter.title}',
+                if (step.description?.trim().isNotEmpty ?? false)
+                  step.description!.trim(),
+              ],
+            ),
+          );
+        }
+      }
+    }
+    for (final step in buildNarrativeStoryStepPickerOptions(project)) {
+      optionsById.putIfAbsent(
+        step.stepId,
+        () => SceneConsequenceCatalogOption(
+          id: step.stepId,
+          label: step.humanLabel,
+          details: <String>[step.debugTechnicalLabel],
+        ),
+      );
+    }
+    final options = optionsById.values.toList(growable: false)
+      ..sort(_compareOptions);
+    return SceneConsequenceCatalogs(
+      items: items,
+      species: species,
+      storySteps: options.isEmpty
+          ? const SceneConsequenceCatalogSection(
+              status: SceneConsequenceCatalogStatus.unavailable,
+              options: <SceneConsequenceCatalogOption>[],
+              message: 'Créez une étape dans une Storyline.',
+            )
+          : SceneConsequenceCatalogSection(
+              status: SceneConsequenceCatalogStatus.ready,
+              options:
+                  List<SceneConsequenceCatalogOption>.unmodifiable(options),
+              message: '${options.length} étape(s) narrative(s) disponible(s).',
+            ),
+      configuredStarters: configuredStarters,
     );
   }
 }

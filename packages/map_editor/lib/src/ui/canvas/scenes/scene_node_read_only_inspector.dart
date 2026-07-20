@@ -1048,6 +1048,8 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
           ..._setFactRows(context, consequence)
         else if (consequence is SceneMarkEventConsumedConsequence)
           ..._markEventRows(context, consequence)
+        else if (consequence is SceneCompleteStoryStepConsequence)
+          ..._completeStoryStepRows(context, consequence)
         else if (consequence is SceneGiveItemConsequence)
           ..._itemRows(
             context,
@@ -1206,6 +1208,43 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
         context,
         consequence,
         enabled: catalogs.items.options.isNotEmpty,
+      ),
+    ];
+  }
+
+  List<Widget> _completeStoryStepRows(
+    BuildContext context,
+    SceneCompleteStoryStepConsequence consequence,
+  ) {
+    final step = _catalogOptionFor(catalogs.storySteps, consequence.stepId);
+    return <Widget>[
+      const _InspectorRow(label: 'Type', value: 'Terminer une étape narrative'),
+      _InspectorRow(
+        label: 'Étape',
+        value: step?.label ?? 'Étape narrative indisponible',
+      ),
+      if (step == null) ...<Widget>[
+        const SizedBox(height: 6),
+        PokeMapDiagnosticCallout(
+          key: const ValueKey('scene-story-step-consequence-diagnostic'),
+          severity: PokeMapDiagnosticSeverity.error,
+          title: 'Référence à corriger',
+          message: catalogs.storySteps.isReady
+              ? 'Étape introuvable dans les Storylines.'
+              : catalogs.storySteps.message,
+        ),
+      ],
+      const SizedBox(height: 6),
+      PokeMapButton(
+        key: const ValueKey('scene-consequence-edit-story-step-action'),
+        onPressed:
+            onUpdatePayload == null || catalogs.storySteps.options.isEmpty
+                ? null
+                : () => _pickStoryStep(context),
+        variant: PokeMapButtonVariant.secondary,
+        size: PokeMapButtonSize.small,
+        leading: const Icon(CupertinoIcons.check_mark_circled),
+        child: const Text('Changer l’étape'),
       ),
     ];
   }
@@ -1419,6 +1458,22 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
         mapId: option.mapId,
         eventId: option.eventId,
       ),
+    );
+  }
+
+  Future<void> _pickStoryStep(BuildContext context) async {
+    final updater = onUpdatePayload;
+    if (updater == null) return;
+    final option = await showCupertinoDialog<SceneConsequenceCatalogOption>(
+      context: context,
+      builder: (context) => _SceneConsequenceStoryStepEditDialog(
+        steps: catalogs.storySteps.options,
+      ),
+    );
+    if (option == null || !context.mounted) return;
+    await updater(
+      nodeId: node.id,
+      consequence: SceneConsequence.completeStoryStep(stepId: option.id),
     );
   }
 
@@ -1836,6 +1891,42 @@ class _SceneConsequenceEventEditDialog extends StatelessWidget {
               ],
               diagnostics: const [],
               onPressed: () => Navigator.of(context).pop(event),
+            ),
+        ],
+      ),
+      actions: [
+        CupertinoDialogAction(
+          child: const Text('Annuler'),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ],
+    );
+  }
+}
+
+class _SceneConsequenceStoryStepEditDialog extends StatelessWidget {
+  const _SceneConsequenceStoryStepEditDialog({required this.steps});
+
+  final List<SceneConsequenceCatalogOption> steps;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoAlertDialog(
+      key: const ValueKey('scene-consequence-story-step-edit-dialog'),
+      title: const Text('Choisir une étape narrative'),
+      content: _PayloadEditDialogContent(
+        children: [
+          for (final step in steps)
+            _PayloadEditOptionButton(
+              key: ValueKey(
+                'scene-consequence-story-step-edit-option-'
+                '${_payloadEditKeyPart(step.id)}',
+              ),
+              title: step.label,
+              subtitle: 'Étape narrative',
+              details: step.details,
+              diagnostics: const [],
+              onPressed: () => Navigator.of(context).pop(step),
             ),
         ],
       ),
@@ -2701,6 +2792,15 @@ List<Widget> _sceneConsequenceRows(SceneConsequence? consequence) {
       ),
       _InspectorRow(label: 'mapId', value: consequence.mapId),
       _InspectorRow(label: 'eventId', value: consequence.eventId),
+    ];
+  }
+  if (consequence is SceneCompleteStoryStepConsequence) {
+    return [
+      const _InspectorRow(
+        label: 'consequence',
+        value: 'Terminer une étape narrative',
+      ),
+      _InspectorRow(label: 'stepId', value: consequence.stepId),
     ];
   }
   if (consequence is SceneGiveItemConsequence) {

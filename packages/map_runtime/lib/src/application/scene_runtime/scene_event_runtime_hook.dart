@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import 'scene_consequence_runtime_writer.dart';
+import 'scene_consequence_runtime_write_result.dart';
 import 'scene_runtime_host_callbacks.dart';
 import 'scene_runtime_hook_result.dart';
 
@@ -70,9 +71,30 @@ final class SceneEventRuntimeHook {
     }
 
     final pendingConsequences = <SceneConsequence>[];
+    final consequenceWriter = SceneConsequenceRuntimeWriter(
+      project: project,
+      mapsById: {map.id: map},
+    );
+    var validationState = currentGameState?.call() ?? gameState;
+    SceneConsequenceRuntimeWriteResult? rejectedConsequenceWrite;
     final executionResult = await SceneRuntimeExecutor(
       callbacks: callbacks.toExecutionCallbacks(
         applyConsequence: (consequence) {
+          final currentValidationState = validationState;
+          if (currentValidationState != null) {
+            final validation = consequenceWriter.applyOne(
+              currentValidationState,
+              consequence,
+            );
+            if (!validation.success) {
+              rejectedConsequenceWrite = validation;
+              throw StateError(
+                validation.message ??
+                    'Scene consequence ${consequence.kind.name} was rejected.',
+              );
+            }
+            validationState = validation.gameState;
+          }
           pendingConsequences.add(consequence);
           return 'completed';
         },
@@ -99,10 +121,8 @@ final class SceneEventRuntimeHook {
         );
       }
 
-      final writeResult = SceneConsequenceRuntimeWriter(
-        project: project,
-        mapsById: {map.id: map},
-      ).applyAll(commitBaseState, pendingConsequences);
+      final writeResult =
+          consequenceWriter.applyAll(commitBaseState, pendingConsequences);
       if (!writeResult.success) {
         return SceneEventRuntimeHookResult.failed(
           errorCode: SceneEventRuntimeHookErrorCode.sceneConsequenceWriteFailed,
@@ -119,6 +139,18 @@ final class SceneEventRuntimeHook {
         executionResult: executionResult,
         updatedGameState: writeResult.gameState,
         consequenceWriteResult: writeResult,
+      );
+    }
+
+    final rejectedWrite = rejectedConsequenceWrite;
+    if (rejectedWrite != null) {
+      return SceneEventRuntimeHookResult.failed(
+        errorCode: SceneEventRuntimeHookErrorCode.sceneConsequenceWriteFailed,
+        sceneId: sceneId,
+        message: rejectedWrite.message ??
+            'Scene V1 "$sceneId" consequence validation failed.',
+        executionResult: executionResult,
+        consequenceWriteResult: rejectedWrite,
       );
     }
 

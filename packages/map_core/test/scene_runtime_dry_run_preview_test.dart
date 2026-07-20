@@ -21,7 +21,7 @@ void main() {
 
       final completed = previewSceneRuntimePath(
         plan,
-        input: const SceneDryRunInputState(
+        input: SceneDryRunInputState(
           outputPortByNodeId: {'node_dialogue': 'leave'},
         ),
       );
@@ -37,7 +37,7 @@ void main() {
     test('rejects an explicit output not declared by the node', () {
       final result = previewSceneRuntimePath(
         _dialoguePlan(),
-        input: const SceneDryRunInputState(
+        input: SceneDryRunInputState(
           outputPortByNodeId: {'node_dialogue': 'unknown'},
         ),
       );
@@ -121,7 +121,7 @@ void main() {
 
       final result = previewSceneRuntimePath(
         plan,
-        input: const SceneDryRunInputState(
+        input: SceneDryRunInputState(
           outputPortByNodeId: {'dialogue': 'accept'},
         ),
       );
@@ -132,7 +132,120 @@ void main() {
           ['start', 'dialogue', 'merge', 'branch', 'end_accept']);
       expect(result.context.branchProvenance.single.sourceOutcome, 'accept');
     });
+
+    test('summarizes every canonical consequence in authored order', () {
+      final consequences = <SceneConsequence>[
+        SceneConsequence.setFact(factId: 'fact_gate', value: true),
+        SceneConsequence.markEventConsumed(
+          mapId: 'map_port',
+          eventId: 'event_chest',
+        ),
+        SceneConsequence.completeStoryStep(stepId: 'step_departure'),
+        SceneConsequence.giveItem(itemId: 'potion', quantity: 3),
+        SceneConsequence.takeItem(itemId: 'potion', quantity: 1),
+        SceneConsequence.giveMoney(amount: 250),
+        SceneConsequence.givePokemon(
+          speciesId: 'sproutle',
+          level: 5,
+          currentHp: 20,
+        ),
+        SceneConsequence.giveConfiguredStarter(
+          starterOptionId: 'starter_sproutle',
+        ),
+      ];
+
+      final result = previewSceneRuntimePath(
+        _consequencePlan(consequences),
+        input: SceneDryRunInputState(
+          consequenceState: SceneDryRunConsequenceState(
+            itemQuantityById: {'potion': 2},
+            money: 100,
+          ),
+        ),
+      );
+
+      expect(result.status, SceneDryRunPreviewStatus.completed);
+      expect(
+        result.consequenceChanges.map((change) => change.consequence.kind),
+        SceneConsequenceKind.values,
+      );
+      expect(result.consequenceState.factValueById['fact_gate'], isTrue);
+      expect(
+        result.consequenceState.consumedEventKeys,
+        contains('map_port:event_chest'),
+      );
+      expect(
+        result.consequenceState.completedStoryStepIds,
+        contains('step_departure'),
+      );
+      expect(result.consequenceState.itemQuantityById['potion'], 4);
+      expect(result.consequenceState.money, 350);
+      expect(result.consequenceState.partyMemberCount, 2);
+      expect(result.consequenceChanges[3].beforeSummary, contains('2'));
+      expect(result.consequenceChanges[3].afterSummary, contains('5'));
+    });
+
+    test('keeps prior action summaries but does not mutate a failing action',
+        () {
+      final result = previewSceneRuntimePath(
+        _consequencePlan([
+          SceneConsequence.giveItem(itemId: 'potion', quantity: 2),
+          SceneConsequence.takeItem(itemId: 'potion', quantity: 5),
+        ]),
+        input: SceneDryRunInputState(
+          consequenceState: SceneDryRunConsequenceState(
+            itemQuantityById: const {'potion': 1},
+          ),
+        ),
+      );
+
+      expect(result.status, SceneDryRunPreviewStatus.failed);
+      expect(result.message, contains('potion'));
+      expect(result.consequenceChanges, hasLength(1));
+      expect(result.consequenceState.itemQuantityById['potion'], 3);
+    });
   });
+}
+
+SceneRuntimePlan _consequencePlan(List<SceneConsequence> consequences) {
+  final nodes = <SceneRuntimePlanNode>[
+    SceneRuntimePlanNode(
+      id: 'start',
+      kind: SceneNodeKind.start,
+      intent: SceneRuntimePlanIntent.start(),
+    ),
+    for (var index = 0; index < consequences.length; index++)
+      SceneRuntimePlanNode(
+        id: 'action_$index',
+        kind: SceneNodeKind.action,
+        intent: SceneRuntimePlanIntent.applyConsequence(
+          consequence: consequences[index],
+        ),
+      ),
+    SceneRuntimePlanNode(
+      id: 'end',
+      kind: SceneNodeKind.end,
+      intent: SceneRuntimePlanIntent.end(sceneOutcomeId: 'completed'),
+    ),
+  ];
+  return SceneRuntimePlan(
+    sceneId: 'scene_consequences',
+    startNodeId: 'start',
+    nodes: nodes,
+    edges: <SceneRuntimePlanEdge>[
+      for (var index = 0; index <= consequences.length; index++)
+        SceneRuntimePlanEdge(
+          id: 'edge_$index',
+          fromNodeId: index == 0 ? 'start' : 'action_${index - 1}',
+          fromPortId: 'completed',
+          toNodeId: index == consequences.length ? 'end' : 'action_$index',
+          kind: index == 0
+              ? SceneEdgeKind.defaultFlow
+              : SceneEdgeKind.actionCompleted,
+        ),
+    ],
+    declaredOutcomes: [SceneOutcome(id: 'completed', label: 'Completed')],
+  );
 }
 
 SceneRuntimePlan _dialoguePlan() {

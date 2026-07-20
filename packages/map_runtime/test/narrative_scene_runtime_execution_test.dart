@@ -139,7 +139,120 @@ void main() {
       expect(failed.failure.toString(), contains('initial GameState conflict'));
       expect(hostCallbackCalls, 0);
     });
+
+    test('stops on the first rejected Action node before later callbacks',
+        () async {
+      const state = GameState(saveId: 'save_rejected_action');
+      var battleCalls = 0;
+      final project = _project().copyWith(
+        scenes: [..._project().scenes, _rejectedActionScene()],
+      );
+
+      final result = await executeNarrativeEventScene(
+        request: const NarrativeSceneExecutionRequest(
+          eventId: 'event_rejected_action',
+          sceneId: 'scene_rejected_action',
+          executionId: 'execution_rejected_action',
+          gameState: state,
+        ),
+        project: project,
+        mapsById: const <String, MapData>{},
+        currentGameState: () => state,
+        callbacks: SceneRuntimeHostCallbacks(
+          evaluateCondition: (_) => throw StateError('Unexpected condition.'),
+          showDialogue: (_) => throw StateError('Unexpected dialogue.'),
+          startBattle: (_) {
+            battleCalls++;
+            return 'victory';
+          },
+          playCinematic: (_) => throw StateError('Unexpected cinematic.'),
+        ),
+      );
+
+      expect(result, isA<NarrativeSceneExecutionFailed>());
+      expect(
+        (result as NarrativeSceneExecutionFailed).failure.toString(),
+        contains('potion'),
+      );
+      expect(battleCalls, 0);
+      expect(state.trainerProfile.money, 0);
+      expect(state.bag.entries, isEmpty);
+    });
   });
+}
+
+SceneAsset _rejectedActionScene() {
+  return SceneAsset(
+    id: 'scene_rejected_action',
+    name: 'Rejected Action',
+    graph: SceneGraph(
+      startNodeId: 'start',
+      nodes: <SceneNode>[
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'money',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(
+            SceneConsequence.giveMoney(amount: 100),
+          ),
+        ),
+        SceneNode(
+          id: 'take_missing',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(
+            SceneConsequence.takeItem(itemId: 'potion', quantity: 1),
+          ),
+        ),
+        SceneNode(
+          id: 'battle',
+          kind: SceneNodeKind.battle,
+          payload: SceneBattlePayload(
+            battleKind: 'trainer',
+            trainerId: 'trainer_scene_runtime',
+            declaredOutcomes: const <String>['victory', 'defeat'],
+          ),
+        ),
+        SceneNode(id: 'end', kind: SceneNodeKind.end),
+      ],
+      edges: <SceneEdge>[
+        SceneEdge(
+          id: 'start_money',
+          fromNodeId: 'start',
+          fromPortId: 'completed',
+          toNodeId: 'money',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+        SceneEdge(
+          id: 'money_take',
+          fromNodeId: 'money',
+          fromPortId: 'completed',
+          toNodeId: 'take_missing',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+        SceneEdge(
+          id: 'take_battle',
+          fromNodeId: 'take_missing',
+          fromPortId: 'completed',
+          toNodeId: 'battle',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+        SceneEdge(
+          id: 'battle_end',
+          fromNodeId: 'battle',
+          fromPortId: 'victory',
+          toNodeId: 'end',
+          kind: SceneEdgeKind.battleVictory,
+        ),
+        SceneEdge(
+          id: 'battle_defeat_end',
+          fromNodeId: 'battle',
+          fromPortId: 'defeat',
+          toNodeId: 'end',
+          kind: SceneEdgeKind.battleDefeat,
+        ),
+      ],
+    ),
+  );
 }
 
 ProjectManifest _project() {

@@ -82,10 +82,14 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         ),
       ),
     );
-    final sceneConsequenceCatalogs =
+    final project = editor.project;
+    final catalogsWithStarters =
         baseSceneConsequenceCatalogs.withConfiguredStarters(
-      editor.project?.newGame.starterOptions ?? const <ProjectStarterOption>[],
+      project?.newGame.starterOptions ?? const <ProjectStarterOption>[],
     );
+    final sceneConsequenceCatalogs = project == null
+        ? catalogsWithStarters
+        : catalogsWithStarters.withProjectStorySteps(project);
 
     final showsMapEvents = editor.workspaceMode == EditorWorkspaceMode.events &&
         studioNavigation.location.destination ==

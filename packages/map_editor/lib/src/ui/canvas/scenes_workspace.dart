@@ -2189,6 +2189,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
 enum _SceneConsequencePickerMode {
   setFact,
   markEventConsumed,
+  completeStoryStep,
   giveItem,
   takeItem,
   giveMoney,
@@ -2217,6 +2218,7 @@ class _SceneConsequencePickerDialogState
   late _SceneConsequencePickerMode _mode;
   SceneConsequenceFactPickerOption? _selectedFact;
   SceneConsequenceEventPickerOption? _selectedEvent;
+  SceneConsequenceCatalogOption? _selectedStoryStep;
   SceneConsequenceCatalogOption? _selectedItem;
   SceneConsequenceCatalogOption? _selectedSpecies;
   SceneConsequenceCatalogOption? _selectedConfiguredStarter;
@@ -2238,6 +2240,7 @@ class _SceneConsequencePickerDialogState
         : _SceneConsequencePickerMode.markEventConsumed;
     _selectedFact = widget.facts.firstOrNull;
     _selectedEvent = widget.events.firstOrNull;
+    _selectedStoryStep = widget.catalogs.storySteps.options.firstOrNull;
     _selectedItem = widget.catalogs.items.options.firstOrNull;
     _selectedSpecies = widget.catalogs.species.options.firstOrNull;
     _selectedConfiguredStarter =
@@ -2279,6 +2282,14 @@ class _SceneConsequencePickerDialogState
                 label: 'Marquer joué',
                 mode: _SceneConsequencePickerMode.markEventConsumed,
                 enabled: widget.events.isNotEmpty,
+              ),
+              _kindButton(
+                key: const ValueKey(
+                  'scene-consequence-kind-completeStoryStep',
+                ),
+                label: 'Terminer une étape',
+                mode: _SceneConsequencePickerMode.completeStoryStep,
+                enabled: widget.catalogs.storySteps.isReady,
               ),
               _kindButton(
                 key: const ValueKey('scene-consequence-kind-giveItem'),
@@ -2353,6 +2364,8 @@ class _SceneConsequencePickerDialogState
                   _SceneConsequencePickerMode.setFact => _setFactControls(),
                   _SceneConsequencePickerMode.markEventConsumed =>
                     _markEventControls(),
+                  _SceneConsequencePickerMode.completeStoryStep =>
+                    _completeStoryStepControls(),
                   _SceneConsequencePickerMode.giveItem => _giveItemControls(),
                   _SceneConsequencePickerMode.takeItem => _giveItemControls(),
                   _SceneConsequencePickerMode.giveMoney => _giveMoneyControls(),
@@ -2479,6 +2492,22 @@ class _SceneConsequencePickerDialogState
     ];
   }
 
+  List<Widget> _completeStoryStepControls() {
+    return <Widget>[
+      for (final step in widget.catalogs.storySteps.options)
+        _ConsequencePickerCard(
+          key: ValueKey(
+            'scene-consequence-story-step-option-${_pickerKeyPart(step.id)}',
+          ),
+          selected: _selectedStoryStep?.id == step.id,
+          title: step.label,
+          subtitle: 'Étape narrative du projet',
+          details: step.details,
+          onTap: () => setState(() => _selectedStoryStep = step),
+        ),
+    ];
+  }
+
   List<Widget> _giveItemControls() {
     final quantity = int.tryParse(_quantityController.text.trim());
     final quantityError = quantity == null || quantity <= 0
@@ -2595,6 +2624,12 @@ class _SceneConsequencePickerDialogState
               mapId: _selectedEvent!.mapId,
               eventId: _selectedEvent!.eventId,
             ),
+      _SceneConsequencePickerMode.completeStoryStep =>
+        _selectedStoryStep == null
+            ? null
+            : SceneConsequence.completeStoryStep(
+                stepId: _selectedStoryStep!.id,
+              ),
       _SceneConsequencePickerMode.giveItem => _selectedItem == null ||
               (int.tryParse(_quantityController.text.trim()) ?? 0) <= 0
           ? null

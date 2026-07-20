@@ -275,7 +275,7 @@ void main() {
       expect(gameState.party.members, isEmpty);
     });
 
-    test('rolls back staged gameplay consequences when takeItem is impossible',
+    test('keeps the prior node checkpoint when takeItem is impossible',
         () async {
       final fixture = _fixture(
         scene: _sceneWithConsequenceSequence([
@@ -316,8 +316,10 @@ void main() {
         result.consequenceWriteResult?.errorCode,
         SceneConsequenceRuntimeWriteErrorCode.insufficientItemQuantity,
       );
-      expect(identical(result.consequenceWriteResult?.gameState, gameState),
-          isTrue);
+      final priorNodeCheckpoint = result.consequenceWriteResult!.gameState;
+      expect(identical(priorNodeCheckpoint, gameState), isFalse);
+      expect(priorNodeCheckpoint.trainerProfile.money, 600);
+      expect(priorNodeCheckpoint.bag.entries.single.quantity, 1);
       expect(gameState.trainerProfile.money, 100);
       expect(gameState.bag.entries.single.quantity, 1);
     });
