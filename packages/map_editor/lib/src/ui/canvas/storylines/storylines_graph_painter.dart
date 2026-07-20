@@ -23,6 +23,9 @@ class StorylinesGraphPainter extends CustomPainter {
     required this.authorOrderColor,
     required this.containsColor,
     required this.sideQuestAvailabilityColor,
+    required this.outcomeColor,
+    required this.conditionColor,
+    required this.relationshipColor,
   });
 
   final List<StorylineGraphPaintEdge> edges;
@@ -30,6 +33,9 @@ class StorylinesGraphPainter extends CustomPainter {
   final Color authorOrderColor;
   final Color containsColor;
   final Color sideQuestAvailabilityColor;
+  final Color outcomeColor;
+  final Color conditionColor;
+  final Color relationshipColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -57,6 +63,16 @@ class StorylinesGraphPainter extends CustomPainter {
       StorylineGraphEdgeKind.authorOrder => authorOrderColor,
       StorylineGraphEdgeKind.sideQuestAttachment => sideQuestAvailabilityColor,
       StorylineGraphEdgeKind.contains => containsColor,
+      StorylineGraphEdgeKind.outcomeActivatesStep ||
+      StorylineGraphEdgeKind.outcomeCompletesStep =>
+        outcomeColor,
+      StorylineGraphEdgeKind.entryCondition ||
+      StorylineGraphEdgeKind.completionCondition =>
+        conditionColor,
+      StorylineGraphEdgeKind.requires ||
+      StorylineGraphEdgeKind.blocks ||
+      StorylineGraphEdgeKind.convergesTo =>
+        relationshipColor,
     };
     final paint = Paint()
       ..color = color
@@ -66,6 +82,16 @@ class StorylinesGraphPainter extends CustomPainter {
         StorylineGraphEdgeKind.authorOrder => 2.4,
         StorylineGraphEdgeKind.sideQuestAttachment => 1.8,
         StorylineGraphEdgeKind.contains => 1.4,
+        StorylineGraphEdgeKind.outcomeActivatesStep ||
+        StorylineGraphEdgeKind.outcomeCompletesStep =>
+          2.2,
+        StorylineGraphEdgeKind.entryCondition ||
+        StorylineGraphEdgeKind.completionCondition =>
+          1.8,
+        StorylineGraphEdgeKind.requires ||
+        StorylineGraphEdgeKind.blocks ||
+        StorylineGraphEdgeKind.convergesTo =>
+          2,
       };
     final controlOffset =
         math.max((edge.to.dx - edge.from.dx).abs() * 0.42, 48);
@@ -83,7 +109,16 @@ class StorylinesGraphPainter extends CustomPainter {
       case StorylineGraphEdgeKind.sideQuestAttachment:
         _paintDashedPath(canvas, path, paint);
         _paintArrowHead(canvas, edge, color, size: 6);
+      case StorylineGraphEdgeKind.entryCondition:
+      case StorylineGraphEdgeKind.completionCondition:
+        _paintDashedPath(canvas, path, paint);
+        _paintArrowHead(canvas, edge, color, size: 7);
       case StorylineGraphEdgeKind.authorOrder:
+      case StorylineGraphEdgeKind.outcomeActivatesStep:
+      case StorylineGraphEdgeKind.outcomeCompletesStep:
+      case StorylineGraphEdgeKind.requires:
+      case StorylineGraphEdgeKind.blocks:
+      case StorylineGraphEdgeKind.convergesTo:
         canvas.drawPath(path, paint);
         _paintArrowHead(canvas, edge, color);
       case StorylineGraphEdgeKind.contains:
@@ -139,6 +174,9 @@ class StorylinesGraphPainter extends CustomPainter {
         gridColor != oldDelegate.gridColor ||
         authorOrderColor != oldDelegate.authorOrderColor ||
         containsColor != oldDelegate.containsColor ||
-        sideQuestAvailabilityColor != oldDelegate.sideQuestAvailabilityColor;
+        sideQuestAvailabilityColor != oldDelegate.sideQuestAvailabilityColor ||
+        outcomeColor != oldDelegate.outcomeColor ||
+        conditionColor != oldDelegate.conditionColor ||
+        relationshipColor != oldDelegate.relationshipColor;
   }
 }

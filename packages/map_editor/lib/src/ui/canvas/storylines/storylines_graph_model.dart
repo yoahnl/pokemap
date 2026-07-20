@@ -4,14 +4,23 @@ enum StorylineGraphNodeKind {
   storyline,
   chapter,
   step,
-  emptyStepPlaceholder,
   sideQuest,
+  sceneOutcome,
+  fact,
+  condition,
 }
 
 enum StorylineGraphEdgeKind {
   authorOrder,
   contains,
   sideQuestAttachment,
+  outcomeActivatesStep,
+  outcomeCompletesStep,
+  requires,
+  blocks,
+  convergesTo,
+  entryCondition,
+  completionCondition,
 }
 
 final class StorylineGraphViewModel {
@@ -24,6 +33,7 @@ final class StorylineGraphViewModel {
     required this.sideQuestCountOutsideSelected,
     required this.sideQuestAttachments,
     required this.chapters,
+    required this.projection,
     required this.nodes,
     required this.edges,
   });
@@ -33,6 +43,34 @@ final class StorylineGraphViewModel {
     List<StorylineAsset> storylines = const <StorylineAsset>[],
     int sideQuestCountOutsideSelected = 0,
   }) {
+    final assets = storylines.any((asset) => asset.id == storyline.id)
+        ? storylines
+        : <StorylineAsset>[storyline, ...storylines];
+    return StorylineGraphViewModel.fromProject(
+      ProjectManifest(
+        name: 'Storyline graph projection',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        storylines: assets,
+      ),
+      storylineId: storyline.id,
+      sideQuestCountOutsideSelected: sideQuestCountOutsideSelected,
+    );
+  }
+
+  factory StorylineGraphViewModel.fromProject(
+    ProjectManifest project, {
+    required String storylineId,
+    int sideQuestCountOutsideSelected = 0,
+  }) {
+    final storyline = project.storylines.singleWhere(
+      (asset) => asset.id == storylineId,
+    );
+    final storylines = project.storylines;
+    final projection = buildStorylineProgressionProjection(
+      project: project,
+      storylineId: storyline.id,
+    );
     final chapters = [...storyline.chapters]
       ..sort(_compareChaptersByAuthorOrder);
     final graphChapters = [
@@ -55,109 +93,51 @@ final class StorylineGraphViewModel {
       (total, chapter) => total + chapter.steps.length,
     );
 
+    final chapterById = {
+      for (final chapter in graphChapters) chapter.id: chapter,
+    };
+    final stepById = {
+      for (final chapter in graphChapters)
+        for (final step in chapter.steps) step.id: step,
+    };
+    final storylineById = {
+      for (final asset in storylines) asset.id: asset,
+    };
     final nodes = <StorylineGraphNode>[
-      StorylineGraphNode(
-        id: storylineNodeId(storyline.id),
-        kind: StorylineGraphNodeKind.storyline,
-        title: storyline.title,
-        subtitle: _storylineTypeLabel(storyline.type),
-        order: 0,
-      ),
-    ];
-    final edges = <StorylineGraphEdge>[];
-    String? previousChapterNodeId;
-    for (final chapter in graphChapters) {
-      final chapterNodeId = StorylineGraphViewModel.chapterNodeId(chapter.id);
-      nodes.add(
+      for (final node in projection.nodes)
         StorylineGraphNode(
-          id: chapterNodeId,
-          kind: StorylineGraphNodeKind.chapter,
-          title: chapter.title,
-          subtitle: _formatCount(chapter.steps.length, 'étape', 'étapes'),
-          order: chapter.order,
-          chapterId: chapter.id,
+          id: node.id,
+          kind: _graphNodeKind(node, storylineById, storyline.id),
+          title: node.label,
+          subtitle: _graphNodeSubtitle(
+            node,
+            storylineById,
+            stepById,
+          ),
+          order: node.kind == StorylineProgressionNodeKind.chapter
+              ? chapterById[node.canonicalId]?.order ?? 0
+              : node.kind == StorylineProgressionNodeKind.step
+                  ? stepById[node.canonicalId]?.order ?? 0
+                  : 0,
+          chapterId: node.chapterId,
+          stepId: node.stepId,
+          canonicalId: node.canonicalId,
+          isMissing: node.isMissing,
         ),
-      );
-      if (previousChapterNodeId == null) {
-        edges.add(
-          StorylineGraphEdge(
-            id: 'edge:${storyline.id}:${chapter.id}',
-            fromNodeId: storylineNodeId(storyline.id),
-            toNodeId: chapterNodeId,
-            kind: StorylineGraphEdgeKind.authorOrder,
-          ),
-        );
-      } else {
-        edges.add(
-          StorylineGraphEdge(
-            id: 'edge:$previousChapterNodeId:$chapterNodeId',
-            fromNodeId: previousChapterNodeId,
-            toNodeId: chapterNodeId,
-            kind: StorylineGraphEdgeKind.authorOrder,
-          ),
-        );
-      }
-      previousChapterNodeId = chapterNodeId;
-
-      if (chapter.steps.isEmpty) {
-        nodes.add(
-          StorylineGraphNode(
-            id: emptyStepNodeId(chapter.id),
-            kind: StorylineGraphNodeKind.emptyStepPlaceholder,
-            title: 'Aucune étape narrative',
-            subtitle: 'Structure uniquement',
-            order: 0,
-            chapterId: chapter.id,
-          ),
-        );
-      } else {
-        for (final step in chapter.steps) {
-          final stepNodeId = StorylineGraphViewModel.stepNodeId(step.id);
-          nodes.add(
-            StorylineGraphNode(
-              id: stepNodeId,
-              kind: StorylineGraphNodeKind.step,
-              title: step.title,
-              subtitle: _sceneLinkLabel(step.sceneLinkIds.length),
-              order: step.order,
-              chapterId: chapter.id,
-              stepId: step.id,
-            ),
-          );
-          edges.add(
-            StorylineGraphEdge(
-              id: 'contains:${chapter.id}:${step.id}',
-              fromNodeId: chapterNodeId,
-              toNodeId: stepNodeId,
-              kind: StorylineGraphEdgeKind.contains,
-            ),
-          );
-        }
-      }
-      for (final attachment in sideQuestAttachmentsForChapter(
-        sideQuestAttachments,
-        chapter.id,
-      )) {
-        nodes.add(
-          StorylineGraphNode(
-            id: sideQuestNodeId(attachment.sideQuestId),
-            kind: StorylineGraphNodeKind.sideQuest,
-            title: attachment.title,
-            subtitle: attachment.anchorLabel,
-            order: attachment.order,
-            chapterId: chapter.id,
-          ),
-        );
-        edges.add(
-          StorylineGraphEdge(
-            id: 'attachment:${attachment.relationshipId}',
-            fromNodeId: attachment.anchorNodeId,
-            toNodeId: sideQuestNodeId(attachment.sideQuestId),
-            kind: StorylineGraphEdgeKind.sideQuestAttachment,
-          ),
-        );
-      }
-    }
+    ];
+    final edges = <StorylineGraphEdge>[
+      for (final edge in projection.edges)
+        StorylineGraphEdge(
+          id: edge.id,
+          fromNodeId: edge.fromNodeId,
+          toNodeId: edge.toNodeId,
+          kind: _graphEdgeKind(edge.kind),
+          semanticLabel: _edgeSemanticLabel(edge.kind),
+          editability: edge.editability,
+          readOnlyReason: edge.readOnlyReason,
+          source: edge.source,
+        ),
+    ];
 
     return StorylineGraphViewModel._(
       storylineId: storyline.id,
@@ -168,6 +148,7 @@ final class StorylineGraphViewModel {
       sideQuestCountOutsideSelected: sideQuestCountOutsideSelected,
       sideQuestAttachments: sideQuestAttachments,
       chapters: graphChapters,
+      projection: projection,
       nodes: nodes,
       edges: edges,
     );
@@ -181,8 +162,17 @@ final class StorylineGraphViewModel {
   final int sideQuestCountOutsideSelected;
   final List<StorylineGraphSideQuestAttachment> sideQuestAttachments;
   final List<StorylineGraphChapter> chapters;
+  final StorylineProgressionProjection projection;
   final List<StorylineGraphNode> nodes;
   final List<StorylineGraphEdge> edges;
+
+  List<StorylineGraphEdge> get semanticEdges => List.unmodifiable(
+        edges.where(
+          (edge) =>
+              edge.kind != StorylineGraphEdgeKind.contains &&
+              edge.kind != StorylineGraphEdgeKind.authorOrder,
+        ),
+      );
 
   bool get isSideQuest => type == StorylineType.sideQuest;
 
@@ -199,8 +189,6 @@ final class StorylineGraphViewModel {
   static String chapterNodeId(String chapterId) => 'chapter:$chapterId';
 
   static String stepNodeId(String stepId) => 'step:$stepId';
-
-  static String emptyStepNodeId(String chapterId) => 'empty-step:$chapterId';
 
   static String sideQuestNodeId(String sideQuestId) => 'sideQuest:$sideQuestId';
 }
@@ -258,6 +246,8 @@ final class StorylineGraphNode {
     required this.order,
     this.chapterId,
     this.stepId,
+    required this.canonicalId,
+    this.isMissing = false,
   });
 
   final String id;
@@ -267,6 +257,8 @@ final class StorylineGraphNode {
   final int order;
   final String? chapterId;
   final String? stepId;
+  final String canonicalId;
+  final bool isMissing;
 }
 
 final class StorylineGraphEdge {
@@ -275,12 +267,23 @@ final class StorylineGraphEdge {
     required this.fromNodeId,
     required this.toNodeId,
     required this.kind,
+    required this.semanticLabel,
+    required this.editability,
+    required this.source,
+    this.readOnlyReason,
   });
 
   final String id;
   final String fromNodeId;
   final String toNodeId;
   final StorylineGraphEdgeKind kind;
+  final String semanticLabel;
+  final StorylineProgressionEdgeEditability editability;
+  final String? readOnlyReason;
+  final StorylineProgressionSource source;
+
+  bool get isReversible =>
+      editability == StorylineProgressionEdgeEditability.reversible;
 }
 
 List<StorylineGraphSideQuestAttachment> sideQuestAttachmentsForChapter(
@@ -440,6 +443,84 @@ int _compareStepsByAuthorOrder(StorylineStep left, StorylineStep right) {
   final title = left.title.compareTo(right.title);
   if (title != 0) return title;
   return left.id.compareTo(right.id);
+}
+
+StorylineGraphNodeKind _graphNodeKind(
+  StorylineProgressionNode node,
+  Map<String, StorylineAsset> storylineById,
+  String selectedStorylineId,
+) {
+  return switch (node.kind) {
+    StorylineProgressionNodeKind.storyline =>
+      node.canonicalId != selectedStorylineId &&
+              storylineById[node.canonicalId]?.type == StorylineType.sideQuest
+          ? StorylineGraphNodeKind.sideQuest
+          : StorylineGraphNodeKind.storyline,
+    StorylineProgressionNodeKind.chapter => StorylineGraphNodeKind.chapter,
+    StorylineProgressionNodeKind.step => StorylineGraphNodeKind.step,
+    StorylineProgressionNodeKind.sceneOutcome =>
+      StorylineGraphNodeKind.sceneOutcome,
+    StorylineProgressionNodeKind.fact => StorylineGraphNodeKind.fact,
+    StorylineProgressionNodeKind.condition => StorylineGraphNodeKind.condition,
+  };
+}
+
+String _graphNodeSubtitle(
+  StorylineProgressionNode node,
+  Map<String, StorylineAsset> storylineById,
+  Map<String, StorylineStep> stepById,
+) {
+  if (node.isMissing) return 'Référence introuvable';
+  return switch (node.kind) {
+    StorylineProgressionNodeKind.storyline => _storylineTypeLabel(
+        storylineById[node.canonicalId]?.type ?? StorylineType.main,
+      ),
+    StorylineProgressionNodeKind.chapter => 'Chapitre canonique',
+    StorylineProgressionNodeKind.step =>
+      _sceneLinkLabel(stepById[node.canonicalId]?.sceneLinkIds.length ?? 0),
+    StorylineProgressionNodeKind.sceneOutcome => 'Résultat de Scene',
+    StorylineProgressionNodeKind.fact => 'Fact du projet',
+    StorylineProgressionNodeKind.condition => 'Condition composée',
+  };
+}
+
+StorylineGraphEdgeKind _graphEdgeKind(StorylineProgressionEdgeKind kind) {
+  return switch (kind) {
+    StorylineProgressionEdgeKind.contains => StorylineGraphEdgeKind.contains,
+    StorylineProgressionEdgeKind.authorOrder =>
+      StorylineGraphEdgeKind.authorOrder,
+    StorylineProgressionEdgeKind.outcomeActivatesStep =>
+      StorylineGraphEdgeKind.outcomeActivatesStep,
+    StorylineProgressionEdgeKind.outcomeCompletesStep =>
+      StorylineGraphEdgeKind.outcomeCompletesStep,
+    StorylineProgressionEdgeKind.requires => StorylineGraphEdgeKind.requires,
+    StorylineProgressionEdgeKind.blocks => StorylineGraphEdgeKind.blocks,
+    StorylineProgressionEdgeKind.convergesTo =>
+      StorylineGraphEdgeKind.convergesTo,
+    StorylineProgressionEdgeKind.sideQuestAvailability =>
+      StorylineGraphEdgeKind.sideQuestAttachment,
+    StorylineProgressionEdgeKind.entryCondition =>
+      StorylineGraphEdgeKind.entryCondition,
+    StorylineProgressionEdgeKind.completionCondition =>
+      StorylineGraphEdgeKind.completionCondition,
+  };
+}
+
+String _edgeSemanticLabel(StorylineProgressionEdgeKind kind) {
+  return switch (kind) {
+    StorylineProgressionEdgeKind.contains => 'Contient',
+    StorylineProgressionEdgeKind.authorOrder => 'Ordre auteur',
+    StorylineProgressionEdgeKind.outcomeActivatesStep => 'Active l’étape',
+    StorylineProgressionEdgeKind.outcomeCompletesStep => 'Complète l’étape',
+    StorylineProgressionEdgeKind.requires => 'Requiert',
+    StorylineProgressionEdgeKind.blocks => 'Bloque',
+    StorylineProgressionEdgeKind.convergesTo => 'Converge vers',
+    StorylineProgressionEdgeKind.sideQuestAvailability =>
+      'Disponibilité de quête annexe',
+    StorylineProgressionEdgeKind.entryCondition => 'Condition d’entrée',
+    StorylineProgressionEdgeKind.completionCondition =>
+      'Condition de complétion',
+  };
 }
 
 String _storylineTypeLabel(StorylineType type) {

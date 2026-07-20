@@ -841,12 +841,12 @@ void main() {
       final toolbar = find.byKey(
         const ValueKey('storylines-graph-toolbar'),
       );
-      final toolbarTitle = find.text('Graph read-only');
-      final readOnlyBadge = find.text('Read-only');
+      final toolbarTitle = find.text('Graph sémantique');
+      final projectionBadge = find.text('Projection canonique');
       expect(toolbar, findsOneWidget);
       expect(
         tester.getCenter(toolbarTitle).dy,
-        closeTo(tester.getCenter(readOnlyBadge).dy, 0.1),
+        closeTo(tester.getCenter(projectionBadge).dy, 0.1),
       );
       expect(tester.getSize(toolbar).height, closeTo(67, 0.1));
 

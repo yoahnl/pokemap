@@ -10,6 +10,7 @@ import '../design_system/design_system.dart';
 import 'narrative_studio/narrative_studio_destination.dart';
 import 'narrative_studio/narrative_studio_route_presentation.dart';
 import 'narrative_studio/narrative_studio_workspace_page.dart';
+import 'storylines/storylines_graph_model.dart';
 import 'storylines/storylines_graph_view.dart';
 import 'storylines/storylines_structure_view.dart';
 
@@ -146,6 +147,7 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
             const SizedBox(width: 12),
             Expanded(
               child: _StorylinesV1MainPanel(
+                project: project,
                 selectedStoryline: selectedStoryline,
                 selectedChapter: selectedChapter,
                 selectedStepId: _selectedStepId,
@@ -216,6 +218,17 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
                           project,
                           selectedStoryline,
                         ),
+                onGraphConnect: project == null || selectedStoryline == null
+                    ? null
+                    : (request) => _connectGraphEdge(project, request),
+                onGraphDisconnect: project == null || selectedStoryline == null
+                    ? null
+                    : (edgeId) => _disconnectGraphEdge(
+                          project,
+                          selectedStoryline.id,
+                          edgeId,
+                        ),
+                onGraphNodeSelected: _selectGraphNode,
               ),
             ),
             const SizedBox(width: 12),
@@ -223,9 +236,7 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
               width: 280,
               child: _StorylinesV1InspectorPanel(
                 selectedStoryline: selectedStoryline,
-                selectedChapter: _selectedTab == _StorylineContentTab.structure
-                    ? selectedChapter
-                    : null,
+                selectedChapter: selectedChapter,
                 onEdit: project == null || selectedStoryline == null
                     ? null
                     : () => _openEditStorylineDialog(
@@ -592,6 +603,68 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
           result.after,
           statusMessage: statusMessage,
         );
+  }
+
+  Future<bool> _connectGraphEdge(
+    ProjectManifest project,
+    StorylineProgressionConnectRequest request,
+  ) async {
+    final result = connectStorylineProgressionEdge(project, request);
+    if (result.disposition != StorylineProgressionMutationDisposition.applied) {
+      await _showStorylineMessage(
+        title: 'Connexion impossible',
+        message: result.message ?? 'La relation canonique a été refusée.',
+      );
+      return false;
+    }
+    return ref.read(editorNotifierProvider.notifier).applyNarrativeDocumentEdit(
+          result.after,
+          operationId:
+              'storyline_graph_connect_${DateTime.now().microsecondsSinceEpoch}',
+          label: 'Connecter une relation de progression Storyline',
+          statusMessage: 'Relation de progression connectée.',
+        );
+  }
+
+  Future<bool> _disconnectGraphEdge(
+    ProjectManifest project,
+    String storylineId,
+    String edgeId,
+  ) async {
+    final result = disconnectStorylineProgressionEdge(
+      project,
+      storylineId: storylineId,
+      edgeId: edgeId,
+    );
+    if (result.disposition != StorylineProgressionMutationDisposition.applied) {
+      await _showStorylineMessage(
+        title: result.code == 'edgeReadOnly'
+            ? 'Relation en lecture seule'
+            : 'Déconnexion impossible',
+        message: result.message ?? 'La relation canonique a été refusée.',
+      );
+      return false;
+    }
+    return ref.read(editorNotifierProvider.notifier).applyNarrativeDocumentEdit(
+          result.after,
+          operationId:
+              'storyline_graph_disconnect_${DateTime.now().microsecondsSinceEpoch}',
+          label: 'Déconnecter une relation de progression Storyline',
+          statusMessage: 'Relation de progression déconnectée.',
+        );
+  }
+
+  void _selectGraphNode(StorylineGraphNode node) {
+    if (!mounted) return;
+    setState(() {
+      if (node.kind == StorylineGraphNodeKind.chapter) {
+        _selectedChapterId = node.canonicalId;
+        _selectedStepId = null;
+      } else if (node.kind == StorylineGraphNodeKind.step) {
+        _selectedChapterId = node.chapterId;
+        _selectedStepId = node.canonicalId;
+      }
+    });
   }
 
   Future<void> _showStorylineMutationFailure(
@@ -1695,6 +1768,7 @@ class _StorylinesV1Row extends StatelessWidget {
 
 class _StorylinesV1MainPanel extends StatelessWidget {
   const _StorylinesV1MainPanel({
+    required this.project,
     required this.selectedStoryline,
     required this.selectedChapter,
     required this.selectedStepId,
@@ -1713,8 +1787,12 @@ class _StorylinesV1MainPanel extends StatelessWidget {
     required this.onEditStep,
     required this.onReorderSteps,
     required this.onAttachSideQuest,
+    required this.onGraphConnect,
+    required this.onGraphDisconnect,
+    required this.onGraphNodeSelected,
   });
 
+  final ProjectManifest? project;
   final StorylineAsset? selectedStoryline;
   final StorylineChapter? selectedChapter;
   final String? selectedStepId;
@@ -1733,6 +1811,10 @@ class _StorylinesV1MainPanel extends StatelessWidget {
   final StorylineStepAction? onEditStep;
   final StorylineStepReorder? onReorderSteps;
   final VoidCallback? onAttachSideQuest;
+  final Future<bool> Function(StorylineProgressionConnectRequest request)?
+      onGraphConnect;
+  final Future<bool> Function(String edgeId)? onGraphDisconnect;
+  final ValueChanged<StorylineGraphNode> onGraphNodeSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -1778,11 +1860,15 @@ class _StorylinesV1MainPanel extends StatelessWidget {
                   onAttachSideQuest: onAttachSideQuest,
                 ),
               _StorylineContentTab.graph => _StorylinesV1GraphSection(
+                  project: project,
                   storyline: selectedStoryline,
                   storylines: storylines,
                   legacyGlobalStory: legacyGlobalStory,
                   legacyStep: legacyStep,
                   legacyStepCount: legacyStepCount,
+                  onConnectEdge: onGraphConnect,
+                  onDisconnectEdge: onGraphDisconnect,
+                  onNodeSelected: onGraphNodeSelected,
                 ),
             },
           ),
@@ -2080,18 +2166,27 @@ class _StorylinesV1CompactKpi extends StatelessWidget {
 
 class _StorylinesV1GraphSection extends StatelessWidget {
   const _StorylinesV1GraphSection({
+    required this.project,
     required this.storyline,
     required this.storylines,
     required this.legacyGlobalStory,
     required this.legacyStep,
     required this.legacyStepCount,
+    required this.onConnectEdge,
+    required this.onDisconnectEdge,
+    required this.onNodeSelected,
   });
 
+  final ProjectManifest? project;
   final StorylineAsset? storyline;
   final List<StorylineAsset> storylines;
   final NarrativeScenarioSummary? legacyGlobalStory;
   final NarrativeStepSummary? legacyStep;
   final int legacyStepCount;
+  final Future<bool> Function(StorylineProgressionConnectRequest request)?
+      onConnectEdge;
+  final Future<bool> Function(String edgeId)? onDisconnectEdge;
+  final ValueChanged<StorylineGraphNode> onNodeSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -2114,9 +2209,13 @@ class _StorylinesV1GraphSection extends StatelessWidget {
                 .length
             : 0;
     return StorylinesGraphView(
+      project: project,
       storyline: selectedStoryline,
       storylines: storylines,
       sideQuestCountOutsideSelected: sideQuestCountOutsideSelected,
+      onConnectEdge: onConnectEdge,
+      onDisconnectEdge: onDisconnectEdge,
+      onNodeSelected: onNodeSelected,
     );
   }
 }
