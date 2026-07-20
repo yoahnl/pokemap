@@ -18,6 +18,116 @@ final class NarrativeEventMigrationPlanner {
   final NarrativeEventMigrationIdSource _ids;
   final NarrativeEventMigrationClock _clock;
 
+  /// Summarizes the exact plan for the no-code migration preview.
+  ///
+  /// This stays beside [plan] so editor labels cannot invent a more optimistic
+  /// interpretation of collisions, preserved legacy data, or retirement.
+  static NarrativeEventMigrationImpactPreview previewImpact({
+    required NarrativeEventMigrationPlannerInput input,
+    required NarrativeEventMigrationPlan plan,
+  }) {
+    final referenceMappings = plan.mappings.allReferenceMappings;
+    final unresolvedReferences = referenceMappings.where(
+      (mapping) =>
+          mapping.status != NarrativeEventReferenceMappingStatus.mapped &&
+          mapping.status !=
+              NarrativeEventReferenceMappingStatus.readyForAllocation &&
+          mapping.status !=
+              NarrativeEventReferenceMappingStatus.preservedTombstone,
+    );
+    final collisionCodes = <String>{
+      NarrativeEventMigrationDiagnosticCodes.partialClaim,
+      NarrativeEventMigrationDiagnosticCodes.invalidExistingClaim,
+      NarrativeEventMigrationDiagnosticCodes.incompleteCohort,
+      NarrativeEventMigrationDiagnosticCodes.sourceAmbiguous,
+      NarrativeEventMigrationDiagnosticCodes.sceneAmbiguous,
+      NarrativeEventMigrationDiagnosticCodes.factAmbiguous,
+      NarrativeEventMigrationDiagnosticCodes.eventAmbiguous,
+    };
+    final collisionKeys = <String>{
+      for (final diagnostic in plan.diagnostics)
+        if (collisionCodes.contains(diagnostic.code))
+          '${diagnostic.code}:${diagnostic.path}',
+      for (final mapping in referenceMappings)
+        if (mapping.status ==
+            NarrativeEventReferenceMappingStatus.requiresChoice)
+          'reference:${mapping.path}',
+    };
+    final preservedPages = plan.mappings.pageMappings.where(
+      (mapping) =>
+          mapping.status == NarrativeEventPageMappingStatus.preservedLegacy,
+    );
+    final nonMigratedItems = plan.items.where(
+      (item) => switch (item.classification) {
+        LegacyMigrationClassification.blocked ||
+        LegacyMigrationClassification.unsupported ||
+        LegacyMigrationClassification.legacyOnly =>
+          true,
+        LegacyMigrationClassification.autoSafe ||
+        LegacyMigrationClassification.assisted =>
+          false,
+      },
+    );
+    final mode =
+        input.project.eventRegistry?.mode ?? EventSystemMode.legacyOnly;
+    final legacyMapEventCount = input.maps.fold<int>(
+      0,
+      (count, map) => count + map.events.length,
+    );
+    final legacyScenarioSourceCount = input.project.scenarios.fold<int>(
+      0,
+      (count, scenario) =>
+          count + scenario.nodes.where(isLegacyScenarioSourceNode).length,
+    );
+    final legacyClaimCount =
+        input.project.eventRegistry?.legacyClaims.length ?? 0;
+    var migrationBlockerCount = plan.diagnostics
+        .where(
+          (diagnostic) =>
+              diagnostic.severity == LegacyMigrationDiagnosticSeverity.error,
+        )
+        .length;
+    migrationBlockerCount += plan.unknownLegacyData.length;
+    if (plan.mappings.hasBlockingMappings) migrationBlockerCount++;
+    if (plan.status == NarrativeEventMigrationPlanStatus.blocked ||
+        plan.status == NarrativeEventMigrationPlanStatus.assistanceRequired) {
+      migrationBlockerCount++;
+    }
+    final remaining = <NarrativeEventLegacyRetirementCriterion>[
+      if (mode != EventSystemMode.v2Only)
+        NarrativeEventLegacyRetirementCriterion.v2OnlyMode,
+      if (legacyMapEventCount != 0)
+        NarrativeEventLegacyRetirementCriterion.noLegacyMapEvents,
+      if (legacyScenarioSourceCount != 0)
+        NarrativeEventLegacyRetirementCriterion.noLegacyScenarioSources,
+      if (legacyClaimCount != 0)
+        NarrativeEventLegacyRetirementCriterion.noLegacyClaims,
+      if (migrationBlockerCount != 0)
+        NarrativeEventLegacyRetirementCriterion.noMigrationBlockers,
+    ];
+    final retirement = NarrativeEventLegacyRetirementAssessment(
+      mode: mode,
+      legacyMapEventCount: legacyMapEventCount,
+      legacyScenarioSourceCount: legacyScenarioSourceCount,
+      legacyClaimCount: legacyClaimCount,
+      migrationBlockerCount: migrationBlockerCount,
+      remainingCriteria: remaining,
+    );
+    return NarrativeEventMigrationImpactPreview(
+      claimCount: plan.cohorts.where((cohort) => cohort.claim != null).length,
+      collisionCount: collisionKeys.length,
+      referenceCount: referenceMappings.length,
+      unresolvedReferenceCount: unresolvedReferences.length,
+      lossRiskCount: plan.unknownLegacyData.length +
+          preservedPages.length +
+          nonMigratedItems.length,
+      confirmedChoiceCount:
+          plan.items.where((item) => item.choiceApplied).length,
+      legacyRuntimeActive: mode != EventSystemMode.v2Only,
+      retirement: retirement,
+    );
+  }
+
   NarrativeEventMigrationPlan plan(
     NarrativeEventMigrationPlannerInput input,
   ) {

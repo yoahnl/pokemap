@@ -8,12 +8,14 @@ final class NarrativeEventMigrationPreview {
     required this.projectRevision,
     required this.project,
     required this.plan,
+    required this.impact,
   });
 
   final String projectPath;
   final String projectRevision;
   final ProjectManifest project;
   final NarrativeEventMigrationPlan plan;
+  final NarrativeEventMigrationImpactPreview impact;
 
   bool get canCommit => plan.canApply && receipt != null;
   NarrativeEventMigrationReceipt? get receipt => plan.receiptProposal;

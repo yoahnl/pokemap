@@ -92,6 +92,72 @@ class _EventBuilderV2MigrationSheetState
             ),
           ),
           const SizedBox(height: 12),
+          PokeMapCard(
+            key: const ValueKey('event-migration-impact-preview'),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Impact avant écriture',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                _MigrationCount(
+                  icon: CupertinoIcons.link_circle,
+                  label: 'Claims : ${preview.impact.claimCount}',
+                ),
+                const SizedBox(height: 6),
+                _MigrationCount(
+                  icon: CupertinoIcons.exclamationmark_triangle,
+                  label: 'Collisions : ${preview.impact.collisionCount}',
+                ),
+                const SizedBox(height: 6),
+                _MigrationCount(
+                  icon: CupertinoIcons.arrow_branch,
+                  label: 'Références : ${preview.impact.referenceCount} '
+                      '(${preview.impact.unresolvedReferenceCount} à résoudre)',
+                ),
+                const SizedBox(height: 6),
+                _MigrationCount(
+                  icon: CupertinoIcons.shield_lefthalf_fill,
+                  label: 'Risques de perte bloqués : '
+                      '${preview.impact.lossRiskCount}',
+                ),
+                const SizedBox(height: 6),
+                _MigrationCount(
+                  icon: CupertinoIcons.person_crop_circle_badge_checkmark,
+                  label: 'Choix confirmés : '
+                      '${preview.impact.confirmedChoiceCount}',
+                ),
+              ],
+            ),
+          ),
+          if (preview.impact.legacyRuntimeActive) ...[
+            const SizedBox(height: 12),
+            const PokeMapDiagnosticCallout(
+              severity: PokeMapDiagnosticSeverity.warning,
+              title: 'Chemin historique encore actif',
+              message: 'Le projet reste en legacyOnly ou dualRead. Le runtime '
+                  'historique est conservé jusqu’à satisfaction de tous les '
+                  'critères de retrait.',
+            ),
+          ],
+          const SizedBox(height: 12),
+          PokeMapDiagnosticCallout(
+            key: const ValueKey('event-migration-retirement-readiness'),
+            severity: preview.impact.retirement.readyToRemoveLegacyPath
+                ? PokeMapDiagnosticSeverity.info
+                : PokeMapDiagnosticSeverity.warning,
+            title: preview.impact.retirement.readyToRemoveLegacyPath
+                ? 'Retrait legacy prêt'
+                : _remainingCriteriaTitle(preview.impact.retirement),
+            message: preview.impact.retirement.readyToRemoveLegacyPath
+                ? 'Le projet est v2Only, sans source ni claim historique et '
+                    'sans blocker de migration.'
+                : _retirementMessage(preview.impact.retirement),
+          ),
+          const SizedBox(height: 12),
           const PokeMapDiagnosticCallout(
             severity: PokeMapDiagnosticSeverity.info,
             title: 'Activation séparée',
@@ -253,3 +319,33 @@ String _countLabel(
   required String plural,
 }) =>
     '$count ${count == 1 ? singular : plural}';
+
+String _retirementMessage(
+  NarrativeEventLegacyRetirementAssessment assessment,
+) {
+  final details = <String>[
+    for (final criterion in assessment.remainingCriteria)
+      switch (criterion) {
+        NarrativeEventLegacyRetirementCriterion.v2OnlyMode =>
+          'passer explicitement le projet en v2Only',
+        NarrativeEventLegacyRetirementCriterion.noLegacyMapEvents =>
+          'retirer ${assessment.legacyMapEventCount} MapEvent historique(s)',
+        NarrativeEventLegacyRetirementCriterion.noLegacyScenarioSources =>
+          'retirer ${assessment.legacyScenarioSourceCount} source(s) '
+              'Scenario historique(s)',
+        NarrativeEventLegacyRetirementCriterion.noLegacyClaims =>
+          'retirer ${assessment.legacyClaimCount} claim(s) de compatibilité',
+        NarrativeEventLegacyRetirementCriterion.noMigrationBlockers =>
+          'résoudre ${assessment.migrationBlockerCount} blocker(s)',
+      },
+  ];
+  return 'Avant de retirer le lecteur historique : ${details.join(' ; ')}.';
+}
+
+String _remainingCriteriaTitle(
+  NarrativeEventLegacyRetirementAssessment assessment,
+) {
+  final count = assessment.remainingCriteria.length;
+  return 'Retrait legacy : $count '
+      '${count == 1 ? 'critère restant' : 'critères restants'}';
+}

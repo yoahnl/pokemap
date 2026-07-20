@@ -56,6 +56,12 @@ void main() {
 
       _expectPreflightBlock(result);
       expect(_codes(result.plan), contains('migrationSourceAmbiguous'));
+      final impact = NarrativeEventMigrationPlanner.previewImpact(
+        input: result.input,
+        plan: result.plan,
+      );
+      expect(impact.collisionCount, 1);
+      expect(impact.retirement.migrationBlockerCount, greaterThan(0));
     });
 
     test('3. rejects confirmCandidate outside projection candidates', () {
@@ -747,6 +753,87 @@ void main() {
       _expectPreflightBlock(result);
       expect(_codes(result.plan), contains('migrationEventUnavailable'));
     });
+
+    test('previews claims choices references loss risks and legacy activity',
+        () {
+      final projection = _baseProjection('legacy_impact');
+      final result = _runBase(projection);
+
+      final impact = NarrativeEventMigrationPlanner.previewImpact(
+        input: result.input,
+        plan: result.plan,
+      );
+
+      expect(impact.claimCount, 1);
+      expect(impact.confirmedChoiceCount, 1);
+      expect(impact.referenceCount, 0);
+      expect(impact.collisionCount, 0);
+      expect(impact.lossRiskCount, 0);
+      expect(impact.legacyRuntimeActive, isTrue);
+      expect(impact.retirement.readyToRemoveLegacyPath, isFalse);
+      expect(
+        impact.retirement.remainingCriteria,
+        containsAll(<NarrativeEventLegacyRetirementCriterion>{
+          NarrativeEventLegacyRetirementCriterion.v2OnlyMode,
+          NarrativeEventLegacyRetirementCriterion.noLegacyMapEvents,
+        }),
+      );
+    });
+
+    test('legacy retirement is ready only for a clean v2Only project', () {
+      final result = _run(
+        projections: const [],
+        map: const MapData(
+          id: 'map_a',
+          name: 'Map A',
+          size: GridSize(width: 8, height: 8),
+        ),
+        project: _project(
+          eventRegistry: NarrativeEventRegistry(
+            schemaVersion: 1,
+            mode: EventSystemMode.v2Only,
+            records: const [],
+            legacyClaims: const [],
+          ),
+        ),
+        choices: const [],
+      );
+
+      final impact = NarrativeEventMigrationPlanner.previewImpact(
+        input: result.input,
+        plan: result.plan,
+      );
+
+      expect(impact.legacyRuntimeActive, isFalse);
+      expect(impact.retirement.readyToRemoveLegacyPath, isTrue);
+      expect(impact.retirement.remainingCriteria, isEmpty);
+    });
+
+    test('preview counts preserved unknown data as a blocked loss risk', () {
+      final projection = _baseProjection('legacy_unknown_impact');
+      final result = _runBase(
+        projection,
+        unknownLegacyData: [
+          NarrativeEventUnknownLegacyData(
+            path: 'maps.map_a.events.legacy_unknown_impact.futureField',
+            value: {'future': true},
+          ),
+        ],
+      );
+
+      final impact = NarrativeEventMigrationPlanner.previewImpact(
+        input: result.input,
+        plan: result.plan,
+      );
+
+      expect(impact.lossRiskCount, greaterThanOrEqualTo(1));
+      expect(
+        impact.retirement.remainingCriteria,
+        contains(
+          NarrativeEventLegacyRetirementCriterion.noMigrationBlockers,
+        ),
+      );
+    });
   });
 }
 
@@ -757,6 +844,7 @@ _RunResult _runBase(
   ProjectManifest? project,
   bool includeCatalog = true,
   List<NarrativeEventRecord> proposedRecords = const [],
+  List<NarrativeEventUnknownLegacyData> unknownLegacyData = const [],
   List<int>? existingReceiptJsonBytes,
 }) {
   final resolvedChoice = choice ??
@@ -771,6 +859,7 @@ _RunResult _runBase(
     choices: [resolvedChoice],
     includeCatalog: includeCatalog,
     proposedRecords: proposedRecords,
+    unknownLegacyData: unknownLegacyData,
     existingReceiptJsonBytes: existingReceiptJsonBytes,
   );
 }
@@ -782,6 +871,7 @@ _RunResult _run({
   required List<NarrativeEventMigrationSourceChoice> choices,
   bool includeCatalog = true,
   List<NarrativeEventRecord> proposedRecords = const [],
+  List<NarrativeEventUnknownLegacyData> unknownLegacyData = const [],
   NarrativeEventProjectCatalog? catalogOverride,
   List<int>? existingReceiptJsonBytes,
 }) {
@@ -828,30 +918,30 @@ _RunResult _run({
       return DateTime.utc(2026, 7, 13, 10);
     },
   );
-  final plan = planner.plan(
-    NarrativeEventMigrationPlannerInput(
-      project: project,
-      maps: [map],
-      mapEventProjections: projections,
-      scenarioProjections: const [],
-      references: NarrativeEventReferenceCatalog.empty(),
-      currentSnapshot: snapshot,
-      choices: migrationChoices,
-      characterizedCorpus: corpus,
-      saveSnapshots: const [],
-      unknownLegacyData: const [],
-      backupPlan: NarrativeEventMigrationBackupPlan(
-        futureDestinations: const {
-          'manifest': 'backups/phase-d/project.json',
-          'receipt': 'backups/phase-d/receipt.json',
-        },
-      ),
-      existingReceiptJsonBytes: existingReceiptJsonBytes,
-      validationCatalog: catalog,
+  final input = NarrativeEventMigrationPlannerInput(
+    project: project,
+    maps: [map],
+    mapEventProjections: projections,
+    scenarioProjections: const [],
+    references: NarrativeEventReferenceCatalog.empty(),
+    currentSnapshot: snapshot,
+    choices: migrationChoices,
+    characterizedCorpus: corpus,
+    saveSnapshots: const [],
+    unknownLegacyData: unknownLegacyData,
+    backupPlan: NarrativeEventMigrationBackupPlan(
+      futureDestinations: const {
+        'manifest': 'backups/phase-d/project.json',
+        'receipt': 'backups/phase-d/receipt.json',
+      },
     ),
+    existingReceiptJsonBytes: existingReceiptJsonBytes,
+    validationCatalog: catalog,
   );
+  final plan = planner.plan(input);
   return _RunResult(
     plan: plan,
+    input: input,
     ids: ids,
     clockCalls: clockCalls,
   );
@@ -1165,11 +1255,13 @@ String _jsonHash(Object? value) => 'sha256:${narrativeEventCanonicalSha256(
 final class _RunResult {
   const _RunResult({
     required this.plan,
+    required this.input,
     required this.ids,
     required this.clockCalls,
   });
 
   final NarrativeEventMigrationPlan plan;
+  final NarrativeEventMigrationPlannerInput input;
   final _CountingIds ids;
   final int clockCalls;
 }

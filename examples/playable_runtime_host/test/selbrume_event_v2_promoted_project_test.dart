@@ -20,7 +20,7 @@ const _clueEventId = 'evt_019abcde-4000-7000-8000-000000000003';
 const _lysaTrainerId = 'trainer_lysa_port';
 const _lysaWorldRuleId = 'world_rule_lysa_port_resolved';
 const _canonicalSeededProjectManifestSha256 =
-    'sha256:2e5ebbeb916f09261d874d3420dc0d32dde1febbf2bd6eb12492f08071d39166';
+    'sha256:0b067579828fbe1c780011c8fcc412b01bca16586d2148f51923e70ff46f18c8';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -158,6 +158,7 @@ void main() {
     var dialogueCalls = 0;
     var cinematicCalls = 0;
     var battleCalls = 0;
+    var dualReadLegacyCalls = 0;
     var sequence = 0;
     final bridge = NarrativeSpatialProductionDispatchBridge(
       stateTransactions: transactions,
@@ -209,7 +210,7 @@ void main() {
           ),
         );
       },
-      legacyFallback: (_, __, ___) async {},
+      legacyFallback: (_, __, ___) async => dualReadLegacyCalls++,
       activityPort: NoopNarrativeEventActivityPort(),
       isCurrentOccurrence: (_) => true,
       executionIdFactory: () => _runtimeId('evx', ++sequence),
@@ -239,6 +240,14 @@ void main() {
       _lysaEventId,
     );
     expect((dialogueCalls, cinematicCalls, battleCalls), (1, 1, 1));
+    expect(dualReadLegacyCalls, 0);
+    final duplicate = await bridge.dispatch(
+      occurrenceId: 'phase-j-promoted-lysa',
+      occurrence: NarrativeEventOccurrence(source: source),
+    );
+    expect(duplicate, isA<NarrativeSpatialProductionDispatchDuplicate>());
+    expect((dialogueCalls, cinematicCalls, battleCalls), (1, 1, 1));
+    expect(dualReadLegacyCalls, 0);
     expect(
       state.narrativeEventProgress.consumedNarrativeEventIds,
       contains(_lysaEventId),
@@ -271,6 +280,82 @@ void main() {
       reloaded.narrativeEventProgress.pendingNarrativeOutcomeDeliveries,
       state.narrativeEventProgress.pendingNarrativeOutcomeDeliveries,
     );
+
+    // The same promoted records remain single-authority after the explicit
+    // v2Only transition. We keep all project content identical and change only
+    // the runtime mode, so this comparison catches mode-specific fallback.
+    final registry = project.eventRegistry!;
+    final v2Project = ProjectManifest.fromJson(
+      <String, dynamic>{
+        ...project.toJson(),
+        'eventRegistry': NarrativeEventRegistry(
+          schemaVersion: registry.schemaVersion,
+          mode: EventSystemMode.v2Only,
+          records: registry.records,
+          legacyClaims: registry.legacyClaims,
+        ).toJson(),
+      },
+    );
+    final v2Snapshot = await NarrativeEventRuntimeSnapshot.build(
+      project: v2Project,
+      loadMap: (mapId) async {
+        final loaded = await load(mapId);
+        return (project: v2Project, map: loaded.map);
+      },
+    );
+    var v2State = GameState(
+      saveId: 'nsc_45_promoted_v2_only',
+      currentMapId: _portMapId,
+      playerPosition: const GridPos(x: 26, y: 17),
+      narrativeFactRuntimeState: NarrativeFactRuntimeState(
+        overridesByFactId: const {'fact_port_alert_seen': true},
+      ),
+    );
+    final v2Transactions = NarrativeEventStateTransactions(v2State);
+    var v2SceneCalls = 0;
+    var v2LegacyCalls = 0;
+    final v2Bridge = NarrativeSpatialProductionDispatchBridge(
+      stateTransactions: v2Transactions,
+      currentGameState: () => v2State,
+      onGameStateCommitted: (next) => v2State = next,
+      prepareAuthority: (_, occurrence) async {
+        return NarrativeEventDispatchAuthority.prepare(
+          registryResult: v2Snapshot.registryResult,
+          occurrence: occurrence,
+          factResolver: v2Snapshot.factResolver,
+          legacyClaimIndex: v2Snapshot.legacyClaimIndex,
+          projectCatalog: v2Snapshot.projectCatalog,
+        );
+      },
+      executeScene: (request) async {
+        v2SceneCalls++;
+        expect(request.eventId, _lysaEventId);
+        return NarrativeSceneExecutionResult.completed(
+          updatedGameState: request.gameState,
+          qualifiedOutcomes: const [],
+        );
+      },
+      legacyFallback: (_, __, ___) async => v2LegacyCalls++,
+      activityPort: NoopNarrativeEventActivityPort(),
+      isCurrentOccurrence: (_) => true,
+      executionIdFactory: () => _runtimeId('evx', ++sequence),
+      correlationIdFactory: () => _runtimeId('corr', ++sequence),
+      deliveryIdFactory: () => _runtimeId('outd', ++sequence),
+    );
+    final v2Dispatch = await v2Bridge.dispatch(
+      occurrenceId: 'nsc-45-v2-only-lysa',
+      occurrence: NarrativeEventOccurrence(source: source),
+    );
+    expect(v2Dispatch, isA<NarrativeSpatialProductionDispatchV2Handled>());
+    expect(v2SceneCalls, 1);
+    expect(v2LegacyCalls, 0);
+    final v2Duplicate = await v2Bridge.dispatch(
+      occurrenceId: 'nsc-45-v2-only-lysa',
+      occurrence: NarrativeEventOccurrence(source: source),
+    );
+    expect(v2Duplicate, isA<NarrativeSpatialProductionDispatchDuplicate>());
+    expect(v2SceneCalls, 1);
+    expect(v2LegacyCalls, 0);
   });
 }
 

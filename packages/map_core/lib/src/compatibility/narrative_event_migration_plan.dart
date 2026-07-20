@@ -81,6 +81,68 @@ enum NarrativeEventMigrationCohortClaimStatus {
   blocked,
 }
 
+/// Measurable project conditions required before deleting the legacy reader.
+///
+/// NSC-45 deliberately measures these conditions without changing runtime
+/// policy. A product may remain in dual-read for as long as one criterion is
+/// present; no UI should infer deprecation merely from a successful preview.
+enum NarrativeEventLegacyRetirementCriterion {
+  v2OnlyMode,
+  noLegacyMapEvents,
+  noLegacyScenarioSources,
+  noLegacyClaims,
+  noMigrationBlockers,
+}
+
+@immutable
+final class NarrativeEventLegacyRetirementAssessment {
+  NarrativeEventLegacyRetirementAssessment({
+    required this.mode,
+    required this.legacyMapEventCount,
+    required this.legacyScenarioSourceCount,
+    required this.legacyClaimCount,
+    required this.migrationBlockerCount,
+    required List<NarrativeEventLegacyRetirementCriterion> remainingCriteria,
+  }) : remainingCriteria = List.unmodifiable(remainingCriteria);
+
+  final EventSystemMode mode;
+  final int legacyMapEventCount;
+  final int legacyScenarioSourceCount;
+  final int legacyClaimCount;
+  final int migrationBlockerCount;
+  final List<NarrativeEventLegacyRetirementCriterion> remainingCriteria;
+
+  bool get readyToRemoveLegacyPath => remainingCriteria.isEmpty;
+}
+
+/// Product-facing impact summary derived from one attested migration plan.
+///
+/// Counts are intentionally explicit. In particular, [lossRiskCount] reports
+/// data that the fail-closed planner refuses to discard; it never means that a
+/// successful plan will silently lose those entries.
+@immutable
+final class NarrativeEventMigrationImpactPreview {
+  const NarrativeEventMigrationImpactPreview({
+    required this.claimCount,
+    required this.collisionCount,
+    required this.referenceCount,
+    required this.unresolvedReferenceCount,
+    required this.lossRiskCount,
+    required this.confirmedChoiceCount,
+    required this.legacyRuntimeActive,
+    required this.retirement,
+  });
+
+  final int claimCount;
+  final int collisionCount;
+  final int referenceCount;
+  final int unresolvedReferenceCount;
+  final int lossRiskCount;
+  final int confirmedChoiceCount;
+  final bool legacyRuntimeActive;
+  final NarrativeEventLegacyRetirementAssessment retirement;
+}
+
 @immutable
 final class _NarrativeEventMigrationContextAttestation {
   _NarrativeEventMigrationContextAttestation._({

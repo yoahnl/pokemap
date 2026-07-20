@@ -52,8 +52,19 @@ void main() {
     expect(find.text('Préparer les événements V2'), findsOneWidget);
     expect(find.text('1 événement à créer'), findsOneWidget);
     expect(find.text('1 lien de compatibilité'), findsOneWidget);
+    expect(find.text('Claims : 1'), findsOneWidget);
+    expect(find.text('Collisions : 0'), findsOneWidget);
+    expect(find.text('Références : 0 (0 à résoudre)'), findsOneWidget);
+    expect(find.text('Risques de perte bloqués : 0'), findsOneWidget);
+    expect(find.text('Choix confirmés : 1'), findsOneWidget);
+    expect(find.text('Chemin historique encore actif'), findsOneWidget);
+    expect(find.text('Retrait legacy : 2 critères restants'), findsOneWidget);
     expect(find.textContaining('mode de jeu reste inchangé'), findsOneWidget);
     expect(find.textContaining('evmr_'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-migration-commit')),
+      240,
+    );
     expect(
       tester.widget(find.byKey(const ValueKey('event-migration-commit'))),
       isA<Widget>(),
@@ -85,6 +96,10 @@ void main() {
       },
     );
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-migration-commit')),
+      240,
+    );
     await tester.tap(find.byKey(const ValueKey('event-migration-commit')));
     await tester.pump();
 
@@ -124,6 +139,10 @@ void main() {
       },
     );
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-migration-recover')),
+      240,
+    );
     await tester.tap(find.byKey(const ValueKey('event-migration-recover')));
     await tester.pump();
 
@@ -177,6 +196,15 @@ void main() {
       },
     );
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-migration-retirement-readiness')),
+      240,
+    );
+    expect(find.text('Retrait legacy : 1 critère restant'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-migration-activate-v2')),
+      240,
+    );
     expect(find.text('Projet sans événement historique'), findsOneWidget);
     await tester.tap(
       find.byKey(const ValueKey('event-migration-activate-v2')),

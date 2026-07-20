@@ -122,39 +122,43 @@ final class NarrativeEventMigrationPreviewUseCase {
       },
       saveHashes: const {},
     );
-    final plan = NarrativeEventMigrationPlanner(
+    final planner = NarrativeEventMigrationPlanner(
       ids: _ids,
       clock: _clock,
-    ).plan(
-      NarrativeEventMigrationPlannerInput(
-        project: project,
-        maps: session.maps,
-        mapEventProjections: mapProjections,
-        scenarioProjections: scenarioProjections,
-        references: references,
-        currentSnapshot: snapshot,
-        expectedSnapshot: expectedSnapshot,
-        choices: NarrativeEventMigrationChoices(
-          sourceChoices: sourceChoices,
-        ),
-        characterizedCorpus: characterizedCorpus,
-        saveSnapshots: const [],
-        unknownLegacyData: const [],
-        backupPlan: NarrativeEventMigrationBackupPlan(
-          futureDestinations: const {
-            'manifest': '.pokemap/event-migration/project.before.json',
-            'receipt': '.pokemap/event-migration/receipt.json',
-          },
-        ),
-        existingReceiptJsonBytes: existingReceiptJsonBytes,
-        validationCatalog: catalog,
-      ),
     );
+    final input = NarrativeEventMigrationPlannerInput(
+      project: project,
+      maps: session.maps,
+      mapEventProjections: mapProjections,
+      scenarioProjections: scenarioProjections,
+      references: references,
+      currentSnapshot: snapshot,
+      expectedSnapshot: expectedSnapshot,
+      choices: NarrativeEventMigrationChoices(
+        sourceChoices: sourceChoices,
+      ),
+      characterizedCorpus: characterizedCorpus,
+      saveSnapshots: const [],
+      unknownLegacyData: const [],
+      backupPlan: NarrativeEventMigrationBackupPlan(
+        futureDestinations: const {
+          'manifest': '.pokemap/event-migration/project.before.json',
+          'receipt': '.pokemap/event-migration/receipt.json',
+        },
+      ),
+      existingReceiptJsonBytes: existingReceiptJsonBytes,
+      validationCatalog: catalog,
+    );
+    final plan = planner.plan(input);
     return NarrativeEventMigrationPreview(
       projectPath: session.projectPath,
       projectRevision: session.projectRevision,
       project: project,
       plan: plan,
+      impact: NarrativeEventMigrationPlanner.previewImpact(
+        input: input,
+        plan: plan,
+      ),
     );
   }
 }
