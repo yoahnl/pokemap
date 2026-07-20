@@ -67,6 +67,75 @@ void main() {
       expect(diagnostic.sceneId, 'scene_action');
       expect(report.hasErrors, isFalse);
     });
+
+    test('reports a structured link to an unknown Scenario', () {
+      final report = diagnoseStorylineSceneLinks(
+        project: _projectWithStructuredLink(
+          scenarioId: 'missing_scenario',
+        ),
+      );
+
+      final diagnostic = report
+          .byCode(
+            StorylineSceneLinkDiagnosticCode
+                .storylineStructuredOutcomeUnknownScenario,
+          )
+          .single;
+      expect(diagnostic.severity, StorylineSceneLinkDiagnosticSeverity.error);
+      expect(diagnostic.sceneLinkId, 'link_intro');
+      expect(diagnostic.sceneId, 'missing_scenario');
+    });
+
+    test('reports unknown declared outcomes and target Steps', () {
+      final report = diagnoseStorylineSceneLinks(
+        project: _projectWithStructuredLink(
+          outcomeId: 'missing_outcome',
+          effectTargetId: 'missing_step',
+        ),
+      );
+
+      expect(
+        report
+            .byCode(
+              StorylineSceneLinkDiagnosticCode
+                  .storylineStructuredOutcomeUnknownOutcome,
+            )
+            .single
+            .outcomeId,
+        'missing_outcome',
+      );
+      expect(
+        report
+            .byCode(
+              StorylineSceneLinkDiagnosticCode
+                  .storylineStructuredOutcomeUnknownStepTarget,
+            )
+            .single
+            .effectTargetId,
+        'missing_step',
+      );
+      expect(report.hasErrors, isTrue);
+    });
+
+    test('warns about duplicate structured Step effects', () {
+      final effect = StorylineEffect(
+        type: StorylineEffectType.completeStep,
+        targetId: 'step_intro',
+      );
+      final report = diagnoseStorylineSceneLinks(
+        project: _projectWithStructuredLink(effects: [effect, effect]),
+      );
+
+      final diagnostic = report
+          .byCode(
+            StorylineSceneLinkDiagnosticCode
+                .storylineStructuredOutcomeDuplicateStepEffect,
+          )
+          .single;
+      expect(diagnostic.severity, StorylineSceneLinkDiagnosticSeverity.warning);
+      expect(diagnostic.outcomeId, 'victory');
+      expect(diagnostic.effectTargetId, 'step_intro');
+    });
   });
 }
 
@@ -106,6 +175,76 @@ ProjectManifest _projectWithScenesAndLinks({
     tilesets: const <ProjectTilesetEntry>[],
     scenes: scenes,
     storylines: [_storyline(sceneLinkIds: sceneLinkIds)],
+  );
+}
+
+ProjectManifest _projectWithStructuredLink({
+  String scenarioId = 'scenario_intro',
+  String outcomeId = 'victory',
+  String effectTargetId = 'step_intro',
+  List<StorylineEffect>? effects,
+}) {
+  return ProjectManifest(
+    name: 'Story Project',
+    maps: const <ProjectMapEntry>[],
+    tilesets: const <ProjectTilesetEntry>[],
+    scenarios: [
+      ScenarioAsset(
+        id: 'scenario_intro',
+        name: 'Intro',
+        entryNodeId: 'start',
+        declaredOutcomes: const ['victory'],
+      ),
+    ],
+    storylines: [
+      StorylineAsset(
+        id: 'story_main',
+        type: StorylineType.main,
+        title: 'Main story',
+        chapters: [
+          StorylineChapter(
+            id: 'chapter_intro',
+            title: 'Intro',
+            order: 0,
+            steps: [
+              StorylineStep(
+                id: 'step_intro',
+                title: 'Intro',
+                order: 0,
+              ),
+            ],
+          ),
+        ],
+        sceneLinks: [
+          StorylineSceneLink(
+            id: 'link_intro',
+            chapterId: 'chapter_intro',
+            stepId: 'step_intro',
+            label: 'Intro',
+            state: StorylineSceneLinkState.linkedScenario,
+            role: StorylineSceneLinkRole.primary,
+            sceneRef: StorylineSceneRef(
+              kind: StorylineSceneRefKind.scenario,
+              targetId: scenarioId,
+            ),
+            order: 0,
+            outcomeLinks: [
+              StorylineSceneOutcomeLink(
+                id: 'outcome_intro',
+                outcomeId: outcomeId,
+                effects: effects ??
+                    [
+                      StorylineEffect(
+                        type: StorylineEffectType.completeStep,
+                        targetId: effectTargetId,
+                      ),
+                    ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
   );
 }
 

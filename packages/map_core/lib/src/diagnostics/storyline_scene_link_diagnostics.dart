@@ -1,4 +1,5 @@
 import '../models/project_manifest.dart';
+import '../models/storyline_asset.dart';
 import '../runtime/scene_runtime_plan_builder.dart';
 import 'scene_diagnostics.dart';
 
@@ -13,6 +14,10 @@ enum StorylineSceneLinkDiagnosticCode {
   storylineStepDuplicateSceneLink,
   storylineStepLinkedSceneHasErrors,
   storylineStepLinkedSceneNotRuntimeBuildable,
+  storylineStructuredOutcomeUnknownScenario,
+  storylineStructuredOutcomeUnknownOutcome,
+  storylineStructuredOutcomeUnknownStepTarget,
+  storylineStructuredOutcomeDuplicateStepEffect,
 }
 
 final class StorylineSceneLinkDiagnostic {
@@ -24,6 +29,9 @@ final class StorylineSceneLinkDiagnostic {
     required this.chapterId,
     required this.stepId,
     this.sceneId,
+    this.sceneLinkId,
+    this.outcomeId,
+    this.effectTargetId,
     this.suggestedFixLabel,
   });
 
@@ -34,6 +42,9 @@ final class StorylineSceneLinkDiagnostic {
   final String chapterId;
   final String stepId;
   final String? sceneId;
+  final String? sceneLinkId;
+  final String? outcomeId;
+  final String? effectTargetId;
   final String? suggestedFixLabel;
 
   @override
@@ -47,6 +58,9 @@ final class StorylineSceneLinkDiagnostic {
           other.chapterId == chapterId &&
           other.stepId == stepId &&
           other.sceneId == sceneId &&
+          other.sceneLinkId == sceneLinkId &&
+          other.outcomeId == outcomeId &&
+          other.effectTargetId == effectTargetId &&
           other.suggestedFixLabel == suggestedFixLabel;
 
   @override
@@ -58,6 +72,9 @@ final class StorylineSceneLinkDiagnostic {
         chapterId,
         stepId,
         sceneId,
+        sceneLinkId,
+        outcomeId,
+        effectTargetId,
         suggestedFixLabel,
       );
 }
@@ -109,9 +126,16 @@ StorylineSceneLinkDiagnosticsReport diagnoseStorylineSceneLinks({
   final sceneById = {
     for (final scene in project.scenes) scene.id: scene,
   };
+  final scenarioById = {
+    for (final scenario in project.scenarios) scenario.id: scenario,
+  };
   final diagnostics = <StorylineSceneLinkDiagnostic>[];
 
   for (final storyline in project.storylines) {
+    final stepIds = <String>{
+      for (final chapter in storyline.chapters)
+        for (final step in chapter.steps) step.id,
+    };
     for (final chapter in storyline.chapters) {
       for (final step in chapter.steps) {
         final seenSceneIds = <String>{};
@@ -184,6 +208,97 @@ StorylineSceneLinkDiagnosticsReport diagnoseStorylineSceneLinks({
                 sceneId: sceneId,
                 suggestedFixLabel:
                     'Garder le lien authoring ou corriger la Scene avant runtime.',
+              ),
+            );
+          }
+        }
+      }
+    }
+
+    for (final sceneLink in storyline.sceneLinks) {
+      final scenarioId = sceneLink.sceneRef?.targetId;
+      final scenario = scenarioId == null ? null : scenarioById[scenarioId];
+      if (scenarioId != null && scenario == null) {
+        diagnostics.add(
+          StorylineSceneLinkDiagnostic(
+            code: StorylineSceneLinkDiagnosticCode
+                .storylineStructuredOutcomeUnknownScenario,
+            severity: StorylineSceneLinkDiagnosticSeverity.error,
+            message:
+                'Le lien structuré référence un Scenario introuvable: $scenarioId.',
+            storylineId: storyline.id,
+            chapterId: sceneLink.chapterId,
+            stepId: sceneLink.stepId ?? '',
+            sceneId: scenarioId,
+            sceneLinkId: sceneLink.id,
+            suggestedFixLabel: 'Choisir un Scenario existant.',
+          ),
+        );
+      }
+
+      for (final outcomeLink in sceneLink.outcomeLinks) {
+        if (scenario != null &&
+            !scenario.declaredOutcomes.contains(outcomeLink.outcomeId)) {
+          diagnostics.add(
+            StorylineSceneLinkDiagnostic(
+              code: StorylineSceneLinkDiagnosticCode
+                  .storylineStructuredOutcomeUnknownOutcome,
+              severity: StorylineSceneLinkDiagnosticSeverity.error,
+              message:
+                  'Le résultat ${outcomeLink.outcomeId} n’est pas déclaré par le Scenario $scenarioId.',
+              storylineId: storyline.id,
+              chapterId: sceneLink.chapterId,
+              stepId: sceneLink.stepId ?? '',
+              sceneId: scenarioId,
+              sceneLinkId: sceneLink.id,
+              outcomeId: outcomeLink.outcomeId,
+              suggestedFixLabel: 'Choisir un résultat déclaré par le Scenario.',
+            ),
+          );
+        }
+
+        final seenStepEffects = <String>{};
+        for (final effect in outcomeLink.effects) {
+          if (effect.type != StorylineEffectType.activateStep &&
+              effect.type != StorylineEffectType.completeStep) {
+            continue;
+          }
+          if (!stepIds.contains(effect.targetId)) {
+            diagnostics.add(
+              StorylineSceneLinkDiagnostic(
+                code: StorylineSceneLinkDiagnosticCode
+                    .storylineStructuredOutcomeUnknownStepTarget,
+                severity: StorylineSceneLinkDiagnosticSeverity.error,
+                message:
+                    'L’effet ${effect.type.name} cible une étape introuvable: ${effect.targetId}.',
+                storylineId: storyline.id,
+                chapterId: sceneLink.chapterId,
+                stepId: sceneLink.stepId ?? '',
+                sceneId: scenarioId,
+                sceneLinkId: sceneLink.id,
+                outcomeId: outcomeLink.outcomeId,
+                effectTargetId: effect.targetId,
+                suggestedFixLabel: 'Choisir une étape de la Storyline.',
+              ),
+            );
+          }
+          final key = '${effect.type.name}:${effect.targetId}';
+          if (!seenStepEffects.add(key)) {
+            diagnostics.add(
+              StorylineSceneLinkDiagnostic(
+                code: StorylineSceneLinkDiagnosticCode
+                    .storylineStructuredOutcomeDuplicateStepEffect,
+                severity: StorylineSceneLinkDiagnosticSeverity.warning,
+                message:
+                    'Le résultat répète l’effet ${effect.type.name} vers ${effect.targetId}.',
+                storylineId: storyline.id,
+                chapterId: sceneLink.chapterId,
+                stepId: sceneLink.stepId ?? '',
+                sceneId: scenarioId,
+                sceneLinkId: sceneLink.id,
+                outcomeId: outcomeLink.outcomeId,
+                effectTargetId: effect.targetId,
+                suggestedFixLabel: 'Retirer l’effet structuré en double.',
               ),
             );
           }
