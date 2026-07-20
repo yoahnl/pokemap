@@ -89,7 +89,10 @@ final class NarrativeStudioValidationCoordinator {
               ],
         limitations: physical == null
             ? const ['La preuve physique n’a pas été exécutée.']
-            : const [],
+            : physical.verdict ==
+                    NarrativePhysicalReachabilityVerdict.indeterminate
+                ? [for (final issue in physical.issues) issue.message]
+                : const [],
       ),
       runtimeSmokeVerified: NarrativeValidationDimensionResult(
         status: runtimeReceipt.validationStatus,

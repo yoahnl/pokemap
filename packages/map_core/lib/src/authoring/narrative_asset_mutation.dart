@@ -21,7 +21,40 @@ sealed class NarrativeAssetMutationResult {
   bool get isApplicable =>
       this is NarrativeAssetCreated ||
       this is NarrativeAssetUpdated ||
-      this is NarrativeAssetDeleted;
+      this is NarrativeAssetDeleted ||
+      this is NarrativeDiagnosticSuppressionsUpdated;
+}
+
+/// Atomic project-level Narrative Studio metadata mutation.
+///
+/// It is intentionally distinct from an asset update: diagnostic governance
+/// belongs to the project manifest and must not masquerade as a Cinematic.
+@immutable
+final class NarrativeDiagnosticSuppressionsUpdated
+    extends NarrativeAssetMutationResult {
+  factory NarrativeDiagnosticSuppressionsUpdated({
+    required ProjectManifest before,
+    required ProjectManifest after,
+  }) {
+    if (before.copyWith(
+          narrativeDiagnosticSuppressions:
+              after.narrativeDiagnosticSuppressions,
+        ) !=
+        after) {
+      throw ArgumentError(
+        'Only narrativeDiagnosticSuppressions may change.',
+      );
+    }
+    return NarrativeDiagnosticSuppressionsUpdated._(
+      before: before,
+      after: after,
+    );
+  }
+
+  const NarrativeDiagnosticSuppressionsUpdated._({
+    required super.before,
+    required super.after,
+  });
 }
 
 @immutable

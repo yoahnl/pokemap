@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../application/services/narrative_diagnostic_suppression_service.dart';
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
 
@@ -20,10 +21,22 @@ const narrativeValidatorMapFilterKey =
     ValueKey<String>('narrative-validator-filter-map');
 const narrativeValidatorDomainFilterKey =
     ValueKey<String>('narrative-validator-filter-domain');
+const narrativeValidatorDimensionFilterKey =
+    ValueKey<String>('narrative-validator-filter-dimension');
+const narrativeValidatorStorylineFilterKey =
+    ValueKey<String>('narrative-validator-filter-storyline');
+const narrativeValidatorAssetFilterKey =
+    ValueKey<String>('narrative-validator-filter-asset');
+const narrativeValidatorStatusFilterKey =
+    ValueKey<String>('narrative-validator-filter-status');
 
 enum NarrativeValidatorView { diagnostics, mapEvents }
 
 enum _SeverityFilter { all, errors, warnings }
+
+enum _DimensionFilter { all, structural, narrative, physical, runtime }
+
+enum _StatusFilter { all, active, suppressed, resolved }
 
 const _maxDiagnosticRestorationAttempts = 20;
 
@@ -39,6 +52,10 @@ class NarrativeValidatorWorkspace extends StatefulWidget {
     this.onOpenDiagnostic,
     this.onOpenEvent,
     this.onOpenMap,
+    this.multidimensionalReport,
+    this.suppressionSnapshot,
+    this.onSuppressDiagnostic,
+    this.onRemoveSuppression,
     this.initialView = NarrativeValidatorView.diagnostics,
     this.showViewTabs = true,
     this.requestedDiagnosticKey,
@@ -51,6 +68,10 @@ class NarrativeValidatorWorkspace extends StatefulWidget {
   final ValueChanged<NarrativeProjectDiagnostic>? onOpenDiagnostic;
   final ValueChanged<String>? onOpenEvent;
   final ValueChanged<String>? onOpenMap;
+  final NarrativeMultidimensionalValidationReport? multidimensionalReport;
+  final NarrativeDiagnosticSuppressionSnapshot? suppressionSnapshot;
+  final ValueChanged<NarrativeProjectDiagnostic>? onSuppressDiagnostic;
+  final ValueChanged<String>? onRemoveSuppression;
   final NarrativeValidatorView initialView;
   final bool showViewTabs;
   final String? requestedDiagnosticKey;
@@ -67,8 +88,12 @@ class _NarrativeValidatorWorkspaceState
     extends State<NarrativeValidatorWorkspace> {
   late NarrativeValidatorView _tab;
   _SeverityFilter _severity = _SeverityFilter.all;
+  _DimensionFilter _dimension = _DimensionFilter.all;
+  _StatusFilter _status = _StatusFilter.active;
   String _domain = _allDomains;
   String _map = _allMaps;
+  String _storyline = _allStorylines;
+  String _assetQuery = '';
   String? _selectedMapGroup;
   final ScrollController _diagnosticsScrollController = ScrollController();
   final Map<String, GlobalKey> _diagnosticAnchorKeys = <String, GlobalKey>{};
@@ -104,8 +129,12 @@ class _NarrativeValidatorWorkspaceState
         oldWidget.requestedDiagnosticNonce != widget.requestedDiagnosticNonce) {
       _tab = NarrativeValidatorView.diagnostics;
       _severity = _SeverityFilter.all;
+      _dimension = _DimensionFilter.all;
+      _status = _StatusFilter.all;
       _domain = _allDomains;
       _map = _allMaps;
+      _storyline = _allStorylines;
+      _assetQuery = '';
     }
     if (!identical(oldWidget.report, widget.report)) {
       final diagnosticKeys =
@@ -149,6 +178,10 @@ class _NarrativeValidatorWorkspaceState
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _VerdictHeader(report: report),
+            if (widget.multidimensionalReport case final publication?) ...[
+              const SizedBox(height: 10),
+              _MultidimensionalVerdicts(report: publication),
+            ],
             const SizedBox(height: 10),
             if (widget.showViewTabs) ...[
               Row(
@@ -209,7 +242,18 @@ class _NarrativeValidatorWorkspaceState
         icon: Icon(Icons.search_off_outlined),
       );
     }
-    final diagnostics = widget.report.diagnostics.where((diagnostic) {
+    final snapshot = widget.suppressionSnapshot;
+    final views = snapshot?.diagnostics ??
+        [
+          for (final diagnostic in widget.report.diagnostics)
+            NarrativeDiagnosticSuppressionView(
+              diagnostic: diagnostic,
+              status: NarrativeDiagnosticStatus.active,
+            ),
+        ];
+    final normalizedAssetQuery = _assetQuery.trim().toLowerCase();
+    final diagnostics = views.where((view) {
+      final diagnostic = view.diagnostic;
       final matchesSeverity = switch (_severity) {
         _SeverityFilter.all => true,
         _SeverityFilter.errors =>
@@ -217,15 +261,45 @@ class _NarrativeValidatorWorkspaceState
         _SeverityFilter.warnings =>
           diagnostic.severity == NarrativeProjectDiagnosticSeverity.warning,
       };
+      final matchesStatus = switch (_status) {
+        _StatusFilter.all => true,
+        _StatusFilter.active =>
+          view.status != NarrativeDiagnosticStatus.suppressed,
+        _StatusFilter.suppressed =>
+          view.status == NarrativeDiagnosticStatus.suppressed,
+        _StatusFilter.resolved => false,
+      };
+      final matchesAsset = normalizedAssetQuery.isEmpty ||
+          _diagnosticSearchText(diagnostic).contains(normalizedAssetQuery);
       return matchesSeverity &&
+          matchesStatus &&
+          (_dimension == _DimensionFilter.all ||
+              _dimensionFor(diagnostic) == _dimension) &&
           (_domain == _allDomains || diagnostic.domain.name == _domain) &&
-          (_map == _allMaps || diagnostic.mapId == _map);
+          (_map == _allMaps || diagnostic.mapId == _map) &&
+          (_storyline == _allStorylines ||
+              diagnostic.storylineId == _storyline) &&
+          matchesAsset;
     }).toList();
+    final resolvedSuppressions = _status == _StatusFilter.resolved
+        ? snapshot?.resolvedSuppressions ??
+            const <NarrativeDiagnosticSuppression>[]
+        : const <NarrativeDiagnosticSuppression>[];
 
     final mapViews = widget.report.mapEventViews
         .where((view) => view.mapId != null)
         .toList(growable: false);
-    _scheduleRequestedDiagnosticFocus(diagnostics);
+    _scheduleRequestedDiagnosticFocus(
+      diagnostics.map((view) => view.diagnostic).toList(growable: false),
+    );
+
+    final storylineIds = widget.report.diagnostics
+        .map((diagnostic) => diagnostic.storylineId)
+        .whereType<String>()
+        .where((id) => id.trim().isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -302,27 +376,82 @@ class _NarrativeValidatorWorkspaceState
                   onChanged: (value) => setState(() => _map = value),
                 ),
               );
-              if (constraints.maxWidth < 900) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    severity,
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [domain, map],
-                    ),
+              final dimension = SizedBox(
+                width: 210,
+                child: PokeMapDropdownField<_DimensionFilter>(
+                  key: narrativeValidatorDimensionFilterKey,
+                  label: 'Dimension',
+                  value: _dimension,
+                  items: [
+                    for (final value in _DimensionFilter.values)
+                      PokeMapDropdownItem(
+                        value: value,
+                        label: _dimensionFilterLabel(value),
+                      ),
                   ],
-                );
-              }
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
+                  onChanged: (value) => setState(() => _dimension = value),
+                ),
+              );
+              final storyline = SizedBox(
+                width: 210,
+                child: PokeMapDropdownField<String>(
+                  key: narrativeValidatorStorylineFilterKey,
+                  label: 'Storyline',
+                  value: _storyline,
+                  items: [
+                    const PokeMapDropdownItem(
+                      value: _allStorylines,
+                      label: 'Toutes les storylines',
+                    ),
+                    for (final id in storylineIds)
+                      PokeMapDropdownItem(value: id, label: id),
+                  ],
+                  onChanged: (value) => setState(() => _storyline = value),
+                ),
+              );
+              final status = SizedBox(
+                width: 190,
+                child: PokeMapDropdownField<_StatusFilter>(
+                  key: narrativeValidatorStatusFilterKey,
+                  label: 'Statut',
+                  value: _status,
+                  items: [
+                    for (final value in _StatusFilter.values)
+                      PokeMapDropdownItem(
+                        value: value,
+                        label: _statusFilterLabel(value),
+                      ),
+                  ],
+                  onChanged: (value) => setState(() => _status = value),
+                ),
+              );
+              final asset = SizedBox(
+                width: 240,
+                child: PokeMapTextField(
+                  label: 'Asset ou chemin',
+                  fieldKey: narrativeValidatorAssetFilterKey,
+                  placeholder: 'ID, chemin, message…',
+                  onChanged: (value) => setState(() => _assetQuery = value),
+                ),
+              );
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: severity),
-                  domain,
-                  const SizedBox(width: 8),
-                  map,
+                  severity,
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.end,
+                    children: [
+                      dimension,
+                      domain,
+                      map,
+                      storyline,
+                      status,
+                      asset,
+                    ],
+                  ),
                 ],
               );
             },
@@ -330,7 +459,7 @@ class _NarrativeValidatorWorkspaceState
         ),
         const SizedBox(height: 10),
         Expanded(
-          child: diagnostics.isEmpty
+          child: diagnostics.isEmpty && resolvedSuppressions.isEmpty
               ? const PokeMapEmptyState(
                   title: 'Aucun diagnostic dans ce filtre',
                   description:
@@ -343,10 +472,19 @@ class _NarrativeValidatorWorkspaceState
                   child: ListView.separated(
                     controller: _diagnosticsScrollController,
                     padding: const EdgeInsets.all(10),
-                    itemCount: diagnostics.length,
+                    itemCount: diagnostics.length + resolvedSuppressions.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
-                      final diagnostic = diagnostics[index];
+                      if (index >= diagnostics.length) {
+                        final suppression =
+                            resolvedSuppressions[index - diagnostics.length];
+                        return _ResolvedSuppressionEntry(
+                          suppression: suppression,
+                          onRemove: widget.onRemoveSuppression,
+                        );
+                      }
+                      final view = diagnostics[index];
+                      final diagnostic = view.diagnostic;
                       final stableKey = diagnostic.stableKey;
                       final anchorKey = _diagnosticAnchorKeys.putIfAbsent(
                         stableKey,
@@ -365,18 +503,11 @@ class _NarrativeValidatorWorkspaceState
                         focusNode: focusNode,
                         child: KeyedSubtree(
                           key: anchorKey,
-                          child: PokeMapDiagnosticCallout(
-                            severity: _calloutSeverity(diagnostic.severity),
-                            title: _diagnosticTitle(diagnostic),
-                            message: diagnostic.message,
-                            actionLabel: widget.onOpenDiagnostic == null
-                                ? null
-                                : 'Ouvrir la source',
-                            onAction: widget.onOpenDiagnostic == null
-                                ? null
-                                : () => widget.onOpenDiagnostic!(diagnostic),
-                            semanticLabel:
-                                '${_domainLabel(diagnostic.domain)}. ${diagnostic.message}',
+                          child: _DiagnosticEntry(
+                            view: view,
+                            onOpen: widget.onOpenDiagnostic,
+                            onSuppress: widget.onSuppressDiagnostic,
+                            onRemoveSuppression: widget.onRemoveSuppression,
                           ),
                         ),
                       );
@@ -596,6 +727,251 @@ class _VerdictHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _MultidimensionalVerdicts extends StatelessWidget {
+  const _MultidimensionalVerdicts({required this.report});
+
+  final NarrativeMultidimensionalValidationReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    final dimensions = <(String, NarrativeValidationDimensionResult, IconData)>[
+      ('Structure', report.structurallyValid, Icons.account_tree_outlined),
+      ('Solvabilité', report.narrativelySolvable, Icons.route_outlined),
+      ('Atteignabilité', report.physicallyReachable, Icons.map_outlined),
+      ('Smoke runtime', report.runtimeSmokeVerified, Icons.play_circle_outline),
+    ];
+    return PokeMapPanel(
+      padding: const EdgeInsets.all(10),
+      header: const Padding(
+        padding: EdgeInsets.fromLTRB(10, 8, 10, 0),
+        child: PokeMapSectionHeader(
+          title: 'Preuve de jouabilité · 4 dimensions',
+          description:
+              'Chaque verdict reste indépendant ; non exécuté ou indéterminé ne vaut jamais réussite.',
+        ),
+      ),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final (label, dimension, icon) in dimensions)
+            SizedBox(
+              width: 245,
+              child: PokeMapCard(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          icon,
+                          size: 16,
+                          color: context.pokeMapColors.textSecondary,
+                        ),
+                        const SizedBox(width: 7),
+                        Expanded(
+                          child: Text(
+                            label,
+                            style: TextStyle(
+                              color: context.pokeMapColors.textPrimary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        PokeMapBadge(
+                          label: _validationStatusLabel(dimension.status),
+                          variant:
+                              _validationStatusBadgeVariant(dimension.status),
+                        ),
+                      ],
+                    ),
+                    if (dimension.evidenceRefs.isNotEmpty) ...[
+                      const SizedBox(height: 7),
+                      Text(
+                        'Preuve · ${dimension.evidenceRefs.join(' · ')}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: context.pokeMapColors.textMuted,
+                          fontSize: 10,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                    if (dimension.limitations.isNotEmpty) ...[
+                      const SizedBox(height: 5),
+                      Text(
+                        'Limite · ${dimension.limitations.join(' · ')}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: context.pokeMapColors.textSecondary,
+                          fontSize: 10,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DiagnosticEntry extends StatelessWidget {
+  const _DiagnosticEntry({
+    required this.view,
+    required this.onOpen,
+    required this.onSuppress,
+    required this.onRemoveSuppression,
+  });
+
+  final NarrativeDiagnosticSuppressionView view;
+  final ValueChanged<NarrativeProjectDiagnostic>? onOpen;
+  final ValueChanged<NarrativeProjectDiagnostic>? onSuppress;
+  final ValueChanged<String>? onRemoveSuppression;
+
+  @override
+  Widget build(BuildContext context) {
+    final diagnostic = view.diagnostic;
+    final suppression = view.suppression;
+    return PokeMapCard(
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PokeMapDiagnosticCallout(
+            severity: _calloutSeverity(diagnostic.severity),
+            title: _diagnosticTitle(diagnostic),
+            message: diagnostic.message,
+            actionLabel: onOpen == null ? null : 'Ouvrir la source',
+            onAction: onOpen == null ? null : () => onOpen!(diagnostic),
+            semanticLabel:
+                '${_domainLabel(diagnostic.domain)}. ${diagnostic.message}',
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              PokeMapBadge(
+                label: _dimensionFilterLabel(_dimensionFor(diagnostic)),
+                variant: PokeMapBadgeVariant.info,
+              ),
+              PokeMapBadge(
+                label: _diagnosticStatusLabel(view.status),
+                variant: _diagnosticStatusBadgeVariant(view.status),
+              ),
+              if (diagnostic.mapId case final mapId?)
+                PokeMapBadge(
+                  label: 'Map · $mapId',
+                  variant: PokeMapBadgeVariant.neutral,
+                ),
+              if (diagnostic.storylineId case final storylineId?)
+                PokeMapBadge(
+                  label: 'Storyline · $storylineId',
+                  variant: PokeMapBadgeVariant.narrative,
+                ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Text(
+            'Chemin exact · ${diagnostic.path}',
+            style: TextStyle(
+              color: context.pokeMapColors.textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (diagnostic.suggestedFixLabel case final fix?) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Décision requise · $fix Ouvrez la source pour choisir sans mutation automatique.',
+              style: TextStyle(
+                color: context.pokeMapColors.textSecondary,
+                fontSize: 10,
+                height: 1.35,
+              ),
+            ),
+          ],
+          if (suppression != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Suppression · ${suppression.author} · ${suppression.reason}',
+              style: TextStyle(
+                color: context.pokeMapColors.textSecondary,
+                fontSize: 10,
+                height: 1.35,
+              ),
+            ),
+          ],
+          if (diagnostic.severity != NarrativeProjectDiagnosticSeverity.error &&
+              view.status != NarrativeDiagnosticStatus.suppressed &&
+              onSuppress != null) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: PokeMapButton(
+                key: ValueKey<String>(
+                  'narrative-validator-suppress-${diagnostic.stableKey}',
+                ),
+                onPressed: () => onSuppress!(diagnostic),
+                size: PokeMapButtonSize.small,
+                variant: PokeMapButtonVariant.ghost,
+                child: const Text('Masquer avec justification'),
+              ),
+            ),
+          ],
+          if (view.status == NarrativeDiagnosticStatus.suppressed &&
+              onRemoveSuppression != null) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: PokeMapButton(
+                key: ValueKey<String>(
+                  'narrative-validator-unsuppress-${diagnostic.stableKey}',
+                ),
+                onPressed: () => onRemoveSuppression!(diagnostic.stableKey),
+                size: PokeMapButtonSize.small,
+                variant: PokeMapButtonVariant.ghost,
+                child: const Text('Réactiver le diagnostic'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ResolvedSuppressionEntry extends StatelessWidget {
+  const _ResolvedSuppressionEntry({
+    required this.suppression,
+    required this.onRemove,
+  });
+
+  final NarrativeDiagnosticSuppression suppression;
+  final ValueChanged<String>? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return PokeMapDiagnosticCallout(
+      severity: PokeMapDiagnosticSeverity.info,
+      title: 'Diagnostic résolu',
+      message:
+          '${suppression.reason} · ${suppression.author} · ${suppression.diagnosticId}',
+      actionLabel: onRemove == null ? null : 'Nettoyer la suppression',
+      onAction:
+          onRemove == null ? null : () => onRemove!(suppression.diagnosticId),
     );
   }
 }
@@ -832,6 +1208,102 @@ class _MapEventEntriesPanel extends StatelessWidget {
 
 const _allDomains = '__all__';
 const _allMaps = '__all_maps__';
+const _allStorylines = '__all_storylines__';
+
+_DimensionFilter _dimensionFor(NarrativeProjectDiagnostic diagnostic) {
+  if (diagnostic.domain == NarrativeProjectDiagnosticDomain.runtime ||
+      diagnostic.code.toLowerCase().contains('runtime')) {
+    return _DimensionFilter.runtime;
+  }
+  if (diagnostic.code.toLowerCase().contains('physical') ||
+      diagnostic.code.toLowerCase().contains('reachablecell') ||
+      const {
+        'missingStartMap',
+        'invalidStartSpawn',
+        'missingSourceMap',
+        'missingSourceTarget',
+        'explorationBudgetExceeded',
+        'permanentlyBlocked',
+      }.contains(diagnostic.code)) {
+    return _DimensionFilter.physical;
+  }
+  if (diagnostic.code.startsWith('narrative') ||
+      diagnostic.code.startsWith('oneShot') ||
+      diagnostic.code.contains('NeverCompleted') ||
+      diagnostic.code.contains('NeverProduced')) {
+    return _DimensionFilter.narrative;
+  }
+  return _DimensionFilter.structural;
+}
+
+String _dimensionFilterLabel(_DimensionFilter value) => switch (value) {
+      _DimensionFilter.all => 'Toutes les dimensions',
+      _DimensionFilter.structural => 'Structure',
+      _DimensionFilter.narrative => 'Solvabilité narrative',
+      _DimensionFilter.physical => 'Atteignabilité physique',
+      _DimensionFilter.runtime => 'Smoke runtime',
+    };
+
+String _statusFilterLabel(_StatusFilter value) => switch (value) {
+      _StatusFilter.all => 'Tous les statuts',
+      _StatusFilter.active => 'Actifs',
+      _StatusFilter.suppressed => 'Masqués',
+      _StatusFilter.resolved => 'Résolus',
+    };
+
+String _diagnosticStatusLabel(NarrativeDiagnosticStatus value) =>
+    switch (value) {
+      NarrativeDiagnosticStatus.active => 'Actif',
+      NarrativeDiagnosticStatus.suppressed => 'Masqué',
+      NarrativeDiagnosticStatus.expiredSuppression => 'Masquage expiré',
+      NarrativeDiagnosticStatus.staleSuppression => 'Masquage obsolète',
+    };
+
+PokeMapBadgeVariant _diagnosticStatusBadgeVariant(
+  NarrativeDiagnosticStatus value,
+) =>
+    switch (value) {
+      NarrativeDiagnosticStatus.active => PokeMapBadgeVariant.error,
+      NarrativeDiagnosticStatus.suppressed => PokeMapBadgeVariant.neutral,
+      NarrativeDiagnosticStatus.expiredSuppression =>
+        PokeMapBadgeVariant.warning,
+      NarrativeDiagnosticStatus.staleSuppression => PokeMapBadgeVariant.warning,
+    };
+
+String _validationStatusLabel(NarrativeValidationStatus value) =>
+    switch (value) {
+      NarrativeValidationStatus.pass => 'Réussi',
+      NarrativeValidationStatus.fail => 'Échec',
+      NarrativeValidationStatus.indeterminate => 'Indéterminé',
+      NarrativeValidationStatus.notRun => 'Non exécuté',
+    };
+
+PokeMapBadgeVariant _validationStatusBadgeVariant(
+  NarrativeValidationStatus value,
+) =>
+    switch (value) {
+      NarrativeValidationStatus.pass => PokeMapBadgeVariant.success,
+      NarrativeValidationStatus.fail => PokeMapBadgeVariant.error,
+      NarrativeValidationStatus.indeterminate => PokeMapBadgeVariant.warning,
+      NarrativeValidationStatus.notRun => PokeMapBadgeVariant.neutral,
+    };
+
+String _diagnosticSearchText(NarrativeProjectDiagnostic diagnostic) =>
+    <String?>[
+      diagnostic.code,
+      diagnostic.message,
+      diagnostic.path,
+      diagnostic.mapId,
+      diagnostic.eventId,
+      diagnostic.sceneId,
+      diagnostic.dialogueId,
+      diagnostic.cinematicId,
+      diagnostic.storylineId,
+      diagnostic.chapterId,
+      diagnostic.stepId,
+      diagnostic.factId,
+      diagnostic.worldRuleId,
+    ].whereType<String>().join(' ').toLowerCase();
 
 String _mapGroupKey(NarrativeMapEventsView view) =>
     view.mapId ?? view.groupKind.name;

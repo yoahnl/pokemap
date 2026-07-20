@@ -7,8 +7,36 @@ import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_scene_focus_provider.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_destination.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_navigation.dart';
 
 void main() {
+  test('Event diagnostic keeps the exact event, map and dependency path', () {
+    const diagnostic = NarrativeProjectDiagnostic(
+      code: 'narrativeEventSourceMissing',
+      severity: NarrativeProjectDiagnosticSeverity.error,
+      domain: NarrativeProjectDiagnosticDomain.event,
+      message: 'Source absente.',
+      path: 'eventRegistry.records.evt_port.source',
+      destination: NarrativeProjectDiagnosticDestination.event,
+      mapId: 'map_port',
+      eventId: 'evt_port',
+    );
+
+    final resolution = resolveNarrativeProjectDiagnostic(diagnostic);
+
+    expect(resolution.kind, NarrativeStudioNavigationResolutionKind.internal);
+    expect(resolution.location?.destination, NarrativeStudioDestination.events);
+    expect(
+        resolution.location?.selection?.kind, NarrativeStudioAssetKind.event);
+    expect(resolution.location?.selection?.assetId, 'evt_port');
+    expect(resolution.location?.selection?.parentId, 'map_port');
+    expect(
+      resolution.location?.selection?.sourceContext,
+      'eventRegistry.records.evt_port.source',
+    );
+  });
+
   testWidgets('Scene validation destination focuses the exact Scene safely',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(1440, 900));

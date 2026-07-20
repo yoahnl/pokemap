@@ -95,6 +95,10 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('La Scene de fin est inaccessible.'), findsOneWidget);
+      expect(
+        find.text('Chemin exact · scenes.scene_ending'),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('Ouvrir la source').last);
       await tester.pumpAndSettle();
@@ -156,6 +160,10 @@ void main() {
             .read(narrativeStudioNavigationControllerProvider)
             .restorationRequest,
         isNull,
+      );
+      expect(
+        find.text('Chemin exact · facts.fact_passage'),
+        findsOneWidget,
       );
 
       await tester.tap(find.text('Ouvrir la source').first);

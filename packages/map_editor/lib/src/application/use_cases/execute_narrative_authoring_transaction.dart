@@ -44,7 +44,8 @@ final class ExecuteNarrativeAuthoringTransaction {
         );
       case NarrativeAssetCreated() ||
             NarrativeAssetUpdated() ||
-            NarrativeAssetDeleted():
+            NarrativeAssetDeleted() ||
+            NarrativeDiagnosticSuppressionsUpdated():
         break;
     }
 

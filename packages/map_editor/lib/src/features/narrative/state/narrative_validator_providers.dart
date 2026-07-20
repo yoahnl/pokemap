@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 
 import '../../../application/models/narrative_event_authoring_session.dart';
 import '../../../application/services/narrative_studio_validation_coordinator.dart';
+import '../../../application/services/narrative_diagnostic_suppression_service.dart';
 import '../../../application/services/pokemon_project_data_reader.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
 import '../../../infrastructure/repositories/narrative_runtime_smoke_receipt_repository.dart';
@@ -219,6 +220,11 @@ final narrativeValidatorReportProvider = FutureProvider.autoDispose.family<
 final narrativeStudioValidationCoordinatorProvider =
     Provider<NarrativeStudioValidationCoordinator>((ref) {
   return const NarrativeStudioValidationCoordinator();
+});
+
+final narrativeDiagnosticSuppressionServiceProvider =
+    Provider<NarrativeDiagnosticSuppressionService>((ref) {
+  return const NarrativeDiagnosticSuppressionService();
 });
 
 final narrativeRuntimeSmokeReceiptRepositoryProvider =

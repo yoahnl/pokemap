@@ -207,6 +207,11 @@ class ProjectValidator {
 
   static void _validateUniqueness(ProjectManifest manifest) {
     _validateUniqueIds(
+      manifest.narrativeDiagnosticSuppressions,
+      (suppression) => suppression.diagnosticId,
+      duplicateMessagePrefix: 'Duplicate narrative diagnostic suppression',
+    );
+    _validateUniqueIds(
       manifest.maps,
       (map) => map.id,
       duplicateMessagePrefix: 'Duplicate map ID',

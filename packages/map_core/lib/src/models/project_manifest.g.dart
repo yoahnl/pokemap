@@ -94,6 +94,12 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
       worldRules: json['worldRules'] == null
           ? const []
           : _worldRulesFromJson(json['worldRules']),
+      narrativeDiagnosticSuppressions:
+          (json['narrativeDiagnosticSuppressions'] as List<dynamic>?)
+                  ?.map((e) => NarrativeDiagnosticSuppression.fromJson(
+                      e as Map<String, dynamic>))
+                  .toList() ??
+              const [],
       eventRegistry: json['eventRegistry'] == null
           ? null
           : NarrativeEventRegistry.fromJson(json['eventRegistry']),
@@ -174,6 +180,10 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'cinematics': _cinematicsToJson(instance.cinematics),
       'facts': _factsToJson(instance.facts),
       'worldRules': _worldRulesToJson(instance.worldRules),
+      'narrativeDiagnosticSuppressions': instance
+          .narrativeDiagnosticSuppressions
+          .map((e) => e.toJson())
+          .toList(),
       if (instance.eventRegistry?.toJson() case final value?)
         'eventRegistry': value,
       'scenes': _scenesToJson(instance.scenes),

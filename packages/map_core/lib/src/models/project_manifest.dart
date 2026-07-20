@@ -9,6 +9,7 @@ import 'project_trainer.dart';
 import 'project_new_game_config.dart';
 import 'cinematic_asset.dart';
 import 'narrative_event_registry.dart';
+import 'narrative_diagnostic_suppression.dart';
 import 'narrative_fact.dart';
 import 'project_path_pattern_preset.dart';
 import 'projected_building_shadow.dart';
@@ -337,7 +338,7 @@ const Map<String, String> _defaultPokemonCatalogFiles = <String, String>{
   'version_groups': 'data/pokemon/catalogs/version_groups.json',
 };
 
-@freezed
+@Freezed(fromJson: true, toJson: true)
 class ProjectManifest with _$ProjectManifest {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectManifest({
@@ -393,6 +394,8 @@ class ProjectManifest with _$ProjectManifest {
       toJson: _worldRulesToJson,
     )
     List<WorldRuleDefinition> worldRules,
+    @Default([])
+    List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,
     @JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,
     @Default([])
     @JsonKey(

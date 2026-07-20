@@ -70,6 +70,8 @@ mixin _$ProjectManifest {
       toJson: _worldRulesToJson)
   List<WorldRuleDefinition> get worldRules =>
       throw _privateConstructorUsedError;
+  List<NarrativeDiagnosticSuppression> get narrativeDiagnosticSuppressions =>
+      throw _privateConstructorUsedError;
   @JsonKey(includeIfNull: false)
   NarrativeEventRegistry? get eventRegistry =>
       throw _privateConstructorUsedError;
@@ -167,6 +169,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
           fromJson: _worldRulesFromJson,
           toJson: _worldRulesToJson)
       List<WorldRuleDefinition> worldRules,
+      List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,
       @JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,
       @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
       List<SceneAsset> scenes,
@@ -242,6 +245,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? cinematics = null,
     Object? facts = null,
     Object? worldRules = null,
+    Object? narrativeDiagnosticSuppressions = null,
     Object? eventRegistry = freezed,
     Object? scenes = null,
     Object? storylines = null,
@@ -345,6 +349,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.worldRules
           : worldRules // ignore: cast_nullable_to_non_nullable
               as List<WorldRuleDefinition>,
+      narrativeDiagnosticSuppressions: null == narrativeDiagnosticSuppressions
+          ? _value.narrativeDiagnosticSuppressions
+          : narrativeDiagnosticSuppressions // ignore: cast_nullable_to_non_nullable
+              as List<NarrativeDiagnosticSuppression>,
       eventRegistry: freezed == eventRegistry
           ? _value.eventRegistry
           : eventRegistry // ignore: cast_nullable_to_non_nullable
@@ -469,6 +477,7 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
           fromJson: _worldRulesFromJson,
           toJson: _worldRulesToJson)
       List<WorldRuleDefinition> worldRules,
+      List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,
       @JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,
       @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
       List<SceneAsset> scenes,
@@ -544,6 +553,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? cinematics = null,
     Object? facts = null,
     Object? worldRules = null,
+    Object? narrativeDiagnosticSuppressions = null,
     Object? eventRegistry = freezed,
     Object? scenes = null,
     Object? storylines = null,
@@ -647,6 +657,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._worldRules
           : worldRules // ignore: cast_nullable_to_non_nullable
               as List<WorldRuleDefinition>,
+      narrativeDiagnosticSuppressions: null == narrativeDiagnosticSuppressions
+          ? _value._narrativeDiagnosticSuppressions
+          : narrativeDiagnosticSuppressions // ignore: cast_nullable_to_non_nullable
+              as List<NarrativeDiagnosticSuppression>,
       eventRegistry: freezed == eventRegistry
           ? _value.eventRegistry
           : eventRegistry // ignore: cast_nullable_to_non_nullable
@@ -720,10 +734,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<ProjectPresetCategory> pathCategories = const [],
       final List<ProjectTerrainPreset> terrainPresets = const [],
       final List<ProjectPathPreset> pathPresets = const [],
-      @JsonKey(
-          name: 'pathPatternPresets',
-          fromJson: decodeProjectPathPatternPresets,
-          toJson: encodeProjectPathPatternPresets)
+      @JsonKey(name: 'pathPatternPresets', fromJson: decodeProjectPathPatternPresets, toJson: encodeProjectPathPatternPresets)
       final List<ProjectPathPatternPreset> pathPatternPresets = const [],
       @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)
       final List<EnvironmentPreset> environmentPresets = const [],
@@ -738,6 +749,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<NarrativeFactDefinition> facts = const [],
       @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)
       final List<WorldRuleDefinition> worldRules = const [],
+      final List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions =
+          const [],
       @JsonKey(includeIfNull: false) this.eventRegistry,
       @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
       final List<SceneAsset> scenes = const [],
@@ -786,6 +799,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         _cinematics = cinematics,
         _facts = facts,
         _worldRules = worldRules,
+        _narrativeDiagnosticSuppressions = narrativeDiagnosticSuppressions,
         _scenes = scenes,
         _storylines = storylines,
         _trainers = trainers,
@@ -994,6 +1008,16 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_worldRules);
   }
 
+  final List<NarrativeDiagnosticSuppression> _narrativeDiagnosticSuppressions;
+  @override
+  @JsonKey()
+  List<NarrativeDiagnosticSuppression> get narrativeDiagnosticSuppressions {
+    if (_narrativeDiagnosticSuppressions is EqualUnmodifiableListView)
+      return _narrativeDiagnosticSuppressions;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_narrativeDiagnosticSuppressions);
+  }
+
   @override
   @JsonKey(includeIfNull: false)
   final NarrativeEventRegistry? eventRegistry;
@@ -1082,7 +1106,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, facts: $facts, worldRules: $worldRules, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
   }
 
   @override
@@ -1126,6 +1150,9 @@ class _$ProjectManifestImpl implements _ProjectManifest {
             const DeepCollectionEquality().equals(other._facts, _facts) &&
             const DeepCollectionEquality()
                 .equals(other._worldRules, _worldRules) &&
+            const DeepCollectionEquality().equals(
+                other._narrativeDiagnosticSuppressions,
+                _narrativeDiagnosticSuppressions) &&
             (identical(other.eventRegistry, eventRegistry) ||
                 other.eventRegistry == eventRegistry) &&
             const DeepCollectionEquality().equals(other._scenes, _scenes) &&
@@ -1178,6 +1205,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         const DeepCollectionEquality().hash(_cinematics),
         const DeepCollectionEquality().hash(_facts),
         const DeepCollectionEquality().hash(_worldRules),
+        const DeepCollectionEquality().hash(_narrativeDiagnosticSuppressions),
         eventRegistry,
         const DeepCollectionEquality().hash(_scenes),
         const DeepCollectionEquality().hash(_storylines),
@@ -1212,81 +1240,83 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
 abstract class _ProjectManifest implements ProjectManifest {
   const factory _ProjectManifest(
-      {required final String name,
-      final ProjectVersion version,
-      required final List<ProjectMapEntry> maps,
-      final List<ProjectMapGroup> groups,
-      final List<ProjectTilesetFolder> tilesetFolders,
-      required final List<ProjectTilesetEntry> tilesets,
-      final List<ProjectElementCategory> elementCategories,
-      final List<ProjectElementEntry> elements,
-      final List<ProjectPresetCategory> terrainCategories,
-      final List<ProjectPresetCategory> pathCategories,
-      final List<ProjectTerrainPreset> terrainPresets,
-      final List<ProjectPathPreset> pathPresets,
-      @JsonKey(
-          name: 'pathPatternPresets',
-          fromJson: decodeProjectPathPatternPresets,
-          toJson: encodeProjectPathPatternPresets)
-      final List<ProjectPathPatternPreset> pathPatternPresets,
-      @JsonKey(
-          name: 'environmentPresets',
-          fromJson: decodeEnvironmentPresets,
-          toJson: encodeEnvironmentPresets)
-      final List<EnvironmentPreset> environmentPresets,
-      final List<ProjectEncounterTable> encounterTables,
-      final List<ProjectDialogueFolder> dialogueFolders,
-      final List<ProjectDialogueEntry> dialogues,
-      final List<ProjectScriptEntry> scripts,
-      final List<ScenarioAsset> scenarios,
-      @JsonKey(
-          name: 'cinematics',
-          fromJson: _cinematicsFromJson,
-          toJson: _cinematicsToJson)
-      final List<CinematicAsset> cinematics,
-      @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
-      final List<NarrativeFactDefinition> facts,
-      @JsonKey(
-          name: 'worldRules',
-          fromJson: _worldRulesFromJson,
-          toJson: _worldRulesToJson)
-      final List<WorldRuleDefinition> worldRules,
-      @JsonKey(includeIfNull: false)
-      final NarrativeEventRegistry? eventRegistry,
-      @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
-      final List<SceneAsset> scenes,
-      @JsonKey(
-          name: 'storylines',
-          fromJson: _storylinesFromJson,
-          toJson: _storylinesToJson)
-      final List<StorylineAsset> storylines,
-      final List<ProjectTrainerEntry> trainers,
-      final List<ProjectCharacterEntry> characters,
-      final ProjectSettings settings,
-      final ProjectPokemonConfig pokemon,
-      final ProjectNewGameConfig newGame,
-      final Map<String, dynamic> globalProperties,
-      @JsonKey(
-          name: 'surfaceCatalog',
-          fromJson: _projectSurfaceCatalogFromJson,
-          toJson: _projectSurfaceCatalogToJson)
-      final ProjectSurfaceCatalog surfaceCatalog,
-      @JsonKey(
-          name: 'borderCatalog',
-          readValue: _readProjectBorderCatalog,
-          fromJson: _projectBorderCatalogFromJson,
-          toJson: _projectBorderCatalogToJson,
-          includeIfNull: false)
-      final ProjectBorderCatalog borderCatalog,
-      @ProjectShadowCatalogJsonConverter()
-      final ProjectShadowCatalog shadowCatalog,
-      @JsonKey(
-          name: 'projectedBuildingShadowCatalog',
-          fromJson: _projectedBuildingShadowCatalogFromJson,
-          toJson: _projectedBuildingShadowCatalogToJson,
-          includeIfNull: false)
-      final ProjectBuildingShadowPresetCatalog
-          projectedBuildingShadowCatalog}) = _$ProjectManifestImpl;
+          {required final String name,
+          final ProjectVersion version,
+          required final List<ProjectMapEntry> maps,
+          final List<ProjectMapGroup> groups,
+          final List<ProjectTilesetFolder> tilesetFolders,
+          required final List<ProjectTilesetEntry> tilesets,
+          final List<ProjectElementCategory> elementCategories,
+          final List<ProjectElementEntry> elements,
+          final List<ProjectPresetCategory> terrainCategories,
+          final List<ProjectPresetCategory> pathCategories,
+          final List<ProjectTerrainPreset> terrainPresets,
+          final List<ProjectPathPreset> pathPresets,
+          @JsonKey(
+              name: 'pathPatternPresets',
+              fromJson: decodeProjectPathPatternPresets,
+              toJson: encodeProjectPathPatternPresets)
+          final List<ProjectPathPatternPreset> pathPatternPresets,
+          @JsonKey(
+              name: 'environmentPresets',
+              fromJson: decodeEnvironmentPresets,
+              toJson: encodeEnvironmentPresets)
+          final List<EnvironmentPreset> environmentPresets,
+          final List<ProjectEncounterTable> encounterTables,
+          final List<ProjectDialogueFolder> dialogueFolders,
+          final List<ProjectDialogueEntry> dialogues,
+          final List<ProjectScriptEntry> scripts,
+          final List<ScenarioAsset> scenarios,
+          @JsonKey(
+              name: 'cinematics',
+              fromJson: _cinematicsFromJson,
+              toJson: _cinematicsToJson)
+          final List<CinematicAsset> cinematics,
+          @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
+          final List<NarrativeFactDefinition> facts,
+          @JsonKey(
+              name: 'worldRules',
+              fromJson: _worldRulesFromJson,
+              toJson: _worldRulesToJson)
+          final List<WorldRuleDefinition> worldRules,
+          final List<NarrativeDiagnosticSuppression>
+              narrativeDiagnosticSuppressions,
+          @JsonKey(includeIfNull: false)
+          final NarrativeEventRegistry? eventRegistry,
+          @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
+          final List<SceneAsset> scenes,
+          @JsonKey(
+              name: 'storylines',
+              fromJson: _storylinesFromJson,
+              toJson: _storylinesToJson)
+          final List<StorylineAsset> storylines,
+          final List<ProjectTrainerEntry> trainers,
+          final List<ProjectCharacterEntry> characters,
+          final ProjectSettings settings,
+          final ProjectPokemonConfig pokemon,
+          final ProjectNewGameConfig newGame,
+          final Map<String, dynamic> globalProperties,
+          @JsonKey(
+              name: 'surfaceCatalog',
+              fromJson: _projectSurfaceCatalogFromJson,
+              toJson: _projectSurfaceCatalogToJson)
+          final ProjectSurfaceCatalog surfaceCatalog,
+          @JsonKey(
+              name: 'borderCatalog',
+              readValue: _readProjectBorderCatalog,
+              fromJson: _projectBorderCatalogFromJson,
+              toJson: _projectBorderCatalogToJson,
+              includeIfNull: false)
+          final ProjectBorderCatalog borderCatalog,
+          @ProjectShadowCatalogJsonConverter()
+          final ProjectShadowCatalog shadowCatalog,
+          @JsonKey(
+              name: 'projectedBuildingShadowCatalog',
+              fromJson: _projectedBuildingShadowCatalogFromJson,
+              toJson: _projectedBuildingShadowCatalogToJson,
+              includeIfNull: false)
+          final ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog}) =
+      _$ProjectManifestImpl;
 
   factory _ProjectManifest.fromJson(Map<String, dynamic> json) =
       _$ProjectManifestImpl.fromJson;
@@ -1352,6 +1382,8 @@ abstract class _ProjectManifest implements ProjectManifest {
       fromJson: _worldRulesFromJson,
       toJson: _worldRulesToJson)
   List<WorldRuleDefinition> get worldRules;
+  @override
+  List<NarrativeDiagnosticSuppression> get narrativeDiagnosticSuppressions;
   @override
   @JsonKey(includeIfNull: false)
   NarrativeEventRegistry? get eventRegistry;

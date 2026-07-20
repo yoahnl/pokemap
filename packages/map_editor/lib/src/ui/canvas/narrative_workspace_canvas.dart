@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../app/providers/core_providers.dart';
 import '../../application/services/narrative_activity_journal.dart';
+import '../../application/services/narrative_diagnostic_suppression_service.dart';
 import '../../application/services/narrative_project_snapshot_loader.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
 import '../../domain/repositories/repositories.dart';
@@ -302,6 +303,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           : null;
       final validatorRestoration = studioNavigation.restorationRequest;
       final report = ref.watch(narrativeValidatorReportProvider(request));
+      final multidimensionalReport =
+          ref.watch(narrativeStudioValidationReportProvider(request));
 
       void refreshReport() {
         ref.invalidate(
@@ -310,6 +313,75 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           ),
         );
         ref.invalidate(narrativeValidatorReportProvider(request));
+        ref.invalidate(narrativeStudioValidationReportProvider(request));
+      }
+
+      Future<void> suppressDiagnostic(
+        NarrativeProjectDiagnostic diagnostic,
+      ) async {
+        final reasonController = TextEditingController();
+        final accepted = await showPokeMapPromptDialog(
+          context,
+          title: 'Justifier le masquage',
+          controller: reasonController,
+          placeholder: 'Raison traçable',
+          cancelLabel: 'Annuler',
+          confirmLabel: 'Continuer',
+        );
+        if (!accepted || !context.mounted) {
+          reasonController.dispose();
+          return;
+        }
+        final authorController = TextEditingController();
+        final authorAccepted = await showPokeMapPromptDialog(
+          context,
+          title: 'Signer la décision',
+          controller: authorController,
+          placeholder: 'Nom de l’auteur',
+          cancelLabel: 'Annuler',
+          confirmLabel: 'Masquer',
+        );
+        final reason = reasonController.text;
+        final author = authorController.text;
+        reasonController.dispose();
+        authorController.dispose();
+        if (!authorAccepted || !context.mounted) return;
+        final service = ref.read(narrativeDiagnosticSuppressionServiceProvider);
+        final result = await editorNotifier.executeNarrativeAuthoringMutation(
+          (current) {
+            final next = service.planSuppression(
+              project: current,
+              diagnostic: diagnostic,
+              reason: reason,
+              author: author,
+            );
+            return NarrativeDiagnosticSuppressionsUpdated(
+              before: current,
+              after: next,
+            );
+          },
+          operationId:
+              'suppress-narrative-diagnostic-${service.fingerprint(diagnostic)}',
+        );
+        if (result?.succeeded == true) refreshReport();
+      }
+
+      Future<void> removeSuppression(String diagnosticId) async {
+        final service = ref.read(narrativeDiagnosticSuppressionServiceProvider);
+        final result = await editorNotifier.executeNarrativeAuthoringMutation(
+          (current) => NarrativeDiagnosticSuppressionsUpdated(
+            before: current,
+            after: service.planRemoval(
+              project: current,
+              diagnosticId: diagnosticId,
+            ),
+          ),
+          operationId:
+              'remove-narrative-diagnostic-suppression-${narrativeValidationPayloadFingerprint({
+                'diagnosticId': diagnosticId
+              })}',
+        );
+        if (result?.succeeded == true) refreshReport();
       }
 
       Future<bool> loadMapForNavigation(String mapId) async {
@@ -465,22 +537,42 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           ),
         ],
         body: report.when(
-          data: (value) => NarrativeValidatorWorkspace(
-            report: value,
-            requestedDiagnosticKey: requestedDiagnosticKey,
-            requestedDiagnosticNonce: studioNavigation.revision,
-            requestedRestorationRevision:
-                validatorRestoration?.expectation.location.destination ==
-                        NarrativeStudioDestination.validator
-                    ? validatorRestoration?.revision
-                    : null,
-            onRestorationApplied: (revision) => ref
-                .read(narrativeStudioNavigationControllerProvider.notifier)
-                .consumeRestoration(revision),
-            onOpenDiagnostic: openDiagnostic,
-            onOpenEvent: openEvent,
-            onOpenMap: openMap,
-          ),
+          data: (value) {
+            final publication = multidimensionalReport.when(
+              data: (publication) => publication,
+              loading: () => null,
+              error: (_, __) => null,
+            );
+            final mergedReport = mergeNarrativePublicationDiagnostics(
+              authoringReport: value,
+              publicationReport: publication,
+            );
+            return NarrativeValidatorWorkspace(
+              report: mergedReport,
+              multidimensionalReport: publication,
+              suppressionSnapshot: ref
+                  .read(narrativeDiagnosticSuppressionServiceProvider)
+                  .buildSnapshot(
+                    project: project,
+                    diagnostics: mergedReport.diagnostics,
+                  ),
+              onSuppressDiagnostic: suppressDiagnostic,
+              onRemoveSuppression: removeSuppression,
+              requestedDiagnosticKey: requestedDiagnosticKey,
+              requestedDiagnosticNonce: studioNavigation.revision,
+              requestedRestorationRevision:
+                  validatorRestoration?.expectation.location.destination ==
+                          NarrativeStudioDestination.validator
+                      ? validatorRestoration?.revision
+                      : null,
+              onRestorationApplied: (revision) => ref
+                  .read(narrativeStudioNavigationControllerProvider.notifier)
+                  .consumeRestoration(revision),
+              onOpenDiagnostic: openDiagnostic,
+              onOpenEvent: openEvent,
+              onOpenMap: openMap,
+            );
+          },
           loading: () => const PokeMapEmptyState(
             title: 'Analyse du projet…',
             description:

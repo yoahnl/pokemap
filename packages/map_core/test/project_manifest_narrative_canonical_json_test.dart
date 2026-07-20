@@ -4,6 +4,31 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('round-trips canonical diagnostic suppressions on the manifest', () {
+    final manifest = ProjectManifest(
+      name: 'Suppression owner',
+      maps: const [],
+      tilesets: const [],
+      narrativeDiagnosticSuppressions: [
+        NarrativeDiagnosticSuppression(
+          diagnosticId: 'warning:event:evt_port',
+          diagnosticFingerprint: 'sha256:${'f' * 64}',
+          reason: 'Accepté temporairement.',
+          author: 'Karim',
+          createdAt: DateTime.utc(2026, 7, 20),
+        ),
+      ],
+    );
+
+    final decoded = ProjectManifest.fromJson(manifest.toJson());
+
+    expect(decoded.narrativeDiagnosticSuppressions, hasLength(1));
+    expect(
+      decoded.narrativeDiagnosticSuppressions.single.diagnosticId,
+      'warning:event:evt_port',
+    );
+  });
+
   test('ProjectManifest path preset output is deep JSON for Event V2 hashes',
       () {
     final manifest = ProjectManifest(

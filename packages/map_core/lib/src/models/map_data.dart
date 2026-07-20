@@ -17,7 +17,7 @@ import '../operations/map_placed_element_shadow_override_json_codec.dart';
 part 'map_data.freezed.dart';
 part 'map_data.g.dart';
 
-@freezed
+@Freezed(fromJson: true, toJson: true)
 class MapData with _$MapData {
   @JsonSerializable(explicitToJson: true)
   const factory MapData({
