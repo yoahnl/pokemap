@@ -23,6 +23,16 @@ final class CinematicAssetRemovalResult {
   final CinematicAsset removedCinematic;
 }
 
+final class CinematicLibraryBulkResult {
+  const CinematicLibraryBulkResult({
+    required this.updatedProject,
+    required this.cinematics,
+  });
+
+  final ProjectManifest updatedProject;
+  final List<CinematicAsset> cinematics;
+}
+
 final class CinematicRequiredActorResult {
   const CinematicRequiredActorResult({
     required this.updatedProject,
@@ -157,6 +167,156 @@ enum CinematicTimelineBasicBlockKind {
   wait,
   fade,
   camera,
+}
+
+CinematicAssetAuthoringResult duplicateCinematicAsset(
+  ProjectManifest project, {
+  required String cinematicId,
+  String? title,
+  String? mapId,
+  String? storylineId,
+  String? chapterId,
+}) {
+  final source = _requireCinematic(project, cinematicId);
+  final id = _nextLibraryId(source.id, {
+    for (final cinematic in project.cinematics) cinematic.id,
+  });
+  final stepIds = <String, String>{};
+  for (var index = 0; index < source.timeline.steps.length; index++) {
+    final step = source.timeline.steps[index];
+    stepIds[step.id] = '${id}_step_${index + 1}';
+  }
+  final metadata = Map<String, String>.from(source.metadata)
+    ..remove(cinematicLibraryArchivedMetadataKey);
+  final duplicate = source.copyWith(
+    id: id,
+    title: title?.trim().isNotEmpty == true
+        ? title!.trim()
+        : '${source.title} (copie)',
+    mapId: mapId ?? source.mapId,
+    storylineId: storylineId ?? source.storylineId,
+    chapterId: chapterId ?? source.chapterId,
+    timeline: CinematicTimeline(
+      steps: [
+        for (final step in source.timeline.steps)
+          CinematicTimelineStep.fromJson({
+            ...step.toJson(),
+            'id': stepIds[step.id]!,
+          }),
+      ],
+    ),
+    metadata: metadata,
+  );
+  return addCinematicAsset(project, duplicate);
+}
+
+CinematicAssetAuthoringResult setCinematicArchived(
+  ProjectManifest project, {
+  required String cinematicId,
+  required bool archived,
+}) {
+  final source = _requireCinematic(project, cinematicId);
+  final metadata = Map<String, String>.from(source.metadata);
+  if (archived) {
+    metadata[cinematicLibraryArchivedMetadataKey] = 'true';
+  } else {
+    metadata.remove(cinematicLibraryArchivedMetadataKey);
+  }
+  return updateCinematicAsset(
+    project,
+    source.copyWith(metadata: metadata),
+  );
+}
+
+CinematicLibraryBulkResult bulkTagCinematics(
+  ProjectManifest project, {
+  required Iterable<String> cinematicIds,
+  required Iterable<String> tags,
+}) {
+  final ids =
+      cinematicIds.map((id) => id.trim()).where((id) => id.isNotEmpty).toSet();
+  final cleanTags = <String>[];
+  final seenTags = <String>{};
+  for (final tag in tags) {
+    final clean = tag.trim();
+    if (clean.isNotEmpty && seenTags.add(clean)) cleanTags.add(clean);
+  }
+  final updated = <CinematicAsset>[];
+  for (final cinematic in project.cinematics) {
+    updated.add(ids.contains(cinematic.id)
+        ? cinematic.copyWith(tags: cleanTags)
+        : cinematic);
+  }
+  final missing = ids
+      .difference({for (final cinematic in project.cinematics) cinematic.id});
+  if (missing.isNotEmpty) {
+    throw ArgumentError.value(
+        missing.first, 'cinematicIds', 'Unknown CinematicAsset id.');
+  }
+  return CinematicLibraryBulkResult(
+    updatedProject: project.copyWith(cinematics: updated),
+    cinematics: List<CinematicAsset>.unmodifiable(
+      updated.where((cinematic) => ids.contains(cinematic.id)),
+    ),
+  );
+}
+
+CinematicLibraryBulkResult bulkSetCinematicsArchived(
+  ProjectManifest project, {
+  required Iterable<String> cinematicIds,
+  required bool archived,
+}) {
+  final ids =
+      cinematicIds.map((id) => id.trim()).where((id) => id.isNotEmpty).toSet();
+  final existingIds = {
+    for (final cinematic in project.cinematics) cinematic.id
+  };
+  final missing = ids.difference(existingIds);
+  if (missing.isNotEmpty) {
+    throw ArgumentError.value(
+      missing.first,
+      'cinematicIds',
+      'Unknown CinematicAsset id.',
+    );
+  }
+  final updated = [
+    for (final cinematic in project.cinematics)
+      if (!ids.contains(cinematic.id))
+        cinematic
+      else
+        cinematic.copyWith(
+          metadata: _metadataWithArchive(cinematic.metadata, archived),
+        ),
+  ];
+  return CinematicLibraryBulkResult(
+    updatedProject: project.copyWith(cinematics: updated),
+    cinematics: List<CinematicAsset>.unmodifiable(
+      updated.where((cinematic) => ids.contains(cinematic.id)),
+    ),
+  );
+}
+
+Map<String, String> _metadataWithArchive(
+  Map<String, String> source,
+  bool archived,
+) {
+  final metadata = Map<String, String>.from(source);
+  if (archived) {
+    metadata[cinematicLibraryArchivedMetadataKey] = 'true';
+  } else {
+    metadata.remove(cinematicLibraryArchivedMetadataKey);
+  }
+  return metadata;
+}
+
+String _nextLibraryId(String sourceId, Set<String> existingIds) {
+  final base = '${sourceId}_copy';
+  if (!existingIds.contains(base)) return base;
+  var suffix = 2;
+  while (existingIds.contains('${base}_$suffix')) {
+    suffix++;
+  }
+  return '${base}_$suffix';
 }
 
 enum CinematicTimelineFadeMode {
@@ -2159,7 +2319,8 @@ CinematicStageContextAuthoringResult removeCinematicManualPath(
 
   final path = context.manualPaths.firstWhere(
     (p) => p.id == manualPathId,
-    orElse: () => throw ArgumentError('Manual path ID "$manualPathId" not found.'),
+    orElse: () =>
+        throw ArgumentError('Manual path ID "$manualPathId" not found.'),
   );
 
   var updatedCinematic = cinematic;

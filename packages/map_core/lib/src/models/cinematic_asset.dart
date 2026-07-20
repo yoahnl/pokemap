@@ -1,5 +1,9 @@
 import 'package:meta/meta.dart' show immutable;
 
+const cinematicLibraryArchivedMetadataKey = 'pokemap.cinematic.archived';
+
+const Object _cinematicCopyUnset = Object();
+
 enum CinematicTimelineStepKind {
   wait,
   camera,
@@ -136,6 +140,52 @@ final class CinematicAsset {
   /// not execute a ScenarioAsset through this bridge.
   final CinematicLegacyBridge? legacyBridge;
 
+  CinematicAsset copyWith({
+    String? id,
+    String? title,
+    Object? description = _cinematicCopyUnset,
+    Object? storylineId = _cinematicCopyUnset,
+    Object? chapterId = _cinematicCopyUnset,
+    Object? mapId = _cinematicCopyUnset,
+    List<String>? tags,
+    List<CinematicActorRef>? requiredActors,
+    List<CinematicMovementTargetRef>? movementTargets,
+    Object? stageContext = _cinematicCopyUnset,
+    CinematicTimeline? timeline,
+    Object? notes = _cinematicCopyUnset,
+    Map<String, String>? metadata,
+    Object? legacyBridge = _cinematicCopyUnset,
+  }) {
+    return CinematicAsset(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: identical(description, _cinematicCopyUnset)
+          ? this.description
+          : description as String?,
+      storylineId: identical(storylineId, _cinematicCopyUnset)
+          ? this.storylineId
+          : storylineId as String?,
+      chapterId: identical(chapterId, _cinematicCopyUnset)
+          ? this.chapterId
+          : chapterId as String?,
+      mapId:
+          identical(mapId, _cinematicCopyUnset) ? this.mapId : mapId as String?,
+      tags: tags ?? this.tags,
+      requiredActors: requiredActors ?? this.requiredActors,
+      movementTargets: movementTargets ?? this.movementTargets,
+      stageContext: identical(stageContext, _cinematicCopyUnset)
+          ? this.stageContext
+          : stageContext as CinematicStageContext?,
+      timeline: timeline ?? this.timeline,
+      notes:
+          identical(notes, _cinematicCopyUnset) ? this.notes : notes as String?,
+      metadata: metadata ?? this.metadata,
+      legacyBridge: identical(legacyBridge, _cinematicCopyUnset)
+          ? this.legacyBridge
+          : legacyBridge as CinematicLegacyBridge?,
+    );
+  }
+
   Map<String, dynamic> toJson() => _withoutNulls({
         'id': id,
         'title': title,
@@ -192,6 +242,9 @@ final class CinematicAsset {
         legacyBridge,
       );
 }
+
+bool isCinematicArchived(CinematicAsset cinematic) =>
+    cinematic.metadata[cinematicLibraryArchivedMetadataKey] == 'true';
 
 @immutable
 final class CinematicStageContext {
@@ -279,10 +332,8 @@ final class CinematicStageContext {
             initialPlacements.map((placement) => placement.toJson()).toList(),
         'movementTargetBindings':
             movementTargetBindings.map((binding) => binding.toJson()).toList(),
-        'stagePoints':
-            stagePoints.map((point) => point.toJson()).toList(),
-        'manualPaths':
-            manualPaths.map((path) => path.toJson()).toList(),
+        'stagePoints': stagePoints.map((point) => point.toJson()).toList(),
+        'manualPaths': manualPaths.map((path) => path.toJson()).toList(),
       };
 
   @override
@@ -451,7 +502,8 @@ final class CinematicActorInitialPlacement {
       actorId: actorId ?? this.actorId,
       kind: kind ?? this.kind,
       targetId: clearTargetId ? null : (targetId ?? this.targetId),
-      stagePointId: clearStagePointId ? null : (stagePointId ?? this.stagePointId),
+      stagePointId:
+          clearStagePointId ? null : (stagePointId ?? this.stagePointId),
     );
   }
 
@@ -587,14 +639,16 @@ final class CinematicManualPath {
     if (rawWaypoints == null) {
       waypoints = const [];
     } else if (rawWaypoints is! List) {
-      throw ArgumentError.value(rawWaypoints, 'waypointStagePointIds', 'must be a list');
+      throw ArgumentError.value(
+          rawWaypoints, 'waypointStagePointIds', 'must be a list');
     } else {
       waypoints = List<String>.unmodifiable([
         for (final item in rawWaypoints)
           if (item is String)
             item
           else
-            throw ArgumentError.value(item, 'waypointStagePointIds', 'must contain strings'),
+            throw ArgumentError.value(
+                item, 'waypointStagePointIds', 'must contain strings'),
       ]);
     }
     return CinematicManualPath(

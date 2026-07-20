@@ -49,4 +49,39 @@ void main() {
     expect(find.text('Dirt Base'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('compact dropdown keeps semantics without a visible field label',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: const Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 180,
+              child: PokeMapDropdownField<String>(
+                key: ValueKey('compact-dropdown'),
+                label: 'Trier',
+                value: 'title',
+                compact: true,
+                items: [
+                  PokeMapDropdownItem(value: 'title', label: 'Titre A–Z'),
+                ],
+                onChanged: _ignoreValue,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Trier'), findsNothing);
+    expect(find.text('Titre A–Z'), findsOneWidget);
+    expect(
+        tester.getSize(find.byKey(const ValueKey('compact-dropdown'))).height,
+        34);
+    expect(find.bySemanticsLabel('Trier: Titre A–Z'), findsOneWidget);
+  });
 }
+
+void _ignoreValue(String _) {}

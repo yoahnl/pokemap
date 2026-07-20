@@ -140,11 +140,101 @@ void main() {
         ),
       );
     });
+
+    test('searches sorts and groups canonical assets with human labels', () {
+      final project = _projectWithCinematics(
+        extraCinematics: [
+          CinematicAsset(
+            id: 'cinematic_archive',
+            title: 'Retour du rival',
+            storylineId: 'story_main',
+            chapterId: 'chapter_port',
+            mapId: 'map_lab',
+            tags: const ['rival', 'port'],
+            metadata: const {cinematicLibraryArchivedMetadataKey: 'true'},
+            timeline: CinematicTimeline(
+              steps: [
+                CinematicTimelineStep(
+                  id: 'wait_archive',
+                  kind: CinematicTimelineStepKind.wait,
+                  durationMs: 1200,
+                ),
+              ],
+            ),
+          ),
+        ],
+        storylines: [
+          StorylineAsset(
+            id: 'story_main',
+            type: StorylineType.main,
+            title: 'Brume principale',
+            chapters: [
+              StorylineChapter(
+                id: 'chapter_port',
+                title: 'Le port',
+                order: 0,
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final readModel = buildCinematicsLibraryReadModel(project);
+      final archived = readModel.queryEntries(
+        const CinematicsLibraryQuery(
+          searchText: 'rival port',
+          visibility: CinematicsLibraryVisibility.archived,
+          sort: CinematicsLibrarySort.durationDescending,
+        ),
+      );
+
+      expect(archived, hasLength(1));
+      expect(archived.single.mapLabel, 'Lab map');
+      expect(archived.single.storylineTitle, 'Brume principale');
+      expect(archived.single.chapterTitle, 'Le port');
+      expect(archived.single.isArchived, isTrue);
+
+      final groups = readModel.groupEntries(
+        const CinematicsLibraryQuery(
+          visibility: CinematicsLibraryVisibility.archived,
+        ),
+      );
+      expect(groups, hasLength(1));
+      expect(groups.single.storylineLabel, 'Brume principale');
+      expect(groups.single.chapterLabel, 'Le port');
+      expect(groups.single.locationLabel, 'Lab map');
+      expect(groups.single.entries.single.id, 'cinematic_archive');
+    });
+
+    test('exposes parent Scene outcomes for navigable usages', () {
+      final project = _projectWithCinematics(
+        scenes: [
+          _sceneReferencing(
+            id: 'scene_canonical',
+            name: 'Canonical scene',
+            nodeId: 'node_cinematic',
+            nodeTitle: 'Play intro',
+            cinematicId: 'cinematic_intro',
+            outcomeLabels: const ['Victoire', 'Échec'],
+          ),
+        ],
+      );
+
+      final usage = buildCinematicsLibraryReadModel(project)
+          .canonicalEntries
+          .single
+          .usages
+          .single;
+
+      expect(usage.outcomeLabels, ['Victoire', 'Échec']);
+    });
   });
 }
 
 ProjectManifest _projectWithCinematics({
   List<SceneAsset> scenes = const <SceneAsset>[],
+  List<CinematicAsset> extraCinematics = const <CinematicAsset>[],
+  List<StorylineAsset> storylines = const <StorylineAsset>[],
 }) {
   return ProjectManifest(
     surfaceCatalog: const ProjectSurfaceCatalog.empty(),
@@ -153,6 +243,7 @@ ProjectManifest _projectWithCinematics({
       ProjectMapEntry(id: 'map_lab', name: 'Lab map', relativePath: 'lab.json'),
     ],
     tilesets: const <ProjectTilesetEntry>[],
+    storylines: storylines,
     scenes: scenes,
     scenarios: const <ScenarioAsset>[
       ScenarioAsset(
@@ -195,6 +286,7 @@ ProjectManifest _projectWithCinematics({
           ],
         ),
       ),
+      ...extraCinematics,
     ],
   );
 }
@@ -205,6 +297,7 @@ SceneAsset _sceneReferencing({
   required String nodeId,
   required String nodeTitle,
   required String cinematicId,
+  List<String> outcomeLabels = const <String>[],
 }) {
   return SceneAsset(
     id: id,
@@ -220,6 +313,17 @@ SceneAsset _sceneReferencing({
           payload: SceneCinematicPayload(cinematicId: cinematicId),
         ),
         SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+      edges: [
+        for (var index = 0; index < outcomeLabels.length; index++)
+          SceneEdge(
+            id: 'edge_outcome_$index',
+            fromNodeId: nodeId,
+            fromPortId: 'outcome_$index',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.cinematicCompleted,
+            label: outcomeLabels[index],
+          ),
       ],
     ),
   );

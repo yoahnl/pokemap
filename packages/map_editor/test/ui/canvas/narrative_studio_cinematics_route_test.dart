@@ -498,9 +498,17 @@ void main() {
       expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
       expect(tester.takeException(), isNull, reason: 'Library viewport: $size');
 
-      await tester.tap(
-        find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
+      final libraryList = find.byKey(const ValueKey('cinematics-library-list'));
+      expect(libraryList, findsOneWidget, reason: 'Library list: $size');
+      expect(
+        tester.getSize(libraryList).height,
+        greaterThan(80),
+        reason: 'Library list height: $size',
       );
+      final entry =
+          find.byKey(const ValueKey('cinematic-entry-cinematic_intro'));
+      expect(entry, findsOneWidget, reason: 'Library entry viewport: $size');
+      await tester.tap(entry);
       await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey('cinematics-library-open-builder-button')),

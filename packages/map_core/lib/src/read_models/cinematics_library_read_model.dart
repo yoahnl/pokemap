@@ -24,6 +24,45 @@ enum CinematicsLibraryDiagnosticSeverity {
   info,
 }
 
+enum CinematicsLibraryVisibility { active, archived, all }
+
+enum CinematicsLibrarySort {
+  titleAscending,
+  durationDescending,
+  usageDescending,
+  locationAscending,
+}
+
+@immutable
+final class CinematicsLibraryQuery {
+  const CinematicsLibraryQuery({
+    this.searchText = '',
+    this.visibility = CinematicsLibraryVisibility.active,
+    this.sort = CinematicsLibrarySort.titleAscending,
+    this.kind,
+  });
+
+  final String searchText;
+  final CinematicsLibraryVisibility visibility;
+  final CinematicsLibrarySort sort;
+  final CinematicsLibraryEntryKind? kind;
+}
+
+@immutable
+final class CinematicsLibraryGroup {
+  CinematicsLibraryGroup({
+    required this.storylineLabel,
+    required this.chapterLabel,
+    required this.locationLabel,
+    required List<CinematicsLibraryEntry> entries,
+  }) : entries = List<CinematicsLibraryEntry>.unmodifiable(entries);
+
+  final String storylineLabel;
+  final String chapterLabel;
+  final String locationLabel;
+  final List<CinematicsLibraryEntry> entries;
+}
+
 @immutable
 final class CinematicsLibraryReadModel {
   CinematicsLibraryReadModel({
@@ -59,6 +98,75 @@ final class CinematicsLibraryReadModel {
     }
     return null;
   }
+
+  List<CinematicsLibraryEntry> queryEntries(CinematicsLibraryQuery query) {
+    final terms = query.searchText
+        .trim()
+        .toLowerCase()
+        .split(RegExp(r'\s+'))
+        .where((term) => term.isNotEmpty)
+        .toList(growable: false);
+    final result = allEntries.where((entry) {
+      if (query.kind != null && entry.kind != query.kind) return false;
+      final visible = switch (query.visibility) {
+        CinematicsLibraryVisibility.active => !entry.isArchived,
+        CinematicsLibraryVisibility.archived => entry.isArchived,
+        CinematicsLibraryVisibility.all => true,
+      };
+      if (!visible) return false;
+      if (terms.isEmpty) return true;
+      final searchable = <String>[
+        entry.id,
+        entry.title,
+        entry.description ?? '',
+        entry.mapLabel,
+        entry.storylineTitle,
+        entry.chapterTitle,
+        ...entry.tags,
+        ...entry.usages.map((usage) => usage.sceneTitle),
+        ...entry.usages.expand((usage) => usage.outcomeLabels),
+      ].join(' ').toLowerCase();
+      return terms.every(searchable.contains);
+    }).toList(growable: false);
+    result.sort((left, right) {
+      final byKind = left.kind.index.compareTo(right.kind.index);
+      if (byKind != 0) return byKind;
+      final compared = switch (query.sort) {
+        CinematicsLibrarySort.titleAscending => _compareEntry(left, right),
+        CinematicsLibrarySort.durationDescending =>
+          (right.timeline.estimatedDurationMs ?? -1).compareTo(
+            left.timeline.estimatedDurationMs ?? -1,
+          ),
+        CinematicsLibrarySort.usageDescending =>
+          right.usages.length.compareTo(left.usages.length),
+        CinematicsLibrarySort.locationAscending =>
+          '${left.storylineTitle}\u0000${left.chapterTitle}\u0000${left.mapLabel}\u0000${left.title}'
+              .compareTo(
+            '${right.storylineTitle}\u0000${right.chapterTitle}\u0000${right.mapLabel}\u0000${right.title}',
+          ),
+      };
+      return compared != 0 ? compared : _compareEntry(left, right);
+    });
+    return List<CinematicsLibraryEntry>.unmodifiable(result);
+  }
+
+  List<CinematicsLibraryGroup> groupEntries(CinematicsLibraryQuery query) {
+    final grouped = <String, List<CinematicsLibraryEntry>>{};
+    for (final entry in queryEntries(query)) {
+      final key =
+          '${entry.storylineTitle}\u0000${entry.chapterTitle}\u0000${entry.mapLabel}';
+      grouped.putIfAbsent(key, () => []).add(entry);
+    }
+    return List<CinematicsLibraryGroup>.unmodifiable([
+      for (final group in grouped.entries)
+        CinematicsLibraryGroup(
+          storylineLabel: group.value.first.storylineTitle,
+          chapterLabel: group.value.first.chapterTitle,
+          locationLabel: group.value.first.mapLabel,
+          entries: group.value,
+        ),
+    ]);
+  }
 }
 
 @immutable
@@ -70,8 +178,11 @@ final class CinematicsLibraryEntry {
     required this.kind,
     required this.statusLabel,
     this.mapId,
+    required this.mapLabel,
     this.storylineId,
+    required this.storylineTitle,
     this.chapterId,
+    required this.chapterTitle,
     required List<String> tags,
     required List<CinematicsLibraryActor> requiredActors,
     required this.timeline,
@@ -81,6 +192,7 @@ final class CinematicsLibraryEntry {
     required List<CinematicsLibraryUsage> usages,
     required this.isEditable,
     required this.isRemovable,
+    required this.isArchived,
   })  : tags = List<String>.unmodifiable(tags),
         requiredActors =
             List<CinematicsLibraryActor>.unmodifiable(requiredActors),
@@ -94,8 +206,11 @@ final class CinematicsLibraryEntry {
   final CinematicsLibraryEntryKind kind;
   final String statusLabel;
   final String? mapId;
+  final String mapLabel;
   final String? storylineId;
+  final String storylineTitle;
   final String? chapterId;
+  final String chapterTitle;
   final List<String> tags;
   final List<CinematicsLibraryActor> requiredActors;
   final CinematicTimelineSummary timeline;
@@ -105,6 +220,7 @@ final class CinematicsLibraryEntry {
   final List<CinematicsLibraryUsage> usages;
   final bool isEditable;
   final bool isRemovable;
+  final bool isArchived;
 
   bool get hasDiagnostics => diagnostics.isNotEmpty;
   bool get isReferenced => usages.isNotEmpty;
@@ -150,7 +266,7 @@ final class CinematicTimelineSummary {
 
 @immutable
 final class CinematicsLibraryUsage {
-  const CinematicsLibraryUsage({
+  CinematicsLibraryUsage({
     required this.cinematicId,
     required this.sceneId,
     required this.sceneTitle,
@@ -158,7 +274,8 @@ final class CinematicsLibraryUsage {
     required this.nodeTitle,
     required this.referenceStatus,
     this.referenceResolution = NarrativeDependencyResolution.resolved,
-  });
+    List<String> outcomeLabels = const <String>[],
+  }) : outcomeLabels = List<String>.unmodifiable(outcomeLabels);
 
   final String cinematicId;
   final String sceneId;
@@ -167,6 +284,7 @@ final class CinematicsLibraryUsage {
   final String nodeTitle;
   final CinematicsLibraryReferenceStatus referenceStatus;
   final NarrativeDependencyResolution referenceResolution;
+  final List<String> outcomeLabels;
 }
 
 @immutable
@@ -226,6 +344,15 @@ CinematicsLibraryReadModel buildCinematicsLibraryReadModel(
   final diagnosticsByCinematicId = _groupCinematicDiagnostics(
     diagnoseCinematicsAgainstProject(project).diagnostics,
   );
+  final mapLabels = {for (final map in project.maps) map.id: map.name};
+  final storylineLabels = {
+    for (final storyline in project.storylines) storyline.id: storyline.title,
+  };
+  final chapterLabels = {
+    for (final storyline in project.storylines)
+      for (final chapter in storyline.chapters)
+        '${storyline.id}\u0000${chapter.id}': chapter.title,
+  };
 
   final canonicalEntries = [
     for (final cinematic in project.cinematics)
@@ -236,8 +363,19 @@ CinematicsLibraryReadModel buildCinematicsLibraryReadModel(
         kind: CinematicsLibraryEntryKind.canonical,
         statusLabel: 'CinematicAsset canonique',
         mapId: cinematic.mapId,
+        mapLabel: cinematic.mapId == null
+            ? 'Sans lieu'
+            : mapLabels[cinematic.mapId] ?? 'Map manquante',
         storylineId: cinematic.storylineId,
+        storylineTitle: cinematic.storylineId == null
+            ? 'Sans storyline'
+            : storylineLabels[cinematic.storylineId] ?? 'Storyline manquante',
         chapterId: cinematic.chapterId,
+        chapterTitle: cinematic.chapterId == null
+            ? 'Sans chapitre'
+            : chapterLabels[
+                    '${cinematic.storylineId}\u0000${cinematic.chapterId}'] ??
+                'Chapitre manquant',
         tags: cinematic.tags,
         requiredActors: [
           for (final actor in cinematic.requiredActors)
@@ -254,6 +392,7 @@ CinematicsLibraryReadModel buildCinematicsLibraryReadModel(
         usages: usagesByCinematicId[cinematic.id] ?? const [],
         isEditable: true,
         isRemovable: (usagesByCinematicId[cinematic.id] ?? const []).isEmpty,
+        isArchived: isCinematicArchived(cinematic),
       ),
   ]..sort(_compareEntry);
 
@@ -265,6 +404,11 @@ CinematicsLibraryReadModel buildCinematicsLibraryReadModel(
         kind: CinematicsLibraryEntryKind.scenarioBridge,
         statusLabel: 'Bridge legacy Scenario/Cutscene',
         mapId: contract.mapId,
+        mapLabel: contract.mapId == null
+            ? 'Sans lieu'
+            : mapLabels[contract.mapId] ?? 'Map manquante',
+        storylineTitle: 'Legacy',
+        chapterTitle: 'Bridge',
         tags: const [],
         requiredActors: const [],
         timeline: CinematicTimelineSummary(
@@ -282,6 +426,7 @@ CinematicsLibraryReadModel buildCinematicsLibraryReadModel(
         usages: usagesByCinematicId[contract.id] ?? const [],
         isEditable: false,
         isRemovable: false,
+        isArchived: false,
       ),
   ]..sort(_compareEntry);
 
@@ -368,6 +513,10 @@ Map<String, List<CinematicsLibraryUsage>> _collectSceneUsages(
         nodeId: node.id,
         nodeTitle: node.title ?? node.id,
         referenceStatus: referenceStatus,
+        outcomeLabels: [
+          for (final edge in scene.graph.edges)
+            if (edge.fromNodeId == node.id) edge.label ?? edge.fromPortId,
+        ],
         referenceResolution: referenceStatus ==
                 CinematicsLibraryReferenceStatus.bridgeLegacy
             ? NarrativeDependencyResolution.legacyExternal

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:map_core/map_core.dart';
 
 import '../../../features/editor/state/models/editor_workspace_mode.dart';
@@ -27,6 +28,35 @@ typedef UpdateCinematicMetadataCallback = Future<bool> Function({
   required String title,
   required String description,
   required String notes,
+  required String? mapId,
+  required String? storylineId,
+  required String? chapterId,
+  required List<String> tags,
+  required bool archived,
+});
+
+typedef DuplicateCinematicCallback = Future<String?> Function({
+  required String cinematicId,
+});
+
+typedef ToggleCinematicArchiveCallback = Future<bool> Function({
+  required String cinematicId,
+  required bool archived,
+});
+
+typedef BulkTagCinematicsCallback = Future<bool> Function({
+  required Set<String> cinematicIds,
+  required List<String> tags,
+});
+
+typedef BulkArchiveCinematicsCallback = Future<bool> Function({
+  required Set<String> cinematicIds,
+  required bool archived,
+});
+
+typedef OpenCinematicSceneUsageCallback = void Function({
+  required String sceneId,
+  required String nodeId,
 });
 
 typedef RemoveCinematicCallback = Future<bool> Function({
@@ -200,6 +230,10 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     required this.project,
     required this.onCreateCinematicShell,
     required this.onUpdateCinematicMetadata,
+    required this.onDuplicateCinematic,
+    required this.onToggleCinematicArchive,
+    required this.onBulkTagCinematics,
+    required this.onBulkArchiveCinematics,
     required this.onRemoveCinematic,
     required this.onAddTimelineDraft,
     required this.onRemoveTimelineDraft,
@@ -235,6 +269,7 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     this.requestedEntryNonce,
     this.openRequestedEntryInBuilder = false,
     this.onBuilderEntryChanged,
+    this.onOpenSceneUsage,
   });
 
   final bool startExpanded;
@@ -246,6 +281,11 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final ProjectManifest project;
   final CreateCinematicShellCallback onCreateCinematicShell;
   final UpdateCinematicMetadataCallback onUpdateCinematicMetadata;
+  final DuplicateCinematicCallback onDuplicateCinematic;
+  final ToggleCinematicArchiveCallback onToggleCinematicArchive;
+  final BulkTagCinematicsCallback onBulkTagCinematics;
+  final BulkArchiveCinematicsCallback onBulkArchiveCinematics;
+  final OpenCinematicSceneUsageCallback? onOpenSceneUsage;
   final RemoveCinematicCallback onRemoveCinematic;
   final AddTimelineDraftCallback onAddTimelineDraft;
   final RemoveTimelineDraftCallback onRemoveTimelineDraft;
@@ -289,9 +329,15 @@ class _CinematicsLibraryWorkspaceState
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _notesController = TextEditingController();
+  final _tagsController = TextEditingController();
+  final _bulkTagsController = TextEditingController();
   final _backdropLayerPlanLoader = CinematicMapBackdropLayerPlanLoader();
 
   _CinematicsLibraryFilter _filter = _CinematicsLibraryFilter.all;
+  CinematicsLibraryVisibility _visibility = CinematicsLibraryVisibility.active;
+  CinematicsLibrarySort _sort = CinematicsLibrarySort.titleAscending;
+  String _searchText = '';
+  final Set<String> _bulkSelection = <String>{};
   String? _selectedEntryId;
   String? _builderEntryId;
   String? _loadedEditorId;
@@ -345,6 +391,8 @@ class _CinematicsLibraryWorkspaceState
     _titleController.dispose();
     _descriptionController.dispose();
     _notesController.dispose();
+    _tagsController.dispose();
+    _bulkTagsController.dispose();
     _backdropLayerPlanLoader.clear();
     _loadingActorTilesetIds.clear();
     super.dispose();
@@ -467,38 +515,49 @@ class _CinematicsLibraryWorkspaceState
         ],
         body: PokeMapPageSurface(
           key: const ValueKey('cinematics-library-workspace'),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                height: 126,
-                child: _MetricsStrip(readModel: readModel),
-              ),
-              const SizedBox(height: 12),
-              _buildFilterBar(context),
-              const SizedBox(height: 12),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compactHeight = constraints.maxHeight < 720;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (compactHeight)
+                    _CompactMetricsStrip(readModel: readModel)
+                  else
                     SizedBox(
-                      width: 310,
-                      child: _buildExplorer(context, readModel),
+                      height: 126,
+                      child: _MetricsStrip(readModel: readModel),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: _buildDetails(context, selectedEntry),
+                  const SizedBox(height: 12),
+                  _buildFilterBar(context),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          width: 310,
+                          child: _buildExplorer(context, readModel),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: _buildDetails(context, selectedEntry),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 300,
+                          child: _buildUsageAndDiagnostics(
+                            context,
+                            selectedEntry,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      width: 300,
-                      child: _buildUsageAndDiagnostics(context, selectedEntry),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -941,6 +1000,58 @@ class _CinematicsLibraryWorkspaceState
           label: 'Bridge non canonique',
           variant: PokeMapBadgeVariant.warning,
         ),
+        SizedBox(
+          width: 210,
+          child: PokeMapDropdownField<CinematicsLibrarySort>(
+            key: const ValueKey('cinematics-library-sort'),
+            label: 'Trier',
+            value: _sort,
+            compact: true,
+            items: const [
+              PokeMapDropdownItem(
+                value: CinematicsLibrarySort.titleAscending,
+                label: 'Titre A–Z',
+              ),
+              PokeMapDropdownItem(
+                value: CinematicsLibrarySort.durationDescending,
+                label: 'Durée décroissante',
+              ),
+              PokeMapDropdownItem(
+                value: CinematicsLibrarySort.usageDescending,
+                label: 'Usages décroissants',
+              ),
+              PokeMapDropdownItem(
+                value: CinematicsLibrarySort.locationAscending,
+                label: 'Storyline / lieu',
+              ),
+            ],
+            onChanged: (value) => setState(() => _sort = value),
+          ),
+        ),
+        SizedBox(
+          width: 190,
+          child: PokeMapDropdownField<CinematicsLibraryVisibility>(
+            key: const ValueKey('cinematics-library-visibility'),
+            label: 'Afficher',
+            value: _visibility,
+            compact: true,
+            items: const [
+              PokeMapDropdownItem(
+                value: CinematicsLibraryVisibility.active,
+                label: 'Actives',
+              ),
+              PokeMapDropdownItem(
+                value: CinematicsLibraryVisibility.archived,
+                label: 'Archivées',
+              ),
+              PokeMapDropdownItem(
+                value: CinematicsLibraryVisibility.all,
+                label: 'Toutes',
+              ),
+            ],
+            onChanged: (value) => setState(() => _visibility = value),
+          ),
+        ),
       ],
     );
   }
@@ -950,6 +1061,27 @@ class _CinematicsLibraryWorkspaceState
     CinematicsLibraryReadModel readModel,
   ) {
     final entries = _filteredEntries(readModel);
+    final groups = readModel.groupEntries(
+      CinematicsLibraryQuery(
+        searchText: _searchText,
+        visibility: _visibility,
+        sort: _sort,
+        kind: switch (_filter) {
+          _CinematicsLibraryFilter.all => null,
+          _CinematicsLibraryFilter.canonical =>
+            CinematicsLibraryEntryKind.canonical,
+          _CinematicsLibraryFilter.bridge =>
+            CinematicsLibraryEntryKind.scenarioBridge,
+        },
+      ),
+    );
+    final groupedEntries = <({
+      CinematicsLibraryGroup group,
+      CinematicsLibraryEntry entry,
+    })>[
+      for (final group in groups)
+        for (final entry in group.entries) (group: group, entry: entry),
+    ];
     return PokeMapPanel(
       expandChild: true,
       padding: const EdgeInsets.all(12),
@@ -962,34 +1094,70 @@ class _CinematicsLibraryWorkspaceState
                 '${readModel.metrics.bridgeCount} bridge(s)',
           ),
           const SizedBox(height: 10),
+          PokeMapSearchField(
+            key: const ValueKey('cinematics-library-search'),
+            hintText: 'Titre, tag, map, Scene…',
+            semanticLabel: 'Rechercher une cinématique',
+            onChanged: (value) => setState(() => _searchText = value),
+          ),
+          const SizedBox(height: 10),
           _CreateCinematicPanel(
             controller: _createTitleController,
             onCreate: _createCinematic,
           ),
           const SizedBox(height: 12),
+          if (_bulkSelection.isNotEmpty) ...[
+            _CinematicBulkBar(
+              selectedCount: _bulkSelection.length,
+              tagsController: _bulkTagsController,
+              onApplyTags: _applyBulkTags,
+              onArchive: () => _archiveBulk(true),
+              onRestore: () => _archiveBulk(false),
+              onClear: () => setState(_bulkSelection.clear),
+            ),
+            const SizedBox(height: 10),
+          ],
           Expanded(
-            child: entries.isEmpty
+            child: entries.isEmpty || groupedEntries.isEmpty
                 ? const _EmptyState(
                     title: 'Aucune cinématique canonique',
                     description:
                         'Créez une shell vide, puis remplissez sa timeline dans le futur Builder V2.',
                   )
-                : ListView.separated(
-                    itemCount: entries.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                : ListView.builder(
+                    key: const ValueKey('cinematics-library-list'),
+                    scrollCacheExtent: const ScrollCacheExtent.pixels(300),
+                    itemCount: groupedEntries.length,
                     itemBuilder: (context, index) {
-                      final entry = entries[index];
-                      return _CinematicEntryCard(
-                        key: ValueKey('cinematic-entry-${entry.id}'),
-                        entry: entry,
-                        selected: _selectedEntryId == entry.id,
-                        onTap: () {
-                          setState(() {
-                            _selectedEntryId = entry.id;
-                            _pendingDeleteId = null;
-                            _feedback = null;
-                          });
-                        },
+                      final item = groupedEntries[index];
+                      final entry = item.entry;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _CinematicTreeHeader(group: item.group),
+                          _CinematicEntryCard(
+                            key: ValueKey('cinematic-entry-${entry.id}'),
+                            entry: entry,
+                            selected: _selectedEntryId == entry.id,
+                            bulkSelected: _bulkSelection.contains(entry.id),
+                            onToggleBulk: entry.kind ==
+                                    CinematicsLibraryEntryKind.canonical
+                                ? () => setState(() {
+                                      if (!_bulkSelection.add(entry.id)) {
+                                        _bulkSelection.remove(entry.id);
+                                      }
+                                    })
+                                : null,
+                            onTap: () {
+                              setState(() {
+                                _selectedEntryId = entry.id;
+                                _pendingDeleteId = null;
+                                _feedback = null;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                        ],
                       );
                     },
                   ),
@@ -1042,6 +1210,8 @@ class _CinematicsLibraryWorkspaceState
                 variant: PokeMapBadgeVariant.success,
               ),
             ),
+            const SizedBox(height: 10),
+            _buildCanonicalActions(entry, deleteLabel),
             const SizedBox(height: 12),
             const _FieldLabel('Titre'),
             CupertinoTextField(
@@ -1067,49 +1237,28 @@ class _CinematicsLibraryWorkspaceState
               minLines: 2,
               maxLines: 3,
             ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                PokeMapButton(
-                  key: const ValueKey(
-                    'cinematics-library-open-builder-button',
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _builderEntryId = entry.id;
-                      _pendingDeleteId = null;
-                      _feedback = null;
-                    });
-                    widget.onBuilderEntryChanged?.call(entry.id);
-                  },
-                  variant: PokeMapButtonVariant.secondary,
-                  size: PokeMapButtonSize.small,
-                  leading: const Icon(CupertinoIcons.slider_horizontal_3),
-                  child: const Text('Ouvrir le Builder'),
-                ),
-                PokeMapButton(
-                  key: const ValueKey('cinematics-library-save-button'),
-                  onPressed: () => _saveMetadata(entry),
-                  size: PokeMapButtonSize.small,
-                  leading: const Icon(CupertinoIcons.check_mark_circled),
-                  child: const Text('Sauvegarder les métadonnées'),
-                ),
-                PokeMapButton(
-                  key: const ValueKey('cinematics-library-delete-button'),
-                  onPressed: () => _removeCinematic(entry),
-                  variant: PokeMapButtonVariant.danger,
-                  size: PokeMapButtonSize.small,
-                  leading: const Icon(CupertinoIcons.trash),
-                  child: Text(deleteLabel),
-                ),
-              ],
+            const SizedBox(height: 10),
+            const _FieldLabel('Tags (séparés par des virgules)'),
+            CupertinoTextField(
+              key: const ValueKey('cinematics-library-tags-field'),
+              controller: _tagsController,
+              placeholder: 'port, rival, introduction',
+            ),
+            const SizedBox(height: 10),
+            _CinematicClassificationPickers(
+              project: widget.project,
+              entry: entry,
+              onChanged: ({mapId, storylineId, chapterId}) => _saveMetadata(
+                entry,
+                mapId: mapId,
+                storylineId: storylineId,
+                chapterId: chapterId,
+              ),
             ),
             if (!entry.isRemovable) ...[
               const SizedBox(height: 8),
               const PokeMapBadge(
-                label: 'Utilisée par une scène',
+                label: 'Suppression bloquée : utilisée par une Scene',
                 variant: PokeMapBadgeVariant.warning,
               ),
             ],
@@ -1171,7 +1320,15 @@ class _CinematicsLibraryWorkspaceState
                     )
                   else
                     for (final usage in entry.usages) ...[
-                      _UsageTile(usage: usage),
+                      _UsageTile(
+                        usage: usage,
+                        onOpen: widget.onOpenSceneUsage == null
+                            ? null
+                            : () => widget.onOpenSceneUsage!(
+                                  sceneId: usage.sceneId,
+                                  nodeId: usage.nodeId,
+                                ),
+                      ),
                       const SizedBox(height: 8),
                     ],
                   const SizedBox(height: 12),
@@ -1198,14 +1355,85 @@ class _CinematicsLibraryWorkspaceState
     );
   }
 
+  Widget _buildCanonicalActions(
+    CinematicsLibraryEntry entry,
+    String deleteLabel,
+  ) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        PokeMapButton(
+          key: const ValueKey('cinematics-library-open-builder-button'),
+          onPressed: () {
+            setState(() {
+              _builderEntryId = entry.id;
+              _pendingDeleteId = null;
+              _feedback = null;
+            });
+            widget.onBuilderEntryChanged?.call(entry.id);
+          },
+          variant: PokeMapButtonVariant.secondary,
+          size: PokeMapButtonSize.small,
+          leading: const Icon(CupertinoIcons.slider_horizontal_3),
+          child: const Text('Ouvrir le Builder'),
+        ),
+        PokeMapButton(
+          key: const ValueKey('cinematics-library-duplicate-button'),
+          onPressed: () => _duplicateCinematic(entry),
+          variant: PokeMapButtonVariant.secondary,
+          size: PokeMapButtonSize.small,
+          leading: const Icon(CupertinoIcons.doc_on_doc),
+          child: const Text('Dupliquer'),
+        ),
+        PokeMapButton(
+          key: const ValueKey('cinematics-library-archive-button'),
+          onPressed: () => _toggleArchive(entry),
+          variant: PokeMapButtonVariant.secondary,
+          size: PokeMapButtonSize.small,
+          leading: Icon(
+            entry.isArchived
+                ? CupertinoIcons.arrow_up_bin
+                : CupertinoIcons.archivebox,
+          ),
+          child: Text(entry.isArchived ? 'Restaurer' : 'Archiver'),
+        ),
+        PokeMapButton(
+          key: const ValueKey('cinematics-library-save-button'),
+          onPressed: () => _saveMetadata(entry),
+          size: PokeMapButtonSize.small,
+          leading: const Icon(CupertinoIcons.check_mark_circled),
+          child: const Text('Sauvegarder les métadonnées'),
+        ),
+        PokeMapButton(
+          key: const ValueKey('cinematics-library-delete-button'),
+          onPressed: () => _removeCinematic(entry),
+          variant: PokeMapButtonVariant.danger,
+          size: PokeMapButtonSize.small,
+          leading: const Icon(CupertinoIcons.trash),
+          child: Text(deleteLabel),
+        ),
+      ],
+    );
+  }
+
   List<CinematicsLibraryEntry> _filteredEntries(
     CinematicsLibraryReadModel readModel,
   ) {
-    return switch (_filter) {
-      _CinematicsLibraryFilter.all => readModel.allEntries,
-      _CinematicsLibraryFilter.canonical => readModel.canonicalEntries,
-      _CinematicsLibraryFilter.bridge => readModel.bridgeEntries,
-    };
+    return readModel.queryEntries(
+      CinematicsLibraryQuery(
+        searchText: _searchText,
+        visibility: _visibility,
+        sort: _sort,
+        kind: switch (_filter) {
+          _CinematicsLibraryFilter.all => null,
+          _CinematicsLibraryFilter.canonical =>
+            CinematicsLibraryEntryKind.canonical,
+          _CinematicsLibraryFilter.bridge =>
+            CinematicsLibraryEntryKind.scenarioBridge,
+        },
+      ),
+    );
   }
 
   void _ensureSelection(CinematicsLibraryReadModel readModel) {
@@ -1260,6 +1488,7 @@ class _CinematicsLibraryWorkspaceState
     _titleController.text = entry.title;
     _descriptionController.text = entry.description ?? '';
     _notesController.text = entry.notes ?? '';
+    _tagsController.text = entry.tags.join(', ');
   }
 
   Future<void> _createCinematic() async {
@@ -1288,12 +1517,23 @@ class _CinematicsLibraryWorkspaceState
     });
   }
 
-  Future<void> _saveMetadata(CinematicsLibraryEntry entry) async {
+  Future<void> _saveMetadata(
+    CinematicsLibraryEntry entry, {
+    String? mapId,
+    String? storylineId,
+    String? chapterId,
+  }) async {
     final saved = await widget.onUpdateCinematicMetadata(
       cinematicId: entry.id,
       title: _titleController.text.trim(),
       description: _descriptionController.text.trim(),
       notes: _notesController.text.trim(),
+      mapId: mapId == null ? entry.mapId : _optionalId(mapId),
+      storylineId:
+          storylineId == null ? entry.storylineId : _optionalId(storylineId),
+      chapterId: chapterId == null ? entry.chapterId : _optionalId(chapterId),
+      tags: _parseTags(_tagsController.text),
+      archived: entry.isArchived,
     );
     if (!mounted) {
       return;
@@ -1303,6 +1543,63 @@ class _CinematicsLibraryWorkspaceState
       _feedback = saved
           ? 'Métadonnées sauvegardées.'
           : 'Modification non enregistrée. Consultez le diagnostic du projet.';
+    });
+  }
+
+  Future<void> _duplicateCinematic(CinematicsLibraryEntry entry) async {
+    final createdId = await widget.onDuplicateCinematic(cinematicId: entry.id);
+    if (!mounted) return;
+    setState(() {
+      _selectedEntryId = createdId ?? entry.id;
+      _loadedEditorId = null;
+      _feedback = createdId == null
+          ? 'Duplication impossible.'
+          : 'Cinématique dupliquée.';
+    });
+  }
+
+  Future<void> _toggleArchive(CinematicsLibraryEntry entry) async {
+    final saved = await widget.onToggleCinematicArchive(
+      cinematicId: entry.id,
+      archived: !entry.isArchived,
+    );
+    if (!mounted) return;
+    setState(() {
+      _loadedEditorId = null;
+      _feedback = saved
+          ? (entry.isArchived
+              ? 'Cinématique restaurée.'
+              : 'Cinématique archivée.')
+          : 'Changement d’archive impossible.';
+    });
+  }
+
+  Future<void> _applyBulkTags() async {
+    final saved = await widget.onBulkTagCinematics(
+      cinematicIds: Set<String>.from(_bulkSelection),
+      tags: _parseTags(_bulkTagsController.text),
+    );
+    if (!mounted) return;
+    setState(() {
+      _loadedEditorId = null;
+      _feedback =
+          saved ? 'Tags appliqués à la sélection.' : 'Tags non appliqués.';
+      if (saved) _bulkSelection.clear();
+    });
+  }
+
+  Future<void> _archiveBulk(bool archived) async {
+    final allSaved = await widget.onBulkArchiveCinematics(
+      cinematicIds: Set<String>.from(_bulkSelection),
+      archived: archived,
+    );
+    if (!mounted) return;
+    setState(() {
+      _loadedEditorId = null;
+      _feedback = allSaved
+          ? (archived ? 'Sélection archivée.' : 'Sélection restaurée.')
+          : 'Une partie de la sélection n’a pas été modifiée.';
+      if (allSaved) _bulkSelection.clear();
     });
   }
 
@@ -1387,6 +1684,41 @@ class _MetricsStrip extends StatelessWidget {
   }
 }
 
+class _CompactMetricsStrip extends StatelessWidget {
+  const _CompactMetricsStrip({required this.readModel});
+
+  final CinematicsLibraryReadModel readModel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      key: const ValueKey('cinematics-library-compact-metrics'),
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        PokeMapBadge(
+          label: '${readModel.metrics.canonicalCount} canoniques',
+          variant: PokeMapBadgeVariant.info,
+        ),
+        PokeMapBadge(
+          label: '${readModel.metrics.bridgeCount} legacy',
+          variant: PokeMapBadgeVariant.warning,
+        ),
+        PokeMapBadge(
+          label: '${readModel.metrics.referencedCount} référencées',
+          variant: PokeMapBadgeVariant.success,
+        ),
+        PokeMapBadge(
+          label: '${readModel.metrics.diagnosticCount} problèmes',
+          variant: readModel.metrics.diagnosticCount == 0
+              ? PokeMapBadgeVariant.success
+              : PokeMapBadgeVariant.warning,
+        ),
+      ],
+    );
+  }
+}
+
 class _CreateCinematicPanel extends StatelessWidget {
   const _CreateCinematicPanel({
     required this.controller,
@@ -1432,12 +1764,16 @@ class _CinematicEntryCard extends StatelessWidget {
     super.key,
     required this.entry,
     required this.selected,
+    required this.bulkSelected,
     required this.onTap,
+    this.onToggleBulk,
   });
 
   final CinematicsLibraryEntry entry;
   final bool selected;
+  final bool bulkSelected;
   final VoidCallback onTap;
+  final VoidCallback? onToggleBulk;
 
   @override
   Widget build(BuildContext context) {
@@ -1451,12 +1787,9 @@ class _CinematicEntryCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              PokeMapIconTile(
-                icon:
-                    isBridge ? CupertinoIcons.archivebox : CupertinoIcons.film,
-                tone: isBridge ? PokeMapTone.warning : PokeMapTone.cinematic,
-                size: 30,
-                iconSize: 15,
+              _CinematicGeneratedThumbnail(
+                entry: entry,
+                isBridge: isBridge,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -1471,6 +1804,22 @@ class _CinematicEntryCard extends StatelessWidget {
                       ),
                 ),
               ),
+              if (onToggleBulk != null)
+                PokeMapIconButton(
+                  key: ValueKey('cinematic-bulk-select-${entry.id}'),
+                  tooltip: bulkSelected
+                      ? 'Retirer de la sélection'
+                      : 'Ajouter à la sélection',
+                  onPressed: onToggleBulk,
+                  variant: PokeMapIconButtonVariant.soft,
+                  isSelected: bulkSelected,
+                  icon: Icon(
+                    bulkSelected
+                        ? CupertinoIcons.check_mark_circled_solid
+                        : CupertinoIcons.circle,
+                    size: 15,
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 6),
@@ -1487,7 +1836,7 @@ class _CinematicEntryCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             '${isBridge ? 'Bridge legacy' : 'Canonique'} • '
-            '${entry.timeline.stepCount} step(s) • '
+            '${_durationLabel(entry.timeline)} • '
             '${_usageLabel(entry.usages.length)}',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -1496,6 +1845,165 @@ class _CinematicEntryCard extends StatelessWidget {
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
+          ),
+          if (entry.isArchived) ...[
+            const SizedBox(height: 6),
+            const PokeMapBadge(
+              label: 'Archivée',
+              variant: PokeMapBadgeVariant.neutral,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CinematicGeneratedThumbnail extends StatelessWidget {
+  const _CinematicGeneratedThumbnail({
+    required this.entry,
+    required this.isBridge,
+  });
+
+  final CinematicsLibraryEntry entry;
+  final bool isBridge;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final tone = (isBridge ? PokeMapTone.warning : PokeMapTone.cinematic)
+        .resolve(context);
+    return Semantics(
+      label: 'Aperçu généré de ${entry.title}',
+      image: true,
+      child: Container(
+        key: ValueKey('cinematic-thumbnail-${entry.id}'),
+        width: 46,
+        height: 34,
+        padding: const EdgeInsets.all(5),
+        decoration: BoxDecoration(
+          color: tone.soft,
+          border: Border.all(color: tone.border),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: entry.timeline.stepCount == 0
+            ? Icon(
+                isBridge ? CupertinoIcons.archivebox : CupertinoIcons.film,
+                size: 15,
+                color: tone.icon,
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  for (var index = 0;
+                      index < entry.timeline.stepCount.clamp(1, 5);
+                      index++) ...[
+                    Expanded(
+                      child: Container(
+                        height: 8.0 + (index % 3) * 5,
+                        decoration: BoxDecoration(
+                          color: index.isEven ? tone.icon : colors.brandPrimary,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    if (index < entry.timeline.stepCount.clamp(1, 5) - 1)
+                      const SizedBox(width: 2),
+                  ],
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+class _CinematicTreeHeader extends StatelessWidget {
+  const _CinematicTreeHeader({required this.group});
+
+  final CinematicsLibraryGroup group;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 6, 4, 4),
+      child: Text(
+        '${group.storylineLabel}  /  ${group.chapterLabel}  /  ${group.locationLabel}',
+        key: ValueKey(
+          'cinematic-tree-${group.storylineLabel}-${group.chapterLabel}-${group.locationLabel}',
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: colors.textMuted,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _CinematicBulkBar extends StatelessWidget {
+  const _CinematicBulkBar({
+    required this.selectedCount,
+    required this.tagsController,
+    required this.onApplyTags,
+    required this.onArchive,
+    required this.onRestore,
+    required this.onClear,
+  });
+
+  final int selectedCount;
+  final TextEditingController tagsController;
+  final VoidCallback onApplyTags;
+  final VoidCallback onArchive;
+  final VoidCallback onRestore;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return PokeMapCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('$selectedCount sélectionnée(s)'),
+          const SizedBox(height: 6),
+          CupertinoTextField(
+            key: const ValueKey('cinematics-library-bulk-tags'),
+            controller: tagsController,
+            placeholder: 'tags, communs',
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: [
+              PokeMapButton(
+                key: const ValueKey('cinematics-library-bulk-apply-tags'),
+                onPressed: onApplyTags,
+                size: PokeMapButtonSize.small,
+                child: const Text('Appliquer tags'),
+              ),
+              PokeMapIconButton(
+                key: const ValueKey('cinematics-library-bulk-archive'),
+                tooltip: 'Archiver la sélection',
+                onPressed: onArchive,
+                icon: const Icon(CupertinoIcons.archivebox, size: 14),
+              ),
+              PokeMapIconButton(
+                key: const ValueKey('cinematics-library-bulk-restore'),
+                tooltip: 'Restaurer la sélection',
+                onPressed: onRestore,
+                icon: const Icon(CupertinoIcons.arrow_up_bin, size: 14),
+              ),
+              PokeMapIconButton(
+                key: const ValueKey('cinematics-library-bulk-clear'),
+                tooltip: 'Vider la sélection',
+                onPressed: onClear,
+                icon: const Icon(CupertinoIcons.xmark, size: 14),
+              ),
+            ],
           ),
         ],
       ),
@@ -1689,6 +2197,86 @@ const _stageDiagnosticCodes = <String>{
   'movementTargetBindingMissingSource',
 };
 
+typedef _CinematicClassificationChanged = void Function({
+  String? mapId,
+  String? storylineId,
+  String? chapterId,
+});
+
+class _CinematicClassificationPickers extends StatelessWidget {
+  const _CinematicClassificationPickers({
+    required this.project,
+    required this.entry,
+    required this.onChanged,
+  });
+
+  final ProjectManifest project;
+  final CinematicsLibraryEntry entry;
+  final _CinematicClassificationChanged onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedStoryline = project.storylines
+        .where((storyline) => storyline.id == entry.storylineId)
+        .firstOrNull;
+    final chapterIds = {
+      for (final chapter
+          in selectedStoryline?.chapters ?? const <StorylineChapter>[])
+        chapter.id,
+    };
+    final chapterValue =
+        chapterIds.contains(entry.chapterId) ? entry.chapterId! : '';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        PokeMapDropdownField<String>(
+          key: const ValueKey('cinematics-library-map-picker'),
+          label: 'Lieu / map',
+          value: entry.mapId ?? '',
+          items: [
+            const PokeMapDropdownItem(value: '', label: 'Sans lieu'),
+            for (final map in project.maps)
+              PokeMapDropdownItem(value: map.id, label: map.name),
+          ],
+          onChanged: (value) => onChanged(mapId: value),
+        ),
+        const SizedBox(height: 8),
+        PokeMapDropdownField<String>(
+          key: const ValueKey('cinematics-library-storyline-picker'),
+          label: 'Storyline',
+          value: entry.storylineId ?? '',
+          items: [
+            const PokeMapDropdownItem(value: '', label: 'Sans storyline'),
+            for (final storyline in project.storylines)
+              PokeMapDropdownItem(
+                value: storyline.id,
+                label: storyline.title,
+              ),
+          ],
+          onChanged: (value) => onChanged(
+            storylineId: value,
+            chapterId: '',
+          ),
+        ),
+        const SizedBox(height: 8),
+        PokeMapDropdownField<String>(
+          key: const ValueKey('cinematics-library-chapter-picker'),
+          label: 'Chapitre',
+          value: chapterValue,
+          enabled: selectedStoryline != null,
+          items: [
+            const PokeMapDropdownItem(value: '', label: 'Sans chapitre'),
+            for (final chapter
+                in selectedStoryline?.chapters ?? const <StorylineChapter>[])
+              PokeMapDropdownItem(value: chapter.id, label: chapter.title),
+          ],
+          onChanged: (value) => onChanged(chapterId: value),
+        ),
+      ],
+    );
+  }
+}
+
 class _TimelineSummaryPanel extends StatelessWidget {
   const _TimelineSummaryPanel({required this.timeline});
 
@@ -1752,18 +2340,26 @@ class _TimelineSummaryPanel extends StatelessWidget {
 }
 
 class _UsageTile extends StatelessWidget {
-  const _UsageTile({required this.usage});
+  const _UsageTile({required this.usage, this.onOpen});
 
   final CinematicsLibraryUsage usage;
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
     return PokeMapCard(
+      key: ValueKey('cinematic-usage-${usage.sceneId}-${usage.nodeId}'),
+      onTap: onOpen,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _KeyValue(label: 'Scene', value: usage.sceneTitle),
           _KeyValue(label: 'Node', value: usage.nodeTitle),
+          if (usage.outcomeLabels.isNotEmpty)
+            _KeyValue(
+              label: 'Sorties',
+              value: usage.outcomeLabels.join(', '),
+            ),
           PokeMapBadge(
             label: switch (usage.referenceStatus) {
               CinematicsLibraryReferenceStatus.canonical =>
@@ -1781,6 +2377,10 @@ class _UsageTile extends StatelessWidget {
                 PokeMapBadgeVariant.error,
             },
           ),
+          if (onOpen != null) ...[
+            const SizedBox(height: 6),
+            const _BodyText('Cliquer pour ouvrir la Scene et le nœud.'),
+          ],
         ],
       ),
     );
@@ -2057,6 +2657,27 @@ String _usageLabel(int count) {
     return '1 scène';
   }
   return '$count scènes';
+}
+
+String _durationLabel(CinematicTimelineSummary timeline) {
+  final duration = timeline.estimatedDurationMs;
+  if (duration == null) return '${timeline.stepCount} action(s)';
+  if (duration < 1000) return '$duration ms';
+  final seconds = duration / 1000;
+  return '${seconds.toStringAsFixed(seconds == seconds.roundToDouble() ? 0 : 1)} s';
+}
+
+List<String> _parseTags(String value) {
+  final seen = <String>{};
+  return [
+    for (final raw in value.split(','))
+      if (raw.trim().isNotEmpty && seen.add(raw.trim())) raw.trim(),
+  ];
+}
+
+String? _optionalId(String value) {
+  final clean = value.trim();
+  return clean.isEmpty ? null : clean;
 }
 
 Set<String>? _availableTilesetIds(ProjectManifest project) {

@@ -1733,6 +1733,20 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             );
           },
           onSelectOutcome: narrativeController.selectOutcome,
+          onOpenSceneUsage: ({required sceneId, required nodeId}) {
+            ref
+                .read(narrativeStudioNavigationControllerProvider.notifier)
+                .replace(
+                  NarrativeStudioRouteLocation.scenes(
+                    selection: NarrativeStudioAssetSelection(
+                      kind: NarrativeStudioAssetKind.scene,
+                      assetId: sceneId,
+                      focusId: nodeId,
+                    ),
+                  ),
+                );
+            editorNotifier.selectScenesWorkspace();
+          },
         ),
       EditorWorkspaceMode.dialogue => const DialogueStudioWorkspace(),
       EditorWorkspaceMode.facts => _buildFactsWorldRulesWorkspace(
@@ -2452,6 +2466,7 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
     required this.onRouteChanged,
     required this.onSelectCutscene,
     required this.onSelectOutcome,
+    required this.onOpenSceneUsage,
   });
 
   final EditorNotifier editorNotifier;
@@ -2465,6 +2480,7 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
   final ValueChanged<NarrativeStudioRouteLocation> onRouteChanged;
   final ValueChanged<String> onSelectCutscene;
   final ValueChanged<String?> onSelectOutcome;
+  final OpenCinematicSceneUsageCallback onOpenSceneUsage;
 
   @override
   State<_CinematicsWorkspaceBody> createState() =>
@@ -2562,6 +2578,10 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       },
       onCreateCinematicShell: _createCinematicShell,
       onUpdateCinematicMetadata: _updateCinematicMetadata,
+      onDuplicateCinematic: _duplicateCinematic,
+      onToggleCinematicArchive: _toggleCinematicArchive,
+      onBulkTagCinematics: _bulkTagCinematics,
+      onBulkArchiveCinematics: _bulkArchiveCinematics,
       onRemoveCinematic: _removeCinematic,
       onAddTimelineDraft: _addCinematicTimelineDraft,
       onRemoveTimelineDraft: _removeCinematicTimelineDraft,
@@ -2591,6 +2611,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       onLoadStageMapSnapshot: widget.editorNotifier.loadMapSnapshotById,
       onResolveBackdropTilesetPath:
           widget.editorNotifier.getTilesetAbsolutePathById,
+      onOpenSceneUsage: widget.onOpenSceneUsage,
       onOpenLegacyCutsceneStudio: () {
         setState(() => _showLegacyCutsceneStudio = true);
         widget.onRouteChanged(
@@ -2631,6 +2652,11 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     required String title,
     required String description,
     required String notes,
+    required String? mapId,
+    required String? storylineId,
+    required String? chapterId,
+    required List<String> tags,
+    required bool archived,
   }) async {
     final project = widget.project;
     if (project == null) {
@@ -2643,6 +2669,12 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       );
       return false;
     }
+    final metadata = Map<String, String>.from(existing.metadata);
+    if (archived) {
+      metadata[cinematicLibraryArchivedMetadataKey] = 'true';
+    } else {
+      metadata.remove(cinematicLibraryArchivedMetadataKey);
+    }
     final mutation = NarrativeAssetMutation.updateCinematic(
       project,
       cinematicId: cinematicId,
@@ -2650,16 +2682,16 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         id: existing.id,
         title: title.trim(),
         description: description.trim(),
-        storylineId: existing.storylineId,
-        chapterId: existing.chapterId,
-        mapId: existing.mapId,
-        tags: existing.tags,
+        storylineId: storylineId,
+        chapterId: chapterId,
+        mapId: mapId,
+        tags: tags,
         requiredActors: existing.requiredActors,
         movementTargets: existing.movementTargets,
         stageContext: existing.stageContext,
         timeline: existing.timeline,
         notes: notes.trim(),
-        metadata: existing.metadata,
+        metadata: metadata,
         legacyBridge: existing.legacyBridge,
       ),
     );
@@ -2684,6 +2716,100 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     // durable contract while still recording the intention in the shared
     // document history before persistence.
     return widget.editorNotifier.saveNarrativeDocument();
+  }
+
+  Future<String?> _duplicateCinematic({required String cinematicId}) async {
+    final project = widget.project;
+    if (project == null) return null;
+    try {
+      final result = duplicateCinematicAsset(
+        project,
+        cinematicId: cinematicId,
+      );
+      final applied = await _applyCinematicDocumentEdit(
+        result.updatedProject,
+        action: 'library_duplicate',
+        label: 'Dupliquer une cinématique',
+        statusMessage: 'Cinématique dupliquée.',
+      );
+      return applied ? result.cinematic.id : null;
+    } on ArgumentError {
+      return null;
+    }
+  }
+
+  Future<bool> _toggleCinematicArchive({
+    required String cinematicId,
+    required bool archived,
+  }) async {
+    final project = widget.project;
+    if (project == null) return false;
+    try {
+      final result = setCinematicArchived(
+        project,
+        cinematicId: cinematicId,
+        archived: archived,
+      );
+      return await _applyCinematicDocumentEdit(
+        result.updatedProject,
+        action: archived ? 'library_archive' : 'library_restore',
+        label:
+            archived ? 'Archiver une cinématique' : 'Restaurer une cinématique',
+        statusMessage:
+            archived ? 'Cinématique archivée.' : 'Cinématique restaurée.',
+      );
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<bool> _bulkTagCinematics({
+    required Set<String> cinematicIds,
+    required List<String> tags,
+  }) async {
+    final project = widget.project;
+    if (project == null) return false;
+    try {
+      final result = bulkTagCinematics(
+        project,
+        cinematicIds: cinematicIds,
+        tags: tags,
+      );
+      return await _applyCinematicDocumentEdit(
+        result.updatedProject,
+        action: 'library_bulk_tags',
+        label: 'Classer plusieurs cinématiques',
+        statusMessage: 'Tags appliqués aux cinématiques.',
+      );
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<bool> _bulkArchiveCinematics({
+    required Set<String> cinematicIds,
+    required bool archived,
+  }) async {
+    final project = widget.project;
+    if (project == null) return false;
+    try {
+      final result = bulkSetCinematicsArchived(
+        project,
+        cinematicIds: cinematicIds,
+        archived: archived,
+      );
+      return await _applyCinematicDocumentEdit(
+        result.updatedProject,
+        action: archived ? 'library_bulk_archive' : 'library_bulk_restore',
+        label: archived
+            ? 'Archiver plusieurs cinématiques'
+            : 'Restaurer plusieurs cinématiques',
+        statusMessage:
+            archived ? 'Cinématiques archivées.' : 'Cinématiques restaurées.',
+      );
+    } on ArgumentError {
+      return false;
+    }
   }
 
   Future<bool> _removeCinematic({required String cinematicId}) async {

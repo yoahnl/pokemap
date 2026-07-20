@@ -180,6 +180,163 @@ void main() {
     );
   });
 
+  testWidgets('searches the grouped library and renders generated thumbnails',
+      (tester) async {
+    _setLargeSurface(tester);
+    await tester.pumpWidget(_Harness(project: _project()));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-thumbnail-cinematic_intro')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Sans storyline'), findsWidgets);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('cinematics-library-search')),
+      'intro lab',
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-entry-scenario_cutscene')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('duplicates archives restores and bulk-tags canonical assets',
+      (tester) async {
+    _setLargeSurface(tester);
+    await tester.pumpWidget(_Harness(project: _project()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematics-library-duplicate-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('cinematic-entry-cinematic_intro_copy')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematics-library-archive-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('cinematic-entry-cinematic_intro_copy')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('cinematics-library-visibility')),
+        matching: find.byType(DropdownButton<CinematicsLibraryVisibility>),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Archivées').last);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('cinematic-entry-cinematic_intro_copy')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-bulk-select-cinematic_intro_copy')),
+    );
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('cinematics-library-bulk-tags')),
+      'rival, port',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematics-library-bulk-apply-tags')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Tags appliqués à la sélection.'), findsOneWidget);
+  });
+
+  testWidgets('opens a parent Scene usage without exposing raw ids',
+      (tester) async {
+    _setLargeSurface(tester);
+    String? openedSceneId;
+    String? openedNodeId;
+    await tester.pumpWidget(
+      _Harness(
+        project: _project(),
+        onOpenSceneUsage: ({required sceneId, required nodeId}) {
+          openedSceneId = sceneId;
+          openedNodeId = nodeId;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-usage-scene_canonical-node_cinematic'),
+      ),
+    );
+    await tester.pump();
+
+    expect(openedSceneId, 'scene_canonical');
+    expect(openedNodeId, 'node_cinematic');
+  });
+
+  testWidgets('classifies map and tags through guided controls',
+      (tester) async {
+    _setLargeSurface(tester);
+    await tester.pumpWidget(_Harness(project: _project()));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematics-library-map-picker')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('cinematics-library-map-picker')),
+        matching: find.byType(DropdownButton<String>),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sans lieu').last);
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematics-library-tags-field')),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('cinematics-library-tags-field')),
+      'rival, introduction',
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematics-library-save-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematics-library-save-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('cinematics-library-search')),
+      'rival',
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Sans lieu'), findsWidgets);
+  });
+
   testWidgets('shows timeline summary and scene usages for canonical entry',
       (tester) async {
     _setLargeSurface(tester);
@@ -193,7 +350,7 @@ void main() {
 
     expect(find.text('Résumé timeline'), findsOneWidget);
     expect(find.text('Map stage'), findsOneWidget);
-    expect(find.text('Lab map'), findsOneWidget);
+    expect(find.text('Lab map'), findsWidgets);
     expect(find.text('Preview'), findsOneWidget);
     expect(find.text('sandbox uniquement'), findsNothing);
     expect(find.text('2 action(s)'), findsWidgets);
@@ -1049,9 +1206,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Intro cinematic edited'), findsWidgets);
 
-    await tester.tap(
-      find.byKey(const ValueKey('cinematic-entry-cinematic_unused')),
+    final unusedEntry =
+        find.byKey(const ValueKey('cinematic-entry-cinematic_unused'));
+    await tester.scrollUntilVisible(
+      unusedEntry,
+      180,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('cinematics-library-list')),
+        matching: find.byType(Scrollable),
+      ),
     );
+    await tester.tap(unusedEntry);
     await tester.pumpAndSettle();
     expect(tester.widget<PokeMapButton>(deleteButton).onPressed, isNotNull);
     await tester.tap(deleteButton);
@@ -1203,6 +1368,7 @@ class _Harness extends StatefulWidget {
     this.stageMapSnapshots,
     this.resolveTilesetPath,
     this.onOpenLegacyCutsceneStudio,
+    this.onOpenSceneUsage,
     this.surfaceSize = const Size(1280, 820),
   });
 
@@ -1210,6 +1376,7 @@ class _Harness extends StatefulWidget {
   final Map<String, MapData?>? stageMapSnapshots;
   final String? Function(String tilesetId)? resolveTilesetPath;
   final VoidCallback? onOpenLegacyCutsceneStudio;
+  final OpenCinematicSceneUsageCallback? onOpenSceneUsage;
   final Size surfaceSize;
 
   @override
@@ -1249,10 +1416,21 @@ class _HarnessState extends State<_Harness> {
                 required String title,
                 required String description,
                 required String notes,
+                required String? mapId,
+                required String? storylineId,
+                required String? chapterId,
+                required List<String> tags,
+                required bool archived,
               }) async {
                 final existing = findCinematicById(_project, cinematicId);
                 if (existing == null) {
                   return false;
+                }
+                final metadata = Map<String, String>.from(existing.metadata);
+                if (archived) {
+                  metadata[cinematicLibraryArchivedMetadataKey] = 'true';
+                } else {
+                  metadata.remove(cinematicLibraryArchivedMetadataKey);
                 }
                 final result = updateCinematicAsset(
                   _project,
@@ -1260,18 +1438,62 @@ class _HarnessState extends State<_Harness> {
                     id: existing.id,
                     title: title,
                     description: description,
-                    storylineId: existing.storylineId,
-                    chapterId: existing.chapterId,
-                    mapId: existing.mapId,
-                    tags: existing.tags,
+                    storylineId: storylineId,
+                    chapterId: chapterId,
+                    mapId: mapId,
+                    tags: tags,
                     requiredActors: existing.requiredActors,
                     movementTargets: existing.movementTargets,
                     stageContext: existing.stageContext,
                     timeline: existing.timeline,
                     notes: notes,
-                    metadata: existing.metadata,
+                    metadata: metadata,
                     legacyBridge: existing.legacyBridge,
                   ),
+                );
+                setState(() => _project = result.updatedProject);
+                return true;
+              },
+              onDuplicateCinematic: ({required String cinematicId}) async {
+                final result = duplicateCinematicAsset(
+                  _project,
+                  cinematicId: cinematicId,
+                );
+                setState(() => _project = result.updatedProject);
+                return result.cinematic.id;
+              },
+              onToggleCinematicArchive: ({
+                required String cinematicId,
+                required bool archived,
+              }) async {
+                final result = setCinematicArchived(
+                  _project,
+                  cinematicId: cinematicId,
+                  archived: archived,
+                );
+                setState(() => _project = result.updatedProject);
+                return true;
+              },
+              onBulkTagCinematics: ({
+                required Set<String> cinematicIds,
+                required List<String> tags,
+              }) async {
+                final result = bulkTagCinematics(
+                  _project,
+                  cinematicIds: cinematicIds,
+                  tags: tags,
+                );
+                setState(() => _project = result.updatedProject);
+                return true;
+              },
+              onBulkArchiveCinematics: ({
+                required Set<String> cinematicIds,
+                required bool archived,
+              }) async {
+                final result = bulkSetCinematicsArchived(
+                  _project,
+                  cinematicIds: cinematicIds,
+                  archived: archived,
                 );
                 setState(() => _project = result.updatedProject);
                 return true;
@@ -1638,6 +1860,7 @@ class _HarnessState extends State<_Harness> {
               onResolveBackdropTilesetPath: widget.resolveTilesetPath,
               onOpenLegacyCutsceneStudio:
                   widget.onOpenLegacyCutsceneStudio ?? () {},
+              onOpenSceneUsage: widget.onOpenSceneUsage,
             ),
           ),
         ),
