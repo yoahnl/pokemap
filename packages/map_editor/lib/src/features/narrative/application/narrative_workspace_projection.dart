@@ -138,6 +138,8 @@ class NarrativeSceneSummary {
     required this.graph,
     required this.layout,
     required this.diagnostics,
+    this.metadata = const <String, String>{},
+    this.outcomeDefinitions = const <SceneOutcome>[],
   });
 
   final String id;
@@ -153,6 +155,16 @@ class NarrativeSceneSummary {
   final SceneGraph graph;
   final SceneGraphLayout layout;
   final SceneDiagnosticsReport diagnostics;
+  final Map<String, String> metadata;
+  final List<SceneOutcome> outcomeDefinitions;
+
+  bool get isArchived =>
+      metadata[sceneLibraryArchivedMetadataKey]?.toLowerCase() == 'true';
+
+  String? get libraryFolder {
+    final value = metadata[sceneLibraryFolderMetadataKey]?.trim();
+    return value == null || value.isEmpty ? null : value;
+  }
 
   int get diagnosticErrorCount => diagnostics.errorCount;
   int get diagnosticWarningCount => diagnostics.warningCount;
@@ -329,6 +341,8 @@ List<NarrativeSceneSummary> _buildSceneSummaries(List<SceneAsset> scenes) {
         graph: scene.graph,
         layout: scene.layout,
         diagnostics: diagnoseScene(scene),
+        metadata: scene.metadata,
+        outcomeDefinitions: scene.declaredOutcomes,
       ),
   ];
 }

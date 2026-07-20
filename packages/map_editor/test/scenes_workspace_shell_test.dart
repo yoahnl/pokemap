@@ -1010,7 +1010,10 @@ void main() {
       expect(find.text('Bulbizarre'), findsOneWidget);
       expect(find.text('starter_bulbasaur'), findsNothing);
       expect(find.text('bulbasaur'), findsNothing);
-      expect(find.byType(TextField), findsNothing);
+      expect(
+        find.byKey(const ValueKey('scenes-library-search')),
+        findsOneWidget,
+      );
       await tester.tap(
         find.byKey(
           const ValueKey(
@@ -1434,7 +1437,10 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.byType(TextField), findsNothing);
+      expect(
+        find.byKey(const ValueKey('scenes-library-search')),
+        findsOneWidget,
+      );
       await tester.tap(
         find.byKey(
           const ValueKey('scene-gameplay-consequence-save-action'),
@@ -3070,7 +3076,10 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Configurer la condition'), findsOneWidget);
-      expect(find.byType(TextField), findsNothing);
+      expect(
+        find.byKey(const ValueKey('scenes-library-search')),
+        findsOneWidget,
+      );
 
       await tester.tap(
         find.byKey(
@@ -3690,7 +3699,10 @@ void main() {
       expect(find.text('edge_yarn_battle'), findsOneWidget);
       expect(find.text('Sortants'), findsOneWidget);
       expect(find.text('Entrants'), findsOneWidget);
-      expect(find.byType(TextField), findsNothing);
+      expect(
+        find.byKey(const ValueKey('scenes-library-search')),
+        findsOneWidget,
+      );
       expect(find.text('Enregistrer'), findsNothing);
       expect(find.text('Supprimer'), findsNothing);
       expect(find.text('Dupliquer'), findsNothing);

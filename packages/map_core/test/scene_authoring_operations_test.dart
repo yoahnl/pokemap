@@ -1596,12 +1596,221 @@ void main() {
       );
     });
   });
+
+  group('NSC-30 Scene library lifecycle', () {
+    test('renames and classifies a scene without changing its stable id', () {
+      final project = _project(scenes: [_scene('scene_port')]);
+
+      final renamed = renameSceneInProject(
+        project,
+        sceneId: 'scene_port',
+        name: ' Rencontre au port ',
+      );
+      final classified = updateSceneLibraryClassification(
+        renamed.after,
+        sceneId: 'scene_port',
+        location: const SceneLibraryLocation(
+          folder: 'Port Selbrume',
+          storylineId: 'story_main',
+          chapterId: 'chapter_port',
+        ),
+        tags: const ['rival', 'port'],
+        declaredOutcomes: [
+          SceneOutcome(id: 'victory', label: 'Victoire'),
+          SceneOutcome(id: 'defeat', label: 'Défaite'),
+        ],
+      );
+
+      expect(renamed.isApplied, isTrue);
+      expect(renamed.scene!.id, 'scene_port');
+      expect(classified.isApplied, isTrue);
+      expect(classified.scene!.name, 'Rencontre au port');
+      expect(classified.scene!.storylineId, 'story_main');
+      expect(classified.scene!.chapterId, 'chapter_port');
+      expect(sceneLibraryFolder(classified.scene!), 'Port Selbrume');
+      expect(classified.scene!.tags, ['rival', 'port']);
+      expect(
+        classified.scene!.declaredOutcomes.map((outcome) => outcome.id),
+        ['victory', 'defeat'],
+      );
+      expect(project.scenes.single.name, 'scene_port');
+    });
+
+    test('duplicates a scene and remaps every owned graph identity', () {
+      final source = _scene(
+        'scene_source',
+        declaredOutcomes: [SceneOutcome(id: 'done', label: 'Terminé')],
+      );
+      final archived = archiveSceneInProject(
+        _project(scenes: [source]),
+        sceneId: source.id,
+      ).after;
+
+      final result = duplicateSceneInProject(
+        archived,
+        sceneId: source.id,
+        name: 'Scene copiée',
+      );
+
+      expect(result.isApplied, isTrue);
+      final duplicate = result.scene!;
+      expect(duplicate.id, isNot(source.id));
+      expect(duplicate.name, 'Scene copiée');
+      expect(isSceneArchived(duplicate), isFalse);
+      expect(duplicate.tags, source.tags);
+      expect(duplicate.declaredOutcomes, source.declaredOutcomes);
+      expect(
+        duplicate.graph.nodes.map((node) => node.id).toSet().intersection(
+              source.graph.nodes.map((node) => node.id).toSet(),
+            ),
+        isEmpty,
+      );
+      expect(
+        duplicate.graph.edges.map((edge) => edge.id).toSet().intersection(
+              source.graph.edges.map((edge) => edge.id).toSet(),
+            ),
+        isEmpty,
+      );
+      expect(
+        duplicate.layout.nodeLayouts.map((layout) => layout.nodeId).toSet(),
+        duplicate.graph.nodes.map((node) => node.id).toSet(),
+      );
+      expect(
+        duplicate.graph.edges.single.fromNodeId,
+        duplicate.graph.startNodeId,
+      );
+    });
+
+    test('archives and restores without deleting the scene', () {
+      final project = _project(scenes: [_scene('scene_archive')]);
+
+      final archived = archiveSceneInProject(
+        project,
+        sceneId: 'scene_archive',
+      );
+      final restored = restoreSceneInProject(
+        archived.after,
+        sceneId: 'scene_archive',
+      );
+
+      expect(isSceneArchived(archived.scene!), isTrue);
+      expect(archived.after.scenes, hasLength(1));
+      expect(isSceneArchived(restored.scene!), isFalse);
+      expect(restored.after.scenes, hasLength(1));
+    });
+
+    test('refuses deletion while consumers exist and preserves the project',
+        () {
+      final project = _project(
+        scenes: [_scene('scene_used')],
+        storylines: [_storylineUsingScene('scene_used')],
+        eventRegistry: _eventRegistryUsingScene('scene_used'),
+      );
+
+      final result = deleteSceneFromProject(
+        project,
+        sceneId: 'scene_used',
+      );
+
+      expect(result.disposition, SceneLibraryMutationDisposition.rejected);
+      expect(result.code, 'sceneReferenced');
+      expect(result.referencePaths, hasLength(3));
+      expect(result.after, same(project));
+      expect(result.after.toJson(), project.toJson());
+    });
+
+    test('replaces compatible Event Storyline and Step consumers atomically',
+        () {
+      final project = _project(
+        scenes: [_scene('scene_old'), _scene('scene_new')],
+        storylines: [_storylineUsingScene('scene_old')],
+        eventRegistry: _eventRegistryUsingScene('scene_old'),
+      );
+
+      final result = deleteSceneFromProject(
+        project,
+        sceneId: 'scene_old',
+        replacementSceneId: 'scene_new',
+      );
+
+      expect(result.isApplied, isTrue);
+      expect(result.after.scenes.map((scene) => scene.id), ['scene_new']);
+      final storyline = result.after.storylines.single;
+      expect(storyline.chapters.single.directSceneLinkIds, ['scene_new']);
+      expect(
+          storyline.chapters.single.steps.single.sceneLinkIds, ['scene_new']);
+      expect(
+        result.after.eventRegistry!.records.single.definitionOrNull!.sceneId,
+        'scene_new',
+      );
+      expect(
+        buildNarrativeDependencyIndex(project: result.after)
+            .usagesFor(const NarrativeDependencyKey.scene('scene_old')),
+        isEmpty,
+      );
+    });
+
+    test('rejects an incompatible external consumer before any mutation', () {
+      final project = _project(
+        scenes: [_scene('scene_old'), _scene('scene_new')],
+      );
+      final index = NarrativeDependencyIndex(
+        definitions: [
+          NarrativeDependencyDefinition(
+            key: const NarrativeDependencyKey.scene('scene_old'),
+            label: 'Old scene',
+          ),
+        ],
+        usages: const [
+          NarrativeDependencyUsage(
+            target: NarrativeDependencyKey.scene('scene_old'),
+            owner: NarrativeDependencyKey(
+              NarrativeDependencyTargetKind.sourceMap,
+              'event_map',
+              scope: 'map',
+            ),
+            path: 'maps[map_port].events[0].pages[0].sceneTarget.sceneId',
+            criticality: NarrativeDependencyCriticality.runtimeBlocking,
+          ),
+        ],
+      );
+
+      final result = deleteSceneFromProject(
+        project,
+        sceneId: 'scene_old',
+        replacementSceneId: 'scene_new',
+        dependencyIndex: index,
+      );
+
+      expect(result.disposition, SceneLibraryMutationDisposition.rejected);
+      expect(result.code, 'sceneReplacementUnsupportedConsumers');
+      expect(result.after, same(project));
+      expect(result.after.toJson(), project.toJson());
+    });
+
+    test('deletes an unreferenced scene without touching its siblings', () {
+      final sibling = _scene('scene_keep');
+      final project = _project(
+        scenes: [_scene('scene_remove'), sibling],
+      );
+
+      final result = deleteSceneFromProject(
+        project,
+        sceneId: 'scene_remove',
+      );
+
+      expect(result.isApplied, isTrue);
+      expect(result.previousScene!.id, 'scene_remove');
+      expect(result.after.scenes, [same(sibling)]);
+    });
+  });
 }
 
 ProjectManifest _project({
   List<SceneAsset> scenes = const [],
   List<ScenarioAsset> scenarios = const [],
   List<StorylineAsset> storylines = const [],
+  NarrativeEventRegistry? eventRegistry,
 }) {
   return ProjectManifest(
     name: 'Scene authoring test',
@@ -1610,6 +1819,54 @@ ProjectManifest _project({
     scenes: scenes,
     scenarios: scenarios,
     storylines: storylines,
+    eventRegistry: eventRegistry,
+  );
+}
+
+StorylineAsset _storylineUsingScene(String sceneId) {
+  return StorylineAsset(
+    id: 'story_main',
+    type: StorylineType.main,
+    title: 'Histoire principale',
+    chapters: [
+      StorylineChapter(
+        id: 'chapter_port',
+        title: 'Le port',
+        order: 0,
+        directSceneLinkIds: [sceneId],
+        steps: [
+          StorylineStep(
+            id: 'step_meet',
+            title: 'Rencontrer le rival',
+            order: 0,
+            sceneLinkIds: [sceneId],
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+NarrativeEventRegistry _eventRegistryUsingScene(String sceneId) {
+  return NarrativeEventRegistry(
+    schemaVersion: 1,
+    mode: EventSystemMode.v2Only,
+    records: [
+      NarrativeEventRecord.configuredStructurallyUnchecked(
+        NarrativeEventDefinition(
+          id: 'evt_00000000-0000-7000-8000-000000000030',
+          name: 'Scene used',
+          source: NarrativeEventSourceRef.mapEnter('map_port'),
+          conditions: const [],
+          sceneId: sceneId,
+          reusePolicy: NarrativeEventReusePolicy.oneShot,
+          priority: 0,
+          order: 0,
+        ),
+        enabled: true,
+      ),
+    ],
+    legacyClaims: const [],
   );
 }
 

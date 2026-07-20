@@ -1,7 +1,289 @@
 import '../models/project_manifest.dart';
 import '../models/cinematic_asset.dart';
+import '../models/narrative_event_definition.dart';
+import '../models/narrative_event_registry.dart';
+import '../models/project_new_game_config.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import '../read_models/narrative_dependency_index.dart';
+
+const sceneLibraryArchivedMetadataKey = 'pokemap.scene.archived';
+const sceneLibraryFolderMetadataKey = 'pokemap.scene.libraryFolder';
+
+enum SceneLibraryMutationDisposition { applied, noChange, rejected }
+
+final class SceneLibraryLocation {
+  const SceneLibraryLocation({
+    this.folder,
+    this.storylineId,
+    this.chapterId,
+  });
+
+  final String? folder;
+  final String? storylineId;
+  final String? chapterId;
+}
+
+final class SceneLibraryMutationResult {
+  SceneLibraryMutationResult({
+    required this.before,
+    required this.after,
+    required this.disposition,
+    this.scene,
+    this.previousScene,
+    this.code,
+    this.message,
+    List<String> referencePaths = const <String>[],
+  }) : referencePaths = List<String>.unmodifiable(referencePaths);
+
+  final ProjectManifest before;
+  final ProjectManifest after;
+  final SceneLibraryMutationDisposition disposition;
+  final SceneAsset? scene;
+  final SceneAsset? previousScene;
+  final String? code;
+  final String? message;
+  final List<String> referencePaths;
+
+  bool get isApplied => disposition == SceneLibraryMutationDisposition.applied;
+}
+
+bool isSceneArchived(SceneAsset scene) =>
+    scene.metadata[sceneLibraryArchivedMetadataKey]?.toLowerCase() == 'true';
+
+String? sceneLibraryFolder(SceneAsset scene) =>
+    _trimOptional(scene.metadata[sceneLibraryFolderMetadataKey]);
+
+SceneLibraryMutationResult renameSceneInProject(
+  ProjectManifest project, {
+  required String sceneId,
+  required String name,
+}) {
+  final source = _findScene(project, sceneId);
+  if (source == null) {
+    return _sceneLibraryRejected(
+      project,
+      code: 'sceneNotFound',
+      message: 'The SceneAsset to rename does not exist.',
+    );
+  }
+  final trimmedName = name.trim();
+  if (trimmedName.isEmpty) {
+    return _sceneLibraryRejected(
+      project,
+      code: 'blankSceneName',
+      message: 'A SceneAsset requires a readable name.',
+      previousScene: source,
+    );
+  }
+  return _replaceScene(
+    project,
+    source,
+    _copySceneAsset(source, name: trimmedName),
+  );
+}
+
+SceneLibraryMutationResult updateSceneLibraryClassification(
+  ProjectManifest project, {
+  required String sceneId,
+  required SceneLibraryLocation location,
+  required List<String> tags,
+  required List<SceneOutcome> declaredOutcomes,
+}) {
+  final source = _findScene(project, sceneId);
+  if (source == null) {
+    return _sceneLibraryRejected(
+      project,
+      code: 'sceneNotFound',
+      message: 'The SceneAsset to classify does not exist.',
+    );
+  }
+  final storylineId = _trimOptional(location.storylineId);
+  final chapterId = _trimOptional(location.chapterId);
+  if (chapterId != null && storylineId == null) {
+    return _sceneLibraryRejected(
+      project,
+      code: 'chapterWithoutStoryline',
+      message: 'A Scene chapter requires a Storyline owner.',
+      previousScene: source,
+    );
+  }
+  final folder = _trimOptional(location.folder);
+  final metadata = Map<String, String>.from(source.metadata);
+  if (folder == null) {
+    metadata.remove(sceneLibraryFolderMetadataKey);
+  } else {
+    metadata[sceneLibraryFolderMetadataKey] = folder;
+  }
+  try {
+    return _replaceScene(
+      project,
+      source,
+      _copySceneAsset(
+        source,
+        storylineId: storylineId,
+        chapterId: chapterId,
+        tags: tags,
+        declaredOutcomes: declaredOutcomes,
+        metadata: metadata,
+      ),
+    );
+  } on Object catch (error) {
+    return _sceneLibraryRejected(
+      project,
+      code: 'invalidSceneClassification',
+      message: 'The Scene library classification is invalid: $error',
+      previousScene: source,
+    );
+  }
+}
+
+SceneLibraryMutationResult duplicateSceneInProject(
+  ProjectManifest project, {
+  required String sceneId,
+  String? name,
+}) {
+  final source = _findScene(project, sceneId);
+  if (source == null) {
+    return _sceneLibraryRejected(
+      project,
+      code: 'sceneNotFound',
+      message: 'The SceneAsset to duplicate does not exist.',
+    );
+  }
+  final duplicateName = _trimOptional(name) ?? '${source.name} (copie)';
+  final duplicateId = _uniqueSceneId(
+    duplicateName,
+    project.scenes.map((scene) => scene.id),
+  );
+  try {
+    final duplicate = _duplicateSceneAsset(
+      source,
+      duplicateId: duplicateId,
+      name: duplicateName,
+    );
+    return _sceneLibraryApplied(
+      project,
+      project.copyWith(scenes: [...project.scenes, duplicate]),
+      scene: duplicate,
+    );
+  } on Object catch (error) {
+    return _sceneLibraryRejected(
+      project,
+      code: 'invalidSceneDuplicate',
+      message: 'The SceneAsset duplicate is invalid: $error',
+      previousScene: source,
+    );
+  }
+}
+
+SceneLibraryMutationResult archiveSceneInProject(
+  ProjectManifest project, {
+  required String sceneId,
+}) =>
+    _setSceneArchived(project, sceneId: sceneId, archived: true);
+
+SceneLibraryMutationResult restoreSceneInProject(
+  ProjectManifest project, {
+  required String sceneId,
+}) =>
+    _setSceneArchived(project, sceneId: sceneId, archived: false);
+
+SceneLibraryMutationResult deleteSceneFromProject(
+  ProjectManifest project, {
+  required String sceneId,
+  String? replacementSceneId,
+  NarrativeDependencyIndex? dependencyIndex,
+}) {
+  final source = _findScene(project, sceneId);
+  if (source == null) {
+    return _sceneLibraryRejected(
+      project,
+      code: 'sceneNotFound',
+      message: 'The SceneAsset to delete does not exist.',
+    );
+  }
+  final target = NarrativeDependencyKey.scene(source.id);
+  final index =
+      dependencyIndex ?? buildNarrativeDependencyIndex(project: project);
+  final usages = index
+      .usagesFor(target)
+      .where((usage) => usage.owner != target)
+      .toList(growable: false);
+  final replacementId = _trimOptional(replacementSceneId);
+  if (replacementId == null && usages.isNotEmpty) {
+    return _sceneLibraryRejected(
+      project,
+      code: 'sceneReferenced',
+      message: 'The SceneAsset is still used by narrative consumers.',
+      previousScene: source,
+      referencePaths: [for (final usage in usages) usage.path],
+    );
+  }
+
+  SceneAsset? replacement;
+  if (replacementId != null) {
+    replacement = _findScene(project, replacementId);
+    if (replacement == null || replacement.id == source.id) {
+      return _sceneLibraryRejected(
+        project,
+        code: 'invalidSceneReplacement',
+        message: 'The replacement SceneAsset must exist and be different.',
+        previousScene: source,
+        referencePaths: [for (final usage in usages) usage.path],
+      );
+    }
+    final unsupported = usages
+        .where((usage) => !_isManifestSceneConsumerPath(usage.path))
+        .toList(growable: false);
+    if (unsupported.isNotEmpty) {
+      return _sceneLibraryRejected(
+        project,
+        code: 'sceneReplacementUnsupportedConsumers',
+        message: 'Some Scene consumers live outside ProjectManifest.',
+        previousScene: source,
+        referencePaths: [for (final usage in unsupported) usage.path],
+      );
+    }
+    final replacementOutcomeIds = {
+      for (final outcome in replacement.declaredOutcomes) outcome.id,
+    };
+    final missingOutcomes = source.declaredOutcomes
+        .where((outcome) => !replacementOutcomeIds.contains(outcome.id))
+        .map((outcome) => outcome.id)
+        .toList(growable: false);
+    if (missingOutcomes.isNotEmpty) {
+      return _sceneLibraryRejected(
+        project,
+        code: 'sceneReplacementMissingOutcomes',
+        message: 'The replacement SceneAsset does not declare every outcome.',
+        previousScene: source,
+        referencePaths: missingOutcomes,
+      );
+    }
+  }
+
+  var updatedProject = project;
+  if (replacement != null) {
+    updatedProject = _replaceSceneConsumers(
+      updatedProject,
+      sourceSceneId: source.id,
+      replacementSceneId: replacement.id,
+    );
+  }
+  updatedProject = updatedProject.copyWith(
+    scenes: [
+      for (final scene in updatedProject.scenes)
+        if (scene.id != source.id) scene,
+    ],
+  );
+  return _sceneLibraryApplied(
+    project,
+    updatedProject,
+    previousScene: source,
+    referencePaths: [for (final usage in usages) usage.path],
+  );
+}
 
 final class SceneDraftCreationResult {
   const SceneDraftCreationResult({
@@ -1128,6 +1410,351 @@ void _validateItemConsequenceForAuthoring({
       '$kind consequence requires a positive quantity.',
     );
   }
+}
+
+const Object _sceneLibraryUnset = Object();
+
+SceneLibraryMutationResult _setSceneArchived(
+  ProjectManifest project, {
+  required String sceneId,
+  required bool archived,
+}) {
+  final source = _findScene(project, sceneId);
+  if (source == null) {
+    return _sceneLibraryRejected(
+      project,
+      code: 'sceneNotFound',
+      message: 'The SceneAsset to update does not exist.',
+    );
+  }
+  final metadata = Map<String, String>.from(source.metadata);
+  if (archived) {
+    metadata[sceneLibraryArchivedMetadataKey] = 'true';
+  } else {
+    metadata.remove(sceneLibraryArchivedMetadataKey);
+  }
+  return _replaceScene(
+    project,
+    source,
+    _copySceneAsset(source, metadata: metadata),
+  );
+}
+
+SceneLibraryMutationResult _replaceScene(
+  ProjectManifest project,
+  SceneAsset source,
+  SceneAsset replacement,
+) {
+  if (source == replacement) {
+    return SceneLibraryMutationResult(
+      before: project,
+      after: project,
+      disposition: SceneLibraryMutationDisposition.noChange,
+      scene: source,
+      previousScene: source,
+    );
+  }
+  return _sceneLibraryApplied(
+    project,
+    project.copyWith(
+      scenes: [
+        for (final scene in project.scenes)
+          if (scene.id == source.id) replacement else scene,
+      ],
+    ),
+    scene: replacement,
+    previousScene: source,
+  );
+}
+
+SceneLibraryMutationResult _sceneLibraryApplied(
+  ProjectManifest before,
+  ProjectManifest after, {
+  SceneAsset? scene,
+  SceneAsset? previousScene,
+  List<String> referencePaths = const <String>[],
+}) {
+  return SceneLibraryMutationResult(
+    before: before,
+    after: after,
+    disposition: SceneLibraryMutationDisposition.applied,
+    scene: scene,
+    previousScene: previousScene,
+    referencePaths: referencePaths,
+  );
+}
+
+SceneLibraryMutationResult _sceneLibraryRejected(
+  ProjectManifest project, {
+  required String code,
+  required String message,
+  SceneAsset? previousScene,
+  List<String> referencePaths = const <String>[],
+}) {
+  return SceneLibraryMutationResult(
+    before: project,
+    after: project,
+    disposition: SceneLibraryMutationDisposition.rejected,
+    previousScene: previousScene,
+    code: code,
+    message: message,
+    referencePaths: referencePaths,
+  );
+}
+
+SceneAsset? _findScene(ProjectManifest project, String sceneId) {
+  final normalizedId = sceneId.trim();
+  for (final scene in project.scenes) {
+    if (scene.id == normalizedId) return scene;
+  }
+  return null;
+}
+
+SceneAsset _copySceneAsset(
+  SceneAsset source, {
+  String? id,
+  String? name,
+  Object? description = _sceneLibraryUnset,
+  Object? storylineId = _sceneLibraryUnset,
+  Object? chapterId = _sceneLibraryUnset,
+  List<String>? tags,
+  SceneGraph? graph,
+  SceneGraphLayout? layout,
+  List<SceneOutcome>? declaredOutcomes,
+  Map<String, String>? metadata,
+}) {
+  return SceneAsset(
+    id: id ?? source.id,
+    name: name ?? source.name,
+    description: identical(description, _sceneLibraryUnset)
+        ? source.description
+        : description as String?,
+    storylineId: identical(storylineId, _sceneLibraryUnset)
+        ? source.storylineId
+        : storylineId as String?,
+    chapterId: identical(chapterId, _sceneLibraryUnset)
+        ? source.chapterId
+        : chapterId as String?,
+    tags: tags ?? source.tags,
+    graph: graph ?? source.graph,
+    layout: layout ?? source.layout,
+    declaredOutcomes: declaredOutcomes ?? source.declaredOutcomes,
+    metadata: metadata ?? source.metadata,
+  );
+}
+
+SceneAsset _duplicateSceneAsset(
+  SceneAsset source, {
+  required String duplicateId,
+  required String name,
+}) {
+  final sourceNodeIds = source.graph.nodes.map((node) => node.id).toSet();
+  final generatedNodeIds = <String>{};
+  final nodeIds = <String, String>{};
+  for (final node in source.graph.nodes) {
+    final id = _uniqueNodeId(
+      '${node.id}_copy',
+      {...sourceNodeIds, ...generatedNodeIds},
+    );
+    nodeIds[node.id] = id;
+    generatedNodeIds.add(id);
+  }
+
+  final sourceEdgeIds = source.graph.edges.map((edge) => edge.id).toSet();
+  final generatedEdgeIds = <String>{};
+  final edgeIds = <String, String>{};
+  for (final edge in source.graph.edges) {
+    final id = _uniqueEdgeId(
+      '${edge.id}_copy',
+      {...sourceEdgeIds, ...generatedEdgeIds},
+    );
+    edgeIds[edge.id] = id;
+    generatedEdgeIds.add(id);
+  }
+
+  final graph = SceneGraph(
+    startNodeId: nodeIds[source.graph.startNodeId]!,
+    nodes: [
+      for (final node in source.graph.nodes)
+        SceneNode(
+          id: nodeIds[node.id]!,
+          kind: node.kind,
+          title: node.title,
+          description: node.description,
+          payload: node.payload,
+        ),
+    ],
+    edges: [
+      for (final edge in source.graph.edges)
+        SceneEdge(
+          id: edgeIds[edge.id]!,
+          fromNodeId: nodeIds[edge.fromNodeId]!,
+          fromPortId: edge.fromPortId,
+          toNodeId: nodeIds[edge.toNodeId]!,
+          kind: edge.kind,
+          label: edge.label,
+        ),
+    ],
+  );
+  final layout = SceneGraphLayout(
+    nodeLayouts: [
+      for (final item in source.layout.nodeLayouts)
+        SceneNodeLayout(
+          nodeId: nodeIds[item.nodeId]!,
+          x: item.x,
+          y: item.y,
+        ),
+    ],
+    edgeLayouts: [
+      for (final item in source.layout.edgeLayouts)
+        SceneEdgeLayout(
+          edgeId: edgeIds[item.edgeId]!,
+          controlPoints: item.controlPoints,
+        ),
+    ],
+  );
+  final metadata = Map<String, String>.from(source.metadata)
+    ..remove(sceneLibraryArchivedMetadataKey);
+  return _copySceneAsset(
+    source,
+    id: duplicateId,
+    name: name,
+    graph: graph,
+    layout: layout,
+    metadata: metadata,
+  );
+}
+
+bool _isManifestSceneConsumerPath(String path) {
+  if (path == 'newGame.starterSelectionSceneId') return true;
+  if (path.startsWith('eventRegistry.records[') && path.endsWith('.sceneId')) {
+    return true;
+  }
+  if (!path.startsWith('storylines[')) return false;
+  return path.contains('.directSceneLinkIds[') ||
+      path.contains('.sceneLinkIds[');
+}
+
+ProjectManifest _replaceSceneConsumers(
+  ProjectManifest project, {
+  required String sourceSceneId,
+  required String replacementSceneId,
+}) {
+  final registry = project.eventRegistry;
+  final updatedRegistry = registry == null
+      ? null
+      : NarrativeEventRegistry(
+          schemaVersion: registry.schemaVersion,
+          mode: registry.mode,
+          records: [
+            for (final record in registry.records)
+              _replaceSceneInEventRecord(
+                record,
+                sourceSceneId: sourceSceneId,
+                replacementSceneId: replacementSceneId,
+              ),
+          ],
+          legacyClaims: registry.legacyClaims,
+        );
+  final updatedStorylines = [
+    for (final storyline in project.storylines)
+      storyline.copyWith(
+        chapters: [
+          for (final chapter in storyline.chapters)
+            chapter.copyWith(
+              directSceneLinkIds: _replaceUniqueSceneIds(
+                chapter.directSceneLinkIds,
+                sourceSceneId: sourceSceneId,
+                replacementSceneId: replacementSceneId,
+              ),
+              steps: [
+                for (final step in chapter.steps)
+                  step.copyWith(
+                    sceneLinkIds: _replaceUniqueSceneIds(
+                      step.sceneLinkIds,
+                      sourceSceneId: sourceSceneId,
+                      replacementSceneId: replacementSceneId,
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+  ];
+  final newGame = project.newGame;
+  final updatedNewGame = ProjectNewGameConfig(
+    enabled: newGame.enabled,
+    startMapId: newGame.startMapId,
+    startSpawnId: newGame.startSpawnId,
+    playerName: newGame.playerName,
+    startingMoney: newGame.startingMoney,
+    initialBag: newGame.initialBag,
+    initialParty: newGame.initialParty,
+    initialFacts: newGame.initialFacts,
+    existingPartyFactId: newGame.existingPartyFactId,
+    starterSelectionSceneId: newGame.starterSelectionSceneId == sourceSceneId
+        ? replacementSceneId
+        : newGame.starterSelectionSceneId,
+    starterOptions: newGame.starterOptions,
+  );
+  return project.copyWith(
+    eventRegistry: updatedRegistry,
+    storylines: updatedStorylines,
+    newGame: updatedNewGame,
+  );
+}
+
+NarrativeEventRecord _replaceSceneInEventRecord(
+  NarrativeEventRecord record, {
+  required String sourceSceneId,
+  required String replacementSceneId,
+}) {
+  return record.when(
+    draft: (draft) => NarrativeEventRecord.draft(
+      NarrativeEventDraft(
+        id: draft.id,
+        name: draft.name,
+        source: draft.source,
+        conditions: draft.conditions,
+        sceneId:
+            draft.sceneId == sourceSceneId ? replacementSceneId : draft.sceneId,
+        reusePolicy: draft.reusePolicy,
+        priority: draft.priority,
+        order: draft.order,
+      ),
+    ),
+    configured: (definition, enabled) =>
+        NarrativeEventRecord.configuredStructurallyUnchecked(
+      NarrativeEventDefinition(
+        id: definition.id,
+        name: definition.name,
+        source: definition.source,
+        conditions: definition.conditions,
+        sceneId: definition.sceneId == sourceSceneId
+            ? replacementSceneId
+            : definition.sceneId,
+        reusePolicy: definition.reusePolicy,
+        priority: definition.priority,
+        order: definition.order,
+      ),
+      enabled: enabled,
+    ),
+  );
+}
+
+List<String> _replaceUniqueSceneIds(
+  List<String> sceneIds, {
+  required String sourceSceneId,
+  required String replacementSceneId,
+}) {
+  final seen = <String>{};
+  return [
+    for (final sceneId in sceneIds)
+      if (seen.add(
+        sceneId == sourceSceneId ? replacementSceneId : sceneId,
+      ))
+        sceneId == sourceSceneId ? replacementSceneId : sceneId,
+  ];
 }
 
 SceneAsset _createSceneDraft({

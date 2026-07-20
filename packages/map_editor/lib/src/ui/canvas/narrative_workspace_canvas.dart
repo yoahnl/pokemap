@@ -854,6 +854,102 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                   activeMap: editor.activeMap,
                 ),
           consequenceCatalogs: sceneConsequenceCatalogs,
+          sceneConsumerPaths: editor.project == null
+              ? const <String, List<String>>{}
+              : _buildSceneConsumerPaths(
+                  editor.project!,
+                  activeMap: editor.activeMap,
+                ),
+          onEditScene: ({
+            required String sceneId,
+            required String name,
+            required SceneLibraryLocation location,
+            required List<String> tags,
+            required List<SceneOutcome> declaredOutcomes,
+          }) async {
+            final project = editor.project;
+            if (project == null) return null;
+            final renamed = renameSceneInProject(
+              project,
+              sceneId: sceneId,
+              name: name,
+            );
+            if (renamed.disposition ==
+                SceneLibraryMutationDisposition.rejected) {
+              return renamed;
+            }
+            final classified = updateSceneLibraryClassification(
+              renamed.after,
+              sceneId: sceneId,
+              location: location,
+              tags: tags,
+              declaredOutcomes: declaredOutcomes,
+            );
+            if (classified.disposition ==
+                SceneLibraryMutationDisposition.rejected) {
+              return classified;
+            }
+            editorNotifier.applyInMemoryProjectManifest(
+              classified.after,
+              statusMessage: 'Scene library metadata updated',
+            );
+            return classified;
+          },
+          onDuplicateScene: ({required String sceneId}) async {
+            final project = editor.project;
+            if (project == null) return null;
+            final result = duplicateSceneInProject(project, sceneId: sceneId);
+            if (result.isApplied) {
+              editorNotifier.applyInMemoryProjectManifest(
+                result.after,
+                statusMessage: 'Scene duplicated',
+              );
+            }
+            return result;
+          },
+          onToggleArchiveScene: ({
+            required String sceneId,
+            required bool archived,
+          }) async {
+            final project = editor.project;
+            if (project == null) return null;
+            final result = archived
+                ? archiveSceneInProject(project, sceneId: sceneId)
+                : restoreSceneInProject(project, sceneId: sceneId);
+            if (result.isApplied) {
+              editorNotifier.applyInMemoryProjectManifest(
+                result.after,
+                statusMessage: archived ? 'Scene archived' : 'Scene restored',
+              );
+            }
+            return result;
+          },
+          onDeleteScene: ({
+            required String sceneId,
+            String? replacementSceneId,
+          }) async {
+            final project = editor.project;
+            if (project == null) return null;
+            final maps = editor.activeMap == null
+                ? const <MapData>[]
+                : <MapData>[editor.activeMap!];
+            final result = deleteSceneFromProject(
+              project,
+              sceneId: sceneId,
+              replacementSceneId: replacementSceneId,
+              dependencyIndex: buildNarrativeDependencyIndex(
+                project: project,
+                maps: maps,
+              ),
+            );
+            if (result.isApplied) {
+              editorNotifier.applyInMemoryProjectManifest(
+                result.after,
+                statusMessage: 'Scene deleted safely',
+              );
+            }
+            return result;
+          },
           onCreateSceneDraft: ({
             required String name,
             String? description,
@@ -3037,6 +3133,24 @@ class _CutsceneWorkspaceBody extends StatelessWidget {
       ],
     );
   }
+}
+
+Map<String, List<String>> _buildSceneConsumerPaths(
+  ProjectManifest project, {
+  MapData? activeMap,
+}) {
+  final index = buildNarrativeDependencyIndex(
+    project: project,
+    maps: activeMap == null ? const <MapData>[] : <MapData>[activeMap],
+  );
+  return {
+    for (final scene in project.scenes)
+      scene.id: [
+        for (final usage
+            in index.usagesFor(NarrativeDependencyKey.scene(scene.id)))
+          if (usage.owner != NarrativeDependencyKey.scene(scene.id)) usage.path,
+      ],
+  };
 }
 
 class _NarrativeListCard extends StatelessWidget {

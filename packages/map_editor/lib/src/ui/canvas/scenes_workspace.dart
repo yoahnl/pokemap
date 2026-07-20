@@ -10,6 +10,7 @@ import 'narrative_studio/narrative_studio_route_presentation.dart';
 import 'narrative_studio/narrative_studio_workspace_page.dart';
 import 'scenes/scene_cinematic_picker.dart';
 import 'scenes/scene_graph_read_only_view.dart';
+import 'scenes/scene_library_panel.dart';
 import 'scenes/scene_node_read_only_inspector.dart';
 
 typedef SceneDraftCreator = Future<String?> Function({
@@ -106,6 +107,29 @@ typedef SceneLinkedAssetOpener = void Function({
   required String assetId,
 });
 
+typedef SceneLibraryEditor = Future<SceneLibraryMutationResult?> Function({
+  required String sceneId,
+  required String name,
+  required SceneLibraryLocation location,
+  required List<String> tags,
+  required List<SceneOutcome> declaredOutcomes,
+});
+
+typedef SceneLibraryDuplicator = Future<SceneLibraryMutationResult?> Function({
+  required String sceneId,
+});
+
+typedef SceneLibraryArchiveToggler = Future<SceneLibraryMutationResult?>
+    Function({
+  required String sceneId,
+  required bool archived,
+});
+
+typedef SceneLibraryDeleter = Future<SceneLibraryMutationResult?> Function({
+  required String sceneId,
+  String? replacementSceneId,
+});
+
 const _scenesInlineInspectorMinWidth = 1240.0;
 
 class ScenesWorkspace extends StatefulWidget {
@@ -140,6 +164,11 @@ class ScenesWorkspace extends StatefulWidget {
     required this.onUpdateActionConsequence,
     this.onOpenDialogue,
     this.onOpenCinematic,
+    this.sceneConsumerPaths = const <String, List<String>>{},
+    this.onEditScene,
+    this.onDuplicateScene,
+    this.onToggleArchiveScene,
+    this.onDeleteScene,
   });
 
   final List<NarrativeSceneSummary> scenes;
@@ -171,6 +200,11 @@ class ScenesWorkspace extends StatefulWidget {
   final SceneActionConsequenceUpdater onUpdateActionConsequence;
   final SceneLinkedAssetOpener? onOpenDialogue;
   final SceneLinkedAssetOpener? onOpenCinematic;
+  final Map<String, List<String>> sceneConsumerPaths;
+  final SceneLibraryEditor? onEditScene;
+  final SceneLibraryDuplicator? onDuplicateScene;
+  final SceneLibraryArchiveToggler? onToggleArchiveScene;
+  final SceneLibraryDeleter? onDeleteScene;
 
   @override
   State<ScenesWorkspace> createState() => _ScenesWorkspaceState();
@@ -450,6 +484,121 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     }
   }
 
+  Future<void> _editSelectedScene() async {
+    final scene = _selectedScene;
+    final callback = widget.onEditScene;
+    if (scene == null || callback == null) return;
+    final request = await showPokeMapDesktopSideSheet<_SceneLibraryEditRequest>(
+      context: context,
+      title: 'Renommer et classer la scène',
+      semanticLabel: 'Édition de la bibliothèque de scènes',
+      builder: (sheetContext) => _SceneLibraryEditSheet(
+        scene: scene,
+        scenes: widget.scenes,
+        onSubmit: (request) => Navigator.of(sheetContext).pop(request),
+      ),
+    );
+    if (request == null || !mounted) return;
+    final result = await callback(
+      sceneId: scene.id,
+      name: request.name,
+      location: SceneLibraryLocation(
+        folder: request.folder,
+        storylineId: request.storylineId,
+        chapterId: request.chapterId,
+      ),
+      tags: request.tags,
+      declaredOutcomes: request.declaredOutcomes,
+    );
+    if (mounted) await _showSceneLibraryFailure(result);
+  }
+
+  Future<void> _duplicateSelectedScene() async {
+    final scene = _selectedScene;
+    final callback = widget.onDuplicateScene;
+    if (scene == null || callback == null) return;
+    final result = await callback(sceneId: scene.id);
+    if (!mounted) return;
+    if (result?.isApplied == true && result?.scene != null) {
+      setState(() {
+        _selectedSceneId = result!.scene!.id;
+        _selectedNodeId = result.scene!.graph.startNodeId;
+        _selectedEdgeId = null;
+      });
+    }
+    await _showSceneLibraryFailure(result);
+  }
+
+  Future<void> _toggleSelectedSceneArchive() async {
+    final scene = _selectedScene;
+    final callback = widget.onToggleArchiveScene;
+    if (scene == null || callback == null) return;
+    final result = await callback(
+      sceneId: scene.id,
+      archived: !scene.isArchived,
+    );
+    if (mounted) await _showSceneLibraryFailure(result);
+  }
+
+  Future<void> _deleteSelectedScene() async {
+    final scene = _selectedScene;
+    final callback = widget.onDeleteScene;
+    if (scene == null || callback == null) return;
+    final consumerPaths = widget.sceneConsumerPaths[scene.id] ?? const [];
+    final request =
+        await showPokeMapDesktopSideSheet<_SceneLibraryDeleteRequest>(
+      context: context,
+      title: consumerPaths.isEmpty
+          ? 'Supprimer la scène'
+          : 'Remplacer puis supprimer la scène',
+      semanticLabel: 'Suppression protégée de la scène',
+      builder: (sheetContext) => _SceneLibraryDeleteSheet(
+        scene: scene,
+        consumerPaths: consumerPaths,
+        replacementScenes: [
+          for (final candidate in widget.scenes)
+            if (candidate.id != scene.id) candidate,
+        ],
+        onSubmit: (request) => Navigator.of(sheetContext).pop(request),
+      ),
+    );
+    if (request == null || !mounted) return;
+    final result = await callback(
+      sceneId: scene.id,
+      replacementSceneId: request.replacementSceneId,
+    );
+    if (!mounted) return;
+    if (result?.isApplied == true) {
+      setState(() {
+        _selectedSceneId = widget.scenes
+            .where((candidate) => candidate.id != scene.id)
+            .firstOrNull
+            ?.id;
+        _selectedNodeId = null;
+        _selectedEdgeId = null;
+      });
+    }
+    await _showSceneLibraryFailure(result);
+  }
+
+  Future<void> _showSceneLibraryFailure(
+    SceneLibraryMutationResult? result,
+  ) async {
+    if (result == null ||
+        result.disposition != SceneLibraryMutationDisposition.rejected) {
+      return;
+    }
+    await showPokeMapConfirmationDialog<void>(
+      context: context,
+      title: 'Modification impossible',
+      message: result.message ??
+          'La bibliothèque de scènes a refusé cette opération.',
+      actions: const [
+        PokeMapDialogAction(label: 'Compris', value: null),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedScene = _selectedScene;
@@ -528,9 +677,22 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
         SizedBox(
           key: const ValueKey('scenes-tree-column'),
           width: treeWidth,
-          child: _SceneTreePanel(
+          child: SceneLibraryPanel(
             scenes: widget.scenes,
             selectedSceneId: selectedScene?.id,
+            consumerCountBySceneId: {
+              for (final entry in widget.sceneConsumerPaths.entries)
+                entry.key: entry.value.length,
+            },
+            onEditScene: widget.onEditScene == null ? null : _editSelectedScene,
+            onDuplicateScene: widget.onDuplicateScene == null
+                ? null
+                : _duplicateSelectedScene,
+            onToggleArchiveScene: widget.onToggleArchiveScene == null
+                ? null
+                : _toggleSelectedSceneArchive,
+            onDeleteScene:
+                widget.onDeleteScene == null ? null : _deleteSelectedScene,
             onSelectScene: (sceneId) {
               setState(() {
                 _selectedSceneId = sceneId;
@@ -1196,218 +1358,303 @@ class _CreateSceneDraftDialogState extends State<_CreateSceneDraftDialog> {
   }
 }
 
-class _SceneTreePanel extends StatelessWidget {
-  const _SceneTreePanel({
-    required this.scenes,
-    required this.selectedSceneId,
-    required this.onSelectScene,
+final class _SceneLibraryEditRequest {
+  const _SceneLibraryEditRequest({
+    required this.name,
+    required this.folder,
+    required this.storylineId,
+    required this.chapterId,
+    required this.tags,
+    required this.declaredOutcomes,
   });
 
-  final List<NarrativeSceneSummary> scenes;
-  final String? selectedSceneId;
-  final ValueChanged<String> onSelectScene;
-
-  @override
-  Widget build(BuildContext context) {
-    return PokeMapPanel(
-      key: const ValueKey('scenes-tree-panel'),
-      expandChild: true,
-      padding: EdgeInsets.zero,
-      header: const _SceneTreeHeader(),
-      child: scenes.isEmpty
-          ? const _SceneTreeEmptyState()
-          : _SceneTreeList(
-              scenes: scenes,
-              selectedSceneId: selectedSceneId,
-              onSelectScene: onSelectScene,
-            ),
-    );
-  }
+  final String name;
+  final String? folder;
+  final String? storylineId;
+  final String? chapterId;
+  final List<String> tags;
+  final List<SceneOutcome> declaredOutcomes;
 }
 
-class _SceneTreeHeader extends StatelessWidget {
-  const _SceneTreeHeader();
+final class _SceneLibraryEditSheet extends StatefulWidget {
+  const _SceneLibraryEditSheet({
+    required this.scene,
+    required this.scenes,
+    required this.onSubmit,
+  });
+
+  final NarrativeSceneSummary scene;
+  final List<NarrativeSceneSummary> scenes;
+  final ValueChanged<_SceneLibraryEditRequest> onSubmit;
+
+  @override
+  State<_SceneLibraryEditSheet> createState() => _SceneLibraryEditSheetState();
+}
+
+final class _SceneLibraryEditSheetState extends State<_SceneLibraryEditSheet> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _folderController;
+  late final TextEditingController _tagsController;
+  late final TextEditingController _outcomesController;
+  late String _storylineId;
+  late String _chapterId;
+  bool _showNameError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.scene.name);
+    _folderController = TextEditingController(text: widget.scene.libraryFolder);
+    _tagsController = TextEditingController(text: widget.scene.tags.join(', '));
+    _outcomesController = TextEditingController(
+      text: widget.scene.outcomeDefinitions
+          .map((outcome) => outcome.id)
+          .join(', '),
+    );
+    _storylineId = widget.scene.storylineId ?? '';
+    _chapterId = widget.scene.chapterId ?? '';
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _folderController.dispose();
+    _tagsController.dispose();
+    _outcomesController.dispose();
+    super.dispose();
+  }
+
+  List<String> get _storylineIds => {
+        '',
+        for (final scene in widget.scenes)
+          if (scene.storylineId != null) scene.storylineId!,
+      }.toList(growable: false);
+
+  List<String> get _chapterIds => {
+        '',
+        for (final scene in widget.scenes)
+          if (scene.storylineId == _storylineId && scene.chapterId != null)
+            scene.chapterId!,
+      }.toList(growable: false);
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 9, 10, 7),
-      child: Row(
-        children: [
-          const Icon(CupertinoIcons.list_bullet_indent, size: 16),
-          const SizedBox(width: 7),
-          Expanded(
-            child: Text(
-              'Arborescence des scènes',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: colors.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
+    return ListView(
+      key: const ValueKey('scenes-library-edit-sheet'),
+      padding: const EdgeInsets.all(16),
+      children: [
+        PokeMapTextField(
+          key: const ValueKey('scenes-library-edit-name'),
+          label: 'Nom lisible',
+          controller: _nameController,
+          autofocus: true,
+          errorText: _showNameError ? 'Le nom est obligatoire.' : null,
+          onChanged: (_) {
+            if (_showNameError) setState(() => _showNameError = false);
+          },
+        ),
+        const SizedBox(height: 12),
+        PokeMapTextField(
+          key: const ValueKey('scenes-library-edit-folder'),
+          label: 'Dossier de bibliothèque',
+          controller: _folderController,
+          hintText: 'Ex. Quête principale',
+        ),
+        const SizedBox(height: 12),
+        PokeMapDropdownField<String>(
+          key: const ValueKey('scenes-library-edit-storyline'),
+          label: 'Storyline',
+          value: _storylineId,
+          items: [
+            for (final id in _storylineIds)
+              PokeMapDropdownItem(
+                value: id,
+                label: id.isEmpty ? 'Sans storyline' : id,
               ),
-            ),
-          ),
+          ],
+          onChanged: (value) => setState(() {
+            _storylineId = value;
+            if (!_chapterIds.contains(_chapterId)) _chapterId = '';
+          }),
+        ),
+        const SizedBox(height: 12),
+        PokeMapDropdownField<String>(
+          key: const ValueKey('scenes-library-edit-chapter'),
+          label: 'Chapitre',
+          value: _chapterId,
+          enabled: _storylineId.isNotEmpty,
+          items: [
+            for (final id in _chapterIds)
+              PokeMapDropdownItem(
+                value: id,
+                label: id.isEmpty ? 'Sans chapitre' : id,
+              ),
+          ],
+          onChanged: (value) => setState(() => _chapterId = value),
+        ),
+        const SizedBox(height: 12),
+        PokeMapTextField(
+          key: const ValueKey('scenes-library-edit-tags'),
+          label: 'Tags séparés par des virgules',
+          controller: _tagsController,
+          hintText: 'port, rival, acte-1',
+        ),
+        const SizedBox(height: 12),
+        PokeMapTextField(
+          key: const ValueKey('scenes-library-edit-outcomes'),
+          label: 'Résultats déclarés séparés par des virgules',
+          controller: _outcomesController,
+          hintText: 'victory, defeat',
+        ),
+        const SizedBox(height: 18),
+        PokeMapButton(
+          key: const ValueKey('scenes-library-edit-submit'),
+          onPressed: _submit,
+          leading: const Icon(CupertinoIcons.check_mark),
+          child: const Text('Enregistrer'),
+        ),
+      ],
+    );
+  }
+
+  void _submit() {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      setState(() => _showNameError = true);
+      return;
+    }
+    final tags = _commaSeparatedValues(_tagsController.text);
+    final outcomeIds = _commaSeparatedValues(_outcomesController.text);
+    final existingById = {
+      for (final outcome in widget.scene.outcomeDefinitions)
+        outcome.id: outcome,
+    };
+    widget.onSubmit(
+      _SceneLibraryEditRequest(
+        name: name,
+        folder: _emptyToNull(_folderController.text),
+        storylineId: _emptyToNull(_storylineId),
+        chapterId: _emptyToNull(_chapterId),
+        tags: tags,
+        declaredOutcomes: [
+          for (final id in outcomeIds)
+            existingById[id] ?? SceneOutcome(id: id, label: id),
         ],
       ),
     );
   }
 }
 
-class _SceneTreeEmptyState extends StatelessWidget {
-  const _SceneTreeEmptyState();
+final class _SceneLibraryDeleteRequest {
+  const _SceneLibraryDeleteRequest({this.replacementSceneId});
 
-  @override
-  Widget build(BuildContext context) {
-    return const PokeMapEmptyState(
-      key: ValueKey('scenes-tree-empty-state'),
-      icon: Icon(CupertinoIcons.square_stack_3d_up),
-      title: 'Liste vide',
-      description: 'Aucune scène réelle dans ProjectManifest.scenes.',
-    );
-  }
+  final String? replacementSceneId;
 }
 
-class _SceneTreeList extends StatelessWidget {
-  const _SceneTreeList({
-    required this.scenes,
-    required this.selectedSceneId,
-    required this.onSelectScene,
+final class _SceneLibraryDeleteSheet extends StatefulWidget {
+  const _SceneLibraryDeleteSheet({
+    required this.scene,
+    required this.consumerPaths,
+    required this.replacementScenes,
+    required this.onSubmit,
   });
 
-  final List<NarrativeSceneSummary> scenes;
-  final String? selectedSceneId;
-  final ValueChanged<String> onSelectScene;
+  final NarrativeSceneSummary scene;
+  final List<String> consumerPaths;
+  final List<NarrativeSceneSummary> replacementScenes;
+  final ValueChanged<_SceneLibraryDeleteRequest> onSubmit;
 
   @override
-  Widget build(BuildContext context) {
-    final grouped = _groupScenes(scenes);
-    return ListView(
-      padding: const EdgeInsets.all(10),
-      children: [
-        for (final storylineEntry in grouped.entries) ...[
-          _SceneTreeGroupLabel(
-            icon: CupertinoIcons.book,
-            label: storylineEntry.key,
-          ),
-          for (final chapterEntry in storylineEntry.value.entries) ...[
-            Padding(
-              padding: const EdgeInsets.only(left: 8, top: 8, bottom: 4),
-              child: _SceneTreeGroupLabel(
-                icon: CupertinoIcons.rectangle_stack,
-                label: chapterEntry.key,
-              ),
-            ),
-            for (final scene in chapterEntry.value) ...[
-              _SceneTreeItem(
-                scene: scene,
-                selected: scene.id == selectedSceneId,
-                onTap: () => onSelectScene(scene.id),
-              ),
-              const SizedBox(height: 6),
-            ],
-          ],
-          const SizedBox(height: 4),
-        ],
-      ],
-    );
-  }
+  State<_SceneLibraryDeleteSheet> createState() =>
+      _SceneLibraryDeleteSheetState();
 }
 
-class _SceneTreeGroupLabel extends StatelessWidget {
-  const _SceneTreeGroupLabel({
-    required this.icon,
-    required this.label,
-  });
-
-  final IconData icon;
-  final String label;
+final class _SceneLibraryDeleteSheetState
+    extends State<_SceneLibraryDeleteSheet> {
+  String _replacementSceneId = '';
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    return Row(
+    final requiresReplacement = widget.consumerPaths.isNotEmpty;
+    return ListView(
+      key: const ValueKey('scenes-library-delete-sheet'),
+      padding: const EdgeInsets.all(16),
       children: [
-        Icon(icon, size: 13, color: colors.textMuted),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+        PokeMapDiagnosticCallout(
+          severity: requiresReplacement
+              ? PokeMapDiagnosticSeverity.warning
+              : PokeMapDiagnosticSeverity.info,
+          title: requiresReplacement
+              ? '${widget.consumerPaths.length} dépendances détectées'
+              : 'Scène sans dépendance',
+          message: requiresReplacement
+              ? 'Choisissez une scène de remplacement compatible avant la suppression.'
+              : 'La suppression retire définitivement cette scène du projet.',
+        ),
+        if (requiresReplacement) ...[
+          const SizedBox(height: 12),
+          PokeMapDropdownField<String>(
+            key: const ValueKey('scenes-library-delete-replacement'),
+            label: 'Scène de remplacement',
+            value: _replacementSceneId,
+            items: [
+              const PokeMapDropdownItem(value: '', label: 'Choisir…'),
+              for (final scene in widget.replacementScenes)
+                PokeMapDropdownItem(value: scene.id, label: scene.name),
+            ],
+            onChanged: (value) => setState(() => _replacementSceneId = value),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Consommateurs',
             style: TextStyle(
-              color: colors.textMuted,
-              fontSize: 11,
+              color: colors.textPrimary,
+              fontSize: 12,
               fontWeight: FontWeight.w900,
             ),
           ),
+          const SizedBox(height: 6),
+          for (final path in widget.consumerPaths)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                '• $path',
+                style: TextStyle(color: colors.textSecondary, fontSize: 11),
+              ),
+            ),
+        ],
+        const SizedBox(height: 18),
+        PokeMapButton(
+          key: const ValueKey('scenes-library-delete-submit'),
+          onPressed: !requiresReplacement || _replacementSceneId.isNotEmpty
+              ? () => widget.onSubmit(
+                    _SceneLibraryDeleteRequest(
+                      replacementSceneId: _emptyToNull(_replacementSceneId),
+                    ),
+                  )
+              : null,
+          variant: PokeMapButtonVariant.danger,
+          leading: const Icon(CupertinoIcons.delete),
+          child: Text(
+              requiresReplacement ? 'Remplacer et supprimer' : 'Supprimer'),
         ),
       ],
     );
   }
 }
 
-class _SceneTreeItem extends StatelessWidget {
-  const _SceneTreeItem({
-    required this.scene,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final NarrativeSceneSummary scene;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return PokeMapSidebarItem(
-      key: ValueKey('scenes-tree-item-${scene.id}'),
-      icon: const Icon(CupertinoIcons.flowchart),
-      label: scene.name,
-      subtitle:
-          '${scene.nodeCount} nodes • ${scene.edgeCount} edges • ${scene.declaredOutcomeCount} outcomes',
-      growForTextScale: true,
-      trailing: scene.hasDiagnostics
-          ? _SceneDiagnosticBadge(scene: scene)
-          : const Icon(CupertinoIcons.chevron_right, size: 14),
-      selected: selected,
-      onTap: onTap,
-    );
-  }
+List<String> _commaSeparatedValues(String raw) {
+  final seen = <String>{};
+  return [
+    for (final value in raw.split(','))
+      if (value.trim().isNotEmpty && seen.add(value.trim())) value.trim(),
+  ];
 }
 
-class _SceneDiagnosticBadge extends StatelessWidget {
-  const _SceneDiagnosticBadge({required this.scene});
-
-  final NarrativeSceneSummary scene;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    final hasErrors = scene.diagnosticErrorCount > 0;
-    final foreground = hasErrors ? colors.error : colors.warning;
-    final background = hasErrors ? colors.errorSoft : colors.warningSoft;
-    final border = hasErrors ? colors.errorBorder : colors.warningBorder;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: border),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        child: Text(
-          scene.diagnosticSummaryLabel,
-          style: TextStyle(
-            color: foreground,
-            fontSize: 10,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ),
-    );
-  }
+String? _emptyToNull(String raw) {
+  final value = raw.trim();
+  return value.isEmpty ? null : value;
 }
 
 class _SceneReadOnlySummary extends StatelessWidget {
@@ -2837,17 +3084,4 @@ class _SceneInspectorEmptyPanel extends StatelessWidget {
       ),
     );
   }
-}
-
-Map<String, Map<String, List<NarrativeSceneSummary>>> _groupScenes(
-  List<NarrativeSceneSummary> scenes,
-) {
-  final grouped = <String, Map<String, List<NarrativeSceneSummary>>>{};
-  for (final scene in scenes) {
-    final storylineKey = scene.storylineId ?? 'Sans storyline';
-    final chapterKey = scene.chapterId ?? 'Sans chapitre';
-    final chapters = grouped.putIfAbsent(storylineKey, () => {});
-    chapters.putIfAbsent(chapterKey, () => []).add(scene);
-  }
-  return grouped;
 }
