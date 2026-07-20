@@ -15,6 +15,45 @@ enum CinematicTimelineLaneKind {
 }
 
 @immutable
+final class CinematicTimelineTrackState {
+  const CinematicTimelineTrackState({
+    this.isCollapsed = false,
+    this.isLocked = false,
+    this.isMuted = false,
+    this.isSolo = false,
+  });
+
+  final bool isCollapsed;
+  final bool isLocked;
+  final bool isMuted;
+  final bool isSolo;
+
+  CinematicTimelineTrackState copyWith({
+    bool? isCollapsed,
+    bool? isLocked,
+    bool? isMuted,
+    bool? isSolo,
+  }) =>
+      CinematicTimelineTrackState(
+        isCollapsed: isCollapsed ?? this.isCollapsed,
+        isLocked: isLocked ?? this.isLocked,
+        isMuted: isMuted ?? this.isMuted,
+        isSolo: isSolo ?? this.isSolo,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      other is CinematicTimelineTrackState &&
+      other.isCollapsed == isCollapsed &&
+      other.isLocked == isLocked &&
+      other.isMuted == isMuted &&
+      other.isSolo == isSolo;
+
+  @override
+  int get hashCode => Object.hash(isCollapsed, isLocked, isMuted, isSolo);
+}
+
+@immutable
 final class CinematicTimelineLaneReadModel {
   CinematicTimelineLaneReadModel({
     required List<CinematicTimelineLane> lanes,
@@ -49,6 +88,10 @@ final class CinematicTimelineLane {
     this.actorId,
     this.actorLabel,
     required List<CinematicTimelineLaneStep> steps,
+    this.isCollapsed = false,
+    this.isLocked = false,
+    this.isMuted = false,
+    this.isSolo = false,
   }) : steps = List<CinematicTimelineLaneStep>.unmodifiable(steps);
 
   final String laneId;
@@ -58,6 +101,10 @@ final class CinematicTimelineLane {
   final String? actorId;
   final String? actorLabel;
   final List<CinematicTimelineLaneStep> steps;
+  final bool isCollapsed;
+  final bool isLocked;
+  final bool isMuted;
+  final bool isSolo;
 
   bool get isEmpty => steps.isEmpty;
 }
@@ -92,8 +139,8 @@ final class CinematicTimelineLaneStep {
 }
 
 CinematicTimelineLaneReadModel buildCinematicTimelineLaneReadModel(
-  CinematicAsset cinematic,
-) {
+    CinematicAsset cinematic,
+    {Map<String, CinematicTimelineTrackState> trackStates = const {}}) {
   final actorLabels = <String, String>{
     for (final actor in cinematic.requiredActors)
       actor.actorId: actor.label ?? actor.actorId,
@@ -247,6 +294,10 @@ CinematicTimelineLaneReadModel buildCinematicTimelineLaneReadModel(
           actorId: lane.actorId,
           actorLabel: lane.actorLabel,
           steps: lane.steps,
+          isCollapsed: trackStates[lane.laneId]?.isCollapsed ?? false,
+          isLocked: trackStates[lane.laneId]?.isLocked ?? false,
+          isMuted: trackStates[lane.laneId]?.isMuted ?? false,
+          isSolo: trackStates[lane.laneId]?.isSolo ?? false,
         ),
     ],
     stepCount: cinematic.timeline.steps.length,

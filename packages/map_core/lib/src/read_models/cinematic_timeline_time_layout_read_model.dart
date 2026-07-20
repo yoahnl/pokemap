@@ -82,6 +82,7 @@ final class CinematicTimelineTimeBlock {
     this.targetId,
     this.targetLabel,
     required this.isAuthoringOwned,
+    required this.stableOrder,
     required List<String> badges,
   }) : badges = List<String>.unmodifiable(badges);
 
@@ -100,6 +101,7 @@ final class CinematicTimelineTimeBlock {
   final String? targetId;
   final String? targetLabel;
   final bool isAuthoringOwned;
+  final int stableOrder;
   final List<String> badges;
 }
 
@@ -117,9 +119,12 @@ final class CinematicTimelineTimeTick {
 }
 
 CinematicTimelineTimeLayoutReadModel buildCinematicTimelineTimeLayoutReadModel(
-  CinematicAsset cinematic,
-) {
-  final laneReadModel = buildCinematicTimelineLaneReadModel(cinematic);
+    CinematicAsset cinematic,
+    {Map<String, CinematicTimelineTrackState> trackStates = const {}}) {
+  final laneReadModel = buildCinematicTimelineLaneReadModel(
+    cinematic,
+    trackStates: trackStates,
+  );
   final timings = <String, _StepTiming>{};
 
   var currentMs = 0;
@@ -166,6 +171,7 @@ CinematicTimelineTimeLayoutReadModel buildCinematicTimelineTimeLayoutReadModel(
                 targetId: step.targetId,
                 targetLabel: step.targetLabel,
                 isAuthoringOwned: step.isAuthoringOwned,
+                stableOrder: step.stepIndex,
                 badges: step.badges,
               ),
         ],

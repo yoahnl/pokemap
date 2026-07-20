@@ -382,6 +382,8 @@ class CinematicBuilderWorkspace extends StatefulWidget {
 class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     with SingleTickerProviderStateMixin {
   late final CinematicBuilderController _builderController;
+  late final CinematicTimelineEditingController _timelineEditingController;
+  CinematicTimelineClipboard? _timelineClipboard;
   CinematicBackdropPreviewFramingState _backdropFramingState =
       const CinematicBackdropPreviewFramingState();
   late final AnimationController _playbackController;
@@ -393,6 +395,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
   void initState() {
     super.initState();
     _builderController = CinematicBuilderController(asset: widget.asset);
+    _timelineEditingController = CinematicTimelineEditingController();
     _playbackTimelineSignature = _playbackSignature(widget.asset);
     _playbackController = AnimationController(vsync: this)
       ..addListener(() {
@@ -425,6 +428,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
   @override
   void dispose() {
     _playbackController.dispose();
+    _timelineEditingController.dispose();
     _builderController.dispose();
     super.dispose();
   }
@@ -826,6 +830,16 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                                 SizedBox(
                                   height: timelineHeight,
                                   child: CinematicTimelinePanel(
+                                    controller: _timelineEditingController,
+                                    onDuplicateSelection:
+                                        _duplicateTimelineSelection,
+                                    onDeleteSelection: _deleteTimelineSelection,
+                                    onCopySelection: _copyTimelineSelection,
+                                    onPaste: _pasteTimelineClipboard,
+                                    onMoveSelectionEarlier:
+                                        _moveTimelineSelectionEarlier,
+                                    onMoveSelectionLater:
+                                        _moveTimelineSelectionLater,
                                     child: _TimelinePlaceholder(
                                       entry: widget.entry,
                                       asset: widget.asset,
@@ -846,6 +860,15 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                                         setState(() {
                                           _builderController.selectedStepId =
                                               step.id;
+                                          _timelineEditingController.select(
+                                            step.id,
+                                            additive: HardwareKeyboard
+                                                    .instance.isShiftPressed ||
+                                                HardwareKeyboard
+                                                    .instance.isMetaPressed ||
+                                                HardwareKeyboard
+                                                    .instance.isControlPressed,
+                                          );
                                           _builderController
                                               .timelineProbeTimeMs = null;
                                           _builderController
@@ -996,6 +1019,118 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       return;
     }
     setState(() => _builderController.selectedStepId = createdStepId);
+  }
+
+  Set<String> _timelineSelection() {
+    final selected = _timelineEditingController.selectedStepIds;
+    if (selected.isNotEmpty) return selected;
+    final selectedStepId = _builderController.selectedStepId;
+    return selectedStepId == null ? const {} : {selectedStepId};
+  }
+
+  Future<void> _duplicateTimelineSelection() async {
+    final selected = _timelineSelection();
+    if (selected.isEmpty) return;
+    final result = duplicateCinematicTimelineSteps(
+      widget.asset,
+      stepIds: selected,
+    );
+    await _updateCinematic(result.cinematic);
+    if (!mounted) return;
+    final firstClone = result.idRewrites.values.isEmpty
+        ? null
+        : result.idRewrites.values.first;
+    if (firstClone != null) {
+      setState(() {
+        _builderController.selectedStepId = firstClone;
+        _timelineEditingController.select(firstClone);
+      });
+    }
+  }
+
+  Future<void> _deleteTimelineSelection() async {
+    final selected = _timelineSelection();
+    if (selected.isEmpty) return;
+    final result = deleteCinematicTimelineSteps(
+      widget.asset,
+      stepIds: selected,
+    );
+    await _updateCinematic(result.cinematic);
+    if (!mounted) return;
+    setState(() {
+      _builderController.selectedStepId = null;
+      _timelineEditingController.clearSelection();
+    });
+  }
+
+  Future<void> _copyTimelineSelection() async {
+    final selected = _timelineSelection();
+    if (selected.isEmpty) return;
+    _timelineClipboard = copyCinematicTimelineSteps(
+      widget.asset,
+      stepIds: selected,
+    );
+  }
+
+  Future<void> _pasteTimelineClipboard() async {
+    final clipboard = _timelineClipboard;
+    if (clipboard == null || clipboard.steps.isEmpty) return;
+    final selectedId = _builderController.selectedStepId;
+    final selectedIndex = selectedId == null
+        ? -1
+        : widget.asset.timeline.steps.indexWhere(
+            (step) => step.id == selectedId,
+          );
+    final result = pasteCinematicTimelineSteps(
+      widget.asset,
+      clipboard: clipboard,
+      insertionIndex: selectedIndex < 0
+          ? widget.asset.timeline.steps.length
+          : selectedIndex + 1,
+    );
+    await _updateCinematic(result.cinematic);
+    if (!mounted) return;
+    final firstPaste = result.idRewrites.values.isEmpty
+        ? null
+        : result.idRewrites.values.first;
+    if (firstPaste != null) {
+      setState(() {
+        _builderController.selectedStepId = firstPaste;
+        _timelineEditingController.select(firstPaste);
+      });
+    }
+  }
+
+  Future<void> _moveTimelineSelectionEarlier() async {
+    await _moveTimelineSelection(-1);
+  }
+
+  Future<void> _moveTimelineSelectionLater() async {
+    await _moveTimelineSelection(1);
+  }
+
+  Future<void> _moveTimelineSelection(int direction) async {
+    final selected = _timelineSelection();
+    if (selected.isEmpty) return;
+    final selectedIndices = widget.asset.timeline.steps
+        .asMap()
+        .entries
+        .where((entry) => selected.contains(entry.value.id))
+        .map((entry) => entry.key)
+        .toList();
+    if (selectedIndices.isEmpty) return;
+    final insertionIndex =
+        direction < 0 ? selectedIndices.first - 1 : selectedIndices.last + 2;
+    if (insertionIndex < 0 ||
+        insertionIndex > widget.asset.timeline.steps.length) {
+      return;
+    }
+    final result = moveCinematicTimelineSteps(
+      widget.asset,
+      stepIds: selected,
+      insertionIndex: insertionIndex,
+    );
+    await _updateCinematic(result.cinematic);
   }
 
   Future<void> _removeDraftStep(CinematicTimelineStep step) async {

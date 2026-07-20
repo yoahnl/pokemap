@@ -3,6 +3,26 @@ import 'package:test/test.dart';
 
 void main() {
   group('buildCinematicTimelineLaneReadModel', () {
+    test('applies collapsible lock mute and solo presentation state', () {
+      final model = buildCinematicTimelineLaneReadModel(
+        _cinematic(),
+        trackStates: const {
+          'camera': CinematicTimelineTrackState(
+            isCollapsed: true,
+            isLocked: true,
+            isMuted: true,
+            isSolo: true,
+          ),
+        },
+      );
+
+      final camera = model.laneById('camera')!;
+      expect(camera.isCollapsed, isTrue);
+      expect(camera.isLocked, isTrue);
+      expect(camera.isMuted, isTrue);
+      expect(camera.isSolo, isTrue);
+    });
+
     test('groups timeline steps into deterministic lanes without mutation', () {
       final cinematic = _cinematic();
       final before = cinematic.toJson();
@@ -183,7 +203,8 @@ void main() {
       expect(laneStep.targetLabel, 'Point 2');
     });
 
-    test('actorMove target shows missing label when stage point is missing', () {
+    test('actorMove target shows missing label when stage point is missing',
+        () {
       final cinematic = CinematicAsset(
         id: 'cinematic_actor_move_stage_point_missing',
         title: 'Actor move stage point missing lane test',

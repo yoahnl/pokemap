@@ -2,6 +2,28 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('keeps an explicit stable order for every visual block', () {
+    final model = buildCinematicTimelineTimeLayoutReadModel(
+      CinematicAsset(
+        id: 'stable',
+        title: 'Stable',
+        timeline: CinematicTimeline(steps: [
+          CinematicTimelineStep(
+            id: 'marker_a',
+            kind: CinematicTimelineStepKind.marker,
+          ),
+          CinematicTimelineStep(
+            id: 'marker_b',
+            kind: CinematicTimelineStepKind.marker,
+          ),
+        ]),
+      ),
+    );
+
+    expect(model.blocks.map((block) => block.stableOrder), [0, 1]);
+    expect(model.blocks.map((block) => block.stepId), ['marker_a', 'marker_b']);
+  });
+
   group('buildCinematicTimelineTimeLayoutReadModel', () {
     test('derives block timing from linear order with fallback durations', () {
       final cinematic = _cinematic();
