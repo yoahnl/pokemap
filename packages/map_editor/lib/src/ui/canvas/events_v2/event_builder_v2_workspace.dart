@@ -49,6 +49,7 @@ class EventBuilderV2Workspace extends StatefulWidget {
     this.onChangeScene,
     this.onOpenScene,
     this.onChangeBehavior,
+    this.onSimulate,
     this.onManageEvaluationOrder,
     this.validationItems = const [],
     this.onValidationAction,
@@ -74,6 +75,7 @@ class EventBuilderV2Workspace extends StatefulWidget {
   final VoidCallback? onChangeScene;
   final VoidCallback? onOpenScene;
   final VoidCallback? onChangeBehavior;
+  final VoidCallback? onSimulate;
   final VoidCallback? onManageEvaluationOrder;
   final List<NarrativeEventValidationItem> validationItems;
   final ValueChanged<NarrativeEventValidationItem>? onValidationAction;
@@ -197,6 +199,7 @@ class _EventBuilderV2WorkspaceState extends State<EventBuilderV2Workspace> {
                     onChangeScene: widget.onChangeScene,
                     onOpenScene: widget.onOpenScene,
                     onChangeBehavior: widget.onChangeBehavior,
+                    onSimulate: widget.onSimulate,
                   )
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -233,6 +236,7 @@ class _EventBuilderV2WorkspaceState extends State<EventBuilderV2Workspace> {
                           onChangeScene: widget.onChangeScene,
                           onOpenScene: widget.onOpenScene,
                           onChangeBehavior: widget.onChangeBehavior,
+                          onSimulate: widget.onSimulate,
                         ),
                       ),
                     ],

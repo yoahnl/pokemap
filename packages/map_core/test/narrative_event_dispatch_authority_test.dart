@@ -539,6 +539,140 @@ void main() {
         contains(NarrativeEventDispatchReason.eventInFlight),
       );
     });
+
+    test('simulation shares dispatch ordering and explains every AND leaf', () {
+      final source = NarrativeEventSourceRef.mapEnter('map');
+      final facts = [
+        NarrativeFactDefinition(
+          id: 'fact_open',
+          label: 'Port ouvert',
+        ),
+        NarrativeFactDefinition(
+          id: 'fact_blocked',
+          label: 'Port bloqué',
+        ),
+      ];
+      final registry = _registry(
+        mode: EventSystemMode.v2Only,
+        records: [
+          _record(
+            _eventB,
+            source: source,
+            priority: 20,
+            conditions: [
+              NarrativeEventCondition.fact('fact_blocked', true),
+            ],
+          ),
+          _record(
+            _eventA,
+            source: source,
+            priority: 10,
+            conditions: [
+              NarrativeEventCondition.fact('fact_open', true),
+              NarrativeEventCondition.narrativeEventConsumed(_eventC, false),
+            ],
+          ),
+          _record(
+            _eventC,
+            source: NarrativeEventSourceRef.mapEnter('other'),
+          ),
+        ],
+      );
+      final report = simulateNarrativeEventDispatch(
+        registryResult: EventRegistryDecodeResult.decoded(registry),
+        projectCatalog: f1ProjectCatalogForRegistry(registry),
+        facts: facts,
+        input: NarrativeEventSimulationInput(
+          targetEventId: _eventA,
+          source: source,
+          factValues: const {
+            'fact_open': true,
+            'fact_blocked': false,
+          },
+        ),
+      );
+
+      expect(report.status, NarrativeEventSimulationStatus.handled);
+      expect(report.handledEventId, _eventA);
+      expect(report.candidates.map((candidate) => candidate.eventId),
+          [_eventB, _eventA]);
+      expect(report.candidates.first.reasons,
+          [NarrativeEventSimulationReason.factConditionFalse]);
+      final target = report.targetCandidate!;
+      expect(target.selected, isTrue);
+      expect(target.conditions, hasLength(2));
+      expect(target.conditions.every((condition) => condition.passed), isTrue);
+      expect(target.priority, 10);
+      expect(target.order, 0);
+    });
+
+    test('simulation exposes draft disabled source missing and consumed states',
+        () {
+      final source = NarrativeEventSourceRef.mapEnter('map');
+      final draftWithoutSource = NarrativeEventRecord.draft(
+        NarrativeEventDraft(
+          id: _eventA,
+          name: 'À compléter',
+          conditions: const [],
+          priority: 0,
+          order: 0,
+        ),
+      );
+      final missingSourceRegistry = _registry(
+        mode: EventSystemMode.v2Only,
+        records: [draftWithoutSource],
+      );
+      final missing = simulateNarrativeEventDispatch(
+        registryResult:
+            EventRegistryDecodeResult.decoded(missingSourceRegistry),
+        projectCatalog: f1ProjectCatalogForRegistry(missingSourceRegistry),
+        facts: const [],
+        input: NarrativeEventSimulationInput(targetEventId: _eventA),
+      );
+
+      final disabledRegistry = _registry(
+        mode: EventSystemMode.v2Only,
+        records: [_record(_eventA, source: source, enabled: false)],
+      );
+      final disabled = simulateNarrativeEventDispatch(
+        registryResult: EventRegistryDecodeResult.decoded(disabledRegistry),
+        projectCatalog: f1ProjectCatalogForRegistry(disabledRegistry),
+        facts: const [],
+        input: NarrativeEventSimulationInput(
+          targetEventId: _eventA,
+          source: source,
+        ),
+      );
+
+      final consumedRegistry = _registry(
+        mode: EventSystemMode.v2Only,
+        records: [_record(_eventA, source: source)],
+      );
+      final consumed = simulateNarrativeEventDispatch(
+        registryResult: EventRegistryDecodeResult.decoded(consumedRegistry),
+        projectCatalog: f1ProjectCatalogForRegistry(consumedRegistry),
+        facts: const [],
+        input: NarrativeEventSimulationInput(
+          targetEventId: _eventA,
+          source: source,
+          consumedNarrativeEventIds: const {_eventA},
+        ),
+      );
+
+      expect(missing.status, NarrativeEventSimulationStatus.sourceMissing);
+      expect(
+          missing.targetCandidate!.reasons,
+          containsAll([
+            NarrativeEventSimulationReason.draft,
+            NarrativeEventSimulationReason.sourceMissing,
+          ]));
+      expect(disabled.status, NarrativeEventSimulationStatus.noMatch);
+      expect(disabled.targetCandidate!.reasons,
+          [NarrativeEventSimulationReason.disabled]);
+      expect(consumed.status, NarrativeEventSimulationStatus.noMatch);
+      expect(consumed.targetCandidate!.reasons,
+          [NarrativeEventSimulationReason.eventConsumed]);
+    });
   });
 }
 

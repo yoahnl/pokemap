@@ -131,6 +131,27 @@ void main() {
       expect(find.byIcon(CupertinoIcons.xmark_circle_fill), findsNothing);
       expect(find.byIcon(CupertinoIcons.flag_fill), findsWidgets);
     });
+
+    testWidgets('exposes the canonical simulation from the conditions block',
+        (tester) async {
+      var calls = 0;
+      await _pumpPanel(
+        tester,
+        width: 565,
+        child: EventBuilderV2Editor(
+          event: _summary(),
+          onSimulate: () => calls++,
+        ),
+      );
+
+      final action = find.byKey(
+        const ValueKey('event-builder-v2-open-simulation'),
+      );
+      expect(action, findsOneWidget);
+      await tester.tap(action);
+      await tester.pump();
+      expect(calls, 1);
+    });
   });
 
   group('NS-EVENT-V2-39 element library fidelity', () {
@@ -272,6 +293,11 @@ void main() {
       );
       expect(find.textContaining('2 résultats'), findsOneWidget);
       expect(find.textContaining('Lecture seule'), findsWidgets);
+      expect(find.text('Toutes (AND) doivent être remplies'), findsOneWidget);
+      expect(find.textContaining('après succès'), findsOneWidget);
+      expect(find.textContaining('priorité la plus haute'), findsOneWidget);
+      expect(find.text('RÉSULTAT 1 · LECTURE SEULE'), findsOneWidget);
+      expect(find.text('CONSÉQUENCE 1 · LECTURE SEULE'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
       await _pumpPanel(

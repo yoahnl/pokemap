@@ -196,7 +196,7 @@ class EventBuilderV2Inspector extends StatelessWidget {
                     children: [
                       const _InspectorField(
                         label: 'Mode',
-                        value: 'Toutes doivent être remplies',
+                        value: 'Toutes (AND) doivent être remplies',
                         icon: CupertinoIcons.checkmark_alt_circle_fill,
                         tone: PokeMapTone.info,
                       ),
@@ -254,6 +254,29 @@ class EventBuilderV2Inspector extends StatelessWidget {
                         icon: CupertinoIcons.bolt_circle_fill,
                         tone: PokeMapTone.narrative,
                       ),
+                      for (var index = 0;
+                          index < selected.projection.outcomeLabels.length;
+                          index++) ...[
+                        const SizedBox(height: 5),
+                        _InspectorField(
+                          label: 'Résultat ${index + 1} · lecture seule',
+                          value: selected.projection.outcomeLabels[index],
+                          icon: CupertinoIcons.flag_fill,
+                          tone: PokeMapTone.narrative,
+                        ),
+                      ],
+                      for (var index = 0;
+                          index < selected.projection.consequences.length;
+                          index++) ...[
+                        const SizedBox(height: 5),
+                        _InspectorField(
+                          label: 'Conséquence ${index + 1} · lecture seule',
+                          value: selected
+                              .projection.consequences[index].humanLabel,
+                          icon: CupertinoIcons.bolt_circle_fill,
+                          tone: PokeMapTone.warning,
+                        ),
+                      ],
                       if (selected.scene.sceneId != null &&
                           onOpenScene != null) ...[
                         const SizedBox(height: 7),
@@ -277,19 +300,27 @@ class EventBuilderV2Inspector extends StatelessWidget {
                     children: [
                       _InspectorField(
                         label: 'Réutilisation',
-                        value: selected.lifecycle.humanLabel,
+                        value: _lifecycleExplanation(selected.lifecycle),
                         icon: CupertinoIcons.repeat,
                         tone: PokeMapTone.brand,
                       ),
+                      const SizedBox(height: 5),
+                      _InspectorField(
+                        label: 'Priorité',
+                        value: '${selected.lifecycle.priority ?? 0} '
+                            '(ordre ${selected.lifecycle.order ?? 0})',
+                        icon: CupertinoIcons.arrow_up_arrow_down,
+                        tone: PokeMapTone.brand,
+                      ),
+                      const SizedBox(height: 5),
+                      const _InspectorField(
+                        label: 'Règle de concurrence',
+                        value: 'La priorité la plus haute gagne, puis l’ordre '
+                            'le plus bas.',
+                        icon: CupertinoIcons.list_number,
+                        tone: PokeMapTone.brand,
+                      ),
                       if (selected.lifecycle.hasActiveCompetition) ...[
-                        const SizedBox(height: 5),
-                        _InspectorField(
-                          label: 'Priorité',
-                          value:
-                              '${selected.lifecycle.priority ?? 0} (ordre ${selected.lifecycle.order ?? 0})',
-                          icon: CupertinoIcons.arrow_up_arrow_down,
-                          tone: PokeMapTone.brand,
-                        ),
                         const SizedBox(height: 5),
                         _InspectorField(
                           label: 'Concurrence',
@@ -572,6 +603,16 @@ String _sceneImpactLabel(NarrativeEventProjectionSummary projection) {
   return '${_countLabel(projection.outcomeLabels.length, 'résultat', 'résultats')} · '
       '${_countLabel(projection.consequences.length, 'conséquence', 'conséquences')} · '
       '${_countLabel(projection.worldRules.length, 'règle monde', 'règles monde')}';
+}
+
+String _lifecycleExplanation(NarrativeEventLifecycleSummary lifecycle) {
+  return switch (lifecycle.reusePolicy) {
+    NarrativeEventReusePolicy.oneShot =>
+      'Une seule fois : après succès, la sauvegarde le marque consommé.',
+    NarrativeEventReusePolicy.reusable =>
+      'Réutilisable : chaque nouvelle occurrence réévalue toutes les conditions.',
+    null => lifecycle.humanLabel,
+  };
 }
 
 String _countLabel(int count, String singular, String plural) =>

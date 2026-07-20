@@ -9,6 +9,7 @@ import '../models/narrative_event_occurrence.dart';
 import '../models/narrative_event_registry.dart';
 import '../models/narrative_event_source_ref.dart';
 import '../read_models/narrative_event_source_index.dart';
+import '../read_models/narrative_event_validation_read_model.dart';
 import 'narrative_event_registry_codec.dart';
 import 'narrative_fact_runtime.dart';
 
@@ -113,13 +114,13 @@ final class NarrativeEventDispatchAuthorityReady
     _collectStructuralReasons(source, reasons);
     for (final record in _sourceIndex.recordsFor(source)) {
       final definition = record.definitionOrNull!;
-      final reason = _ineligibilityReason(
+      final evaluation = _evaluateDefinition(
         definition,
         gameState,
         inFlightNarrativeEventIds,
       );
-      if (reason != null) {
-        reasons.add(reason);
+      if (evaluation.reason != null) {
+        reasons.add(evaluation.reason!);
         continue;
       }
       return NarrativeEventDispatchHandled(
@@ -151,6 +152,61 @@ final class NarrativeEventDispatchAuthorityReady
     );
   }
 
+  /// Explains the exact decision produced by [plan] for Event Builder.
+  ///
+  /// Candidate ordering and condition evaluation are shared with dispatch;
+  /// the simulator cannot silently diverge into an editor-only truth table.
+  NarrativeEventSimulationReport simulate({
+    required GameState gameState,
+    required String targetEventId,
+    Set<String> inFlightNarrativeEventIds = const <String>{},
+  }) {
+    final decision = plan(
+      gameState: gameState,
+      inFlightNarrativeEventIds: inFlightNarrativeEventIds,
+    );
+    final selectedId =
+        decision is NarrativeEventDispatchHandled ? decision.eventId : null;
+    final records = <NarrativeEventRecord>[
+      ..._sourceIndex.recordsFor(occurrence.source),
+      for (final record in _registry.records)
+        if (record.id == targetEventId &&
+            !_sourceIndex.recordsFor(occurrence.source).contains(record))
+          record,
+    ];
+    final candidates = <NarrativeEventSimulationCandidateTrace>[
+      for (final record in records)
+        _simulateRecord(
+          record,
+          gameState: gameState,
+          selectedId: selectedId,
+          inFlightNarrativeEventIds: inFlightNarrativeEventIds,
+        ),
+    ];
+    return NarrativeEventSimulationReport(
+      status: switch (decision) {
+        NarrativeEventDispatchHandled() =>
+          NarrativeEventSimulationStatus.handled,
+        NarrativeEventDispatchClaimedButIneligible() =>
+          NarrativeEventSimulationStatus.claimedButIneligible,
+        NarrativeEventDispatchNoMatch() =>
+          NarrativeEventSimulationStatus.noMatch,
+      },
+      targetEventId: targetEventId,
+      source: occurrence.source,
+      mode: mode,
+      handledEventId: selectedId,
+      sceneId:
+          decision is NarrativeEventDispatchHandled ? decision.sceneId : null,
+      legacyFallbackAllowed: decision.legacyFallbackAllowed,
+      reasons: [
+        for (final reason in decision.reasons) _simulationReason(reason)
+      ],
+      candidates: candidates,
+      diagnostics: const [],
+    );
+  }
+
   void _collectStructuralReasons(
     NarrativeEventSourceRef source,
     Set<NarrativeEventDispatchReason> reasons,
@@ -171,7 +227,7 @@ final class NarrativeEventDispatchAuthorityReady
     }
   }
 
-  NarrativeEventDispatchReason? _ineligibilityReason(
+  _NarrativeEventCandidateEvaluation _evaluateDefinition(
     NarrativeEventDefinition definition,
     GameState gameState,
     Set<String> inFlightNarrativeEventIds,
@@ -180,52 +236,208 @@ final class NarrativeEventDispatchAuthorityReady
             NarrativeEventProjectResolutionStatus.found ||
         _projectCatalog.resolveScene(definition.sceneId).status !=
             NarrativeEventProjectResolutionStatus.found) {
-      return NarrativeEventDispatchReason.runtimeReferenceUnavailable;
+      return const _NarrativeEventCandidateEvaluation(
+        NarrativeEventDispatchReason.runtimeReferenceUnavailable,
+        [],
+      );
     }
     if (inFlightNarrativeEventIds.contains(definition.id)) {
-      return NarrativeEventDispatchReason.eventInFlight;
+      return const _NarrativeEventCandidateEvaluation(
+        NarrativeEventDispatchReason.eventInFlight,
+        [],
+      );
     }
     if (definition.reusePolicy == NarrativeEventReusePolicy.oneShot &&
         gameState.narrativeEventProgress.consumedNarrativeEventIds
             .contains(definition.id)) {
-      return NarrativeEventDispatchReason.eventConsumed;
+      return const _NarrativeEventCandidateEvaluation(
+        NarrativeEventDispatchReason.eventConsumed,
+        [],
+      );
     }
-    for (final condition in definition.conditions) {
-      final reason = condition.when(
+    final traces = <NarrativeEventSimulationConditionTrace>[];
+    NarrativeEventDispatchReason? firstReason;
+    for (var index = 0; index < definition.conditions.length; index++) {
+      final condition = definition.conditions[index];
+      final trace = condition.when(
         fact: (factId, expectedValue) {
           if (_projectCatalog.resolveFact(factId).status !=
               NarrativeEventProjectResolutionStatus.found) {
-            return NarrativeEventDispatchReason.runtimeReferenceUnavailable;
+            return NarrativeEventSimulationConditionTrace(
+              index: index,
+              kind: NarrativeEventSimulationConditionKind.fact,
+              targetId: factId,
+              expectedValue: expectedValue,
+              actualValue: null,
+              passed: false,
+              reason:
+                  NarrativeEventSimulationReason.runtimeReferenceUnavailable,
+            );
           }
           final resolution = _factResolver.resolve(
             factId: factId,
             runtimeState: gameState.narrativeFactRuntimeState,
             storyFlags: gameState.storyFlags,
           );
-          if (resolution is NarrativeFactRuntimeResolved &&
-              resolution.value == expectedValue) {
-            return null;
-          }
-          return NarrativeEventDispatchReason.factConditionFalse;
+          final actual = resolution is NarrativeFactRuntimeResolved
+              ? resolution.value
+              : null;
+          final passed = actual == expectedValue;
+          return NarrativeEventSimulationConditionTrace(
+            index: index,
+            kind: NarrativeEventSimulationConditionKind.fact,
+            targetId: factId,
+            expectedValue: expectedValue,
+            actualValue: actual,
+            passed: passed,
+            reason: passed
+                ? null
+                : NarrativeEventSimulationReason.factConditionFalse,
+          );
         },
         narrativeEventConsumed: (eventId, expectedValue) {
           if (_projectCatalog.resolveEvent(eventId).status !=
               NarrativeEventProjectResolutionStatus.found) {
-            return NarrativeEventDispatchReason.runtimeReferenceUnavailable;
+            return NarrativeEventSimulationConditionTrace(
+              index: index,
+              kind:
+                  NarrativeEventSimulationConditionKind.narrativeEventConsumed,
+              targetId: eventId,
+              expectedValue: expectedValue,
+              actualValue: null,
+              passed: false,
+              reason:
+                  NarrativeEventSimulationReason.runtimeReferenceUnavailable,
+            );
           }
           final consumed = gameState
               .narrativeEventProgress.consumedNarrativeEventIds
               .contains(eventId);
-          if (consumed == expectedValue) return null;
-          return NarrativeEventDispatchReason
-              .narrativeEventConsumedConditionFalse;
+          final passed = consumed == expectedValue;
+          return NarrativeEventSimulationConditionTrace(
+            index: index,
+            kind: NarrativeEventSimulationConditionKind.narrativeEventConsumed,
+            targetId: eventId,
+            expectedValue: expectedValue,
+            actualValue: consumed,
+            passed: passed,
+            reason: passed
+                ? null
+                : NarrativeEventSimulationReason
+                    .narrativeEventConsumedConditionFalse,
+          );
         },
       );
-      if (reason != null) return reason;
+      traces.add(trace);
+      firstReason ??= _dispatchReason(trace.reason);
     }
-    return null;
+    return _NarrativeEventCandidateEvaluation(firstReason, traces);
+  }
+
+  NarrativeEventSimulationCandidateTrace _simulateRecord(
+    NarrativeEventRecord record, {
+    required GameState gameState,
+    required String? selectedId,
+    required Set<String> inFlightNarrativeEventIds,
+  }) {
+    return record.when(
+      draft: (draft) => NarrativeEventSimulationCandidateTrace(
+        eventId: draft.id,
+        name: draft.name,
+        configured: false,
+        enabled: false,
+        sourceMatches: draft.source == occurrence.source,
+        reusePolicy: draft.reusePolicy,
+        priority: draft.priority,
+        order: draft.order,
+        selected: false,
+        reasons: [
+          NarrativeEventSimulationReason.draft,
+          if (draft.source != occurrence.source)
+            NarrativeEventSimulationReason.sourceMismatch,
+        ],
+        conditions: const [],
+      ),
+      configured: (definition, enabled) {
+        final sourceMatches = definition.source == occurrence.source;
+        final evaluation = sourceMatches
+            ? _evaluateDefinition(
+                definition,
+                gameState,
+                inFlightNarrativeEventIds,
+              )
+            : const _NarrativeEventCandidateEvaluation(null, []);
+        return NarrativeEventSimulationCandidateTrace(
+          eventId: definition.id,
+          name: definition.name,
+          configured: true,
+          enabled: enabled,
+          sourceMatches: sourceMatches,
+          reusePolicy: definition.reusePolicy,
+          priority: definition.priority,
+          order: definition.order,
+          selected: definition.id == selectedId,
+          reasons: [
+            if (!enabled) NarrativeEventSimulationReason.disabled,
+            if (!sourceMatches) NarrativeEventSimulationReason.sourceMismatch,
+            if (enabled && sourceMatches && evaluation.reason != null)
+              _simulationReason(evaluation.reason!),
+          ],
+          conditions: evaluation.conditions,
+        );
+      },
+    );
   }
 }
+
+final class _NarrativeEventCandidateEvaluation {
+  const _NarrativeEventCandidateEvaluation(this.reason, this.conditions);
+
+  final NarrativeEventDispatchReason? reason;
+  final List<NarrativeEventSimulationConditionTrace> conditions;
+}
+
+NarrativeEventSimulationReason _simulationReason(
+  NarrativeEventDispatchReason reason,
+) =>
+    switch (reason) {
+      NarrativeEventDispatchReason.draft =>
+        NarrativeEventSimulationReason.draft,
+      NarrativeEventDispatchReason.disabled =>
+        NarrativeEventSimulationReason.disabled,
+      NarrativeEventDispatchReason.sourceMismatch =>
+        NarrativeEventSimulationReason.sourceMismatch,
+      NarrativeEventDispatchReason.factConditionFalse =>
+        NarrativeEventSimulationReason.factConditionFalse,
+      NarrativeEventDispatchReason.narrativeEventConsumedConditionFalse =>
+        NarrativeEventSimulationReason.narrativeEventConsumedConditionFalse,
+      NarrativeEventDispatchReason.eventConsumed =>
+        NarrativeEventSimulationReason.eventConsumed,
+      NarrativeEventDispatchReason.eventInFlight =>
+        NarrativeEventSimulationReason.eventInFlight,
+      NarrativeEventDispatchReason.claimTombstone =>
+        NarrativeEventSimulationReason.claimTombstone,
+      NarrativeEventDispatchReason.claimTargetsIneligible =>
+        NarrativeEventSimulationReason.claimTargetsIneligible,
+      NarrativeEventDispatchReason.noEligibleCandidate =>
+        NarrativeEventSimulationReason.noEligibleCandidate,
+      NarrativeEventDispatchReason.runtimeReferenceUnavailable =>
+        NarrativeEventSimulationReason.runtimeReferenceUnavailable,
+    };
+
+NarrativeEventDispatchReason? _dispatchReason(
+  NarrativeEventSimulationReason? reason,
+) =>
+    switch (reason) {
+      null => null,
+      NarrativeEventSimulationReason.factConditionFalse =>
+        NarrativeEventDispatchReason.factConditionFalse,
+      NarrativeEventSimulationReason.narrativeEventConsumedConditionFalse =>
+        NarrativeEventDispatchReason.narrativeEventConsumedConditionFalse,
+      NarrativeEventSimulationReason.runtimeReferenceUnavailable =>
+        NarrativeEventDispatchReason.runtimeReferenceUnavailable,
+      _ => throw StateError('Unexpected condition simulation reason: $reason'),
+    };
 
 abstract final class NarrativeEventDispatchAuthority {
   static NarrativeEventDispatchAuthorityPreparation prepare({

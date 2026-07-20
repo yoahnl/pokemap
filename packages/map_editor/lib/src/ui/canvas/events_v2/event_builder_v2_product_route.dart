@@ -28,6 +28,7 @@ import '../scenes/scene_action_builder.dart';
 import 'event_builder_v2_authoring_sheets.dart';
 import 'event_builder_v2_element_library.dart';
 import 'event_builder_v2_migration_sheet.dart';
+import 'event_builder_v2_simulation_sheet.dart';
 import 'event_builder_v2_template_sheet.dart';
 import 'event_builder_v2_workspace.dart';
 
@@ -352,6 +353,10 @@ class _EventBuilderV2ProductRouteState
       onChangeBehavior: canMutateSelected && !_isAuthoring
           ? () => _openBehaviorSheet(selected!)
           : null,
+      onSimulate:
+          selected?.eventId == null || selected!.readOnly || _isAuthoring
+              ? null
+              : () => _openSimulationSheet(selected),
       onManageEvaluationOrder: canMutateSelected && !_isAuthoring
           ? () => _openBehaviorSheet(selected!)
           : null,
@@ -1121,6 +1126,31 @@ class _EventBuilderV2ProductRouteState
       }
       return null;
     }
+  }
+
+  Future<void> _openSimulationSheet(
+    NarrativeEventProjectSummary event,
+  ) async {
+    final eventId = event.eventId;
+    final projectPath = _projectFilePath();
+    if (eventId == null || projectPath == null) return;
+    final snapshot = await _loadAuthoringSnapshot(eventId: eventId);
+    if (!mounted || snapshot == null) return;
+    await showPokeMapDesktopSideSheet<void>(
+      context: context,
+      title: 'Tester le déclenchement',
+      semanticLabel: 'Simuler ${event.title} avec l’autorité du jeu',
+      barrierLabel: 'Fermer la simulation Event',
+      width: 500,
+      builder: (_) => EventBuilderV2SimulationSheet(
+        snapshot: snapshot,
+        eventId: eventId,
+        onRun: (input) => _authoringUseCase().simulate(
+          projectPath: projectPath,
+          input: input,
+        ),
+      ),
+    );
   }
 
   Future<void> _openTemplateSheet() async {

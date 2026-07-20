@@ -1,6 +1,153 @@
 import 'package:meta/meta.dart' show immutable;
 
+import '../models/narrative_event_definition.dart';
+import '../models/narrative_event_registry.dart';
+import '../models/narrative_event_source_ref.dart';
+
 enum NarrativeEventValidationSeverity { info, warning, error }
+
+/// Closed result space for the Event Builder simulator.
+///
+/// This read model deliberately mirrors the canonical dispatch decision rather
+/// than introducing editor-only eligibility semantics.
+enum NarrativeEventSimulationStatus {
+  sourceMissing,
+  authorityBlocked,
+  handled,
+  claimedButIneligible,
+  noMatch,
+}
+
+enum NarrativeEventSimulationReason {
+  sourceMissing,
+  eventMissing,
+  authorityBlocked,
+  draft,
+  disabled,
+  sourceMismatch,
+  factConditionFalse,
+  narrativeEventConsumedConditionFalse,
+  eventConsumed,
+  eventInFlight,
+  claimTombstone,
+  claimTargetsIneligible,
+  noEligibleCandidate,
+  runtimeReferenceUnavailable,
+}
+
+enum NarrativeEventSimulationConditionKind { fact, narrativeEventConsumed }
+
+@immutable
+final class NarrativeEventSimulationInput {
+  NarrativeEventSimulationInput({
+    required String targetEventId,
+    this.source,
+    Map<String, bool> factValues = const {},
+    Set<String> consumedNarrativeEventIds = const {},
+    Set<String> inFlightNarrativeEventIds = const {},
+  })  : targetEventId = _identity(targetEventId, 'targetEventId'),
+        factValues = Map.unmodifiable(factValues),
+        consumedNarrativeEventIds = Set.unmodifiable(consumedNarrativeEventIds),
+        inFlightNarrativeEventIds = Set.unmodifiable(inFlightNarrativeEventIds);
+
+  final String targetEventId;
+  final NarrativeEventSourceRef? source;
+  final Map<String, bool> factValues;
+  final Set<String> consumedNarrativeEventIds;
+  final Set<String> inFlightNarrativeEventIds;
+}
+
+@immutable
+final class NarrativeEventSimulationConditionTrace {
+  NarrativeEventSimulationConditionTrace({
+    required this.index,
+    required this.kind,
+    required String targetId,
+    required this.expectedValue,
+    required this.actualValue,
+    required this.passed,
+    required this.reason,
+  }) : targetId = _identity(targetId, 'targetId');
+
+  final int index;
+  final NarrativeEventSimulationConditionKind kind;
+  final String targetId;
+  final bool expectedValue;
+  final bool? actualValue;
+  final bool passed;
+  final NarrativeEventSimulationReason? reason;
+}
+
+@immutable
+final class NarrativeEventSimulationCandidateTrace {
+  NarrativeEventSimulationCandidateTrace({
+    required String eventId,
+    required String name,
+    required this.configured,
+    required this.enabled,
+    required this.sourceMatches,
+    required this.reusePolicy,
+    required this.priority,
+    required this.order,
+    required this.selected,
+    required List<NarrativeEventSimulationReason> reasons,
+    required List<NarrativeEventSimulationConditionTrace> conditions,
+  })  : eventId = _identity(eventId, 'eventId'),
+        name = _identity(name, 'name'),
+        reasons = List.unmodifiable(reasons),
+        conditions = List.unmodifiable(conditions);
+
+  final String eventId;
+  final String name;
+  final bool configured;
+  final bool enabled;
+  final bool sourceMatches;
+  final NarrativeEventReusePolicy? reusePolicy;
+  final int priority;
+  final int order;
+  final bool selected;
+  final List<NarrativeEventSimulationReason> reasons;
+  final List<NarrativeEventSimulationConditionTrace> conditions;
+
+  bool get eligible =>
+      configured && enabled && sourceMatches && reasons.isEmpty;
+}
+
+@immutable
+final class NarrativeEventSimulationReport {
+  NarrativeEventSimulationReport({
+    required this.status,
+    required this.targetEventId,
+    required this.source,
+    required this.mode,
+    required this.handledEventId,
+    required this.sceneId,
+    required this.legacyFallbackAllowed,
+    required List<NarrativeEventSimulationReason> reasons,
+    required List<NarrativeEventSimulationCandidateTrace> candidates,
+    required List<String> diagnostics,
+  })  : reasons = List.unmodifiable(reasons),
+        candidates = List.unmodifiable(candidates),
+        diagnostics = List.unmodifiable(diagnostics);
+
+  final NarrativeEventSimulationStatus status;
+  final String targetEventId;
+  final NarrativeEventSourceRef? source;
+  final EventSystemMode? mode;
+  final String? handledEventId;
+  final String? sceneId;
+  final bool legacyFallbackAllowed;
+  final List<NarrativeEventSimulationReason> reasons;
+  final List<NarrativeEventSimulationCandidateTrace> candidates;
+  final List<String> diagnostics;
+
+  NarrativeEventSimulationCandidateTrace? get targetCandidate {
+    for (final candidate in candidates) {
+      if (candidate.eventId == targetEventId) return candidate;
+    }
+    return null;
+  }
+}
 
 enum NarrativeEventValidationAction {
   none,

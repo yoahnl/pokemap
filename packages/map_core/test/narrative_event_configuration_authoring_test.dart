@@ -308,6 +308,27 @@ void main() {
       }
     });
 
+    test('reuse policy reports production runtime support without reset claims',
+        () {
+      final registry = registryWithRecords([draftRecord()]);
+      final result = setNarrativeEventReusePolicy(
+        context: configuredAuthoringContext(registry: registry),
+        expectedRevision: authoringRevision,
+        eventId: eventIdA,
+        reusePolicy: NarrativeEventReusePolicy.oneShot,
+      );
+
+      expect(result.status, NarrativeEventAuthoringStatus.applied);
+      expect(
+        result.diagnostics.map((diagnostic) => diagnostic.code),
+        isNot(contains('runtimeSupportPending')),
+      );
+      expect(
+        result.diagnostics.map((diagnostic) => diagnostic.message),
+        everyElement(isNot(contains('réinitialisation'))),
+      );
+    });
+
     test('validates names and exact JCS integer boundaries before mutation',
         () {
       final registry = registryWithRecords([draftRecord()]);

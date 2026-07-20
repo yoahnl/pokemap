@@ -13,6 +13,7 @@ class EventBuilderV2Editor extends StatelessWidget {
     this.onChangeScene,
     this.onOpenScene,
     this.onChangeBehavior,
+    this.onSimulate,
   });
 
   final NarrativeEventProjectSummary? event;
@@ -22,6 +23,7 @@ class EventBuilderV2Editor extends StatelessWidget {
   final VoidCallback? onChangeScene;
   final VoidCallback? onOpenScene;
   final VoidCallback? onChangeBehavior;
+  final VoidCallback? onSimulate;
 
   @override
   Widget build(BuildContext context) {
@@ -136,11 +138,22 @@ class EventBuilderV2Editor extends StatelessWidget {
                                   leading: const Icon(CupertinoIcons.add),
                                   child: const Text('Ajouter une condition'),
                                 ),
+                              if (!selected.readOnly && onSimulate != null)
+                                PokeMapButton(
+                                  key: const ValueKey(
+                                    'event-builder-v2-open-simulation',
+                                  ),
+                                  onPressed: onSimulate,
+                                  variant: PokeMapButtonVariant.secondary,
+                                  size: PokeMapButtonSize.small,
+                                  leading: const Icon(CupertinoIcons.play_fill),
+                                  child: const Text('Tester'),
+                                ),
                             ],
                             details: [
                               const _CompactProperty(
                                 label: 'Mode',
-                                value: 'Toutes doivent être remplies',
+                                value: 'Toutes (AND) doivent être remplies',
                               ),
                               if (selected.conditions.details.isEmpty)
                                 const _CompactProperty(

@@ -171,6 +171,35 @@ void main() {
     expect(decision.reasons,
         contains(NarrativeEventDispatchReason.claimTombstone));
   });
+
+  test('Event Builder simulation returns the same winner as gameplay planner',
+      () {
+    final source = NarrativeEventSourceRef.mapEnter('map');
+    final registry = _registry(
+      EventSystemMode.v2Only,
+      records: [
+        _record(_eventA, source, priority: 2),
+        _record(_eventB, source, priority: 8),
+      ],
+    );
+    final authority = _prepare(registry, source);
+    final gameplayDecision = NarrativeEventDispatchPlanner().plan(
+      authority: authority,
+      gameState: const GameState(saveId: 'save'),
+    ) as NarrativeEventDispatchHandled;
+    final simulation = authority.simulate(
+      gameState: const GameState(saveId: 'preview'),
+      targetEventId: _eventA,
+    );
+
+    expect(gameplayDecision.eventId, _eventB);
+    expect(simulation.handledEventId, gameplayDecision.eventId);
+    expect(
+        simulation.candidates
+            .singleWhere((candidate) => candidate.selected)
+            .eventId,
+        gameplayDecision.eventId);
+  });
 }
 
 NarrativeEventDispatchAuthorityReady _prepare(

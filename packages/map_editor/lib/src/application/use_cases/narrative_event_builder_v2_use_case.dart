@@ -217,6 +217,30 @@ final class NarrativeEventBuilderV2UseCase {
     );
   }
 
+  /// Executes a read-only preview against a fresh attested project snapshot.
+  ///
+  /// The use case does no eligibility work: core builds the controlled
+  /// GameState and delegates the decision to the production dispatch authority.
+  Future<NarrativeEventSimulationReport> simulate({
+    required String projectPath,
+    required NarrativeEventSimulationInput input,
+  }) async {
+    final session = await _prepareSession(projectPath);
+    final registry = session.context.registryOrNull;
+    return simulateNarrativeEventDispatch(
+      registryResult: session.context.registryState,
+      projectCatalog: session.context.catalog,
+      facts: session.manifest.facts,
+      input: input,
+      // An unclaimed dual-read registry is runtime-ready with its structural
+      // index. Claimed legacy cohorts still fail closed here until the exact
+      // runtime evidence is available instead of being guessed by the editor.
+      legacyClaimIndex: registry?.mode == EventSystemMode.dualRead
+          ? buildValidatedLegacyClaimIndex(registry!)
+          : null,
+    );
+  }
+
   /// Persists each authoring step independently and reloads the attested
   /// session between steps. This matches the one-mutation journal contract and
   /// makes a partial failure recoverable instead of rolling back good bytes.

@@ -1,9 +1,140 @@
+import '../catalogs/narrative_event_project_catalog.dart';
+import '../models/game_state.dart';
 import '../models/narrative_event_definition.dart';
+import '../models/narrative_event_occurrence.dart';
+import '../models/narrative_event_progress.dart';
 import '../models/narrative_event_registry.dart';
 import '../models/narrative_event_source_ref.dart';
+import '../models/narrative_fact.dart';
+import '../models/narrative_fact_runtime_state.dart';
+import '../operations/narrative_event_dispatch_authority.dart';
+import '../operations/narrative_event_registry_codec.dart';
+import '../operations/narrative_fact_runtime.dart';
+import '../read_models/narrative_event_validation_read_model.dart';
 import 'narrative_event_authoring_contract.dart';
 import 'narrative_event_authoring_support.dart';
 import 'narrative_event_configuration_validation.dart';
+
+/// Runs a controlled Event preview through the production dispatch authority.
+///
+/// The editor owns only the input state. Eligibility, candidate ordering and
+/// the final decision remain owned by [NarrativeEventDispatchAuthority].
+NarrativeEventSimulationReport simulateNarrativeEventDispatch({
+  required EventRegistryDecodeResult registryResult,
+  required NarrativeEventProjectCatalog projectCatalog,
+  required Iterable<NarrativeFactDefinition> facts,
+  required NarrativeEventSimulationInput input,
+  ValidatedLegacyClaimIndex? legacyClaimIndex,
+}) {
+  final registry = registryResult.registryOrNull;
+  NarrativeEventRecord? target;
+  for (final record in registry?.records ?? const <NarrativeEventRecord>[]) {
+    if (record.id == input.targetEventId) {
+      target = record;
+      break;
+    }
+  }
+  final targetSource = target?.when(
+    draft: (draft) => draft.source,
+    configured: (definition, _) => definition.source,
+  );
+  final source = input.source ?? targetSource;
+  if (source == null) {
+    return NarrativeEventSimulationReport(
+      status: NarrativeEventSimulationStatus.sourceMissing,
+      targetEventId: input.targetEventId,
+      source: null,
+      mode: registry?.mode,
+      handledEventId: null,
+      sceneId: null,
+      legacyFallbackAllowed: false,
+      reasons: [
+        if (target == null) NarrativeEventSimulationReason.eventMissing,
+        NarrativeEventSimulationReason.sourceMissing,
+      ],
+      candidates: [
+        if (target != null) _sourceMissingCandidate(target),
+      ],
+      diagnostics: const [
+        'Choisissez une source réelle avant de simuler le dispatch.',
+      ],
+    );
+  }
+
+  final resolver = NarrativeFactRuntimeResolver.fromFacts(facts);
+  final preparation = NarrativeEventDispatchAuthority.prepare(
+    registryResult: registryResult,
+    occurrence: NarrativeEventOccurrence(source: source),
+    factResolver: resolver,
+    legacyClaimIndex: legacyClaimIndex,
+    projectCatalog: projectCatalog,
+  );
+  if (preparation is NarrativeEventDispatchAuthorityBlocked) {
+    return NarrativeEventSimulationReport(
+      status: NarrativeEventSimulationStatus.authorityBlocked,
+      targetEventId: input.targetEventId,
+      source: source,
+      mode: registry?.mode,
+      handledEventId: null,
+      sceneId: null,
+      legacyFallbackAllowed: false,
+      reasons: const [NarrativeEventSimulationReason.authorityBlocked],
+      candidates: const [],
+      diagnostics: preparation.diagnostics,
+    );
+  }
+
+  final gameState = GameState(
+    saveId: 'event-builder-simulation',
+    narrativeFactRuntimeState: NarrativeFactRuntimeState(
+      overridesByFactId: input.factValues,
+    ),
+    narrativeEventProgress: NarrativeEventProgress(
+      consumedNarrativeEventIds: input.consumedNarrativeEventIds,
+    ),
+  );
+  return (preparation as NarrativeEventDispatchAuthorityReady).simulate(
+    gameState: gameState,
+    targetEventId: input.targetEventId,
+    inFlightNarrativeEventIds: input.inFlightNarrativeEventIds,
+  );
+}
+
+NarrativeEventSimulationCandidateTrace _sourceMissingCandidate(
+  NarrativeEventRecord record,
+) {
+  return record.when(
+    draft: (draft) => NarrativeEventSimulationCandidateTrace(
+      eventId: draft.id,
+      name: draft.name,
+      configured: false,
+      enabled: false,
+      sourceMatches: false,
+      reusePolicy: draft.reusePolicy,
+      priority: draft.priority,
+      order: draft.order,
+      selected: false,
+      reasons: const [
+        NarrativeEventSimulationReason.draft,
+        NarrativeEventSimulationReason.sourceMissing,
+      ],
+      conditions: const [],
+    ),
+    configured: (definition, enabled) => NarrativeEventSimulationCandidateTrace(
+      eventId: definition.id,
+      name: definition.name,
+      configured: true,
+      enabled: enabled,
+      sourceMatches: false,
+      reusePolicy: definition.reusePolicy,
+      priority: definition.priority,
+      order: definition.order,
+      selected: false,
+      reasons: const [NarrativeEventSimulationReason.sourceMissing],
+      conditions: const [],
+    ),
+  );
+}
 
 NarrativeEventAuthoringResult renameNarrativeEvent({
   required NarrativeEventAuthoringContext context,
@@ -158,13 +289,6 @@ NarrativeEventAuthoringResult setNarrativeEventReusePolicy({
   return _applyConfiguration(
     target,
     current.copyWith(reusePolicy: reusePolicy).toOriginalState(),
-    diagnostics: [
-      NarrativeEventAuthoringDiagnostic(
-        code: 'runtimeSupportPending',
-        message:
-            'Le comportement V2 est prêt côté authoring et reste à relier au runtime.',
-      ),
-    ],
   );
 }
 

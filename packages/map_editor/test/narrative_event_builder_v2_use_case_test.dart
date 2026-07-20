@@ -555,6 +555,38 @@ void main() {
         contains(const NarrativeDependencyKey.eventV2(productRoutePortEventId)),
       );
     });
+
+    test('simulates from a fresh snapshot without writing project bytes',
+        () async {
+      final fixture = await EventBuilderV2ProductRouteFixture.create(
+        mode: EventSystemMode.dualRead,
+      );
+      addTearDown(fixture.dispose);
+      final before = await File(fixture.projectPath).readAsBytes();
+      final gateway = _RecordingGateway();
+      final useCase = NarrativeEventBuilderV2UseCase(
+        persistenceGateway: gateway,
+      );
+
+      final report = await useCase.simulate(
+        projectPath: fixture.projectPath,
+        input: NarrativeEventSimulationInput(
+          targetEventId: productRoutePortEventId,
+          source: NarrativeEventSourceRef.entityInteract(
+            'map_port',
+            'npc_rival',
+          ),
+          factValues: const {'fact_port_open': true},
+        ),
+      );
+
+      expect(report.status, NarrativeEventSimulationStatus.handled);
+      expect(report.handledEventId, productRoutePortEventId);
+      expect(report.targetCandidate!.conditions.every((item) => item.passed),
+          isTrue);
+      expect(gateway.persistCalls, 0);
+      expect(await File(fixture.projectPath).readAsBytes(), before);
+    });
   });
 }
 
