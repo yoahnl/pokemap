@@ -694,13 +694,46 @@ void main() {
           'event-builder-v2-event-v2:$productRoutePortEventId',
         ),
       );
-      final focusable = tester.widget<FocusableActionDetector>(
-        find.descendant(
-          of: returnedItem,
-          matching: find.byType(FocusableActionDetector),
-        ),
+      final returnedSidebarItem = tester.widget<PokeMapSidebarItem>(
+        returnedItem,
       );
-      expect(focusable.focusNode?.hasFocus, isTrue);
+      expect(returnedSidebarItem.focusNode?.hasFocus, isTrue);
+    });
+
+    testWidgets('consumes an exact Event route selection from Map Events',
+        (tester) async {
+      final fixture = await createEventBuilderV2ProductRouteFixture(
+        tester,
+        mode: EventSystemMode.dualRead,
+      );
+      final container = await pumpEventBuilderV2ProductRoute(
+        tester,
+        fixture: fixture,
+      );
+
+      container
+          .read(narrativeStudioNavigationControllerProvider.notifier)
+          .replace(
+            NarrativeStudioRouteLocation.events(
+              selection: NarrativeStudioAssetSelection(
+                kind: NarrativeStudioAssetKind.event,
+                assetId: productRoutePortEventId,
+              ),
+            ),
+          );
+      await pumpEventBuilderV2ProductRouteFrames(
+        tester,
+        container: container,
+      );
+
+      expect(
+        container
+            .read(narrativeEventMapBridgeControllerProvider)
+            .selectedNarrativeEventV2Id,
+        productRoutePortEventId,
+      );
+      expect(find.text('Rencontre rival au port'), findsWidgets);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets(
@@ -784,13 +817,10 @@ void main() {
       final restoredList = tester.widget<ListView>(listFinder);
       expect(restoredList.controller!.offset, offsetBeforeMap);
       expect(eventFinder, findsOneWidget);
-      final focusable = tester.widget<FocusableActionDetector>(
-        find.descendant(
-          of: eventFinder,
-          matching: find.byType(FocusableActionDetector),
-        ),
+      final restoredSidebarItem = tester.widget<PokeMapSidebarItem>(
+        eventFinder,
       );
-      expect(focusable.focusNode?.hasFocus, isTrue);
+      expect(restoredSidebarItem.focusNode?.hasFocus, isTrue);
       expect(
         container
             .read(narrativeStudioNavigationControllerProvider)

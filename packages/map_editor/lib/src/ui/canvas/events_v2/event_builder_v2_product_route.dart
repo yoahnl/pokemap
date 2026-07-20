@@ -282,6 +282,23 @@ class _EventBuilderV2ProductRouteState
       state: state,
       bridgeState: bridge,
     );
+    final navigation =
+        ref.watch(narrativeStudioNavigationControllerProvider).location;
+    final requestedEventId = navigation.destination ==
+                NarrativeStudioDestination.events &&
+            navigation.childRoute == NarrativeStudioChildRoute.eventBuilder &&
+            navigation.selection?.kind == NarrativeStudioAssetKind.event
+        ? navigation.selection?.assetId
+        : null;
+    if (requestedEventId != null &&
+        bridge.selectedNarrativeEventV2Id != requestedEventId) {
+      final requested = readModel.eventByStableKey('v2:$requestedEventId');
+      if (requested != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _selectEvent(requested);
+        });
+      }
+    }
     final canMutateSelected = !state.isReadOnly && selected?.readOnly == false;
     final validationItems = validationSnapshot?.state.forEvent(
           selected?.eventId,

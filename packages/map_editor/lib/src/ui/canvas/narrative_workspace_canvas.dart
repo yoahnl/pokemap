@@ -12,6 +12,7 @@ import '../../features/narrative/application/narrative_workspace_projection.dart
 import '../../features/narrative/state/narrative_workspace_providers.dart';
 import '../../features/narrative/state/narrative_workspace_state.dart';
 import '../../features/narrative/state/narrative_scene_focus_provider.dart';
+import '../../features/narrative/state/narrative_event_builder_v2_providers.dart';
 import '../../features/narrative/state/narrative_event_map_bridge_state.dart';
 import '../../features/narrative/state/narrative_validator_providers.dart';
 import '../../features/narrative/state/scene_consequence_catalog_providers.dart';
@@ -22,6 +23,7 @@ import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
 import 'events/event_builder_workspace.dart';
 import 'events_v2/event_builder_v2_product_route.dart';
+import 'events_v2/map_events_workspace.dart';
 import 'facts_world_rules/facts_world_rules_workspace.dart';
 import 'narrative_overview_workspace.dart';
 import 'narrative_validator_workspace.dart';
@@ -111,21 +113,59 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           icon: Icon(CupertinoIcons.map),
         );
       }
-      final request = NarrativeValidatorSnapshotRequest.fromProject(
+      final request = NarrativeEventBuilderV2SnapshotRequest.fromProject(
         projectRootPath: projectRootPath,
         project: project,
-        activeMap: editor.activeMap,
       );
-      final report = ref.watch(narrativeValidatorReportProvider(request));
+      final readModel = ref.watch(narrativeMapEventsReadModelProvider(request));
+      final restoration = studioNavigation.restorationRequest;
+      final mapRestoration = restoration != null &&
+              restoration.expectation.location.destination ==
+                  NarrativeStudioDestination.events &&
+              restoration.expectation.location.childRoute ==
+                  NarrativeStudioChildRoute.mapEvents
+          ? restoration
+          : null;
 
-      Future<void> openMap(String mapId) async {
-        final entry = _findProjectMapById(project, mapId);
-        if (entry == null) return;
-        await editorNotifier.loadMap(entry.relativePath);
+      Future<void> openSource(NarrativeMapEventSourceRow row) async {
+        final source = row.option.source;
+        if (source == null || !row.option.selectable) return;
+        final current = ref.read(editorNotifierProvider);
+        final sameMap = current.activeMap?.id == row.option.mapId;
+        if (!sameMap && current.isDirty) return;
+        final targetMap = sameMap
+            ? current.activeMap
+            : await editorNotifier.loadMapSnapshotById(row.option.mapId);
+        if (targetMap == null) return;
+        final navigation = buildNarrativeEventNavigationIndex(
+          project: project,
+          maps: [targetMap],
+        ).mapNavigationForSource(source);
+        final focus = navigation.focusTarget;
+        if (!navigation.available || focus == null) return;
+        if (!sameMap &&
+            !editorNotifier.activateNarrativeEventMapSnapshot(targetMap)) {
+          return;
+        }
+        if (!editorNotifier.focusNarrativeEventMapSource(focus)) return;
+        ref
+            .read(narrativeStudioNavigationControllerProvider.notifier)
+            .rememberExternalReturn(
+              NarrativeStudioReturnExpectation(
+                location: NarrativeStudioRouteLocation.events(
+                  childRoute: NarrativeStudioChildRoute.mapEvents,
+                  selection: NarrativeStudioAssetSelection(
+                    kind: NarrativeStudioAssetKind.map,
+                    assetId: row.option.mapId,
+                  ),
+                ),
+                focusAnchorId: row.stableKey,
+              ),
+            );
         editorNotifier.selectMapWorkspace();
       }
 
-      Future<void> openEvent(String eventId) async {
+      void openEvent(String eventId) {
         final selected = ref
             .read(narrativeEventMapBridgeControllerProvider.notifier)
             .selectNarrativeEventV2(project, eventId);
@@ -140,20 +180,75 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                   ),
                 ),
               );
+          editorNotifier.selectEventsWorkspace();
         }
       }
 
-      return report.when(
-        data: (value) => NarrativeValidatorWorkspace(
-          report: value,
-          initialView: NarrativeValidatorView.mapEvents,
-          showViewTabs: false,
-          onOpenEvent: openEvent,
-          onOpenMap: openMap,
-        ),
+      void openScene(String sceneId) {
+        ref.read(narrativeSceneFocusProvider.notifier).focus(sceneId);
+        ref.read(narrativeStudioNavigationControllerProvider.notifier).replace(
+              NarrativeStudioRouteLocation.scenes(
+                selection: NarrativeStudioAssetSelection(
+                  kind: NarrativeStudioAssetKind.scene,
+                  assetId: sceneId,
+                ),
+              ),
+            );
+        editorNotifier.selectScenesWorkspace();
+      }
+
+      void openFact(String factId) {
+        ref.read(narrativeStudioNavigationControllerProvider.notifier).replace(
+              NarrativeStudioRouteLocation.facts(
+                selection: NarrativeStudioAssetSelection(
+                  kind: NarrativeStudioAssetKind.fact,
+                  assetId: factId,
+                ),
+              ),
+            );
+        editorNotifier.selectFactsWorkspace();
+      }
+
+      void openRule(String ruleId) {
+        ref.read(narrativeStudioNavigationControllerProvider.notifier).replace(
+              NarrativeStudioRouteLocation.worldRules(
+                selection: NarrativeStudioAssetSelection(
+                  kind: NarrativeStudioAssetKind.worldRule,
+                  assetId: ruleId,
+                ),
+              ),
+            );
+        editorNotifier.selectWorldRulesWorkspace();
+      }
+
+      return readModel.when(
+        data: (value) {
+          if (mapRestoration != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ref
+                  .read(narrativeStudioNavigationControllerProvider.notifier)
+                  .consumeRestoration(mapRestoration.revision);
+            });
+          }
+          final routeSelection = studioNavigation.location.selection;
+          return MapEventsWorkspace(
+            readModel: value,
+            requestedMapId: routeSelection?.kind == NarrativeStudioAssetKind.map
+                ? routeSelection?.assetId
+                : null,
+            requestedFocusAnchorId: mapRestoration?.expectation.focusAnchorId,
+            requestedSelectionNonce:
+                mapRestoration?.revision ?? studioNavigation.revision,
+            onOpenSource: openSource,
+            onOpenEvent: openEvent,
+            onOpenScene: openScene,
+            onOpenFact: openFact,
+            onOpenWorldRule: openRule,
+          );
+        },
         loading: () => const PokeMapEmptyState(
           title: 'Analyse des événements…',
-          description: 'Chargement des maps et regroupement des événements.',
+          description: 'Chargement des sources, Events et règles du projet.',
           icon: Icon(CupertinoIcons.hourglass),
         ),
         error: (error, _) => PokeMapEmptyState(
@@ -162,7 +257,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           icon: const Icon(CupertinoIcons.exclamationmark_triangle),
           action: PokeMapButton(
             onPressed: () =>
-                ref.invalidate(narrativeValidatorReportProvider(request)),
+                ref.invalidate(narrativeMapEventsReadModelProvider(request)),
             size: PokeMapButtonSize.compact,
             child: const Text('Réessayer'),
           ),

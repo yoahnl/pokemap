@@ -92,6 +92,36 @@ final narrativeEventBuilderV2ReadModelProvider = FutureProvider.autoDispose
   return ref.watch(narrativeEventBuilderV2ReadModelLoaderProvider)(request);
 });
 
+typedef LoadNarrativeMapEventsReadModel = Future<NarrativeMapEventsReadModel>
+    Function(NarrativeEventBuilderV2SnapshotRequest request);
+
+/// Attested project projection for the dedicated Map Events sub-route.
+///
+/// It deliberately shares the Event Builder request/fingerprint contract so
+/// switching between the two views cannot mix disk maps with a newer manifest.
+final narrativeMapEventsReadModelLoaderProvider =
+    Provider<LoadNarrativeMapEventsReadModel>((ref) {
+  return (request) async {
+    final session = await NarrativeEventAuthoringSession.prepare(
+      p.join(request.projectRootPath, 'project.json'),
+    );
+    if (narrativeEventBuilderV2ManifestFingerprint(session.manifest) !=
+        request.expectedManifestFingerprint) {
+      throw const NarrativeEventBuilderV2SnapshotMismatch();
+    }
+    return buildNarrativeMapEventsReadModel(
+      project: session.manifest,
+      maps: session.maps,
+    );
+  };
+});
+
+final narrativeMapEventsReadModelProvider = FutureProvider.autoDispose.family<
+    NarrativeMapEventsReadModel,
+    NarrativeEventBuilderV2SnapshotRequest>((ref, request) {
+  return ref.watch(narrativeMapEventsReadModelLoaderProvider)(request);
+});
+
 typedef LoadNarrativeEventValidationSnapshot
     = Future<NarrativeEventValidationSnapshot> Function(
   NarrativeEventBuilderV2SnapshotRequest request,

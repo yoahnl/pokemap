@@ -8,8 +8,10 @@ import 'package:map_editor/src/app/providers/core/repository_providers.dart';
 import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/narrative/state/narrative_event_builder_v2_providers.dart';
 import 'package:map_editor/src/ui/canvas/dialogue_studio_workspace.dart';
 import 'package:map_editor/src/ui/canvas/facts_world_rules/facts_world_rules_workspace.dart';
+import 'package:map_editor/src/ui/canvas/events_v2/map_events_workspace.dart';
 import 'package:map_editor/src/ui/canvas/narrative_overview_workspace.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_destination.dart';
@@ -162,6 +164,14 @@ void main() {
         workspaceMode: EditorWorkspaceMode.events,
       ),
       surfaceSize: const Size(1672, 941),
+      overrides: [
+        narrativeMapEventsReadModelLoaderProvider.overrideWithValue(
+          (_) async => buildNarrativeMapEventsReadModel(
+            project: project,
+            maps: [activeMap],
+          ),
+        ),
+      ],
     );
 
     await tester.tap(
@@ -169,7 +179,7 @@ void main() {
         const ValueKey('narrative-studio-product-nav-map-events'),
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final navigation =
         container.read(narrativeStudioNavigationControllerProvider);
@@ -186,7 +196,34 @@ void main() {
       find.text('Narrative Studio  /  Événements  /  Events par map'),
       findsOneWidget,
     );
+    expect(find.byType(MapEventsWorkspace), findsOneWidget);
+    expect(find.text('Route'), findsWidgets);
     expect(find.text('Narrative Studio  /  Validateur'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('map-events-open-source')));
+    await tester.pumpAndSettle();
+    expect(
+      container.read(editorNotifierProvider).workspaceMode,
+      EditorWorkspaceMode.map,
+    );
+    expect(
+      find.byKey(const ValueKey('narrative-map-generic-return')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('narrative-map-generic-return')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MapEventsWorkspace), findsOneWidget);
+    expect(
+      tester
+          .widget<PokeMapCard>(
+            find.byKey(const ValueKey('map-events-source-map')),
+          )
+          .selected,
+      isTrue,
+    );
     expect(tester.takeException(), isNull);
   });
 
