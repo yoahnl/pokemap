@@ -26,6 +26,7 @@ void main() {
   GameState partyBagState({
     List<PlayerPokemon> members = const [],
     List<BagEntry> bagEntries = const [],
+    int money = 0,
   }) {
     var state = GameState(
       saveId: 'p5_party_bag_heal_save',
@@ -33,6 +34,7 @@ void main() {
       playerPosition: const GridPos(x: 4, y: 9),
       playerFacing: EntityFacing.west,
       party: PlayerParty(members: members),
+      trainerProfile: TrainerProfile(name: 'P5 Tester', money: money),
       bag: Bag(entries: bagEntries),
       metadata: const {'lot': 'p5_04'},
     );
@@ -291,6 +293,88 @@ void main() {
 
       expect(updated.party.members.single.speciesId, 'p5_generic_species');
       expect(updated.bag.entries, isEmpty);
+    });
+  });
+
+  group('GameStateMutations.purchaseItem', () {
+    test('atomically pays for and grants the requested item quantity', () {
+      final state = partyBagState(
+        money: 1000,
+        bagEntries: const [
+          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+        ],
+      );
+
+      final result = mutations.purchaseItem(
+        state,
+        itemId: ' potion ',
+        categoryId: 'medicine',
+        quantity: 2,
+        unitPrice: 300,
+      );
+
+      expect(result.isSuccess, isTrue);
+      expect(result.failure, isNull);
+      expect(result.totalCost, 600);
+      expect(result.state.trainerProfile.money, 400);
+      expect(result.state.bag.entries.single.quantity, 3);
+      expect(result.state.storyFlags, state.storyFlags);
+      expect(result.state.currentMapId, state.currentMapId);
+    });
+
+    test('fails without mutating state when money is insufficient', () {
+      final state = partyBagState(money: 299);
+
+      final result = mutations.purchaseItem(
+        state,
+        itemId: 'potion',
+        categoryId: 'medicine',
+        quantity: 1,
+        unitPrice: 300,
+      );
+
+      expect(result.isSuccess, isFalse);
+      expect(result.failure, ShopPurchaseFailure.insufficientFunds);
+      expect(result.state, same(state));
+      expect(result.totalCost, 300);
+    });
+
+    test('rejects blank ids and non-positive quantity or price', () {
+      final state = partyBagState(money: 1000);
+
+      for (final result in <ShopPurchaseResult>[
+        mutations.purchaseItem(
+          state,
+          itemId: ' ',
+          categoryId: 'medicine',
+          quantity: 1,
+          unitPrice: 100,
+        ),
+        mutations.purchaseItem(
+          state,
+          itemId: 'potion',
+          categoryId: ' ',
+          quantity: 1,
+          unitPrice: 100,
+        ),
+        mutations.purchaseItem(
+          state,
+          itemId: 'potion',
+          categoryId: 'medicine',
+          quantity: 0,
+          unitPrice: 100,
+        ),
+        mutations.purchaseItem(
+          state,
+          itemId: 'potion',
+          categoryId: 'medicine',
+          quantity: 1,
+          unitPrice: 0,
+        ),
+      ]) {
+        expect(result.failure, ShopPurchaseFailure.invalidRequest);
+        expect(result.state, same(state));
+      }
     });
   });
 }

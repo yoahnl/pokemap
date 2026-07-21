@@ -455,7 +455,7 @@ packages:
     source: hosted
     version: "1.3.0"
   map_battle:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: "../../packages/map_battle"
       relative: true

@@ -78,7 +78,7 @@
     "initialBag": [
       {
         "itemId": "poke-ball",
-        "categoryId": "capture",
+        "categoryId": "items",
         "quantity": 5
       },
       {

@@ -18,6 +18,8 @@ dependencies:
   path: ^1.9.0
   map_core:
     path: ../../packages/map_core
+  map_battle:
+    path: ../../packages/map_battle
   map_gameplay:
     path: ../../packages/map_gameplay
   map_runtime:
@@ -38,4 +40,3 @@ dependency_overrides:
     path: ../../packages/gamepads_darwin
   gamepads_ios:
     path: ../../packages/gamepads_ios
-

@@ -44,6 +44,37 @@ class CaptureDestinationResult {
   final int? storageIndex;
 }
 
+enum ShopPurchaseFailure {
+  invalidRequest,
+  insufficientFunds,
+}
+
+/// Result of one atomic shop purchase against [GameState].
+final class ShopPurchaseResult {
+  const ShopPurchaseResult._({
+    required this.state,
+    required this.totalCost,
+    this.failure,
+  });
+
+  const ShopPurchaseResult.success({
+    required GameState state,
+    required int totalCost,
+  }) : this._(state: state, totalCost: totalCost);
+
+  const ShopPurchaseResult.failed({
+    required GameState state,
+    required int totalCost,
+    required ShopPurchaseFailure failure,
+  }) : this._(state: state, totalCost: totalCost, failure: failure);
+
+  final GameState state;
+  final int totalCost;
+  final ShopPurchaseFailure? failure;
+
+  bool get isSuccess => failure == null;
+}
+
 /// Mutations pures de l'état de partie.
 ///
 /// Chaque fonction prend un [GameState] et retourne un nouveau [GameState]
@@ -219,6 +250,61 @@ class GameStateMutations {
     final updatedBag = Bag(entries: newEntries).normalized();
 
     return state.copyWith(bag: updatedBag);
+  }
+
+  /// Atomically buys an item with an explicit authoring-provided unit price.
+  ///
+  /// Price catalogs and presentation stay outside this pure mutation. Invalid
+  /// requests and insufficient funds preserve the original [GameState].
+  ShopPurchaseResult purchaseItem(
+    GameState state, {
+    required String itemId,
+    required String categoryId,
+    required int quantity,
+    required int unitPrice,
+  }) {
+    final normalizedItemId = itemId.trim();
+    final normalizedCategoryId = categoryId.trim();
+    const maxSafeTotal = 0x7fffffffffffffff;
+    if (normalizedItemId.isEmpty ||
+        normalizedCategoryId.isEmpty ||
+        quantity <= 0 ||
+        unitPrice <= 0 ||
+        unitPrice > maxSafeTotal ~/ quantity) {
+      return ShopPurchaseResult.failed(
+        state: state,
+        totalCost: 0,
+        failure: ShopPurchaseFailure.invalidRequest,
+      );
+    }
+
+    final totalCost = quantity * unitPrice;
+    if (state.trainerProfile.money < totalCost) {
+      return ShopPurchaseResult.failed(
+        state: state,
+        totalCost: totalCost,
+        failure: ShopPurchaseFailure.insufficientFunds,
+      );
+    }
+
+    final nextEntries = <BagEntry>[
+      ...state.bag.entries,
+      BagEntry(
+        itemId: normalizedItemId,
+        categoryId: normalizedCategoryId,
+        quantity: quantity,
+      ),
+    ];
+    final nextState = state.copyWith(
+      trainerProfile: state.trainerProfile.copyWith(
+        money: state.trainerProfile.money - totalCost,
+      ),
+      bag: Bag(entries: nextEntries).normalized(),
+    );
+    return ShopPurchaseResult.success(
+      state: nextState,
+      totalCost: totalCost,
+    );
   }
 
   /// Consomme une quantité d'item depuis le sac.
