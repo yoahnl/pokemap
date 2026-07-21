@@ -23,6 +23,32 @@ class RuntimePokedexEntry {
   final String? flavorText;
 }
 
+enum RuntimePokedexKnowledge {
+  unknown,
+  seen,
+  caught,
+}
+
+/// Projects live save progression without mutating or duplicating Pokédex data.
+/// A capture dominates the seen set, including legacy saves that did not also
+/// normalize the species into `seenSpeciesIds`.
+RuntimePokedexKnowledge resolveRuntimePokedexKnowledge({
+  required String speciesId,
+  required PlayerProgression progression,
+}) {
+  final normalizedId = speciesId.trim();
+  if (normalizedId.isEmpty) {
+    return RuntimePokedexKnowledge.unknown;
+  }
+  if (progression.caughtSpeciesIds.any((id) => id.trim() == normalizedId)) {
+    return RuntimePokedexKnowledge.caught;
+  }
+  if (progression.seenSpeciesIds.any((id) => id.trim() == normalizedId)) {
+    return RuntimePokedexKnowledge.seen;
+  }
+  return RuntimePokedexKnowledge.unknown;
+}
+
 // Le host runtime ne dépend pas du package editor.
 // On relit donc les JSON espèces du projet directement depuis le manifest pour
 // construire une petite vue lecture seule adaptée à la phase 10.

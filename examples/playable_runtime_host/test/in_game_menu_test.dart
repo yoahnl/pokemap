@@ -267,6 +267,86 @@ void main() {
     await tester.pumpAndSettle();
     expect(quitCount, 1);
   });
+
+  testWidgets('Pokédex privacy updates live from unknown to seen and caught',
+      (tester) async {
+    var gameState = _buildGameState().copyWith(
+      progression: const PlayerProgression(),
+    );
+    late StateSetter rebuildHost;
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            rebuildHost = setState;
+            return InGameMenuPage(
+              gameStateSnapshotBuilder: () => gameState,
+              pokedexLoader: () async => const <RuntimePokedexEntry>[
+                RuntimePokedexEntry(
+                  id: 'bulbasaur',
+                  nationalDex: 1,
+                  primaryName: 'Bulbasaur',
+                  types: ['grass', 'poison'],
+                  isEnabledInProject: true,
+                  flavorText: 'Seed Pokemon',
+                ),
+              ],
+              onSaveRequested: () async => const InGameMenuActionResult(),
+              onLoadRequested: () async => const InGameMenuActionResult(),
+              playerOptions: const RuntimePlayerOptions(),
+              supportsTouchControls: false,
+              onOptionsChanged: (_) {},
+              onQuitRequested: () {},
+              onCloseRequested: () {},
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('???'), findsWidgets);
+    expect(find.text('Bulbasaur'), findsNothing);
+    expect(find.text('Seed Pokemon'), findsNothing);
+    expect(
+      find.byKey(const Key('pokedex-knowledge-bulbasaur-unknown')),
+      findsOneWidget,
+    );
+
+    rebuildHost(() {
+      gameState = gameState.copyWith(
+        progression: const PlayerProgression(
+          seenSpeciesIds: ['bulbasaur'],
+        ),
+      );
+    });
+    await tester.pump();
+
+    expect(find.text('Bulbasaur'), findsWidgets);
+    expect(find.text('Seed Pokemon'), findsNothing);
+    expect(
+      find.byKey(const Key('pokedex-knowledge-bulbasaur-seen')),
+      findsOneWidget,
+    );
+
+    rebuildHost(() {
+      gameState = gameState.copyWith(
+        progression: const PlayerProgression(
+          caughtSpeciesIds: ['bulbasaur'],
+        ),
+      );
+    });
+    await tester.pump();
+
+    expect(find.text('Seed Pokemon'), findsOneWidget);
+    expect(
+      find.byKey(const Key('pokedex-knowledge-bulbasaur-caught')),
+      findsOneWidget,
+    );
+  });
 }
 
 // Snapshot minimal utilisé par les écrans Sac et Dresseur.
@@ -298,6 +378,9 @@ GameState _buildGameState() {
         BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
         BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
       ],
+    ),
+    progression: PlayerProgression(
+      caughtSpeciesIds: ['bulbasaur', 'ivysaur'],
     ),
   );
 }

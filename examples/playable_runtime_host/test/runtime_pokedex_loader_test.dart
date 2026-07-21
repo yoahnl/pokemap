@@ -8,6 +8,35 @@ import 'package:map_core/map_core.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('projects unknown, seen and caught knowledge with caught dominance', () {
+    expect(
+      resolveRuntimePokedexKnowledge(
+        speciesId: 'bulbasaur',
+        progression: const PlayerProgression(),
+      ),
+      RuntimePokedexKnowledge.unknown,
+    );
+    expect(
+      resolveRuntimePokedexKnowledge(
+        speciesId: 'bulbasaur',
+        progression: const PlayerProgression(
+          seenSpeciesIds: ['bulbasaur'],
+        ),
+      ),
+      RuntimePokedexKnowledge.seen,
+    );
+    expect(
+      resolveRuntimePokedexKnowledge(
+        speciesId: 'bulbasaur',
+        progression: const PlayerProgression(
+          seenSpeciesIds: ['bulbasaur'],
+          caughtSpeciesIds: ['bulbasaur'],
+        ),
+      ),
+      RuntimePokedexKnowledge.caught,
+    );
+  });
+
   // Ce test prouve que le chargeur runtime lit le manifest du projet, parcourt
   // le dossier species local et construit une projection légère stable.
   // Il cible explicitement le shape consolidé `typing.types`, pour éviter

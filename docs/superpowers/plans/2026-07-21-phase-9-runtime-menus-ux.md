@@ -243,7 +243,7 @@ git commit -m "feat(runtime): complete the pause menu shell"
 - Modify: `examples/playable_runtime_host/test/in_game_menu_test.dart`
 - Create: `reports/gameplay/fg_161_runtime_pokedex_read_only_v0.md`
 
-- [ ] **Step 1: write RED tests for unknown/seen/caught**
+- [x] **Step 1: write RED tests for unknown/seen/caught**
 
 ```dart
 expect(
@@ -260,13 +260,13 @@ expect(
 The widget test mutates the live snapshot from seen to caught, rebuilds, and
 expects the status badge/detail to update without reloading species files.
 
-- [ ] **Step 2: run RED, implement projection and privacy**
+- [x] **Step 2: run RED, implement projection and privacy**
 
 Unknown entries render `???`; seen entries expose minimal identity/types;
 caught entries expose the full currently available local detail. Caught always
 dominates seen.
 
-- [ ] **Step 3: GREEN, analyze, Evidence Pack and commit**
+- [x] **Step 3: GREEN, analyze, Evidence Pack and commit**
 
 ```bash
 cd examples/playable_runtime_host

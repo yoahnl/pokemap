@@ -210,7 +210,10 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: switch (_selectedSection) {
-                    InGameMenuSection.pokedex => _buildPokedexSection(context),
+                    InGameMenuSection.pokedex => _buildPokedexSection(
+                        context,
+                        gameState.progression,
+                      ),
                     InGameMenuSection.party => _buildPartySection(
                         context,
                         gameState,
@@ -328,7 +331,10 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
 
   // Le Pokédex in-game reste volontairement sobre :
   // une liste légère d'espèces locales et une fiche simple lecture seule.
-  Widget _buildPokedexSection(BuildContext context) {
+  Widget _buildPokedexSection(
+    BuildContext context,
+    PlayerProgression progression,
+  ) {
     return FutureBuilder<List<RuntimePokedexEntry>>(
       future: _pokedexEntriesFuture,
       builder: (context, snapshot) {
@@ -362,14 +368,29 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
                   itemBuilder: (context, index) {
                     final entry = entries[index];
                     final isSelected = entry.id == selectedEntry.id;
+                    final knowledge = resolveRuntimePokedexKnowledge(
+                      speciesId: entry.id,
+                      progression: progression,
+                    );
                     return ListTile(
                       key: Key('pokedex-entry-${entry.id}'),
                       selected: isSelected,
-                      title: Text(entry.primaryName),
-                      subtitle: Text('#${entry.nationalDex} · ${entry.id}'),
-                      trailing: entry.types.isEmpty
-                          ? null
-                          : Text(entry.types.join(' / ')),
+                      title: Text(
+                        knowledge == RuntimePokedexKnowledge.unknown
+                            ? '???'
+                            : entry.primaryName,
+                      ),
+                      subtitle: Text(
+                        knowledge == RuntimePokedexKnowledge.unknown
+                            ? '#${entry.nationalDex} · Inconnu'
+                            : '#${entry.nationalDex} · ${entry.types.join(' / ')}',
+                      ),
+                      trailing: Chip(
+                        key: Key(
+                          'pokedex-knowledge-${entry.id}-${knowledge.name}',
+                        ),
+                        label: Text(_pokedexKnowledgeLabel(knowledge)),
+                      ),
                       onTap: () => setState(
                         () => _selectedSpeciesId = entry.id,
                       ),
@@ -383,7 +404,13 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
               child: Card(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
-                  child: _PokedexDetail(entry: selectedEntry),
+                  child: _PokedexDetail(
+                    entry: selectedEntry,
+                    knowledge: resolveRuntimePokedexKnowledge(
+                      speciesId: selectedEntry.id,
+                      progression: progression,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -566,12 +593,23 @@ String _dialogueSpeedLabel(RuntimeDialogueTextSpeed speed) => switch (speed) {
       RuntimeDialogueTextSpeed.instant => 'Instantanée',
     };
 
+String _pokedexKnowledgeLabel(RuntimePokedexKnowledge knowledge) =>
+    switch (knowledge) {
+      RuntimePokedexKnowledge.unknown => 'Inconnu',
+      RuntimePokedexKnowledge.seen => 'Vu',
+      RuntimePokedexKnowledge.caught => 'Capturé',
+    };
+
 // Fiche lecture seule d'une espèce côté menu in-game.
 // On garde seulement les informations les plus utiles au joueur à ce stade.
 class _PokedexDetail extends StatelessWidget {
-  const _PokedexDetail({required this.entry});
+  const _PokedexDetail({
+    required this.entry,
+    required this.knowledge,
+  });
 
   final RuntimePokedexEntry entry;
+  final RuntimePokedexKnowledge knowledge;
 
   @override
   Widget build(BuildContext context) {
@@ -580,22 +618,38 @@ class _PokedexDetail extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          entry.primaryName,
+          knowledge == RuntimePokedexKnowledge.unknown
+              ? '???'
+              : entry.primaryName,
           style: Theme.of(context).textTheme.headlineSmall,
         ),
         const SizedBox(height: 8),
-        Text('ID : ${entry.id}'),
         Text('Numéro : #${entry.nationalDex}'),
-        Text(
-            'Types : ${entry.types.isEmpty ? 'Aucun' : entry.types.join(' / ')}'),
-        Text(
-          'Statut projet : ${entry.isEnabledInProject ? 'Activée' : 'Désactivée'}',
+        Chip(
+          label: Text(_pokedexKnowledgeLabel(knowledge)),
         ),
-        const SizedBox(height: 16),
-        Text(
-          entry.flavorText ?? 'Aucun texte Pokédex disponible.',
-          key: const Key('pokedex-detail-flavor-text'),
-        ),
+        if (knowledge == RuntimePokedexKnowledge.unknown) ...[
+          const SizedBox(height: 16),
+          const Text('Rencontrez cette espèce pour révéler son identité.'),
+        ] else ...[
+          Text(
+            'Types : ${entry.types.isEmpty ? 'Aucun' : entry.types.join(' / ')}',
+          ),
+          if (knowledge == RuntimePokedexKnowledge.seen) ...[
+            const SizedBox(height: 16),
+            const Text('Capturez cette espèce pour compléter sa fiche.'),
+          ] else ...[
+            Text('ID : ${entry.id}'),
+            Text(
+              'Statut projet : ${entry.isEnabledInProject ? 'Activée' : 'Désactivée'}',
+            ),
+            const SizedBox(height: 16),
+            Text(
+              entry.flavorText ?? 'Aucun texte Pokédex disponible.',
+              key: const Key('pokedex-detail-flavor-text'),
+            ),
+          ],
+        ],
       ],
     );
   }
