@@ -343,11 +343,11 @@ git commit -m "feat(runtime): add known-map fast travel"
 
 ## Final Phase 9 gate
 
-- [ ] Run complete `map_runtime` and `playable_runtime_host` test suites.
-- [ ] Run both analyses and the host macOS debug build.
-- [ ] Run the Phase A runtime/host smoke tests.
-- [ ] Perform the five manual named passes required by `codex_rule.md`:
+- [x] Run complete `map_runtime` and `playable_runtime_host` test suites.
+- [x] Run both analyses and the host macOS debug build.
+- [x] Run the Phase A runtime/host smoke tests.
+- [x] Perform the five manual named passes required by `codex_rule.md`:
   Audit/Architecture, Implementation, Tests, Build/Validation, Critique.
-- [ ] Verify six isolated commits, `git diff --check`, and a clean final status.
-- [ ] Propose `DONE` for FG-160 through FG-165; do not edit the canonical
+- [x] Verify six isolated commits, `git diff --check`, and a clean final status.
+- [x] Propose `DONE` for FG-160 through FG-165; do not edit the canonical
   mechanics roadmap unless the user explicitly asks for that status update.
