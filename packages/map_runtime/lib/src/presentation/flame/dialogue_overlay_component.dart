@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
 import '../../application/dialogue_runtime_models.dart';
+import 'dialogue_text_speed.dart';
 
 typedef OnDialogueFinished = void Function(String? outcomeId);
 
@@ -10,6 +11,7 @@ class DialogueOverlayComponent extends PositionComponent {
     required DialogueSession session,
     required this.onFinished,
     required Vector2 viewportSize,
+    this.textSpeed = RuntimeDialogueTextSpeed.instant,
   })  : _session = session,
         super(
           position: Vector2.zero(),
@@ -19,6 +21,9 @@ class DialogueOverlayComponent extends PositionComponent {
 
   DialogueSession _session;
   final OnDialogueFinished onFinished;
+  RuntimeDialogueTextSpeed textSpeed;
+  int _visibleRuneCount = 0;
+  double _revealAccumulatorSeconds = 0;
 
   static const double _kBoxHeightFraction = 0.28;
   static const double _kPaddingH = 20.0;
@@ -44,6 +49,24 @@ class DialogueOverlayComponent extends PositionComponent {
 
   bool get isShowingChoices => _session.state is DialogueWaitingForChoice;
 
+  String get visibleText {
+    final state = _session.state;
+    if (state is! DialogueShowingLine) {
+      return '';
+    }
+    if (textSpeed == RuntimeDialogueTextSpeed.instant) {
+      return state.text;
+    }
+    return String.fromCharCodes(state.text.runes.take(_visibleRuneCount));
+  }
+
+  bool get isCurrentLineFullyRevealed {
+    final state = _session.state;
+    return state is! DialogueShowingLine ||
+        textSpeed == RuntimeDialogueTextSpeed.instant ||
+        _visibleRuneCount >= state.text.runes.length;
+  }
+
   @override
   Future<void> onLoad() async {
     _cursorPainter = TextPainter(
@@ -53,8 +76,46 @@ class DialogueOverlayComponent extends PositionComponent {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
+    _resetRevealForCurrentState();
     _rebuildPainters();
     return super.onLoad();
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    final state = _session.state;
+    final interval = textSpeed.revealInterval;
+    if (state is! DialogueShowingLine ||
+        interval == null ||
+        isCurrentLineFullyRevealed) {
+      return;
+    }
+    _revealAccumulatorSeconds += dt;
+    final intervalSeconds =
+        interval.inMicroseconds / Duration.microsecondsPerSecond;
+    final revealed = _revealAccumulatorSeconds ~/ intervalSeconds;
+    if (revealed <= 0) {
+      return;
+    }
+    _revealAccumulatorSeconds -= revealed * intervalSeconds;
+    final runeCount = state.text.runes.length;
+    _visibleRuneCount = (_visibleRuneCount + revealed).clamp(0, runeCount);
+    _rebuildLinePainters(state);
+  }
+
+  void setTextSpeed(RuntimeDialogueTextSpeed speed) {
+    if (textSpeed == speed) {
+      return;
+    }
+    textSpeed = speed;
+    _revealAccumulatorSeconds = 0;
+    if (speed == RuntimeDialogueTextSpeed.instant) {
+      _revealCurrentLineFully();
+    }
+    if (isLoaded) {
+      _rebuildPainters();
+    }
   }
 
   void _rebuildPainters() {
@@ -69,7 +130,7 @@ class DialogueOverlayComponent extends PositionComponent {
   void _rebuildLinePainters(DialogueShowingLine state) {
     _textPainter = TextPainter(
       text: TextSpan(
-        text: state.text,
+        text: visibleText,
         style: const TextStyle(
           color: Colors.white,
           fontSize: _kFontSize,
@@ -83,7 +144,11 @@ class DialogueOverlayComponent extends PositionComponent {
 
     _hintPainter = TextPainter(
       text: TextSpan(
-        text: _session.isLastContent ? 'E · Fermer' : 'E · Suite',
+        text: !isCurrentLineFullyRevealed
+            ? 'E · Afficher'
+            : _session.isLastContent
+                ? 'E · Fermer'
+                : 'E · Suite',
         style: TextStyle(color: _kHintColor, fontSize: _kHintFontSize),
       ),
       textDirection: TextDirection.ltr,
@@ -204,11 +269,19 @@ class DialogueOverlayComponent extends PositionComponent {
       return false;
     }
     _session = next;
+    _resetRevealForCurrentState();
     _rebuildPainters();
     return true;
   }
 
   bool advance() {
+    if (!isCurrentLineFullyRevealed) {
+      _revealCurrentLineFully();
+      if (isLoaded) {
+        _rebuildPainters();
+      }
+      return true;
+    }
     final next = _session.advance();
     if (next == null) {
       removeFromParent();
@@ -216,7 +289,25 @@ class DialogueOverlayComponent extends PositionComponent {
       return false;
     }
     _session = next;
+    _resetRevealForCurrentState();
     _rebuildPainters();
     return true;
+  }
+
+  void _resetRevealForCurrentState() {
+    _revealAccumulatorSeconds = 0;
+    final state = _session.state;
+    _visibleRuneCount = state is DialogueShowingLine &&
+            textSpeed == RuntimeDialogueTextSpeed.instant
+        ? state.text.runes.length
+        : 0;
+  }
+
+  void _revealCurrentLineFully() {
+    final state = _session.state;
+    if (state is DialogueShowingLine) {
+      _visibleRuneCount = state.text.runes.length;
+    }
+    _revealAccumulatorSeconds = 0;
   }
 }

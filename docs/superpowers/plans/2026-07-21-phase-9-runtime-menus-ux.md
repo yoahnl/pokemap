@@ -135,7 +135,7 @@ git commit -m "feat(runtime): unify player input authority"
 - Modify: `examples/playable_runtime_host/lib/main.dart`
 - Create: `reports/gameplay/fg_162_runtime_options_v0.md`
 
-- [ ] **Step 1: write RED tests for normalization, JSON round-trip and reveal**
+- [x] **Step 1: write RED tests for normalization, JSON round-trip and reveal**
 
 ```dart
 expect(
@@ -149,7 +149,7 @@ expect(
 The overlay test must prove that `advance()` first reveals a partial line and
 only a second call advances the dialogue.
 
-- [ ] **Step 2: run RED**
+- [x] **Step 2: run RED**
 
 ```bash
 cd packages/map_runtime
@@ -158,7 +158,7 @@ cd ../../examples/playable_runtime_host
 /opt/homebrew/bin/flutter test test/runtime_player_options_test.dart
 ```
 
-- [ ] **Step 3: implement actual dialogue speed**
+- [x] **Step 3: implement actual dialogue speed**
 
 ```dart
 enum RuntimeDialogueTextSpeed { slow, normal, fast, instant }
@@ -167,13 +167,13 @@ enum RuntimeDialogueTextSpeed { slow, normal, fast, instant }
 Use Unicode runes for reveal units, preserve `instant` as the engine default,
 and allow `PlayableMapGame.setDialogueTextSpeed` to update the active overlay.
 
-- [ ] **Step 4: persist host options in the existing preferences JSON**
+- [x] **Step 4: persist host options in the existing preferences JSON**
 
 Store the typed object under `playerOptions`; invalid/legacy preferences fall
 back to defaults. Apply options to each new `PlayableMapGame` and to the touch
 controls visibility state.
 
-- [ ] **Step 5: run GREEN, package tests and analyses**
+- [x] **Step 5: run GREEN, package tests and analyses**
 
 ```bash
 cd packages/map_runtime
@@ -184,7 +184,7 @@ cd ../../examples/playable_runtime_host
 /opt/homebrew/bin/flutter analyze
 ```
 
-- [ ] **Step 6: Evidence Pack and commit**
+- [x] **Step 6: Evidence Pack and commit**
 
 ```bash
 git commit -m "feat(runtime): persist player options"

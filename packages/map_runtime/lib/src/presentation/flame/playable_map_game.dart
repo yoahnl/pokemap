@@ -101,6 +101,7 @@ import 'runtime_input_authority.dart';
 import 'runtime_input_key_bindings.dart';
 import 'battle_transition_overlay_component.dart';
 import 'dialogue_overlay_component.dart';
+import 'dialogue_text_speed.dart';
 import 'flame_cinematic_fx_playback_adapter.dart';
 import 'flame_cinematic_media_playback_adapter.dart';
 import 'flame_cinematic_runtime_playback_sink.dart';
@@ -326,6 +327,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   String? _pendingSceneDialogueRequestId;
   PlacedElementInteracted? _pendingPlacedElementBehavior;
   DialogueOverlayComponent? _dialogueOverlay;
+  RuntimeDialogueTextSpeed _dialogueTextSpeed =
+      RuntimeDialogueTextSpeed.instant;
   BattleTransitionOverlayComponent? _battleTransitionOverlay;
   BattleOverlayComponent? _battleOverlay;
   WarpTransitionOverlayComponent? _warpTransitionOverlay;
@@ -1393,6 +1396,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _preferBattleFlutterCommandOverlay = preferred;
     _battleOverlay?.setUseFlutterCommandOverlay(preferred);
   }
+
+  /// Applies a real reveal cadence to current and future dialogue overlays.
+  ///
+  /// The runtime default remains instant for backwards compatibility; the
+  /// player host opts into its persisted preference when creating the game.
+  void setDialogueTextSpeed(RuntimeDialogueTextSpeed speed) {
+    _dialogueTextSpeed = speed;
+    _dialogueOverlay?.setTextSpeed(speed);
+  }
+
+  RuntimeDialogueTextSpeed get dialogueTextSpeed => _dialogueTextSpeed;
 
   /// Compat historique : l'ancien seam mobile pilotait un faux scroll tactile
   /// directement dans le panneau Flame. Le lot mobile Flutter redirige ce
@@ -8665,6 +8679,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final overlay = DialogueOverlayComponent(
       session: session,
       viewportSize: camera.viewport.size,
+      textSpeed: _dialogueTextSpeed,
       onFinished: (outcomeId) {
         debugPrint('[dialogue] dialogue closed');
         _dialogueOverlay = null;

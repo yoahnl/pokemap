@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
 import 'package:map_runtime/src/application/parse_yarn_dialogue.dart';
 import 'package:map_runtime/src/presentation/flame/dialogue_overlay_component.dart';
+import 'package:map_runtime/src/presentation/flame/dialogue_text_speed.dart';
 
 void main() {
   group('Yarn dialogue outcomes', () {
@@ -97,6 +98,56 @@ Guide: Continuons.
 
       expect(overlay.confirmChoice(), isFalse);
       expect(finishedOutcome, 'accepted');
+    });
+
+    test('overlay reveals a partial Unicode line before advancing the session',
+        () async {
+      final session = DialogueSession.start(
+        [
+          YarnNode(
+            title: 'Start',
+            steps: [
+              YarnStepLine('Lysa: Hé 🌊'),
+              YarnStepLine('Lysa: Suite.'),
+            ],
+          ),
+        ],
+        'Start',
+      )!;
+      final overlay = DialogueOverlayComponent(
+        session: session,
+        textSpeed: RuntimeDialogueTextSpeed.normal,
+        onFinished: (_) {},
+        viewportSize: Vector2(320, 240),
+      );
+      await overlay.onLoad();
+
+      overlay.update(
+        RuntimeDialogueTextSpeed.normal.revealInterval!.inMicroseconds /
+            Duration.microsecondsPerSecond *
+            3,
+      );
+
+      expect(overlay.visibleText.runes.length, 3);
+      expect(overlay.isCurrentLineFullyRevealed, isFalse);
+      expect(
+        (overlay.currentSession.state as DialogueShowingLine).text,
+        'Lysa: Hé 🌊',
+      );
+
+      expect(overlay.advance(), isTrue);
+      expect(overlay.isCurrentLineFullyRevealed, isTrue);
+      expect(
+        (overlay.currentSession.state as DialogueShowingLine).text,
+        'Lysa: Hé 🌊',
+      );
+
+      expect(overlay.advance(), isTrue);
+      expect(
+        (overlay.currentSession.state as DialogueShowingLine).text,
+        'Lysa: Suite.',
+      );
+      expect(overlay.visibleText, isEmpty);
     });
   });
 }

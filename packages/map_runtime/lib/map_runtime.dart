@@ -96,6 +96,8 @@ export 'src/presentation/flame/runtime_input_authority.dart'
         RuntimeInputContext,
         RuntimeExternalInputLock,
         RuntimeInputAuthoritySnapshot;
+export 'src/presentation/flame/dialogue_text_speed.dart'
+    show RuntimeDialogueTextSpeed;
 export 'src/presentation/flame/runtime_map_game.dart' show RuntimeMapGame;
 
 // Script system exports

@@ -20,6 +20,7 @@ import 'src/runtime_battle_command_overlay_visibility.dart';
 import 'src/runtime_launch_save.dart';
 import 'src/runtime_launch_options.dart';
 import 'src/runtime_party_builder.dart';
+import 'src/runtime_player_options.dart';
 import 'src/runtime_pokedex_loader.dart';
 import 'src/runtime_project_picker.dart';
 import 'src/runtime_project_launch_map.dart';
@@ -63,6 +64,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   bool _showFpsOverlay = false;
   bool _showRuntimeDebugPanel = true;
   bool _touchControlsHiddenByUser = false;
+  RuntimePlayerOptions _playerOptions = const RuntimePlayerOptions();
   bool _hasConnectedGamepad = false;
   bool _surfingEnabled = false;
   bool _seedDemoPokemon = true;
@@ -199,6 +201,15 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       if (decoded is! Map<String, dynamic>) {
         return;
       }
+      final restoredOptions = RuntimePlayerOptions.fromJson(
+        decoded['playerOptions'],
+      );
+      if (mounted) {
+        setState(() {
+          _playerOptions = restoredOptions;
+          _touchControlsHiddenByUser = !restoredOptions.showTouchControls;
+        });
+      }
       final savedProjectPath = (decoded['projectFilePath'] as String?)?.trim();
       final savedMapId = (decoded['mapId'] as String?)?.trim();
       if (savedProjectPath == null || savedProjectPath.isEmpty) {
@@ -226,14 +237,15 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     }
   }
 
-  // On persiste seulement le chemin du projet et la map choisie, pas l'état
-  // gameplay. La vraie sauvegarde gameplay reste dans le pipeline phase 9.
+  // Host session and presentation options remain local preferences, never
+  // gameplay state. The versioned gameplay save stays in its own pipeline.
   Future<void> _persistLastSession() async {
     try {
       final file = File(_prefsFilePath());
       final payload = <String, dynamic>{
         'projectFilePath': _projectFilePath,
         'mapId': _selectedMapId,
+        'playerOptions': _playerOptions.toJson(),
       };
       await file.writeAsString(jsonEncode(payload));
     } catch (_) {
@@ -564,6 +576,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       nextGame.setBattleFlutterCommandOverlayPreferred(
         _prefersBattleFlutterCommandOverlay,
       );
+      nextGame.setDialogueTextSpeed(_playerOptions.dialogueTextSpeed);
       _startRuntimeInfoTicker();
       await _persistLastSession();
       _runtimeHostLog('map load completed mapId=$mapId');
@@ -786,10 +799,13 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                       : Icons.touch_app,
                 ),
                 onPressed: () {
-                  setState(
-                    () => _touchControlsHiddenByUser =
-                        !_touchControlsHiddenByUser,
-                  );
+                  setState(() {
+                    _touchControlsHiddenByUser = !_touchControlsHiddenByUser;
+                    _playerOptions = _playerOptions.copyWith(
+                      showTouchControls: !_touchControlsHiddenByUser,
+                    );
+                  });
+                  unawaited(_persistLastSession());
                 },
               ),
             IconButton(
