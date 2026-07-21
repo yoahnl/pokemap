@@ -518,41 +518,81 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
     );
   }
 
-  // Déclenchement simple de la sauvegarde avec feedback visuel local.
+  // Saving is the only destructive disk action in this surface, so it requires
+  // an explicit confirmation before the host callback can run.
   Future<void> _runSave() async {
-    setState(() {
-      _saveBusy = true;
-      _saveStatus = null;
-      _saveError = null;
-    });
-    final result = await widget.onSaveRequested();
-    if (!mounted) {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const Key('save-confirmation-dialog'),
+        title: const Text('Sauvegarder la partie ?'),
+        content: const Text(
+          'La sauvegarde existante sera remplacée par l’état actuel.',
+        ),
+        actions: [
+          TextButton(
+            key: const Key('save-cancel-button'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            key: const Key('save-confirm-button'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Sauvegarder'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
       return;
     }
-    setState(() {
-      _saveBusy = false;
-      _saveStatus = result.status;
-      _saveError = result.error;
-    });
+    await _runSaveLoadAction(
+      request: widget.onSaveRequested,
+      failureLabel: 'Erreur sauvegarde',
+    );
   }
 
-  // Même logique pour le chargement :
-  // on relaie simplement le résultat du pipeline runtime existant.
+  // Load stays one click because it reads an existing save. Both paths share
+  // the same busy and exception guard, so a host or disk failure remains
+  // visible player feedback instead of escaping the widget tree.
   Future<void> _runLoad() async {
+    await _runSaveLoadAction(
+      request: widget.onLoadRequested,
+      failureLabel: 'Erreur chargement',
+    );
+  }
+
+  Future<void> _runSaveLoadAction({
+    required Future<InGameMenuActionResult> Function() request,
+    required String failureLabel,
+  }) async {
+    if (_saveBusy) {
+      return;
+    }
     setState(() {
       _saveBusy = true;
       _saveStatus = null;
       _saveError = null;
     });
-    final result = await widget.onLoadRequested();
-    if (!mounted) {
-      return;
+    try {
+      final result = await request();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _saveStatus = result.status;
+        _saveError = result.error;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _saveError = '$failureLabel: $error');
+    } finally {
+      if (mounted) {
+        setState(() => _saveBusy = false);
+      }
     }
-    setState(() {
-      _saveBusy = false;
-      _saveStatus = result.status;
-      _saveError = result.error;
-    });
   }
 }
 

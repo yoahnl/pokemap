@@ -283,18 +283,18 @@ git commit -m "feat(runtime): expose live Pokedex progress"
 - Modify: `examples/playable_runtime_host/test/in_game_menu_test.dart`
 - Create: `reports/gameplay/fg_163_runtime_save_menu_v0.md`
 
-- [ ] **Step 1: write RED tests**
+- [x] **Step 1: write RED tests**
 
 Prove Cancel invokes no callback, Confirm invokes exactly once, busy disables
 actions, structured disk errors are visible, and thrown callback errors become
 visible instead of escaping the widget tree.
 
-- [ ] **Step 2: run RED and implement confirmation/error guard**
+- [x] **Step 2: run RED and implement confirmation/error guard**
 
 Use a Material confirmation dialog before save. Keep load unconfirmed. Wrap
 callbacks in `try/catch`, preserve mounted checks and always clear busy state.
 
-- [ ] **Step 3: GREEN, analyze, Evidence Pack and commit**
+- [x] **Step 3: GREEN, analyze, Evidence Pack and commit**
 
 ```bash
 cd examples/playable_runtime_host

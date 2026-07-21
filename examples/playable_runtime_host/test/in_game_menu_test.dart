@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:pokemap_loader/src/in_game_menu.dart';
 import 'package:pokemap_loader/src/runtime_pokedex_loader.dart';
 import 'package:pokemap_loader/src/runtime_player_options.dart';
@@ -167,7 +169,9 @@ void main() {
     await tester.pump();
 
     await tester.tap(find.byKey(const Key('in-game-menu-save-button')));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('save-confirm-button')));
+    await tester.pumpAndSettle();
 
     expect(saveCount, 1);
     expect(find.byKey(const Key('in-game-menu-save-status')), findsOneWidget);
@@ -178,6 +182,76 @@ void main() {
 
     expect(loadCount, 1);
     expect(find.textContaining('Chargement OK'), findsOneWidget);
+  });
+
+  testWidgets('save cancellation, busy state and thrown errors are guarded',
+      (tester) async {
+    var saveCount = 0;
+    final loadCompleter = Completer<InGameMenuActionResult>();
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InGameMenuPage(
+          gameStateSnapshotBuilder: _buildGameState,
+          pokedexLoader: () async => const <RuntimePokedexEntry>[],
+          onSaveRequested: () async {
+            saveCount += 1;
+            throw StateError('disk full');
+          },
+          onLoadRequested: () => loadCompleter.future,
+          playerOptions: const RuntimePlayerOptions(),
+          supportsTouchControls: false,
+          onOptionsChanged: (_) {},
+          onQuitRequested: () {},
+          onCloseRequested: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('menu-save-tile')));
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('in-game-menu-save-button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('save-confirmation-dialog')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('save-cancel-button')));
+    await tester.pumpAndSettle();
+    expect(saveCount, 0);
+
+    await tester.tap(find.byKey(const Key('in-game-menu-save-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('save-confirm-button')));
+    await tester.pumpAndSettle();
+    expect(saveCount, 1);
+    expect(find.byKey(const Key('in-game-menu-save-error')), findsOneWidget);
+    expect(find.textContaining('disk full'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('in-game-menu-load-button')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const Key('in-game-menu-load-button')),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const Key('in-game-menu-save-button')),
+          )
+          .onPressed,
+      isNull,
+    );
+
+    loadCompleter.complete(
+      const InGameMenuActionResult(error: 'Erreur disque structurée'),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Erreur disque structurée'), findsOneWidget);
   });
 
   testWidgets('offers real options and keyboard navigation closes with Escape',
