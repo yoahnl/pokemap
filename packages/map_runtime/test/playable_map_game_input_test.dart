@@ -57,6 +57,46 @@ void main() {
       );
     });
 
+    test('external pause lock consumes movement until its owner releases it',
+        () async {
+      final game = PlayableMapGame(
+        bundle: _baseBundle(),
+        projectFilePath: '/tmp/project.json',
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+      await _pumpUntil(
+        game,
+        () => !game.debugIsMapActivationDispatchInFlight,
+      );
+      final initialPosition = game.debugPlayerGridPosition;
+
+      game.setExternalInputLock(
+        RuntimeExternalInputLock.pauseMenu,
+        locked: true,
+      );
+
+      expect(game.inputAuthoritySnapshot.acceptsRuntimeInput, isFalse);
+      expect(game.debugIsGameplayInputLocked, isTrue);
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.down),
+        ),
+        isTrue,
+      );
+      game.update(0.5);
+      expect(game.debugPlayerGridPosition, initialPosition);
+
+      game.setExternalInputLock(
+        RuntimeExternalInputLock.pauseMenu,
+        locked: false,
+      );
+
+      expect(game.inputAuthoritySnapshot.acceptsRuntimeInput, isTrue);
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    });
+
     test('onKeyEvent forwards keyboard events to the runtime input seam', () {
       final game = _RecordingPlayableMapGame(
         bundle: _baseBundle(),

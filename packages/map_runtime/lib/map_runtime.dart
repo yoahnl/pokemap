@@ -91,6 +91,11 @@ export 'src/presentation/flutter/battle_mobile_command_overlay.dart'
     show BattleMobileCommandOverlay;
 export 'src/presentation/flame/runtime_input_event.dart'
     show RuntimeInputControl, RuntimeInputEvent, RuntimeInputEventPhase;
+export 'src/presentation/flame/runtime_input_authority.dart'
+    show
+        RuntimeInputContext,
+        RuntimeExternalInputLock,
+        RuntimeInputAuthoritySnapshot;
 export 'src/presentation/flame/runtime_map_game.dart' show RuntimeMapGame;
 
 // Script system exports

@@ -97,6 +97,7 @@ import 'battle_pokemon_sprite_resolver.dart';
 import '../flutter/battle_command_overlay_snapshot.dart';
 import 'battle_visual_asset_cache.dart';
 import 'runtime_input_event.dart';
+import 'runtime_input_authority.dart';
 import 'runtime_input_key_bindings.dart';
 import 'battle_transition_overlay_component.dart';
 import 'dialogue_overlay_component.dart';
@@ -308,6 +309,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   String _activeMapId = '';
   String? _previousMapId;
   _RuntimeFlowPhase _flowPhase = _RuntimeFlowPhase.overworld;
+  final Set<RuntimeExternalInputLock> _externalInputLocks =
+      <RuntimeExternalInputLock>{};
   final Set<RuntimeInputControl> _pressedMovementControls =
       <RuntimeInputControl>{};
   RuntimeInputControl? _lastMovementControl;
@@ -1494,6 +1497,55 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return _gameState;
   }
 
+  /// The single player-input authority exposed to Flutter hosts and tests.
+  ///
+  /// Internal contexts are derived from the existing runtime flow. Only
+  /// external owners are stored, because a Flutter route cannot be represented
+  /// by Flame's private flow enum without creating a second state machine.
+  RuntimeInputAuthoritySnapshot get inputAuthoritySnapshot {
+    final context = switch (_flowPhase) {
+      _ when _cinematicInputLocked => RuntimeInputContext.cinematic,
+      _RuntimeFlowPhase.overworld
+          when _activeBlockingInteractionSerial != null ||
+              _blocksOverworldForMapActivationWork ||
+              _blocksOverworldForNarrativeDispatch ||
+              isCutsceneRunning ||
+              _suppressOverworldInputForScriptedPlayerMovement() =>
+        RuntimeInputContext.blocked,
+      _RuntimeFlowPhase.overworld => RuntimeInputContext.overworld,
+      _RuntimeFlowPhase.dialogue => RuntimeInputContext.dialogue,
+      _RuntimeFlowPhase.battle => RuntimeInputContext.battle,
+      _RuntimeFlowPhase.mapTransition ||
+      _RuntimeFlowPhase.battleTransition =>
+        RuntimeInputContext.transition,
+      _RuntimeFlowPhase.blockingInteraction => RuntimeInputContext.blocked,
+    };
+    return RuntimeInputAuthoritySnapshot(
+      context: context,
+      externalLocks:
+          Set<RuntimeExternalInputLock>.unmodifiable(_externalInputLocks),
+    );
+  }
+
+  /// Acquires or releases a lock owned by a Flutter player surface.
+  ///
+  /// Acquiring a lock also clears held directions. This prevents a key or
+  /// gamepad axis pressed just before opening the menu from resuming movement
+  /// when the route closes.
+  void setExternalInputLock(
+    RuntimeExternalInputLock owner, {
+    required bool locked,
+  }) {
+    if (locked) {
+      _externalInputLocks.add(owner);
+      if (isLoaded) {
+        _clearPressedMovementControls();
+      }
+      return;
+    }
+    _externalInputLocks.remove(owner);
+  }
+
   @visibleForTesting
   String get debugFlowPhaseName => _flowPhase.name;
 
@@ -1561,10 +1613,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   @visibleForTesting
   bool get debugIsGameplayInputLocked =>
-      _cinematicInputLocked ||
-      _activeBlockingInteractionSerial != null ||
-      _flowPhase != _RuntimeFlowPhase.overworld ||
-      _blocksOverworldForNarrativeDispatch;
+      inputAuthoritySnapshot.isGameplayLocked;
 
   @visibleForTesting
   bool get debugIsCinematicPlaying => _cinematicRuntimeController.isPlaying;
@@ -2726,11 +2775,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// générique d'input; on donne juste un seam honnête pour ne plus dépendre
   /// directement des `LogicalKeyboardKey`.
   bool handleRuntimeInputEvent(RuntimeInputEvent event) {
+    final control = event.control;
+
+    // Flutter overlays such as the pause menu sit outside Flame and therefore
+    // cannot rely on focus alone: gamepad events are delivered directly by the
+    // host. Consume every runtime command while one of those owners is active.
+    if (_externalInputLocks.isNotEmpty) {
+      if (_isMovementControl(control)) {
+        _releaseMovementControl(control);
+      }
+      return true;
+    }
+
     if (!isLoaded) {
       return false;
     }
-
-    final control = event.control;
 
     if (_cinematicInputLocked) {
       if (_isMovementControl(control)) {
