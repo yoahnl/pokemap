@@ -35100,7 +35100,8 @@
             "title": "Victoire contre Lysa",
             "payload": {
               "kind": "end",
-              "sceneOutcomeId": "lysa.victory"
+              "sceneOutcomeId": "lysa.victory",
+              "outcomePolicy": "progression"
             }
           },
           {
@@ -35109,7 +35110,8 @@
             "title": "Défaite contre Lysa",
             "payload": {
               "kind": "end",
-              "sceneOutcomeId": "lysa.defeat"
+              "sceneOutcomeId": "lysa.defeat",
+              "outcomePolicy": "terminalFailureAccepted"
             }
           }
         ],

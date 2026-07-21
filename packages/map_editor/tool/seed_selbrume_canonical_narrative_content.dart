@@ -1735,7 +1735,10 @@ SceneAsset _linearScene({
       title: 'Fin',
       payload: endOutcome == null
           ? null
-          : SceneEndPayload(sceneOutcomeId: endOutcome.id),
+          : SceneEndPayload(
+              sceneOutcomeId: endOutcome.id,
+              outcomePolicy: SceneOutcomePolicy.progression,
+            ),
     ),
   ];
   final edges = <SceneEdge>[];
@@ -2000,13 +2003,19 @@ SceneAsset _lysaToneBattleScene() {
       id: 'node_victory_end',
       kind: SceneNodeKind.end,
       title: 'Victoire contre Lysa',
-      payload: SceneEndPayload(sceneOutcomeId: 'lysa.victory'),
+      payload: SceneEndPayload(
+        sceneOutcomeId: 'lysa.victory',
+        outcomePolicy: SceneOutcomePolicy.progression,
+      ),
     ),
     SceneNode(
       id: 'node_defeat_end',
       kind: SceneNodeKind.end,
       title: 'Défaite contre Lysa',
-      payload: SceneEndPayload(sceneOutcomeId: 'lysa.defeat'),
+      payload: SceneEndPayload(
+        sceneOutcomeId: 'lysa.defeat',
+        outcomePolicy: SceneOutcomePolicy.terminalFailureAccepted,
+      ),
     ),
   ];
   final edges = <SceneEdge>[
@@ -2222,13 +2231,19 @@ SceneAsset _battleScene({
       id: 'node_victory_end',
       kind: SceneNodeKind.end,
       title: 'Victoire',
-      payload: SceneEndPayload(sceneOutcomeId: victoryOutcomeId),
+      payload: SceneEndPayload(
+        sceneOutcomeId: victoryOutcomeId,
+        outcomePolicy: SceneOutcomePolicy.progression,
+      ),
     ),
     SceneNode(
       id: 'node_defeat_end',
       kind: SceneNodeKind.end,
       title: 'Défaite',
-      payload: SceneEndPayload(sceneOutcomeId: defeatOutcomeId),
+      payload: SceneEndPayload(
+        sceneOutcomeId: defeatOutcomeId,
+        outcomePolicy: SceneOutcomePolicy.retryable,
+      ),
     ),
   ]);
 
@@ -3717,26 +3732,26 @@ Soline: Va voir Lysa. Elle prétend connaître un passage vers les marais.
 tags: selbrume chapter-1 golden-slice
 ---
 Lysa: La brume se lève sur le Port des Brisants.
-Lysa: Si tu veux continuer, montre-moi ce que vaut ton équipe.
+Lysa: Elle avale les balises et les pêcheurs n’osent plus sortir. Si tu veux continuer, montre-moi ce que vaut ton équipe.
 -> Répondre avec assurance
     <<outcome confident>>
-    Joueur: Je ne reculerai pas devant un peu de brume.
+    Joueur: Je dégagerai le passage et je trouverai ce qui affole le phare.
 -> Rester prudent
     <<outcome hesitant>>
-    Joueur: Je préfère comprendre avant de foncer.
+    Joueur: Je préfère comprendre la brume avant de foncer, mais je ne reculerai pas.
 -> La provoquer
     <<outcome aggressive>>
-    Joueur: Tu parles beaucoup pour quelqu'un qui bloque le passage.
+    Joueur: Tu parles beaucoup pour quelqu'un qui bloque le seul passage vers les marais.
 ===
 title: RivalAfterWin
 tags: selbrume chapter-1
 ---
-Lysa: D'accord. Tu peux tenir le rythme. Je pars devant vers les marais.
+Lysa: D'accord, tu as gagné mon respect. Tu peux tenir le rythme ; je pars devant reconnaître les marais.
 ===
 title: RivalAfterLoss
 tags: selbrume chapter-1
 ---
-Lysa: Tu manques encore d'expérience, mais la brume n'attendra pas. Suis-moi quand tu seras prêt.
+Lysa: Tu manques encore d'expérience, mais la brume n'attendra pas. Le chemin des marais reste ouvert : entraîne-toi et suis-moi quand tu seras prêt.
 ===
 ''',
   'mado.yarn': '''title: MadoIntro
@@ -3795,12 +3810,12 @@ title: LighthouseOldNote
 tags: selbrume chapter-3 lore
 ---
 Ancien carnet: La lentille amplifie les émotions des Pokémon sensibles aux courants marins.
-Ancien carnet: Si la lumière s'emballe, ne détruisez pas la source. Apaisez-la.
+Ancien carnet: Si la lumière s'emballe, le Pokémon n'est pas malveillant : il est effrayé, pris au piège dans sa propre énergie. Ne détruisez pas la source. Apaisez-la.
 ===
 title: FinalPokemon
 tags: selbrume chapter-3 boss
 ---
-Narration: Un Lanturn affolé protège la lentille. Sa lumière pulse au rythme de la brume.
+Narration: Un Lanturn affolé est prisonnier du mécanisme. La lentille amplifie chacune de ses décharges et sa lumière pulse au rythme de la brume.
 Joueur: Je ne suis pas venu te chasser. Mais je dois arrêter cette tempête.
 ===
 title: MistDisperses
@@ -3814,9 +3829,9 @@ Maël: Même depuis le bourg, je vois la lumière. Tu as réussi ; Selbrume resp
 tags: selbrume chapter-4
 ---
 Maël: Regarde le large. Pour la première fois depuis des jours, on distingue l'horizon.
-Soline: Les bateaux peuvent repartir et le Passage des Dames est redevenu sûr.
+Soline: Les bateaux peuvent repartir et le Passage des Dames restera sûr tant que le phare gardera ce rythme.
 Lysa: Ne prends pas cet air satisfait. La prochaine fois, je gagne.
-Narration: Au loin, le phare envoie un faisceau stable au-dessus de Selbrume.
+Narration: Les pêcheurs détachent leurs barques, les étals rouvrent et, au loin, le phare envoie un faisceau stable au-dessus de Selbrume.
 ===
 ''',
   'goelise_port.yarn': '''title: FisherIntro
@@ -3900,6 +3915,7 @@ Maël: Tu as rendu son horizon à Selbrume. Ce village se souviendra de ta lumi�
 tags: selbrume world-state chapter-1
 ---
 Lysa: La brume n’attend pas les retardataires. Entraîne-toi et essaie de me suivre.
+Lysa: Le chemin vers les marais est toujours ouvert. Je t’attends là-bas — essaie simplement de ne pas te perdre avant d’arriver.
 ===
 ''',
   'mado_after_crystals.yarn': '''title: MadoCompleted

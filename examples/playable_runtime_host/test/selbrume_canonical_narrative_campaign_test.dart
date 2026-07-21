@@ -4,8 +4,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
-import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/narrative_scene_runtime_execution.dart';
+import 'package:map_runtime/src/application/scene_runtime/scene_fact_condition_runtime_resolver.dart';
+import 'package:map_runtime/src/application/scene_runtime/scene_runtime_host_callbacks.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -90,6 +91,25 @@ void main() {
     );
     expect(state.progression.completedStepIds, contains('step_go_to_port'));
 
+    final rivalDefeat = await execute(
+      'scene_lysa_port',
+      battleOutcome: 'defeat',
+      dialogueOutcome: 'hesitant',
+    );
+    expect(
+      rivalDefeat.qualifiedOutcomes,
+      contains(
+        NarrativeOutcomeRef(
+          producerKind: NarrativeOutcomeProducerKind.scene,
+          producerId: 'scene_lysa_port',
+          outcomeId: 'lysa.defeat',
+        ),
+      ),
+    );
+    expect(
+      state.narrativeFactRuntimeState.overridesByFactId,
+      containsPair('fact_lysa_tone_hesitant', true),
+    );
     await execute('scene_rival_after_loss');
     expect(
       state.narrativeFactRuntimeState.overridesByFactId,
@@ -141,7 +161,10 @@ void main() {
     );
     expect(
       battleTrainerIds,
-      contains('trainer_boss_phare_pokemon'),
+      containsAll(<String>[
+        'trainer_lysa_port',
+        'trainer_boss_phare_pokemon',
+      ]),
     );
     expect(
         dialogueIds,
@@ -203,7 +226,162 @@ void main() {
       ),
     );
   });
+
+  test('the Lysa victory route persists respect and rejoins the main story',
+      () async {
+    final fixture = _loadSelbrume();
+    var state = const GameState(
+      saveId: 'selbrume_canonical_rival_victory',
+      currentMapId: 'map_port_brisants',
+    );
+
+    Future<NarrativeSceneExecutionCompleted> execute(
+      String sceneId, {
+      String battleOutcome = 'victory',
+      String dialogueOutcome = 'completed',
+    }) async {
+      final result = await executeNarrativeEventScene(
+        request: NarrativeSceneExecutionRequest(
+          eventId: 'event_test_$sceneId',
+          sceneId: sceneId,
+          executionId: 'execution_test_$sceneId',
+          gameState: state,
+        ),
+        project: fixture.project,
+        mapsById: fixture.mapsById,
+        currentGameState: () => state,
+        callbacks: SceneRuntimeHostCallbacks(
+          evaluateCondition: (intent) =>
+              _resolveConditionOutput(fixture.project, state, intent),
+          showDialogue: (_) => dialogueOutcome,
+          playCinematic: (_) => 'completed',
+          startBattle: (_) => battleOutcome,
+        ),
+      );
+      expect(result, isA<NarrativeSceneExecutionCompleted>());
+      final completed = result as NarrativeSceneExecutionCompleted;
+      state = completed.updatedGameState;
+      return completed;
+    }
+
+    final battle = await execute(
+      'scene_lysa_port',
+      dialogueOutcome: 'confident',
+    );
+    expect(
+      battle.qualifiedOutcomes,
+      contains(
+        NarrativeOutcomeRef(
+          producerKind: NarrativeOutcomeProducerKind.scene,
+          producerId: 'scene_lysa_port',
+          outcomeId: 'lysa.victory',
+        ),
+      ),
+    );
+    await execute('scene_rival_after_win');
+
+    for (final factId in const <String>[
+      'fact_lysa_tone_confident',
+      'fact_rival_port_defeated',
+      'fact_lysa_respects_player',
+      'fact_lysa_goes_ahead',
+    ]) {
+      expect(
+        state.narrativeFactRuntimeState.overridesByFactId,
+        containsPair(factId, true),
+      );
+    }
+    expect(state.progression.completedStepIds, contains('step_rival_battle'));
+  });
+
+  test('the three optional quests persist choices, rewards and completion',
+      () async {
+    final fixture = _loadSelbrume();
+    var state = const GameState(
+      saveId: 'selbrume_canonical_side_quests',
+      currentMapId: 'map_marais_salants',
+    );
+
+    Future<void> execute(
+      String sceneId, {
+      String dialogueOutcome = 'completed',
+    }) async {
+      final result = await executeNarrativeEventScene(
+        request: NarrativeSceneExecutionRequest(
+          eventId: 'event_test_$sceneId',
+          sceneId: sceneId,
+          executionId: 'execution_test_$sceneId',
+          gameState: state,
+        ),
+        project: fixture.project,
+        mapsById: fixture.mapsById,
+        currentGameState: () => state,
+        callbacks: SceneRuntimeHostCallbacks(
+          evaluateCondition: (intent) =>
+              _resolveConditionOutput(fixture.project, state, intent),
+          showDialogue: (_) => dialogueOutcome,
+          playCinematic: (_) => 'completed',
+          startBattle: (_) => 'victory',
+        ),
+      );
+      expect(
+        result,
+        isA<NarrativeSceneExecutionCompleted>(),
+        reason: result is NarrativeSceneExecutionFailed
+            ? result.failure.toString()
+            : sceneId,
+      );
+      state = (result as NarrativeSceneExecutionCompleted).updatedGameState;
+    }
+
+    await execute('scene_mado_intro', dialogueOutcome: 'accept_help');
+    await execute('scene_crystal_1');
+    await execute('scene_crystal_2');
+    await execute('scene_crystal_3');
+    await execute('scene_mado_crystals_return');
+
+    await execute('scene_goelise_fisher_intro');
+    await execute('scene_goelise_nest_choice', dialogueOutcome: 'keep_item');
+    await execute('scene_goelise_keep_reward');
+
+    await execute('scene_yvon_intro', dialogueOutcome: 'accept_search_key');
+    await execute('scene_cabin_key');
+    await execute('scene_cabin_journal');
+
+    final facts = state.narrativeFactRuntimeState.overridesByFactId;
+    for (final factId in const <String>[
+      'fact_crystals_quest_completed',
+      'fact_goelise_object_kept',
+      'fact_goelise_quest_completed',
+      'fact_cabin_key_found',
+      'fact_cabin_journal_read',
+      'fact_cabin_quest_completed',
+    ]) {
+      expect(facts, containsPair(factId, true));
+    }
+    expect(_bagQuantity(state, 'super-potion'), 1);
+    expect(_bagQuantity(state, 'pearl'), 1);
+    expect(_bagQuantity(state, 'basement-key'), 1);
+    expect(_bagQuantity(state, 'rare-candy'), 1);
+    expect(
+      state.progression.completedStepIds,
+      containsAll(<String>[
+        'step_crystals_completed',
+        'step_goelise_completed',
+        'step_cabin_completed',
+      ]),
+    );
+    expect(
+      facts,
+      isNot(containsPair('fact_mist_source_resolved', true)),
+      reason: 'Optional quests must not complete the main campaign.',
+    );
+  });
 }
+
+int _bagQuantity(GameState state, String itemId) => state.bag.entries
+    .where((entry) => entry.itemId == itemId)
+    .fold(0, (total, entry) => total + entry.quantity);
 
 ({ProjectManifest project, Map<String, MapData> mapsById}) _loadSelbrume() {
   final root = _findRepositoryRoot();

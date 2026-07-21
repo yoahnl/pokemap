@@ -272,6 +272,8 @@ void main() {
     );
     _expectWorldStateContract(manifest, mapsById);
     _expectCanonicalEventProgression(manifest);
+    _expectSelbrumeSpecificationMatrix(manifest);
+    _expectCanonicalOutcomePolicies(manifest);
 
     final lysaScene = manifest.scenes.singleWhere(
       (entry) => entry.id == 'scene_lysa_port',
@@ -356,6 +358,295 @@ void main() {
       );
     }
   });
+}
+
+void _expectSelbrumeSpecificationMatrix(ProjectManifest manifest) {
+  // This is the executable translation of MVP Selbrume/selbrume.md. The
+  // overview's separate "unlock passage" wording is intentionally normalized
+  // into the detailed twelve-step contract's report-to-Soline beat.
+  const beats = <_SelbrumeSpecificationBeat>[
+    _SelbrumeSpecificationBeat(
+      id: 'main-introduction',
+      storylineId: 'story_main_brume_phare',
+      stepIds: <String>['step_intro_selbrume', 'step_receive_mission'],
+      sceneIds: <String>['scene_mael_intro'],
+      factIds: <String>[
+        'fact_main_story_started',
+        'fact_mael_intro_done',
+        'fact_mael_mission_given',
+      ],
+    ),
+    _SelbrumeSpecificationBeat(
+      id: 'main-port-alert',
+      storylineId: 'story_main_brume_phare',
+      stepIds: <String>['step_go_to_port'],
+      sceneIds: <String>['scene_port_entry'],
+      factIds: <String>[
+        'fact_port_alert_seen',
+        'fact_port_crowd_panicked',
+        'fact_port_crowd_reassured',
+      ],
+    ),
+    _SelbrumeSpecificationBeat(
+      id: 'main-rival',
+      storylineId: 'story_main_brume_phare',
+      stepIds: <String>['step_rival_battle'],
+      sceneIds: <String>[
+        'scene_lysa_port',
+        'scene_rival_after_win',
+        'scene_rival_after_loss',
+      ],
+      factIds: <String>[
+        'fact_rival_port_defeated',
+        'fact_rival_port_lost_once',
+        'fact_lysa_respects_player',
+        'fact_lysa_goes_ahead',
+      ],
+    ),
+    _SelbrumeSpecificationBeat(
+      id: 'main-marsh-entry',
+      storylineId: 'story_main_brume_phare',
+      stepIds: <String>['step_enter_marais'],
+      sceneIds: <String>['scene_marais_entry', 'scene_mado_intro'],
+      factIds: <String>['fact_marais_unlocked', 'fact_mado_met'],
+    ),
+    _SelbrumeSpecificationBeat(
+      id: 'main-clues',
+      storylineId: 'story_main_brume_phare',
+      stepIds: <String>['step_find_three_clues'],
+      sceneIds: <String>[
+        'scene_clue_glass',
+        'scene_clue_electric_tracks',
+        'scene_clue_lighthouse_mark',
+      ],
+      factIds: <String>[
+        'fact_clue_glass_found',
+        'fact_clue_electric_tracks_found',
+        'fact_clue_lighthouse_mark_found',
+      ],
+    ),
+    _SelbrumeSpecificationBeat(
+      id: 'main-soline-passage',
+      storylineId: 'story_main_brume_phare',
+      stepIds: <String>['step_report_to_soline'],
+      sceneIds: <String>['scene_soline_unlock_passage'],
+      factIds: <String>[
+        'fact_all_clues_found',
+        'fact_passage_dames_unlocked',
+      ],
+    ),
+    _SelbrumeSpecificationBeat(
+      id: 'main-lighthouse-arrival',
+      storylineId: 'story_main_brume_phare',
+      stepIds: <String>['step_reach_lighthouse'],
+      sceneIds: <String>['scene_lighthouse_arrival'],
+      factIds: <String>['fact_lighthouse_reached'],
+    ),
+    _SelbrumeSpecificationBeat(
+      id: 'main-lighthouse-climb',
+      storylineId: 'story_main_brume_phare',
+      stepIds: <String>['step_climb_lighthouse'],
+      sceneIds: <String>[
+        'scene_lighthouse_old_note',
+        'scene_lighthouse_guardian_1',
+        'scene_lighthouse_guardian_2',
+      ],
+      factIds: <String>[
+        'fact_lighthouse_old_note_read',
+        'fact_lighthouse_guardian_1_defeated',
+        'fact_lighthouse_guardian_2_defeated',
+        'fact_lighthouse_top_unlocked',
+      ],
+    ),
+    _SelbrumeSpecificationBeat(
+      id: 'main-final',
+      storylineId: 'story_main_brume_phare',
+      stepIds: <String>['step_final_confrontation'],
+      sceneIds: <String>['scene_final_pokemon', 'scene_mist_disperses'],
+      factIds: <String>[
+        'fact_lighthouse_pokemon_appeased',
+        'fact_mist_source_resolved',
+      ],
+    ),
+    _SelbrumeSpecificationBeat(
+      id: 'main-epilogue',
+      storylineId: 'story_main_brume_phare',
+      stepIds: <String>['step_return_to_port', 'step_main_story_completed'],
+      sceneIds: <String>['scene_ending_port'],
+      factIds: <String>['fact_ending_seen', 'fact_main_story_completed'],
+    ),
+    _SelbrumeSpecificationBeat(
+      id: 'side-salt-crystals',
+      storylineId: 'story_side_salt_crystals',
+      stepIds: <String>[
+        'step_crystals_talk_to_mado',
+        'step_crystals_collect_three',
+        'step_crystals_return_to_mado',
+        'step_crystals_completed',
+      ],
+      sceneIds: <String>[
+        'scene_mado_intro',
+        'scene_crystal_1',
+        'scene_crystal_2',
+        'scene_crystal_3',
+        'scene_mado_crystals_return',
+      ],
+      factIds: <String>[
+        'fact_crystals_quest_started',
+        'fact_crystal_1_found',
+        'fact_crystal_2_found',
+        'fact_crystal_3_found',
+        'fact_all_crystals_found',
+        'fact_crystals_quest_completed',
+      ],
+    ),
+    _SelbrumeSpecificationBeat(
+      id: 'side-goelise',
+      storylineId: 'story_side_goelise_port',
+      stepIds: <String>[
+        'step_goelise_talk_to_fisher',
+        'step_goelise_find_nest',
+        'step_goelise_choice',
+        'step_goelise_return',
+        'step_goelise_completed',
+      ],
+      sceneIds: <String>[
+        'scene_goelise_fisher_intro',
+        'scene_goelise_nest_choice',
+        'scene_goelise_return',
+        'scene_goelise_keep_reward',
+      ],
+      factIds: <String>[
+        'fact_goelise_quest_started',
+        'fact_goelise_nest_found',
+        'fact_goelise_object_returned',
+        'fact_goelise_object_kept',
+        'fact_goelise_quest_completed',
+      ],
+    ),
+    _SelbrumeSpecificationBeat(
+      id: 'side-lighthouse-cabin',
+      storylineId: 'story_side_lighthouse_cabin',
+      stepIds: <String>[
+        'step_cabin_talk_to_yvon',
+        'step_cabin_find_key',
+        'step_cabin_open_door',
+        'step_cabin_read_journal',
+        'step_cabin_completed',
+      ],
+      sceneIds: <String>[
+        'scene_yvon_intro',
+        'scene_cabin_key',
+        'scene_cabin_journal',
+      ],
+      factIds: <String>[
+        'fact_cabin_quest_started',
+        'fact_cabin_key_found',
+        'fact_cabin_opened',
+        'fact_cabin_journal_read',
+        'fact_cabin_quest_completed',
+      ],
+    ),
+  ];
+
+  final storylinesById = <String, StorylineAsset>{
+    for (final storyline in manifest.storylines) storyline.id: storyline,
+  };
+  final scenesById = <String, SceneAsset>{
+    for (final scene in manifest.scenes) scene.id: scene,
+  };
+  final facts = manifest.facts.map((fact) => fact.id).toSet();
+  final activeEventSceneIds = <String>{
+    for (final record in manifest.eventRegistry!.records)
+      if (record.enabledOrNull == true && record.definitionOrNull != null)
+        record.definitionOrNull!.sceneId,
+  };
+
+  for (final beat in beats) {
+    final storyline = storylinesById[beat.storylineId];
+    expect(storyline, isNotNull, reason: beat.id);
+    final stepsById = <String, StorylineStep>{
+      for (final chapter in storyline!.chapters)
+        for (final step in chapter.steps) step.id: step,
+    };
+    expect(stepsById.keys, containsAll(beat.stepIds), reason: beat.id);
+    final linkedSceneIds = <String>{
+      for (final stepId in beat.stepIds) ...stepsById[stepId]!.sceneLinkIds,
+    };
+    expect(linkedSceneIds, containsAll(beat.sceneIds), reason: beat.id);
+    expect(scenesById.keys, containsAll(beat.sceneIds), reason: beat.id);
+    expect(activeEventSceneIds, containsAll(beat.sceneIds), reason: beat.id);
+    expect(facts, containsAll(beat.factIds), reason: beat.id);
+  }
+
+  for (final sideQuest in manifest.storylines.where(
+    (storyline) => storyline.type == StorylineType.sideQuest,
+  )) {
+    expect(sideQuest.relationships, isNotEmpty, reason: sideQuest.id);
+    expect(
+      sideQuest.relationships.map((relationship) => relationship.kind),
+      everyElement(StorylineRelationshipKind.sideQuestAvailableDuring),
+      reason: '${sideQuest.id} must stay optional for the main campaign.',
+    );
+  }
+  expect(
+    storylinesById['story_main_brume_phare']!.relationships,
+    isEmpty,
+    reason: 'The main campaign must not require a side quest.',
+  );
+}
+
+void _expectCanonicalOutcomePolicies(ProjectManifest manifest) {
+  // The Validator must read explicit product intent here; labels such as
+  // "Défaite" are presentation text and must never drive retry semantics.
+  const expected = <String, Map<String, SceneOutcomePolicy>>{
+    'scene_lysa_port': <String, SceneOutcomePolicy>{
+      'lysa.victory': SceneOutcomePolicy.progression,
+      'lysa.defeat': SceneOutcomePolicy.terminalFailureAccepted,
+    },
+    'scene_lighthouse_guardian_1': <String, SceneOutcomePolicy>{
+      'lighthouse.guardian_1.victory': SceneOutcomePolicy.progression,
+      'lighthouse.guardian_1.defeat': SceneOutcomePolicy.retryable,
+    },
+    'scene_lighthouse_guardian_2': <String, SceneOutcomePolicy>{
+      'lighthouse.guardian_2.victory': SceneOutcomePolicy.progression,
+      'lighthouse.guardian_2.defeat': SceneOutcomePolicy.retryable,
+    },
+    'scene_final_pokemon': <String, SceneOutcomePolicy>{
+      'lighthouse.pokemon.appeased': SceneOutcomePolicy.progression,
+      'lighthouse.pokemon.defeat': SceneOutcomePolicy.retryable,
+    },
+    'scene_mist_disperses': <String, SceneOutcomePolicy>{
+      'mist_resolved': SceneOutcomePolicy.progression,
+    },
+  };
+  for (final entry in expected.entries) {
+    final scene = manifest.scenes.singleWhere((scene) => scene.id == entry.key);
+    final policiesByOutcome = <String, SceneOutcomePolicy?>{
+      for (final end in scene.graph.nodes
+          .map((node) => node.payload)
+          .whereType<SceneEndPayload>())
+        if (end.sceneOutcomeId case final outcomeId?)
+          outcomeId: end.outcomePolicy,
+    };
+    expect(policiesByOutcome, entry.value, reason: entry.key);
+  }
+}
+
+final class _SelbrumeSpecificationBeat {
+  const _SelbrumeSpecificationBeat({
+    required this.id,
+    required this.storylineId,
+    required this.stepIds,
+    required this.sceneIds,
+    required this.factIds,
+  });
+
+  final String id;
+  final String storylineId;
+  final List<String> stepIds;
+  final List<String> sceneIds;
+  final List<String> factIds;
 }
 
 void _expectWorldStateContract(
