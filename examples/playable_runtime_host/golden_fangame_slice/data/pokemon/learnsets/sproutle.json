@@ -1,0 +1,17 @@
+{
+  "speciesId": "sproutle",
+  "startingMoves": [
+    "tackle"
+  ],
+  "relearnMoves": [
+    "growl"
+  ],
+  "levelUp": [
+    {
+      "moveId": "vine_whip",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "phase_a"
+    }
+  ]
+}

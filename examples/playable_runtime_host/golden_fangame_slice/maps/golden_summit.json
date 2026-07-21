@@ -1,0 +1,41 @@
+{
+  "id": "golden_summit",
+  "name": "Golden Summit",
+  "size": {
+    "width": 6,
+    "height": 5
+  },
+  "version": "v1",
+  "entities": [
+    {
+      "id": "spawn_summit",
+      "name": "spawn_summit",
+      "kind": "spawn",
+      "pos": {
+        "x": 1,
+        "y": 2
+      },
+      "blocksMovement": false,
+      "spawn": {
+        "role": "player_start",
+        "facing": "east"
+      }
+    },
+    {
+      "id": "npc_badge_keeper",
+      "name": "Badge Keeper",
+      "kind": "npc",
+      "pos": {
+        "x": 3,
+        "y": 2
+      },
+      "npc": {
+        "displayName": "Badge Keeper",
+        "facing": "south"
+      }
+    }
+  ],
+  "mapMetadata": {
+    "defaultSpawnId": "spawn_summit"
+  }
+}

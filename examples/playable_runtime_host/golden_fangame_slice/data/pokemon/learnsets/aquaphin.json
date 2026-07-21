@@ -1,0 +1,9 @@
+{
+  "speciesId": "aquaphin",
+  "startingMoves": [
+    "tackle",
+    "water_gun"
+  ],
+  "relearnMoves": [],
+  "levelUp": []
+}

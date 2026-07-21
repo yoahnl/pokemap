@@ -1,0 +1,67 @@
+{
+  "id": "golden_town",
+  "name": "Golden Town",
+  "size": {
+    "width": 6,
+    "height": 5
+  },
+  "version": "v1",
+  "entities": [
+    {
+      "id": "spawn_town",
+      "name": "spawn_town",
+      "kind": "spawn",
+      "pos": {
+        "x": 1,
+        "y": 2
+      },
+      "blocksMovement": false,
+      "spawn": {
+        "role": "player_start",
+        "facing": "east"
+      }
+    },
+    {
+      "id": "npc_starter_guide",
+      "name": "Starter Guide",
+      "kind": "npc",
+      "pos": {
+        "x": 2,
+        "y": 2
+      },
+      "npc": {
+        "displayName": "Starter Guide",
+        "facing": "south"
+      }
+    },
+    {
+      "id": "npc_shopkeeper",
+      "name": "Shopkeeper",
+      "kind": "npc",
+      "pos": {
+        "x": 3,
+        "y": 2
+      },
+      "npc": {
+        "displayName": "Shopkeeper",
+        "facing": "south"
+      }
+    },
+    {
+      "id": "npc_healer",
+      "name": "Healer",
+      "kind": "npc",
+      "pos": {
+        "x": 4,
+        "y": 2
+      },
+      "npc": {
+        "displayName": "Healer",
+        "facing": "south"
+      }
+    }
+  ],
+  "mapMetadata": {
+    "defaultSpawnId": "spawn_town"
+  }
+}

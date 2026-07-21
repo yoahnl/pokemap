@@ -1,0 +1,65 @@
+{
+  "id": "aquaphin",
+  "slug": "aquaphin",
+  "nationalDex": 7,
+  "names": {
+    "en": "Aquaphin"
+  },
+  "speciesName": {
+    "en": "Wave Calf"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 44,
+    "atk": 48,
+    "def": 65,
+    "spa": 50,
+    "spd": 64,
+    "spe": 43,
+    "bst": 314
+  },
+  "abilities": {
+    "primary": "torrent"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "water_1"
+    ],
+    "hatchCycles": 20
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 63,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "refs": {
+    "learnset": "aquaphin",
+    "evolution": "aquaphin",
+    "media": "aquaphin"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 9
+  },
+  "classification": {
+    "isEnabledInProject": true
+  },
+  "gameplayFlags": {
+    "starterEligible": true
+  },
+  "sourceMeta": {
+    "seededBy": "fg_181_golden_fangame_slice",
+    "seedVersion": 1
+  }
+}

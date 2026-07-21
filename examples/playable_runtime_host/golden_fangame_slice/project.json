@@ -1,0 +1,147 @@
+{
+  "name": "Golden Fangame Slice",
+  "version": "v1",
+  "maps": [
+    {
+      "id": "golden_town",
+      "name": "Golden Town",
+      "relativePath": "maps/golden_town.json",
+      "role": "interior",
+      "sortOrder": 0
+    },
+    {
+      "id": "golden_route",
+      "name": "Golden Route",
+      "relativePath": "maps/golden_route.json",
+      "role": "exterior",
+      "sortOrder": 1
+    },
+    {
+      "id": "golden_summit",
+      "name": "Golden Summit",
+      "relativePath": "maps/golden_summit.json",
+      "role": "interior",
+      "sortOrder": 2
+    }
+  ],
+  "tilesets": [],
+  "encounterTables": [
+    {
+      "id": "golden_grass",
+      "name": "Golden Grass",
+      "encounterKind": "walk",
+      "entries": [
+        {
+          "speciesId": "sparkitten",
+          "minLevel": 4,
+          "maxLevel": 4,
+          "weight": 1
+        }
+      ]
+    }
+  ],
+  "trainers": [
+    {
+      "id": "trainer_golden_rival",
+      "name": "Mira",
+      "trainerClass": "Rival",
+      "battleDifficulty": 4,
+      "team": [
+        {
+          "speciesId": "sparkitten",
+          "level": 5,
+          "moves": [
+            "tackle",
+            "growl"
+          ]
+        }
+      ]
+    }
+  ],
+  "pokemon": {
+    "enabled": true,
+    "dataRoot": "data/pokemon",
+    "speciesDir": "data/pokemon/species",
+    "learnsetsDir": "data/pokemon/learnsets",
+    "evolutionsDir": "data/pokemon/evolutions",
+    "mediaDir": "data/pokemon/media",
+    "catalogFiles": {
+      "moves": "data/pokemon/catalogs/moves.json"
+    }
+  },
+  "newGame": {
+    "enabled": true,
+    "startMapId": "golden_town",
+    "startSpawnId": "spawn_town",
+    "playerName": "Golden Player",
+    "startingMoney": 1000,
+    "initialBag": [
+      {
+        "itemId": "poke-ball",
+        "categoryId": "capture",
+        "quantity": 5
+      },
+      {
+        "itemId": "potion",
+        "categoryId": "medicine",
+        "quantity": 1
+      }
+    ],
+    "initialParty": [],
+    "initialFacts": {},
+    "starterOptions": [
+      {
+        "id": "starter_sproutle",
+        "label": "Sproutle",
+        "pokemon": {
+          "speciesId": "sproutle",
+          "natureId": "bold",
+          "abilityId": "overgrow",
+          "level": 5,
+          "knownMoveIds": [
+            "tackle",
+            "growl"
+          ],
+          "currentHp": 20
+        }
+      },
+      {
+        "id": "starter_sparkitten",
+        "label": "Sparkitten",
+        "pokemon": {
+          "speciesId": "sparkitten",
+          "natureId": "brave",
+          "abilityId": "blaze",
+          "level": 5,
+          "knownMoveIds": [
+            "tackle",
+            "growl"
+          ],
+          "currentHp": 19
+        }
+      },
+      {
+        "id": "starter_aquaphin",
+        "label": "Aquaphin",
+        "pokemon": {
+          "speciesId": "aquaphin",
+          "natureId": "calm",
+          "abilityId": "torrent",
+          "level": 5,
+          "knownMoveIds": [
+            "tackle",
+            "water_gun"
+          ],
+          "currentHp": 21
+        }
+      }
+    ]
+  },
+  "settings": {
+    "tileWidth": 16,
+    "tileHeight": 16,
+    "displayScale": 2,
+    "defaultMapWidth": 6,
+    "defaultMapHeight": 5
+  }
+}

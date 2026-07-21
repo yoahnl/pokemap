@@ -1,0 +1,63 @@
+{
+  "id": "golden_route",
+  "name": "Golden Route",
+  "size": {
+    "width": 6,
+    "height": 5
+  },
+  "version": "v1",
+  "entities": [
+    {
+      "id": "spawn_route",
+      "name": "spawn_route",
+      "kind": "spawn",
+      "pos": {
+        "x": 0,
+        "y": 2
+      },
+      "blocksMovement": false,
+      "spawn": {
+        "role": "player_start",
+        "facing": "east"
+      }
+    },
+    {
+      "id": "npc_golden_rival",
+      "name": "Mira",
+      "kind": "npc",
+      "pos": {
+        "x": 4,
+        "y": 2
+      },
+      "npc": {
+        "displayName": "Mira",
+        "facing": "west",
+        "trainerId": "trainer_golden_rival"
+      }
+    }
+  ],
+  "gameplayZones": [
+    {
+      "id": "golden_grass_zone",
+      "name": "Golden Grass",
+      "kind": "encounter",
+      "area": {
+        "pos": {
+          "x": 2,
+          "y": 1
+        },
+        "size": {
+          "width": 2,
+          "height": 2
+        }
+      },
+      "encounter": {
+        "encounterTableId": "golden_grass",
+        "encounterKind": "walk"
+      }
+    }
+  ],
+  "mapMetadata": {
+    "defaultSpawnId": "spawn_route"
+  }
+}

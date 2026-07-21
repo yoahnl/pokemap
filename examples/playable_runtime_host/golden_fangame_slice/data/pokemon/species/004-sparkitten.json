@@ -1,0 +1,61 @@
+{
+  "id": "sparkitten",
+  "slug": "sparkitten",
+  "nationalDex": 4,
+  "names": {
+    "en": "Sparkitten"
+  },
+  "speciesName": {
+    "en": "Ember Cat"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 35,
+    "atk": 52,
+    "def": 43,
+    "spa": 60,
+    "spd": 50,
+    "spe": 65,
+    "bst": 305
+  },
+  "abilities": {
+    "primary": "blaze"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "field"
+    ],
+    "hatchCycles": 20
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 62,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "refs": {
+    "learnset": "sparkitten",
+    "evolution": "sparkitten",
+    "media": "sparkitten"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 8.5
+  },
+  "classification": {
+    "isEnabledInProject": true
+  },
+  "sourceMeta": {
+    "seededBy": "phase_a_golden_slice",
+    "seedVersion": 1
+  }
+}
