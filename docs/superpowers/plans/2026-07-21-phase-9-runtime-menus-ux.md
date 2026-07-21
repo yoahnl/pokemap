@@ -199,31 +199,31 @@ git commit -m "feat(runtime): persist player options"
 - Modify: `examples/playable_runtime_host/test/in_game_menu_test.dart`
 - Create: `reports/gameplay/fg_160_pause_menu_complete_v0.md`
 
-- [ ] **Step 1: write RED widget tests**
+- [x] **Step 1: write RED widget tests**
 
 Prove Options is a real section, Escape closes, Tab/Enter can activate a menu
 tile, Quit asks confirmation, and opening the route acquires the
 `RuntimeExternalInputLock.pauseMenu` lock until every exit path completes.
 
-- [ ] **Step 2: run RED**
+- [x] **Step 2: run RED**
 
 ```bash
 cd examples/playable_runtime_host
 /opt/homebrew/bin/flutter test test/in_game_menu_test.dart
 ```
 
-- [ ] **Step 3: implement the complete menu shell**
+- [x] **Step 3: implement the complete menu shell**
 
 Add `options` to `InGameMenuSection`, pass a typed options snapshot and change
 callback, add explicit Close and Quit actions, use `CallbackShortcuts` for
 Escape, and retain live Party/Bag/Pokédex/Save snapshots.
 
-- [ ] **Step 4: connect host lifecycle and lock**
+- [x] **Step 4: connect host lifecycle and lock**
 
 Acquire the pause-menu lock before `Navigator.push`, release it in `finally`,
 and make Quit close the route then reset only the runtime session.
 
-- [ ] **Step 5: GREEN, analyze, build, Evidence Pack and commit**
+- [x] **Step 5: GREEN, analyze, build, Evidence Pack and commit**
 
 ```bash
 cd examples/playable_runtime_host

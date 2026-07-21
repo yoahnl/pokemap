@@ -712,21 +712,45 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     if (game == null) {
       return;
     }
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) {
-          return InGameMenuPage(
-            gameStateSnapshotBuilder: () => game.gameStateSnapshot,
-            pokedexLoader: () => loadRuntimePokedexEntries(
-              projectFilePath: _projectFilePath,
-            ),
-            onSaveRequested: _performSaveRequest,
-            onLoadRequested: _performLoadRequest,
-            onCloseRequested: () => Navigator.of(context).pop(),
-          );
-        },
-      ),
+    await runWithRuntimePauseMenuInputLock(
+      setExternalInputLock: game.setExternalInputLock,
+      openMenu: () async {
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute<void>(
+            builder: (routeContext) {
+              return InGameMenuPage(
+                gameStateSnapshotBuilder: () => game.gameStateSnapshot,
+                pokedexLoader: () => loadRuntimePokedexEntries(
+                  projectFilePath: _projectFilePath,
+                ),
+                onSaveRequested: _performSaveRequest,
+                onLoadRequested: _performLoadRequest,
+                playerOptions: _playerOptions,
+                supportsTouchControls: _supportsTouchControls,
+                onOptionsChanged: _updatePlayerOptions,
+                onQuitRequested: () {
+                  Navigator.of(routeContext).pop();
+                  _reset();
+                },
+                onCloseRequested: () => Navigator.of(routeContext).pop(),
+              );
+            },
+          ),
+        );
+      },
     );
+  }
+
+  void _updatePlayerOptions(RuntimePlayerOptions options) {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _playerOptions = options;
+      _touchControlsHiddenByUser = !options.showTouchControls;
+    });
+    _game?.setDialogueTextSpeed(options.dialogueTextSpeed);
+    unawaited(_persistLastSession());
   }
 
   bool _handleBattleCommandOverlayEntrySelected(

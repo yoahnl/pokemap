@@ -1,10 +1,47 @@
 import 'package:pokemap_loader/src/in_game_menu.dart';
 import 'package:pokemap_loader/src/runtime_pokedex_loader.dart';
+import 'package:pokemap_loader/src/runtime_player_options.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('pause menu route guard releases the typed owner after completion',
+      () async {
+    final transitions = <(RuntimeExternalInputLock, bool)>[];
+
+    await runWithRuntimePauseMenuInputLock(
+      setExternalInputLock: (owner, {required locked}) {
+        transitions.add((owner, locked));
+      },
+      openMenu: () async {},
+    );
+
+    expect(transitions, [
+      (RuntimeExternalInputLock.pauseMenu, true),
+      (RuntimeExternalInputLock.pauseMenu, false),
+    ]);
+  });
+
+  test('pause menu route guard releases the typed owner after an error',
+      () async {
+    final transitions = <(RuntimeExternalInputLock, bool)>[];
+
+    await expectLater(
+      runWithRuntimePauseMenuInputLock(
+        setExternalInputLock: (owner, {required locked}) {
+          transitions.add((owner, locked));
+        },
+        openMenu: () => Future<void>.error(StateError('navigation failed')),
+      ),
+      throwsStateError,
+    );
+
+    expect(transitions.last, (RuntimeExternalInputLock.pauseMenu, false));
+  });
+
   // Ce test couvre le coeur des lots 48 à 51 :
   // navigation latérale et lecture correcte des données du snapshot runtime.
   testWidgets('navigates across Pokédex, Équipe, Sac and Dresseur sections',
@@ -37,6 +74,10 @@ void main() {
           ],
           onSaveRequested: () async => const InGameMenuActionResult(),
           onLoadRequested: () async => const InGameMenuActionResult(),
+          playerOptions: const RuntimePlayerOptions(),
+          supportsTouchControls: true,
+          onOptionsChanged: (_) {},
+          onQuitRequested: () {},
           onCloseRequested: () {
             closeRequested = true;
           },
@@ -113,6 +154,10 @@ void main() {
               status: 'Chargement OK · lab (4, 7)',
             );
           },
+          playerOptions: const RuntimePlayerOptions(),
+          supportsTouchControls: true,
+          onOptionsChanged: (_) {},
+          onQuitRequested: () {},
           onCloseRequested: () {},
         ),
       ),
@@ -133,6 +178,94 @@ void main() {
 
     expect(loadCount, 1);
     expect(find.textContaining('Chargement OK'), findsOneWidget);
+  });
+
+  testWidgets('offers real options and keyboard navigation closes with Escape',
+      (tester) async {
+    var closeCount = 0;
+    var options = const RuntimePlayerOptions();
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InGameMenuPage(
+          gameStateSnapshotBuilder: _buildGameState,
+          pokedexLoader: () async => const <RuntimePokedexEntry>[],
+          onSaveRequested: () async => const InGameMenuActionResult(),
+          onLoadRequested: () async => const InGameMenuActionResult(),
+          playerOptions: options,
+          supportsTouchControls: true,
+          onOptionsChanged: (next) => options = next,
+          onQuitRequested: () {},
+          onCloseRequested: () => closeCount += 1,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // The selected first tile owns initial focus, so Tab + Enter reaches Party.
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(find.byKey(const Key('in-game-party-section')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('menu-options-tile')));
+    await tester.pump();
+    expect(find.byKey(const Key('in-game-options-section')), findsOneWidget);
+    expect(find.textContaining('Volume global indisponible'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('dialogue-text-speed-dropdown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Rapide').last);
+    await tester.pumpAndSettle();
+    expect(options.dialogueTextSpeed, RuntimeDialogueTextSpeed.fast);
+
+    await tester.tap(find.byKey(const Key('show-touch-controls-switch')));
+    await tester.pump();
+    expect(options.showTouchControls, isFalse);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(closeCount, 1);
+  });
+
+  testWidgets('Quit requires confirmation and cancellation is non destructive',
+      (tester) async {
+    var quitCount = 0;
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InGameMenuPage(
+          gameStateSnapshotBuilder: _buildGameState,
+          pokedexLoader: () async => const <RuntimePokedexEntry>[],
+          onSaveRequested: () async => const InGameMenuActionResult(),
+          onLoadRequested: () async => const InGameMenuActionResult(),
+          playerOptions: const RuntimePlayerOptions(),
+          supportsTouchControls: false,
+          onOptionsChanged: (_) {},
+          onQuitRequested: () => quitCount += 1,
+          onCloseRequested: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('menu-quit-tile')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('quit-confirmation-dialog')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('quit-cancel-button')));
+    await tester.pumpAndSettle();
+    expect(quitCount, 0);
+
+    await tester.tap(find.byKey(const Key('menu-quit-tile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('quit-confirm-button')));
+    await tester.pumpAndSettle();
+    expect(quitCount, 1);
   });
 }
 

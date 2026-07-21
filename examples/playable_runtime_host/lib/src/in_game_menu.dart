@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
 
+import 'runtime_player_options.dart';
 import 'runtime_pokedex_loader.dart';
 
 // Sections minimales couvertes par la phase 10.
@@ -12,6 +15,7 @@ enum InGameMenuSection {
   bag,
   trainer,
   save,
+  options,
 }
 
 // Résultat standardisé d'une action de save/load déclenchée depuis le menu.
@@ -26,6 +30,27 @@ class InGameMenuActionResult {
   final String? error;
 }
 
+typedef RuntimeExternalInputLockSetter = void Function(
+  RuntimeExternalInputLock owner, {
+  required bool locked,
+});
+
+/// Keeps the typed pause owner acquired for the complete Flutter route life.
+///
+/// The `finally` is intentionally centralized and testable: Navigator errors,
+/// Close, Escape and Quit must all release the same owner.
+Future<void> runWithRuntimePauseMenuInputLock({
+  required RuntimeExternalInputLockSetter setExternalInputLock,
+  required Future<void> Function() openMenu,
+}) async {
+  setExternalInputLock(RuntimeExternalInputLock.pauseMenu, locked: true);
+  try {
+    await openMenu();
+  } finally {
+    setExternalInputLock(RuntimeExternalInputLock.pauseMenu, locked: false);
+  }
+}
+
 // Menu principal in-game de la phase 10.
 // Il reçoit des callbacks et des snapshots déjà prêts pour rester branché sur
 // l'existant sans introduire une nouvelle architecture UI.
@@ -36,6 +61,10 @@ class InGameMenuPage extends StatefulWidget {
     required this.pokedexLoader,
     required this.onSaveRequested,
     required this.onLoadRequested,
+    required this.playerOptions,
+    required this.supportsTouchControls,
+    required this.onOptionsChanged,
+    required this.onQuitRequested,
     required this.onCloseRequested,
   });
 
@@ -43,6 +72,10 @@ class InGameMenuPage extends StatefulWidget {
   final Future<List<RuntimePokedexEntry>> Function() pokedexLoader;
   final Future<InGameMenuActionResult> Function() onSaveRequested;
   final Future<InGameMenuActionResult> Function() onLoadRequested;
+  final RuntimePlayerOptions playerOptions;
+  final bool supportsTouchControls;
+  final ValueChanged<RuntimePlayerOptions> onOptionsChanged;
+  final VoidCallback onQuitRequested;
   final VoidCallback onCloseRequested;
 
   @override
@@ -59,105 +92,238 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
   bool _saveBusy = false;
   String? _saveStatus;
   String? _saveError;
+  late RuntimePlayerOptions _playerOptions;
+
+  @override
+  void initState() {
+    super.initState();
+    _playerOptions = widget.playerOptions;
+  }
 
   @override
   Widget build(BuildContext context) {
     // On relit le snapshot de GameState à chaque build pour que les écrans
     // lecture seule restent synchronisés avec le runtime après un chargement.
     final gameState = widget.gameStateSnapshotBuilder();
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Menu'),
-        leading: IconButton(
-          key: const Key('in-game-menu-close-button'),
-          icon: const Icon(Icons.close),
-          onPressed: widget.onCloseRequested,
-        ),
-      ),
-      body: Row(
-        children: [
-          SizedBox(
-            width: 220,
-            child: Material(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              child: ListView(
-                children: [
-                  _MenuTile(
-                    key: const Key('menu-pokedex-tile'),
-                    label: 'Pokédex',
-                    icon: Icons.menu_book,
-                    selected: _selectedSection == InGameMenuSection.pokedex,
-                    onTap: () => setState(
-                      () => _selectedSection = InGameMenuSection.pokedex,
-                    ),
-                  ),
-                  _MenuTile(
-                    key: const Key('menu-party-tile'),
-                    label: 'Équipe',
-                    icon: Icons.pets,
-                    selected: _selectedSection == InGameMenuSection.party,
-                    onTap: () => setState(
-                      () => _selectedSection = InGameMenuSection.party,
-                    ),
-                  ),
-                  _MenuTile(
-                    key: const Key('menu-bag-tile'),
-                    label: 'Sac',
-                    icon: Icons.backpack,
-                    selected: _selectedSection == InGameMenuSection.bag,
-                    onTap: () => setState(
-                      () => _selectedSection = InGameMenuSection.bag,
-                    ),
-                  ),
-                  _MenuTile(
-                    key: const Key('menu-trainer-tile'),
-                    label: 'Dresseur',
-                    icon: Icons.badge,
-                    selected: _selectedSection == InGameMenuSection.trainer,
-                    onTap: () => setState(
-                      () => _selectedSection = InGameMenuSection.trainer,
-                    ),
-                  ),
-                  _MenuTile(
-                    key: const Key('menu-save-tile'),
-                    label: 'Sauvegarde',
-                    icon: Icons.save,
-                    selected: _selectedSection == InGameMenuSection.save,
-                    onTap: () => setState(
-                      () => _selectedSection = InGameMenuSection.save,
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  _MenuTile(
-                    key: const Key('menu-close-tile'),
-                    label: 'Fermer',
-                    icon: Icons.close,
-                    selected: false,
-                    onTap: widget.onCloseRequested,
-                  ),
-                ],
-              ),
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.escape):
+            widget.onCloseRequested,
+      },
+      child: Focus(
+        // The first menu tile owns initial focus. The wrapper only keeps the
+        // Escape shortcut active while descendants move through Tab order.
+        autofocus: false,
+        child: Scaffold(
+          key: const Key('in-game-menu-page'),
+          appBar: AppBar(
+            title: const Text('Menu'),
+            leading: IconButton(
+              key: const Key('in-game-menu-close-button'),
+              icon: const Icon(Icons.close),
+              onPressed: widget.onCloseRequested,
             ),
           ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: switch (_selectedSection) {
-                InGameMenuSection.pokedex => _buildPokedexSection(context),
-                InGameMenuSection.party => _buildPartySection(
-                    context,
-                    gameState,
+          body: Row(
+            children: [
+              SizedBox(
+                width: 220,
+                child: Material(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: ListView(
+                    children: [
+                      _MenuTile(
+                        key: const Key('menu-pokedex-tile'),
+                        label: 'Pokédex',
+                        icon: Icons.menu_book,
+                        selected: _selectedSection == InGameMenuSection.pokedex,
+                        autofocus: true,
+                        onTap: () => setState(
+                          () => _selectedSection = InGameMenuSection.pokedex,
+                        ),
+                      ),
+                      _MenuTile(
+                        key: const Key('menu-party-tile'),
+                        label: 'Équipe',
+                        icon: Icons.pets,
+                        selected: _selectedSection == InGameMenuSection.party,
+                        onTap: () => setState(
+                          () => _selectedSection = InGameMenuSection.party,
+                        ),
+                      ),
+                      _MenuTile(
+                        key: const Key('menu-bag-tile'),
+                        label: 'Sac',
+                        icon: Icons.backpack,
+                        selected: _selectedSection == InGameMenuSection.bag,
+                        onTap: () => setState(
+                          () => _selectedSection = InGameMenuSection.bag,
+                        ),
+                      ),
+                      _MenuTile(
+                        key: const Key('menu-trainer-tile'),
+                        label: 'Dresseur',
+                        icon: Icons.badge,
+                        selected: _selectedSection == InGameMenuSection.trainer,
+                        onTap: () => setState(
+                          () => _selectedSection = InGameMenuSection.trainer,
+                        ),
+                      ),
+                      _MenuTile(
+                        key: const Key('menu-save-tile'),
+                        label: 'Sauvegarde',
+                        icon: Icons.save,
+                        selected: _selectedSection == InGameMenuSection.save,
+                        onTap: () => setState(
+                          () => _selectedSection = InGameMenuSection.save,
+                        ),
+                      ),
+                      _MenuTile(
+                        key: const Key('menu-options-tile'),
+                        label: 'Options',
+                        icon: Icons.settings,
+                        selected: _selectedSection == InGameMenuSection.options,
+                        onTap: () => setState(
+                          () => _selectedSection = InGameMenuSection.options,
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      _MenuTile(
+                        key: const Key('menu-close-tile'),
+                        label: 'Fermer',
+                        icon: Icons.close,
+                        selected: false,
+                        onTap: widget.onCloseRequested,
+                      ),
+                      _MenuTile(
+                        key: const Key('menu-quit-tile'),
+                        label: 'Quitter la partie',
+                        icon: Icons.logout,
+                        selected: false,
+                        onTap: _confirmQuit,
+                      ),
+                    ],
                   ),
-                InGameMenuSection.bag => _BagSection(gameState: gameState),
-                InGameMenuSection.trainer =>
-                  _TrainerSection(gameState: gameState),
-                InGameMenuSection.save => _buildSaveSection(context),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: switch (_selectedSection) {
+                    InGameMenuSection.pokedex => _buildPokedexSection(context),
+                    InGameMenuSection.party => _buildPartySection(
+                        context,
+                        gameState,
+                      ),
+                    InGameMenuSection.bag => _BagSection(gameState: gameState),
+                    InGameMenuSection.trainer =>
+                      _TrainerSection(gameState: gameState),
+                    InGameMenuSection.save => _buildSaveSection(context),
+                    InGameMenuSection.options => _buildOptionsSection(context),
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOptionsSection(BuildContext context) {
+    return ListView(
+      key: const Key('in-game-options-section'),
+      children: [
+        Text('Options', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: DropdownButtonFormField<RuntimeDialogueTextSpeed>(
+              key: const Key('dialogue-text-speed-dropdown'),
+              initialValue: _playerOptions.dialogueTextSpeed,
+              decoration: const InputDecoration(
+                labelText: 'Vitesse du texte',
+                helperText: 'Appliquée immédiatement aux dialogues runtime.',
+              ),
+              items: RuntimeDialogueTextSpeed.values
+                  .map(
+                    (speed) => DropdownMenuItem<RuntimeDialogueTextSpeed>(
+                      value: speed,
+                      child: Text(_dialogueSpeedLabel(speed)),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: (speed) {
+                if (speed != null) {
+                  _setPlayerOptions(
+                    _playerOptions.copyWith(dialogueTextSpeed: speed),
+                  );
+                }
               },
             ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: SwitchListTile.adaptive(
+            key: const Key('show-touch-controls-switch'),
+            title: const Text('Afficher les contrôles tactiles'),
+            subtitle: Text(
+              widget.supportsTouchControls
+                  ? 'Le choix est mémorisé sur cet appareil.'
+                  : 'Indisponible sur cette plateforme.',
+            ),
+            value: widget.supportsTouchControls &&
+                _playerOptions.showTouchControls,
+            onChanged: widget.supportsTouchControls
+                ? (value) => _setPlayerOptions(
+                      _playerOptions.copyWith(showTouchControls: value),
+                    )
+                : null,
+          ),
+        ),
+        const SizedBox(height: 12),
+        const _SectionMessageCard(
+          title: 'Audio',
+          message:
+              'Volume global indisponible : le moteur ne possède pas encore de mixeur audio global. Aucun faux réglage ne sera enregistré.',
+        ),
+      ],
+    );
+  }
+
+  void _setPlayerOptions(RuntimePlayerOptions options) {
+    setState(() => _playerOptions = options);
+    widget.onOptionsChanged(options);
+  }
+
+  Future<void> _confirmQuit() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const Key('quit-confirmation-dialog'),
+        title: const Text('Quitter la partie ?'),
+        content: const Text(
+          'La session runtime sera fermée. Les changements non sauvegardés seront perdus.',
+        ),
+        actions: [
+          TextButton(
+            key: const Key('quit-cancel-button'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            key: const Key('quit-confirm-button'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Quitter'),
           ),
         ],
       ),
     );
+    if (confirmed == true && mounted) {
+      widget.onQuitRequested();
+    }
   }
 
   // Le Pokédex in-game reste volontairement sobre :
@@ -372,23 +538,33 @@ class _MenuTile extends StatelessWidget {
     required this.icon,
     required this.selected,
     required this.onTap,
+    this.autofocus = false,
   });
 
   final String label;
   final IconData icon;
   final bool selected;
   final VoidCallback onTap;
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       selected: selected,
+      autofocus: autofocus,
       leading: Icon(icon),
       title: Text(label),
       onTap: onTap,
     );
   }
 }
+
+String _dialogueSpeedLabel(RuntimeDialogueTextSpeed speed) => switch (speed) {
+      RuntimeDialogueTextSpeed.slow => 'Lente',
+      RuntimeDialogueTextSpeed.normal => 'Normale',
+      RuntimeDialogueTextSpeed.fast => 'Rapide',
+      RuntimeDialogueTextSpeed.instant => 'Instantanée',
+    };
 
 // Fiche lecture seule d'une espèce côté menu in-game.
 // On garde seulement les informations les plus utiles au joueur à ce stade.
