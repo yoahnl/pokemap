@@ -154,11 +154,20 @@ const _eventFisherKeepReward = 'evt_019abcde-5000-7000-8000-000000000035';
 const _eventMistDisperses = 'evt_019abcde-5000-7000-8000-000000000036';
 
 const _prettyJson = JsonEncoder.withIndent('  ');
+const selbrumeNarrativeSeedAuthoringContract = 'canonicalSeedAutomation';
+const selbrumeNarrativeHumanWorkflowProof =
+    'test/selbrume_narrative_reconstruction_test.dart';
 
 final class SelbrumeNarrativeSeedResult {
-  const SelbrumeNarrativeSeedResult({required this.changedRelativePaths});
+  const SelbrumeNarrativeSeedResult({
+    required this.changedRelativePaths,
+    this.authoringContract = selbrumeNarrativeSeedAuthoringContract,
+    this.humanWorkflowProof = selbrumeNarrativeHumanWorkflowProof,
+  });
 
   final List<String> changedRelativePaths;
+  final String authoringContract;
+  final String humanWorkflowProof;
 }
 
 Future<void> main(List<String> arguments) async {

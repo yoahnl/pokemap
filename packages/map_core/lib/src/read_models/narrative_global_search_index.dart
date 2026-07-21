@@ -320,7 +320,7 @@ NarrativeGlobalSearchIndex buildNarrativeGlobalSearchIndex({
       id: id,
       label: definition?.name ?? draft?.name ?? id,
       keywords: [
-        if (source != null) source.kind.name,
+        if (source != null) _eventSourceKindKeyword(source.kind),
         if (record.enabledOrNull != null)
           record.enabledOrNull! ? 'active' : 'inactive',
       ],
@@ -444,6 +444,13 @@ NarrativeGlobalSearchIndex buildNarrativeGlobalSearchIndex({
     entries: entries,
   );
 }
+
+String _eventSourceKindKeyword(NarrativeEventSourceKind kind) => switch (kind) {
+      NarrativeEventSourceKind.mapEnter => 'mapEnter',
+      NarrativeEventSourceKind.triggerEnter => 'triggerEnter',
+      NarrativeEventSourceKind.entityInteract => 'entityInteract',
+      NarrativeEventSourceKind.outcomeReceived => 'outcomeReceived',
+    };
 
 NarrativeDependencyNavigationIntent? _diagnosticTarget(
   NarrativeProjectDiagnostic diagnostic,

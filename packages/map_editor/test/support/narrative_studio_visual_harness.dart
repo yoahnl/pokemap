@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 
+export 'narrative_studio_product_shell_harness.dart';
+
 import '../shell_chrome_test_harness.dart';
 
 const narrativeStudioRealRouteModes = <EditorWorkspaceMode>[

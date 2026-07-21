@@ -18,12 +18,19 @@ void main() {
 
     final first = await seedSelbrumeCanonicalNarrativeContent(fixture);
     expect(first.changedRelativePaths, isNotEmpty);
+    expect(first.authoringContract, 'canonicalSeedAutomation');
+    expect(
+      first.humanWorkflowProof,
+      'test/selbrume_narrative_reconstruction_test.dart',
+    );
 
     final firstBytes = _authoredBytes(fixture);
     final second = await seedSelbrumeCanonicalNarrativeContent(fixture);
     final secondBytes = _authoredBytes(fixture);
 
     expect(second.changedRelativePaths, isEmpty);
+    expect(second.authoringContract, first.authoringContract);
+    expect(second.humanWorkflowProof, first.humanWorkflowProof);
     expect(secondBytes, firstBytes);
 
     final manifest = ProjectManifest.fromJson(
