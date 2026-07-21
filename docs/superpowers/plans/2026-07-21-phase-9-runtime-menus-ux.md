@@ -307,10 +307,6 @@ git commit -m "feat(runtime): harden the pause save menu"
 
 **Files:**
 
-- Create: `packages/map_runtime/lib/src/application/runtime_fast_travel.dart`
-- Modify: `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
-- Modify: `packages/map_runtime/lib/map_runtime.dart`
-- Create: `packages/map_runtime/test/runtime_fast_travel_test.dart`
 - Create: `examples/playable_runtime_host/lib/src/runtime_map_destinations.dart`
 - Create: `examples/playable_runtime_host/test/runtime_map_destinations_test.dart`
 - Modify: `examples/playable_runtime_host/lib/src/in_game_menu.dart`
@@ -318,43 +314,27 @@ git commit -m "feat(runtime): harden the pause save menu"
 - Modify: `examples/playable_runtime_host/test/in_game_menu_test.dart`
 - Create: `reports/gameplay/fg_164_runtime_map_fast_travel_ui_v0.md`
 
-- [ ] **Step 1: write RED domain and widget tests**
+- [x] **Step 1: write RED projection and widget tests**
 
-Prove deterministic known/current/locked destinations; reject no-Fly, unknown,
-current and busy destinations; and prove a successful travel uses the authored
-player spawn and the normal map activation/warp pipeline.
+Prove deterministic known/current/locked destinations, defensive manifest
+normalization and honest rendering that never reveals a locked map name.
 
-- [ ] **Step 2: implement structured result and public runtime seam**
+- [x] **Step 2: preserve the FG-125 mechanics boundary**
 
-```dart
-enum RuntimeFastTravelFailure {
-  runtimeUnavailable,
-  flyLocked,
-  unknownDestination,
-  currentDestination,
-  transitionBusy,
-  invalidSpawn,
-  transitionFailed,
-}
-```
+The canonical roadmap keeps Fly mechanics in FG-125, which is still TODO, and
+the current `FieldAbility` enum has no Fly member. Do not add a hidden warp seam
+or claim that Fly is supported from this UI lot.
 
-`PlayableMapGame.fastTravelToMap` validates state, loads the target bundle,
-resolves its authored player spawn, then delegates to `_handleWarp`. Change the
-private warp method to return success without changing existing callers.
+- [x] **Step 3: implement Map section**
 
-- [ ] **Step 3: implement Map section**
+List every project map with known/current/locked state. Reveal only visited map
+names and explain that fast travel will be enabled by FG-125. This fulfills the
+canonical FG-164 condition “used by Fly if available” without inventing Fly.
 
-List every project map with known/current/locked state. Enable travel only for
-known non-current destinations when Fly is unlocked. On success, close the menu
-so the pause lock is released after the transition.
-
-- [ ] **Step 4: GREEN, full touched-package gates and commit**
+- [x] **Step 4: GREEN, touched-package gate and commit**
 
 ```bash
-cd packages/map_runtime
-/opt/homebrew/bin/flutter test test/runtime_fast_travel_test.dart test/playable_map_game_input_test.dart
-/opt/homebrew/bin/flutter analyze
-cd ../../examples/playable_runtime_host
+cd examples/playable_runtime_host
 /opt/homebrew/bin/flutter test test/runtime_map_destinations_test.dart test/in_game_menu_test.dart
 /opt/homebrew/bin/flutter analyze
 /opt/homebrew/bin/flutter build macos --debug

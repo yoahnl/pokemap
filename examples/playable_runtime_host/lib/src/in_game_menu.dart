@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'runtime_player_options.dart';
+import 'runtime_map_destinations.dart';
 import 'runtime_pokedex_loader.dart';
 
 // Sections minimales couvertes par la phase 10.
@@ -16,6 +17,7 @@ enum InGameMenuSection {
   trainer,
   save,
   options,
+  worldMap,
 }
 
 // Résultat standardisé d'une action de save/load déclenchée depuis le menu.
@@ -66,6 +68,7 @@ class InGameMenuPage extends StatefulWidget {
     required this.onOptionsChanged,
     required this.onQuitRequested,
     required this.onCloseRequested,
+    this.projectMaps = const <ProjectMapEntry>[],
   });
 
   final GameState Function() gameStateSnapshotBuilder;
@@ -77,6 +80,7 @@ class InGameMenuPage extends StatefulWidget {
   final ValueChanged<RuntimePlayerOptions> onOptionsChanged;
   final VoidCallback onQuitRequested;
   final VoidCallback onCloseRequested;
+  final List<ProjectMapEntry> projectMaps;
 
   @override
   State<InGameMenuPage> createState() => _InGameMenuPageState();
@@ -187,6 +191,16 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
                           () => _selectedSection = InGameMenuSection.options,
                         ),
                       ),
+                      _MenuTile(
+                        key: const Key('menu-map-tile'),
+                        label: 'Carte',
+                        icon: Icons.map,
+                        selected:
+                            _selectedSection == InGameMenuSection.worldMap,
+                        onTap: () => setState(
+                          () => _selectedSection = InGameMenuSection.worldMap,
+                        ),
+                      ),
                       const Divider(height: 1),
                       _MenuTile(
                         key: const Key('menu-close-tile'),
@@ -223,6 +237,10 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
                       _TrainerSection(gameState: gameState),
                     InGameMenuSection.save => _buildSaveSection(context),
                     InGameMenuSection.options => _buildOptionsSection(context),
+                    InGameMenuSection.worldMap => _buildMapSection(
+                        context,
+                        gameState,
+                      ),
                   },
                 ),
               ),
@@ -292,6 +310,63 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
           message:
               'Volume global indisponible : le moteur ne possède pas encore de mixeur audio global. Aucun faux réglage ne sera enregistré.',
         ),
+      ],
+    );
+  }
+
+  Widget _buildMapSection(BuildContext context, GameState gameState) {
+    final destinations = resolveRuntimeMapDestinations(
+      maps: widget.projectMaps,
+      gameState: gameState,
+    );
+    return ListView(
+      key: const Key('in-game-map-section'),
+      children: [
+        Text('Carte', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 12),
+        const _SectionMessageCard(
+          title: 'Voyage rapide',
+          message:
+              'Voyage rapide indisponible : la mécanique Vol est planifiée dans le lot FG-125. Cette carte n’invente pas un déplacement non supporté.',
+        ),
+        const SizedBox(height: 16),
+        if (destinations.isEmpty)
+          const _SectionMessageCard(
+            title: 'Destinations',
+            message: 'Aucune map n’est déclarée dans ce projet.',
+          )
+        else
+          Card(
+            child: Column(
+              children: [
+                for (final destination in destinations)
+                  ListTile(
+                    key: Key('map-destination-${destination.mapId}'),
+                    leading: Icon(
+                      switch (destination.status) {
+                        RuntimeMapDestinationStatus.current =>
+                          Icons.my_location,
+                        RuntimeMapDestinationStatus.known =>
+                          Icons.location_on_outlined,
+                        RuntimeMapDestinationStatus.locked =>
+                          Icons.lock_outline,
+                      },
+                    ),
+                    title: Text(destination.displayName),
+                    subtitle: Text(
+                      switch (destination.status) {
+                        RuntimeMapDestinationStatus.current =>
+                          'Position actuelle',
+                        RuntimeMapDestinationStatus.known =>
+                          'Destination connue',
+                        RuntimeMapDestinationStatus.locked =>
+                          'Destination inconnue',
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
       ],
     );
   }

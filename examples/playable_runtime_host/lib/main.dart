@@ -726,6 +726,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                 onSaveRequested: _performSaveRequest,
                 onLoadRequested: _performLoadRequest,
                 playerOptions: _playerOptions,
+                projectMaps: _availableMaps,
                 supportsTouchControls: _supportsTouchControls,
                 onOptionsChanged: _updatePlayerOptions,
                 onQuitRequested: () {

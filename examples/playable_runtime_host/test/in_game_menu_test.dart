@@ -421,6 +421,66 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('Map lists current, known and locked destinations honestly',
+      (tester) async {
+    final state = _buildGameState().copyWith(
+      currentMapId: 'town',
+      narrativeEventProgress: NarrativeEventProgress(
+        visitedNarrativeMapIds: const ['port'],
+      ),
+    );
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InGameMenuPage(
+          gameStateSnapshotBuilder: () => state,
+          pokedexLoader: () async => const <RuntimePokedexEntry>[],
+          projectMaps: const <ProjectMapEntry>[
+            ProjectMapEntry(
+              id: 'town',
+              name: 'Bourg Selbrume',
+              relativePath: 'maps/town.json',
+              sortOrder: 10,
+            ),
+            ProjectMapEntry(
+              id: 'port',
+              name: 'Port des Brisants',
+              relativePath: 'maps/port.json',
+              sortOrder: 20,
+            ),
+            ProjectMapEntry(
+              id: 'cave',
+              name: 'Grotte secrète',
+              relativePath: 'maps/cave.json',
+              sortOrder: 30,
+            ),
+          ],
+          onSaveRequested: () async => const InGameMenuActionResult(),
+          onLoadRequested: () async => const InGameMenuActionResult(),
+          playerOptions: const RuntimePlayerOptions(),
+          supportsTouchControls: false,
+          onOptionsChanged: (_) {},
+          onQuitRequested: () {},
+          onCloseRequested: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('menu-map-tile')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('in-game-map-section')), findsOneWidget);
+    expect(find.text('Bourg Selbrume'), findsOneWidget);
+    expect(find.text('Port des Brisants'), findsOneWidget);
+    expect(find.text('Grotte secrète'), findsNothing);
+    expect(find.text('???'), findsOneWidget);
+    expect(find.textContaining('Voyage rapide indisponible'), findsOneWidget);
+    expect(find.byType(FilledButton), findsNothing);
+  });
 }
 
 // Snapshot minimal utilisé par les écrans Sac et Dresseur.
