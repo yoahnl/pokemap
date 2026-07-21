@@ -133,6 +133,58 @@ void main() {
         contains('contradictoires'),
       );
     });
+
+    test(
+        'keeps the completed technical Phase 10 NO-GO until the user approves the MVP scope',
+        () {
+      final report = MvpReleaseGateReport.evaluate(
+        <MvpReleaseGateEvidence>[
+          const MvpReleaseGateEvidence(
+            criterion: MvpReleaseGateCriterion.goldenSlice,
+            status: MvpReleaseGateEvidenceStatus.passed,
+            summary: 'Le parcours Golden Slice FG-182 passe de bout en bout.',
+            source:
+                'reports/gameplay/fg_182_golden_slice_end_to_end_smoke_v0.md',
+          ),
+          const MvpReleaseGateEvidence(
+            criterion: MvpReleaseGateCriterion.projectGameplayReadiness,
+            status: MvpReleaseGateEvidenceStatus.passed,
+            summary: 'Les onze checks FG-180 disposent de preuves valides.',
+            source:
+                'reports/gameplay/fg_180_project_gameplay_readiness_report_v0.md',
+          ),
+          const MvpReleaseGateEvidence(
+            criterion: MvpReleaseGateCriterion.criticalPackageTests,
+            status: MvpReleaseGateEvidenceStatus.passed,
+            summary: 'Les suites critiques sont vertes.',
+            source: 'reports/gameplay/fg_183_regression_matrix_v0.md',
+          ),
+          const MvpReleaseGateEvidence(
+            criterion: MvpReleaseGateCriterion.postMvpLimitationsDocumented,
+            status: MvpReleaseGateEvidenceStatus.passed,
+            summary: 'La Phase 11 documente les capacités différées.',
+            source: 'pokemap_roadmap_mecaniques_fangame.md#phase-11',
+          ),
+          const MvpReleaseGateEvidence(
+            criterion: MvpReleaseGateCriterion.userScopeApproved,
+            status: MvpReleaseGateEvidenceStatus.unverified,
+            summary:
+                'Le périmètre et ses exclusions attendent une approbation explicite.',
+          ),
+        ],
+      );
+
+      expect(report.isGo, isFalse);
+      expect(report.blockers, hasLength(1));
+      expect(
+        report.blockers.single.criterion,
+        MvpReleaseGateCriterion.userScopeApproved,
+      );
+      expect(
+        report.blockers.single.status,
+        MvpReleaseGateEvidenceStatus.unverified,
+      );
+    });
   });
 }
 

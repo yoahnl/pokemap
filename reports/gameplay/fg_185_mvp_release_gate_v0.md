@@ -1,585 +1,427 @@
 # FG-185 — MVP Release Gate V0
 
-> Date de vérification : 2026-07-18
-> Branche : `main`
-> HEAD de départ : `f93b70ad12a1930e332bef6c4eebcc10026690dc`
-> Verdict global : **PARTIAL / NO-GO**
-> Verdict distinct du démonstrateur Selbrume : **GO ciblé**
+Date: 2026-07-21
 
-## 1. Résumé exécutif
+Proposed status: **PARTIAL**
 
-Le lot livre une gate de release pure Dart et **fail-closed**. Elle ne peut
-retourner `GO` que si les cinq preuves exigées par `FG-185` sont présentes une
-seule fois et toutes au statut `passed`. Une preuve absente reste
-`unverified`; des preuves dupliquées ou contradictoires deviennent `failed`.
-Une prétendue réussite sans résumé ou provenance exploitable est également
-normalisée en `failed`.
+Verdict technique: **PASS**
 
-L'audit ne permet pas de déclarer PokeMap « outil fangame MVP » au sens global
-de la roadmap. Le démonstrateur Selbrume est bien clôturé et jouable dans son
-périmètre documenté, mais sa Golden Slice ne prouve pas encore le parcours
-MVP générique complet (capture et PC avec équipe pleine, XP/level-up,
-shop/heal, badge et field unlock). Le validateur narratif actuel ne couvre pas
-non plus toutes ces capacités gameplay. La gate reste donc volontairement
-**NO-GO** au lieu de transformer un succès ciblé en faux succès global.
+Verdict global: **PARTIAL / NO-GO — approbation utilisateur requise**
 
-## 2. Confirmation et limites du scope
+## Résumé exécutif
 
-Le scope retenu est le plus petit qui ferme honnêtement le dernier lot :
+Le réaudit frais ferme les anciens blockers techniques de FG-185. La Golden
+Slice globale passe, le rapport FG-180 dispose de ses onze preuves, les six
+packages critiques sont verts, et les exclusions post-MVP sont documentées.
 
-- agréger les cinq groupes de preuves définis par le DoD `FG-185`;
-- échouer de façon conservatrice si une preuve manque ou se contredit;
-- couvrir ce contrat par TDD;
-- auditer les preuves fraîches disponibles;
-- mettre à jour la roadmap sans déclarer `DONE` ce qui ne l'est pas;
-- publier les limites et commandes de vérification.
+La gate reste volontairement `NO-GO` avec un seul blocker:
+`userScopeApproved` est `unverified`. Une demande d'implémentation ne vaut pas
+acceptation explicite du cutoff produit. Aucun test ou rapport ne peut prendre
+cette décision à la place de l'utilisateur.
 
-Hors scope volontaire : implémenter dans ce même lot les mécaniques absentes,
-élargir artificiellement le validateur narratif, ou modifier les critères du
-DoD pour obtenir un `GO`.
+## Confirmation du scope
 
-Le commit intégré demandé par l'utilisateur contient également le chantier
-Selbrume/Narrative Studio réalisé dans les lots précédents. Son inventaire et
-ses preuves détaillées sont dans
-`reports/gameplay/fg_000_selbrume_demonstrator_completion_evidence_pack.md`.
-Le présent rapport ne réattribue pas ces changements antérieurs à `FG-185`.
+Inclus:
 
-## 3. Audit initial obligatoire
+- réévaluer les cinq critères du DoD FG-185;
+- exécuter toutes les suites, analyses, smokes et builds de FG-183;
+- ajouter une non-régression reproduisant l'état réel 4/5;
+- corriger une nondétermination découverte dans le smoke Selbrume;
+- publier le verdict et le cutoff à approuver.
 
-### 3.1 Sources et contrats inspectés
+Hors scope:
 
-| Source | Utilité |
+- déclarer l'approbation utilisateur sans réponse explicite;
+- modifier automatiquement la roadmap canonique;
+- implémenter les capacités Phase 11;
+- promettre un playtest humain ou une distribution multiplateforme signée.
+
+## Audit initial
+
+| Élément | État observé |
 |---|---|
-| `AGENTS.md` | Frontières de packages, règles Git, validation package-scoped et statut des lots. |
-| `codex_rule.md` | Audit, TDD, build, sous-agents, critique et Evidence Pack. |
-| `pokemap_roadmap_mecaniques_fangame.md` | DoD exact de `FG-185` et prérequis `FG-180` à `FG-184`. |
-| `reports/gameplay/fg_000_selbrume_demonstrator_completion_evidence_pack.md` | Preuves fraîches et limites du GO ciblé Selbrume. |
-| `reports/gameplay/fg_000_narrative_studio_selbrume_capability_matrix.md` | Baseline initiale des capacités et lacunes. |
-| `packages/map_core/lib/src/read_models/golden_slice_readiness.dart` | Read model existant, limité à une readiness legacy plus étroite. |
-| `packages/map_core/lib/src/validation/beta_playability_validator.dart` | Validation beta existante, insuffisante comme gate MVP globale. |
-| `packages/map_core/lib/src/operations/narrative_project_validator.dart` | Validateur narratif Selbrume, distinct d'un Gameplay Readiness Report exhaustif. |
+| Branche | `main` |
+| HEAD initial FG-185 | `b0ad00990` |
+| Worktree initial | propre |
+| Contrat existant | agrégateur pur Dart fail-closed dans `map_core` |
+| Tests existants | 6 cas: GO complet, absent, failed, métadonnées et doublons |
+| Ancien verdict | 2 passed, 2 failed, 1 unverified au 2026-07-18 |
+| Nouveau contexte | FG-180 à FG-184 désormais livrés et prouvés |
 
-### 3.2 Décision d'architecture
+Sources inspectées: `AGENTS.md`, `codex_rule.md`, la Phase 10 de
+`pokemap_roadmap_mecaniques_fangame.md`, les Evidence Packs FG-180 à FG-184,
+le modèle `mvp_release_gate.dart`, sa suite de tests et le parcours E2E
+Selbrume.
 
-La gate est placée dans `map_core` car elle ne dépend ni de Flutter, ni de
-Flame, ni de l'éditeur. Elle agrège des preuves produites ailleurs au lieu de
-lancer des tests ou d'inspecter le filesystem. Ce découplage maintient la
-frontière pure Dart et évite de faire passer l'absence de catalogue pour une
-preuve valide.
+Risques principaux:
 
-`GoldenSliceReadinessReport` n'a pas été réutilisé comme vérité canonique : son
-contrat historique ne représente pas les cinq critères globaux de `FG-185`.
+- réutiliser l'ancien NO-GO sans réévaluer les nouvelles preuves;
+- confondre validation technique et approbation produit;
+- masquer un test host rouge comme flaky sans diagnostic;
+- altérer le runtime pour stabiliser un helper de test;
+- publier `DONE` malgré un critère explicitement non vérifié.
 
-### 3.3 Risques identifiés avant implémentation
+## Matrice de décision fraîche
 
-- confondre le GO Selbrume avec un GO moteur global;
-- accepter une liste de preuves incomplète par défaut;
-- écraser une preuve négative avec un doublon positif;
-- faire dépendre `map_core` du runner de tests ou du filesystem;
-- marquer la roadmap `DONE` sans preuve des cinq critères;
-- publier des artéfacts locaux de tests goldens ou des locks projet.
+| Critère FG-185 | Statut | Source | Motif |
+|---|---:|---|---|
+| Golden Slice passe | PASSED | FG-181/182; host `+91` | parcours 13 étapes et smokes verts |
+| Project Gameplay Readiness sans error | PASSED | FG-180 | onze checks disposent de preuves passées |
+| Tests package critiques verts | PASSED | FG-183 + exécution ci-dessous | six suites et six analyses vertes |
+| Limitations post-MVP listées | PASSED | Phase 11 + completion pack | exclusions nommées et non revendiquées |
+| Utilisateur valide le périmètre | UNVERIFIED | aucune source explicite | décision produit encore attendue |
 
-### 3.4 État Git initial du lot
+Résultat évalué par `MvpReleaseGateReport`: `isGo == false`, un blocker unique
+`userScopeApproved/unverified`.
 
-Le workspace principal était déjà volontairement sale à cause du chantier
-intégré Narrative Studio/Selbrume :
+## Cutoff MVP soumis à validation
 
-| Mesure | Valeur |
-|---|---|
-| Branche | `main`, upstream `origin/main` |
-| HEAD | `f93b70ad12a1930e332bef6c4eebcc10026690dc` |
-| Entrées porcelain observées avant `FG-185` | `386` (`177 M`, `3 D`, `206 ??`) |
-| SHA-256 du snapshot porcelain | `d385088e...` (capture de travail conservée dans le journal de passe) |
+Le MVP proposé couvre une aventure solo complète: New Game/starter, party et
+PC, rencontres/capture, combats singles sauvages et dresseurs, progression,
+sac/shop/soin, argent/récompenses/badges, field unlocks, événements/dialogues,
+menus runtime, sauvegarde/rechargement, fin d'histoire, authoring no-code,
+readiness et Golden Slice automatisée.
 
-Aucun reset, stash, worktree ou nettoyage destructif n'a été effectué.
-L'audit de publication a classé les changements présents comme appartenant au
-chantier demandé. Les diagnostics golden temporaires et locks locaux sont
-désormais ignorés, sans supprimer les goldens de référence ni les captures de
-preuve sous `reports/gameplay/evidence/`.
+Restent post-MVP: doubles, Mega/Tera/Z/Dynamax, daycare/breeding, online,
+concours/minijeux, Battle Frontier, UX avancée IV/EV/natures et parité Pokédex
+moderne complète. Sont aussi non revendiqués: polish artistique exhaustif,
+playtest humain longue durée et packaging multiplateforme signé.
 
-## 4. Matrice de décision `FG-185`
+## Fichiers et zones modifiées
 
-| Critère DoD | Preuve fraîche | Statut gate | Motif |
-|---|---|---:|---|
-| Golden Slice passe | E2E Selbrume Host `+66`; Evidence Pack SEL-FIN | `FAILED` global | Le parcours ciblé atteint la fin, mais ne prouve pas capture→PC équipe pleine, XP/level-up, shop/heal, badge et field unlock exigés par `FG-182`. |
-| Project Gameplay Readiness Report sans error | Validator narratif Selbrume à zéro erreur ciblée | `FAILED` global | La validation ferme le graphe narratif, pas l'ensemble shop/heal/badge/field/progression de la readiness gameplay `FG-180`. |
-| Tests package critiques verts | Six suites complètes et analyses fraîches | `PASSED` | Core, Gameplay, Battle, Runtime, Editor et Host sont verts. |
-| Limitations post-MVP listées | Evidence Pack SEL-FIN, sections limites/risques | `PASSED` | Les limites fonctionnelles, QA et packaging sont explicites. |
-| Utilisateur valide le périmètre | Autorisation d'implémenter, commit et push | `UNVERIFIED` | L'autorisation de publier n'est pas une acceptation explicite du cutoff global et de toutes ses exclusions post-MVP. |
-
-Décision agrégée : **NO-GO**, avec deux critères `failed`, deux `passed` et un
-`unverified`.
-
-## 5. Fichiers du lot et zones modifiées
-
-| Fichier | Zone | Raison | Impact attendu |
+| Fichier | Zone | Raison | Impact |
 |---|---|---|---|
-| `.gitignore` | Bruit local OS/editor | Ignorer locks PokeMap, logs Flutter et diagnostics `failures/`. | Empêche la publication d'artéfacts locaux sans masquer les goldens de référence. |
-| `packages/map_core/lib/map_core.dart` | Barrel des read models | Exporter `mvp_release_gate.dart`. | Rend la gate accessible via l'API publique de `map_core`. |
-| `packages/map_core/lib/src/read_models/mvp_release_gate.dart` | Nouveau read model | Définir critères, statuts, preuves et agrégation fail-closed. | Un GO exige exactement une preuve passée par critère. |
-| `packages/map_core/test/mvp_release_gate_test.dart` | Nouvelle suite ciblée | Couvrir positif, absence, échec explicite et contradiction. | Protège contre les faux GO. |
-| `pokemap_roadmap_mecaniques_fangame.md` | Tableau Phase 10 et section FG-185 | Refléter les preuves fraîches. | `FG-185` devient `PARTIAL`, jamais `DONE` sans DoD complet. |
-| `reports/gameplay/fg_185_mvp_release_gate_v0.md` | Nouveau rapport | Conserver audit, décision, preuves, validations et limites. | Evidence Pack traçable du lot. |
+| `packages/map_core/test/mvp_release_gate_test.dart` | nouveau scénario 4/5 | caractériser les preuves réelles | empêche un GO avant approbation |
+| `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` | `interactWith`, navigation, helper incidentel | gérer une rencontre sur le dernier pas d'approche | smoke stable sans désactiver le gameplay |
+| `reports/gameplay/fg_185_mvp_release_gate_v0.md` | réaudit complet | remplacer les preuves obsolètes | décision actuelle et traçable |
+| `reports/gameplay/fg_180_185_phase_10_playable_game_validation_completion.md` | nouveau rapport | synthèse des six lots | Evidence Pack global Phase 10 |
 
-### 5.1 Diff précis des fichiers modifiés
+## Diffs précis
 
-`packages/map_core/lib/map_core.dart` :
+`packages/map_core/test/mvp_release_gate_test.dart`:
 
 ```diff
-@@ read model exports
-+export 'src/read_models/mvp_release_gate.dart';
++test('keeps the completed technical Phase 10 NO-GO until the user approves the MVP scope', () {
++  // Golden Slice, readiness, tests critiques et limites: passed.
++  // Approbation utilisateur: unverified.
++  expect(report.isGo, isFalse);
++  expect(report.blockers.single.criterion,
++      MvpReleaseGateCriterion.userScopeApproved);
++});
 ```
 
-`pokemap_roadmap_mecaniques_fangame.md` :
+`examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart`:
 
 ```diff
--| FG-185 | MVP Release Gate V0 | `⬜ TODO` | — |
-+| FG-185 | MVP Release Gate V0 | `🟨 PARTIAL` | rapport FG-185 — gate fail-closed livrée, verdict global NO-GO |
-+**État vérifié le 2026-07-18 : `PARTIAL / NO-GO`.**
+ await _tapMovement(_controlForDirection(approach.facing));
++await _resolveIncidentalEncounterIfNeeded();
+ expect(game.debugPlayerGridPosition, approach.position);
+
++Future<bool> _resolveIncidentalEncounterIfNeeded({
++  MapRect? deferBattleInArea,
++}) async {
++  // Détecte la requête/transition, fuit le combat sauvage, puis attend
++  // explicitement le retour à l'overworld.
++}
 ```
 
-`.gitignore` :
+## TDD, échec découvert et correction
 
-```diff
-+**/.pokemap-project-*.lock
-+**/flutter_*.log
-+packages/map_editor/test/**/failures/
+Tests de gate ciblés après ajout du scénario:
+
+```text
+dart test test/mvp_release_gate_test.dart \
+  test/project_gameplay_readiness_test.dart \
+  test/gameplay_roadmap_dashboard_test.dart
+=> +17: All tests passed!
 ```
 
-## 6. TDD et tests du contrat
+La première suite host complète a échoué honnêtement:
 
-### 6.1 Rouge attendu
-
-Commande :
-
-```bash
-cd packages/map_core && dart test test/mvp_release_gate_test.dart
+```text
+01:47 +90 -1: Some tests failed.
+Expected: true
+Actual: false
+test/selbrume_player_journey_e2e_test.dart:792 interactWith
 ```
 
-Résultat : exit `1`, erreurs attendues de symboles encore absents
-(`MvpReleaseGateReport`, `MvpReleaseGateCriterion` et types associés). Cette
-preuve confirme que les nouveaux tests échouaient avant l'implémentation.
+Les traces prouvaient qu'une rencontre sauvage se déclenchait sur le dernier
+pas vers Mado, après la navigation mais avant l'interaction. La relance isolée
+passait (`02:22 +1`), confirmant une nondétermination dépendante du tirage.
 
-### 6.2 Vert ciblé
+Correction minimale: mutualiser la résolution des rencontres incidentes et
+l'appeler aussi après le pas final d'approche. Le runtime n'a pas été modifié.
 
-```bash
-cd packages/map_core && dart test test/mvp_release_gate_test.dart
+```text
+flutter test --no-pub test/selbrume_player_journey_e2e_test.dart
+=> 03:19 +5: All tests passed!
+
+flutter test --no-pub
+=> 03:13 +91: All tests passed!
 ```
 
-Résultat final : exit `0`, `+6: All tests passed!`.
+## Suites et analyses complètes
 
-Cas couverts :
+| Package | Commande test | Résultat | Analyse |
+|---|---|---|---|
+| Core | `dart test` | `01:55 +4334: All tests passed!` | `No issues found!` |
+| Gameplay | `dart test` | `00:04 +303: All tests passed!` | `No issues found!` |
+| Battle | `dart test` | `00:22 +1722: All tests passed!` | `No issues found!` |
+| Runtime | `flutter test --no-pub` | `01:49 +1917 ~1: All tests passed!` | `No issues found! (4.0s)` |
+| Editor | `flutter test --no-pub` | `04:43 +4096: All tests passed!` | `No issues found! (6.0s)` |
+| Host | `flutter test --no-pub` | `03:13 +91: All tests passed!` | `No issues found! (4.6s)` |
 
-1. cinq preuves `passed` donnent `GO`;
-2. un critère absent produit un blocker `unverified`;
-3. un échec explicite reste blocker;
-4. une réussite sans résumé exploitable est refusée;
-5. une réussite sans source exploitable est refusée;
-6. un doublon contradictoire devient `failed` au lieu de blanchir la preuve.
+Le test marqué `~1` dans Runtime est ignoré explicitement; aucun test n'échoue
+dans l'état final.
 
-Après la critique indépendante, les deux nouveaux tests de provenance ont
-d'abord échoué comme attendu : exit `1`, `+4 -2`. Après ajout de la
-normalisation fail-closed, la suite ciblée termine à exit `0`,
-`+6: All tests passed!`; l'analyse ciblée est propre.
+## Smokes, seed et builds
 
-### 6.3 Régressions Core ciblées
+```text
+Runtime Phase A battle smoke: +3, All tests passed!
+Host Golden fixture/E2E/launch: +3, All tests passed!
+Host Selbrume journey: +5, All tests passed!
+Selbrume canonical narrative content is up to date.
 
-```bash
-cd packages/map_core && dart test \
-  test/mvp_release_gate_test.dart \
-  test/beta_playability_validator_test.dart \
-  test/golden_slice_readiness_test.dart \
-  test/narrative_project_validator_test.dart
+flutter build macos --debug (map_editor)
+=> Built build/macos/Build/Products/Debug/map_editor.app
+
+flutter build macos --debug (playable_runtime_host)
+=> Built build/macos/Build/Products/Debug/playable_runtime_host.app
 ```
 
-Résultat final : exit `0`, `+48: All tests passed!`.
+## Passes obligatoires
 
-## 7. Validation complète fraîche
-
-Les commandes Flutter ont été exécutées séquentiellement pour éviter les
-interférences de build.
-
-| Package | Commande | Résultat exact utile |
-|---|---|---|
-| `map_core` | `dart test` | exit `0`, `+3064: All tests passed!` |
-| `map_core` | `dart analyze` | exit `0`, `No issues found!` |
-| `map_gameplay` | `dart test` | exit `0`, `+288: All tests passed!` |
-| `map_gameplay` | `dart analyze` | exit `0`, `No issues found!` |
-| `map_battle` | `dart test` | exit `0`, `+1722: All tests passed!` |
-| `map_battle` | `dart analyze` | exit `0`, `No issues found!` |
-| `map_runtime` | `flutter test --no-pub` | exit `0`, `+1827 ~1: All tests passed!` |
-| `map_runtime` | `flutter analyze` | exit `0`, `No issues found! (ran in 3.9s)` |
-| `map_editor` | `flutter test --no-pub` | exit `0`, `03:30 +3403: All tests passed!` |
-| `map_editor` | `flutter analyze` | exit `0`, `No issues found! (ran in 4.6s)` |
-| `playable_runtime_host` | `flutter test --no-pub` | exit `0`, `03:15 +66: All tests passed!` |
-| `playable_runtime_host` | `flutter analyze` | exit `0`, `No issues found! (ran in 4.2s)` |
-
-Vérification du contenu canonique :
-
-```bash
-cd packages/map_editor && \
-  dart run tool/seed_selbrume_canonical_narrative_content.dart \
-  --project-root ../../selbrume --check
-```
-
-Résultat : exit `0`,
-`Selbrume canonical narrative content is up to date.` Le SHA-256 final de
-`selbrume/project.json` est
-`b62423b77b97f2d10bfb9ee5be8cef006607bf5a4aa60e00b341608462c48e26`.
-
-## 8. Build obligatoire
-
-```bash
-cd packages/map_editor && \
-  FLUTTER_XCODE_ARCHS=arm64 flutter build macos --release
-```
-
-Résultat : exit `0`,
-`Built build/macos/Build/Products/Release/map_editor.app (37.4MB)`.
-
-Le build validé est arm64. Le build macOS universel reste une limitation de
-toolchain déjà documentée (Flutter beta/Xcode 27); aucune compatibilité
-universelle n'est revendiquée par ce lot.
-
-## 9. Verdicts des sous-agents et passes obligatoires
-
-| Passe | Mission | Verdict |
-|---|---|---:|
-| Audit / Architecture | Comparer le DoD `FG-185` aux preuves réelles et proposer une API pure. | `NO-GO / PARTIAL`; gate fail-closed dans `map_core`. |
-| Implémentation | TDD du read model et mise à jour du statut. | `PASS`; rouges observés puis `+6` vert final. |
-| Tests Core | Suite et analyse complètes `map_core`. | `GO`; `+3064`, analyse propre. |
-| Tests packages purs | `map_gameplay` et `map_battle`. | `GO`; `+288` et `+1722`, analyses propres. |
-| Build / Validation | Runtime, Editor, Host, seed check et build arm64. | `GO` technique sur toutes les commandes exécutées. |
-| Audit de publication | Classer le worktree partagé et exclure le bruit local. | `GO`; périmètre intégré cohérent, locks/failures ignorés. |
-| Critique finale | Revue indépendante du contrat, du rapport et du scope publié. | `GO` après corrections : aucun blocker Critical ou Important restant. Métadonnées `passed` fail-closed, rapport finalisé, état Git clarifié et formulation Marionette historisée. |
-
-## 10. État Git final avant publication
-
-Après implémentation et avant staging :
-
-| Mesure | Valeur |
+| Passe nommée | Verdict |
 |---|---|
-| Branche / upstream | `main` / `origin/main` |
-| Entrées porcelain `--untracked-files=all` | `390` (`179 M`, `3 D`, `208 ??`) au moment de la critique |
-| `git diff --check` | exit `0`, aucune erreur |
+| Audit / Architecture | PASS — agrégateur pur, preuves réévaluées |
+| Implémentation | PASS — scénario réel et smoke stabilisé sans code production |
+| Tests | PASS — rouge host documenté, diagnostic puis suites vertes |
+| Build / Validation | PASS — six analyses, seed et deux builds verts |
+| Critique finale | PASS technique — un seul blocker produit conservé |
 
-Cet état inclut le chantier intégré antérieur. Le hash porcelain est
-volontairement omis de cette section : modifier le rapport qui contient ce hash
-le rendrait immédiatement périmé. Le statut propre après commit et push est
-vérifié séparément dans le compte rendu de publication, car le hash du commit
-ne peut pas être inscrit dans le commit qui le calcule lui-même.
+## Limites et risques conservés
 
-## 11. Limites conservées et prochaines étapes proposées
+- L'agrégateur reçoit des preuves; il ne lance pas la matrice lui-même.
+- La fraîcheur est documentée, pas signée par une CI.
+- Le smoke Selbrume dépend toujours d'un moteur de combat réel et reste plus
+  long qu'un test unitaire.
+- Les builds macOS debug ne prouvent pas la notarisation ou les autres OS.
+- La roadmap n'est pas modifiée dans ce lot; le statut proposé reste PARTIAL.
 
-Pour faire passer `FG-185` à `DONE`, sans les implémenter dans ce lot :
+## Auto-critique
 
-1. fermer `FG-180` avec un Gameplay Readiness Report couvrant aussi capture,
-   PC, progression, shop/heal, badge et field unlock;
-2. produire `FG-182` avec un parcours global incluant chacun de ces systèmes;
-3. fermer la matrice de régression `FG-183` et le dashboard `FG-184` si retenu;
-4. faire accepter explicitement par l'utilisateur le cutoff MVP et les
-   limitations post-MVP;
-5. réévaluer les cinq preuves dans `MvpReleaseGateReport`.
+Le travail technique de Phase 10 est complet, mais marquer FG-185 `DONE`
+maintenant violerait son propre DoD. Le compromis retenu est intentionnel:
+committer toutes les preuves et le correctif de stabilité, puis demander une
+validation de périmètre clairement formulée. Une fois obtenue, un dernier
+Evidence Pack peut faire passer le cinquième critère à `PASSED` sans autre
+changement fonctionnel.
 
-## 12. Auto-critique et risques restants
+## État git final avant commit
 
-- La gate agrège des preuves mais ne vérifie pas leur fraîcheur elle-même. Le
-  champ `source` non vide reste une convention documentaire; une couche CI
-  pourra plus tard signer ou dater ces preuves.
-- L'agrégateur n'est pas encore branché à un runner CI ou à une route produit.
-  Il fournit le contrat fail-closed, tandis que la matrice de décision de ce
-  rapport reste l'évaluation manuelle des preuves fraîches. C'est pourquoi le
-  lot demeure `PARTIAL`.
-- Le contrat rejette tous les doublons, même deux preuves concordantes. Cette
-  sévérité est volontaire pour V0 et évite une priorité implicite entre
-  sources, mais un modèle de provenance explicite pourra être nécessaire.
-- Le GO Selbrume repose sur un parcours E2E ciblé et non sur plusieurs heures
-  de playtest humain mesuré.
-- Le solveur de reachability narratif reste borné à 4096 états et échoue de
-  façon conservatrice au-delà.
-- Le build universel macOS n'est pas prouvé dans la toolchain actuelle.
-- Le worktree publié est volumineux parce que l'utilisateur a demandé un
-  commit intégré de tous les lots précédents; cela augmente le coût d'une
-  future revue par commit malgré l'audit de scope.
+Le statut exact, `git diff --check` et les derniers tests ciblés sont exécutés
+après génération de ce rapport. Le commit FG-185 contient uniquement les deux
+tests et les deux rapports listés ci-dessus.
 
-Le principal garde-fou du lot est donc l'honnêteté : l'implémentation de la
-gate est terminée et testée, mais son verdict global reste **NO-GO** tant que
-les preuves produit manquantes ne sont pas livrées.
+## Annexe A — fichier créé
 
-## Annexe A — contenu complet du fichier créé
-`packages/map_core/lib/src/read_models/mvp_release_gate.dart`
+Le contenu complet du nouvel Evidence Pack Phase 10 est reproduit ci-dessous.
 
-```dart
-/// The five independent evidence groups required by FG-185.
-enum MvpReleaseGateCriterion {
-  goldenSlice,
-  projectGameplayReadiness,
-  criticalPackageTests,
-  postMvpLimitationsDocumented,
-  userScopeApproved,
-}
+````markdown
+# Phase 10 — Playable Game Validation — Completion Evidence Pack
 
-/// State of one externally produced release-gate proof.
-enum MvpReleaseGateEvidenceStatus {
-  passed,
-  failed,
-  unverified,
-}
+Date: 2026-07-21
 
-/// Evidence supplied to the FG-185 release-gate aggregator.
-///
-/// This object records an external proof. It does not run tests or validators
-/// itself, so callers must keep [source] and [summary] tied to fresh evidence.
-final class MvpReleaseGateEvidence {
-  const MvpReleaseGateEvidence({
-    required this.criterion,
-    required this.status,
-    required this.summary,
-    this.source,
-  });
+Périmètre: `FG-180` à `FG-185`
 
-  final MvpReleaseGateCriterion criterion;
-  final MvpReleaseGateEvidenceStatus status;
-  final String summary;
-  final String? source;
-}
+Verdict technique: **PASS**
 
-/// Fail-closed decision for `FG-185 — MVP Release Gate V0`.
-///
-/// Every criterion must have exactly one passing proof. Missing or duplicate
-/// evidence remains a blocker. Passing claims must also carry a non-empty
-/// summary and source so a status flag alone cannot accidentally promote a
-/// partial demonstrator to a global MVP release.
-final class MvpReleaseGateReport {
-  MvpReleaseGateReport._(
-      Map<MvpReleaseGateCriterion, MvpReleaseGateEvidence> evidence)
-      : evidenceByCriterion = Map.unmodifiable(evidence);
+Verdict release MVP: **PARTIAL / NO-GO — approbation utilisateur requise**
 
-  factory MvpReleaseGateReport.evaluate(
-    Iterable<MvpReleaseGateEvidence> evidence,
-  ) {
-    final suppliedByCriterion =
-        <MvpReleaseGateCriterion, List<MvpReleaseGateEvidence>>{};
-    for (final item in evidence) {
-      suppliedByCriterion.putIfAbsent(item.criterion, () => []).add(item);
-    }
+## Résumé exécutif
 
-    final normalized = <MvpReleaseGateCriterion, MvpReleaseGateEvidence>{};
-    for (final criterion in MvpReleaseGateCriterion.values) {
-      final supplied = suppliedByCriterion[criterion] ?? const [];
-      normalized[criterion] = switch (supplied.length) {
-        0 => MvpReleaseGateEvidence(
-            criterion: criterion,
-            status: MvpReleaseGateEvidenceStatus.unverified,
-            summary: 'Aucune preuve fournie pour ${criterion.name}.',
-          ),
-        1 => _normalizeSingleEvidence(supplied.single),
-        _ => MvpReleaseGateEvidence(
-            criterion: criterion,
-            status: MvpReleaseGateEvidenceStatus.failed,
-            summary:
-                'Preuves dupliquees ou contradictoires pour ${criterion.name}.',
-          ),
-      };
-    }
+La phase 10 livre maintenant le rapport de readiness fail-closed, une fixture
+Golden Slice versionnée, son parcours E2E, une matrice de régression, un
+dashboard read-only et la gate de release. Les six packages passent leurs
+suites et analyses, les smokes ciblés passent, le seed Selbrume est à jour et
+les deux applications macOS de debug se construisent.
 
-    return MvpReleaseGateReport._(normalized);
-  }
+La gate n'annonce pas encore `GO`: quatre critères sur cinq sont prouvés. Le
+dernier critère exige que l'utilisateur accepte explicitement le périmètre MVP
+et les capacités reportées en Phase 11.
 
-  final Map<MvpReleaseGateCriterion, MvpReleaseGateEvidence>
-      evidenceByCriterion;
+## Audit initial
 
-  bool get isGo => evidenceByCriterion.values.every(
-        (item) => item.status == MvpReleaseGateEvidenceStatus.passed,
-      );
+- Branche: `main`.
+- HEAD au début de FG-180: `65cae2520`.
+- HEAD au début de FG-185: `b0ad00990`.
+- Worktree propre à l'ouverture de chaque lot.
+- Roadmap canonique inspectée:
+  `pokemap_roadmap_mecaniques_fangame.md`, Phase 10.
+- Règles de rapport inspectées: `codex_rule.md`.
+- Frontières respectées: modèles/outillage purs dans `map_core`, logique
+  gameplay pure dans `map_gameplay`, fixture et parcours dans le host.
 
-  List<MvpReleaseGateEvidence> get blockers => List.unmodifiable(
-        evidenceByCriterion.values.where(
-          (item) => item.status != MvpReleaseGateEvidenceStatus.passed,
-        ),
-      );
-}
+## État des lots
 
-MvpReleaseGateEvidence _normalizeSingleEvidence(
-  MvpReleaseGateEvidence evidence,
-) {
-  // Failed and unverified proofs are already conservative. Metadata is
-  // mandatory only for a claim that would otherwise contribute to a GO.
-  if (evidence.status != MvpReleaseGateEvidenceStatus.passed) {
-    return evidence;
-  }
+| Lot | Livrable | Preuve | Proposition |
+|---|---|---|---:|
+| FG-180 | Project Gameplay Readiness Report V0 | 11 checks, rapports créateur/agent, tests `+5` | DONE |
+| FG-181 | Golden Slice Fangame Fixture V0 | 3 maps, données minimales, walkthrough 13 étapes | DONE |
+| FG-182 | Golden Slice End-to-End Smoke V0 | parcours production de New Game à fin + save/reload | DONE |
+| FG-183 | Regression Matrix V0 | matrice rapide, complète, smokes et builds | DONE |
+| FG-184 | Roadmap Status Dashboard Generator V0 | parseur pur + CLI read-only + tests `+5` | DONE |
+| FG-185 | MVP Release Gate V0 | 4/5 critères passés, approbation scope non vérifiée | PARTIAL |
 
-  if (evidence.summary.trim().isEmpty) {
-    return MvpReleaseGateEvidence(
-      criterion: evidence.criterion,
-      status: MvpReleaseGateEvidenceStatus.failed,
-      summary: 'La preuve passed ne fournit aucun resume exploitable.',
-      source: evidence.source,
-    );
-  }
+## Commits par lot
 
-  if (evidence.source?.trim().isEmpty ?? true) {
-    return MvpReleaseGateEvidence(
-      criterion: evidence.criterion,
-      status: MvpReleaseGateEvidenceStatus.failed,
-      summary: 'La preuve passed ne fournit aucune source exploitable.',
-    );
-  }
+| Lot | Commit |
+|---|---|
+| FG-180 | `739e0ab73 feat(core): add gameplay readiness report` |
+| FG-181 | `dc0e6cb52 test(host): add golden fangame slice fixture` |
+| FG-182 | `c06c49db8 test(gameplay): prove golden fangame journey` |
+| FG-183 | `05a6f9faa docs(gameplay): add phase 10 regression matrix` |
+| FG-184 | `b0ad00990 feat(core): add gameplay roadmap dashboard` |
+| FG-185 | commit créé après validation de ce rapport |
 
-  return evidence;
-}
+## Matrice de décision FG-185
+
+| Critère | Statut | Preuve fraîche |
+|---|---:|---|
+| Golden Slice passe | PASSED | fixture `+1`, E2E/launch ciblés `+3`, host complet `+91` |
+| Project Gameplay Readiness sans error | PASSED | FG-180 healthy fixture et 11 preuves passées |
+| Tests package critiques verts | PASSED | six suites complètes et six analyses propres |
+| Limitations post-MVP listées | PASSED | Phase 11 de la roadmap et cutoff ci-dessous |
+| Utilisateur valide le périmètre | UNVERIFIED | aucune approbation explicite du cutoff dans ce lot |
+
+Décision agrégée: **NO-GO**, avec un seul blocker
+`userScopeApproved/unverified`.
+
+## Cutoff MVP proposé à l'approbation
+
+Le MVP validé couvre la création et l'exécution d'une mini-aventure solo avec:
+
+- New Game et choix du starter;
+- équipe, PC/boxes et destination de capture;
+- rencontres sauvages, capture et combats de dresseur simples;
+- XP, level-up, apprentissage/évolution couverts par les contrats existants;
+- sac, objets, shop, soin, argent, récompenses et badges/flags;
+- Surf/Cut et déblocages de terrain;
+- événements, scènes, dialogues et conséquences narratives;
+- menus runtime, sauvegarde/rechargement et fin d'histoire;
+- validations auteur, Golden Slice et matrice de non-régression.
+
+Sont explicitement post-MVP: doubles, Mega/Tera/Z/Dynamax, breeding/daycare,
+online, concours/minijeux, Battle Frontier, UX IV/EV/natures avancée et parité
+Pokédex moderne complète. Le polish visuel exhaustif, un playtest humain long
+et un packaging multiplateforme signé ne sont pas revendiqués par cette gate.
+
+## Fichiers FG-185 modifiés
+
+| Fichier | Zone | Impact |
+|---|---|---|
+| `packages/map_core/test/mvp_release_gate_test.dart` | scénario Phase 10 réel | prouve le NO-GO avec quatre critères passés et l'approbation non vérifiée |
+| `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` | approche PNJ et rencontre incidente | stabilise le smoke quand le dernier pas déclenche un combat sauvage |
+| `reports/gameplay/fg_185_mvp_release_gate_v0.md` | réaudit complet | remplace les preuves obsolètes de 2026-07-18 |
+| `reports/gameplay/fg_180_185_phase_10_playable_game_validation_completion.md` | nouvel Evidence Pack | synthétise toute la phase 10 |
+
+## TDD et diagnostic
+
+Le test de gate réel a été ajouté comme non-régression du contrat fail-closed.
+La première suite host complète a ensuite découvert un rouge réel:
+
+```text
+01:47 +90 -1: Some tests failed.
+selbrume_player_journey_e2e_test.dart:
+player completes Selbrume through PlayableMapGame production hooks
+Expected: true
+Actual: false
 ```
 
-## Annexe B — contenu complet du fichier créé
-`packages/map_core/test/mvp_release_gate_test.dart`
+Diagnostic: le dernier pas d'approche du PNJ Mado, situé hors de
+`navigateTo`, avait déclenché une rencontre sauvage; l'interaction primaire
+était envoyée pendant la transition de combat. Le helper de test résout
+désormais cette rencontre incidente avant l'interaction. Aucun code runtime de
+production n'a changé.
 
-```dart
-import 'package:map_core/map_core.dart';
-import 'package:test/test.dart';
+Preuve après correction:
 
-void main() {
-  group('MvpReleaseGateReport', () {
-    test('returns GO only when every required criterion has passed evidence',
-        () {
-      final report = MvpReleaseGateReport.evaluate(_passedEvidence());
+```text
+flutter test --no-pub test/selbrume_player_journey_e2e_test.dart
+=> 03:19 +5: All tests passed!
 
-      expect(report.isGo, isTrue);
-      expect(report.blockers, isEmpty);
-      expect(
-        report.evidenceByCriterion.keys,
-        containsAll(MvpReleaseGateCriterion.values),
-      );
-    });
-
-    test('fails closed when a required criterion has no evidence', () {
-      final evidence = _passedEvidence()
-          .where(
-            (item) =>
-                item.criterion !=
-                MvpReleaseGateCriterion.projectGameplayReadiness,
-          )
-          .toList(growable: false);
-
-      final report = MvpReleaseGateReport.evaluate(evidence);
-
-      expect(report.isGo, isFalse);
-      expect(report.blockers, hasLength(1));
-      expect(
-        report.blockers.single.criterion,
-        MvpReleaseGateCriterion.projectGameplayReadiness,
-      );
-      expect(
-        report.blockers.single.status,
-        MvpReleaseGateEvidenceStatus.unverified,
-      );
-    });
-
-    test('keeps an explicit failed criterion as a release blocker', () {
-      final evidence = _passedEvidence()
-          .map(
-            (item) => item.criterion == MvpReleaseGateCriterion.goldenSlice
-                ? const MvpReleaseGateEvidence(
-                    criterion: MvpReleaseGateCriterion.goldenSlice,
-                    status: MvpReleaseGateEvidenceStatus.failed,
-                    summary: 'Le parcours MVP global est incomplet.',
-                    source: 'reports/gameplay/fg_185_mvp_release_gate_v0.md',
-                  )
-                : item,
-          )
-          .toList(growable: false);
-
-      final report = MvpReleaseGateReport.evaluate(evidence);
-
-      expect(report.isGo, isFalse);
-      expect(report.blockers, hasLength(1));
-      expect(
-        report.blockers.single.status,
-        MvpReleaseGateEvidenceStatus.failed,
-      );
-    });
-
-    test('rejects passed evidence without a usable summary', () {
-      final evidence = _passedEvidence()
-          .map(
-            (item) => item.criterion == MvpReleaseGateCriterion.goldenSlice
-                ? const MvpReleaseGateEvidence(
-                    criterion: MvpReleaseGateCriterion.goldenSlice,
-                    status: MvpReleaseGateEvidenceStatus.passed,
-                    summary: '   ',
-                    source: 'fresh-evidence',
-                  )
-                : item,
-          )
-          .toList(growable: false);
-
-      final report = MvpReleaseGateReport.evaluate(evidence);
-
-      expect(report.isGo, isFalse);
-      expect(
-        report.evidenceByCriterion[MvpReleaseGateCriterion.goldenSlice]?.status,
-        MvpReleaseGateEvidenceStatus.failed,
-      );
-    });
-
-    test('rejects passed evidence without a usable source', () {
-      final evidence = _passedEvidence()
-          .map(
-            (item) =>
-                item.criterion == MvpReleaseGateCriterion.criticalPackageTests
-                    ? const MvpReleaseGateEvidence(
-                        criterion: MvpReleaseGateCriterion.criticalPackageTests,
-                        status: MvpReleaseGateEvidenceStatus.passed,
-                        summary: 'Les suites critiques sont vertes.',
-                      )
-                    : item,
-          )
-          .toList(growable: false);
-
-      final report = MvpReleaseGateReport.evaluate(evidence);
-
-      expect(report.isGo, isFalse);
-      expect(
-        report.evidenceByCriterion[MvpReleaseGateCriterion.criticalPackageTests]
-            ?.status,
-        MvpReleaseGateEvidenceStatus.failed,
-      );
-    });
-
-    test('rejects contradictory duplicate evidence instead of laundering it',
-        () {
-      final evidence = <MvpReleaseGateEvidence>[
-        ..._passedEvidence(),
-        const MvpReleaseGateEvidence(
-          criterion: MvpReleaseGateCriterion.goldenSlice,
-          status: MvpReleaseGateEvidenceStatus.failed,
-          summary: 'Une seconde source contredit le GO.',
-        ),
-      ];
-
-      final report = MvpReleaseGateReport.evaluate(evidence);
-
-      expect(report.isGo, isFalse);
-      expect(
-        report.evidenceByCriterion[MvpReleaseGateCriterion.goldenSlice]?.status,
-        MvpReleaseGateEvidenceStatus.failed,
-      );
-      expect(
-        report
-            .evidenceByCriterion[MvpReleaseGateCriterion.goldenSlice]?.summary,
-        contains('contradictoires'),
-      );
-    });
-  });
-}
-
-List<MvpReleaseGateEvidence> _passedEvidence() => MvpReleaseGateCriterion.values
-    .map(
-      (criterion) => MvpReleaseGateEvidence(
-        criterion: criterion,
-        status: MvpReleaseGateEvidenceStatus.passed,
-        summary: '${criterion.name} est prouve.',
-        source: 'fresh-evidence',
-      ),
-    )
-    .toList(growable: false);
+flutter test --no-pub
+=> 03:13 +91: All tests passed!
 ```
+
+## Validation complète fraîche
+
+| Package | Tests | Analyse |
+|---|---|---|
+| `map_core` | `01:55 +4334: All tests passed!` | `No issues found!` |
+| `map_gameplay` | `00:04 +303: All tests passed!` | `No issues found!` |
+| `map_battle` | `00:22 +1722: All tests passed!` | `No issues found!` |
+| `map_runtime` | `01:49 +1917 ~1: All tests passed!` | `No issues found! (ran in 4.0s)` |
+| `map_editor` | `04:43 +4096: All tests passed!` | `No issues found! (ran in 6.0s)` |
+| `playable_runtime_host` | `03:13 +91: All tests passed!` | `No issues found! (ran in 4.6s)` |
+
+Le `~1` de `map_runtime` est un test ignoré déclaré, pas un échec.
+
+## Smokes et validations ciblées
+
+```text
+map_core FG-180/184/185 ciblés: +17, All tests passed!
+map_runtime Phase A battle smoke: +3, All tests passed!
+host Golden fixture/E2E/launch: +3, All tests passed!
+host Selbrume journey complet: +5, All tests passed!
+Selbrume canonical narrative content is up to date.
+```
+
+## Builds
+
+```text
+cd packages/map_editor && flutter build macos --debug
+=> Built build/macos/Build/Products/Debug/map_editor.app
+
+cd examples/playable_runtime_host && flutter build macos --debug
+=> Built build/macos/Build/Products/Debug/playable_runtime_host.app
+```
+
+## Passes nommées
+
+| Passe | Verdict |
+|---|---|
+| Audit / Architecture | PASS — frontières et DoD FG-180–185 respectés |
+| Implémentation | PASS — six livrables présents, pas d'écriture automatique de roadmap |
+| Tests | PASS — suites ciblées et exhaustives vertes après correction du smoke |
+| Build / Validation | PASS — analyses, seed check et deux builds macOS verts |
+| Critique finale | PASS technique — aucun faux GO; approbation produit encore absente |
+
+## Limites et risques
+
+- La gate agrège des preuves documentées; elle ne signe pas leur fraîcheur en
+  CI.
+- Le dashboard lit du Markdown et dépend donc de la stabilité minimale du
+  tableau et de la ligne `Proposed status:`.
+- La Golden Slice automatise les contrats du parcours, pas un playtest humain
+  exhaustif ni la qualité artistique finale.
+- Les builds prouvent macOS debug local, pas notarisation ni distribution
+  Windows/Linux.
+- La roadmap canonique n'est pas modifiée par cette exécution; les Evidence
+  Packs proposent les statuts.
+
+## Auto-critique finale
+
+La validation a volontairement refusé de transformer « tous les tests sont
+verts » en `GO` produit. Cette prudence laisse un état `PARTIAL` alors que tout
+le travail technique est terminé, mais elle respecte le DoD: le cutoff est une
+décision utilisateur. La nondétermination révélée par la première suite host a
+été corrigée dans le test qui la subissait, sans affaiblir le runtime ni
+désactiver les rencontres.
+
+## État git avant le commit FG-185
+
+Attendu: les deux tests ci-dessus et les deux Evidence Packs, sans changement
+généré par les builds. `git diff --check` et un dernier statut sont exécutés
+avant commit.
+````

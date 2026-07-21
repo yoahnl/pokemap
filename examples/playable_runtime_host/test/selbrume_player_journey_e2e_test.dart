@@ -788,6 +788,10 @@ final class _SelbrumeJourney {
     final approach = _shortestReachableApproach(entity);
     await navigateTo(approach.stagingPosition);
     await _tapMovement(_controlForDirection(approach.facing));
+    // The final one-cell approach is intentionally outside navigateTo(). It
+    // can still cross encounter terrain, so drain that production battle
+    // before asserting that the interaction input belongs to the NPC.
+    await _resolveIncidentalEncounterIfNeeded();
     expect(game.debugPlayerGridPosition, approach.position);
     expect(
       game.handleRuntimeInputEvent(
@@ -937,27 +941,11 @@ final class _SelbrumeJourney {
       final direction = path.first;
       final before = game.debugPlayerGridPosition;
       await _tapMovement(_controlForDirection(direction));
-      if (game.debugPendingBattleRequest != null ||
-          game.debugFlowPhaseName == 'battleTransition' ||
-          game.debugFlowPhaseName == 'battle') {
-        if (deferBattleInArea != null &&
-            _contains(deferBattleInArea, game.debugPlayerGridPosition)) {
-          return;
-        }
-        await _pumpUntil(
-          () =>
-              game.debugFlowPhaseName == 'battleTransition' ||
-              game.debugFlowPhaseName == 'battle',
-          label: 'incidental encounter handoff',
-        );
-        await _driveRealBattle(
-          expectStaticBattle: false,
-          strategy: _BattleStrategy.flee,
-        );
-        await _settleUntil(
-          () => game.debugFlowPhaseName == 'overworld',
-          label: 'incidental encounter return to overworld',
-        );
+      final deferred = await _resolveIncidentalEncounterIfNeeded(
+        deferBattleInArea: deferBattleInArea,
+      );
+      if (deferred) {
+        return;
       }
       final after = game.debugPlayerGridPosition;
       if (after == before) {
@@ -970,6 +958,34 @@ final class _SelbrumeJourney {
       'Physical navigation exceeded 600 steps on ${state.currentMapId} '
       'towards $target.',
     );
+  }
+
+  Future<bool> _resolveIncidentalEncounterIfNeeded({
+    MapRect? deferBattleInArea,
+  }) async {
+    final hasEncounter = game.debugPendingBattleRequest != null ||
+        game.debugFlowPhaseName == 'battleTransition' ||
+        game.debugFlowPhaseName == 'battle';
+    if (!hasEncounter) return false;
+    if (deferBattleInArea != null &&
+        _contains(deferBattleInArea, game.debugPlayerGridPosition)) {
+      return true;
+    }
+    await _pumpUntil(
+      () =>
+          game.debugFlowPhaseName == 'battleTransition' ||
+          game.debugFlowPhaseName == 'battle',
+      label: 'incidental encounter handoff',
+    );
+    await _driveRealBattle(
+      expectStaticBattle: false,
+      strategy: _BattleStrategy.flee,
+    );
+    await _settleUntil(
+      () => game.debugFlowPhaseName == 'overworld',
+      label: 'incidental encounter return to overworld',
+    );
+    return false;
   }
 
   Future<void> _handleAuthoredFlow({
