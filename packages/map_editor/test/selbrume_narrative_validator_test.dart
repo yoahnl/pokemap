@@ -9,7 +9,7 @@ import 'package:map_editor/src/infrastructure/repositories/narrative_runtime_smo
 import 'package:path/path.dart' as p;
 
 void main() {
-  test('canonical Selbrume separates structural pass from bounded solvability',
+  test('canonical Selbrume passes bounded solvability and runtime proof',
       () async {
     final projectRoot = p.normalize(
       p.join(Directory.current.path, '..', '..', 'selbrume'),
@@ -27,11 +27,10 @@ void main() {
     final report = await container.read(
       narrativeValidatorReportProvider(request).future,
     );
-    final structuralCriticalDiagnostics = report.diagnostics
+    final criticalDiagnostics = report.diagnostics
         .where(
           (diagnostic) =>
-              diagnostic.severity == NarrativeProjectDiagnosticSeverity.error &&
-              !diagnostic.code.startsWith('narrative'),
+              diagnostic.severity == NarrativeProjectDiagnosticSeverity.error,
         )
         .toList(growable: false);
 
@@ -44,9 +43,9 @@ void main() {
       hasLength(session.manifest.maps.length),
     );
     expect(
-      structuralCriticalDiagnostics,
+      criticalDiagnostics,
       isEmpty,
-      reason: structuralCriticalDiagnostics
+      reason: criticalDiagnostics
           .map(
             (diagnostic) =>
                 '${diagnostic.code} · ${diagnostic.path} · ${diagnostic.message}',
@@ -55,9 +54,8 @@ void main() {
     );
     expect(
       report.narrativelySolvable,
-      NarrativeSymbolicVerdict.indeterminate,
-      reason:
-          'Le budget borné doit rester visible, jamais devenir un faux pass.',
+      NarrativeSymbolicVerdict.pass,
+      reason: 'La campagne canonique doit être prouvée dans le budget borné.',
     );
 
     const receipts = NarrativeRuntimeSmokeReceiptRepository();

@@ -203,6 +203,88 @@ void main() {
       );
     });
 
+    test(
+        'independent Events use authored order instead of exploring equivalent permutations',
+        () {
+      const map = MapData(
+        id: 'map_port',
+        name: 'Port',
+        size: GridSize(width: 8, height: 8),
+      );
+      final project = ProjectManifest(
+        name: 'Canonical event scheduling',
+        maps: const [
+          ProjectMapEntry(
+            id: 'map_port',
+            name: 'Port',
+            relativePath: 'maps/port.json',
+          ),
+        ],
+        tilesets: const [],
+        facts: [
+          for (var index = 0; index < 6; index++)
+            NarrativeFactDefinition(
+              id: 'fact_$index',
+              label: 'Fact $index',
+            ),
+          NarrativeFactDefinition(id: 'fact_done', label: 'Done'),
+        ],
+        scenes: [
+          for (var index = 0; index < 6; index++)
+            _factScene('scene_$index', 'fact_$index'),
+          _factScene('scene_done', 'fact_done'),
+        ],
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          records: [
+            for (var index = 0; index < 6; index++)
+              NarrativeEventRecord.configuredStructurallyUnchecked(
+                NarrativeEventDefinition(
+                  id: 'evt_019abcde-5600-7000-8000-00000000000${index + 1}',
+                  name: 'Independent Event $index',
+                  source: NarrativeEventSourceRef.mapEnter('map_port'),
+                  conditions: const [],
+                  sceneId: 'scene_$index',
+                  reusePolicy: NarrativeEventReusePolicy.oneShot,
+                  priority: 0,
+                  order: index,
+                ),
+                enabled: true,
+              ),
+            NarrativeEventRecord.configuredStructurallyUnchecked(
+              NarrativeEventDefinition(
+                id: 'evt_019abcde-5600-7000-8000-000000000007',
+                name: 'Dependent Event',
+                source: NarrativeEventSourceRef.mapEnter('map_port'),
+                conditions: [NarrativeEventCondition.fact('fact_5', true)],
+                sceneId: 'scene_done',
+                reusePolicy: NarrativeEventReusePolicy.oneShot,
+                priority: 0,
+                order: 6,
+              ),
+              enabled: true,
+            ),
+          ],
+          legacyClaims: const [],
+        ),
+      );
+
+      final report = solveNarrativeSymbolicReachability(
+        project,
+        maps: const [map],
+        explorationBudget: 36,
+      );
+
+      expect(report.verdict, NarrativeSymbolicVerdict.pass);
+      expect(report.terminalStates, hasLength(1));
+      expect(report.terminalStates.single.hasTrueFact('fact_done'), isTrue);
+      expect(
+        report.issues.map((issue) => issue.code),
+        isNot(contains(NarrativeSymbolicIssueCode.budgetExceeded)),
+      );
+    });
+
     test('unknown legacy command backend is indeterminate', () {
       final scene = SceneAsset(
         id: 'scene_unknown_command',
@@ -487,6 +569,35 @@ SceneAsset _linearScene(String id) => SceneAsset(
           SceneNode(id: 'end', kind: SceneNodeKind.end),
         ],
         edges: [_edge('start_end', 'start', 'completed', 'end')],
+      ),
+    );
+
+SceneAsset _factScene(String id, String factId) => SceneAsset(
+      id: id,
+      name: id,
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'set_fact',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.consequence(
+              SceneConsequence.setFact(factId: factId, value: true),
+            ),
+          ),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          _edge('start_action', 'start', 'completed', 'set_fact'),
+          _edge(
+            'action_end',
+            'set_fact',
+            'completed',
+            'end',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+        ],
       ),
     );
 

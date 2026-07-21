@@ -5,7 +5,6 @@ import 'package:map_core/map_core.dart';
 import '../direction.dart';
 import '../gameplay_connection.dart';
 import '../gameplay_world_state.dart';
-import '../grid_pathfinder.dart';
 import '../player_spawn_resolver.dart';
 
 enum NarrativePhysicalReachabilityVerdict { pass, fail, indeterminate }
@@ -184,6 +183,7 @@ NarrativePhysicalReachabilityReport validateNarrativePhysicalReachability({
     factValues: project.newGame.resolvedInitialFactValues,
   );
   final states = _canonicalStates(
+    project,
     initialState,
     <NarrativeSymbolicState>[
       ...narrativeReport.exploredStates,
@@ -413,24 +413,38 @@ _StateExploration _exploreSymbolicState({
   final queue = ListQueue<_MapEntry>()
     ..add(_MapEntry(mapId: startMapId, pos: startPos));
   final visited = <String>{};
+  final worldByMapId = <String, GameplayWorldState>{};
+  final componentIndexByMapId = <String, Map<GridPos, int>>{};
   final reachableMapIds = <String>{};
   final evidenceByEventId = <String, _ReachabilityEvidence>{};
   var budgetExceeded = false;
 
   while (queue.isNotEmpty) {
     final entry = queue.removeFirst();
-    final entryKey = '${entry.mapId}:${entry.pos.x}:${entry.pos.y}';
-    if (!visited.add(entryKey)) continue;
     final map = mapsById[entry.mapId];
     if (map == null || !_inside(entry.pos, map.size)) continue;
-    reachableMapIds.add(map.id);
-    final world = GameplayWorldState.initial(
-      map: map,
-      playerPos: entry.pos,
-      project: project,
-      mapEntityPresencePredicate: (mapId, entity) =>
-          visibilityByEntity['$mapId/${entity.id}'] ?? true,
+    final world = worldByMapId.putIfAbsent(
+      map.id,
+      () => GameplayWorldState.initial(
+        map: map,
+        playerPos: entry.pos,
+        project: project,
+        tileWidth: project.settings.tileWidth,
+        tileHeight: project.settings.tileHeight,
+        mapEntityPresencePredicate: (mapId, entity) =>
+            visibilityByEntity['$mapId/${entity.id}'] ?? true,
+      ),
     );
+    final componentIndex = componentIndexByMapId.putIfAbsent(
+      map.id,
+      () => _walkableComponentIndex(world),
+    );
+    final componentId = componentIndex[entry.pos];
+    final entryKey = componentId == null
+        ? '${entry.mapId}:isolated:${entry.pos.x}:${entry.pos.y}'
+        : '${entry.mapId}:component:$componentId';
+    if (!visited.add(entryKey)) continue;
+    reachableMapIds.add(map.id);
 
     for (final event in spatialEvents.where(
       (event) => _sourceMapId(event.source) == map.id,
@@ -506,22 +520,38 @@ _StateExploration _exploreSymbolicState({
     for (final connection in map.connections) {
       final targetMap = mapsById[connection.targetMapId];
       if (targetMap == null) continue;
-      final search = _findPathToAny(
+      final search = _findPathsToAll(
         world: world,
         start: entry.pos,
         goals: _borderCells(map.size, connection.direction),
         budget: budget,
       );
       budgetExceeded = budgetExceeded || search.budgetExceeded;
-      if (search.path != null) {
+      final targetWorld = worldByMapId.putIfAbsent(
+        targetMap.id,
+        () => GameplayWorldState.initial(
+          map: targetMap,
+          playerPos: const GridPos(x: 0, y: 0),
+          project: project,
+          tileWidth: project.settings.tileWidth,
+          tileHeight: project.settings.tileHeight,
+          mapEntityPresencePredicate: (mapId, entity) =>
+              visibilityByEntity['$mapId/${entity.id}'] ?? true,
+        ),
+      );
+      for (final path in search.paths) {
         final target = resolveConnectedMapTargetPos(
-          sourcePos: search.path!.last,
+          sourcePos: path.last,
           sourceSize: map.size,
           targetSize: targetMap.size,
           direction: connection.direction,
           offset: connection.offset,
         );
-        if (target != null) {
+        // The runtime rejects a connection before mounting the destination
+        // whenever its authored landing cell is blocked. Explore every
+        // aligned crossing instead of keeping the first reachable source
+        // border cell: another authored crossing can be the valid entrance.
+        if (target != null && !targetWorld.isBlocked(target.x, target.y)) {
           queue.add(_MapEntry(mapId: targetMap.id, pos: target));
         }
       }
@@ -544,18 +574,121 @@ _PathSearch _findPathToAny({
   required Iterable<GridPos> goals,
   required _ExplorationBudget budget,
 }) {
-  for (final goal in goals) {
-    if (!budget.consume()) return const _PathSearch.budgetExceeded();
-    final result = const GridPathfinder().findPath(
-      bounds: world.map.size,
-      start: start,
-      goal: goal,
-      isPassable: (x, y) => !world.isBlocked(x, y),
-    );
-    if (result.foundPath) return _PathSearch.path(result.path);
-  }
+  final search = _findPathsToAll(
+    world: world,
+    start: start,
+    goals: goals,
+    budget: budget,
+  );
+  if (search.budgetExceeded) return const _PathSearch.budgetExceeded();
+  if (search.paths.isNotEmpty) return _PathSearch.path(search.paths.first);
   return const _PathSearch.notFound();
 }
+
+_ReachablePathsSearch _findPathsToAll({
+  required GameplayWorldState world,
+  required GridPos start,
+  required Iterable<GridPos> goals,
+  required _ExplorationBudget budget,
+}) {
+  if (!budget.consume()) return const _ReachablePathsSearch.budgetExceeded();
+  final orderedGoals = goals
+      .where((goal) => _inside(goal, world.map.size))
+      .toList(growable: false);
+  if (orderedGoals.isEmpty) return const _ReachablePathsSearch.notFound();
+  final pendingGoals = orderedGoals.toSet();
+  final reachedGoals = <GridPos>{};
+  final queue = ListQueue<GridPos>()..add(start);
+  final visited = <GridPos>{start};
+  final parentByCell = <GridPos, GridPos>{};
+  if (pendingGoals.remove(start)) reachedGoals.add(start);
+
+  while (queue.isNotEmpty && pendingGoals.isNotEmpty) {
+    final current = queue.removeFirst();
+    for (final direction in const <Direction>[
+      Direction.north,
+      Direction.east,
+      Direction.south,
+      Direction.west,
+    ]) {
+      final next = GridPos(
+        x: current.x + direction.dx,
+        y: current.y + direction.dy,
+      );
+      if (!_inside(next, world.map.size) || !visited.add(next)) continue;
+      // Canonical projects can use pixel collision masks whose visual
+      // footprint spans several cells while leaving a walkable corridor.
+      // The coarse `isBlocked` cache intentionally reserves the complete
+      // authored footprint and would therefore report false negatives here.
+      // The centre projection reads the same pixel cache and tile metrics as
+      // runtime movement, which keeps this static proof aligned with play.
+      if (!_isProjectedWalkable(world, next)) {
+        continue;
+      }
+      parentByCell[next] = current;
+      queue.add(next);
+      if (pendingGoals.remove(next)) reachedGoals.add(next);
+    }
+  }
+
+  List<GridPos> rebuild(GridPos goal) {
+    final reversed = <GridPos>[goal];
+    var cursor = goal;
+    while (cursor != start) {
+      cursor = parentByCell[cursor]!;
+      reversed.add(cursor);
+    }
+    return reversed.reversed.toList(growable: false);
+  }
+
+  return _ReachablePathsSearch.paths(<List<GridPos>>[
+    for (final goal in orderedGoals)
+      if (reachedGoals.contains(goal)) rebuild(goal),
+  ]);
+}
+
+Map<GridPos, int> _walkableComponentIndex(GameplayWorldState world) {
+  final componentByCell = <GridPos, int>{};
+  var nextComponentId = 0;
+  for (var y = 0; y < world.map.size.height; y++) {
+    for (var x = 0; x < world.map.size.width; x++) {
+      final seed = GridPos(x: x, y: y);
+      if (componentByCell.containsKey(seed) ||
+          !_isProjectedWalkable(world, seed)) {
+        continue;
+      }
+      final componentId = nextComponentId++;
+      final queue = ListQueue<GridPos>()..add(seed);
+      componentByCell[seed] = componentId;
+      while (queue.isNotEmpty) {
+        final current = queue.removeFirst();
+        for (final direction in const <Direction>[
+          Direction.north,
+          Direction.east,
+          Direction.south,
+          Direction.west,
+        ]) {
+          final next = GridPos(
+            x: current.x + direction.dx,
+            y: current.y + direction.dy,
+          );
+          if (!_inside(next, world.map.size) ||
+              componentByCell.containsKey(next) ||
+              !_isProjectedWalkable(world, next)) {
+            continue;
+          }
+          componentByCell[next] = componentId;
+          queue.add(next);
+        }
+      }
+    }
+  }
+  return componentByCell;
+}
+
+bool _isProjectedWalkable(GameplayWorldState world, GridPos cell) =>
+    !world.isCellCenterBlockedLegacyForGridIndexedSystems(cell.x, cell.y) &&
+    !world.isWaterCell(cell.x, cell.y);
 
 _PathSearch _findPathToWarp({
   required GameplayWorldState world,
@@ -650,10 +783,54 @@ Iterable<GridPos> _borderCells(
 }
 
 List<NarrativeSymbolicState> _canonicalStates(
+  ProjectManifest project,
   NarrativeSymbolicState initial,
   List<NarrativeSymbolicState> candidates,
 ) {
-  final byKey = <String, NarrativeSymbolicState>{initial.semanticKey: initial};
+  // Physical reachability only changes when a World Rule can alter map-entity
+  // visibility. Scene provenance, emitted outcomes, executed Event IDs and
+  // unrelated Facts must not trigger another full pathfinding pass.
+  final physicalRules = project.worldRules.where(
+    (rule) =>
+        rule.target.kind == WorldRuleTargetKind.mapEntity &&
+        (rule.effect.kind == WorldRuleEffectKind.entityHidden ||
+            rule.effect.kind == WorldRuleEffectKind.entityVisible),
+  );
+  final relevantFactIds = <String>{};
+  final relevantStepIds = <String>{};
+  final relevantConsumedEventIds = <String>{};
+  for (final rule in physicalRules) {
+    switch (rule.source.kind) {
+      case WorldRuleSourceKind.fact:
+        relevantFactIds.add(rule.source.sourceId);
+      case WorldRuleSourceKind.storyStepCompletion:
+        relevantStepIds.add(rule.source.sourceId);
+      case WorldRuleSourceKind.consumedEvent:
+        relevantConsumedEventIds.add(rule.source.sourceId);
+    }
+  }
+
+  String physicalKey(NarrativeSymbolicState state) {
+    final facts = <String>[
+      for (final factId in relevantFactIds)
+        if (state.factValues[factId] case final value?)
+          '$factId=${value.kind.wireName}:${value.toJson()}',
+    ]..sort();
+    final steps = state.completedStepIds
+        .intersection(relevantStepIds)
+        .toList(growable: false)
+      ..sort();
+    final consumed = state.consumedEventIds
+        .intersection(relevantConsumedEventIds)
+        .toList(growable: false)
+      ..sort();
+    return '${facts.join('|')}|steps=${steps.join(',')}|'
+        'consumed=${consumed.join(',')}';
+  }
+
+  final byKey = <String, NarrativeSymbolicState>{
+    physicalKey(initial): initial,
+  };
   for (final candidate in candidates) {
     final merged = NarrativeSymbolicState(
       factValues: {
@@ -667,7 +844,11 @@ List<NarrativeSymbolicState> _canonicalStates(
       provenance: candidate.provenance,
       indeterminate: candidate.indeterminate,
     );
-    byKey.putIfAbsent(merged.semanticKey, () => merged);
+    final key = physicalKey(merged);
+    final existing = byKey[key];
+    if (existing == null || existing.indeterminate && !merged.indeterminate) {
+      byKey[key] = merged;
+    }
   }
   return List.unmodifiable(byKey.values);
 }
@@ -758,6 +939,19 @@ final class _PathSearch {
         budgetExceeded = true;
 
   final List<GridPos>? path;
+  final bool budgetExceeded;
+}
+
+final class _ReachablePathsSearch {
+  const _ReachablePathsSearch.paths(this.paths) : budgetExceeded = false;
+  const _ReachablePathsSearch.notFound()
+      : paths = const <List<GridPos>>[],
+        budgetExceeded = false;
+  const _ReachablePathsSearch.budgetExceeded()
+      : paths = const <List<GridPos>>[],
+        budgetExceeded = true;
+
+  final List<List<GridPos>> paths;
   final bool budgetExceeded;
 }
 

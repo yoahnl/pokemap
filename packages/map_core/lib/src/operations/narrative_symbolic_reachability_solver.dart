@@ -476,83 +476,68 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
         continue;
       }
       progress = true;
-      for (final definition in candidates) {
-        // A frontier may expose several sibling Events while the previous
-        // sibling consumes the final budget units. Never forward zero to the
-        // scene solver: preserve the current state as indeterminate instead.
-        if (remainingBudget < 1) {
-          issues.add(
-            NarrativeSymbolicIssue(
-              code: NarrativeSymbolicIssueCode.budgetExceeded,
-              verdict: NarrativeSymbolicVerdict.indeterminate,
-              message:
-                  'Le budget symbolique global de $explorationBudget états '
-                  'est dépassé avant l’Event ${definition.id}.',
-              sceneId: definition.sceneId,
-              eventId: definition.id,
-              provenance: state.provenance,
-            ),
-          );
-          _addUniqueState(
-            nextFrontier,
-            state.copyWith(indeterminate: true),
-          );
-          break;
-        }
-        final scene = scenesById[definition.sceneId]!;
-        var eventState = state.copyWith(
-          executedEventIds: {...state.executedEventIds, definition.id},
-          consumedEventIds:
-              definition.reusePolicy == NarrativeEventReusePolicy.oneShot
-                  ? {...state.consumedEventIds, definition.id}
-                  : state.consumedEventIds,
+      // Candidate definitions are already sorted by runtime priority/order.
+      // Executing every eligible sibling here explores permutations of the
+      // same authored Events (A→B and B→A) even when their resulting semantic
+      // state is identical. That factorial expansion made a real project
+      // indeterminate without uncovering another Scene branch. Execute the
+      // canonical next Event only; its Scene still forks every exclusive
+      // Dialogue/Condition/Battle route, and newly eligible Events are picked
+      // on the following frontier iteration.
+      final definition = candidates.first;
+      final scene = scenesById[definition.sceneId]!;
+      var eventState = state.copyWith(
+        executedEventIds: {...state.executedEventIds, definition.id},
+        consumedEventIds:
+            definition.reusePolicy == NarrativeEventReusePolicy.oneShot
+                ? {...state.consumedEventIds, definition.id}
+                : state.consumedEventIds,
+      );
+      final source = _sourceEligibility(
+        definition.source,
+        state,
+        mapsById,
+      );
+      final conditions = _eventExpressionValue(
+        definition.conditionExpression,
+        state,
+      );
+      if (source == null || conditions == null) {
+        eventState = eventState.copyWith(indeterminate: true);
+      }
+      final result = solveNarrativeSceneSymbolically(
+        scene,
+        initialState: eventState,
+        explorationBudget: remainingBudget,
+        commandCatalog: catalog,
+        eventId: definition.id,
+      );
+      exploredCount += result.exploredStateCount;
+      remainingBudget -= result.exploredStateCount;
+      explored.addAll(result.exploredStates);
+      reachableSceneIds.add(scene.id);
+      final optional = _isOptionalScene(project, scene);
+      issues.addAll([
+        for (final issue in result.issues)
+          NarrativeSymbolicIssue(
+            code: issue.code,
+            verdict: issue.verdict,
+            message: issue.message,
+            sceneId: issue.sceneId,
+            nodeId: issue.nodeId,
+            eventId: issue.eventId,
+            optional: optional,
+            provenance: issue.provenance,
+          ),
+      ]);
+      if (result.terminalStates.isEmpty && optional) {
+        _addUniqueState(nextFrontier, eventState);
+      }
+      for (final terminal in result.terminalStates) {
+        _addUniqueState(
+          nextFrontier,
+          _applyStorylineOutcomeEffects(project, terminal),
         );
-        final source = _sourceEligibility(
-          definition.source,
-          state,
-          mapsById,
-        );
-        final conditions = _eventExpressionValue(
-          definition.conditionExpression,
-          state,
-        );
-        if (source == null || conditions == null) {
-          eventState = eventState.copyWith(indeterminate: true);
-        }
-        final result = solveNarrativeSceneSymbolically(
-          scene,
-          initialState: eventState,
-          explorationBudget: remainingBudget,
-          commandCatalog: catalog,
-          eventId: definition.id,
-        );
-        exploredCount += result.exploredStateCount;
-        remainingBudget -= result.exploredStateCount;
-        explored.addAll(result.exploredStates);
-        reachableSceneIds.add(scene.id);
-        final optional = _isOptionalScene(project, scene);
-        issues.addAll([
-          for (final issue in result.issues)
-            NarrativeSymbolicIssue(
-              code: issue.code,
-              verdict: issue.verdict,
-              message: issue.message,
-              sceneId: issue.sceneId,
-              nodeId: issue.nodeId,
-              eventId: issue.eventId,
-              optional: optional,
-              provenance: issue.provenance,
-            ),
-        ]);
-        if (result.terminalStates.isEmpty && optional) {
-          _addUniqueState(nextFrontier, eventState);
-        }
-        for (final terminal in result.terminalStates) {
-          _addUniqueState(
-            nextFrontier,
-            _applyStorylineOutcomeEffects(project, terminal),
-          );
-        }
       }
     }
     frontier = nextFrontier;

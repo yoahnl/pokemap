@@ -180,6 +180,67 @@ void main() {
       );
     });
 
+    test('explores every aligned connection landing until one is playable', () {
+      final start = _map(
+        id: 'start',
+        width: 3,
+        height: 3,
+        connections: const [
+          MapConnection(
+            direction: MapConnectionDirection.east,
+            targetMapId: 'route',
+          ),
+        ],
+      );
+      final route = _map(
+        id: 'route',
+        width: 3,
+        height: 3,
+        withSpawn: false,
+        collisions: const [
+          true,
+          true,
+          false,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false,
+        ],
+        triggers: const [
+          MapTrigger(
+            id: 'reachable_entry',
+            type: TriggerType.event,
+            area: MapRect(
+              pos: GridPos(x: 2, y: 2),
+              size: GridSize(width: 1, height: 1),
+            ),
+          ),
+        ],
+      );
+
+      final report = validateNarrativePhysicalReachability(
+        project: _project([
+          _event(
+            _eventA,
+            NarrativeEventSourceRef.triggerEnter(
+              'route',
+              'reachable_entry',
+            ),
+          ),
+        ]),
+        maps: [start, route],
+        narrativeReport: _symbolicReport(),
+      );
+
+      expect(report.verdict, NarrativePhysicalReachabilityVerdict.pass);
+      expect(
+        report.resultForEvent(_eventA)?.status,
+        NarrativePhysicalSourceStatus.reachable,
+      );
+    });
+
     test('qualifies a World Rule barrier as releasable by proven progression',
         () {
       final map = _map(
@@ -322,6 +383,52 @@ void main() {
               result.status == NarrativePhysicalSourceStatus.indeterminate,
         ),
         isTrue,
+      );
+    });
+
+    test('deduplicates symbolic states that cannot change the physical world',
+        () {
+      final map = _map(
+        id: 'start',
+        width: 4,
+        height: 1,
+        triggers: [
+          const MapTrigger(
+            id: 'goal',
+            type: TriggerType.event,
+            area: MapRect(
+              pos: GridPos(x: 3, y: 0),
+              size: GridSize(width: 1, height: 1),
+            ),
+          ),
+        ],
+      );
+      final irrelevantStates = <NarrativeSymbolicState>[
+        for (var index = 0; index < 20; index++)
+          NarrativeSymbolicState(
+            factValues: <String, NarrativeValue>{
+              'irrelevant_$index': NarrativeValue.boolean(true),
+            },
+            executedEventIds: <String>{'event_$index'},
+          ),
+      ];
+
+      final report = validateNarrativePhysicalReachability(
+        project: _project([
+          _event(
+            _eventA,
+            NarrativeEventSourceRef.triggerEnter('start', 'goal'),
+          ),
+        ]),
+        maps: [map],
+        narrativeReport: _symbolicReport(extraStates: irrelevantStates),
+        explorationBudget: 2,
+      );
+
+      expect(report.verdict, NarrativePhysicalReachabilityVerdict.pass);
+      expect(
+        report.issues.map((issue) => issue.code),
+        isNot(contains(NarrativePhysicalIssueCode.explorationBudgetExceeded)),
       );
     });
   });
