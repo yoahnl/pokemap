@@ -168,6 +168,46 @@ void main() {
     );
   });
 
+  test('snapshot fingerprint accepts nested trigger geometry', () {
+    const project = ProjectManifest(
+      name: 'Trigger fingerprint',
+      maps: [],
+      tilesets: [],
+    );
+    const activeMap = MapData(
+      id: 'map_trigger',
+      name: 'Trigger map',
+      size: GridSize(width: 8, height: 8),
+      layers: [],
+      triggers: [
+        MapTrigger(
+          id: 'trigger_gate',
+          type: TriggerType.event,
+          area: MapRect(
+            pos: GridPos(x: 2, y: 3),
+            size: GridSize(width: 2, height: 1),
+          ),
+        ),
+      ],
+    );
+
+    final first = NarrativeValidatorSnapshotRequest.fromProject(
+      projectRootPath: '/virtual/project',
+      project: project,
+      activeMap: activeMap,
+    );
+    final equivalent = NarrativeValidatorSnapshotRequest.fromProject(
+      projectRootPath: '/virtual/project',
+      project: project,
+      activeMap: MapData.fromJson(
+        jsonDecode(jsonEncode(activeMap.toJson())) as Map<String, dynamic>,
+      ),
+    );
+
+    expect(first, equivalent);
+    expect(first.snapshotFingerprint, startsWith('sha256:'));
+  });
+
   test('default loader validates Scene-only opponents against local catalogs',
       () async {
     final projectRoot = await Directory.systemTemp.createTemp(

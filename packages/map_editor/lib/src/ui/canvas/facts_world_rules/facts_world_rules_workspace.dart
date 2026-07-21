@@ -187,17 +187,28 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
         presentation: narrativeStudioRoutePresentationFor(workspaceMode)!,
         body: PokeMapPageSurface(
           key: const ValueKey('facts-world-rules-workspace'),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _MetricsStrip(readModel: readModel),
-              const SizedBox(height: 14),
-              Expanded(
-                child: _mode == FactsWorldRulesWorkspaceMode.facts
-                    ? _buildFactsManager(context, readModel)
-                    : _buildWorldRulesManager(context, readModel, maps),
-              ),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // The metrics are contextual, while the authoring panels are
+              // essential. Short desktop windows therefore dedicate their
+              // height to editable content instead of crushing the manager
+              // columns (especially with accessible text scaling).
+              final showMetrics = constraints.maxHeight >= 820;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (showMetrics) ...[
+                    _MetricsStrip(readModel: readModel),
+                    const SizedBox(height: 14),
+                  ],
+                  Expanded(
+                    child: _mode == FactsWorldRulesWorkspaceMode.facts
+                        ? _buildFactsManager(context, readModel)
+                        : _buildWorldRulesManager(context, readModel, maps),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -654,41 +665,62 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildWorldRuleCreatePanel(context, readModel),
-              const SizedBox(height: 12),
-              Expanded(
-                child: _requestedWorldRuleUnavailable
-                    ? PokeMapPanel(
-                        key: const ValueKey(
-                          'world-rules-manager-requested-unavailable',
-                        ),
-                        expandChild: true,
-                        child: _CompactEmptyState(
-                          title: 'Règle du monde introuvable',
-                          description:
-                              'La cible ${widget.requestedWorldRuleId} n’existe plus dans le projet.',
-                        ),
-                      )
-                    : selectedEntry == null
-                        ? const PokeMapPanel(
-                            key: ValueKey('world-rules-manager-empty-state'),
-                            expandChild: true,
-                            child: _CompactEmptyState(
-                              title: 'Aucune règle sélectionnée',
-                              description:
-                                  'Créez une règle depuis les pickers no-code.',
-                            ),
-                          )
-                        : _buildWorldRuleEditor(
-                            context,
-                            readModel,
-                            selectedEntry,
+          child: Builder(
+            builder: (context) {
+              final editor = _requestedWorldRuleUnavailable
+                  ? PokeMapPanel(
+                      key: const ValueKey(
+                        'world-rules-manager-requested-unavailable',
+                      ),
+                      expandChild: true,
+                      child: _CompactEmptyState(
+                        title: 'Règle du monde introuvable',
+                        description:
+                            'La cible ${widget.requestedWorldRuleId} n’existe plus dans le projet.',
+                      ),
+                    )
+                  : selectedEntry == null
+                      ? const PokeMapPanel(
+                          key: ValueKey('world-rules-manager-empty-state'),
+                          expandChild: true,
+                          child: _CompactEmptyState(
+                            title: 'Aucune règle sélectionnée',
+                            description:
+                                'Créez une règle depuis les pickers no-code.',
                           ),
-              ),
-            ],
+                        )
+                      : _buildWorldRuleEditor(
+                          context,
+                          readModel,
+                          selectedEntry,
+                        );
+              final createPanel =
+                  _buildWorldRuleCreatePanel(context, readModel);
+              if (MediaQuery.sizeOf(context).height < 820) {
+                // At low desktop heights the no-code picker can wrap onto
+                // several rows. Give both creation and inspection a bounded,
+                // independently scrollable region instead of overflowing.
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: SingleChildScrollView(child: createPanel),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(flex: 2, child: editor),
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  createPanel,
+                  const SizedBox(height: 12),
+                  Expanded(child: editor),
+                ],
+              );
+            },
           ),
         ),
         const SizedBox(width: 12),

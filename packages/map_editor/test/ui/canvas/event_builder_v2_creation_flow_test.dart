@@ -245,7 +245,11 @@ void main() {
       expect(definition.conditions, hasLength(1));
       expect(
         definition.conditions.single,
-        NarrativeEventCondition.fact('fact_port_open', false),
+        NarrativeEventCondition.factValue(
+          'fact_port_open',
+          operator: NarrativeFactOperator.notEquals,
+          expectedValue: const NarrativeValue.boolean(false),
+        ),
       );
       expect(definition.sceneId, 'scene_rival');
       expect(definition.reusePolicy, NarrativeEventReusePolicy.oneShot);

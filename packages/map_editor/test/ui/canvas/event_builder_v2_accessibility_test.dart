@@ -117,8 +117,22 @@ void main() {
           ),
           'Écriture interrompue',
         );
+        final saveDraft =
+            find.byKey(const ValueKey('event-builder-v2-save-draft'));
+        await tester.scrollUntilVisible(
+          saveDraft,
+          240,
+          scrollable: find
+              .descendant(
+                of: find.byKey(
+                  const ValueKey('event-builder-v2-creation-sheet'),
+                ),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        );
         await tester.tap(
-          find.byKey(const ValueKey('event-builder-v2-save-draft')),
+          saveDraft,
         );
         await _waitFor(tester, find.text(scenario.$4));
 

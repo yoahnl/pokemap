@@ -168,67 +168,6 @@ extension _DialogueStudioWorkspaceDialogs on _DialogueStudioWorkspaceState {
     }
   }
 
-  Future<void> _save(EditorNotifier notifier, String dialogueId) async {
-    if (_doc == null) return;
-    final entry = _selectedDialogueEntry(notifier.state);
-    final issues = validateDialogueDocument(
-      _doc!,
-      declaredOutcomeIds:
-          entry?.declaredOutcomes.map((outcome) => outcome.id) ?? const [],
-    );
-    final blocking = issues
-        .where((issue) => issue.severity == DialogueValidationSeverity.error)
-        .toList();
-    if (blocking.isNotEmpty) {
-      setState(() {
-        _documentError =
-            'Corrigez ${blocking.length} erreur(s) avant la sauvegarde : '
-            '${blocking.first.message}';
-      });
-      return;
-    }
-    final yarn = emitDocumentToYarn(_doc!);
-    setState(() {
-      _savingDocument = true;
-      _documentError = null;
-    });
-    await notifier.saveProjectDialogueYarnBody(
-      dialogueId: dialogueId,
-      yarnBody: yarn,
-    );
-    if (!mounted) return;
-    final error = notifier.state.errorMessage;
-    if (error != null) {
-      setState(() {
-        _savingDocument = false;
-        _documentError = error;
-      });
-      return;
-    }
-    String? entryTitle;
-    for (final node in _doc!.nodes) {
-      if (node.id == _doc!.effectiveEntryNodeId) {
-        entryTitle = node.title.trim();
-        break;
-      }
-    }
-    final contractSaved = await notifier.updateProjectDialogueDefaultStartNode(
-      dialogueId: dialogueId,
-      defaultStartNode: entryTitle,
-    );
-    if (!mounted) return;
-    setState(() {
-      _savingDocument = false;
-      if (contractSaved) {
-        _baselineYarn = yarn;
-        _documentError = null;
-      } else {
-        _documentError = notifier.state.errorMessage ??
-            "Le nœud d'entrée n'a pas pu être enregistré.";
-      }
-    });
-  }
-
   Future<void> _promptNewDialogue(
       BuildContext context, EditorNotifier n) async {
     final c = TextEditingController();

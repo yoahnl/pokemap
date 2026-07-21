@@ -774,13 +774,30 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                           return LayoutBuilder(
                                             builder:
                                                 (context, stageConstraints) {
+                                              final compactExplorerForStage =
+                                                  _leftSidebarVisible &&
+                                                      supportsRightInspector &&
+                                                      _rightInspectorVisible &&
+                                                      stageConstraints
+                                                              .maxWidth <
+                                                          expandedWidth +
+                                                              _kRightInspectorMinWidth +
+                                                              _kRightInspectorResizeHandleWidth +
+                                                              _kCenterStageMinWidth;
+                                              final effectiveExplorerExpanded =
+                                                  _leftSidebarVisible &&
+                                                      !compactExplorerForStage;
+                                              final effectiveExplorerWidth =
+                                                  compactExplorerForStage
+                                                      ? 52.0
+                                                      : animWidth;
                                               final availableInspectorMaxWidth =
                                                   math.max(
                                                 _kRightInspectorMinWidth,
                                                 math.min(
                                                   _kRightInspectorMaxWidth,
                                                   stageConstraints.maxWidth -
-                                                      animWidth -
+                                                      effectiveExplorerWidth -
                                                       _kRightInspectorResizeHandleWidth -
                                                       _kCenterStageMinWidth,
                                                 ),
@@ -797,7 +814,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                     CrossAxisAlignment.stretch,
                                                 children: [
                                                   SizedBox(
-                                                    width: animWidth,
+                                                    width:
+                                                        effectiveExplorerWidth,
                                                     child: KeyedSubtree(
                                                       key: const ValueKey<
                                                           String>(
@@ -812,7 +830,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                         alignment:
                                                             Alignment.topLeft,
                                                         child: SizedBox(
-                                                          width: animWidth,
+                                                          width:
+                                                              effectiveExplorerWidth,
                                                           child: Stack(
                                                             clipBehavior:
                                                                 Clip.hardEdge,
@@ -835,13 +854,13 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                                         100,
                                                                   ),
                                                                   opacity:
-                                                                      _leftSidebarVisible
+                                                                      effectiveExplorerExpanded
                                                                           ? 1.0
                                                                           : 0.0,
                                                                   child:
                                                                       IgnorePointer(
                                                                     ignoring:
-                                                                        !_leftSidebarVisible,
+                                                                        !effectiveExplorerExpanded,
                                                                     child:
                                                                         KeyedSubtree(
                                                                       key: const ValueKey<
@@ -890,13 +909,13 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                                         100,
                                                                   ),
                                                                   opacity:
-                                                                      !_leftSidebarVisible
+                                                                      !effectiveExplorerExpanded
                                                                           ? 1.0
                                                                           : 0.0,
                                                                   child:
                                                                       IgnorePointer(
                                                                     ignoring:
-                                                                        _leftSidebarVisible,
+                                                                        effectiveExplorerExpanded,
                                                                     child:
                                                                         KeyedSubtree(
                                                                       key: const ValueKey<
@@ -915,6 +934,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                                                 () {
                                                                               setState(() {
                                                                                 _leftSidebarVisible = true;
+                                                                                if (compactExplorerForStage) {
+                                                                                  _rightInspectorVisible = false;
+                                                                                }
                                                                               });
                                                                             },
                                                                           ),

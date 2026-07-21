@@ -1,13 +1,13 @@
-# NSC-00 — Narrative Studio completion capability matrix
+# Narrative Studio v1 — Completion capability matrix
 
 | Métadonnée | Valeur |
 |---|---|
-| Date de référence | 2026-07-19 |
-| Lot | `NSC-00 — Matrice de capacités et contrat d'acceptation` |
-| Autorité | Source primaire destinée au commit isolé NSC-00 |
+| Date de référence | 2026-07-21 |
+| Lot | `NSC-00` initial, actualisé et clôturé par `NSC-83` |
+| Autorité | Matrice vivante de la gate Narrative Studio v1 |
 | Sources normatives suivies | `MVP Selbrume/narrative_studio.md` et `MVP Selbrume/selbrume.md` |
 | Entrée de planification locale | `docs/superpowers/plans/2026-07-19-narrative-studio-completion-roadmap.md` (ignorée par Git, donc non normative à elle seule) |
-| État Selbrume observé | `reports/gameplay/fg_000_narrative_studio_selbrume_readiness_reaudit_2026-07-19.md` |
+| État Selbrume observé | `reports/narrativeStudio/completion/ns_completion_final_evidence_pack.md` |
 
 ## 1. Contrat de lecture
 
@@ -20,106 +20,118 @@ Les colonnes de capacité n’emploient que quatre états :
 | `Rejected by design` | La capacité est volontairement exclue du modèle canonique. |
 | `Legacy` | La capacité n’existe que pour lire, migrer ou caractériser un ancien contrat ; ce n’est pas le chemin d’authoring cible. |
 
-`Supported` décrit une capacité prouvée par les fichiers cités, pas un résultat de tests relancé par NSC-00. Ce lot est documentaire ; ses contrôles frais portent sur la cohérence Markdown et le diff. Une ligne ne peut devenir plus favorable que sa preuve la plus précise.
+`Supported` décrit une capacité prouvée par les fichiers cités et par la gate
+fraîche NSC-83. Une ligne ne peut devenir plus favorable que sa preuve la plus
+précise. `Legacy` reste autorisé uniquement pour lecture/migration visible ;
+aucun chemin d'authoring normal ne dépend de ces lignes.
 
-Dans la colonne « Propriétaire du manque ou de la migration », chaque dimension incomplète pointe vers un seul lot. Un lot ultérieur peut dépendre de ce propriétaire, mais ne devient pas un second propriétaire du même manque. Une ligne `Legacy` y indique le propriétaire de sa migration explicite.
+Dans la colonne « Lot de clôture ou migration », chaque dimension incomplète pointe vers un seul lot. Un lot ultérieur peut dépendre de ce propriétaire, mais ne devient pas un second propriétaire du même manque. Une ligne `Legacy` y indique le propriétaire de sa migration explicite.
 
 Chaque référence `E-*` citée par une cellule `Supported` associe le contrat à
 au moins un test de preuve dans le catalogue de la section 3. Elle prouve
 l'existence auditable de la capacité, pas un run frais de toutes les suites au
-moment de NSC-00. La fraîcheur d'exécution appartient aux Evidence Packs des
-lots fonctionnels et aux gates finales.
+moment de sa création. La fraîcheur transversale est fournie par `E-FINAL`.
+
+### 1.1 Verdict de clôture NSC-83
+
+La matrice canonique ne contient plus aucune cellule `Partial`. Toutes les
+dimensions sont `Supported`, `Rejected by design` ou `Legacy` de compatibilité.
+Le parcours automatisé reconstruit le domaine depuis un projet minimal sans
+authoring JSON ; le parcours humain réel vérifie le projet promu, la
+sauvegarde/fermeture/reload, le Validator et le runtime macOS. Le verdict est
+`GO — Narrative Studio v1 / Selbrume`, sans préjuger du GO mécanique global
+`FG-185`.
 
 ## 2. Matrice canonique
 
 ### 2.1 Storylines, Chapters et Steps
 
-| ID | Capacité | Schema | Authoring | Persistence | Validation | Preview | Runtime | Preuve | Propriétaire du manque ou de la migration |
+| ID | Capacité | Schema | Authoring | Persistence | Validation | Preview | Runtime | Preuve | Lot de clôture ou migration |
 |---|---|---|---|---|---|---|---|---|---|
-| ST-01 | Storyline canonique : types, statut, métadonnées | Supported | Partial | Supported | Supported | Supported | Rejected by design | E-ST-01 | Authoring → NSC-20 |
+| ST-01 | Storyline canonique : types, statut, métadonnées | Supported | Supported | Supported | Supported | Supported | Rejected by design | E-ST-01 | Authoring → NSC-20 |
 | ST-02 | `GlobalStory` comme vérité d’authoring | Legacy | Legacy | Legacy | Legacy | Legacy | Legacy | E-LEG-01 | Retrait/migration → NSC-20 |
-| ST-03 | Chapter : structure, ordre et métadonnées | Supported | Partial | Supported | Supported | Supported | Rejected by design | E-ST-01 | Authoring → NSC-21 |
-| ST-04 | Step : structure, liens Scene et complétion | Supported | Partial | Supported | Supported | Supported | Supported | E-ST-01, E-SC-03 | Authoring → NSC-21 |
-| ST-05 | Sémantique de progression : relations, conditions et effets d’outcome | Supported | Partial | Supported | Partial | Partial | Partial | E-ST-02 | Authoring/Validation/Preview/Runtime → NSC-22 |
-| ST-06 | Graph Storyline interactif dérivé, sans logique parallèle | Rejected by design | Partial | Rejected by design | Supported | Supported | Rejected by design | E-ST-02 | Authoring → NSC-23 |
+| ST-03 | Chapter : structure, ordre et métadonnées | Supported | Supported | Supported | Supported | Supported | Rejected by design | E-ST-01 | Authoring → NSC-21 |
+| ST-04 | Step : structure, liens Scene et complétion | Supported | Supported | Supported | Supported | Supported | Supported | E-ST-01, E-SC-03 | Authoring → NSC-21 |
+| ST-05 | Sémantique de progression : relations, conditions et effets d’outcome | Supported | Supported | Supported | Supported | Supported | Supported | E-ST-02 | Authoring/Validation/Preview/Runtime → NSC-22 |
+| ST-06 | Graph Storyline interactif dérivé, sans logique parallèle | Rejected by design | Supported | Rejected by design | Supported | Supported | Rejected by design | E-ST-02 | Authoring → NSC-23 |
 
 ### 2.2 Scenes, nœuds et conséquences
 
-| ID | Capacité | Schema | Authoring | Persistence | Validation | Preview | Runtime | Preuve | Propriétaire du manque ou de la migration |
+| ID | Capacité | Schema | Authoring | Persistence | Validation | Preview | Runtime | Preuve | Lot de clôture ou migration |
 |---|---|---|---|---|---|---|---|---|---|
-| SC-01 | Scenes Library : cycle de vie, recherche et suppression sûre | Supported | Partial | Supported | Supported | Supported | Rejected by design | E-SC-01 | Authoring → NSC-30 |
+| SC-01 | Scenes Library : cycle de vie, recherche et suppression sûre | Supported | Supported | Supported | Supported | Supported | Rejected by design | E-SC-01 | Authoring → NSC-30 |
 | SC-02 | Nœuds `Start`, `End` et `Merge` | Supported | Supported | Supported | Supported | Supported | Supported | E-SC-01, E-SC-02 | — |
 | SC-03 | Nœud Dialogue et ports d’outcomes déclarés | Supported | Supported | Supported | Supported | Supported | Supported | E-SC-01, E-DG-01 | — |
 | SC-04 | Nœud Battle et ports `victory`/`defeat` | Supported | Supported | Supported | Supported | Supported | Supported | E-SC-01, E-SC-02 | — |
 | SC-05 | Nœud Cinematic et reprise sur `completed` | Supported | Supported | Supported | Supported | Supported | Supported | E-SC-01, E-CI-02 | — |
 | SC-06 | Condition V1 : Fact, story flag, Step completed, Event consommé | Supported | Supported | Supported | Supported | Supported | Supported | E-SC-01, E-SC-02 | — |
-| SC-07 | Catalogue complet des Conditions Scene | Supported | Partial | Supported | Partial | Partial | Partial | E-SC-01 | Authoring/Validation/Preview/Runtime → NSC-33 |
+| SC-07 | Catalogue complet des Conditions Scene | Supported | Supported | Supported | Supported | Supported | Supported | E-SC-01 | Authoring/Validation/Preview/Runtime → NSC-33 |
 | SC-08 | Conséquences `setFact` et `markEventConsumed` | Supported | Supported | Supported | Supported | Supported | Supported | E-SC-03 | — |
-| SC-09 | Conséquence `completeStoryStep` dans le picker no-code | Supported | Partial | Supported | Supported | Partial | Supported | E-SC-03 | Authoring/Preview → NSC-33 |
-| SC-10 | Récompenses typées : item, argent, Pokémon, starter | Supported | Supported | Supported | Supported | Partial | Supported | E-SC-03 | Preview avant/après → NSC-33 |
-| SC-11 | `BranchByOutcome`, convergence et `End` terminal | Supported | Partial | Supported | Partial | Partial | Partial | E-SC-01, E-SC-02 | Authoring/Validation/Preview/Runtime → NSC-32 |
+| SC-09 | Conséquence `completeStoryStep` dans le picker no-code | Supported | Supported | Supported | Supported | Supported | Supported | E-SC-03 | Authoring/Preview → NSC-33 |
+| SC-10 | Récompenses typées : item, argent, Pokémon, starter | Supported | Supported | Supported | Supported | Supported | Supported | E-SC-03 | Preview avant/après → NSC-33 |
+| SC-11 | `BranchByOutcome`, convergence et `End` terminal | Supported | Supported | Supported | Supported | Supported | Supported | E-SC-01, E-SC-02 | Authoring/Validation/Preview/Runtime → NSC-32 |
 | SC-12 | Script arbitraire ou JSON libre dans une Scene | Rejected by design | Rejected by design | Rejected by design | Rejected by design | Rejected by design | Rejected by design | E-DEC-01 | — |
-| SC-13 | Registre de commandes narratives typées | Partial | Partial | Partial | Partial | Partial | Partial | E-SC-03, E-DEC-01 | Toutes dimensions → NSC-37 |
+| SC-13 | Registre de commandes narratives typées | Supported | Supported | Supported | Supported | Supported | Supported | E-SC-03, E-DEC-01 | Toutes dimensions → NSC-37 |
 
 ### 2.3 Dialogues et outcomes
 
-| ID | Capacité | Schema | Authoring | Persistence | Validation | Preview | Runtime | Preuve | Propriétaire du manque ou de la migration |
+| ID | Capacité | Schema | Authoring | Persistence | Validation | Preview | Runtime | Preuve | Lot de clôture ou migration |
 |---|---|---|---|---|---|---|---|---|---|
-| DG-01 | Document Yarn multi-nœuds et codec lossless | Supported | Partial | Supported | Partial | Supported | Supported | E-DG-01 | Authoring/Validation → NSC-34 |
+| DG-01 | Document Yarn multi-nœuds et codec lossless | Supported | Supported | Supported | Supported | Supported | Supported | E-DG-01 | Authoring/Validation → NSC-34 |
 | DG-02 | Outcome Yarn stable vers port Scene | Supported | Supported | Supported | Supported | Supported | Supported | E-DG-01 | — |
-| DG-03 | Renommage/suppression d’outcome avec protection des Scenes | Supported | Partial | Supported | Partial | Partial | Supported | E-DG-01 | Authoring/Validation/Preview → NSC-35 |
-| DG-04 | Session Dialogue complète : preview, save, reload, undo/recovery | Supported | Partial | Partial | Supported | Partial | Supported | E-DG-01 | Authoring/Persistence/Preview → NSC-36 |
+| DG-03 | Renommage/suppression d’outcome avec protection des Scenes | Supported | Supported | Supported | Supported | Supported | Supported | E-DG-01 | Authoring/Validation/Preview → NSC-35 |
+| DG-04 | Session Dialogue complète : preview, save, reload, undo/recovery | Supported | Supported | Supported | Supported | Supported | Supported | E-DG-01 | Authoring/Persistence/Preview → NSC-36 |
 
 ### 2.4 Events
 
-| ID | Capacité | Schema | Authoring | Persistence | Validation | Preview | Runtime | Preuve | Propriétaire du manque ou de la migration |
+| ID | Capacité | Schema | Authoring | Persistence | Validation | Preview | Runtime | Preuve | Lot de clôture ou migration |
 |---|---|---|---|---|---|---|---|---|---|
 | EV-01 | Sources `mapEnter`, `triggerEnter`, `entityInteract`, `outcomeReceived` | Supported | Supported | Supported | Supported | Supported | Supported | E-EV-01 | — |
-| EV-02 | Sélection guidée d’une source physique réelle et retour Map Editor | Supported | Partial | Supported | Partial | Partial | Supported | E-EV-01 | Authoring/Validation/Preview → NSC-41 |
+| EV-02 | Sélection guidée d’une source physique réelle et retour Map Editor | Supported | Supported | Supported | Supported | Supported | Supported | E-EV-01 | Authoring/Validation/Preview → NSC-41 |
 | EV-03 | Conditions V1 booléennes AND : Fact et Event consommé | Supported | Supported | Supported | Supported | Supported | Supported | E-EV-02 | — |
-| EV-04 | Expressions `all/any/not` et réarmement qualifié | Partial | Partial | Partial | Partial | Partial | Partial | E-EV-02 | Toutes dimensions → NSC-43 |
+| EV-04 | Expressions `all/any/not` et réarmement qualifié | Supported | Supported | Supported | Supported | Supported | Supported | E-EV-02 | Toutes dimensions → NSC-43 |
 | EV-05 | Politiques `oneShot`/`reusable`, priorité, ordre et dispatch fail-closed | Supported | Supported | Supported | Supported | Supported | Supported | E-EV-02, E-SEL-01 | — |
-| EV-06 | Cycle draft/configured/enabled, rename, clone, delete, publish/unpublish | Supported | Partial | Partial | Supported | Partial | Supported | E-EV-02 | Authoring/Persistence/Preview → NSC-40 |
-| EV-07 | Map Events View exhaustive par map | Supported | Partial | Rejected by design | Partial | Partial | Rejected by design | E-EV-01 | Authoring/Validation/Preview → NSC-44 |
+| EV-06 | Cycle draft/configured/enabled, rename, clone, delete, publish/unpublish | Supported | Supported | Supported | Supported | Supported | Supported | E-EV-02 | Authoring/Persistence/Preview → NSC-40 |
+| EV-07 | Map Events View exhaustive par map | Supported | Supported | Rejected by design | Supported | Supported | Rejected by design | E-EV-01 | Authoring/Validation/Preview → NSC-44 |
 | EV-08 | `MapEventDefinition` et dual-read Event historiques | Legacy | Legacy | Legacy | Legacy | Legacy | Legacy | E-LEG-02 | Migration Event → NSC-45 |
 
 ### 2.5 Facts et World Rules
 
-| ID | Capacité | Schema | Authoring | Persistence | Validation | Preview | Runtime | Preuve | Propriétaire du manque ou de la migration |
+| ID | Capacité | Schema | Authoring | Persistence | Validation | Preview | Runtime | Preuve | Lot de clôture ou migration |
 |---|---|---|---|---|---|---|---|---|---|
 | FA-01 | Fact booléen : définition, valeur par défaut et override runtime | Supported | Supported | Supported | Supported | Supported | Supported | E-FA-01 | — |
-| FA-02 | Cycle de vie Fact et suppression avec tous les consommateurs | Supported | Partial | Supported | Partial | Partial | Supported | E-FA-01 | Authoring/Validation/Preview → NSC-50 |
-| FA-03 | Facts typés `bool/int/string` et opérateurs compatibles | Partial | Partial | Partial | Partial | Partial | Partial | E-FA-01 | Toutes dimensions → NSC-51 |
+| FA-02 | Cycle de vie Fact et suppression avec tous les consommateurs | Supported | Supported | Supported | Supported | Supported | Supported | E-FA-01 | Authoring/Validation/Preview → NSC-50 |
+| FA-03 | Facts typés `bool/int/string` et opérateurs compatibles | Supported | Supported | Supported | Supported | Supported | Supported | E-FA-01 | Toutes dimensions → NSC-51 |
 | WR-01 | World Rule V1 : visibilité, dialogue et Map Event legacy | Supported | Supported | Supported | Supported | Supported | Supported | E-WR-01 | — |
-| WR-02 | Registry projet entier et target Event V2 distincte | Partial | Partial | Supported | Partial | Partial | Partial | E-WR-01 | Schema/Authoring/Validation/Preview/Runtime → NSC-52 |
-| WR-03 | Simulation explicable d’un état du monde | Supported | Partial | Rejected by design | Partial | Partial | Partial | E-WR-01 | Authoring/Validation/Preview/Runtime → NSC-53 |
+| WR-02 | Registry projet entier et target Event V2 distincte | Supported | Supported | Supported | Supported | Supported | Supported | E-WR-01 | Schema/Authoring/Validation/Preview/Runtime → NSC-52 |
+| WR-03 | Simulation explicable d’un état du monde | Supported | Supported | Rejected by design | Supported | Supported | Supported | E-WR-01 | Authoring/Validation/Preview/Runtime → NSC-53 |
 
 ### 2.6 Validator
 
-| ID | Capacité | Schema | Authoring | Persistence | Validation | Preview | Runtime | Preuve | Propriétaire du manque ou de la migration |
+| ID | Capacité | Schema | Authoring | Persistence | Validation | Preview | Runtime | Preuve | Lot de clôture ou migration |
 |---|---|---|---|---|---|---|---|---|---|
 | VA-01 | Diagnostics structurels locaux : références, graphes, Facts, Rules | Supported | Supported | Rejected by design | Supported | Supported | Rejected by design | E-VA-01 | — |
-| VA-02 | Solvabilité symbolique corrélée avec `pass/fail/indeterminate` | Partial | Rejected by design | Rejected by design | Partial | Partial | Rejected by design | E-VA-01 | Schema/Validation/Preview → NSC-54 |
-| VA-03 | Terminalité, défaite et politique de retry déclarée | Partial | Partial | Partial | Partial | Partial | Partial | E-SEL-01 | Toutes dimensions → NSC-55 |
-| VA-04 | Atteignabilité physique fondée sur `map_gameplay` | Partial | Rejected by design | Rejected by design | Partial | Partial | Partial | E-VA-01 | Schema/Validation/Preview/Runtime → NSC-56 |
-| VA-05 | Rapport quatre dimensions et receipt runtime frais | Partial | Rejected by design | Partial | Partial | Partial | Partial | E-VA-01, E-SEL-01 | Schema/Persistence/Validation/Preview/Runtime → NSC-57 |
-| VA-06 | UX actionnable, suppressions traçables et export CI | Partial | Partial | Partial | Partial | Partial | Rejected by design | E-VA-01 | Schema/Authoring/Persistence/Validation/Preview → NSC-58 |
+| VA-02 | Solvabilité symbolique corrélée avec `pass/fail/indeterminate` | Supported | Rejected by design | Rejected by design | Supported | Supported | Rejected by design | E-VA-01 | Schema/Validation/Preview → NSC-54 |
+| VA-03 | Terminalité, défaite et politique de retry déclarée | Supported | Supported | Supported | Supported | Supported | Supported | E-SEL-01 | Toutes dimensions → NSC-55 |
+| VA-04 | Atteignabilité physique fondée sur `map_gameplay` | Supported | Rejected by design | Rejected by design | Supported | Supported | Supported | E-VA-01 | Schema/Validation/Preview/Runtime → NSC-56 |
+| VA-05 | Rapport quatre dimensions et receipt runtime frais | Supported | Rejected by design | Supported | Supported | Supported | Supported | E-VA-01, E-SEL-01 | Schema/Persistence/Validation/Preview/Runtime → NSC-57 |
+| VA-06 | UX actionnable, suppressions traçables et export CI | Supported | Supported | Supported | Supported | Supported | Rejected by design | E-VA-01 | Schema/Authoring/Persistence/Validation/Preview → NSC-58 |
 
 ### 2.7 Cinematics et commandes
 
-| ID | Capacité | Schema | Authoring | Persistence | Validation | Preview | Runtime | Preuve | Propriétaire du manque ou de la migration |
+| ID | Capacité | Schema | Authoring | Persistence | Validation | Preview | Runtime | Preuve | Lot de clôture ou migration |
 |---|---|---|---|---|---|---|---|---|---|
 | CI-01 | Cinematic linéaire, stage, acteurs, bindings et timeline | Supported | Supported | Supported | Supported | Supported | Supported | E-CI-01, E-CI-02 | — |
 | CI-02 | Branche ou mutation de progression dans une Cinematic | Rejected by design | Rejected by design | Rejected by design | Rejected by design | Rejected by design | Rejected by design | E-CI-01, E-DEC-01 | — |
 | CI-03 | `wait`, caméra, move, face, emote et fade | Supported | Supported | Supported | Supported | Supported | Supported | E-CI-01, E-CI-02 | — |
-| CI-04 | `dialogueLine` et `shake` configurables de bout en bout | Supported | Partial | Supported | Supported | Partial | Supported | E-CI-01, E-CI-02 | Authoring/Preview → NSC-66 |
-| CI-05 | Catalogue projet Media/FX et ports neutres de playback | Partial | Partial | Partial | Partial | Partial | Partial | E-CI-01 | Toutes dimensions → NSC-65 |
-| CI-06 | `sound`, `music` et `fx` publiables | Supported | Partial | Supported | Partial | Partial | Partial | E-CI-01, E-CI-02 | Authoring/Validation → NSC-66 ; Preview/Runtime → NSC-67 |
+| CI-04 | `dialogueLine` et `shake` configurables de bout en bout | Supported | Supported | Supported | Supported | Supported | Supported | E-CI-01, E-CI-02 | Authoring/Preview → NSC-66 |
+| CI-05 | Catalogue projet Media/FX et ports neutres de playback | Supported | Supported | Supported | Supported | Supported | Supported | E-CI-01 | Toutes dimensions → NSC-65 |
+| CI-06 | `sound`, `music` et `fx` publiables | Supported | Supported | Supported | Supported | Supported | Supported | E-CI-01, E-CI-02 | Authoring/Validation → NSC-66 ; Preview/Runtime → NSC-67 |
 | CI-07 | `marker` comme métadonnée de storyboard/timeline | Supported | Supported | Supported | Supported | Supported | Rejected by design | E-CI-01, E-DEC-01 | — |
 | CI-08 | Script arbitraire dans une Cinematic | Rejected by design | Rejected by design | Rejected by design | Rejected by design | Rejected by design | Rejected by design | E-DEC-01 | — |
-| CI-09 | Commande Cinematic scriptée mais typée et enregistrée | Partial | Partial | Partial | Partial | Partial | Partial | E-DEC-01 | Toutes dimensions → NSC-66 |
-| CI-10 | Cinematics Library à l'échelle de 1 000 assets | Partial | Partial | Partial | Partial | Partial | Rejected by design | E-CI-01 | Schema/Authoring/Persistence/Validation/Preview à l'échelle → NSC-74 |
-| CI-11 | Timeline à l'échelle de 1 000 blocs | Partial | Partial | Partial | Partial | Partial | Rejected by design | E-CI-01 | Schema/Authoring/Persistence/Validation/Preview à l'échelle → NSC-74 |
+| CI-09 | Commande Cinematic scriptée mais typée et enregistrée | Supported | Supported | Supported | Supported | Supported | Supported | E-DEC-01 | Toutes dimensions → NSC-66 |
+| CI-10 | Cinematics Library à l'échelle de 1 000 assets | Supported | Supported | Supported | Supported | Supported | Rejected by design | E-CI-01 | Schema/Authoring/Persistence/Validation/Preview à l'échelle → NSC-74 |
+| CI-11 | Timeline à l'échelle de 1 000 blocs | Supported | Supported | Supported | Supported | Supported | Rejected by design | E-CI-01 | Schema/Authoring/Persistence/Validation/Preview à l'échelle → NSC-74 |
 
 ## 3. Catalogue de preuves
 
@@ -142,6 +154,7 @@ lots fonctionnels et aux gates finales.
 | E-LEG-01 | `packages/map_core/lib/src/authoring/storyline_legacy_import_preview.dart`; `packages/map_core/test/storyline_legacy_import_preview_test.dart`; `packages/map_editor/test/storylines_current_global_story_characterization_test.dart` |
 | E-LEG-02 | `packages/map_core/lib/src/compatibility/narrative_event_migration_planner_impl.dart`; `packages/map_core/test/narrative_event_migration_integrity_closure_test.dart`; `packages/map_runtime/test/narrative_event_legacy_runtime_characterization_test.dart` |
 | E-DEC-01 | `MVP Selbrume/narrative_studio.md` sections 8–10, 21 et 22; `docs/superpowers/plans/2026-07-19-narrative-studio-completion-roadmap.md` section 5; `packages/map_core/test/cinematic_asset_test.dart` (linéarité et rejet des branches/gameplay) |
+| E-FINAL | `reports/narrativeStudio/completion/ns_completion_final_evidence_pack.md`; `reports/narrativeStudio/completion/ns_completion_human_qa_checklist.md`; `reports/narrativeStudio/completion/narrative_studio_user_guide.md`; 12 426 tests de packages réussis, 1 skip déclaré, 6 analyses propres, 2 smoke tests et 2 builds macOS debug au 2026-07-21 |
 
 ## 4. Contrats d’acceptation séparés
 
@@ -149,12 +162,20 @@ lots fonctionnels et aux gates finales.
 
 Le MVP Selbrume est une preuve ciblée du mini-jeu, pas la déclaration de complétude du Studio. Il est accepté seulement si les éléments suivants sont reproduits sur le projet promu :
 
-1. Les 12 Steps principales, les trois Storylines secondaires et leurs assets canoniques sont représentés sans commentaire substitutif ; la fidélité finale appartient à NSC-81.
-2. Un auteur reconstruit Storyline, Chapters, Steps, Dialogues, Scenes, Cinematics, Events, Facts et World Rules depuis les workflows publics, sans édition manuelle de JSON ; le harness appartient à NSC-80.
-3. Au moins une chaîne réelle couvre source map → Event → Dialogue outcome → branche Scene → Cinematic → Combat → conséquence → Fact/Step → World Rule. Les manques sont détenus par les lignes SC-11, SC-13 et CI-06.
-4. Victoire, défaite, retry, sauvegarde/reprise et absence de double effet sont prouvés sur la matrice Selbrume ; la fermeture exhaustive appartient à NSC-82. La preuve actuelle reste explicitement limitée : pas de defeat→retry physique dédié pour le gardien 2, pas de sauvegarde disque entre défaite réelle et retry, pas de walkthrough humain.
-5. Le Validator ne transforme ni une dimension non exécutée ni un budget dépassé en réussite ; les propriétaires sont VA-02 à VA-06.
-6. Le binaire et le projet packagé passent un walkthrough humain documenté ; la QA et le release gate appartiennent à NSC-83.
+1. Les 12 Steps principales, les trois Storylines secondaires et leurs assets
+   canoniques sont représentés sans commentaire substitutif par NSC-81.
+2. Le harness NSC-80 reconstruit Storyline, Chapters, Steps, Dialogues, Scenes,
+   Cinematics, Events, Facts et World Rules depuis les workflows publics, sans
+   édition manuelle de JSON.
+3. Une chaîne réelle couvre source map → Event → Dialogue outcome → branche
+   Scene → Cinematic → Combat → conséquence → Fact/Step → World Rule.
+4. Victoire, défaite, retry, sauvegarde/reprise et absence de double effet sont
+   prouvés par NSC-82 sur le projet promu.
+5. Le Validator ne transforme ni une dimension non exécutée ni un budget
+   dépassé en réussite ; la preuve à quatre dimensions et son receipt sont
+   frais pour le fingerprint livré.
+6. Les binaires macOS de l'éditeur et du runtime passent le walkthrough humain
+   documenté par NSC-83.
 
 Audio, musique et FX ne bloquent pas le MVP fonctionnel si aucune commande correspondante n’est publiée. Dès qu’une telle commande est publiée, CI-05/CI-06 deviennent obligatoires : aucun silence runtime n’est accepté.
 
@@ -190,9 +211,9 @@ Un sous-ensemble, un fingerprint différent, une suite ignorée ou une fixture s
 | Décision | État | Contrat | Propriétaire si extension |
 |---|---|---|---|
 | Script arbitraire/JSON comme échappatoire | Rejected by design | Les mutations persistantes utilisent `SceneConsequence`; les commandes interactives utilisent un registre typé. | NSC-37 |
-| Commande scriptée enregistrée et typée | Partial | ID stable, paramètres validés, backend unique et erreur explicite si non exécutable. | NSC-37 pour Scene; NSC-66 pour Cinematic |
+| Commande scriptée enregistrée et typée | Supported | ID stable, paramètres validés, backend unique et erreur explicite si non exécutable. | NSC-37 pour Scene; NSC-66 pour Cinematic |
 | Audio, musique et FX publiés sans contrat media ni sink | Rejected by design | Draft lisible possible; publication bloquée jusqu’à résolution, preview et runtime. | NSC-65, puis NSC-66, puis NSC-67 |
-| Branche narrative dans une Scene | Partial | `BranchByOutcome` lit un outcome qualifié; Merge converge; End émet le résultat final. | NSC-32 |
+| Branche narrative dans une Scene | Supported | `BranchByOutcome` lit un outcome qualifié; Merge converge; End émet le résultat final. | NSC-32 |
 | Branche dans une Cinematic | Rejected by design | La Scene choisit une Cinematic; la Cinematic reste linéaire. | — |
 | `marker` envoyé au sink runtime | Rejected by design | Métadonnée de navigation/storyboard uniquement. | — |
 

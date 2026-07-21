@@ -123,15 +123,27 @@ void main() {
   testWidgets('lists canonical and bridge entries with read-only details',
       (tester) async {
     _setLargeSurface(tester);
-    await tester.pumpWidget(_Harness(project: _project()));
+    await tester.pumpWidget(
+      _Harness(project: _project(), surfaceSize: const Size(1280, 960)),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Intro cinematic'), findsWidgets);
     expect(find.text('Legacy cutscene'), findsWidgets);
     expect(find.text('1 scène'), findsWidgets);
 
+    final legacyEntry =
+        find.byKey(const ValueKey('cinematic-entry-scenario_cutscene'));
+    await tester.scrollUntilVisible(
+      legacyEntry,
+      300,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('cinematics-library-list')),
+        matching: find.byType(Scrollable),
+      ),
+    );
     await tester.tap(
-      find.byKey(const ValueKey('cinematic-entry-scenario_cutscene')),
+      legacyEntry,
     );
     await tester.pumpAndSettle();
 
@@ -1155,11 +1167,23 @@ void main() {
   testWidgets('keeps legacy bridge out of canonical builder shell',
       (tester) async {
     _setLargeSurface(tester);
-    await tester.pumpWidget(_Harness(project: _project()));
+    await tester.pumpWidget(
+      _Harness(project: _project(), surfaceSize: const Size(1280, 960)),
+    );
     await tester.pumpAndSettle();
 
+    final legacyEntry =
+        find.byKey(const ValueKey('cinematic-entry-scenario_cutscene'));
+    await tester.scrollUntilVisible(
+      legacyEntry,
+      300,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('cinematics-library-list')),
+        matching: find.byType(Scrollable),
+      ),
+    );
     await tester.tap(
-      find.byKey(const ValueKey('cinematic-entry-scenario_cutscene')),
+      legacyEntry,
     );
     await tester.pumpAndSettle();
 
@@ -1182,6 +1206,7 @@ void main() {
     _setLargeSurface(tester);
     await tester.pumpWidget(
       _Harness(
+        surfaceSize: const Size(1280, 960),
         project: _project(
           extraCinematics: [
             CinematicAsset(
@@ -1232,7 +1257,7 @@ void main() {
         find.byKey(const ValueKey('cinematic-entry-cinematic_unused'));
     await tester.scrollUntilVisible(
       unusedEntry,
-      180,
+      300,
       scrollable: find.descendant(
         of: find.byKey(const ValueKey('cinematics-library-list')),
         matching: find.byType(Scrollable),
@@ -2080,7 +2105,10 @@ SceneAsset _sceneReferencing({
 
 void _setLargeSurface(
   WidgetTester tester, [
-  Size surfaceSize = const Size(1280, 860),
+  // Functional library tests exercise rows plus a full inspector. Keep their
+  // target surface tall enough that taps are not intercepted by the bottom
+  // test-view boundary; dedicated responsive tests own smaller viewports.
+  Size surfaceSize = const Size(1280, 1000),
 ]) {
   tester.view.physicalSize = surfaceSize;
   tester.view.devicePixelRatio = 1;

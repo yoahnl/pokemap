@@ -32,7 +32,7 @@ void main() {
     );
 
     expect(find.text('Au moins une doit être remplie'), findsOneWidget);
-    expect(find.text('Port ouvert = Vrai'), findsOneWidget);
+    expect(find.text('Port ouvert est égal à Vrai'), findsOneWidget);
     await tester.tap(
       find.byKey(const ValueKey('event-builder-v2-negate-condition-0')),
     );

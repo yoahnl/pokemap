@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
@@ -91,8 +93,13 @@ class NarrativeValidatorSnapshotRequest {
       projectRootPath: p.normalize(projectRootPath),
       snapshotFingerprint: narrativeEventBytesFingerprint(
         canonicalizeNarrativeEventJsonUtf8({
-          'project': project.toJson(),
-          if (activeMap != null) 'activeMap': activeMap.toJson(),
+          // Freezed's generated `toJson` methods are not uniformly
+          // `explicitToJson`: nested geometry can therefore still be a typed
+          // object here. Normalize through Dart's JSON encoder before the
+          // strict canonicalizer so real trigger maps and disk-loaded maps
+          // produce the same validator identity.
+          'project': _jsonTree(project.toJson()),
+          if (activeMap != null) 'activeMap': _jsonTree(activeMap.toJson()),
           if (pokemonCatalogFingerprint != null)
             'pokemonCatalogFingerprint': pokemonCatalogFingerprint,
         }),
@@ -129,6 +136,8 @@ class NarrativeValidatorSnapshotRequest {
   @override
   int get hashCode => Object.hash(projectRootPath, snapshotFingerprint);
 }
+
+Object? _jsonTree(Object? value) => jsonDecode(jsonEncode(value));
 
 typedef LoadNarrativeValidatorPokemonCatalogSnapshot
     = Future<NarrativeValidatorPokemonCatalogSnapshot> Function(

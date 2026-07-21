@@ -3376,7 +3376,13 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.tap(
-        find.byKey(const ValueKey('scene-condition-operator-isTrue')),
+        find.byKey(
+          const ValueKey('scene-condition-fact-operator-equals'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-condition-fact-value-true')),
       );
       await tester.pumpAndSettle();
       await tester.tap(
@@ -3397,7 +3403,15 @@ void main() {
           payload.conditionSource!.sourceKind, SceneConditionSourceKind.fact);
       expect(payload.conditionSource!.sourceId, 'fact_harbor_fog_seen');
       expect(payload.conditionSource!.label, 'Brume vue au port');
-      expect(payload.conditionSource!.operator, SceneConditionOperator.isTrue);
+      expect(payload.conditionSource!.operator, SceneConditionOperator.equals);
+      expect(
+        payload.conditionSource!.factOperator,
+        NarrativeFactOperator.equals,
+      );
+      expect(
+        payload.conditionSource!.expectedFactValue,
+        const NarrativeValue.boolean(true),
+      );
       expect(payload.conditionRef, 'fact_harbor_fog_seen');
     });
 

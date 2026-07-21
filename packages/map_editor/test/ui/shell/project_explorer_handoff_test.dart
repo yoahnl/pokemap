@@ -69,6 +69,36 @@ void main() {
   );
 
   testWidgets(
+    'EditorShellPage compacts the explorer when both side panes would crush the stage',
+    (tester) async {
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/ns_home_19_compact_map_project',
+          workspaceMode: EditorWorkspaceMode.map,
+          project: _project(),
+          activeMap: _map(),
+        ),
+        surfaceSize: const Size(768, 800),
+      );
+
+      expect(find.byKey(const ValueKey('project-explorer-region')),
+          findsOneWidget);
+      expect(_opacity(tester, 'project-explorer-expanded-state'), 0);
+      expect(_opacity(tester, 'project-explorer-reduced-state'), 1);
+      expect(
+        tester
+            .getSize(
+              find.byKey(const ValueKey<String>('right-inspector-region')),
+            )
+            .width,
+        336,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'EditorShellPage captures NS-HOME-19 Project Explorer handoff screenshots when requested',
     (tester) async {
       const captureReducedDesktop =
