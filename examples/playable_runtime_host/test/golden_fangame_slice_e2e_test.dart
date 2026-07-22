@@ -90,25 +90,34 @@ void main() {
         gameState: state,
         request: wildRequest,
       );
-      final wildSession = createBattleSession(wildSetup);
+      final wildSession = createBattleSession(
+        wildSetup,
+        rng: const BattleScriptedRng(<int>[1]),
+      );
       expect(wildSession.state.isFinished, isFalse);
       expect(wildSession.state.enemy.speciesId, 'sparkitten');
-      final captureOutcome = _finishedOutcome(
-        wildSession.state,
-        BattleOutcomeType.captured,
-        playerHp: 17,
-        enemyHp: 1,
+      final wildContext = RuntimeActiveBattleContext(
+        request: wildRequest,
+        playerPartyIndex: 0,
       );
+      final captureSubmission =
+          submitRuntimeBattleCaptureAttempt<BattleSession>(
+        gameState: state,
+        context: wildContext,
+        captureAllowed: wildSetup.allowCapture,
+        submitToEngine: () => wildSession.applyChoice(
+          const PlayerBattleChoiceCapture(),
+        ),
+      );
+      final captureOutcome = captureSubmission.engineResult.state.outcome!;
       expect(captureOutcome.isCaptured, isTrue);
       completed.add('wild_battle_completed');
 
       state = applyRuntimeBattleOutcomeToGameState(
-        gameState: state,
-        context: RuntimeActiveBattleContext(
-          request: wildRequest,
-          playerPartyIndex: 0,
-        ),
+        gameState: captureSubmission.updatedGameState,
+        context: wildContext,
         outcome: captureOutcome,
+        captureAttemptReceipt: captureSubmission.receipt,
       );
       expect(state.party.members, hasLength(2));
       expect(state.party.members.last.speciesId, 'sparkitten');

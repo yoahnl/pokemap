@@ -425,10 +425,7 @@ void main() {
       expect(game.selectBattleBagEntry(0), isTrue);
       await game.debugWaitForBattleOverlaySync();
 
-      for (var i = 0; i < 40 && game.debugFlowPhaseName != 'overworld'; i++) {
-        game.update(0.25);
-        await Future<void>.delayed(Duration.zero);
-      }
+      await _acknowledgePostBattleAndWaitForOverworld(game);
 
       final snapshot = game.gameStateSnapshot;
       expect(snapshot.bag.entries, isEmpty);
@@ -601,10 +598,7 @@ void main() {
       );
       await game.debugWaitForBattleOverlaySync();
 
-      for (var i = 0; i < 4 && game.debugFlowPhaseName != 'overworld'; i++) {
-        game.update(0.25);
-        await Future<void>.delayed(Duration.zero);
-      }
+      await _acknowledgePostBattleAndWaitForOverworld(game);
 
       expect(game.debugFlowPhaseName, equals('overworld'));
       expect(game.debugPsdkBattleSessionActive, isFalse);
@@ -1409,7 +1403,8 @@ void main() {
       expect(game.gameStateSnapshot.bag.entries, isEmpty);
     });
 
-    test('battle end keeps the overlay mounted until final narration finishes',
+    test(
+        'battle end hands off from final narration to post-battle acknowledgement',
         () async {
       final manifest = await _writeProjectManifest(tempProjectRoot);
       final map = _buildMap();
@@ -1475,8 +1470,14 @@ void main() {
         await Future<void>.delayed(Duration.zero);
       }
 
+      expect(game.debugFlowPhaseName, equals('battle'));
+      expect(game.debugPostBattleOverlayMounted, isTrue);
+      expect(game.debugValidatePostBattleChoice(), isTrue);
+      await game.debugWaitForPostBattleCompletion();
+
       expect(game.debugFlowPhaseName, equals('overworld'));
       expect(game.debugBattleOverlayComponent, isNull);
+      expect(game.debugPostBattleOverlayMounted, isFalse);
     });
 
     test('battle overlay reflows when PlayableMapGame viewport changes',
@@ -1534,6 +1535,27 @@ void main() {
       );
     });
   });
+}
+
+Future<void> _acknowledgePostBattleAndWaitForOverworld(
+  PlayableMapGame game,
+) async {
+  for (var tick = 0; tick < 240; tick++) {
+    if (game.debugFlowPhaseName == 'overworld') {
+      await game.debugWaitForPostBattleCompletion();
+      return;
+    }
+    if (game.debugPostBattleOverlayMounted) {
+      expect(game.debugValidatePostBattleChoice(), isTrue);
+    }
+    game.update(0.25);
+    await Future<void>.delayed(Duration.zero);
+  }
+  fail(
+    'Post-battle flow did not return to overworld '
+    '(phase=${game.debugFlowPhaseName}, '
+    'postBattle=${game.debugPostBattleOverlayMounted}).',
+  );
 }
 
 GameState _playerState({

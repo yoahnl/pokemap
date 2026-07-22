@@ -38,6 +38,7 @@ void main() {
                   abilityId: 'overgrow',
                   level: 100,
                   knownMoveIds: <String>['tackle', 'growl'],
+                  experience: 1059860,
                   currentHp: 1,
                 ),
               ],
@@ -226,6 +227,7 @@ Future<void> _chooseMoveUntilBattleEnds(
   for (var turn = 0; turn < 80; turn++) {
     if (game.debugFlowPhaseName != 'battle') return;
     await _waitForBattleInputReady(game);
+    if (await _completePostBattleIfNeeded(game)) return;
     if (game.debugFlowPhaseName != 'battle') return;
     final overlay = game.debugBattleOverlayComponent;
     expect(overlay, isNotNull);
@@ -262,6 +264,30 @@ Future<void> _chooseMoveUntilBattleEnds(
     await _waitForBattleInputReady(game);
   }
   fail('The canonical static boss battle exceeded 80 real turns.');
+}
+
+Future<bool> _completePostBattleIfNeeded(PlayableMapGame game) async {
+  final battleFinished =
+      game.debugBattleSessionSnapshot?.state.isFinished ?? false;
+  if (!game.debugPostBattleOverlayMounted && !battleFinished) return false;
+
+  await _pumpUntil(
+    game,
+    () =>
+        game.debugFlowPhaseName != 'battle' ||
+        game.debugPostBattleOverlayMounted,
+  );
+  for (var message = 0;
+      message < 240 && game.debugPostBattleOverlayMounted;
+      message++) {
+    expect(game.debugValidatePostBattleChoice(), isTrue);
+    await _microPump(game);
+  }
+  if (game.debugPostBattleOverlayMounted) {
+    fail('The static boss post-battle queue exceeded 240 acknowledgements.');
+  }
+  await game.debugWaitForPostBattleCompletion();
+  return true;
 }
 
 Future<void> _waitForBattleInputReady(PlayableMapGame game) async {

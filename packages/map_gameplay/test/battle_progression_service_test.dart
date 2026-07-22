@@ -82,6 +82,36 @@ void main() {
       );
     });
 
+    test('can defer authored rewards while still applying XP and level-up', () {
+      final state = _state(<PlayerPokemon>[
+        _pokemon(id: 'participant', experience: 125, currentHp: 19),
+      ]);
+      final reward = BattleReward(
+        sourceKind: BattleRewardSourceKind.trainer,
+        trainerId: 'trainer_iris',
+        money: 200,
+        itemGrants: const <BattleRewardItemGrant>[
+          BattleRewardItemGrant(itemId: 'potion', quantity: 1),
+        ],
+        flagIds: const <String>['victory:iris'],
+      );
+
+      final result = service.apply(
+        state: state,
+        context: _context(),
+        reward: reward,
+        applyAuthoredRewards: false,
+      );
+
+      expect(result.state.party.members.single.experience, 335);
+      expect(result.state.trainerProfile.money, 0);
+      expect(result.state.bag.entries, isEmpty);
+      expect(result.state.storyFlags.activeFlags, isEmpty);
+      expect(result.appliedReward.money, 200);
+      expect(result.appliedReward.itemGrants, reward.itemGrants);
+      expect(result.appliedReward.flagIds, reward.flagIds);
+    });
+
     for (final outcome in <BattleProgressionOutcomeKind>[
       BattleProgressionOutcomeKind.defeat,
       BattleProgressionOutcomeKind.fled,

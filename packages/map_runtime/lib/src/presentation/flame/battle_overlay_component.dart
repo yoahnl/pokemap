@@ -492,6 +492,7 @@ class BattleOverlayComponent extends PositionComponent {
   bool _preferTouchListDragScroll;
   bool _useFlutterCommandOverlay;
   final bool _allowMedicineReserveTargets;
+  bool _acceptsPlayerCommands = true;
 
   BattleSceneBackdropComponent? _backdrop;
   BattleSceneCombatantComponent? _enemyCombatant;
@@ -530,6 +531,18 @@ class BattleOverlayComponent extends PositionComponent {
 
   @visibleForTesting
   bool get commandPanelMounted => _commandPanel != null;
+
+  bool get acceptsPlayerCommands => _acceptsPlayerCommands;
+
+  /// Permanently hands command authority to the post-battle coordinator.
+  void lockForPostBattle() {
+    if (!_acceptsPlayerCommands) return;
+    _acceptsPlayerCommands = false;
+    _commandPanel?.removeFromParent();
+    _commandPanel = null;
+    _currentCommandOverlaySnapshot = null;
+    onCommandOverlaySnapshotChanged?.call(null);
+  }
 
   @visibleForTesting
   bool get enemyHudMounted => _enemyHud != null;
@@ -1034,7 +1047,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   PlayerBattleChoice? getSelectedChoice() {
-    if (isTurnPresentationActive) {
+    if (!_acceptsPlayerCommands || isTurnPresentationActive) {
       return null;
     }
     final menuModel = _currentMenuModel();
@@ -1058,7 +1071,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   bool validateSelectedChoice() {
-    if (isTurnPresentationActive) {
+    if (!_acceptsPlayerCommands || isTurnPresentationActive) {
       return false;
     }
     final menuModel = _currentMenuModel();
@@ -1126,7 +1139,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   bool selectRootEntry(int index) {
-    if (isTurnPresentationActive) {
+    if (!_acceptsPlayerCommands || isTurnPresentationActive) {
       return false;
     }
     final menuModel = _currentMenuModel();
@@ -1145,7 +1158,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   bool selectChoiceEntry(int index) {
-    if (isTurnPresentationActive) {
+    if (!_acceptsPlayerCommands || isTurnPresentationActive) {
       return false;
     }
     final menuModel = _currentMenuModel();
@@ -1161,7 +1174,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   bool selectBagEntry(int index) {
-    if (isTurnPresentationActive) {
+    if (!_acceptsPlayerCommands || isTurnPresentationActive) {
       return false;
     }
     final bagMenuModel = _currentBagMenuModel();
@@ -1180,7 +1193,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   bool selectPartyEntry(int index) {
-    if (isTurnPresentationActive) {
+    if (!_acceptsPlayerCommands || isTurnPresentationActive) {
       return false;
     }
     final partyMenuModel = _currentPartyMenuModel();
@@ -1199,7 +1212,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   bool selectMedicineTargetEntry(int index) {
-    if (isTurnPresentationActive) {
+    if (!_acceptsPlayerCommands || isTurnPresentationActive) {
       return false;
     }
     final medicineTargetMenuModel = _currentMedicineTargetMenuModel();
@@ -1218,7 +1231,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   bool handleEscape() {
-    if (isTurnPresentationActive) {
+    if (!_acceptsPlayerCommands || isTurnPresentationActive) {
       return false;
     }
     final menuModel = _currentMenuModel();
@@ -1739,6 +1752,7 @@ class BattleOverlayComponent extends PositionComponent {
     required int horizontalDelta,
     required int verticalDelta,
   }) {
+    if (!_acceptsPlayerCommands) return false;
     if (isTurnPresentationActive) {
       return false;
     }

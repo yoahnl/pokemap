@@ -585,13 +585,19 @@ final class _SelbrumeJourney {
     final authoredStarter = project.newGame.starterOptions
         .singleWhere((option) => option.id == optionId)
         .pokemon;
+    final hydratedStarter = state.party.members.single;
     expect(
-      state.party.members,
-      <PlayerPokemon>[authoredStarter],
+      hydratedStarter.copyWith(
+        experience: authoredStarter.experience,
+        currentPpByMoveId: authoredStarter.currentPpByMoveId,
+      ),
+      authoredStarter,
       reason: 'The Scene starter grant must consume the complete project-owned '
           'New Game option (HP, moves, nature, ability and level), not rebuild '
           'a partial Pokemon from the Scene consequence.',
     );
+    expect(hydratedStarter.experience, isNotNull);
+    expect(hydratedStarter.currentPpByMoveId, isNotNull);
   }
 
   String pathDiagnostic(GridPos target, {required String gateEntityId}) {
@@ -1164,6 +1170,7 @@ final class _SelbrumeJourney {
     for (var turn = 0; turn < 80; turn++) {
       if (game.debugFlowPhaseName != 'battle') return;
       await _waitForBattleInputReady();
+      if (await _completePostBattleIfNeeded()) return;
       if (game.debugFlowPhaseName != 'battle') return;
       if (effectiveStrategy == _BattleStrategy.flee) {
         await _tryRunFromBattle();
@@ -1186,6 +1193,31 @@ final class _SelbrumeJourney {
       }
     }
     fail('A real Selbrume battle exceeded 80 turns.');
+  }
+
+  Future<bool> _completePostBattleIfNeeded() async {
+    final battleFinished =
+        game.debugBattleSessionSnapshot?.state.isFinished ?? false;
+    if (!game.debugPostBattleOverlayMounted && !battleFinished) return false;
+
+    await _pumpUntil(
+      () =>
+          game.debugFlowPhaseName != 'battle' ||
+          game.debugPostBattleOverlayMounted,
+      label: 'post-battle overlay mount',
+      allowTransitionClock: true,
+    );
+    for (var acknowledgement = 0;
+        acknowledgement < 240 && game.debugPostBattleOverlayMounted;
+        acknowledgement++) {
+      expect(game.debugValidatePostBattleChoice(), isTrue);
+      await _microPump();
+    }
+    if (game.debugPostBattleOverlayMounted) {
+      fail('The Selbrume post-battle queue exceeded 240 acknowledgements.');
+    }
+    await game.debugWaitForPostBattleCompletion();
+    return true;
   }
 
   Future<void> _tryRunFromBattle() async {

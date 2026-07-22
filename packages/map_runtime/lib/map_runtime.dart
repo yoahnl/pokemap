@@ -29,9 +29,29 @@ export 'src/application/runtime_battle_outcome_apply.dart'
         RuntimeActiveBattleContext,
         RuntimeBattleCaptureAttemptReceipt,
         RuntimeBattleCaptureAttemptSubmission,
-        submitRuntimeBattleCaptureAttempt;
+        submitRuntimeBattleCaptureAttempt,
+        commitRuntimeBattleCaptureAttemptReceipt;
 export 'src/application/runtime_battle_progression_context_mapper.dart'
     show RuntimeBattleProgressionContextMapper;
+export 'src/application/runtime_battle_reward_resolver.dart'
+    show
+        RuntimePostBattleSpeciesLoader,
+        RuntimePostBattleMoveLearningLoader,
+        RuntimePostBattleEvolutionLoader,
+        RuntimePostBattleResolutionErrorCode,
+        RuntimePostBattleResolutionException,
+        RuntimeBattleRewardResolution,
+        RuntimeBattleRewardResolver;
+export 'src/application/runtime_post_battle_decision_coordinator.dart'
+    show
+        RuntimePostBattleRewardResolutionLoader,
+        RuntimePostBattleMessageKind,
+        RuntimePostBattleMessage,
+        RuntimePostBattleCoordinatorFailureCode,
+        RuntimePostBattleCoordinatorFailure,
+        RuntimePostBattleCoordinatorResult,
+        RuntimePostBattleTransaction,
+        RuntimePostBattleDecisionCoordinator;
 export 'src/application/runtime_player_pokemon_progression_hydrator.dart'
     show
         RuntimePlayerPokemonProgressionHydrationErrorCode,
@@ -83,6 +103,8 @@ export 'src/border/border_runtime_readiness.dart'
 export 'src/application/world_rules/runtime_world_rule_projection_hook.dart'
     show RuntimeWorldRuleProjectionHook, RuntimeWorldRuleProjectionState;
 export 'src/presentation/flame/playable_map_game.dart' show PlayableMapGame;
+export 'src/presentation/flame/post_battle_progression_overlay_component.dart'
+    show PostBattleProgressionOverlayComponent;
 export 'src/presentation/flame/flame_cinematic_runtime_playback_sink.dart'
     show
         FlameCinematicRuntimeActorHandle,

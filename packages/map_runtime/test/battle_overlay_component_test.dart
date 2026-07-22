@@ -360,6 +360,38 @@ void main() {
   });
 
   group('BattleOverlayComponent Phase C decision prompts', () {
+    test('post-battle handoff permanently rejects battle commands', () async {
+      var submitted = 0;
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'lead_player',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+          enemy: _combatant(
+            speciesId: 'enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) => submitted += 1,
+      );
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+
+      overlay.lockForPostBattle();
+
+      expect(overlay.acceptsPlayerCommands, isFalse);
+      expect(overlay.getSelectedChoice(), isNull);
+      expect(overlay.validateSelectedChoice(), isFalse);
+      expect(overlay.selectRootEntry(0), isFalse);
+      expect(overlay.moveSelectionDown(), isFalse);
+      expect(overlay.handleEscape(), isFalse);
+      expect(submitted, 0);
+    });
+
     test('uses the request type instead of a flat choice list heuristic', () {
       final freeTurnSession = _session(
         player: _combatant(

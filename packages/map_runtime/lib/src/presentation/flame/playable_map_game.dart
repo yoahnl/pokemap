@@ -44,6 +44,7 @@ import '../../application/placed_behavior_runtime_cooldown.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_battle_setup_mapper.dart';
 import '../../application/runtime_battle_outcome_apply.dart';
+import '../../application/runtime_battle_reward_resolver.dart';
 import '../../application/runtime_battle_bag_hp_heal_item_apply.dart';
 import '../../application/runtime_battle_combatant_seed_builder.dart';
 import '../../application/runtime_character_refs.dart';
@@ -51,7 +52,9 @@ import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_move_catalog_loader.dart';
 import '../../application/runtime_player_pokemon_progression_hydrator.dart';
 import '../../application/runtime_pokemon_learnset_loader.dart';
+import '../../application/runtime_pokemon_evolution_loader.dart';
 import '../../application/runtime_pokemon_species_loader.dart';
+import '../../application/runtime_post_battle_decision_coordinator.dart';
 import '../../application/runtime_psdk_battle_session_adapter.dart';
 import '../../application/runtime_psdk_battle_setup_mapper.dart';
 import '../../application/runtime_story_branching.dart';
@@ -110,6 +113,7 @@ import 'map_layers_component.dart';
 import 'overworld_actor_component.dart';
 import 'player_component.dart';
 import 'placed_element_occlusion_patch_component.dart';
+import 'post_battle_progression_overlay_component.dart';
 import 'runtime_battle_gender_overrides.dart';
 import 'runtime_trainer_battle_overrides.dart';
 import 'static_placed_element_occlusion_patch_resolution.dart';
@@ -161,6 +165,9 @@ typedef RuntimeTilesetImageLoader = Future<Map<String, RuntimeTilesetImage>>
 typedef RuntimeDialogueSessionLoader = Future<DialogueSession?> Function(
   ResolvedDialogue resolved,
 );
+typedef RuntimePostBattleOverlayMounter = Future<void> Function(
+  PostBattleProgressionOverlayComponent overlay,
+);
 
 class PlayableMapGame extends FlameGame with KeyboardEvents {
   PlayableMapGame({
@@ -175,6 +182,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     RuntimeTilesetImageLoader? runtimeTilesetImageLoader,
     RuntimePlayerPokemonProgressionCatalogLoader?
         runtimePlayerPokemonProgressionCatalogLoader,
+    RuntimePostBattleDecisionCoordinator? postBattleDecisionCoordinator,
+    @visibleForTesting this.postBattleOverlayMounter,
+    @visibleForTesting this.beforePostBattleStateCommit,
     this.initialMapActivationReason = MapActivationReason.initialBoot,
     NarrativeRuntimeActivityGate? narrativeRuntimeActivityGate,
     @visibleForTesting this.beforeNarrativeAuthorityPreparation,
@@ -262,6 +272,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       manifest: _bundle.manifest,
       projectRootDirectory: _bundle.projectRootDirectory,
     );
+    final evolutionLoader = RuntimePokemonEvolutionLoader(
+      speciesLoader: _battleSpeciesLoader,
+    );
+    _postBattleDecisionCoordinator = postBattleDecisionCoordinator ??
+        RuntimePostBattleDecisionCoordinator(
+          rewardResolver: RuntimeBattleRewardResolver(
+            loadSpecies: _battleSpeciesLoader.loadById,
+            loadMoveLearningCandidates:
+                _battleLearnsetLoader.loadLevelUpCandidates,
+            loadEvolutionCandidates: evolutionLoader.loadLevelUpCandidates,
+          ),
+        );
     _cinematicRuntimeHost = _PlayableMapCinematicRuntimeHost(this);
     final cinematicFxPlayback = FlameCinematicFxPlaybackAdapter(
       host: _cinematicRuntimeHost,
@@ -304,6 +326,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   )? afterNarrativeAuthorityPreparation;
   @visibleForTesting
   final Future<void> Function()? beforeBattleHandoffPreparation;
+  @visibleForTesting
+  final RuntimePostBattleOverlayMounter? postBattleOverlayMounter;
+  @visibleForTesting
+  final VoidCallback? beforePostBattleStateCommit;
   final ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider;
   final bool enableActorContactShadows;
   final bool enableStaticPlacedElementShadows;
@@ -337,6 +363,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       RuntimeDialogueTextSpeed.instant;
   BattleTransitionOverlayComponent? _battleTransitionOverlay;
   BattleOverlayComponent? _battleOverlay;
+  PostBattleProgressionOverlayComponent? _postBattleProgressionOverlay;
   WarpTransitionOverlayComponent? _warpTransitionOverlay;
   TextComponent? _notification;
   final List<OverworldActorComponent> _npcActors = [];
@@ -378,6 +405,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       RuntimePokemonLearnsetLoader();
   late final BattlePokemonSpriteResolver _battleSpriteResolver;
   late final BattleBagItemIconResolver _battleBagItemIconResolver;
+  late final RuntimePostBattleDecisionCoordinator
+      _postBattleDecisionCoordinator;
   late final _PlayableMapCinematicRuntimeHost _cinematicRuntimeHost;
   late final FlameCinematicRuntimePlaybackSink _cinematicRuntimeSink;
   late final CinematicRuntimePlaybackController _cinematicRuntimeController;
@@ -1376,6 +1405,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   // Battle flow hardening
   bool _isBattleResolving =
       false; // Lock pour empêcher spam clavier pendant résolution
+  bool _isPostBattleFlowRunning = false;
+  bool _isPostBattleCommitCompleted = false;
+  int _postBattleFlowGeneration = 0;
+  Completer<void>? _postBattleFlowCompleter;
+  Future<void> _postBattleCompletionFuture = Future<void>.value();
 
   // Line of Sight (LoS) trainer detection
   final Set<String> _triggeredTrainerBattles = {}; // Anti-retrigger lock
@@ -1868,12 +1902,28 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool get debugBattleOverlayMounted => _battleOverlay != null;
 
   @visibleForTesting
+  bool get debugPostBattleOverlayMounted =>
+      _postBattleProgressionOverlay != null;
+
+  @visibleForTesting
+  bool get debugIsBattleResolving => _isBattleResolving;
+
+  @visibleForTesting
+  List<String> get debugPostBattleDecisionLabels =>
+      _postBattleProgressionOverlay?.decisionLabels ?? const <String>[];
+
+  @visibleForTesting
+  bool debugValidatePostBattleChoice() =>
+      _postBattleProgressionOverlay?.validateSelectedChoice() ?? false;
+
+  @visibleForTesting
   BattleOverlayComponent? get debugBattleOverlayComponent => _battleOverlay;
 
   @override
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
     _battleOverlay?.onGameResize(camera.viewport.size.clone());
+    _postBattleProgressionOverlay?.onGameResize(camera.viewport.size.clone());
     _cinematicRuntimeHost.onViewportResize(camera.viewport.size.clone());
   }
 
@@ -1911,6 +1961,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     _battleOverlay?.removeFromParent();
     _battleOverlay = null;
+    _postBattleProgressionOverlay?.removeFromParent();
+    _postBattleProgressionOverlay = null;
     _setBattleCommandOverlaySnapshot(null);
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
@@ -1919,6 +1971,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _activeBattleContext = null;
     _captureAttemptReceipt = null;
     _isBattleResolving = false;
+    _isPostBattleFlowRunning = false;
+    _isPostBattleCommitCompleted = false;
+    _postBattleFlowGeneration += 1;
+    final postBattleCompleter = _postBattleFlowCompleter;
+    if (postBattleCompleter != null && !postBattleCompleter.isCompleted) {
+      postBattleCompleter.complete();
+    }
     _pendingBattleRequest = null;
     _pendingSceneBattleOutcomeCompleter = null;
     _pendingSceneBattleRequestId = null;
@@ -1931,6 +1990,26 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _flowPhase = _RuntimeFlowPhase.overworld;
     _clearPressedMovementControls();
   }
+
+  @visibleForTesting
+  Future<void> debugStartPostBattleForTest({
+    required RuntimeActiveBattleContext context,
+    required BattleOutcome outcome,
+    RuntimeBattleCaptureAttemptReceipt? captureAttemptReceipt,
+  }) async {
+    if (_flowPhase != _RuntimeFlowPhase.overworld) {
+      throw StateError('Post-battle test seam requires overworld flow.');
+    }
+    _activeBattleContext = context;
+    _captureAttemptReceipt = captureAttemptReceipt;
+    _flowPhase = _RuntimeFlowPhase.battle;
+    _isBattleResolving = true;
+    await _beginPostBattleFlow(outcome);
+  }
+
+  @visibleForTesting
+  Future<void> debugWaitForPostBattleCompletion() =>
+      _postBattleCompletionFuture;
 
   @visibleForTesting
   void debugApplyBattleOutcomeForTest({
@@ -2865,6 +2944,37 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     if (_flowPhase == _RuntimeFlowPhase.battle) {
+      final postBattleOverlay = _postBattleProgressionOverlay;
+      if (postBattleOverlay != null) {
+        if (event.isPress && control == RuntimeInputControl.up) {
+          postBattleOverlay.moveSelectionUp();
+          return true;
+        }
+        if (event.isPress && control == RuntimeInputControl.down) {
+          postBattleOverlay.moveSelectionDown();
+          return true;
+        }
+        if (event.isPress && control == RuntimeInputControl.left) {
+          postBattleOverlay.moveSelectionLeft();
+          return true;
+        }
+        if (event.isPress && control == RuntimeInputControl.right) {
+          postBattleOverlay.moveSelectionRight();
+          return true;
+        }
+        if (event.isPress &&
+            !event.isRepeat &&
+            control == RuntimeInputControl.primary) {
+          postBattleOverlay.validateSelectedChoice();
+          return true;
+        }
+        // Le flux post-combat est modal : retour/annulation et relâchements
+        // restent consommés jusqu'au commit ou à l'acquittement d'une erreur.
+        return true;
+      }
+      if (_isPostBattleFlowRunning) {
+        return true;
+      }
       final overlay = _battleOverlay;
       if (overlay == null) {
         debugPrint('[battle] Runtime input but overlay is null!');
@@ -7140,7 +7250,186 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _battleOverlay != overlay) {
       return;
     }
-    _onBattleFinished(outcome);
+    await _beginPostBattleFlow(outcome);
+  }
+
+  Future<void> _beginPostBattleFlow(BattleOutcome outcome) async {
+    final activeBattleContext = _activeBattleContext;
+    if (_flowPhase != _RuntimeFlowPhase.battle ||
+        activeBattleContext == null ||
+        _isPostBattleFlowRunning) {
+      return;
+    }
+
+    _isPostBattleFlowRunning = true;
+    _isPostBattleCommitCompleted = false;
+    _isBattleResolving = true;
+    _battleOverlay?.lockForPostBattle();
+    _setBattleCommandOverlaySnapshot(null);
+    final generation = ++_postBattleFlowGeneration;
+    final completer = Completer<void>();
+    _postBattleFlowCompleter = completer;
+    _postBattleCompletionFuture = completer.future;
+
+    try {
+      final result = await _postBattleDecisionCoordinator.begin(
+        transactionBaseState: _battleRuntimeGameState,
+        bundle: _bundle,
+        runtimeContext: activeBattleContext,
+        outcome: outcome,
+        captureAttemptReceipt: _captureAttemptReceipt,
+      );
+      if (generation != _postBattleFlowGeneration ||
+          _flowPhase != _RuntimeFlowPhase.battle ||
+          !identical(_activeBattleContext, activeBattleContext)) {
+        return;
+      }
+
+      late final PostBattleProgressionOverlayComponent postBattleOverlay;
+      postBattleOverlay = PostBattleProgressionOverlayComponent(
+        initialResult: result,
+        viewportSize: camera.viewport.size,
+        onMoveLearningDecision: (decision) {
+          final transaction = postBattleOverlay.currentTransaction;
+          if (transaction == null) {
+            return result;
+          }
+          return _postBattleDecisionCoordinator.resolveMoveLearning(
+            transaction: transaction,
+            decision: decision,
+          );
+        },
+        onEvolutionDecision: (decision) {
+          final transaction = postBattleOverlay.currentTransaction;
+          if (transaction == null) {
+            return result;
+          }
+          return _postBattleDecisionCoordinator.resolveEvolution(
+            transaction: transaction,
+            decision: decision,
+          );
+        },
+        onCompleted: () => _completePostBattleFlow(
+          overlay: postBattleOverlay,
+          outcome: outcome,
+        ),
+      );
+      _postBattleProgressionOverlay = postBattleOverlay;
+      final mounter = postBattleOverlayMounter;
+      if (mounter == null) {
+        await camera.viewport.add(postBattleOverlay);
+      } else {
+        await mounter(postBattleOverlay);
+      }
+      if (generation != _postBattleFlowGeneration ||
+          _flowPhase != _RuntimeFlowPhase.battle ||
+          !identical(_activeBattleContext, activeBattleContext)) {
+        postBattleOverlay.removeFromParent();
+        if (identical(_postBattleProgressionOverlay, postBattleOverlay)) {
+          _postBattleProgressionOverlay = null;
+        }
+      }
+    } catch (error, stackTrace) {
+      if (generation != _postBattleFlowGeneration ||
+          !identical(_activeBattleContext, activeBattleContext)) {
+        return;
+      }
+      _rollbackPostBattleAfterException(
+        outcome: outcome,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  void _completePostBattleFlow({
+    required PostBattleProgressionOverlayComponent overlay,
+    required BattleOutcome outcome,
+  }) {
+    if (!_isPostBattleFlowRunning ||
+        _isPostBattleCommitCompleted ||
+        !identical(_postBattleProgressionOverlay, overlay)) {
+      return;
+    }
+    _isPostBattleCommitCompleted = true;
+
+    try {
+      final failure = overlay.currentFailure;
+      final finalState = overlay.currentTransaction?.finalState;
+      final failed = failure != null || finalState == null;
+      if (failed) {
+        _showNotification(
+          failure?.message ?? 'La fin du combat ne peut pas être appliquée.',
+        );
+      } else {
+        beforePostBattleStateCommit?.call();
+      }
+      _onBattleFinished(
+        outcome,
+        postBattleFinalState: failed ? null : finalState,
+        postBattleFailed: failed,
+      );
+    } catch (error, stackTrace) {
+      _rollbackPostBattleAfterException(
+        outcome: outcome,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  void _rollbackPostBattleAfterException({
+    required BattleOutcome outcome,
+    required Object error,
+    required StackTrace stackTrace,
+  }) {
+    debugPrint(
+      '[battle] post-battle transaction rolled back: $error\n$stackTrace',
+    );
+    _showNotification('La fin du combat ne peut pas être appliquée.');
+    try {
+      _onBattleFinished(outcome, postBattleFailed: true);
+    } catch (cleanupError, cleanupStackTrace) {
+      debugPrint(
+        '[battle] post-battle cleanup failed: '
+        '$cleanupError\n$cleanupStackTrace',
+      );
+      _forcePostBattleCleanup();
+    }
+  }
+
+  void _forcePostBattleCleanup() {
+    final scenarioOwner = _pendingScenarioBattleHandoff;
+    if (scenarioOwner != null) {
+      _pendingScenarioBattleHandoff = null;
+      _cancelNarrativeContinuationBarrier(scenarioOwner.runtimeSourceId);
+    }
+    _completePendingSceneBattleOutcome(
+      const SceneBattleRuntimeOutcomeResult.failed(
+        errorCode: SceneBattleRuntimeOutcomeErrorCode.launcherFailed,
+        message: 'Post-battle cleanup failed.',
+      ),
+    );
+    _battleOverlay?.removeFromParent();
+    _battleOverlay = null;
+    _postBattleProgressionOverlay?.removeFromParent();
+    _postBattleProgressionOverlay = null;
+    _setBattleCommandOverlaySnapshot(null);
+    _battleTransitionOverlay?.removeFromParent();
+    _battleTransitionOverlay = null;
+    _battleSession = null;
+    _psdkBattleSession = null;
+    _activeBattleContext = null;
+    _captureAttemptReceipt = null;
+    _isBattleResolving = false;
+    _isPostBattleFlowRunning = false;
+    _isPostBattleCommitCompleted = false;
+    _flowPhase = _RuntimeFlowPhase.overworld;
+    _clearPressedMovementControls();
+    final postBattleCompleter = _postBattleFlowCompleter;
+    if (postBattleCompleter != null && !postBattleCompleter.isCompleted) {
+      postBattleCompleter.complete();
+    }
   }
 
   /// Gère la fin du combat.
@@ -7151,11 +7440,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// 1. Applique le résultat au vrai GameState runtime
   /// 2. Nettoie l'overlay (SUPPRIME du parent)
   /// 3. Retourne à l'overworld
-  void _onBattleFinished(BattleOutcome outcome) {
+  void _onBattleFinished(
+    BattleOutcome outcome, {
+    GameState? postBattleFinalState,
+    bool postBattleFailed = false,
+  }) {
     debugPrint('[battle] battle finished outcome=${outcome.type.name}');
     final sceneBattleOutcomeResult = _pendingSceneBattleOutcomeCompleter == null
         ? null
-        : _sceneBattleRuntimeOutcomeFromBattle(outcome);
+        : postBattleFailed
+            ? const SceneBattleRuntimeOutcomeResult.failed(
+                errorCode: SceneBattleRuntimeOutcomeErrorCode.launcherFailed,
+                message: 'Post-battle transaction failed.',
+              )
+            : _sceneBattleRuntimeOutcomeFromBattle(outcome);
     final hostedByNarrativeScene = sceneBattleOutcomeResult != null &&
         _activeNarrativeSceneWorkingSession != null;
 
@@ -7164,7 +7462,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // - flag trainer_defeated uniquement sur une vraie victoire trainer ;
     // - aucune tentative de recalcul du Pokémon actif après la fin du combat.
     final activeBattleContext = _activeBattleContext;
-    final qualifiedStandaloneOutcome = !hostedByNarrativeScene &&
+    final qualifiedStandaloneOutcome = !postBattleFailed &&
+            !hostedByNarrativeScene &&
             activeBattleContext != null &&
             activeBattleContext.request is TrainerBattleStartRequest
         ? _qualifiedStandaloneTrainerBattleOutcome(
@@ -7174,15 +7473,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         : null;
     if (activeBattleContext != null) {
       final previousState = _battleRuntimeGameState;
-      _replaceBattleRuntimeGameState(applyRuntimeBattleOutcomeToGameState(
-        gameState: _battleRuntimeGameState,
-        context: activeBattleContext,
-        outcome: outcome,
-        captureAttemptReceipt: _captureAttemptReceipt,
-        storyFlagsManager: _storyFlags,
-      ));
+      if (postBattleFinalState != null) {
+        commitRuntimeBattleCaptureAttemptReceipt(
+          context: activeBattleContext,
+          outcome: outcome,
+          receipt: _captureAttemptReceipt,
+        );
+        _replaceBattleRuntimeGameState(postBattleFinalState);
+      } else if (!postBattleFailed) {
+        _replaceBattleRuntimeGameState(applyRuntimeBattleOutcomeToGameState(
+          gameState: _battleRuntimeGameState,
+          context: activeBattleContext,
+          outcome: outcome,
+          captureAttemptReceipt: _captureAttemptReceipt,
+          storyFlagsManager: _storyFlags,
+        ));
+      }
 
-      if (outcome.isDefeat) {
+      if (outcome.isDefeat && !postBattleFailed) {
         if (hostedByNarrativeScene) {
           _replaceBattleRuntimeGameState(
             applyRuntimeDefeatRecoveryToGameState(
@@ -7201,7 +7509,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         }
       }
 
-      if (outcome.isVictory &&
+      if (!postBattleFailed &&
+          outcome.isVictory &&
           activeBattleContext.request is TrainerBattleStartRequest) {
         final trainerRequest =
             activeBattleContext.request as TrainerBattleStartRequest;
@@ -7224,6 +7533,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // IMPORTANT: Il faut SUPPRIMER l'overlay du parent, pas juste mettre à null
     _battleOverlay?.removeFromParent();
     _battleOverlay = null;
+    _postBattleProgressionOverlay?.removeFromParent();
+    _postBattleProgressionOverlay = null;
     _setBattleCommandOverlaySnapshot(null);
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
@@ -7232,6 +7543,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _activeBattleContext = null;
     _captureAttemptReceipt = null;
     _isBattleResolving = false; // Reset lock anti-spam
+    _isPostBattleFlowRunning = false;
+    _isPostBattleCommitCompleted = false;
+    final postBattleCompleter = _postBattleFlowCompleter;
+    if (postBattleCompleter != null && !postBattleCompleter.isCompleted) {
+      postBattleCompleter.complete();
+    }
 
     // NOTE: NE PAS clear _triggeredTrainerBattles ici!
     // Le lock doit rester actif tant que le joueur est dans la LoS du trainer.
@@ -7251,7 +7568,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // startTrainerBattle, on pose le flag d'outcome déterministe et on
     // reprend le graphe après le node battle.
     final scenarioOwner = _pendingScenarioBattleHandoff;
+    if (postBattleFailed &&
+        scenarioOwner != null &&
+        scenarioOwner.requestId == activeBattleContext?.request.requestId) {
+      _pendingScenarioBattleHandoff = null;
+      _cancelNarrativeContinuationBarrier(scenarioOwner.runtimeSourceId);
+    }
     if (scenarioOwner != null &&
+        !postBattleFailed &&
         scenarioOwner.requestId == activeBattleContext?.request.requestId &&
         sceneBattleOutcomeResult == null) {
       // 1. Poser le flag d'outcome déterministe.

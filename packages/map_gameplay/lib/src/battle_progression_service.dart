@@ -129,6 +129,7 @@ final class BattleProgressionService {
     required GameState state,
     required BattleProgressionContext context,
     required BattleReward reward,
+    bool applyAuthoredRewards = true,
   }) {
     if (context.outcome != BattleProgressionOutcomeKind.victory) {
       return BattleProgressionResult(
@@ -300,10 +301,12 @@ final class BattleProgressionService {
       }
     }
     return BattleProgressionResult(
-      state: mutations.applyBattleRewards(
-        progressedState,
-        reward: appliedReward,
-      ),
+      state: applyAuthoredRewards
+          ? mutations.applyBattleRewards(
+              progressedState,
+              reward: appliedReward,
+            )
+          : progressedState,
       appliedReward: appliedReward,
       changes: changes,
       moveLearningOpportunities: moveLearningOpportunities,

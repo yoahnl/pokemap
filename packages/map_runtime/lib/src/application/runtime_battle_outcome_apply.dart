@@ -217,6 +217,24 @@ RuntimeBattleCaptureAttemptSubmission<T> submitRuntimeBattleCaptureAttempt<T>({
   );
 }
 
+/// Claims the exact successful capture proof at the publication boundary.
+///
+/// Building or replaying a post-battle transaction must stay side-effect free:
+/// only the caller that publishes its final [GameState] may consume the
+/// receipt. A second commit with the same proof is rejected.
+void commitRuntimeBattleCaptureAttemptReceipt({
+  required RuntimeActiveBattleContext context,
+  required BattleOutcome outcome,
+  required RuntimeBattleCaptureAttemptReceipt? receipt,
+}) {
+  if (!outcome.isCaptured) return;
+  _validatedCaptureReceipt(
+    context: context,
+    outcome: outcome,
+    receipt: receipt,
+  )._claim();
+}
+
 /// Applique le strict minimum de reprise après une vraie défaite joueur.
 ///
 /// Pourquoi ce helper existe :
@@ -320,6 +338,57 @@ int _resolveDefeatRecoveryPartySlotIndex({
   return mappedPartyIndex;
 }
 
+/// Résultat atomique du write-back de base, avant récompenses de victoire.
+final class RuntimeBattleOutcomeTransactionBase {
+  const RuntimeBattleOutcomeTransactionBase({
+    required this.state,
+    required this.captureDestination,
+  });
+
+  final GameState state;
+  final CaptureDestinationResult? captureDestination;
+}
+
+/// Calcule le write-back HP/PP/status et, le cas échéant, la capture exacte.
+///
+/// Ce seam ne marque volontairement jamais un dresseur vaincu : le
+/// coordinateur post-combat doit d'abord terminer XP, décisions et rewards.
+RuntimeBattleOutcomeTransactionBase applyRuntimeBattleOutcomeTransactionBase({
+  required GameState gameState,
+  required RuntimeActiveBattleContext context,
+  required BattleOutcome outcome,
+  RuntimeBattleCaptureAttemptReceipt? captureAttemptReceipt,
+}) {
+  final stateWithPlayerHp = writePlayerBattleLineupBackToPartySlots(
+    gameState: gameState,
+    context: context,
+    battleState: outcome.finalState,
+  );
+
+  if (!outcome.isCaptured) {
+    return RuntimeBattleOutcomeTransactionBase(
+      state: stateWithPlayerHp,
+      captureDestination: null,
+    );
+  }
+  _validatedCaptureReceipt(
+    context: context,
+    outcome: outcome,
+    receipt: captureAttemptReceipt,
+  );
+  final capturedPokemon = _buildCapturedWildPlayerPokemon(
+    enemy: outcome.finalState.enemy,
+  );
+  final captureResult = const GameStateMutations().applyCapturedPokemon(
+    stateWithPlayerHp,
+    pokemon: capturedPokemon,
+  );
+  return RuntimeBattleOutcomeTransactionBase(
+    state: captureResult.state,
+    captureDestination: captureResult,
+  );
+}
+
 /// Applique le résultat final du combat à l'état runtime.
 ///
 /// Ce helper porte le write-back lot 10 dans un seul chemin explicite :
@@ -341,46 +410,21 @@ GameState applyRuntimeBattleOutcomeToGameState({
   RuntimeBattleCaptureAttemptReceipt? captureAttemptReceipt,
   StoryFlagsManager storyFlagsManager = const StoryFlagsManager(),
 }) {
-  final stateWithPlayerHp = writePlayerBattleLineupBackToPartySlots(
+  final transactionBase = applyRuntimeBattleOutcomeTransactionBase(
     gameState: gameState,
     context: context,
-    battleState: outcome.finalState,
+    outcome: outcome,
+    captureAttemptReceipt: captureAttemptReceipt,
   );
-
+  final stateWithPlayerHp = transactionBase.state;
   final request = context.request;
   if (outcome.isCaptured) {
-    if (request is! WildBattleStartRequest) {
-      throw StateError(
-        'BattleOutcomeType.captured est interdit hors combat sauvage.',
-      );
-    }
-
-    final receipt = captureAttemptReceipt;
-    if (receipt == null ||
-        receipt._isClaimed ||
-        receipt.requestId != request.requestId ||
-        receipt.itemId != _runtimeCapturePokeBallItemId ||
-        outcome.captureItemId != _runtimeCapturePokeBallItemId ||
-        receipt.attemptId != outcome.captureAttemptId) {
-      throw StateError(
-        'BattleOutcomeType.captured requires a matching charged poke-ball attempt receipt.',
-      );
-    }
-    final capturedPokemon = _buildCapturedWildPlayerPokemon(
-      enemy: outcome.finalState.enemy,
+    commitRuntimeBattleCaptureAttemptReceipt(
+      context: context,
+      outcome: outcome,
+      receipt: captureAttemptReceipt,
     );
-
-    // P5-06 garde le write-back capture honnête quand la party est pleine :
-    // l'opération pure choisit party ou storage minimal persistant, puis la
-    // normalisation partagée synchronise caught/seen.
-    final captureResult = const GameStateMutations().applyCapturedPokemon(
-      stateWithPlayerHp,
-      pokemon: capturedPokemon,
-    );
-
-    final updatedState = captureResult.state;
-    receipt._claim();
-    return updatedState;
+    return stateWithPlayerHp;
   }
 
   if (outcome.isVictory && request is TrainerBattleStartRequest) {
@@ -391,6 +435,30 @@ GameState applyRuntimeBattleOutcomeToGameState({
   }
 
   return stateWithPlayerHp;
+}
+
+RuntimeBattleCaptureAttemptReceipt _validatedCaptureReceipt({
+  required RuntimeActiveBattleContext context,
+  required BattleOutcome outcome,
+  required RuntimeBattleCaptureAttemptReceipt? receipt,
+}) {
+  final request = context.request;
+  if (request is! WildBattleStartRequest) {
+    throw StateError(
+      'BattleOutcomeType.captured est interdit hors combat sauvage.',
+    );
+  }
+  if (receipt == null ||
+      receipt._isClaimed ||
+      receipt.requestId != request.requestId ||
+      receipt.itemId != _runtimeCapturePokeBallItemId ||
+      outcome.captureItemId != _runtimeCapturePokeBallItemId ||
+      receipt.attemptId != outcome.captureAttemptId) {
+    throw StateError(
+      'BattleOutcomeType.captured requires a matching charged poke-ball attempt receipt.',
+    );
+  }
+  return receipt;
 }
 
 const _capturedPokemonDefaultNatureId = 'hardy';
