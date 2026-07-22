@@ -121,6 +121,9 @@ final class BattlePublicState {
   Map<PsdkBattleSlotRef, PsdkBattleCombatant> get combatants =>
       _state.combatants;
 
+  Set<int> get playerParticipantPartyIndexes =>
+      _state.playerParticipantPartyIndexes;
+
   PsdkBattleCombatant battlerAt(PsdkBattleSlotRef slot) {
     return _state.battlerAt(slot);
   }
@@ -135,10 +138,16 @@ final class BattlePublicState {
 
 PsdkBattleOutcome? _outcomeFor(PsdkBattleState state) {
   if (_bankDefeated(state, psdkOpponentSlot.bank)) {
-    return const PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.victory);
+    return PsdkBattleOutcome(
+      kind: PsdkBattleOutcomeKind.victory,
+      playerParticipantPartyIndexes: state.playerParticipantPartyIndexes,
+    );
   }
   if (_bankDefeated(state, psdkPlayerSlot.bank)) {
-    return const PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.defeat);
+    return PsdkBattleOutcome(
+      kind: PsdkBattleOutcomeKind.defeat,
+      playerParticipantPartyIndexes: state.playerParticipantPartyIndexes,
+    );
   }
   return null;
 }

@@ -753,7 +753,7 @@ final class BattleTurnRunner {
       return false;
     }
 
-    const outcome = PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.fled);
+    final outcome = PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.fled);
     _context.finish(outcome);
     timeline.add(BattleEndedTimelineEvent(outcome: outcome));
     return true;

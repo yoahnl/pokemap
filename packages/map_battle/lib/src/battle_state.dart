@@ -85,6 +85,7 @@ class BattleState {
     this.field = const BattleFieldState(),
     this.currentTurn,
     this.outcome,
+    Iterable<int>? playerParticipantLineupIndexes,
   })  : playerSide = _resolveBattleStateSide(
           expectedId: BattleSideId.player,
           providedSide: playerSide,
@@ -98,6 +99,10 @@ class BattleState {
           legacyActive: enemy,
           legacyReserve: enemyReserve,
           sideLabel: 'enemy',
+        ),
+        _playerParticipantLineupIndexes = Set<int>.unmodifiable(
+          playerParticipantLineupIndexes ??
+              <int>{playerSide?.active.lineupIndex ?? player?.lineupIndex ?? 0},
         );
 
   /// La phase actuelle du combat.
@@ -128,6 +133,16 @@ class BattleState {
   ///
   /// Non-null uniquement si [phase] == [BattlePhase.finished].
   final BattleOutcome? outcome;
+
+  final Set<int> _playerParticipantLineupIndexes;
+
+  /// Stable party slots that actually occupied the player's active slot.
+  ///
+  /// The initial active member participates immediately. Reserves are added
+  /// only when a voluntary or forced switch really brings them into battle;
+  /// fainted participants remain present for post-battle XP eligibility.
+  Set<int> get playerParticipantLineupIndexes =>
+      Set<int>.unmodifiable(_playerParticipantLineupIndexes);
 
   /// true si le combat est terminé.
   ///

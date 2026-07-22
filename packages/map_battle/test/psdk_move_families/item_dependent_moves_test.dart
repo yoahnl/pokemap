@@ -113,7 +113,7 @@ void main() {
           turn: 2,
           user: psdkPlayerSlot,
         ),
-        outcome: const PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.victory),
+        outcome: PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.victory),
       );
 
       expect(ended.state.battlerAt(psdkPlayerSlot).heldItemId, 'choice_scarf');

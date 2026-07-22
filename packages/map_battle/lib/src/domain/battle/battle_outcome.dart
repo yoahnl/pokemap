@@ -37,6 +37,9 @@ final class BattleEngineOutcome {
   bool get isDefeat => kind == BattleEngineOutcomeKind.defeat;
   bool get isFled => kind == BattleEngineOutcomeKind.fled;
 
+  Set<int> get playerParticipantPartyIndexes =>
+      _psdkOutcome.playerParticipantPartyIndexes;
+
   /// Bridge retained for the existing PSDK facade while it delegates to the
   /// clean runner. Product code should prefer [kind].
   PsdkBattleOutcome get psdkOutcome => _psdkOutcome;

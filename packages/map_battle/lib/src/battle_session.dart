@@ -83,6 +83,13 @@ int _clampHp({
   return value;
 }
 
+Set<int> _playerParticipantsAfterSideChange(
+  Set<int> existing,
+  BattleSideState playerSide,
+) {
+  return <int>{...existing, playerSide.active.lineupIndex};
+}
+
 BattleCombatant _buildBattleCombatantFromData(
   BattleCombatantData data,
 ) {
@@ -261,6 +268,7 @@ class BattleSession {
         field: state.field,
         currentTurn: state.currentTurn,
         outcome: state.outcome,
+        playerParticipantLineupIndexes: state.playerParticipantLineupIndexes,
       ),
       setup: setup,
       rng: rng,
@@ -308,6 +316,7 @@ class BattleSession {
         field: state.field,
         currentTurn: currentTurn,
         outcome: outcome,
+        playerParticipantLineupIndexes: state.playerParticipantLineupIndexes,
       ),
       setup: setup,
       rng: rng,
@@ -732,6 +741,7 @@ class BattleSession {
         field: state.field,
         currentTurn: null,
         outcome: null,
+        playerParticipantLineupIndexes: state.playerParticipantLineupIndexes,
       );
       return BattleSession._(
         state: BattleState(
@@ -744,6 +754,7 @@ class BattleSession {
             type: BattleOutcomeType.runaway,
             finalState: finalState,
           ),
+          playerParticipantLineupIndexes: state.playerParticipantLineupIndexes,
         ),
         setup: setup,
         rng: rng,
@@ -769,6 +780,7 @@ class BattleSession {
         field: state.field,
         currentTurn: null,
         outcome: null,
+        playerParticipantLineupIndexes: state.playerParticipantLineupIndexes,
       );
       return BattleSession._(
         state: BattleState(
@@ -781,6 +793,7 @@ class BattleSession {
             type: BattleOutcomeType.captured,
             finalState: finalState,
           ),
+          playerParticipantLineupIndexes: state.playerParticipantLineupIndexes,
         ),
         setup: setup,
         rng: rng,
@@ -831,12 +844,17 @@ class BattleSession {
       enemyAction: turnPlan.reportedEnemyAction,
     );
 
+    final playerParticipants = _playerParticipantsAfterSideChange(
+      state.playerParticipantLineupIndexes,
+      turn.playerSide,
+    );
     final outcome = turn.pendingTurn != null
         ? null
         : _determineOutcome(
             turn.playerSide,
             turn.enemySide,
             turn.field,
+            playerParticipantLineupIndexes: playerParticipants,
           );
 
     final newState = BattleState(
@@ -846,6 +864,7 @@ class BattleSession {
       field: turn.field,
       currentTurn: turnResult,
       outcome: outcome,
+      playerParticipantLineupIndexes: playerParticipants,
     );
 
     return BattleSession._(
@@ -1894,8 +1913,9 @@ class BattleSession {
   BattleOutcome? _determineOutcome(
     BattleSideState playerSide,
     BattleSideState enemySide,
-    BattleFieldState field,
-  ) {
+    BattleFieldState field, {
+    required Set<int> playerParticipantLineupIndexes,
+  }) {
     // Vérifier la victoire (ennemi K.O.)
     if (enemySide.active.isFainted) {
       final finalState = BattleState(
@@ -1905,6 +1925,7 @@ class BattleSession {
         field: field,
         currentTurn: null,
         outcome: null, // Sera set dans le BattleOutcome
+        playerParticipantLineupIndexes: playerParticipantLineupIndexes,
       );
       return BattleOutcome(
         type: BattleOutcomeType.victory,
@@ -1924,6 +1945,7 @@ class BattleSession {
         field: field,
         currentTurn: null,
         outcome: null,
+        playerParticipantLineupIndexes: playerParticipantLineupIndexes,
       );
       return BattleOutcome(
         type: BattleOutcomeType.defeat,

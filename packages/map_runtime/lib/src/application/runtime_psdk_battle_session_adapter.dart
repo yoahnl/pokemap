@@ -395,6 +395,7 @@ final class RuntimePsdkBattleSessionAdapter {
       field: _toLegacyFieldState(psdkState.field),
       currentTurn: null,
       outcome: null,
+      playerParticipantLineupIndexes: psdkState.playerParticipantPartyIndexes,
     );
   }
 

@@ -81,6 +81,10 @@ void main() {
         createdAtEpochMs: 1,
       );
       final mapper = RuntimeBattleSetupMapper();
+      state = await _hydrateGoldenBattlePokemon(
+        state: state,
+        bundle: route,
+      );
       final wildSetup = await mapper.map(
         bundle: route,
         gameState: state,
@@ -122,6 +126,10 @@ void main() {
         createdAtEpochMs: 2,
       );
       expect(trainerRequest, isNotNull);
+      state = await _hydrateGoldenBattlePokemon(
+        state: state,
+        bundle: route,
+      );
       final trainerSetup = await mapper.map(
         bundle: route,
         gameState: state,
@@ -138,7 +146,7 @@ void main() {
       );
       state = applyRuntimeBattleOutcomeToGameState(
         gameState: state,
-        context: RuntimeActiveBattleContext(
+        context: RuntimeActiveBattleContext.withLineupMapping(
           request: trainerRequest,
           playerPartyIndex: 0,
           playerPartySlotIndicesByLineupIndex: const <int>[0, 1],
@@ -152,10 +160,9 @@ void main() {
       completed.add('trainer_defeated');
 
       final levelBeforeReward = state.party.members.first.level;
-      state = mutations.applyBattleRewards(
-        state,
-        moneyReward: 500,
-        levelUpsByPartyIndex: const <int, int>{0: 1},
+      state = _applyGoldenTrainerProgression(
+        state: state,
+        oldMaxHp: trainerOutcome.finalState.player.maxHp,
       );
       expect(state.party.members.first.level, levelBeforeReward + 1);
       expect(state.trainerProfile.money, 1500);
@@ -238,6 +245,100 @@ void main() {
     },
     timeout: const Timeout(Duration(minutes: 1)),
   );
+}
+
+Future<GameState> _hydrateGoldenBattlePokemon({
+  required GameState state,
+  required RuntimeMapBundle bundle,
+}) async {
+  final catalogs = await loadRuntimePlayerPokemonProgressionCatalogs(
+    gameState: state,
+    projectRootDirectory: bundle.projectRootDirectory,
+    pokemonConfig: bundle.manifest.pokemon,
+  );
+  return hydrateRuntimePlayerPokemonProgression(
+    gameState: state,
+    catalogs: catalogs,
+  );
+}
+
+GameState _applyGoldenTrainerProgression({
+  required GameState state,
+  required int oldMaxHp,
+}) {
+  final members = List<PlayerPokemon>.of(state.party.members);
+  final member = members.first;
+  final curve = PokemonExperienceCurve.fromId('medium');
+  final oldExperience = curve.totalExperienceForLevel(member.level);
+  final targetLevel = member.level + 1;
+  final requiredExperience =
+      curve.totalExperienceForLevel(targetLevel) - oldExperience;
+  members[0] = member.copyWith(experience: oldExperience);
+
+  return const BattleProgressionService()
+      .apply(
+        state: state.copyWith(
+          party: state.party.copyWith(members: members),
+        ),
+        context: BattleProgressionContext(
+          outcome: BattleProgressionOutcomeKind.victory,
+          playerParticipantPartySlots: const <int>{0},
+          defeatedOpponents: <BattleProgressionDefeatedOpponent>[
+            BattleProgressionDefeatedOpponent(
+              level: 14,
+              baseExperience: (requiredExperience + 2) ~/ 3,
+            ),
+          ],
+          partySlotMetadata: <BattleProgressionPartySlotMetadata>[
+            BattleProgressionPartySlotMetadata(
+              partySlot: 0,
+              growthRateId: 'medium',
+              oldMaxHp: oldMaxHp,
+              baseStats: PokemonBaseStats(
+                hp: _goldenBaseHpForProjectedMaximum(
+                  level: targetLevel,
+                  maxHp: oldMaxHp,
+                ),
+                attack: 1,
+                defense: 1,
+                specialAttack: 1,
+                specialDefense: 1,
+                speed: 1,
+              ),
+            ),
+          ],
+        ),
+        reward: BattleReward(
+          sourceKind: BattleRewardSourceKind.trainer,
+          trainerId: 'trainer_golden_rival',
+          money: 500,
+        ),
+      )
+      .state;
+}
+
+int _goldenBaseHpForProjectedMaximum({
+  required int level,
+  required int maxHp,
+}) {
+  const calculator = PokemonStatCalculator();
+  for (var baseHp = 1; baseHp <= 255; baseHp++) {
+    final projected = calculator.calculate(
+      baseStats: PokemonBaseStats(
+        hp: baseHp,
+        attack: 1,
+        defense: 1,
+        specialAttack: 1,
+        specialDefense: 1,
+        speed: 1,
+      ),
+      ivs: const PokemonStatSpread(),
+      evs: const PokemonStatSpread(),
+      level: level,
+    );
+    if (projected.maxHp == maxHp) return baseHp;
+  }
+  throw StateError('Cannot project max HP $maxHp at level $level.');
 }
 
 BattleOutcome _finishedOutcome(

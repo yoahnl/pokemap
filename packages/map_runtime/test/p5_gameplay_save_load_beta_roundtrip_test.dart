@@ -8,6 +8,8 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 
+import 'support/battle_progression_test_support.dart';
+
 const _saveId = 'p5_roundtrip_save';
 const _mapId = 'p5_roundtrip_map';
 const _spawnId = 'p5_roundtrip_spawn';
@@ -168,10 +170,15 @@ GameState _buildBetaGameplayState() {
     state,
     maxHpByPartyIndex: const <int, int>{0: 20},
   );
-  state = mutations.applyBattleRewards(
-    state,
-    moneyReward: 275,
-    levelUpsByPartyIndex: const <int, int>{0: 2},
+  state = applyTestBattleVictoryProgression(
+    state: state,
+    partySlot: 0,
+    oldMaxHp: 20,
+    levelsGained: 2,
+    reward: BattleReward(
+      sourceKind: BattleRewardSourceKind.wild,
+      money: 275,
+    ),
   );
   state = mutations.setFlag(state, _flagId);
   state = mutations.setFlag(state, _trainerDefeatedFlag);

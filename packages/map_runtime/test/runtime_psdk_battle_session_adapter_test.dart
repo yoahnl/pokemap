@@ -315,8 +315,8 @@ void main() {
             ],
           ),
         ),
-        context: const RuntimeActiveBattleContext(
-          request: WildBattleStartRequest(
+        context: RuntimeActiveBattleContext.withLineupMapping(
+          request: const WildBattleStartRequest(
             requestId: 'psdk-lunar-dance',
             createdAtEpochMs: 1,
             returnContext: OverworldReturnContext(
@@ -347,6 +347,60 @@ void main() {
       expect(
         restored.currentPpByMoveId,
         <String, int>{'reserve_strike': 19},
+      );
+    });
+
+    test('projects exact switched participants into the legacy outcome', () {
+      final session = RuntimePsdkBattleSessionAdapter.fromSetup(
+        PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player_0',
+            hp: 100,
+            moves: <PsdkBattleMoveData>[
+              _move(id: 'active_wait', power: 0),
+            ],
+          ),
+          playerReserves: <PsdkBattleCombatantSetup>[
+            _combatant(
+              id: 'player_1',
+              hp: 100,
+              moves: <PsdkBattleMoveData>[
+                _move(id: 'winning_move', power: 200),
+              ],
+            ),
+            _combatant(
+              id: 'player_2',
+              hp: 100,
+              moves: <PsdkBattleMoveData>[
+                _move(id: 'unused_move', power: 200),
+              ],
+            ),
+          ],
+          opponent: _combatant(
+            id: 'opponent_0',
+            hp: 1,
+            moves: <PsdkBattleMoveData>[
+              _move(id: 'opponent_wait', power: 0),
+            ],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 1,
+          ),
+        ),
+      );
+
+      session.submitPlayerChoice(const PlayerBattleChoiceSwitch(0));
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+
+      final outcome = session.createLegacyOutcome(isTrainerBattle: false);
+      expect(outcome.playerParticipantLineupIndexes, <int>{0, 1});
+      expect(outcome.playerParticipantLineupIndexes, isNot(contains(2)));
+      expect(
+        () => outcome.playerParticipantLineupIndexes.add(2),
+        throwsUnsupportedError,
       );
     });
   });

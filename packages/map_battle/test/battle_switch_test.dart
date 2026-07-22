@@ -93,6 +93,53 @@ BattleSession _session({
 
 void main() {
   group('BattleSession BE10 switches and reserves', () {
+    test('tracks only player lineup members that actually enter battle', () {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle(power: 200)],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'engaged_reserve',
+            lineupIndex: 1,
+            stats: _stats(speed: 90, attack: 100),
+            moves: <BattleMoveData>[_tackle(power: 200)],
+          ),
+          _combatant(
+            speciesId: 'unused_reserve',
+            lineupIndex: 2,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          maxHp: 1,
+          stats: _stats(speed: 10),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      expect(session.state.playerParticipantLineupIndexes, {0});
+      final afterSwitch =
+          session.applyChoice(const PlayerBattleChoiceSwitch(0));
+      expect(afterSwitch.state.playerParticipantLineupIndexes, {0, 1});
+      expect(
+        () => afterSwitch.state.playerParticipantLineupIndexes.add(2),
+        throwsUnsupportedError,
+      );
+
+      final finished =
+          afterSwitch.applyChoice(const PlayerBattleChoiceFight(0));
+      expect(finished.state.outcome!.playerParticipantLineupIndexes, {0, 1});
+      expect(
+        finished.state.outcome!.playerParticipantLineupIndexes,
+        isNot(contains(2)),
+      );
+    });
+
     test('trainer enemy auto-replaces instead of ending the battle on first KO',
         () {
       final session = _session(
@@ -512,6 +559,10 @@ void main() {
       expect(
         afterReplacement.state.currentTurn!.switchEvents.single.side,
         equals(BattleSideId.player),
+      );
+      expect(
+        afterReplacement.state.playerParticipantLineupIndexes,
+        <int>{0, 1},
       );
       expect(
         afterReplacement.state.currentTurn!.timeline

@@ -74,7 +74,10 @@ void main() {
 
       final updated = mutations.applyBattleRewards(
         state,
-        moneyReward: 200,
+        reward: BattleReward(
+          sourceKind: BattleRewardSourceKind.wild,
+          money: 200,
+        ),
       );
 
       expect(updated.trainerProfile.money, 250);
@@ -88,7 +91,7 @@ void main() {
       expect(updated.metadata, state.metadata);
     });
 
-    test('applies direct minimal level-up when XP is not persisted', () {
+    test('leaves XP and levels to BattleProgressionService', () {
       final state = rewardState(
         members: [
           pokemon(speciesId: 'p5_reward_a', level: 8),
@@ -98,40 +101,13 @@ void main() {
 
       final updated = mutations.applyBattleRewards(
         state,
-        levelUpsByPartyIndex: const {0: 2, 1: 1},
-      );
-
-      expect(updated.party.members[0].level, 10);
-      expect(updated.party.members[1].level, 13);
-      expect(updated.party.members[0].knownMoveIds, ['p5_reward_tackle']);
-      expect(updated.party.members[1].currentHp, 16);
-    });
-
-    test('caps direct level-up at PlayerPokemon max level', () {
-      final state = rewardState(
-        members: [pokemon(level: 99)],
-      );
-
-      final updated = mutations.applyBattleRewards(
-        state,
-        levelUpsByPartyIndex: const {0: 5},
-      );
-
-      expect(updated.party.members.single.level, 100);
-    });
-
-    test('ignores invalid party indexes and non-positive level increments', () {
-      final state = rewardState(
-        members: [pokemon(level: 9)],
-      );
-
-      final updated = mutations.applyBattleRewards(
-        state,
-        levelUpsByPartyIndex: const {
-          -1: 5,
-          0: 0,
-          1: 3,
-        },
+        reward: BattleReward(
+          sourceKind: BattleRewardSourceKind.wild,
+          experienceGrants: const <BattleExperienceGrant>[
+            BattleExperienceGrant(partySlot: 0, experience: 200),
+            BattleExperienceGrant(partySlot: 1, experience: 100),
+          ],
+        ),
       );
 
       expect(updated, same(state));
@@ -142,8 +118,10 @@ void main() {
 
       final updated = mutations.applyBattleRewards(
         state,
-        moneyReward: 15,
-        levelUpsByPartyIndex: const {0: 1},
+        reward: BattleReward(
+          sourceKind: BattleRewardSourceKind.wild,
+          money: 15,
+        ),
       );
 
       expect(updated.trainerProfile.money, 20);
@@ -158,8 +136,11 @@ void main() {
 
       final updated = mutations.applyBattleRewards(
         state,
-        moneyReward: 10,
-        levelUpsByPartyIndex: const {0: 1},
+        reward: BattleReward(
+          sourceKind: BattleRewardSourceKind.trainer,
+          trainerId: 'p5_new_trainer',
+          money: 10,
+        ),
       );
 
       expect(
@@ -169,7 +150,7 @@ void main() {
       );
     });
 
-    test('round-trips money and direct level-up through SaveData', () {
+    test('round-trips non-XP rewards through SaveData', () {
       final state = rewardState(
         money: 25,
         members: [pokemon(speciesId: 'p5_roundtrip_species', level: 14)],
@@ -177,8 +158,17 @@ void main() {
 
       final rewarded = mutations.applyBattleRewards(
         state,
-        moneyReward: 75,
-        levelUpsByPartyIndex: const {0: 3},
+        reward: BattleReward(
+          sourceKind: BattleRewardSourceKind.trainer,
+          trainerId: 'p5_roundtrip_trainer',
+          money: 75,
+          itemGrants: const <BattleRewardItemGrant>[
+            BattleRewardItemGrant(itemId: 'revive', quantity: 1),
+          ],
+          flagIds: const <String>{'trainer_defeated:p5_roundtrip_trainer'},
+          badgeId: 'p5_roundtrip_badge',
+          fieldAbilityUnlock: FieldAbility.surf,
+        ),
       );
       final saveData = saveDataFromGameState(rewarded);
       final reloaded =
@@ -186,8 +176,20 @@ void main() {
 
       expect(reloaded.trainerProfile.money, 100);
       expect(reloaded.party.members.single.speciesId, 'p5_roundtrip_species');
-      expect(reloaded.party.members.single.level, 17);
-      expect(reloaded.bag.entries.single.itemId, 'potion');
+      expect(reloaded.party.members.single.level, 14);
+      expect(
+        reloaded.bag.entries.map((entry) => entry.itemId),
+        containsAll(<String>['potion', 'revive']),
+      );
+      expect(
+        reloaded.storyFlags.activeFlags,
+        contains('trainer_defeated:p5_roundtrip_trainer'),
+      );
+      expect(reloaded.trainerProfile.badgeIds, contains('p5_roundtrip_badge'));
+      expect(
+        reloaded.progression.unlockedFieldAbilities,
+        contains(FieldAbility.surf),
+      );
       expect(reloaded.metadata, state.metadata);
     });
 
@@ -198,8 +200,10 @@ void main() {
 
       final updated = mutations.applyBattleRewards(
         state,
-        moneyReward: 1,
-        levelUpsByPartyIndex: const {0: 1},
+        reward: BattleReward(
+          sourceKind: BattleRewardSourceKind.wild,
+          money: 1,
+        ),
       );
 
       final joined = [

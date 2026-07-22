@@ -388,7 +388,7 @@ final class EmergencyExitEffect extends BattleAbilityEffect {
       }
       return BattleEffectPostDamageResult(
         state: context.state.copyWith(
-          outcome: const PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.fled),
+          outcome: PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.fled),
         ),
         rng: context.rng,
       );

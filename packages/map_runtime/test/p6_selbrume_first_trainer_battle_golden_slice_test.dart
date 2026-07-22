@@ -10,6 +10,8 @@ import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/battle_progression_test_support.dart';
+
 const _startMapId = 'map_bourg_selbrume';
 const _routeMapId = 'map_marais_salants';
 const _saveId = 'p6_05_selbrume_first_trainer_battle';
@@ -132,6 +134,10 @@ void main() {
         _grantPlayerBattlePos.y,
         facing: EntityFacing.north,
       );
+      state = await hydrateTestBattlePokemonProgression(
+        state: state,
+        bundle: routeBundle,
+      );
 
       expect(state.currentMapId, _routeMapId);
       expect(state.playerPosition, _grantPlayerBattlePos);
@@ -219,7 +225,7 @@ void main() {
 
       state = applyRuntimeBattleOutcomeToGameState(
         gameState: state,
-        context: RuntimeActiveBattleContext(
+        context: RuntimeActiveBattleContext.withLineupMapping(
           request: request,
           playerPartyIndex: lineup.activeIndex,
           playerPartySlotIndicesByLineupIndex: lineup.lineupPartyIndices,
@@ -234,10 +240,16 @@ void main() {
       expect(state.trainerProfile.money, 0);
       expect(_bagQuantity(state, _captureItemId), 4);
 
-      state = mutations.applyBattleRewards(
-        state,
-        moneyReward: _rewardMoney,
-        levelUpsByPartyIndex: const <int, int>{0: 1},
+      state = applyTestBattleVictoryProgression(
+        state: state,
+        partySlot: 0,
+        oldMaxHp: outcome.finalState.player.maxHp,
+        levelsGained: 1,
+        reward: BattleReward(
+          sourceKind: BattleRewardSourceKind.trainer,
+          trainerId: _trainerId,
+          money: _rewardMoney,
+        ),
       );
 
       expect(state.trainerProfile.money, _rewardMoney);

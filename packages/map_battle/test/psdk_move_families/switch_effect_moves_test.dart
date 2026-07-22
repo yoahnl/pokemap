@@ -471,7 +471,7 @@ void main() {
       expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
       expect(
         result.timeline.events.whereType<PsdkBattleEndedEvent>().single.outcome,
-        const PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.fled),
+        PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.fled),
       );
     });
 

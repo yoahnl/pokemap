@@ -101,7 +101,7 @@ RuntimeActiveBattleContext _context({
   required int playerPartyIndex,
   required List<int> lineupPartyIndices,
 }) {
-  return RuntimeActiveBattleContext(
+  return RuntimeActiveBattleContext.withLineupMapping(
     request: const TrainerBattleStartRequest(
       requestId: 'trainer-request',
       createdAtEpochMs: 1,

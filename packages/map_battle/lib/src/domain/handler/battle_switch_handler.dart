@@ -210,6 +210,9 @@ final class BattleSwitchHandler {
         ...state.parties,
         target.bank: nextParty,
       },
+      playerParticipantPartyIndexes: target.bank == psdkPlayerSlot.bank
+          ? <int>{...state.playerParticipantPartyIndexes, partyIndex}
+          : state.playerParticipantPartyIndexes,
     );
 
     final hazards = applyEntryHazards(

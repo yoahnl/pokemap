@@ -25,7 +25,7 @@ void main() {
           maxHp: 18,
           critical: false,
         ),
-        const BattleEndedTimelineEvent(
+        BattleEndedTimelineEvent(
           outcome: PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.victory),
         ),
       ];

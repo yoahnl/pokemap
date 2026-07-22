@@ -1,5 +1,7 @@
 import 'package:map_core/map_core.dart';
 
+import 'battle_reward.dart';
+
 enum CaptureDestinationKind {
   none,
   party,
@@ -456,55 +458,40 @@ class GameStateMutations {
     );
   }
 
-  /// Applique les récompenses minimales d'une victoire de combat.
+  /// Applique l'enveloppe de récompense déjà résolue par la progression.
   ///
-  /// `PlayerPokemon` ne persiste pas encore d'XP courante. Le chemin V0 expose
-  /// donc uniquement un level-up direct et déterministe fourni par l'appelant.
-  /// La policy `trainer_defeated:{trainerId}` reste portée par le runtime.
+  /// L'XP et les niveaux ne sont jamais acceptés sous forme d'incréments
+  /// arbitraires ici : [BattleProgressionService] calcule et applique les
+  /// grants canoniques avant d'appeler cette mutation pour l'argent, les items
+  /// et les marqueurs idempotents.
   GameState applyBattleRewards(
     GameState state, {
-    int moneyReward = 0,
-    Map<int, int> levelUpsByPartyIndex = const {},
+    required BattleReward reward,
   }) {
-    var nextState = addMoney(state, moneyReward);
-
-    if (levelUpsByPartyIndex.isEmpty || nextState.party.members.isEmpty) {
-      return nextState;
+    var nextState = addMoney(state, reward.money);
+    for (final grant in reward.itemGrants) {
+      nextState = giveItem(nextState, grant.itemId, grant.quantity);
     }
-
-    final nextMembers = List<PlayerPokemon>.of(
-      nextState.party.members,
-      growable: false,
-    );
-    var changed = false;
-
-    for (final entry in levelUpsByPartyIndex.entries) {
-      final partyIndex = entry.key;
-      final levelIncrement = entry.value;
-      if (partyIndex < 0 ||
-          partyIndex >= nextMembers.length ||
-          levelIncrement <= 0) {
-        continue;
-      }
-
-      final member = nextMembers[partyIndex];
-      final nextLevel = member.level + levelIncrement;
-      final cappedLevel = nextLevel > 100 ? 100 : nextLevel;
-      if (cappedLevel == member.level) {
-        continue;
-      }
-
-      nextMembers[partyIndex] = member.copyWith(level: cappedLevel);
-      changed = true;
+    for (final flagId in reward.flagIds) {
+      nextState = setFlag(nextState, flagId);
     }
-
-    if (!changed) {
-      return nextState;
+    final badgeId = reward.badgeId;
+    if (badgeId != null &&
+        !nextState.trainerProfile.badgeIds.contains(badgeId)) {
+      nextState = nextState.copyWith(
+        trainerProfile: nextState.trainerProfile.copyWith(
+          badgeIds: <String>[
+            ...nextState.trainerProfile.badgeIds,
+            badgeId,
+          ],
+        ),
+      );
     }
-
-    return nextState.copyWith(
-      party: nextState.party.copyWith(members: nextMembers),
-    );
+    final fieldAbility = reward.fieldAbilityUnlock;
+    if (fieldAbility != null) {
+      nextState = unlockFieldAbility(nextState, fieldAbility);
+    }
+    return nextState;
   }
 
   /// Applique une capture réussie vers la party ou le storage minimal.

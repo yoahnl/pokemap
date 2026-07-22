@@ -6662,7 +6662,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           ),
         );
       }
-      _activeBattleContext = RuntimeActiveBattleContext(
+      _activeBattleContext = RuntimeActiveBattleContext.withLineupMapping(
         request: request,
         playerPartyIndex: playerLineup.activeIndex,
         playerPartySlotIndicesByLineupIndex: playerLineup.lineupPartyIndices,

@@ -1634,7 +1634,7 @@ BattleMoveBehaviorResolution _resolveTeleport(
   }
 
   if (context.canFlee) {
-    const outcome = PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.fled);
+    final outcome = PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.fled);
     return BattleMoveBehaviorResolution(
       state: prepared.state.copyWith(outcome: outcome),
       rng: prepared.rng,

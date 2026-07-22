@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:path/path.dart' as p;
 
 import 'runtime_move_catalog_loader.dart';
@@ -10,15 +11,8 @@ import 'runtime_move_catalog_loader.dart';
 ///
 /// Le loader d'espèce et l'hydrateur legacy partagent cette liste afin de ne
 /// jamais accepter un profil que la courbe d'XP runtime ne saurait calculer.
-const runtimeSupportedPokemonGrowthRateIds = <String>{
-  'fast',
-  'fast_then_very_slow',
-  'medium',
-  'medium_fast',
-  'medium_slow',
-  'slow',
-  'slow_then_very_fast',
-};
+const runtimeSupportedPokemonGrowthRateIds =
+    PokemonExperienceCurve.supportedIds;
 
 /// Machine-readable failures raised before a persisted Pokemon becomes
 /// playable.
@@ -352,44 +346,16 @@ int _minimumExperienceForLevel({
     );
   }
 
-  final cubed = level * level * level;
-  final experience = switch (normalizedGrowthRateId) {
-    'fast' => (4 * cubed) ~/ 5,
-    'medium' || 'medium_fast' => cubed,
-    'medium_slow' =>
-      ((6 * cubed) ~/ 5) - (15 * level * level) + (100 * level) - 140,
-    'slow' => (5 * cubed) ~/ 4,
-    // Repository catalog ids follow the PokeAPI curve names. These aliases
-    // are kept explicit so a future gameplay XP service can replace this
-    // migration-only calculation without changing persisted data.
-    'slow_then_very_fast' => _erraticExperience(level, cubed),
-    'fast_then_very_slow' => _fluctuatingExperience(level, cubed),
-    _ => throw RuntimePlayerPokemonProgressionHydrationException(
-        code: RuntimePlayerPokemonProgressionHydrationErrorCode
-            .unsupportedGrowthRate,
-        message: 'Unsupported Pokemon growth rate "$normalizedGrowthRateId".',
-        speciesId: speciesId,
-      ),
-  };
-
-  // The classic medium-slow formula is negative at level one; persisted total
-  // experience remains non-negative by contract.
-  return experience < 0 ? 0 : experience;
-}
-
-int _erraticExperience(int level, int cubed) {
-  if (level <= 50) return (cubed * (100 - level)) ~/ 50;
-  if (level <= 68) return (cubed * (150 - level)) ~/ 100;
-  if (level <= 98) {
-    return (cubed * ((1911 - (10 * level)) ~/ 3)) ~/ 500;
+  try {
+    return PokemonExperienceCurve.fromId(
+      normalizedGrowthRateId,
+    ).totalExperienceForLevel(level);
+  } on ArgumentError {
+    throw RuntimePlayerPokemonProgressionHydrationException(
+      code: RuntimePlayerPokemonProgressionHydrationErrorCode
+          .unsupportedGrowthRate,
+      message: 'Unsupported Pokemon growth rate "$normalizedGrowthRateId".',
+      speciesId: speciesId,
+    );
   }
-  return (cubed * (160 - level)) ~/ 100;
-}
-
-int _fluctuatingExperience(int level, int cubed) {
-  if (level <= 15) {
-    return (cubed * (((level + 1) ~/ 3) + 24)) ~/ 50;
-  }
-  if (level <= 35) return (cubed * (level + 14)) ~/ 50;
-  return (cubed * ((level ~/ 2) + 32)) ~/ 50;
 }

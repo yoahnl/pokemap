@@ -4,7 +4,6 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 
 const _whiteoutTestStats = BattleStatsSnapshot(
   attack: 10,

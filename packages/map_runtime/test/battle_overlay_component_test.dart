@@ -9,7 +9,6 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/src/direction.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_battle_bag_hp_heal_item_apply.dart';
 import 'package:map_runtime/src/presentation/flame/battle_background_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
@@ -1680,8 +1679,8 @@ void main() {
             'potion' => tryApplyRuntimeBattlePotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
-                context: const RuntimeActiveBattleContext(
-                  request: TrainerBattleStartRequest(
+                context: RuntimeActiveBattleContext.withLineupMapping(
+                  request: const TrainerBattleStartRequest(
                     requestId: 'trainer-request',
                     createdAtEpochMs: 1,
                     returnContext: OverworldReturnContext(
@@ -1702,8 +1701,8 @@ void main() {
             'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
-                context: const RuntimeActiveBattleContext(
-                  request: TrainerBattleStartRequest(
+                context: RuntimeActiveBattleContext.withLineupMapping(
+                  request: const TrainerBattleStartRequest(
                     requestId: 'trainer-request',
                     createdAtEpochMs: 1,
                     returnContext: OverworldReturnContext(
@@ -1724,8 +1723,8 @@ void main() {
             'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
-                context: const RuntimeActiveBattleContext(
-                  request: TrainerBattleStartRequest(
+                context: RuntimeActiveBattleContext.withLineupMapping(
+                  request: const TrainerBattleStartRequest(
                     requestId: 'trainer-request',
                     createdAtEpochMs: 1,
                     returnContext: OverworldReturnContext(
@@ -1840,8 +1839,8 @@ void main() {
             'potion' => tryApplyRuntimeBattlePotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
-                context: const RuntimeActiveBattleContext(
-                  request: TrainerBattleStartRequest(
+                context: RuntimeActiveBattleContext.withLineupMapping(
+                  request: const TrainerBattleStartRequest(
                     requestId: 'trainer-request',
                     createdAtEpochMs: 1,
                     returnContext: OverworldReturnContext(
@@ -1862,8 +1861,8 @@ void main() {
             'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
-                context: const RuntimeActiveBattleContext(
-                  request: TrainerBattleStartRequest(
+                context: RuntimeActiveBattleContext.withLineupMapping(
+                  request: const TrainerBattleStartRequest(
                     requestId: 'trainer-request',
                     createdAtEpochMs: 1,
                     returnContext: OverworldReturnContext(
@@ -1884,8 +1883,8 @@ void main() {
             'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
-                context: const RuntimeActiveBattleContext(
-                  request: TrainerBattleStartRequest(
+                context: RuntimeActiveBattleContext.withLineupMapping(
+                  request: const TrainerBattleStartRequest(
                     requestId: 'trainer-request',
                     createdAtEpochMs: 1,
                     returnContext: OverworldReturnContext(
@@ -1992,8 +1991,8 @@ void main() {
             'potion' => tryApplyRuntimeBattlePotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
-                context: const RuntimeActiveBattleContext(
-                  request: TrainerBattleStartRequest(
+                context: RuntimeActiveBattleContext.withLineupMapping(
+                  request: const TrainerBattleStartRequest(
                     requestId: 'trainer-request',
                     createdAtEpochMs: 1,
                     returnContext: OverworldReturnContext(
@@ -2014,8 +2013,8 @@ void main() {
             'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
-                context: const RuntimeActiveBattleContext(
-                  request: TrainerBattleStartRequest(
+                context: RuntimeActiveBattleContext.withLineupMapping(
+                  request: const TrainerBattleStartRequest(
                     requestId: 'trainer-request',
                     createdAtEpochMs: 1,
                     returnContext: OverworldReturnContext(
@@ -2036,8 +2035,8 @@ void main() {
             'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
-                context: const RuntimeActiveBattleContext(
-                  request: TrainerBattleStartRequest(
+                context: RuntimeActiveBattleContext.withLineupMapping(
+                  request: const TrainerBattleStartRequest(
                     requestId: 'trainer-request',
                     createdAtEpochMs: 1,
                     returnContext: OverworldReturnContext(
@@ -2147,8 +2146,8 @@ void main() {
             'potion' => tryApplyRuntimeBattlePotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
-                context: const RuntimeActiveBattleContext(
-                  request: TrainerBattleStartRequest(
+                context: RuntimeActiveBattleContext.withLineupMapping(
+                  request: const TrainerBattleStartRequest(
                     requestId: 'trainer-request',
                     createdAtEpochMs: 1,
                     returnContext: OverworldReturnContext(
@@ -2169,8 +2168,8 @@ void main() {
             'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
-                context: const RuntimeActiveBattleContext(
-                  request: TrainerBattleStartRequest(
+                context: RuntimeActiveBattleContext.withLineupMapping(
+                  request: const TrainerBattleStartRequest(
                     requestId: 'trainer-request',
                     createdAtEpochMs: 1,
                     returnContext: OverworldReturnContext(
@@ -2191,8 +2190,8 @@ void main() {
             'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
-                context: const RuntimeActiveBattleContext(
-                  request: TrainerBattleStartRequest(
+                context: RuntimeActiveBattleContext.withLineupMapping(
+                  request: const TrainerBattleStartRequest(
                     requestId: 'trainer-request',
                     createdAtEpochMs: 1,
                     returnContext: OverworldReturnContext(
@@ -2305,8 +2304,8 @@ void main() {
             'potion' => tryApplyRuntimeBattlePotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
-                context: const RuntimeActiveBattleContext(
-                  request: TrainerBattleStartRequest(
+                context: RuntimeActiveBattleContext.withLineupMapping(
+                  request: const TrainerBattleStartRequest(
                     requestId: 'trainer-request',
                     createdAtEpochMs: 1,
                     returnContext: OverworldReturnContext(
@@ -2327,8 +2326,8 @@ void main() {
             'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
-                context: const RuntimeActiveBattleContext(
-                  request: TrainerBattleStartRequest(
+                context: RuntimeActiveBattleContext.withLineupMapping(
+                  request: const TrainerBattleStartRequest(
                     requestId: 'trainer-request',
                     createdAtEpochMs: 1,
                     returnContext: OverworldReturnContext(
@@ -2349,8 +2348,8 @@ void main() {
             'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
-                context: const RuntimeActiveBattleContext(
-                  request: TrainerBattleStartRequest(
+                context: RuntimeActiveBattleContext.withLineupMapping(
+                  request: const TrainerBattleStartRequest(
                     requestId: 'trainer-request',
                     createdAtEpochMs: 1,
                     returnContext: OverworldReturnContext(
@@ -2371,8 +2370,8 @@ void main() {
             'max-potion' => tryApplyRuntimeBattleMaxPotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
-                context: const RuntimeActiveBattleContext(
-                  request: TrainerBattleStartRequest(
+                context: RuntimeActiveBattleContext.withLineupMapping(
+                  request: const TrainerBattleStartRequest(
                     requestId: 'trainer-request',
                     createdAtEpochMs: 1,
                     returnContext: OverworldReturnContext(

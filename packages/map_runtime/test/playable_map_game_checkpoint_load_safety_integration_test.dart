@@ -9,7 +9,6 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
 import 'package:map_runtime/src/application/narrative_runtime_activity_gate.dart';
-import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 import 'package:map_runtime/src/presentation/flame/playable_map_game.dart'
     show

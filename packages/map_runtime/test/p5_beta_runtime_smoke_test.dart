@@ -11,6 +11,8 @@ import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/battle_progression_test_support.dart';
+
 const _projectName = 'P5 Beta Runtime Smoke';
 const _mapId = 'p5_beta_runtime_map';
 const _spawnId = 'p5_beta_runtime_spawn';
@@ -104,17 +106,23 @@ void main() {
 
         gameState = applyRuntimeBattleOutcomeToGameState(
           gameState: runtimeState,
-          context: RuntimeActiveBattleContext(
+          context: RuntimeActiveBattleContext.withLineupMapping(
             request: request,
             playerPartyIndex: lineup.activeIndex,
             playerPartySlotIndicesByLineupIndex: lineup.lineupPartyIndices,
           ),
           outcome: outcome,
         );
-        gameState = const GameStateMutations().applyBattleRewards(
-          gameState,
-          moneyReward: 120,
-          levelUpsByPartyIndex: const <int, int>{0: 1},
+        gameState = applyTestBattleVictoryProgression(
+          state: gameState,
+          partySlot: 0,
+          oldMaxHp: outcome.finalState.player.maxHp,
+          levelsGained: 1,
+          reward: BattleReward(
+            sourceKind: BattleRewardSourceKind.trainer,
+            trainerId: _trainerId,
+            money: 120,
+          ),
         );
 
         expect(

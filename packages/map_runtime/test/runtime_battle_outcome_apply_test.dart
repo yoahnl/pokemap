@@ -14,6 +14,27 @@ const _outcomeTestStats = BattleStatsSnapshot(
 );
 
 void main() {
+  test(
+      'RuntimeActiveBattleContext defensively copies lineup mapping and exposes it read-only',
+      () {
+    final sourceMapping = <int>[2, 0];
+    final context = RuntimeActiveBattleContext.withLineupMapping(
+      request: _wildRequest(),
+      playerPartyIndex: 2,
+      playerPartySlotIndicesByLineupIndex: sourceMapping,
+    );
+
+    sourceMapping
+      ..[0] = 1
+      ..add(3);
+
+    expect(context.playerPartySlotIndicesByLineupIndex, <int>[2, 0]);
+    expect(
+      context.playerPartySlotIndicesByLineupIndex.clear,
+      throwsUnsupportedError,
+    );
+  });
+
   group('applyRuntimeBattleOutcomeToGameState', () {
     test('writes back the exact party slot used for the battle handoff', () {
       const initialState = GameState(
@@ -145,7 +166,7 @@ void main() {
 
       final updatedState = applyRuntimeBattleOutcomeToGameState(
         gameState: initialState,
-        context: RuntimeActiveBattleContext(
+        context: RuntimeActiveBattleContext.withLineupMapping(
           request: _wildRequest(),
           playerPartyIndex: 1,
           playerPartySlotIndicesByLineupIndex: const <int>[1, 0],
@@ -260,7 +281,7 @@ void main() {
 
         final updatedState = applyRuntimeBattleOutcomeToGameState(
           gameState: initialState,
-          context: RuntimeActiveBattleContext(
+          context: RuntimeActiveBattleContext.withLineupMapping(
             request: _wildRequest(),
             playerPartyIndex: 1,
             playerPartySlotIndicesByLineupIndex: const <int>[1, 0],

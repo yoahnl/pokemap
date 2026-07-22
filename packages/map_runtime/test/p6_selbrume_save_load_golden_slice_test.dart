@@ -10,6 +10,8 @@ import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/battle_progression_test_support.dart';
+
 const _startMapId = 'map_bourg_selbrume';
 const _routeMapId = 'map_marais_salants';
 const _saveId = 'p6_06_selbrume_save_load_golden_slice';
@@ -176,6 +178,10 @@ Future<GameState> _applyP605TrainerVictoryState({
     _grantPlayerBattlePos.y,
     facing: EntityFacing.north,
   );
+  next = await hydrateTestBattlePokemonProgression(
+    state: next,
+    bundle: routeBundle,
+  );
 
   final grantNpc = routeBundle.map.entities.singleWhere(
     (entity) => entity.id == _grantNpcId,
@@ -230,7 +236,7 @@ Future<GameState> _applyP605TrainerVictoryState({
 
   next = applyRuntimeBattleOutcomeToGameState(
     gameState: next,
-    context: RuntimeActiveBattleContext(
+    context: RuntimeActiveBattleContext.withLineupMapping(
       request: request,
       playerPartyIndex: lineup.activeIndex,
       playerPartySlotIndicesByLineupIndex: lineup.lineupPartyIndices,
@@ -239,10 +245,16 @@ Future<GameState> _applyP605TrainerVictoryState({
   );
   expect(next.storyFlags.activeFlags, contains(_trainerDefeatedFlag));
 
-  next = mutations.applyBattleRewards(
-    next,
-    moneyReward: _rewardMoney,
-    levelUpsByPartyIndex: const <int, int>{0: 1},
+  next = applyTestBattleVictoryProgression(
+    state: next,
+    partySlot: 0,
+    oldMaxHp: outcome.finalState.player.maxHp,
+    levelsGained: 1,
+    reward: BattleReward(
+      sourceKind: BattleRewardSourceKind.trainer,
+      trainerId: _trainerId,
+      money: _rewardMoney,
+    ),
   );
   return next;
 }

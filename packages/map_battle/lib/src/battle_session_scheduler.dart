@@ -47,10 +47,15 @@ BattleSession _applyForcedPlayerReplacement({
     turn: turn,
   );
 
+  final playerParticipants = _playerParticipantsAfterSideChange(
+    session.state.playerParticipantLineupIndexes,
+    turn.playerSide,
+  );
   final outcome = session._determineOutcome(
     turn.playerSide,
     turn.enemySide,
     turn.field,
+    playerParticipantLineupIndexes: playerParticipants,
   );
 
   return BattleSession._(
@@ -65,6 +70,7 @@ BattleSession _applyForcedPlayerReplacement({
         enemyAction: turnPlan.reportedEnemyAction,
       ),
       outcome: outcome,
+      playerParticipantLineupIndexes: playerParticipants,
     ),
     setup: session.setup,
     rng: turn.rng,
@@ -101,12 +107,17 @@ BattleSession _resumePendingTurnWithReplacement({
     turn: turn,
   );
 
+  final playerParticipants = _playerParticipantsAfterSideChange(
+    session.state.playerParticipantLineupIndexes,
+    turn.playerSide,
+  );
   final outcome = turn.pendingTurn != null
       ? null
       : session._determineOutcome(
           turn.playerSide,
           turn.enemySide,
           turn.field,
+          playerParticipantLineupIndexes: playerParticipants,
         );
 
   return BattleSession._(
@@ -121,6 +132,7 @@ BattleSession _resumePendingTurnWithReplacement({
         enemyAction: turnPlan.reportedEnemyAction,
       ),
       outcome: outcome,
+      playerParticipantLineupIndexes: playerParticipants,
     ),
     setup: session.setup,
     rng: turn.rng,

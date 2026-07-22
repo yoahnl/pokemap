@@ -444,6 +444,10 @@ class BattleOutcome {
   /// L'état final du combat.
   final BattleState finalState;
 
+  /// Exact player lineup slots that entered this battle.
+  Set<int> get playerParticipantLineupIndexes =>
+      finalState.playerParticipantLineupIndexes;
+
   /// true si le joueur a gagné.
   bool get isVictory => type == BattleOutcomeType.victory;
 

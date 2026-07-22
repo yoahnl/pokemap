@@ -3,6 +3,73 @@ import 'package:test/test.dart';
 
 void main() {
   group('PSDK voluntary switch actions', () {
+    test('participant metadata cannot be mutated through its source set', () {
+      final source = <int>{0};
+      final outcome = PsdkBattleOutcome(
+        kind: PsdkBattleOutcomeKind.victory,
+        playerParticipantPartyIndexes: source,
+      );
+
+      source.add(1);
+
+      expect(outcome.playerParticipantPartyIndexes, <int>{0});
+    });
+
+    test('tracks exact player party participants through the final outcome',
+        () {
+      final engine = BattleEngine(
+        setup: BattleEngineSetup.singles(
+          player: _combatant(
+            id: 'player_0',
+            speciesId: 'lead',
+            hp: 60,
+          ),
+          playerReserves: <PsdkBattleCombatantSetup>[
+            _combatant(
+              id: 'player_1',
+              speciesId: 'engaged',
+              hp: 80,
+              attack: 120,
+              moves: <PsdkBattleMoveData>[
+                _move(id: 'finish', power: 200),
+              ],
+            ),
+            _combatant(
+              id: 'player_2',
+              speciesId: 'unused',
+              hp: 80,
+            ),
+          ],
+          opponent: _combatant(
+            id: 'opponent_0',
+            speciesId: 'target',
+            hp: 1,
+            moves: <PsdkBattleMoveData>[_move(id: 'wait', power: 0)],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+      );
+
+      expect(engine.snapshot().playerParticipantPartyIndexes, {0});
+      final switched = engine.submit(
+        const BattleDecision.switchPokemon(partyIndex: 1),
+      );
+      expect(switched.state.playerParticipantPartyIndexes, {0, 1});
+      expect(
+        () => switched.state.playerParticipantPartyIndexes.add(2),
+        throwsUnsupportedError,
+      );
+
+      final finished = engine.submit(const BattleDecision.fight(moveSlot: 0));
+      expect(finished.outcome!.playerParticipantPartyIndexes, {0, 1});
+      expect(finished.outcome!.playerParticipantPartyIndexes, isNot(contains(2)));
+    });
+
     test('decision request exposes legal reserve switches', () {
       final engine = BattleEngine(setup: _setup());
 

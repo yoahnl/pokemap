@@ -12,8 +12,9 @@ class PsdkBattleState {
     Map<int, List<PsdkBattleCombatant>>? parties,
     Set<int> megaEvolvedBanks = const <int>{},
     Set<int> zMoveUsedBanks = const <int>{},
+    Iterable<int> playerParticipantPartyIndexes = const <int>{0},
     this.field = const PsdkBattleFieldState(),
-    this.outcome,
+    PsdkBattleOutcome? outcome,
   })  : _combatants = Map<PsdkBattleSlotRef, PsdkBattleCombatant>.unmodifiable(
           _hydrateCombatantAbilityEffects(combatants),
         ),
@@ -22,7 +23,13 @@ class PsdkBattleState {
           parties: parties,
         ),
         _megaEvolvedBanks = Set<int>.unmodifiable(megaEvolvedBanks),
-        _zMoveUsedBanks = Set<int>.unmodifiable(zMoveUsedBanks);
+        _zMoveUsedBanks = Set<int>.unmodifiable(zMoveUsedBanks),
+        _playerParticipantPartyIndexes = Set<int>.unmodifiable(
+          playerParticipantPartyIndexes,
+        ),
+        outcome = outcome?.withPlayerParticipantPartyIndexes(
+          playerParticipantPartyIndexes,
+        );
 
   factory PsdkBattleState.fromSetup(PsdkBattleSetup setup) {
     final combatants = <PsdkBattleSlotRef, PsdkBattleCombatant>{
@@ -49,8 +56,13 @@ class PsdkBattleState {
   final Map<int, List<PsdkBattleCombatant>> _parties;
   final Set<int> _megaEvolvedBanks;
   final Set<int> _zMoveUsedBanks;
+  final Set<int> _playerParticipantPartyIndexes;
   final PsdkBattleFieldState field;
   final PsdkBattleOutcome? outcome;
+
+  /// Player party indexes that actually occupied the active battle slot.
+  Set<int> get playerParticipantPartyIndexes =>
+      Set<int>.unmodifiable(_playerParticipantPartyIndexes);
 
   /// Immutable observable combatant map.
   ///
@@ -126,6 +138,7 @@ class PsdkBattleState {
     Map<int, List<PsdkBattleCombatant>>? parties,
     Set<int>? megaEvolvedBanks,
     Set<int>? zMoveUsedBanks,
+    Iterable<int>? playerParticipantPartyIndexes,
     PsdkBattleFieldState? field,
     PsdkBattleOutcome? outcome,
   }) {
@@ -134,6 +147,8 @@ class PsdkBattleState {
       parties: parties ?? this.parties,
       megaEvolvedBanks: megaEvolvedBanks ?? this.megaEvolvedBanks,
       zMoveUsedBanks: zMoveUsedBanks ?? this.zMoveUsedBanks,
+      playerParticipantPartyIndexes:
+          playerParticipantPartyIndexes ?? this.playerParticipantPartyIndexes,
       field: field ?? this.field,
       outcome: outcome ?? this.outcome,
     );

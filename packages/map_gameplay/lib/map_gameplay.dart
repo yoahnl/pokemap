@@ -6,6 +6,22 @@ export 'src/battle_reward.dart'
         BattleExperienceGrant,
         BattleRewardItemGrant,
         BattleReward;
+export 'src/pokemon_experience_curve.dart' show PokemonExperienceCurve;
+export 'src/pokemon_stat_calculator.dart'
+    show
+        PokemonNatureStatPolicy,
+        PokemonBaseStats,
+        PokemonCalculatedStats,
+        PokemonStatCalculator;
+export 'src/battle_progression_service.dart'
+    show
+        BattleProgressionOutcomeKind,
+        BattleProgressionDefeatedOpponent,
+        BattleProgressionPartySlotMetadata,
+        BattleProgressionContext,
+        BattlePokemonProgressionChange,
+        BattleProgressionResult,
+        BattleProgressionService;
 export 'src/direction.dart' show Direction, DirectionX, EntityFacingX;
 export 'src/gameplay_exceptions.dart' show GameplaySpawnResolutionException;
 export 'src/player_spawn_resolver.dart' show resolveInitialPlayerSpawn;

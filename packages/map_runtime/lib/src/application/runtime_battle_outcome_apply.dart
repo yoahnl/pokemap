@@ -28,7 +28,26 @@ class RuntimeActiveBattleContext {
   const RuntimeActiveBattleContext({
     required this.request,
     required this.playerPartyIndex,
-    this.playerPartySlotIndicesByLineupIndex = const <int>[],
+  }) : playerPartySlotIndicesByLineupIndex = const <int>[];
+
+  factory RuntimeActiveBattleContext.withLineupMapping({
+    required BattleStartRequest request,
+    required int playerPartyIndex,
+    required Iterable<int> playerPartySlotIndicesByLineupIndex,
+  }) {
+    return RuntimeActiveBattleContext._(
+      request: request,
+      playerPartyIndex: playerPartyIndex,
+      playerPartySlotIndicesByLineupIndex: List<int>.unmodifiable(
+        playerPartySlotIndicesByLineupIndex,
+      ),
+    );
+  }
+
+  const RuntimeActiveBattleContext._({
+    required this.request,
+    required this.playerPartyIndex,
+    required this.playerPartySlotIndicesByLineupIndex,
   });
 
   final BattleStartRequest request;
