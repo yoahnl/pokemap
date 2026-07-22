@@ -663,6 +663,10 @@ class PsdkBattleCombatant {
     required this.types,
     required this.stats,
     required List<PsdkBattleMoveData> moves,
+    String? writeBackSpeciesId,
+    Object? writeBackAbilityId = _unchanged,
+    List<PsdkBattleMoveData>? writeBackMoves,
+    List<String>? writeBackMoveIdsAtBattleStart,
     int form = 0,
     this.abilityId,
     this.gender = PsdkBattleGender.unknown,
@@ -717,7 +721,18 @@ class PsdkBattleCombatant {
           temporaryTypes.map((type) => _requireNonBlank(type, 'type')),
         ),
         effects = effects ?? const PsdkBattleEffectStack.empty(),
-        _moves = List<PsdkBattleMoveData>.unmodifiable(moves);
+        writeBackSpeciesId = writeBackSpeciesId ?? speciesId,
+        writeBackAbilityId = identical(writeBackAbilityId, _unchanged)
+            ? abilityId
+            : writeBackAbilityId as String?,
+        _moves = List<PsdkBattleMoveData>.unmodifiable(moves),
+        _writeBackMoves = List<PsdkBattleMoveData>.unmodifiable(
+          writeBackMoves ?? moves,
+        ),
+        writeBackMoveIdsAtBattleStart = List<String>.unmodifiable(
+          writeBackMoveIdsAtBattleStart ??
+              (writeBackMoves ?? moves).map((move) => move.id),
+        );
 
   factory PsdkBattleCombatant.fromSetup(PsdkBattleCombatantSetup setup) {
     final hp = setup.currentHp.clamp(0, setup.maxHp).toInt();
@@ -813,7 +828,17 @@ class PsdkBattleCombatant {
   final double baseWeightKg;
   final double currentWeightKg;
   final PsdkBattleEffectStack effects;
+
+  /// Stable species identity used by runtime persistence after temporary forms.
+  final String writeBackSpeciesId;
+
+  /// Stable ability paired with [writeBackSpeciesId].
+  final String? writeBackAbilityId;
+
+  /// Initial identity of each persistent move slot injected into battle.
+  final List<String> writeBackMoveIdsAtBattleStart;
   final List<PsdkBattleMoveData> _moves;
+  final List<PsdkBattleMoveData> _writeBackMoves;
   final PsdkBattleMajorStatus? majorStatus;
 
   /// Immutable observable move list.
@@ -821,6 +846,14 @@ class PsdkBattleCombatant {
   /// PP changes replace move DTOs through [replaceMoveAt]; callers still cannot
   /// mutate the stored list behind a state snapshot.
   List<PsdkBattleMoveData> get moves => _moves;
+
+  /// Stable persistent moveset used by runtime persistence.
+  ///
+  /// Temporary battle forms can replace [moves]. PP mutations of the original
+  /// moveset are mirrored here before Transform. Only explicitly persistent
+  /// replacements such as Sketch may change move identity; copied moves never
+  /// overwrite this snapshot.
+  List<PsdkBattleMoveData> get writeBackMoves => _writeBackMoves;
 
   bool get isFainted => currentHp <= 0;
 
@@ -917,6 +950,10 @@ class PsdkBattleCombatant {
     double? currentWeightKg,
     PsdkBattleEffectStack? effects,
     List<PsdkBattleMoveData>? moves,
+    String? writeBackSpeciesId,
+    Object? writeBackAbilityId = _unchanged,
+    List<PsdkBattleMoveData>? writeBackMoves,
+    List<String>? writeBackMoveIdsAtBattleStart,
   }) {
     if (clearMajorStatus && majorStatus != null) {
       throw ArgumentError.value(
@@ -935,6 +972,13 @@ class PsdkBattleCombatant {
       types: types ?? this.types,
       stats: stats ?? this.stats,
       moves: moves ?? this.moves,
+      writeBackSpeciesId: writeBackSpeciesId ?? this.writeBackSpeciesId,
+      writeBackAbilityId: identical(writeBackAbilityId, _unchanged)
+          ? this.writeBackAbilityId
+          : writeBackAbilityId as String?,
+      writeBackMoves: writeBackMoves ?? this.writeBackMoves,
+      writeBackMoveIdsAtBattleStart:
+          writeBackMoveIdsAtBattleStart ?? this.writeBackMoveIdsAtBattleStart,
       form: form ?? this.form,
       abilityId: identical(abilityId, _unchanged)
           ? this.abilityId
@@ -989,13 +1033,42 @@ class PsdkBattleCombatant {
     );
   }
 
-  PsdkBattleCombatant replaceMoveAt(int index, PsdkBattleMoveData move) {
+  /// Replaces the battle move at [index].
+  ///
+  /// PP changes to the original move are mirrored to [writeBackMoves]. Move
+  /// identity changes stay battle-only by default (for example Mimic). Callers
+  /// such as Sketch must opt in when the replacement is genuinely persistent.
+  PsdkBattleCombatant replaceMoveAt(
+    int index,
+    PsdkBattleMoveData move, {
+    bool persistIdentityChange = false,
+  }) {
     if (index < 0 || index >= _moves.length) {
       throw RangeError.range(index, 0, _moves.length - 1, 'index');
     }
     final nextMoves = <PsdkBattleMoveData>[..._moves];
     nextMoves[index] = move;
-    return copyWith(moves: nextMoves);
+    var nextWriteBackMoves = _writeBackMoves;
+    if (!transformState.isTransformed && index < _writeBackMoves.length) {
+      final updatedWriteBackMoves = <PsdkBattleMoveData>[
+        ..._writeBackMoves,
+      ];
+      if (persistIdentityChange) {
+        updatedWriteBackMoves[index] = move;
+        nextWriteBackMoves =
+            List<PsdkBattleMoveData>.unmodifiable(updatedWriteBackMoves);
+      } else if (_moves[index].id == _writeBackMoves[index].id &&
+          move.id == _writeBackMoves[index].id) {
+        updatedWriteBackMoves[index] =
+            _writeBackMoves[index].copyWith(currentPp: move.currentPp);
+        nextWriteBackMoves =
+            List<PsdkBattleMoveData>.unmodifiable(updatedWriteBackMoves);
+      }
+    }
+    return copyWith(
+      moves: nextMoves,
+      writeBackMoves: nextWriteBackMoves,
+    );
   }
 
   PsdkBattleCombatant recordMoveAttempt({

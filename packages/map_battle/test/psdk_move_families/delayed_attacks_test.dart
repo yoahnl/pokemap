@@ -261,7 +261,8 @@ void main() {
       );
 
       final first = engine.submit(const BattleDecision.fight(moveSlot: 0));
-      expect(first.state.battlerAt(psdkPlayerSlot).effects.contains('wish'), isTrue);
+      expect(first.state.battlerAt(psdkPlayerSlot).effects.contains('wish'),
+          isTrue);
       final blocked = engine.submit(const BattleDecision.fight(moveSlot: 0));
 
       final failures = blocked.timeline.events
@@ -412,6 +413,14 @@ void main() {
       expect(replacement.currentHp, replacement.maxHp);
       expect(replacement.majorStatus, isNull);
       expect(replacement.moves.single.currentPp, replacement.moves.single.pp);
+      expect(
+        replacement.writeBackMoves.single.currentPp,
+        replacement.writeBackMoves.single.pp,
+      );
+      expect(
+        replacement.writeBackMoveIdsAtBattleStart,
+        <String>['reserve_wait'],
+      );
     });
   });
 }

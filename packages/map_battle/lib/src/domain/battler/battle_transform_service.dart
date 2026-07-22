@@ -30,6 +30,7 @@ final class PsdkBattleTransformService {
       abilityId: target.abilityId,
       statStages: target.statStages,
       currentWeightKg: target.currentWeightKg,
+      // Transform is battle-only: copy visible moves, never writeBackMoves.
       moves: _transformMoves(target.moves),
       transformState: PsdkBattleTransformState(
         transformedFromSpeciesId:

@@ -679,10 +679,16 @@ PsdkBattleCombatant _applyHealingSacrifice(
   PsdkBattleCombatant incoming,
   HealingWishEffect effect,
 ) {
-  final restoredMoves = effect.restorePp
+  final restoredWriteBackMoves = effect.restorePp
       ? <PsdkBattleMoveData>[
-          for (final move in incoming.moves) move.copyWith(currentPp: move.pp),
+          for (final move in incoming.writeBackMoves)
+            move.copyWith(currentPp: move.pp),
         ]
+      : incoming.writeBackMoves;
+  final restoredMoves = effect.restorePp
+      // Lunar Dance restores the persistent base moveset. This also prevents
+      // a copied battle-only moveset from leaking through a replacement.
+      ? restoredWriteBackMoves
       : incoming.moves;
   return incoming.copyWith(
     currentHp: incoming.maxHp,
@@ -690,6 +696,7 @@ PsdkBattleCombatant _applyHealingSacrifice(
     sleepTurns: 0,
     toxicCounter: 0,
     moves: restoredMoves,
+    writeBackMoves: restoredWriteBackMoves,
   );
 }
 

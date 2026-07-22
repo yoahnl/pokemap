@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 
 const _saveId = 'p5_roundtrip_save';
 const _mapId = 'p5_roundtrip_map';
@@ -68,8 +70,12 @@ void main() {
           ]),
         );
         expect(reloaded.party.members.first.level, 7);
-        expect(reloaded.party.members.first.currentHp, 20);
-        expect(reloaded.party.members.first.statusId, isEmpty);
+        expect(reloaded.party.members.first.currentHp, 13);
+        expect(reloaded.party.members.first.statusId, 'tox');
+        expect(
+          reloaded.party.members.first.currentPpByMoveId,
+          <String, int>{'p5_roundtrip_tackle': 4},
+        );
 
         expect(reloaded.pokemonStorage.storedPokemon, hasLength(1));
         expect(
@@ -196,7 +202,78 @@ GameState _buildBetaGameplayState() {
   expect(storageCapture.destination, CaptureDestinationKind.storage);
   expect(storageCapture.storageIndex, 0);
 
-  return storageCapture.state;
+  return applyRuntimeBattleOutcomeToGameState(
+    gameState: storageCapture.state,
+    context: RuntimeActiveBattleContext(
+      request: _roundtripWildRequest(),
+      playerPartyIndex: 0,
+    ),
+    outcome: BattleOutcome(
+      type: BattleOutcomeType.runaway,
+      finalState: BattleState(
+        phase: BattlePhase.finished,
+        player: const BattleCombatant(
+          speciesId: _starterSpeciesId,
+          level: 7,
+          currentHp: 13,
+          maxHp: 20,
+          stats: _roundtripBattleStats,
+          majorStatus: BattleMajorStatusState.tox(),
+          moves: <BattleMove>[
+            BattleMove(
+              id: 'p5_roundtrip_tackle',
+              name: 'Tackle',
+              power: 40,
+              pp: 35,
+              currentPp: 4,
+            ),
+          ],
+        ),
+        enemy: const BattleCombatant(
+          speciesId: 'p5_roundtrip_wild',
+          level: 4,
+          currentHp: 8,
+          maxHp: 16,
+          stats: _roundtripBattleStats,
+          moves: <BattleMove>[
+            BattleMove(id: 'growl', name: 'Growl', power: 0),
+          ],
+        ),
+        currentTurn: null,
+        outcome: null,
+      ),
+    ),
+  );
+}
+
+const _roundtripBattleStats = BattleStatsSnapshot(
+  attack: 10,
+  defense: 10,
+  specialAttack: 10,
+  specialDefense: 10,
+  speed: 10,
+);
+
+WildBattleStartRequest _roundtripWildRequest() {
+  return const WildBattleStartRequest(
+    requestId: 'p5-roundtrip-wild',
+    createdAtEpochMs: 1,
+    returnContext: OverworldReturnContext(
+      mapId: _mapId,
+      playerPos: GridPos(x: 4, y: 6),
+      playerFacing: Direction.east,
+    ),
+    mapId: _mapId,
+    zoneId: 'grass',
+    tableId: 'roundtrip',
+    encounterKind: EncounterKind.walk,
+    speciesId: 'p5_roundtrip_wild',
+    level: 4,
+    minLevel: 4,
+    maxLevel: 4,
+    weight: 1,
+    playerPos: GridPos(x: 4, y: 6),
+  );
 }
 
 MapData _roundtripMap() {

@@ -2,15 +2,18 @@ import 'battle_topology.dart';
 
 /// Identifiant minimal de statut majeur réellement supporté par le moteur.
 ///
-/// BE7 ouvre volontairement un seul sous-ensemble :
+/// BE7 ouvre volontairement un premier sous-ensemble :
 /// - `par`
 /// - `brn`
 /// - `psn`
 /// - `tox`
 ///
+/// FG-042 ajoute `slp` et `frz` comme états transportables afin que le runtime
+/// puisse conserver honnêtement un statut déjà présent dans une sauvegarde.
+/// Leur comportement complet reste porté par le moteur PSDK ; le moteur legacy
+/// ne leur invente ici ni compteur ni règle d'action.
+///
 /// Tout le reste reste explicitement hors scope :
-/// - pas de `slp`
-/// - pas de `frz`
 /// - pas de confusion
 /// - pas de système générique de volatiles.
 enum BattleMajorStatusId {
@@ -18,6 +21,8 @@ enum BattleMajorStatusId {
   brn,
   psn,
   tox,
+  slp,
+  frz,
 }
 
 /// État minimal d'un statut majeur porté par un combattant battle.
@@ -49,6 +54,14 @@ final class BattleMajorStatusState {
   })  : assert(toxicCounter >= 1),
         id = BattleMajorStatusId.tox;
 
+  const BattleMajorStatusState.slp()
+      : id = BattleMajorStatusId.slp,
+        toxicCounter = 0;
+
+  const BattleMajorStatusState.frz()
+      : id = BattleMajorStatusId.frz,
+        toxicCounter = 0;
+
   final BattleMajorStatusId id;
 
   /// Compteur local du poison toxique.
@@ -71,7 +84,7 @@ final class BattleMajorStatusState {
   /// Réinitialise l'état local qui ne doit pas survivre à un switch-out.
   ///
   /// BE10 garde une politique très étroite :
-  /// - `par`, `brn`, `psn` restent inchangés ;
+  /// - `par`, `brn`, `psn`, `slp` et `frz` restent inchangés ;
   /// - `tox` reste bien `tox` ;
   /// - mais sa progression locale repart à `1` quand le Pokémon quitte puis
   ///   revient sur le terrain.

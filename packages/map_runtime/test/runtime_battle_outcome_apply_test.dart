@@ -158,6 +158,287 @@ void main() {
       expect(updatedState.party.members[2].currentHp, equals(18));
     });
 
+    for (final outcomeType in <BattleOutcomeType>[
+      BattleOutcomeType.victory,
+      BattleOutcomeType.defeat,
+      BattleOutcomeType.runaway,
+    ]) {
+      test(
+          'writes HP PP and status by lineupIndex after ${outcomeType.name} while leaving the unused slot unchanged',
+          () {
+        const initialState = GameState(
+          saveId: 'save-full-writeback',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'same_species',
+                natureId: 'hardy',
+                abilityId: 'pressure',
+                level: 18,
+                knownMoveIds: <String>['a'],
+                currentPpByMoveId: <String, int>{'a': 9},
+                currentHp: 44,
+              ),
+              PlayerPokemon(
+                speciesId: 'same_species',
+                natureId: 'bold',
+                abilityId: 'overgrow',
+                level: 20,
+                knownMoveIds: <String>['b'],
+                currentPpByMoveId: <String, int>{'b': 8},
+                currentHp: 35,
+              ),
+              PlayerPokemon(
+                speciesId: 'same_species',
+                natureId: 'calm',
+                abilityId: 'torrent',
+                level: 22,
+                knownMoveIds: <String>['c'],
+                currentPpByMoveId: <String, int>{'c': 7},
+                currentHp: 18,
+                statusId: 'frz',
+              ),
+            ],
+          ),
+        );
+        final outcome = BattleOutcome(
+          type: outcomeType,
+          finalState: BattleState(
+            phase: BattlePhase.finished,
+            player: const BattleCombatant(
+              speciesId: 'same_species',
+              lineupIndex: 1,
+              level: 18,
+              currentHp: 9,
+              maxHp: 44,
+              stats: _outcomeTestStats,
+              majorStatus: BattleMajorStatusState.brn(),
+              moves: <BattleMove>[
+                BattleMove(
+                  id: 'a',
+                  name: 'a',
+                  power: 10,
+                  pp: 10,
+                  currentPp: 2,
+                ),
+              ],
+            ),
+            playerReserve: const <BattleCombatant>[
+              BattleCombatant(
+                speciesId: 'same_species',
+                lineupIndex: 0,
+                level: 20,
+                currentHp: 3,
+                maxHp: 35,
+                stats: _outcomeTestStats,
+                majorStatus: BattleMajorStatusState.slp(),
+                moves: <BattleMove>[
+                  BattleMove(
+                    id: 'b',
+                    name: 'b',
+                    power: 10,
+                    pp: 10,
+                    currentPp: 1,
+                  ),
+                ],
+              ),
+            ],
+            enemy: const BattleCombatant(
+              speciesId: 'enemy',
+              level: 20,
+              currentHp: 0,
+              maxHp: 30,
+              stats: _outcomeTestStats,
+              moves: <BattleMove>[
+                BattleMove(id: 'x', name: 'x', power: 10),
+              ],
+            ),
+            currentTurn: null,
+            outcome: null,
+          ),
+        );
+
+        final updatedState = applyRuntimeBattleOutcomeToGameState(
+          gameState: initialState,
+          context: RuntimeActiveBattleContext(
+            request: _wildRequest(),
+            playerPartyIndex: 1,
+            playerPartySlotIndicesByLineupIndex: const <int>[1, 0],
+          ),
+          outcome: outcome,
+        );
+
+        expect(updatedState.party.members[0].currentHp, 9);
+        expect(updatedState.party.members[0].currentPpByMoveId, {'a': 2});
+        expect(updatedState.party.members[0].statusId, 'brn');
+        expect(updatedState.party.members[1].currentHp, 3);
+        expect(updatedState.party.members[1].currentPpByMoveId, {'b': 1});
+        expect(updatedState.party.members[1].statusId, 'slp');
+        expect(updatedState.party.members[2], initialState.party.members[2]);
+      });
+    }
+
+    test('does not persist temporary battle moves for an explicit move set',
+        () {
+      const initialState = GameState(
+        saveId: 'save-explicit-moves',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'copycat',
+              natureId: 'hardy',
+              abilityId: 'trace',
+              level: 18,
+              knownMoveIds: <String>['tackle'],
+              currentPpByMoveId: <String, int>{'tackle': 12},
+              currentHp: 30,
+            ),
+          ],
+        ),
+      );
+      final outcome = BattleOutcome(
+        type: BattleOutcomeType.runaway,
+        finalState: BattleState(
+          phase: BattlePhase.finished,
+          player: const BattleCombatant(
+            speciesId: 'copycat',
+            level: 18,
+            currentHp: 25,
+            maxHp: 30,
+            stats: _outcomeTestStats,
+            moves: <BattleMove>[
+              BattleMove(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 40,
+                pp: 35,
+                currentPp: 11,
+              ),
+              BattleMove(
+                id: 'temporary_copy',
+                name: 'Temporary Copy',
+                power: 60,
+                pp: 5,
+                currentPp: 4,
+              ),
+            ],
+            writeBackMoves: <BattleMove>[
+              BattleMove(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 40,
+                pp: 35,
+                currentPp: 11,
+              ),
+            ],
+            hasTemporaryBattleMoves: true,
+          ),
+          enemy: const BattleCombatant(
+            speciesId: 'enemy',
+            level: 10,
+            currentHp: 10,
+            maxHp: 20,
+            stats: _outcomeTestStats,
+            moves: <BattleMove>[
+              BattleMove(id: 'wait', name: 'Wait', power: 0),
+            ],
+          ),
+          currentTurn: null,
+          outcome: null,
+        ),
+      );
+
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: initialState,
+        context: RuntimeActiveBattleContext(
+          request: _wildRequest(),
+          playerPartyIndex: 0,
+        ),
+        outcome: outcome,
+      );
+
+      expect(
+          updatedState.party.members.single.knownMoveIds, <String>['tackle']);
+      expect(
+        updatedState.party.members.single.currentPpByMoveId,
+        <String, int>{'tackle': 11},
+      );
+    });
+
+    test('preserves known moves and PP that were filtered before battle', () {
+      const initialState = GameState(
+        saveId: 'save-filtered-move',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'mixed-moves',
+              natureId: 'hardy',
+              abilityId: 'trace',
+              level: 18,
+              knownMoveIds: <String>['unsupported_move', 'tackle'],
+              currentPpByMoveId: <String, int>{
+                'unsupported_move': 7,
+                'tackle': 12,
+              },
+              currentHp: 30,
+            ),
+          ],
+        ),
+      );
+      final outcome = BattleOutcome(
+        type: BattleOutcomeType.runaway,
+        finalState: BattleState(
+          phase: BattlePhase.finished,
+          player: const BattleCombatant(
+            speciesId: 'mixed-moves',
+            level: 18,
+            currentHp: 25,
+            maxHp: 30,
+            stats: _outcomeTestStats,
+            moves: <BattleMove>[
+              BattleMove(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 40,
+                pp: 35,
+                currentPp: 11,
+              ),
+            ],
+          ),
+          enemy: const BattleCombatant(
+            speciesId: 'enemy',
+            level: 10,
+            currentHp: 10,
+            maxHp: 20,
+            stats: _outcomeTestStats,
+            moves: <BattleMove>[
+              BattleMove(id: 'wait', name: 'Wait', power: 0),
+            ],
+          ),
+          currentTurn: null,
+          outcome: null,
+        ),
+      );
+
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: initialState,
+        context: RuntimeActiveBattleContext(
+          request: _wildRequest(),
+          playerPartyIndex: 0,
+        ),
+        outcome: outcome,
+      );
+
+      expect(
+        updatedState.party.members.single.knownMoveIds,
+        <String>['unsupported_move', 'tackle'],
+      );
+      expect(
+        updatedState.party.members.single.currentPpByMoveId,
+        <String, int>{'unsupported_move': 7, 'tackle': 11},
+      );
+    });
+
     test(
         'rejects the legacy mono-slot fallback when the final player lineup actually contains BE10 reserves',
         () {
@@ -335,6 +616,10 @@ void main() {
       expect(captured.abilityId, equals('intimidate'));
       expect(captured.natureId, equals('hardy'));
       expect(captured.knownMoveIds, equals(<String>['scratch', 'leer']));
+      expect(
+        captured.currentPpByMoveId,
+        equals(<String, int>{'scratch': 35, 'leer': 35}),
+      );
       expect(captured.currentHp, equals(7));
       expect(
         updatedState.bag.entries,
@@ -347,6 +632,115 @@ void main() {
       );
       expect(updatedState.progression.caughtSpeciesIds, contains('wildmon'));
       expect(updatedState.progression.seenSpeciesIds, contains('wildmon'));
+    });
+
+    test('captures the original wild identity and moves after a real Transform',
+        () {
+      var battle = createBattleSession(
+        const BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'player-sproutle',
+            level: 12,
+            maxHp: 32,
+            currentHp: 23,
+            stats: _outcomeTestStats,
+            abilityId: 'overgrow',
+            moves: <BattleMoveData>[
+              BattleMoveData(
+                id: 'wait',
+                name: 'Wait',
+                power: 0,
+                category: BattleMoveCategory.status,
+                target: BattleMoveTarget.self,
+                accuracy: BattleMoveAccuracy.alwaysHits(),
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'wild-ditto',
+            level: 15,
+            maxHp: 40,
+            currentHp: 31,
+            stats: BattleStatsSnapshot(
+              attack: 20,
+              defense: 20,
+              specialAttack: 20,
+              specialDefense: 20,
+              speed: 100,
+            ),
+            abilityId: 'limber',
+            moves: <BattleMoveData>[
+              BattleMoveData(
+                id: 'transform',
+                name: 'Transform',
+                power: 0,
+                category: BattleMoveCategory.status,
+                target: BattleMoveTarget.opponent,
+                accuracy: BattleMoveAccuracy.alwaysHits(),
+                pp: 10,
+                currentPp: 10,
+                copiesTargetOnHit: true,
+              ),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+          allowCapture: true,
+        ),
+      );
+
+      battle = battle.applyChoice(const PlayerBattleChoiceFight(0));
+      expect(battle.state.enemy.speciesId, 'player-sproutle');
+      expect(battle.state.enemy.abilityId, 'overgrow');
+      expect(battle.state.enemy.moves.single.id, 'wait');
+      expect(battle.state.enemy.writeBackSpeciesId, 'wild-ditto');
+      expect(battle.state.enemy.writeBackAbilityId, 'limber');
+      expect(battle.state.enemy.writeBackMoves.single.id, 'transform');
+      expect(battle.state.enemy.writeBackMoves.single.currentPp, 9);
+
+      battle = battle.applyChoice(const PlayerBattleChoiceCapture());
+      expect(battle.state.outcome?.isCaptured, isTrue);
+
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: const GameState(
+          saveId: 'capture-transformed-wild',
+          bag: Bag(
+            entries: <BagEntry>[
+              BagEntry(
+                itemId: 'poke-ball',
+                categoryId: 'items',
+                quantity: 1,
+              ),
+            ],
+          ),
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'player-sproutle',
+                natureId: 'bold',
+                abilityId: 'overgrow',
+                level: 12,
+                knownMoveIds: <String>['wait'],
+                currentPpByMoveId: <String, int>{'wait': 35},
+                currentHp: 23,
+              ),
+            ],
+          ),
+        ),
+        context: RuntimeActiveBattleContext(
+          request: _wildRequest(),
+          playerPartyIndex: 0,
+        ),
+        outcome: battle.state.outcome!,
+      );
+
+      final captured = updatedState.party.members.last;
+      expect(captured.speciesId, 'wild-ditto');
+      expect(captured.abilityId, 'limber');
+      expect(captured.knownMoveIds, <String>['transform']);
+      expect(captured.currentPpByMoveId, <String, int>{'transform': 9});
+      expect(captured.level, 15);
+      expect(captured.currentHp, 31);
     });
 
     test('captured outcome removes the poke-ball entry when quantity reaches 0',

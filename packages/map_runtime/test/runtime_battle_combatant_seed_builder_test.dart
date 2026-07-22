@@ -8,8 +8,10 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/runtime_battle_combatant_seed_builder.dart';
 import 'package:map_runtime/src/application/runtime_battle_move_bridge.dart';
+import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_exception.dart';
 import 'package:map_runtime/src/application/runtime_move_catalog_loader.dart';
+import 'package:map_runtime/src/application/runtime_player_pokemon_progression_hydrator.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -60,6 +62,10 @@ void main() {
             speed: 16,
           ),
           knownMoveIds: <String>['growl', 'vine_whip'],
+          currentPpByMoveId: <String, int>{
+            'growl': 35,
+            'vine_whip': 35,
+          },
           currentHp: 23,
         ),
       );
@@ -121,6 +127,12 @@ void main() {
             speed: 16,
           ),
           knownMoveIds: <String>['wrap', 'haze', 'coil', 'gastro_acid'],
+          currentPpByMoveId: <String, int>{
+            'wrap': 20,
+            'haze': 30,
+            'coil': 20,
+            'gastro_acid': 10,
+          },
           currentHp: 23,
         ),
       );
@@ -209,6 +221,12 @@ void main() {
             'solar_beam',
             'feint',
           ],
+          currentPpByMoveId: <String, int>{
+            'protect': 10,
+            'hyper_beam': 5,
+            'solar_beam': 10,
+            'feint': 10,
+          },
           currentHp: 23,
         ),
       );
@@ -248,6 +266,11 @@ void main() {
           abilityId: 'overgrow',
           level: 12,
           knownMoveIds: <String>['rain_dance', 'sandstorm', 'trick_room'],
+          currentPpByMoveId: <String, int>{
+            'rain_dance': 5,
+            'sandstorm': 10,
+            'trick_room': 5,
+          },
           currentHp: 23,
         ),
       );
@@ -293,6 +316,7 @@ void main() {
           natureId: 'calm',
           abilityId: 'overgrow',
           level: 25,
+          currentPpByMoveId: <String, int>{},
           currentHp: 30,
         ),
       );
@@ -304,6 +328,127 @@ void main() {
       expect(
         seed.moves.map((move) => move.id).toList(growable: false),
         equals(<String>['growl', 'vine_whip', 'leer', 'razor_leaf']),
+      );
+    });
+
+    test(
+        'freezes legacy derived moves on first write-back and reseeds their consumed PP after reload',
+        () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+      const legacyPokemon = PlayerPokemon(
+        speciesId: 'sproutle',
+        natureId: 'bold',
+        abilityId: 'overgrow',
+        level: 12,
+        experience: 1728,
+        currentPpByMoveId: <String, int>{},
+        currentHp: 30,
+      );
+      const unusedPartyMember = PlayerPokemon(
+        speciesId: 'aquafi',
+        natureId: 'calm',
+        abilityId: 'torrent',
+        level: 9,
+        experience: 729,
+        knownMoveIds: <String>['water_gun'],
+        currentPpByMoveId: <String, int>{'water_gun': 17},
+        currentHp: 22,
+      );
+      const initialState = GameState(
+        saveId: 'legacy-derived-moves-writeback',
+        party: PlayerParty(
+          members: <PlayerPokemon>[legacyPokemon, unusedPartyMember],
+        ),
+      );
+
+      final firstSeed = await builder.buildPlayerCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        playerPokemon: legacyPokemon,
+      );
+      final seededMoveIds =
+          firstSeed.moves.map((move) => move.id).toList(growable: false);
+      expect(seededMoveIds, <String>['tackle', 'growl', 'vine_whip']);
+
+      var firstBattle = createBattleSession(
+        BattleSetup(
+          playerPokemon: firstSeed.toBattleCombatantData(),
+          enemyPokemon: const BattleCombatantData(
+            speciesId: 'pp-target',
+            level: 1,
+            maxHp: 1,
+            stats: BattleStatsSnapshot(
+              attack: 1,
+              defense: 1,
+              specialAttack: 1,
+              specialDefense: 1,
+              speed: 1,
+            ),
+            moves: <BattleMoveData>[
+              BattleMoveData(id: 'wait', name: 'Wait', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      );
+      firstBattle = firstBattle.applyChoice(const PlayerBattleChoiceFight(0));
+      expect(firstBattle.state.outcome?.isVictory, isTrue);
+      expect(firstBattle.state.player.moves.first.currentPp, 34);
+
+      final writtenBack = applyRuntimeBattleOutcomeToGameState(
+        gameState: initialState,
+        context: RuntimeActiveBattleContext(
+          request: _wildRequest(speciesId: 'sparkitten', level: 1),
+          playerPartyIndex: 0,
+        ),
+        outcome: firstBattle.state.outcome!,
+      );
+      expect(writtenBack.party.members[1], unusedPartyMember);
+
+      final deserialized = normalizeLoadedGameState(
+        GameState.fromJson(
+          jsonDecode(jsonEncode(writtenBack.toJson())) as Map<String, dynamic>,
+        ),
+      );
+      final reloaded = hydrateRuntimePlayerPokemonProgression(
+        gameState: deserialized,
+        catalogs: const RuntimePlayerPokemonProgressionCatalogs(
+          growthRateIdBySpeciesId: <String, String>{},
+          maxPpByMoveId: <String, int>{
+            'tackle': 35,
+            'growl': 35,
+            'vine_whip': 35,
+            'water_gun': 35,
+          },
+        ),
+      );
+      final persistedPokemon = reloaded.party.members.first;
+      expect(persistedPokemon.knownMoveIds, seededMoveIds);
+      expect(
+        persistedPokemon.currentPpByMoveId,
+        <String, int>{'tackle': 34, 'growl': 35, 'vine_whip': 35},
+      );
+      expect(reloaded.party.members[1], unusedPartyMember);
+
+      final secondSeed = await builder.buildPlayerCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        playerPokemon: persistedPokemon,
+      );
+      expect(
+        secondSeed.moves.map((move) => move.id).toList(growable: false),
+        seededMoveIds,
+      );
+      expect(
+        secondSeed.moves.map((move) => move.currentPp).toList(growable: false),
+        <int>[34, 35, 35],
       );
     });
 
@@ -399,6 +544,10 @@ void main() {
           abilityId: 'overgrow',
           level: 12,
           knownMoveIds: <String>['teleport', 'vine_whip'],
+          currentPpByMoveId: <String, int>{
+            'teleport': 20,
+            'vine_whip': 35,
+          },
           currentHp: 23,
         ),
       );
@@ -432,12 +581,172 @@ void main() {
           abilityId: 'overgrow',
           level: 12,
           knownMoveIds: <String>['transform'],
+          currentPpByMoveId: <String, int>{'transform': 10},
           currentHp: 23,
         ),
       );
 
       expect(seed.moves.single.id, equals('transform'));
       expect(seed.moves.single.copiesTargetOnHit, isTrue);
+    });
+
+    test(
+        'writes back consumed Transform PP from a real legacy battle without persisting copied moves',
+        () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+      const playerPokemon = PlayerPokemon(
+        speciesId: 'sproutle',
+        natureId: 'bold',
+        abilityId: 'overgrow',
+        level: 12,
+        experience: 1728,
+        knownMoveIds: <String>['transform'],
+        currentPpByMoveId: <String, int>{'transform': 10},
+        currentHp: 23,
+      );
+      final seed = await builder.buildPlayerCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        playerPokemon: playerPokemon,
+      );
+      var battle = createBattleSession(
+        BattleSetup(
+          playerPokemon: seed.toBattleCombatantData(),
+          enemyPokemon: const BattleCombatantData(
+            speciesId: 'transform-target',
+            level: 12,
+            maxHp: 30,
+            stats: BattleStatsSnapshot(
+              attack: 10,
+              defense: 10,
+              specialAttack: 10,
+              specialDefense: 10,
+              speed: 1,
+            ),
+            moves: <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      );
+
+      battle = battle.applyChoice(const PlayerBattleChoiceFight(0));
+      expect(battle.state.player.moves.single.id, 'growl');
+      battle = battle.applyChoice(const PlayerBattleChoiceFight(0));
+      expect(battle.state.player.moves.single.currentPp, 4);
+      battle = battle.applyChoice(const PlayerBattleChoiceRun());
+      expect(battle.state.outcome?.isRunaway, isTrue);
+
+      final writtenBack = applyRuntimeBattleOutcomeToGameState(
+        gameState: const GameState(
+          saveId: 'explicit-transform-writeback',
+          party: PlayerParty(members: <PlayerPokemon>[playerPokemon]),
+        ),
+        context: RuntimeActiveBattleContext(
+          request: _wildRequest(speciesId: 'transform-target', level: 12),
+          playerPartyIndex: 0,
+        ),
+        outcome: battle.state.outcome!,
+      );
+
+      expect(
+        writtenBack.party.members.single.knownMoveIds,
+        <String>['transform'],
+      );
+      expect(
+        writtenBack.party.members.single.currentPpByMoveId,
+        <String, int>{'transform': 9},
+      );
+    });
+
+    test(
+        'freezes the original derived Transform after a real legacy transformation',
+        () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      await _writeProjectRelativeJson(
+        tempProjectRoot,
+        'custom/pokemon/learnsets/sproutle.json',
+        <String, dynamic>{
+          'speciesId': 'sproutle',
+          'startingMoves': <String>['transform'],
+          'relearnMoves': <String>[],
+          'levelUp': <Map<String, Object>>[],
+        },
+      );
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+      const legacyPokemon = PlayerPokemon(
+        speciesId: 'sproutle',
+        natureId: 'bold',
+        abilityId: 'overgrow',
+        level: 12,
+        experience: 1728,
+        currentPpByMoveId: <String, int>{},
+        currentHp: 23,
+      );
+      final seed = await builder.buildPlayerCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        playerPokemon: legacyPokemon,
+      );
+      expect(seed.moves.single.id, 'transform');
+      var battle = createBattleSession(
+        BattleSetup(
+          playerPokemon: seed.toBattleCombatantData(),
+          enemyPokemon: const BattleCombatantData(
+            speciesId: 'transform-target',
+            level: 12,
+            maxHp: 30,
+            stats: BattleStatsSnapshot(
+              attack: 10,
+              defense: 10,
+              specialAttack: 10,
+              specialDefense: 10,
+              speed: 1,
+            ),
+            moves: <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      );
+
+      battle = battle.applyChoice(const PlayerBattleChoiceFight(0));
+      expect(battle.state.player.moves.single.id, 'growl');
+      battle = battle.applyChoice(const PlayerBattleChoiceRun());
+
+      final writtenBack = applyRuntimeBattleOutcomeToGameState(
+        gameState: const GameState(
+          saveId: 'derived-transform-writeback',
+          party: PlayerParty(members: <PlayerPokemon>[legacyPokemon]),
+        ),
+        context: RuntimeActiveBattleContext(
+          request: _wildRequest(speciesId: 'transform-target', level: 12),
+          playerPartyIndex: 0,
+        ),
+        outcome: battle.state.outcome!,
+      );
+
+      expect(
+        writtenBack.party.members.single.knownMoveIds,
+        <String>['transform'],
+      );
+      expect(
+        writtenBack.party.members.single.currentPpByMoveId,
+        <String, int>{'transform': 9},
+      );
     });
 
     test(
@@ -460,6 +769,7 @@ void main() {
             abilityId: 'overgrow',
             level: 12,
             knownMoveIds: <String>['teleport'],
+            currentPpByMoveId: <String, int>{'teleport': 20},
             currentHp: 23,
           ),
         ),
@@ -527,6 +837,10 @@ void main() {
             abilityId: 'overgrow',
             level: 12,
             knownMoveIds: <String>['thunder_wave', 'vine_whip'],
+            currentPpByMoveId: <String, int>{
+              'thunder_wave': 35,
+              'vine_whip': 35,
+            },
             currentHp: 23,
           ),
         ),
@@ -559,6 +873,9 @@ void main() {
             abilityId: 'overgrow',
             level: 12,
             knownMoveIds: <String>['move_that_does_not_exist'],
+            currentPpByMoveId: <String, int>{
+              'move_that_does_not_exist': 1,
+            },
             currentHp: 23,
           ),
         ),
@@ -615,6 +932,7 @@ void main() {
             natureId: 'bold',
             abilityId: 'overgrow',
             level: 12,
+            currentPpByMoveId: <String, int>{},
             currentHp: 23,
           ),
         ),
@@ -665,6 +983,7 @@ void main() {
           abilityId: 'overgrow',
           level: 12,
           knownMoveIds: <String>['thunder_wave'],
+          currentPpByMoveId: <String, int>{'thunder_wave': 35},
           currentHp: 23,
         ),
       );
@@ -696,6 +1015,7 @@ void main() {
           abilityId: 'overgrow',
           level: 12,
           knownMoveIds: <String>['quick_attack'],
+          currentPpByMoveId: <String, int>{'quick_attack': 35},
           currentHp: 23,
         ),
       );
@@ -723,6 +1043,7 @@ void main() {
           abilityId: 'overgrow',
           level: 12,
           knownMoveIds: <String>['mud_slap'],
+          currentPpByMoveId: <String, int>{'mud_slap': 35},
           currentHp: 23,
         ),
       );
@@ -753,6 +1074,7 @@ void main() {
           abilityId: 'overgrow',
           level: 12,
           knownMoveIds: <String>['razor_leaf'],
+          currentPpByMoveId: <String, int>{'razor_leaf': 35},
           currentHp: 23,
         ),
       );
@@ -1267,6 +1589,7 @@ final class _RejectingRuntimeBattleMoveBridge extends RuntimeBattleMoveBridge {
   BattleMoveData toBattleMoveData({
     required PokemonMove move,
     required String combatantLabel,
+    int? currentPp,
   }) {
     // Ce faux bridge cible exactement la policy du builder :
     // - le catalogue reste canonique et chargeable ;
@@ -1279,6 +1602,7 @@ final class _RejectingRuntimeBattleMoveBridge extends RuntimeBattleMoveBridge {
     return super.toBattleMoveData(
       move: move,
       combatantLabel: combatantLabel,
+      currentPp: currentPp,
     );
   }
 }

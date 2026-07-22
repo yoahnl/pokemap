@@ -5,6 +5,7 @@ import 'battle_start_request.dart';
 import 'runtime_battle_move_bridge.dart';
 import 'runtime_battle_move_bridge_diagnostics.dart';
 import 'runtime_battle_setup_exception.dart';
+import 'runtime_battle_status_bridge.dart';
 import 'runtime_move_catalog_loader.dart';
 import 'runtime_pokemon_learnset_loader.dart';
 import 'runtime_pokemon_species_loader.dart';
@@ -66,12 +67,14 @@ List<BattleMoveData> resolveBattleMovesForSeed({
   required String combatantLabel,
   required PokemonMove? Function(String moveId) lookupMove,
   RuntimeBattleMoveBridge battleMoveBridge = const RuntimeBattleMoveBridge(),
+  Map<String, int>? currentPpByMoveId,
 }) {
   return resolveBattleMovesForSeedWithDiagnostics(
     moveIds: moveIds,
     combatantLabel: combatantLabel,
     lookupMove: lookupMove,
     battleMoveBridge: battleMoveBridge,
+    currentPpByMoveId: currentPpByMoveId,
   ).moves;
 }
 
@@ -80,6 +83,7 @@ RuntimeBattleMoveProjection resolveBattleMovesForSeedWithDiagnostics({
   required String combatantLabel,
   required PokemonMove? Function(String moveId) lookupMove,
   RuntimeBattleMoveBridge battleMoveBridge = const RuntimeBattleMoveBridge(),
+  Map<String, int>? currentPpByMoveId,
 }) {
   final candidateMoveIds = List<String>.unmodifiable(
     _normalizeUniqueMoveIdsPreserveOrder(moveIds)
@@ -105,6 +109,11 @@ RuntimeBattleMoveProjection resolveBattleMovesForSeedWithDiagnostics({
         debugDetails: 'combatant=$combatantLabel',
       );
     }
+    final currentPp = _resolveCurrentPpForMove(
+      move: move,
+      currentPpByMoveId: currentPpByMoveId,
+      combatantLabel: combatantLabel,
+    );
 
     final diagnostic = battleMoveBridge.inspectMove(
       move: move,
@@ -122,6 +131,7 @@ RuntimeBattleMoveProjection resolveBattleMovesForSeedWithDiagnostics({
         battleMoveBridge.toBattleMoveData(
           move: move,
           combatantLabel: combatantLabel,
+          currentPp: currentPp,
         );
       }
 
@@ -134,6 +144,7 @@ RuntimeBattleMoveProjection resolveBattleMovesForSeedWithDiagnostics({
         battleMoveBridge.toBattleMoveData(
           move: move,
           combatantLabel: combatantLabel,
+          currentPp: currentPp,
         ),
       );
     } on RuntimeBattleSetupException catch (error) {
@@ -180,12 +191,14 @@ List<PsdkBattleMoveData> resolvePsdkBattleMovesForSeed({
   required String combatantLabel,
   required PokemonMove? Function(String moveId) lookupMove,
   RuntimeBattleMoveBridge battleMoveBridge = const RuntimeBattleMoveBridge(),
+  Map<String, int>? currentPpByMoveId,
 }) {
   return resolvePsdkBattleMovesForSeedWithDiagnostics(
     moveIds: moveIds,
     combatantLabel: combatantLabel,
     lookupMove: lookupMove,
     battleMoveBridge: battleMoveBridge,
+    currentPpByMoveId: currentPpByMoveId,
   ).moves;
 }
 
@@ -194,6 +207,7 @@ RuntimePsdkBattleMoveProjection resolvePsdkBattleMovesForSeedWithDiagnostics({
   required String combatantLabel,
   required PokemonMove? Function(String moveId) lookupMove,
   RuntimeBattleMoveBridge battleMoveBridge = const RuntimeBattleMoveBridge(),
+  Map<String, int>? currentPpByMoveId,
 }) {
   final candidateMoveIds = List<String>.unmodifiable(
     _normalizeUniqueMoveIdsPreserveOrder(moveIds)
@@ -219,6 +233,11 @@ RuntimePsdkBattleMoveProjection resolvePsdkBattleMovesForSeedWithDiagnostics({
         debugDetails: 'combatant=$combatantLabel',
       );
     }
+    final currentPp = _resolveCurrentPpForMove(
+      move: move,
+      currentPpByMoveId: currentPpByMoveId,
+      combatantLabel: combatantLabel,
+    );
 
     final diagnostic = battleMoveBridge.inspectMove(
       move: move,
@@ -241,6 +260,7 @@ RuntimePsdkBattleMoveProjection resolvePsdkBattleMovesForSeedWithDiagnostics({
         battleMoveBridge.toPsdkBattleMoveData(
           move: move,
           combatantLabel: combatantLabel,
+          currentPp: currentPp,
         ),
       );
     } on RuntimeBattleSetupException catch (error) {
@@ -312,6 +332,31 @@ class RuntimePsdkBattleMoveProjection {
   }
 }
 
+int? _resolveCurrentPpForMove({
+  required PokemonMove move,
+  required Map<String, int>? currentPpByMoveId,
+  required String combatantLabel,
+}) {
+  if (currentPpByMoveId == null) {
+    return null;
+  }
+  final currentPp = currentPpByMoveId[move.id];
+  if (currentPp == null) {
+    throw RuntimeBattleSetupException(
+      '$combatantLabel n’a aucun PP courant sauvegardé pour "${move.id}".',
+      debugDetails: 'combatant=$combatantLabel, moveId=${move.id}',
+    );
+  }
+  if (currentPp < 0 || currentPp > move.pp) {
+    throw RuntimeBattleSetupException(
+      'Les PP courants sauvegardés de "${move.id}" sont hors limites.',
+      debugDetails:
+          'combatant=$combatantLabel, moveId=${move.id}, currentPp=$currentPp, maxPp=${move.pp}',
+    );
+  }
+  return currentPp;
+}
+
 List<String> _normalizeUniqueMoveIdsPreserveOrder(List<String> rawIds) {
   final out = <String>[];
   final seen = <String>{};
@@ -354,12 +399,14 @@ class RuntimeBattleCombatantSeedBuilder {
     RuntimePokemonSpeciesLoader? speciesLoader,
     RuntimePokemonLearnsetLoader? learnsetLoader,
     this.battleMoveBridge = const RuntimeBattleMoveBridge(),
+    this.statusBridge = const RuntimeBattleStatusBridge(),
   })  : speciesLoader = speciesLoader ?? RuntimePokemonSpeciesLoader(),
         learnsetLoader = learnsetLoader ?? RuntimePokemonLearnsetLoader();
 
   final RuntimePokemonSpeciesLoader speciesLoader;
   final RuntimePokemonLearnsetLoader learnsetLoader;
   final RuntimeBattleMoveBridge battleMoveBridge;
+  final RuntimeBattleStatusBridge statusBridge;
 
   Future<RuntimeBattleCombatantSeed> buildPlayerCombatantSeed({
     required String projectRootDirectory,
@@ -368,6 +415,7 @@ class RuntimeBattleCombatantSeedBuilder {
     required PlayerPokemon playerPokemon,
     String combatantLabel = 'Le Pokémon actif du joueur',
   }) async {
+    final currentPpByMoveId = _requireHydratedCurrentPp(playerPokemon);
     final species = await speciesLoader.loadById(
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,
@@ -386,6 +434,8 @@ class RuntimeBattleCombatantSeedBuilder {
       movesCatalog: movesCatalog,
       moveIds: moveIds,
       combatantLabel: combatantLabel,
+      currentPpByMoveId:
+          playerPokemon.knownMoveIds.isEmpty ? null : currentPpByMoveId,
     );
 
     final maxHp = _calculateMaxHp(
@@ -411,6 +461,7 @@ class RuntimeBattleCombatantSeedBuilder {
       abilityId: playerPokemon.abilityId.trim().isEmpty
           ? 'unknown'
           : playerPokemon.abilityId.trim(),
+      majorStatus: statusBridge.toLegacyBattleStatus(playerPokemon.statusId),
       moves: moveProjection.moves,
       moveDiagnostics: moveProjection.diagnostics,
     );
@@ -423,6 +474,7 @@ class RuntimeBattleCombatantSeedBuilder {
     required PlayerPokemon playerPokemon,
     String combatantLabel = 'Le Pokémon actif du joueur',
   }) async {
+    final currentPpByMoveId = _requireHydratedCurrentPp(playerPokemon);
     final species = await speciesLoader.loadById(
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,
@@ -441,6 +493,8 @@ class RuntimeBattleCombatantSeedBuilder {
       movesCatalog: movesCatalog,
       moveIds: moveIds,
       combatantLabel: combatantLabel,
+      currentPpByMoveId:
+          playerPokemon.knownMoveIds.isEmpty ? null : currentPpByMoveId,
     );
 
     final maxHp = _calculateMaxHp(
@@ -466,6 +520,7 @@ class RuntimeBattleCombatantSeedBuilder {
       abilityId: playerPokemon.abilityId.trim().isEmpty
           ? 'unknown'
           : playerPokemon.abilityId.trim(),
+      majorStatus: statusBridge.toPsdkBattleStatus(playerPokemon.statusId),
       moves: moveProjection.moves,
       moveDiagnostics: moveProjection.diagnostics,
     );
@@ -676,6 +731,7 @@ class RuntimeBattleCombatantSeedBuilder {
     required RuntimeMoveCatalog movesCatalog,
     required List<String> moveIds,
     required String combatantLabel,
+    Map<String, int>? currentPpByMoveId,
   }) {
     // Le builder garde désormais sa vraie policy de résolution dans une helper
     // partagée, afin que l'outillage Phase B puisse mesurer le même seam sans
@@ -685,6 +741,7 @@ class RuntimeBattleCombatantSeedBuilder {
       combatantLabel: combatantLabel,
       lookupMove: movesCatalog.lookup,
       battleMoveBridge: battleMoveBridge,
+      currentPpByMoveId: currentPpByMoveId,
     );
   }
 
@@ -692,13 +749,26 @@ class RuntimeBattleCombatantSeedBuilder {
     required RuntimeMoveCatalog movesCatalog,
     required List<String> moveIds,
     required String combatantLabel,
+    Map<String, int>? currentPpByMoveId,
   }) {
     return resolvePsdkBattleMovesForSeedWithDiagnostics(
       moveIds: moveIds,
       combatantLabel: combatantLabel,
       lookupMove: movesCatalog.lookup,
       battleMoveBridge: battleMoveBridge,
+      currentPpByMoveId: currentPpByMoveId,
     );
+  }
+
+  Map<String, int> _requireHydratedCurrentPp(PlayerPokemon playerPokemon) {
+    final currentPpByMoveId = playerPokemon.currentPpByMoveId;
+    if (currentPpByMoveId == null) {
+      throw RuntimeBattleSetupException(
+        'Les PP du Pokémon joueur doivent être hydratés avant le combat.',
+        debugDetails: 'speciesId=${playerPokemon.speciesId}',
+      );
+    }
+    return currentPpByMoveId;
   }
 
   int _calculateMaxHp({
@@ -934,6 +1004,7 @@ class RuntimeBattleCombatantSeed {
     required this.stats,
     required this.typing,
     required this.abilityId,
+    this.majorStatus,
     required this.moves,
     this.moveDiagnostics = const <RuntimeBattleMoveBridgeDiagnostics>[],
     this.currentHp,
@@ -946,6 +1017,7 @@ class RuntimeBattleCombatantSeed {
   final BattleTypingSnapshot typing;
   final int? currentHp;
   final String abilityId;
+  final BattleMajorStatusState? majorStatus;
   final List<BattleMoveData> moves;
   final List<RuntimeBattleMoveBridgeDiagnostics> moveDiagnostics;
 
@@ -970,6 +1042,7 @@ class RuntimeBattleCombatantSeed {
       maxHp: maxHp,
       stats: stats,
       typing: typing,
+      majorStatus: majorStatus,
       currentHp: currentHp,
       abilityId: abilityId,
       moves: moves,
@@ -985,6 +1058,7 @@ class RuntimePsdkBattleCombatantSeed {
     required this.stats,
     required this.typing,
     required this.abilityId,
+    this.majorStatus,
     required this.moves,
     this.moveDiagnostics = const <RuntimeBattleMoveBridgeDiagnostics>[],
     this.currentHp,
@@ -997,6 +1071,7 @@ class RuntimePsdkBattleCombatantSeed {
   final BattleTypingSnapshot typing;
   final int? currentHp;
   final String abilityId;
+  final PsdkBattleMajorStatus? majorStatus;
   final List<PsdkBattleMoveData> moves;
   final List<RuntimeBattleMoveBridgeDiagnostics> moveDiagnostics;
 
@@ -1029,6 +1104,7 @@ class RuntimePsdkBattleCombatantSeed {
         speed: stats.speed,
       ),
       moves: moves,
+      majorStatus: majorStatus,
       abilityId: abilityId,
     );
   }

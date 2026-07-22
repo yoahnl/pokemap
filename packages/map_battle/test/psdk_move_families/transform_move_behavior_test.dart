@@ -98,6 +98,13 @@ void main() {
       ]);
       expect(player.moves.every((move) => move.pp == 5), isTrue);
       expect(player.moves.every((move) => move.currentPp == 5), isTrue);
+      expect(player.writeBackSpeciesId, 'ditto');
+      expect(player.writeBackAbilityId, 'limber');
+      expect(player.writeBackMoves.map((move) => move.id), <String>[
+        'transform',
+      ]);
+      expect(player.writeBackMoves.single.currentPp, 9);
+      expect(player.writeBackMoveIdsAtBattleStart, <String>['transform']);
     });
 
     test('s_transform fails against a target that is already transformed', () {

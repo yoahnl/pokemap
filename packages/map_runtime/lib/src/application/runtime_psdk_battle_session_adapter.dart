@@ -1,5 +1,7 @@
 import 'package:map_battle/map_battle.dart';
 
+import 'runtime_battle_status_bridge.dart';
+
 /// Runtime adapter around the clean PSDK battle facade.
 ///
 /// The playable runtime still talks in the legacy `PlayerBattleChoice` command
@@ -21,6 +23,7 @@ final class RuntimePsdkBattleSessionAdapter {
   }
 
   final BattleSessionFacade _facade;
+  static const _statusBridge = RuntimeBattleStatusBridge();
   BattleDecision? _lastDecision;
   BattleEngineTurnResult? _lastTurnResult;
 
@@ -424,7 +427,8 @@ final class RuntimePsdkBattleSessionAdapter {
       stats: _toLegacyStats(combatant.stats),
       lineupIndex: _lineupIndexFromPsdkId(combatant.id),
       typing: _toLegacyTyping(combatant.types),
-      majorStatus: _toLegacyMajorStatus(combatant.majorStatus),
+      majorStatus:
+          _statusBridge.legacyFromPsdkBattleStatus(combatant.majorStatus),
       abilityId: combatant.abilityId ?? 'unknown',
       moves: combatant.moves.map(_toLegacyMoveData).toList(growable: false),
     );
@@ -439,9 +443,16 @@ final class RuntimePsdkBattleSessionAdapter {
       maxHp: combatant.maxHp,
       stats: _toLegacyStats(combatant.stats),
       typing: _toLegacyTyping(combatant.types),
-      majorStatus: _toLegacyMajorStatus(combatant.majorStatus),
+      majorStatus:
+          _statusBridge.legacyFromPsdkBattleStatus(combatant.majorStatus),
       abilityId: combatant.abilityId ?? 'unknown',
       moves: combatant.moves.map(_toLegacyMove).toList(growable: false),
+      writeBackSpeciesId: combatant.writeBackSpeciesId,
+      writeBackAbilityId: combatant.writeBackAbilityId ?? 'unknown',
+      writeBackMoves:
+          combatant.writeBackMoves.map(_toLegacyMove).toList(growable: false),
+      writeBackMoveIdsAtBattleStart: combatant.writeBackMoveIdsAtBattleStart,
+      hasTemporaryBattleMoves: combatant.transformState.isTransformed,
       statStages: _toLegacyStatStages(combatant.statStages),
     );
   }
@@ -503,19 +514,6 @@ final class RuntimePsdkBattleSessionAdapter {
       specialDefense: stages.valueOf('specialDefense'),
       speed: stages.valueOf('speed'),
     );
-  }
-
-  BattleMajorStatusState? _toLegacyMajorStatus(PsdkBattleMajorStatus? status) {
-    return switch (status) {
-      PsdkBattleMajorStatus.paralysis => const BattleMajorStatusState.par(),
-      PsdkBattleMajorStatus.burn => const BattleMajorStatusState.brn(),
-      PsdkBattleMajorStatus.poison => const BattleMajorStatusState.psn(),
-      PsdkBattleMajorStatus.toxic => const BattleMajorStatusState.tox(),
-      PsdkBattleMajorStatus.sleep ||
-      PsdkBattleMajorStatus.freeze ||
-      null =>
-        null,
-    };
   }
 
   BattleMoveCategory _toLegacyMoveCategory(PsdkBattleMoveCategory category) {

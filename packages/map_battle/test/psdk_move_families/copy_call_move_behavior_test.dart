@@ -680,6 +680,14 @@ void main() {
       expect(copied.pp, 5);
       expect(copied.currentPp, 5);
       expect(result.state.battlerAt(psdkPlayerSlot).moves[0].id, 'tackle');
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).writeBackMoves[1].id,
+        'mimic',
+      );
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).writeBackMoveIdsAtBattleStart[1],
+        'mimic',
+      );
     });
 
     test('s_sketch fails before PP when the target has no move history', () {
@@ -759,6 +767,18 @@ void main() {
       expect(copied.currentPp, targetMove.pp);
       expect(result.state.battlerAt(psdkPlayerSlot).moves[0].id, 'tackle');
       expect(_ppSpent(result, moveId: 'sketch'), hasLength(1));
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).writeBackMoves[1].id,
+        'flamethrower',
+      );
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).writeBackMoves[1].currentPp,
+        targetMove.pp,
+      );
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).writeBackMoveIdsAtBattleStart[1],
+        'sketch',
+      );
     });
   });
 }

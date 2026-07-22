@@ -50,6 +50,7 @@ class RuntimeBattleMoveBridge {
   BattleMoveData toBattleMoveData({
     required PokemonMove move,
     required String combatantLabel,
+    int? currentPp,
   }) {
     _ensureEngineSupportLevelAllowsBridge(
       move: move,
@@ -662,6 +663,7 @@ class RuntimeBattleMoveBridge {
       target: target,
       accuracy: accuracy,
       pp: move.pp,
+      currentPp: currentPp,
       priority: move.priority,
       critRatio: move.critRatio,
       majorStatusEffect: majorStatusEffect,
@@ -686,6 +688,7 @@ class RuntimeBattleMoveBridge {
   PsdkBattleMoveData toPsdkBattleMoveData({
     required PokemonMove move,
     required String combatantLabel,
+    int? currentPp,
   }) {
     final battleEngineMethod = _resolveBattleEngineMethod(move);
     if (battleEngineMethod == null) {
@@ -713,6 +716,7 @@ class RuntimeBattleMoveBridge {
       power: move.basePower < 0 ? 0 : move.basePower,
       accuracy: _translatePsdkAccuracy(move.accuracy),
       pp: move.pp,
+      currentPp: currentPp,
       priority: move.priority,
       criticalRate: move.critRatio,
       battleEngineMethod: battleEngineMethod,

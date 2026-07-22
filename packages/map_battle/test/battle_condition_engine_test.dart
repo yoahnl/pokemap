@@ -278,6 +278,86 @@ void main() {
       );
     });
 
+    test('initial sleep and freeze remain valid transport-only states', () {
+      for (final status in <BattleMajorStatusState>[
+        const BattleMajorStatusState.slp(),
+        const BattleMajorStatusState.frz(),
+      ]) {
+        final setup = BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'status-carrier',
+            level: 12,
+            maxHp: 30,
+            currentHp: 20,
+            stats: _stats(),
+            majorStatus: status,
+            moves: <BattleMoveData>[
+              const BattleMoveData(id: 'tackle', name: 'Tackle', power: 40),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 12,
+            maxHp: 30,
+            stats: _stats(),
+            moves: <BattleMoveData>[
+              const BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        );
+
+        expect(
+            createBattleSession(setup).state.player.majorStatus?.id, status.id);
+      }
+    });
+
+    test('legacy move effects reject sleep and freeze before mutation', () {
+      for (final status in <BattleMajorStatusId>[
+        BattleMajorStatusId.slp,
+        BattleMajorStatusId.frz,
+      ]) {
+        final attacker = _combatant(
+          speciesId: 'attacker',
+          moves: <BattleMove>[
+            _move(
+              id: 'unsupported-status-${status.name}',
+              power: 0,
+              category: BattleMoveCategory.status,
+              majorStatusEffect: BattleMoveMajorStatusEffect(status: status),
+            ),
+          ],
+        );
+        final defender = _combatant(
+          speciesId: 'defender',
+          moves: <BattleMove>[_move(id: 'growl', power: 0)],
+        );
+
+        expect(
+          () => engine.runMoveResolved(
+            move: attacker.moves.single,
+            attackerSlot: const BattleSlotRef.active(BattleSideId.player),
+            targetSlot: const BattleSlotRef.active(BattleSideId.enemy),
+            attacker: attacker,
+            defender: defender,
+            field: const BattleFieldState(),
+            wasImmune: false,
+            rng: const BattleSeededRng(),
+          ),
+          throwsA(
+            isA<StateError>().having(
+              (error) => error.toString(),
+              'message',
+              allOf(contains('transport-only'), contains(status.name)),
+            ),
+          ),
+          reason: status.name,
+        );
+        expect(defender.majorStatus, isNull, reason: status.name);
+      }
+    });
+
     test('runMoveResolved can mark an honest recharge follow-up', () {
       final attacker = _combatant(
         speciesId: 'beammon',

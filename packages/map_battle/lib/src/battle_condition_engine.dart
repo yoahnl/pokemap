@@ -467,6 +467,14 @@ final class _BattleStatusRules {
       );
     }
 
+    if (effect.status == BattleMajorStatusId.slp ||
+        effect.status == BattleMajorStatusId.frz) {
+      throw StateError(
+        'Legacy battle status ${effect.status.name} is transport-only and '
+        'cannot be applied by a BattleMoveMajorStatusEffect.',
+      );
+    }
+
     if (wasImmune && move.resolvedCategory != BattleMoveCategory.status) {
       return _StatusMoveResolvedResult(
         defender: defender,
@@ -576,6 +584,8 @@ final class _BattleStatusRules {
 
     final residualDamage = switch (status.id) {
       BattleMajorStatusId.par => 0,
+      BattleMajorStatusId.slp => 0,
+      BattleMajorStatusId.frz => 0,
       BattleMajorStatusId.brn => _fractionalResidual(
           maxHp: combatant.maxHp,
           numerator: 1,
@@ -626,6 +636,8 @@ final class _BattleStatusRules {
       BattleMajorStatusId.brn => const BattleMajorStatusState.brn(),
       BattleMajorStatusId.psn => const BattleMajorStatusState.psn(),
       BattleMajorStatusId.tox => const BattleMajorStatusState.tox(),
+      BattleMajorStatusId.slp => const BattleMajorStatusState.slp(),
+      BattleMajorStatusId.frz => const BattleMajorStatusState.frz(),
     };
   }
 

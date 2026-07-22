@@ -462,7 +462,11 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     return BattleMoveBehaviorResolution(
       state: prepared.state.updateBattler(
         context.user,
-        (battler) => battler.replaceMoveAt(moveSlot, copied),
+        (battler) => battler.replaceMoveAt(
+          moveSlot,
+          copied,
+          persistIdentityChange: true,
+        ),
       ),
       rng: prepared.rng,
       events: prepared.events,

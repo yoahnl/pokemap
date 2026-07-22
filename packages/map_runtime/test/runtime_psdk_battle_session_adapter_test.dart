@@ -1,5 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_runtime/src/application/battle_start_request.dart';
+import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
 
 void main() {
@@ -61,7 +65,380 @@ void main() {
         equals('tackle'),
       );
     });
+
+    test('writes back original Transform PP after a real PSDK transformation',
+        () {
+      final session = RuntimePsdkBattleSessionAdapter.fromSetup(
+        PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player_0',
+            hp: 999,
+            abilityId: 'limber',
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'transform',
+                category: PsdkBattleMoveCategory.status,
+                power: 0,
+                battleEngineMethod: 's_transform',
+              ),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'opponent_0',
+            hp: 1,
+            moves: <PsdkBattleMoveData>[
+              _move(id: 'tackle', power: 200),
+            ],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 1,
+          ),
+        ),
+      );
+
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+      expect(
+        session.state.psdkState.battlerAt(psdkPlayerSlot).moves.single.id,
+        'tackle',
+      );
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+      expect(session.state.isFinished, isTrue);
+
+      final outcome = session.createLegacyOutcome(isTrainerBattle: false);
+      expect(outcome.finalState.player.writeBackSpeciesId, 'player_0');
+      expect(outcome.finalState.player.writeBackAbilityId, 'limber');
+
+      final writtenBack = applyRuntimeBattleOutcomeToGameState(
+        gameState: const GameState(
+          saveId: 'psdk-transform-writeback',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'player_0',
+                natureId: 'hardy',
+                abilityId: 'limber',
+                level: 50,
+                knownMoveIds: <String>['transform'],
+                currentPpByMoveId: <String, int>{'transform': 15},
+                currentHp: 999,
+              ),
+            ],
+          ),
+        ),
+        context: const RuntimeActiveBattleContext(
+          request: WildBattleStartRequest(
+            requestId: 'psdk-transform',
+            createdAtEpochMs: 1,
+            returnContext: OverworldReturnContext(
+              mapId: 'field',
+              playerPos: GridPos(x: 1, y: 1),
+              playerFacing: Direction.south,
+            ),
+            mapId: 'field',
+            zoneId: 'grass',
+            tableId: 'field-grass',
+            encounterKind: EncounterKind.walk,
+            speciesId: 'opponent_0',
+            level: 50,
+            minLevel: 50,
+            maxLevel: 50,
+            weight: 1,
+            playerPos: GridPos(x: 1, y: 1),
+          ),
+          playerPartyIndex: 0,
+        ),
+        outcome: outcome,
+      );
+
+      expect(
+        writtenBack.party.members.single.knownMoveIds,
+        <String>['transform'],
+      );
+      expect(
+        writtenBack.party.members.single.currentPpByMoveId,
+        <String, int>{'transform': 14},
+      );
+    });
+
+    test('persists the move learned by Sketch through a real PSDK outcome', () {
+      final session = _copyMoveSession(
+        moveId: 'sketch',
+        battleEngineMethod: 's_sketch',
+      );
+
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(1));
+      final player = session.state.psdkState.battlerAt(psdkPlayerSlot);
+      expect(player.moves[1].id, 'target_move');
+      expect(player.writeBackMoves[1].id, 'target_move');
+
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(1));
+      expect(session.state.isFinished, isTrue);
+      final writtenBack = _applySinglePlayerOutcome(
+        session: session,
+        saveId: 'psdk-sketch-writeback',
+        moveIds: const <String>['wait', 'sketch'],
+        currentPpByMoveId: const <String, int>{'wait': 15, 'sketch': 15},
+      );
+
+      expect(
+        writtenBack.party.members.single.knownMoveIds,
+        <String>['wait', 'target_move'],
+      );
+      expect(
+        writtenBack.party.members.single.currentPpByMoveId,
+        <String, int>{'wait': 14, 'target_move': 14},
+      );
+    });
+
+    test('keeps Mimic battle-only through a real PSDK outcome', () {
+      final session = _copyMoveSession(
+        moveId: 'mimic',
+        battleEngineMethod: 's_mimic',
+      );
+
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(1));
+      final player = session.state.psdkState.battlerAt(psdkPlayerSlot);
+      expect(player.moves[1].id, 'target_move');
+      expect(player.writeBackMoves[1].id, 'mimic');
+
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(1));
+      expect(session.state.isFinished, isTrue);
+      final writtenBack = _applySinglePlayerOutcome(
+        session: session,
+        saveId: 'psdk-mimic-writeback',
+        moveIds: const <String>['wait', 'mimic'],
+        currentPpByMoveId: const <String, int>{'wait': 15, 'mimic': 15},
+      );
+
+      expect(
+        writtenBack.party.members.single.knownMoveIds,
+        <String>['wait', 'mimic'],
+      );
+      expect(
+        writtenBack.party.members.single.currentPpByMoveId,
+        <String, int>{'wait': 14, 'mimic': 14},
+      );
+    });
+
+    test('writes back Lunar Dance PP restoration through the PSDK adapter', () {
+      final session = RuntimePsdkBattleSessionAdapter.fromSetup(
+        PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player_0',
+            hp: 999,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'lunar_dance',
+                category: PsdkBattleMoveCategory.status,
+                power: 0,
+                battleEngineMethod: 's_lunar_dance',
+                target: PsdkBattleMoveTarget.user,
+              ),
+            ],
+          ),
+          playerReserves: <PsdkBattleCombatantSetup>[
+            _combatant(
+              id: 'player_1',
+              hp: 999,
+              currentHp: 20,
+              majorStatus: PsdkBattleMajorStatus.burn,
+              moves: <PsdkBattleMoveData>[
+                _move(
+                  id: 'reserve_strike',
+                  power: 200,
+                  pp: 20,
+                  currentPp: 3,
+                ),
+              ],
+            ),
+          ],
+          opponent: _combatant(
+            id: 'opponent_0',
+            hp: 1,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'opponent_wait',
+                category: PsdkBattleMoveCategory.status,
+                power: 0,
+              ),
+            ],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 1,
+          ),
+        ),
+      );
+
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+      session.submitPlayerChoice(const PlayerBattleChoiceSwitch(0));
+      final replacement = session.state.psdkState.battlerAt(psdkPlayerSlot);
+      expect(replacement.id, 'player_1');
+      expect(replacement.currentHp, replacement.maxHp);
+      expect(replacement.majorStatus, isNull);
+      expect(replacement.writeBackMoves.single.currentPp, 20);
+
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+      expect(session.state.isFinished, isTrue);
+
+      final writtenBack = applyRuntimeBattleOutcomeToGameState(
+        gameState: const GameState(
+          saveId: 'psdk-lunar-dance-writeback',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'player_0',
+                natureId: 'hardy',
+                abilityId: 'unknown',
+                level: 50,
+                knownMoveIds: <String>['lunar_dance'],
+                currentPpByMoveId: <String, int>{'lunar_dance': 15},
+                currentHp: 999,
+              ),
+              PlayerPokemon(
+                speciesId: 'player_1',
+                natureId: 'hardy',
+                abilityId: 'unknown',
+                level: 50,
+                knownMoveIds: <String>['reserve_strike'],
+                currentPpByMoveId: <String, int>{'reserve_strike': 3},
+                currentHp: 20,
+                statusId: 'burn',
+              ),
+            ],
+          ),
+        ),
+        context: const RuntimeActiveBattleContext(
+          request: WildBattleStartRequest(
+            requestId: 'psdk-lunar-dance',
+            createdAtEpochMs: 1,
+            returnContext: OverworldReturnContext(
+              mapId: 'field',
+              playerPos: GridPos(x: 1, y: 1),
+              playerFacing: Direction.south,
+            ),
+            mapId: 'field',
+            zoneId: 'grass',
+            tableId: 'field-grass',
+            encounterKind: EncounterKind.walk,
+            speciesId: 'opponent_0',
+            level: 50,
+            minLevel: 50,
+            maxLevel: 50,
+            weight: 1,
+            playerPos: GridPos(x: 1, y: 1),
+          ),
+          playerPartyIndex: 0,
+          playerPartySlotIndicesByLineupIndex: <int>[0, 1],
+        ),
+        outcome: session.createLegacyOutcome(isTrainerBattle: false),
+      );
+
+      final restored = writtenBack.party.members[1];
+      expect(restored.currentHp, 999);
+      expect(restored.statusId, isEmpty);
+      expect(
+        restored.currentPpByMoveId,
+        <String, int>{'reserve_strike': 19},
+      );
+    });
   });
+}
+
+RuntimePsdkBattleSessionAdapter _copyMoveSession({
+  required String moveId,
+  required String battleEngineMethod,
+}) {
+  return RuntimePsdkBattleSessionAdapter.fromSetup(
+    PsdkBattleSetup.singles(
+      player: _combatant(
+        id: 'player_0',
+        hp: 999,
+        moves: <PsdkBattleMoveData>[
+          _move(
+            id: 'wait',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+          ),
+          _move(
+            id: moveId,
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            battleEngineMethod: battleEngineMethod,
+          ),
+        ],
+      ),
+      opponent: _combatant(
+        id: 'opponent_0',
+        hp: 100,
+        moves: <PsdkBattleMoveData>[
+          _move(id: 'target_move', power: 200),
+        ],
+      ),
+      rngSeeds: const PsdkBattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 1,
+        generic: 1,
+      ),
+    ),
+  );
+}
+
+GameState _applySinglePlayerOutcome({
+  required RuntimePsdkBattleSessionAdapter session,
+  required String saveId,
+  required List<String> moveIds,
+  required Map<String, int> currentPpByMoveId,
+}) {
+  return applyRuntimeBattleOutcomeToGameState(
+    gameState: GameState(
+      saveId: saveId,
+      party: PlayerParty(
+        members: <PlayerPokemon>[
+          PlayerPokemon(
+            speciesId: 'player_0',
+            natureId: 'hardy',
+            abilityId: 'unknown',
+            level: 50,
+            knownMoveIds: moveIds,
+            currentPpByMoveId: currentPpByMoveId,
+            currentHp: 999,
+          ),
+        ],
+      ),
+    ),
+    context: const RuntimeActiveBattleContext(
+      request: WildBattleStartRequest(
+        requestId: 'psdk-copy-move',
+        createdAtEpochMs: 1,
+        returnContext: OverworldReturnContext(
+          mapId: 'field',
+          playerPos: GridPos(x: 1, y: 1),
+          playerFacing: Direction.south,
+        ),
+        mapId: 'field',
+        zoneId: 'grass',
+        tableId: 'field-grass',
+        encounterKind: EncounterKind.walk,
+        speciesId: 'opponent_0',
+        level: 50,
+        minLevel: 50,
+        maxLevel: 50,
+        weight: 1,
+        playerPos: GridPos(x: 1, y: 1),
+      ),
+      playerPartyIndex: 0,
+    ),
+    outcome: session.createLegacyOutcome(isTrainerBattle: false),
+  );
 }
 
 PsdkBattleSetup _setup() {
@@ -105,6 +482,9 @@ PsdkBattleCombatantSetup _combatant({
   required String id,
   required int hp,
   required List<PsdkBattleMoveData> moves,
+  String? abilityId,
+  int? currentHp,
+  PsdkBattleMajorStatus? majorStatus,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -112,7 +492,7 @@ PsdkBattleCombatantSetup _combatant({
     displayName: id,
     level: 50,
     maxHp: hp,
-    currentHp: hp,
+    currentHp: currentHp ?? hp,
     types: const PsdkBattleTypes(primary: 'normal'),
     stats: const PsdkBattleStats(
       attack: 100,
@@ -121,6 +501,8 @@ PsdkBattleCombatantSetup _combatant({
       specialDefense: 100,
       speed: 100,
     ),
+    abilityId: abilityId,
+    majorStatus: majorStatus,
     moves: moves,
   );
 }
@@ -130,6 +512,10 @@ PsdkBattleMoveData _move({
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
   required int power,
   List<PsdkBattleMoveStageMod> stageMods = const <PsdkBattleMoveStageMod>[],
+  String? battleEngineMethod,
+  int pp = 15,
+  int? currentPp,
+  PsdkBattleMoveTarget target = PsdkBattleMoveTarget.adjacentFoe,
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -139,11 +525,12 @@ PsdkBattleMoveData _move({
     category: category,
     power: power,
     accuracy: 100,
-    pp: 15,
+    pp: pp,
+    currentPp: currentPp ?? pp,
     priority: 0,
-    battleEngineMethod:
-        category == PsdkBattleMoveCategory.status ? 's_status' : 's_basic',
-    target: PsdkBattleMoveTarget.adjacentFoe,
+    battleEngineMethod: battleEngineMethod ??
+        (category == PsdkBattleMoveCategory.status ? 's_status' : 's_basic'),
+    target: target,
     stageMods: stageMods,
   );
 }

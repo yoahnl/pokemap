@@ -96,6 +96,16 @@ void main() {
       ]);
       expect(transformed.moves.map((move) => move.pp), <int>[5, 5]);
       expect(transformed.moves.map((move) => move.currentPp), <int>[5, 5]);
+      expect(transformed.writeBackSpeciesId, 'ditto');
+      expect(transformed.writeBackAbilityId, 'limber');
+      expect(transformed.writeBackMoves.map((move) => move.id), <String>[
+        'transform',
+      ]);
+      expect(transformed.writeBackMoves.single.currentPp, 9);
+      expect(
+        transformed.writeBackMoveIdsAtBattleStart,
+        <String>['transform'],
+      );
       final transformExecution = afterTurn.state.currentTurn!.executions
           .singleWhere((execution) => execution.move.id == 'transform');
       expect(transformExecution.damage, 0);

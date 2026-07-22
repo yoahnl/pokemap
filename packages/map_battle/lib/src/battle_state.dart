@@ -192,8 +192,16 @@ class BattleCombatant {
     this.volatileState = const BattleVolatileState(),
     this.abilityId = 'unknown',
     required this.moves,
+    String? writeBackSpeciesId,
+    String? writeBackAbilityId,
+    List<BattleMove>? writeBackMoves,
+    List<String>? writeBackMoveIdsAtBattleStart,
+    this.hasTemporaryBattleMoves = false,
     this.statStages = const BattleStatStages(),
-  });
+  })  : writeBackSpeciesId = writeBackSpeciesId ?? speciesId,
+        writeBackAbilityId = writeBackAbilityId ?? abilityId,
+        writeBackMoves = writeBackMoves ?? moves,
+        _writeBackMoveIdsAtBattleStart = writeBackMoveIdsAtBattleStart;
 
   /// L'identifiant de l'espèce.
   final String speciesId;
@@ -244,8 +252,11 @@ class BattleCombatant {
   ///
   /// BE7 garde cet état volontairement étroit :
   /// - `null` signifie "aucun statut majeur" ;
-  /// - sinon on porte uniquement `par`, `brn`, `psn` ou `tox` ;
-  /// - il n'y a toujours ni volatiles génériques, ni `slp`, ni `frz`.
+  /// - `par`, `brn`, `psn` et `tox` sont exécutés par le moteur legacy ;
+  /// - `slp` et `frz` sont transportés pour le write-back, mais restent
+  ///   interdits comme effets de move legacy tant que leurs règles d'action
+  ///   ne sont pas implémentées ;
+  /// - les volatiles restent dans leur sous-état dédié.
   final BattleMajorStatusState? majorStatus;
 
   /// Sous-état volatile local strictement borné à BE8.
@@ -263,14 +274,49 @@ class BattleCombatant {
   /// Pokémon capturé à partir du vrai ennemi engagé, sans données inventées.
   final String abilityId;
 
+  /// Identité d'espèce stable à utiliser lorsqu'un résultat battle devient
+  /// une donnée persistante, notamment après la capture d'un Pokémon transformé.
+  final String writeBackSpeciesId;
+
+  /// Ability stable associée à [writeBackSpeciesId]. La forme visible peut
+  /// remplacer [abilityId], mais jamais cette identité persistable.
+  final String writeBackAbilityId;
+
   /// La liste des attaques disponibles.
   ///
   /// À partir de BE4, les moves battle transportent aussi leur PP courant :
   /// - la liste n'est donc plus seulement descriptive ;
   /// - elle porte un vrai petit état mutable-mais-immutable du point de vue
   ///   des copies de session ;
-  /// - on n'ouvre toujours pas de write-back runtime des PP hors combat.
+  /// - [writeBackMoves] sépare désormais ce qui doit survivre au combat des
+  ///   remplacements temporaires visibles dans cette liste.
   final List<BattleMove> moves;
+
+  /// Snapshot stable des attaques qui appartiennent réellement au combattant.
+  ///
+  /// Les attaques de [moves] peuvent être remplacées temporairement en combat
+  /// (`Transform`, puis d'autres familles de copie). Le runtime ne doit jamais
+  /// déduire les données persistantes depuis cette forme visible. Ce snapshot :
+  /// - démarre avec le moveset injecté par le setup ;
+  /// - suit les variations de PP et les remplacements explicitement
+  ///   persistants de ce moveset ;
+  /// - survit aux formes et moves temporaires jusqu'au write-back.
+  final List<BattleMove> writeBackMoves;
+
+  /// Identité initiale de chaque slot présent dans [writeBackMoves].
+  ///
+  /// Elle permet au runtime de remplacer précisément un move persistant
+  /// (Sketch) sans supprimer les moves connus filtrés avant le combat. Les
+  /// copies temporaires ne modifient jamais cette liste.
+  final List<String>? _writeBackMoveIdsAtBattleStart;
+
+  List<String> get writeBackMoveIdsAtBattleStart =>
+      _writeBackMoveIdsAtBattleStart ??
+      writeBackMoves.map((move) => move.id).toList(growable: false);
+
+  /// Indique que [moves] représente une forme temporaire et ne doit plus
+  /// alimenter [writeBackMoves] lors de ses consommations de PP.
+  final bool hasTemporaryBattleMoves;
 
   /// Étages de stats actuellement appliqués à ce combattant.
   ///
@@ -307,6 +353,11 @@ class BattleCombatant {
       volatileState: volatileState,
       abilityId: abilityId,
       moves: moves,
+      writeBackSpeciesId: writeBackSpeciesId,
+      writeBackAbilityId: writeBackAbilityId,
+      writeBackMoves: writeBackMoves,
+      writeBackMoveIdsAtBattleStart: writeBackMoveIdsAtBattleStart,
+      hasTemporaryBattleMoves: hasTemporaryBattleMoves,
       statStages: statStages,
     );
   }
@@ -330,6 +381,11 @@ class BattleCombatant {
       volatileState: volatileState,
       abilityId: abilityId,
       moves: moves,
+      writeBackSpeciesId: writeBackSpeciesId,
+      writeBackAbilityId: writeBackAbilityId,
+      writeBackMoves: writeBackMoves,
+      writeBackMoveIdsAtBattleStart: writeBackMoveIdsAtBattleStart,
+      hasTemporaryBattleMoves: hasTemporaryBattleMoves,
       statStages: statStages,
     );
   }
@@ -357,16 +413,21 @@ class BattleCombatant {
       volatileState: volatileState,
       abilityId: abilityId,
       moves: moves,
+      writeBackSpeciesId: writeBackSpeciesId,
+      writeBackAbilityId: writeBackAbilityId,
+      writeBackMoves: writeBackMoves,
+      writeBackMoveIdsAtBattleStart: writeBackMoveIdsAtBattleStart,
+      hasTemporaryBattleMoves: hasTemporaryBattleMoves,
       statStages: statStages.apply(changes),
     );
   }
 
   /// Crée une copie avec un slot move remplacé.
   ///
-  /// BE4 évite ici une sur-architecture :
-  /// - pas de nouveau sous-état `MoveState` parallèle ;
-  /// - pas de map indexée future-proof ;
-  /// - juste le plus petit helper honnête pour décrémenter les PP d'un slot.
+  /// Le move visible est toujours remplacé. Quand ce slot appartient encore
+  /// au moveset original, sa variation de PP est aussi reportée dans
+  /// [writeBackMoves]. Une forme temporaire ne peut donc jamais écraser le
+  /// snapshot persistant.
   BattleCombatant withUpdatedMoveAt(int index, BattleMove updatedMove) {
     if (index < 0 || index >= moves.length) {
       throw RangeError.index(index, moves, 'index');
@@ -374,6 +435,18 @@ class BattleCombatant {
 
     final updatedMoves = List<BattleMove>.of(moves);
     updatedMoves[index] = updatedMove;
+    var updatedWriteBackMoves = writeBackMoves;
+    if (!hasTemporaryBattleMoves &&
+        index < writeBackMoves.length &&
+        moves[index].id == writeBackMoves[index].id &&
+        updatedMove.id == writeBackMoves[index].id) {
+      final nextWriteBackMoves = List<BattleMove>.of(writeBackMoves);
+      nextWriteBackMoves[index] = writeBackMoves[index].withPpState(
+        pp: writeBackMoves[index].pp,
+        currentPp: updatedMove.currentPp,
+      );
+      updatedWriteBackMoves = List<BattleMove>.unmodifiable(nextWriteBackMoves);
+    }
     return BattleCombatant(
       speciesId: speciesId,
       lineupIndex: lineupIndex,
@@ -386,6 +459,11 @@ class BattleCombatant {
       volatileState: volatileState,
       abilityId: abilityId,
       moves: List<BattleMove>.unmodifiable(updatedMoves),
+      writeBackSpeciesId: writeBackSpeciesId,
+      writeBackAbilityId: writeBackAbilityId,
+      writeBackMoves: updatedWriteBackMoves,
+      writeBackMoveIdsAtBattleStart: writeBackMoveIdsAtBattleStart,
+      hasTemporaryBattleMoves: hasTemporaryBattleMoves,
       statStages: statStages,
     );
   }
@@ -410,6 +488,11 @@ class BattleCombatant {
       volatileState: volatileState,
       abilityId: abilityId,
       moves: moves,
+      writeBackSpeciesId: writeBackSpeciesId,
+      writeBackAbilityId: writeBackAbilityId,
+      writeBackMoves: writeBackMoves,
+      writeBackMoveIdsAtBattleStart: writeBackMoveIdsAtBattleStart,
+      hasTemporaryBattleMoves: hasTemporaryBattleMoves,
       statStages: statStages,
     );
   }
@@ -434,6 +517,11 @@ class BattleCombatant {
       volatileState: updatedVolatileState,
       abilityId: abilityId,
       moves: moves,
+      writeBackSpeciesId: writeBackSpeciesId,
+      writeBackAbilityId: writeBackAbilityId,
+      writeBackMoves: writeBackMoves,
+      writeBackMoveIdsAtBattleStart: writeBackMoveIdsAtBattleStart,
+      hasTemporaryBattleMoves: hasTemporaryBattleMoves,
       statStages: statStages,
     );
   }
@@ -445,6 +533,8 @@ class BattleCombatant {
   ///   ceux du lanceur ;
   /// - espèce, stats, typing, ability, stages et moves viennent de la cible ;
   /// - chaque move copié reçoit 5 PP, comme le comportement PSDK déjà porté.
+  /// - le moveset original et les PP déjà consommés restent dans
+  ///   [writeBackMoves] pour le retour runtime.
   BattleCombatant withTransformedBattleFormFrom(BattleCombatant target) {
     return BattleCombatant(
       speciesId: target.speciesId,
@@ -465,6 +555,11 @@ class BattleCombatant {
           ),
         ),
       ),
+      writeBackSpeciesId: writeBackSpeciesId,
+      writeBackAbilityId: writeBackAbilityId,
+      writeBackMoves: writeBackMoves,
+      writeBackMoveIdsAtBattleStart: writeBackMoveIdsAtBattleStart,
+      hasTemporaryBattleMoves: true,
       statStages: target.statStages,
     );
   }
@@ -492,6 +587,11 @@ class BattleCombatant {
       volatileState: volatileState.clearedOnSwitchOut(),
       abilityId: abilityId,
       moves: moves,
+      writeBackSpeciesId: writeBackSpeciesId,
+      writeBackAbilityId: writeBackAbilityId,
+      writeBackMoves: writeBackMoves,
+      writeBackMoveIdsAtBattleStart: writeBackMoveIdsAtBattleStart,
+      hasTemporaryBattleMoves: hasTemporaryBattleMoves,
       statStages: const BattleStatStages(),
     );
   }

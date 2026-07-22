@@ -924,6 +924,7 @@ void main() {
         equals(afterBoost.state.player.currentHp),
       );
       expect(benchedLead.moves[1].currentPp, equals(7));
+      expect(benchedLead.writeBackMoves[1].currentPp, equals(7));
       expect(benchedLead.majorStatus!.id, equals(BattleMajorStatusId.tox));
       expect(benchedLead.majorStatus!.toxicCounter, equals(1));
 
@@ -933,6 +934,10 @@ void main() {
       expect(afterSwitchBack.state.player.speciesId, equals('lead_player'));
       expect(afterSwitchBack.state.player.statStages.attack, equals(0));
       expect(afterSwitchBack.state.player.moves[1].currentPp, equals(7));
+      expect(
+        afterSwitchBack.state.player.writeBackMoves[1].currentPp,
+        equals(7),
+      );
       expect(
         afterSwitchBack.state.currentTurn!.statusEvents
             .where(

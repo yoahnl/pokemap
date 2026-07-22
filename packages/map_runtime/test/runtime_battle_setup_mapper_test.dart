@@ -56,6 +56,12 @@ void main() {
                 abilityId: 'overgrow',
                 level: 12,
                 knownMoveIds: <String>['wrap', 'haze', 'coil', 'gastro_acid'],
+                currentPpByMoveId: <String, int>{
+                  'wrap': 20,
+                  'haze': 30,
+                  'coil': 20,
+                  'gastro_acid': 10,
+                },
                 currentHp: 23,
               ),
             ],
@@ -132,6 +138,7 @@ void main() {
                 abilityId: 'overgrow',
                 level: 80,
                 knownMoveIds: <String>['hyper_beam'],
+                currentPpByMoveId: <String, int>{'hyper_beam': 5},
                 currentHp: 120,
               ),
             ],
@@ -177,6 +184,7 @@ void main() {
                 abilityId: 'pressure',
                 level: 99,
                 knownMoveIds: <String>['do-not-use'],
+                currentPpByMoveId: <String, int>{'do-not-use': 1},
                 currentHp: 0,
               ),
               PlayerPokemon(
@@ -187,6 +195,10 @@ void main() {
                 ivs: PokemonStatSpread(hp: 31),
                 evs: PokemonStatSpread(hp: 8),
                 knownMoveIds: <String>['growl', 'vine_whip'],
+                currentPpByMoveId: <String, int>{
+                  'growl': 35,
+                  'vine_whip': 35,
+                },
                 currentHp: 23,
               ),
             ],
@@ -214,6 +226,108 @@ void main() {
       expect(setup.playerPokemon.speciesId, isNot(equals('pikachu')));
     });
 
+    test('seeds saved PP and sleep status into legacy and PSDK battles',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      const gameState = GameState(
+        saveId: 'save-current-pp-status',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 12,
+              knownMoveIds: <String>['growl', 'vine_whip'],
+              currentPpByMoveId: <String, int>{
+                'growl': 3,
+                'vine_whip': 7,
+              },
+              currentHp: 23,
+              statusId: 'slp',
+            ),
+          ],
+        ),
+      );
+
+      final legacySetup = await mapper.map(
+        bundle: bundle,
+        gameState: gameState,
+        request: _wildRequest(speciesId: 'sparkitten', level: 10),
+      );
+      final psdkSetup = await RuntimePsdkBattleSetupMapper().map(
+        bundle: bundle,
+        gameState: gameState,
+        request: _wildRequest(speciesId: 'sparkitten', level: 10),
+      );
+
+      expect(
+        legacySetup.playerPokemon.moves
+            .map((move) => (move.id, move.currentPp)),
+        <(String, int?)>[('growl', 3), ('vine_whip', 7)],
+      );
+      expect(
+        legacySetup.playerPokemon.majorStatus?.id,
+        BattleMajorStatusId.slp,
+      );
+      expect(
+        psdkSetup.player.moves.map((move) => (move.id, move.currentPp)),
+        <(String, int)>[('growl', 3), ('vine_whip', 7)],
+      );
+      expect(psdkSetup.player.majorStatus, PsdkBattleMajorStatus.sleep);
+      final legacyDisplay = RuntimePsdkBattleSessionAdapter.fromSetup(
+        psdkSetup,
+      ).createLegacyDisplaySession(
+        isTrainerBattle: false,
+      );
+      expect(
+        legacyDisplay.state.player.majorStatus?.id,
+        BattleMajorStatusId.slp,
+      );
+    });
+
+    test('rejects a player whose legacy PP sentinel was not hydrated',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+
+      await expectLater(
+        () => mapper.map(
+          bundle: bundle,
+          gameState: const GameState(
+            saveId: 'save-unhydrated-current-pp',
+            party: PlayerParty(
+              members: <PlayerPokemon>[
+                PlayerPokemon(
+                  speciesId: 'sproutle',
+                  natureId: 'bold',
+                  abilityId: 'overgrow',
+                  level: 12,
+                  knownMoveIds: <String>['growl'],
+                  currentHp: 23,
+                ),
+              ],
+            ),
+          ),
+          request: _wildRequest(speciesId: 'sparkitten', level: 10),
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.message,
+            'message',
+            contains('doivent être hydratés'),
+          ),
+        ),
+      );
+    });
+
     test('uses the explicit player party index when the runtime provides one',
         () async {
       final manifest = await _writeAndLoadProjectManifest(
@@ -233,6 +347,7 @@ void main() {
                 abilityId: 'overgrow',
                 level: 12,
                 knownMoveIds: <String>['growl'],
+                currentPpByMoveId: <String, int>{'growl': 35},
                 currentHp: 21,
               ),
               PlayerPokemon(
@@ -241,6 +356,10 @@ void main() {
                 abilityId: 'torrent',
                 level: 18,
                 knownMoveIds: <String>['water_gun', 'tail_whip'],
+                currentPpByMoveId: <String, int>{
+                  'water_gun': 35,
+                  'tail_whip': 35,
+                },
                 currentHp: 17,
               ),
             ],
@@ -281,6 +400,7 @@ void main() {
                 abilityId: 'overgrow',
                 level: 12,
                 knownMoveIds: <String>['growl'],
+                currentPpByMoveId: <String, int>{'growl': 35},
                 currentHp: 23,
               ),
               PlayerPokemon(
@@ -289,6 +409,7 @@ void main() {
                 abilityId: 'torrent',
                 level: 18,
                 knownMoveIds: <String>['water_gun'],
+                currentPpByMoveId: <String, int>{'water_gun': 35},
                 currentHp: 17,
               ),
               PlayerPokemon(
@@ -297,6 +418,7 @@ void main() {
                 abilityId: 'blaze',
                 level: 16,
                 knownMoveIds: <String>['ember'],
+                currentPpByMoveId: <String, int>{'ember': 35},
                 currentHp: 0,
               ),
             ],
@@ -392,6 +514,7 @@ void main() {
                 abilityId: 'blaze',
                 level: 12,
                 knownMoveIds: <String>['ember'],
+                currentPpByMoveId: <String, int>{'ember': 35},
                 currentHp: 23,
               ),
             ],
@@ -439,6 +562,7 @@ void main() {
                 abilityId: 'overgrow',
                 level: 12,
                 knownMoveIds: <String>['mud_slap'],
+                currentPpByMoveId: <String, int>{'mud_slap': 35},
                 currentHp: 23,
               ),
             ],
@@ -490,6 +614,7 @@ void main() {
                 abilityId: 'overgrow',
                 level: 12,
                 knownMoveIds: <String>['razor_leaf'],
+                currentPpByMoveId: <String, int>{'razor_leaf': 35},
                 currentHp: 23,
               ),
             ],
@@ -546,6 +671,7 @@ void main() {
                 natureId: 'bold',
                 abilityId: 'overgrow',
                 level: 12,
+                currentPpByMoveId: <String, int>{},
                 currentHp: 20,
               ),
             ],
@@ -784,6 +910,7 @@ void main() {
                 abilityId: 'overgrow',
                 level: 40,
                 knownMoveIds: <String>['hyper_beam'],
+                currentPpByMoveId: <String, int>{'hyper_beam': 5},
                 currentHp: 99,
               ),
             ],
@@ -833,6 +960,7 @@ void main() {
               abilityId: 'overgrow',
               level: 12 + index,
               knownMoveIds: const <String>['growl'],
+              currentPpByMoveId: const <String, int>{'growl': 35},
               currentHp: 20,
             ),
             growable: false,
@@ -875,6 +1003,9 @@ void main() {
                   abilityId: 'overgrow',
                   level: 12,
                   knownMoveIds: <String>['move_that_does_not_exist'],
+                  currentPpByMoveId: <String, int>{
+                    'move_that_does_not_exist': 1,
+                  },
                   currentHp: 20,
                 ),
               ],
@@ -916,6 +1047,10 @@ void main() {
                 abilityId: 'overgrow',
                 level: 12,
                 knownMoveIds: <String>['teleport', 'vine_whip'],
+                currentPpByMoveId: <String, int>{
+                  'teleport': 20,
+                  'vine_whip': 35,
+                },
                 currentHp: 20,
               ),
             ],
@@ -971,6 +1106,12 @@ void main() {
                   'withdraw',
                   'bubble',
                 ],
+                currentPpByMoveId: <String, int>{
+                  'tail_whip': 35,
+                  'water_gun': 35,
+                  'withdraw': 35,
+                  'bubble': 30,
+                },
                 currentHp: 23,
               ),
             ],
@@ -1049,6 +1190,12 @@ void main() {
                   'rain_dance',
                   'aqua_tail',
                 ],
+                currentPpByMoveId: <String, int>{
+                  'water_pulse': 20,
+                  'protect': 10,
+                  'rain_dance': 5,
+                  'aqua_tail': 10,
+                },
                 currentHp: 57,
               ),
             ],
@@ -1112,6 +1259,7 @@ void main() {
                   abilityId: 'overgrow',
                   level: 12,
                   knownMoveIds: <String>['teleport'],
+                  currentPpByMoveId: <String, int>{'teleport': 20},
                   currentHp: 20,
                 ),
               ],
@@ -1176,6 +1324,7 @@ void main() {
                 natureId: 'bold',
                 abilityId: 'overgrow',
                 level: 12,
+                currentPpByMoveId: <String, int>{},
                 currentHp: 20,
               ),
             ],
@@ -1240,6 +1389,7 @@ void main() {
                   natureId: 'bold',
                   abilityId: 'overgrow',
                   level: 12,
+                  currentPpByMoveId: <String, int>{},
                   currentHp: 20,
                 ),
               ],
@@ -1296,6 +1446,7 @@ void main() {
                 abilityId: 'overgrow',
                 level: 12,
                 knownMoveIds: <String>['thunder_wave'],
+                currentPpByMoveId: <String, int>{'thunder_wave': 35},
                 currentHp: 20,
               ),
             ],
@@ -1348,6 +1499,7 @@ void main() {
                 abilityId: 'blaze',
                 level: 80,
                 knownMoveIds: <String>['hyper_beam'],
+                currentPpByMoveId: <String, int>{'hyper_beam': 5},
                 currentHp: 120,
               ),
             ],
@@ -1404,6 +1556,10 @@ void main() {
                 abilityId: 'torrent',
                 level: 18,
                 knownMoveIds: <String>['rain_dance', 'water_gun'],
+                currentPpByMoveId: <String, int>{
+                  'rain_dance': 5,
+                  'water_gun': 35,
+                },
                 currentHp: 42,
               ),
             ],
@@ -1441,6 +1597,7 @@ void main() {
                 abilityId: 'torrent',
                 level: 18,
                 knownMoveIds: <String>['water_gun'],
+                currentPpByMoveId: <String, int>{'water_gun': 35},
                 currentHp: 42,
               ),
             ],
@@ -1491,6 +1648,10 @@ void main() {
                 abilityId: 'overgrow',
                 level: 12,
                 knownMoveIds: <String>['trick_room', 'tackle'],
+                currentPpByMoveId: <String, int>{
+                  'trick_room': 5,
+                  'tackle': 35,
+                },
                 currentHp: 23,
               ),
             ],
@@ -1591,6 +1752,10 @@ GameState _playerStateForTests({
           ivs: PokemonStatSpread(hp: 31),
           evs: PokemonStatSpread(hp: 8),
           knownMoveIds: <String>['growl', 'vine_whip'],
+          currentPpByMoveId: <String, int>{
+            'growl': 35,
+            'vine_whip': 35,
+          },
           currentHp: 23,
         ),
       ],

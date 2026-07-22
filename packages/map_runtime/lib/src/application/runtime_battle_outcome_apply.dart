@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import 'battle_start_request.dart';
+import 'runtime_battle_status_bridge.dart';
 import 'story_flags_manager.dart';
 
 const _runtimeCapturePokeBallItemId = 'poke-ball';
@@ -161,7 +162,7 @@ int _resolveDefeatRecoveryPartySlotIndex({
 /// Applique le résultat final du combat à l'état runtime.
 ///
 /// Ce helper porte le write-back lot 10 dans un seul chemin explicite :
-/// 1. écrire les PV finaux du lineup joueur sur les slots exacts mémorisés ;
+/// 1. écrire les PV, PP et statuts finaux du lineup joueur sur les slots exacts ;
 /// 2. marquer le trainer battu uniquement en cas de victoire trainer ;
 /// 3. laisser intact tout ce qui appartient aux lots 11+.
 ///
@@ -227,8 +228,9 @@ const _capturedPokemonFallbackAbilityId = 'unknown';
 /// Construit le Pokémon réellement ajouté à la party après une capture sauvage.
 ///
 /// Le lot 13 reste volontairement minimal :
-/// - l'espèce, le niveau, l'ability et les moves viennent du vrai combattant
-///   sauvage réellement engagé dans le moteur battle ;
+/// - espèce, ability, moves et PP viennent du snapshot persistable original du
+///   combattant, jamais d'une forme temporaire comme `Transform` ;
+/// - niveau et PV restent ceux du combattant sauvage réellement engagé ;
 /// - la nature reste un fallback MVP déterministe (`hardy`) faute de véritable
 ///   génération runtime existante ;
 /// - on ne tente pas d'inventer ivs/evs/status/shiny/held item au-delà des
@@ -241,21 +243,26 @@ const _capturedPokemonFallbackAbilityId = 'unknown';
 PlayerPokemon _buildCapturedWildPlayerPokemon({
   required BattleCombatant enemy,
 }) {
-  final normalizedAbilityId = enemy.abilityId.trim().isEmpty
+  final normalizedAbilityId = enemy.writeBackAbilityId.trim().isEmpty
       ? _capturedPokemonFallbackAbilityId
-      : enemy.abilityId.trim();
-  final normalizedMoveIds = enemy.moves
+      : enemy.writeBackAbilityId.trim();
+  final normalizedMoveIds = enemy.writeBackMoves
       .map((move) => move.id.trim())
       .where((moveId) => moveId.isNotEmpty)
       .toSet()
       .toList(growable: false);
 
   return PlayerPokemon(
-    speciesId: enemy.speciesId.trim(),
+    speciesId: enemy.writeBackSpeciesId.trim(),
     natureId: _capturedPokemonDefaultNatureId,
     abilityId: normalizedAbilityId,
     level: enemy.level,
     knownMoveIds: normalizedMoveIds,
+    currentPpByMoveId: Map<String, int>.unmodifiable(
+      <String, int>{
+        for (final move in enemy.writeBackMoves) move.id.trim(): move.currentPp,
+      }..remove(''),
+    ),
     currentHp: enemy.currentHp <= 0 ? 1 : enemy.currentHp,
   );
 }
@@ -316,14 +323,19 @@ Bag _consumeOnePokeBallOrThrow(Bag bag) {
 ///   sans recalculer l'historique des switches.
 ///
 /// Frontière volontairement bornée :
-/// - on n'écrit encore que les PV, car le runtime hors combat ne possède pas
-///   encore de write-back honnête des PP courants ni des statuts majeurs ;
+/// - on écrit les PV, le statut majeur et les PP du snapshot `writeBackMoves`
+///   fourni par le moteur, jamais ceux d'une forme ou d'un move temporaire ;
+/// - l'identité initiale des slots battle permet à Sketch de remplacer son
+///   move exact sans supprimer un move connu qui n'avait pas été injecté ;
+/// - pour un ancien Pokémon sans moves persistés, ce même snapshot permet de
+///   figer une seule fois le moveset original réellement seedé ;
 /// - les membres de party non engagés dans ce combat restent inchangés.
 GameState writePlayerBattleLineupBackToPartySlots({
   required GameState gameState,
   required RuntimeActiveBattleContext context,
   required BattleState battleState,
 }) {
+  const statusBridge = RuntimeBattleStatusBridge();
   final playerLineup = <BattleCombatant>[
     battleState.player,
     ...battleState.playerReserve,
@@ -389,12 +401,71 @@ GameState writePlayerBattleLineupBackToPartySlots({
     }
 
     final currentMember = nextMembers[partyIndex];
+    final persistedMoveIds = currentMember.knownMoveIds.isEmpty
+        ? _persistentWriteBackMoves(combatant.writeBackMoves)
+            .map((move) => move.id.trim())
+            .toList(growable: false)
+        : currentMember.knownMoveIds.map((moveId) => moveId.trim()).toList();
+    final nextCurrentPpByMoveId = <String, int>{
+      ...?currentMember.currentPpByMoveId,
+    };
+    if (currentMember.knownMoveIds.isEmpty) {
+      for (final move in _persistentWriteBackMoves(
+        combatant.writeBackMoves,
+      )) {
+        nextCurrentPpByMoveId[move.id.trim()] = move.currentPp;
+      }
+    } else {
+      final slotCount = combatant.writeBackMoves.length <
+              combatant.writeBackMoveIdsAtBattleStart.length
+          ? combatant.writeBackMoves.length
+          : combatant.writeBackMoveIdsAtBattleStart.length;
+      for (var index = 0; index < slotCount; index += 1) {
+        final sourceMoveId =
+            combatant.writeBackMoveIdsAtBattleStart[index].trim();
+        final persistentMove = combatant.writeBackMoves[index];
+        final persistentMoveId = persistentMove.id.trim();
+        if (sourceMoveId.isEmpty || persistentMoveId.isEmpty) {
+          continue;
+        }
+        final partyMoveSlot = persistedMoveIds.indexOf(sourceMoveId);
+        if (partyMoveSlot < 0) {
+          // This snapshot slot cannot be reconciled with the current save.
+          // Preserve the save instead of deleting an uninjected move.
+          continue;
+        }
+        persistedMoveIds[partyMoveSlot] = persistentMoveId;
+        if (persistentMoveId != sourceMoveId) {
+          nextCurrentPpByMoveId.remove(sourceMoveId);
+        }
+        nextCurrentPpByMoveId[persistentMoveId] = persistentMove.currentPp;
+      }
+    }
     nextMembers[partyIndex] = currentMember.copyWith(
       currentHp: combatant.currentHp < 0 ? 0 : combatant.currentHp,
+      knownMoveIds: persistedMoveIds,
+      currentPpByMoveId: nextCurrentPpByMoveId,
+      statusId: statusBridge.fromLegacyBattleStatus(combatant.majorStatus),
     );
   }
 
   return gameState.copyWith(
     party: gameState.party.copyWith(members: nextMembers),
   );
+}
+
+List<BattleMove> _persistentWriteBackMoves(List<BattleMove> battleMoves) {
+  final persistentMoves = <BattleMove>[];
+  final seenMoveIds = <String>{};
+  for (final move in battleMoves) {
+    final moveId = move.id.trim();
+    if (moveId.isEmpty || !seenMoveIds.add(moveId)) {
+      continue;
+    }
+    persistentMoves.add(move);
+    if (persistentMoves.length == 4) {
+      break;
+    }
+  }
+  return List<BattleMove>.unmodifiable(persistentMoves);
 }
