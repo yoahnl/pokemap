@@ -294,6 +294,20 @@ mixin _$PlayerPokemon {
   PokemonStatSpread get ivs => throw _privateConstructorUsedError;
   PokemonStatSpread get evs => throw _privateConstructorUsedError;
   List<String> get knownMoveIds => throw _privateConstructorUsedError;
+
+  /// Total cumulative experience.
+  ///
+  /// `null` is deliberately preserved for saves created before FG-021. It
+  /// must not be interpreted as zero because that would silently regress a
+  /// legacy levelled Pokemon to the level-one experience floor.
+  int? get experience => throw _privateConstructorUsedError;
+
+  /// Current PP indexed by canonical move id.
+  ///
+  /// `null` is the legacy migration sentinel. An empty non-null map is a
+  /// fully hydrated Pokemon with no known moves; max PP stays catalogue
+  /// derived and therefore does not belong in this persistence contract.
+  Map<String, int>? get currentPpByMoveId => throw _privateConstructorUsedError;
   int get currentHp => throw _privateConstructorUsedError;
   String get statusId => throw _privateConstructorUsedError;
   bool get isShiny => throw _privateConstructorUsedError;
@@ -324,6 +338,8 @@ abstract class $PlayerPokemonCopyWith<$Res> {
       PokemonStatSpread ivs,
       PokemonStatSpread evs,
       List<String> knownMoveIds,
+      int? experience,
+      Map<String, int>? currentPpByMoveId,
       int currentHp,
       String statusId,
       bool isShiny,
@@ -356,6 +372,8 @@ class _$PlayerPokemonCopyWithImpl<$Res, $Val extends PlayerPokemon>
     Object? ivs = null,
     Object? evs = null,
     Object? knownMoveIds = null,
+    Object? experience = freezed,
+    Object? currentPpByMoveId = freezed,
     Object? currentHp = null,
     Object? statusId = null,
     Object? isShiny = null,
@@ -394,6 +412,14 @@ class _$PlayerPokemonCopyWithImpl<$Res, $Val extends PlayerPokemon>
           ? _value.knownMoveIds
           : knownMoveIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      experience: freezed == experience
+          ? _value.experience
+          : experience // ignore: cast_nullable_to_non_nullable
+              as int?,
+      currentPpByMoveId: freezed == currentPpByMoveId
+          ? _value.currentPpByMoveId
+          : currentPpByMoveId // ignore: cast_nullable_to_non_nullable
+              as Map<String, int>?,
       currentHp: null == currentHp
           ? _value.currentHp
           : currentHp // ignore: cast_nullable_to_non_nullable
@@ -451,6 +477,8 @@ abstract class _$$PlayerPokemonImplCopyWith<$Res>
       PokemonStatSpread ivs,
       PokemonStatSpread evs,
       List<String> knownMoveIds,
+      int? experience,
+      Map<String, int>? currentPpByMoveId,
       int currentHp,
       String statusId,
       bool isShiny,
@@ -483,6 +511,8 @@ class __$$PlayerPokemonImplCopyWithImpl<$Res>
     Object? ivs = null,
     Object? evs = null,
     Object? knownMoveIds = null,
+    Object? experience = freezed,
+    Object? currentPpByMoveId = freezed,
     Object? currentHp = null,
     Object? statusId = null,
     Object? isShiny = null,
@@ -521,6 +551,14 @@ class __$$PlayerPokemonImplCopyWithImpl<$Res>
           ? _value._knownMoveIds
           : knownMoveIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      experience: freezed == experience
+          ? _value.experience
+          : experience // ignore: cast_nullable_to_non_nullable
+              as int?,
+      currentPpByMoveId: freezed == currentPpByMoveId
+          ? _value._currentPpByMoveId
+          : currentPpByMoveId // ignore: cast_nullable_to_non_nullable
+              as Map<String, int>?,
       currentHp: null == currentHp
           ? _value.currentHp
           : currentHp // ignore: cast_nullable_to_non_nullable
@@ -554,11 +592,14 @@ class _$PlayerPokemonImpl extends _PlayerPokemon {
       this.ivs = const PokemonStatSpread(),
       this.evs = const PokemonStatSpread(),
       final List<String> knownMoveIds = const [],
+      this.experience,
+      final Map<String, int>? currentPpByMoveId,
       this.currentHp = 1,
       this.statusId = '',
       this.isShiny = false,
       this.heldItemId = ''})
       : _knownMoveIds = knownMoveIds,
+        _currentPpByMoveId = currentPpByMoveId,
         super._();
 
   factory _$PlayerPokemonImpl.fromJson(Map<String, dynamic> json) =>
@@ -590,6 +631,36 @@ class _$PlayerPokemonImpl extends _PlayerPokemon {
     return EqualUnmodifiableListView(_knownMoveIds);
   }
 
+  /// Total cumulative experience.
+  ///
+  /// `null` is deliberately preserved for saves created before FG-021. It
+  /// must not be interpreted as zero because that would silently regress a
+  /// legacy levelled Pokemon to the level-one experience floor.
+  @override
+  final int? experience;
+
+  /// Current PP indexed by canonical move id.
+  ///
+  /// `null` is the legacy migration sentinel. An empty non-null map is a
+  /// fully hydrated Pokemon with no known moves; max PP stays catalogue
+  /// derived and therefore does not belong in this persistence contract.
+  final Map<String, int>? _currentPpByMoveId;
+
+  /// Current PP indexed by canonical move id.
+  ///
+  /// `null` is the legacy migration sentinel. An empty non-null map is a
+  /// fully hydrated Pokemon with no known moves; max PP stays catalogue
+  /// derived and therefore does not belong in this persistence contract.
+  @override
+  Map<String, int>? get currentPpByMoveId {
+    final value = _currentPpByMoveId;
+    if (value == null) return null;
+    if (_currentPpByMoveId is EqualUnmodifiableMapView)
+      return _currentPpByMoveId;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(value);
+  }
+
   @override
   @JsonKey()
   final int currentHp;
@@ -605,7 +676,7 @@ class _$PlayerPokemonImpl extends _PlayerPokemon {
 
   @override
   String toString() {
-    return 'PlayerPokemon(speciesId: $speciesId, natureId: $natureId, abilityId: $abilityId, gender: $gender, level: $level, ivs: $ivs, evs: $evs, knownMoveIds: $knownMoveIds, currentHp: $currentHp, statusId: $statusId, isShiny: $isShiny, heldItemId: $heldItemId)';
+    return 'PlayerPokemon(speciesId: $speciesId, natureId: $natureId, abilityId: $abilityId, gender: $gender, level: $level, ivs: $ivs, evs: $evs, knownMoveIds: $knownMoveIds, experience: $experience, currentPpByMoveId: $currentPpByMoveId, currentHp: $currentHp, statusId: $statusId, isShiny: $isShiny, heldItemId: $heldItemId)';
   }
 
   @override
@@ -625,6 +696,10 @@ class _$PlayerPokemonImpl extends _PlayerPokemon {
             (identical(other.evs, evs) || other.evs == evs) &&
             const DeepCollectionEquality()
                 .equals(other._knownMoveIds, _knownMoveIds) &&
+            (identical(other.experience, experience) ||
+                other.experience == experience) &&
+            const DeepCollectionEquality()
+                .equals(other._currentPpByMoveId, _currentPpByMoveId) &&
             (identical(other.currentHp, currentHp) ||
                 other.currentHp == currentHp) &&
             (identical(other.statusId, statusId) ||
@@ -646,6 +721,8 @@ class _$PlayerPokemonImpl extends _PlayerPokemon {
       ivs,
       evs,
       const DeepCollectionEquality().hash(_knownMoveIds),
+      experience,
+      const DeepCollectionEquality().hash(_currentPpByMoveId),
       currentHp,
       statusId,
       isShiny,
@@ -677,6 +754,8 @@ abstract class _PlayerPokemon extends PlayerPokemon {
       final PokemonStatSpread ivs,
       final PokemonStatSpread evs,
       final List<String> knownMoveIds,
+      final int? experience,
+      final Map<String, int>? currentPpByMoveId,
       final int currentHp,
       final String statusId,
       final bool isShiny,
@@ -702,6 +781,22 @@ abstract class _PlayerPokemon extends PlayerPokemon {
   PokemonStatSpread get evs;
   @override
   List<String> get knownMoveIds;
+
+  /// Total cumulative experience.
+  ///
+  /// `null` is deliberately preserved for saves created before FG-021. It
+  /// must not be interpreted as zero because that would silently regress a
+  /// legacy levelled Pokemon to the level-one experience floor.
+  @override
+  int? get experience;
+
+  /// Current PP indexed by canonical move id.
+  ///
+  /// `null` is the legacy migration sentinel. An empty non-null map is a
+  /// fully hydrated Pokemon with no known moves; max PP stays catalogue
+  /// derived and therefore does not belong in this persistence contract.
+  @override
+  Map<String, int>? get currentPpByMoveId;
   @override
   int get currentHp;
   @override

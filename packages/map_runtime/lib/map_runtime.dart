@@ -24,6 +24,14 @@ export 'src/application/runtime_battle_move_bridge_diagnostics.dart'
     show RuntimeBattleMoveBridgeDiagnostics;
 export 'src/application/runtime_battle_setup_exception.dart'
     show RuntimeBattleSetupException;
+export 'src/application/runtime_player_pokemon_progression_hydrator.dart'
+    show
+        RuntimePlayerPokemonProgressionHydrationErrorCode,
+        RuntimePlayerPokemonProgressionHydrationException,
+        RuntimePlayerPokemonProgressionCatalogs,
+        RuntimePlayerPokemonProgressionCatalogLoader,
+        hydrateRuntimePlayerPokemonProgression,
+        loadRuntimePlayerPokemonProgressionCatalogs;
 export 'src/application/load_runtime_map_bundle.dart' show loadRuntimeMapBundle;
 export 'src/application/runtime_map_bundle.dart' show RuntimeMapBundle;
 export 'src/application/map_activation.dart'

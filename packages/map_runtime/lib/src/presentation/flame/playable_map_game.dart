@@ -49,6 +49,7 @@ import '../../application/runtime_battle_combatant_seed_builder.dart';
 import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_move_catalog_loader.dart';
+import '../../application/runtime_player_pokemon_progression_hydrator.dart';
 import '../../application/runtime_pokemon_learnset_loader.dart';
 import '../../application/runtime_pokemon_species_loader.dart';
 import '../../application/runtime_psdk_battle_session_adapter.dart';
@@ -172,6 +173,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     RuntimeDialogueSessionLoader? dialogueSessionLoader,
     RuntimeMapBundleLoader? runtimeMapBundleLoader,
     RuntimeTilesetImageLoader? runtimeTilesetImageLoader,
+    RuntimePlayerPokemonProgressionCatalogLoader?
+        runtimePlayerPokemonProgressionCatalogLoader,
     this.initialMapActivationReason = MapActivationReason.initialBoot,
     NarrativeRuntimeActivityGate? narrativeRuntimeActivityGate,
     @visibleForTesting this.beforeNarrativeAuthorityPreparation,
@@ -190,7 +193,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _runtimeMapBundleLoader =
             runtimeMapBundleLoader ?? loadRuntimeMapBundle,
         _runtimeTilesetImageLoader =
-            runtimeTilesetImageLoader ?? loadTilesetImagesById {
+            runtimeTilesetImageLoader ?? loadTilesetImagesById,
+        _runtimePlayerPokemonProgressionCatalogLoader =
+            runtimePlayerPokemonProgressionCatalogLoader ??
+                loadRuntimePlayerPokemonProgressionCatalogs {
     if (bundleTransformer != null) {
       _bundle = bundleTransformer!(_bundle);
     }
@@ -348,6 +354,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final RuntimeDialogueSessionLoader _dialogueSessionLoader;
   final RuntimeMapBundleLoader _runtimeMapBundleLoader;
   final RuntimeTilesetImageLoader _runtimeTilesetImageLoader;
+  final RuntimePlayerPokemonProgressionCatalogLoader
+      _runtimePlayerPokemonProgressionCatalogLoader;
   final Map<String, RuntimeMapBundle> _runtimeBundleByMapId =
       <String, RuntimeMapBundle>{};
   final Map<String, Future<RuntimeMapBundle>> _runtimeBundleFutureByMapId =
@@ -671,6 +679,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return snapshot;
   }
 
+  Future<GameState> _hydrateOwnedPlayerPokemonProgression(
+    GameState gameState, {
+    RuntimeMapBundle? bundle,
+  }) async {
+    final catalogueBundle = bundle ?? _bundle;
+    final catalogs = await _runtimePlayerPokemonProgressionCatalogLoader(
+      gameState: gameState,
+      projectRootDirectory: catalogueBundle.projectRootDirectory,
+      pokemonConfig: catalogueBundle.manifest.pokemon,
+    );
+    return hydrateRuntimePlayerPokemonProgression(
+      gameState: gameState,
+      catalogs: catalogs,
+    );
+  }
+
   Future<NarrativeSceneExecutionResult> _executeNarrativeScene(
     NarrativeSceneExecutionRequest request,
   ) async {
@@ -701,7 +725,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ),
       );
       if (result is NarrativeSceneExecutionCompleted) {
-        session.gameState = result.updatedGameState;
+        try {
+          final hydratedGameState = await _hydrateOwnedPlayerPokemonProgression(
+            result.updatedGameState,
+          );
+          session.gameState = hydratedGameState;
+          return NarrativeSceneExecutionResult.completed(
+            updatedGameState: hydratedGameState,
+            qualifiedOutcomes: result.qualifiedOutcomes,
+          );
+        } catch (error) {
+          return NarrativeSceneExecutionResult.failed(error);
+        }
       }
       return result;
     } finally {
@@ -2638,6 +2673,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     _bundle = await prepareBorderRuntimeBundle(_bundle);
     _runtimeBundleByMapId[_bundle.map.id] = _bundle;
+    _gameState = await _hydrateOwnedPlayerPokemonProgression(_gameState);
+    // The coordinator was constructed before asynchronous catalogue loading.
+    // Publish the hydrated snapshot before any map-enter dispatch can observe
+    // the game as playable.
+    await _narrativeStateTransactions.transact<void>((_) {
+      return NarrativeEventStateTransaction.commit(_gameState, null);
+    });
     final rootBorderAssets = await _loadBorderRuntimeAssets(_bundle);
     final activation = _createMapActivation(
       mapId: _bundle.map.id,
@@ -7628,7 +7670,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (!result.success && result.handled) {
         _showNotification(result.message ?? 'Scene V1 impossible.');
       } else if (result.success) {
-        session.gameState = result.updatedGameState ?? session.gameState;
+        session.gameState = await _hydrateOwnedPlayerPokemonProgression(
+          result.updatedGameState ?? session.gameState,
+        );
         _applyNarrativeGameState(session.gameState);
         final outcomes = <NarrativeOutcomeRef>[
           ...hostedBattleOutcomes,
@@ -9174,7 +9218,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint('[load] no save found');
       return false;
     }
-    final loadedState = normalizeLoadedGameState(rawLoadedState);
+    var loadedState = normalizeLoadedGameState(rawLoadedState);
     if (loadedState.currentMapId.trim().isEmpty) {
       debugPrint('[load] saved map id is empty');
       return false;
@@ -9188,8 +9232,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     RuntimeMapBundle newBundle;
     try {
       newBundle = await _loadRuntimeMapBundleCached(loadedState.currentMapId);
+      loadedState = await _hydrateOwnedPlayerPokemonProgression(
+        loadedState,
+        bundle: newBundle,
+      );
     } catch (e, st) {
-      debugPrint('[load] failed to load map: $e\n$st');
+      debugPrint('[load] failed to load map or Pokemon catalogues: $e\n$st');
       return false;
     }
 

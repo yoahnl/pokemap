@@ -110,6 +110,20 @@ class PlayerPokemon with _$PlayerPokemon {
     @Default(PokemonStatSpread()) PokemonStatSpread ivs,
     @Default(PokemonStatSpread()) PokemonStatSpread evs,
     @Default([]) List<String> knownMoveIds,
+
+    /// Total cumulative experience.
+    ///
+    /// `null` is deliberately preserved for saves created before FG-021. It
+    /// must not be interpreted as zero because that would silently regress a
+    /// legacy levelled Pokemon to the level-one experience floor.
+    int? experience,
+
+    /// Current PP indexed by canonical move id.
+    ///
+    /// `null` is the legacy migration sentinel. An empty non-null map is a
+    /// fully hydrated Pokemon with no known moves; max PP stays catalogue
+    /// derived and therefore does not belong in this persistence contract.
+    Map<String, int>? currentPpByMoveId,
     @Default(1) int currentHp,
     @Default('') String statusId,
     @Default(false) bool isShiny,
@@ -132,6 +146,38 @@ class PlayerPokemon with _$PlayerPokemon {
     }
     final normalizedMoveIds =
         _normalizeUniqueStringsPreserveOrder(knownMoveIds);
+    if (experience != null && experience! < 0) {
+      throw StateError('PlayerPokemon experience must be non-negative');
+    }
+    final currentPp = currentPpByMoveId;
+    Map<String, int>? normalizedCurrentPpByMoveId;
+    if (currentPp != null) {
+      final normalizedEntries = <MapEntry<String, int>>[];
+      final seenMoveIds = <String>{};
+      for (final entry in currentPp.entries) {
+        final moveId = entry.key.trim();
+        if (moveId.isEmpty) {
+          throw StateError(
+            'PlayerPokemon currentPpByMoveId keys must not be empty',
+          );
+        }
+        if (entry.value < 0) {
+          throw StateError(
+            'PlayerPokemon currentPpByMoveId values must be non-negative',
+          );
+        }
+        if (!seenMoveIds.add(moveId)) {
+          throw StateError(
+            'PlayerPokemon currentPpByMoveId must not contain duplicate '
+            'normalized move ids',
+          );
+        }
+        normalizedEntries.add(MapEntry(moveId, entry.value));
+      }
+      normalizedEntries.sort((left, right) => left.key.compareTo(right.key));
+      normalizedCurrentPpByMoveId =
+          Map<String, int>.unmodifiable(Map.fromEntries(normalizedEntries));
+    }
     final normalizedStatusId = statusId.trim();
     final normalizedHeldItemId = heldItemId.trim();
 
@@ -168,6 +214,7 @@ class PlayerPokemon with _$PlayerPokemon {
       ivs: ivs.normalized(),
       evs: evs.normalized(),
       knownMoveIds: normalizedMoveIds,
+      currentPpByMoveId: normalizedCurrentPpByMoveId,
       statusId: normalizedStatusId,
       heldItemId: normalizedHeldItemId,
     );

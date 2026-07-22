@@ -124,6 +124,76 @@ void main() {
       expect(restored.knownMoveIds, ['surf', 'ice_beam']);
     });
 
+    test('legacy JSON preserves missing progression fields as null sentinels',
+        () {
+      final restored = PlayerPokemon.fromJson({
+        'id': 'party_legacy_level_16',
+        'speciesId': 'wartortle',
+        'nickname': 'Shell',
+        'level': 16,
+        'knownMoveIds': ['water_gun'],
+        'isFainted': false,
+      });
+
+      final migratedJson = restored.toJson();
+
+      expect(migratedJson, containsPair('experience', null));
+      expect(migratedJson, containsPair('currentPpByMoveId', null));
+    });
+
+    test('explicit experience and current PP round-trip through JSON', () {
+      final restored = PlayerPokemon.fromJson({
+        'speciesId': 'wartortle',
+        'natureId': 'bold',
+        'abilityId': 'torrent',
+        'level': 16,
+        'knownMoveIds': ['water_gun', 'bite'],
+        'experience': 2535,
+        'currentPpByMoveId': {'water_gun': 12, 'bite': 19},
+      });
+
+      expect(restored.toJson()['experience'], 2535);
+      expect(
+        restored.toJson()['currentPpByMoveId'],
+        {'water_gun': 12, 'bite': 19},
+      );
+    });
+
+    test('normalized rejects negative experience', () {
+      final pokemon = PlayerPokemon.fromJson({
+        'speciesId': 'wartortle',
+        'natureId': 'bold',
+        'abilityId': 'torrent',
+        'experience': -1,
+      });
+
+      expect(() => pokemon.normalized(), throwsStateError);
+    });
+
+    test('normalized rejects negative current PP', () {
+      final pokemon = PlayerPokemon.fromJson({
+        'speciesId': 'wartortle',
+        'natureId': 'bold',
+        'abilityId': 'torrent',
+        'knownMoveIds': ['water_gun'],
+        'currentPpByMoveId': {'water_gun': -1},
+      });
+
+      expect(() => pokemon.normalized(), throwsStateError);
+    });
+
+    test('normalized rejects an empty current PP move key', () {
+      final pokemon = PlayerPokemon.fromJson({
+        'speciesId': 'wartortle',
+        'natureId': 'bold',
+        'abilityId': 'torrent',
+        'knownMoveIds': ['water_gun'],
+        'currentPpByMoveId': {'   ': 12},
+      });
+
+      expect(() => pokemon.normalized(), throwsStateError);
+    });
+
     test('non legacy JSON missing phase 9 fields still fails', () {
       expect(
         () => PlayerPokemon.fromJson({

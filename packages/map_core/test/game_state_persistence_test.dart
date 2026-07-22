@@ -160,6 +160,28 @@ void main() {
       );
     });
 
+    test('preserves Pokemon experience and current PP through save reload', () {
+      final pokemon = PlayerPokemon.fromJson({
+        'speciesId': 'wartortle',
+        'natureId': 'bold',
+        'abilityId': 'torrent',
+        'level': 16,
+        'knownMoveIds': ['water_gun'],
+        'experience': 2535,
+        'currentPpByMoveId': {'water_gun': 12},
+      });
+      final state = GameState(
+        saveId: 'pokemon_progression_round_trip',
+        party: PlayerParty(members: [pokemon]),
+      );
+
+      final reloaded = gameStateFromSaveData(saveDataFromGameState(state));
+      final reloadedJson = reloaded.party.members.single.toJson();
+
+      expect(reloadedJson['experience'], 2535);
+      expect(reloadedJson['currentPpByMoveId'], {'water_gun': 12});
+    });
+
     test('syncs stored species into caught and seen for persistence', () {
       const state = GameState(
         saveId: 'save_storage_seen_caught',

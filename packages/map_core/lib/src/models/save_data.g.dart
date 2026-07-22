@@ -45,6 +45,11 @@ _$PlayerPokemonImpl _$$PlayerPokemonImplFromJson(Map<String, dynamic> json) =>
               ?.map((e) => e as String)
               .toList() ??
           const [],
+      experience: (json['experience'] as num?)?.toInt(),
+      currentPpByMoveId:
+          (json['currentPpByMoveId'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, (e as num).toInt()),
+      ),
       currentHp: (json['currentHp'] as num?)?.toInt() ?? 1,
       statusId: json['statusId'] as String? ?? '',
       isShiny: json['isShiny'] as bool? ?? false,
@@ -61,6 +66,8 @@ Map<String, dynamic> _$$PlayerPokemonImplToJson(_$PlayerPokemonImpl instance) =>
       'ivs': instance.ivs.toJson(),
       'evs': instance.evs.toJson(),
       'knownMoveIds': instance.knownMoveIds,
+      'experience': instance.experience,
+      'currentPpByMoveId': instance.currentPpByMoveId,
       'currentHp': instance.currentHp,
       'statusId': instance.statusId,
       'isShiny': instance.isShiny,

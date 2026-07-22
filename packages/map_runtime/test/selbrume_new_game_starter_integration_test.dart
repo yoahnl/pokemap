@@ -76,7 +76,14 @@ void main() {
 
       final completed = game.gameStateSnapshot;
       expect(completed.party.members, hasLength(1));
-      expect(completed.party.members.single.speciesId, 'bulbasaur');
+      final starter = completed.party.members.single;
+      expect(starter.speciesId, 'bulbasaur');
+      expect(starter.level, 16);
+      expect(starter.experience, 2535);
+      expect(
+        starter.currentPpByMoveId,
+        <String, int>{'tackle': 35, 'growl': 40, 'vine_whip': 25},
+      );
       expect(
         completed.narrativeFactRuntimeState
             .overridesByFactId['fact_starter_received'],
@@ -93,6 +100,9 @@ void main() {
       );
 
       expect(await game.saveGame(), isTrue);
+      final savedStarter = repository.storedState!.party.members.single;
+      expect(savedStarter.experience, 2535);
+      expect(savedStarter.currentPpByMoveId, isNotNull);
       expect(await game.loadGame(), isTrue);
       await _pumpUntil(
         game,
@@ -112,6 +122,12 @@ void main() {
       await _pumpUntil(game, () => game.debugFlowPhaseName == 'overworld');
 
       expect(game.gameStateSnapshot.party.members, hasLength(1));
+      final reloadedStarter = game.gameStateSnapshot.party.members.single;
+      expect(reloadedStarter.experience, 2535);
+      expect(
+        reloadedStarter.currentPpByMoveId,
+        <String, int>{'tackle': 35, 'growl': 40, 'vine_whip': 25},
+      );
       expect(
         game.gameStateSnapshot.narrativeEventProgress.consumedNarrativeEventIds,
         contains(maelEvent.id),
