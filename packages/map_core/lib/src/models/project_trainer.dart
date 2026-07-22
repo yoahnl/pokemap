@@ -3,6 +3,57 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'project_trainer.freezed.dart';
 part 'project_trainer.g.dart';
 
+int _projectTrainerItemQuantityFromJson(Object? value) {
+  if (value is! int) {
+    throw FormatException(
+      'ProjectTrainerItemGrant.quantity must be an integer',
+      value,
+    );
+  }
+  return value;
+}
+
+int _projectTrainerMoneyRewardFromJson(Object? value) {
+  if (value is! int) {
+    throw FormatException(
+      'ProjectTrainerEntry.moneyReward must be an integer',
+      value,
+    );
+  }
+  return value;
+}
+
+Map<String, dynamic> _rejectExplicitNullInteger(
+  Map<String, dynamic> json, {
+  required String key,
+  required String owner,
+}) {
+  if (json.containsKey(key) && json[key] == null) {
+    throw FormatException('$owner.$key must be an integer', null);
+  }
+  return json;
+}
+
+/// Item accordé par un trainer vaincu.
+@freezed
+class ProjectTrainerItemGrant with _$ProjectTrainerItemGrant {
+  const factory ProjectTrainerItemGrant({
+    required String itemId,
+    @JsonKey(fromJson: _projectTrainerItemQuantityFromJson)
+    @Default(1)
+    int quantity,
+  }) = _ProjectTrainerItemGrant;
+
+  factory ProjectTrainerItemGrant.fromJson(Map<String, dynamic> json) =>
+      _$ProjectTrainerItemGrantFromJson(
+        _rejectExplicitNullInteger(
+          json,
+          key: 'quantity',
+          owner: 'ProjectTrainerItemGrant',
+        ),
+      );
+}
+
 /// Entrée Pokémon dans l'équipe d'un [ProjectTrainerEntry].
 @freezed
 class ProjectTrainerPokemonEntry with _$ProjectTrainerPokemonEntry {
@@ -61,15 +112,28 @@ class ProjectTrainerEntry with _$ProjectTrainerEntry {
     /// - s'il est absent ou inutilisable, le runtime retombe honnêtement sur
     ///   sa chaîne `explicite > contextuel > fallback`.
     String? battleBackgroundRelativePath,
-
     String? characterId,
     String? portraitElementId,
     String? battleThemeId,
     String? victoryThemeId,
+
+    /// Récompenses auteur neutres par défaut pour préserver les projets
+    /// historiques. Leur application runtime appartient aux lots suivants.
+    @JsonKey(fromJson: _projectTrainerMoneyRewardFromJson)
+    @Default(0)
+    int moneyReward,
+    @Default([]) List<ProjectTrainerItemGrant> rewardItemGrants,
+    @Default([]) List<String> rewardFlagIds,
     @Default([]) List<ProjectTrainerPokemonEntry> team,
     @Default([]) List<String> tags,
   }) = _ProjectTrainerEntry;
 
   factory ProjectTrainerEntry.fromJson(Map<String, dynamic> json) =>
-      _$ProjectTrainerEntryFromJson(json);
+      _$ProjectTrainerEntryFromJson(
+        _rejectExplicitNullInteger(
+          json,
+          key: 'moneyReward',
+          owner: 'ProjectTrainerEntry',
+        ),
+      );
 }

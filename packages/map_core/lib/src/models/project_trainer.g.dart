@@ -6,6 +6,22 @@ part of 'project_trainer.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_$ProjectTrainerItemGrantImpl _$$ProjectTrainerItemGrantImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectTrainerItemGrantImpl(
+      itemId: json['itemId'] as String,
+      quantity: json['quantity'] == null
+          ? 1
+          : _projectTrainerItemQuantityFromJson(json['quantity']),
+    );
+
+Map<String, dynamic> _$$ProjectTrainerItemGrantImplToJson(
+        _$ProjectTrainerItemGrantImpl instance) =>
+    <String, dynamic>{
+      'itemId': instance.itemId,
+      'quantity': instance.quantity,
+    };
+
 _$ProjectTrainerPokemonEntryImpl _$$ProjectTrainerPokemonEntryImplFromJson(
         Map<String, dynamic> json) =>
     _$ProjectTrainerPokemonEntryImpl(
@@ -45,6 +61,18 @@ _$ProjectTrainerEntryImpl _$$ProjectTrainerEntryImplFromJson(
       portraitElementId: json['portraitElementId'] as String?,
       battleThemeId: json['battleThemeId'] as String?,
       victoryThemeId: json['victoryThemeId'] as String?,
+      moneyReward: json['moneyReward'] == null
+          ? 0
+          : _projectTrainerMoneyRewardFromJson(json['moneyReward']),
+      rewardItemGrants: (json['rewardItemGrants'] as List<dynamic>?)
+              ?.map((e) =>
+                  ProjectTrainerItemGrant.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      rewardFlagIds: (json['rewardFlagIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       team: (json['team'] as List<dynamic>?)
               ?.map((e) => ProjectTrainerPokemonEntry.fromJson(
                   e as Map<String, dynamic>))
@@ -67,6 +95,10 @@ Map<String, dynamic> _$$ProjectTrainerEntryImplToJson(
       'portraitElementId': instance.portraitElementId,
       'battleThemeId': instance.battleThemeId,
       'victoryThemeId': instance.victoryThemeId,
+      'moneyReward': instance.moneyReward,
+      'rewardItemGrants':
+          instance.rewardItemGrants.map((e) => e.toJson()).toList(),
+      'rewardFlagIds': instance.rewardFlagIds,
       'team': instance.team.map((e) => e.toJson()).toList(),
       'tags': instance.tags,
     };

@@ -17,7 +17,8 @@ void main() {
             battleDifficulty: 11,
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),);
+        surfaceCatalog: ProjectSurfaceCatalog(),
+      );
 
       expect(
         () => ProjectValidator.validate(manifest),
@@ -44,7 +45,8 @@ void main() {
             battleBackgroundRelativePath: '../outside.png',
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),);
+        surfaceCatalog: ProjectSurfaceCatalog(),
+      );
 
       expect(
         () => ProjectValidator.validate(manifest),
@@ -57,5 +59,67 @@ void main() {
         ),
       );
     });
+
+    final invalidRewards = <String, ProjectTrainerEntry>{
+      'negative moneyReward': const ProjectTrainerEntry(
+        id: 'rookie',
+        name: 'Rookie',
+        trainerClass: 'Trainer',
+        moneyReward: -1,
+      ),
+      'non-positive item quantity': const ProjectTrainerEntry(
+        id: 'rookie',
+        name: 'Rookie',
+        trainerClass: 'Trainer',
+        rewardItemGrants: <ProjectTrainerItemGrant>[
+          ProjectTrainerItemGrant(itemId: 'potion', quantity: 0),
+        ],
+      ),
+      'empty item id': const ProjectTrainerEntry(
+        id: 'rookie',
+        name: 'Rookie',
+        trainerClass: 'Trainer',
+        rewardItemGrants: <ProjectTrainerItemGrant>[
+          ProjectTrainerItemGrant(itemId: '  ', quantity: 1),
+        ],
+      ),
+      'duplicate item ids': const ProjectTrainerEntry(
+        id: 'rookie',
+        name: 'Rookie',
+        trainerClass: 'Trainer',
+        rewardItemGrants: <ProjectTrainerItemGrant>[
+          ProjectTrainerItemGrant(itemId: 'potion', quantity: 1),
+          ProjectTrainerItemGrant(itemId: ' potion ', quantity: 2),
+        ],
+      ),
+      'duplicate flag ids': const ProjectTrainerEntry(
+        id: 'rookie',
+        name: 'Rookie',
+        trainerClass: 'Trainer',
+        rewardFlagIds: <String>['victory', ' victory '],
+      ),
+      'empty flag id': const ProjectTrainerEntry(
+        id: 'rookie',
+        name: 'Rookie',
+        trainerClass: 'Trainer',
+        rewardFlagIds: <String>[''],
+      ),
+    };
+    for (final invalidReward in invalidRewards.entries) {
+      test('rejects ${invalidReward.key}', () {
+        final manifest = ProjectManifest(
+          name: 'trainer_reward_validation_test',
+          maps: const <ProjectMapEntry>[],
+          tilesets: const <ProjectTilesetEntry>[],
+          trainers: <ProjectTrainerEntry>[invalidReward.value],
+          surfaceCatalog: ProjectSurfaceCatalog(),
+        );
+
+        expect(
+          () => ProjectValidator.validate(manifest),
+          throwsA(isA<ValidationException>()),
+        );
+      });
+    }
   });
 }

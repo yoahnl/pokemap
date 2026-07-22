@@ -2583,6 +2583,11 @@ Future<void> _rewriteSpeciesWithoutLearnsetRef(
       'abilities': <String, String>{
         'primary': primaryAbilityId,
       },
+      'progression': <String, Object>{
+        'growthRateId': 'medium_slow',
+        'baseExp': 64,
+        'catchRate': 45,
+      },
       // Ce helper retire volontairement `refs.learnset` pour vérifier que le
       // mapper, via le loader learnset, retombe bien sur l'id de l'espèce.
     },

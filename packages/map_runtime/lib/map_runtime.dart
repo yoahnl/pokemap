@@ -30,6 +30,7 @@ export 'src/application/runtime_player_pokemon_progression_hydrator.dart'
         RuntimePlayerPokemonProgressionHydrationException,
         RuntimePlayerPokemonProgressionCatalogs,
         RuntimePlayerPokemonProgressionCatalogLoader,
+        runtimeSupportedPokemonGrowthRateIds,
         hydrateRuntimePlayerPokemonProgression,
         loadRuntimePlayerPokemonProgressionCatalogs;
 export 'src/application/load_runtime_map_bundle.dart' show loadRuntimeMapBundle;

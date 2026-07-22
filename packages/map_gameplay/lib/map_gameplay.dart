@@ -1,5 +1,11 @@
 library map_gameplay;
 
+export 'src/battle_reward.dart'
+    show
+        BattleRewardSourceKind,
+        BattleExperienceGrant,
+        BattleRewardItemGrant,
+        BattleReward;
 export 'src/direction.dart' show Direction, DirectionX, EntityFacingX;
 export 'src/gameplay_exceptions.dart' show GameplaySpawnResolutionException;
 export 'src/player_spawn_resolver.dart' show resolveInitialPlayerSpawn;

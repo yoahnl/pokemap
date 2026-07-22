@@ -1302,6 +1302,47 @@ class ProjectValidator {
           'Trainer $id battleDifficulty must stay within 1..10 (got $battleDifficulty)',
         );
       }
+      if (trainer.moneyReward < 0) {
+        throw ValidationException(
+          'Trainer $id moneyReward must be non-negative '
+          '(got ${trainer.moneyReward})',
+        );
+      }
+      final rewardItemIds = <String>{};
+      for (var i = 0; i < trainer.rewardItemGrants.length; i++) {
+        final itemGrant = trainer.rewardItemGrants[i];
+        final itemId = itemGrant.itemId.trim();
+        if (itemId.isEmpty) {
+          throw ValidationException(
+            'Trainer $id rewardItemGrants[$i] has empty itemId',
+          );
+        }
+        if (itemGrant.quantity <= 0) {
+          throw ValidationException(
+            'Trainer $id rewardItemGrants[$i] quantity must be positive '
+            '(got ${itemGrant.quantity})',
+          );
+        }
+        if (!rewardItemIds.add(itemId)) {
+          throw ValidationException(
+            'Trainer $id rewardItemGrants contains duplicate itemId "$itemId"',
+          );
+        }
+      }
+      final rewardFlagIds = <String>{};
+      for (var i = 0; i < trainer.rewardFlagIds.length; i++) {
+        final flagId = trainer.rewardFlagIds[i].trim();
+        if (flagId.isEmpty) {
+          throw ValidationException(
+            'Trainer $id rewardFlagIds[$i] must not be empty',
+          );
+        }
+        if (!rewardFlagIds.add(flagId)) {
+          throw ValidationException(
+            'Trainer $id rewardFlagIds contains duplicate flag "$flagId"',
+          );
+        }
+      }
       final battleBackgroundRelativePath =
           trainer.battleBackgroundRelativePath?.trim();
       if (battleBackgroundRelativePath != null &&

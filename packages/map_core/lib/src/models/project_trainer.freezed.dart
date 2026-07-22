@@ -14,6 +14,191 @@ T _$identity<T>(T value) => value;
 final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
+ProjectTrainerItemGrant _$ProjectTrainerItemGrantFromJson(
+    Map<String, dynamic> json) {
+  return _ProjectTrainerItemGrant.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectTrainerItemGrant {
+  String get itemId => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _projectTrainerItemQuantityFromJson)
+  int get quantity => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectTrainerItemGrant to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectTrainerItemGrant
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectTrainerItemGrantCopyWith<ProjectTrainerItemGrant> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectTrainerItemGrantCopyWith<$Res> {
+  factory $ProjectTrainerItemGrantCopyWith(ProjectTrainerItemGrant value,
+          $Res Function(ProjectTrainerItemGrant) then) =
+      _$ProjectTrainerItemGrantCopyWithImpl<$Res, ProjectTrainerItemGrant>;
+  @useResult
+  $Res call(
+      {String itemId,
+      @JsonKey(fromJson: _projectTrainerItemQuantityFromJson) int quantity});
+}
+
+/// @nodoc
+class _$ProjectTrainerItemGrantCopyWithImpl<$Res,
+        $Val extends ProjectTrainerItemGrant>
+    implements $ProjectTrainerItemGrantCopyWith<$Res> {
+  _$ProjectTrainerItemGrantCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectTrainerItemGrant
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? itemId = null,
+    Object? quantity = null,
+  }) {
+    return _then(_value.copyWith(
+      itemId: null == itemId
+          ? _value.itemId
+          : itemId // ignore: cast_nullable_to_non_nullable
+              as String,
+      quantity: null == quantity
+          ? _value.quantity
+          : quantity // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectTrainerItemGrantImplCopyWith<$Res>
+    implements $ProjectTrainerItemGrantCopyWith<$Res> {
+  factory _$$ProjectTrainerItemGrantImplCopyWith(
+          _$ProjectTrainerItemGrantImpl value,
+          $Res Function(_$ProjectTrainerItemGrantImpl) then) =
+      __$$ProjectTrainerItemGrantImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String itemId,
+      @JsonKey(fromJson: _projectTrainerItemQuantityFromJson) int quantity});
+}
+
+/// @nodoc
+class __$$ProjectTrainerItemGrantImplCopyWithImpl<$Res>
+    extends _$ProjectTrainerItemGrantCopyWithImpl<$Res,
+        _$ProjectTrainerItemGrantImpl>
+    implements _$$ProjectTrainerItemGrantImplCopyWith<$Res> {
+  __$$ProjectTrainerItemGrantImplCopyWithImpl(
+      _$ProjectTrainerItemGrantImpl _value,
+      $Res Function(_$ProjectTrainerItemGrantImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectTrainerItemGrant
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? itemId = null,
+    Object? quantity = null,
+  }) {
+    return _then(_$ProjectTrainerItemGrantImpl(
+      itemId: null == itemId
+          ? _value.itemId
+          : itemId // ignore: cast_nullable_to_non_nullable
+              as String,
+      quantity: null == quantity
+          ? _value.quantity
+          : quantity // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ProjectTrainerItemGrantImpl implements _ProjectTrainerItemGrant {
+  const _$ProjectTrainerItemGrantImpl(
+      {required this.itemId,
+      @JsonKey(fromJson: _projectTrainerItemQuantityFromJson)
+      this.quantity = 1});
+
+  factory _$ProjectTrainerItemGrantImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectTrainerItemGrantImplFromJson(json);
+
+  @override
+  final String itemId;
+  @override
+  @JsonKey(fromJson: _projectTrainerItemQuantityFromJson)
+  final int quantity;
+
+  @override
+  String toString() {
+    return 'ProjectTrainerItemGrant(itemId: $itemId, quantity: $quantity)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectTrainerItemGrantImpl &&
+            (identical(other.itemId, itemId) || other.itemId == itemId) &&
+            (identical(other.quantity, quantity) ||
+                other.quantity == quantity));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, itemId, quantity);
+
+  /// Create a copy of ProjectTrainerItemGrant
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectTrainerItemGrantImplCopyWith<_$ProjectTrainerItemGrantImpl>
+      get copyWith => __$$ProjectTrainerItemGrantImplCopyWithImpl<
+          _$ProjectTrainerItemGrantImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectTrainerItemGrantImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectTrainerItemGrant implements ProjectTrainerItemGrant {
+  const factory _ProjectTrainerItemGrant(
+      {required final String itemId,
+      @JsonKey(fromJson: _projectTrainerItemQuantityFromJson)
+      final int quantity}) = _$ProjectTrainerItemGrantImpl;
+
+  factory _ProjectTrainerItemGrant.fromJson(Map<String, dynamic> json) =
+      _$ProjectTrainerItemGrantImpl.fromJson;
+
+  @override
+  String get itemId;
+  @override
+  @JsonKey(fromJson: _projectTrainerItemQuantityFromJson)
+  int get quantity;
+
+  /// Create a copy of ProjectTrainerItemGrant
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectTrainerItemGrantImplCopyWith<_$ProjectTrainerItemGrantImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 ProjectTrainerPokemonEntry _$ProjectTrainerPokemonEntryFromJson(
     Map<String, dynamic> json) {
   return _ProjectTrainerPokemonEntry.fromJson(json);
@@ -372,6 +557,14 @@ mixin _$ProjectTrainerEntry {
   String? get portraitElementId => throw _privateConstructorUsedError;
   String? get battleThemeId => throw _privateConstructorUsedError;
   String? get victoryThemeId => throw _privateConstructorUsedError;
+
+  /// Récompenses auteur neutres par défaut pour préserver les projets
+  /// historiques. Leur application runtime appartient aux lots suivants.
+  @JsonKey(fromJson: _projectTrainerMoneyRewardFromJson)
+  int get moneyReward => throw _privateConstructorUsedError;
+  List<ProjectTrainerItemGrant> get rewardItemGrants =>
+      throw _privateConstructorUsedError;
+  List<String> get rewardFlagIds => throw _privateConstructorUsedError;
   List<ProjectTrainerPokemonEntry> get team =>
       throw _privateConstructorUsedError;
   List<String> get tags => throw _privateConstructorUsedError;
@@ -402,6 +595,9 @@ abstract class $ProjectTrainerEntryCopyWith<$Res> {
       String? portraitElementId,
       String? battleThemeId,
       String? victoryThemeId,
+      @JsonKey(fromJson: _projectTrainerMoneyRewardFromJson) int moneyReward,
+      List<ProjectTrainerItemGrant> rewardItemGrants,
+      List<String> rewardFlagIds,
       List<ProjectTrainerPokemonEntry> team,
       List<String> tags});
 }
@@ -430,6 +626,9 @@ class _$ProjectTrainerEntryCopyWithImpl<$Res, $Val extends ProjectTrainerEntry>
     Object? portraitElementId = freezed,
     Object? battleThemeId = freezed,
     Object? victoryThemeId = freezed,
+    Object? moneyReward = null,
+    Object? rewardItemGrants = null,
+    Object? rewardFlagIds = null,
     Object? team = null,
     Object? tags = null,
   }) {
@@ -470,6 +669,18 @@ class _$ProjectTrainerEntryCopyWithImpl<$Res, $Val extends ProjectTrainerEntry>
           ? _value.victoryThemeId
           : victoryThemeId // ignore: cast_nullable_to_non_nullable
               as String?,
+      moneyReward: null == moneyReward
+          ? _value.moneyReward
+          : moneyReward // ignore: cast_nullable_to_non_nullable
+              as int,
+      rewardItemGrants: null == rewardItemGrants
+          ? _value.rewardItemGrants
+          : rewardItemGrants // ignore: cast_nullable_to_non_nullable
+              as List<ProjectTrainerItemGrant>,
+      rewardFlagIds: null == rewardFlagIds
+          ? _value.rewardFlagIds
+          : rewardFlagIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
       team: null == team
           ? _value.team
           : team // ignore: cast_nullable_to_non_nullable
@@ -500,6 +711,9 @@ abstract class _$$ProjectTrainerEntryImplCopyWith<$Res>
       String? portraitElementId,
       String? battleThemeId,
       String? victoryThemeId,
+      @JsonKey(fromJson: _projectTrainerMoneyRewardFromJson) int moneyReward,
+      List<ProjectTrainerItemGrant> rewardItemGrants,
+      List<String> rewardFlagIds,
       List<ProjectTrainerPokemonEntry> team,
       List<String> tags});
 }
@@ -526,6 +740,9 @@ class __$$ProjectTrainerEntryImplCopyWithImpl<$Res>
     Object? portraitElementId = freezed,
     Object? battleThemeId = freezed,
     Object? victoryThemeId = freezed,
+    Object? moneyReward = null,
+    Object? rewardItemGrants = null,
+    Object? rewardFlagIds = null,
     Object? team = null,
     Object? tags = null,
   }) {
@@ -566,6 +783,18 @@ class __$$ProjectTrainerEntryImplCopyWithImpl<$Res>
           ? _value.victoryThemeId
           : victoryThemeId // ignore: cast_nullable_to_non_nullable
               as String?,
+      moneyReward: null == moneyReward
+          ? _value.moneyReward
+          : moneyReward // ignore: cast_nullable_to_non_nullable
+              as int,
+      rewardItemGrants: null == rewardItemGrants
+          ? _value._rewardItemGrants
+          : rewardItemGrants // ignore: cast_nullable_to_non_nullable
+              as List<ProjectTrainerItemGrant>,
+      rewardFlagIds: null == rewardFlagIds
+          ? _value._rewardFlagIds
+          : rewardFlagIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
       team: null == team
           ? _value._team
           : team // ignore: cast_nullable_to_non_nullable
@@ -592,9 +821,15 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
       this.portraitElementId,
       this.battleThemeId,
       this.victoryThemeId,
+      @JsonKey(fromJson: _projectTrainerMoneyRewardFromJson)
+      this.moneyReward = 0,
+      final List<ProjectTrainerItemGrant> rewardItemGrants = const [],
+      final List<String> rewardFlagIds = const [],
       final List<ProjectTrainerPokemonEntry> team = const [],
       final List<String> tags = const []})
-      : _team = team,
+      : _rewardItemGrants = rewardItemGrants,
+        _rewardFlagIds = rewardFlagIds,
+        _team = team,
         _tags = tags;
 
   factory _$ProjectTrainerEntryImpl.fromJson(Map<String, dynamic> json) =>
@@ -645,6 +880,31 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
   final String? battleThemeId;
   @override
   final String? victoryThemeId;
+
+  /// Récompenses auteur neutres par défaut pour préserver les projets
+  /// historiques. Leur application runtime appartient aux lots suivants.
+  @override
+  @JsonKey(fromJson: _projectTrainerMoneyRewardFromJson)
+  final int moneyReward;
+  final List<ProjectTrainerItemGrant> _rewardItemGrants;
+  @override
+  @JsonKey()
+  List<ProjectTrainerItemGrant> get rewardItemGrants {
+    if (_rewardItemGrants is EqualUnmodifiableListView)
+      return _rewardItemGrants;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_rewardItemGrants);
+  }
+
+  final List<String> _rewardFlagIds;
+  @override
+  @JsonKey()
+  List<String> get rewardFlagIds {
+    if (_rewardFlagIds is EqualUnmodifiableListView) return _rewardFlagIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_rewardFlagIds);
+  }
+
   final List<ProjectTrainerPokemonEntry> _team;
   @override
   @JsonKey()
@@ -665,7 +925,7 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
 
   @override
   String toString() {
-    return 'ProjectTrainerEntry(id: $id, name: $name, trainerClass: $trainerClass, battleDifficulty: $battleDifficulty, battleBackgroundRelativePath: $battleBackgroundRelativePath, characterId: $characterId, portraitElementId: $portraitElementId, battleThemeId: $battleThemeId, victoryThemeId: $victoryThemeId, team: $team, tags: $tags)';
+    return 'ProjectTrainerEntry(id: $id, name: $name, trainerClass: $trainerClass, battleDifficulty: $battleDifficulty, battleBackgroundRelativePath: $battleBackgroundRelativePath, characterId: $characterId, portraitElementId: $portraitElementId, battleThemeId: $battleThemeId, victoryThemeId: $victoryThemeId, moneyReward: $moneyReward, rewardItemGrants: $rewardItemGrants, rewardFlagIds: $rewardFlagIds, team: $team, tags: $tags)';
   }
 
   @override
@@ -691,6 +951,12 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
                 other.battleThemeId == battleThemeId) &&
             (identical(other.victoryThemeId, victoryThemeId) ||
                 other.victoryThemeId == victoryThemeId) &&
+            (identical(other.moneyReward, moneyReward) ||
+                other.moneyReward == moneyReward) &&
+            const DeepCollectionEquality()
+                .equals(other._rewardItemGrants, _rewardItemGrants) &&
+            const DeepCollectionEquality()
+                .equals(other._rewardFlagIds, _rewardFlagIds) &&
             const DeepCollectionEquality().equals(other._team, _team) &&
             const DeepCollectionEquality().equals(other._tags, _tags));
   }
@@ -708,6 +974,9 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
       portraitElementId,
       battleThemeId,
       victoryThemeId,
+      moneyReward,
+      const DeepCollectionEquality().hash(_rewardItemGrants),
+      const DeepCollectionEquality().hash(_rewardFlagIds),
       const DeepCollectionEquality().hash(_team),
       const DeepCollectionEquality().hash(_tags));
 
@@ -739,6 +1008,10 @@ abstract class _ProjectTrainerEntry implements ProjectTrainerEntry {
       final String? portraitElementId,
       final String? battleThemeId,
       final String? victoryThemeId,
+      @JsonKey(fromJson: _projectTrainerMoneyRewardFromJson)
+      final int moneyReward,
+      final List<ProjectTrainerItemGrant> rewardItemGrants,
+      final List<String> rewardFlagIds,
       final List<ProjectTrainerPokemonEntry> team,
       final List<String> tags}) = _$ProjectTrainerEntryImpl;
 
@@ -790,6 +1063,16 @@ abstract class _ProjectTrainerEntry implements ProjectTrainerEntry {
   String? get battleThemeId;
   @override
   String? get victoryThemeId;
+
+  /// Récompenses auteur neutres par défaut pour préserver les projets
+  /// historiques. Leur application runtime appartient aux lots suivants.
+  @override
+  @JsonKey(fromJson: _projectTrainerMoneyRewardFromJson)
+  int get moneyReward;
+  @override
+  List<ProjectTrainerItemGrant> get rewardItemGrants;
+  @override
+  List<String> get rewardFlagIds;
   @override
   List<ProjectTrainerPokemonEntry> get team;
   @override

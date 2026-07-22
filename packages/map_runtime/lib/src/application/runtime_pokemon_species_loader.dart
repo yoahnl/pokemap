@@ -6,6 +6,77 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import 'runtime_battle_setup_exception.dart';
+import 'runtime_player_pokemon_progression_hydrator.dart';
+
+/// Projection progression validée d'une fiche espèce projet.
+final class RuntimePokemonSpeciesProgression {
+  const RuntimePokemonSpeciesProgression({
+    required this.growthRateId,
+    required this.baseExp,
+    required this.catchRate,
+  });
+
+  final String growthRateId;
+  final int baseExp;
+  final int catchRate;
+}
+
+/// Valide et projette les champs de progression consommés par le runtime.
+///
+/// Ce seam pur est partagé avec l'audit du catalogue Selbrume : le test de
+/// masse et le vrai loader ne peuvent donc pas dériver sur leurs invariants.
+RuntimePokemonSpeciesProgression parseRuntimePokemonSpeciesProgression(
+  Map<String, dynamic> rawJson, {
+  required String expectedSpeciesId,
+  required String filePath,
+}) {
+  final rawDeclaredSpeciesId = rawJson['id'];
+  final declaredSpeciesId =
+      rawDeclaredSpeciesId is String ? rawDeclaredSpeciesId.trim() : '';
+  if (declaredSpeciesId != expectedSpeciesId) {
+    throw RuntimeBattleSetupException(
+      'Les données de progression Pokémon locales sont invalides; combat impossible.',
+      debugDetails:
+          'speciesId=$expectedSpeciesId, file=$filePath, declaredId=$declaredSpeciesId',
+    );
+  }
+
+  final rawProgression = rawJson['progression'];
+  final progression =
+      rawProgression is Map ? rawProgression.cast<String, dynamic>() : null;
+  if (progression == null) {
+    throw RuntimeBattleSetupException(
+      'Les données de progression Pokémon locales sont invalides; combat impossible.',
+      debugDetails:
+          'speciesId=$expectedSpeciesId, file=$filePath, missing progression',
+    );
+  }
+  final rawGrowthRateId = progression['growthRateId'];
+  final growthRateId =
+      rawGrowthRateId is String ? rawGrowthRateId.trim().toLowerCase() : '';
+  final rawBaseExp = progression['baseExp'];
+  final rawCatchRate = progression['catchRate'];
+  final baseExp = rawBaseExp is int ? rawBaseExp : null;
+  final catchRate = rawCatchRate is int ? rawCatchRate : null;
+  if (!runtimeSupportedPokemonGrowthRateIds.contains(growthRateId) ||
+      baseExp == null ||
+      baseExp <= 0 ||
+      catchRate == null ||
+      catchRate < 1 ||
+      catchRate > 255) {
+    throw RuntimeBattleSetupException(
+      'Les données de progression Pokémon locales sont invalides; combat impossible.',
+      debugDetails:
+          'speciesId=$expectedSpeciesId, file=$filePath, progression requires a supported growthRateId, baseExp > 0 and catchRate within 1..255',
+    );
+  }
+
+  return RuntimePokemonSpeciesProgression(
+    growthRateId: growthRateId,
+    baseExp: baseExp,
+    catchRate: catchRate,
+  );
+}
 
 /// Loader runtime spécialisé des espèces Pokémon projet.
 ///
@@ -197,6 +268,11 @@ class RuntimePokemonSpeciesLoader {
       expectedSpeciesId: expectedSpeciesId,
       filePath: filePath,
     );
+    final progression = parseRuntimePokemonSpeciesProgression(
+      rawJson,
+      expectedSpeciesId: expectedSpeciesId,
+      filePath: filePath,
+    );
 
     return RuntimePokemonSpecies(
       id: expectedSpeciesId,
@@ -219,6 +295,9 @@ class RuntimePokemonSpeciesLoader {
       // `learnsetRef` peut rester vide : le loader learnset conservera le
       // fallback historique vers l'id de l'espèce.
       learnsetRef: (refs['learnset'] as String?)?.trim() ?? '',
+      growthRateId: progression.growthRateId,
+      baseExp: progression.baseExp,
+      catchRate: progression.catchRate,
     );
   }
 
@@ -380,6 +459,9 @@ class RuntimePokemonSpecies {
     this.femaleGenderRatio,
     required this.primaryAbilityId,
     required this.learnsetRef,
+    required this.growthRateId,
+    required this.baseExp,
+    required this.catchRate,
   });
 
   final String id;
@@ -401,4 +483,7 @@ class RuntimePokemonSpecies {
   final double? femaleGenderRatio;
   final String primaryAbilityId;
   final String learnsetRef;
+  final String growthRateId;
+  final int baseExp;
+  final int catchRate;
 }

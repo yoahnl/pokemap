@@ -56,7 +56,7 @@
   },
   "progression": {
     "growthRateId": "medium_slow",
-    "baseExp": 0,
+    "baseExp": 168,
     "catchRate": 60,
     "baseFriendship": 70
   },

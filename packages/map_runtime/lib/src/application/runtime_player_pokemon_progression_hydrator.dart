@@ -6,6 +6,20 @@ import 'package:path/path.dart' as p;
 
 import 'runtime_move_catalog_loader.dart';
 
+/// IDs canoniques réellement produits par les importeurs Pokémon du projet.
+///
+/// Le loader d'espèce et l'hydrateur legacy partagent cette liste afin de ne
+/// jamais accepter un profil que la courbe d'XP runtime ne saurait calculer.
+const runtimeSupportedPokemonGrowthRateIds = <String>{
+  'fast',
+  'fast_then_very_slow',
+  'medium',
+  'medium_fast',
+  'medium_slow',
+  'slow',
+  'slow_then_very_fast',
+};
+
 /// Machine-readable failures raised before a persisted Pokemon becomes
 /// playable.
 ///
