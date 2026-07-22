@@ -1204,6 +1204,7 @@ mixin _$PlayerProgression {
   List<FieldAbility> get unlockedFieldAbilities =>
       throw _privateConstructorUsedError;
   List<String> get storyFlags => throw _privateConstructorUsedError;
+  Map<String, int> get shopPurchaseCounts => throw _privateConstructorUsedError;
   List<String> get completedStepIds => throw _privateConstructorUsedError;
   List<String> get completedCutsceneIds => throw _privateConstructorUsedError;
   List<String> get seenSpeciesIds => throw _privateConstructorUsedError;
@@ -1228,6 +1229,7 @@ abstract class $PlayerProgressionCopyWith<$Res> {
   $Res call(
       {List<FieldAbility> unlockedFieldAbilities,
       List<String> storyFlags,
+      Map<String, int> shopPurchaseCounts,
       List<String> completedStepIds,
       List<String> completedCutsceneIds,
       List<String> seenSpeciesIds,
@@ -1251,6 +1253,7 @@ class _$PlayerProgressionCopyWithImpl<$Res, $Val extends PlayerProgression>
   $Res call({
     Object? unlockedFieldAbilities = null,
     Object? storyFlags = null,
+    Object? shopPurchaseCounts = null,
     Object? completedStepIds = null,
     Object? completedCutsceneIds = null,
     Object? seenSpeciesIds = null,
@@ -1265,6 +1268,10 @@ class _$PlayerProgressionCopyWithImpl<$Res, $Val extends PlayerProgression>
           ? _value.storyFlags
           : storyFlags // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      shopPurchaseCounts: null == shopPurchaseCounts
+          ? _value.shopPurchaseCounts
+          : shopPurchaseCounts // ignore: cast_nullable_to_non_nullable
+              as Map<String, int>,
       completedStepIds: null == completedStepIds
           ? _value.completedStepIds
           : completedStepIds // ignore: cast_nullable_to_non_nullable
@@ -1296,6 +1303,7 @@ abstract class _$$PlayerProgressionImplCopyWith<$Res>
   $Res call(
       {List<FieldAbility> unlockedFieldAbilities,
       List<String> storyFlags,
+      Map<String, int> shopPurchaseCounts,
       List<String> completedStepIds,
       List<String> completedCutsceneIds,
       List<String> seenSpeciesIds,
@@ -1317,6 +1325,7 @@ class __$$PlayerProgressionImplCopyWithImpl<$Res>
   $Res call({
     Object? unlockedFieldAbilities = null,
     Object? storyFlags = null,
+    Object? shopPurchaseCounts = null,
     Object? completedStepIds = null,
     Object? completedCutsceneIds = null,
     Object? seenSpeciesIds = null,
@@ -1331,6 +1340,10 @@ class __$$PlayerProgressionImplCopyWithImpl<$Res>
           ? _value._storyFlags
           : storyFlags // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      shopPurchaseCounts: null == shopPurchaseCounts
+          ? _value._shopPurchaseCounts
+          : shopPurchaseCounts // ignore: cast_nullable_to_non_nullable
+              as Map<String, int>,
       completedStepIds: null == completedStepIds
           ? _value._completedStepIds
           : completedStepIds // ignore: cast_nullable_to_non_nullable
@@ -1358,12 +1371,14 @@ class _$PlayerProgressionImpl extends _PlayerProgression {
   const _$PlayerProgressionImpl(
       {final List<FieldAbility> unlockedFieldAbilities = const [],
       final List<String> storyFlags = const [],
+      final Map<String, int> shopPurchaseCounts = const {},
       final List<String> completedStepIds = const [],
       final List<String> completedCutsceneIds = const [],
       final List<String> seenSpeciesIds = const [],
       final List<String> caughtSpeciesIds = const []})
       : _unlockedFieldAbilities = unlockedFieldAbilities,
         _storyFlags = storyFlags,
+        _shopPurchaseCounts = shopPurchaseCounts,
         _completedStepIds = completedStepIds,
         _completedCutsceneIds = completedCutsceneIds,
         _seenSpeciesIds = seenSpeciesIds,
@@ -1390,6 +1405,16 @@ class _$PlayerProgressionImpl extends _PlayerProgression {
     if (_storyFlags is EqualUnmodifiableListView) return _storyFlags;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_storyFlags);
+  }
+
+  final Map<String, int> _shopPurchaseCounts;
+  @override
+  @JsonKey()
+  Map<String, int> get shopPurchaseCounts {
+    if (_shopPurchaseCounts is EqualUnmodifiableMapView)
+      return _shopPurchaseCounts;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_shopPurchaseCounts);
   }
 
   final List<String> _completedStepIds;
@@ -1433,7 +1458,7 @@ class _$PlayerProgressionImpl extends _PlayerProgression {
 
   @override
   String toString() {
-    return 'PlayerProgression(unlockedFieldAbilities: $unlockedFieldAbilities, storyFlags: $storyFlags, completedStepIds: $completedStepIds, completedCutsceneIds: $completedCutsceneIds, seenSpeciesIds: $seenSpeciesIds, caughtSpeciesIds: $caughtSpeciesIds)';
+    return 'PlayerProgression(unlockedFieldAbilities: $unlockedFieldAbilities, storyFlags: $storyFlags, shopPurchaseCounts: $shopPurchaseCounts, completedStepIds: $completedStepIds, completedCutsceneIds: $completedCutsceneIds, seenSpeciesIds: $seenSpeciesIds, caughtSpeciesIds: $caughtSpeciesIds)';
   }
 
   @override
@@ -1445,6 +1470,8 @@ class _$PlayerProgressionImpl extends _PlayerProgression {
                 other._unlockedFieldAbilities, _unlockedFieldAbilities) &&
             const DeepCollectionEquality()
                 .equals(other._storyFlags, _storyFlags) &&
+            const DeepCollectionEquality()
+                .equals(other._shopPurchaseCounts, _shopPurchaseCounts) &&
             const DeepCollectionEquality()
                 .equals(other._completedStepIds, _completedStepIds) &&
             const DeepCollectionEquality()
@@ -1461,6 +1488,7 @@ class _$PlayerProgressionImpl extends _PlayerProgression {
       runtimeType,
       const DeepCollectionEquality().hash(_unlockedFieldAbilities),
       const DeepCollectionEquality().hash(_storyFlags),
+      const DeepCollectionEquality().hash(_shopPurchaseCounts),
       const DeepCollectionEquality().hash(_completedStepIds),
       const DeepCollectionEquality().hash(_completedCutsceneIds),
       const DeepCollectionEquality().hash(_seenSpeciesIds),
@@ -1487,6 +1515,7 @@ abstract class _PlayerProgression extends PlayerProgression {
   const factory _PlayerProgression(
       {final List<FieldAbility> unlockedFieldAbilities,
       final List<String> storyFlags,
+      final Map<String, int> shopPurchaseCounts,
       final List<String> completedStepIds,
       final List<String> completedCutsceneIds,
       final List<String> seenSpeciesIds,
@@ -1500,6 +1529,8 @@ abstract class _PlayerProgression extends PlayerProgression {
   List<FieldAbility> get unlockedFieldAbilities;
   @override
   List<String> get storyFlags;
+  @override
+  Map<String, int> get shopPurchaseCounts;
   @override
   List<String> get completedStepIds;
   @override

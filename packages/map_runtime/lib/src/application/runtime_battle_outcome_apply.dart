@@ -189,6 +189,12 @@ RuntimeBattleCaptureAttemptSubmission<T> submitRuntimeBattleCaptureAttempt<T>({
   if (context.request is! WildBattleStartRequest || !captureAllowed) {
     throw StateError('Capture is not allowed for this battle.');
   }
+  if (gameState.party.members.length >= maxPlayerPartySize &&
+      const PlayerStorageOperations()
+              .findFirstAvailableSlot(gameState.pokemonStorage) ==
+          null) {
+    throw StateError('Pokemon storage is full. Capture cannot be attempted.');
+  }
   final chargedBag = _consumeOnePokeBallOrThrow(gameState.bag);
   final result = submitToEngine();
   final captureAttempt = switch (result) {

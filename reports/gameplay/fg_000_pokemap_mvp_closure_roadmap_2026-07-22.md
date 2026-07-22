@@ -446,6 +446,8 @@ la Gate Phase 3.
 
 ## Task 3.1 — FG-022 / FG-030 / FG-069 : contrats persistants
 
+**Statut : terminé le 2026-07-23 — commit `5f4de193`.**
+
 **Files:**
 
 - Modify: `packages/map_core/lib/src/models/save_data.dart`
@@ -468,13 +470,13 @@ la Gate Phase 3.
 - Modify: `packages/map_core/test/game_state_persistence_test.dart`
 - Modify: `packages/map_core/test/project_json_migrations_test.dart`
 
-- [ ] **Step 1:** Migrer `storedPokemon` vers des boxes à ID stable, capacité et ordre déterministes.
-- [ ] **Step 2:** Ajouter un shop projet : ID, label, entrées item/prix et validation de références.
-- [ ] **Step 3:** Ajouter `BadgeDefinition` au manifeste : ID stable, label, icône optionnelle et field ability optionnelle pour alimenter les pickers.
-- [ ] **Step 4:** Garantir round-trip legacy sans perte et refuser boxes, shops ou badges invalides.
-- [ ] **Step 5:** Réutiliser `TrainerProfile.badgeIds` et les field abilities existantes ; ne pas créer un second registre d'acquisition.
-- [ ] **Step 6:** Régénérer Core, tester et analyser.
-- [ ] **Step 7:** Exécuter :
+- [x] **Step 1:** Migrer `storedPokemon` vers des boxes à ID stable, capacité et ordre déterministes.
+- [x] **Step 2:** Ajouter un shop projet : ID, label, entrées item/prix et validation de références.
+- [x] **Step 3:** Ajouter `BadgeDefinition` au manifeste : ID stable, label, icône optionnelle et field ability optionnelle pour alimenter les pickers.
+- [x] **Step 4:** Garantir round-trip legacy sans perte et refuser boxes, shops ou badges invalides.
+- [x] **Step 5:** Réutiliser `TrainerProfile.badgeIds` et les field abilities existantes ; ne pas créer un second registre d'acquisition.
+- [x] **Step 6:** Régénérer Core, tester et analyser.
+- [x] **Step 7:** Exécuter :
 
 ```bash
 cd packages/map_core
@@ -483,9 +485,12 @@ dart test test/game_state_persistence_test.dart test/project_json_migrations_tes
 dart analyze
 ```
 
-- [ ] **Step 8:** Commit proposé : `feat(core): add PC boxes shops and badge definitions`.
+- [x] **Step 8:** Commit créé : `feat(core): add PC boxes shops and badge definitions` (`5f4de193`).
 
 ## Task 3.2 — FG-023 / FG-024 / FG-025 / FG-028 / FG-060 / FG-062 / FG-063 / FG-071 : opérations pures
+
+**Statut : terminé le 2026-07-23 — preuves fraîches Gameplay/Core/runtime ;
+commit créé avec la présente mise à jour.**
 
 **Files:**
 
@@ -497,13 +502,13 @@ dart analyze
 - Modify: `packages/map_gameplay/test/party_bag_heal_operations_test.dart`
 - Modify: `packages/map_gameplay/test/capture_destination_operations_test.dart`
 
-- [ ] **Step 1:** Ajouter dépôt, retrait, swap Party/Box, déplacement Box/Box et changement de lead atomiques.
-- [ ] **Step 2:** Limiter la party à six et interdire le retrait du dernier Pokémon utilisable si la règle l'exige.
-- [ ] **Step 3:** Retourner des résultats d'erreur typés sans mutation partielle.
-- [ ] **Step 4:** Étendre le soin à HP, statut et PP persistés.
-- [ ] **Step 5:** Protéger achat inconnu, quantité invalide, fonds insuffisants et stock éventuel.
-- [ ] **Step 6:** Tester explicitement capture party pleine vers première box disponible et erreur typée quand toutes les boxes sont pleines.
-- [ ] **Step 7:** Commit proposé : `feat(gameplay): add player service operations`.
+- [x] **Step 1:** Ajouter dépôt, retrait, swap Party/Box, déplacement Box/Box et changement de lead atomiques.
+- [x] **Step 2:** Limiter la party à six et interdire le retrait du dernier Pokémon utilisable si la règle l'exige.
+- [x] **Step 3:** Retourner des résultats d'erreur typés sans mutation partielle.
+- [x] **Step 4:** Étendre le soin à HP, statut et PP persistés.
+- [x] **Step 5:** Protéger achat inconnu, quantité invalide, fonds insuffisants et stock éventuel.
+- [x] **Step 6:** Tester explicitement capture party pleine vers première box disponible et erreur typée quand toutes les boxes sont pleines.
+- [x] **Step 7:** Commit créé : `feat(gameplay): add player service operations`.
 
 ## Task 3.3 — FG-026 / FG-027 / FG-029 / FG-061 / FG-070 / FG-071 : UI joueur
 

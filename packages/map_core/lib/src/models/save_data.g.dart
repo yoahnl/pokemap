@@ -117,6 +117,11 @@ _$PlayerProgressionImpl _$$PlayerProgressionImplFromJson(
               ?.map((e) => e as String)
               .toList() ??
           const [],
+      shopPurchaseCounts:
+          (json['shopPurchaseCounts'] as Map<String, dynamic>?)?.map(
+                (k, e) => MapEntry(k, (e as num).toInt()),
+              ) ??
+              const {},
       completedStepIds: (json['completedStepIds'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
@@ -142,6 +147,7 @@ Map<String, dynamic> _$$PlayerProgressionImplToJson(
           .map((e) => _$FieldAbilityEnumMap[e]!)
           .toList(),
       'storyFlags': instance.storyFlags,
+      'shopPurchaseCounts': instance.shopPurchaseCounts,
       'completedStepIds': instance.completedStepIds,
       'completedCutsceneIds': instance.completedCutsceneIds,
       'seenSpeciesIds': instance.seenSpeciesIds,

@@ -8,18 +8,30 @@ enum CaptureDestinationKind {
   storage,
 }
 
+enum CaptureDestinationFailure {
+  invalidPokemon,
+  invalidPartySize,
+  storageFull,
+}
+
 class CaptureDestinationResult {
   const CaptureDestinationResult({
     required this.state,
     required this.destination,
     this.partyIndex,
     this.storageIndex,
+    this.boxId,
+    this.boxIndex,
+    this.failure,
   });
 
-  const CaptureDestinationResult.none(GameState state)
-      : this(
+  const CaptureDestinationResult.none(
+    GameState state, {
+    CaptureDestinationFailure? failure,
+  }) : this(
           state: state,
           destination: CaptureDestinationKind.none,
+          failure: failure,
         );
 
   const CaptureDestinationResult.party({
@@ -34,21 +46,30 @@ class CaptureDestinationResult {
   const CaptureDestinationResult.storage({
     required GameState state,
     required int storageIndex,
+    required String boxId,
+    required int boxIndex,
   }) : this(
           state: state,
           destination: CaptureDestinationKind.storage,
           storageIndex: storageIndex,
+          boxId: boxId,
+          boxIndex: boxIndex,
         );
 
   final GameState state;
   final CaptureDestinationKind destination;
   final int? partyIndex;
   final int? storageIndex;
+  final String? boxId;
+  final int? boxIndex;
+  final CaptureDestinationFailure? failure;
 }
 
 enum ShopPurchaseFailure {
   invalidRequest,
+  unknownItem,
   insufficientFunds,
+  outOfStock,
 }
 
 /// Result of one atomic shop purchase against [GameState].
@@ -57,22 +78,35 @@ final class ShopPurchaseResult {
     required this.state,
     required this.totalCost,
     this.failure,
+    this.remainingStock,
   });
 
   const ShopPurchaseResult.success({
     required GameState state,
     required int totalCost,
-  }) : this._(state: state, totalCost: totalCost);
+    int? remainingStock,
+  }) : this._(
+          state: state,
+          totalCost: totalCost,
+          remainingStock: remainingStock,
+        );
 
   const ShopPurchaseResult.failed({
     required GameState state,
     required int totalCost,
     required ShopPurchaseFailure failure,
-  }) : this._(state: state, totalCost: totalCost, failure: failure);
+    int? remainingStock,
+  }) : this._(
+          state: state,
+          totalCost: totalCost,
+          failure: failure,
+          remainingStock: remainingStock,
+        );
 
   final GameState state;
   final int totalCost;
   final ShopPurchaseFailure? failure;
+  final int? remainingStock;
 
   bool get isSuccess => failure == null;
 }
@@ -309,6 +343,87 @@ class GameStateMutations {
     );
   }
 
+  /// Buys an item from one authored shop definition.
+  ///
+  /// Finite stock consumption is persisted in [PlayerProgression] so loading
+  /// a save cannot replenish a project-authored shop accidentally. Unlimited
+  /// entries never create purchase counters.
+  ShopPurchaseResult purchaseFromShop(
+    GameState state, {
+    required ShopDefinition shop,
+    required String itemId,
+    required String categoryId,
+    required int quantity,
+  }) {
+    final shopId = shop.id.trim();
+    final normalizedItemId = itemId.trim();
+    final normalizedCategoryId = categoryId.trim();
+    if (shopId.isEmpty ||
+        normalizedItemId.isEmpty ||
+        normalizedCategoryId.isEmpty ||
+        quantity <= 0) {
+      return ShopPurchaseResult.failed(
+        state: state,
+        totalCost: 0,
+        failure: ShopPurchaseFailure.invalidRequest,
+      );
+    }
+
+    ShopEntryDefinition? entry;
+    for (final candidate in shop.entries) {
+      if (candidate.itemId.trim() == normalizedItemId) {
+        entry = candidate;
+        break;
+      }
+    }
+    if (entry == null) {
+      return ShopPurchaseResult.failed(
+        state: state,
+        totalCost: 0,
+        failure: ShopPurchaseFailure.unknownItem,
+      );
+    }
+
+    final stock = entry.stock;
+    final stockKey = '$shopId::$normalizedItemId';
+    final purchased = state.progression.shopPurchaseCounts[stockKey] ?? 0;
+    final remainingStock = stock == null ? null : stock - purchased;
+    if (remainingStock != null && quantity > remainingStock) {
+      return ShopPurchaseResult.failed(
+        state: state,
+        totalCost: entry.price > 0 ? entry.price * quantity : 0,
+        failure: ShopPurchaseFailure.outOfStock,
+        remainingStock: remainingStock < 0 ? 0 : remainingStock,
+      );
+    }
+
+    final purchase = purchaseItem(
+      state,
+      itemId: normalizedItemId,
+      categoryId: normalizedCategoryId,
+      quantity: quantity,
+      unitPrice: entry.price,
+    );
+    if (!purchase.isSuccess || stock == null) {
+      return purchase;
+    }
+
+    final nextCount = purchased + quantity;
+    final nextState = purchase.state.copyWith(
+      progression: purchase.state.progression.copyWith(
+        shopPurchaseCounts: <String, int>{
+          ...purchase.state.progression.shopPurchaseCounts,
+          stockKey: nextCount,
+        },
+      ).normalized(),
+    );
+    return ShopPurchaseResult.success(
+      state: nextState,
+      totalCost: purchase.totalCost,
+      remainingStock: stock - nextCount,
+    );
+  }
+
   /// Consomme une quantité d'item depuis le sac.
   ///
   /// No-op sûr si l'id est vide, la quantité invalide, l'item absent ou la
@@ -407,9 +522,11 @@ class GameStateMutations {
   GameState recoverParty(
     GameState state, {
     required Map<int, int> maxHpByPartyIndex,
+    Map<int, Map<String, int>> maxPpByPartyIndex = const {},
     bool clearStatus = true,
   }) {
-    if (state.party.members.isEmpty || maxHpByPartyIndex.isEmpty) {
+    if (state.party.members.isEmpty ||
+        (maxHpByPartyIndex.isEmpty && maxPpByPartyIndex.isEmpty)) {
       return state;
     }
 
@@ -419,14 +536,30 @@ class GameStateMutations {
     for (var index = 0; index < state.party.members.length; index++) {
       final member = state.party.members[index];
       final maxHp = maxHpByPartyIndex[index];
-      if (maxHp == null || maxHp <= 0) {
+      final maxPpByMoveId = maxPpByPartyIndex[index];
+      if ((maxHp == null || maxHp <= 0) &&
+          (maxPpByMoveId == null || maxPpByMoveId.isEmpty)) {
         nextMembers.add(member);
         continue;
       }
 
       final nextStatusId = clearStatus ? '' : member.statusId;
+      Map<String, int>? nextPpByMoveId = member.currentPpByMoveId;
+      if (maxPpByMoveId != null && maxPpByMoveId.isNotEmpty) {
+        final restoredPp = <String, int>{
+          ...?member.currentPpByMoveId,
+        };
+        for (final moveId in member.knownMoveIds) {
+          final maxPp = maxPpByMoveId[moveId];
+          if (maxPp != null && maxPp > 0) {
+            restoredPp[moveId] = maxPp;
+          }
+        }
+        nextPpByMoveId = restoredPp;
+      }
       final nextMember = member.copyWith(
-        currentHp: maxHp,
+        currentHp: maxHp != null && maxHp > 0 ? maxHp : member.currentHp,
+        currentPpByMoveId: nextPpByMoveId,
         statusId: nextStatusId,
       );
       changed = changed || nextMember != member;
@@ -505,8 +638,17 @@ class GameStateMutations {
     int maxPartySize = 6,
   }) {
     final normalizedSpeciesId = pokemon.speciesId.trim();
-    if (normalizedSpeciesId.isEmpty || maxPartySize <= 0) {
-      return CaptureDestinationResult.none(state);
+    if (normalizedSpeciesId.isEmpty) {
+      return CaptureDestinationResult.none(
+        state,
+        failure: CaptureDestinationFailure.invalidPokemon,
+      );
+    }
+    if (maxPartySize <= 0 || maxPartySize > maxPlayerPartySize) {
+      return CaptureDestinationResult.none(
+        state,
+        failure: CaptureDestinationFailure.invalidPartySize,
+      );
     }
 
     final normalizedPokemon = pokemon.copyWith(
@@ -528,22 +670,37 @@ class GameStateMutations {
       );
     }
 
-    final storageIndex = state.pokemonStorage.storedPokemon.length;
-    final nextStorage = [
-      ...state.pokemonStorage.storedPokemon,
-      normalizedPokemon,
-    ];
+    final storage = state.pokemonStorage.normalized();
+    final targetBoxListIndex = storage.boxes.indexWhere(
+      (box) => box.pokemon.length < box.capacity,
+    );
+    if (targetBoxListIndex < 0) {
+      return CaptureDestinationResult.none(
+        state,
+        failure: CaptureDestinationFailure.storageFull,
+      );
+    }
+    final targetBox = storage.boxes[targetBoxListIndex];
+    final boxIndex = targetBox.pokemon.length;
+    final storageIndex = storage.boxes
+            .take(targetBoxListIndex)
+            .fold<int>(0, (total, box) => total + box.pokemon.length) +
+        boxIndex;
+    final nextBoxes = [...storage.boxes];
+    nextBoxes[targetBoxListIndex] = targetBox.copyWith(
+      pokemon: <PlayerPokemon>[...targetBox.pokemon, normalizedPokemon],
+    );
     final nextState = normalizeLoadedGameState(
       state.copyWith(
-        pokemonStorage: state.pokemonStorage.copyWith(
-          storedPokemon: nextStorage,
-        ),
+        pokemonStorage: PokemonStorage(boxes: nextBoxes).normalized(),
       ),
     );
 
     return CaptureDestinationResult.storage(
       state: nextState,
       storageIndex: storageIndex,
+      boxId: targetBox.id,
+      boxIndex: boxIndex,
     );
   }
 

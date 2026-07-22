@@ -433,6 +433,7 @@ class PlayerProgression with _$PlayerProgression {
   const factory PlayerProgression({
     @Default([]) List<FieldAbility> unlockedFieldAbilities,
     @Default([]) List<String> storyFlags,
+    @Default({}) Map<String, int> shopPurchaseCounts,
     @Default([]) List<String> completedStepIds,
     @Default([]) List<String> completedCutsceneIds,
     @Default([]) List<String> seenSpeciesIds,
@@ -443,6 +444,29 @@ class PlayerProgression with _$PlayerProgression {
       _$PlayerProgressionFromJson(json);
 
   PlayerProgression normalized() {
+    final normalizedShopPurchaseCounts = <String, int>{};
+    final sortedShopKeys = shopPurchaseCounts.keys.toList(growable: false)
+      ..sort();
+    for (final rawKey in sortedShopKeys) {
+      final key = rawKey.trim();
+      final count = shopPurchaseCounts[rawKey]!;
+      if (key.isEmpty) {
+        throw StateError(
+          'PlayerProgression shopPurchaseCounts keys must not be empty',
+        );
+      }
+      if (count < 0) {
+        throw StateError(
+          'PlayerProgression shopPurchaseCounts values must be non-negative',
+        );
+      }
+      if (normalizedShopPurchaseCounts.containsKey(key)) {
+        throw StateError(
+          'PlayerProgression shopPurchaseCounts contains duplicate normalized keys',
+        );
+      }
+      normalizedShopPurchaseCounts[key] = count;
+    }
     final normalizedCaughtSpeciesIds =
         _normalizeUniqueStringsSorted(caughtSpeciesIds);
     final normalizedSeenSpeciesIds = _normalizeUniqueStringsSorted(
@@ -454,6 +478,9 @@ class PlayerProgression with _$PlayerProgression {
 
     return copyWith(
       storyFlags: _normalizeUniqueStringsSorted(storyFlags),
+      shopPurchaseCounts: Map<String, int>.unmodifiable(
+        normalizedShopPurchaseCounts,
+      ),
       completedStepIds: _normalizeUniqueStringsPreserveOrder(completedStepIds),
       completedCutsceneIds:
           _normalizeUniqueStringsPreserveOrder(completedCutsceneIds),

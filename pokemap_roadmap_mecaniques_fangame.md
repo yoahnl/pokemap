@@ -124,11 +124,11 @@ lot ou de phase :
    encore ouvert, sinon produire une modification documentaire distincte.
 ```
 
-Dernière mise à jour : **2026-07-23** — lot MVP 3.1, contrats persistants PC,
-shops et badges (`FG-022`, `FG-030`, `FG-069`). La Phase 2 du plan MVP
-(`FG-020`, `FG-021`, `FG-040` à `FG-049`, `FG-051`) avait été clôturée sur
-`c410ac59c`. Les phases canoniques restent `PARTIAL` tant que leurs autres lots
-ne sont pas fermés.
+Dernière mise à jour : **2026-07-23** — lot MVP 3.2, opérations pures PC,
+capture, items et shop. `FG-023`, `FG-024`, `FG-025`, `FG-060` et `FG-063`
+sont fermés ; `FG-028`, `FG-062` et `FG-071` restent partiels jusqu'aux écrans
+joueur et au câblage runtime des lots 3.3 à 3.5. Le commit de preuve est celui
+du lot 3.2, créé avec cette mise à jour.
 
 ---
 
@@ -269,9 +269,9 @@ Le MVP est atteint quand un créateur peut faire ceci dans PokeMap :
 |---|---:|---|---|---|
 | Phase 0 | FG-000 → FG-009 | Audit et contrats de suivi | Aucun | `⬜ TODO` |
 | Phase 1 | FG-010 → FG-019 | New Game, starter, save/load, pause shell | Phase 0 | `⬜ TODO` |
-| Phase 2 | FG-020 → FG-039 | Party, PC, capture crédible | Phase 1 | `🟡 PARTIAL` — 4/11 lots fermés |
+| Phase 2 | FG-020 → FG-039 | Party, PC, capture crédible | Phase 1 | `🟡 PARTIAL` — 7/11 lots fermés, FG-028 partiel |
 | Phase 3 | FG-040 → FG-059 | Battle persistence, rewards, XP, level-up, évolutions | Phase 2 | `🟡 PARTIAL` — FG-040 à FG-049 et FG-051 fermés |
-| Phase 4 | FG-060 → FG-079 | Bag, items, shops, centre Pokémon | Phase 2 | `🟡 PARTIAL` — FG-069 fermé |
+| Phase 4 | FG-060 → FG-079 | Bag, items, shops, centre Pokémon | Phase 2 | `🟡 PARTIAL` — FG-060, FG-063 et FG-069 fermés ; FG-062/FG-071 partiels |
 | Phase 5 | FG-080 → FG-099 | Event commands no-code | Phases 1–4 selon commandes | `⬜ TODO` |
 | Phase 6 | FG-100 → FG-119 | Encounters élargis | Phases 2, 5 | `⬜ TODO` |
 | Phase 7 | FG-120 → FG-139 | Field moves / environmental gates | Phases 2, 5 | `⬜ TODO` |
@@ -495,12 +495,12 @@ Objectif : capturer reste utile même quand la party contient déjà 6 Pokémon.
 | FG-020 | PlayerPokemon Runtime Persistence Audit | `✅ DONE` | [Contrat et audit champ par champ](reports/gameplay/fg_040_battle_persistence_contract_v0.md), `caf97a2e1` |
 | FG-021 | PlayerPokemon Persistence Expansion V0 | `✅ DONE` | XP/PP compatibles legacy, hydratation catalogues et round-trip, `caf97a2e1` |
 | FG-022 | PC Box Model V0 | `✅ DONE` | 8 boxes stables de 30 slots, migration legacy et round-trip ; lot 3.1, Core 4381/4381 |
-| FG-023 | PC Storage Operations V0 | `⬜ TODO` | — |
-| FG-024 | Capture Destination: Party or Box V0 | `⬜ TODO` | — |
-| FG-025 | Capture To Box When Party Full V0 | `⬜ TODO` | — |
+| FG-023 | PC Storage Operations V0 | `✅ DONE` | Opérations atomiques et erreurs typées ; lot 3.2, Gameplay 380/380 |
+| FG-024 | Capture Destination: Party or Box V0 | `✅ DONE` | Destination party/première box et saturation typée ; lot 3.2 |
+| FG-025 | Capture To Box When Party Full V0 | `✅ DONE` | Write-back runtime, destination lisible et refus avant débit si PC plein ; lot 3.2 |
 | FG-026 | Runtime Party Menu Read-only V0 | `⬜ TODO` | — |
 | FG-027 | Pokémon Summary Runtime V0 | `⬜ TODO` | — |
-| FG-028 | Party Reorder / Lead Selection V0 | `⬜ TODO` | — |
+| FG-028 | Party Reorder / Lead Selection V0 | `🟡 PARTIAL` | Swap/lead purs et invariants livrés ; smoke UI/runtime attendu au lot 3.3 |
 | FG-029 | Runtime PC Screen V0 | `⬜ TODO` | — |
 | FG-030 | Party/Box Validation V0 | `✅ DONE` | Diagnostics typés party/box/catalogues et messages lisibles ; lot 3.1 |
 
@@ -591,10 +591,10 @@ Objectif : capturer reste utile même quand la party contient déjà 6 Pokémon.
 ### DoD
 
 ```md
-- [ ] Opérations pures testées.
-- [ ] Erreurs explicites : slot invalide, party pleine, box pleine.
-- [ ] Pas de UI.
-- [ ] Pas de repo disque.
+- [x] Opérations pures testées.
+- [x] Erreurs explicites : slot invalide, party pleine, box pleine.
+- [x] Pas de UI.
+- [x] Pas de repo disque.
 ```
 
 ## FG-024 — Capture Destination: Party or Box V0
@@ -612,11 +612,11 @@ sinon → capture impossible / storage full
 ### DoD
 
 ```md
-- [ ] Fonction pure de décision.
-- [ ] Tests party disponible.
-- [ ] Tests party pleine + box disponible.
-- [ ] Tests storage full.
-- [ ] Le résultat contient destination + message possible.
+- [x] Fonction pure de décision.
+- [x] Tests party disponible.
+- [x] Tests party pleine + box disponible.
+- [x] Tests storage full.
+- [x] Le résultat contient la destination et le runtime produit son message.
 ```
 
 ## FG-025 — Capture To Box When Party Full V0
@@ -626,12 +626,12 @@ sinon → capture impossible / storage full
 ### DoD
 
 ```md
-- [ ] Capture ajoute à la party si place.
-- [ ] Capture ajoute au PC si party pleine.
-- [ ] Poké Ball consommée exactement une fois.
-- [ ] Seen/caught normalisé.
-- [ ] Message runtime indique la destination.
-- [ ] Tests outcome apply : party, box, storage full.
+- [x] Capture ajoute à la party si place.
+- [x] Capture ajoute au PC si party pleine.
+- [x] Poké Ball consommée exactement une fois.
+- [x] Seen/caught normalisé.
+- [x] Message runtime indique la destination.
+- [x] Tests outcome apply : party, box, storage full avant tentative.
 ```
 
 ## FG-026 — Runtime Party Menu Read-only V0
@@ -668,9 +668,9 @@ sinon → capture impossible / storage full
 ### DoD
 
 ```md
-- [ ] Swap deux slots party.
-- [ ] Le premier Pokémon utilisable devient lead battle par défaut.
-- [ ] Impossible de créer un état invalide.
+- [x] Swap deux slots party.
+- [x] Le changement de lead place explicitement la cible en tête.
+- [x] Impossible de créer un état invalide.
 - [ ] Tests opérations pures + runtime smoke.
 ```
 
@@ -925,10 +925,10 @@ Objectif : rendre l’inventaire utile hors combat.
 
 | ID | Lot | Statut | Preuve |
 |---|---|---|---|
-| FG-060 | Item Use Effect Registry V0 | `⬜ TODO` | — |
+| FG-060 | Item Use Effect Registry V0 | `✅ DONE` | Registry pur HP/statut/revive/PP/key item/Ball et erreurs typées ; lot 3.2 |
 | FG-061 | Overworld Bag Menu V0 | `⬜ TODO` | — |
-| FG-062 | Medicine Outside Battle V0 | `⬜ TODO` | — |
-| FG-063 | Status Cure / Revive V0 | `⬜ TODO` | — |
+| FG-062 | Medicine Outside Battle V0 | `🟡 PARTIAL` | Application/consommation exacte testées ; picker joueur attendu au lot 3.3 |
+| FG-063 | Status Cure / Revive V0 | `✅ DONE` | Antidote, réveil, anti-para, burn/ice/full heal et revive testés ; lot 3.2 |
 | FG-064 | Key Item Gates V0 | `⬜ TODO` | — |
 | FG-065 | Repel V0 | `⏸ DEFERRED` | Hors MVP signé le 2026-07-22. |
 | FG-066 | Poké Ball Families V0 | `⏸ DEFERRED` | Familles complètes hors MVP ; une Poké Ball minimale reste requise. |
@@ -936,7 +936,7 @@ Objectif : rendre l’inventaire utile hors combat.
 | FG-068 | Hidden Item Event V0 | `⬜ TODO` | — |
 | FG-069 | Shop Model V0 | `✅ DONE` | Shops persistants, prix/stock et validation catalogue ; lot 3.1, Core 4381/4381 |
 | FG-070 | Shop Runtime V0 | `⬜ TODO` | — |
-| FG-071 | Heal Center Flow V0 | `⬜ TODO` | — |
+| FG-071 | Heal Center Flow V0 | `🟡 PARTIAL` | Recovery HP/PP/statut pur livré ; dialogue/commande attendus aux lots 3.3–3.5 |
 | FG-072 | Held Item Operations V0 | `⬜ TODO` | — |
 | FG-073 | TM/HM Item Support V0 | `⬜ TODO` | — |
 
@@ -947,10 +947,10 @@ Objectif : rendre l’inventaire utile hors combat.
 ### DoD
 
 ```md
-- [ ] Registry pur testable.
-- [ ] Effets : heal HP, cure status, revive, key item no-op/trigger, ball metadata.
-- [ ] Erreurs : item inconnu, mauvaise cible, quantité insuffisante.
-- [ ] Pas d’UI.
+- [x] Registry pur testable.
+- [x] Effets : heal HP, cure status, revive, key item no-op/trigger, ball metadata.
+- [x] Erreurs : item inconnu, mauvaise cible, quantité insuffisante.
+- [x] Pas d’UI.
 ```
 
 ## FG-061 — Overworld Bag Menu V0
@@ -974,9 +974,9 @@ Objectif : rendre l’inventaire utile hors combat.
 
 ```md
 - [ ] Sélection item -> sélection Pokémon -> application.
-- [ ] Ne consomme pas si aucun effet.
-- [ ] Consomme exactement si effet appliqué.
-- [ ] Tests full HP, fainted, normal heal.
+- [x] Ne consomme pas si aucun effet.
+- [x] Consomme exactement si effet appliqué.
+- [x] Tests full HP, fainted, normal heal.
 ```
 
 ## FG-063 — Status Cure / Revive V0
@@ -986,10 +986,10 @@ Objectif : rendre l’inventaire utile hors combat.
 ### DoD
 
 ```md
-- [ ] Cure status cible correcte.
-- [ ] Revive uniquement K.O.
-- [ ] Full heal si retenu.
-- [ ] Tests par status.
+- [x] Cure status cible correcte.
+- [x] Revive uniquement K.O.
+- [x] Full heal retenu et testé.
+- [x] Tests par status.
 ```
 
 ## FG-064 — Key Item Gates V0
@@ -1089,7 +1089,7 @@ Objectif : rendre l’inventaire utile hors combat.
 
 ```md
 - [ ] Commande `HealParty`.
-- [ ] Restaure HP, PP, status selon règle.
+- [x] Restaure HP, PP, status selon règle.
 - [ ] Dialogue simple possible.
 - [ ] Option définir respawn/heal location si retenue.
 ```

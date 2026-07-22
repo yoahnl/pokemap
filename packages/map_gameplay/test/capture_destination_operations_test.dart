@@ -19,6 +19,7 @@ void main() {
   GameState captureState({
     required List<PlayerPokemon> party,
     List<PlayerPokemon> storage = const [],
+    List<PokemonBox>? boxes,
     Set<String> storyFlags = const {'p5.capture.flag'},
   }) {
     var state = GameState(
@@ -28,7 +29,9 @@ void main() {
       playerFacing: EntityFacing.west,
       trainerProfile: const TrainerProfile(name: 'P5 Player', money: 325),
       party: PlayerParty(members: party),
-      pokemonStorage: PokemonStorage(storedPokemon: storage),
+      pokemonStorage: boxes == null
+          ? PokemonStorage(storedPokemon: storage)
+          : PokemonStorage(boxes: boxes),
       bag: const Bag(
         entries: [
           BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
@@ -84,6 +87,9 @@ void main() {
       );
 
       expect(result.destination, CaptureDestinationKind.storage);
+      expect(result.failure, isNull);
+      expect(result.boxId, 'box-01');
+      expect(result.boxIndex, 0);
       expect(result.partyIndex, isNull);
       expect(result.storageIndex, 0);
       expect(result.state.party.members, hasLength(6));
@@ -100,6 +106,64 @@ void main() {
         result.state.pokemonStorage.storedPokemon.single.speciesId,
         'p5_captured_storage',
       );
+    });
+
+    test('uses the first available box and reports its stable slot', () {
+      final state = captureState(
+        party: List<PlayerPokemon>.generate(
+          maxPlayerPartySize,
+          (index) => pokemon('party-$index'),
+        ),
+        boxes: <PokemonBox>[
+          PokemonBox(
+            id: 'full',
+            label: 'Full',
+            capacity: 1,
+            pokemon: <PlayerPokemon>[pokemon('stored')],
+          ),
+          const PokemonBox(id: 'available', label: 'Available', capacity: 2),
+        ],
+      );
+
+      final result = mutations.applyCapturedPokemon(
+        state,
+        pokemon: pokemon('captured'),
+      );
+
+      expect(result.destination, CaptureDestinationKind.storage);
+      expect(result.boxId, 'available');
+      expect(result.boxIndex, 0);
+      expect(
+        result.state.pokemonStorage.boxes.last.pokemon.single.speciesId,
+        'captured',
+      );
+    });
+
+    test('returns typed storageFull without mutation when every box is full',
+        () {
+      final state = captureState(
+        party: List<PlayerPokemon>.generate(
+          maxPlayerPartySize,
+          (index) => pokemon('party-$index'),
+        ),
+        boxes: <PokemonBox>[
+          PokemonBox(
+            id: 'full',
+            label: 'Full',
+            capacity: 1,
+            pokemon: <PlayerPokemon>[pokemon('stored')],
+          ),
+        ],
+      );
+
+      final result = mutations.applyCapturedPokemon(
+        state,
+        pokemon: pokemon('captured'),
+      );
+
+      expect(result.destination, CaptureDestinationKind.none);
+      expect(result.failure, CaptureDestinationFailure.storageFull);
+      expect(result.state, same(state));
     });
 
     test('appends to existing storage and reports the storage index', () {

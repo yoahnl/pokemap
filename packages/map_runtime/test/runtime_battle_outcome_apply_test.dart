@@ -963,6 +963,67 @@ void main() {
       expect(initialState.bag.entries.single.itemId, 'potion');
     });
 
+    test('capture submission is rejected before charging when storage is full',
+        () {
+      final initialState = _baseState().copyWith(
+        party: PlayerParty(
+          members: List<PlayerPokemon>.generate(
+            maxPlayerPartySize,
+            (index) => PlayerPokemon(
+              speciesId: 'party-$index',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              currentHp: 10,
+            ),
+          ),
+        ),
+        pokemonStorage: const PokemonStorage(
+          boxes: <PokemonBox>[
+            PokemonBox(
+              id: 'only-box',
+              label: 'Only box',
+              capacity: 1,
+              pokemon: <PlayerPokemon>[
+                PlayerPokemon(
+                  speciesId: 'stored',
+                  natureId: 'hardy',
+                  abilityId: 'pressure',
+                  currentHp: 10,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      var engineCalled = false;
+
+      expect(
+        () => submitRuntimeBattleCaptureAttempt<void>(
+          gameState: initialState,
+          context: RuntimeActiveBattleContext(
+            request: _wildRequest(),
+            playerPartyIndex: 0,
+          ),
+          captureAllowed: true,
+          submitToEngine: () => engineCalled = true,
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('storage is full'),
+          ),
+        ),
+      );
+      expect(engineCalled, isFalse);
+      expect(
+        initialState.bag.entries
+            .singleWhere((entry) => entry.itemId == 'poke-ball')
+            .quantity,
+        2,
+      );
+    });
+
     test('accepted failed capture consumes exactly one ball at submission', () {
       final submission = submitRuntimeBattleCaptureAttempt<BattleSession>(
         gameState: _baseState(),

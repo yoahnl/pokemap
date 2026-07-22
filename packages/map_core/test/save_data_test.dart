@@ -265,6 +265,23 @@ void main() {
   });
 
   group('PlayerProgression', () {
+    test('persists and validates finite shop purchase counts', () {
+      const progression = PlayerProgression(
+        shopPurchaseCounts: <String, int>{' mart::potion ': 2},
+      );
+
+      final normalized = progression.normalized();
+      final restored = PlayerProgression.fromJson(normalized.toJson());
+
+      expect(restored.shopPurchaseCounts, <String, int>{'mart::potion': 2});
+      expect(
+        () => const PlayerProgression(
+          shopPurchaseCounts: <String, int>{'mart::potion': -1},
+        ).normalized(),
+        throwsStateError,
+      );
+    });
+
     test('serialization round-trip', () {
       const progression = PlayerProgression(
         unlockedFieldAbilities: [FieldAbility.surf],

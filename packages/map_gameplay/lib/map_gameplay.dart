@@ -112,10 +112,13 @@ export 'src/event_page_resolver.dart' show EventPageResolver;
 export 'src/game_state_mutations.dart'
     show
         CaptureDestinationKind,
+        CaptureDestinationFailure,
         CaptureDestinationResult,
         ShopPurchaseFailure,
         ShopPurchaseResult,
         GameStateMutations;
+export 'src/player_storage_operations.dart';
+export 'src/player_item_effects.dart';
 export 'src/new_game_state_builder.dart'
     show
         createNewGameState,
