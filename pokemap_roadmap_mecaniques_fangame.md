@@ -1703,7 +1703,7 @@ Objectif : prouver qu’un vrai mini-fangame peut être créé et terminé.
 | FG-182 | Golden Slice End-to-End Smoke V0 | `✅ DONE` | `reports/gameplay/fg_182_golden_slice_end_to_end_smoke_v0.md` |
 | FG-183 | Regression Matrix V0 | `✅ DONE` | `reports/gameplay/fg_183_regression_matrix_v0.md` |
 | FG-184 | Roadmap Status Dashboard Generator V0 | `✅ DONE` | `reports/gameplay/fg_184_roadmap_status_dashboard_generator_v0.md` |
-| FG-185 | MVP Release Gate V0 | `✅ DONE` | `reports/gameplay/fg_185_mvp_release_gate_v0.md` — cinq preuves passées, verdict global GO |
+| FG-185 | MVP Release Gate V0 | `🟡 PARTIAL` | `reports/gameplay/fg_185_mvp_release_gate_v0.md` — NO-GO tant que la Phase 6 de validation de release n'a pas produit son receipt d'exécution |
 
 ## FG-180 — Project Gameplay Readiness Report V0
 
@@ -1810,9 +1810,10 @@ Objectif : prouver qu’un vrai mini-fangame peut être créé et terminé.
 
 **But :** décider objectivement “PokeMap est un outil fangame MVP”.
 
-**État vérifié le 2026-07-22 : `DONE / GO`.** L'agrégateur fail-closed reçoit
-les cinq preuves passées : Golden Slice, Gameplay Readiness, tests critiques,
-limitations post-MVP et approbation explicite du périmètre par l'utilisateur.
+**État vérifié le 2026-07-22 : `PARTIAL / NO-GO`.** Les cinq éléments
+historiques sont des déclarations sourcées, pas le receipt d'une exécution de
+gate. L'agrégateur reste fail-closed jusqu'à la Phase 6 de validation de
+release et son receipt exécuté.
 Voir `reports/gameplay/fg_185_mvp_release_gate_v0.md`.
 
 ### DoD
@@ -1823,6 +1824,7 @@ Voir `reports/gameplay/fg_185_mvp_release_gate_v0.md`.
 - [x] Tests package critiques verts.
 - [x] Limitations post-MVP listées.
 - [x] Utilisateur valide le périmètre.
+- [ ] Receipt exécutable Phase 6 de validation de release produit avec cinq preuves `executedEvidence` passées, sourcées et résumées.
 ```
 
 ---

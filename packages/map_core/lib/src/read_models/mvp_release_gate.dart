@@ -14,6 +14,15 @@ enum MvpReleaseGateEvidenceStatus {
   unverified,
 }
 
+/// Whether an evidence item is a declaration or the receipt of an execution.
+///
+/// A declaration can document an expected or historically observed result,
+/// but only an executed receipt is eligible to contribute to a release GO.
+enum MvpReleaseGateEvidenceKind {
+  declaredEvidence,
+  executedEvidence,
+}
+
 /// Evidence supplied to the FG-185 release-gate aggregator.
 ///
 /// This object records an external proof. It does not run tests or validators
@@ -21,12 +30,14 @@ enum MvpReleaseGateEvidenceStatus {
 final class MvpReleaseGateEvidence {
   const MvpReleaseGateEvidence({
     required this.criterion,
+    required this.evidenceKind,
     required this.status,
     required this.summary,
     this.source,
   });
 
   final MvpReleaseGateCriterion criterion;
+  final MvpReleaseGateEvidenceKind evidenceKind;
   final MvpReleaseGateEvidenceStatus status;
   final String summary;
   final String? source;
@@ -34,10 +45,10 @@ final class MvpReleaseGateEvidence {
 
 /// Fail-closed decision for `FG-185 — MVP Release Gate V0`.
 ///
-/// Every criterion must have exactly one passing proof. Missing or duplicate
-/// evidence remains a blocker. Passing claims must also carry a non-empty
-/// summary and source so a status flag alone cannot accidentally promote a
-/// partial demonstrator to a global MVP release.
+/// Every criterion must have exactly one passing executed receipt. Missing,
+/// duplicate, failed, unverified, or merely declared evidence remains a
+/// blocker. Passing receipts must also carry a non-empty summary and source so
+/// a status flag alone cannot promote a partial demonstrator to a release.
 final class MvpReleaseGateReport {
   MvpReleaseGateReport._(
       Map<MvpReleaseGateCriterion, MvpReleaseGateEvidence> evidence)
@@ -58,12 +69,14 @@ final class MvpReleaseGateReport {
       normalized[criterion] = switch (supplied.length) {
         0 => MvpReleaseGateEvidence(
             criterion: criterion,
+            evidenceKind: MvpReleaseGateEvidenceKind.declaredEvidence,
             status: MvpReleaseGateEvidenceStatus.unverified,
             summary: 'Aucune preuve fournie pour ${criterion.name}.',
           ),
         1 => _normalizeSingleEvidence(supplied.single),
         _ => MvpReleaseGateEvidence(
             criterion: criterion,
+            evidenceKind: MvpReleaseGateEvidenceKind.declaredEvidence,
             status: MvpReleaseGateEvidenceStatus.failed,
             summary:
                 'Preuves dupliquees ou contradictoires pour ${criterion.name}.',
@@ -77,16 +90,16 @@ final class MvpReleaseGateReport {
   final Map<MvpReleaseGateCriterion, MvpReleaseGateEvidence>
       evidenceByCriterion;
 
-  bool get isGo => evidenceByCriterion.values.every(
-        (item) => item.status == MvpReleaseGateEvidenceStatus.passed,
-      );
+  bool get isGo => evidenceByCriterion.values.every(_contributesToGo);
 
   List<MvpReleaseGateEvidence> get blockers => List.unmodifiable(
-        evidenceByCriterion.values.where(
-          (item) => item.status != MvpReleaseGateEvidenceStatus.passed,
-        ),
+        evidenceByCriterion.values.where((item) => !_contributesToGo(item)),
       );
 }
+
+bool _contributesToGo(MvpReleaseGateEvidence evidence) =>
+    evidence.evidenceKind == MvpReleaseGateEvidenceKind.executedEvidence &&
+    evidence.status == MvpReleaseGateEvidenceStatus.passed;
 
 MvpReleaseGateEvidence _normalizeSingleEvidence(
   MvpReleaseGateEvidence evidence,
@@ -100,6 +113,7 @@ MvpReleaseGateEvidence _normalizeSingleEvidence(
   if (evidence.summary.trim().isEmpty) {
     return MvpReleaseGateEvidence(
       criterion: evidence.criterion,
+      evidenceKind: evidence.evidenceKind,
       status: MvpReleaseGateEvidenceStatus.failed,
       summary: 'La preuve passed ne fournit aucun resume exploitable.',
       source: evidence.source,
@@ -109,6 +123,7 @@ MvpReleaseGateEvidence _normalizeSingleEvidence(
   if (evidence.source?.trim().isEmpty ?? true) {
     return MvpReleaseGateEvidence(
       criterion: evidence.criterion,
+      evidenceKind: evidence.evidenceKind,
       status: MvpReleaseGateEvidenceStatus.failed,
       summary: 'La preuve passed ne fournit aucune source exploitable.',
     );

@@ -3,9 +3,34 @@ import 'package:test/test.dart';
 
 void main() {
   group('MvpReleaseGateReport', () {
-    test('returns GO only when every required criterion has passed evidence',
+    test('never returns GO from five merely declared passed entries', () {
+      final report = MvpReleaseGateReport.evaluate(
+        _passedEvidence(
+          evidenceKind: MvpReleaseGateEvidenceKind.declaredEvidence,
+        ),
+      );
+
+      expect(report.isGo, isFalse);
+      expect(report.blockers, hasLength(MvpReleaseGateCriterion.values.length));
+      expect(
+        report.blockers,
+        everyElement(
+          isA<MvpReleaseGateEvidence>().having(
+            (item) => item.evidenceKind,
+            'evidenceKind',
+            MvpReleaseGateEvidenceKind.declaredEvidence,
+          ),
+        ),
+      );
+    });
+
+    test('returns GO only when every criterion has executed passed evidence',
         () {
-      final report = MvpReleaseGateReport.evaluate(_passedEvidence());
+      final report = MvpReleaseGateReport.evaluate(
+        _passedEvidence(
+          evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
+        ),
+      );
 
       expect(report.isGo, isTrue);
       expect(report.blockers, isEmpty);
@@ -16,7 +41,9 @@ void main() {
     });
 
     test('fails closed when a required criterion has no evidence', () {
-      final evidence = _passedEvidence()
+      final evidence = _passedEvidence(
+        evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
+      )
           .where(
             (item) =>
                 item.criterion !=
@@ -39,11 +66,14 @@ void main() {
     });
 
     test('keeps an explicit failed criterion as a release blocker', () {
-      final evidence = _passedEvidence()
+      final evidence = _passedEvidence(
+        evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
+      )
           .map(
             (item) => item.criterion == MvpReleaseGateCriterion.goldenSlice
                 ? const MvpReleaseGateEvidence(
                     criterion: MvpReleaseGateCriterion.goldenSlice,
+                    evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
                     status: MvpReleaseGateEvidenceStatus.failed,
                     summary: 'Le parcours MVP global est incomplet.',
                     source: 'reports/gameplay/fg_185_mvp_release_gate_v0.md',
@@ -63,11 +93,14 @@ void main() {
     });
 
     test('rejects passed evidence without a usable summary', () {
-      final evidence = _passedEvidence()
+      final evidence = _passedEvidence(
+        evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
+      )
           .map(
             (item) => item.criterion == MvpReleaseGateCriterion.goldenSlice
                 ? const MvpReleaseGateEvidence(
                     criterion: MvpReleaseGateCriterion.goldenSlice,
+                    evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
                     status: MvpReleaseGateEvidenceStatus.passed,
                     summary: '   ',
                     source: 'fresh-evidence',
@@ -86,16 +119,19 @@ void main() {
     });
 
     test('rejects passed evidence without a usable source', () {
-      final evidence = _passedEvidence()
+      final evidence = _passedEvidence(
+        evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
+      )
           .map(
-            (item) =>
-                item.criterion == MvpReleaseGateCriterion.criticalPackageTests
-                    ? const MvpReleaseGateEvidence(
-                        criterion: MvpReleaseGateCriterion.criticalPackageTests,
-                        status: MvpReleaseGateEvidenceStatus.passed,
-                        summary: 'Les suites critiques sont vertes.',
-                      )
-                    : item,
+            (item) => item.criterion ==
+                    MvpReleaseGateCriterion.criticalPackageTests
+                ? const MvpReleaseGateEvidence(
+                    criterion: MvpReleaseGateCriterion.criticalPackageTests,
+                    evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
+                    status: MvpReleaseGateEvidenceStatus.passed,
+                    summary: 'Les suites critiques sont vertes.',
+                  )
+                : item,
           )
           .toList(growable: false);
 
@@ -112,9 +148,12 @@ void main() {
     test('rejects contradictory duplicate evidence instead of laundering it',
         () {
       final evidence = <MvpReleaseGateEvidence>[
-        ..._passedEvidence(),
+        ..._passedEvidence(
+          evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
+        ),
         const MvpReleaseGateEvidence(
           criterion: MvpReleaseGateCriterion.goldenSlice,
+          evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
           status: MvpReleaseGateEvidenceStatus.failed,
           summary: 'Une seconde source contredit le GO.',
         ),
@@ -134,12 +173,12 @@ void main() {
       );
     });
 
-    test('returns GO once the user explicitly approves the Phase 10 MVP scope',
-        () {
+    test('keeps documentary Phase 10 approval at NO-GO without a receipt', () {
       final report = MvpReleaseGateReport.evaluate(
         <MvpReleaseGateEvidence>[
           const MvpReleaseGateEvidence(
             criterion: MvpReleaseGateCriterion.goldenSlice,
+            evidenceKind: MvpReleaseGateEvidenceKind.declaredEvidence,
             status: MvpReleaseGateEvidenceStatus.passed,
             summary: 'Le parcours Golden Slice FG-182 passe de bout en bout.',
             source:
@@ -147,6 +186,7 @@ void main() {
           ),
           const MvpReleaseGateEvidence(
             criterion: MvpReleaseGateCriterion.projectGameplayReadiness,
+            evidenceKind: MvpReleaseGateEvidenceKind.declaredEvidence,
             status: MvpReleaseGateEvidenceStatus.passed,
             summary: 'Les onze checks FG-180 disposent de preuves valides.',
             source:
@@ -154,18 +194,21 @@ void main() {
           ),
           const MvpReleaseGateEvidence(
             criterion: MvpReleaseGateCriterion.criticalPackageTests,
+            evidenceKind: MvpReleaseGateEvidenceKind.declaredEvidence,
             status: MvpReleaseGateEvidenceStatus.passed,
             summary: 'Les suites critiques sont vertes.',
             source: 'reports/gameplay/fg_183_regression_matrix_v0.md',
           ),
           const MvpReleaseGateEvidence(
             criterion: MvpReleaseGateCriterion.postMvpLimitationsDocumented,
+            evidenceKind: MvpReleaseGateEvidenceKind.declaredEvidence,
             status: MvpReleaseGateEvidenceStatus.passed,
             summary: 'La Phase 11 documente les capacités différées.',
             source: 'pokemap_roadmap_mecaniques_fangame.md#phase-11',
           ),
           const MvpReleaseGateEvidence(
             criterion: MvpReleaseGateCriterion.userScopeApproved,
+            evidenceKind: MvpReleaseGateEvidenceKind.declaredEvidence,
             status: MvpReleaseGateEvidenceStatus.passed,
             summary: 'Le périmètre MVP et ses exclusions sont approuvés.',
             source:
@@ -174,19 +217,23 @@ void main() {
         ],
       );
 
-      expect(report.isGo, isTrue);
-      expect(report.blockers, isEmpty);
+      expect(report.isGo, isFalse);
+      expect(report.blockers, hasLength(MvpReleaseGateCriterion.values.length));
     });
   });
 }
 
-List<MvpReleaseGateEvidence> _passedEvidence() => MvpReleaseGateCriterion.values
-    .map(
-      (criterion) => MvpReleaseGateEvidence(
-        criterion: criterion,
-        status: MvpReleaseGateEvidenceStatus.passed,
-        summary: '${criterion.name} est prouve.',
-        source: 'fresh-evidence',
-      ),
-    )
-    .toList(growable: false);
+List<MvpReleaseGateEvidence> _passedEvidence({
+  required MvpReleaseGateEvidenceKind evidenceKind,
+}) =>
+    MvpReleaseGateCriterion.values
+        .map(
+          (criterion) => MvpReleaseGateEvidence(
+            criterion: criterion,
+            evidenceKind: evidenceKind,
+            status: MvpReleaseGateEvidenceStatus.passed,
+            summary: '${criterion.name} est prouve.',
+            source: 'fresh-evidence',
+          ),
+        )
+        .toList(growable: false);

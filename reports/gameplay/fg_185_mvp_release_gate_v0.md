@@ -1,4 +1,173 @@
-# FG-185 — MVP Release Gate V0
+# FG-185 — MVP Release Gate V0 — authoritative correction
+
+Date: 2026-07-22
+
+Proposed status: **PARTIAL**
+
+Verdict technique du contrat: **PASS**
+
+Verdict release MVP: **PARTIAL / NO-GO**
+
+## Résumé exécutif autoritaire
+
+FG-185 reste ouvert. Le contrat pur distingue maintenant
+`declaredEvidence` de `executedEvidence`: seule une preuve exécutée, `passed`,
+avec source et résumé exploitables, peut contribuer au `GO`. Les cinq éléments
+historiques sont des déclarations documentaires; aucune exécution de la gate
+n'a produit le receipt requis. La Phase 6 de la séquence de validation devra
+exécuter les cinq contrôles et produire ce receipt avant toute promotion.
+
+Le commit `c1bc49b21` est le commit technique historique de l'agrégateur.
+Le commit `d95498768` est une clôture/approbation documentaire historique; il
+ne constitue ni une exécution signée ni un receipt de gate.
+
+## Lot et scope
+
+Lot: **Phase 1 / Task 1.2 — FG-185 — Honest MVP Release Baseline**.
+
+Le changement est limité aux cinq fichiers imposés:
+
+- `packages/map_core/lib/src/read_models/mvp_release_gate.dart`;
+- `packages/map_core/test/mvp_release_gate_test.dart`;
+- `reports/gameplay/fg_185_mvp_release_gate_v0.md`;
+- `reports/gameplay/fg_180_185_phase_10_playable_game_validation_completion.md`;
+- `pokemap_roadmap_mecaniques_fangame.md`.
+
+Non-objectifs: exécuter la future gate Phase 6, signer un receipt, promouvoir
+FG-180 à FG-184, modifier le runtime ou réécrire les preuves historiques.
+
+## Audit initial
+
+| Élément | Observation |
+|---|---|
+| HEAD | `29e7643e` |
+| Worktree | propre |
+| Contrat | agrégateur pur, sans I/O, acceptant jusque-là toute preuve textuelle `passed` |
+| Tests | positif, missing, failed, metadata invalide et duplicate; aucune provenance exécutée typée |
+| Rapports | `DONE / GO` fondé sur des déclarations et une approbation documentaire |
+| Risque principal | faux GO avec cinq objets déclaratifs `passed` |
+
+Les règles lues sont `AGENTS.md`, `codex_rule.md`, `skills/README.md`,
+`skills/test-driven-development/SKILL.md` et
+`skills/verification-before-completion/SKILL.md`. L'interdiction directe de
+sous-agents prime; les cinq passes obligatoires sont donc conduites séparément
+dans cette exécution.
+
+## Matrice de décision autoritaire
+
+| Critère FG-185 | État disponible | Contribution au GO |
+|---|---|---:|
+| Golden Slice passe | déclaration historique sourcée | NON |
+| Project Gameplay Readiness sans error | déclaration historique sourcée | NON |
+| Tests package critiques verts | déclaration historique sourcée | NON |
+| Limitations post-MVP listées | déclaration historique sourcée | NON |
+| Utilisateur valide le périmètre | approbation documentaire `d95498768` | NON |
+| Receipt d'exécution Phase 6 | manquant | BLOCKER |
+
+Décision agrégée autoritaire: **NO-GO**. Une liste de cinq
+`declaredEvidence`, même `passed`, sourcée et résumée, expose cinq blockers.
+
+## Contrat et zones modifiées
+
+| Fichier | Zone | Raison et impact |
+|---|---|---|
+| `packages/map_core/lib/src/read_models/mvp_release_gate.dart` | enum, evidence, décision | ajoute `MvpReleaseGateEvidenceKind`; seuls `executedEvidence/passed` contribuent au GO |
+| `packages/map_core/test/mvp_release_gate_test.dart` | fixtures et scénarios | rend chaque preuve explicite; couvre cinq receipts exécutés positifs et cinq déclarations NO-GO |
+| `reports/gameplay/fg_185_mvp_release_gate_v0.md` | préambule autoritaire | rétablit `PARTIAL / NO-GO` et archive l'ancien GO |
+| `reports/gameplay/fg_180_185_phase_10_playable_game_validation_completion.md` | préambule autoritaire | distingue complétion technique historique et release non exécutée |
+| `pokemap_roadmap_mecaniques_fangame.md` | ligne et DoD FG-185 uniquement | passe FG-185 à `PARTIAL`; laisse le receipt Phase 6 non coché |
+
+Zones de diff essentielles:
+
+```diff
++enum MvpReleaseGateEvidenceKind { declaredEvidence, executedEvidence }
++final MvpReleaseGateEvidenceKind evidenceKind;
+-bool get isGo => evidenceByCriterion.values.every(statusIsPassed);
++bool get isGo => evidenceByCriterion.values.every(isExecutedPass);
+```
+
+```diff
+-| FG-185 | ... | `✅ DONE` | ... GO |
++| FG-185 | ... | `🟡 PARTIAL` | ... receipt d'exécution manquant |
++- [ ] Receipt exécutable Phase 6 ...
+```
+
+## TDD rouge → vert
+
+Rouge observé avant la modification du contrat:
+
+```text
+dart test test/mvp_release_gate_test.dart --plain-name \
+  'never returns GO from five merely declared passed entries'
+Expected: false
+Actual: <true>
+00:00 +0 -1: Some tests failed.
+```
+
+Après ajout du type de preuve, la suite ciblée de gate donne:
+
+```text
+dart test test/mvp_release_gate_test.dart
+00:00 +8: All tests passed!
+```
+
+## Vérification finale
+
+Les résultats frais finaux sont consignés avant commit:
+
+```text
+dart test test/mvp_release_gate_test.dart test/project_gameplay_readiness_test.dart
+=> 00:00 +13: All tests passed! (exit 0)
+
+dart run tool/generate_gameplay_roadmap_dashboard.dart --check ../..
+=> DONE: 5 · PARTIAL: 1 · BLOCKED: 0 · TODO: 94 · DEFERRED: 8
+=> FG-180 à FG-184: DONE; FG-185: PARTIAL (exit 0)
+
+dart analyze
+=> Analyzing map_core... No issues found! (exit 0)
+
+git diff --check
+=> sortie vide (exit 0)
+```
+
+Aucun build d'application n'est applicable à ce lot de modèle pur Dart et de
+documentation. Les tests Dart ciblés et `dart analyze` sont la meilleure
+validation de compilation/statique du package concerné.
+
+## Passes séparées et verdicts
+
+| Passe | Verdict |
+|---|---|
+| Audit / Architecture | PASS — défaut de provenance identifié, frontière pure conservée |
+| Implémentation | PASS — distinction typée minimale, aucun I/O ajouté |
+| Tests | PASS — rouge observé, gate verte `+8`, vérification demandée verte `+13` |
+| Build / Validation | PASS — dashboard strict cohérent, analyse propre; build applicatif non applicable |
+| Critique finale | PASS — cinq fichiers seulement, aucun autre FG reclassé, aucun GO revendiqué |
+
+## Limites, risques et prochaines étapes
+
+- FG-185 reste `PARTIAL / NO-GO`; ce lot ne fabrique aucune preuve exécutée.
+- `source` reste une chaîne; l'authenticité/signature du futur receipt relève
+  de la Phase 6.
+- L'agrégateur reste volontairement pur et ne vérifie pas la fraîcheur par I/O.
+- Prochaine étape non implémentée: exécuter la gate Phase 6 et fournir cinq
+  `executedEvidence` valides dans un receipt traçable.
+
+## État git et fichiers créés
+
+État initial: HEAD `29e7643e`, worktree propre. État final avant commit: les
+cinq fichiers listés dans le scope sont les seuls fichiers modifiés; aucun
+fichier non suivi. Aucun fichier n'est créé dans ce lot; la demande de
+reproduction intégrale des fichiers créés est donc sans objet.
+
+## Annexe historique superseded — non autoritaire
+
+Tout le contenu ci-dessous est conservé sans réécriture comme trace des
+commits `c1bc49b21` et `d95498768`. Ses mentions `DONE / GO`, matrices,
+résultats et conclusions sont **superseded et non autoritaires**. Seul le
+préambule ci-dessus décrit l'état courant de FG-185.
+
+# FG-185 — MVP Release Gate V0 — archived snapshot
 
 Date: 2026-07-22
 

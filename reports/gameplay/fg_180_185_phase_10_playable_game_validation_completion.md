@@ -1,4 +1,55 @@
-# Phase 10 — Playable Game Validation — Completion Evidence Pack
+# Phase 10 — Playable Game Validation — authoritative correction
+
+Date: 2026-07-22
+
+Périmètre: `FG-180` à `FG-185`
+
+Verdict technique historique FG-180–184: **PASS**
+
+Verdict release MVP FG-185: **PARTIAL / NO-GO**
+
+## Résumé exécutif autoritaire
+
+Les livrables techniques FG-180 à FG-184 restent inchangés par cette
+correction. FG-185 ne peut toutefois pas déduire un GO de cinq déclarations
+textuelles `passed`, même avec source et résumé. Le contrat exige désormais
+cinq `executedEvidence` valides. Le receipt d'exécution de la Phase 6 est
+manquant: FG-185 reste donc `PARTIAL / NO-GO`.
+
+`c1bc49b21` est le commit technique historique de la gate. `d95498768` est la
+clôture/approbation documentaire historique et ne prouve aucune exécution
+signée. Aucun autre lot FG-180 à FG-184 n'est reclassé ici.
+
+## État autoritaire des lots
+
+| Lot | État conservé/corrigé | Justification |
+|---|---:|---|
+| FG-180 | DONE inchangé | hors scope de cette correction |
+| FG-181 | DONE inchangé | hors scope de cette correction |
+| FG-182 | DONE inchangé | hors scope de cette correction |
+| FG-183 | DONE inchangé | hors scope de cette correction |
+| FG-184 | DONE inchangé | hors scope de cette correction |
+| FG-185 | PARTIAL / NO-GO | receipt Phase 6 avec cinq preuves exécutées manquant |
+
+## Matrice FG-185 autoritaire
+
+| Condition | Disponible | Verdict |
+|---|---|---:|
+| Cinq déclarations `passed`, sources et résumés | oui, historiquement | insuffisant |
+| Approbation documentaire `d95498768` | oui | insuffisant |
+| Cinq preuves `executedEvidence` valides | non | BLOCKER |
+| Receipt d'exécution Phase 6 | non | BLOCKER |
+
+Décision: **NO-GO** jusqu'à exécution de la gate et production de son receipt.
+
+## Annexe historique superseded — non autoritaire
+
+Le snapshot ci-dessous est conservé pour traçabilité. Toutes ses mentions
+`DONE / GO`, matrices de décision et conclusions de release sont
+**superseded et non autoritaires**; elles ne constituent pas un receipt
+d'exécution.
+
+# Phase 10 — Playable Game Validation — archived completion snapshot
 
 Date: 2026-07-22
 
