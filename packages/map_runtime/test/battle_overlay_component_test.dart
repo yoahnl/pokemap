@@ -136,6 +136,7 @@ BattleCombatantData _combatant({
   int? currentHp,
   BattleStatsSnapshot? stats,
   BattleMajorStatusState? majorStatus,
+  int catchRate = 45,
   BattleVolatileState volatileState = const BattleVolatileState(),
   required List<BattleMoveData> moves,
 }) {
@@ -147,6 +148,7 @@ BattleCombatantData _combatant({
     currentHp: currentHp,
     stats: stats ?? _stats(),
     majorStatus: majorStatus,
+    catchRate: catchRate,
     volatileState: volatileState,
     moves: moves,
   );

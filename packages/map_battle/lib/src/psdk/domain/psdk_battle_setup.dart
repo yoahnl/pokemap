@@ -15,6 +15,8 @@ class PsdkBattleSetup {
     required this.rngSeeds,
     this.field = const PsdkBattleFieldState(),
     this.canFlee = false,
+    this.canCapture = false,
+    this.isTrainerBattle = false,
     List<PsdkBattleCombatantSetup> playerReserves =
         const <PsdkBattleCombatantSetup>[],
     List<PsdkBattleCombatantSetup> opponentReserves =
@@ -36,13 +38,31 @@ class PsdkBattleSetup {
             ),
           },
         ),
-        isSingles = true;
+        isSingles = true {
+    if (isTrainerBattle && canCapture) {
+      throw ArgumentError(
+        'A trainer battle cannot expose a capture decision.',
+      );
+    }
+    if (canCapture) {
+      final catchRate = opponent.catchRate;
+      if (catchRate == null || catchRate < 1 || catchRate > 255) {
+        throw ArgumentError.value(
+          catchRate,
+          'opponent.catchRate',
+          'Capture-enabled wild battles require a catchRate within 1..255.',
+        );
+      }
+    }
+  }
 
   final Map<PsdkBattleSlotRef, PsdkBattleCombatantSetup> combatants;
   final Map<int, List<PsdkBattleCombatantSetup>> parties;
   final PsdkBattleRngSeeds rngSeeds;
   final PsdkBattleFieldState field;
   final bool canFlee;
+  final bool canCapture;
+  final bool isTrainerBattle;
   final bool isSingles;
 
   PsdkBattleCombatantSetup get player => combatants[psdkPlayerSlot]!;

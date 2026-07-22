@@ -120,6 +120,19 @@ class BattleActionRun extends BattleAction {
   const BattleActionRun();
 }
 
+/// Resolved use of the one capture item supported by FG-049.
+final class BattleActionCapture extends BattleAction {
+  const BattleActionCapture({
+    required this.attemptId,
+    required this.itemId,
+    required this.caught,
+  });
+
+  final String attemptId;
+  final String itemId;
+  final bool caught;
+}
+
 /// Famille ultra-bornée d'objets de soin HP supportés en BAG battle.
 ///
 /// Lot 9-h factorise seulement ce qui devenait absurde à dupliquer :

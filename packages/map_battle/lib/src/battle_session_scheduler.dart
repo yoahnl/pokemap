@@ -76,6 +76,7 @@ BattleSession _applyForcedPlayerReplacement({
     rng: turn.rng,
     opponentPolicy: session.opponentPolicy,
     pendingTurn: null,
+    captureAttemptSequence: session.captureAttemptSequence,
   );
 }
 
@@ -138,6 +139,7 @@ BattleSession _resumePendingTurnWithReplacement({
     rng: turn.rng,
     opponentPolicy: session.opponentPolicy,
     pendingTurn: turn.pendingTurn,
+    captureAttemptSequence: session.captureAttemptSequence,
   );
 }
 
@@ -284,6 +286,8 @@ BattleTurnResult _buildTurnResultFromContext({
     bagHpHealItemEvents:
         List<BattleBagHpHealItemEvent>.unmodifiable(turn.bagHpHealItemEvents),
     switchEvents: List<BattleSwitchEvent>.unmodifiable(turn.switchEvents),
+    captureAttemptEvents:
+        List<BattleCaptureAttemptEvent>.unmodifiable(turn.captureAttemptEvents),
     timeline: List<BattleTurnEvent>.unmodifiable(turn.timeline),
   );
 }
@@ -423,6 +427,28 @@ void _executeActionQueueStep({
       sideId: _opposingSideId(step.side),
       resolution: sideConditionResolution,
     );
+    return;
+  }
+
+  if (step.action
+      case BattleActionCapture(
+        :final attemptId,
+        :final itemId,
+        :final caught,
+      )) {
+    if (step.side != BattleSideId.player || caught) {
+      throw StateError(
+        'Only a failed player capture attempt can enter the legacy turn queue.',
+      );
+    }
+    final event = BattleCaptureAttemptEvent(
+      attemptId: attemptId,
+      targetSpeciesId: opposingSide.active.writeBackSpeciesId,
+      ballId: itemId,
+      caught: false,
+    );
+    turn.captureAttemptEvents.add(event);
+    turn.timeline.add(BattleTurnCaptureAttemptEvent(event));
     return;
   }
 
@@ -833,6 +859,7 @@ int _priorityForResolvedAction(BattleAction action) {
     // - elles résolvent avant les moves actuellement supportés ;
     // - on refuse pourtant d'ouvrir une échelle générique de priorités items.
     BattleActionBagHpHealItemUse() => 7,
+    BattleActionCapture() => 7,
     BattleActionSwitch() => 6,
     BattleActionFight(:final move) => move.priority,
     BattleActionRecharge() => 0,
@@ -868,6 +895,7 @@ final class _PendingTurnContinuation {
     required this.spikesEvents,
     required this.bagHpHealItemEvents,
     required this.switchEvents,
+    required this.captureAttemptEvents,
     required this.timeline,
   });
 
@@ -898,6 +926,9 @@ final class _PendingTurnContinuation {
         turn.bagHpHealItemEvents,
       ),
       switchEvents: List<BattleSwitchEvent>.unmodifiable(turn.switchEvents),
+      captureAttemptEvents: List<BattleCaptureAttemptEvent>.unmodifiable(
+        turn.captureAttemptEvents,
+      ),
       timeline: List<BattleTurnEvent>.unmodifiable(turn.timeline),
     );
   }
@@ -918,6 +949,7 @@ final class _PendingTurnContinuation {
   final List<BattleSpikesEvent> spikesEvents;
   final List<BattleBagHpHealItemEvent> bagHpHealItemEvents;
   final List<BattleSwitchEvent> switchEvents;
+  final List<BattleCaptureAttemptEvent> captureAttemptEvents;
   final List<BattleTurnEvent> timeline;
 }
 
@@ -956,6 +988,7 @@ final class _QueuedTurnContext {
       ..spikesEvents.addAll(pending.spikesEvents)
       ..bagHpHealItemEvents.addAll(pending.bagHpHealItemEvents)
       ..switchEvents.addAll(pending.switchEvents)
+      ..captureAttemptEvents.addAll(pending.captureAttemptEvents)
       ..timeline.addAll(pending.timeline);
   }
 
@@ -978,6 +1011,8 @@ final class _QueuedTurnContext {
   final List<BattleBagHpHealItemEvent> bagHpHealItemEvents =
       <BattleBagHpHealItemEvent>[];
   final List<BattleSwitchEvent> switchEvents = <BattleSwitchEvent>[];
+  final List<BattleCaptureAttemptEvent> captureAttemptEvents =
+      <BattleCaptureAttemptEvent>[];
   final List<BattleTurnEvent> timeline = <BattleTurnEvent>[];
 
   BattleSideState side(BattleSideId sideId) {

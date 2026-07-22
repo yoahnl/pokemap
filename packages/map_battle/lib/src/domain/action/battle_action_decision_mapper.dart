@@ -49,6 +49,10 @@ final class PsdkBattleActionDecisionMapper {
           form: form,
         ),
       BattleFleeDecision() => PsdkBattleFleeAction(user: user),
+      BattleCaptureDecision(:final itemId) => PsdkBattleCaptureAction(
+          user: user,
+          itemId: itemId,
+        ),
       BattleShiftDecision(:final target) => PsdkBattleShiftAction(
           user: user,
           target: target,

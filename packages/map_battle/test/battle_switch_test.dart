@@ -48,6 +48,7 @@ BattleCombatantData _combatant({
   int? currentHp,
   BattleStatsSnapshot? stats,
   BattleMajorStatusState? majorStatus,
+  int? catchRate,
   BattleVolatileState volatileState = const BattleVolatileState(),
   required List<BattleMoveData> moves,
 }) {
@@ -59,6 +60,7 @@ BattleCombatantData _combatant({
     currentHp: currentHp,
     stats: stats ?? _stats(),
     majorStatus: majorStatus,
+    catchRate: catchRate,
     volatileState: volatileState,
     moves: moves,
   );
@@ -234,7 +236,8 @@ void main() {
       final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
 
       expect(afterTurn.state.enemy.speciesId, equals('status_wall'));
-      expect(afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
+      expect(
+          afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
     });
 
     test(
@@ -284,7 +287,8 @@ void main() {
       final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
 
       expect(afterTurn.state.enemy.speciesId, equals('slow_nuke'));
-      expect(afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
+      expect(
+          afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
     });
 
     test(
@@ -334,7 +338,8 @@ void main() {
       final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
 
       expect(afterTurn.state.enemy.speciesId, equals('fast_striker'));
-      expect(afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
+      expect(
+          afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
     });
 
     test(
@@ -376,7 +381,8 @@ void main() {
       final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
 
       expect(afterTurn.state.enemy.speciesId, equals('status_wall'));
-      expect(afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
+      expect(
+          afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
     });
 
     test(
@@ -427,7 +433,8 @@ void main() {
       final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
 
       expect(afterTurn.state.enemy.speciesId, equals('slow_nuke'));
-      expect(afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
+      expect(
+          afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
     });
 
     test(
@@ -487,7 +494,8 @@ void main() {
       final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
 
       expect(afterTurn.state.enemy.speciesId, equals('usable_striker'));
-      expect(afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
+      expect(
+          afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
     });
 
     test(
@@ -595,6 +603,7 @@ void main() {
         enemy: _combatant(
           speciesId: 'enemy',
           lineupIndex: 0,
+          catchRate: 45,
           moves: <BattleMoveData>[_waitingMove()],
         ),
       );
@@ -701,7 +710,8 @@ void main() {
 
       final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
 
-      expect(afterTurn.state.currentTurn!.enemyAction, isA<BattleActionFight>());
+      expect(
+          afterTurn.state.currentTurn!.enemyAction, isA<BattleActionFight>());
       expect(afterTurn.state.enemy.speciesId, equals('lead_enemy'));
       expect(afterTurn.state.currentTurn!.switchEvents, isEmpty);
     });
@@ -742,7 +752,8 @@ void main() {
 
       final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
 
-      expect(afterTurn.state.currentTurn!.enemyAction, isA<BattleActionFight>());
+      expect(
+          afterTurn.state.currentTurn!.enemyAction, isA<BattleActionFight>());
       expect(afterTurn.state.enemy.speciesId, equals('lead_enemy'));
       expect(afterTurn.state.currentTurn!.switchEvents, isEmpty);
     });
@@ -783,7 +794,8 @@ void main() {
 
       final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
 
-      expect(afterTurn.state.currentTurn!.enemyAction, isA<BattleActionSwitch>());
+      expect(
+          afterTurn.state.currentTurn!.enemyAction, isA<BattleActionSwitch>());
       expect(afterTurn.state.enemy.speciesId, equals('bench_enemy'));
       expect(afterTurn.state.enemy.currentHp, lessThan(45));
       expect(

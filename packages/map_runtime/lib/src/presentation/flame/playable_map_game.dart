@@ -1365,6 +1365,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   BattleSession? _battleSession;
   RuntimePsdkBattleSessionAdapter? _psdkBattleSession;
   RuntimeActiveBattleContext? _activeBattleContext;
+  RuntimeBattleCaptureAttemptReceipt? _captureAttemptReceipt;
   final ValueNotifier<BattleCommandOverlaySnapshot?>
       _battleCommandOverlayNotifier =
       ValueNotifier<BattleCommandOverlaySnapshot?>(null);
@@ -1916,6 +1917,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleSession = null;
     _psdkBattleSession = null;
     _activeBattleContext = null;
+    _captureAttemptReceipt = null;
     _isBattleResolving = false;
     _pendingBattleRequest = null;
     _pendingSceneBattleOutcomeCompleter = null;
@@ -1934,6 +1936,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void debugApplyBattleOutcomeForTest({
     required RuntimeActiveBattleContext context,
     required BattleOutcome outcome,
+    RuntimeBattleCaptureAttemptReceipt? captureAttemptReceipt,
   }) {
     // Seam de test volontairement fin :
     // - on ne contourne pas la logique réelle de fin de combat ;
@@ -1943,6 +1946,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     //   + la reprise overworld sans créer d'API produit parallèle.
     _pendingBattleRequest = null;
     _activeBattleContext = context;
+    _captureAttemptReceipt = captureAttemptReceipt;
     _flowPhase = _RuntimeFlowPhase.battle;
     _onBattleFinished(outcome);
   }
@@ -6667,6 +6671,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         playerPartyIndex: playerLineup.activeIndex,
         playerPartySlotIndicesByLineupIndex: playerLineup.lineupPartyIndices,
       );
+      _captureAttemptReceipt = null;
 
       // Lot 2 garde la résolution de fond intégralement côté runtime :
       // - le battle-core n'a aucune connaissance de décor ;
@@ -6796,6 +6801,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleSession = null;
     _psdkBattleSession = null;
     _activeBattleContext = null;
+    _captureAttemptReceipt = null;
     _isBattleResolving = false;
     _flowPhase = _RuntimeFlowPhase.overworld;
     _clearPressedMovementControls();
@@ -6884,8 +6890,31 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         final request = _activeBattleContext?.request;
         final isTrainerBattle = request is TrainerBattleStartRequest;
         final trainerId = isTrainerBattle ? request.trainerId : null;
-        if (choice is PlayerBattleChoiceCapture ||
-            choice is PlayerBattleChoiceRun) {
+        if (choice is PlayerBattleChoiceCapture) {
+          final activeContext = _activeBattleContext;
+          if (activeContext == null) {
+            throw StateError(
+                'Capture requires an active runtime battle context.');
+          }
+          final submission = submitRuntimeBattleCaptureAttempt(
+            gameState: _battleRuntimeGameState,
+            context: activeContext,
+            captureAllowed: psdkSession.decisionRequest.allows(
+              const BattleDecision.capture(
+                itemId: canonicalPokeBallItemId,
+              ),
+            ),
+            submitToEngine: () => psdkSession.submitPlayerChoice(choice),
+          );
+          _replaceBattleRuntimeGameState(submission.updatedGameState);
+          _captureAttemptReceipt = submission.receipt;
+          _battleSession = psdkSession.createLegacyDisplaySession(
+            isTrainerBattle: isTrainerBattle,
+            trainerId: trainerId,
+            allowCapture: _battleRequestAllowsCapture(request),
+            allowFlee: request?.allowsPlayerFlee ?? false,
+          );
+        } else if (choice is PlayerBattleChoiceRun) {
           _battleSession = _battleSession!.applyChoice(choice);
         } else {
           psdkSession.submitPlayerChoice(choice);
@@ -6897,8 +6926,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           );
         }
       } else {
-        // Appliquer le choix (retourne une nouvelle session immutable)
-        _battleSession = _battleSession!.applyChoice(choice);
+        if (choice is PlayerBattleChoiceCapture) {
+          final activeContext = _activeBattleContext;
+          if (activeContext == null) {
+            throw StateError(
+                'Capture requires an active runtime battle context.');
+          }
+          final submission = submitRuntimeBattleCaptureAttempt(
+            gameState: _battleRuntimeGameState,
+            context: activeContext,
+            captureAllowed: _battleSession!.decisionRequest.allows(choice),
+            submitToEngine: () => _battleSession!.applyChoice(choice),
+          );
+          _replaceBattleRuntimeGameState(submission.updatedGameState);
+          _captureAttemptReceipt = submission.receipt;
+          _battleSession = submission.engineResult;
+        } else {
+          // Appliquer le choix (retourne une nouvelle session immutable)
+          _battleSession = _battleSession!.applyChoice(choice);
+        }
       }
 
       // Mettre à jour l'UI avec le nouvel état
@@ -7132,6 +7178,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         gameState: _battleRuntimeGameState,
         context: activeBattleContext,
         outcome: outcome,
+        captureAttemptReceipt: _captureAttemptReceipt,
         storyFlagsManager: _storyFlags,
       ));
 
@@ -7183,6 +7230,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleSession = null;
     _psdkBattleSession = null;
     _activeBattleContext = null;
+    _captureAttemptReceipt = null;
     _isBattleResolving = false; // Reset lock anti-spam
 
     // NOTE: NE PAS clear _triggeredTrainerBattles ici!

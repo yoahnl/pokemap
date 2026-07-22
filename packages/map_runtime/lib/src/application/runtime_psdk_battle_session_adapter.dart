@@ -66,6 +66,10 @@ final class RuntimePsdkBattleSessionAdapter {
     return BattleOutcome(
       type: _legacyOutcomeType(),
       finalState: finalState,
+      captureItemId: state.outcome?.kind == BattleEngineOutcomeKind.captured
+          ? canonicalPokeBallItemId
+          : null,
+      captureAttemptId: state.outcome?.captureAttemptId,
     );
   }
 
@@ -103,8 +107,8 @@ final class RuntimePsdkBattleSessionAdapter {
           partyIndex: _partyIndexForReserveChoice(reserveIndex),
         ),
       PlayerBattleChoiceRun() => const BattleDecision.flee(),
-      PlayerBattleChoiceCapture() => throw UnsupportedError(
-          'PSDK battle runtime capture choice is not wired yet.',
+      PlayerBattleChoiceCapture() => const BattleDecision.capture(
+          itemId: canonicalPokeBallItemId,
         ),
       PlayerBattleChoiceContinue() => const BattleDecision.noAction(),
     };
@@ -120,6 +124,7 @@ final class RuntimePsdkBattleSessionAdapter {
     final timeline = <BattleTurnEvent>[];
     final executions = <BattleMoveExecution>[];
     final bagHpHealItemEvents = <BattleBagHpHealItemEvent>[];
+    final captureAttemptEvents = <BattleCaptureAttemptEvent>[];
     for (final event in result.timeline.events) {
       if (event is BattleDamageTimelineEvent) {
         final execution = _toLegacyDamageExecution(event);
@@ -139,15 +144,27 @@ final class RuntimePsdkBattleSessionAdapter {
         );
         bagHpHealItemEvents.add(itemEvent);
         timeline.add(BattleTurnBagHpHealItemEvent(itemEvent));
+      } else if (event is BattleCaptureAttemptTimelineEvent) {
+        final captureEvent = BattleCaptureAttemptEvent(
+          attemptId: event.attemptId,
+          targetSpeciesId:
+              state.psdkState.battlerAt(psdkOpponentSlot).writeBackSpeciesId,
+          ballId: event.ballId,
+          caught: event.caught,
+        );
+        captureAttemptEvents.add(captureEvent);
+        timeline.add(BattleTurnCaptureAttemptEvent(captureEvent));
       }
     }
 
     return BattleTurnResult(
-      playerAction: _toLegacyPlayerAction(decision),
+      playerAction: _toLegacyPlayerAction(decision, result),
       enemyAction: _toLegacyOpponentAction(result),
       executions: List<BattleMoveExecution>.unmodifiable(executions),
       bagHpHealItemEvents:
           List<BattleBagHpHealItemEvent>.unmodifiable(bagHpHealItemEvents),
+      captureAttemptEvents:
+          List<BattleCaptureAttemptEvent>.unmodifiable(captureAttemptEvents),
       timeline: List<BattleTurnEvent>.unmodifiable(timeline),
     );
   }
@@ -208,7 +225,10 @@ final class RuntimePsdkBattleSessionAdapter {
     );
   }
 
-  BattleAction _toLegacyPlayerAction(BattleDecision decision) {
+  BattleAction _toLegacyPlayerAction(
+    BattleDecision decision,
+    BattleEngineTurnResult result,
+  ) {
     return switch (decision) {
       BattleFightDecision(:final moveSlot) => BattleActionFight(
           _toLegacyMove(
@@ -223,12 +243,31 @@ final class RuntimePsdkBattleSessionAdapter {
           effect: effect,
         ),
       BattleFleeDecision() => const BattleActionRun(),
+      BattleCaptureDecision(:final itemId) => BattleActionCapture(
+          attemptId: _captureAttemptEvent(result).attemptId,
+          itemId: itemId,
+          caught: state.outcome?.kind == BattleEngineOutcomeKind.captured,
+        ),
       BattleSwitchDecision() ||
       BattleMegaDecision() ||
       BattleShiftDecision() ||
       BattleNoActionDecision() =>
         const BattleActionNone(),
     };
+  }
+
+  BattleCaptureAttemptTimelineEvent _captureAttemptEvent(
+    BattleEngineTurnResult result,
+  ) {
+    final events = result.timeline.events
+        .whereType<BattleCaptureAttemptTimelineEvent>()
+        .toList(growable: false);
+    if (events.length != 1) {
+      throw StateError(
+        'A PSDK capture decision must expose exactly one capture attempt event.',
+      );
+    }
+    return events.single;
   }
 
   BattleActionBagHpHealItemUse _toLegacyBattleItemAction({
@@ -431,6 +470,7 @@ final class RuntimePsdkBattleSessionAdapter {
       majorStatus:
           _statusBridge.legacyFromPsdkBattleStatus(combatant.majorStatus),
       abilityId: combatant.abilityId ?? 'unknown',
+      catchRate: combatant.catchRate,
       moves: combatant.moves.map(_toLegacyMoveData).toList(growable: false),
     );
   }
@@ -447,6 +487,7 @@ final class RuntimePsdkBattleSessionAdapter {
       majorStatus:
           _statusBridge.legacyFromPsdkBattleStatus(combatant.majorStatus),
       abilityId: combatant.abilityId ?? 'unknown',
+      catchRate: combatant.catchRate,
       moves: combatant.moves.map(_toLegacyMove).toList(growable: false),
       writeBackSpeciesId: combatant.writeBackSpeciesId,
       writeBackAbilityId: combatant.writeBackAbilityId ?? 'unknown',
@@ -575,6 +616,7 @@ final class RuntimePsdkBattleSessionAdapter {
       BattleEngineOutcomeKind.victory => BattleOutcomeType.victory,
       BattleEngineOutcomeKind.defeat => BattleOutcomeType.defeat,
       BattleEngineOutcomeKind.fled => BattleOutcomeType.runaway,
+      BattleEngineOutcomeKind.captured => BattleOutcomeType.captured,
       null => throw StateError('PSDK battle has no final outcome yet.'),
     };
   }

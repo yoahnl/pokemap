@@ -4,6 +4,7 @@ import '../domain/battle/battle_slot.dart';
 import '../domain/ai/psdk_battle_ai.dart';
 import '../domain/action/battle_action.dart';
 import '../domain/action/battle_action_decision_mapper.dart';
+import '../domain/action/battle_capture_action_handler.dart';
 import '../domain/action/battle_item_action_handler.dart';
 import '../domain/action/battle_mega_action_handler.dart';
 import '../domain/action/battle_shift_action_handler.dart';
@@ -124,6 +125,28 @@ final class BattleTurnRunner {
 
       for (var actionIndex = 0; actionIndex < actions.length; actionIndex++) {
         final action = actions[actionIndex];
+        if (action is PsdkBattleCaptureAction) {
+          final capture = const BattleCaptureActionHandler().attempt(
+            context: _context,
+            action: action,
+            target: psdkOpponentSlot,
+          );
+          _context.applyStateAndRng(
+            nextState: _context.state,
+            nextRng: capture.nextRng,
+          );
+          timeline.add(capture.event);
+          if (capture.caught) {
+            final outcome = PsdkBattleOutcome(
+              kind: PsdkBattleOutcomeKind.captured,
+              captureAttemptId: capture.event.attemptId,
+            );
+            _context.finish(outcome);
+            timeline.add(BattleEndedTimelineEvent(outcome: outcome));
+            break;
+          }
+          continue;
+        }
         if (action is PsdkBattleItemAction) {
           final item = _resolveItemAction(action);
           _context.applyStateAndRng(

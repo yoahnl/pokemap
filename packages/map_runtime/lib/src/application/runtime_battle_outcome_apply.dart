@@ -75,6 +75,148 @@ class RuntimeActiveBattleContext {
   final List<int> playerPartySlotIndicesByLineupIndex;
 }
 
+/// Typed successful-attempt identity extracted from an engine result.
+final class _RuntimeBattleEngineCaptureAttempt {
+  const _RuntimeBattleEngineCaptureAttempt({
+    required this.attemptId,
+    required this.itemId,
+  });
+
+  final String attemptId;
+  final String itemId;
+}
+
+/// Extracts a successful capture only when legacy outcome and turn trace agree.
+_RuntimeBattleEngineCaptureAttempt? _extractLegacyBattleCaptureAttempt(
+  BattleSession session,
+) {
+  final outcome = session.state.outcome;
+  if (outcome?.type != BattleOutcomeType.captured) {
+    return null;
+  }
+  final attemptId = outcome!.captureAttemptId;
+  final itemId = outcome.captureItemId;
+  final matchingEvents = session.state.currentTurn?.captureAttemptEvents.where(
+        (event) =>
+            event.caught &&
+            event.attemptId == attemptId &&
+            event.ballId == itemId,
+      ) ??
+      const Iterable<BattleCaptureAttemptEvent>.empty();
+  if (attemptId == null ||
+      itemId == null ||
+      attemptId.isEmpty ||
+      matchingEvents.length != 1) {
+    throw StateError(
+      'Legacy captured outcome does not match exactly one successful attempt.',
+    );
+  }
+  return _RuntimeBattleEngineCaptureAttempt(
+    attemptId: attemptId,
+    itemId: itemId,
+  );
+}
+
+/// Extracts a successful capture only when PSDK outcome and timeline agree.
+_RuntimeBattleEngineCaptureAttempt? _extractPsdkBattleCaptureAttempt(
+  BattleEngineTurnResult result,
+) {
+  final outcome = result.outcome;
+  if (outcome?.kind != BattleEngineOutcomeKind.captured) {
+    return null;
+  }
+  final attemptId = outcome!.captureAttemptId;
+  final matchingEvents = result.timeline.events
+      .whereType<BattleCaptureAttemptTimelineEvent>()
+      .where((event) => event.caught && event.attemptId == attemptId)
+      .toList(growable: false);
+  if (attemptId == null || attemptId.isEmpty || matchingEvents.length != 1) {
+    throw StateError(
+      'PSDK captured outcome does not match exactly one successful attempt.',
+    );
+  }
+  return _RuntimeBattleEngineCaptureAttempt(
+    attemptId: attemptId,
+    itemId: matchingEvents.single.ballId,
+  );
+}
+
+/// One-shot proof that the runtime charged one exact successful attempt.
+final class RuntimeBattleCaptureAttemptReceipt {
+  RuntimeBattleCaptureAttemptReceipt._({
+    required this.requestId,
+    required this.itemId,
+    required this.attemptId,
+  });
+
+  final String requestId;
+  final String itemId;
+  final String attemptId;
+  bool _isClaimed = false;
+
+  void _claim() {
+    if (_isClaimed) {
+      throw StateError('Capture attempt receipt was already claimed.');
+    }
+    _isClaimed = true;
+  }
+}
+
+/// Atomic result returned only after the engine accepted a capture attempt.
+final class RuntimeBattleCaptureAttemptSubmission<T> {
+  const RuntimeBattleCaptureAttemptSubmission({
+    required this.updatedGameState,
+    required this.engineResult,
+    required this.receipt,
+  });
+
+  final GameState updatedGameState;
+  final T engineResult;
+  final RuntimeBattleCaptureAttemptReceipt? receipt;
+}
+
+/// Charges exactly one Poké Ball iff [submitToEngine] completes successfully.
+///
+/// The input [GameState] is immutable. The charged state is returned only
+/// after engine submission succeeds, so a thrown engine/application error
+/// leaves the caller with its original, uncharged state.
+RuntimeBattleCaptureAttemptSubmission<T> submitRuntimeBattleCaptureAttempt<T>({
+  required GameState gameState,
+  required RuntimeActiveBattleContext context,
+  required bool captureAllowed,
+  required T Function() submitToEngine,
+}) {
+  if (context.request is! WildBattleStartRequest || !captureAllowed) {
+    throw StateError('Capture is not allowed for this battle.');
+  }
+  final chargedBag = _consumeOnePokeBallOrThrow(gameState.bag);
+  final result = submitToEngine();
+  final captureAttempt = switch (result) {
+    BattleSession session => _extractLegacyBattleCaptureAttempt(session),
+    BattleEngineTurnResult turnResult =>
+      _extractPsdkBattleCaptureAttempt(turnResult),
+    _ => throw StateError(
+        'Capture submission requires a typed legacy or PSDK engine result.',
+      ),
+  };
+  if (captureAttempt != null &&
+      (captureAttempt.attemptId.trim().isEmpty ||
+          captureAttempt.itemId != _runtimeCapturePokeBallItemId)) {
+    throw StateError('The engine returned an invalid capture attempt proof.');
+  }
+  return RuntimeBattleCaptureAttemptSubmission<T>(
+    updatedGameState: gameState.copyWith(bag: chargedBag),
+    engineResult: result,
+    receipt: captureAttempt == null
+        ? null
+        : RuntimeBattleCaptureAttemptReceipt._(
+            requestId: context.request.requestId,
+            itemId: captureAttempt.itemId,
+            attemptId: captureAttempt.attemptId,
+          ),
+  );
+}
+
 /// Applique le strict minimum de reprise après une vraie défaite joueur.
 ///
 /// Pourquoi ce helper existe :
@@ -188,14 +330,15 @@ int _resolveDefeatRecoveryPartySlotIndex({
 /// Important :
 /// - on ne soigne jamais implicitement le joueur ;
 /// - on ne téléporte jamais ;
-/// - le lot 13/14 ne gère qu'une capture sauvage minimale ;
-/// - le lot 14 consomme exactement une Poké Ball au write-back runtime ;
+/// - FG-049 ne gère que la Poké Ball canonique ;
+/// - chaque tentative acceptée consomme sa Ball à la soumission, jamais ici ;
 /// - aucun bag UI, aucune récompense, aucun switch n'est ouvert ici ;
 /// - on ne recalculera jamais naïvement le slot actif après le combat.
 GameState applyRuntimeBattleOutcomeToGameState({
   required GameState gameState,
   required RuntimeActiveBattleContext context,
   required BattleOutcome outcome,
+  RuntimeBattleCaptureAttemptReceipt? captureAttemptReceipt,
   StoryFlagsManager storyFlagsManager = const StoryFlagsManager(),
 }) {
   final stateWithPlayerHp = writePlayerBattleLineupBackToPartySlots(
@@ -212,8 +355,17 @@ GameState applyRuntimeBattleOutcomeToGameState({
       );
     }
 
-    final bagAfterConsumption =
-        _consumeOnePokeBallOrThrow(stateWithPlayerHp.bag);
+    final receipt = captureAttemptReceipt;
+    if (receipt == null ||
+        receipt._isClaimed ||
+        receipt.requestId != request.requestId ||
+        receipt.itemId != _runtimeCapturePokeBallItemId ||
+        outcome.captureItemId != _runtimeCapturePokeBallItemId ||
+        receipt.attemptId != outcome.captureAttemptId) {
+      throw StateError(
+        'BattleOutcomeType.captured requires a matching charged poke-ball attempt receipt.',
+      );
+    }
     final capturedPokemon = _buildCapturedWildPlayerPokemon(
       enemy: outcome.finalState.enemy,
     );
@@ -222,13 +374,13 @@ GameState applyRuntimeBattleOutcomeToGameState({
     // l'opération pure choisit party ou storage minimal persistant, puis la
     // normalisation partagée synchronise caught/seen.
     final captureResult = const GameStateMutations().applyCapturedPokemon(
-      stateWithPlayerHp.copyWith(
-        bag: bagAfterConsumption,
-      ),
+      stateWithPlayerHp,
       pokemon: capturedPokemon,
     );
 
-    return captureResult.state;
+    final updatedState = captureResult.state;
+    receipt._claim();
+    return updatedState;
   }
 
   if (outcome.isVictory && request is TrainerBattleStartRequest) {
@@ -252,8 +404,8 @@ const _capturedPokemonFallbackAbilityId = 'unknown';
 /// - niveau et PV restent ceux du combattant sauvage réellement engagé ;
 /// - la nature reste un fallback MVP déterministe (`hardy`) faute de véritable
 ///   génération runtime existante ;
-/// - on ne tente pas d'inventer ivs/evs/status/shiny/held item au-delà des
-///   defaults du modèle `PlayerPokemon`.
+/// - le statut majeur est conservé ; ivs/evs/shiny/held item restent aux
+///   defaults du modèle `PlayerPokemon` faute de données runtime dédiées.
 ///
 /// Invariant important :
 /// - une capture réussie ne doit jamais produire un Pokémon owned déjà K.O. ;
@@ -283,17 +435,22 @@ PlayerPokemon _buildCapturedWildPlayerPokemon({
       }..remove(''),
     ),
     currentHp: enemy.currentHp <= 0 ? 1 : enemy.currentHp,
+    statusId: switch (enemy.majorStatus?.id) {
+      BattleMajorStatusId.par => 'par',
+      BattleMajorStatusId.brn => 'brn',
+      BattleMajorStatusId.psn => 'psn',
+      BattleMajorStatusId.tox => 'tox',
+      BattleMajorStatusId.slp => 'slp',
+      BattleMajorStatusId.frz => 'frz',
+      null => '',
+    },
   );
 }
 
 /// Consomme exactement une Poké Ball du bag runtime.
 ///
-/// Pourquoi le coût est appliqué ici :
-/// - le moteur battle n'a pas à connaître le bag réel du joueur ;
-/// - la capture n'est "réelle" qu'au moment où le runtime accepte d'écrire le
-///   résultat dans le `GameState` ;
-/// - cela donne une frontière de sécurité unique contre les appels forcés :
-///   si aucun `poke-ball` n'existe, le write-back échoue explicitement.
+/// Ce helper est appelé par la transaction de soumission, avant le commit du
+/// nouvel état runtime. Le write-back terminal ne consomme plus rien.
 ///
 /// Le lot 14 reste volontairement minimal :
 /// - une seule ressource est concernée (`poke-ball` / `items`) ;

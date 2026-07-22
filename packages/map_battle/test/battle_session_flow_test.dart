@@ -15,6 +15,8 @@ void main() {
     BattleSession createTestSession({
       int playerHp = 20,
       int enemyHp = 20,
+      int? enemyCurrentHp,
+      BattleMajorStatusState? enemyStatus,
       int playerMovePower = 5,
       int enemyMovePower = 5,
       bool isTrainerBattle = false,
@@ -35,6 +37,9 @@ void main() {
           speciesId: 'lapras',
           level: 5,
           maxHp: enemyHp,
+          currentHp: enemyCurrentHp,
+          catchRate: 255,
+          majorStatus: enemyStatus,
           stats: _flowTestStats,
           moves: [
             BattleMoveData(id: 'tackle', name: 'Charge', power: enemyMovePower),
@@ -116,6 +121,8 @@ void main() {
       final session = createTestSession(
         playerHp: 50,
         enemyHp: 18,
+        enemyCurrentHp: 1,
+        enemyStatus: const BattleMajorStatusState.slp(),
         allowCapture: true,
       );
 
@@ -128,9 +135,9 @@ void main() {
       expect(sessionAfterCapture.state.isFinished, isTrue);
       expect(sessionAfterCapture.state.outcome, isNotNull);
       expect(sessionAfterCapture.state.outcome!.isCaptured, isTrue);
-      expect(sessionAfterCapture.state.currentTurn, isNull);
+      expect(sessionAfterCapture.state.currentTurn, isNotNull);
       expect(sessionAfterCapture.state.player.currentHp, equals(50));
-      expect(sessionAfterCapture.state.enemy.currentHp, equals(18));
+      expect(sessionAfterCapture.state.enemy.currentHp, equals(1));
     });
 
     test('multiple turns can be played sequentially', () {
@@ -349,8 +356,11 @@ void main() {
           speciesId: 'lapras',
           level: 5,
           maxHp: 20,
+          currentHp: 1,
           stats: _flowTestStats,
           abilityId: 'water-absorb',
+          catchRate: 255,
+          majorStatus: const BattleMajorStatusState.slp(),
           moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 5)],
         ),
         isTrainerBattle: false,

@@ -25,7 +25,11 @@ export 'src/application/runtime_battle_move_bridge_diagnostics.dart'
 export 'src/application/runtime_battle_setup_exception.dart'
     show RuntimeBattleSetupException;
 export 'src/application/runtime_battle_outcome_apply.dart'
-    show RuntimeActiveBattleContext;
+    show
+        RuntimeActiveBattleContext,
+        RuntimeBattleCaptureAttemptReceipt,
+        RuntimeBattleCaptureAttemptSubmission,
+        submitRuntimeBattleCaptureAttempt;
 export 'src/application/runtime_battle_progression_context_mapper.dart'
     show RuntimeBattleProgressionContextMapper;
 export 'src/application/runtime_player_pokemon_progression_hydrator.dart'

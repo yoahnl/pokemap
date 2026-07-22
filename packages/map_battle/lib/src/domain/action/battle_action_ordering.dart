@@ -83,6 +83,7 @@ final class PsdkBattleActionOrdering {
   int _bucket(PsdkBattleAction action) {
     return switch (action.kind) {
       PsdkBattleActionKind.highPriorityItem => 80,
+      PsdkBattleActionKind.capture => 80,
       PsdkBattleActionKind.switchPokemon => 70,
       PsdkBattleActionKind.mega => 60,
       PsdkBattleActionKind.fight => 50,

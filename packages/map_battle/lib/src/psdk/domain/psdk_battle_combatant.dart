@@ -557,6 +557,7 @@ class PsdkBattleCombatantSetup {
     List<String> temporaryTypes = const <String>[],
     this.transformState = const PsdkBattleTransformState(),
     this.majorStatus,
+    this.catchRate,
     this.statStages,
     this.moveHistory,
     this.damageHistory = const PsdkBattleDamageHistory.empty(),
@@ -617,6 +618,7 @@ class PsdkBattleCombatantSetup {
   final List<String> temporaryTypes;
   final PsdkBattleTransformState transformState;
   final PsdkBattleMajorStatus? majorStatus;
+  final int? catchRate;
   final PsdkBattleStatStages? statStages;
   final PsdkBattleMoveHistory? moveHistory;
   final PsdkBattleDamageHistory damageHistory;
@@ -694,6 +696,7 @@ class PsdkBattleCombatant {
     List<String> temporaryTypes = const <String>[],
     this.transformState = const PsdkBattleTransformState(),
     this.majorStatus,
+    this.catchRate,
     PsdkBattleStatStages? statStages,
     PsdkBattleMoveHistory? moveHistory,
     PsdkBattleDamageHistory? damageHistory,
@@ -777,6 +780,7 @@ class PsdkBattleCombatant {
       // imported save/runtime status into the immutable battle snapshot instead
       // of forcing tests or adapters to fake a previous status move.
       majorStatus: setup.majorStatus,
+      catchRate: setup.catchRate,
       statStages: setup.statStages,
       moveHistory: setup.moveHistory,
       damageHistory: setup.damageHistory,
@@ -840,6 +844,7 @@ class PsdkBattleCombatant {
   final List<PsdkBattleMoveData> _moves;
   final List<PsdkBattleMoveData> _writeBackMoves;
   final PsdkBattleMajorStatus? majorStatus;
+  final int? catchRate;
 
   /// Immutable observable move list.
   ///
@@ -1023,6 +1028,7 @@ class PsdkBattleCombatant {
       // "clear the value". Keep the common setter terse, and expose an explicit
       // clear flag for future cure/status-removal effects.
       majorStatus: clearMajorStatus ? null : (majorStatus ?? this.majorStatus),
+      catchRate: catchRate,
       statStages: statStages ?? this.statStages,
       moveHistory: moveHistory ?? this.moveHistory,
       damageHistory: damageHistory ?? this.damageHistory,

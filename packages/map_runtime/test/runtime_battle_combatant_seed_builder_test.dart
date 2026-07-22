@@ -176,6 +176,7 @@ void main() {
         speciesId: 'sproutle',
         level: 12,
         maxHp: 36,
+        catchRate: 45,
         stats: BattleStatsSnapshot(
           attack: 20,
           defense: 16,

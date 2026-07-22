@@ -79,14 +79,16 @@ sealed class BattleQueueStep {
 /// Retourne `true` seulement pour les actions réellement gérées par la queue.
 ///
 /// Important :
-/// - `Run` / `Capture` vivent encore hors queue car ils terminent
-///   immédiatement le combat hors résolution normale ;
+/// - `Run` vit encore hors queue car il termine immédiatement le combat ;
+/// - une capture réussie termine aussi hors queue, mais une tentative ratée
+///   entre dans la queue afin que l'action adverse joue honnêtement ;
 /// - `BattleActionNone` reste un marqueur d'étape inter-tour locale et ne doit
 ///   pas être déguisé en action de queue ;
 /// - Phase F refuse donc de transformer toute `BattleAction` existante en
 ///   pseudo commande universelle.
 bool isBattleQueueManagedAction(BattleAction action) {
   return action is BattleActionFight ||
+      action is BattleActionCapture ||
       action is BattleActionBagHpHealItemUse ||
       action is BattleActionRecharge ||
       action is BattleActionSwitch;
@@ -109,7 +111,7 @@ final class BattleQueueActionStep extends BattleQueueStep {
       throw ArgumentError.value(
         action,
         'action',
-        'BattleQueueActionStep n’accepte que Fight/HP-heal-item/Switch/Recharge.',
+        'BattleQueueActionStep n’accepte que Fight/Capture/HP-heal-item/Switch/Recharge.',
       );
     }
     return BattleQueueActionStep._(

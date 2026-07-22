@@ -9,6 +9,7 @@ enum BattleEngineOutcomeKind {
   victory,
   defeat,
   fled,
+  captured,
 }
 
 /// Public terminal outcome for [BattleEngine].
@@ -24,6 +25,7 @@ final class BattleEngineOutcome {
         PsdkBattleOutcomeKind.victory => BattleEngineOutcomeKind.victory,
         PsdkBattleOutcomeKind.defeat => BattleEngineOutcomeKind.defeat,
         PsdkBattleOutcomeKind.fled => BattleEngineOutcomeKind.fled,
+        PsdkBattleOutcomeKind.captured => BattleEngineOutcomeKind.captured,
       },
       psdkOutcome: outcome,
     );
@@ -36,6 +38,8 @@ final class BattleEngineOutcome {
   bool get isVictory => kind == BattleEngineOutcomeKind.victory;
   bool get isDefeat => kind == BattleEngineOutcomeKind.defeat;
   bool get isFled => kind == BattleEngineOutcomeKind.fled;
+  bool get isCaptured => kind == BattleEngineOutcomeKind.captured;
+  String? get captureAttemptId => _psdkOutcome.captureAttemptId;
 
   Set<int> get playerParticipantPartyIndexes =>
       _psdkOutcome.playerParticipantPartyIndexes;

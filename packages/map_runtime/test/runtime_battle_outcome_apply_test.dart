@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
+import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
 
 const _outcomeTestStats = BattleStatsSnapshot(
   attack: 10,
@@ -611,12 +612,17 @@ void main() {
     });
 
     test('captured wild battle appends the pokemon and syncs caught/seen', () {
-      final updatedState = applyRuntimeBattleOutcomeToGameState(
+      final context = RuntimeActiveBattleContext(
+        request: _wildRequest(),
+        playerPartyIndex: 0,
+      );
+      final attempt = _acceptedCaptureAttempt(
         gameState: _baseState(),
-        context: RuntimeActiveBattleContext(
-          request: _wildRequest(),
-          playerPartyIndex: 0,
-        ),
+        context: context,
+      );
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: attempt.updatedGameState,
+        context: context,
         outcome: _finishedOutcome(
           type: BattleOutcomeType.captured,
           playerCurrentHp: 19,
@@ -625,7 +631,9 @@ void main() {
           enemyCurrentHp: 7,
           enemyAbilityId: 'intimidate',
           enemyMoveIds: const <String>['scratch', 'leer'],
+          enemyMajorStatus: const BattleMajorStatusState.slp(),
         ),
+        captureAttemptReceipt: attempt.receipt,
       );
 
       expect(updatedState.party.members[0].currentHp, equals(19));
@@ -642,6 +650,7 @@ void main() {
         equals(<String, int>{'scratch': 35, 'leer': 35}),
       );
       expect(captured.currentHp, equals(7));
+      expect(captured.statusId, equals('slp'));
       expect(
         updatedState.bag.entries,
         equals(
@@ -682,6 +691,7 @@ void main() {
             level: 15,
             maxHp: 40,
             currentHp: 31,
+            catchRate: 45,
             stats: BattleStatsSnapshot(
               attack: 20,
               defense: 20,
@@ -708,6 +718,7 @@ void main() {
           trainerId: null,
           allowCapture: true,
         ),
+        rng: const BattleScriptedRng(<int>[1]),
       );
 
       battle = battle.applyChoice(const PlayerBattleChoiceFight(0));
@@ -719,40 +730,50 @@ void main() {
       expect(battle.state.enemy.writeBackMoves.single.id, 'transform');
       expect(battle.state.enemy.writeBackMoves.single.currentPp, 9);
 
-      battle = battle.applyChoice(const PlayerBattleChoiceCapture());
+      const captureGameState = GameState(
+        saveId: 'capture-transformed-wild',
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(
+              itemId: 'poke-ball',
+              categoryId: 'items',
+              quantity: 1,
+            ),
+          ],
+        ),
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'player-sproutle',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 12,
+              knownMoveIds: <String>['wait'],
+              currentPpByMoveId: <String, int>{'wait': 35},
+              currentHp: 23,
+            ),
+          ],
+        ),
+      );
+      final context = RuntimeActiveBattleContext(
+        request: _wildRequest(),
+        playerPartyIndex: 0,
+      );
+      final attempt = submitRuntimeBattleCaptureAttempt<BattleSession>(
+        gameState: captureGameState,
+        context: context,
+        captureAllowed: true,
+        submitToEngine: () =>
+            battle.applyChoice(const PlayerBattleChoiceCapture()),
+      );
+      battle = attempt.engineResult;
       expect(battle.state.outcome?.isCaptured, isTrue);
 
       final updatedState = applyRuntimeBattleOutcomeToGameState(
-        gameState: const GameState(
-          saveId: 'capture-transformed-wild',
-          bag: Bag(
-            entries: <BagEntry>[
-              BagEntry(
-                itemId: 'poke-ball',
-                categoryId: 'items',
-                quantity: 1,
-              ),
-            ],
-          ),
-          party: PlayerParty(
-            members: <PlayerPokemon>[
-              PlayerPokemon(
-                speciesId: 'player-sproutle',
-                natureId: 'bold',
-                abilityId: 'overgrow',
-                level: 12,
-                knownMoveIds: <String>['wait'],
-                currentPpByMoveId: <String, int>{'wait': 35},
-                currentHp: 23,
-              ),
-            ],
-          ),
-        ),
-        context: RuntimeActiveBattleContext(
-          request: _wildRequest(),
-          playerPartyIndex: 0,
-        ),
+        gameState: attempt.updatedGameState,
+        context: context,
         outcome: battle.state.outcome!,
+        captureAttemptReceipt: attempt.receipt,
       );
 
       final captured = updatedState.party.members.last;
@@ -766,7 +787,11 @@ void main() {
 
     test('captured outcome removes the poke-ball entry when quantity reaches 0',
         () {
-      final updatedState = applyRuntimeBattleOutcomeToGameState(
+      final context = RuntimeActiveBattleContext(
+        request: _wildRequest(),
+        playerPartyIndex: 0,
+      );
+      final attempt = _acceptedCaptureAttempt(
         gameState: _baseState().copyWith(
           bag: const Bag(
             entries: <BagEntry>[
@@ -775,10 +800,11 @@ void main() {
             ],
           ),
         ),
-        context: RuntimeActiveBattleContext(
-          request: _wildRequest(),
-          playerPartyIndex: 0,
-        ),
+        context: context,
+      );
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: attempt.updatedGameState,
+        context: context,
         outcome: _finishedOutcome(
           type: BattleOutcomeType.captured,
           playerCurrentHp: 19,
@@ -788,6 +814,7 @@ void main() {
           enemyAbilityId: 'intimidate',
           enemyMoveIds: const <String>['scratch'],
         ),
+        captureAttemptReceipt: attempt.receipt,
       );
 
       expect(
@@ -864,12 +891,17 @@ void main() {
         ),
       );
 
-      final updatedState = applyRuntimeBattleOutcomeToGameState(
+      final context = RuntimeActiveBattleContext(
+        request: _wildRequest(),
+        playerPartyIndex: 0,
+      );
+      final attempt = _acceptedCaptureAttempt(
         gameState: fullPartyState,
-        context: RuntimeActiveBattleContext(
-          request: _wildRequest(),
-          playerPartyIndex: 0,
-        ),
+        context: context,
+      );
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: attempt.updatedGameState,
+        context: context,
         outcome: _finishedOutcome(
           type: BattleOutcomeType.captured,
           playerCurrentHp: 19,
@@ -879,6 +911,7 @@ void main() {
           enemyAbilityId: 'intimidate',
           enemyMoveIds: const <String>['scratch'],
         ),
+        captureAttemptReceipt: attempt.receipt,
       );
 
       expect(updatedState.party.members, hasLength(6));
@@ -900,24 +933,215 @@ void main() {
       );
     });
 
-    test('captured outcome is rejected when the bag has no poke-ball', () {
-      expect(
-        () => applyRuntimeBattleOutcomeToGameState(
-          gameState: _baseState().copyWith(
-            bag: const Bag(
-              entries: <BagEntry>[
-                BagEntry(
-                  itemId: 'potion',
-                  categoryId: 'medicine',
-                  quantity: 3,
-                ),
-              ],
+    test('capture submission is rejected without a ball and calls no engine',
+        () {
+      final initialState = _baseState().copyWith(
+        bag: const Bag(
+          entries: <BagEntry>[
+            BagEntry(
+              itemId: 'potion',
+              categoryId: 'medicine',
+              quantity: 3,
             ),
-          ),
+          ],
+        ),
+      );
+      var engineCalled = false;
+      expect(
+        () => submitRuntimeBattleCaptureAttempt<void>(
+          gameState: initialState,
           context: RuntimeActiveBattleContext(
             request: _wildRequest(),
             playerPartyIndex: 0,
           ),
+          captureAllowed: true,
+          submitToEngine: () => engineCalled = true,
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(engineCalled, isFalse);
+      expect(initialState.bag.entries.single.itemId, 'potion');
+    });
+
+    test('accepted failed capture consumes exactly one ball at submission', () {
+      final submission = submitRuntimeBattleCaptureAttempt<BattleSession>(
+        gameState: _baseState(),
+        context: RuntimeActiveBattleContext(
+          request: _wildRequest(),
+          playerPartyIndex: 0,
+        ),
+        captureAllowed: true,
+        submitToEngine: () => _legacyCaptureResult(caught: false),
+      );
+
+      expect(submission.engineResult.state.outcome, isNull);
+      expect(submission.receipt, isNull);
+      expect(
+        submission.updatedGameState.bag.entries
+            .singleWhere((entry) => entry.itemId == 'poke-ball')
+            .quantity,
+        1,
+      );
+      expect(
+        () => applyRuntimeBattleOutcomeToGameState(
+          gameState: submission.updatedGameState,
+          context: RuntimeActiveBattleContext(
+            request: _wildRequest(),
+            playerPartyIndex: 0,
+          ),
+          outcome: _finishedOutcome(
+            type: BattleOutcomeType.captured,
+            playerCurrentHp: 19,
+          ),
+          captureAttemptReceipt: submission.receipt,
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('a failed PSDK capture submission also emits no receipt', () {
+      final adapter = RuntimePsdkBattleSessionAdapter.fromSetup(
+        _psdkCaptureSetup(caught: false),
+      );
+      final submission =
+          submitRuntimeBattleCaptureAttempt<BattleEngineTurnResult>(
+        gameState: _baseState(),
+        context: RuntimeActiveBattleContext(
+          request: _wildRequest(),
+          playerPartyIndex: 0,
+        ),
+        captureAllowed: true,
+        submitToEngine: () => adapter.submitPlayerChoice(
+          const PlayerBattleChoiceCapture(),
+        ),
+      );
+
+      expect(submission.engineResult.outcome, isNull);
+      expect(submission.receipt, isNull);
+      expect(
+        submission.updatedGameState.bag.entries
+            .singleWhere((entry) => entry.itemId == 'poke-ball')
+            .quantity,
+        1,
+      );
+    });
+
+    test('a successful capture receipt cannot be replayed', () {
+      final context = RuntimeActiveBattleContext(
+        request: _wildRequest(),
+        playerPartyIndex: 0,
+      );
+      final attempt = _acceptedCaptureAttempt(
+        gameState: _baseState(),
+        context: context,
+      );
+      final outcome = _finishedOutcome(
+        type: BattleOutcomeType.captured,
+        playerCurrentHp: 19,
+        enemySpeciesId: 'wildmon',
+        enemyLevel: 12,
+        enemyCurrentHp: 7,
+        enemyAbilityId: 'intimidate',
+        enemyMoveIds: const <String>['scratch'],
+      );
+      final updated = applyRuntimeBattleOutcomeToGameState(
+        gameState: attempt.updatedGameState,
+        context: context,
+        outcome: outcome,
+        captureAttemptReceipt: attempt.receipt,
+      );
+
+      for (final state in <GameState>[attempt.updatedGameState, updated]) {
+        expect(
+          () => applyRuntimeBattleOutcomeToGameState(
+            gameState: state,
+            context: context,
+            outcome: outcome,
+            captureAttemptReceipt: attempt.receipt,
+          ),
+          throwsA(isA<StateError>()),
+        );
+      }
+    });
+
+    test('a successful PSDK receipt matches its exact adapted outcome once',
+        () {
+      final context = RuntimeActiveBattleContext(
+        request: _wildRequest(),
+        playerPartyIndex: 0,
+      );
+      final adapter = RuntimePsdkBattleSessionAdapter.fromSetup(
+        _psdkCaptureSetup(caught: true),
+      );
+      final submission =
+          submitRuntimeBattleCaptureAttempt<BattleEngineTurnResult>(
+        gameState: _baseState(),
+        context: context,
+        captureAllowed: true,
+        submitToEngine: () => adapter.submitPlayerChoice(
+          const PlayerBattleChoiceCapture(),
+        ),
+      );
+      final outcome = adapter.createLegacyOutcome(
+        isTrainerBattle: false,
+        allowCapture: true,
+      );
+
+      expect(submission.receipt, isNotNull);
+      expect(outcome.captureAttemptId, 'capture-attempt-1');
+      final updated = applyRuntimeBattleOutcomeToGameState(
+        gameState: submission.updatedGameState,
+        context: context,
+        outcome: outcome,
+        captureAttemptReceipt: submission.receipt,
+      );
+      expect(updated.party.members.last.speciesId, 'receipt-wild');
+      expect(
+        () => applyRuntimeBattleOutcomeToGameState(
+          gameState: updated,
+          context: context,
+          outcome: outcome,
+          captureAttemptReceipt: submission.receipt,
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('request and attempt mismatches do not claim a valid receipt', () {
+      final context = RuntimeActiveBattleContext(
+        request: _wildRequest(),
+        playerPartyIndex: 0,
+      );
+      final attempt = _acceptedCaptureAttempt(
+        gameState: _baseState(),
+        context: context,
+      );
+      final validOutcome = _finishedOutcome(
+        type: BattleOutcomeType.captured,
+        playerCurrentHp: 19,
+        enemySpeciesId: 'wildmon',
+        enemyLevel: 12,
+        enemyCurrentHp: 7,
+        enemyAbilityId: 'intimidate',
+        enemyMoveIds: const <String>['scratch'],
+      );
+
+      expect(
+        () => applyRuntimeBattleOutcomeToGameState(
+          gameState: attempt.updatedGameState,
+          context: RuntimeActiveBattleContext(
+            request: _wildRequest(requestId: 'new-battle-request'),
+            playerPartyIndex: 0,
+          ),
+          outcome: validOutcome,
+          captureAttemptReceipt: attempt.receipt,
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(
+        () => applyRuntimeBattleOutcomeToGameState(
+          gameState: attempt.updatedGameState,
+          context: context,
           outcome: _finishedOutcome(
             type: BattleOutcomeType.captured,
             playerCurrentHp: 19,
@@ -926,9 +1150,88 @@ void main() {
             enemyCurrentHp: 7,
             enemyAbilityId: 'intimidate',
             enemyMoveIds: const <String>['scratch'],
+            captureItemId: 'great-ball',
           ),
+          captureAttemptReceipt: attempt.receipt,
         ),
         throwsA(isA<StateError>()),
+      );
+      expect(
+        () => applyRuntimeBattleOutcomeToGameState(
+          gameState: attempt.updatedGameState,
+          context: context,
+          outcome: _finishedOutcome(
+            type: BattleOutcomeType.captured,
+            playerCurrentHp: 19,
+            enemySpeciesId: 'wildmon',
+            enemyLevel: 12,
+            enemyCurrentHp: 7,
+            enemyAbilityId: 'intimidate',
+            enemyMoveIds: const <String>['scratch'],
+            captureAttemptId: 'capture-attempt-2',
+          ),
+          captureAttemptReceipt: attempt.receipt,
+        ),
+        throwsA(isA<StateError>()),
+      );
+
+      final updated = applyRuntimeBattleOutcomeToGameState(
+        gameState: attempt.updatedGameState,
+        context: context,
+        outcome: validOutcome,
+        captureAttemptReceipt: attempt.receipt,
+      );
+      expect(updated.party.members.last.speciesId, 'wildmon');
+    });
+
+    test('engine rejection rolls back capture charge', () {
+      final initialState = _baseState();
+
+      expect(
+        () => submitRuntimeBattleCaptureAttempt<void>(
+          gameState: initialState,
+          context: RuntimeActiveBattleContext(
+            request: _wildRequest(),
+            playerPartyIndex: 0,
+          ),
+          captureAllowed: true,
+          submitToEngine: () => throw StateError('engine rejected'),
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(
+        initialState.bag.entries
+            .singleWhere((entry) => entry.itemId == 'poke-ball')
+            .quantity,
+        2,
+      );
+    });
+
+    test('trainer and disabled capture submissions consume no ball', () {
+      final initialState = _baseState();
+
+      for (final scenario in <({BattleStartRequest request, bool allowed})>[
+        (request: _trainerRequest(trainerId: 'ace_jules'), allowed: true),
+        (request: _wildRequest(), allowed: false),
+      ]) {
+        expect(
+          () => submitRuntimeBattleCaptureAttempt<void>(
+            gameState: initialState,
+            context: RuntimeActiveBattleContext(
+              request: scenario.request,
+              playerPartyIndex: 0,
+            ),
+            captureAllowed: scenario.allowed,
+            submitToEngine: () {},
+          ),
+          throwsA(isA<StateError>()),
+        );
+      }
+      expect(
+        initialState.bag.entries
+            .singleWhere((entry) => entry.itemId == 'poke-ball')
+            .quantity,
+        2,
       );
     });
   });
@@ -1102,6 +1405,9 @@ BattleOutcome _finishedOutcome({
   int enemyCurrentHp = 0,
   String enemyAbilityId = 'torrent',
   List<String> enemyMoveIds = const <String>['water_gun'],
+  BattleMajorStatusState? enemyMajorStatus,
+  String captureAttemptId = 'capture-attempt-1',
+  String captureItemId = canonicalPokeBallItemId,
 }) {
   final finalState = BattleState(
     phase: BattlePhase.finished,
@@ -1122,6 +1428,7 @@ BattleOutcome _finishedOutcome({
       maxHp: 35,
       stats: _outcomeTestStats,
       abilityId: enemyAbilityId,
+      majorStatus: enemyMajorStatus,
       moves: enemyMoveIds
           .map(
             (moveId) => BattleMove(
@@ -1139,14 +1446,126 @@ BattleOutcome _finishedOutcome({
   return BattleOutcome(
     type: type,
     finalState: finalState,
+    captureItemId: type == BattleOutcomeType.captured ? captureItemId : null,
+    captureAttemptId:
+        type == BattleOutcomeType.captured ? captureAttemptId : null,
   );
 }
 
-WildBattleStartRequest _wildRequest() {
-  return const WildBattleStartRequest(
-    requestId: 'wild-request',
+RuntimeBattleCaptureAttemptSubmission<BattleSession> _acceptedCaptureAttempt({
+  required GameState gameState,
+  required RuntimeActiveBattleContext context,
+}) {
+  return submitRuntimeBattleCaptureAttempt<BattleSession>(
+    gameState: gameState,
+    context: context,
+    captureAllowed: true,
+    submitToEngine: () => _legacyCaptureResult(caught: true),
+  );
+}
+
+BattleSession _legacyCaptureResult({required bool caught}) {
+  final enemyHp = caught ? 1 : 100;
+  return createBattleSession(
+    BattleSetup(
+      playerPokemon: const BattleCombatantData(
+        speciesId: 'receipt-player',
+        level: 10,
+        maxHp: 100,
+        stats: _outcomeTestStats,
+        moves: <BattleMoveData>[],
+      ),
+      enemyPokemon: BattleCombatantData(
+        speciesId: 'receipt-wild',
+        level: 10,
+        maxHp: 100,
+        currentHp: enemyHp,
+        catchRate: caught ? 255 : 1,
+        majorStatus: caught ? const BattleMajorStatusState.slp() : null,
+        stats: _outcomeTestStats,
+        moves: const <BattleMoveData>[
+          BattleMoveData(id: 'wait', name: 'Wait', power: 0),
+        ],
+      ),
+      allowCapture: true,
+      isTrainerBattle: false,
+      trainerId: null,
+    ),
+    rng: BattleScriptedRng(<int>[caught ? 1 : 76000]),
+  ).applyChoice(const PlayerBattleChoiceCapture());
+}
+
+PsdkBattleSetup _psdkCaptureSetup({required bool caught}) {
+  return PsdkBattleSetup.singles(
+    player: _psdkCaptureCombatant(
+      id: 'player_0',
+      speciesId: 'receipt-player',
+      catchRate: null,
+    ),
+    opponent: _psdkCaptureCombatant(
+      id: 'opponent_0',
+      speciesId: 'receipt-wild',
+      currentHp: caught ? 1 : 100,
+      catchRate: caught ? 255 : 1,
+      majorStatus: caught ? PsdkBattleMajorStatus.sleep : null,
+    ),
+    rngSeeds: const PsdkBattleRngSeeds(
+      moveDamage: 1,
+      moveCritical: 2,
+      moveAccuracy: 3,
+      generic: 47,
+    ),
+    canCapture: true,
+  );
+}
+
+PsdkBattleCombatantSetup _psdkCaptureCombatant({
+  required String id,
+  required String speciesId,
+  required int? catchRate,
+  int currentHp = 100,
+  PsdkBattleMajorStatus? majorStatus,
+}) {
+  return PsdkBattleCombatantSetup(
+    id: id,
+    speciesId: speciesId,
+    displayName: speciesId,
+    level: 10,
+    maxHp: 100,
+    currentHp: currentHp,
+    catchRate: catchRate,
+    majorStatus: majorStatus,
+    types: const PsdkBattleTypes(primary: 'normal'),
+    stats: const PsdkBattleStats(
+      attack: 30,
+      defense: 30,
+      specialAttack: 30,
+      specialDefense: 30,
+      speed: 30,
+    ),
+    moves: <PsdkBattleMoveData>[
+      PsdkBattleMoveData(
+        id: 'wait',
+        dbSymbol: 'wait',
+        name: 'Wait',
+        type: 'normal',
+        category: PsdkBattleMoveCategory.status,
+        power: 0,
+        accuracy: 100,
+        pp: 35,
+        priority: 0,
+        battleEngineMethod: 's_basic',
+        target: PsdkBattleMoveTarget.adjacentFoe,
+      ),
+    ],
+  );
+}
+
+WildBattleStartRequest _wildRequest({String requestId = 'wild-request'}) {
+  return WildBattleStartRequest(
+    requestId: requestId,
     createdAtEpochMs: 1,
-    returnContext: OverworldReturnContext(
+    returnContext: const OverworldReturnContext(
       mapId: 'field_map',
       playerPos: GridPos(x: 1, y: 1),
       playerFacing: Direction.south,
@@ -1160,7 +1579,7 @@ WildBattleStartRequest _wildRequest() {
     minLevel: 12,
     maxLevel: 12,
     weight: 30,
-    playerPos: GridPos(x: 1, y: 1),
+    playerPos: const GridPos(x: 1, y: 1),
   );
 }
 

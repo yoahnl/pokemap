@@ -17,6 +17,7 @@ import 'battle_topology.dart';
 import 'battle_volatile.dart';
 import 'battle_stats.dart';
 import 'battle_type_chart.dart';
+import 'capture_formula.dart';
 
 part 'battle_session_scheduler.dart';
 
@@ -35,6 +36,7 @@ BattleSession createBattleSession(
   BattleRng rng = const BattleSeededRng(),
   BattleOpponentPolicy opponentPolicy = const BattleFirstLegalOpponentPolicy(),
 }) {
+  _validateCaptureSetup(setup);
   final player = _buildBattleCombatantFromData(setup.playerPokemon);
   final enemy = _buildBattleCombatantFromData(setup.enemyPokemon);
   final playerReserve = setup.playerReservePokemon
@@ -66,6 +68,7 @@ BattleSession createBattleSession(
     rng: rng,
     opponentPolicy: opponentPolicy,
     pendingTurn: null,
+    captureAttemptSequence: 0,
   );
 }
 
@@ -110,6 +113,7 @@ BattleCombatant _buildBattleCombatantFromData(
     majorStatus: data.majorStatus,
     volatileState: data.volatileState,
     abilityId: data.abilityId,
+    catchRate: data.catchRate,
     moves: data.moves
         .map(
           (m) => BattleMove(
@@ -144,6 +148,26 @@ BattleCombatant _buildBattleCombatantFromData(
   );
 }
 
+void _validateCaptureSetup(BattleSetup setup) {
+  if (!setup.allowCapture) {
+    return;
+  }
+  if (setup.isTrainerBattle) {
+    // Historical direct fixtures sometimes left allowCapture=true on trainer
+    // setups. Request/applyChoice still reject capture, while ordinary trainer
+    // battles do not need a meaningless catch rate.
+    return;
+  }
+  final catchRate = setup.enemyPokemon.catchRate;
+  if (catchRate == null || catchRate < 1 || catchRate > 255) {
+    throw ArgumentError.value(
+      catchRate,
+      'setup.enemyPokemon.catchRate',
+      'Capture-enabled wild battles require a catchRate within 1..255.',
+    );
+  }
+}
+
 BattleSideId _opposingSideId(BattleSideId side) {
   return switch (side) {
     BattleSideId.player => BattleSideId.enemy,
@@ -173,6 +197,7 @@ class BattleSession {
     required this.rng,
     required this.opponentPolicy,
     required this.pendingTurn,
+    required this.captureAttemptSequence,
   });
 
   /// L'état actuel du combat.
@@ -213,6 +238,9 @@ class BattleSession {
   /// - dès que le joueur choisit le remplacement, la queue reprend là où elle
   ///   s'était arrêtée.
   final _PendingTurnContinuation? pendingTurn;
+
+  /// Monotonic per-session sequence used to bind capture attempts to outcomes.
+  final int captureAttemptSequence;
 
   /// Requête de décision joueur explicitement exposée par le moteur.
   ///
@@ -274,6 +302,7 @@ class BattleSession {
       rng: rng,
       opponentPolicy: opponentPolicy,
       pendingTurn: pendingTurn,
+      captureAttemptSequence: captureAttemptSequence,
     );
   }
 
@@ -322,6 +351,7 @@ class BattleSession {
       rng: rng,
       opponentPolicy: opponentPolicy,
       pendingTurn: pendingTurn,
+      captureAttemptSequence: captureAttemptSequence,
     );
   }
 
@@ -760,25 +790,62 @@ class BattleSession {
         rng: rng,
         opponentPolicy: opponentPolicy,
         pendingTurn: null,
+        captureAttemptSequence: captureAttemptSequence,
       );
     }
 
-    // Lot 13 choisit le plus petit contrat de capture honnête :
-    // - pas de formule canonique de Poké Ball ;
-    // - pas de consommation d'objet ;
-    // - la capture réussit immédiatement quand elle est proposée ;
-    // - le runtime reste responsable du vrai write-back dans la party/save.
-    //
-    // On garde l'ennemi inchangé dans le finalState : il représente le Pokémon
-    // effectivement capturé, avec ses moves/niveau/ability réellement engagés.
+    // FG-049 resolves capture through the shared integer-only formula. A
+    // failed attempt is a committed turn: the opponent still acts through the
+    // normal scheduler. A success ends immediately and preserves the original
+    // opponent write-back snapshot for runtime persistence.
     if (request is! BattleContinueRequest &&
         choice is PlayerBattleChoiceCapture) {
+      final nextCaptureAttemptSequence = captureAttemptSequence + 1;
+      final captureAttemptId =
+          battleCaptureAttemptId(nextCaptureAttemptSequence);
+      final capture = const BattleCaptureFormula().attempt(
+        targetCurrentHp: state.enemy.currentHp,
+        targetMaxHp: state.enemy.maxHp,
+        catchRate: state.enemy.catchRate!,
+        ballId: canonicalPokeBallItemId,
+        status: _captureStatusForLegacy(state.enemy.majorStatus),
+        rng: rng,
+      );
+      final captureEvent = BattleCaptureAttemptEvent(
+        attemptId: captureAttemptId,
+        targetSpeciesId: state.enemy.writeBackSpeciesId,
+        ballId: canonicalPokeBallItemId,
+        caught: capture.caught,
+      );
+      final captureAction = BattleActionCapture(
+        attemptId: captureAttemptId,
+        itemId: canonicalPokeBallItemId,
+        caught: capture.caught,
+      );
+      if (!capture.caught) {
+        return BattleSession._(
+          state: state,
+          setup: setup,
+          rng: capture.nextRng,
+          opponentPolicy: opponentPolicy,
+          pendingTurn: pendingTurn,
+          captureAttemptSequence: nextCaptureAttemptSequence,
+        )._applyCommittedPlayerAction(playerAction: captureAction);
+      }
       final finalState = BattleState(
         phase: BattlePhase.finished,
         playerSide: state.playerSide,
         enemySide: state.enemySide,
         field: state.field,
-        currentTurn: null,
+        currentTurn: BattleTurnResult(
+          playerAction: captureAction,
+          enemyAction: const BattleActionNone(),
+          executions: const <BattleMoveExecution>[],
+          captureAttemptEvents: <BattleCaptureAttemptEvent>[captureEvent],
+          timeline: <BattleTurnEvent>[
+            BattleTurnCaptureAttemptEvent(captureEvent),
+          ],
+        ),
         outcome: null,
         playerParticipantLineupIndexes: state.playerParticipantLineupIndexes,
       );
@@ -788,17 +855,20 @@ class BattleSession {
           playerSide: finalState.playerSide,
           enemySide: finalState.enemySide,
           field: finalState.field,
-          currentTurn: null,
+          currentTurn: finalState.currentTurn,
           outcome: BattleOutcome(
             type: BattleOutcomeType.captured,
             finalState: finalState,
+            captureItemId: canonicalPokeBallItemId,
+            captureAttemptId: captureAttemptId,
           ),
           playerParticipantLineupIndexes: state.playerParticipantLineupIndexes,
         ),
         setup: setup,
-        rng: rng,
+        rng: capture.nextRng,
         opponentPolicy: opponentPolicy,
         pendingTurn: null,
+        captureAttemptSequence: nextCaptureAttemptSequence,
       );
     }
 
@@ -808,6 +878,21 @@ class BattleSession {
     return _applyCommittedPlayerAction(
       playerAction: forcedPlayerAction ?? _choiceToAction(choice),
     );
+  }
+
+  BattleCaptureStatus _captureStatusForLegacy(
+    BattleMajorStatusState? status,
+  ) {
+    return switch (status?.id) {
+      BattleMajorStatusId.par => BattleCaptureStatus.paralysis,
+      BattleMajorStatusId.brn => BattleCaptureStatus.burn,
+      BattleMajorStatusId.psn ||
+      BattleMajorStatusId.tox =>
+        BattleCaptureStatus.poison,
+      BattleMajorStatusId.slp => BattleCaptureStatus.sleep,
+      BattleMajorStatusId.frz => BattleCaptureStatus.freeze,
+      null => BattleCaptureStatus.none,
+    };
   }
 
   BattleSession _applyCommittedPlayerAction({
@@ -873,6 +958,7 @@ class BattleSession {
       rng: turn.rng,
       opponentPolicy: opponentPolicy,
       pendingTurn: turn.pendingTurn,
+      captureAttemptSequence: captureAttemptSequence,
     );
   }
 

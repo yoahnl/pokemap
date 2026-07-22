@@ -48,6 +48,7 @@ BattleCombatantData _combatant({
   required int lineupIndex,
   int maxHp = 40,
   int? currentHp,
+  int catchRate = 45,
   BattleVolatileState volatileState = const BattleVolatileState(),
   required List<BattleMoveData> moves,
 }) {
@@ -57,6 +58,7 @@ BattleCombatantData _combatant({
     level: 30,
     maxHp: maxHp,
     currentHp: currentHp,
+    catchRate: catchRate,
     stats: _stats(),
     volatileState: volatileState,
     moves: moves,

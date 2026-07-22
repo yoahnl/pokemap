@@ -18,6 +18,11 @@
           "growl",
           "vine_whip"
         ],
+        "currentPpByMoveId": {
+          "tackle": 35,
+          "growl": 40,
+          "vine_whip": 25
+        },
         "currentHp": 25
       },
       {
@@ -29,6 +34,10 @@
           "tackle",
           "growl"
         ],
+        "currentPpByMoveId": {
+          "tackle": 35,
+          "growl": 40
+        },
         "currentHp": 22
       }
     ]

@@ -43,6 +43,32 @@ class PsdkBattleTurnStartedEvent extends PsdkBattleEvent {
       };
 }
 
+class PsdkBattleCaptureAttemptEvent extends PsdkBattleEvent {
+  const PsdkBattleCaptureAttemptEvent({
+    required this.attemptId,
+    required this.target,
+    required this.ballId,
+    required this.shakes,
+    required this.caught,
+  }) : super(kind: 'capture_attempt');
+
+  final String attemptId;
+  final PsdkBattleSlotRef target;
+  final String ballId;
+  final int shakes;
+  final bool caught;
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+        'kind': kind,
+        'attemptId': attemptId,
+        'target': target.toJson(),
+        'ballId': ballId,
+        'shakes': shakes,
+        'caught': caught,
+      };
+}
+
 class PsdkBattleMoveDeclaredEvent extends PsdkBattleEvent {
   const PsdkBattleMoveDeclaredEvent({
     required this.user,

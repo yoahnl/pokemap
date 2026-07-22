@@ -42,6 +42,7 @@ BattleCombatantData _combatant({
     lineupIndex: lineupIndex,
     level: 30,
     maxHp: maxHp,
+    catchRate: 45,
     currentHp: currentHp,
     stats: stats ?? _stats(),
     volatileState: volatileState,

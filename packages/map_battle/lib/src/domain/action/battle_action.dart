@@ -6,6 +6,7 @@ enum PsdkBattleActionKind {
   fight,
   switchPokemon,
   item,
+  capture,
   flee,
   mega,
   shift,
@@ -52,6 +53,15 @@ final class PsdkBattleFleeAction extends PsdkBattleAction {
   const PsdkBattleFleeAction({
     required PsdkBattleSlotRef user,
   }) : super(kind: PsdkBattleActionKind.flee, user: user);
+}
+
+final class PsdkBattleCaptureAction extends PsdkBattleAction {
+  const PsdkBattleCaptureAction({
+    required PsdkBattleSlotRef user,
+    required this.itemId,
+  }) : super(kind: PsdkBattleActionKind.capture, user: user);
+
+  final String itemId;
 }
 
 final class PsdkBattleShiftAction extends PsdkBattleAction {

@@ -161,6 +161,20 @@ final class BattleTurnAnimationPlanner {
               ),
             );
           }
+        case BattleTurnCaptureAttemptEvent(:final event):
+          final targetName = event.targetSpeciesId;
+          steps.add(
+            ShowMessageStep(
+              message: 'Une Poké Ball est lancée sur $targetName !',
+            ),
+          );
+          steps.add(
+            ShowMessageStep(
+              message: event.caught
+                  ? '$targetName est capturé !'
+                  : '$targetName s’échappe de la Poké Ball !',
+            ),
+          );
         case BattleTurnStatusEvent(:final event):
           steps.add(ShowMessageStep(message: _messageForStatusEvent(event)));
         case BattleTurnVolatileEvent(:final event):

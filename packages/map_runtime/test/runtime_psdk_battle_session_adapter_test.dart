@@ -66,6 +66,108 @@ void main() {
       );
     });
 
+    test('accepts native capture and projects a failed attempt plus enemy turn',
+        () {
+      final session = RuntimePsdkBattleSessionAdapter.fromSetup(
+        PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            hp: 120,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'wait',
+                category: PsdkBattleMoveCategory.status,
+                power: 0,
+              ),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'wild',
+            hp: 120,
+            catchRate: 1,
+            moves: <PsdkBattleMoveData>[
+              _move(id: 'tackle', power: 40),
+            ],
+          ),
+          canCapture: true,
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 47,
+          ),
+        ),
+      );
+
+      final result =
+          session.submitPlayerChoice(const PlayerBattleChoiceCapture());
+      final displaySession = session.createLegacyDisplaySession(
+        isTrainerBattle: false,
+        allowCapture: true,
+      );
+
+      expect(result.outcome, isNull);
+      expect(
+        result.timeline.events
+            .whereType<BattleCaptureAttemptTimelineEvent>()
+            .single
+            .caught,
+        isFalse,
+      );
+      expect(session.state.psdkState.battlerAt(psdkPlayerSlot).currentHp,
+          lessThan(120));
+      expect(
+        displaySession.state.currentTurn!.captureAttemptEvents.single.caught,
+        isFalse,
+      );
+      expect(displaySession.state.currentTurn!.enemyAction,
+          isA<BattleActionFight>());
+    });
+
+    test('projects native capture success and canonical item into legacy', () {
+      final session = RuntimePsdkBattleSessionAdapter.fromSetup(
+        PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            hp: 120,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'wait',
+                category: PsdkBattleMoveCategory.status,
+                power: 0,
+              ),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'wild',
+            hp: 120,
+            currentHp: 1,
+            catchRate: 255,
+            majorStatus: PsdkBattleMajorStatus.sleep,
+            moves: <PsdkBattleMoveData>[
+              _move(id: 'tackle', power: 40),
+            ],
+          ),
+          canCapture: true,
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 47,
+          ),
+        ),
+      );
+
+      session.submitPlayerChoice(const PlayerBattleChoiceCapture());
+      final outcome = session.createLegacyOutcome(isTrainerBattle: false);
+
+      expect(session.state.outcome?.kind, BattleEngineOutcomeKind.captured);
+      expect(outcome.type, BattleOutcomeType.captured);
+      expect(outcome.captureItemId, canonicalPokeBallItemId);
+      expect(outcome.finalState.enemy.currentHp, 1);
+      expect(outcome.finalState.enemy.majorStatus?.id, BattleMajorStatusId.slp);
+    });
+
     test('writes back original Transform PP after a real PSDK transformation',
         () {
       final session = RuntimePsdkBattleSessionAdapter.fromSetup(
@@ -538,6 +640,7 @@ PsdkBattleCombatantSetup _combatant({
   required List<PsdkBattleMoveData> moves,
   String? abilityId,
   int? currentHp,
+  int? catchRate,
   PsdkBattleMajorStatus? majorStatus,
 }) {
   return PsdkBattleCombatantSetup(
@@ -556,6 +659,7 @@ PsdkBattleCombatantSetup _combatant({
       speed: 100,
     ),
     abilityId: abilityId,
+    catchRate: catchRate,
     majorStatus: majorStatus,
     moves: moves,
   );

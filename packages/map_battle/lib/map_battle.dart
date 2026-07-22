@@ -73,6 +73,7 @@ export 'src/battle_stats.dart';
 export 'src/battle_typing.dart';
 export 'src/battle_type_chart.dart';
 export 'src/battle_rng.dart';
+export 'src/capture_formula.dart';
 export 'src/battle_action.dart';
 export 'src/battle_move.dart';
 export 'src/battle_opponent_policy.dart';
@@ -100,6 +101,7 @@ export 'src/domain/action/battle_action.dart'
     show
         PsdkBattleAction,
         PsdkBattleActionKind,
+        PsdkBattleCaptureAction,
         PsdkBattleFleeAction,
         PsdkBattleFightAction,
         PsdkBattleHpHealItemEffect,
@@ -214,6 +216,7 @@ export 'src/data/psdk_move_method_index.dart'
 export 'src/domain/decision/battle_decision.dart'
     show
         BattleDecision,
+        BattleCaptureDecision,
         BattleEngineDecisionRequest,
         BattleEngineDecisionRequestKind,
         BattleFleeDecision,

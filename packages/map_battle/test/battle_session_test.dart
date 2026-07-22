@@ -33,6 +33,7 @@ void main() {
           speciesId: 'lapras',
           level: 5,
           maxHp: 25,
+          catchRate: 45,
           stats: _neutralBattleStats,
           moves: const [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),

@@ -61,11 +61,34 @@ BattleSession _session({
     BattleSetup(
       playerPokemon: player,
       playerReservePokemon: playerReserve,
-      enemyPokemon: enemy,
+      enemyPokemon: _withCaptureRate(
+        enemy,
+        catchRate: allowCapture ? 45 : null,
+      ),
       isTrainerBattle: isTrainerBattle,
       trainerId: isTrainerBattle ? 'trainer' : null,
       allowCapture: allowCapture,
     ),
+  );
+}
+
+BattleCombatantData _withCaptureRate(
+  BattleCombatantData source, {
+  required int? catchRate,
+}) {
+  return BattleCombatantData(
+    speciesId: source.speciesId,
+    lineupIndex: source.lineupIndex,
+    level: source.level,
+    maxHp: source.maxHp,
+    currentHp: source.currentHp,
+    stats: source.stats,
+    typing: source.typing,
+    majorStatus: source.majorStatus,
+    volatileState: source.volatileState,
+    abilityId: source.abilityId,
+    catchRate: catchRate,
+    moves: source.moves,
   );
 }
 

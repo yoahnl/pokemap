@@ -182,6 +182,9 @@ final class RuntimePsdkBattleSetupMapper {
         generic: 47,
       ),
       canFlee: request.allowsPlayerFlee,
+      canCapture: request is WildBattleStartRequest &&
+          playerHasAtLeastOneRuntimePokeBall(gameState.bag),
+      isTrainerBattle: request is TrainerBattleStartRequest,
     );
   }
 

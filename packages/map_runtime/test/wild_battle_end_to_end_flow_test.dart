@@ -294,6 +294,7 @@ void main() {
               abilityId: 'overgrow',
               level: 10,
               knownMoveIds: <String>['wrap', 'coil'],
+              currentPpByMoveId: <String, int>{'wrap': 20, 'coil': 20},
               currentHp: 20,
             ),
           ],
@@ -406,25 +407,41 @@ void main() {
       expect(overlay.validateSelectedChoice(), isTrue);
       await game.debugWaitForBattleOverlaySync();
 
-      for (var i = 0; i < 8 && game.debugFlowPhaseName != 'overworld'; i++) {
+      for (var i = 0; i < 40 && overlay.isTurnPresentationActive; i++) {
+        game.update(0.25);
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      final afterFailedAttempt = game.gameStateSnapshot;
+      expect(game.debugFlowPhaseName, equals('battle'));
+      expect(game.debugBattleSessionSnapshot!.state.enemy.maxHp, equals(19));
+      expect(afterFailedAttempt.party.members, hasLength(1));
+      expect(
+        afterFailedAttempt.bag.entries.single.quantity,
+        equals(1),
+      );
+
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(game.selectBattleBagEntry(0), isTrue);
+      await game.debugWaitForBattleOverlaySync();
+
+      for (var i = 0; i < 40 && game.debugFlowPhaseName != 'overworld'; i++) {
         game.update(0.25);
         await Future<void>.delayed(Duration.zero);
       }
 
       final snapshot = game.gameStateSnapshot;
+      expect(snapshot.bag.entries, isEmpty);
       expect(game.debugFlowPhaseName, equals('overworld'));
       expect(game.debugPsdkBattleSessionActive, isFalse);
       expect(snapshot.party.members, hasLength(2));
       expect(snapshot.party.members.last.speciesId, equals('sparkitten'));
-      expect(
-        snapshot.bag.entries,
-        equals(
-          const <BagEntry>[
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
-          ],
-        ),
-      );
       expect(snapshot.progression.caughtSpeciesIds, contains('sparkitten'));
+
+      final reloaded = gameStateFromSaveData(saveDataFromGameState(snapshot));
+      expect(reloaded.bag.entries, isEmpty);
+      expect(reloaded.party.members.last.speciesId, equals('sparkitten'));
+      expect(reloaded.progression.caughtSpeciesIds, contains('sparkitten'));
     });
 
     test('PlayableMapGame can use a potion in a PSDK battle', () async {
@@ -674,20 +691,28 @@ void main() {
         _playerState(),
         setup.enemyPokemon.speciesId,
       );
-      final outcome = createBattleSession(setup)
-          .applyChoice(const PlayerBattleChoiceCapture())
-          .state
-          .outcome!;
+      final context = RuntimeActiveBattleContext(
+        request: request,
+        playerPartyIndex: 0,
+      );
+      final attempt = submitRuntimeBattleCaptureAttempt<BattleSession>(
+        gameState: stateWithSeen,
+        context: context,
+        captureAllowed: setup.allowCapture,
+        submitToEngine: () => createBattleSession(
+          setup,
+          rng: const BattleScriptedRng(<int>[1]),
+        ).applyChoice(const PlayerBattleChoiceCapture()),
+      );
+      final outcome = attempt.engineResult.state.outcome!;
 
       expect(outcome.isCaptured, isTrue);
 
       final updatedState = applyRuntimeBattleOutcomeToGameState(
-        gameState: stateWithSeen,
-        context: RuntimeActiveBattleContext(
-          request: request,
-          playerPartyIndex: 0,
-        ),
+        gameState: attempt.updatedGameState,
+        context: context,
         outcome: outcome,
+        captureAttemptReceipt: attempt.receipt,
       );
 
       expect(updatedState.party.members, hasLength(2));
@@ -751,7 +776,10 @@ void main() {
         initialState,
         setup.enemyPokemon.speciesId,
       );
-      final session = createBattleSession(setup);
+      final session = createBattleSession(
+        setup,
+        rng: const BattleScriptedRng(<int>[1]),
+      );
 
       PlayerBattleChoice? pickedChoice;
       final overlay = BattleOverlayComponent(
@@ -769,23 +797,31 @@ void main() {
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(pickedChoice, isA<PlayerBattleChoiceCapture>());
 
-      final outcome = session.applyChoice(pickedChoice!).state.outcome!;
+      final context = RuntimeActiveBattleContext(
+        request: request,
+        playerPartyIndex: 0,
+      );
+      final attempt = submitRuntimeBattleCaptureAttempt<BattleSession>(
+        gameState: stateWithSeen,
+        context: context,
+        captureAllowed: setup.allowCapture,
+        submitToEngine: () => session.applyChoice(pickedChoice!),
+      );
+      final outcome = attempt.engineResult.state.outcome!;
       expect(outcome.isCaptured, isTrue);
 
       final game = PlayableMapGame(
         bundle: _buildBundle(tempProjectRoot.path, manifest, map),
         projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
-        saveData: saveDataFromGameState(stateWithSeen),
+        saveData: saveDataFromGameState(attempt.updatedGameState),
       );
       game.onGameResize(Vector2(640, 480));
       await game.onLoad();
 
       game.debugApplyBattleOutcomeForTest(
-        context: RuntimeActiveBattleContext(
-          request: request,
-          playerPartyIndex: 0,
-        ),
+        context: context,
         outcome: outcome,
+        captureAttemptReceipt: attempt.receipt,
       );
 
       final snapshot = game.gameStateSnapshot;
@@ -843,6 +879,7 @@ void main() {
               abilityId: 'pressure',
               level: 10,
               knownMoveIds: <String>['vine_whip'],
+              currentPpByMoveId: <String, int>{'vine_whip': 35},
               currentHp: 10,
             ),
             const PlayerPokemon(
@@ -851,6 +888,7 @@ void main() {
               abilityId: 'pressure',
               level: 10,
               knownMoveIds: <String>['vine_whip'],
+              currentPpByMoveId: <String, int>{'vine_whip': 35},
               currentHp: 10,
             ),
             const PlayerPokemon(
@@ -859,6 +897,7 @@ void main() {
               abilityId: 'pressure',
               level: 10,
               knownMoveIds: <String>['vine_whip'],
+              currentPpByMoveId: <String, int>{'vine_whip': 35},
               currentHp: 10,
             ),
             const PlayerPokemon(
@@ -867,6 +906,7 @@ void main() {
               abilityId: 'pressure',
               level: 10,
               knownMoveIds: <String>['vine_whip'],
+              currentPpByMoveId: <String, int>{'vine_whip': 35},
               currentHp: 10,
             ),
             const PlayerPokemon(
@@ -875,6 +915,7 @@ void main() {
               abilityId: 'pressure',
               level: 10,
               knownMoveIds: <String>['vine_whip'],
+              currentPpByMoveId: <String, int>{'vine_whip': 35},
               currentHp: 10,
             ),
           ],
@@ -1513,6 +1554,7 @@ GameState _playerState({
           abilityId: 'overgrow',
           level: 10,
           knownMoveIds: <String>['vine_whip'],
+          currentPpByMoveId: <String, int>{'vine_whip': 35},
           currentHp: 20,
         ),
       ],
@@ -1685,7 +1727,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         'types': <String>['fire'],
       },
       'baseStats': <String, int>{
-        'hp': 35,
+        'hp': 25,
         'atk': 52,
         'def': 43,
         'spa': 60,
@@ -1702,7 +1744,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
       'progression': <String, Object>{
         'growthRateId': 'medium_slow',
         'baseExp': 62,
-        'catchRate': 45,
+        'catchRate': 76,
         'baseFriendship': 50,
       },
       'refs': <String, String>{

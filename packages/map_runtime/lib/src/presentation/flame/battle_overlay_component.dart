@@ -83,6 +83,7 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
           turnResult.stealthRockEvents.isNotEmpty ||
           turnResult.spikesEvents.isNotEmpty ||
           turnResult.bagHpHealItemEvents.isNotEmpty ||
+          turnResult.captureAttemptEvents.isNotEmpty ||
           turnResult.switchEvents.isNotEmpty)) {
     throw StateError(
       'BattleTurnResult.timeline est requis pour afficher honnêtement la chronologie du tour dans l’overlay runtime.',
@@ -98,6 +99,14 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
           '$actor utilise ${event.itemKind.label} sur ${event.targetSpeciesId}',
         );
         lines.add('${event.targetSpeciesId} récupère ${event.healedAmount} PV');
+      case BattleTurnCaptureAttemptEvent(:final event):
+        final target = _battleDisplayName(event.targetSpeciesId);
+        lines.add('Une Poké Ball est lancée sur $target !');
+        lines.add(
+          event.caught
+              ? '$target est capturé !'
+              : '$target s’échappe de la Poké Ball !',
+        );
       case BattleTurnExecutionEvent(:final execution):
         final attacker = _overlayCombatantLabelForSide(execution.attackerSide);
         lines.add(

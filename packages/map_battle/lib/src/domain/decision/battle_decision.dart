@@ -2,6 +2,7 @@ import '../action/battle_action.dart';
 import '../battle/battle_context.dart';
 import '../move/battle_move_data.dart';
 import '../move/behaviors/z_move_behavior.dart';
+import '../../capture_formula.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 
@@ -34,6 +35,10 @@ sealed class BattleDecision {
   }) = BattleMegaDecision;
 
   const factory BattleDecision.flee() = BattleFleeDecision;
+
+  const factory BattleDecision.capture({
+    required String itemId,
+  }) = BattleCaptureDecision;
 
   const factory BattleDecision.shift({
     required PsdkBattleSlotRef target,
@@ -84,6 +89,12 @@ final class BattleMegaDecision extends BattleDecision {
 
 final class BattleFleeDecision extends BattleDecision {
   const BattleFleeDecision();
+}
+
+final class BattleCaptureDecision extends BattleDecision {
+  const BattleCaptureDecision({required this.itemId});
+
+  final String itemId;
 }
 
 final class BattleShiftDecision extends BattleDecision {
@@ -145,6 +156,7 @@ final class BattleEngineDecisionRequest {
     required this.actor,
     required List<BattleMoveDecisionOption> fightChoices,
     required List<BattleSwitchDecisionOption> switchChoices,
+    required this.canCapture,
   })  : fightChoices =
             List<BattleMoveDecisionOption>.unmodifiable(fightChoices),
         switchChoices =
@@ -157,6 +169,7 @@ final class BattleEngineDecisionRequest {
         actor: psdkPlayerSlot,
         fightChoices: const <BattleMoveDecisionOption>[],
         switchChoices: const <BattleSwitchDecisionOption>[],
+        canCapture: false,
       );
     }
 
@@ -186,6 +199,7 @@ final class BattleEngineDecisionRequest {
       actor: psdkPlayerSlot,
       fightChoices: fightChoices,
       switchChoices: switchChoices,
+      canCapture: context.setup.canCapture,
     );
   }
 
@@ -193,6 +207,7 @@ final class BattleEngineDecisionRequest {
   final PsdkBattleSlotRef actor;
   final List<BattleMoveDecisionOption> fightChoices;
   final List<BattleSwitchDecisionOption> switchChoices;
+  final bool canCapture;
 
   List<BattleDecision> get allowedDecisions {
     return List<BattleDecision>.unmodifiable(
@@ -201,6 +216,8 @@ final class BattleEngineDecisionRequest {
           BattleDecision.fight(moveSlot: choice.moveSlot),
         for (final choice in switchChoices)
           BattleDecision.switchPokemon(partyIndex: choice.partyIndex),
+        if (canCapture)
+          const BattleDecision.capture(itemId: canonicalPokeBallItemId),
       ],
     );
   }
@@ -214,6 +231,8 @@ final class BattleEngineDecisionRequest {
       BattleItemDecision() => false,
       BattleMegaDecision() => false,
       BattleFleeDecision() => false,
+      BattleCaptureDecision(:final itemId) =>
+        canCapture && itemId == canonicalPokeBallItemId,
       BattleShiftDecision() => false,
       BattleNoActionDecision() => false,
     };

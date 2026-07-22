@@ -38,6 +38,7 @@ class BattleTurnResult {
     this.spikesEvents = const <BattleSpikesEvent>[],
     this.bagHpHealItemEvents = const <BattleBagHpHealItemEvent>[],
     this.switchEvents = const <BattleSwitchEvent>[],
+    this.captureAttemptEvents = const <BattleCaptureAttemptEvent>[],
     this.timeline = const <BattleTurnEvent>[],
   });
 
@@ -120,6 +121,9 @@ class BattleTurnResult {
   ///   de journal universel.
   final List<BattleSwitchEvent> switchEvents;
 
+  /// Capture attempts resolved during this turn (one at most in FG-049).
+  final List<BattleCaptureAttemptEvent> captureAttemptEvents;
+
   /// Chronologie ordonnée du tour telle que réellement résolue par le moteur.
   ///
   /// BE10A ajoute cette source de vérité pour arrêter un nouveau mensonge :
@@ -195,6 +199,30 @@ final class BattleTurnSwitchEvent extends BattleTurnEvent {
   const BattleTurnSwitchEvent(this.event);
 
   final BattleSwitchEvent event;
+}
+
+final class BattleTurnCaptureAttemptEvent extends BattleTurnEvent {
+  const BattleTurnCaptureAttemptEvent(this.event);
+
+  final BattleCaptureAttemptEvent event;
+}
+
+/// Observable legacy-engine capture attempt.
+final class BattleCaptureAttemptEvent {
+  const BattleCaptureAttemptEvent({
+    required this.attemptId,
+    required this.targetSpeciesId,
+    required this.ballId,
+    required this.caught,
+  });
+
+  final String attemptId;
+  final String targetSpeciesId;
+  final String ballId;
+  final bool caught;
+
+  /// Four shakes only represents a successful capture in this MVP.
+  int get shakes => caught ? 4 : 0;
 }
 
 /// Trace visible d'un vrai usage de `Potion`, `Super Potion` ou
@@ -436,13 +464,33 @@ class BattleOutcome {
   ///
   /// [type] - Le type de résultat (victoire, défaite, fuite).
   /// [finalState] - L'état final du combat.
-  const BattleOutcome({required this.type, required this.finalState});
+  const BattleOutcome({
+    required this.type,
+    required this.finalState,
+    this.captureItemId,
+    this.captureAttemptId,
+  })  : assert(
+          type != BattleOutcomeType.captured ||
+              (captureItemId != null && captureAttemptId != null),
+          'Captured outcomes must identify their item and exact attempt.',
+        ),
+        assert(
+          type == BattleOutcomeType.captured ||
+              (captureItemId == null && captureAttemptId == null),
+          'Only captured outcomes can identify a capture attempt.',
+        );
 
   /// Le type de résultat.
   final BattleOutcomeType type;
 
   /// L'état final du combat.
   final BattleState finalState;
+
+  /// Canonical item that produced a captured outcome.
+  final String? captureItemId;
+
+  /// Exact successful attempt that produced this terminal outcome.
+  final String? captureAttemptId;
 
   /// Exact player lineup slots that entered this battle.
   Set<int> get playerParticipantLineupIndexes =>

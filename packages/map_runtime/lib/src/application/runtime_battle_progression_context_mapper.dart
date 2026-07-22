@@ -49,6 +49,7 @@ final class RuntimeBattleProgressionContextMapper {
         PsdkBattleOutcomeKind.victory => BattleProgressionOutcomeKind.victory,
         PsdkBattleOutcomeKind.defeat => BattleProgressionOutcomeKind.defeat,
         PsdkBattleOutcomeKind.fled => BattleProgressionOutcomeKind.fled,
+        PsdkBattleOutcomeKind.captured => BattleProgressionOutcomeKind.captured,
       },
       playerParticipantPartySlots: _mapParticipantLineupIndexes(
         runtimeContext: runtimeContext,

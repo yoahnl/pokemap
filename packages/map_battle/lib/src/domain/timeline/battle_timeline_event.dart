@@ -1106,12 +1106,14 @@ final class BattleTerrainChangedTimelineEvent extends BattleTimelineEvent {
 final class BattleCaptureAttemptTimelineEvent extends BattleTimelineEvent {
   const BattleCaptureAttemptTimelineEvent({
     int? turn,
+    required this.attemptId,
     required this.target,
     required this.ballId,
     required this.shakes,
     required this.caught,
   }) : super(kind: 'capture_attempt', turn: turn);
 
+  final String attemptId;
   final BattlePositionRef target;
   final String ballId;
   final int shakes;
@@ -1121,6 +1123,7 @@ final class BattleCaptureAttemptTimelineEvent extends BattleTimelineEvent {
   Map<String, Object?> toJson() {
     return <String, Object?>{
       ...baseJson(),
+      'attemptId': attemptId,
       'target': _slotJson(target),
       'ballId': ballId,
       'shakes': shakes,
@@ -1129,7 +1132,16 @@ final class BattleCaptureAttemptTimelineEvent extends BattleTimelineEvent {
   }
 
   @override
-  PsdkBattleEvent? toPsdkEvent() => null;
+  PsdkBattleEvent toPsdkEvent() => PsdkBattleCaptureAttemptEvent(
+        attemptId: attemptId,
+        target: PsdkBattleSlotRef(
+          bank: target.bank,
+          position: target.position,
+        ),
+        ballId: ballId,
+        shakes: shakes,
+        caught: caught,
+      );
 }
 
 final class BattleFleeAttemptTimelineEvent extends BattleTimelineEvent {

@@ -133,6 +133,7 @@ class BattleCombatantData {
     this.volatileState = const BattleVolatileState(),
     this.currentHp,
     this.abilityId = 'unknown',
+    this.catchRate,
     required this.moves,
   });
 
@@ -215,6 +216,13 @@ class BattleCombatantData {
   /// calculs, mais le lot 13 en a besoin pour construire un Pokémon capturé
   /// sans réinventer un deuxième format intermédiaire.
   final String abilityId;
+
+  /// Species catch rate (`1..255`) when this combatant can be captured.
+  ///
+  /// It stays nullable for historical non-capture/trainer fixtures. A battle
+  /// setup that exposes capture validates the active opponent value at session
+  /// creation instead of inventing a fallback rate.
+  final int? catchRate;
 
   /// La liste des attaques disponibles.
   final List<BattleMoveData> moves;

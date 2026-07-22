@@ -206,6 +206,7 @@ class BattleCombatant {
     this.majorStatus,
     this.volatileState = const BattleVolatileState(),
     this.abilityId = 'unknown',
+    this.catchRate,
     required this.moves,
     String? writeBackSpeciesId,
     String? writeBackAbilityId,
@@ -289,6 +290,9 @@ class BattleCombatant {
   /// Pokémon capturé à partir du vrai ennemi engagé, sans données inventées.
   final String abilityId;
 
+  /// Species catch rate transported from setup for capture resolution.
+  final int? catchRate;
+
   /// Identité d'espèce stable à utiliser lorsqu'un résultat battle devient
   /// une donnée persistante, notamment après la capture d'un Pokémon transformé.
   final String writeBackSpeciesId;
@@ -367,6 +371,7 @@ class BattleCombatant {
       majorStatus: majorStatus,
       volatileState: volatileState,
       abilityId: abilityId,
+      catchRate: catchRate,
       moves: moves,
       writeBackSpeciesId: writeBackSpeciesId,
       writeBackAbilityId: writeBackAbilityId,
@@ -395,6 +400,7 @@ class BattleCombatant {
       majorStatus: majorStatus,
       volatileState: volatileState,
       abilityId: abilityId,
+      catchRate: catchRate,
       moves: moves,
       writeBackSpeciesId: writeBackSpeciesId,
       writeBackAbilityId: writeBackAbilityId,
@@ -427,6 +433,7 @@ class BattleCombatant {
       majorStatus: majorStatus,
       volatileState: volatileState,
       abilityId: abilityId,
+      catchRate: catchRate,
       moves: moves,
       writeBackSpeciesId: writeBackSpeciesId,
       writeBackAbilityId: writeBackAbilityId,
@@ -473,6 +480,7 @@ class BattleCombatant {
       majorStatus: majorStatus,
       volatileState: volatileState,
       abilityId: abilityId,
+      catchRate: catchRate,
       moves: List<BattleMove>.unmodifiable(updatedMoves),
       writeBackSpeciesId: writeBackSpeciesId,
       writeBackAbilityId: writeBackAbilityId,
@@ -502,6 +510,7 @@ class BattleCombatant {
       majorStatus: updatedStatus,
       volatileState: volatileState,
       abilityId: abilityId,
+      catchRate: catchRate,
       moves: moves,
       writeBackSpeciesId: writeBackSpeciesId,
       writeBackAbilityId: writeBackAbilityId,
@@ -531,6 +540,7 @@ class BattleCombatant {
       majorStatus: majorStatus,
       volatileState: updatedVolatileState,
       abilityId: abilityId,
+      catchRate: catchRate,
       moves: moves,
       writeBackSpeciesId: writeBackSpeciesId,
       writeBackAbilityId: writeBackAbilityId,
@@ -562,6 +572,7 @@ class BattleCombatant {
       majorStatus: majorStatus,
       volatileState: volatileState,
       abilityId: target.abilityId,
+      catchRate: catchRate,
       moves: List<BattleMove>.unmodifiable(
         target.moves.map(
           (move) => move.withPpState(
@@ -601,6 +612,7 @@ class BattleCombatant {
       majorStatus: majorStatus?.resetOnSwitchOut(),
       volatileState: volatileState.clearedOnSwitchOut(),
       abilityId: abilityId,
+      catchRate: catchRate,
       moves: moves,
       writeBackSpeciesId: writeBackSpeciesId,
       writeBackAbilityId: writeBackAbilityId,

@@ -455,6 +455,7 @@ class RuntimeBattleCombatantSeedBuilder {
       speciesId: playerPokemon.speciesId.trim(),
       level: playerPokemon.level,
       maxHp: maxHp,
+      catchRate: species.catchRate,
       stats: stats,
       typing: _buildBattleTypingSnapshot(species),
       currentHp: _clampInt(playerPokemon.currentHp, min: 0, max: maxHp),
@@ -514,6 +515,7 @@ class RuntimeBattleCombatantSeedBuilder {
       speciesId: playerPokemon.speciesId.trim(),
       level: playerPokemon.level,
       maxHp: maxHp,
+      catchRate: species.catchRate,
       stats: stats,
       typing: _buildBattleTypingSnapshot(species),
       currentHp: _clampInt(playerPokemon.currentHp, min: 0, max: maxHp),
@@ -556,6 +558,7 @@ class RuntimeBattleCombatantSeedBuilder {
         baseHp: species.baseHp,
         level: request.level,
       ),
+      catchRate: species.catchRate,
       stats: _calculateStatsSnapshot(
         species: species,
         level: request.level,
@@ -599,6 +602,7 @@ class RuntimeBattleCombatantSeedBuilder {
         baseHp: species.baseHp,
         level: request.level,
       ),
+      catchRate: species.catchRate,
       stats: _calculateStatsSnapshot(
         species: species,
         level: request.level,
@@ -647,6 +651,7 @@ class RuntimeBattleCombatantSeedBuilder {
         baseHp: species.baseHp,
         level: teamMember.level,
       ),
+      catchRate: species.catchRate,
       stats: _calculateStatsSnapshot(
         species: species,
         level: teamMember.level,
@@ -695,6 +700,7 @@ class RuntimeBattleCombatantSeedBuilder {
         baseHp: species.baseHp,
         level: teamMember.level,
       ),
+      catchRate: species.catchRate,
       stats: _calculateStatsSnapshot(
         species: species,
         level: teamMember.level,
@@ -1001,6 +1007,7 @@ class RuntimeBattleCombatantSeed {
     required this.speciesId,
     required this.level,
     required this.maxHp,
+    required this.catchRate,
     required this.stats,
     required this.typing,
     required this.abilityId,
@@ -1013,6 +1020,7 @@ class RuntimeBattleCombatantSeed {
   final String speciesId;
   final int level;
   final int maxHp;
+  final int catchRate;
   final BattleStatsSnapshot stats;
   final BattleTypingSnapshot typing;
   final int? currentHp;
@@ -1040,6 +1048,7 @@ class RuntimeBattleCombatantSeed {
       lineupIndex: lineupIndex,
       level: level,
       maxHp: maxHp,
+      catchRate: catchRate,
       stats: stats,
       typing: typing,
       majorStatus: majorStatus,
@@ -1055,6 +1064,7 @@ class RuntimePsdkBattleCombatantSeed {
     required this.speciesId,
     required this.level,
     required this.maxHp,
+    required this.catchRate,
     required this.stats,
     required this.typing,
     required this.abilityId,
@@ -1067,6 +1077,7 @@ class RuntimePsdkBattleCombatantSeed {
   final String speciesId;
   final int level;
   final int maxHp;
+  final int catchRate;
   final BattleStatsSnapshot stats;
   final BattleTypingSnapshot typing;
   final int? currentHp;
@@ -1091,6 +1102,7 @@ class RuntimePsdkBattleCombatantSeed {
       displayName: speciesId,
       level: level,
       maxHp: maxHp,
+      catchRate: catchRate,
       currentHp: currentHp ?? maxHp,
       types: PsdkBattleTypes(
         primary: typing.primaryType,
