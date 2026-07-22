@@ -1,6 +1,6 @@
 # PokeMap — Roadmap mécanique fangame Pokémon-like
 
-**Version :** 2026-05-22  
+**Version :** 2026-07-23
 **Portée :** mécaniques de jeu uniquement. Pas de polish visuel, pas d’ombres, pas de Surface/Path/Environment Studio sauf quand une mécanique en dépend directement.  
 **Objectif produit :** permettre de créer un fangame Pokémon-like court, jouable sans code, avec exploration, rencontres, combats, capture, progression, inventaire, événements et sauvegarde fiable.
 
@@ -110,6 +110,26 @@ Quand un lot est terminé, mettre à jour la table correspondante ainsi :
 
 Ne pas écrire `DONE` si le rapport dit seulement “ça devrait marcher”. PokeMap n’a pas besoin de voyants verts imaginaires, il a besoin de preuves.
 
+### 0.6 Cadence de mise à jour
+
+À partir du 2026-07-23, cette roadmap doit être mise à jour à chaque clôture de
+lot ou de phase :
+
+```text
+1. mettre à jour la ligne FG concernée avec statut, preuve et commit ;
+2. cocher uniquement les critères de DoD fraîchement prouvés ;
+3. recalculer le statut de la phase synthétique sans masquer les lots restants ;
+4. conserver les limites, régressions historiques et gates encore ouvertes ;
+5. inclure la modification de roadmap dans le commit du lot quand celui-ci est
+   encore ouvert, sinon produire une modification documentaire distincte.
+```
+
+Dernière mise à jour : **2026-07-23** — clôture de la Phase 2 du plan MVP
+(`FG-020`, `FG-021`, `FG-040` à `FG-049`, `FG-051`) sur `c410ac59c`.
+La phase canonique Party/PC reste `PARTIAL` tant que `FG-022` à `FG-030` ne
+sont pas fermés ; la phase canonique Battle reste `PARTIAL` tant que `FG-050`,
+`FG-052` et `FG-053` ne sont pas fermés.
+
 ---
 
 ## 1. Diagnostic actuel résumé
@@ -126,7 +146,7 @@ Ne pas écrire `DONE` si le rapport dit seulement “ça devrait marcher”. Pok
 | Surf | Évaluation pure déjà bonne : cible eau, déjà en surf, Pokémon utilisable, capacité débloquée | `🟡 PARTIAL` car Surf existe, mais les autres field moves restent à faire |
 | Battle engine | Moteur avec décisions, timeline, statuts, météo/terrain, hazards, switch, AI, items/actions, registres moves/items/abilities | `🟡 PARTIAL` car parité incomplète |
 | Runtime battle handoff | Mapping save/projet vers `BattleSetup`, création session, overlay, seen/caught partiel | `🟡 PARTIAL` |
-| Post-battle write-back | PV des Pokémon engagés, trainer defeated, capture minimale, consommation Poké Ball, ajout à party | `🟡 PARTIAL` |
+| Post-battle write-back | HP, PP, statut, XP, niveaux, moves, évolution, récompenses trainer et destination de capture sont appliqués transactionnellement | `✅ DONE` pour le périmètre FG-040 à FG-049 / FG-051 ; PC plein traité en Phase 3 du plan MVP |
 | Trainer editor | Roster, détails, équipes, espèces/moves/items via catalogues | `🟡 PARTIAL` côté authoring |
 | Narrative studios | Dialogue/Step/Global Story/Cutscene existent comme squelette auteur | `🟡 PARTIAL` car actions gameplay manquantes |
 
@@ -231,12 +251,12 @@ Le MVP est atteint quand un créateur peut faire ceci dans PokeMap :
 | Priorité | Bloc | Pourquoi c’est bloquant | Statut |
 |---:|---|---|---|
 | 1 | Party + PC + Bag runtime | La boucle collection/soin/capture reste cassée sans ça | `⬜ TODO` |
-| 2 | XP + level-up + évolution | Les combats ne font pas progresser les Pokémon | `⬜ TODO` |
-| 3 | Rewards combat + argent + badges | Les trainers ne structurent pas encore l’aventure | `⬜ TODO` |
+| 2 | XP + level-up + évolution | Les combats ne font pas progresser les Pokémon | `✅ DONE` |
+| 3 | Rewards combat + argent + badges | Les trainers ne structurent pas encore l’aventure | `✅ DONE` pour le contrat et l’application post-combat MVP |
 | 4 | Event command catalog | Sans actions no-code, l’éditeur reste trop technique | `⬜ TODO` |
 | 5 | Field moves hors Surf | Sans gates environnementaux, la progression map est plate | `⬜ TODO` |
 | 6 | Shops / heal center / pickups | Sans économie et recovery, le jeu ne vit pas | `⬜ TODO` |
-| 7 | Battle write-back complet | PP/status/held items doivent survivre au combat | `⬜ TODO` |
+| 7 | Battle write-back complet | PP/status/held items doivent survivre au combat | `🟡 PARTIAL` : HP/PP/status/progression fermés ; mutation held item non ouverte |
 | 8 | Encounter types élargis | Statics, gifts, fishing, headbutt donnent la vraie saveur Pokémon | `⬜ TODO` |
 | 9 | Runtime menus | Pause, party, bag, Pokédex, options sont indispensables | `⬜ TODO` |
 | 10 | Validation jeu jouable | Le créateur doit savoir si son projet est cassé avant le runtime | `⬜ TODO` |
@@ -249,8 +269,8 @@ Le MVP est atteint quand un créateur peut faire ceci dans PokeMap :
 |---|---:|---|---|---|
 | Phase 0 | FG-000 → FG-009 | Audit et contrats de suivi | Aucun | `⬜ TODO` |
 | Phase 1 | FG-010 → FG-019 | New Game, starter, save/load, pause shell | Phase 0 | `⬜ TODO` |
-| Phase 2 | FG-020 → FG-039 | Party, PC, capture crédible | Phase 1 | `⬜ TODO` |
-| Phase 3 | FG-040 → FG-059 | Battle persistence, rewards, XP, level-up, évolutions | Phase 2 | `⬜ TODO` |
+| Phase 2 | FG-020 → FG-039 | Party, PC, capture crédible | Phase 1 | `🟡 PARTIAL` — 2/11 lots fermés |
+| Phase 3 | FG-040 → FG-059 | Battle persistence, rewards, XP, level-up, évolutions | Phase 2 | `🟡 PARTIAL` — FG-040 à FG-049 et FG-051 fermés |
 | Phase 4 | FG-060 → FG-079 | Bag, items, shops, centre Pokémon | Phase 2 | `⬜ TODO` |
 | Phase 5 | FG-080 → FG-099 | Event commands no-code | Phases 1–4 selon commandes | `⬜ TODO` |
 | Phase 6 | FG-100 → FG-119 | Encounters élargis | Phases 2, 5 | `⬜ TODO` |
@@ -472,8 +492,8 @@ Objectif : capturer reste utile même quand la party contient déjà 6 Pokémon.
 
 | ID | Lot | Statut | Preuve |
 |---|---|---|---|
-| FG-020 | PlayerPokemon Runtime Persistence Audit | `⬜ TODO` | — |
-| FG-021 | PlayerPokemon Persistence Expansion V0 | `⬜ TODO` | — |
+| FG-020 | PlayerPokemon Runtime Persistence Audit | `✅ DONE` | [Contrat et audit champ par champ](reports/gameplay/fg_040_battle_persistence_contract_v0.md), `caf97a2e1` |
+| FG-021 | PlayerPokemon Persistence Expansion V0 | `✅ DONE` | XP/PP compatibles legacy, hydratation catalogues et round-trip, `caf97a2e1` |
 | FG-022 | PC Box Model V0 | `⬜ TODO` | — |
 | FG-023 | PC Storage Operations V0 | `⬜ TODO` | — |
 | FG-024 | Capture Destination: Party or Box V0 | `⬜ TODO` | — |
@@ -504,10 +524,10 @@ Objectif : capturer reste utile même quand la party contient déjà 6 Pokémon.
 ### DoD
 
 ```md
-- [ ] Tableau champ par champ : species, level, hp, pp, status, moves, ability, nature, held item, form, shiny, exp, friendship, etc.
-- [ ] Statut : persistant / partiel / absent / inventé au fallback.
-- [ ] Recommandation de modèle minimal MVP.
-- [ ] Aucune modification de code.
+- [x] Tableau champ par champ : species, level, hp, pp, status, moves, ability, nature, held item, form, shiny, exp, friendship, etc.
+- [x] Statut : persistant / partiel / absent / inventé au fallback.
+- [x] Recommandation de modèle minimal MVP.
+- [x] Audit isolé dans le rapport avant l’extension de modèle FG-021.
 ```
 
 ## FG-021 — PlayerPokemon Persistence Expansion V0
@@ -531,10 +551,10 @@ Objectif : capturer reste utile même quand la party contient déjà 6 Pokémon.
 ### DoD
 
 ```md
-- [ ] Modèle compatible anciennes saves.
-- [ ] JSON/migration si nécessaire.
-- [ ] Tests de normalisation.
-- [ ] Aucun calcul battle complexe caché dans le modèle.
+- [x] Modèle compatible anciennes saves.
+- [x] JSON/migration si nécessaire.
+- [x] Tests de normalisation.
+- [x] Aucun calcul battle complexe caché dans le modèle.
 ```
 
 ## FG-022 — PC Box Model V0
@@ -689,18 +709,18 @@ Objectif : les combats changent réellement la progression joueur/Pokémon.
 
 | ID | Lot | Statut | Preuve |
 |---|---|---|---|
-| FG-040 | Battle Persistence Contract V0 | `⬜ TODO` | — |
-| FG-041 | PP Write-back V0 | `⬜ TODO` | — |
-| FG-042 | Major Status Write-back V0 | `⬜ TODO` | — |
-| FG-043 | Battle Reward Model V0 | `⬜ TODO` | — |
-| FG-044 | XP Distribution V0 | `⬜ TODO` | — |
-| FG-045 | Level-up Apply V0 | `⬜ TODO` | — |
-| FG-046 | Learn Move on Level-up V0 | `⬜ TODO` | — |
-| FG-047 | Evolution Check V0 | `⬜ TODO` | — |
-| FG-048 | Post-battle Reward Presentation V0 | `⬜ TODO` | — |
-| FG-049 | Capture Formula V0 | `⬜ TODO` | — |
+| FG-040 | Battle Persistence Contract V0 | `✅ DONE` | [Contrat de persistance](reports/gameplay/fg_040_battle_persistence_contract_v0.md), `caf97a2e1` |
+| FG-041 | PP Write-back V0 | `✅ DONE` | Seed et write-back multi-combattants, `475789b25` |
+| FG-042 | Major Status Write-back V0 | `✅ DONE` | Bridge des statuts majeurs et cohérence HP/K.O., `475789b25` |
+| FG-043 | Battle Reward Model V0 | `✅ DONE` | Contrats typés wild/trainer, argent/items/flags/badge, `f07362f0b` |
+| FG-044 | XP Distribution V0 | `✅ DONE` | Participants exacts, multi-adversaires et catalogues stricts, `2bbba3ed8` |
+| FG-045 | Level-up Apply V0 | `✅ DONE` | Level cap, multi-level, recalcul stats/HP, `2bbba3ed8` |
+| FG-046 | Learn Move on Level-up V0 | `✅ DONE` | Ajout, remplacement et refus, `9b988c78e` |
+| FG-047 | Evolution Check V0 | `✅ DONE` | Évolution niveau, acceptation/refus et préservation d’état, `ce8812bdb` |
+| FG-048 | Post-battle Reward Presentation V0 | `✅ DONE` | Queue ordonnée et overlay décisionnel transactionnel, `c410ac59c` |
+| FG-049 | Capture Formula V0 | `✅ DONE` | Formule HP/ball/status à RNG injecté, `ae187f67b` |
 | FG-050 | Generic Battle Item Handling V0 | `⬜ TODO` | — |
-| FG-051 | Trainer Rewards / Money / Badges V0 | `⬜ TODO` | — |
+| FG-051 | Trainer Rewards / Money / Badges V0 | `✅ DONE` | Récompenses différées, idempotence trainer et messages, `f07362f0b` + `c410ac59c` |
 | FG-052 | Switch/Faint Replacement UX Hardening | `⬜ TODO` | — |
 | FG-053 | Battle Parity Target Document | `⬜ TODO` | — |
 
@@ -712,10 +732,10 @@ Objectif : les combats changent réellement la progression joueur/Pokémon.
 ### DoD
 
 ```md
-- [ ] Contrat listant HP, PP, status, held item, exp, level, moves, evolution triggers.
-- [ ] Mapping battle lineup -> party slots documenté.
-- [ ] Non-objectifs clairement listés.
-- [ ] Pas de modification moteur avant contrat.
+- [x] Contrat listant HP, PP, status, held item, exp, level, moves, evolution triggers.
+- [x] Mapping battle lineup -> party slots documenté.
+- [x] Non-objectifs clairement listés.
+- [x] Contrat gelé avant les commits moteur suivants.
 ```
 
 ## FG-041 — PP Write-back V0
@@ -725,10 +745,10 @@ Objectif : les combats changent réellement la progression joueur/Pokémon.
 ### DoD
 
 ```md
-- [ ] Battle final state expose les PP restants par combatant/move.
-- [ ] Runtime write-back les réécrit sur le bon slot party.
-- [ ] Tests switch + plusieurs membres engagés.
-- [ ] Tests anciens setups compatibles.
+- [x] Battle final state expose les PP restants par combatant/move.
+- [x] Runtime write-back les réécrit sur le bon slot party.
+- [x] Tests switch + plusieurs membres engagés.
+- [x] Tests anciens setups compatibles.
 ```
 
 ## FG-042 — Major Status Write-back V0
@@ -738,10 +758,10 @@ Objectif : les combats changent réellement la progression joueur/Pokémon.
 ### DoD
 
 ```md
-- [ ] Status battle -> status overworld défini.
-- [ ] Faint/currentHp cohérent.
-- [ ] Guérison hors combat possible via Phase 4.
-- [ ] Tests pour au moins burn/poison/paralysis/sleep si supportés.
+- [x] Status battle -> status overworld défini.
+- [x] Faint/currentHp cohérent.
+- [x] Guérison hors combat disponible via les opérations party/bag existantes.
+- [x] Tests pour burn/poison/paralysis/sleep et les autres statuts majeurs supportés.
 ```
 
 ## FG-043 — Battle Reward Model V0
@@ -751,10 +771,10 @@ Objectif : les combats changent réellement la progression joueur/Pokémon.
 ### DoD
 
 ```md
-- [ ] `BattleReward` ou équivalent : money, exp chunks, items, badges/flags optionnels.
-- [ ] Distinction wild/trainer.
-- [ ] Pas d’UI.
-- [ ] Tests de construction/validation.
+- [x] `BattleReward` ou équivalent : money, exp chunks, items, badges/flags optionnels.
+- [x] Distinction wild/trainer.
+- [x] Pas d’UI dans le lot de modèle.
+- [x] Tests de construction/validation.
 ```
 
 ## FG-044 — XP Distribution V0
@@ -764,10 +784,10 @@ Objectif : les combats changent réellement la progression joueur/Pokémon.
 ### DoD
 
 ```md
-- [ ] Règle MVP documentée : actif seul, participants, ou exp share.
-- [ ] XP calculée depuis base exp / level adversaire si catalogues disponibles.
-- [ ] XP ajoutée aux bons slots.
-- [ ] Tests wild/trainer, switch, fainted participant.
+- [x] Règle MVP documentée : participants réels, sans Exp Share implicite.
+- [x] XP calculée depuis base exp / level adversaire via catalogues stricts.
+- [x] XP ajoutée aux bons slots.
+- [x] Tests wild/trainer, switch et participant K.O.
 ```
 
 ## FG-045 — Level-up Apply V0
@@ -777,10 +797,10 @@ Objectif : les combats changent réellement la progression joueur/Pokémon.
 ### DoD
 
 ```md
-- [ ] Level cap documenté.
-- [ ] Recalcul stats minimal honnête.
-- [ ] PV après level-up cohérents.
-- [ ] Tests multi-level.
+- [x] Level cap documenté.
+- [x] Recalcul stats minimal honnête.
+- [x] PV après level-up cohérents.
+- [x] Tests multi-level.
 ```
 
 ## FG-046 — Learn Move on Level-up V0
@@ -790,10 +810,10 @@ Objectif : les combats changent réellement la progression joueur/Pokémon.
 ### DoD
 
 ```md
-- [ ] Learnset consulté.
-- [ ] Si moins de 4 moves : ajout automatique.
-- [ ] Si 4 moves : prompt ou stratégie fallback documentée.
-- [ ] Test move appris / move ignoré / remplacement.
+- [x] Learnset consulté.
+- [x] Si moins de 4 moves : ajout automatique.
+- [x] Si 4 moves : décision réelle de remplacement ou refus.
+- [x] Tests move appris / move ignoré / remplacement.
 ```
 
 ## FG-047 — Evolution Check V0
@@ -811,10 +831,10 @@ Objectif : les combats changent réellement la progression joueur/Pokémon.
 ### DoD
 
 ```md
-- [ ] Évolution par niveau fonctionnelle.
-- [ ] Évolution peut être refusée/annulée si UX prévue, sinon auto avec décision documentée.
-- [ ] Form/species/moves/stats mis à jour proprement.
-- [ ] Tests évolue / n’évolue pas / chaîne simple.
+- [x] Évolution par niveau fonctionnelle.
+- [x] Évolution peut être acceptée ou refusée dans l’overlay post-combat.
+- [x] Form/species/moves/stats mis à jour proprement.
+- [x] Tests évolue / n’évolue pas / franchissement multi-level.
 ```
 
 ## FG-048 — Post-battle Reward Presentation V0
@@ -824,9 +844,9 @@ Objectif : les combats changent réellement la progression joueur/Pokémon.
 ### DoD
 
 ```md
-- [ ] Timeline ou queue de messages post-battle.
-- [ ] Messages ordonnés : victoire, XP, level-up, move, évolution, argent/items.
-- [ ] Aucun reward silencieux critique.
+- [x] Timeline ou queue de messages post-battle.
+- [x] Messages ordonnés : victoire, XP, level-up, move, évolution, argent/items.
+- [x] Aucun reward silencieux critique.
 ```
 
 ## FG-049 — Capture Formula V0
@@ -836,10 +856,10 @@ Objectif : les combats changent réellement la progression joueur/Pokémon.
 ### DoD
 
 ```md
-- [ ] Formule documentée.
-- [ ] Prend en compte HP cible, ball rate, status si disponible.
-- [ ] RNG injecté/testable.
-- [ ] Tests déterministes avec RNG seed/fake.
+- [x] Formule documentée.
+- [x] Prend en compte HP cible, ball rate et statut.
+- [x] RNG injecté/testable.
+- [x] Tests déterministes avec RNG seed/fake.
 ```
 
 ## FG-050 — Generic Battle Item Handling V0
@@ -862,11 +882,11 @@ Objectif : les combats changent réellement la progression joueur/Pokémon.
 ### DoD
 
 ```md
-- [ ] Money reward depuis trainer ou formule.
-- [ ] Badge grant optionnel.
-- [ ] Field ability unlock optionnel via badge/flag.
-- [ ] Trainer defeated reste idempotent.
-- [ ] Tests victoire / défaite / rematch policy.
+- [x] Money reward depuis le trainer authored.
+- [x] Badge grant optionnel dans le contrat de récompense.
+- [x] Field ability unlock optionnel via badge/flag.
+- [x] Trainer defeated reste idempotent.
+- [x] Tests victoire / défaite / fuite-capture et non-réapplication des récompenses.
 ```
 
 ## FG-052 — Switch/Faint Replacement UX Hardening
