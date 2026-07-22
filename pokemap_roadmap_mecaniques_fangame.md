@@ -1958,14 +1958,14 @@ une promotion en bloc. Chaque lot conserve son DoD et son Evidence Pack propre.
 | MVP-05 | Avoir des dialogues conditionnels | FG-081, FG-082, FG-088, FG-093, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
 | MVP-06 | Déclencher des cutscenes simples | FG-082, FG-092, FG-093, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
 | MVP-07 | Faire des rencontres sauvages en herbe | FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
-| MVP-08 | Capturer des Pokémon | FG-049, FG-083, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
+| MVP-08 | Capturer des Pokémon | FG-049, FG-083, FG-180, FG-182 | `packages/map_runtime/test/p6_selbrume_route_1_encounter_capture_golden_slice_test.dart` |
 | MVP-09 | Envoyer automatiquement au PC si la party est pleine | FG-022, FG-023, FG-024, FG-025, FG-029, FG-030, FG-180, FG-182 | `packages/map_gameplay/test/player_storage_operations_test.dart` (planifié Phase 3) |
 | MVP-10 | Combattre des trainers | FG-086, FG-140, FG-141, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
 | MVP-11 | Gagner XP + argent | FG-020, FG-021, FG-040, FG-043, FG-044, FG-048, FG-051, FG-180, FG-182 | `packages/map_gameplay/test/battle_progression_service_test.dart` (planifié Phase 2) |
 | MVP-12 | Level-up | FG-020, FG-021, FG-040, FG-044, FG-045, FG-047, FG-048, FG-180, FG-182 | `packages/map_gameplay/test/battle_progression_service_test.dart` (planifié Phase 2) |
 | MVP-13 | Apprendre une attaque | FG-020, FG-021, FG-040, FG-041, FG-046, FG-048, FG-180, FG-182 | `packages/map_gameplay/test/battle_move_learning_test.dart` (planifié Phase 2) |
 | MVP-14 | Obtenir un badge ou flag | FG-051, FG-089, FG-143, FG-180, FG-182 | `packages/map_core/test/badge_definition_test.dart` (planifié Phase 3) |
-| MVP-15 | Débloquer Surf ou Cut | FG-089, FG-120, FG-129, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` ; Surf seul |
+| MVP-15 | Débloquer Surf ou Cut | FG-089, FG-120, FG-129, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` à étendre en Phase 5 : refus avant unlock puis traversée Surf |
 | MVP-16 | Utiliser un shop | FG-060, FG-069, FG-070, FG-082, FG-091, FG-093, FG-180, FG-182 | `examples/playable_runtime_host/test/in_game_shop_page_test.dart` (planifié Phase 3) |
 | MVP-17 | Se soigner dans un centre Pokémon | FG-060, FG-062, FG-063, FG-071, FG-085, FG-093, FG-180, FG-182 | `examples/playable_runtime_host/test/in_game_heal_flow_test.dart` (planifié Phase 3) |
 | MVP-18 | Sauvegarder / charger proprement | FG-014, FG-163, FG-180, FG-182, FG-183, FG-185 | `packages/map_runtime/test/playable_map_game_save_load_transaction_test.dart` (planifié Phase 5) |

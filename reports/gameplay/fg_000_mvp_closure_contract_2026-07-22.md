@@ -69,14 +69,14 @@ closure roadmap et ne prouve rien aujourd'hui.
 | MVP-05 | Avoir des dialogues conditionnels | `SUPPORTED` | `packages/map_runtime/test/runtime_story_branching_test.dart` couvre les branches de faits/flags. | P5/P6 | `[existant] examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` | FG-081, FG-082, FG-088, FG-093, FG-180, FG-182 |
 | MVP-06 | Déclencher des cutscenes simples | `SUPPORTED` | `packages/map_runtime/test/cutscene_runtime_runner_test.dart` prouve le runner. | P5/P6 | `[existant] examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` | FG-082, FG-092, FG-093, FG-180, FG-182 |
 | MVP-07 | Faire des rencontres sauvages en herbe | `SUPPORTED` | `packages/map_runtime/test/p6_selbrume_route_1_encounter_capture_golden_slice_test.dart` prouve la rencontre de route. | P5/P6 | `[existant] examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` | FG-180, FG-182 |
-| MVP-08 | Capturer des Pokémon | `SUPPORTED` | La Golden Slice route et `runtime_battle_outcome_apply_test.dart` prouvent la capture minimale ; formule et Ball acquérable restent à fermer. | P2/P5/P6 | `[existant] examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` | FG-049, FG-083, FG-180, FG-182 |
+| MVP-08 | Capturer des Pokémon | `SUPPORTED` | La Golden Slice route et `runtime_battle_outcome_apply_test.dart` prouvent la capture minimale ; formule et Ball acquérable restent à fermer. | P2/P5/P6 | `[existant] packages/map_runtime/test/p6_selbrume_route_1_encounter_capture_golden_slice_test.dart` | FG-049, FG-083, FG-180, FG-182 |
 | MVP-09 | Envoyer automatiquement au PC si la party est pleine | `PARTIAL` | `capture_destination_operations_test.dart` prouve `storedPokemon`, pas des boxes stables ni leur saturation. | P3/P5/P6 | `[planifié] packages/map_gameplay/test/player_storage_operations_test.dart` | FG-022, FG-023, FG-024, FG-025, FG-029, FG-030, FG-180, FG-182 |
 | MVP-10 | Combattre des trainers | `SUPPORTED` | `p6_selbrume_first_trainer_battle_golden_slice_test.dart` prouve setup/session/write-back, avec outcome contrôlé. | P2/P5/P6 | `[existant] examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` | FG-086, FG-140, FG-141, FG-180, FG-182 |
 | MVP-11 | Gagner XP + argent | `BLOCKED` | La fixture trainer appelle directement `applyBattleRewards`; `PlayerPokemon` ne persiste pas l'XP totale. | P2/P5/P6 | `[planifié] packages/map_gameplay/test/battle_progression_service_test.dart` | FG-020, FG-021, FG-040, FG-043, FG-044, FG-048, FG-051, FG-180, FG-182 |
 | MVP-12 | Level-up | `BLOCKED` | Le niveau est injecté par `levelUpsByPartyIndex`, pas calculé depuis XP/participants/courbe. | P2/P5/P6 | `[planifié] packages/map_gameplay/test/battle_progression_service_test.dart` | FG-020, FG-021, FG-040, FG-044, FG-045, FG-047, FG-048, FG-180, FG-182 |
 | MVP-13 | Apprendre une attaque | `BLOCKED` | `runtime_pokemon_learnset_loader_test.dart` ne prouve pas apprendre/remplacer/refuser après level-up. | P2/P5/P6 | `[planifié] packages/map_gameplay/test/battle_move_learning_test.dart` | FG-020, FG-021, FG-040, FG-041, FG-046, FG-048, FG-180, FG-182 |
 | MVP-14 | Obtenir un badge ou flag | `PARTIAL` | Flags et `badgeIds` persistent, mais `BadgeDefinition` projet et grant no-code manquent. | P3/P4/P5/P6 | `[planifié] packages/map_core/test/badge_definition_test.dart` | FG-051, FG-089, FG-143, FG-180, FG-182 |
-| MVP-15 | Débloquer Surf ou Cut | `PARTIAL` | `packages/map_gameplay/test/surf_evaluation_test.dart` prouve l'évaluation pure ; grant et gate authoré manquent. Surf seul est retenu. | P4/P5/P6 | `[existant] examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` | FG-089, FG-120, FG-129, FG-180, FG-182 |
+| MVP-15 | Débloquer Surf ou Cut | `PARTIAL` | `packages/map_gameplay/test/surf_evaluation_test.dart` prouve l'évaluation pure ; grant et gate authoré manquent. Surf seul est retenu. | P4/P5/P6 | `[planifié] examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` (extension Phase 5 : refus avant unlock, traversée après unlock) | FG-089, FG-120, FG-129, FG-180, FG-182 |
 | MVP-16 | Utiliser un shop | `BLOCKED` | Une mutation d'achat pure existe, sans stock projet, écran joueur ni callback runtime de production. | P3/P4/P5/P6 | `[planifié] examples/playable_runtime_host/test/in_game_shop_page_test.dart` | FG-060, FG-069, FG-070, FG-082, FG-091, FG-093, FG-180, FG-182 |
 | MVP-17 | Se soigner dans un centre Pokémon | `BLOCKED` | Des soins purs existent ; `HealParty` et le flow centre HP/PP/statuts ne sont pas câblés. | P3/P4/P5/P6 | `[planifié] examples/playable_runtime_host/test/in_game_heal_flow_test.dart` | FG-060, FG-062, FG-063, FG-071, FG-085, FG-093, FG-180, FG-182 |
 | MVP-18 | Sauvegarder / charger proprement | `SUPPORTED` | `file_game_save_repository_test.dart` et `p6_selbrume_save_load_golden_slice_test.dart` prouvent le round-trip ; rollback complet reste FG-014. | P5/P6 | `[planifié] packages/map_runtime/test/playable_map_game_save_load_transaction_test.dart` | FG-014, FG-163, FG-180, FG-182, FG-183, FG-185 |
@@ -154,7 +154,25 @@ signature/notarisation et polish visuel sans dépendance mécanique.
 - Modifié : `pokemap_roadmap_mecaniques_fangame.md` — tables des lots différés
   et §14 remplacé par les 19 critères avec lots/tests exacts.
 
-Diff précis : `git diff -- pokemap_roadmap_mecaniques_fangame.md`.
+Zones de diff intégrées :
+
+- tables canoniques FG-060, FG-100, FG-120 et FG-140 : statut et justification
+  `DEFERRED` des 13 lots exclus ;
+- §14 : suppression des dix plages globales et remplacement par 19 lignes
+  `MVP-01` à `MVP-19`, chacune avec lots et test d'acceptation exacts ;
+- rapport : matrice 11/3/5, décisions signées, réaudit, commandes et risques.
+
+Le diff du commit de lot est consultable indépendamment du worktree avec :
+
+```bash
+git show --format= --unified=3 a284193f9 -- \
+  pokemap_roadmap_mecaniques_fangame.md \
+  reports/gameplay/fg_000_mvp_closure_contract_2026-07-22.md
+```
+
+Le présent correctif de quality review remplace deux preuves d'acceptation
+surévaluées : MVP-08 pointe vers son test Golden de capture réel et MVP-15 est
+explicitement planifié jusqu'à la traversée Surf de Phase 5.
 
 ## 9. Tests, analyse, build et Git final
 
