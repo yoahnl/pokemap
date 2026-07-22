@@ -910,8 +910,8 @@ Objectif : rendre l’inventaire utile hors combat.
 | FG-062 | Medicine Outside Battle V0 | `⬜ TODO` | — |
 | FG-063 | Status Cure / Revive V0 | `⬜ TODO` | — |
 | FG-064 | Key Item Gates V0 | `⬜ TODO` | — |
-| FG-065 | Repel V0 | `⬜ TODO` | — |
-| FG-066 | Poké Ball Families V0 | `⬜ TODO` | — |
+| FG-065 | Repel V0 | `⏸ DEFERRED` | Hors MVP signé le 2026-07-22. |
+| FG-066 | Poké Ball Families V0 | `⏸ DEFERRED` | Familles complètes hors MVP ; une Poké Ball minimale reste requise. |
 | FG-067 | Item Pickup Event V0 | `⬜ TODO` | — |
 | FG-068 | Hidden Item Event V0 | `⬜ TODO` | — |
 | FG-069 | Shop Model V0 | `⬜ TODO` | — |
@@ -1255,8 +1255,8 @@ Objectif : dépasser walk/surf et couvrir les cas Pokémon classiques.
 | FG-101 | Encounter Conditions V0 | `⬜ TODO` | — |
 | FG-102 | Static Encounter Flow V0 | `⬜ TODO` | — |
 | FG-103 | Gift Pokémon Flow V0 | `⬜ TODO` | — |
-| FG-104 | Fishing Attempt Flow V0 | `⬜ TODO` | — |
-| FG-105 | Headbutt Encounter Flow V0 | `⬜ TODO` | — |
+| FG-104 | Fishing Attempt Flow V0 | `⏸ DEFERRED` | Hors MVP signé le 2026-07-22. |
+| FG-105 | Headbutt Encounter Flow V0 | `⏸ DEFERRED` | Hors MVP signé le 2026-07-22. |
 | FG-106 | Surf Encounter Conditions Hardening V0 | `⬜ TODO` | — |
 | FG-107 | Consumed Encounter Write-back V0 | `⬜ TODO` | — |
 | FG-108 | Encounter Authoring Validation V0 | `⬜ TODO` | — |
@@ -1396,14 +1396,14 @@ Objectif : rendre la progression map réellement Pokémon-like.
 | ID | Lot | Statut | Preuve |
 |---|---|---|---|
 | FG-120 | Field Move Action Base V0 | `⬜ TODO` | — |
-| FG-121 | Cut Obstacle V0 | `⬜ TODO` | — |
-| FG-122 | Strength Boulder V0 | `⬜ TODO` | — |
-| FG-123 | Rock Smash V0 | `⬜ TODO` | — |
-| FG-124 | Flash / Dark Zone V0 | `⬜ TODO` | — |
-| FG-125 | Fly / Fast Travel V0 | `⬜ TODO` | — |
-| FG-126 | Waterfall V0 | `⬜ TODO` | — |
-| FG-127 | Dive V0 | `⬜ TODO` | — |
-| FG-128 | Field Move Editor Templates V0 | `⬜ TODO` | — |
+| FG-121 | Cut Obstacle V0 | `⏸ DEFERRED` | Hors MVP ; Surf est le seul field gate signé. |
+| FG-122 | Strength Boulder V0 | `⏸ DEFERRED` | Hors MVP ; Surf est le seul field gate signé. |
+| FG-123 | Rock Smash V0 | `⏸ DEFERRED` | Hors MVP ; Surf est le seul field gate signé. |
+| FG-124 | Flash / Dark Zone V0 | `⏸ DEFERRED` | Hors MVP ; Surf est le seul field gate signé. |
+| FG-125 | Fly / Fast Travel V0 | `⏸ DEFERRED` | Hors MVP ; Surf est le seul field gate signé. |
+| FG-126 | Waterfall V0 | `⏸ DEFERRED` | Hors MVP ; Surf est le seul field gate signé. |
+| FG-127 | Dive V0 | `⏸ DEFERRED` | Hors MVP ; Surf est le seul field gate signé. |
+| FG-128 | Field Move Editor Templates V0 | `⏸ DEFERRED` | Hors MVP ; templates avancés différés. |
 | FG-129 | Badge/Unlock Gate Integration V0 | `⬜ TODO` | — |
 
 ## FG-120 — Field Move Action Base V0
@@ -1526,7 +1526,7 @@ Objectif : faire des trainers et badges de vrais jalons de progression.
 |---|---|---|---|
 | FG-140 | Trainer Defeated Policy V0 | `⬜ TODO` | — |
 | FG-141 | Post-battle Dialogue Hook V0 | `⬜ TODO` | — |
-| FG-142 | Trainer Rematch Policy V0 | `⬜ TODO` | — |
+| FG-142 | Trainer Rematch Policy V0 | `⏸ DEFERRED` | Hors MVP ; rematch désactivé par défaut. |
 | FG-143 | Badge Grant Flow V0 | `⬜ TODO` | — |
 | FG-144 | Gym Flow Template V0 | `⬜ TODO` | — |
 | FG-145 | Rival / Follow-up Event Template V0 | `⬜ TODO` | — |
@@ -1945,21 +1945,39 @@ Inclure :
 
 ## 14. Critères de victoire globaux
 
-PokeMap pourra être considéré comme **vrai outil de fangame Pokémon-like MVP** quand :
+Les **19 critères produit de §2.2 sont la vérité MVP**. La fermeture exige les
+lots exacts et le test d'acceptation reliés ci-dessous ; elle n'autorise jamais
+une promotion en bloc. Chaque lot conserve son DoD et son Evidence Pack propre.
 
-```md
-- [ ] FG-010 à FG-016 sont DONE.
-- [ ] FG-020 à FG-030 sont DONE.
-- [ ] FG-040 à FG-049 sont DONE au minimum pour HP/PP/status/XP/level-up/capture formula.
-- [ ] FG-060 à FG-071 sont DONE pour bag/shop/heal.
-- [ ] FG-080 à FG-094 sont DONE pour events no-code essentiels.
-- [ ] FG-100 à FG-108 sont DONE pour encounters essentiels.
-- [ ] FG-120, FG-121 et FG-129 sont DONE au minimum pour un field gate type Cut ou Surf unlock.
-- [ ] FG-140, FG-141, FG-143 et FG-144 sont DONE pour trainers/badges.
-- [ ] FG-160 et FG-163 sont DONE pour pause/save.
-- [ ] FG-180 à FG-185 sont DONE.
-- [ ] Golden Slice jouable de bout en bout.
-```
+| # | Critère produit | Lots exacts requis | Test d'acceptation de fermeture |
+|---:|---|---|---|
+| MVP-01 | Créer une nouvelle partie | FG-010, FG-011, FG-016, FG-180, FG-182 | `packages/map_runtime/test/selbrume_new_game_starter_integration_test.dart` |
+| MVP-02 | Choisir un starter | FG-012, FG-013, FG-180, FG-182 | `packages/map_runtime/test/selbrume_new_game_starter_integration_test.dart` |
+| MVP-03 | Explorer 2–3 maps connectées | FG-180, FG-181, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
+| MVP-04 | Parler à des PNJ | FG-080, FG-082, FG-092, FG-093, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
+| MVP-05 | Avoir des dialogues conditionnels | FG-081, FG-082, FG-088, FG-093, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
+| MVP-06 | Déclencher des cutscenes simples | FG-082, FG-092, FG-093, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
+| MVP-07 | Faire des rencontres sauvages en herbe | FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
+| MVP-08 | Capturer des Pokémon | FG-049, FG-083, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
+| MVP-09 | Envoyer automatiquement au PC si la party est pleine | FG-022, FG-023, FG-024, FG-025, FG-029, FG-030, FG-180, FG-182 | `packages/map_gameplay/test/player_storage_operations_test.dart` (planifié Phase 3) |
+| MVP-10 | Combattre des trainers | FG-086, FG-140, FG-141, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
+| MVP-11 | Gagner XP + argent | FG-020, FG-021, FG-040, FG-043, FG-044, FG-048, FG-051, FG-180, FG-182 | `packages/map_gameplay/test/battle_progression_service_test.dart` (planifié Phase 2) |
+| MVP-12 | Level-up | FG-020, FG-021, FG-040, FG-044, FG-045, FG-047, FG-048, FG-180, FG-182 | `packages/map_gameplay/test/battle_progression_service_test.dart` (planifié Phase 2) |
+| MVP-13 | Apprendre une attaque | FG-020, FG-021, FG-040, FG-041, FG-046, FG-048, FG-180, FG-182 | `packages/map_gameplay/test/battle_move_learning_test.dart` (planifié Phase 2) |
+| MVP-14 | Obtenir un badge ou flag | FG-051, FG-089, FG-143, FG-180, FG-182 | `packages/map_core/test/badge_definition_test.dart` (planifié Phase 3) |
+| MVP-15 | Débloquer Surf ou Cut | FG-089, FG-120, FG-129, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` ; Surf seul |
+| MVP-16 | Utiliser un shop | FG-060, FG-069, FG-070, FG-082, FG-091, FG-093, FG-180, FG-182 | `examples/playable_runtime_host/test/in_game_shop_page_test.dart` (planifié Phase 3) |
+| MVP-17 | Se soigner dans un centre Pokémon | FG-060, FG-062, FG-063, FG-071, FG-085, FG-093, FG-180, FG-182 | `examples/playable_runtime_host/test/in_game_heal_flow_test.dart` (planifié Phase 3) |
+| MVP-18 | Sauvegarder / charger proprement | FG-014, FG-163, FG-180, FG-182, FG-183, FG-185 | `packages/map_runtime/test/playable_map_game_save_load_transaction_test.dart` (planifié Phase 5) |
+| MVP-19 | Finir une mini-histoire | FG-080, FG-081, FG-082, FG-088, FG-092, FG-093, FG-140, FG-141, FG-146, FG-147, FG-180, FG-181, FG-182, FG-183, FG-185 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
+
+Exclusions signées : FG-065, FG-066, FG-104, FG-105, FG-121, FG-122,
+FG-123, FG-124, FG-125, FG-126, FG-127, FG-128 et FG-142 restent
+`⏸ DEFERRED`, jamais `DONE` pour fermer le MVP. FG-066 n'exclut pas la Poké
+Ball minimale requise par MVP-08. Surf est le seul field gate requis par MVP-15.
+
+Le GO final exige aussi la gate Phase 6 : même `releaseCandidateCommit`, même
+tree hash projet, même package, receipt automatisé et walkthrough humain.
 
 ---
 
