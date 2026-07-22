@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:path/path.dart' as p;
 
 import 'runtime_battle_setup_exception.dart';
+import 'runtime_move_catalog_loader.dart';
 
 /// Loader runtime spécialisé des learnsets Pokémon projet.
 ///
@@ -18,7 +20,11 @@ import 'runtime_battle_setup_exception.dart';
 /// - fallback vers `fallbackSpeciesId` si le ref est vide ;
 /// - seules les familles déjà utilisées par le mapper sont exposées.
 class RuntimePokemonLearnsetLoader {
-  RuntimePokemonLearnsetLoader();
+  RuntimePokemonLearnsetLoader({
+    RuntimeMoveCatalogLoader? moveCatalogLoader,
+  }) : moveCatalogLoader = moveCatalogLoader ?? RuntimeMoveCatalogLoader();
+
+  final RuntimeMoveCatalogLoader moveCatalogLoader;
 
   final Map<String, Future<RuntimePokemonLearnset>> _cache =
       <String, Future<RuntimePokemonLearnset>>{};
@@ -26,22 +32,100 @@ class RuntimePokemonLearnsetLoader {
 
   int get debugActualReadCount => _actualReadCount;
 
+  /// Loads every canonical level-up move crossed in `(oldLevel, newLevel]`.
+  ///
+  /// Ordering is deterministic: ascending learned level, then the stable
+  /// learnset catalogue position. Missing moves and unusable max PP fail
+  /// closed before gameplay receives the candidates.
+  Future<List<PokemonMoveLearningCandidate>> loadLevelUpCandidates({
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+    required String speciesRef,
+    required String fallbackSpeciesId,
+    required int oldLevel,
+    required int newLevel,
+  }) async {
+    RangeError.checkValueInInterval(oldLevel, 1, 100, 'oldLevel');
+    RangeError.checkValueInInterval(newLevel, 1, 100, 'newLevel');
+    if (newLevel < oldLevel) {
+      throw ArgumentError.value(
+        newLevel,
+        'newLevel',
+        'must not be lower than oldLevel=$oldLevel',
+      );
+    }
+    if (newLevel == oldLevel) {
+      return const <PokemonMoveLearningCandidate>[];
+    }
+
+    final learnsetId = _resolveLearnsetId(
+      speciesRef: speciesRef,
+      fallbackSpeciesId: fallbackSpeciesId,
+    );
+    final learnset = await loadByRef(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+      speciesRef: speciesRef,
+      fallbackSpeciesId: fallbackSpeciesId,
+    );
+    final crossedEntries = learnset.levelUp
+        .where(
+          (entry) => entry.level > oldLevel && entry.level <= newLevel,
+        )
+        .toList(growable: false)
+      ..sort((left, right) {
+        final byLevel = left.level.compareTo(right.level);
+        if (byLevel != 0) return byLevel;
+        return left.catalogOrder.compareTo(right.catalogOrder);
+      });
+    if (crossedEntries.isEmpty) {
+      return const <PokemonMoveLearningCandidate>[];
+    }
+
+    final moveCatalog = await moveCatalogLoader.load(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+    );
+    final candidates = <PokemonMoveLearningCandidate>[];
+    for (final entry in crossedEntries) {
+      final move = moveCatalog.lookup(entry.moveId);
+      if (move == null) {
+        throw RuntimeBattleSetupException(
+          'Le learnset Pokémon référence une attaque absente du catalogue.',
+          debugDetails:
+              'speciesRef=${speciesRef.trim()}, moveId=${entry.moveId}, level=${entry.level}',
+        );
+      }
+      if (move.pp <= 0) {
+        throw RuntimeBattleSetupException(
+          'Le learnset Pokémon référence une attaque sans PP utilisables.',
+          debugDetails:
+              'speciesRef=${speciesRef.trim()}, moveId=${entry.moveId}, pp=${move.pp}',
+        );
+      }
+      candidates.add(
+        PokemonMoveLearningCandidate(
+          opportunityId:
+              '$learnsetId:levelUp:${entry.catalogOrder}:${entry.level}:${entry.moveId}',
+          moveId: move.id,
+          learnedAtLevel: entry.level,
+          maxPp: move.pp,
+        ),
+      );
+    }
+    return List<PokemonMoveLearningCandidate>.unmodifiable(candidates);
+  }
+
   Future<RuntimePokemonLearnset> loadByRef({
     required String projectRootDirectory,
     required ProjectPokemonConfig pokemonConfig,
     required String speciesRef,
     required String fallbackSpeciesId,
   }) async {
-    final normalizedSpeciesRef = speciesRef.trim();
-    final normalizedFallbackSpeciesId = fallbackSpeciesId.trim();
-    final learnsetId = normalizedSpeciesRef.isEmpty
-        ? normalizedFallbackSpeciesId
-        : normalizedSpeciesRef;
-    if (learnsetId.isEmpty) {
-      throw const RuntimeBattleSetupException(
-        'Impossible de déterminer quel learnset Pokémon charger pour le combat.',
-      );
-    }
+    final learnsetId = _resolveLearnsetId(
+      speciesRef: speciesRef,
+      fallbackSpeciesId: fallbackSpeciesId,
+    );
 
     final learnsetsDirectory = _normalizeConfiguredRelativePath(
       pokemonConfig.learnsetsDir,
@@ -63,7 +147,6 @@ class RuntimePokemonLearnsetLoader {
         label: 'Pokemon learnset "$learnsetId"',
       );
 
-      final rawLevelUp = (json['levelUp'] as List?) ?? const <Object?>[];
       return RuntimePokemonLearnset(
         startingMoves: ((json['startingMoves'] as List?) ?? const <Object?>[])
             .whereType<String>()
@@ -71,17 +154,10 @@ class RuntimePokemonLearnsetLoader {
         relearnMoves: ((json['relearnMoves'] as List?) ?? const <Object?>[])
             .whereType<String>()
             .toList(growable: false),
-        levelUp: rawLevelUp
-            .whereType<Map>()
-            .map((entry) => entry.cast<String, dynamic>())
-            .map(
-              (entry) => RuntimePokemonLevelUpMove(
-                moveId: (entry['moveId'] as String?)?.trim() ?? '',
-                level: (entry['level'] as num?)?.toInt() ?? 0,
-              ),
-            )
-            .where((entry) => entry.moveId.isNotEmpty && entry.level > 0)
-            .toList(growable: false),
+        levelUp: _parseLevelUpEntries(
+          json['levelUp'],
+          learnsetId: learnsetId,
+        ),
       );
     }
 
@@ -96,6 +172,72 @@ class RuntimePokemonLearnsetLoader {
       }
       rethrow;
     }
+  }
+
+  String _resolveLearnsetId({
+    required String speciesRef,
+    required String fallbackSpeciesId,
+  }) {
+    final normalizedSpeciesRef = speciesRef.trim();
+    final normalizedFallbackSpeciesId = fallbackSpeciesId.trim();
+    final learnsetId = normalizedSpeciesRef.isEmpty
+        ? normalizedFallbackSpeciesId
+        : normalizedSpeciesRef;
+    if (learnsetId.isEmpty) {
+      throw const RuntimeBattleSetupException(
+        'Impossible de déterminer quel learnset Pokémon charger pour le combat.',
+      );
+    }
+    return learnsetId;
+  }
+
+  List<RuntimePokemonLevelUpMove> _parseLevelUpEntries(
+    Object? rawLevelUp, {
+    required String learnsetId,
+  }) {
+    if (rawLevelUp == null) {
+      return const <RuntimePokemonLevelUpMove>[];
+    }
+    if (rawLevelUp is! List) {
+      throw RuntimeBattleSetupException(
+        'Le learnset Pokémon contient des entrées level-up invalides.',
+        debugDetails:
+            'Pokemon learnset "$learnsetId" levelUp must be a JSON list',
+      );
+    }
+
+    final entries = <RuntimePokemonLevelUpMove>[];
+    for (var index = 0; index < rawLevelUp.length; index++) {
+      final rawEntry = rawLevelUp[index];
+      if (rawEntry is! Map) {
+        throw RuntimeBattleSetupException(
+          'Le learnset Pokémon contient une entrée level-up invalide.',
+          debugDetails:
+              'Pokemon learnset "$learnsetId" levelUp[$index] must be a JSON object',
+        );
+      }
+      final rawMoveId = rawEntry['moveId'];
+      final moveId = rawMoveId is String ? rawMoveId.trim() : '';
+      final rawLevel = rawEntry['level'];
+      if (moveId.isEmpty ||
+          rawLevel is! int ||
+          rawLevel < 1 ||
+          rawLevel > 100) {
+        throw RuntimeBattleSetupException(
+          'Le learnset Pokémon contient une entrée level-up invalide.',
+          debugDetails:
+              'Pokemon learnset "$learnsetId" levelUp[$index] requires a non-empty moveId and integer level in 1..100',
+        );
+      }
+      entries.add(
+        RuntimePokemonLevelUpMove(
+          moveId: moveId,
+          level: rawLevel,
+          catalogOrder: index,
+        ),
+      );
+    }
+    return List<RuntimePokemonLevelUpMove>.unmodifiable(entries);
   }
 
   Future<Map<String, dynamic>> _readJsonAtProjectRelativePath(
@@ -173,8 +315,10 @@ class RuntimePokemonLevelUpMove {
   const RuntimePokemonLevelUpMove({
     required this.moveId,
     required this.level,
+    this.catalogOrder = 0,
   });
 
   final String moveId;
   final int level;
+  final int catalogOrder;
 }

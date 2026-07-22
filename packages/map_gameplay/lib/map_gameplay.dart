@@ -13,14 +13,26 @@ export 'src/pokemon_stat_calculator.dart'
         PokemonBaseStats,
         PokemonCalculatedStats,
         PokemonStatCalculator;
+export 'src/battle_progression_result.dart'
+    show
+        PokemonMoveLearningCandidate,
+        BattleMoveLearningOpportunity,
+        BattleMoveLearningPhase,
+        PendingBattleMoveLearning,
+        BattleMoveLearningDecision,
+        LearnBattleMoveLearningDecision,
+        ReplaceBattleMoveLearningDecision,
+        DeclineBattleMoveLearningDecision,
+        BattleMoveLearningChangeKind,
+        BattleMoveLearningChange,
+        BattlePokemonProgressionChange,
+        BattleProgressionResult;
 export 'src/battle_progression_service.dart'
     show
         BattleProgressionOutcomeKind,
         BattleProgressionDefeatedOpponent,
         BattleProgressionPartySlotMetadata,
         BattleProgressionContext,
-        BattlePokemonProgressionChange,
-        BattleProgressionResult,
         BattleProgressionService;
 export 'src/direction.dart' show Direction, DirectionX, EntityFacingX;
 export 'src/gameplay_exceptions.dart' show GameplaySpawnResolutionException;

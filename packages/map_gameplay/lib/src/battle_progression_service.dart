@@ -1,9 +1,13 @@
 import 'package:map_core/map_core.dart';
 
+import 'battle_progression_result.dart';
 import 'battle_reward.dart';
 import 'game_state_mutations.dart';
 import 'pokemon_experience_curve.dart';
 import 'pokemon_stat_calculator.dart';
+
+export 'battle_progression_result.dart'
+    show BattlePokemonProgressionChange, BattleProgressionResult;
 
 /// Terminal battle result understood by pure gameplay progression.
 enum BattleProgressionOutcomeKind { victory, defeat, fled, captured }
@@ -63,6 +67,8 @@ final class BattleProgressionContext {
     required Iterable<int> playerParticipantPartySlots,
     required Iterable<BattleProgressionDefeatedOpponent> defeatedOpponents,
     required Iterable<BattleProgressionPartySlotMetadata> partySlotMetadata,
+    Map<int, Iterable<PokemonMoveLearningCandidate>> moveLearningCandidatesByPartySlot =
+        const <int, Iterable<PokemonMoveLearningCandidate>>{},
   })  : playerParticipantPartySlots = Set<int>.unmodifiable(
           playerParticipantPartySlots,
         ),
@@ -73,6 +79,10 @@ final class BattleProgressionContext {
         partySlotMetadata =
             Map<int, BattleProgressionPartySlotMetadata>.unmodifiable(
           _metadataBySlot(partySlotMetadata),
+        ),
+        moveLearningCandidatesByPartySlot =
+            Map<int, List<PokemonMoveLearningCandidate>>.unmodifiable(
+          _moveLearningCandidatesBySlot(moveLearningCandidatesByPartySlot),
         ) {
     for (final slot in this.playerParticipantPartySlots) {
       RangeError.checkNotNegative(slot, 'playerParticipantPartySlots');
@@ -83,58 +93,8 @@ final class BattleProgressionContext {
   final Set<int> playerParticipantPartySlots;
   final List<BattleProgressionDefeatedOpponent> defeatedOpponents;
   final Map<int, BattleProgressionPartySlotMetadata> partySlotMetadata;
-}
-
-/// Observable per-slot result of one XP application.
-final class BattlePokemonProgressionChange {
-  const BattlePokemonProgressionChange({
-    required this.partySlot,
-    required this.experienceAwarded,
-    required this.oldExperience,
-    required this.newExperience,
-    required this.oldLevel,
-    required this.newLevel,
-    required this.oldMaxHp,
-    required this.newCurrentHp,
-    required this.calculatedStats,
-  });
-
-  final int partySlot;
-  final int experienceAwarded;
-  final int oldExperience;
-  final int newExperience;
-  final int oldLevel;
-  final int newLevel;
-  final int oldMaxHp;
-  final int newCurrentHp;
-  final PokemonCalculatedStats calculatedStats;
-
-  int get levelsGained => newLevel - oldLevel;
-}
-
-/// Atomic state and reward snapshot produced by progression.
-final class BattleProgressionResult {
-  factory BattleProgressionResult({
-    required GameState state,
-    required BattleReward appliedReward,
-    required Iterable<BattlePokemonProgressionChange> changes,
-  }) {
-    return BattleProgressionResult._(
-      state: state,
-      appliedReward: appliedReward,
-      changes: List<BattlePokemonProgressionChange>.unmodifiable(changes),
-    );
-  }
-
-  const BattleProgressionResult._({
-    required this.state,
-    required this.appliedReward,
-    required this.changes,
-  });
-
-  final GameState state;
-  final BattleReward appliedReward;
-  final List<BattlePokemonProgressionChange> changes;
+  final Map<int, List<PokemonMoveLearningCandidate>>
+      moveLearningCandidatesByPartySlot;
 }
 
 /// Applies the FG-044/FG-045 MVP progression policy.
@@ -285,6 +245,18 @@ final class BattleProgressionService {
       party: state.party.copyWith(members: nextMembers),
     );
     final appliedReward = _rewardWithExperience(reward, effectiveGrants);
+    final moveLearningOpportunities = <BattleMoveLearningOpportunity>[
+      for (final change in changes)
+        for (final candidate
+            in context.moveLearningCandidatesByPartySlot[change.partySlot] ??
+                const <PokemonMoveLearningCandidate>[])
+          if (candidate.learnedAtLevel > change.oldLevel &&
+              candidate.learnedAtLevel <= change.newLevel)
+            BattleMoveLearningOpportunity(
+              partySlot: change.partySlot,
+              candidate: candidate,
+            ),
+    ];
     return BattleProgressionResult(
       state: mutations.applyBattleRewards(
         progressedState,
@@ -292,6 +264,7 @@ final class BattleProgressionService {
       ),
       appliedReward: appliedReward,
       changes: changes,
+      moveLearningOpportunities: moveLearningOpportunities,
     );
   }
 }
@@ -311,6 +284,31 @@ Map<int, BattleProgressionPartySlotMetadata> _metadataBySlot(
     bySlot[entry.partySlot] = entry;
   }
   return bySlot;
+}
+
+Map<int, List<PokemonMoveLearningCandidate>> _moveLearningCandidatesBySlot(
+  Map<int, Iterable<PokemonMoveLearningCandidate>> candidatesBySlot,
+) {
+  final normalized = <int, List<PokemonMoveLearningCandidate>>{};
+  for (final entry in candidatesBySlot.entries) {
+    RangeError.checkNotNegative(entry.key, 'moveLearningPartySlot');
+    final opportunityIds = <String>{};
+    final candidates = <PokemonMoveLearningCandidate>[];
+    for (final candidate in entry.value) {
+      final validated = candidate.validated();
+      if (!opportunityIds.add(validated.opportunityId)) {
+        throw ArgumentError.value(
+          validated.opportunityId,
+          'moveLearningCandidatesByPartySlot',
+          'contains a duplicate opportunity id for party slot ${entry.key}',
+        );
+      }
+      candidates.add(validated);
+    }
+    normalized[entry.key] =
+        List<PokemonMoveLearningCandidate>.unmodifiable(candidates);
+  }
+  return normalized;
 }
 
 int _totalExperience({
