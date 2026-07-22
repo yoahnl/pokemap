@@ -2,13 +2,71 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('MvpReleaseGateExecutionReceipt', () {
+    test('validates structured execution metadata', () {
+      final receipt = _receipt(MvpReleaseGateCriterion.goldenSlice);
+
+      expect(receipt.criterion, MvpReleaseGateCriterion.goldenSlice);
+      expect(receipt.releaseCandidateCommit, _releaseCandidateCommit);
+      expect(receipt.command, 'dart test test/golden_slice_test.dart');
+      expect(receipt.exitCode, 0);
+      expect(receipt.outputDigestSha256, _outputDigestSha256);
+    });
+
+    test('rejects invalid structured execution metadata', () {
+      expect(
+        () => _receipt(MvpReleaseGateCriterion.goldenSlice, summary: '   '),
+        throwsArgumentError,
+      );
+      expect(
+        () => _receipt(MvpReleaseGateCriterion.goldenSlice, source: ''),
+        throwsArgumentError,
+      );
+      expect(
+        () => _receipt(
+          MvpReleaseGateCriterion.goldenSlice,
+          releaseCandidateCommit: 'abc123',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => _receipt(
+          MvpReleaseGateCriterion.goldenSlice,
+          releaseCandidateCommit: '${_releaseCandidateCommit}0',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => _receipt(
+          MvpReleaseGateCriterion.goldenSlice,
+          releaseCandidateCommit: '$_releaseCandidateCommit\n',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => _receipt(MvpReleaseGateCriterion.goldenSlice, command: ' '),
+        throwsArgumentError,
+      );
+      expect(
+        () => _receipt(
+          MvpReleaseGateCriterion.goldenSlice,
+          outputDigestSha256: 'not-a-sha256',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => _receipt(
+          MvpReleaseGateCriterion.goldenSlice,
+          outputDigestSha256: '${_outputDigestSha256}0',
+        ),
+        throwsArgumentError,
+      );
+    });
+  });
+
   group('MvpReleaseGateReport', () {
     test('never returns GO from five merely declared passed entries', () {
-      final report = MvpReleaseGateReport.evaluate(
-        _passedEvidence(
-          evidenceKind: MvpReleaseGateEvidenceKind.declaredEvidence,
-        ),
-      );
+      final report = MvpReleaseGateReport.evaluate(_declaredPassedEvidence());
 
       expect(report.isGo, isFalse);
       expect(report.blockers, hasLength(MvpReleaseGateCriterion.values.length));
@@ -24,13 +82,8 @@ void main() {
       );
     });
 
-    test('returns GO only when every criterion has executed passed evidence',
-        () {
-      final report = MvpReleaseGateReport.evaluate(
-        _passedEvidence(
-          evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
-        ),
-      );
+    test('returns GO only from five validated successful receipts', () {
+      final report = MvpReleaseGateReport.evaluate(_executedEvidence());
 
       expect(report.isGo, isTrue);
       expect(report.blockers, isEmpty);
@@ -38,12 +91,52 @@ void main() {
         report.evidenceByCriterion.keys,
         containsAll(MvpReleaseGateCriterion.values),
       );
+      expect(
+        report.evidenceByCriterion.values,
+        everyElement(
+          isA<MvpReleaseGateEvidence>()
+              .having(
+                (item) => item.evidenceKind,
+                'evidenceKind',
+                MvpReleaseGateEvidenceKind.executedEvidence,
+              )
+              .having(
+                (item) => item.status,
+                'status',
+                MvpReleaseGateEvidenceStatus.passed,
+              )
+              .having(
+                (item) => item.executionReceipt,
+                'executionReceipt',
+                isNotNull,
+              ),
+        ),
+      );
     });
 
-    test('fails closed when a required criterion has no evidence', () {
-      final evidence = _passedEvidence(
-        evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
-      )
+    test('derives a failed execution status from a nonzero exit code', () {
+      final evidence = _executedEvidence().map(
+        (item) => item.criterion == MvpReleaseGateCriterion.goldenSlice
+            ? _executed(
+                MvpReleaseGateCriterion.goldenSlice,
+                exitCode: 1,
+              )
+            : item,
+      );
+
+      final report = MvpReleaseGateReport.evaluate(evidence);
+
+      expect(report.isGo, isFalse);
+      expect(report.blockers, hasLength(1));
+      expect(
+        report.blockers.single.status,
+        MvpReleaseGateEvidenceStatus.failed,
+      );
+      expect(report.blockers.single.executionReceipt?.exitCode, 1);
+    });
+
+    test('fails closed with a generated blocker for missing evidence', () {
+      final evidence = _executedEvidence()
           .where(
             (item) =>
                 item.criterion !=
@@ -60,54 +153,26 @@ void main() {
         MvpReleaseGateCriterion.projectGameplayReadiness,
       );
       expect(
+        report.blockers.single.evidenceKind,
+        MvpReleaseGateEvidenceKind.gateGeneratedBlocker,
+      );
+      expect(
         report.blockers.single.status,
         MvpReleaseGateEvidenceStatus.unverified,
       );
     });
 
-    test('keeps an explicit failed criterion as a release blocker', () {
-      final evidence = _passedEvidence(
-        evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
-      )
-          .map(
-            (item) => item.criterion == MvpReleaseGateCriterion.goldenSlice
-                ? const MvpReleaseGateEvidence(
-                    criterion: MvpReleaseGateCriterion.goldenSlice,
-                    evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
-                    status: MvpReleaseGateEvidenceStatus.failed,
-                    summary: 'Le parcours MVP global est incomplet.',
-                    source: 'reports/gameplay/fg_185_mvp_release_gate_v0.md',
-                  )
-                : item,
-          )
-          .toList(growable: false);
-
-      final report = MvpReleaseGateReport.evaluate(evidence);
-
-      expect(report.isGo, isFalse);
-      expect(report.blockers, hasLength(1));
-      expect(
-        report.blockers.single.status,
-        MvpReleaseGateEvidenceStatus.failed,
+    test('rejects passed declarations without a usable summary', () {
+      final evidence = _declaredPassedEvidence().map(
+        (item) => item.criterion == MvpReleaseGateCriterion.goldenSlice
+            ? const MvpReleaseGateEvidence.declared(
+                criterion: MvpReleaseGateCriterion.goldenSlice,
+                status: MvpReleaseGateEvidenceStatus.passed,
+                summary: '   ',
+                source: 'historical-report',
+              )
+            : item,
       );
-    });
-
-    test('rejects passed evidence without a usable summary', () {
-      final evidence = _passedEvidence(
-        evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
-      )
-          .map(
-            (item) => item.criterion == MvpReleaseGateCriterion.goldenSlice
-                ? const MvpReleaseGateEvidence(
-                    criterion: MvpReleaseGateCriterion.goldenSlice,
-                    evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
-                    status: MvpReleaseGateEvidenceStatus.passed,
-                    summary: '   ',
-                    source: 'fresh-evidence',
-                  )
-                : item,
-          )
-          .toList(growable: false);
 
       final report = MvpReleaseGateReport.evaluate(evidence);
 
@@ -118,22 +183,16 @@ void main() {
       );
     });
 
-    test('rejects passed evidence without a usable source', () {
-      final evidence = _passedEvidence(
-        evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
-      )
-          .map(
-            (item) => item.criterion ==
-                    MvpReleaseGateCriterion.criticalPackageTests
-                ? const MvpReleaseGateEvidence(
-                    criterion: MvpReleaseGateCriterion.criticalPackageTests,
-                    evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
-                    status: MvpReleaseGateEvidenceStatus.passed,
-                    summary: 'Les suites critiques sont vertes.',
-                  )
-                : item,
-          )
-          .toList(growable: false);
+    test('rejects passed declarations without a usable source', () {
+      final evidence = _declaredPassedEvidence().map(
+        (item) => item.criterion == MvpReleaseGateCriterion.criticalPackageTests
+            ? const MvpReleaseGateEvidence.declared(
+                criterion: MvpReleaseGateCriterion.criticalPackageTests,
+                status: MvpReleaseGateEvidenceStatus.passed,
+                summary: 'Les suites critiques sont historiquement vertes.',
+              )
+            : item,
+      );
 
       final report = MvpReleaseGateReport.evaluate(evidence);
 
@@ -145,23 +204,20 @@ void main() {
       );
     });
 
-    test('rejects contradictory duplicate evidence instead of laundering it',
-        () {
+    test('uses a generated blocker for contradictory duplicate evidence', () {
       final evidence = <MvpReleaseGateEvidence>[
-        ..._passedEvidence(
-          evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
-        ),
-        const MvpReleaseGateEvidence(
-          criterion: MvpReleaseGateCriterion.goldenSlice,
-          evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
-          status: MvpReleaseGateEvidenceStatus.failed,
-          summary: 'Une seconde source contredit le GO.',
-        ),
+        ..._executedEvidence(),
+        _executed(MvpReleaseGateCriterion.goldenSlice, exitCode: 1),
       ];
 
       final report = MvpReleaseGateReport.evaluate(evidence);
 
       expect(report.isGo, isFalse);
+      expect(
+        report.evidenceByCriterion[MvpReleaseGateCriterion.goldenSlice]
+            ?.evidenceKind,
+        MvpReleaseGateEvidenceKind.gateGeneratedBlocker,
+      );
       expect(
         report.evidenceByCriterion[MvpReleaseGateCriterion.goldenSlice]?.status,
         MvpReleaseGateEvidenceStatus.failed,
@@ -173,48 +229,9 @@ void main() {
       );
     });
 
-    test('keeps documentary Phase 10 approval at NO-GO without a receipt', () {
+    test('keeps documentary Phase 10 approval at NO-GO without receipts', () {
       final report = MvpReleaseGateReport.evaluate(
-        <MvpReleaseGateEvidence>[
-          const MvpReleaseGateEvidence(
-            criterion: MvpReleaseGateCriterion.goldenSlice,
-            evidenceKind: MvpReleaseGateEvidenceKind.declaredEvidence,
-            status: MvpReleaseGateEvidenceStatus.passed,
-            summary: 'Le parcours Golden Slice FG-182 passe de bout en bout.',
-            source:
-                'reports/gameplay/fg_182_golden_slice_end_to_end_smoke_v0.md',
-          ),
-          const MvpReleaseGateEvidence(
-            criterion: MvpReleaseGateCriterion.projectGameplayReadiness,
-            evidenceKind: MvpReleaseGateEvidenceKind.declaredEvidence,
-            status: MvpReleaseGateEvidenceStatus.passed,
-            summary: 'Les onze checks FG-180 disposent de preuves valides.',
-            source:
-                'reports/gameplay/fg_180_project_gameplay_readiness_report_v0.md',
-          ),
-          const MvpReleaseGateEvidence(
-            criterion: MvpReleaseGateCriterion.criticalPackageTests,
-            evidenceKind: MvpReleaseGateEvidenceKind.declaredEvidence,
-            status: MvpReleaseGateEvidenceStatus.passed,
-            summary: 'Les suites critiques sont vertes.',
-            source: 'reports/gameplay/fg_183_regression_matrix_v0.md',
-          ),
-          const MvpReleaseGateEvidence(
-            criterion: MvpReleaseGateCriterion.postMvpLimitationsDocumented,
-            evidenceKind: MvpReleaseGateEvidenceKind.declaredEvidence,
-            status: MvpReleaseGateEvidenceStatus.passed,
-            summary: 'La Phase 11 documente les capacités différées.',
-            source: 'pokemap_roadmap_mecaniques_fangame.md#phase-11',
-          ),
-          const MvpReleaseGateEvidence(
-            criterion: MvpReleaseGateCriterion.userScopeApproved,
-            evidenceKind: MvpReleaseGateEvidenceKind.declaredEvidence,
-            status: MvpReleaseGateEvidenceStatus.passed,
-            summary: 'Le périmètre MVP et ses exclusions sont approuvés.',
-            source:
-                'reports/gameplay/fg_185_mvp_release_gate_v0.md#approval-record',
-          ),
-        ],
+        _declaredPassedEvidence(),
       );
 
       expect(report.isGo, isFalse);
@@ -223,17 +240,48 @@ void main() {
   });
 }
 
-List<MvpReleaseGateEvidence> _passedEvidence({
-  required MvpReleaseGateEvidenceKind evidenceKind,
-}) =>
+const _releaseCandidateCommit = '0123456789abcdef0123456789abcdef01234567';
+const _outputDigestSha256 =
+    '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+
+List<MvpReleaseGateEvidence> _declaredPassedEvidence() =>
     MvpReleaseGateCriterion.values
         .map(
-          (criterion) => MvpReleaseGateEvidence(
+          (criterion) => MvpReleaseGateEvidence.declared(
             criterion: criterion,
-            evidenceKind: evidenceKind,
             status: MvpReleaseGateEvidenceStatus.passed,
-            summary: '${criterion.name} est prouve.',
-            source: 'fresh-evidence',
+            summary: '${criterion.name} est déclaré comme prouvé.',
+            source: 'reports/gameplay/historical-evidence.md',
           ),
         )
         .toList(growable: false);
+
+List<MvpReleaseGateEvidence> _executedEvidence() =>
+    MvpReleaseGateCriterion.values.map(_executed).toList(growable: false);
+
+MvpReleaseGateEvidence _executed(
+  MvpReleaseGateCriterion criterion, {
+  int exitCode = 0,
+}) =>
+    MvpReleaseGateEvidence.fromExecutionReceipt(
+      _receipt(criterion, exitCode: exitCode),
+    );
+
+MvpReleaseGateExecutionReceipt _receipt(
+  MvpReleaseGateCriterion criterion, {
+  String? summary,
+  String? source,
+  String? releaseCandidateCommit,
+  String? command,
+  int exitCode = 0,
+  String? outputDigestSha256,
+}) =>
+    MvpReleaseGateExecutionReceipt.validated(
+      criterion: criterion,
+      summary: summary ?? '${criterion.name} a été exécuté.',
+      source: source ?? 'ci://release-gate/${criterion.name}',
+      releaseCandidateCommit: releaseCandidateCommit ?? _releaseCandidateCommit,
+      command: command ?? 'dart test test/golden_slice_test.dart',
+      exitCode: exitCode,
+      outputDigestSha256: outputDigestSha256 ?? _outputDigestSha256,
+    );

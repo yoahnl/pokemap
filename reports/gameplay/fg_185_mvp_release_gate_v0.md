@@ -10,16 +10,35 @@ Verdict release MVP: **PARTIAL / NO-GO**
 
 ## Résumé exécutif autoritaire
 
-FG-185 reste ouvert. Le contrat pur distingue maintenant
-`declaredEvidence` de `executedEvidence`: seule une preuve exécutée, `passed`,
-avec source et résumé exploitables, peut contribuer au `GO`. Les cinq éléments
-historiques sont des déclarations documentaires; aucune exécution de la gate
-n'a produit le receipt requis. La Phase 6 de la séquence de validation devra
-exécuter les cinq contrôles et produire ce receipt avant toute promotion.
+FG-185 reste ouvert. Le contrat pur sépare les déclarations d'un receipt
+d'exécution structuré et opaque. Un `executedEvidence` ne peut être créé que
+depuis un `MvpReleaseGateExecutionReceipt.validated`; son statut dérive de
+`exitCode`, jamais d'un label fourni par l'appelant. Le receipt exige critère,
+source/résumé non vides, commit candidat complet, commande, code de sortie et
+digest SHA-256 complet. Les cinq éléments historiques restent des déclarations
+documentaires; aucune exécution de la gate n'a produit le receipt requis. La
+Phase 6 devra exécuter les cinq contrôles avant toute promotion.
 
 Le commit `c1bc49b21` est le commit technique historique de l'agrégateur.
 Le commit `d95498768` est une clôture/approbation documentaire historique; il
 ne constitue ni une exécution signée ni un receipt de gate.
+
+## Correctif autonome après quality review
+
+Base du correctif: commit `d4d3c184e`. La review a montré que le premier enum
+permettait encore à un appelant de construire librement cinq objets
+`executedEvidence/passed`. Le faux GO était donc déplacé, pas supprimé.
+
+Le correctif ferme cette voie:
+
+- constructeur général de `MvpReleaseGateEvidence` rendu privé;
+- constructeur public séparé `declared` pour les assertions documentaires;
+- receipt à constructeur privé et factory pure `validated`;
+- evidence exécutée créée uniquement par `fromExecutionReceipt`;
+- statut exécuté dérivé de `exitCode == 0`;
+- missing/duplicate classés `gateGeneratedBlocker`, jamais déclaration.
+
+La roadmap n'est pas modifiée: FG-185 reste `PARTIAL / NO-GO`.
 
 ## Lot et scope
 
@@ -62,7 +81,7 @@ dans cette exécution.
 | Tests package critiques verts | déclaration historique sourcée | NON |
 | Limitations post-MVP listées | déclaration historique sourcée | NON |
 | Utilisateur valide le périmètre | approbation documentaire `d95498768` | NON |
-| Receipt d'exécution Phase 6 | manquant | BLOCKER |
+| Receipt structuré d'exécution Phase 6 | manquant | BLOCKER |
 
 Décision agrégée autoritaire: **NO-GO**. Une liste de cinq
 `declaredEvidence`, même `passed`, sourcée et résumée, expose cinq blockers.
@@ -71,8 +90,8 @@ Décision agrégée autoritaire: **NO-GO**. Une liste de cinq
 
 | Fichier | Zone | Raison et impact |
 |---|---|---|
-| `packages/map_core/lib/src/read_models/mvp_release_gate.dart` | enum, evidence, décision | ajoute `MvpReleaseGateEvidenceKind`; seuls `executedEvidence/passed` contribuent au GO |
-| `packages/map_core/test/mvp_release_gate_test.dart` | fixtures et scénarios | rend chaque preuve explicite; couvre cinq receipts exécutés positifs et cinq déclarations NO-GO |
+| `packages/map_core/lib/src/read_models/mvp_release_gate.dart` | receipt, evidence, décision | impose un receipt validé opaque; dérive le statut de l'exécution; sépare les blockers synthétiques |
+| `packages/map_core/test/mvp_release_gate_test.dart` | fixtures et scénarios | construit le GO avec cinq receipts valides; rejette les receipts invalides et les déclarations |
 | `reports/gameplay/fg_185_mvp_release_gate_v0.md` | préambule autoritaire | rétablit `PARTIAL / NO-GO` et archive l'ancien GO |
 | `reports/gameplay/fg_180_185_phase_10_playable_game_validation_completion.md` | préambule autoritaire | distingue complétion technique historique et release non exécutée |
 | `pokemap_roadmap_mecaniques_fangame.md` | ligne et DoD FG-185 uniquement | passe FG-185 à `PARTIAL`; laisse le receipt Phase 6 non coché |
@@ -80,10 +99,11 @@ Décision agrégée autoritaire: **NO-GO**. Une liste de cinq
 Zones de diff essentielles:
 
 ```diff
-+enum MvpReleaseGateEvidenceKind { declaredEvidence, executedEvidence }
-+final MvpReleaseGateEvidenceKind evidenceKind;
--bool get isGo => evidenceByCriterion.values.every(statusIsPassed);
-+bool get isGo => evidenceByCriterion.values.every(isExecutedPass);
++factory MvpReleaseGateExecutionReceipt.validated(...)
++const MvpReleaseGateEvidence.declared(...)
++factory MvpReleaseGateEvidence.fromExecutionReceipt(receipt)
++status: receipt.exitCode == 0 ? passed : failed
++MvpReleaseGateEvidenceKind.gateGeneratedBlocker
 ```
 
 ```diff
@@ -111,17 +131,32 @@ dart test test/mvp_release_gate_test.dart
 00:00 +8: All tests passed!
 ```
 
+Le correctif receipt a ensuite suivi son propre cycle rouge/vert:
+
+```text
+RED: MvpReleaseGateExecutionReceipt not found; constructeurs `declared` et
+`fromExecutionReceipt` absents; `gateGeneratedBlocker` absent.
+
+RED de garde-fou longueur exacte:
+Expected: throws ArgumentError
+Actual: returned MvpReleaseGateExecutionReceipt
+
+GREEN:
+dart test test/mvp_release_gate_test.dart
+=> 00:00 +10: All tests passed!
+```
+
 ## Vérification finale
 
 Les résultats frais finaux sont consignés avant commit:
 
 ```text
 dart test test/mvp_release_gate_test.dart test/project_gameplay_readiness_test.dart
-=> 00:00 +13: All tests passed! (exit 0)
+=> 00:00 +15: All tests passed! (exit 0)
 
 dart run tool/generate_gameplay_roadmap_dashboard.dart --check ../..
 => DONE: 5 · PARTIAL: 1 · BLOCKED: 0 · TODO: 94 · DEFERRED: 8
-=> FG-180 à FG-184: DONE; FG-185: PARTIAL (exit 0)
+=> FG-185: PARTIAL (exit 0)
 
 dart analyze
 => Analyzing map_core... No issues found! (exit 0)
@@ -140,15 +175,16 @@ validation de compilation/statique du package concerné.
 |---|---|
 | Audit / Architecture | PASS — défaut de provenance identifié, frontière pure conservée |
 | Implémentation | PASS — distinction typée minimale, aucun I/O ajouté |
-| Tests | PASS — rouge observé, gate verte `+8`, vérification demandée verte `+13` |
-| Build / Validation | PASS — dashboard strict cohérent, analyse propre; build applicatif non applicable |
-| Critique finale | PASS — cinq fichiers seulement, aucun autre FG reclassé, aucun GO revendiqué |
+| Tests | PASS — receipts valides/invalides, statut dérivé, déclarations et blockers couverts; `+15` ciblés |
+| Build / Validation | PASS — dashboard strict et analyse propres; build applicatif non applicable |
+| Critique finale | PASS — trois fichiers ciblés, roadmap inchangée, aucune construction libre d'evidence exécutée |
 
 ## Limites, risques et prochaines étapes
 
 - FG-185 reste `PARTIAL / NO-GO`; ce lot ne fabrique aucune preuve exécutée.
-- `source` reste une chaîne; l'authenticité/signature du futur receipt relève
-  de la Phase 6.
+- Le receipt valide la structure, pas l'authenticité de `source`, l'exécution
+  de `command` ni le recalcul du digest; ces responsabilités relèvent de la
+  Phase 6 qui le produit.
 - L'agrégateur reste volontairement pur et ne vérifie pas la fraîcheur par I/O.
 - Prochaine étape non implémentée: exécuter la gate Phase 6 et fournir cinq
   `executedEvidence` valides dans un receipt traçable.

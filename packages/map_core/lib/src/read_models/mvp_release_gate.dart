@@ -7,48 +7,150 @@ enum MvpReleaseGateCriterion {
   userScopeApproved,
 }
 
-/// State of one externally produced release-gate proof.
+/// State of one release-gate evidence item.
 enum MvpReleaseGateEvidenceStatus {
   passed,
   failed,
   unverified,
 }
 
-/// Whether an evidence item is a declaration or the receipt of an execution.
-///
-/// A declaration can document an expected or historically observed result,
-/// but only an executed receipt is eligible to contribute to a release GO.
+/// Provenance enforced by the FG-185 release-gate contract.
 enum MvpReleaseGateEvidenceKind {
+  /// A historical or documentary assertion that cannot contribute to GO.
   declaredEvidence,
+
+  /// Evidence derived from a structurally validated execution receipt.
   executedEvidence,
+
+  /// A fail-closed blocker synthesized by the aggregator itself.
+  gateGeneratedBlocker,
+}
+
+/// Structured receipt for one externally executed release-gate criterion.
+///
+/// The private constructor prevents callers from relabelling an arbitrary
+/// declaration as executed evidence. [validated] is pure: it only validates
+/// the supplied immutable metadata and performs no process or file-system I/O.
+final class MvpReleaseGateExecutionReceipt {
+  const MvpReleaseGateExecutionReceipt._({
+    required this.criterion,
+    required this.summary,
+    required this.source,
+    required this.releaseCandidateCommit,
+    required this.command,
+    required this.exitCode,
+    required this.outputDigestSha256,
+  });
+
+  /// Validates non-blank text, a full 40-hex commit, and a full 64-hex digest.
+  factory MvpReleaseGateExecutionReceipt.validated({
+    required MvpReleaseGateCriterion criterion,
+    required String summary,
+    required String source,
+    required String releaseCandidateCommit,
+    required String command,
+    required int exitCode,
+    required String outputDigestSha256,
+  }) {
+    _requireNonBlank('summary', summary);
+    _requireNonBlank('source', source);
+    _requireFullHexDigest(
+      fieldName: 'releaseCandidateCommit',
+      value: releaseCandidateCommit,
+      length: 40,
+    );
+    _requireNonBlank('command', command);
+    _requireFullHexDigest(
+      fieldName: 'outputDigestSha256',
+      value: outputDigestSha256,
+      length: 64,
+    );
+
+    return MvpReleaseGateExecutionReceipt._(
+      criterion: criterion,
+      summary: summary,
+      source: source,
+      releaseCandidateCommit: releaseCandidateCommit,
+      command: command,
+      exitCode: exitCode,
+      outputDigestSha256: outputDigestSha256,
+    );
+  }
+
+  final MvpReleaseGateCriterion criterion;
+  final String summary;
+  final String source;
+  final String releaseCandidateCommit;
+  final String command;
+  final int exitCode;
+  final String outputDigestSha256;
 }
 
 /// Evidence supplied to the FG-185 release-gate aggregator.
 ///
-/// This object records an external proof. It does not run tests or validators
-/// itself, so callers must keep [source] and [summary] tied to fresh evidence.
+/// Documentary evidence and executed evidence have separate construction
+/// paths. In particular, callers cannot freely supply the kind or status of
+/// executed evidence: both are derived by [fromExecutionReceipt].
 final class MvpReleaseGateEvidence {
-  const MvpReleaseGateEvidence({
+  const MvpReleaseGateEvidence._({
     required this.criterion,
     required this.evidenceKind,
     required this.status,
     required this.summary,
-    this.source,
+    required this.source,
+    required this.executionReceipt,
   });
+
+  /// Creates an explicitly documentary assertion.
+  ///
+  /// Its status records what the document claims. Even a `passed` declaration
+  /// remains a blocker because it has no validated execution receipt.
+  const MvpReleaseGateEvidence.declared({
+    required this.criterion,
+    required this.status,
+    required this.summary,
+    this.source,
+  })  : evidenceKind = MvpReleaseGateEvidenceKind.declaredEvidence,
+        executionReceipt = null;
+
+  /// Creates executed evidence exclusively from a validated receipt.
+  factory MvpReleaseGateEvidence.fromExecutionReceipt(
+    MvpReleaseGateExecutionReceipt receipt,
+  ) =>
+      MvpReleaseGateEvidence._(
+        criterion: receipt.criterion,
+        evidenceKind: MvpReleaseGateEvidenceKind.executedEvidence,
+        status: receipt.exitCode == 0
+            ? MvpReleaseGateEvidenceStatus.passed
+            : MvpReleaseGateEvidenceStatus.failed,
+        summary: receipt.summary,
+        source: receipt.source,
+        executionReceipt: receipt,
+      );
+
+  /// Creates a synthetic blocker that cannot be confused with a declaration.
+  const MvpReleaseGateEvidence._gateGeneratedBlocker({
+    required this.criterion,
+    required this.status,
+    required this.summary,
+  })  : evidenceKind = MvpReleaseGateEvidenceKind.gateGeneratedBlocker,
+        source = null,
+        executionReceipt = null;
 
   final MvpReleaseGateCriterion criterion;
   final MvpReleaseGateEvidenceKind evidenceKind;
   final MvpReleaseGateEvidenceStatus status;
   final String summary;
   final String? source;
+  final MvpReleaseGateExecutionReceipt? executionReceipt;
 }
 
 /// Fail-closed decision for `FG-185 — MVP Release Gate V0`.
 ///
-/// Every criterion must have exactly one passing executed receipt. Missing,
+/// Every criterion must have exactly one successful executed receipt. Missing,
 /// duplicate, failed, unverified, or merely declared evidence remains a
-/// blocker. Passing receipts must also carry a non-empty summary and source so
-/// a status flag alone cannot promote a partial demonstrator to a release.
+/// blocker. The aggregator stays pure and never executes or reads the receipt
+/// source itself.
 final class MvpReleaseGateReport {
   MvpReleaseGateReport._(
       Map<MvpReleaseGateCriterion, MvpReleaseGateEvidence> evidence)
@@ -67,16 +169,14 @@ final class MvpReleaseGateReport {
     for (final criterion in MvpReleaseGateCriterion.values) {
       final supplied = suppliedByCriterion[criterion] ?? const [];
       normalized[criterion] = switch (supplied.length) {
-        0 => MvpReleaseGateEvidence(
+        0 => MvpReleaseGateEvidence._gateGeneratedBlocker(
             criterion: criterion,
-            evidenceKind: MvpReleaseGateEvidenceKind.declaredEvidence,
             status: MvpReleaseGateEvidenceStatus.unverified,
             summary: 'Aucune preuve fournie pour ${criterion.name}.',
           ),
         1 => _normalizeSingleEvidence(supplied.single),
-        _ => MvpReleaseGateEvidence(
+        _ => MvpReleaseGateEvidence._gateGeneratedBlocker(
             criterion: criterion,
-            evidenceKind: MvpReleaseGateEvidenceKind.declaredEvidence,
             status: MvpReleaseGateEvidenceStatus.failed,
             summary:
                 'Preuves dupliquees ou contradictoires pour ${criterion.name}.',
@@ -97,37 +197,60 @@ final class MvpReleaseGateReport {
       );
 }
 
-bool _contributesToGo(MvpReleaseGateEvidence evidence) =>
-    evidence.evidenceKind == MvpReleaseGateEvidenceKind.executedEvidence &&
-    evidence.status == MvpReleaseGateEvidenceStatus.passed;
+bool _contributesToGo(MvpReleaseGateEvidence evidence) {
+  final receipt = evidence.executionReceipt;
+  return evidence.evidenceKind == MvpReleaseGateEvidenceKind.executedEvidence &&
+      evidence.status == MvpReleaseGateEvidenceStatus.passed &&
+      receipt != null &&
+      receipt.exitCode == 0;
+}
 
 MvpReleaseGateEvidence _normalizeSingleEvidence(
   MvpReleaseGateEvidence evidence,
 ) {
-  // Failed and unverified proofs are already conservative. Metadata is
-  // mandatory only for a claim that would otherwise contribute to a GO.
-  if (evidence.status != MvpReleaseGateEvidenceStatus.passed) {
+  // Receipt metadata has already been validated by its only public factory.
+  // Non-passing evidence is already conservative and needs no promotion path.
+  if (evidence.status != MvpReleaseGateEvidenceStatus.passed ||
+      evidence.evidenceKind == MvpReleaseGateEvidenceKind.executedEvidence) {
     return evidence;
   }
 
   if (evidence.summary.trim().isEmpty) {
-    return MvpReleaseGateEvidence(
+    return MvpReleaseGateEvidence.declared(
       criterion: evidence.criterion,
-      evidenceKind: evidence.evidenceKind,
       status: MvpReleaseGateEvidenceStatus.failed,
-      summary: 'La preuve passed ne fournit aucun resume exploitable.',
+      summary: 'La declaration passed ne fournit aucun resume exploitable.',
       source: evidence.source,
     );
   }
 
   if (evidence.source?.trim().isEmpty ?? true) {
-    return MvpReleaseGateEvidence(
+    return MvpReleaseGateEvidence.declared(
       criterion: evidence.criterion,
-      evidenceKind: evidence.evidenceKind,
       status: MvpReleaseGateEvidenceStatus.failed,
-      summary: 'La preuve passed ne fournit aucune source exploitable.',
+      summary: 'La declaration passed ne fournit aucune source exploitable.',
     );
   }
 
   return evidence;
+}
+
+void _requireNonBlank(String fieldName, String value) {
+  if (value.trim().isEmpty) {
+    throw ArgumentError.value(value, fieldName, 'must not be blank');
+  }
+}
+
+void _requireFullHexDigest({
+  required String fieldName,
+  required String value,
+  required int length,
+}) {
+  if (!RegExp('^[0-9a-fA-F]{$length}\$').hasMatch(value)) {
+    throw ArgumentError.value(
+      value,
+      fieldName,
+      'must contain exactly $length hexadecimal characters',
+    );
+  }
 }
