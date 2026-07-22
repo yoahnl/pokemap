@@ -87,18 +87,23 @@ Map<String, dynamic> _$$PlayerPartyImplToJson(_$PlayerPartyImpl instance) =>
       'members': instance.members.map((e) => e.toJson()).toList(),
     };
 
-_$PokemonStorageImpl _$$PokemonStorageImplFromJson(Map<String, dynamic> json) =>
-    _$PokemonStorageImpl(
-      storedPokemon: (json['storedPokemon'] as List<dynamic>?)
+_$PokemonBoxImpl _$$PokemonBoxImplFromJson(Map<String, dynamic> json) =>
+    _$PokemonBoxImpl(
+      id: json['id'] as String,
+      label: json['label'] as String,
+      capacity: (json['capacity'] as num?)?.toInt() ?? pokemonBoxCapacity,
+      pokemon: (json['pokemon'] as List<dynamic>?)
               ?.map((e) => PlayerPokemon.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
     );
 
-Map<String, dynamic> _$$PokemonStorageImplToJson(
-        _$PokemonStorageImpl instance) =>
+Map<String, dynamic> _$$PokemonBoxImplToJson(_$PokemonBoxImpl instance) =>
     <String, dynamic>{
-      'storedPokemon': instance.storedPokemon.map((e) => e.toJson()).toList(),
+      'id': instance.id,
+      'label': instance.label,
+      'capacity': instance.capacity,
+      'pokemon': instance.pokemon.map((e) => e.toJson()).toList(),
     };
 
 _$PlayerProgressionImpl _$$PlayerProgressionImplFromJson(

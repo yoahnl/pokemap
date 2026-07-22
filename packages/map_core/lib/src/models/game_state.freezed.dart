@@ -1021,7 +1021,6 @@ abstract class $GameStateCopyWith<$Res> {
 
   $GridPosCopyWith<$Res> get playerPosition;
   $PlayerPartyCopyWith<$Res> get party;
-  $PokemonStorageCopyWith<$Res> get pokemonStorage;
   $TrainerProfileCopyWith<$Res> get trainerProfile;
   $BagCopyWith<$Res> get bag;
   $PlayerProgressionCopyWith<$Res> get progression;
@@ -1153,16 +1152,6 @@ class _$GameStateCopyWithImpl<$Res, $Val extends GameState>
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
-  $PokemonStorageCopyWith<$Res> get pokemonStorage {
-    return $PokemonStorageCopyWith<$Res>(_value.pokemonStorage, (value) {
-      return _then(_value.copyWith(pokemonStorage: value) as $Val);
-    });
-  }
-
-  /// Create a copy of GameState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
   $TrainerProfileCopyWith<$Res> get trainerProfile {
     return $TrainerProfileCopyWith<$Res>(_value.trainerProfile, (value) {
       return _then(_value.copyWith(trainerProfile: value) as $Val);
@@ -1244,8 +1233,6 @@ abstract class _$$GameStateImplCopyWith<$Res>
   $GridPosCopyWith<$Res> get playerPosition;
   @override
   $PlayerPartyCopyWith<$Res> get party;
-  @override
-  $PokemonStorageCopyWith<$Res> get pokemonStorage;
   @override
   $TrainerProfileCopyWith<$Res> get trainerProfile;
   @override

@@ -2,6 +2,82 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('PokemonStorage box migration', () {
+    test('migrates legacy flat storage to a deterministic canonical box', () {
+      final storage = PokemonStorage.fromJson(<String, dynamic>{
+        'storedPokemon': <Map<String, dynamic>>[
+          const PlayerPokemon(
+            speciesId: 'pidgey',
+            natureId: 'docile',
+            abilityId: 'keen-eye',
+          ).toJson(),
+        ],
+      }).normalized();
+
+      final json = storage.toJson();
+
+      expect(json, isNot(contains('storedPokemon')));
+      expect(json['boxes'], isA<List<dynamic>>());
+      expect(
+        (json['boxes'] as List<dynamic>).first,
+        containsPair('id', 'box-01'),
+      );
+    });
+
+    test('creates stable bounded boxes and rejects duplicate ids or overflow',
+        () {
+      final storage = const PokemonStorage().normalized();
+
+      expect(storage.boxes, hasLength(defaultPokemonBoxCount));
+      expect(storage.boxes.first.id, 'box-01');
+      expect(storage.boxes.last.id, 'box-08');
+      expect(
+        storage.boxes.every((box) => box.capacity == pokemonBoxCapacity),
+        isTrue,
+      );
+      expect(
+        () => PokemonStorage(
+          boxes: <PokemonBox>[
+            const PokemonBox(id: 'same', label: 'A'),
+            const PokemonBox(id: 'same', label: 'B'),
+          ],
+        ).normalized(),
+        throwsStateError,
+      );
+      expect(
+        () => PokemonBox(
+          id: 'box',
+          label: 'Box',
+          capacity: 1,
+          pokemon: <PlayerPokemon>[
+            _storedPokemon('one'),
+            _storedPokemon('two'),
+          ],
+        ).normalized(),
+        throwsStateError,
+      );
+    });
+
+    test('round-trips box ids, order, capacity and Pokemon without loss', () {
+      final storage = PokemonStorage(
+        boxes: <PokemonBox>[
+          PokemonBox(
+            id: 'favorites',
+            label: 'Favoris',
+            capacity: 2,
+            pokemon: <PlayerPokemon>[_storedPokemon('eevee')],
+          ),
+          const PokemonBox(id: 'reserve', label: 'Réserve', capacity: 4),
+        ],
+      ).normalized();
+
+      final restored = PokemonStorage.fromJson(storage.toJson());
+
+      expect(restored, storage);
+      expect(restored.storedPokemon.single.speciesId, 'eevee');
+    });
+  });
+
   group('gameStateFromSaveData', () {
     test('migrates legacy save fields to GameState', () {
       const save = SaveData(
@@ -380,3 +456,9 @@ void main() {
     });
   });
 }
+
+PlayerPokemon _storedPokemon(String speciesId) => PlayerPokemon(
+      speciesId: speciesId,
+      natureId: 'docile',
+      abilityId: 'ability',
+    );

@@ -111,6 +111,14 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
       storylines: json['storylines'] == null
           ? const []
           : _storylinesFromJson(json['storylines']),
+      shops: (json['shops'] as List<dynamic>?)
+              ?.map((e) => ShopDefinition.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      badges: (json['badges'] as List<dynamic>?)
+              ?.map((e) => BadgeDefinition.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       trainers: (json['trainers'] as List<dynamic>?)
               ?.map((e) =>
                   ProjectTrainerEntry.fromJson(e as Map<String, dynamic>))
@@ -193,6 +201,8 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
         'eventRegistry': value,
       'scenes': _scenesToJson(instance.scenes),
       'storylines': _storylinesToJson(instance.storylines),
+      'shops': instance.shops.map((e) => e.toJson()).toList(),
+      'badges': instance.badges.map((e) => e.toJson()).toList(),
       'trainers': instance.trainers.map((e) => e.toJson()).toList(),
       'characters': instance.characters.map((e) => e.toJson()).toList(),
       'settings': instance.settings.toJson(),

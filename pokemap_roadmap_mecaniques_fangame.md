@@ -124,11 +124,11 @@ lot ou de phase :
    encore ouvert, sinon produire une modification documentaire distincte.
 ```
 
-Dernière mise à jour : **2026-07-23** — clôture de la Phase 2 du plan MVP
-(`FG-020`, `FG-021`, `FG-040` à `FG-049`, `FG-051`) sur `c410ac59c`.
-La phase canonique Party/PC reste `PARTIAL` tant que `FG-022` à `FG-030` ne
-sont pas fermés ; la phase canonique Battle reste `PARTIAL` tant que `FG-050`,
-`FG-052` et `FG-053` ne sont pas fermés.
+Dernière mise à jour : **2026-07-23** — lot MVP 3.1, contrats persistants PC,
+shops et badges (`FG-022`, `FG-030`, `FG-069`). La Phase 2 du plan MVP
+(`FG-020`, `FG-021`, `FG-040` à `FG-049`, `FG-051`) avait été clôturée sur
+`c410ac59c`. Les phases canoniques restent `PARTIAL` tant que leurs autres lots
+ne sont pas fermés.
 
 ---
 
@@ -269,9 +269,9 @@ Le MVP est atteint quand un créateur peut faire ceci dans PokeMap :
 |---|---:|---|---|---|
 | Phase 0 | FG-000 → FG-009 | Audit et contrats de suivi | Aucun | `⬜ TODO` |
 | Phase 1 | FG-010 → FG-019 | New Game, starter, save/load, pause shell | Phase 0 | `⬜ TODO` |
-| Phase 2 | FG-020 → FG-039 | Party, PC, capture crédible | Phase 1 | `🟡 PARTIAL` — 2/11 lots fermés |
+| Phase 2 | FG-020 → FG-039 | Party, PC, capture crédible | Phase 1 | `🟡 PARTIAL` — 4/11 lots fermés |
 | Phase 3 | FG-040 → FG-059 | Battle persistence, rewards, XP, level-up, évolutions | Phase 2 | `🟡 PARTIAL` — FG-040 à FG-049 et FG-051 fermés |
-| Phase 4 | FG-060 → FG-079 | Bag, items, shops, centre Pokémon | Phase 2 | `⬜ TODO` |
+| Phase 4 | FG-060 → FG-079 | Bag, items, shops, centre Pokémon | Phase 2 | `🟡 PARTIAL` — FG-069 fermé |
 | Phase 5 | FG-080 → FG-099 | Event commands no-code | Phases 1–4 selon commandes | `⬜ TODO` |
 | Phase 6 | FG-100 → FG-119 | Encounters élargis | Phases 2, 5 | `⬜ TODO` |
 | Phase 7 | FG-120 → FG-139 | Field moves / environmental gates | Phases 2, 5 | `⬜ TODO` |
@@ -494,7 +494,7 @@ Objectif : capturer reste utile même quand la party contient déjà 6 Pokémon.
 |---|---|---|---|
 | FG-020 | PlayerPokemon Runtime Persistence Audit | `✅ DONE` | [Contrat et audit champ par champ](reports/gameplay/fg_040_battle_persistence_contract_v0.md), `caf97a2e1` |
 | FG-021 | PlayerPokemon Persistence Expansion V0 | `✅ DONE` | XP/PP compatibles legacy, hydratation catalogues et round-trip, `caf97a2e1` |
-| FG-022 | PC Box Model V0 | `⬜ TODO` | — |
+| FG-022 | PC Box Model V0 | `✅ DONE` | 8 boxes stables de 30 slots, migration legacy et round-trip ; lot 3.1, Core 4381/4381 |
 | FG-023 | PC Storage Operations V0 | `⬜ TODO` | — |
 | FG-024 | Capture Destination: Party or Box V0 | `⬜ TODO` | — |
 | FG-025 | Capture To Box When Party Full V0 | `⬜ TODO` | — |
@@ -502,7 +502,7 @@ Objectif : capturer reste utile même quand la party contient déjà 6 Pokémon.
 | FG-027 | Pokémon Summary Runtime V0 | `⬜ TODO` | — |
 | FG-028 | Party Reorder / Lead Selection V0 | `⬜ TODO` | — |
 | FG-029 | Runtime PC Screen V0 | `⬜ TODO` | — |
-| FG-030 | Party/Box Validation V0 | `⬜ TODO` | — |
+| FG-030 | Party/Box Validation V0 | `✅ DONE` | Diagnostics typés party/box/catalogues et messages lisibles ; lot 3.1 |
 
 ## FG-020 — PlayerPokemon Runtime Persistence Audit
 
@@ -564,12 +564,12 @@ Objectif : capturer reste utile même quand la party contient déjà 6 Pokémon.
 ### DoD
 
 ```md
-- [ ] Modèle `PokemonStorage` ou équivalent.
-- [ ] Liste de boxes nommées.
-- [ ] Slots bornés, par exemple 30 par box.
-- [ ] Capacité configurable ou constante documentée.
-- [ ] Sérialisation/normalisation.
-- [ ] Tests : box vide, ajout, déplacement, limites.
+- [x] Modèle `PokemonStorage` ou équivalent.
+- [x] Liste de boxes nommées avec IDs stables.
+- [x] Slots bornés à 30 par box par défaut.
+- [x] Capacité configurable par box et constante par défaut documentée.
+- [x] Sérialisation/normalisation avec migration de `storedPokemon`.
+- [x] Tests : box vide, contenu, ordre, round-trip et limites.
 ```
 
 ## FG-023 — PC Storage Operations V0
@@ -694,11 +694,11 @@ sinon → capture impossible / storage full
 ### DoD
 
 ```md
-- [ ] Diagnostic party > 6.
-- [ ] Diagnostic box overflow.
-- [ ] Diagnostic Pokémon sans espèce valide.
-- [ ] Diagnostic move inconnu si catalogues chargés.
-- [ ] Rapport lisible pour agent et utilisateur.
+- [x] Diagnostic party > 6.
+- [x] Diagnostic box overflow.
+- [x] Diagnostic Pokémon sans espèce valide.
+- [x] Diagnostic move inconnu si catalogues chargés.
+- [x] Rapport typé avec chemin et message lisible pour agent et utilisateur.
 ```
 
 ---
@@ -934,7 +934,7 @@ Objectif : rendre l’inventaire utile hors combat.
 | FG-066 | Poké Ball Families V0 | `⏸ DEFERRED` | Familles complètes hors MVP ; une Poké Ball minimale reste requise. |
 | FG-067 | Item Pickup Event V0 | `⬜ TODO` | — |
 | FG-068 | Hidden Item Event V0 | `⬜ TODO` | — |
-| FG-069 | Shop Model V0 | `⬜ TODO` | — |
+| FG-069 | Shop Model V0 | `✅ DONE` | Shops persistants, prix/stock et validation catalogue ; lot 3.1, Core 4381/4381 |
 | FG-070 | Shop Runtime V0 | `⬜ TODO` | — |
 | FG-071 | Heal Center Flow V0 | `⬜ TODO` | — |
 | FG-072 | Held Item Operations V0 | `⬜ TODO` | — |
@@ -1062,10 +1062,10 @@ Objectif : rendre l’inventaire utile hors combat.
 ### DoD
 
 ```md
-- [ ] Shop id/name/items.
-- [ ] Prix depuis item catalog ou override.
-- [ ] Validation item exists.
-- [ ] Pas d’UI.
+- [x] Shop id/name/items.
+- [x] Prix authored et stock optionnel validés.
+- [x] Validation item exists quand le catalogue est fourni.
+- [x] Pas d’UI.
 ```
 
 ## FG-070 — Shop Runtime V0

@@ -88,6 +88,8 @@ mixin _$ProjectManifest {
       fromJson: _storylinesFromJson,
       toJson: _storylinesToJson)
   List<StorylineAsset> get storylines => throw _privateConstructorUsedError;
+  List<ShopDefinition> get shops => throw _privateConstructorUsedError;
+  List<BadgeDefinition> get badges => throw _privateConstructorUsedError;
   List<ProjectTrainerEntry> get trainers => throw _privateConstructorUsedError;
   List<ProjectCharacterEntry> get characters =>
       throw _privateConstructorUsedError;
@@ -186,6 +188,8 @@ abstract class $ProjectManifestCopyWith<$Res> {
           fromJson: _storylinesFromJson,
           toJson: _storylinesToJson)
       List<StorylineAsset> storylines,
+      List<ShopDefinition> shops,
+      List<BadgeDefinition> badges,
       List<ProjectTrainerEntry> trainers,
       List<ProjectCharacterEntry> characters,
       ProjectSettings settings,
@@ -258,6 +262,8 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? eventRegistry = freezed,
     Object? scenes = null,
     Object? storylines = null,
+    Object? shops = null,
+    Object? badges = null,
     Object? trainers = null,
     Object? characters = null,
     Object? settings = null,
@@ -378,6 +384,14 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.storylines
           : storylines // ignore: cast_nullable_to_non_nullable
               as List<StorylineAsset>,
+      shops: null == shops
+          ? _value.shops
+          : shops // ignore: cast_nullable_to_non_nullable
+              as List<ShopDefinition>,
+      badges: null == badges
+          ? _value.badges
+          : badges // ignore: cast_nullable_to_non_nullable
+              as List<BadgeDefinition>,
       trainers: null == trainers
           ? _value.trainers
           : trainers // ignore: cast_nullable_to_non_nullable
@@ -501,6 +515,8 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
           fromJson: _storylinesFromJson,
           toJson: _storylinesToJson)
       List<StorylineAsset> storylines,
+      List<ShopDefinition> shops,
+      List<BadgeDefinition> badges,
       List<ProjectTrainerEntry> trainers,
       List<ProjectCharacterEntry> characters,
       ProjectSettings settings,
@@ -573,6 +589,8 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? eventRegistry = freezed,
     Object? scenes = null,
     Object? storylines = null,
+    Object? shops = null,
+    Object? badges = null,
     Object? trainers = null,
     Object? characters = null,
     Object? settings = null,
@@ -693,6 +711,14 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._storylines
           : storylines // ignore: cast_nullable_to_non_nullable
               as List<StorylineAsset>,
+      shops: null == shops
+          ? _value._shops
+          : shops // ignore: cast_nullable_to_non_nullable
+              as List<ShopDefinition>,
+      badges: null == badges
+          ? _value._badges
+          : badges // ignore: cast_nullable_to_non_nullable
+              as List<BadgeDefinition>,
       trainers: null == trainers
           ? _value._trainers
           : trainers // ignore: cast_nullable_to_non_nullable
@@ -778,6 +804,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<SceneAsset> scenes = const [],
       @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)
       final List<StorylineAsset> storylines = const [],
+      final List<ShopDefinition> shops = const [],
+      final List<BadgeDefinition> badges = const [],
       final List<ProjectTrainerEntry> trainers = const [],
       final List<ProjectCharacterEntry> characters = const [],
       this.settings = const ProjectSettings(),
@@ -821,6 +849,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         _narrativeDiagnosticSuppressions = narrativeDiagnosticSuppressions,
         _scenes = scenes,
         _storylines = storylines,
+        _shops = shops,
+        _badges = badges,
         _trainers = trainers,
         _characters = characters,
         _globalProperties = globalProperties;
@@ -1074,6 +1104,24 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_storylines);
   }
 
+  final List<ShopDefinition> _shops;
+  @override
+  @JsonKey()
+  List<ShopDefinition> get shops {
+    if (_shops is EqualUnmodifiableListView) return _shops;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_shops);
+  }
+
+  final List<BadgeDefinition> _badges;
+  @override
+  @JsonKey()
+  List<BadgeDefinition> get badges {
+    if (_badges is EqualUnmodifiableListView) return _badges;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_badges);
+  }
+
   final List<ProjectTrainerEntry> _trainers;
   @override
   @JsonKey()
@@ -1138,7 +1186,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, cinematicMediaAssets: $cinematicMediaAssets, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, cinematicMediaAssets: $cinematicMediaAssets, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, shops: $shops, badges: $badges, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
   }
 
   @override
@@ -1192,6 +1240,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
             const DeepCollectionEquality().equals(other._scenes, _scenes) &&
             const DeepCollectionEquality()
                 .equals(other._storylines, _storylines) &&
+            const DeepCollectionEquality().equals(other._shops, _shops) &&
+            const DeepCollectionEquality().equals(other._badges, _badges) &&
             const DeepCollectionEquality().equals(other._trainers, _trainers) &&
             const DeepCollectionEquality()
                 .equals(other._characters, _characters) &&
@@ -1244,6 +1294,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         eventRegistry,
         const DeepCollectionEquality().hash(_scenes),
         const DeepCollectionEquality().hash(_storylines),
+        const DeepCollectionEquality().hash(_shops),
+        const DeepCollectionEquality().hash(_badges),
         const DeepCollectionEquality().hash(_trainers),
         const DeepCollectionEquality().hash(_characters),
         settings,
@@ -1321,6 +1373,8 @@ abstract class _ProjectManifest implements ProjectManifest {
       final List<SceneAsset> scenes,
       @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)
       final List<StorylineAsset> storylines,
+      final List<ShopDefinition> shops,
+      final List<BadgeDefinition> badges,
       final List<ProjectTrainerEntry> trainers,
       final List<ProjectCharacterEntry> characters,
       final ProjectSettings settings,
@@ -1432,6 +1486,10 @@ abstract class _ProjectManifest implements ProjectManifest {
       fromJson: _storylinesFromJson,
       toJson: _storylinesToJson)
   List<StorylineAsset> get storylines;
+  @override
+  List<ShopDefinition> get shops;
+  @override
+  List<BadgeDefinition> get badges;
   @override
   List<ProjectTrainerEntry> get trainers;
   @override

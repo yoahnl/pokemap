@@ -2,10 +2,12 @@
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'border_catalog.dart';
+import 'badge_definition.dart';
 import 'element_collision_profile.dart';
 import 'environment.dart';
 import 'enums.dart';
 import 'project_trainer.dart';
+import 'shop_definition.dart';
 import 'project_new_game_config.dart';
 import 'cinematic_asset.dart';
 import 'cinematic_media_asset.dart';
@@ -437,6 +439,8 @@ class ProjectManifest with _$ProjectManifest {
       toJson: _storylinesToJson,
     )
     List<StorylineAsset> storylines,
+    @Default([]) List<ShopDefinition> shops,
+    @Default([]) List<BadgeDefinition> badges,
     @Default([]) List<ProjectTrainerEntry> trainers,
     @Default([]) List<ProjectCharacterEntry> characters,
     @Default(ProjectSettings()) ProjectSettings settings,
@@ -473,7 +477,21 @@ class ProjectManifest with _$ProjectManifest {
   }) = _ProjectManifest;
 
   factory ProjectManifest.fromJson(Map<String, dynamic> json) {
-    final manifest = _$ProjectManifestFromJson(json);
+    final decoded = _$ProjectManifestFromJson(json);
+    final shops =
+        decoded.shops.map((shop) => shop.normalized()).toList(growable: false);
+    final badges = decoded.badges
+        .map((badge) => badge.normalized())
+        .toList(growable: false);
+    _assertUniqueDefinitionIds(
+      kind: 'shop',
+      ids: shops.map((shop) => shop.id),
+    );
+    _assertUniqueDefinitionIds(
+      kind: 'badge',
+      ids: badges.map((badge) => badge.id),
+    );
+    final manifest = decoded.copyWith(shops: shops, badges: badges);
     if (manifest.version == ProjectVersion.v1 &&
         manifest.borderCatalog.isNotEmpty) {
       throw const FormatException(
@@ -482,6 +500,19 @@ class ProjectManifest with _$ProjectManifest {
       );
     }
     return manifest;
+  }
+}
+
+void _assertUniqueDefinitionIds({
+  required String kind,
+  required Iterable<String> ids,
+}) {
+  final seen = <String>{};
+  for (final id in ids) {
+    if (!seen.add(id)) {
+      throw FormatException(
+          'ProjectManifest contains duplicate $kind id "$id"');
+    }
   }
 }
 

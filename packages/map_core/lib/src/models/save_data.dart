@@ -233,30 +233,196 @@ class PlayerParty with _$PlayerParty {
   factory PlayerParty.fromJson(Map<String, dynamic> json) =>
       _$PlayerPartyFromJson(json);
 
-  PlayerParty normalized() => copyWith(
-        members: members
-            .map((member) => member.normalized())
-            .toList(growable: false),
+  PlayerParty normalized() {
+    if (members.length > maxPlayerPartySize) {
+      throw StateError(
+        'PlayerParty members must contain at most $maxPlayerPartySize Pokemon',
       );
+    }
+    return copyWith(
+      members:
+          members.map((member) => member.normalized()).toList(growable: false),
+    );
+  }
 }
 
+const int maxPlayerPartySize = 6;
+const int pokemonBoxCapacity = 30;
+const int defaultPokemonBoxCount = 8;
+
 @freezed
-class PokemonStorage with _$PokemonStorage {
-  const PokemonStorage._();
+class PokemonBox with _$PokemonBox {
+  const PokemonBox._();
 
   @JsonSerializable(explicitToJson: true)
-  const factory PokemonStorage({
-    @Default([]) List<PlayerPokemon> storedPokemon,
-  }) = _PokemonStorage;
+  const factory PokemonBox({
+    required String id,
+    required String label,
+    @Default(pokemonBoxCapacity) int capacity,
+    @Default([]) List<PlayerPokemon> pokemon,
+  }) = _PokemonBox;
 
-  factory PokemonStorage.fromJson(Map<String, dynamic> json) =>
-      _$PokemonStorageFromJson(json);
+  factory PokemonBox.fromJson(Map<String, dynamic> json) =>
+      _$PokemonBoxFromJson(json).normalized();
 
-  PokemonStorage normalized() => copyWith(
-        storedPokemon: storedPokemon
-            .map((member) => member.normalized())
-            .toList(growable: false),
+  PokemonBox normalized() {
+    final normalizedId = id.trim();
+    final normalizedLabel = label.trim();
+    if (normalizedId.isEmpty) {
+      throw StateError('PokemonBox id must not be empty');
+    }
+    if (normalizedLabel.isEmpty) {
+      throw StateError('PokemonBox label must not be empty');
+    }
+    if (capacity <= 0) {
+      throw StateError('PokemonBox capacity must be positive');
+    }
+    if (pokemon.length > capacity) {
+      throw StateError('PokemonBox pokemon must not exceed capacity');
+    }
+    return copyWith(
+      id: normalizedId,
+      label: normalizedLabel,
+      pokemon:
+          pokemon.map((member) => member.normalized()).toList(growable: false),
+    );
+  }
+}
+
+/// Persistent PC storage with stable, ordered boxes.
+///
+/// [storedPokemon] remains as a source-compatible bridge for callers created
+/// before FG-022. JSON output is canonical and only writes [boxes].
+class PokemonStorage {
+  const PokemonStorage({
+    this.boxes = const <PokemonBox>[],
+    List<PlayerPokemon> storedPokemon = const <PlayerPokemon>[],
+  }) : _legacyStoredPokemon = storedPokemon;
+
+  factory PokemonStorage.fromJson(Map<String, dynamic> json) {
+    final rawBoxes = json['boxes'];
+    if (rawBoxes != null) {
+      if (rawBoxes is! List) {
+        throw const FormatException('PokemonStorage.boxes must be a list');
+      }
+      return PokemonStorage(
+        boxes: rawBoxes.map((rawBox) {
+          if (rawBox is! Map) {
+            throw const FormatException(
+              'PokemonStorage boxes must be objects',
+            );
+          }
+          return PokemonBox.fromJson(Map<String, dynamic>.from(rawBox));
+        }).toList(growable: false),
+      ).normalized();
+    }
+
+    final rawStoredPokemon = json['storedPokemon'];
+    if (rawStoredPokemon != null && rawStoredPokemon is! List) {
+      throw const FormatException(
+        'PokemonStorage.storedPokemon must be a list',
       );
+    }
+    return PokemonStorage(
+      storedPokemon:
+          (rawStoredPokemon as List? ?? const <Object?>[]).map((rawPokemon) {
+        if (rawPokemon is! Map) {
+          throw const FormatException(
+            'PokemonStorage storedPokemon must contain objects',
+          );
+        }
+        return PlayerPokemon.fromJson(
+          Map<String, dynamic>.from(rawPokemon),
+        );
+      }).toList(growable: false),
+    ).normalized();
+  }
+
+  final List<PokemonBox> boxes;
+  final List<PlayerPokemon> _legacyStoredPokemon;
+
+  List<PlayerPokemon> get storedPokemon => boxes.isEmpty
+      ? List<PlayerPokemon>.unmodifiable(_legacyStoredPokemon)
+      : List<PlayerPokemon>.unmodifiable(
+          boxes.expand((box) => box.pokemon),
+        );
+
+  PokemonStorage normalized() {
+    final sourceBoxes = boxes.isEmpty
+        ? _boxesFromLegacyPokemon(_legacyStoredPokemon)
+        : boxes.map((box) => box.normalized()).toList(growable: false);
+    final ids = <String>{};
+    for (final box in sourceBoxes) {
+      if (!ids.add(box.id)) {
+        throw StateError('PokemonStorage box ids must be unique');
+      }
+    }
+    return PokemonStorage(
+      boxes: List<PokemonBox>.unmodifiable(sourceBoxes),
+    );
+  }
+
+  PokemonStorage copyWith({
+    List<PokemonBox>? boxes,
+    List<PlayerPokemon>? storedPokemon,
+  }) {
+    if (storedPokemon != null) {
+      return PokemonStorage(storedPokemon: storedPokemon);
+    }
+    return PokemonStorage(boxes: boxes ?? this.boxes);
+  }
+
+  Map<String, dynamic> toJson() {
+    final canonical = normalized();
+    return <String, dynamic>{
+      'boxes':
+          canonical.boxes.map((box) => box.toJson()).toList(growable: false),
+    };
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PokemonStorage &&
+          _listsEqual(normalized().boxes, other.normalized().boxes);
+
+  @override
+  int get hashCode => Object.hashAll(normalized().boxes);
+
+  @override
+  String toString() => 'PokemonStorage(boxes: $boxes)';
+}
+
+List<PokemonBox> _boxesFromLegacyPokemon(List<PlayerPokemon> pokemon) {
+  final normalizedPokemon =
+      pokemon.map((member) => member.normalized()).toList(growable: false);
+  final requiredBoxCount = normalizedPokemon.isEmpty
+      ? defaultPokemonBoxCount
+      : (normalizedPokemon.length / pokemonBoxCapacity)
+          .ceil()
+          .clamp(defaultPokemonBoxCount, 999);
+  return List<PokemonBox>.generate(requiredBoxCount, (index) {
+    final start = index * pokemonBoxCapacity;
+    final end = start + pokemonBoxCapacity < normalizedPokemon.length
+        ? start + pokemonBoxCapacity
+        : normalizedPokemon.length;
+    return PokemonBox(
+      id: 'box-${(index + 1).toString().padLeft(2, '0')}',
+      label: 'Box ${index + 1}',
+      pokemon: start < normalizedPokemon.length
+          ? normalizedPokemon.sublist(start, end)
+          : const <PlayerPokemon>[],
+    );
+  }, growable: false);
+}
+
+bool _listsEqual<T>(List<T> left, List<T> right) {
+  if (identical(left, right)) return true;
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index += 1) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
 }
 
 @freezed

@@ -3,6 +3,49 @@ import 'package:test/test.dart';
 
 void main() {
   group('project JSON migrations', () {
+    test('rejects a shop entry with a negative authored price', () {
+      final raw = <String, dynamic>{
+        'name': 'Project',
+        'maps': <Object?>[],
+        'tilesets': <Object?>[],
+        'shops': <Object?>[
+          <String, Object?>{
+            'id': 'selbrume-mart',
+            'label': 'Boutique de Selbrume',
+            'entries': <Object?>[
+              <String, Object?>{'itemId': 'potion', 'price': -1},
+            ],
+          },
+        ],
+      };
+
+      expect(
+        () => migrateProjectManifestJson(raw),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('rejects duplicate shop and badge ids after normalization', () {
+      for (final entry in <MapEntry<String, List<Object?>>>[
+        MapEntry<String, List<Object?>>('shops', <Object?>[
+          <String, Object?>{'id': 'mart', 'label': 'A'},
+          <String, Object?>{'id': ' mart ', 'label': 'B'},
+        ]),
+        MapEntry<String, List<Object?>>('badges', <Object?>[
+          <String, Object?>{'id': 'brume', 'label': 'A'},
+          <String, Object?>{'id': ' brume ', 'label': 'B'},
+        ]),
+      ]) {
+        expect(
+          () => migrateProjectManifestJson(<String, dynamic>{
+            'name': 'Project',
+            entry.key: entry.value,
+          }),
+          throwsA(isA<FormatException>()),
+        );
+      }
+    });
+
     test('project manifest migration is exported and currently preserves input',
         () {
       final raw = <String, dynamic>{

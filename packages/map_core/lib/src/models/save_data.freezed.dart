@@ -975,89 +975,124 @@ abstract class _PlayerParty extends PlayerParty {
       throw _privateConstructorUsedError;
 }
 
-PokemonStorage _$PokemonStorageFromJson(Map<String, dynamic> json) {
-  return _PokemonStorage.fromJson(json);
+PokemonBox _$PokemonBoxFromJson(Map<String, dynamic> json) {
+  return _PokemonBox.fromJson(json);
 }
 
 /// @nodoc
-mixin _$PokemonStorage {
-  List<PlayerPokemon> get storedPokemon => throw _privateConstructorUsedError;
+mixin _$PokemonBox {
+  String get id => throw _privateConstructorUsedError;
+  String get label => throw _privateConstructorUsedError;
+  int get capacity => throw _privateConstructorUsedError;
+  List<PlayerPokemon> get pokemon => throw _privateConstructorUsedError;
 
-  /// Serializes this PokemonStorage to a JSON map.
+  /// Serializes this PokemonBox to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
-  /// Create a copy of PokemonStorage
+  /// Create a copy of PokemonBox
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $PokemonStorageCopyWith<PokemonStorage> get copyWith =>
+  $PokemonBoxCopyWith<PokemonBox> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $PokemonStorageCopyWith<$Res> {
-  factory $PokemonStorageCopyWith(
-          PokemonStorage value, $Res Function(PokemonStorage) then) =
-      _$PokemonStorageCopyWithImpl<$Res, PokemonStorage>;
+abstract class $PokemonBoxCopyWith<$Res> {
+  factory $PokemonBoxCopyWith(
+          PokemonBox value, $Res Function(PokemonBox) then) =
+      _$PokemonBoxCopyWithImpl<$Res, PokemonBox>;
   @useResult
-  $Res call({List<PlayerPokemon> storedPokemon});
+  $Res call(
+      {String id, String label, int capacity, List<PlayerPokemon> pokemon});
 }
 
 /// @nodoc
-class _$PokemonStorageCopyWithImpl<$Res, $Val extends PokemonStorage>
-    implements $PokemonStorageCopyWith<$Res> {
-  _$PokemonStorageCopyWithImpl(this._value, this._then);
+class _$PokemonBoxCopyWithImpl<$Res, $Val extends PokemonBox>
+    implements $PokemonBoxCopyWith<$Res> {
+  _$PokemonBoxCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
 
-  /// Create a copy of PokemonStorage
+  /// Create a copy of PokemonBox
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? storedPokemon = null,
+    Object? id = null,
+    Object? label = null,
+    Object? capacity = null,
+    Object? pokemon = null,
   }) {
     return _then(_value.copyWith(
-      storedPokemon: null == storedPokemon
-          ? _value.storedPokemon
-          : storedPokemon // ignore: cast_nullable_to_non_nullable
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      label: null == label
+          ? _value.label
+          : label // ignore: cast_nullable_to_non_nullable
+              as String,
+      capacity: null == capacity
+          ? _value.capacity
+          : capacity // ignore: cast_nullable_to_non_nullable
+              as int,
+      pokemon: null == pokemon
+          ? _value.pokemon
+          : pokemon // ignore: cast_nullable_to_non_nullable
               as List<PlayerPokemon>,
     ) as $Val);
   }
 }
 
 /// @nodoc
-abstract class _$$PokemonStorageImplCopyWith<$Res>
-    implements $PokemonStorageCopyWith<$Res> {
-  factory _$$PokemonStorageImplCopyWith(_$PokemonStorageImpl value,
-          $Res Function(_$PokemonStorageImpl) then) =
-      __$$PokemonStorageImplCopyWithImpl<$Res>;
+abstract class _$$PokemonBoxImplCopyWith<$Res>
+    implements $PokemonBoxCopyWith<$Res> {
+  factory _$$PokemonBoxImplCopyWith(
+          _$PokemonBoxImpl value, $Res Function(_$PokemonBoxImpl) then) =
+      __$$PokemonBoxImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({List<PlayerPokemon> storedPokemon});
+  $Res call(
+      {String id, String label, int capacity, List<PlayerPokemon> pokemon});
 }
 
 /// @nodoc
-class __$$PokemonStorageImplCopyWithImpl<$Res>
-    extends _$PokemonStorageCopyWithImpl<$Res, _$PokemonStorageImpl>
-    implements _$$PokemonStorageImplCopyWith<$Res> {
-  __$$PokemonStorageImplCopyWithImpl(
-      _$PokemonStorageImpl _value, $Res Function(_$PokemonStorageImpl) _then)
+class __$$PokemonBoxImplCopyWithImpl<$Res>
+    extends _$PokemonBoxCopyWithImpl<$Res, _$PokemonBoxImpl>
+    implements _$$PokemonBoxImplCopyWith<$Res> {
+  __$$PokemonBoxImplCopyWithImpl(
+      _$PokemonBoxImpl _value, $Res Function(_$PokemonBoxImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of PokemonStorage
+  /// Create a copy of PokemonBox
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? storedPokemon = null,
+    Object? id = null,
+    Object? label = null,
+    Object? capacity = null,
+    Object? pokemon = null,
   }) {
-    return _then(_$PokemonStorageImpl(
-      storedPokemon: null == storedPokemon
-          ? _value._storedPokemon
-          : storedPokemon // ignore: cast_nullable_to_non_nullable
+    return _then(_$PokemonBoxImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      label: null == label
+          ? _value.label
+          : label // ignore: cast_nullable_to_non_nullable
+              as String,
+      capacity: null == capacity
+          ? _value.capacity
+          : capacity // ignore: cast_nullable_to_non_nullable
+              as int,
+      pokemon: null == pokemon
+          ? _value._pokemon
+          : pokemon // ignore: cast_nullable_to_non_nullable
               as List<PlayerPokemon>,
     ));
   }
@@ -1066,76 +1101,97 @@ class __$$PokemonStorageImplCopyWithImpl<$Res>
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$PokemonStorageImpl extends _PokemonStorage {
-  const _$PokemonStorageImpl(
-      {final List<PlayerPokemon> storedPokemon = const []})
-      : _storedPokemon = storedPokemon,
+class _$PokemonBoxImpl extends _PokemonBox {
+  const _$PokemonBoxImpl(
+      {required this.id,
+      required this.label,
+      this.capacity = pokemonBoxCapacity,
+      final List<PlayerPokemon> pokemon = const []})
+      : _pokemon = pokemon,
         super._();
 
-  factory _$PokemonStorageImpl.fromJson(Map<String, dynamic> json) =>
-      _$$PokemonStorageImplFromJson(json);
+  factory _$PokemonBoxImpl.fromJson(Map<String, dynamic> json) =>
+      _$$PokemonBoxImplFromJson(json);
 
-  final List<PlayerPokemon> _storedPokemon;
+  @override
+  final String id;
+  @override
+  final String label;
   @override
   @JsonKey()
-  List<PlayerPokemon> get storedPokemon {
-    if (_storedPokemon is EqualUnmodifiableListView) return _storedPokemon;
+  final int capacity;
+  final List<PlayerPokemon> _pokemon;
+  @override
+  @JsonKey()
+  List<PlayerPokemon> get pokemon {
+    if (_pokemon is EqualUnmodifiableListView) return _pokemon;
     // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_storedPokemon);
+    return EqualUnmodifiableListView(_pokemon);
   }
 
   @override
   String toString() {
-    return 'PokemonStorage(storedPokemon: $storedPokemon)';
+    return 'PokemonBox(id: $id, label: $label, capacity: $capacity, pokemon: $pokemon)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$PokemonStorageImpl &&
-            const DeepCollectionEquality()
-                .equals(other._storedPokemon, _storedPokemon));
+            other is _$PokemonBoxImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.label, label) || other.label == label) &&
+            (identical(other.capacity, capacity) ||
+                other.capacity == capacity) &&
+            const DeepCollectionEquality().equals(other._pokemon, _pokemon));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType, const DeepCollectionEquality().hash(_storedPokemon));
+  int get hashCode => Object.hash(runtimeType, id, label, capacity,
+      const DeepCollectionEquality().hash(_pokemon));
 
-  /// Create a copy of PokemonStorage
+  /// Create a copy of PokemonBox
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$PokemonStorageImplCopyWith<_$PokemonStorageImpl> get copyWith =>
-      __$$PokemonStorageImplCopyWithImpl<_$PokemonStorageImpl>(
-          this, _$identity);
+  _$$PokemonBoxImplCopyWith<_$PokemonBoxImpl> get copyWith =>
+      __$$PokemonBoxImplCopyWithImpl<_$PokemonBoxImpl>(this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$PokemonStorageImplToJson(
+    return _$$PokemonBoxImplToJson(
       this,
     );
   }
 }
 
-abstract class _PokemonStorage extends PokemonStorage {
-  const factory _PokemonStorage({final List<PlayerPokemon> storedPokemon}) =
-      _$PokemonStorageImpl;
-  const _PokemonStorage._() : super._();
+abstract class _PokemonBox extends PokemonBox {
+  const factory _PokemonBox(
+      {required final String id,
+      required final String label,
+      final int capacity,
+      final List<PlayerPokemon> pokemon}) = _$PokemonBoxImpl;
+  const _PokemonBox._() : super._();
 
-  factory _PokemonStorage.fromJson(Map<String, dynamic> json) =
-      _$PokemonStorageImpl.fromJson;
+  factory _PokemonBox.fromJson(Map<String, dynamic> json) =
+      _$PokemonBoxImpl.fromJson;
 
   @override
-  List<PlayerPokemon> get storedPokemon;
+  String get id;
+  @override
+  String get label;
+  @override
+  int get capacity;
+  @override
+  List<PlayerPokemon> get pokemon;
 
-  /// Create a copy of PokemonStorage
+  /// Create a copy of PokemonBox
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$PokemonStorageImplCopyWith<_$PokemonStorageImpl> get copyWith =>
+  _$$PokemonBoxImplCopyWith<_$PokemonBoxImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
@@ -2085,7 +2141,6 @@ abstract class $SaveDataCopyWith<$Res> {
 
   $GridPosCopyWith<$Res> get playerPosition;
   $PlayerPartyCopyWith<$Res> get party;
-  $PokemonStorageCopyWith<$Res> get pokemonStorage;
   $TrainerProfileCopyWith<$Res> get trainerProfile;
   $BagCopyWith<$Res> get bag;
   $PlayerProgressionCopyWith<$Res> get progression;
@@ -2195,16 +2250,6 @@ class _$SaveDataCopyWithImpl<$Res, $Val extends SaveData>
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
-  $PokemonStorageCopyWith<$Res> get pokemonStorage {
-    return $PokemonStorageCopyWith<$Res>(_value.pokemonStorage, (value) {
-      return _then(_value.copyWith(pokemonStorage: value) as $Val);
-    });
-  }
-
-  /// Create a copy of SaveData
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
   $TrainerProfileCopyWith<$Res> get trainerProfile {
     return $TrainerProfileCopyWith<$Res>(_value.trainerProfile, (value) {
       return _then(_value.copyWith(trainerProfile: value) as $Val);
@@ -2262,8 +2307,6 @@ abstract class _$$SaveDataImplCopyWith<$Res>
   $GridPosCopyWith<$Res> get playerPosition;
   @override
   $PlayerPartyCopyWith<$Res> get party;
-  @override
-  $PokemonStorageCopyWith<$Res> get pokemonStorage;
   @override
   $TrainerProfileCopyWith<$Res> get trainerProfile;
   @override
