@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/src/application/runtime_battle_setup_exception.dart';
 import 'package:map_runtime/src/application/runtime_pokemon_species_loader.dart';
 import 'package:path/path.dart' as p;
 
@@ -205,6 +206,101 @@ void main() {
         expect(species.growthRateId, growthRateId);
       });
     }
+
+    test('rejects traversal, slash, and backslash species ids', () async {
+      final speciesDir = Directory(
+        p.join(tempRoot.path, 'data', 'pokemon', 'species'),
+      );
+      await speciesDir.create(recursive: true);
+      for (final unsafeSpeciesId in <String>[
+        '../targetmon',
+        'nested/targetmon',
+        r'nested\targetmon',
+        '.',
+        '..',
+        ' targetmon',
+      ]) {
+        await _writeValidSpeciesFile(
+          File(p.join(speciesDir.path, '$unsafeSpeciesId.json')),
+          declaredId: unsafeSpeciesId,
+        );
+
+        await expectLater(
+          () => RuntimePokemonSpeciesLoader().loadById(
+            projectRootDirectory: tempRoot.path,
+            pokemonConfig: const ProjectPokemonConfig(
+              speciesDir: 'data/pokemon/species',
+            ),
+            speciesId: unsafeSpeciesId,
+          ),
+          throwsA(isA<RuntimeBattleSetupException>()),
+        );
+      }
+    });
+
+    test('cannot load a species file outside the project root', () async {
+      final projectRoot = Directory(p.join(tempRoot.path, 'project'));
+      final externalSpeciesDir = Directory(p.join(tempRoot.path, 'outside'));
+      await projectRoot.create(recursive: true);
+      await _writeValidSpeciesFile(
+        File(p.join(externalSpeciesDir.path, 'targetmon.json')),
+        declaredId: 'targetmon',
+      );
+
+      for (final config in <ProjectPokemonConfig>[
+        const ProjectPokemonConfig(speciesDir: '../outside'),
+        ProjectPokemonConfig(speciesDir: externalSpeciesDir.path),
+      ]) {
+        await expectLater(
+          () => RuntimePokemonSpeciesLoader().loadById(
+            projectRootDirectory: projectRoot.path,
+            pokemonConfig: config,
+            speciesId: 'targetmon',
+          ),
+          throwsA(isA<RuntimeBattleSetupException>()),
+        );
+      }
+    });
+
+    test('fails with a typed setup error when abilities is not an object',
+        () async {
+      final file = File(
+        p.join(
+          tempRoot.path,
+          'data',
+          'pokemon',
+          'species',
+          'targetmon.json',
+        ),
+      );
+      for (final rawAbilities in <Object>[
+        <Object?>[],
+        'overgrow',
+      ]) {
+        await _writeValidSpeciesFile(
+          file,
+          declaredId: 'targetmon',
+          abilities: rawAbilities,
+        );
+
+        await expectLater(
+          () => RuntimePokemonSpeciesLoader().loadById(
+            projectRootDirectory: tempRoot.path,
+            pokemonConfig: const ProjectPokemonConfig(
+              speciesDir: 'data/pokemon/species',
+            ),
+            speciesId: 'targetmon',
+          ),
+          throwsA(
+            isA<RuntimeBattleSetupException>().having(
+              (error) => error.debugDetails,
+              'debugDetails',
+              contains('abilities'),
+            ),
+          ),
+        );
+      }
+    });
   });
 }
 
@@ -216,7 +312,8 @@ Future<void> _writeSpecies(
     p.join(root.path, 'data', 'pokemon', 'species'),
   );
   await speciesDir.create(recursive: true);
-  await File(p.join(speciesDir.path, 'targetmon.json')).writeAsString(
+  final file = File(p.join(speciesDir.path, 'targetmon.json'));
+  await file.writeAsString(
     jsonEncode(<String, dynamic>{
       'id': 'targetmon',
       'typing': <String, dynamic>{
@@ -233,6 +330,37 @@ Future<void> _writeSpecies(
       'abilities': <String, dynamic>{'primary': 'overgrow'},
       'refs': <String, dynamic>{'learnset': 'targetmon'},
       if (progression != null) 'progression': progression,
+    }),
+  );
+}
+
+Future<void> _writeValidSpeciesFile(
+  File file, {
+  required String declaredId,
+  Object abilities = const <String, dynamic>{'primary': 'overgrow'},
+}) async {
+  await file.parent.create(recursive: true);
+  await file.writeAsString(
+    jsonEncode(<String, dynamic>{
+      'id': declaredId,
+      'typing': <String, dynamic>{
+        'types': <String>['grass'],
+      },
+      'baseStats': <String, dynamic>{
+        'hp': 45,
+        'atk': 49,
+        'def': 49,
+        'spa': 65,
+        'spd': 65,
+        'spe': 45,
+      },
+      'abilities': abilities,
+      'refs': <String, dynamic>{'learnset': declaredId},
+      'progression': <String, dynamic>{
+        'growthRateId': 'medium_slow',
+        'baseExp': 64,
+        'catchRate': 45,
+      },
     }),
   );
 }

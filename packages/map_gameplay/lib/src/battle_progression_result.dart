@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import 'battle_reward.dart';
+import 'pokemon_evolution_service.dart';
 import 'pokemon_stat_calculator.dart';
 
 const _maximumKnownMoveCount = 4;
@@ -181,6 +182,137 @@ final class BattleMoveLearningChange {
   final String? replacedMoveId;
 }
 
+/// One ordered evolution opportunity for a persisted party slot.
+final class BattleEvolutionOpportunity {
+  const BattleEvolutionOpportunity({
+    required this.occurrenceId,
+    required this.partySlot,
+    required this.candidate,
+    required this.sourceMaxHp,
+  });
+
+  final String occurrenceId;
+  final int partySlot;
+  final PokemonEvolutionCandidate candidate;
+  final int sourceMaxHp;
+
+  BattleEvolutionOpportunity validated() {
+    final normalizedOccurrenceId = occurrenceId.trim();
+    if (normalizedOccurrenceId.isEmpty) {
+      throw ArgumentError.value(
+        occurrenceId,
+        'occurrenceId',
+        'must not be empty',
+      );
+    }
+    RangeError.checkNotNegative(partySlot, 'partySlot');
+    RangeError.checkValueInInterval(sourceMaxHp, 1, 9999, 'sourceMaxHp');
+    final normalizedCandidate = candidate.validated();
+    if (normalizedOccurrenceId == occurrenceId &&
+        identical(normalizedCandidate, candidate)) {
+      return this;
+    }
+    return BattleEvolutionOpportunity(
+      occurrenceId: normalizedOccurrenceId,
+      partySlot: partySlot,
+      candidate: normalizedCandidate,
+      sourceMaxHp: sourceMaxHp,
+    );
+  }
+}
+
+/// Presentation-ready evolution waiting for one exact player decision.
+final class PendingBattleEvolution {
+  const PendingBattleEvolution({
+    required this.opportunityId,
+    required this.occurrenceId,
+    required this.partySlot,
+    required this.candidate,
+    required this.sourceMaxHp,
+  });
+
+  final String opportunityId;
+  final String occurrenceId;
+  final int partySlot;
+  final PokemonEvolutionCandidate candidate;
+  final int sourceMaxHp;
+
+  String get sourceSpeciesId => candidate.sourceSpeciesId;
+  String get targetSpeciesId => candidate.targetSpeciesId;
+}
+
+/// Typed decision bound to the complete identity of a pending evolution.
+sealed class BattleEvolutionDecision {
+  const BattleEvolutionDecision({
+    required this.opportunityId,
+    required this.occurrenceId,
+    required this.partySlot,
+    required this.sourceSpeciesId,
+    required this.targetSpeciesId,
+  });
+
+  const factory BattleEvolutionDecision.accept({
+    required String opportunityId,
+    required String occurrenceId,
+    required int partySlot,
+    required String sourceSpeciesId,
+    required String targetSpeciesId,
+  }) = AcceptBattleEvolutionDecision;
+
+  const factory BattleEvolutionDecision.refuse({
+    required String opportunityId,
+    required String occurrenceId,
+    required int partySlot,
+    required String sourceSpeciesId,
+    required String targetSpeciesId,
+  }) = RefuseBattleEvolutionDecision;
+
+  final String opportunityId;
+  final String occurrenceId;
+  final int partySlot;
+  final String sourceSpeciesId;
+  final String targetSpeciesId;
+}
+
+final class AcceptBattleEvolutionDecision extends BattleEvolutionDecision {
+  const AcceptBattleEvolutionDecision({
+    required super.opportunityId,
+    required super.occurrenceId,
+    required super.partySlot,
+    required super.sourceSpeciesId,
+    required super.targetSpeciesId,
+  });
+}
+
+final class RefuseBattleEvolutionDecision extends BattleEvolutionDecision {
+  const RefuseBattleEvolutionDecision({
+    required super.opportunityId,
+    required super.occurrenceId,
+    required super.partySlot,
+    required super.sourceSpeciesId,
+    required super.targetSpeciesId,
+  });
+}
+
+enum BattleEvolutionChangeKind { evolved, refused }
+
+/// Observable evolution transition for presentation and save orchestration.
+final class BattleEvolutionChange {
+  const BattleEvolutionChange({
+    required this.occurrenceId,
+    required this.partySlot,
+    required this.candidate,
+    required this.kind,
+    this.result,
+  });
+
+  final String occurrenceId;
+  final int partySlot;
+  final PokemonEvolutionCandidate candidate;
+  final BattleEvolutionChangeKind kind;
+  final PokemonEvolutionResult? result;
+}
+
 /// Observable per-slot result of one XP application.
 final class BattlePokemonProgressionChange {
   const BattlePokemonProgressionChange({
@@ -218,19 +350,49 @@ final class BattleProgressionResult {
         const <BattleMoveLearningOpportunity>[],
     Iterable<BattleMoveLearningChange> moveLearningChanges =
         const <BattleMoveLearningChange>[],
+    Iterable<BattleEvolutionOpportunity> evolutionOpportunities =
+        const <BattleEvolutionOpportunity>[],
+    Iterable<BattleEvolutionChange> evolutionChanges =
+        const <BattleEvolutionChange>[],
+    PokemonEvolutionService evolutionService = const PokemonEvolutionService(),
   }) {
-    final advanced = _advanceMoveLearning(
+    final evolutionQueue = _validatedEvolutionQueue(evolutionOpportunities);
+    final moveAdvanced = _advanceMoveLearning(
       state: state,
       opportunities: moveLearningOpportunities,
       changes: moveLearningChanges,
     );
+    if (moveAdvanced.pending != null) {
+      return BattleProgressionResult._(
+        state: moveAdvanced.state,
+        appliedReward: appliedReward,
+        changes: List<BattlePokemonProgressionChange>.unmodifiable(changes),
+        pendingMoveLearning: moveAdvanced.pending,
+        remainingMoveLearningOpportunities: moveAdvanced.remaining,
+        moveLearningChanges: moveAdvanced.changes,
+        pendingEvolution: null,
+        remainingEvolutionOpportunities: evolutionQueue,
+        evolutionChanges:
+            List<BattleEvolutionChange>.unmodifiable(evolutionChanges),
+        evolutionService: evolutionService,
+      );
+    }
+    final evolutionAdvanced = _advanceEvolution(
+      state: moveAdvanced.state,
+      opportunities: evolutionQueue,
+      changes: evolutionChanges,
+    );
     return BattleProgressionResult._(
-      state: advanced.state,
+      state: evolutionAdvanced.state,
       appliedReward: appliedReward,
       changes: List<BattlePokemonProgressionChange>.unmodifiable(changes),
-      pendingMoveLearning: advanced.pending,
-      remainingMoveLearningOpportunities: advanced.remaining,
-      moveLearningChanges: advanced.changes,
+      pendingMoveLearning: null,
+      remainingMoveLearningOpportunities: moveAdvanced.remaining,
+      moveLearningChanges: moveAdvanced.changes,
+      pendingEvolution: evolutionAdvanced.pending,
+      remainingEvolutionOpportunities: evolutionAdvanced.remaining,
+      evolutionChanges: evolutionAdvanced.changes,
+      evolutionService: evolutionService,
     );
   }
 
@@ -242,7 +404,14 @@ final class BattleProgressionResult {
     required List<BattleMoveLearningOpportunity>
         remainingMoveLearningOpportunities,
     required this.moveLearningChanges,
-  }) : _remainingMoveLearningOpportunities = remainingMoveLearningOpportunities;
+    required this.pendingEvolution,
+    required List<BattleEvolutionOpportunity> remainingEvolutionOpportunities,
+    required this.evolutionChanges,
+    required PokemonEvolutionService evolutionService,
+  })  : _remainingMoveLearningOpportunities =
+            remainingMoveLearningOpportunities,
+        _remainingEvolutionOpportunities = remainingEvolutionOpportunities,
+        _evolutionService = evolutionService;
 
   final GameState state;
   final BattleReward appliedReward;
@@ -250,9 +419,14 @@ final class BattleProgressionResult {
   final PendingBattleMoveLearning? pendingMoveLearning;
   final List<BattleMoveLearningOpportunity> _remainingMoveLearningOpportunities;
   final List<BattleMoveLearningChange> moveLearningChanges;
+  final PendingBattleEvolution? pendingEvolution;
+  final List<BattleEvolutionOpportunity> _remainingEvolutionOpportunities;
+  final List<BattleEvolutionChange> evolutionChanges;
+  final PokemonEvolutionService _evolutionService;
 
   int get remainingMoveLearningCount =>
       _remainingMoveLearningOpportunities.length;
+  int get remainingEvolutionCount => _remainingEvolutionOpportunities.length;
 
   BattleProgressionResult resolvePendingMoveLearning(
     BattleMoveLearningDecision decision,
@@ -302,6 +476,10 @@ final class BattleProgressionResult {
               replacementRequested,
             ],
           ),
+          pendingEvolution: null,
+          remainingEvolutionOpportunities: _remainingEvolutionOpportunities,
+          evolutionChanges: evolutionChanges,
+          evolutionService: _evolutionService,
         );
       case ReplaceBattleMoveLearningDecision():
         if (pending.phase != BattleMoveLearningPhase.awaitingReplacement) {
@@ -343,13 +521,126 @@ final class BattleProgressionResult {
         decisionChange,
       ],
     );
+    if (advanced.pending != null) {
+      return BattleProgressionResult._(
+        state: advanced.state,
+        appliedReward: appliedReward,
+        changes: changes,
+        pendingMoveLearning: advanced.pending,
+        remainingMoveLearningOpportunities: advanced.remaining,
+        moveLearningChanges: advanced.changes,
+        pendingEvolution: null,
+        remainingEvolutionOpportunities: _remainingEvolutionOpportunities,
+        evolutionChanges: evolutionChanges,
+        evolutionService: _evolutionService,
+      );
+    }
+    final evolutionAdvanced = _advanceEvolution(
+      state: advanced.state,
+      opportunities: _remainingEvolutionOpportunities,
+      changes: evolutionChanges,
+    );
+    return BattleProgressionResult._(
+      state: evolutionAdvanced.state,
+      appliedReward: appliedReward,
+      changes: changes,
+      pendingMoveLearning: null,
+      remainingMoveLearningOpportunities: advanced.remaining,
+      moveLearningChanges: advanced.changes,
+      pendingEvolution: evolutionAdvanced.pending,
+      remainingEvolutionOpportunities: evolutionAdvanced.remaining,
+      evolutionChanges: evolutionAdvanced.changes,
+      evolutionService: _evolutionService,
+    );
+  }
+
+  BattleProgressionResult resolvePendingEvolution(
+    BattleEvolutionDecision decision,
+  ) {
+    final pending = pendingEvolution;
+    if (pending == null) {
+      throw StateError('No evolution decision is pending.');
+    }
+    if (pendingMoveLearning != null) {
+      throw StateError('Move learning must be resolved before evolution.');
+    }
+    if (decision.opportunityId != pending.opportunityId ||
+        decision.occurrenceId != pending.occurrenceId ||
+        decision.partySlot != pending.partySlot ||
+        decision.sourceSpeciesId != pending.sourceSpeciesId ||
+        decision.targetSpeciesId != pending.targetSpeciesId) {
+      throw StateError(
+        'Evolution decision does not match the current pending request.',
+      );
+    }
+
+    final opportunity = BattleEvolutionOpportunity(
+      occurrenceId: pending.occurrenceId,
+      partySlot: pending.partySlot,
+      candidate: pending.candidate,
+      sourceMaxHp: pending.sourceMaxHp,
+    );
+    late final GameState decisionState;
+    late final BattleEvolutionChange decisionChange;
+    late final List<BattleEvolutionOpportunity> remaining;
+    switch (decision) {
+      case AcceptBattleEvolutionDecision():
+        final evolved = _evolutionService.evolve(
+          pokemon: _partyMemberAt(state, pending.partySlot),
+          candidate: pending.candidate,
+          sourceMaxHp: opportunity.sourceMaxHp,
+        );
+        decisionState = _replacePartyMember(
+          state,
+          pending.partySlot,
+          evolved.pokemon,
+        );
+        decisionChange = BattleEvolutionChange(
+          occurrenceId: pending.occurrenceId,
+          partySlot: pending.partySlot,
+          candidate: pending.candidate,
+          kind: BattleEvolutionChangeKind.evolved,
+          result: evolved,
+        );
+        // Accepting one branch makes every other branch from the old source
+        // stale. No next-chain evolution is invented by gameplay.
+        remaining = List<BattleEvolutionOpportunity>.unmodifiable(
+          _remainingEvolutionOpportunities.where(
+            (entry) =>
+                entry.partySlot != pending.partySlot ||
+                entry.candidate.sourceSpeciesId != pending.sourceSpeciesId,
+          ),
+        );
+      case RefuseBattleEvolutionDecision():
+        decisionState = state;
+        decisionChange = BattleEvolutionChange(
+          occurrenceId: pending.occurrenceId,
+          partySlot: pending.partySlot,
+          candidate: pending.candidate,
+          kind: BattleEvolutionChangeKind.refused,
+        );
+        remaining = _remainingEvolutionOpportunities;
+    }
+
+    final advanced = _advanceEvolution(
+      state: decisionState,
+      opportunities: remaining,
+      changes: <BattleEvolutionChange>[
+        ...evolutionChanges,
+        decisionChange,
+      ],
+    );
     return BattleProgressionResult._(
       state: advanced.state,
       appliedReward: appliedReward,
       changes: changes,
-      pendingMoveLearning: advanced.pending,
-      remainingMoveLearningOpportunities: advanced.remaining,
-      moveLearningChanges: advanced.changes,
+      pendingMoveLearning: null,
+      remainingMoveLearningOpportunities: const <BattleMoveLearningOpportunity>[],
+      moveLearningChanges: moveLearningChanges,
+      pendingEvolution: advanced.pending,
+      remainingEvolutionOpportunities: advanced.remaining,
+      evolutionChanges: advanced.changes,
+      evolutionService: _evolutionService,
     );
   }
 }
@@ -366,6 +657,86 @@ final class _MoveLearningAdvanceResult {
   final PendingBattleMoveLearning? pending;
   final List<BattleMoveLearningOpportunity> remaining;
   final List<BattleMoveLearningChange> changes;
+}
+
+final class _EvolutionAdvanceResult {
+  const _EvolutionAdvanceResult({
+    required this.state,
+    required this.pending,
+    required this.remaining,
+    required this.changes,
+  });
+
+  final GameState state;
+  final PendingBattleEvolution? pending;
+  final List<BattleEvolutionOpportunity> remaining;
+  final List<BattleEvolutionChange> changes;
+}
+
+_EvolutionAdvanceResult _advanceEvolution({
+  required GameState state,
+  required Iterable<BattleEvolutionOpportunity> opportunities,
+  required Iterable<BattleEvolutionChange> changes,
+}) {
+  final queue = _validatedEvolutionQueue(opportunities);
+  final appliedChanges = List<BattleEvolutionChange>.unmodifiable(changes);
+  if (queue.isEmpty) {
+    return _EvolutionAdvanceResult(
+      state: state,
+      pending: null,
+      remaining: const <BattleEvolutionOpportunity>[],
+      changes: appliedChanges,
+    );
+  }
+
+  final opportunity = queue.first;
+  final member = _partyMemberAt(state, opportunity.partySlot);
+  if (member.speciesId != opportunity.candidate.sourceSpeciesId) {
+    throw StateError(
+      'Evolution opportunity source does not match the party member.',
+    );
+  }
+  if (member.level < opportunity.candidate.minLevel) {
+    throw StateError('Evolution opportunity is below its minimum level.');
+  }
+  if (member.currentHp < 0 || member.currentHp > opportunity.sourceMaxHp) {
+    throw StateError('Evolution source HP is outside its projected maximum.');
+  }
+  return _EvolutionAdvanceResult(
+    state: state,
+    pending: PendingBattleEvolution(
+      opportunityId: opportunity.candidate.opportunityId,
+      occurrenceId: opportunity.occurrenceId,
+      partySlot: opportunity.partySlot,
+      candidate: opportunity.candidate,
+      sourceMaxHp: opportunity.sourceMaxHp,
+    ),
+    remaining: List<BattleEvolutionOpportunity>.unmodifiable(queue.skip(1)),
+    changes: appliedChanges,
+  );
+}
+
+List<BattleEvolutionOpportunity> _validatedEvolutionQueue(
+  Iterable<BattleEvolutionOpportunity> opportunities,
+) {
+  final identities = <({int partySlot, String occurrenceId})>{};
+  final queue = <BattleEvolutionOpportunity>[];
+  for (final opportunity in opportunities) {
+    final validated = opportunity.validated();
+    final identity = (
+      partySlot: validated.partySlot,
+      occurrenceId: validated.occurrenceId,
+    );
+    if (!identities.add(identity)) {
+      throw ArgumentError.value(
+        identity,
+        'evolutionOpportunities',
+        'contains a duplicate party-slot occurrence identity',
+      );
+    }
+    queue.add(validated);
+  }
+  return List<BattleEvolutionOpportunity>.unmodifiable(queue);
 }
 
 _MoveLearningAdvanceResult _advanceMoveLearning({

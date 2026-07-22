@@ -13,6 +13,11 @@ export 'src/pokemon_stat_calculator.dart'
         PokemonBaseStats,
         PokemonCalculatedStats,
         PokemonStatCalculator;
+export 'src/pokemon_evolution_service.dart'
+    show
+        PokemonEvolutionCandidate,
+        PokemonEvolutionResult,
+        PokemonEvolutionService;
 export 'src/battle_progression_result.dart'
     show
         PokemonMoveLearningCandidate,
@@ -25,6 +30,13 @@ export 'src/battle_progression_result.dart'
         DeclineBattleMoveLearningDecision,
         BattleMoveLearningChangeKind,
         BattleMoveLearningChange,
+        BattleEvolutionOpportunity,
+        PendingBattleEvolution,
+        BattleEvolutionDecision,
+        AcceptBattleEvolutionDecision,
+        RefuseBattleEvolutionDecision,
+        BattleEvolutionChangeKind,
+        BattleEvolutionChange,
         BattlePokemonProgressionChange,
         BattleProgressionResult;
 export 'src/battle_progression_service.dart'

@@ -103,14 +103,15 @@ class RuntimePokemonSpeciesLoader {
     required ProjectPokemonConfig pokemonConfig,
     required String speciesId,
   }) async {
-    final normalizedSpeciesId = speciesId.trim();
-    if (normalizedSpeciesId.isEmpty) {
-      throw const RuntimeBattleSetupException(
-        'Une espèce Pokémon vide ne peut pas être mappée vers le combat.',
+    if (!_isSafeSpeciesId(speciesId)) {
+      throw RuntimeBattleSetupException(
+        'Une espèce Pokémon invalide ne peut pas être mappée vers le combat.',
+        debugDetails: 'Unsafe speciesId=$speciesId',
       );
     }
+    final normalizedSpeciesId = speciesId;
 
-    final speciesDirectoryPath = _resolveProjectPath(
+    final speciesDirectoryPath = _resolveBoundedProjectDirectory(
       projectRootDirectory,
       _normalizeConfiguredRelativePath(
         pokemonConfig.speciesDir,
@@ -142,7 +143,8 @@ class RuntimePokemonSpeciesLoader {
           canonicalSpeciesFile,
           label: 'Pokemon species file',
         );
-        final declaredId = (rawJson['id'] as String?)?.trim() ?? '';
+        final rawDeclaredId = rawJson['id'];
+        final declaredId = rawDeclaredId is String ? rawDeclaredId : '';
         if (declaredId != normalizedSpeciesId) {
           throw RuntimeBattleSetupException(
             'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
@@ -170,7 +172,8 @@ class RuntimePokemonSpeciesLoader {
           entity,
           label: 'Pokemon species file',
         );
-        final declaredId = (rawJson['id'] as String?)?.trim() ?? '';
+        final rawDeclaredId = rawJson['id'];
+        final declaredId = rawDeclaredId is String ? rawDeclaredId : '';
         if (declaredId != normalizedSpeciesId) {
           continue;
         }
@@ -261,8 +264,11 @@ class RuntimePokemonSpeciesLoader {
         <String, dynamic>{
           'learnset': (rawJson['learnsetRef'] as String?)?.trim() ?? '',
         };
-    final abilities = (rawJson['abilities'] as Map?)?.cast<String, dynamic>() ??
-        const <String, dynamic>{};
+    final abilities = _readRequiredAbilities(
+      rawJson['abilities'],
+      expectedSpeciesId: expectedSpeciesId,
+      filePath: filePath,
+    );
     final typing = _readRequiredTyping(
       rawJson,
       expectedSpeciesId: expectedSpeciesId,
@@ -291,7 +297,8 @@ class RuntimePokemonSpeciesLoader {
         rawJson['breeding'],
         ratioKey: 'female',
       ),
-      primaryAbilityId: (abilities['primary'] as String?)?.trim() ?? '',
+      primaryAbilityId: abilities.primary,
+      abilityIds: abilities.all,
       // `learnsetRef` peut rester vide : le loader learnset conservera le
       // fallback historique vers l'id de l'espèce.
       learnsetRef: (refs['learnset'] as String?)?.trim() ?? '',
@@ -356,6 +363,53 @@ class RuntimePokemonSpeciesLoader {
     }
 
     return List<String>.unmodifiable(normalizedTypes);
+  }
+
+  ({String primary, List<String> all}) _readRequiredAbilities(
+    Object? rawAbilities, {
+    required String expectedSpeciesId,
+    required String filePath,
+  }) {
+    if (rawAbilities is! Map) {
+      throw RuntimeBattleSetupException(
+        'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
+        debugDetails:
+            'speciesId=$expectedSpeciesId, file=$filePath, abilities must be a JSON object',
+      );
+    }
+    final abilities = rawAbilities.cast<String, dynamic>();
+    final rawPrimary = abilities['primary'];
+    final primary = rawPrimary is String ? rawPrimary.trim() : '';
+    if (primary.isEmpty) {
+      throw RuntimeBattleSetupException(
+        'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
+        debugDetails:
+            'speciesId=$expectedSpeciesId, file=$filePath, abilities.primary must be a non-empty string',
+      );
+    }
+
+    final all = <String>[primary];
+    for (final key in const <String>['secondary', 'hidden']) {
+      final rawAbilityId = abilities[key];
+      if (rawAbilityId == null) continue;
+      if (rawAbilityId is! String || rawAbilityId.trim().isEmpty) {
+        throw RuntimeBattleSetupException(
+          'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
+          debugDetails:
+              'speciesId=$expectedSpeciesId, file=$filePath, abilities.$key must be null or a non-empty string',
+        );
+      }
+      final abilityId = rawAbilityId.trim();
+      if (all.contains(abilityId)) {
+        throw RuntimeBattleSetupException(
+          'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
+          debugDetails:
+              'speciesId=$expectedSpeciesId, file=$filePath, abilities contains duplicate id=$abilityId',
+        );
+      }
+      all.add(abilityId);
+    }
+    return (primary: primary, all: List<String>.unmodifiable(all));
   }
 
   int _readRequiredBaseStat(
@@ -428,14 +482,36 @@ class RuntimePokemonSpeciesLoader {
     return p.normalize(trimmed.isEmpty ? fallback : trimmed);
   }
 
-  String _resolveProjectPath(
+  String _resolveBoundedProjectDirectory(
     String projectRootDirectory,
-    String relativeOrAbsolutePath,
+    String relativePath,
   ) {
-    if (p.isAbsolute(relativeOrAbsolutePath)) {
-      return p.normalize(relativeOrAbsolutePath);
+    final root = p.normalize(p.absolute(projectRootDirectory));
+    if (p.isAbsolute(relativePath)) {
+      throw RuntimeBattleSetupException(
+        'Le dossier des espèces Pokémon doit appartenir au projet.',
+        debugDetails: 'Absolute speciesDir is forbidden: $relativePath',
+      );
     }
-    return p.normalize(p.join(projectRootDirectory, relativeOrAbsolutePath));
+    final directory = p.normalize(p.join(root, relativePath));
+    if (directory != root && !p.isWithin(root, directory)) {
+      throw RuntimeBattleSetupException(
+        'Le dossier des espèces Pokémon doit appartenir au projet.',
+        debugDetails: 'speciesDir escapes project root: $relativePath',
+      );
+    }
+    return directory;
+  }
+
+  bool _isSafeSpeciesId(String speciesId) {
+    return speciesId.isNotEmpty &&
+        speciesId == speciesId.trim() &&
+        speciesId != '.' &&
+        speciesId != '..' &&
+        !p.isAbsolute(speciesId) &&
+        p.basename(speciesId) == speciesId &&
+        !speciesId.contains('/') &&
+        !speciesId.contains(r'\');
   }
 }
 
@@ -458,6 +534,7 @@ class RuntimePokemonSpecies {
     this.maleGenderRatio,
     this.femaleGenderRatio,
     required this.primaryAbilityId,
+    required this.abilityIds,
     required this.learnsetRef,
     required this.growthRateId,
     required this.baseExp,
@@ -482,6 +559,7 @@ class RuntimePokemonSpecies {
   final double? maleGenderRatio;
   final double? femaleGenderRatio;
   final String primaryAbilityId;
+  final List<String> abilityIds;
   final String learnsetRef;
   final String growthRateId;
   final int baseExp;

@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'battle_progression_result.dart';
 import 'battle_reward.dart';
 import 'game_state_mutations.dart';
+import 'pokemon_evolution_service.dart';
 import 'pokemon_experience_curve.dart';
 import 'pokemon_stat_calculator.dart';
 
@@ -69,6 +70,8 @@ final class BattleProgressionContext {
     required Iterable<BattleProgressionPartySlotMetadata> partySlotMetadata,
     Map<int, Iterable<PokemonMoveLearningCandidate>> moveLearningCandidatesByPartySlot =
         const <int, Iterable<PokemonMoveLearningCandidate>>{},
+    Map<int, Iterable<PokemonEvolutionCandidate>> evolutionCandidatesByPartySlot =
+        const <int, Iterable<PokemonEvolutionCandidate>>{},
   })  : playerParticipantPartySlots = Set<int>.unmodifiable(
           playerParticipantPartySlots,
         ),
@@ -83,6 +86,10 @@ final class BattleProgressionContext {
         moveLearningCandidatesByPartySlot =
             Map<int, List<PokemonMoveLearningCandidate>>.unmodifiable(
           _moveLearningCandidatesBySlot(moveLearningCandidatesByPartySlot),
+        ),
+        evolutionCandidatesByPartySlot =
+            Map<int, List<PokemonEvolutionCandidate>>.unmodifiable(
+          _evolutionCandidatesBySlot(evolutionCandidatesByPartySlot),
         ) {
     for (final slot in this.playerParticipantPartySlots) {
       RangeError.checkNotNegative(slot, 'playerParticipantPartySlots');
@@ -95,6 +102,8 @@ final class BattleProgressionContext {
   final Map<int, BattleProgressionPartySlotMetadata> partySlotMetadata;
   final Map<int, List<PokemonMoveLearningCandidate>>
       moveLearningCandidatesByPartySlot;
+  final Map<int, List<PokemonEvolutionCandidate>>
+      evolutionCandidatesByPartySlot;
 }
 
 /// Applies the FG-044/FG-045 MVP progression policy.
@@ -257,6 +266,39 @@ final class BattleProgressionService {
               candidate: candidate,
             ),
     ];
+    final evolutionOpportunities = <BattleEvolutionOpportunity>[];
+    for (final change in changes) {
+      final candidates =
+          context.evolutionCandidatesByPartySlot[change.partySlot] ??
+              const <PokemonEvolutionCandidate>[];
+      final sourceSpeciesId = state.party.members[change.partySlot].speciesId;
+      for (final candidate in candidates) {
+        if (candidate.sourceSpeciesId != sourceSpeciesId) {
+          throw StateError(
+            'Evolution candidate source does not match party slot '
+            '${change.partySlot}.',
+          );
+        }
+        // A declined evolution is intentionally eligible again only after a
+        // later battle produces another real level gain.
+        if (change.newLevel > change.oldLevel &&
+            change.newLevel >= candidate.minLevel) {
+          evolutionOpportunities.add(
+            BattleEvolutionOpportunity(
+              occurrenceId: _evolutionOccurrenceId(
+                candidate: candidate,
+                partySlot: change.partySlot,
+                oldLevel: change.oldLevel,
+                newLevel: change.newLevel,
+              ),
+              partySlot: change.partySlot,
+              candidate: candidate,
+              sourceMaxHp: change.calculatedStats.maxHp,
+            ),
+          );
+        }
+      }
+    }
     return BattleProgressionResult(
       state: mutations.applyBattleRewards(
         progressedState,
@@ -265,8 +307,19 @@ final class BattleProgressionService {
       appliedReward: appliedReward,
       changes: changes,
       moveLearningOpportunities: moveLearningOpportunities,
+      evolutionOpportunities: evolutionOpportunities,
     );
   }
+}
+
+String _evolutionOccurrenceId({
+  required PokemonEvolutionCandidate candidate,
+  required int partySlot,
+  required int oldLevel,
+  required int newLevel,
+}) {
+  return '${candidate.opportunityId}:slot:$partySlot:'
+      'levels:$oldLevel->$newLevel';
 }
 
 Map<int, BattleProgressionPartySlotMetadata> _metadataBySlot(
@@ -307,6 +360,31 @@ Map<int, List<PokemonMoveLearningCandidate>> _moveLearningCandidatesBySlot(
     }
     normalized[entry.key] =
         List<PokemonMoveLearningCandidate>.unmodifiable(candidates);
+  }
+  return normalized;
+}
+
+Map<int, List<PokemonEvolutionCandidate>> _evolutionCandidatesBySlot(
+  Map<int, Iterable<PokemonEvolutionCandidate>> candidatesBySlot,
+) {
+  final normalized = <int, List<PokemonEvolutionCandidate>>{};
+  for (final entry in candidatesBySlot.entries) {
+    RangeError.checkNotNegative(entry.key, 'evolutionPartySlot');
+    final opportunityIds = <String>{};
+    final candidates = <PokemonEvolutionCandidate>[];
+    for (final candidate in entry.value) {
+      final validated = candidate.validated();
+      if (!opportunityIds.add(validated.opportunityId)) {
+        throw ArgumentError.value(
+          validated.opportunityId,
+          'evolutionCandidatesByPartySlot',
+          'contains a duplicate opportunity id for party slot ${entry.key}',
+        );
+      }
+      candidates.add(validated);
+    }
+    normalized[entry.key] =
+        List<PokemonEvolutionCandidate>.unmodifiable(candidates);
   }
   return normalized;
 }
