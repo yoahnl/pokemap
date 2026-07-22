@@ -134,8 +134,7 @@ void main() {
       );
     });
 
-    test(
-        'keeps the completed technical Phase 10 NO-GO until the user approves the MVP scope',
+    test('returns GO once the user explicitly approves the Phase 10 MVP scope',
         () {
       final report = MvpReleaseGateReport.evaluate(
         <MvpReleaseGateEvidence>[
@@ -167,23 +166,16 @@ void main() {
           ),
           const MvpReleaseGateEvidence(
             criterion: MvpReleaseGateCriterion.userScopeApproved,
-            status: MvpReleaseGateEvidenceStatus.unverified,
-            summary:
-                'Le périmètre et ses exclusions attendent une approbation explicite.',
+            status: MvpReleaseGateEvidenceStatus.passed,
+            summary: 'Le périmètre MVP et ses exclusions sont approuvés.',
+            source:
+                'reports/gameplay/fg_185_mvp_release_gate_v0.md#approval-record',
           ),
         ],
       );
 
-      expect(report.isGo, isFalse);
-      expect(report.blockers, hasLength(1));
-      expect(
-        report.blockers.single.criterion,
-        MvpReleaseGateCriterion.userScopeApproved,
-      );
-      expect(
-        report.blockers.single.status,
-        MvpReleaseGateEvidenceStatus.unverified,
-      );
+      expect(report.isGo, isTrue);
+      expect(report.blockers, isEmpty);
     });
   });
 }

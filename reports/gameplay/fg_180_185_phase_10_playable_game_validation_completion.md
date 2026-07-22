@@ -1,12 +1,12 @@
 # Phase 10 — Playable Game Validation — Completion Evidence Pack
 
-Date: 2026-07-21
+Date: 2026-07-22
 
 Périmètre: `FG-180` à `FG-185`
 
 Verdict technique: **PASS**
 
-Verdict release MVP: **PARTIAL / NO-GO — approbation utilisateur requise**
+Verdict release MVP: **DONE / GO**
 
 ## Résumé exécutif
 
@@ -16,9 +16,9 @@ dashboard read-only et la gate de release. Les six packages passent leurs
 suites et analyses, les smokes ciblés passent, le seed Selbrume est à jour et
 les deux applications macOS de debug se construisent.
 
-La gate n'annonce pas encore `GO`: quatre critères sur cinq sont prouvés. Le
-dernier critère exige que l'utilisateur accepte explicitement le périmètre MVP
-et les capacités reportées en Phase 11.
+La gate annonce désormais `GO`: les cinq critères sont prouvés. Le 2026-07-22,
+l'utilisateur a explicitement accepté le périmètre MVP et les capacités
+reportées en Phase 11.
 
 ## Audit initial
 
@@ -41,7 +41,7 @@ et les capacités reportées en Phase 11.
 | FG-182 | Golden Slice End-to-End Smoke V0 | parcours production de New Game à fin + save/reload | DONE |
 | FG-183 | Regression Matrix V0 | matrice rapide, complète, smokes et builds | DONE |
 | FG-184 | Roadmap Status Dashboard Generator V0 | parseur pur + CLI read-only + tests `+5` | DONE |
-| FG-185 | MVP Release Gate V0 | 4/5 critères passés, approbation scope non vérifiée | PARTIAL |
+| FG-185 | MVP Release Gate V0 | 5/5 critères passés, périmètre explicitement approuvé | DONE |
 
 ## Commits par lot
 
@@ -52,7 +52,7 @@ et les capacités reportées en Phase 11.
 | FG-182 | `c06c49db8 test(gameplay): prove golden fangame journey` |
 | FG-183 | `05a6f9faa docs(gameplay): add phase 10 regression matrix` |
 | FG-184 | `b0ad00990 feat(core): add gameplay roadmap dashboard` |
-| FG-185 | commit créé après validation de ce rapport |
+| FG-185 | `c1bc49b21` pour la gate technique, puis commit de clôture produit courant |
 
 ## Matrice de décision FG-185
 
@@ -62,10 +62,15 @@ et les capacités reportées en Phase 11.
 | Project Gameplay Readiness sans error | PASSED | FG-180 healthy fixture et 11 preuves passées |
 | Tests package critiques verts | PASSED | six suites complètes et six analyses propres |
 | Limitations post-MVP listées | PASSED | Phase 11 de la roadmap et cutoff ci-dessous |
-| Utilisateur valide le périmètre | UNVERIFIED | aucune approbation explicite du cutoff dans ce lot |
+| Utilisateur valide le périmètre | PASSED | approbation explicite « Bah oui c'est bon » du 2026-07-22 |
 
-Décision agrégée: **NO-GO**, avec un seul blocker
-`userScopeApproved/unverified`.
+Décision agrégée: **GO**, sans blocker.
+
+## Approval record
+
+Le 2026-07-22, après présentation explicite du cutoff et des exclusions
+post-MVP, l'utilisateur a répondu : « Bah oui c'est bon ». Cette réponse est
+la source produit du critère `userScopeApproved/passed`.
 
 ## Cutoff MVP proposé à l'approbation
 
@@ -90,7 +95,7 @@ et un packaging multiplateforme signé ne sont pas revendiqués par cette gate.
 
 | Fichier | Zone | Impact |
 |---|---|---|
-| `packages/map_core/test/mvp_release_gate_test.dart` | scénario Phase 10 réel | prouve le NO-GO avec quatre critères passés et l'approbation non vérifiée |
+| `packages/map_core/test/mvp_release_gate_test.dart` | scénario Phase 10 réel | prouve le GO avec les cinq critères passés |
 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` | approche PNJ et rencontre incidente | stabilise le smoke quand le dernier pas déclenche un combat sauvage |
 | `reports/gameplay/fg_185_mvp_release_gate_v0.md` | réaudit complet | remplace les preuves obsolètes de 2026-07-18 |
 | `reports/gameplay/fg_180_185_phase_10_playable_game_validation_completion.md` | nouvel Evidence Pack | synthétise toute la phase 10 |
@@ -165,7 +170,7 @@ cd examples/playable_runtime_host && flutter build macos --debug
 | Implémentation | PASS — six livrables présents, pas d'écriture automatique de roadmap |
 | Tests | PASS — suites ciblées et exhaustives vertes après correction du smoke |
 | Build / Validation | PASS — analyses, seed check et deux builds macOS verts |
-| Critique finale | PASS technique — aucun faux GO; approbation produit encore absente |
+| Critique finale | PASS — cinq preuves sourcées, aucun blocker restant |
 
 ## Limites et risques
 
@@ -182,15 +187,13 @@ cd examples/playable_runtime_host && flutter build macos --debug
 
 ## Auto-critique finale
 
-La validation a volontairement refusé de transformer « tous les tests sont
-verts » en `GO` produit. Cette prudence laisse un état `PARTIAL` alors que tout
-le travail technique est terminé, mais elle respecte le DoD: le cutoff est une
-décision utilisateur. La nondétermination révélée par la première suite host a
-été corrigée dans le test qui la subissait, sans affaiblir le runtime ni
-désactiver les rencontres.
+La validation a conservé le `NO-GO` tant que l'approbation produit manquait,
+puis l'a promu à `GO` seulement après la réponse explicite de l'utilisateur.
+La nondétermination révélée par la première suite host reste corrigée dans le
+test qui la subissait, sans affaiblir le runtime ni désactiver les rencontres.
 
 ## État git avant le commit FG-185
 
-Attendu: les deux tests ci-dessus et les deux Evidence Packs, sans changement
-généré par les builds. `git diff --check` et un dernier statut sont exécutés
-avant commit.
+Attendu: le test de gate, la roadmap et les deux Evidence Packs, sans
+changement généré. `git diff --check` et les vérifications ciblées sont
+exécutés avant commit.

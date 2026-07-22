@@ -1698,12 +1698,12 @@ Objectif : prouver qu’un vrai mini-fangame peut être créé et terminé.
 
 | ID | Lot | Statut | Preuve |
 |---|---|---|---|
-| FG-180 | Project Gameplay Readiness Report V0 | `⬜ TODO` | — |
-| FG-181 | Golden Slice Fangame Fixture V0 | `⬜ TODO` | — |
-| FG-182 | Golden Slice End-to-End Smoke V0 | `⬜ TODO` | — |
-| FG-183 | Regression Matrix V0 | `⬜ TODO` | — |
-| FG-184 | Roadmap Status Dashboard Generator V0 | `⬜ TODO` | — |
-| FG-185 | MVP Release Gate V0 | `🟨 PARTIAL` | `reports/gameplay/fg_185_mvp_release_gate_v0.md` — gate fail-closed livrée, verdict global NO-GO |
+| FG-180 | Project Gameplay Readiness Report V0 | `✅ DONE` | `reports/gameplay/fg_180_project_gameplay_readiness_report_v0.md` |
+| FG-181 | Golden Slice Fangame Fixture V0 | `✅ DONE` | `reports/gameplay/fg_181_golden_slice_fangame_fixture_v0.md` |
+| FG-182 | Golden Slice End-to-End Smoke V0 | `✅ DONE` | `reports/gameplay/fg_182_golden_slice_end_to_end_smoke_v0.md` |
+| FG-183 | Regression Matrix V0 | `✅ DONE` | `reports/gameplay/fg_183_regression_matrix_v0.md` |
+| FG-184 | Roadmap Status Dashboard Generator V0 | `✅ DONE` | `reports/gameplay/fg_184_roadmap_status_dashboard_generator_v0.md` |
+| FG-185 | MVP Release Gate V0 | `✅ DONE` | `reports/gameplay/fg_185_mvp_release_gate_v0.md` — cinq preuves passées, verdict global GO |
 
 ## FG-180 — Project Gameplay Readiness Report V0
 
@@ -1728,10 +1728,10 @@ Objectif : prouver qu’un vrai mini-fangame peut être créé et terminé.
 ### DoD
 
 ```md
-- [ ] Rapport lisible par créateur.
-- [ ] Rapport détaillé par agent.
-- [ ] Sévérités : error/warning/info.
-- [ ] Tests sur fixture saine et fixture cassée.
+- [x] Rapport lisible par créateur.
+- [x] Rapport détaillé par agent.
+- [x] Sévérités : error/warning/info.
+- [x] Tests sur fixture saine et fixture cassée.
 ```
 
 ## FG-181 — Golden Slice Fangame Fixture V0
@@ -1758,10 +1758,10 @@ Objectif : prouver qu’un vrai mini-fangame peut être créé et terminé.
 ### DoD
 
 ```md
-- [ ] Fixture versionnée.
-- [ ] Assets minimaux seulement.
-- [ ] Toutes les données validées.
-- [ ] Rapport de walkthrough attendu.
+- [x] Fixture versionnée.
+- [x] Assets minimaux seulement.
+- [x] Toutes les données validées.
+- [x] Rapport de walkthrough attendu.
 ```
 
 ## FG-182 — Golden Slice End-to-End Smoke V0
@@ -1771,17 +1771,17 @@ Objectif : prouver qu’un vrai mini-fangame peut être créé et terminé.
 ### DoD
 
 ```md
-- [ ] Lancement nouvelle partie.
-- [ ] Starter choisi.
-- [ ] Rencontre déclenchée.
-- [ ] Combat terminé.
-- [ ] Capture effectuée.
-- [ ] Trainer battu.
-- [ ] XP/level-up prouvé.
-- [ ] Shop/heal utilisé.
-- [ ] Badge/field unlock acquis.
-- [ ] Save/reload au moins une fois.
-- [ ] Fin atteinte.
+- [x] Lancement nouvelle partie.
+- [x] Starter choisi.
+- [x] Rencontre déclenchée.
+- [x] Combat terminé.
+- [x] Capture effectuée.
+- [x] Trainer battu.
+- [x] XP/level-up prouvé.
+- [x] Shop/heal utilisé.
+- [x] Badge/field unlock acquis.
+- [x] Save/reload au moins une fois.
+- [x] Fin atteinte.
 ```
 
 ## FG-183 — Regression Matrix V0
@@ -1789,9 +1789,9 @@ Objectif : prouver qu’un vrai mini-fangame peut être créé et terminé.
 ### DoD
 
 ```md
-- [ ] Liste des tests par package.
-- [ ] Mapping lots -> tests à relancer.
-- [ ] Commandes rapides et commandes complètes.
+- [x] Liste des tests par package.
+- [x] Mapping lots -> tests à relancer.
+- [x] Commandes rapides et commandes complètes.
 ```
 
 ## FG-184 — Roadmap Status Dashboard Generator V0
@@ -1801,28 +1801,28 @@ Objectif : prouver qu’un vrai mini-fangame peut être créé et terminé.
 ### DoD
 
 ```md
-- [ ] Script lit les rapports gameplay.
-- [ ] Produit tableau DONE/PARTIAL/TODO.
-- [ ] Ne modifie pas le code.
+- [x] Script lit les rapports gameplay.
+- [x] Produit tableau DONE/PARTIAL/TODO.
+- [x] Ne modifie pas le code.
 ```
 
 ## FG-185 — MVP Release Gate V0
 
 **But :** décider objectivement “PokeMap est un outil fangame MVP”.
 
-**État vérifié le 2026-07-18 : `PARTIAL / NO-GO`.** L'agrégateur de
-preuves fail-closed est livré, mais la Golden Slice globale et le rapport
-Gameplay Readiness complet ne satisfont pas encore le périmètre MVP. Voir
-`reports/gameplay/fg_185_mvp_release_gate_v0.md`.
+**État vérifié le 2026-07-22 : `DONE / GO`.** L'agrégateur fail-closed reçoit
+les cinq preuves passées : Golden Slice, Gameplay Readiness, tests critiques,
+limitations post-MVP et approbation explicite du périmètre par l'utilisateur.
+Voir `reports/gameplay/fg_185_mvp_release_gate_v0.md`.
 
 ### DoD
 
 ```md
-- [ ] Golden Slice passe.
-- [ ] Project Gameplay Readiness Report sans error.
-- [ ] Tests package critiques verts.
-- [ ] Limitations post-MVP listées.
-- [ ] Utilisateur valide le périmètre.
+- [x] Golden Slice passe.
+- [x] Project Gameplay Readiness Report sans error.
+- [x] Tests package critiques verts.
+- [x] Limitations post-MVP listées.
+- [x] Utilisateur valide le périmètre.
 ```
 
 ---
