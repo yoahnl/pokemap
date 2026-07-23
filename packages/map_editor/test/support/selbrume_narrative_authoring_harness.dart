@@ -5,6 +5,7 @@ import 'package:map_editor/src/application/models/narrative_event_map_bridge_mod
 import 'package:map_editor/src/application/use_cases/create_narrative_event_from_map_source_use_case.dart';
 import 'package:map_editor/src/application/use_cases/narrative_event_builder_v2_use_case.dart';
 import 'package:map_editor/src/application/use_cases/project_dialogue_use_cases.dart';
+import 'package:map_editor/src/features/gameplay/application/shop_editor_controller.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
 
@@ -149,6 +150,15 @@ final class SelbrumeNarrativeAuthoringHarness {
           pos: GridPos(x: 2, y: 7),
           spawn: MapEntitySpawnData(spawnKey: 'arrival'),
           blocksMovement: false,
+        ),
+      ],
+      warps: <MapWarp>[
+        MapWarp(
+          id: 'warp_harbor_arrival',
+          pos: GridPos(x: 2, y: 7),
+          targetMapId: mapId,
+          targetPos: GridPos(x: 2, y: 7),
+          triggerMode: MapWarpTriggerMode.onBump,
         ),
       ],
     );
@@ -503,6 +513,132 @@ Guide: Bienvenue à Selbrume. La brume cache parfois le chemin.
       mapDirty: false,
       projectDirty: false,
       saving: false,
+    );
+  }
+
+  /// Reconstructs the Phase 5 player-service palette exclusively through the
+  /// typed controllers and Scene draft operations used by Narrative Studio.
+  Future<ProjectManifest> authorPlayerServices() async {
+    var project = await _projectRepository.loadProject(projectPath);
+    final shopController = ShopEditorController(
+      manifest: project,
+      itemOptions: const <ShopEditorItemOption>[
+        ShopEditorItemOption(id: 'potion', label: 'Potion'),
+        ShopEditorItemOption(id: 'antidote', label: 'Antidote'),
+      ],
+    );
+    final shop = shopController.createShop(label: 'Comptoir des Brisants');
+    shopController
+      ..addEntry(
+        shopId: shop.id,
+        itemId: 'potion',
+        price: 300,
+        stock: 99,
+      )
+      ..addEntry(
+        shopId: shop.id,
+        itemId: 'antidote',
+        price: 100,
+        stock: 99,
+      );
+    project = shopController.manifest.copyWith(
+      badges: const <BadgeDefinition>[
+        BadgeDefinition(
+          id: 'badge_brisants',
+          label: 'Badge des Brisants',
+          fieldAbilityUnlock: FieldAbility.surf,
+        ),
+      ],
+    );
+
+    project = _appendServiceScene(
+      project,
+      name: 'Boutique du port',
+      payload: SceneActionPayload.interactive(
+        SceneInteractiveCommand.openShop(shopId: shop.id),
+      ),
+    );
+    project = _appendServiceScene(
+      project,
+      name: 'Terminal PC du port',
+      payload: SceneActionPayload.interactive(
+        SceneInteractiveCommand.openPc(storageId: 'selbrume_pc'),
+      ),
+    );
+    project = _appendServiceScene(
+      project,
+      name: 'Navette du port',
+      payload: SceneActionPayload.interactive(
+        SceneInteractiveCommand.warp(
+          destinationMapId: mapId,
+          warpId: 'warp_harbor_arrival',
+        ),
+      ),
+    );
+    project = _appendServiceScene(
+      project,
+      name: 'Poste de soins',
+      payload: SceneActionPayload.consequence(SceneConsequence.healParty()),
+    );
+    project = _appendServiceScene(
+      project,
+      name: 'Remise du badge',
+      payload: SceneActionPayload.consequence(
+        SceneConsequence.awardBadge(badgeId: 'badge_brisants'),
+      ),
+    );
+    project = _appendServiceScene(
+      project,
+      name: 'Autorisation de Surf',
+      payload: SceneActionPayload.consequence(
+        SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
+      ),
+    );
+    await _projectRepository.saveProject(project, projectPath);
+    return _projectRepository.loadProject(projectPath);
+  }
+
+  ProjectManifest _appendServiceScene(
+    ProjectManifest project, {
+    required String name,
+    required SceneActionPayload payload,
+  }) {
+    final draft = createSceneDraftInProject(project, name: name);
+    var scene = removeSceneEdgeDraft(
+      draft.createdScene,
+      'edge_start_end',
+    ).updatedScene;
+    final action = payload.interactiveCommand == null
+        ? addSceneConsequenceActionNodeDraft(
+            scene,
+            consequence: payload.consequence!,
+            title: name,
+            afterNodeId: 'node_start',
+          )
+        : addSceneCommandActionNodeDraft(
+            scene,
+            payload: payload,
+            title: name,
+            afterNodeId: 'node_start',
+          );
+    scene = action.updatedScene;
+    scene = addSceneEdgeDraft(
+      scene,
+      fromNodeId: 'node_start',
+      fromPortId: 'completed',
+      toNodeId: action.createdNode.id,
+    ).updatedScene;
+    scene = addSceneEdgeDraft(
+      scene,
+      fromNodeId: action.createdNode.id,
+      fromPortId: 'completed',
+      toNodeId: 'node_end',
+    ).updatedScene;
+    return draft.updatedProject.copyWith(
+      scenes: <SceneAsset>[
+        for (final candidate in draft.updatedProject.scenes)
+          if (candidate.id == scene.id) scene else candidate,
+      ],
     );
   }
 

@@ -744,13 +744,23 @@ party/box, Pokédex et leur round-trip SaveData.
 - Modify: `packages/map_editor/test/selbrume_canonical_narrative_seed_test.dart`
 - Modify: `packages/map_editor/test/selbrume_narrative_reconstruction_test.dart`
 
-- [ ] **Step 1:** Ajouter une boutique minimale avec potion et antidote.
-- [ ] **Step 2:** Ajouter un terminal PC et un centre de soin visibles sur une map existante.
-- [ ] **Step 3:** Attribuer un badge ou flag puis Surf via conséquences canoniques après le combat prévu.
-- [ ] **Step 4:** Ajouter un field gate Surf visible : passage refusé avant unlock et traversable après acquisition.
-- [ ] **Step 5:** Ajouter une utilisation de `warp` authorée sans casser les connexions physiques existantes.
-- [ ] **Step 6:** Faire reconstruire ces éléments par le harness no-code, sans JSON manuel.
-- [ ] **Step 7:** Commit proposé : `feat(selbrume): author the MVP player services`.
+- [x] **Step 1:** Ajouter une boutique minimale avec potion et antidote.
+- [x] **Step 2:** Ajouter un terminal PC et un centre de soin visibles sur une map existante.
+- [x] **Step 3:** Attribuer un badge ou flag puis Surf via conséquences canoniques après le combat prévu.
+- [x] **Step 4:** Ajouter un field gate Surf visible : passage refusé avant unlock et traversable après acquisition.
+- [x] **Step 5:** Ajouter une utilisation de `warp` authorée sans casser les connexions physiques existantes.
+- [x] **Step 6:** Faire reconstruire ces éléments par le harness no-code, sans JSON manuel.
+- [x] **Step 7:** Commit proposé : `feat(selbrume): author the MVP player services`.
+
+**Preuve fraîche (2026-07-23) :** le Port des Brisants expose désormais
+quatre sources physiques réutilisables : comptoir Potion/Antidote, terminal PC,
+poste de soins et navette vers un point d'arrivée authoré au bourg. La victoire
+contre Lysa attribue le Badge des Brisants puis débloque Surf ; le Passage des
+Dames contient une zone `movement/surf` visible et incontournable sans modifier
+ses connexions est/ouest. Le harness reconstruit les trois commandes
+interactives et les trois conséquences persistantes via les contrôleurs et
+opérations typées de Narrative Studio, sans écriture JSON directe. Le seed est
+idempotent et les diagnostics projet/Scenes/Event ne contiennent aucune erreur.
 
 ## Task 5.3 — FG-182 : parcours joueur réel
 

@@ -112,6 +112,54 @@ void main() {
     expect(duplicate.linkedEvents, hasLength(1));
   });
 
+  test('reconstructs every MVP player service through no-code operations',
+      () async {
+    final harness =
+        await SelbrumeNarrativeAuthoringHarness.createPhysicalFixture();
+    addTearDown(harness.dispose);
+
+    final project = await harness.authorPlayerServices();
+
+    final shop = project.shops.single;
+    expect(shop.label, 'Comptoir des Brisants');
+    expect(
+      shop.entries.map((entry) => entry.itemId),
+      const <String>['potion', 'antidote'],
+    );
+    expect(project.badges.single.fieldAbilityUnlock, FieldAbility.surf);
+
+    final actionPayloads = project.scenes
+        .expand((scene) => scene.graph.nodes)
+        .map((node) => node.payload)
+        .whereType<SceneActionPayload>()
+        .toList();
+    final commands = actionPayloads
+        .map((payload) => payload.interactiveCommand)
+        .whereType<SceneInteractiveCommand>()
+        .toList();
+    expect(
+      commands.map((command) => command.kind),
+      containsAll(const <SceneInteractiveCommandKind>[
+        SceneInteractiveCommandKind.openShop,
+        SceneInteractiveCommandKind.openPc,
+        SceneInteractiveCommandKind.warp,
+      ]),
+    );
+    final consequences = actionPayloads
+        .map((payload) => payload.consequence)
+        .whereType<SceneConsequence>()
+        .toList();
+    expect(consequences.whereType<SceneHealPartyConsequence>(), hasLength(1));
+    expect(
+      consequences.whereType<SceneAwardBadgeConsequence>(),
+      hasLength(1),
+    );
+    expect(
+      consequences.whereType<SceneUnlockFieldAbilityConsequence>(),
+      hasLength(1),
+    );
+  });
+
   test('keeps direct JSON and file writes outside the authoring harness', () {
     final source = File(
       'test/support/selbrume_narrative_authoring_harness.dart',

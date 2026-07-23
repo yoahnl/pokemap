@@ -1133,13 +1133,13 @@ Objectif : permettre aux créateurs de faire les événements Pokémon classique
 | FG-082 | Runtime Command Executor V0 | `🟡 PARTIAL` | Parité exhaustive des 18 commandes publiables prouvée ; promotion bloquée par la suite Runtime globale déjà rouge sur fixtures progression |
 | FG-083 | Give/Take Item Commands V0 | `🟡 PARTIAL` | `giveItem(poke-ball, 5)` authoré dans Selbrume, idempotent après save/reload et relié au flux de capture ; promotion globale différée jusqu'à la gate Phase 5 |
 | FG-084 | Give Pokémon Command V0 | `⬜ TODO` | — |
-| FG-085 | Heal Party Command V0 | `🟡 PARTIAL` | Modèle, JSON, caps runtime, preview, writer idempotent, authoring guidé et parité runtime prouvés ; gate package globale rouge hors lot |
+| FG-085 | Heal Party Command V0 | `🟡 PARTIAL` | Modèle, JSON, caps runtime, preview, writer idempotent et authoring guidé prouvés ; poste de soins physique authoré dans Selbrume, parcours joueur réel différé à FG-182 |
 | FG-086 | Start Trainer Battle Command V0 | `⬜ TODO` | — |
 | FG-087 | Start Static Encounter Command V0 | `⬜ TODO` | — |
 | FG-088 | Set Flag / Variable Commands V0 | `⬜ TODO` | — |
-| FG-089 | Unlock Field Ability / Badge Commands V0 | `🟡 PARTIAL` | AwardBadge/UnlockFieldAbility persistants, idempotents, authorables et couverts par la parité exhaustive ; gate package globale rouge hors lot |
-| FG-090 | Warp Command V0 | `🟡 PARTIAL` | Pipeline réel, ports déclarés, validation guidée et parité handler/port prouvés ; gate package globale rouge hors lot |
-| FG-091 | Open Shop / Open PC Commands V0 | `🟡 PARTIAL` | Controller, routes host, ports `completed`/`cancelled` et parité handler/port prouvés ; gate package globale rouge hors lot |
+| FG-089 | Unlock Field Ability / Badge Commands V0 | `🟡 PARTIAL` | AwardBadge/UnlockFieldAbility persistants et authorables ; Badge des Brisants + Surf placés après la victoire contre Lysa, parcours réel différé à FG-182 |
+| FG-090 | Warp Command V0 | `🟡 PARTIAL` | Pipeline réel et parité handler/port prouvés ; navette Selbrume authorée vers un warp d'arrivée valide sans remplacer les connexions physiques |
+| FG-091 | Open Shop / Open PC Commands V0 | `🟡 PARTIAL` | Controller, routes host et ports prouvés ; comptoir Potion/Antidote et terminal PC possèdent maintenant des sources physiques réutilisables dans Selbrume |
 | FG-092 | NPC Move / Presence Commands V0 | `⬜ TODO` | — |
 | FG-093 | Action Builder UI V0 | `🟡 PARTIAL` | Catalogue/pickers runtime-aware, références supprimées bloquantes, round-trip et bijection catalogue/runtime testés ; 2 preuves Selbrume globales restent périmées |
 | FG-094 | Event Templates V0 | `⬜ TODO` | — |
@@ -1416,7 +1416,7 @@ Objectif : rendre la progression map réellement Pokémon-like.
 
 | ID | Lot | Statut | Preuve |
 |---|---|---|---|
-| FG-120 | Field Move Action Base V0 | `⬜ TODO` | — |
+| FG-120 | Field Move Action Base V0 | `🟡 PARTIAL` | Zone `movement/surf` authorée dans le Passage des Dames ; preuve de traversée `PlayableMapGame` différée à FG-182 |
 | FG-121 | Cut Obstacle V0 | `⏸ DEFERRED` | Hors MVP ; Surf est le seul field gate signé. |
 | FG-122 | Strength Boulder V0 | `⏸ DEFERRED` | Hors MVP ; Surf est le seul field gate signé. |
 | FG-123 | Rock Smash V0 | `⏸ DEFERRED` | Hors MVP ; Surf est le seul field gate signé. |
@@ -1425,7 +1425,7 @@ Objectif : rendre la progression map réellement Pokémon-like.
 | FG-126 | Waterfall V0 | `⏸ DEFERRED` | Hors MVP ; Surf est le seul field gate signé. |
 | FG-127 | Dive V0 | `⏸ DEFERRED` | Hors MVP ; Surf est le seul field gate signé. |
 | FG-128 | Field Move Editor Templates V0 | `⏸ DEFERRED` | Hors MVP ; templates avancés différés. |
-| FG-129 | Badge/Unlock Gate Integration V0 | `⬜ TODO` | — |
+| FG-129 | Badge/Unlock Gate Integration V0 | `🟡 PARTIAL` | Badge des Brisants lié à Surf et attribué après Lysa ; refus avant unlock et traversée réelle différés à FG-182 |
 
 ## FG-120 — Field Move Action Base V0
 

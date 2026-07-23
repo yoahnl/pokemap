@@ -40288,6 +40288,34 @@
           {
             "id": "node_5",
             "kind": "action",
+            "title": "Recevoir le Badge des Brisants",
+            "payload": {
+              "kind": "action",
+              "parameters": {},
+              "consequence": {
+                "kind": "awardBadge",
+                "badgeId": "badge_brisants",
+                "label": "Recevoir le Badge des Brisants"
+              }
+            }
+          },
+          {
+            "id": "node_6",
+            "kind": "action",
+            "title": "Débloquer Surf après la victoire",
+            "payload": {
+              "kind": "action",
+              "parameters": {},
+              "consequence": {
+                "kind": "unlockFieldAbility",
+                "abilityId": "surf",
+                "label": "Débloquer Surf après la victoire"
+              }
+            }
+          },
+          {
+            "id": "node_7",
+            "kind": "action",
             "title": "Envoyer Lysa en éclaireuse",
             "payload": {
               "kind": "action",
@@ -40301,7 +40329,7 @@
             }
           },
           {
-            "id": "node_6",
+            "id": "node_8",
             "kind": "cinematic",
             "title": "Cinématique — cinematic_rival_depart_win",
             "payload": {
@@ -40310,7 +40338,7 @@
             }
           },
           {
-            "id": "node_7",
+            "id": "node_9",
             "kind": "action",
             "title": "Faire converger la branche victoire",
             "payload": {
@@ -40386,12 +40414,28 @@
             "fromNodeId": "node_6",
             "fromPortId": "completed",
             "toNodeId": "node_7",
+            "kind": "actionCompleted",
+            "label": "completed"
+          },
+          {
+            "id": "edge_node_7_node_8",
+            "fromNodeId": "node_7",
+            "fromPortId": "completed",
+            "toNodeId": "node_8",
+            "kind": "actionCompleted",
+            "label": "completed"
+          },
+          {
+            "id": "edge_node_8_node_9",
+            "fromNodeId": "node_8",
+            "fromPortId": "completed",
+            "toNodeId": "node_9",
             "kind": "cinematicCompleted",
             "label": "completed"
           },
           {
-            "id": "edge_node_7_node_end",
-            "fromNodeId": "node_7",
+            "id": "edge_node_9_node_end",
+            "fromNodeId": "node_9",
             "fromPortId": "completed",
             "toNodeId": "node_end",
             "kind": "actionCompleted",
@@ -40442,8 +40486,18 @@
             "y": 80.0
           },
           {
-            "nodeId": "node_end",
+            "nodeId": "node_8",
             "x": 2424.0,
+            "y": 80.0
+          },
+          {
+            "nodeId": "node_9",
+            "x": 2724.0,
+            "y": 80.0
+          },
+          {
+            "nodeId": "node_end",
+            "x": 3024.0,
             "y": 80.0
           }
         ],
@@ -40886,6 +40940,359 @@
           {
             "nodeId": "node_end",
             "x": 2124.0,
+            "y": 80.0
+          }
+        ],
+        "edgeLayouts": []
+      },
+      "declaredOutcomes": [],
+      "metadata": {
+        "source": "MVP Selbrume/selbrume.md",
+        "contentStatus": "runtime_authored"
+      }
+    },
+    {
+      "id": "scene_port_shop",
+      "name": "Comptoir des Brisants",
+      "description": "Boutique physique et réutilisable du port.",
+      "storylineId": "story_main_brume_phare",
+      "chapterId": "chapter_1_port",
+      "tags": [
+        "selbrume",
+        "canonical-narrative"
+      ],
+      "graph": {
+        "startNodeId": "node_start",
+        "nodes": [
+          {
+            "id": "node_start",
+            "kind": "start",
+            "title": "Début",
+            "payload": {
+              "kind": "start"
+            }
+          },
+          {
+            "id": "node_1",
+            "kind": "action",
+            "title": "Ouvrir le Comptoir des Brisants",
+            "payload": {
+              "kind": "action",
+              "parameters": {},
+              "interactiveCommand": {
+                "kind": "openShop",
+                "shopId": "shop_port_supplies"
+              }
+            }
+          },
+          {
+            "id": "node_end",
+            "kind": "end",
+            "title": "Fin",
+            "payload": {
+              "kind": "end"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_node_start_node_1",
+            "fromNodeId": "node_start",
+            "fromPortId": "completed",
+            "toNodeId": "node_1",
+            "kind": "default",
+            "label": "completed"
+          },
+          {
+            "id": "edge_node_1_node_end",
+            "fromNodeId": "node_1",
+            "fromPortId": "completed",
+            "toNodeId": "node_end",
+            "kind": "actionCompleted",
+            "label": "completed"
+          }
+        ]
+      },
+      "layout": {
+        "nodeLayouts": [
+          {
+            "nodeId": "node_start",
+            "x": 24.0,
+            "y": 80.0
+          },
+          {
+            "nodeId": "node_1",
+            "x": 324.0,
+            "y": 80.0
+          },
+          {
+            "nodeId": "node_end",
+            "x": 624.0,
+            "y": 80.0
+          }
+        ],
+        "edgeLayouts": []
+      },
+      "declaredOutcomes": [],
+      "metadata": {
+        "source": "MVP Selbrume/selbrume.md",
+        "contentStatus": "runtime_authored"
+      }
+    },
+    {
+      "id": "scene_port_pc",
+      "name": "Terminal PC du port",
+      "description": "Terminal PC physique et réutilisable du port.",
+      "storylineId": "story_main_brume_phare",
+      "chapterId": "chapter_1_port",
+      "tags": [
+        "selbrume",
+        "canonical-narrative"
+      ],
+      "graph": {
+        "startNodeId": "node_start",
+        "nodes": [
+          {
+            "id": "node_start",
+            "kind": "start",
+            "title": "Début",
+            "payload": {
+              "kind": "start"
+            }
+          },
+          {
+            "id": "node_1",
+            "kind": "action",
+            "title": "Ouvrir le stockage Pokémon",
+            "payload": {
+              "kind": "action",
+              "parameters": {},
+              "interactiveCommand": {
+                "kind": "openPc",
+                "storageId": "selbrume_pc"
+              }
+            }
+          },
+          {
+            "id": "node_end",
+            "kind": "end",
+            "title": "Fin",
+            "payload": {
+              "kind": "end"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_node_start_node_1",
+            "fromNodeId": "node_start",
+            "fromPortId": "completed",
+            "toNodeId": "node_1",
+            "kind": "default",
+            "label": "completed"
+          },
+          {
+            "id": "edge_node_1_node_end",
+            "fromNodeId": "node_1",
+            "fromPortId": "completed",
+            "toNodeId": "node_end",
+            "kind": "actionCompleted",
+            "label": "completed"
+          }
+        ]
+      },
+      "layout": {
+        "nodeLayouts": [
+          {
+            "nodeId": "node_start",
+            "x": 24.0,
+            "y": 80.0
+          },
+          {
+            "nodeId": "node_1",
+            "x": 324.0,
+            "y": 80.0
+          },
+          {
+            "nodeId": "node_end",
+            "x": 624.0,
+            "y": 80.0
+          }
+        ],
+        "edgeLayouts": []
+      },
+      "declaredOutcomes": [],
+      "metadata": {
+        "source": "MVP Selbrume/selbrume.md",
+        "contentStatus": "runtime_authored"
+      }
+    },
+    {
+      "id": "scene_port_healing",
+      "name": "Poste de soins du port",
+      "description": "Soin complet physique et réutilisable du port.",
+      "storylineId": "story_main_brume_phare",
+      "chapterId": "chapter_1_port",
+      "tags": [
+        "selbrume",
+        "canonical-narrative"
+      ],
+      "graph": {
+        "startNodeId": "node_start",
+        "nodes": [
+          {
+            "id": "node_start",
+            "kind": "start",
+            "title": "Début",
+            "payload": {
+              "kind": "start"
+            }
+          },
+          {
+            "id": "node_1",
+            "kind": "action",
+            "title": "Soigner toute l’équipe",
+            "payload": {
+              "kind": "action",
+              "parameters": {},
+              "consequence": {
+                "kind": "healParty",
+                "label": "Soigner toute l’équipe"
+              }
+            }
+          },
+          {
+            "id": "node_end",
+            "kind": "end",
+            "title": "Fin",
+            "payload": {
+              "kind": "end"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_node_start_node_1",
+            "fromNodeId": "node_start",
+            "fromPortId": "completed",
+            "toNodeId": "node_1",
+            "kind": "default",
+            "label": "completed"
+          },
+          {
+            "id": "edge_node_1_node_end",
+            "fromNodeId": "node_1",
+            "fromPortId": "completed",
+            "toNodeId": "node_end",
+            "kind": "actionCompleted",
+            "label": "completed"
+          }
+        ]
+      },
+      "layout": {
+        "nodeLayouts": [
+          {
+            "nodeId": "node_start",
+            "x": 24.0,
+            "y": 80.0
+          },
+          {
+            "nodeId": "node_1",
+            "x": 324.0,
+            "y": 80.0
+          },
+          {
+            "nodeId": "node_end",
+            "x": 624.0,
+            "y": 80.0
+          }
+        ],
+        "edgeLayouts": []
+      },
+      "declaredOutcomes": [],
+      "metadata": {
+        "source": "MVP Selbrume/selbrume.md",
+        "contentStatus": "runtime_authored"
+      }
+    },
+    {
+      "id": "scene_port_return_bourg",
+      "name": "Navette vers le bourg",
+      "description": "Transport optionnel ; les connexions pédestres restent intactes.",
+      "storylineId": "story_main_brume_phare",
+      "chapterId": "chapter_1_port",
+      "tags": [
+        "selbrume",
+        "canonical-narrative"
+      ],
+      "graph": {
+        "startNodeId": "node_start",
+        "nodes": [
+          {
+            "id": "node_start",
+            "kind": "start",
+            "title": "Début",
+            "payload": {
+              "kind": "start"
+            }
+          },
+          {
+            "id": "node_1",
+            "kind": "action",
+            "title": "Prendre la navette vers le bourg",
+            "payload": {
+              "kind": "action",
+              "parameters": {},
+              "interactiveCommand": {
+                "kind": "warp",
+                "destinationMapId": "map_bourg_selbrume",
+                "warpId": "warp_bourg_port_arrival"
+              }
+            }
+          },
+          {
+            "id": "node_end",
+            "kind": "end",
+            "title": "Fin",
+            "payload": {
+              "kind": "end"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_node_start_node_1",
+            "fromNodeId": "node_start",
+            "fromPortId": "completed",
+            "toNodeId": "node_1",
+            "kind": "default",
+            "label": "completed"
+          },
+          {
+            "id": "edge_node_1_node_end",
+            "fromNodeId": "node_1",
+            "fromPortId": "completed",
+            "toNodeId": "node_end",
+            "kind": "actionCompleted",
+            "label": "completed"
+          }
+        ]
+      },
+      "layout": {
+        "nodeLayouts": [
+          {
+            "nodeId": "node_start",
+            "x": 24.0,
+            "y": 80.0
+          },
+          {
+            "nodeId": "node_1",
+            "x": 324.0,
+            "y": 80.0
+          },
+          {
+            "nodeId": "node_end",
+            "x": 624.0,
             "y": 80.0
           }
         ],
@@ -64630,6 +65037,78 @@
           "order": 31
         },
         "enabled": true
+      },
+      {
+        "state": "configured",
+        "definition": {
+          "id": "evt_019abcde-5000-7000-8000-000000000037",
+          "name": "Consulter le Comptoir des Brisants",
+          "source": {
+            "kind": "entityInteract",
+            "mapId": "map_port_brisants",
+            "entityId": "service_port_shop"
+          },
+          "conditions": [],
+          "sceneId": "scene_port_shop",
+          "reusePolicy": "reusable",
+          "priority": 0,
+          "order": 40
+        },
+        "enabled": true
+      },
+      {
+        "state": "configured",
+        "definition": {
+          "id": "evt_019abcde-5000-7000-8000-000000000038",
+          "name": "Utiliser le terminal PC du port",
+          "source": {
+            "kind": "entityInteract",
+            "mapId": "map_port_brisants",
+            "entityId": "service_port_pc"
+          },
+          "conditions": [],
+          "sceneId": "scene_port_pc",
+          "reusePolicy": "reusable",
+          "priority": 0,
+          "order": 41
+        },
+        "enabled": true
+      },
+      {
+        "state": "configured",
+        "definition": {
+          "id": "evt_019abcde-5000-7000-8000-000000000039",
+          "name": "Utiliser le poste de soins du port",
+          "source": {
+            "kind": "entityInteract",
+            "mapId": "map_port_brisants",
+            "entityId": "service_port_healing"
+          },
+          "conditions": [],
+          "sceneId": "scene_port_healing",
+          "reusePolicy": "reusable",
+          "priority": 0,
+          "order": 42
+        },
+        "enabled": true
+      },
+      {
+        "state": "configured",
+        "definition": {
+          "id": "evt_019abcde-5000-7000-8000-000000000040",
+          "name": "Prendre la navette vers le bourg",
+          "source": {
+            "kind": "entityInteract",
+            "mapId": "map_port_brisants",
+            "entityId": "service_port_ferry"
+          },
+          "conditions": [],
+          "sceneId": "scene_port_return_bourg",
+          "reusePolicy": "reusable",
+          "priority": 0,
+          "order": 43
+        },
+        "enabled": true
       }
     ],
     "legacyClaims": []
@@ -64769,5 +65248,31 @@
         }
       }
     ]
-  }
+  },
+  "shops": [
+    {
+      "id": "shop_port_supplies",
+      "label": "Comptoir des Brisants",
+      "entries": [
+        {
+          "itemId": "potion",
+          "price": 300,
+          "stock": 99
+        },
+        {
+          "itemId": "antidote",
+          "price": 100,
+          "stock": 99
+        }
+      ]
+    }
+  ],
+  "badges": [
+    {
+      "id": "badge_brisants",
+      "label": "Badge des Brisants",
+      "iconRelativePath": null,
+      "fieldAbilityUnlock": "surf"
+    }
+  ]
 }

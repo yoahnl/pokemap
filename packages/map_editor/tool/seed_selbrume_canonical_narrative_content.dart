@@ -74,6 +74,10 @@ const canonicalSelbrumeSceneIds = <String>{
   'scene_final_pokemon',
   'scene_mist_disperses',
   'scene_ending_port',
+  'scene_port_shop',
+  'scene_port_pc',
+  'scene_port_healing',
+  'scene_port_return_bourg',
 };
 
 const canonicalSelbrumeFactIds = <String>{
@@ -152,6 +156,10 @@ const _eventRivalAfterWin = 'evt_019abcde-5000-7000-8000-000000000033';
 const _eventRivalAfterLoss = 'evt_019abcde-5000-7000-8000-000000000034';
 const _eventFisherKeepReward = 'evt_019abcde-5000-7000-8000-000000000035';
 const _eventMistDisperses = 'evt_019abcde-5000-7000-8000-000000000036';
+const _eventPortShop = 'evt_019abcde-5000-7000-8000-000000000037';
+const _eventPortPc = 'evt_019abcde-5000-7000-8000-000000000038';
+const _eventPortHealing = 'evt_019abcde-5000-7000-8000-000000000039';
+const _eventPortFerry = 'evt_019abcde-5000-7000-8000-000000000040';
 
 const _prettyJson = JsonEncoder.withIndent('  ');
 const selbrumeNarrativeSeedAuthoringContract = 'canonicalSeedAutomation';
@@ -237,6 +245,16 @@ Future<SelbrumeNarrativeSeedResult> seedSelbrumeCanonicalNarrativeContent(
     project,
     'facts',
     _canonicalFacts().map((entry) => entry.toJson()).toList(),
+  );
+  _upsertProjectEntries(
+    project,
+    'shops',
+    _canonicalShops().map((entry) => entry.toJson()).toList(),
+  );
+  _upsertProjectEntries(
+    project,
+    'badges',
+    _canonicalBadges().map((entry) => entry.toJson()).toList(),
   );
   _upsertProjectEntries(
     project,
@@ -890,6 +908,25 @@ String _factDescription(String id) {
   return 'État narratif canonique issu de MVP Selbrume/selbrume.md.';
 }
 
+List<ShopDefinition> _canonicalShops() => const <ShopDefinition>[
+      ShopDefinition(
+        id: 'shop_port_supplies',
+        label: 'Comptoir des Brisants',
+        entries: <ShopEntryDefinition>[
+          ShopEntryDefinition(itemId: 'potion', price: 300, stock: 99),
+          ShopEntryDefinition(itemId: 'antidote', price: 100, stock: 99),
+        ],
+      ),
+    ];
+
+List<BadgeDefinition> _canonicalBadges() => const <BadgeDefinition>[
+      BadgeDefinition(
+        id: 'badge_brisants',
+        label: 'Badge des Brisants',
+        fieldAbilityUnlock: FieldAbility.surf,
+      ),
+    ];
+
 List<SceneAsset> _canonicalScenes() => <SceneAsset>[
       _maelNewGameScene(),
       _choiceScene(
@@ -968,6 +1005,14 @@ List<SceneAsset> _canonicalScenes() => <SceneAsset>[
           _factBeat(
               'fact_rival_port_defeated', 'Mémoriser la victoire contre Lysa'),
           _factBeat('fact_lysa_respects_player', 'Gagner le respect de Lysa'),
+          _awardBadgeBeat(
+            'badge_brisants',
+            'Recevoir le Badge des Brisants',
+          ),
+          _unlockFieldAbilityBeat(
+            FieldAbility.surf,
+            'Débloquer Surf après la victoire',
+          ),
           _factBeat('fact_lysa_goes_ahead', 'Envoyer Lysa en éclaireuse'),
           _cinematicBeat('cinematic_rival_depart_win'),
           _stepBeat('step_rival_battle', 'Faire converger la branche victoire'),
@@ -1378,6 +1423,59 @@ List<SceneAsset> _canonicalScenes() => <SceneAsset>[
           _stepBeat('step_main_story_completed', 'Clore l’histoire principale'),
         ],
       ),
+      _linearScene(
+        id: 'scene_port_shop',
+        name: 'Comptoir des Brisants',
+        storylineId: 'story_main_brume_phare',
+        chapterId: 'chapter_1_port',
+        description: 'Boutique physique et réutilisable du port.',
+        beats: <_SceneBeat>[
+          _interactiveBeat(
+            'Ouvrir le Comptoir des Brisants',
+            SceneInteractiveCommand.openShop(shopId: 'shop_port_supplies'),
+          ),
+        ],
+      ),
+      _linearScene(
+        id: 'scene_port_pc',
+        name: 'Terminal PC du port',
+        storylineId: 'story_main_brume_phare',
+        chapterId: 'chapter_1_port',
+        description: 'Terminal PC physique et réutilisable du port.',
+        beats: <_SceneBeat>[
+          _interactiveBeat(
+            'Ouvrir le stockage Pokémon',
+            SceneInteractiveCommand.openPc(storageId: 'selbrume_pc'),
+          ),
+        ],
+      ),
+      _linearScene(
+        id: 'scene_port_healing',
+        name: 'Poste de soins du port',
+        storylineId: 'story_main_brume_phare',
+        chapterId: 'chapter_1_port',
+        description: 'Soin complet physique et réutilisable du port.',
+        beats: <_SceneBeat>[
+          _healPartyBeat('Soigner toute l’équipe'),
+        ],
+      ),
+      _linearScene(
+        id: 'scene_port_return_bourg',
+        name: 'Navette vers le bourg',
+        storylineId: 'story_main_brume_phare',
+        chapterId: 'chapter_1_port',
+        description:
+            'Transport optionnel ; les connexions pédestres restent intactes.',
+        beats: <_SceneBeat>[
+          _interactiveBeat(
+            'Prendre la navette vers le bourg',
+            SceneInteractiveCommand.warp(
+              destinationMapId: 'map_bourg_selbrume',
+              warpId: 'warp_bourg_port_arrival',
+            ),
+          ),
+        ],
+      ),
     ];
 
 SceneAsset _crystalScene(int index) => _linearScene(
@@ -1458,6 +1556,32 @@ _SceneBeat _giveItemBeat(String itemId, int quantity, String label) =>
         ),
       ),
     );
+
+_SceneBeat _healPartyBeat(String label) => _SceneBeat(
+      label,
+      SceneActionPayload.consequence(SceneConsequence.healParty(label: label)),
+    );
+
+_SceneBeat _awardBadgeBeat(String badgeId, String label) => _SceneBeat(
+      label,
+      SceneActionPayload.consequence(
+        SceneConsequence.awardBadge(badgeId: badgeId, label: label),
+      ),
+    );
+
+_SceneBeat _unlockFieldAbilityBeat(FieldAbility ability, String label) =>
+    _SceneBeat(
+      label,
+      SceneActionPayload.consequence(
+        SceneConsequence.unlockFieldAbility(ability: ability, label: label),
+      ),
+    );
+
+_SceneBeat _interactiveBeat(
+  String label,
+  SceneInteractiveCommand command,
+) =>
+    _SceneBeat(label, SceneActionPayload.interactive(command));
 
 _SceneBeat _giveMoneyBeat(int amount, String label) => _SceneBeat(
       label,
@@ -2990,6 +3114,50 @@ void _seedEventRegistry(Map<String, dynamic> project) {
       order: 31,
       conditions: _factsTrue(<String>['fact_mist_source_resolved']),
     ),
+    _event(
+      _eventPortShop,
+      'Consulter le Comptoir des Brisants',
+      NarrativeEventSourceRef.entityInteract(
+        'map_port_brisants',
+        'service_port_shop',
+      ),
+      'scene_port_shop',
+      order: 40,
+      reusePolicy: NarrativeEventReusePolicy.reusable,
+    ),
+    _event(
+      _eventPortPc,
+      'Utiliser le terminal PC du port',
+      NarrativeEventSourceRef.entityInteract(
+        'map_port_brisants',
+        'service_port_pc',
+      ),
+      'scene_port_pc',
+      order: 41,
+      reusePolicy: NarrativeEventReusePolicy.reusable,
+    ),
+    _event(
+      _eventPortHealing,
+      'Utiliser le poste de soins du port',
+      NarrativeEventSourceRef.entityInteract(
+        'map_port_brisants',
+        'service_port_healing',
+      ),
+      'scene_port_healing',
+      order: 42,
+      reusePolicy: NarrativeEventReusePolicy.reusable,
+    ),
+    _event(
+      _eventPortFerry,
+      'Prendre la navette vers le bourg',
+      NarrativeEventSourceRef.entityInteract(
+        'map_port_brisants',
+        'service_port_ferry',
+      ),
+      'scene_port_return_bourg',
+      order: 43,
+      reusePolicy: NarrativeEventReusePolicy.reusable,
+    ),
   ];
   final byId = <String, NarrativeEventRecord>{
     for (final record in existing.records) record.id: record,
@@ -3236,6 +3404,18 @@ void _seedMap(String mapId, Map<String, dynamic> map) {
           visualElementId: 'el_selbrume_bois_ronces',
         ),
       ]);
+      map['warps'] = _upsertById(
+        _jsonObjects(map['warps']),
+        <Map<String, dynamic>>[
+          const MapWarp(
+            id: 'warp_bourg_port_arrival',
+            pos: GridPos(x: 27, y: 52),
+            targetMapId: 'map_port_brisants',
+            targetPos: GridPos(x: 27, y: 2),
+            triggerMode: MapWarpTriggerMode.onBump,
+          ).toJson(),
+        ],
+      );
       break;
     case 'map_port_brisants':
       map['placedElements'] = _jsonObjects(map['placedElements'])
@@ -3274,6 +3454,35 @@ void _seedMap(String mapId, Map<String, dynamic> map) {
             x: 22,
             y: 11,
             elementId: 'el_selbrume_fx_brume_basse',
+          ),
+          _serviceEntity(
+            id: 'service_port_shop',
+            name: 'Comptoir des Brisants',
+            x: 31,
+            y: 17,
+            fallbackText: 'Potions et Antidotes sont disponibles ici.',
+          ),
+          _serviceEntity(
+            id: 'service_port_pc',
+            name: 'Terminal PC du port',
+            x: 35,
+            y: 17,
+            fallbackText: 'Un terminal de stockage Pokémon est allumé.',
+          ),
+          _serviceEntity(
+            id: 'service_port_healing',
+            name: 'Poste de soins du port',
+            x: 39,
+            y: 17,
+            fallbackText: 'Le poste peut restaurer toute ton équipe.',
+          ),
+          _serviceEntity(
+            id: 'service_port_ferry',
+            name: 'Navette vers le bourg',
+            x: 24,
+            y: 20,
+            fallbackText: 'Cette navette retourne au bourg de Selbrume.',
+            visualElementId: 'el_port_ref_boat_small',
           ),
         ],
       );
@@ -3393,6 +3602,36 @@ void _seedMap(String mapId, Map<String, dynamic> map) {
             y: 8,
             elementId: 'el_selbrume_fx_brume_basse',
           ),
+          _visualEntity(
+            id: 'surf_gate_marker',
+            name: 'Chenal du Passage des Dames',
+            x: 48,
+            y: 10,
+            elementId: 'el_selbrume_passage_ecume_v',
+          ),
+        ],
+      );
+      map['gameplayZones'] = _upsertById(
+        _jsonObjects(map['gameplayZones']),
+        <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 'zone_passage_surf_gate',
+            'name': 'Chenal nécessitant Surf',
+            'kind': 'movement',
+            'area': <String, dynamic>{
+              'pos': <String, dynamic>{'x': 48, 'y': 0},
+              'size': <String, dynamic>{'width': 3, 'height': 24},
+            },
+            'priority': 100,
+            'encounter': null,
+            'movement': <String, dynamic>{
+              'requiredMode': 'surf',
+              'allowedModes': <dynamic>[],
+            },
+            'movementEffect': null,
+            'hazard': null,
+            'special': null,
+          },
         ],
       );
       break;
@@ -3636,6 +3875,38 @@ Map<String, dynamic> _gateEntity({
       },
     };
 
+Map<String, dynamic> _serviceEntity({
+  required String id,
+  required String name,
+  required int x,
+  required int y,
+  required String fallbackText,
+  String visualElementId = 'el_port_ref_sign_small',
+}) =>
+    <String, dynamic>{
+      'id': id,
+      'name': name,
+      'kind': 'sign',
+      'pos': <String, dynamic>{'x': x, 'y': y},
+      'size': <String, dynamic>{'width': 1, 'height': 1},
+      'npc': null,
+      'sign': <String, dynamic>{
+        'title': name,
+        'dialogue': null,
+        'plainText': fallbackText,
+      },
+      'item': null,
+      'spawn': null,
+      'editorVisual': <String, dynamic>{
+        'elementId': visualElementId,
+        'renderInForeground': false,
+      },
+      'blocksMovement': true,
+      'properties': <String, String>{
+        'contractRole': 'selbrume_player_service_source',
+      },
+    };
+
 Map<String, dynamic> _visualEntity({
   required String id,
   required String name,
@@ -3761,6 +4032,7 @@ title: RivalAfterWin
 tags: selbrume chapter-1
 ---
 Lysa: D'accord, tu as gagné mon respect. Tu peux tenir le rythme ; je pars devant reconnaître les marais.
+Lysa: Prends le Badge des Brisants. Il autorise Surf : le chenal du Passage des Dames ne te bloquera plus.
 ===
 title: RivalAfterLoss
 tags: selbrume chapter-1
@@ -3773,6 +4045,7 @@ tags: selbrume chapter-2 side-quest
 ---
 Mado: La brume fait chanter le sel. Écoute bien : trois notes manquent dans les marais.
 Mado: Ce sont mes cristaux. Retrouve-les et ils nous diront d'où vient cette énergie.
+Mado: Le port possède un comptoir, un terminal PC et un poste de soins si tu dois te préparer.
 -> Accepter d'aider
     <<outcome accept_help>>
     Joueur: Je chercherai les trois cristaux.
@@ -3846,6 +4119,7 @@ Maël: Regarde le large. Pour la première fois depuis des jours, on distingue l
 Soline: Les bateaux peuvent repartir et le Passage des Dames restera sûr tant que le phare gardera ce rythme.
 Lysa: Ne prends pas cet air satisfait. La prochaine fois, je gagne.
 Narration: Les pêcheurs détachent leurs barques, les étals rouvrent et, au loin, le phare envoie un faisceau stable au-dessus de Selbrume.
+Narration: Le comptoir, le terminal PC, le poste de soins et la navette restent accessibles sur les quais.
 ===
 ''',
   'goelise_port.yarn': '''title: FisherIntro
@@ -3917,6 +4191,7 @@ Carnet d'Yvon: Un Pokémon effrayé peut transformer la lentille en amplificateu
 tags: selbrume world-state chapter-1
 ---
 Maël: Le Port des Brisants t’attend. Écoute Soline et ne sous-estime pas Lysa.
+Maël: Sur les quais, tu trouveras de quoi acheter des soins, gérer ton équipe et revenir au bourg.
 ===
 ''',
   'mael_epilogue.yarn': '''title: MaelEpilogue

@@ -19549,6 +19549,122 @@
       "properties": {
         "contractRole": "selbrume_world_state_visual"
       }
+    },
+    {
+      "id": "service_port_shop",
+      "name": "Comptoir des Brisants",
+      "kind": "sign",
+      "pos": {
+        "x": 31,
+        "y": 17
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": {
+        "title": "Comptoir des Brisants",
+        "dialogue": null,
+        "plainText": "Potions et Antidotes sont disponibles ici."
+      },
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_port_ref_sign_small",
+        "renderInForeground": false
+      },
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_player_service_source"
+      }
+    },
+    {
+      "id": "service_port_pc",
+      "name": "Terminal PC du port",
+      "kind": "sign",
+      "pos": {
+        "x": 35,
+        "y": 17
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": {
+        "title": "Terminal PC du port",
+        "dialogue": null,
+        "plainText": "Un terminal de stockage Pokémon est allumé."
+      },
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_port_ref_sign_small",
+        "renderInForeground": false
+      },
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_player_service_source"
+      }
+    },
+    {
+      "id": "service_port_healing",
+      "name": "Poste de soins du port",
+      "kind": "sign",
+      "pos": {
+        "x": 39,
+        "y": 17
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": {
+        "title": "Poste de soins du port",
+        "dialogue": null,
+        "plainText": "Le poste peut restaurer toute ton équipe."
+      },
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_port_ref_sign_small",
+        "renderInForeground": false
+      },
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_player_service_source"
+      }
+    },
+    {
+      "id": "service_port_ferry",
+      "name": "Navette vers le bourg",
+      "kind": "sign",
+      "pos": {
+        "x": 24,
+        "y": 20
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": {
+        "title": "Navette vers le bourg",
+        "dialogue": null,
+        "plainText": "Cette navette retourne au bourg de Selbrume."
+      },
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_port_ref_boat_small",
+        "renderInForeground": false
+      },
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_player_service_source"
+      }
     }
   ],
   "connections": [

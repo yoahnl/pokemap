@@ -31047,6 +31047,26 @@
         "bottom": 8,
         "left": 0
       }
+    },
+    {
+      "id": "warp_bourg_port_arrival",
+      "pos": {
+        "x": 27,
+        "y": 52
+      },
+      "targetMapId": "map_port_brisants",
+      "targetPos": {
+        "x": 27,
+        "y": 2
+      },
+      "triggerMode": "on_bump",
+      "allowedApproachFacings": [],
+      "triggerPadding": {
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      }
     }
   ],
   "triggers": [],

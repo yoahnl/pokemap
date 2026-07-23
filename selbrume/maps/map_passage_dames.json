@@ -11865,6 +11865,31 @@
       "properties": {
         "contractRole": "selbrume_world_state_visual"
       }
+    },
+    {
+      "id": "surf_gate_marker",
+      "name": "Chenal du Passage des Dames",
+      "kind": "custom",
+      "pos": {
+        "x": 48,
+        "y": 10
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_passage_ecume_v",
+        "renderInForeground": false
+      },
+      "blocksMovement": false,
+      "properties": {
+        "contractRole": "selbrume_world_state_visual"
+      }
     }
   ],
   "connections": [
@@ -11928,6 +11953,30 @@
           "inert": "true"
         }
       }
+    },
+    {
+      "id": "zone_passage_surf_gate",
+      "name": "Chenal nécessitant Surf",
+      "kind": "movement",
+      "area": {
+        "pos": {
+          "x": 48,
+          "y": 0
+        },
+        "size": {
+          "width": 3,
+          "height": 24
+        }
+      },
+      "priority": 100,
+      "encounter": null,
+      "movement": {
+        "requiredMode": "surf",
+        "allowedModes": []
+      },
+      "movementEffect": null,
+      "hazard": null,
+      "special": null
     }
   ],
   "mapMetadata": {

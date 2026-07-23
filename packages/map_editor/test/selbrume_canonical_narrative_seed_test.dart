@@ -271,6 +271,7 @@ void main() {
       'character_yvon',
     );
     _expectWorldStateContract(manifest, mapsById);
+    _expectPlayerServicesContract(manifest, mapsById);
     _expectCanonicalEventProgression(manifest);
     _expectSelbrumeSpecificationMatrix(manifest);
     _expectCanonicalOutcomePolicies(manifest);
@@ -358,6 +359,141 @@ void main() {
       );
     }
   });
+}
+
+void _expectPlayerServicesContract(
+  ProjectManifest manifest,
+  Map<String, MapData> mapsById,
+) {
+  final shop = manifest.shops.singleWhere(
+    (entry) => entry.id == 'shop_port_supplies',
+  );
+  expect(shop.label, 'Comptoir des Brisants');
+  expect(
+    shop.entries.map((entry) => entry.itemId),
+    const <String>['potion', 'antidote'],
+  );
+
+  final badge = manifest.badges.singleWhere(
+    (entry) => entry.id == 'badge_brisants',
+  );
+  expect(badge.label, 'Badge des Brisants');
+  expect(badge.fieldAbilityUnlock, FieldAbility.surf);
+
+  final serviceCommands = <String, SceneInteractiveCommand>{
+    for (final sceneId in const <String>[
+      'scene_port_shop',
+      'scene_port_pc',
+      'scene_port_return_bourg',
+    ])
+      sceneId: manifest.scenes
+          .singleWhere((scene) => scene.id == sceneId)
+          .graph
+          .nodes
+          .map((node) => node.payload)
+          .whereType<SceneActionPayload>()
+          .map((payload) => payload.interactiveCommand)
+          .whereType<SceneInteractiveCommand>()
+          .single,
+  };
+  expect(
+    serviceCommands['scene_port_shop'],
+    SceneInteractiveCommand.openShop(shopId: 'shop_port_supplies'),
+  );
+  expect(
+    serviceCommands['scene_port_pc'],
+    SceneInteractiveCommand.openPc(storageId: 'selbrume_pc'),
+  );
+  expect(
+    serviceCommands['scene_port_return_bourg'],
+    SceneInteractiveCommand.warp(
+      destinationMapId: 'map_bourg_selbrume',
+      warpId: 'warp_bourg_port_arrival',
+    ),
+  );
+
+  final healingConsequences = manifest.scenes
+      .singleWhere((scene) => scene.id == 'scene_port_healing')
+      .graph
+      .nodes
+      .map((node) => node.payload)
+      .whereType<SceneActionPayload>()
+      .map((payload) => payload.consequence)
+      .whereType<SceneHealPartyConsequence>();
+  expect(healingConsequences, hasLength(1));
+
+  final victoryConsequences = manifest.scenes
+      .singleWhere((scene) => scene.id == 'scene_rival_after_win')
+      .graph
+      .nodes
+      .map((node) => node.payload)
+      .whereType<SceneActionPayload>()
+      .map((payload) => payload.consequence)
+      .whereType<SceneConsequence>()
+      .toList();
+  expect(
+    victoryConsequences.whereType<SceneAwardBadgeConsequence>().single.badgeId,
+    'badge_brisants',
+  );
+  expect(
+    victoryConsequences
+        .whereType<SceneUnlockFieldAbilityConsequence>()
+        .single
+        .ability,
+    FieldAbility.surf,
+  );
+
+  final port = mapsById['map_port_brisants']!;
+  expect(
+    port.entities.map((entity) => entity.id),
+    containsAll(const <String>[
+      'service_port_shop',
+      'service_port_pc',
+      'service_port_healing',
+      'service_port_ferry',
+    ]),
+  );
+  final portSources = manifest.eventRegistry!.records
+      .map((record) => record.definitionOrNull)
+      .whereType<NarrativeEventDefinition>()
+      .map(
+        (event) => event.source.when<String?>(
+          entityInteract: (mapId, entityId) =>
+              mapId == 'map_port_brisants' ? entityId : null,
+          triggerEnter: (_, __) => null,
+          mapEnter: (_) => null,
+          outcomeReceived: (_) => null,
+        ),
+      )
+      .whereType<String>()
+      .toSet();
+  expect(
+    portSources,
+    containsAll(const <String>{
+      'service_port_shop',
+      'service_port_pc',
+      'service_port_healing',
+      'service_port_ferry',
+    }),
+  );
+
+  final passage = mapsById['map_passage_dames']!;
+  final surfGate = passage.gameplayZones.singleWhere(
+    (zone) => zone.id == 'zone_passage_surf_gate',
+  );
+  expect(surfGate.kind, GameplayZoneKind.movement);
+  expect(surfGate.movement!.requiredMode, MovementMode.surf);
+  expect(
+    passage.entities.map((entity) => entity.id),
+    contains('surf_gate_marker'),
+  );
+
+  final bourg = mapsById['map_bourg_selbrume']!;
+  final arrival = bourg.warps.singleWhere(
+    (warp) => warp.id == 'warp_bourg_port_arrival',
+  );
+  expect(arrival.triggerMode, MapWarpTriggerMode.onBump);
+  expect(arrival.targetMapId, 'map_port_brisants');
 }
 
 void _expectSelbrumeSpecificationMatrix(ProjectManifest manifest) {
