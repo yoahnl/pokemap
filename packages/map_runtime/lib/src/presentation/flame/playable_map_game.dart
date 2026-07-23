@@ -41,6 +41,7 @@ import '../../application/narrative_spatial_production_dispatch_bridge.dart';
 import '../../application/npc_overworld_movement_defaults.dart';
 import '../../application/npc_runtime_presence.dart';
 import '../../application/placed_behavior_runtime_cooldown.dart';
+import '../../application/player_service_runtime_controller.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_battle_setup_mapper.dart';
 import '../../application/runtime_battle_outcome_apply.dart';
@@ -66,6 +67,7 @@ import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_adapter
 import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_result.dart';
 import '../../application/scene_runtime/scene_event_runtime_hook.dart';
 import '../../application/scene_runtime/scene_fact_condition_runtime_resolver.dart';
+import '../../application/scene_runtime/scene_interactive_command_runtime_executor.dart';
 import '../../application/scene_runtime/scene_runtime_host_callbacks.dart';
 import '../../application/scene_runtime/scene_runtime_hook_result.dart';
 import '../../application/scenario_runtime/scenario_runtime_executor.dart';
@@ -354,6 +356,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _pendingSceneBattleOutcomeCompleter;
   String? _pendingSceneBattleRequestId;
   _NarrativeSceneWorkingSession? _activeNarrativeSceneWorkingSession;
+  PlayerServiceRuntimeController? _playerServiceRuntimeController;
   Completer<SceneDialogueRuntimeAwaitableResult>?
       _pendingSceneDialogueCompleter;
   String? _pendingSceneDialogueRequestId;
@@ -1579,6 +1582,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
     }
     return _gameState;
+  }
+
+  /// Snapshot used by a Shop/PC route opened from an executing Scene.
+  ///
+  /// Consequences already applied inside the Scene live in its working
+  /// session until the Scene transaction completes, so the overlay must not
+  /// fall back to the older Flame snapshot.
+  GameState get playerServiceGameStateSnapshot =>
+      _activeNarrativeSceneWorkingSession?.gameState ?? gameStateSnapshot;
+
+  /// Installs the host-owned Shop/PC coordinator after the Flame game exists.
+  ///
+  /// The host needs the game instance to provide state, save and input-lock
+  /// callbacks, which makes post-construction attachment explicit and avoids a
+  /// circular constructor dependency.
+  void setPlayerServiceRuntimeController(
+    PlayerServiceRuntimeController controller,
+  ) {
+    _playerServiceRuntimeController = controller;
   }
 
   /// Commits a player-service mutation to the live narrative state and save.
@@ -8171,6 +8193,151 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           return scenePortId;
         });
       },
+      executeInteractiveCommand: SceneInteractiveCommandRuntimeExecutor(
+        warp: (command) => _executeSceneWarpCommand(
+          command,
+          currentGameState: currentGameState,
+        ),
+        openShop: _executeSceneOpenShopCommand,
+        openPc: _executeSceneOpenPcCommand,
+      ).execute,
+    );
+  }
+
+  Future<String> _executeSceneWarpCommand(
+    SceneInteractiveCommand command, {
+    required GameState Function() currentGameState,
+  }) async {
+    if (command is! SceneWarpInteractiveCommand) return 'blocked';
+    if (!isLoaded) {
+      _notifySceneCommand('Warp indisponible avant le chargement de la map.');
+      return 'blocked';
+    }
+    try {
+      final destination = await _loadRuntimeMapBundleCached(
+        command.destinationMapId,
+      );
+      MapWarp? arrival;
+      for (final warp in destination.map.warps) {
+        if (warp.id == command.warpId) {
+          arrival = warp;
+          break;
+        }
+      }
+      if (arrival == null) {
+        _notifySceneCommand(
+          'Warp ${command.warpId} introuvable sur '
+          '${command.destinationMapId}.',
+        );
+        return 'blocked';
+      }
+
+      // Preserve all consequences already accumulated by the Scene before the
+      // existing transition pipeline synchronizes the map and player position.
+      _applyNarrativeGameState(currentGameState());
+      await _handleWarp(
+        TriggeredWarp(
+          warpId: command.warpId,
+          targetMapId: command.destinationMapId,
+          targetPos: arrival.pos,
+          triggerMode: arrival.triggerMode,
+        ),
+        allowMapActivationWork: true,
+      );
+      final completed = _activeMapId == command.destinationMapId &&
+          _world.player.pos == arrival.pos;
+      if (!completed) return 'blocked';
+      final session = _activeNarrativeSceneWorkingSession;
+      if (session != null) session.gameState = _gameState;
+      return 'completed';
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[scene_runtime] warp command failed '
+        'map=${command.destinationMapId} warp=${command.warpId} '
+        'error=$error\n$stackTrace',
+      );
+      _notifySceneCommand('Warp impossible.');
+      return 'blocked';
+    }
+  }
+
+  Future<String> _executeSceneOpenShopCommand(
+    SceneInteractiveCommand command,
+  ) async {
+    if (command is! SceneOpenShopInteractiveCommand) return 'cancelled';
+    ShopDefinition? shop;
+    for (final candidate in _bundle.manifest.shops) {
+      if (candidate.id == command.shopId) {
+        shop = candidate;
+        break;
+      }
+    }
+    if (shop == null) {
+      _notifySceneCommand('Boutique ${command.shopId} introuvable.');
+      return 'cancelled';
+    }
+    final controller = _playerServiceRuntimeController;
+    if (controller == null) {
+      _notifySceneCommand('Boutique indisponible dans ce host.');
+      return 'cancelled';
+    }
+    return _scenePortForPlayerService(await controller.openShop(shop));
+  }
+
+  Future<String> _executeSceneOpenPcCommand(
+    SceneInteractiveCommand command,
+  ) async {
+    if (command is! SceneOpenPcInteractiveCommand) return 'cancelled';
+    final controller = _playerServiceRuntimeController;
+    if (controller == null) {
+      _notifySceneCommand('PC indisponible dans ce host.');
+      return 'cancelled';
+    }
+    return _scenePortForPlayerService(await controller.openPc());
+  }
+
+  String _scenePortForPlayerService(PlayerServiceRuntimeResult result) {
+    switch (result.status) {
+      case PlayerServiceRuntimeStatus.completed:
+        final nextState = result.gameState;
+        if (nextState == null) {
+          _notifySceneCommand('Service joueur incomplet.');
+          return 'cancelled';
+        }
+        final session = _activeNarrativeSceneWorkingSession;
+        if (session != null) session.gameState = nextState;
+        return 'completed';
+      case PlayerServiceRuntimeStatus.cancelled:
+        return 'cancelled';
+      case PlayerServiceRuntimeStatus.busy:
+        _notifySceneCommand('Un service joueur est déjà ouvert.');
+        return 'cancelled';
+      case PlayerServiceRuntimeStatus.failed:
+        debugPrint('[scene_runtime] player service failed: ${result.error}');
+        _notifySceneCommand('Service joueur impossible.');
+        return 'cancelled';
+    }
+  }
+
+  void _notifySceneCommand(String message) {
+    if (isLoaded) {
+      _showNotification(message);
+    } else {
+      debugPrint('[scene_runtime] $message');
+    }
+  }
+
+  @visibleForTesting
+  Future<String> debugExecuteSceneInteractiveCommand(
+    SceneInteractiveCommand command,
+  ) async {
+    final callback = _buildSceneRuntimeHostCallbacks(
+      runtimeSourceId: 'debug:interactive-command',
+      defaultNpcEntityId: 'debug',
+      currentGameState: () => playerServiceGameStateSnapshot,
+    ).executeInteractiveCommand!;
+    return await callback(
+      SceneRuntimePlanIntent.executeInteractiveCommand(command: command),
     );
   }
 

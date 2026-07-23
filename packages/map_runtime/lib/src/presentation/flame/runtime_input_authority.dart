@@ -19,6 +19,7 @@ enum RuntimeInputContext {
 /// wrong overlay when more player surfaces are added later.
 enum RuntimeExternalInputLock {
   pauseMenu,
+  playerService,
 }
 
 /// Immutable explanation of which player surface currently owns input.

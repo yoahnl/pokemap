@@ -1130,7 +1130,7 @@ Objectif : permettre aux créateurs de faire les événements Pokémon classique
 |---|---|---|---|
 | FG-080 | Event Command Model V0 | `⬜ TODO` | — |
 | FG-081 | Condition Builder No-code V0 | `⬜ TODO` | — |
-| FG-082 | Runtime Command Executor V0 | `⬜ TODO` | — |
+| FG-082 | Runtime Command Executor V0 | `🟡 PARTIAL` | Executor interactif branché dans `PlayableMapGame` ; gate exhaustive Task 4.4 restante |
 | FG-083 | Give/Take Item Commands V0 | `⬜ TODO` | — |
 | FG-084 | Give Pokémon Command V0 | `⬜ TODO` | — |
 | FG-085 | Heal Party Command V0 | `⬜ TODO` | — |
@@ -1138,8 +1138,8 @@ Objectif : permettre aux créateurs de faire les événements Pokémon classique
 | FG-087 | Start Static Encounter Command V0 | `⬜ TODO` | — |
 | FG-088 | Set Flag / Variable Commands V0 | `⬜ TODO` | — |
 | FG-089 | Unlock Field Ability / Badge Commands V0 | `⬜ TODO` | — |
-| FG-090 | Warp Command V0 | `⬜ TODO` | — |
-| FG-091 | Open Shop / Open PC Commands V0 | `⬜ TODO` | — |
+| FG-090 | Warp Command V0 | `🟡 PARTIAL` | Pipeline de transition réel et ports `completed`/`blocked` ; validation editor Task 4.3 restante |
+| FG-091 | Open Shop / Open PC Commands V0 | `🟡 PARTIAL` | Controller, routes host et ports `completed`/`cancelled` branchés ; gate Task 4.4 restante |
 | FG-092 | NPC Move / Presence Commands V0 | `⬜ TODO` | — |
 | FG-093 | Action Builder UI V0 | `⬜ TODO` | — |
 | FG-094 | Event Templates V0 | `⬜ TODO` | — |

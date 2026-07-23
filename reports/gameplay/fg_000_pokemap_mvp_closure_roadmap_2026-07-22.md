@@ -603,12 +603,18 @@ exécutable par le runtime réel.
 - Modify: `packages/map_runtime/test/narrative_command_save_load_integration_test.dart`
 - Create: `packages/map_runtime/test/playable_map_game_scene_interactive_command_integration_test.dart`
 
-- [ ] **Step 1:** Installer réellement `executeInteractiveCommand` dans `_buildSceneRuntimeHostCallbacks`.
-- [ ] **Step 2:** Faire utiliser à `warp` le pipeline de transition de map existant.
-- [ ] **Step 3:** Faire ouvrir shop et PC via le controller Phase 3.
-- [ ] **Step 4:** Renvoyer un port Scene déclaré pour succès, annulation et erreur.
-- [ ] **Step 5:** Tester save/reload après chaque commande et disparition du message « No interactive Scene command executor is installed ».
-- [ ] **Step 6:** Commit proposé : `feat(runtime): execute interactive Scene commands`.
+- [x] **Step 1:** Installer réellement `executeInteractiveCommand` dans `_buildSceneRuntimeHostCallbacks`.
+- [x] **Step 2:** Faire utiliser à `warp` le pipeline de transition de map existant.
+- [x] **Step 3:** Faire ouvrir shop et PC via le controller Phase 3.
+- [x] **Step 4:** Renvoyer un port Scene déclaré pour succès, annulation et erreur.
+- [x] **Step 5:** Tester save/reload après chaque commande et disparition du message « No interactive Scene command executor is installed ».
+- [x] **Step 6:** Commit proposé : `feat(runtime): execute interactive Scene commands`.
+
+**Preuve fraîche (2026-07-23) :** le host installe le controller après la
+création de `PlayableMapGame`, les routes Shop/PC restent transactionnelles et
+les trois commandes interactives disposent d'un callback Scene réel et d'une
+reprise durable testée. FG-082/090/091 restent `PARTIAL` jusqu'aux validations
+editor et à la gate de parité des Tasks 4.3/4.4.
 
 ## Task 4.2 — FG-085 / FG-089 : conséquences gameplay manquantes
 

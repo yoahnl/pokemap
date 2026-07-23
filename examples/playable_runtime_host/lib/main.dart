@@ -12,6 +12,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'src/in_game_menu.dart';
+import 'src/in_game_pc_page.dart';
+import 'src/in_game_shop_page.dart';
 import 'src/runtime_demo_party_seed.dart';
 import 'src/runtime_gamepad_bridge.dart';
 import 'src/runtime_gamepad_presence.dart';
@@ -569,6 +571,25 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         projectFilePath: projectFilePath,
         saveData: launchPlan.saveData,
         initialMapActivationReason: launchPlan.initialMapActivationReason,
+      );
+      nextGame.setPlayerServiceRuntimeController(
+        PlayerServiceRuntimeController(
+          currentGameState: () => nextGame.playerServiceGameStateSnapshot,
+          host: _RuntimePlayerServiceOverlayHost(
+            contextBuilder: () => context,
+            isMounted: () => mounted,
+          ),
+          commitAndSave: nextGame.commitAndSavePlayerServiceState,
+          setInputLocked: (locked) => nextGame.setExternalInputLock(
+            RuntimeExternalInputLock.playerService,
+            locked: locked,
+          ),
+          loadRecoveryCaps: (state) => loadRuntimePlayerServiceRecoveryCaps(
+            gameState: state,
+            projectRootDirectory: bundle.projectRootDirectory,
+            pokemonConfig: bundle.manifest.pokemon,
+          ),
+        ),
       );
       _runtimeHostLog('game instance created mapId=$mapId');
       setState(() {
@@ -1194,6 +1215,140 @@ class _ErrorBanner extends StatelessWidget {
       child: Text(
         message,
         style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+      ),
+    );
+  }
+}
+
+final class _RuntimePlayerServiceOverlayHost
+    implements PlayerServiceOverlayHost {
+  const _RuntimePlayerServiceOverlayHost({
+    required this.contextBuilder,
+    required this.isMounted,
+  });
+
+  final BuildContext Function() contextBuilder;
+  final bool Function() isMounted;
+
+  @override
+  Future<PlayerServiceHostResult> openShop(
+    PlayerServiceShopRequest request,
+  ) {
+    return _open(
+      title: request.shop.label,
+      gameState: request.gameState,
+      bodyBuilder: (state, stageState) => InGameShopPage(
+        gameState: state,
+        shops: <ShopDefinition>[request.shop],
+        onStateCommitted: stageState,
+      ),
+    );
+  }
+
+  @override
+  Future<PlayerServiceHostResult> openPc(PlayerServicePcRequest request) {
+    return _open(
+      title: 'PC Pokémon',
+      gameState: request.gameState,
+      bodyBuilder: (state, stageState) => InGamePcPage(
+        gameState: state,
+        onStateCommitted: stageState,
+      ),
+    );
+  }
+
+  @override
+  Future<PlayerServiceHostResult> openHealCenter(
+    PlayerServiceHealRequest request,
+  ) {
+    throw UnsupportedError(
+      'Healing is a canonical Scene consequence, not an interactive route.',
+    );
+  }
+
+  Future<PlayerServiceHostResult> _open({
+    required String title,
+    required GameState gameState,
+    required _PlayerServiceBodyBuilder bodyBuilder,
+  }) async {
+    if (!isMounted()) {
+      throw StateError('The runtime host is no longer mounted.');
+    }
+    final result = await Navigator.of(contextBuilder()).push<GameState>(
+      MaterialPageRoute<GameState>(
+        builder: (_) => _RuntimePlayerServiceRoute(
+          title: title,
+          initialGameState: gameState,
+          bodyBuilder: bodyBuilder,
+        ),
+      ),
+    );
+    return result == null
+        ? const PlayerServiceHostResult.cancelled()
+        : PlayerServiceHostResult.completed(result);
+  }
+}
+
+typedef _PlayerServiceBodyBuilder = Widget Function(
+  GameState gameState,
+  Future<void> Function(GameState state) stageState,
+);
+
+final class _RuntimePlayerServiceRoute extends StatefulWidget {
+  const _RuntimePlayerServiceRoute({
+    required this.title,
+    required this.initialGameState,
+    required this.bodyBuilder,
+  });
+
+  final String title;
+  final GameState initialGameState;
+  final _PlayerServiceBodyBuilder bodyBuilder;
+
+  @override
+  State<_RuntimePlayerServiceRoute> createState() =>
+      _RuntimePlayerServiceRouteState();
+}
+
+final class _RuntimePlayerServiceRouteState
+    extends State<_RuntimePlayerServiceRoute> {
+  late GameState _gameState = widget.initialGameState;
+
+  Future<void> _stageState(GameState state) async {
+    if (!mounted) return;
+    setState(() => _gameState = state);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.title)),
+      body: Column(
+        children: [
+          Expanded(child: widget.bodyBuilder(_gameState, _stageState)),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    key: const Key('player-service-cancel'),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Annuler'),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton(
+                    key: const Key('player-service-complete'),
+                    onPressed: () => Navigator.of(context).pop(_gameState),
+                    child: const Text('Terminer'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
