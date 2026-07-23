@@ -1,6 +1,8 @@
 import 'package:map_core/map_core.dart';
 
 import 'battle_reward.dart';
+import 'script_condition_evaluator.dart';
+import 'shop_state_resolver.dart';
 
 enum CaptureDestinationKind {
   none,
@@ -70,6 +72,8 @@ enum ShopPurchaseFailure {
   unknownItem,
   insufficientFunds,
   outOfStock,
+  shopClosed,
+  shopStateChanged,
 }
 
 /// Result of one atomic shop purchase against [GameState].
@@ -355,10 +359,85 @@ class GameStateMutations {
     required String categoryId,
     required int quantity,
   }) {
-    final shopId = shop.id.trim();
+    return _purchaseFromShopEntries(
+      state,
+      shopId: shop.id,
+      entries: shop.entries,
+      itemId: itemId,
+      categoryId: categoryId,
+      quantity: quantity,
+    );
+  }
+
+  /// Buys from the shop profile that is still active at transaction time.
+  ///
+  /// The resolver runs again immediately before the mutation. This rejects
+  /// stale screens after progression changes and prevents buying from a closed
+  /// profile. Conditional stock is isolated per state, while the default
+  /// profile keeps the historical stock key for save compatibility.
+  ShopPurchaseResult purchaseFromResolvedShop(
+    GameState state, {
+    required ShopDefinition shop,
+    required String expectedStateId,
+    required String itemId,
+    required String categoryId,
+    required int quantity,
+    ScriptEvaluationContext? conditionContext,
+  }) {
+    final normalizedExpectedStateId = expectedStateId.trim();
+    if (normalizedExpectedStateId.isEmpty) {
+      return ShopPurchaseResult.failed(
+        state: state,
+        totalCost: 0,
+        failure: ShopPurchaseFailure.invalidRequest,
+      );
+    }
+    final resolved = const ShopStateResolver().resolve(
+      shop: shop,
+      gameState: state,
+      conditionContext: conditionContext,
+    );
+    if (resolved.stateId != normalizedExpectedStateId) {
+      return ShopPurchaseResult.failed(
+        state: state,
+        totalCost: 0,
+        failure: ShopPurchaseFailure.shopStateChanged,
+      );
+    }
+    if (!resolved.isOpen) {
+      return ShopPurchaseResult.failed(
+        state: state,
+        totalCost: 0,
+        failure: ShopPurchaseFailure.shopClosed,
+      );
+    }
+    return _purchaseFromShopEntries(
+      state,
+      shopId: resolved.shopId,
+      stateId: resolved.isDefault ? null : resolved.stateId,
+      entries: resolved.entries,
+      itemId: itemId,
+      categoryId: categoryId,
+      quantity: quantity,
+    );
+  }
+
+  ShopPurchaseResult _purchaseFromShopEntries(
+    GameState state, {
+    required String shopId,
+    String? stateId,
+    required List<ShopEntryDefinition> entries,
+    required String itemId,
+    required String categoryId,
+    required int quantity,
+  }) {
     final normalizedItemId = itemId.trim();
     final normalizedCategoryId = categoryId.trim();
-    if (shopId.isEmpty ||
+    final normalizedShopId = shopId.trim();
+    final normalizedStateId = stateId?.trim();
+    if (normalizedShopId.isEmpty ||
+        (stateId != null &&
+            (normalizedStateId == null || normalizedStateId.isEmpty)) ||
         normalizedItemId.isEmpty ||
         normalizedCategoryId.isEmpty ||
         quantity <= 0) {
@@ -370,7 +449,7 @@ class GameStateMutations {
     }
 
     ShopEntryDefinition? entry;
-    for (final candidate in shop.entries) {
+    for (final candidate in entries) {
       if (candidate.itemId.trim() == normalizedItemId) {
         entry = candidate;
         break;
@@ -385,7 +464,9 @@ class GameStateMutations {
     }
 
     final stock = entry.stock;
-    final stockKey = '$shopId::$normalizedItemId';
+    final stockKey = normalizedStateId == null
+        ? '$normalizedShopId::$normalizedItemId'
+        : '$normalizedShopId::$normalizedStateId::$normalizedItemId';
     final purchased = state.progression.shopPurchaseCounts[stockKey] ?? 0;
     final remainingStock = stock == null ? null : stock - purchased;
     if (remainingStock != null && quantity > remainingStock) {

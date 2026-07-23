@@ -36,13 +36,19 @@ class ScriptConditionEvaluator {
           context: context,
         );
       case ScriptConditionType.factEquals:
+        return _evaluateFactEquals(
+          condition.params,
+          state,
+          context: context,
+        );
       case ScriptConditionType.stepCompleted:
+        return _evaluateStepCompleted(condition.params, state);
       case ScriptConditionType.badgeOwned:
+        return _evaluateBadgeOwned(condition.params, state);
       case ScriptConditionType.itemQuantityAtLeast:
+        return _evaluateItemQuantityAtLeast(condition.params, state);
       case ScriptConditionType.moneyAtLeast:
-        // Le contrat est partagé dès FG-074. Son évaluation runtime est
-        // volontairement fermée jusqu'au lot FG-075.
-        return false;
+        return _evaluateMoneyAtLeast(condition.params, state);
       case ScriptConditionType.variableEquals:
         return _evaluateVariableEquals(condition.params, state);
       case ScriptConditionType.variableGreaterThan:
@@ -153,6 +159,94 @@ class ScriptConditionEvaluator {
     };
   }
 
+  bool _evaluateFactEquals(
+    Map<String, String> params,
+    GameState state, {
+    ScriptEvaluationContext? context,
+  }) {
+    final factId = params[ScriptConditionParams.factId];
+    final valueType = params[ScriptConditionParams.valueType];
+    final rawValue = params[ScriptConditionParams.value];
+    final resolver = context?.narrativeFactResolver;
+    if (!_isCanonicalId(factId) ||
+        valueType == null ||
+        rawValue == null ||
+        resolver == null) {
+      return false;
+    }
+
+    final NarrativeValue expected;
+    try {
+      expected = switch (valueType) {
+        'bool' when rawValue == 'true' => const NarrativeValue.boolean(true),
+        'bool' when rawValue == 'false' => const NarrativeValue.boolean(false),
+        'int' => _parseCanonicalNarrativeInteger(rawValue),
+        'string' => NarrativeValue.string(rawValue),
+        _ => throw const FormatException('Unsupported Fact value type.'),
+      };
+    } on ArgumentError {
+      return false;
+    } on FormatException {
+      return false;
+    }
+
+    final resolution = resolver.resolve(
+      factId: factId!,
+      runtimeState: state.narrativeFactRuntimeState,
+      storyFlags: state.storyFlags,
+    );
+    return resolution is NarrativeFactRuntimeResolved &&
+        resolution.narrativeValue == expected;
+  }
+
+  bool _evaluateStepCompleted(
+    Map<String, String> params,
+    GameState state,
+  ) {
+    final stepId = params[ScriptConditionParams.stepId];
+    return _isCanonicalId(stepId) &&
+        state.progression.completedStepIds.contains(stepId);
+  }
+
+  bool _evaluateBadgeOwned(
+    Map<String, String> params,
+    GameState state,
+  ) {
+    final badgeId = params[ScriptConditionParams.badgeId];
+    return _isCanonicalId(badgeId) &&
+        state.trainerProfile.badgeIds.contains(badgeId);
+  }
+
+  bool _evaluateItemQuantityAtLeast(
+    Map<String, String> params,
+    GameState state,
+  ) {
+    final itemId = params[ScriptConditionParams.itemId];
+    final quantity = _parseCanonicalNonNegativeInteger(
+      params[ScriptConditionParams.quantity],
+    );
+    if (!_isCanonicalId(itemId) || quantity == null) {
+      return false;
+    }
+    var available = 0;
+    for (final entry in state.bag.entries) {
+      if (entry.itemId == itemId) {
+        available += entry.quantity;
+      }
+    }
+    return available >= quantity;
+  }
+
+  bool _evaluateMoneyAtLeast(
+    Map<String, String> params,
+    GameState state,
+  ) {
+    final amount = _parseCanonicalNonNegativeInteger(
+      params[ScriptConditionParams.amount],
+    );
+    return amount != null && state.trainerProfile.money >= amount;
+  }
+
   bool _evaluateVariableEquals(Map<String, String> params, GameState state) {
     final variableName = params[ScriptConditionParams.variableName];
     final valueStr = params[ScriptConditionParams.value];
@@ -248,6 +342,28 @@ class ScriptConditionEvaluator {
     if (mapId == null || mapId.isEmpty) return false;
     return state.currentMapId == mapId;
   }
+}
+
+bool _isCanonicalId(String? value) =>
+    value != null && value.isNotEmpty && value.trim() == value;
+
+int? _parseCanonicalNonNegativeInteger(String? value) {
+  if (value == null) {
+    return null;
+  }
+  final parsed = int.tryParse(value);
+  if (parsed == null || parsed < 0 || parsed.toString() != value) {
+    return null;
+  }
+  return parsed;
+}
+
+NarrativeValue _parseCanonicalNarrativeInteger(String value) {
+  final parsed = int.tryParse(value);
+  if (parsed == null || parsed.toString() != value) {
+    throw const FormatException('Fact integer must be canonical.');
+  }
+  return NarrativeValue.integer(parsed);
 }
 
 /// Contexte optionnel pour l'évaluation de conditions.
