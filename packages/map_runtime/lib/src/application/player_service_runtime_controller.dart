@@ -29,9 +29,13 @@ final class PlayerServiceShopRequest extends PlayerServiceRequest {
     required super.gameState,
     required super.recoveryCaps,
     required this.shop,
+    required this.resolvedState,
+    required this.conditionContext,
   });
 
   final ShopDefinition shop;
+  final ResolvedShopState resolvedState;
+  final ScriptEvaluationContext conditionContext;
 }
 
 final class PlayerServicePcRequest extends PlayerServiceRequest {
@@ -115,30 +119,43 @@ final class PlayerServiceRuntimeController {
     required PlayerServiceStateTransaction commitAndSave,
     required PlayerServiceInputLockSetter setInputLocked,
     required PlayerServiceRecoveryCapsLoader loadRecoveryCaps,
+    ScriptEvaluationContext conditionContext = const ScriptEvaluationContext(),
   })  : _currentGameState = currentGameState,
         _host = host,
         _commitAndSave = commitAndSave,
         _setInputLocked = setInputLocked,
-        _loadRecoveryCaps = loadRecoveryCaps;
+        _loadRecoveryCaps = loadRecoveryCaps,
+        _conditionContext = conditionContext;
 
   final PlayerServiceGameStateReader _currentGameState;
   final PlayerServiceOverlayHost _host;
   final PlayerServiceStateTransaction _commitAndSave;
   final PlayerServiceInputLockSetter _setInputLocked;
   final PlayerServiceRecoveryCapsLoader _loadRecoveryCaps;
+  final ScriptEvaluationContext _conditionContext;
   bool _active = false;
 
   bool get isActive => _active;
 
   Future<PlayerServiceRuntimeResult> openShop(ShopDefinition shop) {
     return _run(
-      (state, caps) => _host.openShop(
-        PlayerServiceShopRequest(
+      (state, caps) {
+        final normalizedShop = shop.normalized();
+        final resolvedState = const ShopStateResolver().resolve(
+          shop: normalizedShop,
           gameState: state,
-          recoveryCaps: caps,
-          shop: shop.normalized(),
-        ),
-      ),
+          conditionContext: _conditionContext,
+        );
+        return _host.openShop(
+          PlayerServiceShopRequest(
+            gameState: state,
+            recoveryCaps: caps,
+            shop: normalizedShop,
+            resolvedState: resolvedState,
+            conditionContext: _conditionContext,
+          ),
+        );
+      },
     );
   }
 

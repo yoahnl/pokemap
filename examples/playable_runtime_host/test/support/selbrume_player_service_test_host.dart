@@ -32,12 +32,14 @@ final class SelbrumePlayerServiceTestHost implements PlayerServiceOverlayHost {
       return const PlayerServiceHostResult.cancelled();
     }
     final itemId = _shopPurchases.removeFirst();
-    final purchase = const GameStateMutations().purchaseFromShop(
+    final purchase = const GameStateMutations().purchaseFromResolvedShop(
       request.gameState,
       shop: request.shop,
+      expectedStateId: request.resolvedState.stateId,
       itemId: itemId,
       categoryId: _categoryFor(itemId),
       quantity: 1,
+      conditionContext: request.conditionContext,
     );
     if (!purchase.isSuccess) {
       throw StateError('Selbrume shop purchase failed: ${purchase.failure}.');

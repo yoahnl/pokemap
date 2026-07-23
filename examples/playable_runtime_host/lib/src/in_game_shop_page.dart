@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 typedef InGamePlayerStateCommit = Future<void> Function(GameState state);
+typedef InGamePlayerStateReader = GameState Function();
 
 class InGameShopPage extends StatefulWidget {
   const InGameShopPage({
@@ -10,11 +11,15 @@ class InGameShopPage extends StatefulWidget {
     required this.gameState,
     required this.shops,
     required this.onStateCommitted,
+    this.currentGameState,
+    this.conditionContext = const ScriptEvaluationContext(),
   });
 
   final GameState gameState;
   final List<ShopDefinition> shops;
   final InGamePlayerStateCommit onStateCommitted;
+  final InGamePlayerStateReader? currentGameState;
+  final ScriptEvaluationContext conditionContext;
 
   @override
   State<InGameShopPage> createState() => _InGameShopPageState();
@@ -22,6 +27,7 @@ class InGameShopPage extends StatefulWidget {
 
 class _InGameShopPageState extends State<InGameShopPage> {
   static const _mutations = GameStateMutations();
+  static const _resolver = ShopStateResolver();
 
   late GameState _gameState = widget.gameState;
   late String? _shopId = widget.shops.isEmpty ? null : widget.shops.first.id;
@@ -40,6 +46,14 @@ class _InGameShopPageState extends State<InGameShopPage> {
   }
 
   @override
+  void didUpdateWidget(covariant InGameShopPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.gameState != oldWidget.gameState) {
+      _gameState = widget.gameState;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final shop = _shop;
     if (shop == null) {
@@ -49,6 +63,11 @@ class _InGameShopPageState extends State<InGameShopPage> {
         ),
       );
     }
+    final resolved = _resolver.resolve(
+      shop: shop,
+      gameState: _gameState,
+      conditionContext: widget.conditionContext,
+    );
     return Material(
       child: ListView(
         key: const Key('in-game-shop-page'),
@@ -91,9 +110,22 @@ class _InGameShopPageState extends State<InGameShopPage> {
                       }),
             )
           else
-            Text(shop.label, style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox.shrink(),
+          Text(
+            resolved.storefrontLabel,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          if (resolved.message.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              resolved.message,
+              key: const Key('shop-profile-message'),
+            ),
+          ],
           const SizedBox(height: 12),
-          if (shop.entries.isEmpty)
+          if (!resolved.isOpen)
+            const SizedBox.shrink()
+          else if (resolved.entries.isEmpty)
             const Card(
               child: ListTile(title: Text('Cette boutique est vide.')),
             )
@@ -101,8 +133,8 @@ class _InGameShopPageState extends State<InGameShopPage> {
             Card(
               child: Column(
                 children: [
-                  for (final entry in shop.entries)
-                    _buildEntry(context, shop, entry),
+                  for (final entry in resolved.entries)
+                    _buildEntry(context, shop, resolved, entry),
                 ],
               ),
             ),
@@ -126,17 +158,19 @@ class _InGameShopPageState extends State<InGameShopPage> {
   Widget _buildEntry(
     BuildContext context,
     ShopDefinition shop,
+    ResolvedShopState resolved,
     ShopEntryDefinition entry,
   ) {
     final quantity = _quantityByItemId[entry.itemId] ?? 1;
-    final purchased = _gameState
-            .progression.shopPurchaseCounts['${shop.id}::${entry.itemId}'] ??
-        0;
+    final stockKey = resolved.isDefault
+        ? '${shop.id}::${entry.itemId}'
+        : '${shop.id}::${resolved.stateId}::${entry.itemId}';
+    final purchased = _gameState.progression.shopPurchaseCounts[stockKey] ?? 0;
     final remaining = entry.stock == null ? null : entry.stock! - purchased;
     final maximumQuantity = remaining == null ? 10 : remaining.clamp(1, 10);
     return ListTile(
       key: Key('shop-entry-${entry.itemId}'),
-      title: Text(entry.itemId),
+      title: Text(_itemLabel(entry.itemId)),
       subtitle: Text(
         '${_formatMoney(entry.price)} ₽ · '
         '${remaining == null ? 'Stock illimité' : 'Stock : ${remaining < 0 ? 0 : remaining}'}',
@@ -165,7 +199,7 @@ class _InGameShopPageState extends State<InGameShopPage> {
             key: Key('shop-buy-${entry.itemId}'),
             onPressed: _busy || remaining == 0
                 ? null
-                : () => _buy(shop, entry, quantity),
+                : () => _buy(shop, resolved, entry, quantity),
             child: const Text('Acheter'),
           ),
         ],
@@ -175,6 +209,7 @@ class _InGameShopPageState extends State<InGameShopPage> {
 
   Future<void> _buy(
     ShopDefinition shop,
+    ResolvedShopState renderedState,
     ShopEntryDefinition entry,
     int quantity,
   ) async {
@@ -183,15 +218,28 @@ class _InGameShopPageState extends State<InGameShopPage> {
       _busy = true;
       _feedback = null;
     });
-    final result = _mutations.purchaseFromShop(
-      _gameState,
+    final transactionState = widget.currentGameState?.call() ?? _gameState;
+    final result = _mutations.purchaseFromResolvedShop(
+      transactionState,
       shop: shop,
+      expectedStateId: renderedState.stateId,
       itemId: entry.itemId,
       categoryId: _categoryFor(entry.itemId),
       quantity: quantity,
+      conditionContext: widget.conditionContext,
     );
     if (!result.isSuccess) {
+      if (result.failure == ShopPurchaseFailure.shopStateChanged) {
+        setState(() {
+          _gameState = transactionState;
+          _busy = false;
+          _feedbackIsError = false;
+          _feedback = 'La boutique a changé. Le catalogue a été actualisé.';
+        });
+        return;
+      }
       setState(() {
+        _gameState = transactionState;
         _busy = false;
         _feedbackIsError = true;
         _feedback = _failureLabel(result.failure!);
@@ -205,7 +253,7 @@ class _InGameShopPageState extends State<InGameShopPage> {
         _gameState = result.state;
         _busy = false;
         _feedbackIsError = false;
-        _feedback = 'Achat effectué : $quantity × ${entry.itemId}.';
+        _feedback = 'Achat effectué : $quantity × ${_itemLabel(entry.itemId)}.';
       });
     } catch (error) {
       if (!mounted) return;
@@ -217,6 +265,24 @@ class _InGameShopPageState extends State<InGameShopPage> {
     }
   }
 }
+
+String _itemLabel(String itemId) => switch (itemId) {
+      'potion' => 'Potion',
+      'super-potion' => 'Super Potion',
+      'hyper-potion' => 'Hyper Potion',
+      'max-potion' => 'Potion Max',
+      'poke-ball' => 'Poké Ball',
+      'antidote' => 'Antidote',
+      _ => itemId
+          .replaceAll('_', '-')
+          .split('-')
+          .where((part) => part.isNotEmpty)
+          .map(
+            (part) => '${part.substring(0, 1).toUpperCase()}'
+                '${part.substring(1)}',
+          )
+          .join(' '),
+    };
 
 String _categoryFor(String itemId) {
   final effect = const PlayerItemEffectRegistry.mvp().effectFor(itemId);
@@ -235,6 +301,9 @@ String _failureLabel(ShopPurchaseFailure failure) => switch (failure) {
       ShopPurchaseFailure.unknownItem => 'Objet inconnu dans cette boutique.',
       ShopPurchaseFailure.insufficientFunds => 'Fonds insuffisants.',
       ShopPurchaseFailure.outOfStock => 'Stock épuisé.',
+      ShopPurchaseFailure.shopClosed => 'Cette boutique est fermée.',
+      ShopPurchaseFailure.shopStateChanged =>
+        'La boutique a changé. Le catalogue a été actualisé.',
     };
 
 String _formatMoney(int value) {

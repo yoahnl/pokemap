@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
@@ -37,6 +38,104 @@ void main() {
     expect(result.gameState, same(next));
     expect(committed, same(next));
     expect(locks, <bool>[true, false]);
+  });
+
+  test('emits the highest-priority resolved shop profile', () async {
+    const initial = GameState(
+      saveId: 'dynamic-shop',
+      storyFlags: StoryFlags(activeFlags: <String>{'story_finished'}),
+    );
+    final host = _Host(
+      onShop: (request) async {
+        expect(request.shop.id, 'mart');
+        expect(request.gameState, same(initial));
+        expect(request.resolvedState.stateId, 'story-finished');
+        expect(
+          request.resolvedState.storefrontLabel,
+          'Grand Comptoir des Brisants',
+        );
+        return const PlayerServiceHostResult.cancelled();
+      },
+    );
+    final controller = PlayerServiceRuntimeController(
+      currentGameState: () => initial,
+      host: host,
+      commitAndSave: (_) async {},
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{},
+      ),
+    );
+
+    final result = await controller.openShop(
+      ShopDefinition(
+        id: 'mart',
+        label: 'Boutique',
+        states: <ShopStateDefinition>[
+          ShopStateDefinition(
+            id: 'story-finished',
+            label: 'Histoire terminée',
+            priority: 30,
+            activation: ScriptConditionFactory.flagIsSet('story_finished'),
+            storefrontLabel: 'Grand Comptoir des Brisants',
+          ),
+        ],
+      ),
+    );
+
+    expect(result.status, PlayerServiceRuntimeStatus.cancelled);
+  });
+
+  test('resolves typed Fact defaults with the project-backed context',
+      () async {
+    const initial = GameState(saveId: 'typed-fact-shop');
+    final conditionContext = ScriptEvaluationContext(
+      narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(
+        <NarrativeFactDefinition>[
+          NarrativeFactDefinition(
+            id: 'fact_market_open',
+            label: 'Marché ouvert',
+            initialValue: const NarrativeValue.boolean(true),
+          ),
+        ],
+      ),
+    );
+    final host = _Host(
+      onShop: (request) async {
+        expect(request.conditionContext, same(conditionContext));
+        expect(request.resolvedState.stateId, 'market-open');
+        return const PlayerServiceHostResult.cancelled();
+      },
+    );
+    final controller = PlayerServiceRuntimeController(
+      currentGameState: () => initial,
+      conditionContext: conditionContext,
+      host: host,
+      commitAndSave: (_) async {},
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{},
+      ),
+    );
+
+    final result = await controller.openShop(
+      ShopDefinition(
+        id: 'mart',
+        label: 'Boutique',
+        states: <ShopStateDefinition>[
+          ShopStateDefinition(
+            id: 'market-open',
+            label: 'Marché ouvert',
+            activation: ScriptConditionFactory.factEquals(
+              'fact_market_open',
+              const NarrativeValue.boolean(true),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    expect(result.status, PlayerServiceRuntimeStatus.cancelled);
   });
 
   test('cancellation does not commit and concurrent overlays are rejected',

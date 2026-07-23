@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:gamepads/gamepads.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'src/in_game_menu.dart';
@@ -598,6 +599,11 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
             gameState: state,
             projectRootDirectory: bundle.projectRootDirectory,
             pokemonConfig: bundle.manifest.pokemon,
+          ),
+          conditionContext: ScriptEvaluationContext(
+            narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(
+              bundle.manifest.facts,
+            ),
           ),
         ),
       );
@@ -1245,12 +1251,14 @@ final class _RuntimePlayerServiceOverlayHost
     PlayerServiceShopRequest request,
   ) {
     return _open(
-      title: request.shop.label,
+      title: request.resolvedState.storefrontLabel,
       gameState: request.gameState,
-      bodyBuilder: (state, stageState) => InGameShopPage(
+      bodyBuilder: (state, stageState, currentState) => InGameShopPage(
         gameState: state,
         shops: <ShopDefinition>[request.shop],
         onStateCommitted: stageState,
+        currentGameState: currentState,
+        conditionContext: request.conditionContext,
       ),
     );
   }
@@ -1260,7 +1268,7 @@ final class _RuntimePlayerServiceOverlayHost
     return _open(
       title: 'PC Pokémon',
       gameState: request.gameState,
-      bodyBuilder: (state, stageState) => InGamePcPage(
+      bodyBuilder: (state, stageState, _) => InGamePcPage(
         gameState: state,
         onStateCommitted: stageState,
       ),
@@ -1302,6 +1310,7 @@ final class _RuntimePlayerServiceOverlayHost
 typedef _PlayerServiceBodyBuilder = Widget Function(
   GameState gameState,
   Future<void> Function(GameState state) stageState,
+  GameState Function() currentGameState,
 );
 
 final class _RuntimePlayerServiceRoute extends StatefulWidget {
@@ -1335,7 +1344,13 @@ final class _RuntimePlayerServiceRouteState
       appBar: AppBar(title: Text(widget.title)),
       body: Column(
         children: [
-          Expanded(child: widget.bodyBuilder(_gameState, _stageState)),
+          Expanded(
+            child: widget.bodyBuilder(
+              _gameState,
+              _stageState,
+              () => _gameState,
+            ),
+          ),
           SafeArea(
             top: false,
             child: Padding(
