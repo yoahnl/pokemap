@@ -8,6 +8,7 @@ title: MaelExistingPokemon
 tags: selbrume chapter-1
 ---
 Maël: Ton Pokémon semble déjà te faire confiance. Nous n'avons pas de temps à perdre.
+Maël: Prends aussi ces cinq Poké Balls. Elles te permettront d'accueillir les Pokémon sauvages rencontrés dans la brume.
 Maël: Rejoins le Port des Brisants et découvre pourquoi le vieux phare s'est tu.
 ===
 title: MaelStarterChoice
@@ -24,4 +25,5 @@ Maël: La route sera dangereuse. Lequel de ces trois compagnons veux-tu protége
     <<outcome starter_squirtle>>
     Maël: Carapuce connaît déjà le rythme des marées.
 Maël: Rejoins maintenant le Port des Brisants. Le vieux phare nous inquiète.
+Maël: Prends ces cinq Poké Balls avant de partir. Dans la brume, une nouvelle rencontre peut changer le voyage.
 ===

@@ -1131,7 +1131,7 @@ Objectif : permettre aux créateurs de faire les événements Pokémon classique
 | FG-080 | Event Command Model V0 | `⬜ TODO` | — |
 | FG-081 | Condition Builder No-code V0 | `⬜ TODO` | — |
 | FG-082 | Runtime Command Executor V0 | `🟡 PARTIAL` | Parité exhaustive des 18 commandes publiables prouvée ; promotion bloquée par la suite Runtime globale déjà rouge sur fixtures progression |
-| FG-083 | Give/Take Item Commands V0 | `⬜ TODO` | — |
+| FG-083 | Give/Take Item Commands V0 | `🟡 PARTIAL` | `giveItem(poke-ball, 5)` authoré dans Selbrume, idempotent après save/reload et relié au flux de capture ; promotion globale différée jusqu'à la gate Phase 5 |
 | FG-084 | Give Pokémon Command V0 | `⬜ TODO` | — |
 | FG-085 | Heal Party Command V0 | `🟡 PARTIAL` | Modèle, JSON, caps runtime, preview, writer idempotent, authoring guidé et parité runtime prouvés ; gate package globale rouge hors lot |
 | FG-086 | Start Trainer Battle Command V0 | `⬜ TODO` | — |

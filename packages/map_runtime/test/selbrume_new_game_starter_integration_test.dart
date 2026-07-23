@@ -48,6 +48,7 @@ void main() {
       );
 
       expect(game.gameStateSnapshot.party.members, isEmpty);
+      expect(_bagQuantity(game.gameStateSnapshot, 'poke-ball'), 0);
       expect(game.gameStateSnapshot.currentMapId, 'map_bourg_selbrume');
 
       game.onGameResize(Vector2(320, 240));
@@ -76,6 +77,7 @@ void main() {
 
       final completed = game.gameStateSnapshot;
       expect(completed.party.members, hasLength(1));
+      expect(_bagQuantity(completed, 'poke-ball'), 5);
       final starter = completed.party.members.single;
       expect(starter.speciesId, 'bulbasaur');
       expect(starter.level, 16);
@@ -132,6 +134,7 @@ void main() {
         game.gameStateSnapshot.narrativeEventProgress.consumedNarrativeEventIds,
         contains(maelEvent.id),
       );
+      expect(_bagQuantity(game.gameStateSnapshot, 'poke-ball'), 5);
     },
   );
 
@@ -207,6 +210,7 @@ void main() {
     final completed = game.gameStateSnapshot;
     expect(completed.party.members, hasLength(1));
     expect(completed.party.members.single.speciesId, 'eevee');
+    expect(_bagQuantity(completed, 'poke-ball'), 5);
     expect(
       completed
           .narrativeFactRuntimeState.overridesByFactId['fact_starter_received'],
@@ -218,6 +222,10 @@ void main() {
     );
   });
 }
+
+int _bagQuantity(GameState state, String itemId) => state.bag.entries
+    .where((entry) => entry.itemId == itemId)
+    .fold(0, (total, entry) => total + entry.quantity);
 
 RuntimeMapBundle _starterHarnessBundle(RuntimeMapBundle source) {
   final map = source.map.copyWith(

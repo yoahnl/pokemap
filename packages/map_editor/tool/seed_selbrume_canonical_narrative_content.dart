@@ -1545,6 +1545,16 @@ SceneAsset _maelNewGameScene() {
       ).payload,
     ),
     SceneNode(
+      id: 'node_give_poke_balls',
+      kind: SceneNodeKind.action,
+      title: 'Recevoir cinq Poké Balls',
+      payload: _giveItemBeat(
+        'poke-ball',
+        5,
+        'Maël confie cinq Poké Balls',
+      ).payload,
+    ),
+    SceneNode(
       id: 'node_main_started',
       kind: SceneNodeKind.action,
       title: 'Démarrer l’histoire principale',
@@ -1617,7 +1627,7 @@ SceneAsset _maelNewGameScene() {
       id: 'edge_existing_common',
       fromNodeId: 'node_existing_dialogue',
       fromPortId: 'completed',
-      toNodeId: 'node_main_started',
+      toNodeId: 'node_give_poke_balls',
       kind: SceneEdgeKind.defaultFlow,
     ),
     for (final branch in const <(String, String)>[
@@ -1651,7 +1661,7 @@ SceneAsset _maelNewGameScene() {
       id: 'edge_received_common',
       fromNodeId: 'node_starter_received',
       fromPortId: 'completed',
-      toNodeId: 'node_main_started',
+      toNodeId: 'node_give_poke_balls',
       kind: SceneEdgeKind.actionCompleted,
     ),
   ];
@@ -1659,6 +1669,7 @@ SceneAsset _maelNewGameScene() {
     edges,
     nodes
         .where((node) => const <String>{
+              'node_give_poke_balls',
               'node_main_started',
               'node_intro_done',
               'node_mission_given',
@@ -1688,6 +1699,7 @@ SceneAsset _maelNewGameScene() {
         SceneNodeLayout(nodeId: 'node_give_squirtle', x: 864, y: 500),
         SceneNodeLayout(nodeId: 'node_starter_received', x: 1144, y: 360),
         for (final indexed in const <String>[
+          'node_give_poke_balls',
           'node_main_started',
           'node_intro_done',
           'node_mission_given',
@@ -3685,6 +3697,7 @@ title: MaelExistingPokemon
 tags: selbrume chapter-1
 ---
 Maël: Ton Pokémon semble déjà te faire confiance. Nous n'avons pas de temps à perdre.
+Maël: Prends aussi ces cinq Poké Balls. Elles te permettront d'accueillir les Pokémon sauvages rencontrés dans la brume.
 Maël: Rejoins le Port des Brisants et découvre pourquoi le vieux phare s'est tu.
 ===
 title: MaelStarterChoice
@@ -3701,6 +3714,7 @@ Maël: La route sera dangereuse. Lequel de ces trois compagnons veux-tu protége
     <<outcome starter_squirtle>>
     Maël: Carapuce connaît déjà le rythme des marées.
 Maël: Rejoins maintenant le Port des Brisants. Le vieux phare nous inquiète.
+Maël: Prends ces cinq Poké Balls avant de partir. Dans la brume, une nouvelle rencontre peut changer le voyage.
 ===
 ''',
   'port_alert.yarn': '''title: PortAlert

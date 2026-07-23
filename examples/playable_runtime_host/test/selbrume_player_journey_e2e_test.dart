@@ -75,6 +75,7 @@ void main() {
         dialogue: const _DialogueChoice(linesBeforeChoice: 1),
       );
       await journey.waitForFact('fact_mael_mission_given');
+      expect(journey.bagQuantity('poke-ball'), 5);
       await journey.navigateTo(const GridPos(x: 17, y: 24));
       await journey.checkpoint(
         'before_port_regression',
@@ -97,6 +98,11 @@ void main() {
         journey.state.narrativeEventProgress.consumedNarrativeEventIds,
         oneShotsBeforeReentry,
         reason: 'Re-entry must not consume or replay a new Event Registry ID.',
+      );
+      expect(
+        journey.bagQuantity('poke-ball'),
+        5,
+        reason: 'Maël must grant the authored capture kit only once.',
       );
 
       final diagnostic = journey.pathDiagnostic(
@@ -578,6 +584,10 @@ final class _SelbrumeJourney {
       <_BattleMoveChoiceEvidence>[];
 
   GameState get state => game.gameStateSnapshot;
+
+  int bagQuantity(String itemId) => state.bag.entries
+      .where((entry) => entry.itemId == itemId)
+      .fold(0, (total, entry) => total + entry.quantity);
   List<String> get selectedBattleMoveIds =>
       battleMoveChoices.map((choice) => choice.moveId).toList(growable: false);
 

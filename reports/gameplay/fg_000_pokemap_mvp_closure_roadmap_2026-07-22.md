@@ -716,11 +716,20 @@ authorées.
 - Modify: `packages/map_runtime/test/selbrume_new_game_starter_integration_test.dart`
 - Modify: `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart`
 
-- [ ] **Step 1:** Ajouter `giveItem(poke-ball, 5)` dans le tronc commun authoré après les quatre chemins de starter/party.
-- [ ] **Step 2:** Vérifier zéro Ball avant Maël, cinq après, sans duplication après interaction ou reload.
-- [ ] **Step 3:** Vérifier overlay, consommation, capture party/box, Pokédex et save/reload.
-- [ ] **Step 4:** Régénérer uniquement via le seed et vérifier `--check`.
-- [ ] **Step 5:** Commit proposé : `feat(selbrume): author an obtainable capture flow`.
+- [x] **Step 1:** Ajouter `giveItem(poke-ball, 5)` dans le tronc commun authoré après les quatre chemins de starter/party.
+- [x] **Step 2:** Vérifier zéro Ball avant Maël, cinq après, sans duplication après interaction ou reload.
+- [x] **Step 3:** Vérifier overlay, consommation, capture party/box, Pokédex et save/reload.
+- [x] **Step 4:** Régénérer uniquement via le seed et vérifier `--check`.
+- [x] **Step 5:** Commit proposé : `feat(selbrume): author an obtainable capture flow`.
+
+**Preuve fraîche (2026-07-23) :** `scene_mael_intro` fait converger les trois
+choix de starter et le chemin party existante vers une unique conséquence
+`giveItem(poke-ball, 5)`. Le runtime part de zéro, conserve exactement cinq
+Balls après sauvegarde/rechargement et ne rejoue pas le grant à la
+réinteraction. Le seed régénère uniquement `project.json` et
+`mael_intro.yarn`, puis `--check` confirme l'idempotence. Les tests moteur
+valident en complément l'overlay de capture, la consommation, les destinations
+party/box, Pokédex et leur round-trip SaveData.
 
 ## Task 5.2 — Authorer shop, PC, soin, badge et Surf dans Selbrume
 

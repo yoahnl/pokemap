@@ -35793,6 +35793,21 @@
             }
           },
           {
+            "id": "node_give_poke_balls",
+            "kind": "action",
+            "title": "Recevoir cinq Poké Balls",
+            "payload": {
+              "kind": "action",
+              "parameters": {},
+              "consequence": {
+                "kind": "giveItem",
+                "itemId": "poke-ball",
+                "quantity": 5,
+                "label": "Maël confie cinq Poké Balls"
+              }
+            }
+          },
+          {
             "id": "node_main_started",
             "kind": "action",
             "title": "Démarrer l’histoire principale",
@@ -35900,7 +35915,7 @@
             "id": "edge_existing_common",
             "fromNodeId": "node_existing_dialogue",
             "fromPortId": "completed",
-            "toNodeId": "node_main_started",
+            "toNodeId": "node_give_poke_balls",
             "kind": "default"
           },
           {
@@ -35956,8 +35971,16 @@
             "id": "edge_received_common",
             "fromNodeId": "node_starter_received",
             "fromPortId": "completed",
-            "toNodeId": "node_main_started",
+            "toNodeId": "node_give_poke_balls",
             "kind": "actionCompleted"
+          },
+          {
+            "id": "edge_node_give_poke_balls_node_main_started",
+            "fromNodeId": "node_give_poke_balls",
+            "fromPortId": "completed",
+            "toNodeId": "node_main_started",
+            "kind": "actionCompleted",
+            "label": "completed"
           },
           {
             "id": "edge_node_main_started_node_intro_done",
@@ -36044,33 +36067,38 @@
             "y": 360.0
           },
           {
-            "nodeId": "node_main_started",
+            "nodeId": "node_give_poke_balls",
             "x": 1424.0,
             "y": 220.0
           },
           {
-            "nodeId": "node_intro_done",
+            "nodeId": "node_main_started",
             "x": 1704.0,
             "y": 220.0
           },
           {
-            "nodeId": "node_mission_given",
+            "nodeId": "node_intro_done",
             "x": 1984.0,
             "y": 220.0
           },
           {
-            "nodeId": "node_intro_step",
+            "nodeId": "node_mission_given",
             "x": 2264.0,
             "y": 220.0
           },
           {
-            "nodeId": "node_mission_step",
+            "nodeId": "node_intro_step",
             "x": 2544.0,
             "y": 220.0
           },
           {
-            "nodeId": "node_end",
+            "nodeId": "node_mission_step",
             "x": 2824.0,
+            "y": 220.0
+          },
+          {
+            "nodeId": "node_end",
+            "x": 3104.0,
             "y": 220.0
           }
         ],
@@ -41434,6 +41462,9 @@
       "portraitElementId": null,
       "battleThemeId": null,
       "victoryThemeId": null,
+      "moneyReward": 0,
+      "rewardItemGrants": [],
+      "rewardFlagIds": [],
       "team": [
         {
           "speciesId": "bulbasaur",
@@ -41464,6 +41495,9 @@
       "portraitElementId": null,
       "battleThemeId": null,
       "victoryThemeId": null,
+      "moneyReward": 0,
+      "rewardItemGrants": [],
+      "rewardFlagIds": [],
       "team": [
         {
           "speciesId": "magnemite",
@@ -41495,6 +41529,9 @@
       "portraitElementId": null,
       "battleThemeId": null,
       "victoryThemeId": null,
+      "moneyReward": 0,
+      "rewardItemGrants": [],
+      "rewardFlagIds": [],
       "team": [
         {
           "speciesId": "gastly",
@@ -41526,6 +41563,9 @@
       "portraitElementId": null,
       "battleThemeId": null,
       "victoryThemeId": null,
+      "moneyReward": 0,
+      "rewardItemGrants": [],
+      "rewardFlagIds": [],
       "team": [
         {
           "speciesId": "lanturn",
@@ -64642,6 +64682,8 @@
             "growl",
             "vine_whip"
           ],
+          "experience": null,
+          "currentPpByMoveId": null,
           "currentHp": 40,
           "statusId": "",
           "isShiny": false,
@@ -64679,6 +64721,8 @@
             "ember",
             "mud_slap"
           ],
+          "experience": null,
+          "currentPpByMoveId": null,
           "currentHp": 38,
           "statusId": "",
           "isShiny": false,
@@ -64716,6 +64760,8 @@
             "water_gun",
             "mud_slap"
           ],
+          "experience": null,
+          "currentPpByMoveId": null,
           "currentHp": 40,
           "statusId": "",
           "isShiny": false,

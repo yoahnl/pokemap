@@ -1016,7 +1016,27 @@ void _expectStarterBranches(ProjectManifest manifest) {
       ]),
       reason: outcome,
     );
+    final ballGrants = consequences
+        .whereType<SceneGiveItemConsequence>()
+        .where((entry) => entry.itemId == 'poke-ball');
+    expect(ballGrants, hasLength(1), reason: outcome);
+    expect(ballGrants.single.quantity, 5, reason: outcome);
   }
+
+  final existingPokemonDialogue = scene.graph.nodes.singleWhere((node) {
+    final nodePayload = node.payload;
+    return nodePayload is SceneYarnDialoguePayload &&
+        nodePayload.yarnNodeName == 'MaelExistingPokemon';
+  });
+  final existingPartyBallGrants = _reachableConsequences(
+    scene,
+    existingPokemonDialogue.id,
+    'completed',
+  )
+      .whereType<SceneGiveItemConsequence>()
+      .where((entry) => entry.itemId == 'poke-ball');
+  expect(existingPartyBallGrants, hasLength(1));
+  expect(existingPartyBallGrants.single.quantity, 5);
 }
 
 void _expectCanonicalRewards(ProjectManifest manifest) {
