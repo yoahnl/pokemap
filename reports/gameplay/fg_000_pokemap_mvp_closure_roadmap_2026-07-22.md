@@ -806,15 +806,32 @@ et Host sont propres et le build macOS debug du host réussit.
 - Create: `examples/playable_runtime_host/tool/src/selbrume_mvp_journey_verifier.dart`
 - Create: `examples/playable_runtime_host/test/project_gameplay_readiness_collector_test.dart`
 - Create: `examples/playable_runtime_host/test/project_tree_digest_test.dart`
+- Modify: `examples/playable_runtime_host/pubspec.yaml`
+- Modify: `examples/playable_runtime_host/pubspec.lock`
+- Modify: `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart`
+- Modify: `packages/map_editor/tool/seed_selbrume_canonical_narrative_content.dart`
+- Modify: `packages/map_editor/test/selbrume_canonical_narrative_seed_test.dart`
+- Regenerate: `selbrume/project.json`
 
-- [ ] **Step 1:** Garder Core pur et déplacer inspection disque/exécution dans le host.
-- [ ] **Step 2:** Définir les 19 `MvpProductCriterion` et une table many-to-one explicite vers les checks Readiness existants.
-- [ ] **Step 3:** Dériver les checks du projet et du journey verifier exécuté ; ne jamais les mapper automatiquement vers `passed`.
-- [ ] **Step 4:** Faire émettre par le runner Selbrume un receipt machine de l'exécution réelle, consommable par le collector et le test.
-- [ ] **Step 5:** Hasher de façon déterministe tout l'arbre projet requis — manifest, maps, dialogues, catalogs et assets — en excluant sauvegardes et répertoires de build.
-- [ ] **Step 6:** Enregistrer commande, exit code, commit, timestamp, source, tree hash projet et critères observés.
-- [ ] **Step 7:** Échouer sur source absente, commit différent, check manquant, critère non mappé ou preuve dupliquée.
-- [ ] **Step 8:** Commit proposé : `feat(host): collect executable gameplay readiness evidence`.
+- [x] **Step 1:** Garder Core pur et déplacer inspection disque/exécution dans le host.
+- [x] **Step 2:** Définir les 19 `MvpProductCriterion` et une table many-to-one explicite vers les checks Readiness existants.
+- [x] **Step 3:** Dériver les checks du projet et du journey verifier exécuté ; ne jamais les mapper automatiquement vers `passed`.
+- [x] **Step 4:** Faire émettre par le runner Selbrume un receipt machine de l'exécution réelle, consommable par le collector et le test.
+- [x] **Step 5:** Hasher de façon déterministe tout l'arbre projet requis — manifest, maps, dialogues, catalogs et assets — en excluant sauvegardes et répertoires de build.
+- [x] **Step 6:** Enregistrer commande, exit code, commit, timestamp, source, tree hash projet et critères observés.
+- [x] **Step 7:** Échouer sur source absente, commit différent, check manquant, critère non mappé ou preuve dupliquée.
+- [x] **Step 8:** Commit proposé : `feat(host): collect executable gameplay readiness evidence`.
+
+**Preuve fraîche (2026-07-23) :** le runner exécute le parcours produit réel en
+`02:47 +1: All tests passed!` et émet un receipt `exitCode: 0` lié au commit
+`993cdcb7c2159847cf1f543025adbb67c89766b7`, au tree hash Selbrume
+`2ddedc051804e1b4622dce6a9c3c13cb4d9405e11bf2de78b699b5618a8e0c08`
+et à 19 observations réussies. Le parcours prouve désormais explicitement le
+gain d'XP, le niveau 16, l'apprentissage de Morsure et l'évolution en
+Carabaffe. Les suites ciblées Core terminent à `+13`, celles du collector Host
+à `+7`, le seed canonique est idempotent et les analyses Core/Host sont
+propres. Le collector échoue fermé sur commit ou arbre différent, preuve
+absente, dupliquée, échouée ou commande non nulle.
 
 ## Task 5.5 — FG-014 : transaction de chargement sûre
 

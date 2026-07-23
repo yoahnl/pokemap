@@ -119,12 +119,13 @@ void main() {
       <String, int>{
         'starter_bulbasaur': 16,
         'starter_charmander': 16,
-        'starter_squirtle': 16,
+        'starter_squirtle': 15,
       },
     );
     expect(startersById['starter_bulbasaur']!.currentHp, 40);
     expect(startersById['starter_charmander']!.currentHp, 38);
     expect(startersById['starter_squirtle']!.currentHp, 40);
+    expect(startersById['starter_squirtle']!.experience, 2534);
     expect(
       startersById['starter_bulbasaur']!.knownMoveIds,
       contains('vine_whip'),

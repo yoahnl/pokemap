@@ -65219,7 +65219,7 @@
           "natureId": "hardy",
           "abilityId": "torrent",
           "gender": null,
-          "level": 16,
+          "level": 15,
           "ivs": {
             "hp": 0,
             "attack": 0,
@@ -65242,7 +65242,7 @@
             "water_gun",
             "surf"
           ],
-          "experience": null,
+          "experience": 2534,
           "currentPpByMoveId": null,
           "currentHp": 40,
           "statusId": "",

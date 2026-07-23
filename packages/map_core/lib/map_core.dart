@@ -3,6 +3,7 @@ library map_core;
 export 'src/models/narrative_validation_report.dart';
 export 'src/models/narrative_diagnostic_suppression.dart';
 export 'src/models/narrative_runtime_smoke_receipt.dart';
+export 'src/models/mvp_release_evidence_receipt.dart';
 export 'src/operations/narrative_project_fingerprint.dart';
 export 'src/operations/narrative_validation_report_codec.dart';
 
@@ -222,6 +223,7 @@ export 'src/read_models/narrative_event_reachability_report.dart';
 export 'src/read_models/golden_slice_readiness.dart';
 export 'src/read_models/mvp_release_gate.dart';
 export 'src/read_models/project_gameplay_readiness.dart';
+export 'src/read_models/mvp_product_criterion.dart';
 export 'src/tooling/gameplay_roadmap_dashboard.dart';
 export 'src/read_models/linked_asset_public_contracts.dart';
 export 'src/read_models/cinematics_library_read_model.dart';

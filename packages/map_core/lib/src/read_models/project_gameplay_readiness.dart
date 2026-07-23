@@ -1,3 +1,5 @@
+import 'mvp_product_criterion.dart';
+
 /// Canonical gameplay-readiness checks required by `FG-180`.
 enum ProjectGameplayReadinessCheck {
   startState,
@@ -108,6 +110,42 @@ final class ProjectGameplayReadinessReport {
     return ProjectGameplayReadinessReport._(diagnostics);
   }
 
+  /// Combines project inspection with the explicit 19-outcome MVP journey.
+  ///
+  /// Every project check and every product criterion must appear exactly once.
+  /// The many-to-one mapping is declared by [MvpProductCriterionContract] and
+  /// no observation is promoted to `passed` merely because it exists.
+  factory ProjectGameplayReadinessReport.evaluateProductCriteria({
+    required Iterable<MvpProductCriterionEvidence> productEvidence,
+    required Iterable<ProjectGameplayReadinessEvidence> projectEvidence,
+  }) {
+    final productByCriterion =
+        <MvpProductCriterion, List<MvpProductCriterionEvidence>>{};
+    for (final evidence in productEvidence) {
+      productByCriterion
+          .putIfAbsent(evidence.criterion, () => [])
+          .add(evidence);
+    }
+    final projectByCheck = <ProjectGameplayReadinessCheck,
+        List<ProjectGameplayReadinessEvidence>>{};
+    for (final evidence in projectEvidence) {
+      projectByCheck.putIfAbsent(evidence.check, () => []).add(evidence);
+    }
+
+    final synthesized = <ProjectGameplayReadinessEvidence>[];
+    for (final check in ProjectGameplayReadinessCheck.values) {
+      synthesized.add(
+        _synthesizeProductCheck(
+          check: check,
+          projectCandidates: projectByCheck[check] ??
+              const <ProjectGameplayReadinessEvidence>[],
+          productByCriterion: productByCriterion,
+        ),
+      );
+    }
+    return ProjectGameplayReadinessReport.evaluate(synthesized);
+  }
+
   final List<ProjectGameplayReadinessDiagnostic> diagnostics;
 
   List<ProjectGameplayReadinessDiagnostic> get errors => List.unmodifiable(
@@ -178,6 +216,75 @@ final class ProjectGameplayReadinessReport {
     }
     return buffer.toString().trimRight();
   }
+}
+
+ProjectGameplayReadinessEvidence _synthesizeProductCheck({
+  required ProjectGameplayReadinessCheck check,
+  required List<ProjectGameplayReadinessEvidence> projectCandidates,
+  required Map<MvpProductCriterion, List<MvpProductCriterionEvidence>>
+      productByCriterion,
+}) {
+  if (projectCandidates.length != 1) {
+    return ProjectGameplayReadinessEvidence(
+      check: check,
+      status: ProjectGameplayReadinessEvidenceStatus.failed,
+      summary: projectCandidates.isEmpty
+          ? 'Aucune inspection projet fournie pour ${check.name}.'
+          : 'Inspection projet dupliquée pour ${check.name}.',
+      source: 'FG-180 collector',
+    );
+  }
+  final projectDiagnostic = _normalize(projectCandidates.single);
+  if (projectDiagnostic.severity != ProjectGameplayReadinessSeverity.info) {
+    return ProjectGameplayReadinessEvidence(
+      check: check,
+      status:
+          projectDiagnostic.severity == ProjectGameplayReadinessSeverity.warning
+              ? ProjectGameplayReadinessEvidenceStatus.unverified
+              : ProjectGameplayReadinessEvidenceStatus.failed,
+      summary: projectDiagnostic.summary,
+      source: projectDiagnostic.source ?? 'FG-180 project inspection',
+    );
+  }
+
+  final mappedCriteria = MvpProductCriterion.values
+      .where((criterion) => criterion.readinessCheck == check)
+      .toList(growable: false);
+  final summaries = <String>[];
+  final sources = <String>{projectDiagnostic.source!};
+  var status = ProjectGameplayReadinessEvidenceStatus.passed;
+  for (final criterion in mappedCriteria) {
+    final candidates = productByCriterion[criterion] ?? const [];
+    if (candidates.length != 1) {
+      status = ProjectGameplayReadinessEvidenceStatus.failed;
+      summaries.add(
+        candidates.isEmpty
+            ? '${criterion.id} est absent.'
+            : '${criterion.id} possède une preuve dupliquée.',
+      );
+      continue;
+    }
+    final evidence = candidates.single;
+    if (evidence.summary.trim().isEmpty || evidence.source.trim().isEmpty) {
+      status = ProjectGameplayReadinessEvidenceStatus.failed;
+      summaries.add('${criterion.id} possède une preuve inexploitable.');
+      continue;
+    }
+    sources.add(evidence.source.trim());
+    summaries.add('${criterion.id}: ${evidence.summary.trim()}');
+    if (evidence.status == MvpProductCriterionStatus.failed) {
+      status = ProjectGameplayReadinessEvidenceStatus.failed;
+    } else if (evidence.status == MvpProductCriterionStatus.unverified &&
+        status == ProjectGameplayReadinessEvidenceStatus.passed) {
+      status = ProjectGameplayReadinessEvidenceStatus.unverified;
+    }
+  }
+  return ProjectGameplayReadinessEvidence(
+    check: check,
+    status: status,
+    summary: summaries.join(' '),
+    source: sources.join(', '),
+  );
 }
 
 ProjectGameplayReadinessDiagnostic _normalize(

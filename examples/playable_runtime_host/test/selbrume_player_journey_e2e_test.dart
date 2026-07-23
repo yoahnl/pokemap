@@ -300,6 +300,10 @@ void main() {
       await journey.attemptPortSurfGate(expectTraversal: false);
       journey.completeWalkthroughStep('surf_refused_before_unlock');
 
+      final starterBeforeLysa = journey.state.party.members.first;
+      expect(starterBeforeLysa.speciesId, 'squirtle');
+      final starterExperienceBeforeLysa = starterBeforeLysa.experience;
+      expect(starterExperienceBeforeLysa, isNotNull);
       final movesBeforeLysa = journey.selectedBattleMoveIds.length;
       await journey.interactWith(
         entityId: 'npc_lysa',
@@ -311,6 +315,21 @@ void main() {
       expect(
         journey.state.progression.completedStepIds,
         contains('step_rival_battle'),
+      );
+      final starterAfterLysa = journey.state.party.members.first;
+      expect(starterAfterLysa.experience,
+          greaterThan(starterExperienceBeforeLysa!));
+      expect(starterAfterLysa.level, greaterThan(starterBeforeLysa.level));
+      expect(
+        starterAfterLysa.speciesId,
+        'wartortle',
+        reason: 'The real post-battle queue must apply the level 16 evolution.',
+      );
+      expect(
+        starterAfterLysa.knownMoveIds,
+        contains('bite'),
+        reason: 'The product journey must learn a move through the real '
+            'post-battle level-up queue.',
       );
       expect(
         journey.battleMoveChoices.skip(movesBeforeLysa),

@@ -3371,7 +3371,8 @@ void _seedNewGameConfig(Map<String, dynamic> project) {
           speciesId: 'squirtle',
           natureId: 'hardy',
           abilityId: 'torrent',
-          level: 16,
+          level: 15,
+          experience: 2534,
           currentHp: 40,
           knownMoveIds: <String>[
             'tackle',
