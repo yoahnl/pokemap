@@ -124,11 +124,12 @@ lot ou de phase :
    encore ouvert, sinon produire une modification documentaire distincte.
 ```
 
-Dernière mise à jour : **2026-07-23** — lot MVP 3.2, opérations pures PC,
-capture, items et shop. `FG-023`, `FG-024`, `FG-025`, `FG-060` et `FG-063`
-sont fermés ; `FG-028`, `FG-062` et `FG-071` restent partiels jusqu'aux écrans
-joueur et au câblage runtime des lots 3.3 à 3.5. Le commit de preuve est celui
-du lot 3.2, créé avec cette mise à jour.
+Dernère mise à jour : **2026-07-23** — phase MVP 3, services joueur.
+`FG-026`, `FG-027`, `FG-028`, `FG-061`, `FG-062` et `FG-070` sont fermés par
+les UI Party/Bag/shop et leur transaction runtime + sauvegarde. `FG-029` reste
+partiel faute d'accès Summary depuis le PC ; `FG-071` reste partiel jusqu'à la
+commande Scene `HealParty`. Les commits de preuve sont `12a8af78`, `f44ab359`
+et celui du lot 3.5 créé avec cette mise à jour.
 
 ---
 
@@ -250,15 +251,15 @@ Le MVP est atteint quand un créateur peut faire ceci dans PokeMap :
 
 | Priorité | Bloc | Pourquoi c’est bloquant | Statut |
 |---:|---|---|---|
-| 1 | Party + PC + Bag runtime | La boucle collection/soin/capture reste cassée sans ça | `⬜ TODO` |
+| 1 | Party + PC + Bag runtime | La boucle collection/soin/capture reste cassée sans ça | `🟡 PARTIAL` — parcours jouables ; Summary depuis le PC reste absent |
 | 2 | XP + level-up + évolution | Les combats ne font pas progresser les Pokémon | `✅ DONE` |
 | 3 | Rewards combat + argent + badges | Les trainers ne structurent pas encore l’aventure | `✅ DONE` pour le contrat et l’application post-combat MVP |
 | 4 | Event command catalog | Sans actions no-code, l’éditeur reste trop technique | `⬜ TODO` |
 | 5 | Field moves hors Surf | Sans gates environnementaux, la progression map est plate | `⬜ TODO` |
-| 6 | Shops / heal center / pickups | Sans économie et recovery, le jeu ne vit pas | `⬜ TODO` |
+| 6 | Shops / heal center / pickups | Sans économie et recovery, le jeu ne vit pas | `🟡 PARTIAL` — shop et soin menu fermés ; pickups et commande Scene heal restent ouverts |
 | 7 | Battle write-back complet | PP/status/held items doivent survivre au combat | `🟡 PARTIAL` : HP/PP/status/progression fermés ; mutation held item non ouverte |
 | 8 | Encounter types élargis | Statics, gifts, fishing, headbutt donnent la vraie saveur Pokémon | `⬜ TODO` |
-| 9 | Runtime menus | Pause, party, bag, Pokédex, options sont indispensables | `⬜ TODO` |
+| 9 | Runtime menus | Pause, party, bag, Pokédex, options sont indispensables | `🟡 PARTIAL` — pause, Party, Bag, Pokédex, options, shop, PC et soin prouvés |
 | 10 | Validation jeu jouable | Le créateur doit savoir si son projet est cassé avant le runtime | `⬜ TODO` |
 
 ---
@@ -269,9 +270,9 @@ Le MVP est atteint quand un créateur peut faire ceci dans PokeMap :
 |---|---:|---|---|---|
 | Phase 0 | FG-000 → FG-009 | Audit et contrats de suivi | Aucun | `⬜ TODO` |
 | Phase 1 | FG-010 → FG-019 | New Game, starter, save/load, pause shell | Phase 0 | `⬜ TODO` |
-| Phase 2 | FG-020 → FG-039 | Party, PC, capture crédible | Phase 1 | `🟡 PARTIAL` — 7/11 lots fermés, FG-028 partiel |
+| Phase 2 | FG-020 → FG-039 | Party, PC, capture crédible | Phase 1 | `🟡 PARTIAL` — 10/11 lots fermés, FG-029 partiel |
 | Phase 3 | FG-040 → FG-059 | Battle persistence, rewards, XP, level-up, évolutions | Phase 2 | `🟡 PARTIAL` — FG-040 à FG-049 et FG-051 fermés |
-| Phase 4 | FG-060 → FG-079 | Bag, items, shops, centre Pokémon | Phase 2 | `🟡 PARTIAL` — FG-060, FG-063 et FG-069 fermés ; FG-062/FG-071 partiels |
+| Phase 4 | FG-060 → FG-079 | Bag, items, shops, centre Pokémon | Phase 2 | `🟡 PARTIAL` — FG-060/061/062/063/069/070 fermés ; FG-071 partiel |
 | Phase 5 | FG-080 → FG-099 | Event commands no-code | Phases 1–4 selon commandes | `⬜ TODO` |
 | Phase 6 | FG-100 → FG-119 | Encounters élargis | Phases 2, 5 | `⬜ TODO` |
 | Phase 7 | FG-120 → FG-139 | Field moves / environmental gates | Phases 2, 5 | `⬜ TODO` |
@@ -498,10 +499,10 @@ Objectif : capturer reste utile même quand la party contient déjà 6 Pokémon.
 | FG-023 | PC Storage Operations V0 | `✅ DONE` | Opérations atomiques et erreurs typées ; lot 3.2, Gameplay 380/380 |
 | FG-024 | Capture Destination: Party or Box V0 | `✅ DONE` | Destination party/première box et saturation typée ; lot 3.2 |
 | FG-025 | Capture To Box When Party Full V0 | `✅ DONE` | Write-back runtime, destination lisible et refus avant débit si PC plein ; lot 3.2 |
-| FG-026 | Runtime Party Menu Read-only V0 | `⬜ TODO` | — |
-| FG-027 | Pokémon Summary Runtime V0 | `⬜ TODO` | — |
-| FG-028 | Party Reorder / Lead Selection V0 | `🟡 PARTIAL` | Swap/lead purs et invariants livrés ; smoke UI/runtime attendu au lot 3.3 |
-| FG-029 | Runtime PC Screen V0 | `⬜ TODO` | — |
+| FG-026 | Runtime Party Menu Read-only V0 | `✅ DONE` | Menu pause, 1–6 Pokémon et état vide testés ; lot 3.3, `12a8af78` |
+| FG-027 | Pokémon Summary Runtime V0 | `✅ DONE` | XP/PV/statut/nature/talent/objet et moves+PP visibles ; lot 3.3, `12a8af78` |
+| FG-028 | Party Reorder / Lead Selection V0 | `✅ DONE` | Swap/lead purs, UI et transaction runtime testés ; lots 3.2–3.5 |
+| FG-029 | Runtime PC Screen V0 | `🟡 PARTIAL` | Dépôt/retrait/swap et garde last usable testés ; accès Summary depuis le PC absent |
 | FG-030 | Party/Box Validation V0 | `✅ DONE` | Diagnostics typés party/box/catalogues et messages lisibles ; lot 3.1 |
 
 ## FG-020 — PlayerPokemon Runtime Persistence Audit
@@ -641,11 +642,11 @@ sinon → capture impossible / storage full
 ### DoD
 
 ```md
-- [ ] Menu accessible depuis pause.
-- [ ] Affiche 1 à 6 Pokémon.
-- [ ] Affiche nom/espèce, niveau, PV, statut, moves résumés.
-- [ ] Aucun changement d’ordre encore si FG-028 non fait.
-- [ ] Cas party vide géré proprement.
+- [x] Menu accessible depuis pause.
+- [x] Affiche 1 à 6 Pokémon.
+- [x] Affiche nom/espèce, niveau, PV, statut, moves résumés.
+- [x] Le changement d’ordre est fourni par FG-028, sans état intermédiaire invalide.
+- [x] Cas party vide géré proprement.
 ```
 
 ## FG-027 — Pokémon Summary Runtime V0
@@ -655,10 +656,10 @@ sinon → capture impossible / storage full
 ### DoD
 
 ```md
-- [ ] Stats visibles.
-- [ ] Moves + PP visibles.
-- [ ] Nature/ability/held item visibles si modèle disponible.
-- [ ] Pas d’édition runtime non prévue.
+- [x] Stats persistées utiles (XP/PV/niveau/statut) visibles.
+- [x] Moves + PP visibles.
+- [x] Nature/ability/held item visibles si modèle disponible.
+- [x] Pas d’édition runtime non prévue.
 ```
 
 ## FG-028 — Party Reorder / Lead Selection V0
@@ -671,7 +672,7 @@ sinon → capture impossible / storage full
 - [x] Swap deux slots party.
 - [x] Le changement de lead place explicitement la cible en tête.
 - [x] Impossible de créer un état invalide.
-- [ ] Tests opérations pures + runtime smoke.
+- [x] Tests opérations pures + runtime smoke.
 ```
 
 ## FG-029 — Runtime PC Screen V0
@@ -681,10 +682,10 @@ sinon → capture impossible / storage full
 ### DoD
 
 ```md
-- [ ] Écran PC minimal accessible via commande/event ou debug hook.
-- [ ] Withdraw/deposit/move fonctionnels.
+- [x] Écran PC minimal accessible depuis le menu pause runtime.
+- [x] Withdraw/deposit/move fonctionnels.
 - [ ] Summary accessible.
-- [ ] Validation last usable Pokémon si règle retenue.
+- [x] Validation last usable Pokémon si règle retenue.
 ```
 
 ## FG-030 — Party/Box Validation V0
@@ -926,8 +927,8 @@ Objectif : rendre l’inventaire utile hors combat.
 | ID | Lot | Statut | Preuve |
 |---|---|---|---|
 | FG-060 | Item Use Effect Registry V0 | `✅ DONE` | Registry pur HP/statut/revive/PP/key item/Ball et erreurs typées ; lot 3.2 |
-| FG-061 | Overworld Bag Menu V0 | `⬜ TODO` | — |
-| FG-062 | Medicine Outside Battle V0 | `🟡 PARTIAL` | Application/consommation exacte testées ; picker joueur attendu au lot 3.3 |
+| FG-061 | Overworld Bag Menu V0 | `✅ DONE` | Catégories, quantités, utilisabilité et action joueur testées ; lot 3.3 |
+| FG-062 | Medicine Outside Battle V0 | `✅ DONE` | Picker item/cible, consommation exacte et transaction sauvegardée ; lots 3.2–3.5 |
 | FG-063 | Status Cure / Revive V0 | `✅ DONE` | Antidote, réveil, anti-para, burn/ice/full heal et revive testés ; lot 3.2 |
 | FG-064 | Key Item Gates V0 | `⬜ TODO` | — |
 | FG-065 | Repel V0 | `⏸ DEFERRED` | Hors MVP signé le 2026-07-22. |
@@ -935,8 +936,8 @@ Objectif : rendre l’inventaire utile hors combat.
 | FG-067 | Item Pickup Event V0 | `⬜ TODO` | — |
 | FG-068 | Hidden Item Event V0 | `⬜ TODO` | — |
 | FG-069 | Shop Model V0 | `✅ DONE` | Shops persistants, prix/stock et validation catalogue ; lot 3.1, Core 4381/4381 |
-| FG-070 | Shop Runtime V0 | `⬜ TODO` | — |
-| FG-071 | Heal Center Flow V0 | `🟡 PARTIAL` | Recovery HP/PP/statut pur livré ; dialogue/commande attendus aux lots 3.3–3.5 |
+| FG-070 | Shop Runtime V0 | `✅ DONE` | Prix/stock/argent/quantité, UI et transaction sauvegardée ; lots 3.2–3.5 |
+| FG-071 | Heal Center Flow V0 | `🟡 PARTIAL` | Soin complet menu + sauvegarde livré ; commande Scene `HealParty` encore absente |
 | FG-072 | Held Item Operations V0 | `⬜ TODO` | — |
 | FG-073 | TM/HM Item Support V0 | `⬜ TODO` | — |
 
@@ -960,10 +961,10 @@ Objectif : rendre l’inventaire utile hors combat.
 ### DoD
 
 ```md
-- [ ] Catégories affichées.
-- [ ] Quantités affichées.
-- [ ] Action utiliser/jeter si retenue.
-- [ ] Items non utilisables indiqués clairement.
+- [x] Catégories affichées.
+- [x] Quantités affichées.
+- [x] Action utiliser disponible ; jeter n'est pas retenu dans le MVP.
+- [x] Items non utilisables indiqués clairement.
 ```
 
 ## FG-062 — Medicine Outside Battle V0
@@ -973,7 +974,7 @@ Objectif : rendre l’inventaire utile hors combat.
 ### DoD
 
 ```md
-- [ ] Sélection item -> sélection Pokémon -> application.
+- [x] Sélection item -> sélection Pokémon -> application.
 - [x] Ne consomme pas si aucun effet.
 - [x] Consomme exactement si effet appliqué.
 - [x] Tests full HP, fainted, normal heal.
@@ -1075,10 +1076,10 @@ Objectif : rendre l’inventaire utile hors combat.
 ### DoD
 
 ```md
-- [ ] Open shop command ou hook runtime.
-- [ ] Buy vérifie argent et stock.
-- [ ] Sell si autorisé.
-- [ ] Money mutations testées.
+- [x] Hook shop accessible depuis le menu pause runtime.
+- [x] Buy vérifie argent et stock.
+- [x] Sell non autorisé par le modèle MVP ; aucun faux parcours exposé.
+- [x] Money mutations testées.
 ```
 
 ## FG-071 — Heal Center Flow V0

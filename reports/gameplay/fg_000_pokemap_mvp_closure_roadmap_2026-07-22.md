@@ -559,20 +559,29 @@ la présente mise à jour.**
 
 ## Task 3.5 — Intégration service runtime
 
+**Statut : terminé le 2026-07-23 — contrôleur typé et transaction
+runtime/save, 3 tests de coordination et 17 tests host verts, analyses runtime
+et host sans diagnostic ; commit créé avec la présente mise à jour.**
+
 **Files:**
 
 - Create: `packages/map_runtime/lib/src/application/player_service_runtime_controller.dart`
 - Create: `packages/map_runtime/test/player_service_runtime_controller_test.dart`
 - Modify: `examples/playable_runtime_host/lib/main.dart`
 
-- [ ] **Step 1:** Exposer des ports typés pour ouvrir shop/PC/soin sans dépendre des widgets host.
-- [ ] **Step 2:** Attendre fermeture, annulation ou erreur avant de rendre l'input.
-- [ ] **Step 3:** Synchroniser le `GameState` et la sauvegarde après mutation réussie.
-- [ ] **Step 4:** Tester concurrence d'overlays, annulation et exception host.
-- [ ] **Step 5:** Commit proposé : `feat(runtime): coordinate player service overlays`.
+- [x] **Step 1:** Exposer des ports typés pour ouvrir shop/PC/soin sans dépendre des widgets host.
+- [x] **Step 2:** Attendre fermeture, annulation ou erreur avant de rendre l'input.
+- [x] **Step 3:** Synchroniser le `GameState` et la sauvegarde après mutation réussie.
+- [x] **Step 4:** Tester concurrence d'overlays, annulation et exception host.
+- [x] **Step 5:** Commit créé : `feat(runtime): coordinate player service overlays`.
 
 **Gate Phase 3 :** le joueur peut acheter, utiliser un soin, réorganiser sa
 party, déposer/retirer un Pokémon et se soigner sans API de debug.
+
+**Gate franchie le 2026-07-23 :** ces parcours sont accessibles depuis le
+menu pause, verrouillent l'input overworld et publient chaque mutation via une
+transaction runtime + sauvegarde. L'ouverture par commande Scene reste le lot
+4.1 et n'est pas revendiquée ici.
 
 ---
 

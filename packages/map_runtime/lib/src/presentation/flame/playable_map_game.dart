@@ -1581,6 +1581,31 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return _gameState;
   }
 
+  /// Commits a player-service mutation to the live narrative state and save.
+  ///
+  /// A failed save restores the previous in-memory transaction snapshot so a
+  /// closed Shop, PC or healing overlay never leaves a half-committed session.
+  Future<void> commitAndSavePlayerServiceState(GameState nextState) async {
+    final previousState = await _narrativeStateTransactions.read();
+    try {
+      final committedState =
+          await _narrativeStateTransactions.transact<GameState>((_) {
+        return NarrativeEventStateTransaction.commit(nextState, nextState);
+      });
+      _applyNarrativeGameState(committedState);
+      final saved = await saveGame();
+      if (!saved) {
+        throw StateError('Player service state could not be saved.');
+      }
+    } catch (error) {
+      await _narrativeStateTransactions.transact<void>((_) {
+        return NarrativeEventStateTransaction.commit(previousState, null);
+      });
+      _applyNarrativeGameState(previousState);
+      rethrow;
+    }
+  }
+
   /// The single player-input authority exposed to Flutter hosts and tests.
   ///
   /// Internal contexts are derived from the existing runtime flow. Only

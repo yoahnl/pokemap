@@ -1,16 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_runtime/map_runtime.dart';
 
-final class PlayerServiceRecoveryCaps {
-  const PlayerServiceRecoveryCaps({
-    required this.maxHpByPartyIndex,
-    this.maxPpByPartyIndex = const <int, Map<String, int>>{},
-  });
-
-  final Map<int, int> maxHpByPartyIndex;
-  final Map<int, Map<String, int>> maxPpByPartyIndex;
-}
+typedef PlayerServiceRecoveryCaps = RuntimePlayerServiceRecoveryCaps;
 
 typedef InGameHealStateCommit = Future<void> Function(GameState state);
 

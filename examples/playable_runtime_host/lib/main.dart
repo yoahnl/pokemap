@@ -56,6 +56,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   String _projectFilePath = '';
   List<ProjectMapEntry> _availableMaps = const [];
   List<ShopDefinition> _availableShops = const [];
+  ProjectManifest? _projectManifest;
   String? _selectedMapId;
   PlayableMapGame? _game;
   String? _error;
@@ -273,6 +274,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         setState(() {
           _availableMaps = const [];
           _availableShops = const [];
+          _projectManifest = null;
         });
         return;
       }
@@ -294,6 +296,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       setState(() {
         _availableMaps = maps;
         _availableShops = manifest.shops;
+        _projectManifest = manifest;
         _selectedMapId = nextSelected;
       });
       _runtimeHostLog(
@@ -311,6 +314,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       setState(() {
         _availableMaps = const [];
         _availableShops = const [];
+        _projectManifest = null;
       });
     }
   }
@@ -719,6 +723,22 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     await runWithRuntimePauseMenuInputLock(
       setExternalInputLock: game.setExternalInputLock,
       openMenu: () async {
+        final manifest = _projectManifest;
+        var recoveryCaps = const RuntimePlayerServiceRecoveryCaps(
+          maxHpByPartyIndex: <int, int>{},
+        );
+        if (manifest != null) {
+          try {
+            recoveryCaps = await loadRuntimePlayerServiceRecoveryCaps(
+              gameState: game.gameStateSnapshot,
+              projectRootDirectory: File(_projectFilePath).parent.path,
+              pokemonConfig: manifest.pokemon,
+            );
+          } catch (error) {
+            _runtimeHostLog('player service recovery caps failed: $error');
+          }
+        }
+        if (!mounted) return;
         await Navigator.of(context).push<void>(
           MaterialPageRoute<void>(
             builder: (routeContext) {
@@ -732,6 +752,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                 playerOptions: _playerOptions,
                 projectMaps: _availableMaps,
                 shops: _availableShops,
+                recoveryCaps: recoveryCaps,
+                onPlayerStateCommitted: game.commitAndSavePlayerServiceState,
                 supportsTouchControls: _supportsTouchControls,
                 onOptionsChanged: _updatePlayerOptions,
                 onQuitRequested: () {
