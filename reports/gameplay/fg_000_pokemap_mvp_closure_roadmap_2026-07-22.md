@@ -675,14 +675,27 @@ FG-085/089/090/091/093 restent `PARTIAL` jusqu'à la gate de parité Task 4.4.
 - Create: `packages/map_runtime/test/narrative_command_runtime_parity_test.dart`
 - Create: `reports/gameplay/fg_082_093_narrative_command_runtime_parity.md`
 
-- [ ] **Step 1:** Dans Core, parcourir tous les descriptors supportés et exiger modèle, sérialisation, diagnostics et plan.
-- [ ] **Step 2:** Dans Runtime, exiger un writer ou handler exécutable et un port de sortie testé pour chaque commande déclarée supportée.
-- [ ] **Step 3:** Exiger qu'une commande volontairement différée soit masquée ou étiquetée unsupported.
-- [ ] **Step 4:** Ajouter les deux tests à la matrice rapide de release sans introduire de dépendance Core vers Runtime.
-- [ ] **Step 5:** Commit proposé : `test(gameplay): enforce narrative command runtime parity`.
+- [x] **Step 1:** Dans Core, parcourir tous les descriptors supportés et exiger modèle, sérialisation, diagnostics et plan.
+- [x] **Step 2:** Dans Runtime, exiger un writer ou handler exécutable et un port de sortie testé pour chaque commande déclarée supportée.
+- [x] **Step 3:** Exiger qu'une commande volontairement différée soit masquée ou étiquetée unsupported.
+- [x] **Step 4:** Ajouter les deux tests à la matrice rapide de release sans introduire de dépendance Core vers Runtime.
+- [x] **Step 5:** Commit proposé : `test(gameplay): enforce narrative command runtime parity`.
 
 **Gate Phase 4 :** aucune commande visible comme supportée ne peut produire un
 payload inexécutable ou tomber sur un callback absent.
+
+**Preuve fraîche (2026-07-23) :** les 18 descriptors publiables sont couverts
+par une bijection exhaustive : 11 conséquences state-only atteignent le writer
+réel, 3 commandes interactives atteignent un handler et un port déclaré, et 4
+nœuds dédiés atteignent leurs callbacks host. `setNpcPresence`, volontairement
+différé, reste non publiable et explicitement unsupported. Le test a également
+révélé puis corrigé un faux diagnostic qui exigeait un trainer pour une
+rencontre statique. Les tests ciblés Core (`+76`) et Runtime (`+38`), les
+analyses Core/Runtime/Editor et le build macOS du host sont verts. Les statuts
+canoniques restent néanmoins `PARTIAL` : les suites complètes ont exposé une
+dette antérieure indépendante de la phase 4 (71 fixtures Runtime privées de
+catalogues/progression et 2 preuves Selbrume Editor périmées), détaillée dans
+`fg_082_093_narrative_command_runtime_parity.md`.
 
 ---
 

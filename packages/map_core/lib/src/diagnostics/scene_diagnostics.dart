@@ -60,6 +60,7 @@ enum SceneDiagnosticCode {
   dialogueRefUnknown,
   dialogueExpectedOutcomeUnknown,
   battleTrainerRefUnknown,
+  battleTemplateRefMissing,
   cinematicRefUnknown,
   emptyGraph,
   legacyScenarioLeak,
@@ -460,8 +461,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
           }
         }
       case SceneBattlePayload():
-        if ((payload.battleKind == 'trainer' ||
-                payload.battleKind == 'static') &&
+        if (payload.battleKind == 'trainer' &&
             (payload.trainerId == null ||
                 !trainerIds.contains(payload.trainerId))) {
           diagnostics.add(
@@ -474,6 +474,22 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
               nodeId: node.id,
               target: SceneDiagnosticTarget.node,
               suggestedFixLabel: 'Choisir un adversaire existant.',
+            ),
+          );
+        }
+        if (payload.battleKind == 'static' &&
+            (payload.battleTemplateId?.trim().isEmpty ?? true)) {
+          diagnostics.add(
+            SceneDiagnostic(
+              code: SceneDiagnosticCode.battleTemplateRefMissing,
+              severity: SceneDiagnosticSeverity.error,
+              message:
+                  'La rencontre statique doit référencer un template de combat.',
+              sceneId: scene.id,
+              nodeId: node.id,
+              target: SceneDiagnosticTarget.node,
+              suggestedFixLabel:
+                  'Choisir une espèce ou un template de rencontre statique.',
             ),
           );
         }

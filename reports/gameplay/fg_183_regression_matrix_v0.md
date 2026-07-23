@@ -1,6 +1,6 @@
 # FG-183 — Regression Matrix V0
 
-Date: 2026-07-21
+Date: 2026-07-21 · mise à jour Phase 4 le 2026-07-23
 
 Proposed status: **DONE**
 
@@ -39,13 +39,15 @@ commandes package-scoped attendues dans ce monorepo sans orchestrateur.
 cd packages/map_core
 dart test \
   test/project_gameplay_readiness_test.dart \
-  test/mvp_release_gate_test.dart
+  test/mvp_release_gate_test.dart \
+  test/narrative_command_contract_parity_test.dart
 
 cd packages/map_gameplay
 dart test test/party_bag_heal_operations_test.dart
 
 cd packages/map_runtime
 flutter test \
+  test/narrative_command_runtime_parity_test.dart \
   test/phase_a_golden_battle_slice_smoke_test.dart \
   test/p6_selbrume_beta_validator_pass_test.dart \
   test/p6_selbrume_first_trainer_battle_golden_slice_test.dart \
@@ -70,6 +72,7 @@ flutter test \
 | Field ability | `packages/map_gameplay/test/surf_evaluation_test.dart`, `packages/map_gameplay/test/script_system_integration_test.dart` |
 | Save / reload | `packages/map_runtime/test/file_game_save_repository_test.dart`, `packages/map_runtime/test/p6_selbrume_save_load_golden_slice_test.dart` |
 | Runtime battle handoff | `packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart` |
+| Contrat no-code / runtime | `packages/map_core/test/narrative_command_contract_parity_test.dart`, `packages/map_runtime/test/narrative_command_runtime_parity_test.dart` |
 | Campagne Selbrume | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
 | Golden Fangame Slice | `examples/playable_runtime_host/test/golden_fangame_slice_e2e_test.dart` |
 | Release gate | `packages/map_core/test/mvp_release_gate_test.dart` |

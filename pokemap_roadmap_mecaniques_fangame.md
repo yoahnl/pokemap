@@ -1130,18 +1130,18 @@ Objectif : permettre aux créateurs de faire les événements Pokémon classique
 |---|---|---|---|
 | FG-080 | Event Command Model V0 | `⬜ TODO` | — |
 | FG-081 | Condition Builder No-code V0 | `⬜ TODO` | — |
-| FG-082 | Runtime Command Executor V0 | `🟡 PARTIAL` | Executor interactif branché dans `PlayableMapGame` ; gate exhaustive Task 4.4 restante |
+| FG-082 | Runtime Command Executor V0 | `🟡 PARTIAL` | Parité exhaustive des 18 commandes publiables prouvée ; promotion bloquée par la suite Runtime globale déjà rouge sur fixtures progression |
 | FG-083 | Give/Take Item Commands V0 | `⬜ TODO` | — |
 | FG-084 | Give Pokémon Command V0 | `⬜ TODO` | — |
-| FG-085 | Heal Party Command V0 | `🟡 PARTIAL` | Modèle, JSON, caps runtime, preview, writer idempotent et authoring guidé livrés ; gate Task 4.4 restante |
+| FG-085 | Heal Party Command V0 | `🟡 PARTIAL` | Modèle, JSON, caps runtime, preview, writer idempotent, authoring guidé et parité runtime prouvés ; gate package globale rouge hors lot |
 | FG-086 | Start Trainer Battle Command V0 | `⬜ TODO` | — |
 | FG-087 | Start Static Encounter Command V0 | `⬜ TODO` | — |
 | FG-088 | Set Flag / Variable Commands V0 | `⬜ TODO` | — |
-| FG-089 | Unlock Field Ability / Badge Commands V0 | `🟡 PARTIAL` | AwardBadge/UnlockFieldAbility persistants, idempotents et authorables par pickers projet ; gate Task 4.4 restante |
-| FG-090 | Warp Command V0 | `🟡 PARTIAL` | Pipeline réel, ports déclarés et validation guidée editor livrés ; gate Task 4.4 restante |
-| FG-091 | Open Shop / Open PC Commands V0 | `🟡 PARTIAL` | Controller, routes host et ports `completed`/`cancelled` branchés ; gate Task 4.4 restante |
+| FG-089 | Unlock Field Ability / Badge Commands V0 | `🟡 PARTIAL` | AwardBadge/UnlockFieldAbility persistants, idempotents, authorables et couverts par la parité exhaustive ; gate package globale rouge hors lot |
+| FG-090 | Warp Command V0 | `🟡 PARTIAL` | Pipeline réel, ports déclarés, validation guidée et parité handler/port prouvés ; gate package globale rouge hors lot |
+| FG-091 | Open Shop / Open PC Commands V0 | `🟡 PARTIAL` | Controller, routes host, ports `completed`/`cancelled` et parité handler/port prouvés ; gate package globale rouge hors lot |
 | FG-092 | NPC Move / Presence Commands V0 | `⬜ TODO` | — |
-| FG-093 | Action Builder UI V0 | `🟡 PARTIAL` | Catalogue/pickers runtime-aware, références supprimées bloquantes et round-trip testés ; gate exhaustive Task 4.4 restante |
+| FG-093 | Action Builder UI V0 | `🟡 PARTIAL` | Catalogue/pickers runtime-aware, références supprimées bloquantes, round-trip et bijection catalogue/runtime testés ; 2 preuves Selbrume globales restent périmées |
 | FG-094 | Event Templates V0 | `⬜ TODO` | — |
 
 ## FG-080 — Event Command Model V0
