@@ -8,6 +8,7 @@ import 'scene_runtime_hook_result.dart';
 final class SceneEventRuntimeHook {
   SceneEventRuntimeHook({
     required this.callbacks,
+    this.consequenceWriter,
     this.maxSteps = 100,
   }) {
     if (maxSteps < 1) {
@@ -20,6 +21,7 @@ final class SceneEventRuntimeHook {
   }
 
   final SceneRuntimeHostCallbacks callbacks;
+  final SceneConsequenceRuntimeWriter? consequenceWriter;
   final int maxSteps;
 
   Future<SceneEventRuntimeHookResult> runForEventPage({
@@ -71,10 +73,11 @@ final class SceneEventRuntimeHook {
     }
 
     final pendingConsequences = <SceneConsequence>[];
-    final consequenceWriter = SceneConsequenceRuntimeWriter(
-      project: project,
-      mapsById: {map.id: map},
-    );
+    final writer = consequenceWriter ??
+        SceneConsequenceRuntimeWriter(
+          project: project,
+          mapsById: {map.id: map},
+        );
     var validationState = currentGameState?.call() ?? gameState;
     SceneConsequenceRuntimeWriteResult? rejectedConsequenceWrite;
     final executionResult = await SceneRuntimeExecutor(
@@ -82,7 +85,7 @@ final class SceneEventRuntimeHook {
         applyConsequence: (consequence) {
           final currentValidationState = validationState;
           if (currentValidationState != null) {
-            final validation = consequenceWriter.applyOne(
+            final validation = writer.applyOne(
               currentValidationState,
               consequence,
             );
@@ -121,8 +124,7 @@ final class SceneEventRuntimeHook {
         );
       }
 
-      final writeResult =
-          consequenceWriter.applyAll(commitBaseState, pendingConsequences);
+      final writeResult = writer.applyAll(commitBaseState, pendingConsequences);
       if (!writeResult.success) {
         return SceneEventRuntimeHookResult.failed(
           errorCode: SceneEventRuntimeHookErrorCode.sceneConsequenceWriteFailed,

@@ -25,6 +25,10 @@ enum SceneConsequenceRuntimeWriteErrorCode {
   missingStarterOptionReference,
   unknownStarterOption,
   ambiguousStarterOption,
+  missingPartyRecoveryCaps,
+  missingBadgeReference,
+  unknownBadge,
+  ambiguousBadge,
   partyFull,
 }
 

@@ -1,5 +1,6 @@
 import 'package:meta/meta.dart' show immutable;
 
+import 'enums.dart';
 import 'narrative_value.dart';
 
 enum SceneConsequenceKind {
@@ -11,6 +12,9 @@ enum SceneConsequenceKind {
   giveMoney,
   givePokemon,
   giveConfiguredStarter,
+  healParty,
+  awardBadge,
+  unlockFieldAbility,
 }
 
 @immutable
@@ -80,6 +84,23 @@ abstract base class SceneConsequence {
     String? notes,
   }) = SceneGiveConfiguredStarterConsequence;
 
+  factory SceneConsequence.healParty({
+    String? label,
+    String? notes,
+  }) = SceneHealPartyConsequence;
+
+  factory SceneConsequence.awardBadge({
+    required String badgeId,
+    String? label,
+    String? notes,
+  }) = SceneAwardBadgeConsequence;
+
+  factory SceneConsequence.unlockFieldAbility({
+    required FieldAbility ability,
+    String? label,
+    String? notes,
+  }) = SceneUnlockFieldAbilityConsequence;
+
   factory SceneConsequence.fromJson(Map<String, dynamic> json) {
     final kind = _readKind(json['kind']);
     return switch (kind) {
@@ -96,6 +117,12 @@ abstract base class SceneConsequence {
         SceneGivePokemonConsequence.fromJson(json),
       SceneConsequenceKind.giveConfiguredStarter =>
         SceneGiveConfiguredStarterConsequence.fromJson(json),
+      SceneConsequenceKind.healParty =>
+        SceneHealPartyConsequence.fromJson(json),
+      SceneConsequenceKind.awardBadge =>
+        SceneAwardBadgeConsequence.fromJson(json),
+      SceneConsequenceKind.unlockFieldAbility =>
+        SceneUnlockFieldAbilityConsequence.fromJson(json),
     };
   }
 
@@ -554,6 +581,131 @@ final class SceneGiveConfiguredStarterConsequence extends SceneConsequence {
   int get hashCode => Object.hash(starterOptionId, label, notes);
 }
 
+@immutable
+final class SceneHealPartyConsequence extends SceneConsequence {
+  SceneHealPartyConsequence({String? label, String? notes})
+      : label = _trimOptional(label),
+        notes = _trimOptional(notes);
+
+  factory SceneHealPartyConsequence.fromJson(Map<String, dynamic> json) =>
+      SceneHealPartyConsequence(
+        label: _readOptionalString(json, 'label'),
+        notes: _readOptionalString(json, 'notes'),
+      );
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.healParty;
+
+  final String? label;
+  final String? notes;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'kind': _kindToJson(kind),
+        'label': label,
+        'notes': notes,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneHealPartyConsequence &&
+          other.label == label &&
+          other.notes == notes;
+
+  @override
+  int get hashCode => Object.hash(label, notes);
+}
+
+@immutable
+final class SceneAwardBadgeConsequence extends SceneConsequence {
+  SceneAwardBadgeConsequence({
+    required String badgeId,
+    String? label,
+    String? notes,
+  })  : badgeId = badgeId.trim(),
+        label = _trimOptional(label),
+        notes = _trimOptional(notes);
+
+  factory SceneAwardBadgeConsequence.fromJson(Map<String, dynamic> json) =>
+      SceneAwardBadgeConsequence(
+        badgeId: _readRequiredString(json, 'badgeId'),
+        label: _readOptionalString(json, 'label'),
+        notes: _readOptionalString(json, 'notes'),
+      );
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.awardBadge;
+
+  final String badgeId;
+  final String? label;
+  final String? notes;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'kind': _kindToJson(kind),
+        'badgeId': badgeId,
+        'label': label,
+        'notes': notes,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneAwardBadgeConsequence &&
+          other.badgeId == badgeId &&
+          other.label == label &&
+          other.notes == notes;
+
+  @override
+  int get hashCode => Object.hash(badgeId, label, notes);
+}
+
+@immutable
+final class SceneUnlockFieldAbilityConsequence extends SceneConsequence {
+  SceneUnlockFieldAbilityConsequence({
+    required this.ability,
+    String? label,
+    String? notes,
+  })  : label = _trimOptional(label),
+        notes = _trimOptional(notes);
+
+  factory SceneUnlockFieldAbilityConsequence.fromJson(
+    Map<String, dynamic> json,
+  ) =>
+      SceneUnlockFieldAbilityConsequence(
+        ability: _readFieldAbility(json, 'abilityId'),
+        label: _readOptionalString(json, 'label'),
+        notes: _readOptionalString(json, 'notes'),
+      );
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.unlockFieldAbility;
+
+  final FieldAbility ability;
+  final String? label;
+  final String? notes;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'kind': _kindToJson(kind),
+        'abilityId': ability.moveId,
+        'label': label,
+        'notes': notes,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneUnlockFieldAbilityConsequence &&
+          other.ability == ability &&
+          other.label == label &&
+          other.notes == notes;
+
+  @override
+  int get hashCode => Object.hash(ability, label, notes);
+}
+
 SceneConsequenceKind _readKind(Object? value) {
   if (value is! String) {
     throw FormatException(
@@ -579,7 +731,18 @@ String _kindToJson(SceneConsequenceKind kind) {
     SceneConsequenceKind.giveMoney => 'giveMoney',
     SceneConsequenceKind.givePokemon => 'givePokemon',
     SceneConsequenceKind.giveConfiguredStarter => 'giveConfiguredStarter',
+    SceneConsequenceKind.healParty => 'healParty',
+    SceneConsequenceKind.awardBadge => 'awardBadge',
+    SceneConsequenceKind.unlockFieldAbility => 'unlockFieldAbility',
   };
+}
+
+FieldAbility _readFieldAbility(Map<String, dynamic> json, String key) {
+  final wireId = _readRequiredString(json, key).trim();
+  for (final ability in FieldAbility.values) {
+    if (ability.moveId == wireId) return ability;
+  }
+  throw FormatException('Unknown SceneConsequence.$key: $wireId.');
 }
 
 String _readRequiredString(Map<String, dynamic> json, String key) {

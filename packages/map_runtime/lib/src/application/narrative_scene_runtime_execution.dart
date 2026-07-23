@@ -14,6 +14,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   required Map<String, MapData> mapsById,
   required GameState Function() currentGameState,
   required SceneRuntimeHostCallbacks callbacks,
+  SceneConsequenceRuntimeWriter? consequenceWriter,
   List<NarrativeOutcomeRef> hostedBattleOutcomes = const [],
   int maxSteps = 100,
 }) async {
@@ -65,15 +66,16 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   // Scene completes, those authoritative writes are kept by rebasing the
   // buffered consequences onto the latest host GameState.
   final pendingConsequences = <SceneConsequence>[];
-  final consequenceWriter = SceneConsequenceRuntimeWriter(
-    project: project,
-    mapsById: mapsById,
-  );
+  final writer = consequenceWriter ??
+      SceneConsequenceRuntimeWriter(
+        project: project,
+        mapsById: mapsById,
+      );
   var validationState = request.gameState;
   final execution = await SceneRuntimeExecutor(
     callbacks: callbacks.toExecutionCallbacks(
       applyConsequence: (consequence) {
-        final validation = consequenceWriter.applyOne(
+        final validation = writer.applyOne(
           validationState,
           consequence,
         );
@@ -99,8 +101,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
     );
   }
 
-  final writeResult =
-      consequenceWriter.applyAll(currentGameState(), pendingConsequences);
+  final writeResult = writer.applyAll(currentGameState(), pendingConsequences);
   if (!writeResult.success) {
     return NarrativeSceneExecutionResult.failed(
       StateError(

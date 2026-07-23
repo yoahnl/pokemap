@@ -1,5 +1,6 @@
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import '../models/enums.dart';
 import 'scene_execution_context.dart';
 import 'scene_runtime_plan.dart';
 
@@ -27,12 +28,18 @@ final class SceneDryRunConsequenceState {
     Set<String> consumedEventKeys = const <String>{},
     Set<String> completedStoryStepIds = const <String>{},
     Map<String, int> itemQuantityById = const <String, int>{},
+    Set<String> badgeIds = const <String>{},
+    Set<FieldAbility> unlockedFieldAbilities = const <FieldAbility>{},
     this.money = 0,
     this.partyMemberCount = 0,
+    this.partyHealed = false,
   })  : factValueById = Map<String, bool>.unmodifiable(factValueById),
         consumedEventKeys = Set<String>.unmodifiable(consumedEventKeys),
         completedStoryStepIds = Set<String>.unmodifiable(completedStoryStepIds),
-        itemQuantityById = Map<String, int>.unmodifiable(itemQuantityById);
+        itemQuantityById = Map<String, int>.unmodifiable(itemQuantityById),
+        badgeIds = Set<String>.unmodifiable(badgeIds),
+        unlockedFieldAbilities =
+            Set<FieldAbility>.unmodifiable(unlockedFieldAbilities);
 
   static final SceneDryRunConsequenceState empty =
       SceneDryRunConsequenceState();
@@ -41,8 +48,11 @@ final class SceneDryRunConsequenceState {
   final Set<String> consumedEventKeys;
   final Set<String> completedStoryStepIds;
   final Map<String, int> itemQuantityById;
+  final Set<String> badgeIds;
+  final Set<FieldAbility> unlockedFieldAbilities;
   final int money;
   final int partyMemberCount;
+  final bool partyHealed;
 }
 
 final class SceneDryRunConsequenceChange {
@@ -395,6 +405,29 @@ _PreviewConsequenceResult _previewConsequence({
         state,
         partyMemberCount: state.partyMemberCount + 1,
       );
+    case SceneHealPartyConsequence():
+      before = 'partyHealed=${state.partyHealed}';
+      after = 'partyHealed=true';
+      next = _copyConsequenceState(state, partyHealed: true);
+    case SceneAwardBadgeConsequence():
+      before = '${consequence.badgeId}='
+          '${state.badgeIds.contains(consequence.badgeId)}';
+      after = '${consequence.badgeId}=true';
+      next = _copyConsequenceState(
+        state,
+        badgeIds: <String>{...state.badgeIds, consequence.badgeId},
+      );
+    case SceneUnlockFieldAbilityConsequence():
+      before = '${consequence.ability.moveId}='
+          '${state.unlockedFieldAbilities.contains(consequence.ability)}';
+      after = '${consequence.ability.moveId}=true';
+      next = _copyConsequenceState(
+        state,
+        unlockedFieldAbilities: <FieldAbility>{
+          ...state.unlockedFieldAbilities,
+          consequence.ability,
+        },
+      );
   }
   return _PreviewConsequenceResult(
     state: next,
@@ -413,16 +446,23 @@ SceneDryRunConsequenceState _copyConsequenceState(
   Set<String>? consumedEventKeys,
   Set<String>? completedStoryStepIds,
   Map<String, int>? itemQuantityById,
+  Set<String>? badgeIds,
+  Set<FieldAbility>? unlockedFieldAbilities,
   int? money,
   int? partyMemberCount,
+  bool? partyHealed,
 }) {
   return SceneDryRunConsequenceState(
     factValueById: factValueById ?? state.factValueById,
     consumedEventKeys: consumedEventKeys ?? state.consumedEventKeys,
     completedStoryStepIds: completedStoryStepIds ?? state.completedStoryStepIds,
     itemQuantityById: itemQuantityById ?? state.itemQuantityById,
+    badgeIds: badgeIds ?? state.badgeIds,
+    unlockedFieldAbilities:
+        unlockedFieldAbilities ?? state.unlockedFieldAbilities,
     money: money ?? state.money,
     partyMemberCount: partyMemberCount ?? state.partyMemberCount,
+    partyHealed: partyHealed ?? state.partyHealed,
   );
 }
 

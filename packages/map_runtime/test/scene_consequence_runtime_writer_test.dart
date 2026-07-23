@@ -757,6 +757,95 @@ void main() {
       );
       expect(identical(result.gameState, state), isTrue);
     });
+
+    test('heals party and grants badge plus field abilities idempotently', () {
+      const state = GameState(
+        saveId: 'canonical-gameplay-consequences',
+        trainerProfile: TrainerProfile(name: 'Leaf'),
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'hardy',
+              abilityId: 'overgrow',
+              currentHp: 2,
+              statusId: 'poison',
+              knownMoveIds: <String>['tackle'],
+              currentPpByMoveId: <String, int>{'tackle': 1},
+            ),
+          ],
+        ),
+      );
+      final writer = SceneConsequenceRuntimeWriter(
+        project: _project(
+          badges: const <BadgeDefinition>[
+            BadgeDefinition(
+              id: 'badge_tide',
+              label: 'Badge Marée',
+              fieldAbilityUnlock: FieldAbility.surf,
+            ),
+          ],
+        ),
+        maxHpByPartyIndex: const <int, int>{0: 24},
+        maxPpByPartyIndex: const <int, Map<String, int>>{
+          0: <String, int>{'tackle': 35},
+        },
+      );
+      final consequences = <SceneConsequence>[
+        SceneConsequence.healParty(),
+        SceneConsequence.awardBadge(badgeId: 'badge_tide'),
+        SceneConsequence.unlockFieldAbility(ability: FieldAbility.cut),
+      ];
+
+      final first = writer.applyAll(state, consequences);
+      final second = writer.applyAll(first.gameState, consequences);
+
+      expect(first.success, isTrue);
+      expect(first.gameState.party.members.single.currentHp, 24);
+      expect(first.gameState.party.members.single.statusId, isEmpty);
+      expect(
+        first.gameState.party.members.single.currentPpByMoveId,
+        <String, int>{'tackle': 35},
+      );
+      expect(first.gameState.trainerProfile.badgeIds, <String>['badge_tide']);
+      expect(
+        first.gameState.progression.unlockedFieldAbilities,
+        <FieldAbility>[FieldAbility.surf, FieldAbility.cut],
+      );
+      expect(second.success, isTrue);
+      expect(second.gameState, first.gameState);
+    });
+
+    test('heal and badge failures are explicit and atomic', () {
+      final project = _project(
+        badges: const <BadgeDefinition>[
+          BadgeDefinition(id: 'badge_tide', label: 'Badge Marée'),
+        ],
+      );
+      final damaged = GameState(
+        saveId: 'missing-heal-caps',
+        party: PlayerParty(members: <PlayerPokemon>[_pokemon('sproutle')]),
+      );
+
+      final missingCaps = SceneConsequenceRuntimeWriter(project: project)
+          .applyOne(damaged, SceneConsequence.healParty());
+      final missingBadge =
+          SceneConsequenceRuntimeWriter(project: project).applyOne(
+        damaged,
+        SceneConsequence.awardBadge(badgeId: 'badge_missing'),
+      );
+
+      expect(
+        missingCaps.errorCode,
+        SceneConsequenceRuntimeWriteErrorCode.missingPartyRecoveryCaps,
+      );
+      expect(missingCaps.gameState, same(damaged));
+      expect(
+        missingBadge.errorCode,
+        SceneConsequenceRuntimeWriteErrorCode.unknownBadge,
+      );
+      expect(missingBadge.gameState, same(damaged));
+    });
   });
 }
 
@@ -775,6 +864,7 @@ ProjectManifest _project({
   List<NarrativeFactDefinition> facts = const [],
   List<WorldRuleDefinition> worldRules = const [],
   List<StorylineAsset> storylines = const [],
+  List<BadgeDefinition> badges = const [],
   ProjectNewGameConfig newGame = const ProjectNewGameConfig(),
 }) {
   return ProjectManifest(
@@ -784,6 +874,7 @@ ProjectManifest _project({
     facts: facts,
     worldRules: worldRules,
     storylines: storylines,
+    badges: badges,
     newGame: newGame,
   );
 }

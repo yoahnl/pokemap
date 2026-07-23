@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
 import '../models/map_data.dart';
+import '../models/enums.dart';
 import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_source_ref.dart';
 import '../models/narrative_command_descriptor.dart';
@@ -67,6 +68,8 @@ final class NarrativeSymbolicState {
     Map<String, NarrativeValue> factValues = const <String, NarrativeValue>{},
     Set<String> completedStepIds = const <String>{},
     Set<String> consumedEventIds = const <String>{},
+    Set<String> badgeIds = const <String>{},
+    Set<FieldAbility> unlockedFieldAbilities = const <FieldAbility>{},
     Set<String> emittedOutcomeKeys = const <String>{},
     Set<String> executedEventIds = const <String>{},
     List<NarrativeSymbolicProvenance> provenance =
@@ -75,6 +78,8 @@ final class NarrativeSymbolicState {
   })  : factValues = Map.unmodifiable(factValues),
         completedStepIds = Set.unmodifiable(completedStepIds),
         consumedEventIds = Set.unmodifiable(consumedEventIds),
+        badgeIds = Set.unmodifiable(badgeIds),
+        unlockedFieldAbilities = Set.unmodifiable(unlockedFieldAbilities),
         emittedOutcomeKeys = Set.unmodifiable(emittedOutcomeKeys),
         executedEventIds = Set.unmodifiable(executedEventIds),
         provenance = List.unmodifiable(provenance);
@@ -82,6 +87,8 @@ final class NarrativeSymbolicState {
   final Map<String, NarrativeValue> factValues;
   final Set<String> completedStepIds;
   final Set<String> consumedEventIds;
+  final Set<String> badgeIds;
+  final Set<FieldAbility> unlockedFieldAbilities;
   final Set<String> emittedOutcomeKeys;
   final Set<String> executedEventIds;
   final List<NarrativeSymbolicProvenance> provenance;
@@ -91,6 +98,8 @@ final class NarrativeSymbolicState {
     Map<String, NarrativeValue>? factValues,
     Set<String>? completedStepIds,
     Set<String>? consumedEventIds,
+    Set<String>? badgeIds,
+    Set<FieldAbility>? unlockedFieldAbilities,
     Set<String>? emittedOutcomeKeys,
     Set<String>? executedEventIds,
     List<NarrativeSymbolicProvenance>? provenance,
@@ -100,6 +109,9 @@ final class NarrativeSymbolicState {
         factValues: factValues ?? this.factValues,
         completedStepIds: completedStepIds ?? this.completedStepIds,
         consumedEventIds: consumedEventIds ?? this.consumedEventIds,
+        badgeIds: badgeIds ?? this.badgeIds,
+        unlockedFieldAbilities:
+            unlockedFieldAbilities ?? this.unlockedFieldAbilities,
         emittedOutcomeKeys: emittedOutcomeKeys ?? this.emittedOutcomeKeys,
         executedEventIds: executedEventIds ?? this.executedEventIds,
         provenance: provenance ?? this.provenance,
@@ -119,6 +131,8 @@ final class NarrativeSymbolicState {
         '${entry.key}=${entry.value.kind.wireName}:${entry.value.toJson()}',
       'steps=${_sorted(completedStepIds).join(',')}',
       'consumed=${_sorted(consumedEventIds).join(',')}',
+      'badges=${_sorted(badgeIds).join(',')}',
+      'field=${unlockedFieldAbilities.map((value) => value.moveId).toList()..sort()}',
       'outcomes=${_sorted(emittedOutcomeKeys).join(',')}',
       'executed=${_sorted(executedEventIds).join(',')}',
       'indeterminate=$indeterminate',
@@ -623,7 +637,17 @@ NarrativeSymbolicState _applyAction({
       case SceneGiveMoneyConsequence():
       case SceneGivePokemonConsequence():
       case SceneGiveConfiguredStarterConsequence():
+      case SceneHealPartyConsequence():
         break;
+      case SceneAwardBadgeConsequence(:final badgeId):
+        next = next.copyWith(badgeIds: {...next.badgeIds, badgeId});
+      case SceneUnlockFieldAbilityConsequence(:final ability):
+        next = next.copyWith(
+          unlockedFieldAbilities: {
+            ...next.unlockedFieldAbilities,
+            ability,
+          },
+        );
     }
   }
 

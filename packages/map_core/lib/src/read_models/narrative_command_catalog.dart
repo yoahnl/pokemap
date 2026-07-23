@@ -34,6 +34,13 @@ final class NarrativeCommandCatalog {
           runtime: NarrativeCommandCapabilityStatus.unsupported,
           reason: reason,
         );
+    NarrativeCommandCapabilities runtimeReady(String reason) =>
+        NarrativeCommandCapabilities(
+          model: NarrativeCommandCapabilityStatus.supported,
+          editor: NarrativeCommandCapabilityStatus.unsupported,
+          runtime: NarrativeCommandCapabilityStatus.supported,
+          reason: reason,
+        );
     NarrativeCommandDescriptor consequence(
       String id,
       String label,
@@ -67,6 +74,25 @@ final class NarrativeCommandCatalog {
           wireId: 'SceneInteractiveCommand.$id',
           parameters: parameters,
           isAwaitable: true,
+        );
+    NarrativeCommandDescriptor runtimeConsequence(
+      String id,
+      String label,
+      String lot,
+      List<NarrativeCommandParameterDescriptor> parameters,
+    ) =>
+        NarrativeCommandDescriptor(
+          id: id,
+          label: label,
+          description: 'Effet persistant exécutable, en attente du picker UI.',
+          backend: NarrativeCommandBackend.sceneConsequence,
+          capabilities: runtimeReady(
+            'Backend runtime livré ; authoring guidé prévu en Task 4.3.',
+          ),
+          fgLotId: lot,
+          wireId: 'SceneConsequence.$id',
+          parameters: parameters,
+          isPersistent: true,
         );
     NarrativeCommandDescriptor node(
       String id,
@@ -138,17 +164,43 @@ final class NarrativeCommandCatalog {
               NarrativeCommandParameterKind.starter)
         ],
       ),
-      interactive(NarrativeCommandIds.warp, 'Téléporter', 'FG-086', [
+      runtimeConsequence(
+        NarrativeCommandIds.healParty,
+        'Soigner l’équipe',
+        'FG-085',
+        const [],
+      ),
+      runtimeConsequence(
+        NarrativeCommandIds.awardBadge,
+        'Donner un badge',
+        'FG-089',
+        [
+          _parameter('badgeId', 'Badge', NarrativeCommandParameterKind.text),
+        ],
+      ),
+      runtimeConsequence(
+        NarrativeCommandIds.unlockFieldAbility,
+        'Débloquer une capacité terrain',
+        'FG-089',
+        [
+          _parameter(
+            'abilityId',
+            'Capacité terrain',
+            NarrativeCommandParameterKind.text,
+          ),
+        ],
+      ),
+      interactive(NarrativeCommandIds.warp, 'Téléporter', 'FG-090', [
         _parameter(
             'destinationMapId', 'Map', NarrativeCommandParameterKind.map),
         _parameter('warpId', 'Warp', NarrativeCommandParameterKind.warp),
       ]),
       interactive(
-          NarrativeCommandIds.openShop, 'Ouvrir une boutique', 'FG-087', [
+          NarrativeCommandIds.openShop, 'Ouvrir une boutique', 'FG-091', [
         _parameter('shopId', 'Boutique', NarrativeCommandParameterKind.shop),
       ]),
       interactive(
-          NarrativeCommandIds.openPc, 'Ouvrir le PC', 'FG-088', const []),
+          NarrativeCommandIds.openPc, 'Ouvrir le PC', 'FG-091', const []),
       node(
         NarrativeCommandIds.dialogue,
         'Jouer un dialogue',
@@ -182,24 +234,6 @@ final class NarrativeCommandCatalog {
             NarrativeCommandParameterKind.cinematic),
       ),
       for (final entry in [
-        (
-          NarrativeCommandIds.healParty,
-          'Soigner l’équipe',
-          'FG-092',
-          'Aucune SceneConsequence canonique healParty n’est encore prouvée.',
-        ),
-        (
-          NarrativeCommandIds.awardBadge,
-          'Donner un badge',
-          'FG-092',
-          'Le contrat de progression Badge n’est pas encore livré.',
-        ),
-        (
-          NarrativeCommandIds.unlockFieldAbility,
-          'Débloquer une capacité terrain',
-          'FG-092',
-          'Le contrat Field Ability n’est pas encore livré.',
-        ),
         (
           NarrativeCommandIds.setNpcPresence,
           'Modifier la présence d’un PNJ',

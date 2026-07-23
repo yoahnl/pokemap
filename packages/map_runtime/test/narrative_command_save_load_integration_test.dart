@@ -64,6 +64,58 @@ void main() {
       expect(loadedCommand, sourceCommand);
     });
   }
+
+  test('canonical gameplay consequences survive GameState save/load', () {
+    const state = GameState(
+      saveId: 'canonical-consequences',
+      trainerProfile: TrainerProfile(name: 'Leaf'),
+      party: PlayerParty(
+        members: <PlayerPokemon>[
+          PlayerPokemon(
+            speciesId: 'sproutle',
+            natureId: 'hardy',
+            abilityId: 'overgrow',
+            currentHp: 2,
+          ),
+        ],
+      ),
+    );
+    const writer = SceneConsequenceRuntimeWriter(
+      project: ProjectManifest(
+        name: 'Canonical consequences',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        badges: <BadgeDefinition>[
+          BadgeDefinition(id: 'badge_tide', label: 'Badge Marée'),
+        ],
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
+      ),
+      maxHpByPartyIndex: <int, int>{0: 24},
+    );
+    final consequences = <SceneConsequence>[
+      SceneConsequence.healParty(),
+      SceneConsequence.awardBadge(badgeId: 'badge_tide'),
+      SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
+    ];
+
+    final applied = writer.applyAll(state, consequences);
+    final restored = gameStateFromSaveData(
+      SaveData.fromJson(
+        jsonDecode(
+                jsonEncode(saveDataFromGameState(applied.gameState).toJson()))
+            as Map<String, dynamic>,
+      ),
+    );
+    final replayed = writer.applyAll(restored, consequences);
+
+    expect(restored.party.members.single.currentHp, 24);
+    expect(restored.trainerProfile.badgeIds, <String>['badge_tide']);
+    expect(
+      restored.progression.unlockedFieldAbilities,
+      <FieldAbility>[FieldAbility.surf],
+    );
+    expect(replayed.gameState, restored);
+  });
 }
 
 SceneAsset _scene(SceneInteractiveCommand command) => SceneAsset(

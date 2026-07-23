@@ -52,6 +52,23 @@ void main() {
       expect(report.canSatisfyAllTrueFacts({'fact_done'}), isTrue);
     });
 
+    test('tracks badge and field ability grants as symbolic state', () {
+      final report = solveNarrativeSceneSymbolically(
+        _consequenceSequenceScene(<SceneConsequence>[
+          SceneConsequence.healParty(),
+          SceneConsequence.awardBadge(badgeId: 'badge_tide'),
+          SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
+        ]),
+      );
+
+      expect(report.verdict, NarrativeSymbolicVerdict.pass);
+      expect(report.terminalStates.single.badgeIds, {'badge_tide'});
+      expect(
+        report.terminalStates.single.unlockedFieldAbilities,
+        {FieldAbility.surf},
+      );
+    });
+
     test('reports a cycle as fail with reproducible provenance', () {
       final scene = SceneAsset(
         id: 'scene_cycle',
@@ -571,6 +588,44 @@ SceneAsset _linearScene(String id) => SceneAsset(
         edges: [_edge('start_end', 'start', 'completed', 'end')],
       ),
     );
+
+SceneAsset _consequenceSequenceScene(List<SceneConsequence> consequences) {
+  return SceneAsset(
+    id: 'scene_consequences',
+    name: 'Consequences',
+    graph: SceneGraph(
+      startNodeId: 'start',
+      nodes: <SceneNode>[
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        for (var index = 0; index < consequences.length; index++)
+          SceneNode(
+            id: 'action_$index',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.consequence(consequences[index]),
+          ),
+        SceneNode(id: 'end', kind: SceneNodeKind.end),
+      ],
+      edges: <SceneEdge>[
+        _edge('start_action', 'start', 'completed', 'action_0'),
+        for (var index = 0; index < consequences.length - 1; index++)
+          _edge(
+            'action_${index}_next',
+            'action_$index',
+            'completed',
+            'action_${index + 1}',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+        _edge(
+          'action_end',
+          'action_${consequences.length - 1}',
+          'completed',
+          'end',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+      ],
+    ),
+  );
+}
 
 SceneAsset _factScene(String id, String factId) => SceneAsset(
       id: id,

@@ -229,6 +229,29 @@ void main() {
       expect(decoded, isA<SceneGiveConfiguredStarterConsequence>());
     });
 
+    test('canonical gameplay consequences round-trip stable wire values', () {
+      final consequences = <SceneConsequence>[
+        SceneConsequence.healParty(),
+        SceneConsequence.awardBadge(badgeId: 'badge_tide'),
+        SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
+      ];
+
+      expect(consequences.map((entry) => entry.toJson()), <Object>[
+        <String, dynamic>{'kind': 'healParty'},
+        <String, dynamic>{'kind': 'awardBadge', 'badgeId': 'badge_tide'},
+        <String, dynamic>{
+          'kind': 'unlockFieldAbility',
+          'abilityId': 'surf',
+        },
+      ]);
+      for (final consequence in consequences) {
+        expect(
+          SceneConsequence.fromJson(consequence.toJson()),
+          consequence,
+        );
+      }
+    });
+
     test('rejects unknown consequence kind', () {
       expect(
         () => SceneConsequence.fromJson({

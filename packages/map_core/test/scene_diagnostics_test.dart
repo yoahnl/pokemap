@@ -1033,6 +1033,7 @@ void main() {
           currentHp: 0,
         ),
         SceneConsequence.giveConfiguredStarter(starterOptionId: ' '),
+        SceneConsequence.awardBadge(badgeId: ' '),
       ];
 
       for (final consequence in consequences) {
@@ -1335,6 +1336,39 @@ void main() {
       );
     });
 
+    test('award badge consequence must resolve against project badges', () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_action_badge',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.consequence(
+              SceneConsequence.awardBadge(badgeId: 'badge_tide'),
+            ),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+      );
+
+      expect(
+        diagnoseSceneAgainstProject(scene, _project())
+            .byCode(SceneDiagnosticCode.consequenceUnknownBadge),
+        hasLength(1),
+      );
+      expect(
+        diagnoseSceneAgainstProject(
+          scene,
+          _project(
+            badges: const <BadgeDefinition>[
+              BadgeDefinition(id: 'badge_tide', label: 'Badge Marée'),
+            ],
+          ),
+        ).byCode(SceneDiagnosticCode.consequenceUnknownBadge),
+        isEmpty,
+      );
+    });
+
     test('future and incomplete condition sources are diagnosed', () {
       final futureScene = _scene(
         nodes: [
@@ -1398,6 +1432,7 @@ ProjectManifest _project({
   List<ProjectTrainerEntry> trainers = const [],
   List<ScenarioAsset> scenarios = const [],
   List<WorldRuleDefinition> worldRules = const [],
+  List<BadgeDefinition> badges = const [],
   ProjectNewGameConfig newGame = const ProjectNewGameConfig(),
 }) {
   return ProjectManifest(
@@ -1409,6 +1444,7 @@ ProjectManifest _project({
     trainers: trainers,
     scenarios: scenarios,
     worldRules: worldRules,
+    badges: badges,
     newGame: newGame,
   );
 }

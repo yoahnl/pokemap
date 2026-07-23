@@ -7,11 +7,15 @@ final class SceneConsequenceRuntimeWriter {
   const SceneConsequenceRuntimeWriter({
     required this.project,
     this.mapsById = const <String, MapData>{},
+    this.maxHpByPartyIndex = const <int, int>{},
+    this.maxPpByPartyIndex = const <int, Map<String, int>>{},
     this.mutations = const GameStateMutations(),
   });
 
   final ProjectManifest project;
   final Map<String, MapData> mapsById;
+  final Map<int, int> maxHpByPartyIndex;
+  final Map<int, Map<String, int>> maxPpByPartyIndex;
   final GameStateMutations mutations;
 
   static const int _maxPartySize = 6;
@@ -94,6 +98,15 @@ final class SceneConsequenceRuntimeWriter {
       SceneConsequenceKind.giveConfiguredStarter => _applyConfiguredStarter(
           gameState,
           consequence as SceneGiveConfiguredStarterConsequence,
+        ),
+      SceneConsequenceKind.healParty => _applyHealParty(gameState),
+      SceneConsequenceKind.awardBadge => _applyAwardBadge(
+          gameState,
+          consequence as SceneAwardBadgeConsequence,
+        ),
+      SceneConsequenceKind.unlockFieldAbility => _applyUnlockFieldAbility(
+          gameState,
+          consequence as SceneUnlockFieldAbilityConsequence,
         ),
     };
   }
@@ -353,6 +366,84 @@ final class SceneConsequenceRuntimeWriter {
 
     return _SceneConsequenceRuntimeWriteStep.applied(
       mutations.givePokemon(gameState, pokemon: matches.single.pokemon),
+    );
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applyHealParty(GameState gameState) {
+    if (gameState.party.members.isEmpty) {
+      return _SceneConsequenceRuntimeWriteStep.applied(gameState);
+    }
+    final hasAllHpCaps = List<int>.generate(
+      gameState.party.members.length,
+      (index) => index,
+    ).every((index) => (maxHpByPartyIndex[index] ?? 0) > 0);
+    if (!hasAllHpCaps) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.missingPartyRecoveryCaps,
+        'Scene consequence healParty requires runtime HP caps for every '
+        'party member.',
+      );
+    }
+    return _SceneConsequenceRuntimeWriteStep.applied(
+      mutations.recoverParty(
+        gameState,
+        maxHpByPartyIndex: maxHpByPartyIndex,
+        maxPpByPartyIndex: maxPpByPartyIndex,
+      ),
+    );
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applyAwardBadge(
+    GameState gameState,
+    SceneAwardBadgeConsequence consequence,
+  ) {
+    final badgeId = consequence.badgeId.trim();
+    if (badgeId.isEmpty) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.missingBadgeReference,
+        'Scene consequence awardBadge requires a badge reference.',
+      );
+    }
+    final matches = project.badges
+        .where((badge) => badge.id == badgeId)
+        .toList(growable: false);
+    if (matches.isEmpty) {
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.unknownBadge,
+        'Scene consequence awardBadge references unknown badge "$badgeId".',
+      );
+    }
+    if (matches.length > 1) {
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.ambiguousBadge,
+        'Scene consequence awardBadge references ambiguous badge "$badgeId".',
+      );
+    }
+
+    var nextState = gameState;
+    if (!nextState.trainerProfile.badgeIds.contains(badgeId)) {
+      nextState = nextState.copyWith(
+        trainerProfile: nextState.trainerProfile.copyWith(
+          badgeIds: <String>[
+            ...nextState.trainerProfile.badgeIds,
+            badgeId,
+          ],
+        ),
+      );
+    }
+    final ability = matches.single.fieldAbilityUnlock;
+    if (ability != null) {
+      nextState = mutations.unlockFieldAbility(nextState, ability);
+    }
+    return _SceneConsequenceRuntimeWriteStep.applied(nextState);
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applyUnlockFieldAbility(
+    GameState gameState,
+    SceneUnlockFieldAbilityConsequence consequence,
+  ) {
+    return _SceneConsequenceRuntimeWriteStep.applied(
+      mutations.unlockFieldAbility(gameState, consequence.ability),
     );
   }
 }

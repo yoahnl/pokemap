@@ -38,6 +38,7 @@ enum SceneDiagnosticCode {
   consequenceUnknownStoryStep,
   consequenceAmbiguousStoryStep,
   consequenceUnknownStarterOption,
+  consequenceUnknownBadge,
   consequenceMissingTarget,
   consequenceInvalidValue,
   consequenceLegacyPokemonHpFallback,
@@ -409,6 +410,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
   final projectMapIds = project.maps.map((map) => map.id).toSet();
   final starterOptionIds =
       project.newGame.starterOptions.map((option) => option.id).toSet();
+  final badgeIds = project.badges.map((badge) => badge.id).toSet();
   final storyStepCounts = <String, int>{};
   for (final storyline in project.storylines) {
     for (final chapter in storyline.chapters) {
@@ -551,6 +553,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
           projectMapIds: projectMapIds,
           storyStepCounts: storyStepCounts,
           starterOptionIds: starterOptionIds,
+          badgeIds: badgeIds,
           mapsById: mapsById,
           diagnostics: diagnostics,
         );
@@ -815,6 +818,23 @@ void _diagnoseConsequenceShape(
           ),
         );
       }
+    case SceneHealPartyConsequence():
+    case SceneUnlockFieldAbilityConsequence():
+      break;
+    case SceneAwardBadgeConsequence():
+      if (consequence.badgeId.trim().isEmpty) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceMissingTarget,
+            severity: SceneDiagnosticSeverity.error,
+            message: 'La conséquence awardBadge doit cibler un badge.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir un badge du projet.',
+          ),
+        );
+      }
   }
 }
 
@@ -861,6 +881,7 @@ void _diagnoseActionConsequenceAgainstProject(
   required Set<String> projectMapIds,
   required Map<String, int> storyStepCounts,
   required Set<String> starterOptionIds,
+  required Set<String> badgeIds,
   required Map<String, MapData> mapsById,
   required List<SceneDiagnostic> diagnostics,
 }) {
@@ -977,6 +998,24 @@ void _diagnoseActionConsequenceAgainstProject(
             nodeId: node.id,
             target: SceneDiagnosticTarget.node,
             suggestedFixLabel: 'Choisir un starter configuré dans le projet.',
+          ),
+        );
+      }
+    case SceneHealPartyConsequence():
+    case SceneUnlockFieldAbilityConsequence():
+      break;
+    case SceneAwardBadgeConsequence():
+      if (consequence.badgeId.trim().isEmpty) return;
+      if (!badgeIds.contains(consequence.badgeId)) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceUnknownBadge,
+            severity: SceneDiagnosticSeverity.error,
+            message: 'La conséquence awardBadge référence un badge absent.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir un badge existant dans le projet.',
           ),
         );
       }

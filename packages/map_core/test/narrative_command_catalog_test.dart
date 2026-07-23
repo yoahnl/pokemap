@@ -42,19 +42,47 @@ void main() {
     );
   });
 
-  test('unproved mechanics are visible but cannot be published', () {
+  test('new gameplay consequences expose model/runtime before editor', () {
     final catalog = NarrativeCommandCatalog.canonical();
     for (final id in [
       NarrativeCommandIds.healParty,
       NarrativeCommandIds.awardBadge,
       NarrativeCommandIds.unlockFieldAbility,
-      NarrativeCommandIds.setNpcPresence,
     ]) {
       final command = catalog.byId(id)!;
       expect(command.isPublishable, isFalse);
+      expect(
+        command.capabilities.model,
+        NarrativeCommandCapabilityStatus.supported,
+      );
+      expect(
+        command.capabilities.runtime,
+        NarrativeCommandCapabilityStatus.supported,
+      );
+      expect(
+        command.capabilities.editor,
+        NarrativeCommandCapabilityStatus.unsupported,
+      );
       expect(command.capabilities.reason, isNotEmpty);
-      expect(catalog.publishable, isNot(contains(command)));
     }
+
+    final deferred = catalog.byId(NarrativeCommandIds.setNpcPresence)!;
+    expect(deferred.isPublishable, isFalse);
+    expect(deferred.capabilities.runtime,
+        NarrativeCommandCapabilityStatus.unsupported);
+  });
+
+  test('canonical gameplay commands carry the corrected FG references', () {
+    final catalog = NarrativeCommandCatalog.canonical();
+    expect(catalog.byId(NarrativeCommandIds.healParty)!.fgLotId, 'FG-085');
+    expect(catalog.byId(NarrativeCommandIds.awardBadge)!.fgLotId, 'FG-089');
+    expect(
+      catalog.byId(NarrativeCommandIds.unlockFieldAbility)!.fgLotId,
+      'FG-089',
+    );
+    expect(catalog.byId(NarrativeCommandIds.warp)!.fgLotId, 'FG-090');
+    expect(catalog.byId(NarrativeCommandIds.openShop)!.fgLotId, 'FG-091');
+    expect(catalog.byId(NarrativeCommandIds.openPc)!.fgLotId, 'FG-091');
   });
 
   test('consumed Event command requests both map and Event identities', () {

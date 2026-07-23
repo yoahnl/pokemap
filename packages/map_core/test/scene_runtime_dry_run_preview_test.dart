@@ -152,6 +152,9 @@ void main() {
         SceneConsequence.giveConfiguredStarter(
           starterOptionId: 'starter_sproutle',
         ),
+        SceneConsequence.healParty(),
+        SceneConsequence.awardBadge(badgeId: 'badge_tide'),
+        SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
       ];
 
       final result = previewSceneRuntimePath(
@@ -181,6 +184,12 @@ void main() {
       expect(result.consequenceState.itemQuantityById['potion'], 4);
       expect(result.consequenceState.money, 350);
       expect(result.consequenceState.partyMemberCount, 2);
+      expect(result.consequenceState.partyHealed, isTrue);
+      expect(result.consequenceState.badgeIds, contains('badge_tide'));
+      expect(
+        result.consequenceState.unlockedFieldAbilities,
+        contains(FieldAbility.surf),
+      );
       expect(result.consequenceChanges[3].beforeSummary, contains('2'));
       expect(result.consequenceChanges[3].afterSummary, contains('5'));
     });

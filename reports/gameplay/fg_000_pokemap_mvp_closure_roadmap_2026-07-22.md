@@ -630,11 +630,17 @@ editor et à la gate de parité des Tasks 4.3/4.4.
 - Modify: `packages/map_core/test/narrative_command_catalog_test.dart`
 - Modify: `packages/map_runtime/test/narrative_command_save_load_integration_test.dart`
 
-- [ ] **Step 1:** Ajouter les variants canoniques `HealParty`, `AwardBadge` et `UnlockFieldAbility`.
-- [ ] **Step 2:** Étendre sérialisation, preview, diagnostics, reachability et writer runtime.
-- [ ] **Step 3:** Garantir idempotence sur Event consommé et badge/capacité déjà acquis.
-- [ ] **Step 4:** Corriger les références FG du catalogue : heal `FG-085`, badge/field `FG-089`, warp `FG-090`, shop/PC `FG-091`.
-- [ ] **Step 5:** Commit proposé : `feat(core): add canonical gameplay Scene consequences`.
+- [x] **Step 1:** Ajouter les variants canoniques `HealParty`, `AwardBadge` et `UnlockFieldAbility`.
+- [x] **Step 2:** Étendre sérialisation, preview, diagnostics, reachability et writer runtime.
+- [x] **Step 3:** Garantir idempotence sur Event consommé et badge/capacité déjà acquis.
+- [x] **Step 4:** Corriger les références FG du catalogue : heal `FG-085`, badge/field `FG-089`, warp `FG-090`, shop/PC `FG-091`.
+- [x] **Step 5:** Commit proposé : `feat(core): add canonical gameplay Scene consequences`.
+
+**Preuve fraîche (2026-07-23) :** les trois variants ont un wire JSON stable,
+un preview, des diagnostics projet, un état symbolique et un writer atomique.
+Le runtime injecte les caps HP/PP réels uniquement lorsqu'une Scene contient
+`HealParty`. Le catalogue garde volontairement l'editor `unsupported` jusqu'à
+la Task 4.3 ; FG-085/089 restent donc `PARTIAL` à ce stade.
 
 ## Task 4.3 — FG-093 : authoring guidé
 

@@ -63,6 +63,7 @@ import '../../application/scene_runtime/scene_battle_runtime_outcome_adapter.dar
 import '../../application/scene_runtime/scene_battle_runtime_outcome_result.dart';
 import '../../application/scene_runtime/cinematic_runtime_playback_controller.dart';
 import '../../application/scene_runtime/scene_cinematic_runtime_awaitable_adapter.dart';
+import '../../application/scene_runtime/scene_consequence_runtime_writer.dart';
 import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_adapter.dart';
 import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_result.dart';
 import '../../application/scene_runtime/scene_event_runtime_hook.dart';
@@ -738,6 +739,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final snapshot = await _narrativeRuntimeSnapshotFor(_bundle.manifest);
     final session = _NarrativeSceneWorkingSession(request.gameState);
     final hostedBattleOutcomes = <NarrativeOutcomeRef>[];
+    final consequenceWriter = await _buildSceneConsequenceRuntimeWriter(
+      project: snapshot.project,
+      mapsById: snapshot.mapsById,
+      sceneId: request.sceneId,
+      gameState: request.gameState,
+    );
     _activeNarrativeSceneWorkingSession = session;
     try {
       final result = await executeNarrativeEventScene(
@@ -746,6 +753,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         mapsById: snapshot.mapsById,
         currentGameState: () => session.gameState,
         hostedBattleOutcomes: hostedBattleOutcomes,
+        consequenceWriter: consequenceWriter,
         callbacks: _buildSceneRuntimeHostCallbacks(
           runtimeSourceId: 'event-v2:${request.eventId}:${request.executionId}',
           defaultNpcEntityId: _narrativeSceneBattleAnchor(
@@ -8057,10 +8065,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     try {
       final session = _NarrativeSceneWorkingSession(_gameState);
       final hostedBattleOutcomes = <NarrativeOutcomeRef>[];
+      final consequenceWriter = await _buildSceneConsequenceRuntimeWriter(
+        project: _bundle.manifest,
+        mapsById: <String, MapData>{_bundle.map.id: _bundle.map},
+        sceneId: page.page.sceneTarget!.sceneId,
+        gameState: session.gameState,
+      );
       _activeNarrativeSceneWorkingSession = session;
       late final SceneEventRuntimeHookResult result;
       try {
         result = await SceneEventRuntimeHook(
+          consequenceWriter: consequenceWriter,
           callbacks: _buildSceneRuntimeHostCallbacks(
             runtimeSourceId:
                 'scene:${_bundle.map.id}:${event.id}:${page.pageIndex}',
@@ -8201,6 +8216,43 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         openShop: _executeSceneOpenShopCommand,
         openPc: _executeSceneOpenPcCommand,
       ).execute,
+    );
+  }
+
+  Future<SceneConsequenceRuntimeWriter> _buildSceneConsequenceRuntimeWriter({
+    required ProjectManifest project,
+    required Map<String, MapData> mapsById,
+    required String sceneId,
+    required GameState gameState,
+  }) async {
+    SceneAsset? scene;
+    for (final candidate in project.scenes) {
+      if (candidate.id == sceneId) {
+        scene = candidate;
+        break;
+      }
+    }
+    final requiresRecoveryCaps = scene?.graph.nodes.any((node) {
+          final payload = node.payload;
+          return payload is SceneActionPayload &&
+              payload.consequence is SceneHealPartyConsequence;
+        }) ??
+        false;
+    var recoveryCaps = const RuntimePlayerServiceRecoveryCaps(
+      maxHpByPartyIndex: <int, int>{},
+    );
+    if (requiresRecoveryCaps) {
+      recoveryCaps = await loadRuntimePlayerServiceRecoveryCaps(
+        gameState: gameState,
+        projectRootDirectory: _bundle.projectRootDirectory,
+        pokemonConfig: project.pokemon,
+      );
+    }
+    return SceneConsequenceRuntimeWriter(
+      project: project,
+      mapsById: mapsById,
+      maxHpByPartyIndex: recoveryCaps.maxHpByPartyIndex,
+      maxPpByPartyIndex: recoveryCaps.maxPpByPartyIndex,
     );
   }
 
