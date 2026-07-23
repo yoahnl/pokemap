@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:pokemap_loader/src/in_game_menu.dart';
+import 'package:pokemap_loader/src/in_game_heal_flow.dart';
 import 'package:pokemap_loader/src/runtime_pokedex_loader.dart';
 import 'package:pokemap_loader/src/runtime_player_options.dart';
 import 'package:flutter/material.dart';
@@ -480,6 +481,132 @@ void main() {
     expect(find.text('???'), findsOneWidget);
     expect(find.textContaining('Voyage rapide indisponible'), findsOneWidget);
     expect(find.byType(FilledButton), findsNothing);
+  });
+
+  testWidgets('reorders party and uses medicine through the pause menu',
+      (tester) async {
+    var state = _buildGameState().copyWith(
+      party: const PlayerParty(
+        members: <PlayerPokemon>[
+          PlayerPokemon(
+            speciesId: 'bulbasaur',
+            natureId: 'bold',
+            abilityId: 'overgrow',
+            level: 12,
+            experience: 1728,
+            knownMoveIds: <String>['tackle'],
+            currentPpByMoveId: <String, int>{'tackle': 5},
+            currentHp: 1,
+          ),
+          PlayerPokemon(
+            speciesId: 'ivysaur',
+            natureId: 'calm',
+            abilityId: 'overgrow',
+            level: 16,
+            currentHp: 40,
+          ),
+        ],
+      ),
+    );
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InGameMenuPage(
+          gameStateSnapshotBuilder: () => state,
+          pokedexLoader: () async => const <RuntimePokedexEntry>[],
+          onPlayerStateCommitted: (next) async => state = next,
+          recoveryCaps: const PlayerServiceRecoveryCaps(
+            maxHpByPartyIndex: <int, int>{0: 30, 1: 40},
+            maxPpByPartyIndex: <int, Map<String, int>>{
+              0: <String, int>{'tackle': 35},
+            },
+          ),
+          onSaveRequested: () async => const InGameMenuActionResult(),
+          onLoadRequested: () async => const InGameMenuActionResult(),
+          playerOptions: const RuntimePlayerOptions(),
+          supportsTouchControls: false,
+          onOptionsChanged: (_) {},
+          onQuitRequested: () {},
+          onCloseRequested: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('menu-party-tile')));
+    await tester.pump();
+    expect(find.text('XP : 1728'), findsOneWidget);
+    expect(find.text('tackle · PP 5/35'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('party-set-lead-1')));
+    await tester.pumpAndSettle();
+    expect(state.party.members.first.speciesId, 'ivysaur');
+
+    await tester.tap(find.byKey(const Key('menu-bag-tile')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('bag-use-potion')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('bag-target-1')));
+    await tester.pumpAndSettle();
+
+    expect(state.party.members[1].currentHp, 21);
+    expect(
+      state.bag.entries
+          .firstWhere((entry) => entry.itemId == 'potion')
+          .quantity,
+      2,
+    );
+    expect(find.textContaining('Potion utilisée'), findsOneWidget);
+  });
+
+  testWidgets('opens shop PC and healing services from the locked menu route',
+      (tester) async {
+    var state = _buildGameState();
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InGameMenuPage(
+          gameStateSnapshotBuilder: () => state,
+          pokedexLoader: () async => const <RuntimePokedexEntry>[],
+          onPlayerStateCommitted: (next) async => state = next,
+          shops: const <ShopDefinition>[
+            ShopDefinition(
+              id: 'mart',
+              label: 'Boutique Selbrume',
+              entries: <ShopEntryDefinition>[
+                ShopEntryDefinition(itemId: 'potion', price: 300),
+              ],
+            ),
+          ],
+          recoveryCaps: const PlayerServiceRecoveryCaps(
+            maxHpByPartyIndex: <int, int>{0: 40},
+          ),
+          onSaveRequested: () async => const InGameMenuActionResult(),
+          onLoadRequested: () async => const InGameMenuActionResult(),
+          playerOptions: const RuntimePlayerOptions(),
+          supportsTouchControls: false,
+          onOptionsChanged: (_) {},
+          onQuitRequested: () {},
+          onCloseRequested: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('menu-shop-tile')));
+    await tester.pump();
+    expect(find.byKey(const Key('in-game-shop-page')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('menu-pc-tile')));
+    await tester.pump();
+    expect(find.byKey(const Key('in-game-pc-page')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('menu-heal-tile')));
+    await tester.pump();
+    expect(find.byKey(const Key('in-game-heal-flow')), findsOneWidget);
   });
 }
 

@@ -55,6 +55,7 @@ class _ProjectLoaderPage extends StatefulWidget {
 class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   String _projectFilePath = '';
   List<ProjectMapEntry> _availableMaps = const [];
+  List<ShopDefinition> _availableShops = const [];
   String? _selectedMapId;
   PlayableMapGame? _game;
   String? _error;
@@ -271,6 +272,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         if (!mounted) return;
         setState(() {
           _availableMaps = const [];
+          _availableShops = const [];
         });
         return;
       }
@@ -291,6 +293,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       if (!mounted) return;
       setState(() {
         _availableMaps = maps;
+        _availableShops = manifest.shops;
         _selectedMapId = nextSelected;
       });
       _runtimeHostLog(
@@ -307,6 +310,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       if (!mounted) return;
       setState(() {
         _availableMaps = const [];
+        _availableShops = const [];
       });
     }
   }
@@ -727,6 +731,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                 onLoadRequested: _performLoadRequest,
                 playerOptions: _playerOptions,
                 projectMaps: _availableMaps,
+                shops: _availableShops,
                 supportsTouchControls: _supportsTouchControls,
                 onOptionsChanged: _updatePlayerOptions,
                 onQuitRequested: () {

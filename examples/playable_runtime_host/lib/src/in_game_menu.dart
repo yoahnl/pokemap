@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import 'in_game_heal_flow.dart';
+import 'in_game_pc_page.dart';
+import 'in_game_shop_page.dart';
 import 'runtime_player_options.dart';
 import 'runtime_map_destinations.dart';
 import 'runtime_pokedex_loader.dart';
@@ -14,6 +18,9 @@ enum InGameMenuSection {
   pokedex,
   party,
   bag,
+  shop,
+  pc,
+  heal,
   trainer,
   save,
   options,
@@ -69,6 +76,11 @@ class InGameMenuPage extends StatefulWidget {
     required this.onQuitRequested,
     required this.onCloseRequested,
     this.projectMaps = const <ProjectMapEntry>[],
+    this.shops = const <ShopDefinition>[],
+    this.recoveryCaps = const PlayerServiceRecoveryCaps(
+      maxHpByPartyIndex: <int, int>{},
+    ),
+    this.onPlayerStateCommitted,
   });
 
   final GameState Function() gameStateSnapshotBuilder;
@@ -81,6 +93,9 @@ class InGameMenuPage extends StatefulWidget {
   final VoidCallback onQuitRequested;
   final VoidCallback onCloseRequested;
   final List<ProjectMapEntry> projectMaps;
+  final List<ShopDefinition> shops;
+  final PlayerServiceRecoveryCaps recoveryCaps;
+  final Future<void> Function(GameState state)? onPlayerStateCommitted;
 
   @override
   State<InGameMenuPage> createState() => _InGameMenuPageState();
@@ -97,6 +112,7 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
   String? _saveStatus;
   String? _saveError;
   late RuntimePlayerOptions _playerOptions;
+  GameState? _committedGameState;
 
   @override
   void initState() {
@@ -108,7 +124,7 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
   Widget build(BuildContext context) {
     // On relit le snapshot de GameState à chaque build pour que les écrans
     // lecture seule restent synchronisés avec le runtime après un chargement.
-    final gameState = widget.gameStateSnapshotBuilder();
+    final gameState = _committedGameState ?? widget.gameStateSnapshotBuilder();
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.escape):
@@ -162,6 +178,33 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
                         selected: _selectedSection == InGameMenuSection.bag,
                         onTap: () => setState(
                           () => _selectedSection = InGameMenuSection.bag,
+                        ),
+                      ),
+                      _MenuTile(
+                        key: const Key('menu-shop-tile'),
+                        label: 'Boutique',
+                        icon: Icons.storefront,
+                        selected: _selectedSection == InGameMenuSection.shop,
+                        onTap: () => setState(
+                          () => _selectedSection = InGameMenuSection.shop,
+                        ),
+                      ),
+                      _MenuTile(
+                        key: const Key('menu-pc-tile'),
+                        label: 'PC Pokémon',
+                        icon: Icons.dns_outlined,
+                        selected: _selectedSection == InGameMenuSection.pc,
+                        onTap: () => setState(
+                          () => _selectedSection = InGameMenuSection.pc,
+                        ),
+                      ),
+                      _MenuTile(
+                        key: const Key('menu-heal-tile'),
+                        label: 'Centre Pokémon',
+                        icon: Icons.healing,
+                        selected: _selectedSection == InGameMenuSection.heal,
+                        onTap: () => setState(
+                          () => _selectedSection = InGameMenuSection.heal,
                         ),
                       ),
                       _MenuTile(
@@ -232,7 +275,25 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
                         context,
                         gameState,
                       ),
-                    InGameMenuSection.bag => _BagSection(gameState: gameState),
+                    InGameMenuSection.bag => _BagSection(
+                        gameState: gameState,
+                        recoveryCaps: widget.recoveryCaps,
+                        onStateCommitted: _commitPlayerState,
+                      ),
+                    InGameMenuSection.shop => InGameShopPage(
+                        gameState: gameState,
+                        shops: widget.shops,
+                        onStateCommitted: _commitPlayerState,
+                      ),
+                    InGameMenuSection.pc => InGamePcPage(
+                        gameState: gameState,
+                        onStateCommitted: _commitPlayerState,
+                      ),
+                    InGameMenuSection.heal => InGameHealFlow(
+                        gameState: gameState,
+                        recoveryCaps: widget.recoveryCaps,
+                        onStateCommitted: _commitPlayerState,
+                      ),
                     InGameMenuSection.trainer =>
                       _TrainerSection(gameState: gameState),
                     InGameMenuSection.save => _buildSaveSection(context),
@@ -527,9 +588,17 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
         return _PartySection(
           gameState: gameState,
           speciesNamesById: speciesNamesById,
+          recoveryCaps: widget.recoveryCaps,
+          onStateCommitted: _commitPlayerState,
         );
       },
     );
+  }
+
+  Future<void> _commitPlayerState(GameState state) async {
+    await widget.onPlayerStateCommitted?.call(state);
+    if (!mounted) return;
+    setState(() => _committedGameState = state);
   }
 
   // La section sauvegarde réutilise les callbacks runtime existants.
@@ -770,15 +839,32 @@ class _PokedexDetail extends StatelessWidget {
   }
 }
 
-// Écran Sac lecture seule.
-// Les items sont simplement regroupés par catégorie à partir du GameState.
-class _BagSection extends StatelessWidget {
-  const _BagSection({required this.gameState});
+class _BagSection extends StatefulWidget {
+  const _BagSection({
+    required this.gameState,
+    required this.recoveryCaps,
+    required this.onStateCommitted,
+  });
 
   final GameState gameState;
+  final PlayerServiceRecoveryCaps recoveryCaps;
+  final Future<void> Function(GameState state) onStateCommitted;
+
+  @override
+  State<_BagSection> createState() => _BagSectionState();
+}
+
+class _BagSectionState extends State<_BagSection> {
+  static const _operations = PlayerItemOperations();
+  static const _registry = PlayerItemEffectRegistry.mvp();
+
+  bool _busy = false;
+  String? _feedback;
+  bool _feedbackIsError = false;
 
   @override
   Widget build(BuildContext context) {
+    final gameState = widget.gameState;
     if (gameState.bag.entries.isEmpty) {
       return const _SectionMessageCard(
         title: 'Sac',
@@ -810,38 +896,156 @@ class _BagSection extends StatelessWidget {
           const SizedBox(height: 8),
           Card(
             child: Column(
-              children: entriesByCategory[category]!
-                  .map(
-                    (entry) => ListTile(
-                      key: Key('bag-entry-${entry.itemId}'),
-                      title: Text(entry.itemId),
-                      trailing: Text('x${entry.quantity}'),
+              children: entriesByCategory[category]!.map(
+                (entry) {
+                  final effect = _registry.effectFor(entry.itemId);
+                  final usable = effect != null &&
+                      (effect.kind == PlayerItemEffectKind.healHp ||
+                          effect.kind == PlayerItemEffectKind.cureStatus ||
+                          effect.kind == PlayerItemEffectKind.revive);
+                  return ListTile(
+                    key: Key('bag-entry-${entry.itemId}'),
+                    title: Text(_itemLabel(entry.itemId)),
+                    subtitle: Text(
+                      usable
+                          ? 'Utilisable sur un Pokémon de l’équipe.'
+                          : 'Non utilisable depuis ce menu.',
                     ),
-                  )
-                  .toList(growable: false),
+                    trailing: Wrap(
+                      spacing: 12,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text('x${entry.quantity}'),
+                        FilledButton.tonal(
+                          key: Key('bag-use-${entry.itemId}'),
+                          onPressed: _busy || !usable
+                              ? null
+                              : () => _selectTarget(entry.itemId),
+                          child: const Text('Utiliser'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ).toList(growable: false),
             ),
           ),
           const SizedBox(height: 16),
         ],
+        if (_feedback != null)
+          Text(
+            _feedback!,
+            key: const Key('bag-feedback'),
+            style: TextStyle(
+              color: _feedbackIsError
+                  ? Theme.of(context).colorScheme.error
+                  : Theme.of(context).colorScheme.primary,
+            ),
+          ),
       ],
     );
   }
+
+  Future<void> _selectTarget(String itemId) async {
+    if (widget.gameState.party.members.isEmpty) {
+      setState(() {
+        _feedbackIsError = true;
+        _feedback = 'Aucun Pokémon disponible.';
+      });
+      return;
+    }
+    final targetIndex = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text('Utiliser ${_itemLabel(itemId)} sur…'),
+        children: [
+          for (var index = 0;
+              index < widget.gameState.party.members.length;
+              index++)
+            SimpleDialogOption(
+              key: Key('bag-target-$index'),
+              onPressed: () => Navigator.of(dialogContext).pop(index),
+              child: Text(
+                '${widget.gameState.party.members[index].speciesId} · '
+                'PV ${widget.gameState.party.members[index].currentHp}',
+              ),
+            ),
+        ],
+      ),
+    );
+    if (targetIndex == null || !mounted) return;
+    await _use(itemId, targetIndex);
+  }
+
+  Future<void> _use(String itemId, int targetIndex) async {
+    final maxHp = widget.recoveryCaps.maxHpByPartyIndex[targetIndex];
+    if (maxHp == null || maxHp <= 0) {
+      setState(() {
+        _feedbackIsError = true;
+        _feedback = 'PV maximum indisponibles pour cette cible.';
+      });
+      return;
+    }
+    final result = _operations.useOnPartyMember(
+      widget.gameState,
+      itemId: itemId,
+      partyIndex: targetIndex,
+      maxHp: maxHp,
+      maxPpByMoveId:
+          widget.recoveryCaps.maxPpByPartyIndex[targetIndex] ?? const {},
+    );
+    if (!result.isSuccess) {
+      setState(() {
+        _feedbackIsError = true;
+        _feedback = _itemFailureLabel(result.failure!);
+      });
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await widget.onStateCommitted(result.state);
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _feedbackIsError = false;
+        _feedback = '${_itemLabel(itemId)} utilisée avec succès.';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _feedbackIsError = true;
+        _feedback = 'Échec de l’utilisation : $error';
+      });
+    }
+  }
 }
 
-// Écran Équipe lecture seule.
-// On expose l'ordre d'équipe et les infos persistées déjà présentes en save.
-class _PartySection extends StatelessWidget {
+class _PartySection extends StatefulWidget {
   const _PartySection({
     required this.gameState,
     required this.speciesNamesById,
+    required this.recoveryCaps,
+    required this.onStateCommitted,
   });
 
   final GameState gameState;
   final Map<String, String> speciesNamesById;
+  final PlayerServiceRecoveryCaps recoveryCaps;
+  final Future<void> Function(GameState state) onStateCommitted;
+
+  @override
+  State<_PartySection> createState() => _PartySectionState();
+}
+
+class _PartySectionState extends State<_PartySection> {
+  static const _operations = PlayerStorageOperations();
+  bool _busy = false;
+  String? _feedback;
 
   @override
   Widget build(BuildContext context) {
-    final members = gameState.party.members;
+    final members = widget.gameState.party.members;
     if (members.isEmpty) {
       return const _SectionMessageCard(
         title: 'Équipe',
@@ -862,12 +1066,62 @@ class _PartySection extends StatelessWidget {
             key: Key('party-entry-$index'),
             pokemon: members[index],
             slotIndex: index,
-            speciesName: speciesNamesById[members[index].speciesId],
+            speciesName: widget.speciesNamesById[members[index].speciesId],
+            maxPpByMoveId:
+                widget.recoveryCaps.maxPpByPartyIndex[index] ?? const {},
+            busy: _busy,
+            onSetLead: index == 0 ? null : () => _setLead(index),
+            onMoveUp: index == 0 ? null : () => _swap(index, index - 1),
+            onMoveDown: index == members.length - 1
+                ? null
+                : () => _swap(index, index + 1),
           ),
           if (index < members.length - 1) const SizedBox(height: 16),
         ],
+        if (_feedback != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            _feedback!,
+            key: const Key('party-feedback'),
+            style: TextStyle(color: Theme.of(context).colorScheme.primary),
+          ),
+        ],
       ],
     );
+  }
+
+  Future<void> _setLead(int index) => _apply(
+        _operations.setLead(state: widget.gameState, partyIndex: index),
+        'Le lead a été modifié.',
+      );
+
+  Future<void> _swap(int first, int second) => _apply(
+        _operations.swapPartyMembers(
+          state: widget.gameState,
+          firstIndex: first,
+          secondIndex: second,
+        ),
+        'L’ordre de l’équipe a été modifié.',
+      );
+
+  Future<void> _apply(
+      PlayerStorageOperationResult result, String success) async {
+    if (_busy || !result.isSuccess) return;
+    setState(() => _busy = true);
+    try {
+      await widget.onStateCommitted(result.state);
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _feedback = success;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _feedback = 'Échec de la réorganisation : $error';
+      });
+    }
   }
 }
 
@@ -877,11 +1131,21 @@ class _PartyPokemonCard extends StatelessWidget {
     required this.pokemon,
     required this.slotIndex,
     required this.speciesName,
+    required this.maxPpByMoveId,
+    required this.busy,
+    required this.onSetLead,
+    required this.onMoveUp,
+    required this.onMoveDown,
   });
 
   final PlayerPokemon pokemon;
   final int slotIndex;
   final String? speciesName;
+  final Map<String, int> maxPpByMoveId;
+  final bool busy;
+  final VoidCallback? onSetLead;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
 
   @override
   Widget build(BuildContext context) {
@@ -920,6 +1184,10 @@ class _PartyPokemonCard extends StatelessWidget {
               children: [
                 _PokemonInfoChip(
                     label: 'PV actuels', value: '${pokemon.currentHp}'),
+                _PokemonInfoChip(
+                  label: 'XP',
+                  value: '${pokemon.experience ?? 0}',
+                ),
                 _PokemonInfoChip(label: 'Talent', value: pokemon.abilityId),
                 _PokemonInfoChip(label: 'Nature', value: pokemon.natureId),
                 _PokemonInfoChip(label: 'Statut', value: statusLabel),
@@ -944,17 +1212,65 @@ class _PartyPokemonCard extends StatelessWidget {
                     .map(
                       (moveId) => Chip(
                         key: Key('party-move-$moveId-$slotIndex'),
-                        label: Text(moveId),
+                        label: Text(
+                          '$moveId · PP '
+                          '${pokemon.currentPpByMoveId?[moveId] ?? '?'}'
+                          '/${maxPpByMoveId[moveId] ?? '?'}',
+                        ),
                       ),
                     )
                     .toList(growable: false),
               ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.tonal(
+                  key: Key('party-set-lead-$slotIndex'),
+                  onPressed: busy ? null : onSetLead,
+                  child: Text(slotIndex == 0 ? 'Lead actuel' : 'Définir lead'),
+                ),
+                IconButton(
+                  key: Key('party-move-up-$slotIndex'),
+                  tooltip: 'Monter',
+                  onPressed: busy ? null : onMoveUp,
+                  icon: const Icon(Icons.arrow_upward),
+                ),
+                IconButton(
+                  key: Key('party-move-down-$slotIndex'),
+                  tooltip: 'Descendre',
+                  onPressed: busy ? null : onMoveDown,
+                  icon: const Icon(Icons.arrow_downward),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 }
+
+String _itemLabel(String itemId) => switch (itemId) {
+      'potion' => 'Potion',
+      'super-potion' => 'Super Potion',
+      'hyper-potion' => 'Hyper Potion',
+      'max-potion' => 'Potion Max',
+      'antidote' => 'Antidote',
+      'revive' => 'Rappel',
+      _ => itemId,
+    };
+
+String _itemFailureLabel(PlayerItemUseFailure failure) => switch (failure) {
+      PlayerItemUseFailure.invalidRequest => 'Utilisation invalide.',
+      PlayerItemUseFailure.unknownItem => 'Objet inconnu.',
+      PlayerItemUseFailure.invalidTarget => 'Cible invalide.',
+      PlayerItemUseFailure.insufficientQuantity => 'Objet indisponible.',
+      PlayerItemUseFailure.wrongTarget =>
+        'Cet objet ne convient pas à la cible.',
+      PlayerItemUseFailure.noEffect => 'Cet objet n’aurait aucun effet.',
+    };
 
 class _PokemonInfoChip extends StatelessWidget {
   const _PokemonInfoChip({

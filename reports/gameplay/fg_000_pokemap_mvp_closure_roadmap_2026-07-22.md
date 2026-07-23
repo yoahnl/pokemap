@@ -512,6 +512,9 @@ commit créé avec la présente mise à jour.**
 
 ## Task 3.3 — FG-026 / FG-027 / FG-029 / FG-061 / FG-070 / FG-071 : UI joueur
 
+**Statut : terminé le 2026-07-23 — 17 tests widget ciblés verts et analyse
+host sans diagnostic ; commit créé avec la présente mise à jour.**
+
 **Files:**
 
 - Modify: `examples/playable_runtime_host/lib/src/in_game_menu.dart`
@@ -524,13 +527,13 @@ commit créé avec la présente mise à jour.**
 - Create: `examples/playable_runtime_host/test/in_game_pc_page_test.dart`
 - Create: `examples/playable_runtime_host/test/in_game_heal_flow_test.dart`
 
-- [ ] **Step 1:** Rendre Bag interactif pour potion, antidote et rappel avec picker de cible.
-- [ ] **Step 2:** Permettre changement de lead et ordre dans Party, avec une fiche résumé affichant niveau, XP, statut, PV, moves et PP.
-- [ ] **Step 3:** Ajouter dépôt, retrait et échange dans PC avec feedback.
-- [ ] **Step 4:** Ajouter shop avec stock, prix, argent, quantité et résultat.
-- [ ] **Step 5:** Ajouter le soin complet et le feedback de fin.
-- [ ] **Step 6:** Faire passer toute mutation par `map_gameplay` et verrouiller l'input overworld pendant chaque écran.
-- [ ] **Step 7:** Commit proposé : `feat(host): add interactive player services`.
+- [x] **Step 1:** Rendre Bag interactif pour potion, antidote et rappel avec picker de cible.
+- [x] **Step 2:** Permettre changement de lead et ordre dans Party, avec une fiche résumé affichant niveau, XP, statut, PV, moves et PP.
+- [x] **Step 3:** Ajouter dépôt, retrait et échange dans PC avec feedback.
+- [x] **Step 4:** Ajouter shop avec stock, prix, argent, quantité et résultat.
+- [x] **Step 5:** Ajouter le soin complet et le feedback de fin.
+- [x] **Step 6:** Faire passer toute mutation par `map_gameplay` et verrouiller l'input overworld pendant chaque écran.
+- [x] **Step 7:** Commit créé : `feat(host): add interactive player services`.
 
 ## Task 3.4 — Valider et exposer les shops dans l'éditeur
 
