@@ -59,16 +59,82 @@ void main() {
     expect(find.byType(PokeMapTextField), findsOneWidget);
   });
 
-  testWidgets('unsupported FG mechanic stays visible and cannot be submitted',
+  testWidgets('canonical heal command is authorable without raw parameters',
       (tester) async {
+    SceneNodePayload? submitted;
     await _pumpBuilder(
       tester,
       initialCommandId: NarrativeCommandIds.healParty,
+      onSubmit: (payload) => submitted = payload,
     );
 
-    expect(find.text('Non disponible'), findsOneWidget);
-    expect(find.text('FG-092'), findsOneWidget);
-    expect(find.textContaining('healParty'), findsOneWidget);
+    expect(find.text('Persistant'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.pump();
+
+    expect(
+      (submitted! as SceneActionPayload).consequence,
+      SceneConsequence.healParty(),
+    );
+  });
+
+  testWidgets('badge and field ability use project-owned guided pickers',
+      (tester) async {
+    SceneNodePayload? badgePayload;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.awardBadge,
+      options: const {
+        NarrativeCommandParameterKind.badge: [
+          SceneActionPickerOption(id: 'badge_tide', label: 'Badge Marée'),
+        ],
+      },
+      onSubmit: (payload) => badgePayload = payload,
+    );
+
+    expect(find.text('Badge Marée'), findsOneWidget);
+    expect(find.byType(PokeMapTextField), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.pump();
+    expect(
+      (badgePayload! as SceneActionPayload).consequence,
+      SceneConsequence.awardBadge(badgeId: 'badge_tide'),
+    );
+
+    SceneNodePayload? fieldPayload;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.unlockFieldAbility,
+      options: const {
+        NarrativeCommandParameterKind.fieldAbility: [
+          SceneActionPickerOption(id: 'surf', label: 'Surf'),
+        ],
+      },
+      onSubmit: (payload) => fieldPayload = payload,
+    );
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.pump();
+    expect(
+      (fieldPayload! as SceneActionPayload).consequence,
+      SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
+    );
+  });
+
+  testWidgets('deleted picker target is kept visible and blocks editing',
+      (tester) async {
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.awardBadge,
+      initialParameters: const {'badgeId': 'badge_deleted'},
+      options: const {
+        NarrativeCommandParameterKind.badge: [
+          SceneActionPickerOption(id: 'badge_tide', label: 'Badge Marée'),
+        ],
+      },
+    );
+
+    expect(find.textContaining('badge_deleted'), findsOneWidget);
+    expect(find.textContaining('n’existe plus'), findsOneWidget);
     expect(
       tester
           .widget<PokeMapButton>(
@@ -77,6 +143,45 @@ void main() {
           .onPressed,
       isNull,
     );
+  });
+
+  testWidgets('editing preserves an existing non-default picker target',
+      (tester) async {
+    SceneActionBuildResult? result;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.awardBadge,
+      initialParameters: const {'badgeId': 'badge_tide'},
+      options: const {
+        NarrativeCommandParameterKind.badge: [
+          SceneActionPickerOption(id: 'badge_leaf', label: 'Badge Feuille'),
+          SceneActionPickerOption(id: 'badge_tide', label: 'Badge Marée'),
+        ],
+      },
+      onSubmitResult: (value) => result = value,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.pump();
+
+    expect(result!.parameters['badgeId'], 'badge_tide');
+    expect(
+      (result!.payload as SceneActionPayload).consequence,
+      SceneConsequence.awardBadge(badgeId: 'badge_tide'),
+    );
+  });
+
+  testWidgets('commands absent from the current runtime stay hidden',
+      (tester) async {
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.healParty,
+      runtimeCommandIds: const {NarrativeCommandIds.healParty},
+    );
+
+    expect(find.text('Soigner l’équipe'), findsOneWidget);
+    expect(find.text('Donner un badge'), findsNothing);
+    expect(find.text('Modifier la présence d’un PNJ'), findsNothing);
   });
 }
 
@@ -87,6 +192,8 @@ Future<void> _pumpBuilder(
       const {},
   ValueChanged<SceneNodePayload>? onSubmit,
   ValueChanged<SceneActionBuildResult>? onSubmitResult,
+  Map<String, String> initialParameters = const {},
+  Set<String>? runtimeCommandIds,
 }) async {
   tester.view.physicalSize = const Size(900, 760);
   tester.view.devicePixelRatio = 1;
@@ -100,8 +207,11 @@ Future<void> _pumpBuilder(
       home: Scaffold(
         body: SingleChildScrollView(
           child: SceneActionBuilder(
+            key: ValueKey('builder-$initialCommandId'),
             initialCommandId: initialCommandId,
             pickerOptions: options,
+            initialParameters: initialParameters,
+            runtimeCommandIds: runtimeCommandIds,
             onSubmit: onSubmit ?? (_) {},
             onSubmitResult: onSubmitResult,
           ),

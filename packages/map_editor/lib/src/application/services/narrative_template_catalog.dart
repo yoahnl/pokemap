@@ -403,6 +403,13 @@ NarrativeTemplatePreview previewNarrativeTemplate({
   diagnostics.addAll(
     _diagnoseParameterValues(template.command, request.parameters),
   );
+  diagnostics.addAll(
+    _diagnoseProjectReferences(
+      project,
+      template.command,
+      request.parameters,
+    ),
+  );
   if (request.kind == NarrativeTemplateKind.conditionalNpc &&
       request.parameters['expectedValue'] != 'true' &&
       request.parameters['expectedValue'] != 'false') {
@@ -526,6 +533,50 @@ List<String> _diagnoseParameterValues(
   return diagnostics;
 }
 
+List<String> _diagnoseProjectReferences(
+  ProjectManifest project,
+  NarrativeCommandDescriptor command,
+  Map<String, String> parameters,
+) {
+  final diagnostics = <String>[];
+  void requireReference({
+    required String parameterId,
+    required Iterable<String> knownIds,
+    required String label,
+  }) {
+    final value = parameters[parameterId]?.trim();
+    if (value == null || value.isEmpty || knownIds.contains(value)) return;
+    diagnostics.add(
+      '$label « $value » n’existe plus dans le catalogue du projet.',
+    );
+  }
+
+  switch (command.id) {
+    case NarrativeCommandIds.awardBadge:
+      requireReference(
+        parameterId: 'badgeId',
+        knownIds: project.badges.map((badge) => badge.id),
+        label: 'Le badge',
+      );
+      break;
+    case NarrativeCommandIds.openShop:
+      requireReference(
+        parameterId: 'shopId',
+        knownIds: project.shops.map((shop) => shop.id),
+        label: 'La boutique',
+      );
+      break;
+    case NarrativeCommandIds.unlockFieldAbility:
+      requireReference(
+        parameterId: 'abilityId',
+        knownIds: FieldAbility.values.map((ability) => ability.moveId),
+        label: 'La capacité terrain',
+      );
+      break;
+  }
+  return diagnostics;
+}
+
 NarrativeEventReusePolicy _reusePolicy(NarrativeTemplateKind kind) =>
     switch (kind) {
       NarrativeTemplateKind.simpleNpc ||
@@ -599,6 +650,17 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
           starterOptionId: parameters['starterOptionId']!,
         ),
       ),
+    NarrativeCommandIds.healParty => SceneActionPayload.consequence(
+        SceneConsequence.healParty(),
+      ),
+    NarrativeCommandIds.awardBadge => SceneActionPayload.consequence(
+        SceneConsequence.awardBadge(badgeId: parameters['badgeId']!),
+      ),
+    NarrativeCommandIds.unlockFieldAbility => SceneActionPayload.consequence(
+        SceneConsequence.unlockFieldAbility(
+          ability: _fieldAbilityFromId(parameters['abilityId']!),
+        ),
+      ),
     NarrativeCommandIds.warp => SceneActionPayload.interactive(
         SceneInteractiveCommand.warp(
           destinationMapId: parameters['destinationMapId']!,
@@ -635,6 +697,18 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         'An unsupported Narrative command cannot produce a Scene payload.',
       ),
   };
+}
+
+FieldAbility _fieldAbilityFromId(String id) {
+  final normalized = id.trim();
+  for (final ability in FieldAbility.values) {
+    if (ability.moveId == normalized) return ability;
+  }
+  throw ArgumentError.value(
+    id,
+    'abilityId',
+    'Unknown canonical field ability.',
+  );
 }
 
 SceneAsset _buildTemplateScene(

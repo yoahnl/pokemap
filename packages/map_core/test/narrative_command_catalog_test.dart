@@ -42,7 +42,7 @@ void main() {
     );
   });
 
-  test('new gameplay consequences expose model/runtime before editor', () {
+  test('canonical gameplay consequences are fully authorable', () {
     final catalog = NarrativeCommandCatalog.canonical();
     for (final id in [
       NarrativeCommandIds.healParty,
@@ -50,7 +50,7 @@ void main() {
       NarrativeCommandIds.unlockFieldAbility,
     ]) {
       final command = catalog.byId(id)!;
-      expect(command.isPublishable, isFalse);
+      expect(command.isPublishable, isTrue);
       expect(
         command.capabilities.model,
         NarrativeCommandCapabilityStatus.supported,
@@ -61,10 +61,23 @@ void main() {
       );
       expect(
         command.capabilities.editor,
-        NarrativeCommandCapabilityStatus.unsupported,
+        NarrativeCommandCapabilityStatus.supported,
       );
-      expect(command.capabilities.reason, isNotEmpty);
+      expect(command.capabilities.reason, isNull);
     }
+
+    expect(
+      catalog.byId(NarrativeCommandIds.awardBadge)!.parameters.single.kind,
+      NarrativeCommandParameterKind.badge,
+    );
+    expect(
+      catalog
+          .byId(NarrativeCommandIds.unlockFieldAbility)!
+          .parameters
+          .single
+          .kind,
+      NarrativeCommandParameterKind.fieldAbility,
+    );
 
     final deferred = catalog.byId(NarrativeCommandIds.setNpcPresence)!;
     expect(deferred.isPublishable, isFalse);

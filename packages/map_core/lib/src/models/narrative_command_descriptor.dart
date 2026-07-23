@@ -21,6 +21,8 @@ enum NarrativeCommandParameterKind {
   map,
   warp,
   shop,
+  badge,
+  fieldAbility,
   trainer,
   dialogue,
   cinematic,

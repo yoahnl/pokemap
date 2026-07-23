@@ -65,6 +65,41 @@ void main() {
     expect(saved, isTrue);
   });
 
+  testWidgets(
+      'authoring actions expose only commands executable by the current runtime',
+      (tester) async {
+    NarrativeCommandDescriptor? opened;
+    final actions = buildNarrativeCommandAuthoringPaletteActions(
+      runtimeCommandIds: const {
+        NarrativeCommandIds.healParty,
+        NarrativeCommandIds.awardBadge,
+        NarrativeCommandIds.unlockFieldAbility,
+      },
+      onOpenCommand: (command) => opened = command,
+    );
+    await tester.pumpWidget(
+      _host(
+        NarrativeCommandPalette(
+          index: _index,
+          actions: actions,
+          onOpenEntry: (_) {},
+          onDismiss: () {},
+        ),
+      ),
+    );
+
+    expect(find.text('Créer · Soigner l’équipe'), findsOneWidget);
+    expect(find.text('Créer · Donner un badge'), findsOneWidget);
+    expect(
+      find.text('Créer · Débloquer une capacité terrain'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Modifier la présence'), findsNothing);
+
+    await tester.tap(find.text('Créer · Donner un badge'));
+    expect(opened?.id, NarrativeCommandIds.awardBadge);
+  });
+
   testWidgets('product shell opens palette with command K and restores focus', (
     tester,
   ) async {

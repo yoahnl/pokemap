@@ -4,8 +4,7 @@ import 'package:map_editor/src/application/services/narrative_template_catalog.d
 
 void main() {
   group('NarrativeTemplateCatalog', () {
-    test('exposes every MVP pattern and keeps unsupported mechanics honest',
-        () {
+    test('exposes every MVP pattern with executable gameplay templates', () {
       final catalog = NarrativeTemplateCatalog.canonical();
 
       expect(catalog.schemaVersion, 1);
@@ -15,11 +14,11 @@ void main() {
       expect(catalog.templates, hasLength(14));
       expect(
         catalog.byKind(NarrativeTemplateKind.nurse).isPublishable,
-        isFalse,
+        isTrue,
       );
       expect(
         catalog.byKind(NarrativeTemplateKind.badgeReward).isPublishable,
-        isFalse,
+        isTrue,
       );
       expect(
         catalog.byKind(NarrativeTemplateKind.itemBall).isPublishable,
@@ -39,6 +38,90 @@ void main() {
         catalog.byKind(NarrativeTemplateKind.shop).authoringHint,
         contains('catalogue des boutiques'),
       );
+    });
+
+    test('canonical gameplay payloads create and round-trip without raw ids',
+        () {
+      final payloads = <SceneActionPayload>[
+        buildScenePayloadForNarrativeCommand(
+          commandId: NarrativeCommandIds.healParty,
+          parameters: const {},
+        ) as SceneActionPayload,
+        buildScenePayloadForNarrativeCommand(
+          commandId: NarrativeCommandIds.awardBadge,
+          parameters: const {'badgeId': 'badge_tide'},
+        ) as SceneActionPayload,
+        buildScenePayloadForNarrativeCommand(
+          commandId: NarrativeCommandIds.unlockFieldAbility,
+          parameters: const {'abilityId': 'surf'},
+        ) as SceneActionPayload,
+      ];
+
+      expect(payloads[0].consequence, SceneConsequence.healParty());
+      expect(
+        payloads[1].consequence,
+        SceneConsequence.awardBadge(badgeId: 'badge_tide'),
+      );
+      expect(
+        payloads[2].consequence,
+        SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
+      );
+      for (final payload in payloads) {
+        expect(SceneNodePayload.fromJson(payload.toJson()), payload);
+      }
+    });
+
+    test('legacy action remains readable but cannot masquerade as supported',
+        () {
+      final legacy = SceneNodePayload.fromJson(const {
+        'kind': 'action',
+        'actionKind': 'setNpcPresence',
+        'parameters': {'entityId': 'npc_old'},
+      });
+
+      expect(legacy, isA<SceneActionPayload>());
+      expect((legacy as SceneActionPayload).actionKind, 'setNpcPresence');
+      expect(
+        () => buildScenePayloadForNarrativeCommand(
+          commandId: NarrativeCommandIds.setNpcPresence,
+          parameters: const {'entityId': 'npc_old'},
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('badge preview refuses a target removed from the project', () {
+      final withBadge = _emptyProject().copyWith(
+        badges: const [
+          BadgeDefinition(id: 'badge_tide', label: 'Badge Marée'),
+        ],
+      );
+      final request = NarrativeTemplateRequest(
+        kind: NarrativeTemplateKind.badgeReward,
+        eventId: _eventId,
+        sceneId: _sceneId,
+        name: 'Récompense du champion',
+        source: NarrativeEventSourceRef.mapEnter('map_port'),
+        physicalSource: null,
+        parameters: const {'badgeId': 'badge_tide'},
+      );
+
+      final valid = previewNarrativeTemplate(
+        project: withBadge,
+        request: request,
+      );
+      final deleted = previewNarrativeTemplate(
+        project: withBadge.copyWith(badges: const []),
+        request: request,
+      );
+
+      expect(valid.canApply, isTrue);
+      expect(
+        ProjectManifest.fromJson(valid.after!.toJson()).toJson(),
+        valid.after!.toJson(),
+      );
+      expect(deleted.canApply, isFalse);
+      expect(deleted.diagnostics.join(' '), contains('badge_tide'));
     });
 
     test('item ball preview creates one Event pointing to one Scene action',
@@ -210,7 +293,13 @@ const _sceneId = 'scene.item.ball';
 
 ProjectManifest _emptyProject() => const ProjectManifest(
       name: 'Template test',
-      maps: [],
+      maps: [
+        ProjectMapEntry(
+          id: 'map_port',
+          name: 'Port',
+          relativePath: 'maps/port.json',
+        ),
+      ],
       tilesets: [],
     );
 

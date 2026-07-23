@@ -1219,7 +1219,7 @@ class _EventBuilderV2ProductRouteState
           spatialSources:
               session.context.catalog.spatialSources.selectableOptions,
           physicalSourceKinds: _templatePhysicalSourceKinds(session.maps),
-          actionPickerOptions: _templateActionPickerOptions(
+          actionPickerOptions: buildEventBuilderV2TemplateActionPickerOptions(
             project: session.manifest,
             maps: session.maps,
             catalogs: catalogs,
@@ -1895,7 +1895,7 @@ class _EventBuilderV2ProductRouteState
 }
 
 Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
-    _templateActionPickerOptions({
+    buildEventBuilderV2TemplateActionPickerOptions({
   required ProjectManifest project,
   required List<MapData> maps,
   required SceneConsequenceCatalogs catalogs,
@@ -1907,15 +1907,6 @@ Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
         for (final option in value.options)
           SceneActionPickerOption(id: option.id, label: option.label),
       ];
-  final shops = <String>{};
-  for (final scene in project.scenes) {
-    for (final node in scene.graph.nodes) {
-      final command = node.payload is SceneActionPayload
-          ? (node.payload as SceneActionPayload).interactiveCommand
-          : null;
-      if (command is SceneOpenShopInteractiveCommand) shops.add(command.shopId);
-    }
-  }
   return <NarrativeCommandParameterKind, List<SceneActionPickerOption>>{
     NarrativeCommandParameterKind.fact: [
       for (final fact in project.facts)
@@ -1949,8 +1940,19 @@ Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
           ),
     ],
     NarrativeCommandParameterKind.shop: [
-      for (final shopId in shops)
-        SceneActionPickerOption(id: shopId, label: shopId),
+      for (final shop in project.shops)
+        SceneActionPickerOption(id: shop.id, label: shop.label),
+    ],
+    NarrativeCommandParameterKind.badge: [
+      for (final badge in project.badges)
+        SceneActionPickerOption(id: badge.id, label: badge.label),
+    ],
+    NarrativeCommandParameterKind.fieldAbility: [
+      for (final ability in FieldAbility.values)
+        SceneActionPickerOption(
+          id: ability.moveId,
+          label: _fieldAbilityLabel(ability),
+        ),
     ],
     NarrativeCommandParameterKind.trainer: [
       for (final trainer in project.trainers)
@@ -1966,6 +1968,16 @@ Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
     ],
   };
 }
+
+String _fieldAbilityLabel(FieldAbility ability) => switch (ability) {
+      FieldAbility.surf => 'Surf',
+      FieldAbility.cut => 'Coupe',
+      FieldAbility.strength => 'Force',
+      FieldAbility.flash => 'Flash',
+      FieldAbility.rockSmash => 'Éclate-Roc',
+      FieldAbility.waterfall => 'Cascade',
+      FieldAbility.dive => 'Plongée',
+    };
 
 Map<String, NarrativeTemplatePhysicalSourceKind> _templatePhysicalSourceKinds(
   List<MapData> maps,

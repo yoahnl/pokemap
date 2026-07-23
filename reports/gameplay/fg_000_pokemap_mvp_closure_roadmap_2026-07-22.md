@@ -653,11 +653,19 @@ la Task 4.3 ; FG-085/089 restent donc `PARTIAL` à ce stade.
 - Modify: `packages/map_editor/test/scene_action_builder_test.dart`
 - Modify: `packages/map_editor/test/ui/canvas/narrative_command_palette_test.dart`
 
-- [ ] **Step 1:** Ajouter pickers projet pour shop, badge et field ability.
-- [ ] **Step 2:** Afficher heal, badge et unlock uniquement quand le runtime courant déclare la capability.
-- [ ] **Step 3:** Refuser publication si une référence est cassée ou si une commande n'a aucun backend exécutable.
-- [ ] **Step 4:** Tester création, édition, round-trip, suppression de cible et migration legacy.
-- [ ] **Step 5:** Commit proposé : `feat(editor): author executable gameplay commands`.
+- [x] **Step 1:** Ajouter pickers projet pour shop, badge et field ability.
+- [x] **Step 2:** Afficher heal, badge et unlock uniquement quand le runtime courant déclare la capability.
+- [x] **Step 3:** Refuser publication si une référence est cassée ou si une commande n'a aucun backend exécutable.
+- [x] **Step 4:** Tester création, édition, round-trip, suppression de cible et migration legacy.
+- [x] **Step 5:** Commit proposé : `feat(editor): author executable gameplay commands`.
+
+**Preuve fraîche (2026-07-23) :** le catalogue déclare les trois conséquences
+publiables, le builder ne montre que les commandes annoncées par le runtime et
+préserve une référence éditée au lieu de la remapper silencieusement. Les
+pickers lisent `ProjectManifest.shops`, `badges` et le catalogue canonique des
+`FieldAbility`; les previews refusent une cible supprimée. La migration legacy
+reste lisible mais ne peut pas être republiée comme commande supportée. Les lots
+FG-085/089/090/091/093 restent `PARTIAL` jusqu'à la gate de parité Task 4.4.
 
 ## Task 4.4 — Audit de parité catalogue/runtime
 

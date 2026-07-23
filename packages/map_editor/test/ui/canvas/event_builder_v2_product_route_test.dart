@@ -11,6 +11,7 @@ import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_event_builder_v2_providers.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_event_map_bridge_state.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_event_validation_state.dart';
+import 'package:map_editor/src/features/narrative/state/scene_consequence_catalog_providers.dart';
 import 'package:map_editor/src/ui/canvas/events/event_builder_workspace.dart';
 import 'package:map_editor/src/ui/canvas/events_v2/event_builder_v2_product_route.dart';
 import 'package:map_editor/src/ui/canvas/events_v2/event_builder_v2_workspace.dart';
@@ -28,6 +29,40 @@ import '../../support/event_builder_v2_visual_harness.dart';
 
 void main() {
   group('NS-EVENT-V2 H1 product route', () {
+    test('projects shop, badge and field ability authoring pickers', () {
+      const project = ProjectManifest(
+        name: 'Authoring pickers',
+        maps: [],
+        tilesets: [],
+        shops: [
+          ShopDefinition(id: 'shop_port', label: 'Boutique du port'),
+        ],
+        badges: [
+          BadgeDefinition(id: 'badge_tide', label: 'Badge Marée'),
+        ],
+      );
+
+      final options = buildEventBuilderV2TemplateActionPickerOptions(
+        project: project,
+        maps: const [],
+        catalogs: const SceneConsequenceCatalogs.unavailable(),
+      );
+
+      expect(
+        options[NarrativeCommandParameterKind.shop]!.single.label,
+        'Boutique du port',
+      );
+      expect(
+        options[NarrativeCommandParameterKind.badge]!.single.id,
+        'badge_tide',
+      );
+      expect(
+        options[NarrativeCommandParameterKind.fieldAbility]!
+            .map((option) => option.id),
+        contains('surf'),
+      );
+    });
+
     for (final mode in EventSystemMode.values) {
       testWidgets(
           'mounts the shared Event product shell on the real ${mode.name} route',

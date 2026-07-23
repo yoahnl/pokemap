@@ -3716,6 +3716,28 @@ Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
       for (final map in project.maps)
         SceneActionPickerOption(id: map.id, label: map.name),
     ],
+    NarrativeCommandParameterKind.warp: [
+      for (final warp in activeMap?.warps ?? const <MapWarp>[])
+        SceneActionPickerOption(
+          id: warp.id,
+          label: '${activeMap!.name} → ${warp.targetMapId}',
+        ),
+    ],
+    NarrativeCommandParameterKind.shop: [
+      for (final shop in project.shops)
+        SceneActionPickerOption(id: shop.id, label: shop.label),
+    ],
+    NarrativeCommandParameterKind.badge: [
+      for (final badge in project.badges)
+        SceneActionPickerOption(id: badge.id, label: badge.label),
+    ],
+    NarrativeCommandParameterKind.fieldAbility: [
+      for (final ability in FieldAbility.values)
+        SceneActionPickerOption(
+          id: ability.moveId,
+          label: _sceneFieldAbilityLabel(ability),
+        ),
+    ],
     NarrativeCommandParameterKind.trainer: [
       for (final trainer in project.trainers)
         SceneActionPickerOption(id: trainer.id, label: trainer.name),
@@ -3730,6 +3752,16 @@ Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
     ],
   };
 }
+
+String _sceneFieldAbilityLabel(FieldAbility ability) => switch (ability) {
+      FieldAbility.surf => 'Surf',
+      FieldAbility.cut => 'Coupe',
+      FieldAbility.strength => 'Force',
+      FieldAbility.flash => 'Flash',
+      FieldAbility.rockSmash => 'Éclate-Roc',
+      FieldAbility.waterfall => 'Cascade',
+      FieldAbility.dive => 'Plongée',
+    };
 
 class _NarrativeListCard extends StatelessWidget {
   const _NarrativeListCard({

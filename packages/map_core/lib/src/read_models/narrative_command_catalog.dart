@@ -34,13 +34,6 @@ final class NarrativeCommandCatalog {
           runtime: NarrativeCommandCapabilityStatus.unsupported,
           reason: reason,
         );
-    NarrativeCommandCapabilities runtimeReady(String reason) =>
-        NarrativeCommandCapabilities(
-          model: NarrativeCommandCapabilityStatus.supported,
-          editor: NarrativeCommandCapabilityStatus.unsupported,
-          runtime: NarrativeCommandCapabilityStatus.supported,
-          reason: reason,
-        );
     NarrativeCommandDescriptor consequence(
       String id,
       String label,
@@ -74,25 +67,6 @@ final class NarrativeCommandCatalog {
           wireId: 'SceneInteractiveCommand.$id',
           parameters: parameters,
           isAwaitable: true,
-        );
-    NarrativeCommandDescriptor runtimeConsequence(
-      String id,
-      String label,
-      String lot,
-      List<NarrativeCommandParameterDescriptor> parameters,
-    ) =>
-        NarrativeCommandDescriptor(
-          id: id,
-          label: label,
-          description: 'Effet persistant exécutable, en attente du picker UI.',
-          backend: NarrativeCommandBackend.sceneConsequence,
-          capabilities: runtimeReady(
-            'Backend runtime livré ; authoring guidé prévu en Task 4.3.',
-          ),
-          fgLotId: lot,
-          wireId: 'SceneConsequence.$id',
-          parameters: parameters,
-          isPersistent: true,
         );
     NarrativeCommandDescriptor node(
       String id,
@@ -164,21 +138,21 @@ final class NarrativeCommandCatalog {
               NarrativeCommandParameterKind.starter)
         ],
       ),
-      runtimeConsequence(
+      consequence(
         NarrativeCommandIds.healParty,
         'Soigner l’équipe',
         'FG-085',
         const [],
       ),
-      runtimeConsequence(
+      consequence(
         NarrativeCommandIds.awardBadge,
         'Donner un badge',
         'FG-089',
         [
-          _parameter('badgeId', 'Badge', NarrativeCommandParameterKind.text),
+          _parameter('badgeId', 'Badge', NarrativeCommandParameterKind.badge),
         ],
       ),
-      runtimeConsequence(
+      consequence(
         NarrativeCommandIds.unlockFieldAbility,
         'Débloquer une capacité terrain',
         'FG-089',
@@ -186,7 +160,7 @@ final class NarrativeCommandCatalog {
           _parameter(
             'abilityId',
             'Capacité terrain',
-            NarrativeCommandParameterKind.text,
+            NarrativeCommandParameterKind.fieldAbility,
           ),
         ],
       ),

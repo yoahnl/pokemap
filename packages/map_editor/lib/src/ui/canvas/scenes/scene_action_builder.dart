@@ -37,6 +37,7 @@ class SceneActionBuilder extends StatefulWidget {
     this.initialCommandId,
     this.commandCatalog,
     this.pickerOptions = const {},
+    this.runtimeCommandIds,
     this.allowCommandSelection = true,
     this.initialParameters = const {},
   });
@@ -47,6 +48,7 @@ class SceneActionBuilder extends StatefulWidget {
   final NarrativeCommandCatalog? commandCatalog;
   final Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
       pickerOptions;
+  final Set<String>? runtimeCommandIds;
   final bool allowCommandSelection;
   final Map<String, String> initialParameters;
 
@@ -71,12 +73,21 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
 
   NarrativeCommandDescriptor get _command => _catalog.byId(_commandId)!;
 
+  List<NarrativeCommandDescriptor> get _availableCommands => [
+        for (final command in _catalog.commands)
+          if (command.capabilities.runtime ==
+                  NarrativeCommandCapabilityStatus.supported &&
+              (widget.runtimeCommandIds?.contains(command.id) ?? true))
+            command,
+      ];
+
   String _initialCommandId() {
     final requested = widget.initialCommandId;
-    if (requested != null && _catalog.byId(requested) != null) {
+    if (requested != null &&
+        _availableCommands.any((command) => command.id == requested)) {
       return requested;
     }
-    return _catalog.commands.first.id;
+    return _availableCommands.first.id;
   }
 
   void _seedParameterValues(NarrativeCommandDescriptor command) {
@@ -100,11 +111,10 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           _textControllers[parameter.id] = TextEditingController(text: value);
         default:
           final options = widget.pickerOptions[parameter.kind] ?? const [];
-          if (options.isNotEmpty) {
-            _values[parameter.id] =
-                options.any((option) => option.id == initial)
-                    ? initial!
-                    : options.first.id;
+          if (initial?.trim().isNotEmpty == true) {
+            _values[parameter.id] = initial!.trim();
+          } else if (options.isNotEmpty) {
+            _values[parameter.id] = options.first.id;
           }
       }
     }
@@ -130,8 +140,17 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       final parsed = int.tryParse(value);
       return parsed != null && parsed > 0;
     }
+    if (_isReferenceParameter(parameter)) {
+      final options = widget.pickerOptions[parameter.kind] ?? const [];
+      return options.any((option) => option.id == value);
+    }
     return true;
   }
+
+  bool _isReferenceParameter(NarrativeCommandParameterDescriptor parameter) =>
+      parameter.kind != NarrativeCommandParameterKind.boolean &&
+      parameter.kind != NarrativeCommandParameterKind.integer &&
+      parameter.kind != NarrativeCommandParameterKind.text;
 
   bool get _canSubmit => _command.isPublishable && _missingParameters.isEmpty;
 
@@ -170,7 +189,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
               label: 'Type de commande',
               value: _commandId,
               items: [
-                for (final command in _catalog.commands)
+                for (final command in _availableCommands)
                   PokeMapDropdownItem(value: command.id, label: command.label),
               ],
               onChanged: (value) {
@@ -234,6 +253,18 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         );
       default:
         final options = widget.pickerOptions[parameter.kind] ?? const [];
+        final currentValue = _values[parameter.id];
+        if (currentValue != null &&
+            currentValue.isNotEmpty &&
+            !options.any((option) => option.id == currentValue)) {
+          return PokeMapDiagnosticCallout(
+            severity: PokeMapDiagnosticSeverity.error,
+            title: '${parameter.label} supprimé',
+            message: 'La cible « $currentValue » n’existe plus dans le '
+                'catalogue du projet. Sélectionnez une cible valide avant de '
+                'publier.',
+          );
+        }
         if (options.isEmpty) {
           return PokeMapDiagnosticCallout(
             severity: PokeMapDiagnosticSeverity.warning,
@@ -244,7 +275,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         }
         return PokeMapDropdownField<String>(
           label: parameter.label,
-          value: _values[parameter.id] ?? options.first.id,
+          value: currentValue ?? options.first.id,
           items: [
             for (final option in options)
               PokeMapDropdownItem(value: option.id, label: option.label),

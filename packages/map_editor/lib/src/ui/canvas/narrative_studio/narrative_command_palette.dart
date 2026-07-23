@@ -41,6 +41,32 @@ final class NarrativeCommandPaletteAction {
   final bool enabled;
 }
 
+/// Builds authoring shortcuts from the same capability contract as the Scene
+/// builder. A runtime that does not declare a command can never advertise it
+/// in the global palette.
+List<NarrativeCommandPaletteAction>
+    buildNarrativeCommandAuthoringPaletteActions({
+  required Set<String> runtimeCommandIds,
+  required ValueChanged<NarrativeCommandDescriptor> onOpenCommand,
+  NarrativeCommandCatalog? commandCatalog,
+}) {
+  final catalog = commandCatalog ?? NarrativeCommandCatalog.canonical();
+  return List<NarrativeCommandPaletteAction>.unmodifiable([
+    for (final command in catalog.commands)
+      if (command.isPublishable &&
+          command.capabilities.runtime ==
+              NarrativeCommandCapabilityStatus.supported &&
+          runtimeCommandIds.contains(command.id))
+        NarrativeCommandPaletteAction(
+          id: 'authoring.${command.id}',
+          label: 'Créer · ${command.label}',
+          description: '${command.description} · ${command.fgLotId}',
+          kind: NarrativeCommandPaletteActionKind.create,
+          onInvoke: () => onOpenCommand(command),
+        ),
+  ]);
+}
+
 Future<void> showNarrativeCommandPalette({
   required BuildContext context,
   required NarrativeGlobalSearchIndex index,
