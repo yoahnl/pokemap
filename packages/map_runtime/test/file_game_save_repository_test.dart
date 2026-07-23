@@ -524,6 +524,21 @@ void main() {
       expect(await projectFile.readAsString(), '{"name":"test"}');
     });
 
+    test('malformed JSON load preserves the exact save bytes', () async {
+      final filePath = await repository.exposedSaveFilePath();
+      final file = File(filePath);
+      const malformedContent = '{"saveId":"broken",';
+      await file.writeAsString(malformedContent);
+
+      await expectLater(
+        () => repository.load(),
+        throwsA(isA<GameSaveException>()),
+      );
+
+      expect(await file.readAsString(), malformedContent);
+      expect(await repository.exists(), isTrue);
+    });
+
     test(
         'invalid nested phase 9 data does not write and keeps project.json unchanged',
         () async {

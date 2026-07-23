@@ -18,4 +18,10 @@ class LoadGameUseCase {
       return null;
     }
   }
+
+  /// Loads while preserving the repository failure for an actionable UI.
+  ///
+  /// Runtime composition uses this variant to distinguish an absent save
+  /// (`null`) from a corrupt or unreadable save ([GameSaveException]).
+  Future<GameState?> executeOrThrow() => _repo.load();
 }

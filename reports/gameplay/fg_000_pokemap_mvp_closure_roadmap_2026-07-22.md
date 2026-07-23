@@ -838,17 +838,32 @@ absente, dupliquée, échouée ou commande non nulle.
 **Files:**
 
 - Modify: `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
-- Modify: `packages/map_runtime/lib/src/infrastructure/file_game_save_repository.dart`
+- Modify: `packages/map_runtime/lib/src/application/load_game_use_case.dart`
+- Verify unchanged: `packages/map_runtime/lib/src/infrastructure/file_game_save_repository.dart`
 - Create: `packages/map_runtime/test/playable_map_game_save_load_transaction_test.dart`
 - Modify: `packages/map_runtime/test/file_game_save_repository_test.dart`
 - Modify: `packages/map_runtime/test/p6_selbrume_save_load_golden_slice_test.dart`
 
-- [ ] **Step 1:** Caractériser un chargement valide, un JSON corrompu, une map absente et une exception pendant la reconstruction.
-- [ ] **Step 2:** Lire, migrer et valider la sauvegarde ainsi que la map cible avant de détruire le monde courant.
-- [ ] **Step 3:** Appliquer le nouveau monde comme une transaction ; sur échec, conserver l'ancien monde, l'input et le dernier état sauvegardable.
-- [ ] **Step 4:** Afficher une erreur utilisateur actionnable sans supprimer ni écraser la sauvegarde fautive.
-- [ ] **Step 5:** Vérifier le parcours save/reload Selbrume après un échec injecté puis une nouvelle tentative réussie.
-- [ ] **Step 6:** Commit proposé : `fix(runtime): make game loading transactional`.
+- [x] **Step 1:** Caractériser un chargement valide, un JSON corrompu, une map absente et une exception pendant la reconstruction.
+- [x] **Step 2:** Lire, migrer et valider la sauvegarde ainsi que la map cible avant de détruire le monde courant.
+- [x] **Step 3:** Appliquer le nouveau monde comme une transaction ; sur échec, conserver l'ancien monde, l'input et le dernier état sauvegardable.
+- [x] **Step 4:** Afficher une erreur utilisateur actionnable sans supprimer ni écraser la sauvegarde fautive.
+- [x] **Step 5:** Vérifier le parcours save/reload Selbrume après un échec injecté puis une nouvelle tentative réussie.
+- [x] **Step 6:** Commit proposé : `fix(runtime): make game loading transactional`.
+
+**Preuve fraîche (2026-07-23) :** le runtime prépare la sauvegarde normalisée,
+la map, les catalogues Pokémon, les images, les bordures, la position et le
+`GameplayWorldState` avant le remplacement. Une exception après montage
+restaure le `GameState`, le coordinateur narratif, la map, le monde, le joueur,
+la caméra, l'input et le dernier état sauvegardable ; la sauvegarde disque
+n'est jamais supprimée ni réécrite par un load fautif. La suite transactionnelle
+termine à `+5`, le repository fichier à `+15`, la Golden Slice Selbrume
+rollback/retry à `+2`, les régressions mapEnter/hydratation à `+14` et
+`flutter analyze` est propre. Limite connue hors FG-014 :
+`playable_map_game_checkpoint_load_safety_integration_test.dart` conserve
+quatre échecs préexistants de fixture Battle, tous dus au catalogue absent
+`/tmp/checkpoint_load_safety/data/pokemon/catalogs/moves.json` ; aucune trace
+ne passe par le nouveau commit/rollback de chargement.
 
 **Gate Phase 5 :** Selbrume traverse naturellement la checklist MVP, sauvegarde
 au milieu du parcours et termine l'histoire sans mutation de test.

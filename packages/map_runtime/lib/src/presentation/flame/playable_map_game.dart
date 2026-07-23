@@ -194,6 +194,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     @visibleForTesting this.beforeNarrativeAuthorityPreparation,
     @visibleForTesting this.afterNarrativeAuthorityPreparation,
     @visibleForTesting this.beforeBattleHandoffPreparation,
+    @visibleForTesting this.beforeLoadCommitCompletion,
     this.shadowCollectionProvider,
     this.enableActorContactShadows = true,
     this.enableStaticPlacedElementShadows = true,
@@ -331,6 +332,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   )? afterNarrativeAuthorityPreparation;
   @visibleForTesting
   final Future<void> Function()? beforeBattleHandoffPreparation;
+  @visibleForTesting
+  final Future<void> Function()? beforeLoadCommitCompletion;
   @visibleForTesting
   final RuntimePostBattleOverlayMounter? postBattleOverlayMounter;
   @visibleForTesting
@@ -2163,17 +2166,27 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// Les règles Step Studio sont relues via [_ensureStepStudioWorldRulesForManifest]
   /// **à chaque évaluation** pour éviter une liste [worldRules] capturée une fois
   /// et obsolète si le cache manifeste est invalidé.
-  NpcMapPresencePredicate _npcPresencePredicateFor(ProjectManifest manifest) {
+  NpcMapPresencePredicate _npcPresencePredicateFor(
+    ProjectManifest manifest, {
+    GameState? gameStateOverride,
+    MapData? mapOverride,
+  }) {
     return (String mapId, MapEntity npcEntity) {
+      final gameState = gameStateOverride ?? _gameState;
       _ensureStepStudioWorldRulesForManifest(manifest);
       final baseVisible = isNpcRuntimePresentOnMap(
-        gameState: _gameState,
+        gameState: gameState,
         manifest: manifest,
         stepStudioWorldRules: _cachedStepStudioWorldRules,
         mapId: mapId,
         entity: npcEntity,
       );
-      final projection = _resolveWorldRuleProjectionForMap(mapId, manifest);
+      final projection = _resolveWorldRuleProjectionForMap(
+        mapId,
+        manifest,
+        gameStateOverride: gameState,
+        mapOverride: mapOverride,
+      );
       if (projection == null) {
         return baseVisible;
       }
@@ -2185,10 +2198,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   MapEntityPresencePredicate _mapEntityPresencePredicateFor(
-    ProjectManifest manifest,
-  ) {
+    ProjectManifest manifest, {
+    GameState? gameStateOverride,
+    MapData? mapOverride,
+  }) {
     return (String mapId, MapEntity entity) {
-      final projection = _resolveWorldRuleProjectionForMap(mapId, manifest);
+      final projection = _resolveWorldRuleProjectionForMap(
+        mapId,
+        manifest,
+        gameStateOverride: gameStateOverride,
+        mapOverride: mapOverride,
+      );
       return projection?.isMapEntityVisible(entity) ?? true;
     };
   }
@@ -2216,9 +2236,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   RuntimeWorldRuleProjectionState? _resolveWorldRuleProjectionForMap(
     String mapId,
-    ProjectManifest manifest,
-  ) {
-    final map = _runtimeBundleByMapId[mapId]?.map ??
+    ProjectManifest manifest, {
+    GameState? gameStateOverride,
+    MapData? mapOverride,
+  }) {
+    final map = (mapOverride?.id == mapId ? mapOverride : null) ??
+        _runtimeBundleByMapId[mapId]?.map ??
         _loadedMapsById[mapId]?.bundle.map ??
         (mapId == _bundle.map.id ? _bundle.map : null);
     if (map == null) {
@@ -2226,7 +2249,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     return const RuntimeWorldRuleProjectionHook().resolve(
       project: manifest,
-      gameState: _gameState,
+      gameState: gameStateOverride ?? _gameState,
       map: map,
     );
   }
@@ -9831,11 +9854,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// battle transition) ni les états transitoires. Elle restaure uniquement
   /// l'état principal du runtime.
   ///
-  /// **Limitation** : La phase destructive (à partir de `_gameState = loadedState`)
-  /// n'est pas transactionnelle. En cas d'échec pendant le chargement de la map
-  /// ou le remontage des layers, le runtime peut rester dans un état partiellement
-  /// modifié. Aucun rollback n'est implémenté dans ce lot. Cette limitation sera
-  /// adressée dans un futur lot si nécessaire.
+  /// La sauvegarde, la map cible et le monde sont préparés avant la mutation.
+  /// Si le commit, le remontage ou le `mapEnter` final échoue, le snapshot
+  /// runtime précédent est remonté et la sauvegarde fautive reste intacte.
   Future<bool> loadGame() async {
     if (_hasCheckpointUnsafeRuntimeWork) {
       _logCheckpointInterlock('load');
@@ -9853,15 +9874,55 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   Future<bool> _loadGameWithActivationWorkAcquired() async {
-    // 1. Charger loadedState
-    final rawLoadedState = await _loadGameUseCase.execute();
+    if (isLoaded) {
+      _syncGameStateFromWorld(mapIdOverride: _activeMapId);
+    }
+    final source = _LoadRuntimeSnapshot(
+      gameState: _gameState,
+      bundle: _bundle,
+      world: _world,
+      activeMapId: _activeMapId,
+      previousMapId: _previousMapId,
+      flowPhase: _flowPhase,
+      currentMapActivationId: _currentMapActivationId,
+      completedMapActivationDispatchCount: _completedMapActivationDispatchCount,
+      lastCompletedMapActivation: _lastCompletedMapActivation,
+    );
+
+    // 1. Lire puis migrer la sauvegarde sans toucher au runtime courant.
+    GameState? rawLoadedState;
+    try {
+      rawLoadedState = await _loadGameUseCase.executeOrThrow();
+    } on GameSaveException catch (error, stackTrace) {
+      debugPrint('[load] save is unreadable: $error\n$stackTrace');
+      _showNotification(
+        'Chargement impossible : la sauvegarde est illisible. '
+        'La partie en cours et le fichier ont été conservés.',
+      );
+      return false;
+    }
     if (rawLoadedState == null) {
       debugPrint('[load] no save found');
       return false;
     }
-    var loadedState = normalizeLoadedGameState(rawLoadedState);
+    late GameState loadedState;
+    try {
+      loadedState = normalizeLoadedGameState(rawLoadedState);
+    } on Object catch (error, stackTrace) {
+      debugPrint(
+          '[load] save migration or validation failed: $error\n$stackTrace');
+      _showNotification(
+        'Chargement impossible : la sauvegarde est invalide. '
+        'La partie en cours et le fichier ont été conservés.',
+      );
+      return false;
+    }
     if (loadedState.currentMapId.trim().isEmpty) {
       debugPrint('[load] saved map id is empty');
+      _showNotification(
+        'Chargement impossible : la sauvegarde ne référence aucune map. '
+        'La partie en cours a été conservée.',
+      );
       return false;
     }
     final activation = _createMapActivation(
@@ -9869,22 +9930,32 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       reason: MapActivationReason.saveRestore,
     );
 
-    // 2. Charger newBundle (avec error handling)
+    // 2. Charger et valider toutes les données/ressources avant la mutation.
     RuntimeMapBundle newBundle;
     try {
       newBundle = await _loadRuntimeMapBundleCached(loadedState.currentMapId);
+      if (newBundle.map.id != loadedState.currentMapId) {
+        throw StateError(
+          'Loaded map ${newBundle.map.id} does not match saved map '
+          '${loadedState.currentMapId}.',
+        );
+      }
       loadedState = await _hydrateOwnedPlayerPokemonProgression(
         loadedState,
         bundle: newBundle,
       );
     } catch (e, st) {
       debugPrint('[load] failed to load map or Pokemon catalogues: $e\n$st');
+      _showNotification(
+        'Chargement impossible : la map sauvegardée est indisponible. '
+        'La partie en cours et la sauvegarde ont été conservées.',
+      );
       return false;
     }
 
-    // 3. Charger newImages (avec error handling)
     Map<String, RuntimeTilesetImage> newImages;
     BorderRuntimeAssetBundle newBorderAssets;
+    GameplayWorldState preparedWorld;
     try {
       newImages = await _loadTilesetImagesCached(
         newBundle.tilesetAbsolutePathsById,
@@ -9892,44 +9963,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       newBorderAssets = await _loadBorderRuntimeAssets(newBundle);
       newBundle = await prepareBorderRuntimeBundle(newBundle);
-    } catch (e, st) {
-      debugPrint('[load] failed to load tileset images: $e\n$st');
-      return false;
-    }
-
-    // 4-16. Phase destructive (protégée par try/catch)
-    try {
-      // 4. Restaurer GameState
-      _gameState = loadedState;
-
-      // 5. Nettoyer l'état transitoire
-      _clearTransientScenarioWorkForLoad();
-      _clearTransientUiState();
-      // Serialize the restored snapshot behind any already-queued transaction
-      // before saveRestore mapEnter can read the coordinator again. This is
-      // intentionally not a destructive-phase rollback (FG-014 remains out of
-      // scope); it only prevents pre-load narrative state from winning later.
-      await _narrativeStateTransactions.transact<void>((_) {
-        return NarrativeEventStateTransaction.commit(loadedState, null);
-      });
-
-      // 6. Unmount anciennes maps
-      _unmountAllLoadedMaps();
-
-      // 7. Assigner _bundle = newBundle
-      _bundle = newBundle;
-
-      // 8. Monter nouvelle map
-      await _mountLoadedMap(
-        bundle: newBundle,
-        tileImagesById: newImages,
-        borderAssets: newBorderAssets,
-        originCellX: 0,
-        originCellY: 0,
-      );
-
-      // 9. Reconstruire _world
-      _world = GameplayWorldState.initial(
+      if (!_isWithinMapBounds(newBundle.map, loadedState.playerPosition)) {
+        throw StateError(
+          'Saved player position ${loadedState.playerPosition} is outside '
+          '${newBundle.map.id}.',
+        );
+      }
+      preparedWorld = GameplayWorldState.initial(
         map: newBundle.map,
         project: newBundle.manifest,
         playerPos: loadedState.playerPosition,
@@ -9937,23 +9977,66 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         playerMovementMode: loadedState.playerMovementMode,
         tileWidth: newBundle.manifest.settings.tileWidth,
         tileHeight: newBundle.manifest.settings.tileHeight,
-        npcMapPresencePredicate: _npcPresencePredicateFor(newBundle.manifest),
-        mapEntityPresencePredicate:
-            _mapEntityPresencePredicateFor(newBundle.manifest),
+        npcMapPresencePredicate: _npcPresencePredicateFor(
+          newBundle.manifest,
+          gameStateOverride: loadedState,
+          mapOverride: newBundle.map,
+        ),
+        mapEntityPresencePredicate: _mapEntityPresencePredicateFor(
+          newBundle.manifest,
+          gameStateOverride: loadedState,
+          mapOverride: newBundle.map,
+        ),
+      );
+      if (preparedWorld.isBlocked(
+        loadedState.playerPosition.x,
+        loadedState.playerPosition.y,
+      )) {
+        throw StateError(
+          'Saved player position ${loadedState.playerPosition} is blocked '
+          'on ${newBundle.map.id}.',
+        );
+      }
+    } catch (e, st) {
+      debugPrint('[load] failed to prepare restored world: $e\n$st');
+      _showNotification(
+        'Chargement impossible : le monde sauvegardé ne peut pas être '
+        'reconstruit. La partie en cours et la sauvegarde ont été conservées.',
+      );
+      return false;
+    }
+
+    // 3. Commit atomique. Tout échec après ce point restaure [source].
+    try {
+      _gameState = loadedState;
+      _clearTransientScenarioWorkForLoad();
+      _clearTransientUiState();
+      await _narrativeStateTransactions.transact<void>((_) {
+        return NarrativeEventStateTransaction.commit(loadedState, null);
+      });
+
+      _unmountAllLoadedMaps();
+      _bundle = newBundle;
+      final root = await _mountLoadedMap(
+        bundle: newBundle,
+        tileImagesById: newImages,
+        borderAssets: newBorderAssets,
+        originCellX: 0,
+        originCellY: 0,
       );
 
-      // 10. Mettre _activeMapId + reset contrôleur PNJ scripté
+      _world = preparedWorld.withNpcMapPresencePredicate(
+        _npcPresencePredicateFor(newBundle.manifest),
+      );
+      _world = _world.withMapEntityPresencePredicate(
+        _mapEntityPresencePredicateFor(newBundle.manifest),
+      );
       _activeMapId = loadedState.currentMapId;
+      _previousMapId = null;
       _resetScriptedNpcMovementController();
-
-      // 10. Resync _player
-      _player.setMapOrigin(Vector2(0, 0), snapToGrid: false);
+      _player.setMapOrigin(_originPixelsOf(root), snapToGrid: false);
       _player.syncState(_world.player, snapToGrid: true);
-
-      // 11. Synchroniser GameState
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
-
-      // 12-15. Resync caméra / streaming / bounds
       _configureCameraViewport();
       _syncCameraToPlayer();
       _preloadActiveMapConnections();
@@ -9963,26 +10046,101 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _resetTriggerEnterOccupancy();
 
       _refreshWorldNpcPresence();
+      await beforeLoadCommitCompletion?.call();
 
-      // A checkpoint may have been requested from a transient UI phase. The
-      // restored runtime becomes dispatchable only after every world/UI field
-      // above is coherent and overworld authority is restored.
       _flowPhase = _RuntimeFlowPhase.overworld;
       _installMapActivation(activation);
       final dispatchResult = await _dispatchCompletedMapActivation(activation);
       if (dispatchResult is MapEnterProductionDispatchFailed ||
           dispatchResult is MapEnterProductionDispatchAuthorityBlocked) {
-        debugPrint(
-          '[load] mapEnter dispatch rejected load completion '
-          'result=${dispatchResult.runtimeType}',
+        throw StateError(
+          'saveRestore mapEnter rejected completion: '
+          '${dispatchResult.runtimeType}',
         );
-        return false;
       }
 
       debugPrint('[load] game loaded from saveId=${loadedState.saveId}');
       return true;
     } catch (e, st) {
-      debugPrint('[load] failed during destructive phase: $e\n$st');
+      debugPrint('[load] commit failed, rolling back: $e\n$st');
+      final rolledBack = await _restoreFailedLoad(source);
+      _showNotification(
+        rolledBack
+            ? 'Chargement annulé : la partie en cours et la sauvegarde ont '
+                'été conservées. Vous pouvez réessayer.'
+            : 'Chargement annulé et restauration visuelle incomplète. '
+                'La sauvegarde n’a pas été modifiée ; relancez le jeu.',
+      );
+      return false;
+    }
+  }
+
+  Future<bool> _restoreFailedLoad(_LoadRuntimeSnapshot source) async {
+    try {
+      _gameState = source.gameState;
+      await _narrativeStateTransactions.transact<void>((_) {
+        return NarrativeEventStateTransaction.commit(source.gameState, null);
+      });
+
+      var sourceBundle = await prepareBorderRuntimeBundle(source.bundle);
+      final sourceImages = await _loadTilesetImagesCached(
+        sourceBundle.tilesetAbsolutePathsById,
+        manifest: sourceBundle.manifest,
+      );
+      final sourceBorderAssets = await _loadBorderRuntimeAssets(sourceBundle);
+
+      _unmountAllLoadedMaps();
+      _bundle = sourceBundle;
+      _world = source.world.withNpcMapPresencePredicate(
+        _npcPresencePredicateFor(sourceBundle.manifest),
+      );
+      _world = _world.withMapEntityPresencePredicate(
+        _mapEntityPresencePredicateFor(sourceBundle.manifest),
+      );
+      _activeMapId = source.activeMapId;
+      _previousMapId = source.previousMapId;
+      final root = await _mountLoadedMap(
+        bundle: sourceBundle,
+        tileImagesById: sourceImages,
+        borderAssets: sourceBorderAssets,
+        originCellX: 0,
+        originCellY: 0,
+      );
+      sourceBundle = root.bundle;
+      _bundle = sourceBundle;
+      _resetScriptedNpcMovementController();
+      _player.setMapOrigin(_originPixelsOf(root), snapToGrid: false);
+      _player.syncState(_world.player, snapToGrid: true);
+      _configureCameraViewport();
+      _syncCameraToPlayer();
+      _preloadActiveMapConnections();
+      _prewarmActiveMapWarpTargets();
+      _prewarmActiveMapBattleData();
+      _pruneLoadedMapsToActiveNeighborhood();
+      _resetTriggerEnterOccupancy();
+      _refreshWorldNpcPresence();
+      _flowPhase = source.flowPhase;
+      _currentMapActivationId = source.currentMapActivationId;
+      _completedMapActivationDispatchCount =
+          source.completedMapActivationDispatchCount;
+      _lastCompletedMapActivation = source.lastCompletedMapActivation;
+      debugPrint(
+        '[load] rollback restored map=${source.activeMapId} '
+        'pos=${source.world.player.pos}',
+      );
+      return true;
+    } catch (error, stackTrace) {
+      debugPrint('[load] rollback failed: $error\n$stackTrace');
+      _gameState = source.gameState;
+      _bundle = source.bundle;
+      _world = source.world;
+      _activeMapId = source.activeMapId;
+      _previousMapId = source.previousMapId;
+      _flowPhase = source.flowPhase;
+      _currentMapActivationId = source.currentMapActivationId;
+      _completedMapActivationDispatchCount =
+          source.completedMapActivationDispatchCount;
+      _lastCompletedMapActivation = source.lastCompletedMapActivation;
       return false;
     }
   }
@@ -12483,6 +12641,30 @@ class _LoadedPlayableMap {
   final List<PlacedElementOcclusionPatchComponent> occlusionPatches;
   final List<OverworldActorComponent> npcActors;
   final Map<String, OverworldActorComponent> npcActorByEntityId;
+}
+
+final class _LoadRuntimeSnapshot {
+  const _LoadRuntimeSnapshot({
+    required this.gameState,
+    required this.bundle,
+    required this.world,
+    required this.activeMapId,
+    required this.previousMapId,
+    required this.flowPhase,
+    required this.currentMapActivationId,
+    required this.completedMapActivationDispatchCount,
+    required this.lastCompletedMapActivation,
+  });
+
+  final GameState gameState;
+  final RuntimeMapBundle bundle;
+  final GameplayWorldState world;
+  final String activeMapId;
+  final String? previousMapId;
+  final _RuntimeFlowPhase flowPhase;
+  final String? currentMapActivationId;
+  final int completedMapActivationDispatchCount;
+  final MapActivation? lastCompletedMapActivation;
 }
 
 class _NpcCollisionDebugVisual {

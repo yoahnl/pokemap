@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
@@ -119,6 +120,87 @@ void main() {
       }
     },
   );
+
+  test(
+    'P6-06 Selbrume runtime rolls back a failed reconstruction then retries',
+    () async {
+      final repoRoot = _findRepoRoot();
+      final projectRoot = Directory(p.join(repoRoot.path, 'selbrume'));
+      final projectFilePath = p.join(projectRoot.path, 'project.json');
+      final testDirectory = await Directory.systemTemp
+          .createTemp('p6_06_selbrume_transaction_retry_');
+      final repository = _TempFileGameSaveRepository(testDirectory);
+
+      try {
+        final sourceBundle = await loadRuntimeMapBundle(
+          projectFilePath: projectFilePath,
+          mapId: _startMapId,
+        );
+        final sourceState = _seedP6InitialState(
+          createNewGameStateFromMap(
+            startMap: sourceBundle.map,
+            saveId: '${_saveId}_transaction_source',
+            playerName: 'P6 Transaction Tester',
+            tileWidthPx: sourceBundle.manifest.settings.tileWidth,
+            tileHeightPx: sourceBundle.manifest.settings.tileHeight,
+          ),
+        );
+        final targetState = sourceState.copyWith(
+          saveId: '${_saveId}_transaction_target',
+          currentMapId: _routeMapId,
+          playerPosition: _grantPlayerBattlePos,
+          playerFacing: EntityFacing.north,
+        );
+        await repository.save(targetState);
+
+        var reconstructionAttempts = 0;
+        final game = PlayableMapGame(
+          bundle: sourceBundle,
+          projectFilePath: projectFilePath,
+          saveData: saveDataFromGameState(sourceState),
+          saveRepository: repository,
+          beforeLoadCommitCompletion: () async {
+            reconstructionAttempts++;
+            if (reconstructionAttempts == 1) {
+              throw StateError('Injected Selbrume reconstruction failure');
+            }
+          },
+        );
+        game.onGameResize(Vector2(640, 480));
+        await game.onLoad();
+        await _waitForMapActivation(game);
+
+        expect(await game.loadGame(), isFalse);
+        expect(game.gameStateSnapshot.currentMapId, _startMapId);
+        expect(game.gameStateSnapshot.saveId, sourceState.saveId);
+        expect(game.debugPlayerGridPosition, sourceState.playerPosition);
+        expect(game.debugFlowPhaseName, 'overworld');
+
+        final preserved = await repository.load();
+        expect(preserved?.saveId, targetState.saveId);
+        expect(preserved?.currentMapId, _routeMapId);
+
+        expect(await game.loadGame(), isTrue);
+        expect(reconstructionAttempts, 2);
+        expect(game.gameStateSnapshot.saveId, targetState.saveId);
+        expect(game.gameStateSnapshot.currentMapId, _routeMapId);
+        expect(game.debugPlayerGridPosition, _grantPlayerBattlePos);
+      } finally {
+        if (await testDirectory.exists()) {
+          await testDirectory.delete(recursive: true);
+        }
+      }
+    },
+  );
+}
+
+Future<void> _waitForMapActivation(PlayableMapGame game) async {
+  for (var i = 0; i < 360; i++) {
+    if (!game.debugIsMapActivationDispatchInFlight) return;
+    game.update(0.016);
+    await Future<void>.delayed(Duration.zero);
+  }
+  fail('Timed out waiting for Selbrume map activation.');
 }
 
 GameState _seedP6InitialState(GameState state) {

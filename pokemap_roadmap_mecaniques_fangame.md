@@ -370,7 +370,7 @@ Objectif : le joueur peut démarrer une partie, recevoir un état initial, chois
 | FG-011 | New Game Runtime Flow V0 | `⬜ TODO` | — |
 | FG-012 | Starter Selection Model V0 | `⬜ TODO` | — |
 | FG-013 | Starter Selection Runtime Flow V0 | `⬜ TODO` | — |
-| FG-014 | Save/Load Transaction Hardening V0 | `⬜ TODO` | — |
+| FG-014 | Save/Load Transaction Hardening V0 | `✅ DONE V0` | `playable_map_game_save_load_transaction_test.dart` + Golden Slice Selbrume rollback/retry |
 | FG-015 | Runtime Pause Menu Shell V0 | `⬜ TODO` | — |
 | FG-016 | Golden Runtime Boot Smoke V0 | `⬜ TODO` | — |
 
@@ -450,12 +450,20 @@ Objectif : le joueur peut démarrer une partie, recevoir un état initial, chois
 ### DoD
 
 ```md
-- [ ] Audit du flux load actuel.
-- [ ] Chargement préparé avant mutation destructive.
-- [ ] Échec de load = état runtime précédent conservé ou erreur propre.
-- [ ] Tests d’échec : map absente, layer invalide, save corrompue.
-- [ ] Rapport indiquant les limites restantes.
+- [x] Audit du flux load actuel.
+- [x] Chargement préparé avant mutation destructive.
+- [x] Échec de load = état runtime précédent conservé ou erreur propre.
+- [x] Tests d'échec : map absente, layer invalide, save corrompue.
+- [x] Rapport indiquant les limites restantes dans la roadmap de clôture MVP.
 ```
+
+**Preuve (2026-07-23) :** `playable_map_game_save_load_transaction_test.dart`
+(`+5`), `file_game_save_repository_test.dart` (`+15`) et
+`p6_selbrume_save_load_golden_slice_test.dart` (`+2`) prouvent préparation,
+rollback complet, sauvegarde intacte, input/save encore utilisables et retry
+réussi sur les vraies maps Selbrume. Analyse Runtime propre. Limite externe au
+lot : quatre tests Battle de l'ancienne fixture checkpoint restent rouges car
+son catalogue de moves sous `/tmp/checkpoint_load_safety` est absent.
 
 ## FG-015 — Runtime Pause Menu Shell V0
 
@@ -1989,7 +1997,7 @@ une promotion en bloc. Chaque lot conserve son DoD et son Evidence Pack propre.
 | MVP-15 | Débloquer Surf ou Cut | FG-089, FG-120, FG-129, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` à étendre en Phase 5 : refus avant unlock puis traversée Surf |
 | MVP-16 | Utiliser un shop | FG-060, FG-069, FG-070, FG-082, FG-091, FG-093, FG-180, FG-182 | `examples/playable_runtime_host/test/in_game_shop_page_test.dart` (planifié Phase 3) |
 | MVP-17 | Se soigner dans un centre Pokémon | FG-060, FG-062, FG-063, FG-071, FG-085, FG-093, FG-180, FG-182 | `examples/playable_runtime_host/test/in_game_heal_flow_test.dart` (planifié Phase 3) |
-| MVP-18 | Sauvegarder / charger proprement | FG-014, FG-163, FG-180, FG-182, FG-183, FG-185 | `packages/map_runtime/test/playable_map_game_save_load_transaction_test.dart` (planifié Phase 5) |
+| MVP-18 | Sauvegarder / charger proprement | FG-014, FG-163, FG-180, FG-182, FG-183, FG-185 | `packages/map_runtime/test/playable_map_game_save_load_transaction_test.dart` |
 | MVP-19 | Finir une mini-histoire | FG-080, FG-081, FG-082, FG-088, FG-092, FG-093, FG-140, FG-141, FG-146, FG-147, FG-180, FG-181, FG-182, FG-183, FG-185 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
 
 Exclusions signées : FG-065, FG-066, FG-104, FG-105, FG-121, FG-122,
