@@ -14,6 +14,7 @@ import 'package:map_runtime/map_runtime.dart';
 import 'src/in_game_menu.dart';
 import 'src/in_game_pc_page.dart';
 import 'src/in_game_shop_page.dart';
+import 'src/bundled_runtime_project.dart';
 import 'src/runtime_demo_party_seed.dart';
 import 'src/runtime_gamepad_bridge.dart';
 import 'src/runtime_gamepad_presence.dart';
@@ -197,48 +198,57 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   Future<void> _restoreLastSession() async {
     try {
       final file = File(_prefsFilePath());
-      if (!await file.exists()) {
-        return;
+      if (await file.exists()) {
+        final raw = await file.readAsString();
+        final decoded = jsonDecode(raw);
+        if (decoded is Map<String, dynamic>) {
+          final restoredOptions = RuntimePlayerOptions.fromJson(
+            decoded['playerOptions'],
+          );
+          if (mounted) {
+            setState(() {
+              _playerOptions = restoredOptions;
+              _touchControlsHiddenByUser = !restoredOptions.showTouchControls;
+            });
+          }
+          final savedProjectPath =
+              (decoded['projectFilePath'] as String?)?.trim();
+          final savedMapId = (decoded['mapId'] as String?)?.trim();
+          if (savedProjectPath != null &&
+              savedProjectPath.isNotEmpty &&
+              await File(savedProjectPath).exists() &&
+              mounted) {
+            setState(() {
+              _projectFilePath = savedProjectPath;
+              _selectedMapId = savedMapId != null && savedMapId.isNotEmpty
+                  ? savedMapId
+                  : _selectedMapId;
+            });
+            await _loadProjectMapsFromManifest(
+              savedProjectPath,
+              preferredMapId: savedMapId,
+            );
+            await _loadPartyBuilderOptions(savedProjectPath);
+            return;
+          }
+        }
       }
-      final raw = await file.readAsString();
-      final decoded = jsonDecode(raw);
-      if (decoded is! Map<String, dynamic>) {
-        return;
-      }
-      final restoredOptions = RuntimePlayerOptions.fromJson(
-        decoded['playerOptions'],
-      );
-      if (mounted) {
-        setState(() {
-          _playerOptions = restoredOptions;
-          _touchControlsHiddenByUser = !restoredOptions.showTouchControls;
-        });
-      }
-      final savedProjectPath = (decoded['projectFilePath'] as String?)?.trim();
-      final savedMapId = (decoded['mapId'] as String?)?.trim();
-      if (savedProjectPath == null || savedProjectPath.isEmpty) {
-        return;
-      }
-      if (!await File(savedProjectPath).exists()) {
-        return;
-      }
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _projectFilePath = savedProjectPath;
-        _selectedMapId = savedMapId != null && savedMapId.isNotEmpty
-            ? savedMapId
-            : _selectedMapId;
-      });
-      await _loadProjectMapsFromManifest(
-        savedProjectPath,
-        preferredMapId: savedMapId,
-      );
-      await _loadPartyBuilderOptions(savedProjectPath);
     } catch (_) {
       // Restauration best-effort: on ignore silencieusement les prefs invalides.
     }
+    await _restoreBundledProject();
+  }
+
+  Future<void> _restoreBundledProject() async {
+    final bundledProject = await const BundledRuntimeProject().resolve();
+    if (bundledProject == null || !mounted) return;
+    _runtimeHostLog('bundled project resolved path=$bundledProject');
+    setState(() {
+      _projectFilePath = bundledProject;
+      _selectedMapId = null;
+    });
+    await _loadProjectMapsFromManifest(bundledProject);
+    await _loadPartyBuilderOptions(bundledProject);
   }
 
   // Host session and presentation options remain local preferences, never

@@ -1,2 +1,7 @@
 #include "../../Flutter/Flutter-Release.xcconfig"
 #include "Warnings.xcconfig"
+
+// Produce the MVP release candidate for Apple Silicon.
+// Flutter beta 3.46 currently asks `lipo -verify_arch` to validate two
+// architectures at once, which is rejected by the installed macOS lipo.
+ARCHS = arm64

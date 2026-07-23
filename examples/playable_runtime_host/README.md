@@ -3,6 +3,34 @@
 Host Flutter desktop minimal pour charger un `project.json` PokeMap et lancer
 le runtime Flame localement.
 
+## Package macOS autonome Selbrume
+
+Le host résout en priorité le projet livré dans
+`PokeMap Selbrume.app/Contents/Resources/selbrume/project.json`. Le fallback
+vers `../../selbrume` existe uniquement pour `flutter run`; le package publié
+ne dépend donc ni du checkout ni d'un chemin absolu propre à la machine.
+
+Depuis `examples/playable_runtime_host` :
+
+```bash
+dart run tool/package_selbrume_macos.dart \
+  --project ../../selbrume \
+  --release
+```
+
+La commande :
+
+1. construit le host en release ;
+2. copie le tree Selbrume dans les ressources de l'application ;
+3. vérifie l'inventaire, New Game et le round-trip save/reload ;
+4. refait une signature ad hoc puis lance
+   `codesign --verify --deep --strict` ;
+5. produit sous `build/mvp-release/` l'archive
+   `selbrume-macos.zip`, son fichier `.sha256` et son manifest JSON.
+
+Le package MVP cible Apple Silicon (`arm64`). Le binaire universel, la
+signature Developer ID et la notarisation sont volontairement post-MVP.
+
 ## Phase A golden slice
 
 Le repo versionne maintenant un slice produit de référence ici :

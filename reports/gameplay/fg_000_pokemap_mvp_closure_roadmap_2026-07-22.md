@@ -939,7 +939,8 @@ cd examples/playable_runtime_host
 dart run tool/verify_mvp_release.dart --project ../../selbrume/project.json --full --output build/mvp-release/evidence.json
 ```
 
-- [ ] **Step 7:** Commit proposé : `test(gameplay): add sequential MVP regression gate`.
+- [x] **Step 7:** Commit `4f35a1c0` :
+  `test(gameplay): harden sequential MVP regression gate`.
 
 ## Task 6.3 — Build et package macOS Selbrume
 
@@ -953,14 +954,29 @@ dart run tool/verify_mvp_release.dart --project ../../selbrume/project.json --fu
 - Modify: `examples/playable_runtime_host/macos/Runner/Configs/AppInfo.xcconfig`
 - Modify: `examples/playable_runtime_host/README.md`
 
-- [ ] **Step 1:** Construire `flutter build macos --release`.
-- [ ] **Step 2:** Copier Selbrume dans les ressources après build sans créer de copie versionnée parallèle.
-- [ ] **Step 3:** Refaire une signature ad hoc après copie et exiger `codesign --verify --deep --strict` ; signature Developer ID et notarisation restent post-MVP.
-- [ ] **Step 4:** Résoudre le projet sans chemin absolu machine ni checkout du dépôt.
-- [ ] **Step 5:** Produire archive et SHA-256 sous `build/mvp-release/`.
-- [ ] **Step 6:** Tester présence de project, maps, dialogues, données Pokémon et assets.
-- [ ] **Step 7:** Tester New Game, save, fermeture et reprise depuis le package.
-- [ ] **Step 8:** Commit proposé : `build(host): package the Selbrume MVP for macOS`.
+- [x] **Step 1:** Construire `flutter build macos --release`.
+- [x] **Step 2:** Copier Selbrume dans les ressources après build sans créer de copie versionnée parallèle.
+- [x] **Step 3:** Refaire une signature ad hoc après copie et exiger `codesign --verify --deep --strict` ; signature Developer ID et notarisation restent post-MVP.
+- [x] **Step 4:** Résoudre le projet sans chemin absolu machine ni checkout du dépôt.
+- [x] **Step 5:** Produire archive et SHA-256 sous `build/mvp-release/`.
+- [x] **Step 6:** Tester présence de project, maps, dialogues, données Pokémon et assets.
+- [x] **Step 7:** Tester New Game, save, fermeture et reprise depuis le package.
+- [x] **Step 8:** Commit proposé : `build(host): package the Selbrume MVP for macOS`.
+
+**Preuve Task 6.3 (2026-07-23) :**
+
+- build Release Apple Silicon produit :
+  `build/macos/Build/Products/Release/PokeMap Selbrume.app` ;
+- résolution prioritaire de
+  `Contents/Resources/selbrume/project.json`, avec fallback limité au
+  développement ;
+- inventaire fail-closed et round-trip New Game/save/reload : `+4`, succès ;
+- `flutter analyze` Host : aucune issue ;
+- signature ad hoc vérifiée par
+  `codesign --verify --deep --strict --verbose=2` ;
+- archive autonome produite avec manifest, architecture `arm64`, taille,
+  SHA-256, commit candidat et tree hash projet ; le binaire universel,
+  Developer ID et la notarisation restent explicitement post-MVP.
 
 ## Task 6.4 — Walkthrough humain reproductible
 
