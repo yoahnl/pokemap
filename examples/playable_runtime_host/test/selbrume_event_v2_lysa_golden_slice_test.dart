@@ -24,6 +24,7 @@ const _victoryOutcomeId = 'lysa.victory';
 const _defeatOutcomeId = 'lysa.defeat';
 const _victoryFollowupEventId = 'evt_019abcde-5000-7000-8000-000000000033';
 const _defeatFollowupEventId = 'evt_019abcde-5000-7000-8000-000000000034';
+const _defeatRetryEventId = 'evt_019abcde-5000-7000-8000-000000000041';
 const _canonicalVictoryFactId = 'fact_rival_port_defeated';
 const _canonicalDefeatFactId = 'fact_rival_port_lost_once';
 
@@ -431,17 +432,37 @@ void main() {
               occurrenceId: 'phase-j-lysa-$battleOutcome-2',
               occurrence: occurrence,
             );
-            expect(
-              second,
-              isA<NarrativeSpatialProductionDispatchLegacyFallback>(),
-              reason: 'dualRead keeps the unrelated historical fallback path.',
-            );
-            expect(
-              dialogueNodes.length + cinematicIds.length + battleCalls,
-              callsBeforeReinteraction,
-              reason: 'The one-shot Event must not replay its Scene.',
-            );
-            expect(legacyCalls, 1);
+            if (promoted && battleOutcome == 'defeat') {
+              expect(
+                second,
+                isA<NarrativeSpatialProductionDispatchV2Handled>(),
+              );
+              expect(
+                (second as NarrativeSpatialProductionDispatchV2Handled)
+                    .execution
+                    .eventId,
+                _defeatRetryEventId,
+              );
+              expect(
+                dialogueNodes.length + cinematicIds.length + battleCalls,
+                callsBeforeReinteraction + 3,
+                reason: 'The reusable retry Event must replay the Lysa Scene.',
+              );
+              expect(legacyCalls, 0);
+            } else {
+              expect(
+                second,
+                isA<NarrativeSpatialProductionDispatchLegacyFallback>(),
+                reason:
+                    'dualRead keeps the unrelated historical fallback path.',
+              );
+              expect(
+                dialogueNodes.length + cinematicIds.length + battleCalls,
+                callsBeforeReinteraction,
+                reason: 'The one-shot Event must not replay its Scene.',
+              );
+              expect(legacyCalls, 1);
+            }
 
             final encodedSave = jsonDecode(
               jsonEncode(saveDataFromGameState(state).toJson()),

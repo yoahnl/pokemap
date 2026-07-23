@@ -64337,6 +64337,35 @@
       {
         "state": "configured",
         "definition": {
+          "id": "evt_019abcde-5000-7000-8000-000000000041",
+          "name": "Revanche contre Lysa après une défaite",
+          "source": {
+            "kind": "entityInteract",
+            "mapId": "map_port_brisants",
+            "entityId": "npc_lysa"
+          },
+          "conditions": [
+            {
+              "kind": "fact",
+              "factId": "fact_rival_port_lost_once",
+              "expectedValue": true
+            },
+            {
+              "kind": "fact",
+              "factId": "fact_rival_port_defeated",
+              "expectedValue": false
+            }
+          ],
+          "sceneId": "scene_lysa_port",
+          "reusePolicy": "reusable",
+          "priority": 1,
+          "order": 5
+        },
+        "enabled": true
+      },
+      {
+        "state": "configured",
+        "definition": {
           "id": "evt_019abcde-4000-7000-8000-000000000002",
           "name": "Entrée dans le Port des Brisants",
           "source": {

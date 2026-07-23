@@ -26,6 +26,10 @@ const Set<String> _oneShotsThroughLysaDefeat = <String>{
   'evt_019abcde-4000-7000-8000-000000000001',
   'evt_019abcde-5000-7000-8000-000000000034',
 };
+const Set<String> _oneShotsThroughLysaDefeatThenVictory = <String>{
+  ..._oneShotsThroughLysaDefeat,
+  'evt_019abcde-5000-7000-8000-000000000033',
+};
 const Set<String> _oneShotsThroughGoeliseKeep = <String>{
   ..._oneShotsThroughLysaVictory,
   'evt_019abcde-5000-7000-8000-000000000020',
@@ -197,7 +201,8 @@ void main() {
     );
   }, timeout: const Timeout(Duration(minutes: 1)));
 
-  test('Lysa defeat uses a real status move and defeat branch', () async {
+  test('Lysa defeat can be healed, retried, and converted into victory',
+      () async {
     final journey = await _SelbrumeJourney.start();
     await journey.prepareLysaBattle();
     final moveStart = journey.selectedBattleMoveIds.length;
@@ -237,6 +242,38 @@ void main() {
       'lysa_defeat',
       expectedConsumedEventIds: _oneShotsThroughLysaDefeat,
     );
+
+    await journey.useAuthoredHealingService();
+    await journey.interactWith(
+      entityId: 'npc_lysa',
+      dialogue: const _DialogueChoice(linesBeforeChoice: 2),
+      battleFactId: 'fact_rival_port_defeated',
+      battleStrategy: _BattleStrategy.win,
+      expectedTrainerId: 'trainer_lysa_port',
+      expectedEnemySpeciesId: 'bulbasaur',
+    );
+    expect(
+      journey.state.narrativeFactRuntimeState
+          .overridesByFactId['fact_rival_port_lost_once'],
+      isTrue,
+    );
+    expect(
+      journey.state.narrativeFactRuntimeState
+          .overridesByFactId['fact_rival_port_defeated'],
+      isTrue,
+    );
+    expect(
+      journey.state.trainerProfile.badgeIds,
+      contains('badge_brisants'),
+    );
+    expect(
+      journey.state.progression.unlockedFieldAbilities,
+      contains(FieldAbility.surf),
+    );
+    await journey.checkpoint(
+      'lysa_retry_victory',
+      expectedConsumedEventIds: _oneShotsThroughLysaDefeatThenVictory,
+    );
     await journey.crossConnection(MapConnectionDirection.north);
     await journey.crossConnection(
       MapConnectionDirection.east,
@@ -249,7 +286,7 @@ void main() {
     await journey.enterTrigger('zone_marais_entry');
     await journey.waitForFact('fact_marais_unlocked');
     expect(journey.state.currentMapId, 'map_marais_salants');
-  }, timeout: const Timeout(Duration(minutes: 1)));
+  }, timeout: const Timeout(Duration(minutes: 2)));
 
   test(
     'player completes Selbrume through PlayableMapGame production hooks',
