@@ -92,6 +92,7 @@ void main() {
       'shop-state-list',
       'shop-state-catalog-editor',
       'shop-state-inspector',
+      'shop-state-preview-strip',
     ]) {
       expect(find.byKey(Key(key)), findsOneWidget);
     }
@@ -116,6 +117,16 @@ void main() {
       controller.stateById('port', 'after-lysa').entries.single.price,
       450,
     );
+
+    await tester.tap(
+      find.byKey(const Key('shop-preview-edit-context')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('shop-state-simulation-context-editor')),
+      findsOneWidget,
+    );
+    expect(find.text('Snapshot local'), findsOneWidget);
   });
 
   testWidgets('adapts its inspector and lists at supported widths',
@@ -163,6 +174,59 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const Key('shop-state-catalog-editor')), findsOneWidget);
+  });
+
+  testWidgets(
+      'a diagnostic selects its state and focuses the inspector section',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1920, 1080));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final controller = ShopEditorController(
+      manifest: _manifestWithConditionalShop(),
+      itemOptions: const <ShopEditorItemOption>[
+        ShopEditorItemOption(id: 'potion', label: 'Potion'),
+      ],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: ShopEditorPanel(
+            controller: controller,
+            onManifestChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    final diagnostic = find.byKey(
+      const Key(
+        'shop-diagnostic-SHOP_STATE_UNKNOWN_CONDITION_REFERENCE-after-lysa',
+      ),
+    );
+    await tester.scrollUntilVisible(
+      diagnostic,
+      180,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('shop-state-inspector')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(
+      find.descendant(of: diagnostic, matching: find.text('Examiner')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('shop-state-condition-section')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('shop-state-label-field')),
+      findsOneWidget,
+    );
   });
 }
 

@@ -29,12 +29,16 @@ class ShopStateInspector extends StatefulWidget {
     required this.state,
     required this.onRenameShop,
     required this.onSaveState,
+    this.diagnostics = const <ShopStateDiagnostic>[],
+    this.onDiagnosticSelected,
   });
 
   final ShopDefinition shop;
   final ShopStateDefinition? state;
   final ValueChanged<String> onRenameShop;
   final ValueChanged<ShopStateSettingsDraft>? onSaveState;
+  final List<ShopStateDiagnostic> diagnostics;
+  final ValueChanged<ShopStateDiagnostic>? onDiagnosticSelected;
 
   @override
   State<ShopStateInspector> createState() => _ShopStateInspectorState();
@@ -47,6 +51,9 @@ class _ShopStateInspectorState extends State<ShopStateInspector> {
   final _storefrontController = TextEditingController();
   final _welcomeController = TextEditingController();
   final _closedController = TextEditingController();
+  final _generalSectionKey = GlobalKey();
+  final _conditionSectionKey = GlobalKey();
+  final _messagesSectionKey = GlobalKey();
   bool _isOpen = true;
 
   @override
@@ -92,11 +99,14 @@ class _ShopStateInspectorState extends State<ShopStateInspector> {
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          PokeMapTextField(
-            label: 'Nom de la boutique',
-            fieldKey: const Key('shop-rename-field'),
-            controller: _shopLabelController,
-            onSubmitted: widget.onRenameShop,
+          KeyedSubtree(
+            key: _generalSectionKey,
+            child: PokeMapTextField(
+              label: 'Nom de la boutique',
+              fieldKey: const Key('shop-rename-field'),
+              controller: _shopLabelController,
+              onSubmitted: widget.onRenameShop,
+            ),
           ),
           const SizedBox(height: 12),
           if (state == null)
@@ -129,33 +139,37 @@ class _ShopStateInspectorState extends State<ShopStateInspector> {
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 8),
-            PokeMapCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Condition d’activation',
-                    style: TextStyle(
-                      color: context.pokeMapColors.textPrimary,
-                      fontWeight: FontWeight.w700,
+            KeyedSubtree(
+              key: _conditionSectionKey,
+              child: PokeMapCard(
+                key: const Key('shop-state-condition-section'),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Condition d’activation',
+                      style: TextStyle(
+                        color: context.pokeMapColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 5),
-                  PokeMapBadge(
-                    label: _conditionLabel(state.activation.type),
-                    variant: PokeMapBadgeVariant.info,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'La condition est conservée sans exposer son identifiant '
-                    'technique. Les pickers guidés arrivent avec la validation '
-                    'et la simulation du prochain lot.',
-                    style: TextStyle(
-                      color: context.pokeMapColors.textMuted,
-                      fontSize: 10,
+                    const SizedBox(height: 5),
+                    PokeMapBadge(
+                      label: _conditionLabel(state.activation.type),
+                      variant: PokeMapBadgeVariant.info,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 6),
+                    Text(
+                      'Le simulateur évalue cette expression avec le même '
+                      'résolveur que le jeu. Les références cassées sont '
+                      'signalées ci-dessous.',
+                      style: TextStyle(
+                        color: context.pokeMapColors.textMuted,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -168,19 +182,26 @@ class _ShopStateInspectorState extends State<ShopStateInspector> {
               onChanged: (value) => setState(() => _isOpen = value),
             ),
             const SizedBox(height: 8),
-            PokeMapTextField(
-              label: 'Nom de devanture (facultatif)',
-              controller: _storefrontController,
-            ),
-            const SizedBox(height: 8),
-            PokeMapTextField(
-              label: 'Message d’accueil',
-              controller: _welcomeController,
-            ),
-            const SizedBox(height: 8),
-            PokeMapTextField(
-              label: 'Message de fermeture',
-              controller: _closedController,
+            KeyedSubtree(
+              key: _messagesSectionKey,
+              child: Column(
+                children: [
+                  PokeMapTextField(
+                    label: 'Nom de devanture (facultatif)',
+                    controller: _storefrontController,
+                  ),
+                  const SizedBox(height: 8),
+                  PokeMapTextField(
+                    label: 'Message d’accueil',
+                    controller: _welcomeController,
+                  ),
+                  const SizedBox(height: 8),
+                  PokeMapTextField(
+                    label: 'Message de fermeture',
+                    controller: _closedController,
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 10),
             PokeMapButton(
@@ -189,6 +210,63 @@ class _ShopStateInspectorState extends State<ShopStateInspector> {
               leading: const Icon(CupertinoIcons.floppy_disk),
               child: const Text('Enregistrer l’état'),
             ),
+          ],
+          if (widget.diagnostics.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            PokeMapSectionHeader(
+              title: 'Diagnostics',
+              description: '${widget.diagnostics.length} point(s) à examiner',
+            ),
+            const SizedBox(height: 8),
+            for (final diagnostic in widget.diagnostics) ...[
+              PokeMapCard(
+                key: ValueKey(
+                  'shop-diagnostic-${diagnostic.code}-'
+                  '${diagnostic.stateId ?? 'default'}',
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          PokeMapBadge(
+                            label: diagnostic.severity ==
+                                    ShopStateDiagnosticSeverity.error
+                                ? 'Erreur'
+                                : 'Avertissement',
+                            variant: diagnostic.severity ==
+                                    ShopStateDiagnosticSeverity.error
+                                ? PokeMapBadgeVariant.error
+                                : PokeMapBadgeVariant.warning,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            diagnostic.message,
+                            style: TextStyle(
+                              color: context.pokeMapColors.textPrimary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (widget.onDiagnosticSelected != null) ...[
+                      const SizedBox(width: 8),
+                      PokeMapButton(
+                        onPressed: () => _selectDiagnostic(diagnostic),
+                        size: PokeMapButtonSize.compact,
+                        variant: PokeMapButtonVariant.secondary,
+                        child: const Text('Examiner'),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
           ],
         ],
       ),
@@ -220,6 +298,26 @@ class _ShopStateInspectorState extends State<ShopStateInspector> {
         closedMessage: _closedController.text,
       ),
     );
+  }
+
+  void _selectDiagnostic(ShopStateDiagnostic diagnostic) {
+    widget.onDiagnosticSelected?.call(diagnostic);
+    final target = diagnostic.path.contains('.activation')
+        ? _conditionSectionKey
+        : diagnostic.path.contains('Message') ||
+                diagnostic.path.contains('.closedMessage') ||
+                diagnostic.path.contains('.welcomeMessage')
+            ? _messagesSectionKey
+            : _generalSectionKey;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final targetContext = target.currentContext;
+      if (targetContext == null) return;
+      Scrollable.ensureVisible(
+        targetContext,
+        duration: const Duration(milliseconds: 180),
+        alignment: 0.15,
+      );
+    });
   }
 }
 

@@ -110,6 +110,8 @@ export 'src/script_condition_evaluator.dart'
     show ScriptConditionEvaluator, ScriptEvaluationContext;
 export 'src/shop_state_resolver.dart'
     show ResolvedShopState, ShopStateResolver;
+export 'src/shop_state_resolution_validator.dart'
+    show ShopStateResolutionScenario, ShopStateResolutionValidator;
 export 'src/event_page_resolver.dart' show EventPageResolver;
 export 'src/game_state_mutations.dart'
     show

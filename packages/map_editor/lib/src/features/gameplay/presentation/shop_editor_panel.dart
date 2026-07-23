@@ -4,10 +4,12 @@ import 'package:map_core/map_core.dart';
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../application/shop_editor_controller.dart';
+import '../application/shop_state_simulation_controller.dart';
 import 'shop_project_list.dart';
 import 'shop_state_catalog_editor.dart';
 import 'shop_state_inspector.dart';
 import 'shop_state_list.dart';
+import 'shop_state_preview_strip.dart';
 
 class ShopEditorPanel extends StatefulWidget {
   const ShopEditorPanel({
@@ -34,16 +36,23 @@ class _ShopEditorPanelState extends State<ShopEditorPanel> {
   bool _feedbackIsError = false;
   List<ShopSceneReference> _blockedReferences = const [];
   String? _replacementShopId;
+  late ShopStateSimulationController _simulationController;
 
   @override
   void initState() {
     super.initState();
     _selectedShopId = widget.controller.shops.firstOrNull?.id;
+    _simulationController = ShopStateSimulationController(
+      project: widget.controller.manifest,
+    );
   }
 
   @override
   void didUpdateWidget(covariant ShopEditorPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller.manifest != widget.controller.manifest) {
+      _refreshSimulationProject();
+    }
     _repairSelection();
   }
 
@@ -112,6 +121,14 @@ class _ShopEditorPanelState extends State<ShopEditorPanel> {
             },
           ),
         ),
+        if (shop != null) ...[
+          const SizedBox(height: 8),
+          ShopStatePreviewStrip(
+            preview: _simulationController.simulate(shop),
+            contextLabel: 'Snapshot local — jamais enregistré',
+            onEditContext: () => _openSimulationContext(shop),
+          ),
+        ],
       ],
     );
   }
@@ -235,6 +252,12 @@ class _ShopEditorPanelState extends State<ShopEditorPanel> {
         state: _selectedState,
         onRenameShop: _renameShop,
         onSaveState: _selectedState == null ? null : _saveStateSettings,
+        diagnostics: _simulationController.validate(
+          shop,
+          knownItemIds:
+              widget.controller.itemOptions.map((option) => option.id).toSet(),
+        ),
+        onDiagnosticSelected: _selectDiagnostic,
       );
 
   Widget _buildReferenceRepair(ShopDefinition shop) {
@@ -306,6 +329,26 @@ class _ShopEditorPanelState extends State<ShopEditorPanel> {
           const SizedBox(width: 8),
           Expanded(child: _buildStateList(shop)),
         ],
+      ),
+    );
+  }
+
+  Future<void> _openSimulationContext(ShopDefinition shop) {
+    return showPokeMapDesktopSideSheet<void>(
+      context: context,
+      title: 'Contexte de boutique',
+      semanticLabel: 'Modifier le snapshot local de la boutique',
+      width: 480,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setSheetState) => ShopStateSimulationContextEditor(
+          project: widget.controller.manifest,
+          controller: _simulationController,
+          itemLabels: _simulationItemLabels(shop),
+          onChanged: () {
+            setSheetState(() {});
+            if (mounted) setState(() {});
+          },
+        ),
       ),
     );
   }
@@ -497,6 +540,7 @@ class _ShopEditorPanelState extends State<ShopEditorPanel> {
       });
       return;
     }
+    _refreshSimulationProject();
     widget.onManifestChanged(widget.controller.manifest);
     setState(() {
       _selectedShopId = widget.controller.shops.firstOrNull?.id;
@@ -533,9 +577,59 @@ class _ShopEditorPanelState extends State<ShopEditorPanel> {
     _selectedStateId = ShopEditorController.defaultStateId;
   }
 
+  void _selectDiagnostic(ShopStateDiagnostic diagnostic) {
+    setState(() {
+      final stateId = diagnostic.stateId;
+      if (stateId != null &&
+          _selectedShop?.states.any((state) => state.id == stateId) == true) {
+        _selectedStateId = stateId;
+      }
+      _feedbackIsError =
+          diagnostic.severity == ShopStateDiagnosticSeverity.error;
+      _feedback = diagnostic.message;
+    });
+  }
+
+  Map<String, String> _simulationItemLabels(ShopDefinition shop) {
+    final usedIds = <String>{
+      for (final entry in shop.entries) entry.itemId,
+      for (final state in shop.states)
+        for (final entry in state.entries) entry.itemId,
+    };
+    for (final state in shop.states) {
+      _collectConditionItemIds(state.activation, usedIds);
+    }
+    return <String, String>{
+      for (final option in widget.controller.itemOptions)
+        if (usedIds.contains(option.id)) option.id: option.label,
+    };
+  }
+
+  void _collectConditionItemIds(
+    ScriptCondition condition,
+    Set<String> target,
+  ) {
+    if (condition.type == ScriptConditionType.itemQuantityAtLeast) {
+      final itemId = condition.params[ScriptConditionParams.itemId]?.trim();
+      if (itemId != null && itemId.isNotEmpty) target.add(itemId);
+    }
+    for (final child in condition.children) {
+      _collectConditionItemIds(child, target);
+    }
+  }
+
+  void _refreshSimulationProject() {
+    final draft = _simulationController.draftGameState;
+    _simulationController = ShopStateSimulationController(
+      project: widget.controller.manifest,
+      initialGameState: draft,
+    );
+  }
+
   void _runMutation(String Function() mutation) {
     try {
       final message = mutation();
+      _refreshSimulationProject();
       widget.onManifestChanged(widget.controller.manifest);
       setState(() {
         _feedbackIsError = false;

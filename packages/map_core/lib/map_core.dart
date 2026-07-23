@@ -25,6 +25,7 @@ export 'src/models/project_manifest.dart';
 export 'src/models/shop_definition.dart';
 export 'src/models/shop_state_definition.dart';
 export 'src/models/badge_definition.dart';
+export 'src/validation/shop_state_validator.dart';
 export 'src/validation/player_roster_validation.dart';
 export 'src/models/project_new_game_config.dart';
 export 'src/models/save_data.dart';
