@@ -222,7 +222,7 @@ class _ShopStateInspectorState extends State<ShopStateInspector> {
               PokeMapCard(
                 key: ValueKey(
                   'shop-diagnostic-${diagnostic.code}-'
-                  '${diagnostic.stateId ?? 'default'}',
+                  '${diagnostic.stateId ?? 'default'}-${diagnostic.path}',
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,

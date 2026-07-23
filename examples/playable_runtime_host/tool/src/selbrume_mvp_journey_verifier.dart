@@ -141,7 +141,9 @@ String _executedProofFor(MvpProductCriterion criterion, int commandExitCode) {
     MvpProductCriterion.mvp15FieldAbility =>
       'Refus puis traversée effective du gate Surf $outcome.',
     MvpProductCriterion.mvp16Shop =>
-      'Achats Potion, Antidote et Poké Ball $outcome.',
+      'Catalogue et achat avant Lysa, catalogue et prix modifiés après Lysa, '
+          'comptoir fermé pendant l’alerte du phare, achat dans l’état final '
+          'et stock après sauvegarde et chargement $outcome.',
     MvpProductCriterion.mvp17HealCenter =>
       'Soin de la party depuis la source physique du Port $outcome.',
     MvpProductCriterion.mvp18SaveLoad =>

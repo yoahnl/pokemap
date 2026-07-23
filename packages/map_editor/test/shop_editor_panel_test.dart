@@ -129,6 +129,59 @@ void main() {
     expect(find.text('Snapshot local'), findsOneWidget);
   });
 
+  testWidgets('renders repeated diagnostics while switching shop states',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1920, 1080));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final controller = ShopEditorController(
+      manifest: _manifestWithConditionalShop().copyWith(
+        shops: <ShopDefinition>[
+          _manifestWithConditionalShop().shops.single.copyWith(
+            entries: const <ShopEntryDefinition>[
+              ShopEntryDefinition(itemId: 'potion', price: 300),
+              ShopEntryDefinition(itemId: 'antidote', price: 100),
+            ],
+            states: <ShopStateDefinition>[
+              _manifestWithConditionalShop()
+                  .shops
+                  .single
+                  .states
+                  .single
+                  .copyWith(
+                entries: const <ShopEntryDefinition>[
+                  ShopEntryDefinition(itemId: 'potion', price: 250),
+                  ShopEntryDefinition(itemId: 'antidote', price: 100),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+      itemOptions: const <ShopEditorItemOption>[],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: ShopEditorPanel(
+            controller: controller,
+            onManifestChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byKey(const Key('shop-state-after-lysa')));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(
+      controller.shopById('port').states.single.id,
+      'after-lysa',
+    );
+  });
+
   testWidgets('adapts its inspector and lists at supported widths',
       (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -201,7 +254,8 @@ void main() {
 
     final diagnostic = find.byKey(
       const Key(
-        'shop-diagnostic-SHOP_STATE_UNKNOWN_CONDITION_REFERENCE-after-lysa',
+        'shop-diagnostic-SHOP_STATE_UNKNOWN_CONDITION_REFERENCE-after-lysa-'
+        'shops.port.states.after-lysa.activation.stepId',
       ),
     );
     await tester.scrollUntilVisible(

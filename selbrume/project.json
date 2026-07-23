@@ -65292,14 +65292,121 @@
           "stock": 99
         },
         {
-          "itemId": "antidote",
-          "price": 100,
+          "itemId": "poke-ball",
+          "price": 200,
           "stock": 99
+        }
+      ],
+      "states": [
+        {
+          "id": "after-lysa",
+          "label": "Après la victoire contre Lysa",
+          "priority": 10,
+          "activation": {
+            "type": "factEquals",
+            "params": {
+              "factId": "fact_rival_port_defeated",
+              "valueType": "bool",
+              "value": "true"
+            },
+            "children": []
+          },
+          "isOpen": true,
+          "storefrontLabel": "Comptoir des Brisants",
+          "welcomeMessage": "Lysa a rouvert les routes : le comptoir est mieux approvisionné.",
+          "closedMessage": "",
+          "entries": [
+            {
+              "itemId": "potion",
+              "price": 250,
+              "stock": 99
+            },
+            {
+              "itemId": "poke-ball",
+              "price": 200,
+              "stock": 99
+            },
+            {
+              "itemId": "antidote",
+              "price": 100,
+              "stock": 99
+            }
+          ]
         },
         {
-          "itemId": "poke-ball",
-          "price": 100,
-          "stock": 99
+          "id": "lighthouse-alert",
+          "label": "Alerte du phare",
+          "priority": 20,
+          "activation": {
+            "type": "allOf",
+            "params": {},
+            "children": [
+              {
+                "type": "factEquals",
+                "params": {
+                  "factId": "fact_lighthouse_reached",
+                  "valueType": "bool",
+                  "value": "true"
+                },
+                "children": []
+              },
+              {
+                "type": "not",
+                "params": {},
+                "children": [
+                  {
+                    "type": "factEquals",
+                    "params": {
+                      "factId": "fact_main_story_completed",
+                      "valueType": "bool",
+                      "value": "true"
+                    },
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "isOpen": false,
+          "storefrontLabel": "Comptoir des Brisants — fermé",
+          "welcomeMessage": "",
+          "closedMessage": "Le comptoir reste fermé pendant l’alerte du phare.",
+          "entries": []
+        },
+        {
+          "id": "story-finished",
+          "label": "Selbrume apaisée",
+          "priority": 30,
+          "activation": {
+            "type": "factEquals",
+            "params": {
+              "factId": "fact_main_story_completed",
+              "valueType": "bool",
+              "value": "true"
+            },
+            "children": []
+          },
+          "isOpen": true,
+          "storefrontLabel": "Comptoir de Selbrume",
+          "welcomeMessage": "Les routes sont sûres : profitez du catalogue de l’île apaisée.",
+          "closedMessage": "",
+          "entries": [
+            {
+              "itemId": "potion",
+              "price": 200,
+              "stock": 99
+            },
+            {
+              "itemId": "super-potion",
+              "price": 700,
+              "stock": 99
+            },
+            {
+              "itemId": "poke-ball",
+              "price": 150,
+              "stock": 99
+            }
+          ]
         }
       ]
     }

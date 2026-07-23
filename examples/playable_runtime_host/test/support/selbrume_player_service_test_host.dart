@@ -14,6 +14,14 @@ final class SelbrumePlayerServiceTestHost implements PlayerServiceOverlayHost {
   var _withdrawCapturedPokemonOnNextPcOpen = false;
 
   final List<String> openedServices = <String>[];
+
+  /// Keeps the exact production request so the Golden Slice can prove which
+  /// authored profile, catalogue and message reached the player-facing host.
+  ///
+  /// This is evidence only: requests are never rewritten and still execute
+  /// through [GameStateMutations.purchaseFromResolvedShop].
+  final List<PlayerServiceShopRequest> shopRequests =
+      <PlayerServiceShopRequest>[];
   final List<String> purchasedItemIds = <String>[];
   String? withdrawnSpeciesId;
 
@@ -28,6 +36,7 @@ final class SelbrumePlayerServiceTestHost implements PlayerServiceOverlayHost {
     PlayerServiceShopRequest request,
   ) async {
     openedServices.add('shop:${request.shop.id}');
+    shopRequests.add(request);
     if (_shopPurchases.isEmpty) {
       return const PlayerServiceHostResult.cancelled();
     }
@@ -90,6 +99,6 @@ final class SelbrumePlayerServiceTestHost implements PlayerServiceOverlayHost {
 }
 
 String _categoryFor(String itemId) => switch (itemId) {
-      'potion' || 'antidote' => 'medicine',
+      'potion' || 'super-potion' || 'antidote' => 'medicine',
       _ => 'items',
     };

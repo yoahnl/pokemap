@@ -337,6 +337,15 @@ void main() {
       await journey.attemptPortSurfGate(expectTraversal: false);
       journey.completeWalkthroughStep('surf_refused_before_unlock');
 
+      await journey.purchaseAtPort(
+        'poke-ball',
+        expectedStateId: ShopStateResolver.defaultStateId,
+        expectedCatalogue: const <String, int>{
+          'potion': 300,
+          'poke-ball': 200,
+        },
+      );
+
       final starterBeforeLysa = journey.state.party.members.first;
       expect(starterBeforeLysa.speciesId, 'squirtle');
       final starterExperienceBeforeLysa = starterBeforeLysa.experience;
@@ -393,13 +402,20 @@ void main() {
       );
       journey.completeWalkthroughStep('badge_and_surf_unlocked');
 
-      await journey.purchaseAtPort('antidote');
-      await journey.purchaseAtPort('potion');
-      await journey.purchaseAtPort('poke-ball');
+      const afterLysaCatalogue = <String, int>{
+        'potion': 250,
+        'poke-ball': 200,
+        'antidote': 100,
+      };
+      await journey.purchaseAtPort(
+        'potion',
+        expectedStateId: 'after-lysa',
+        expectedCatalogue: afterLysaCatalogue,
+      );
       expect(
         journey.playerServices.openedServices
             .where((service) => service == 'shop:shop_port_supplies'),
-        hasLength(3),
+        hasLength(2),
       );
       journey.completeWalkthroughStep('shop_used');
 
@@ -409,6 +425,16 @@ void main() {
       await journey.checkpoint(
         'after_lysa',
         expectedConsumedEventIds: _oneShotsThroughLysaVictory,
+      );
+      await journey.inspectPortShop(
+        expectedStateId: 'after-lysa',
+        expectedCatalogue: afterLysaCatalogue,
+      );
+      expect(
+        journey.state.progression
+            .shopPurchaseCounts['shop_port_supplies::after-lysa::potion'],
+        1,
+        reason: 'The after-Lysa stock ledger must survive save/load.',
       );
       await journey.expectInactiveTriggerDoesNotReplay('zone_port_entry');
 
@@ -636,8 +662,23 @@ void main() {
         MapConnectionDirection.south,
         preferredAxis: 24,
       );
+      journey.expectResolvedPortShop(
+        expectedStateId: 'lighthouse-alert',
+        expectedCatalogue: const <String, int>{},
+        expectedOpen: false,
+        expectedMessage: 'Le comptoir reste fermé pendant l’alerte du phare.',
+      );
       await journey.enterTrigger('zone_port_center');
       await journey.waitForFact('fact_main_story_completed');
+      await journey.purchaseAtPort(
+        'poke-ball',
+        expectedStateId: 'story-finished',
+        expectedCatalogue: const <String, int>{
+          'potion': 200,
+          'super-potion': 700,
+          'poke-ball': 150,
+        },
+      );
       await journey.checkpoint(
         'after_epilogue',
         expectedConsumedEventIds: _oneShotsThroughEpilogue,
@@ -841,6 +882,13 @@ final class _SelbrumeJourney {
           projectRootDirectory: bundle.projectRootDirectory,
           pokemonConfig: bundle.manifest.pokemon,
         ),
+        // The production host resolves typed Facts from the manifest. Keep the
+        // Golden Slice on that same boundary so a missing Fact context cannot
+        // silently project every conditional shop back to its default state.
+        conditionContext: ScriptEvaluationContext(
+          narrativeFactResolver:
+              NarrativeFactRuntimeResolver.fromFacts(bundle.manifest.facts),
+        ),
       ),
     );
     final walkthrough = jsonDecode(
@@ -1021,12 +1069,115 @@ final class _SelbrumeJourney {
     await waitForFact('fact_port_alert_seen');
   }
 
-  Future<void> purchaseAtPort(String itemId) async {
+  Future<void> purchaseAtPort(
+    String itemId, {
+    required String expectedStateId,
+    required Map<String, int> expectedCatalogue,
+  }) async {
     final before = bagQuantity(itemId);
+    final moneyBefore = state.trainerProfile.money;
+    final requestCountBefore = playerServices.shopRequests.length;
+    final stockKey = expectedStateId == ShopStateResolver.defaultStateId
+        ? 'shop_port_supplies::$itemId'
+        : 'shop_port_supplies::$expectedStateId::$itemId';
+    final stockBefore = state.progression.shopPurchaseCounts[stockKey] ?? 0;
     playerServices.queueShopPurchase(itemId);
     await interactWith(entityId: 'service_port_shop');
+    expect(playerServices.shopRequests, hasLength(requestCountBefore + 1));
+    final request = playerServices.shopRequests.last;
+    _expectResolvedPortShop(
+      request,
+      expectedStateId: expectedStateId,
+      expectedCatalogue: expectedCatalogue,
+      expectedOpen: true,
+    );
     expect(bagQuantity(itemId), before + 1);
+    expect(
+      state.trainerProfile.money,
+      moneyBefore - expectedCatalogue[itemId]!,
+    );
+    expect(
+      state.progression.shopPurchaseCounts[stockKey],
+      stockBefore + 1,
+    );
     expect(playerServices.purchasedItemIds.last, itemId);
+  }
+
+  Future<void> inspectPortShop({
+    required String expectedStateId,
+    required Map<String, int> expectedCatalogue,
+    bool expectedOpen = true,
+    String? expectedMessage,
+  }) async {
+    final moneyBefore = state.trainerProfile.money;
+    final bagBefore = state.bag.toJson();
+    final stockBefore =
+        Map<String, int>.from(state.progression.shopPurchaseCounts);
+    final factsBefore = state.narrativeFactRuntimeState.toJson();
+    final requestCountBefore = playerServices.shopRequests.length;
+    await interactWith(entityId: 'service_port_shop');
+    expect(playerServices.shopRequests, hasLength(requestCountBefore + 1));
+    _expectResolvedPortShop(
+      playerServices.shopRequests.last,
+      expectedStateId: expectedStateId,
+      expectedCatalogue: expectedCatalogue,
+      expectedOpen: expectedOpen,
+      expectedMessage: expectedMessage,
+    );
+    expect(state.trainerProfile.money, moneyBefore);
+    expect(state.bag.toJson(), bagBefore);
+    expect(state.progression.shopPurchaseCounts, stockBefore);
+    expect(state.narrativeFactRuntimeState.toJson(), factsBefore);
+  }
+
+  void expectResolvedPortShop({
+    required String expectedStateId,
+    required Map<String, int> expectedCatalogue,
+    required bool expectedOpen,
+    String? expectedMessage,
+  }) {
+    final shop = project.shops.singleWhere(
+      (candidate) => candidate.id == 'shop_port_supplies',
+    );
+    final resolved = const ShopStateResolver().resolve(
+      shop: shop,
+      gameState: state,
+      conditionContext: ScriptEvaluationContext(
+        narrativeFactResolver:
+            NarrativeFactRuntimeResolver.fromFacts(project.facts),
+      ),
+    );
+    expect(resolved.stateId, expectedStateId);
+    expect(resolved.isOpen, expectedOpen);
+    if (expectedMessage != null) expect(resolved.message, expectedMessage);
+    expect(
+      <String, int>{
+        for (final entry in resolved.entries) entry.itemId: entry.price,
+      },
+      expectedCatalogue,
+    );
+  }
+
+  void _expectResolvedPortShop(
+    PlayerServiceShopRequest request, {
+    required String expectedStateId,
+    required Map<String, int> expectedCatalogue,
+    required bool expectedOpen,
+    String? expectedMessage,
+  }) {
+    expect(request.shop.id, 'shop_port_supplies');
+    expect(request.resolvedState.stateId, expectedStateId);
+    expect(request.resolvedState.isOpen, expectedOpen);
+    if (expectedMessage != null) {
+      expect(request.resolvedState.message, expectedMessage);
+    }
+    expect(
+      <String, int>{
+        for (final entry in request.resolvedState.entries)
+          entry.itemId: entry.price,
+      },
+      expectedCatalogue,
+    );
   }
 
   Future<void> useAuthoredHealingService() async {

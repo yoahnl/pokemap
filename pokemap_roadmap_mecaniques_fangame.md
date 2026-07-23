@@ -948,6 +948,12 @@ Objectif : rendre l’inventaire utile hors combat.
 | FG-071 | Heal Center Flow V0 | `🟡 PARTIAL` | Soin complet menu + sauvegarde livré ; commande Scene `HealParty` encore absente |
 | FG-072 | Held Item Operations V0 | `⬜ TODO` | — |
 | FG-073 | TM/HM Item Support V0 | `⬜ TODO` | — |
+| FG-074 | Shop State Model & Compatibility V0 | `✅ DONE` | Modèle versionné, compatibilité catalogue statique et round-trip JSON ; `22797f4b0` |
+| FG-075 | Shop State Resolver & Stock V0 | `✅ DONE` | Résolution prioritaire pure, contexte de progression et stock isolé par état ; `c46dfcf4d` |
+| FG-076 | Dynamic Shop Runtime V0 | `✅ DONE` | Ouverture sur profil résolu, revalidation transactionnelle et fermeture authored ; `f59770e8f` |
+| FG-077 | Dynamic Shop No-Code Builder V0 | `✅ DONE` | Builder quatre zones, catalogue, conditions guidées et inspecteur ; `4a766eb97` |
+| FG-078 | Shop State Validator & Simulator V0 | `✅ DONE` | Diagnostics, simulation d'états et prévention des configurations ambiguës ; `c81d8d04c` |
+| FG-079 | Selbrume Dynamic Shop Golden Slice V0 | `✅ DONE` | Quatre profils Selbrume, achats exacts, fermeture, save/load, vérificateur MVP-16 et QA visuelle ; rapport FG-079 |
 
 ## FG-060 — Item Use Effect Registry V0
 
@@ -1127,6 +1133,31 @@ Objectif : rendre l’inventaire utile hors combat.
 - [ ] HM/key move policy documentée.
 - [ ] FieldAbility unlock ne dépend pas naïvement du simple move si badge requis.
 ```
+
+## FG-074 à FG-079 — Dynamic Shop State Builder V0
+
+**But :** permettre à une boutique de changer intégralement selon l'état du
+jeu, sans code ni identifiants de progression parallèles.
+
+### DoD
+
+```md
+- [x] Les catalogues statiques historiques restent lisibles et jouables.
+- [x] Des profils conditionnels priorisés peuvent changer ouverture, textes,
+      catalogue, prix et stock.
+- [x] Le runtime résout et revalide le profil actif à chaque transaction.
+- [x] Le stock reste isolé par profil et persiste après sauvegarde/chargement.
+- [x] Le Narrative Studio fournit un builder no-code, des diagnostics et un
+      simulateur de progression.
+- [x] Selbrume prouve les états default, after-lysa, lighthouse-alert et
+      story-finished dans le parcours joueur.
+- [x] La preuve inclut achats, argent, inventaire, stock, fermeture authored,
+      save/load et capture réelle du Shop Builder.
+```
+
+**Limite de clôture :** les échecs globaux historiques du validateur narratif
+Selbrume et les doublons de source Lysa restent suivis séparément ; ils ne sont
+pas introduits par le modèle ou le runtime de boutique dynamique.
 
 ---
 

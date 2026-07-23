@@ -52,6 +52,8 @@ void main() {
       <String, int>{'shop_port_supplies::after-lysa::potion': 1},
     );
     expect(host.openedServices, <String>['shop:shop_port_supplies']);
+    expect(host.shopRequests.single.resolvedState.stateId, 'after-lysa');
+    expect(host.shopRequests.single.resolvedState.entries.single.price, 250);
     expect(host.purchasedItemIds, <String>['potion']);
   });
 }
