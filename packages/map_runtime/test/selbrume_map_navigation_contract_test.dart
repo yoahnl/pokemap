@@ -208,12 +208,21 @@ void main() {
       ),
       hasLength(1),
     );
-    expect(bourg.warps, hasLength(1));
-    final houseWarp = bourg.warps.single;
-    expect(houseWarp.id, 'warp_bourg_to_maison');
+    final houseWarp = bourg.warps.singleWhere(
+      (warp) => warp.id == 'warp_bourg_to_maison',
+    );
     expect(houseWarp.pos, const GridPos(x: 13, y: 23));
     expect(houseWarp.targetMapId, houseBundle.map.id);
     expect(houseWarp.targetPos, const GridPos(x: 10, y: 13));
+    expect(
+      bourg.warps.where(
+        (warp) =>
+            warp.id == 'warp_bourg_port_arrival' &&
+            warp.targetMapId == portBundle.map.id &&
+            warp.targetPos == const GridPos(x: 27, y: 2),
+      ),
+      hasLength(1),
+    );
     expect(
       houseBundle.map.warps.where(
         (warp) =>
@@ -713,6 +722,7 @@ void main() {
     final world = _fullyUnlockedWorld(
       bundle: passageBundle,
       playerPos: const GridPos(x: 32, y: 0),
+      playerMovementMode: MovementMode.surf,
     );
     _expectProjectedRouteLock(
       bundle: passageBundle,
@@ -755,8 +765,10 @@ void main() {
       world: world,
       starts: const <GridPos>[GridPos(x: 32, y: 0)],
       allowedCells: primary.cells,
+      movementMode: MovementMode.surf,
     );
     final critical = <GridPos>[
+      for (var x = 30; x <= 59; x++) GridPos(x: x, y: 12),
       for (var x = 30; x <= 34; x++) GridPos(x: x, y: 0),
       for (var y = 12; y <= 16; y++) GridPos(x: 59, y: y),
       for (var y = 9; y <= 11; y++)
@@ -770,10 +782,17 @@ void main() {
       final index = _cellIndex(passage, pos);
       expect(primary.cells[index], isTrue, reason: 'passage path $pos');
       expect(
-        world.isBlocked(pos.x, pos.y, movementMode: MovementMode.walk),
+        world.isBlocked(pos.x, pos.y, movementMode: MovementMode.surf),
         isFalse,
         reason: 'passage collision $pos',
       );
+      if (pos.x >= 48 && pos.x <= 50) {
+        expect(
+          world.isBlocked(pos.x, pos.y, movementMode: MovementMode.walk),
+          isTrue,
+          reason: 'passage Surf gate $pos',
+        );
+      }
       expect(reached, contains(index), reason: 'passage reachability $pos');
     }
     for (var x = 32; x <= 35; x++) {
@@ -1301,7 +1320,7 @@ void main() {
     final passageWorld = GameplayWorldState.initial(
       map: passageBundle.map,
       playerPos: const GridPos(x: 50, y: 10),
-      playerMovementMode: MovementMode.walk,
+      playerMovementMode: MovementMode.surf,
       project: passageBundle.manifest,
       tileWidth: passageBundle.manifest.settings.tileWidth,
       tileHeight: passageBundle.manifest.settings.tileHeight,
@@ -1313,6 +1332,10 @@ void main() {
     );
     expect(
       passageWorld.isBlocked(50, 10, movementMode: MovementMode.walk),
+      isTrue,
+    );
+    expect(
+      passageWorld.isBlocked(50, 10, movementMode: MovementMode.surf),
       isFalse,
     );
     final secondaryDoor = cabin.placedElements.singleWhere(
@@ -1634,11 +1657,13 @@ void main() {
 GameplayWorldState _fullyUnlockedWorld({
   required RuntimeMapBundle bundle,
   required GridPos playerPos,
+  MovementMode playerMovementMode = MovementMode.walk,
 }) {
   return _fullyUnlockedWorldForMap(
     manifest: bundle.manifest,
     map: bundle.map,
     playerPos: playerPos,
+    playerMovementMode: playerMovementMode,
   );
 }
 
@@ -1646,12 +1671,13 @@ GameplayWorldState _fullyUnlockedWorldForMap({
   required ProjectManifest manifest,
   required MapData map,
   required GridPos playerPos,
+  MovementMode playerMovementMode = MovementMode.walk,
 }) {
   final projection = _fullyUnlockedProjection(manifest: manifest, map: map);
   return GameplayWorldState.initial(
     map: map,
     playerPos: playerPos,
-    playerMovementMode: MovementMode.walk,
+    playerMovementMode: playerMovementMode,
     project: manifest,
     tileWidth: manifest.settings.tileWidth,
     tileHeight: manifest.settings.tileHeight,
@@ -1800,6 +1826,10 @@ void _validateNavigationContract({
         playerPos: const GridPos(x: 0, y: 0),
       ),
   };
+  final movementModeByMapId = <String, MovementMode>{
+    for (final mapId in expectedMapIds)
+      mapId: _fullyUnlockedNavigationMode(mapsByManifestId[mapId]!),
+  };
   final outgoing = <String, Set<String>>{
     for (final mapId in expectedMapIds) mapId: <String>{},
   };
@@ -1833,7 +1863,7 @@ void _validateNavigationContract({
       if (worldByMapId[warp.targetMapId]!.isBlocked(
         warp.targetPos.x,
         warp.targetPos.y,
-        movementMode: MovementMode.walk,
+        movementMode: movementModeByMapId[warp.targetMapId]!,
       )) {
         throw StateError(
           'Warp ${warp.id} target ${warp.targetPos} is statically blocked on '
@@ -1874,6 +1904,8 @@ void _validateNavigationContract({
         targetMap: targetMap,
         targetWorld: worldByMapId[connection.targetMapId]!,
         connection: connection,
+        sourceMovementMode: movementModeByMapId[sourceId]!,
+        targetMovementMode: movementModeByMapId[connection.targetMapId]!,
       )) {
         throw StateError(
           'Connection $sourceId ${connection.direction.name} -> '
@@ -1928,6 +1960,7 @@ void _validateNavigationContract({
       world: worldByMapId[mapId]!,
       requiredZoneIds: requiredZoneIdsByMap[mapId] ?? const <String>[],
       incomingWarpTargets: incomingWarpTargets[mapId]!,
+      movementMode: movementModeByMapId[mapId]!,
     );
   }
 }
@@ -1937,6 +1970,7 @@ void _validateStaticAnchorConnectivity({
   required GameplayWorldState world,
   required List<String> requiredZoneIds,
   required List<_AnchorGroup> incomingWarpTargets,
+  required MovementMode movementMode,
 }) {
   final anchors = <_AnchorGroup>[...incomingWarpTargets];
 
@@ -1950,7 +1984,12 @@ void _validateStaticAnchorConnectivity({
     anchors.add(
       _AnchorGroup(
         label: 'zone $zoneId',
-        cells: _passableZoneCells(zones.single, map, world),
+        cells: _passableZoneCells(
+          zones.single,
+          map,
+          world,
+          movementMode: movementMode,
+        ),
       ),
     );
   }
@@ -1959,7 +1998,12 @@ void _validateStaticAnchorConnectivity({
     anchors.add(
       _AnchorGroup(
         label: 'warp ${warp.id}',
-        cells: _passableWarpApproachCells(warp, map, world),
+        cells: _passableWarpApproachCells(
+          warp,
+          map,
+          world,
+          movementMode: movementMode,
+        ),
       ),
     );
   }
@@ -1968,7 +2012,12 @@ void _validateStaticAnchorConnectivity({
       _AnchorGroup(
         label: 'connection ${connection.direction.name} '
             'to ${connection.targetMapId}',
-        cells: _passableConnectionEdgeCells(connection.direction, map, world),
+        cells: _passableConnectionEdgeCells(
+          connection.direction,
+          map,
+          world,
+          movementMode: movementMode,
+        ),
       ),
     );
   }
@@ -1988,6 +2037,7 @@ void _validateStaticAnchorConnectivity({
     map: map,
     world: world,
     starts: <GridPos>[canonicalStart],
+    movementMode: movementMode,
   );
   for (final anchor in anchors) {
     final disconnectedCells = anchor.cells
@@ -2015,8 +2065,9 @@ GridPos _canonicalAnchorCell(List<GridPos> cells) {
 List<GridPos> _passableZoneCells(
   MapGameplayZone zone,
   MapData map,
-  GameplayWorldState world,
-) {
+  GameplayWorldState world, {
+  MovementMode movementMode = MovementMode.walk,
+}) {
   final cells = <GridPos>[];
   final right = zone.area.pos.x + zone.area.size.width;
   final bottom = zone.area.pos.y + zone.area.size.height;
@@ -2024,7 +2075,7 @@ List<GridPos> _passableZoneCells(
     for (var x = zone.area.pos.x; x < right; x += 1) {
       final pos = GridPos(x: x, y: y);
       if (_isInBounds(map, pos) &&
-          !world.isBlocked(x, y, movementMode: MovementMode.walk)) {
+          !world.isBlocked(x, y, movementMode: movementMode)) {
         cells.add(pos);
       }
     }
@@ -2035,8 +2086,9 @@ List<GridPos> _passableZoneCells(
 List<GridPos> _passableWarpApproachCells(
   MapWarp warp,
   MapData map,
-  GameplayWorldState world,
-) {
+  GameplayWorldState world, {
+  MovementMode movementMode = MovementMode.walk,
+}) {
   // An on-bump warp may legitimately occupy a blocked door cell; the usable
   // navigation anchor is then a passable cardinal approach cell.
   final candidates = warp.triggerMode == MapWarpTriggerMode.onEnter
@@ -2054,7 +2106,7 @@ List<GridPos> _passableWarpApproachCells(
             !world.isBlocked(
               pos.x,
               pos.y,
-              movementMode: MovementMode.walk,
+              movementMode: movementMode,
             ),
       )
       .toList(growable: false);
@@ -2063,8 +2115,9 @@ List<GridPos> _passableWarpApproachCells(
 List<GridPos> _passableConnectionEdgeCells(
   MapConnectionDirection direction,
   MapData map,
-  GameplayWorldState world,
-) {
+  GameplayWorldState world, {
+  MovementMode movementMode = MovementMode.walk,
+}) {
   final candidates = <GridPos>[];
   switch (direction) {
     case MapConnectionDirection.north:
@@ -2089,7 +2142,7 @@ List<GridPos> _passableConnectionEdgeCells(
         (pos) => !world.isBlocked(
           pos.x,
           pos.y,
-          movementMode: MovementMode.walk,
+          movementMode: movementMode,
         ),
       )
       .toList(growable: false);
@@ -2101,11 +2154,14 @@ bool _hasAlignedPassableConnectionPair({
   required MapData targetMap,
   required GameplayWorldState targetWorld,
   required MapConnection connection,
+  MovementMode sourceMovementMode = MovementMode.walk,
+  MovementMode targetMovementMode = MovementMode.walk,
 }) {
   final sourceCells = _passableConnectionEdgeCells(
     connection.direction,
     sourceMap,
     sourceWorld,
+    movementMode: sourceMovementMode,
   );
   for (final sourceCell in sourceCells) {
     final targetCell = resolveConnectedMapTargetPos(
@@ -2119,7 +2175,7 @@ bool _hasAlignedPassableConnectionPair({
         !targetWorld.isBlocked(
           targetCell.x,
           targetCell.y,
-          movementMode: MovementMode.walk,
+          movementMode: targetMovementMode,
         )) {
       return true;
     }
@@ -2127,11 +2183,21 @@ bool _hasAlignedPassableConnectionPair({
   return false;
 }
 
+MovementMode _fullyUnlockedNavigationMode(MapData map) {
+  final requiresSurf = map.gameplayZones.any(
+    (zone) =>
+        zone.kind == GameplayZoneKind.movement &&
+        zone.movement?.requiredMode == MovementMode.surf,
+  );
+  return requiresSurf ? MovementMode.surf : MovementMode.walk;
+}
+
 Set<int> _reachableCells({
   required MapData map,
   required GameplayWorldState world,
   required List<GridPos> starts,
   List<bool>? allowedCells,
+  MovementMode movementMode = MovementMode.walk,
 }) {
   final reached = <int>{};
   final queue = Queue<GridPos>();
@@ -2158,7 +2224,7 @@ Set<int> _reachableCells({
           world.isBlocked(
             next.x,
             next.y,
-            movementMode: MovementMode.walk,
+            movementMode: movementMode,
           )) {
         continue;
       }

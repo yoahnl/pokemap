@@ -139,6 +139,22 @@ void main() {
       expect(fight.move.id, 'tackle');
       expect(fight.speed, 50);
     });
+
+    test('decision mapper accepts an all-adjacent move in singles', () {
+      final state = PsdkBattleState.fromSetup(
+        _setup(playerMoveTarget: PsdkBattleMoveTarget.allAdjacent),
+      );
+
+      final action = const PsdkBattleActionDecisionMapper().map(
+        state: state,
+        user: psdkPlayerSlot,
+        decision: const BattleDecision.fight(moveSlot: 0),
+      );
+
+      expect(action, isA<PsdkBattleFightAction>());
+      expect((action as PsdkBattleFightAction).target, psdkOpponentSlot);
+      expect(action.move.target, PsdkBattleMoveTarget.allAdjacent);
+    });
   });
 }
 
@@ -172,9 +188,15 @@ BattleRngStreams _rng() {
   );
 }
 
-PsdkBattleSetup _setup() {
+PsdkBattleSetup _setup({
+  PsdkBattleMoveTarget playerMoveTarget = PsdkBattleMoveTarget.adjacentFoe,
+}) {
   return PsdkBattleSetup.singles(
-    player: _combatant(id: 'player', speed: 50),
+    player: _combatant(
+      id: 'player',
+      speed: 50,
+      moveTarget: playerMoveTarget,
+    ),
     opponent: _combatant(id: 'opponent', speed: 20),
     rngSeeds: const PsdkBattleRngSeeds(
       moveDamage: 1,
@@ -188,6 +210,7 @@ PsdkBattleSetup _setup() {
 PsdkBattleCombatantSetup _combatant({
   required String id,
   required int speed,
+  PsdkBattleMoveTarget moveTarget = PsdkBattleMoveTarget.adjacentFoe,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -204,7 +227,9 @@ PsdkBattleCombatantSetup _combatant({
       specialDefense: 20,
       speed: speed,
     ),
-    moves: <PsdkBattleMoveData>[_move(id: 'tackle')],
+    moves: <PsdkBattleMoveData>[
+      _move(id: 'tackle', target: moveTarget),
+    ],
   );
 }
 
@@ -212,6 +237,7 @@ PsdkBattleMoveData _move({
   required String id,
   int priority = 0,
   String battleEngineMethod = 's_basic',
+  PsdkBattleMoveTarget target = PsdkBattleMoveTarget.adjacentFoe,
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -224,6 +250,6 @@ PsdkBattleMoveData _move({
     pp: 35,
     priority: priority,
     battleEngineMethod: battleEngineMethod,
-    target: PsdkBattleMoveTarget.adjacentFoe,
+    target: target,
   );
 }

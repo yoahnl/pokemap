@@ -19585,7 +19585,7 @@
       "kind": "sign",
       "pos": {
         "x": 35,
-        "y": 17
+        "y": 19
       },
       "size": {
         "width": 1,
@@ -19664,6 +19664,31 @@
       "blocksMovement": true,
       "properties": {
         "contractRole": "selbrume_player_service_source"
+      }
+    },
+    {
+      "id": "surf_training_marker",
+      "name": "Chenal d’entraînement Surf",
+      "kind": "custom",
+      "pos": {
+        "x": 18,
+        "y": 18
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_passage_ecume_h",
+        "renderInForeground": false
+      },
+      "blocksMovement": false,
+      "properties": {
+        "contractRole": "selbrume_world_state_visual"
       }
     }
   ],
@@ -19807,6 +19832,30 @@
           "inert": "true"
         }
       }
+    },
+    {
+      "id": "zone_port_surf_training",
+      "name": "Chenal d’entraînement Surf",
+      "kind": "movement",
+      "area": {
+        "pos": {
+          "x": 18,
+          "y": 18
+        },
+        "size": {
+          "width": 1,
+          "height": 1
+        }
+      },
+      "priority": 100,
+      "encounter": null,
+      "movement": {
+        "requiredMode": "surf",
+        "allowedModes": []
+      },
+      "movementEffect": null,
+      "hazard": null,
+      "special": null
     }
   ],
   "mapMetadata": {

@@ -137,6 +137,7 @@ export 'src/narrative_event_state_transactions.dart'
         NarrativeEventStateTransactionCommit,
         NarrativeEventStateTransactionRollback,
         NarrativeEventStateTransactionCallback,
+        NarrativeEventAfterCommitCallback,
         NarrativeEventStateTransactions;
 export 'src/narrative_event_execution_coordinator.dart'
     show

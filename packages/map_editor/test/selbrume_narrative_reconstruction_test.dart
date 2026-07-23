@@ -124,7 +124,7 @@ void main() {
     expect(shop.label, 'Comptoir des Brisants');
     expect(
       shop.entries.map((entry) => entry.itemId),
-      const <String>['potion', 'antidote'],
+      const <String>['potion', 'antidote', 'poke-ball'],
     );
     expect(project.badges.single.fieldAbilityUnlock, FieldAbility.surf);
 

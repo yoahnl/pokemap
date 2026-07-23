@@ -310,6 +310,7 @@ PsdkBattleSlotRef _targetFor({
     PsdkBattleMoveTarget.user || PsdkBattleMoveTarget.self => user,
     PsdkBattleMoveTarget.adjacentFoe ||
     PsdkBattleMoveTarget.anyFoe ||
+    PsdkBattleMoveTarget.allAdjacent ||
     PsdkBattleMoveTarget.allAdjacentFoes ||
     PsdkBattleMoveTarget.allFoes ||
     PsdkBattleMoveTarget.randomFoe =>
@@ -322,8 +323,7 @@ PsdkBattleSlotRef _targetFor({
     PsdkBattleMoveTarget.none =>
       user,
     PsdkBattleMoveTarget.adjacentAlly ||
-    PsdkBattleMoveTarget.adjacentAllyOrSelf ||
-    PsdkBattleMoveTarget.allAdjacent =>
+    PsdkBattleMoveTarget.adjacentAllyOrSelf =>
       throw UnsupportedError(
         'PSDK target ${move.target.name} needs multi-target action support.',
       ),

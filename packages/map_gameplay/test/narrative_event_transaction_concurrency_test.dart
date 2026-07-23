@@ -87,6 +87,58 @@ void main() {
     expect(exceptionCalls, 1);
     expect(await transactions.read(), const GameState(saveId: 'save'));
   });
+
+  test('deferred commit work observes the committed state before completion',
+      () async {
+    final transactions =
+        NarrativeEventStateTransactions(const GameState(saveId: 'save'));
+    GameState? persisted;
+
+    final value = await transactions.transact((state) async {
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        transactions.deferAfterCurrentCommit((committedState) {
+          persisted = committedState;
+        }),
+        isTrue,
+      );
+      return NarrativeEventStateTransaction.commit(
+        state.copyWith(metadata: const <String, String>{'shop': 'used'}),
+        'completed',
+      );
+    });
+
+    expect(value, 'completed');
+    expect(persisted?.metadata, const <String, String>{'shop': 'used'});
+    expect((await transactions.read()).metadata, persisted?.metadata);
+  });
+
+  test('failed deferred commit work rolls back the transaction', () async {
+    const original = GameState(saveId: 'save');
+    final transactions = NarrativeEventStateTransactions(original);
+
+    await expectLater(
+      transactions.transact<void>((state) {
+        expect(
+          transactions.deferAfterCurrentCommit((_) {
+            throw StateError('save failed');
+          }),
+          isTrue,
+        );
+        return NarrativeEventStateTransaction.commit(
+          state.copyWith(metadata: const <String, String>{'shop': 'used'}),
+          null,
+        );
+      }),
+      throwsStateError,
+    );
+
+    expect(await transactions.read(), original);
+    expect(
+      transactions.deferAfterCurrentCommit((_) {}),
+      isFalse,
+    );
+  });
 }
 
 NarrativeEventDispatchAuthorityReady _authority(String eventId) {

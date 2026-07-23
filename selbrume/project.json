@@ -31386,17 +31386,20 @@
   "encounterTables": [
     {
       "id": "grass_path_route_1",
-      "name": "grass path route 1",
+      "name": "Herbes des marais salants",
       "encounterKind": "walk",
       "entries": [
         {
           "speciesId": "pidgeotto",
-          "minLevel": 1,
-          "maxLevel": 5,
+          "minLevel": 11,
+          "maxLevel": 11,
           "weight": 1
         }
       ],
-      "tags": []
+      "tags": [
+        "selbrume",
+        "marais"
+      ]
     }
   ],
   "dialogueFolders": [],
@@ -65237,7 +65240,7 @@
             "tackle",
             "tail_whip",
             "water_gun",
-            "mud_slap"
+            "surf"
           ],
           "experience": null,
           "currentPpByMoveId": null,
@@ -65261,6 +65264,11 @@
         },
         {
           "itemId": "antidote",
+          "price": 100,
+          "stock": 99
+        },
+        {
+          "itemId": "poke-ball",
           "price": 100,
           "stock": 99
         }

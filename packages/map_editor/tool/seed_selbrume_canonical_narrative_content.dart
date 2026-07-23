@@ -233,6 +233,11 @@ Future<SelbrumeNarrativeSeedResult> seedSelbrumeCanonicalNarrativeContent(
   );
   _upsertProjectEntries(
     project,
+    'encounterTables',
+    _canonicalEncounterTables().map((entry) => entry.toJson()).toList(),
+  );
+  _upsertProjectEntries(
+    project,
     'dialogues',
     _canonicalDialogues().map((entry) => entry.toJson()).toList(),
   );
@@ -317,6 +322,22 @@ Future<SelbrumeNarrativeSeedResult> seedSelbrumeCanonicalNarrativeContent(
     changedRelativePaths: List<String>.unmodifiable(changed),
   );
 }
+
+List<ProjectEncounterTable> _canonicalEncounterTables() => const [
+      ProjectEncounterTable(
+        id: 'grass_path_route_1',
+        name: 'Herbes des marais salants',
+        encounterKind: EncounterKind.walk,
+        entries: <ProjectEncounterEntry>[
+          ProjectEncounterEntry(
+            speciesId: 'pidgeotto',
+            minLevel: 11,
+            maxLevel: 11,
+          ),
+        ],
+        tags: <String>['selbrume', 'marais'],
+      ),
+    ];
 
 void _repairSupersededLegacyContent(Map<String, dynamic> project) {
   for (final rule in _jsonObjects(project['worldRules'])) {
@@ -915,6 +936,7 @@ List<ShopDefinition> _canonicalShops() => const <ShopDefinition>[
         entries: <ShopEntryDefinition>[
           ShopEntryDefinition(itemId: 'potion', price: 300, stock: 99),
           ShopEntryDefinition(itemId: 'antidote', price: 100, stock: 99),
+          ShopEntryDefinition(itemId: 'poke-ball', price: 100, stock: 99),
         ],
       ),
     ];
@@ -3355,7 +3377,7 @@ void _seedNewGameConfig(Map<String, dynamic> project) {
             'tackle',
             'tail_whip',
             'water_gun',
-            'mud_slap',
+            'surf',
           ],
         ),
       ),
@@ -3466,7 +3488,7 @@ void _seedMap(String mapId, Map<String, dynamic> map) {
             id: 'service_port_pc',
             name: 'Terminal PC du port',
             x: 35,
-            y: 17,
+            y: 19,
             fallbackText: 'Un terminal de stockage Pokémon est allumé.',
           ),
           _serviceEntity(
@@ -3483,6 +3505,26 @@ void _seedMap(String mapId, Map<String, dynamic> map) {
             y: 20,
             fallbackText: 'Cette navette retourne au bourg de Selbrume.',
             visualElementId: 'el_port_ref_boat_small',
+          ),
+          _visualEntity(
+            id: 'surf_training_marker',
+            name: 'Chenal d’entraînement Surf',
+            x: 18,
+            y: 18,
+            elementId: 'el_selbrume_passage_ecume_h',
+          ),
+        ],
+      );
+      map['gameplayZones'] = _upsertById(
+        _jsonObjects(map['gameplayZones']),
+        <Map<String, dynamic>>[
+          _surfGameplayZone(
+            id: 'zone_port_surf_training',
+            name: 'Chenal d’entraînement Surf',
+            x: 18,
+            y: 18,
+            width: 1,
+            height: 1,
           ),
         ],
       );
@@ -3614,24 +3656,14 @@ void _seedMap(String mapId, Map<String, dynamic> map) {
       map['gameplayZones'] = _upsertById(
         _jsonObjects(map['gameplayZones']),
         <Map<String, dynamic>>[
-          <String, dynamic>{
-            'id': 'zone_passage_surf_gate',
-            'name': 'Chenal nécessitant Surf',
-            'kind': 'movement',
-            'area': <String, dynamic>{
-              'pos': <String, dynamic>{'x': 48, 'y': 0},
-              'size': <String, dynamic>{'width': 3, 'height': 24},
-            },
-            'priority': 100,
-            'encounter': null,
-            'movement': <String, dynamic>{
-              'requiredMode': 'surf',
-              'allowedModes': <dynamic>[],
-            },
-            'movementEffect': null,
-            'hazard': null,
-            'special': null,
-          },
+          _surfGameplayZone(
+            id: 'zone_passage_surf_gate',
+            name: 'Chenal nécessitant Surf',
+            x: 48,
+            y: 0,
+            width: 3,
+            height: 24,
+          ),
         ],
       );
       break;
@@ -3955,6 +3987,33 @@ Map<String, dynamic> _trigger({
         'eventId': eventId,
         'reservedForNarrative': 'true',
       },
+    };
+
+Map<String, dynamic> _surfGameplayZone({
+  required String id,
+  required String name,
+  required int x,
+  required int y,
+  required int width,
+  required int height,
+}) =>
+    <String, dynamic>{
+      'id': id,
+      'name': name,
+      'kind': 'movement',
+      'area': <String, dynamic>{
+        'pos': <String, dynamic>{'x': x, 'y': y},
+        'size': <String, dynamic>{'width': width, 'height': height},
+      },
+      'priority': 100,
+      'encounter': null,
+      'movement': <String, dynamic>{
+        'requiredMode': 'surf',
+        'allowedModes': <dynamic>[],
+      },
+      'movementEffect': null,
+      'hazard': null,
+      'special': null,
     };
 
 const _canonicalYarnFiles = <String, String>{

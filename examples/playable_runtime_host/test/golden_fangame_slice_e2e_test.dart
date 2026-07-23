@@ -15,7 +15,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test(
-    'FG-182 completes every Golden Fangame Slice checkpoint in order',
+    'FG-181 composition fixture completes every synthetic checkpoint',
     () async {
       const mutations = GameStateMutations();
       final root = p.join(Directory.current.path, 'golden_fangame_slice');
@@ -240,17 +240,6 @@ void main() {
           .toList(growable: false);
       expect(completed, expectedSteps);
 
-      final readiness = ProjectGameplayReadinessReport.evaluate(
-        ProjectGameplayReadinessCheck.values.map(
-          (check) => ProjectGameplayReadinessEvidence(
-            check: check,
-            status: ProjectGameplayReadinessEvidenceStatus.passed,
-            summary: '${check.name} est prouvé par le smoke FG-182.',
-            source: 'test/golden_fangame_slice_e2e_test.dart',
-          ),
-        ),
-      );
-      expect(readiness.isPlayable, isTrue);
     },
     timeout: const Timeout(Duration(minutes: 1)),
   );

@@ -99,4 +99,18 @@ void main() {
         .toList();
     expect(rasterAssets, isEmpty);
   });
+
+  test('FG-181 synthetic composition cannot publish product readiness', () {
+    final source = File(
+      p.join(
+        Directory.current.path,
+        'test',
+        'golden_fangame_slice_e2e_test.dart',
+      ),
+    ).readAsStringSync();
+
+    expect(source, isNot(contains('ProjectGameplayReadinessReport')));
+    expect(source, isNot(contains('FG-182 completes')));
+    expect(source, contains('FG-181 composition fixture'));
+  });
 }

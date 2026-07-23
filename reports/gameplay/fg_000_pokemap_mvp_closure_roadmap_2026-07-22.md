@@ -772,15 +772,24 @@ idempotent et les diagnostics projet/Scenes/Event ne contiennent aucune erreur.
 - Modify: `examples/playable_runtime_host/test/golden_fangame_slice_fixture_test.dart`
 - Modify: `reports/gameplay/fg_182_golden_slice_end_to_end_smoke_v0.md`
 
-- [ ] **Step 1:** Désigner Selbrume comme Golden Slice produit canonique.
-- [ ] **Step 2:** Conserver l'ancienne fixture comme test de composition sans lui permettre de produire la readiness.
-- [ ] **Step 3:** Piloter New Game, Maël, starter, Balls, déplacement, rencontre, capture, Lysa, shop, Bag, Party, PC, soin, badge, Surf, phare, save/reload et épilogue.
-- [ ] **Step 4:** Injecter un RNG déterministe par les ports de test publics afin que la capture reste réelle mais non flaky.
-- [ ] **Step 5:** Tester une seconde capture avec party pleine, destination box visible, puis retrait depuis le PC.
-- [ ] **Step 6:** Exiger un `BadgeDefinition` acquis, le refus du field gate avant Surf et sa traversée après unlock.
-- [ ] **Step 7:** Interdire `_finishedOutcome`, setters debug, `GameStateMutations`, récompenses directes et `setFlag` dans le test d'acceptation.
-- [ ] **Step 8:** Faire correspondre toutes les étapes de `walkthrough.json` dans l'ordre.
-- [ ] **Step 9:** Commit proposé : `test(host): prove the real Selbrume MVP journey`.
+- [x] **Step 1:** Désigner Selbrume comme Golden Slice produit canonique.
+- [x] **Step 2:** Conserver l'ancienne fixture comme test de composition sans lui permettre de produire la readiness.
+- [x] **Step 3:** Piloter New Game, Maël, starter, Balls, déplacement, rencontre, capture, Lysa, shop, Bag, Party, PC, soin, badge, Surf, phare, save/reload et épilogue.
+- [x] **Step 4:** Injecter un RNG déterministe par les ports de test publics afin que la capture reste réelle mais non flaky.
+- [x] **Step 5:** Tester une seconde capture avec party pleine, destination box visible, puis retrait depuis le PC.
+- [x] **Step 6:** Exiger un `BadgeDefinition` acquis, le refus du field gate avant Surf et sa traversée après unlock.
+- [x] **Step 7:** Interdire `_finishedOutcome`, setters debug, `GameStateMutations`, récompenses directes et `setFlag` dans le test d'acceptation.
+- [x] **Step 8:** Faire correspondre toutes les étapes de `walkthrough.json` dans l'ordre.
+- [x] **Step 9:** Commit proposé : `test(host): prove the real Selbrume MVP journey`.
+
+**Preuve fraîche (2026-07-23) :** `selbrume/` est la Golden Slice produit et
+son walkthrough de 17 étapes est exécuté dans l'ordre par les hooks publics de
+`PlayableMapGame`. Le test conduit les dialogues, combats, captures party/Box,
+shop, PC, soin, badge, Surf, transitions, save/reload et épilogue sans outcome
+forgé ni mutation debug. La fixture FG-181 reste un test de composition et une
+garde source lui interdit de produire la Readiness. La commande ciblée termine
+à `03:59 +9: All tests passed!`; les analyses Battle, Gameplay, Runtime, Editor
+et Host sont propres et le build macOS debug du host réussit.
 
 ## Task 5.4 — FG-180 : collecteur Readiness réel
 

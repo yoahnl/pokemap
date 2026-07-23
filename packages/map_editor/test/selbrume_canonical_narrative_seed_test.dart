@@ -63,6 +63,14 @@ void main() {
         'trainer_boss_phare_pokemon',
       ]),
     );
+    final marshEncounters = manifest.encounterTables.singleWhere(
+      (entry) => entry.id == 'grass_path_route_1',
+    );
+    expect(marshEncounters.name, 'Herbes des marais salants');
+    expect(marshEncounters.entries, hasLength(1));
+    expect(marshEncounters.entries.single.speciesId, 'pidgeotto');
+    expect(marshEncounters.entries.single.minLevel, 11);
+    expect(marshEncounters.entries.single.maxLevel, 11);
     expect(
       manifest.dialogues.map((entry) => entry.id),
       containsAll(canonicalSelbrumeDialogueIds),
@@ -371,7 +379,7 @@ void _expectPlayerServicesContract(
   expect(shop.label, 'Comptoir des Brisants');
   expect(
     shop.entries.map((entry) => entry.itemId),
-    const <String>['potion', 'antidote'],
+    const <String>['potion', 'antidote', 'poke-ball'],
   );
 
   final badge = manifest.badges.singleWhere(
@@ -453,6 +461,10 @@ void _expectPlayerServicesContract(
       'service_port_ferry',
     ]),
   );
+  expect(
+    port.entities.singleWhere((entity) => entity.id == 'service_port_pc').pos,
+    const GridPos(x: 35, y: 19),
+  );
   final portSources = manifest.eventRegistry!.records
       .map((record) => record.definitionOrNull)
       .whereType<NarrativeEventDefinition>()
@@ -475,6 +487,15 @@ void _expectPlayerServicesContract(
       'service_port_healing',
       'service_port_ferry',
     }),
+  );
+  final portSurfGate = port.gameplayZones.singleWhere(
+    (zone) => zone.id == 'zone_port_surf_training',
+  );
+  expect(portSurfGate.kind, GameplayZoneKind.movement);
+  expect(portSurfGate.movement!.requiredMode, MovementMode.surf);
+  expect(
+    port.entities.map((entity) => entity.id),
+    contains('surf_training_marker'),
   );
 
   final passage = mapsById['map_passage_dames']!;
@@ -1117,6 +1138,15 @@ Set<String> _scenesCompletingStep(
 void _expectStarterBranches(ProjectManifest manifest) {
   final scene = manifest.scenes.singleWhere(
     (entry) => entry.id == 'scene_mael_intro',
+  );
+  expect(
+    manifest.newGame.starterOptions
+        .singleWhere((option) => option.id == 'starter_squirtle')
+        .pokemon
+        .knownMoveIds,
+    contains(FieldAbility.surf.moveId),
+    reason: 'Le starter eau doit rendre le field gate Surf jouable après le '
+        'déblocage narratif.',
   );
   final starterDialogue = scene.graph.nodes.singleWhere((node) {
     final payload = node.payload;

@@ -1,6 +1,7 @@
 import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +9,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
+
+import 'support/selbrume_player_service_test_host.dart';
 
 const Set<String> _oneShotsThroughPortAlert = <String>{
   'evt_019abcde-5000-7000-8000-000000000011',
@@ -64,6 +67,34 @@ const Set<String> _oneShotsThroughEpilogue = <String>{
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('FG-182 product journey source excludes forged gameplay shortcuts', () {
+    final source = File(
+      p.join(
+        Directory.current.path,
+        'test',
+        'selbrume_player_journey_e2e_test.dart',
+      ),
+    ).readAsStringSync();
+    final forbiddenFragments = <String>[
+      <String>['_finished', 'Outcome('].join(),
+      <String>['GameState', 'Mutations'].join(),
+      <String>['.', 'set', 'Flag('].join(),
+      <String>['debug', 'Set'].join(),
+      <String>['debug', 'Apply'].join(),
+      <String>['debug', 'Finish'].join(),
+      <String>['setPlayer', 'MovementMode('].join(),
+      <String>['setSurfing', 'Enabled('].join(),
+    ];
+
+    for (final fragment in forbiddenFragments) {
+      expect(
+        source,
+        isNot(contains(fragment)),
+        reason: 'The canonical product journey must not use $fragment.',
+      );
+    }
+  });
 
   test(
     'checkpoint reload preserves 32px movement through the opened port gate',
@@ -224,13 +255,19 @@ void main() {
     'player completes Selbrume through PlayableMapGame production hooks',
     () async {
       final journey = await _SelbrumeJourney.start();
+      journey.completeWalkthroughStep('new_game');
 
       await journey.interactWith(
         entityId: 'npc_mael',
-        dialogue: const _DialogueChoice(linesBeforeChoice: 1),
+        dialogue: const _DialogueChoice(
+          linesBeforeChoice: 1,
+          choiceIndex: 2,
+        ),
       );
       await journey.waitForFact('fact_mael_mission_given');
-      journey.expectStarterMatchesAuthoredOption('starter_bulbasaur');
+      journey.expectStarterMatchesAuthoredOption('starter_squirtle');
+      expect(journey.bagQuantity('poke-ball'), 5);
+      journey.completeWalkthroughStep('starter_and_capture_kit');
       await journey.navigateTo(const GridPos(x: 17, y: 24));
       await journey.checkpoint(
         'before_port',
@@ -258,6 +295,10 @@ void main() {
       );
       await journey.waitForFact('fact_port_alert_seen');
       expect(journey.state.currentMapId, 'map_port_brisants');
+      journey.completeWalkthroughStep('port_alert');
+
+      await journey.attemptPortSurfGate(expectTraversal: false);
+      journey.completeWalkthroughStep('surf_refused_before_unlock');
 
       final movesBeforeLysa = journey.selectedBattleMoveIds.length;
       await journey.interactWith(
@@ -285,6 +326,30 @@ void main() {
         reason: 'Lysa must be beaten with a damaging, non-immune move '
             'selected in the UI.',
       );
+      journey.completeWalkthroughStep('lysa_victory');
+      expect(
+        journey.state.trainerProfile.badgeIds,
+        contains('badge_brisants'),
+      );
+      expect(
+        journey.state.progression.unlockedFieldAbilities,
+        contains(FieldAbility.surf),
+      );
+      journey.completeWalkthroughStep('badge_and_surf_unlocked');
+
+      await journey.purchaseAtPort('antidote');
+      await journey.purchaseAtPort('potion');
+      await journey.purchaseAtPort('poke-ball');
+      expect(
+        journey.playerServices.openedServices
+            .where((service) => service == 'shop:shop_port_supplies'),
+        hasLength(3),
+      );
+      journey.completeWalkthroughStep('shop_used');
+
+      await journey.useAuthoredHealingService();
+      journey.completeWalkthroughStep('healing_service_used');
+
       await journey.checkpoint(
         'after_lysa',
         expectedConsumedEventIds: _oneShotsThroughLysaVictory,
@@ -302,6 +367,51 @@ void main() {
       );
       await journey.enterTrigger('zone_marais_entry');
       await journey.waitForFact('fact_marais_unlocked');
+
+      expect(
+        await journey.captureWildPokemon(),
+        CaptureDestinationKind.party,
+      );
+      expect(
+        journey.state.progression.caughtSpeciesIds,
+        contains('pidgeotto'),
+      );
+      journey.completeWalkthroughStep('first_wild_capture');
+      for (var capture = 0; capture < 4; capture++) {
+        expect(
+          await journey.captureWildPokemon(),
+          CaptureDestinationKind.party,
+        );
+      }
+      expect(journey.state.party.members, hasLength(maxPlayerPartySize));
+      journey.completeWalkthroughStep('party_filled_by_captures');
+      expect(
+        await journey.captureWildPokemon(),
+        CaptureDestinationKind.storage,
+      );
+      expect(
+        journey.state.pokemonStorage.boxes.expand((box) => box.pokemon),
+        isNotEmpty,
+      );
+      journey.completeWalkthroughStep('capture_sent_to_storage');
+
+      await journey.crossConnection(MapConnectionDirection.west);
+      await journey.crossConnection(MapConnectionDirection.west);
+      await journey.crossConnection(
+        MapConnectionDirection.south,
+        preferredAxis: 39,
+      );
+      await journey.withdrawCapturedPokemonFromPc();
+      journey.completeWalkthroughStep('pc_withdrawal');
+      await journey.crossConnection(MapConnectionDirection.north);
+      await journey.crossConnection(
+        MapConnectionDirection.east,
+        preferredAxis: 22,
+      );
+      await journey.crossConnection(
+        MapConnectionDirection.east,
+        preferredAxis: 22,
+      );
 
       await journey.interactWith(
         entityId: 'npc_mado',
@@ -338,6 +448,7 @@ void main() {
         'after_marsh',
         expectedConsumedEventIds: _oneShotsThroughMarsh,
       );
+      journey.completeWalkthroughStep('marsh_investigation');
 
       await journey.crossConnection(MapConnectionDirection.west);
       await journey.crossConnection(MapConnectionDirection.west);
@@ -369,6 +480,9 @@ void main() {
         isNot(contains('pearl')),
       );
 
+      await journey.attemptPortSurfGate(expectTraversal: true);
+      journey.completeWalkthroughStep('surf_gate_crossed');
+
       await journey.crossConnection(MapConnectionDirection.north);
       await journey.crossConnection(
         MapConnectionDirection.east,
@@ -382,6 +496,7 @@ void main() {
         MapConnectionDirection.south,
         preferredAxis: 28,
       );
+      journey.expectSurfMode('while crossing the Passage des Dames channel');
       await journey.crossConnection(
         MapConnectionDirection.east,
         preferredAxis: 10,
@@ -438,6 +553,8 @@ void main() {
         'after_boss',
         expectedConsumedEventIds: _oneShotsThroughBoss,
       );
+      journey.completeWalkthroughStep('lighthouse_completed');
+      journey.completeWalkthroughStep('save_reload_mid_journey');
       expect(
         journey.isEntityVisible('map_sommet_phare', 'fog_sommet'),
         isFalse,
@@ -469,6 +586,7 @@ void main() {
         'after_epilogue',
         expectedConsumedEventIds: _oneShotsThroughEpilogue,
       );
+      journey.completeWalkthroughStep('epilogue_reached');
       for (final fog in const <(String, String)>[
         ('map_port_brisants', 'fog_port'),
         ('map_marais_salants', 'fog_marais'),
@@ -511,6 +629,7 @@ void main() {
         'after_boss',
         'after_epilogue',
       ]);
+      journey.expectWalkthroughComplete();
     },
     timeout: const Timeout(Duration(minutes: 4)),
   );
@@ -571,11 +690,16 @@ final class _SelbrumeJourney {
     required this.game,
     required this.project,
     required this.projectRoot,
+    required this.playerServices,
+    required this.expectedWalkthroughStepIds,
   });
 
   final _JourneyPlayableMapGame game;
   final ProjectManifest project;
   final Directory projectRoot;
+  final SelbrumePlayerServiceTestHost playerServices;
+  final List<String> expectedWalkthroughStepIds;
+  final List<String> completedWalkthroughStepIds = <String>[];
   final Map<String, MapData> _mapsById = <String, MapData>{};
   final Map<String, Set<String>> _runtimeRejectedEdgesByMapId =
       <String, Set<String>>{};
@@ -640,15 +764,42 @@ final class _SelbrumeJourney {
       mapId: 'map_bourg_selbrume',
     );
     final saveRepository = _SerializedMemoryGameSaveRepository();
+    final playerServices = SelbrumePlayerServiceTestHost();
     final game = _JourneyPlayableMapGame(
       bundle: bundle,
       projectFilePath: projectPath,
       saveRepository: saveRepository,
+      encounterRandom: _AlwaysEncounterRandom(),
     );
+    game.setPlayerServiceRuntimeController(
+      PlayerServiceRuntimeController(
+        currentGameState: () => game.playerServiceGameStateSnapshot,
+        host: playerServices,
+        commitAndSave: game.commitAndSavePlayerServiceState,
+        setInputLocked: (locked) => game.setExternalInputLock(
+          RuntimeExternalInputLock.playerService,
+          locked: locked,
+        ),
+        loadRecoveryCaps: (state) => loadRuntimePlayerServiceRecoveryCaps(
+          gameState: state,
+          projectRootDirectory: bundle.projectRootDirectory,
+          pokemonConfig: bundle.manifest.pokemon,
+        ),
+      ),
+    );
+    final walkthrough = jsonDecode(
+      File(p.join(projectRoot.path, 'walkthrough.json')).readAsStringSync(),
+    ) as Map<String, dynamic>;
+    final expectedWalkthroughStepIds = (walkthrough['steps'] as List<dynamic>)
+        .cast<Map<String, dynamic>>()
+        .map((step) => step['id'] as String)
+        .toList(growable: false);
     final journey = _SelbrumeJourney._(
       game: game,
       project: bundle.manifest,
       projectRoot: projectRoot,
+      playerServices: playerServices,
+      expectedWalkthroughStepIds: expectedWalkthroughStepIds,
     );
     game.onGameResize(Vector2(640, 480));
     await game.onLoad();
@@ -659,6 +810,30 @@ final class _SelbrumeJourney {
     expect(journey.state.currentMapId, 'map_bourg_selbrume');
     expect(journey.state.party.members, isEmpty);
     return journey;
+  }
+
+  void completeWalkthroughStep(String stepId) {
+    final index = completedWalkthroughStepIds.length;
+    expect(index, lessThan(expectedWalkthroughStepIds.length));
+    expect(
+      stepId,
+      expectedWalkthroughStepIds[index],
+      reason: 'Le walkthrough produit doit être exécuté strictement dans '
+          'l’ordre authoré.',
+    );
+    completedWalkthroughStepIds.add(stepId);
+  }
+
+  void expectWalkthroughComplete() {
+    expect(completedWalkthroughStepIds, expectedWalkthroughStepIds);
+  }
+
+  void expectSurfMode(String stage) {
+    expect(
+      state.playerMovementMode,
+      MovementMode.surf,
+      reason: 'The unlocked Surf traversal mode must survive $stage.',
+    );
   }
 
   Future<void> checkpoint(
@@ -788,6 +963,129 @@ final class _SelbrumeJourney {
       dialogue: const _DialogueChoice(linesBeforeChoice: 2),
     );
     await waitForFact('fact_port_alert_seen');
+  }
+
+  Future<void> purchaseAtPort(String itemId) async {
+    final before = bagQuantity(itemId);
+    playerServices.queueShopPurchase(itemId);
+    await interactWith(entityId: 'service_port_shop');
+    expect(bagQuantity(itemId), before + 1);
+    expect(playerServices.purchasedItemIds.last, itemId);
+  }
+
+  Future<void> useAuthoredHealingService() async {
+    final before = state.party.members
+        .map((pokemon) => pokemon.currentHp)
+        .toList(growable: false);
+    await interactWith(entityId: 'service_port_healing');
+    final after = state.party.members
+        .map((pokemon) => pokemon.currentHp)
+        .toList(growable: false);
+    expect(after.length, before.length);
+    for (var index = 0; index < after.length; index++) {
+      expect(after[index], greaterThanOrEqualTo(before[index]));
+    }
+    expect(
+      Iterable<int>.generate(after.length).any(
+        (index) => after[index] > before[index],
+      ),
+      isTrue,
+      reason: 'Le poste de soins doit réparer les dégâts du combat contre '
+          'Lysa, pas seulement ouvrir une Scene sans effet.',
+    );
+  }
+
+  Future<void> attemptPortSurfGate({required bool expectTraversal}) async {
+    final zone = _currentMap.gameplayZones.singleWhere(
+      (candidate) => candidate.id == 'zone_port_surf_training',
+    );
+    await _attemptSurfGateAt(
+      target: zone.area.pos,
+      expectTraversal: expectTraversal,
+    );
+  }
+
+  Future<void> _attemptSurfGateAt({
+    required GridPos target,
+    required bool expectTraversal,
+  }) async {
+    final approach = _reachableGateApproach(target);
+    await navigateTo(approach.position);
+    final before = game.debugPlayerGridPosition;
+    await _tapMovement(_controlForDirection(approach.facing));
+    await _pumpUntil(
+      () => game.debugFlowPhaseName == 'dialogue',
+      label: 'Surf gate dialogue',
+    );
+    await completeOpenDialogue(
+      expectTraversal
+          ? const _DialogueChoice(linesBeforeChoice: 0)
+          : const _DialogueChoice(),
+    );
+    await _settleUntil(
+      () => game.debugFlowPhaseName == 'overworld',
+      label: 'Surf gate dialogue completion',
+    );
+    if (!expectTraversal) {
+      expect(game.debugPlayerGridPosition, before);
+      expect(state.playerMovementMode, MovementMode.walk);
+      return;
+    }
+    expect(state.playerMovementMode, MovementMode.surf);
+    await _tapMovement(_controlForDirection(approach.facing));
+    expect(game.debugPlayerGridPosition, target);
+  }
+
+  Future<CaptureDestinationKind> captureWildPokemon() async {
+    final zone = _currentMap.gameplayZones.firstWhere(
+      (candidate) => candidate.kind == GameplayZoneKind.encounter,
+    );
+    if (_contains(zone.area, game.debugPlayerGridPosition)) {
+      await navigateTo(_reachableCellOutsideArea(zone.area));
+    }
+    final partyBefore = state.party.members.length;
+    final storageBefore =
+        state.pokemonStorage.boxes.expand((box) => box.pokemon).length;
+    final ballsBefore = bagQuantity('poke-ball');
+    await navigateTo(
+      _reachableCellInArea(zone.area),
+      deferBattleInArea: zone.area,
+    );
+    await _driveRealBattle(
+      expectStaticBattle: false,
+      strategy: _BattleStrategy.capture,
+      expectedEnemySpeciesId: 'pidgeotto',
+    );
+    await _settleUntil(
+      () => game.debugFlowPhaseName == 'overworld',
+      label: 'wild capture completion',
+    );
+    expect(bagQuantity('poke-ball'), ballsBefore - 1);
+    final partyAfter = state.party.members.length;
+    final storageAfter =
+        state.pokemonStorage.boxes.expand((box) => box.pokemon).length;
+    if (partyAfter == partyBefore + 1) {
+      expect(storageAfter, storageBefore);
+      return CaptureDestinationKind.party;
+    }
+    expect(partyAfter, partyBefore);
+    expect(storageAfter, storageBefore + 1);
+    return CaptureDestinationKind.storage;
+  }
+
+  Future<void> withdrawCapturedPokemonFromPc() async {
+    final storedBefore = state.pokemonStorage.boxes
+        .expand((box) => box.pokemon)
+        .map((pokemon) => pokemon.speciesId)
+        .toList(growable: false);
+    expect(storedBefore, isNotEmpty);
+    playerServices.queueCapturedPokemonWithdrawal();
+    await interactWith(entityId: 'service_port_pc');
+    expect(state.party.members, hasLength(maxPlayerPartySize));
+    expect(
+      state.party.members.map((pokemon) => pokemon.speciesId),
+      contains(playerServices.withdrawnSpeciesId),
+    );
   }
 
   Future<void> interactWith({
@@ -931,6 +1229,7 @@ final class _SelbrumeJourney {
       'No production-input route crossed ${sourceMap.id} '
       '${direction.name} to ${connection.targetMapId}; '
       'current=${game.debugPlayerGridPosition}, '
+      'movementMode=${state.playerMovementMode.name}, '
       'lastFailure=$lastFailure, rejectedEdges=$rejected.',
     );
   }
@@ -1186,6 +1485,10 @@ final class _SelbrumeJourney {
         await _tryRunFromBattle();
         continue;
       }
+      if (effectiveStrategy == _BattleStrategy.capture) {
+        await _tryCaptureWithPokeBall();
+        continue;
+      }
       final battle = game.debugBattleSessionSnapshot;
       expect(battle, isNotNull);
       final player = battle!.state.player;
@@ -1228,6 +1531,27 @@ final class _SelbrumeJourney {
     }
     await game.debugWaitForPostBattleCompletion();
     return true;
+  }
+
+  Future<void> _tryCaptureWithPokeBall() async {
+    final overlay = game.debugBattleOverlayComponent;
+    expect(overlay, isNotNull);
+    final activeOverlay = overlay!;
+    for (var back = 0;
+        back < 3 && activeOverlay.currentMenuMode.name != 'root';
+        back++) {
+      expect(game.backFromBattleOverlay(), isTrue);
+      await _microPump();
+    }
+    expect(activeOverlay.currentMenuMode.name, 'root');
+    await _pressBattleDirection(RuntimeInputControl.up);
+    await _pressBattleDirection(RuntimeInputControl.left);
+    await _pressBattleDirection(RuntimeInputControl.right);
+    _pressPrimary();
+    await _microPump();
+    expect(activeOverlay.currentMenuMode.name, 'bag');
+    _pressPrimary();
+    await _waitForBattleInputReady();
   }
 
   Future<void> _tryRunFromBattle() async {
@@ -1492,6 +1816,7 @@ final class _SelbrumeJourney {
       project: project,
       tileWidth: project.settings.tileWidth,
       tileHeight: project.settings.tileHeight,
+      playerMovementMode: state.playerMovementMode,
       npcMapPresencePredicate: entityPresence,
       mapEntityPresencePredicate: entityPresence,
     );
@@ -1648,6 +1973,30 @@ final class _SelbrumeJourney {
     return candidates.first;
   }
 
+  ({GridPos position, Direction facing}) _reachableGateApproach(
+    GridPos target,
+  ) {
+    final candidates = <({GridPos position, Direction facing, int length})>[];
+    for (final facing in Direction.values) {
+      final position = GridPos(
+        x: target.x - facing.dx,
+        y: target.y - facing.dy,
+      );
+      final path = _pathTo(position);
+      if (path != null) {
+        candidates.add(
+          (position: position, facing: facing, length: path.length),
+        );
+      }
+    }
+    if (candidates.isEmpty) {
+      fail('Surf gate $target has no reachable approach.');
+    }
+    candidates.sort((left, right) => left.length.compareTo(right.length));
+    final selected = candidates.first;
+    return (position: selected.position, facing: selected.facing);
+  }
+
   GridPos _reachableCellInArea(MapRect area) {
     final candidates = <({GridPos pos, int length})>[];
     for (var y = area.pos.y; y < area.pos.y + area.size.height; y++) {
@@ -1751,13 +2100,27 @@ final class _JourneyPlayableMapGame extends PlayableMapGame {
     required super.bundle,
     required super.projectFilePath,
     required super.saveRepository,
+    required super.encounterRandom,
   });
 
   @override
   bool get isLoaded => true;
 }
 
-enum _BattleStrategy { win, lose, flee }
+/// Forces the production encounter policy to take its encounter branch while
+/// leaving table selection, battle setup and capture RNG untouched.
+final class _AlwaysEncounterRandom implements math.Random {
+  @override
+  bool nextBool() => false;
+
+  @override
+  double nextDouble() => 0;
+
+  @override
+  int nextInt(int max) => 0;
+}
+
+enum _BattleStrategy { win, lose, flee, capture }
 
 final class _SerializedMemoryGameSaveRepository implements GameSaveRepository {
   String? _payload;

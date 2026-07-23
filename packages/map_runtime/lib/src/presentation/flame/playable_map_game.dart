@@ -185,6 +185,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     RuntimeTilesetImageLoader? runtimeTilesetImageLoader,
     RuntimePlayerPokemonProgressionCatalogLoader?
         runtimePlayerPokemonProgressionCatalogLoader,
+    @visibleForTesting math.Random? encounterRandom,
     RuntimePostBattleDecisionCoordinator? postBattleDecisionCoordinator,
     @visibleForTesting this.postBattleOverlayMounter,
     @visibleForTesting this.beforePostBattleStateCommit,
@@ -209,7 +210,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             runtimeTilesetImageLoader ?? loadTilesetImagesById,
         _runtimePlayerPokemonProgressionCatalogLoader =
             runtimePlayerPokemonProgressionCatalogLoader ??
-                loadRuntimePlayerPokemonProgressionCatalogs {
+                loadRuntimePlayerPokemonProgressionCatalogs,
+        _encounterRandom = encounterRandom ?? math.Random() {
     if (bundleTransformer != null) {
       _bundle = bundleTransformer!(_bundle);
     }
@@ -399,7 +401,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       <String, RuntimeTilesetImage>{};
   final BorderRuntimeAssetCache _borderRuntimeAssetCache =
       BorderRuntimeAssetCache();
-  final math.Random _encounterRandom = math.Random();
+
+  /// Injected only by deterministic acceptance tests. Production retains a
+  /// fresh random source and the encounter engine remains the sole consumer.
+  final math.Random _encounterRandom;
   final GridPathfinder _followPathfinder = const GridPathfinder();
   final RuntimeMoveCatalogLoader _battleMoveCatalogLoader =
       RuntimeMoveCatalogLoader();
@@ -1616,6 +1621,26 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// A failed save restores the previous in-memory transaction snapshot so a
   /// closed Shop, PC or healing overlay never leaves a half-committed session.
   Future<void> commitAndSavePlayerServiceState(GameState nextState) async {
+    final activeScene = _activeNarrativeSceneWorkingSession;
+    if (activeScene != null) {
+      activeScene.gameState = nextState;
+      if (!activeScene.playerServiceCommitDeferred) {
+        final deferred = _narrativeStateTransactions
+            .deferAfterCurrentCommit((committed) async {
+          final saved = await _saveGameUseCase.execute(committed);
+          if (!saved) {
+            throw StateError('Player service state could not be saved.');
+          }
+          _applyNarrativeGameState(committed);
+        });
+        if (deferred) {
+          activeScene.playerServiceCommitDeferred = true;
+          return;
+        }
+      } else {
+        return;
+      }
+    }
     final previousState = await _narrativeStateTransactions.read();
     try {
       final committedState =
@@ -10152,6 +10177,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           map: newBundle.map,
           playerPos: warp.targetPos,
           playerFacing: sourceFacing,
+          playerMovementMode: sourceWorld.player.movementMode,
           project: newBundle.manifest,
           tileWidth: newBundle.manifest.settings.tileWidth,
           tileHeight: newBundle.manifest.settings.tileHeight,
@@ -10529,6 +10555,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         map: target.bundle.map,
         playerPos: targetPos,
         playerFacing: _world.player.facing,
+        playerMovementMode: _world.player.movementMode,
         project: target.bundle.manifest,
         tileWidth: target.bundle.manifest.settings.tileWidth,
         tileHeight: target.bundle.manifest.settings.tileHeight,
@@ -12580,6 +12607,7 @@ final class _NarrativeSceneWorkingSession {
   _NarrativeSceneWorkingSession(this.gameState);
 
   GameState gameState;
+  bool playerServiceCommitDeferred = false;
 }
 
 final class _NarrativeOutcomeContinuationContext {

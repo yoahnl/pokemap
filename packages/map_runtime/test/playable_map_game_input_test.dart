@@ -1062,6 +1062,7 @@ void main() {
 
       game.onGameResize(_testViewportSize);
       await game.onLoad();
+      game.setSurfingEnabled(true);
 
       await _runSingleMove(game, RuntimeInputControl.right);
       await _pumpUntil(
@@ -1076,6 +1077,7 @@ void main() {
       );
 
       expect(game.gameStateSnapshot.currentMapId, 'warp_target');
+      expect(game.gameStateSnapshot.playerMovementMode, MovementMode.surf);
       expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 1, y: 1));
       expect(game.debugRenderedPlayerFootCell, const GridPos(x: 1, y: 1));
       expect(
@@ -1244,6 +1246,7 @@ void main() {
 
       game.onGameResize(_testViewportSize);
       await game.onLoad();
+      game.setSurfingEnabled(true);
 
       await _runSingleMove(game, RuntimeInputControl.right);
       await _pumpUntil(
@@ -1256,6 +1259,7 @@ void main() {
       );
 
       expect(game.gameStateSnapshot.currentMapId, 'connection_target');
+      expect(game.gameStateSnapshot.playerMovementMode, MovementMode.surf);
       expect(
         game.gameStateSnapshot.playerPosition,
         const GridPos(x: 0, y: 0),
@@ -3078,6 +3082,11 @@ Map<String, dynamic> _runtimeSpeciesJson({
     },
     'refs': <String, dynamic>{
       'learnset': id,
+    },
+    'progression': <String, dynamic>{
+      'growthRateId': 'medium',
+      'baseExp': 64,
+      'catchRate': 45,
     },
   };
 }

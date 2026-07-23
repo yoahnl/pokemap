@@ -525,6 +525,7 @@ Guide: Bienvenue à Selbrume. La brume cache parfois le chemin.
       itemOptions: const <ShopEditorItemOption>[
         ShopEditorItemOption(id: 'potion', label: 'Potion'),
         ShopEditorItemOption(id: 'antidote', label: 'Antidote'),
+        ShopEditorItemOption(id: 'poke-ball', label: 'Poké Ball'),
       ],
     );
     final shop = shopController.createShop(label: 'Comptoir des Brisants');
@@ -538,6 +539,12 @@ Guide: Bienvenue à Selbrume. La brume cache parfois le chemin.
       ..addEntry(
         shopId: shop.id,
         itemId: 'antidote',
+        price: 100,
+        stock: 99,
+      )
+      ..addEntry(
+        shopId: shop.id,
+        itemId: 'poke-ball',
         price: 100,
         stock: 99,
       );
