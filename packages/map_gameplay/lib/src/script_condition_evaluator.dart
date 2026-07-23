@@ -35,6 +35,14 @@ class ScriptConditionEvaluator {
           state,
           context: context,
         );
+      case ScriptConditionType.factEquals:
+      case ScriptConditionType.stepCompleted:
+      case ScriptConditionType.badgeOwned:
+      case ScriptConditionType.itemQuantityAtLeast:
+      case ScriptConditionType.moneyAtLeast:
+        // Le contrat est partagé dès FG-074. Son évaluation runtime est
+        // volontairement fermée jusqu'au lot FG-075.
+        return false;
       case ScriptConditionType.variableEquals:
         return _evaluateVariableEquals(condition.params, state);
       case ScriptConditionType.variableGreaterThan:

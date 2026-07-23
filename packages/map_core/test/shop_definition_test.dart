@@ -21,6 +21,43 @@ void main() {
       expect(restored.entries.single.stock, 5);
     });
 
+    test('legacy shops without states keep their default catalogue', () {
+      final shop = ShopDefinition.fromJson(<String, dynamic>{
+        'id': 'mart',
+        'label': 'Boutique',
+        'entries': <Object?>[
+          <String, Object?>{'itemId': 'potion', 'price': 300},
+        ],
+      });
+
+      expect(shop.states, isEmpty);
+      expect(shop.entries.single.itemId, 'potion');
+      expect(shop.entries.single.price, 300);
+    });
+
+    test('normalizes states and rejects duplicate conditional state ids', () {
+      final shop = ShopDefinition(
+        id: 'mart',
+        label: 'Boutique',
+        states: <ShopStateDefinition>[
+          _state(' after-story '),
+        ],
+      ).normalized();
+
+      expect(shop.states.single.id, 'after-story');
+      expect(
+        () => ShopDefinition(
+          id: 'mart',
+          label: 'Boutique',
+          states: <ShopStateDefinition>[
+            _state('after-story'),
+            _state(' after-story '),
+          ],
+        ).normalized(),
+        throwsStateError,
+      );
+    });
+
     test('rejects unknown items, duplicates, invalid price and stock', () {
       expect(
         () => const ShopDefinition(
@@ -95,3 +132,9 @@ void main() {
     });
   });
 }
+
+ShopStateDefinition _state(String id) => ShopStateDefinition(
+      id: id,
+      label: 'After story',
+      activation: ScriptConditionFactory.flagIsSet('story.finished'),
+    );

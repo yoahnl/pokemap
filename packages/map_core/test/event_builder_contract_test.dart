@@ -72,20 +72,28 @@ void main() {
       );
     });
 
-    test('story step conditions stay typed but unsupported for ScriptCondition',
-        () {
-      final binding =
+    test('story step conditions compile without pretending they are flags', () {
+      final completed =
           EventBuilderConditionBinding.storyStepCompleted('step_go_port');
+      final pending =
+          EventBuilderConditionBinding.storyStepNotCompleted('step_go_port');
 
-      expect(binding.kind, EventBuilderConditionKind.storyStepCompleted);
-      expect(binding.toScriptCondition(), isNull);
-
-      final result = compileEventBuilderConditionsToScriptCondition([binding]);
-      expect(result.condition, isNull);
       expect(
-        result.diagnostics.single.kind,
-        EventBuilderContractDiagnosticKind.unsupportedStoryStepCondition,
+        completed.toScriptCondition(),
+        ScriptConditionFactory.stepCompleted('step_go_port'),
       );
+      expect(
+        pending.toScriptCondition(),
+        ScriptConditionFactory.not(
+          ScriptConditionFactory.stepCompleted('step_go_port'),
+        ),
+      );
+
+      final result =
+          compileEventBuilderConditionsToScriptCondition([completed, pending]);
+      expect(result.condition?.type, ScriptConditionType.allOf);
+      expect(result.condition?.children, hasLength(2));
+      expect(result.diagnostics, isEmpty);
     });
   });
 }

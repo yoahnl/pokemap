@@ -1169,6 +1169,42 @@ class ProjectValidator {
           );
         }
         return;
+      case ScriptConditionType.factEquals:
+        _validateFactEqualsCondition(condition, contextLabel);
+        return;
+      case ScriptConditionType.stepCompleted:
+        _requireScriptConditionReference(
+          condition,
+          ScriptConditionParams.stepId,
+          contextLabel,
+        );
+        return;
+      case ScriptConditionType.badgeOwned:
+        _requireScriptConditionReference(
+          condition,
+          ScriptConditionParams.badgeId,
+          contextLabel,
+        );
+        return;
+      case ScriptConditionType.itemQuantityAtLeast:
+        _requireScriptConditionReference(
+          condition,
+          ScriptConditionParams.itemId,
+          contextLabel,
+        );
+        _requireNonNegativeScriptConditionInteger(
+          condition,
+          ScriptConditionParams.quantity,
+          contextLabel,
+        );
+        return;
+      case ScriptConditionType.moneyAtLeast:
+        _requireNonNegativeScriptConditionInteger(
+          condition,
+          ScriptConditionParams.amount,
+          contextLabel,
+        );
+        return;
       case ScriptConditionType.eventIsConsumed:
         final eventId = condition.params[ScriptConditionParams.eventId];
         if (eventId == null || eventId.trim().isEmpty) {
@@ -1472,6 +1508,89 @@ class ProjectValidator {
   static String _capitalize(String value) {
     if (value.isEmpty) return value;
     return value[0].toUpperCase() + value.substring(1);
+  }
+}
+
+void _requireScriptConditionReference(
+  ScriptCondition condition,
+  String paramName,
+  String contextLabel,
+) {
+  final value = condition.params[paramName];
+  if (value == null || value.trim().isEmpty) {
+    throw ValidationException(
+      '$contextLabel ${condition.type.name} requires a non-empty $paramName',
+    );
+  }
+}
+
+void _requireNonNegativeScriptConditionInteger(
+  ScriptCondition condition,
+  String paramName,
+  String contextLabel,
+) {
+  final raw = condition.params[paramName];
+  final value = raw == null ? null : int.tryParse(raw);
+  if (value == null || value < 0 || value.toString() != raw) {
+    throw ValidationException(
+      '$contextLabel ${condition.type.name} requires a canonical, '
+      'non-negative $paramName',
+    );
+  }
+}
+
+void _validateFactEqualsCondition(
+  ScriptCondition condition,
+  String contextLabel,
+) {
+  _requireScriptConditionReference(
+    condition,
+    ScriptConditionParams.factId,
+    contextLabel,
+  );
+  final valueType = condition.params[ScriptConditionParams.valueType];
+  final rawValue = condition.params[ScriptConditionParams.value];
+  if (valueType == null || valueType.trim().isEmpty) {
+    throw ValidationException(
+      '$contextLabel factEquals requires a non-empty valueType',
+    );
+  }
+  if (rawValue == null) {
+    throw ValidationException('$contextLabel factEquals requires value');
+  }
+
+  late final NarrativeValueKind kind;
+  try {
+    kind = NarrativeValueKind.fromWireName(valueType);
+  } on FormatException {
+    throw ValidationException(
+      '$contextLabel factEquals has unsupported valueType "$valueType"',
+    );
+  }
+
+  switch (kind) {
+    case NarrativeValueKind.boolean:
+      if (rawValue != 'true' && rawValue != 'false') {
+        throw ValidationException(
+          '$contextLabel factEquals requires true or false for bool value',
+        );
+      }
+    case NarrativeValueKind.integer:
+      final value = int.tryParse(rawValue);
+      if (value == null || value.toString() != rawValue) {
+        throw ValidationException(
+          '$contextLabel factEquals requires a canonical integer value',
+        );
+      }
+      try {
+        NarrativeValue.integer(value);
+      } on ArgumentError {
+        throw ValidationException(
+          '$contextLabel factEquals integer exceeds the supported JSON range',
+        );
+      }
+    case NarrativeValueKind.string:
+      break;
   }
 }
 
@@ -2167,6 +2286,42 @@ class MapValidator {
             '$contextLabel ${condition.type.name} requires a non-empty flagName',
           );
         }
+        return;
+      case ScriptConditionType.factEquals:
+        _validateFactEqualsCondition(condition, contextLabel);
+        return;
+      case ScriptConditionType.stepCompleted:
+        _requireScriptConditionReference(
+          condition,
+          ScriptConditionParams.stepId,
+          contextLabel,
+        );
+        return;
+      case ScriptConditionType.badgeOwned:
+        _requireScriptConditionReference(
+          condition,
+          ScriptConditionParams.badgeId,
+          contextLabel,
+        );
+        return;
+      case ScriptConditionType.itemQuantityAtLeast:
+        _requireScriptConditionReference(
+          condition,
+          ScriptConditionParams.itemId,
+          contextLabel,
+        );
+        _requireNonNegativeScriptConditionInteger(
+          condition,
+          ScriptConditionParams.quantity,
+          contextLabel,
+        );
+        return;
+      case ScriptConditionType.moneyAtLeast:
+        _requireNonNegativeScriptConditionInteger(
+          condition,
+          ScriptConditionParams.amount,
+          contextLabel,
+        );
         return;
       case ScriptConditionType.eventIsConsumed:
         final eventId = condition.params[ScriptConditionParams.eventId];

@@ -456,6 +456,8 @@ String _issueTitle(NarrativeDependencyIssueKind kind) {
 String _kindLabel(NarrativeDependencyTargetKind kind) {
   return switch (kind) {
     NarrativeDependencyTargetKind.fact => 'Fact',
+    NarrativeDependencyTargetKind.badge => 'Badge',
+    NarrativeDependencyTargetKind.item => 'Objet',
     NarrativeDependencyTargetKind.eventV2 => 'Événement',
     NarrativeDependencyTargetKind.scene => 'Scène',
     NarrativeDependencyTargetKind.dialogue => 'Dialogue',

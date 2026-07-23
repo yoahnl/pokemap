@@ -416,9 +416,14 @@ void main() {
               name: 'Global Story',
               scope: ScenarioScope.globalStory,
               declaredOutcomes: const [],
-              activationCondition: ScriptConditionFactory.flagIsSet(
-                'p4.flag.ready',
-              ),
+              activationCondition:
+                  ScriptConditionFactory.allOf(<ScriptCondition>[
+                ScriptConditionFactory.flagIsSet('p4.flag.ready'),
+                ScriptConditionFactory.factEquals(
+                  'p4.fact.typed',
+                  const NarrativeValue.string('true'),
+                ),
+              ]),
               metadata: {
                 'authoring.stepStudioDocument': '''
 {
@@ -479,6 +484,14 @@ void main() {
           options,
           NarrativePredicateReferenceKind.storyFlag,
           'p4.flag.ready',
+        ).sourceScenarioIds,
+        ['global_story'],
+      );
+      expect(
+        _byPredicateReference(
+          options,
+          NarrativePredicateReferenceKind.storyFlag,
+          'p4.fact.typed',
         ).sourceScenarioIds,
         ['global_story'],
       );

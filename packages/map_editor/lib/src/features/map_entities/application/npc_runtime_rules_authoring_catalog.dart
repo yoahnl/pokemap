@@ -168,7 +168,27 @@ void _flagsFromCondition(ScriptCondition? c, Set<String> out) {
         out.add(v);
       }
       break;
-    default:
+    case ScriptConditionType.factEquals:
+      final factId = c.params[ScriptConditionParams.factId]?.trim();
+      if (factId != null && factId.isNotEmpty) {
+        out.add(factId);
+      }
+      break;
+    case ScriptConditionType.allOf:
+    case ScriptConditionType.anyOf:
+    case ScriptConditionType.not:
+    case ScriptConditionType.stepCompleted:
+    case ScriptConditionType.badgeOwned:
+    case ScriptConditionType.itemQuantityAtLeast:
+    case ScriptConditionType.moneyAtLeast:
+    case ScriptConditionType.variableEquals:
+    case ScriptConditionType.variableGreaterThan:
+    case ScriptConditionType.variableLessThan:
+    case ScriptConditionType.fieldAbilityUnlocked:
+    case ScriptConditionType.partyHasMove:
+    case ScriptConditionType.partyHasUsableMove:
+    case ScriptConditionType.eventIsConsumed:
+    case ScriptConditionType.playerOnMap:
       break;
   }
   for (final child in c.children) {
@@ -201,7 +221,8 @@ List<NpcRuntimePickOption> _collectStepOptions(ProjectManifest project) {
     }
   }
   out.sort(
-    (a, b) => a.pickerLabel.toLowerCase().compareTo(b.pickerLabel.toLowerCase()),
+    (a, b) =>
+        a.pickerLabel.toLowerCase().compareTo(b.pickerLabel.toLowerCase()),
   );
   return out;
 }
@@ -243,7 +264,8 @@ List<NpcRuntimePickOption> _collectChapterOptions(ProjectManifest project) {
     }
   }
   out.sort(
-    (a, b) => a.pickerLabel.toLowerCase().compareTo(b.pickerLabel.toLowerCase()),
+    (a, b) =>
+        a.pickerLabel.toLowerCase().compareTo(b.pickerLabel.toLowerCase()),
   );
   return out;
 }
@@ -266,7 +288,8 @@ List<NpcRuntimePickOption> _collectLocalCutsceneOptions(
     );
   }
   out.sort(
-    (a, b) => a.pickerLabel.toLowerCase().compareTo(b.pickerLabel.toLowerCase()),
+    (a, b) =>
+        a.pickerLabel.toLowerCase().compareTo(b.pickerLabel.toLowerCase()),
   );
   return out;
 }

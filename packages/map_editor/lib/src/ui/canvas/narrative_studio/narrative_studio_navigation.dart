@@ -302,6 +302,16 @@ NarrativeStudioNavigationResolution resolveNarrativeDependencyNavigationIntent(
           selection: selection(NarrativeStudioAssetKind.fact),
         ),
       ),
+    NarrativeDependencyTargetKind.badge =>
+      const NarrativeStudioNavigationResolution.unavailable(
+        'La bibliothèque des badges ne possède pas encore de route Narrative '
+        'Studio dédiée.',
+      ),
+    NarrativeDependencyTargetKind.item =>
+      const NarrativeStudioNavigationResolution.unavailable(
+        'Le catalogue des objets ne possède pas encore de route Narrative '
+        'Studio dédiée.',
+      ),
     NarrativeDependencyTargetKind.eventV2 =>
       NarrativeStudioNavigationResolution.internal(
         NarrativeStudioRouteLocation.events(

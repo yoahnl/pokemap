@@ -14,6 +14,36 @@ import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
   group('NS-STORYLINES-V1-12 visual graph enrichment', () {
+    test('advanced typed conditions do not become simple Fact-id controls', () {
+      final source = File('lib/src/ui/canvas/storylines_workspace.dart')
+          .readAsStringSync();
+      final start = source.indexOf('String? _simpleFactId(');
+      final end = source.indexOf(
+        'class _CreateStructureItemDialog',
+        start,
+      );
+      final simpleFactReader = source.substring(start, end);
+
+      expect(simpleFactReader, contains('ScriptConditionType.flagIsSet'));
+      expect(simpleFactReader, contains('ScriptConditionType.flagIsUnset'));
+      expect(simpleFactReader, contains('ScriptConditionType.factEquals'));
+      expect(simpleFactReader, contains('ScriptConditionType.stepCompleted'));
+      expect(simpleFactReader, contains('ScriptConditionType.badgeOwned'));
+      expect(
+        simpleFactReader,
+        contains('ScriptConditionType.itemQuantityAtLeast'),
+      );
+      expect(simpleFactReader, contains('ScriptConditionType.moneyAtLeast'));
+      expect(
+        simpleFactReader,
+        contains('condition.params[ScriptConditionParams.flagName]'),
+      );
+      expect(
+        simpleFactReader,
+        isNot(contains('condition.params[ScriptConditionParams.factId]')),
+      );
+    });
+
     testWidgets(
       'owns one shared workspace context and moves the real create flow there',
       (tester) async {

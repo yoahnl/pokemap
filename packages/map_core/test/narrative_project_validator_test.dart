@@ -290,7 +290,7 @@ void main() {
     });
 
     test(
-        'legacy reachability keeps the fallback when an earlier disabled condition can become false',
+        'legacy reachability keeps the fallback when a typed Fact condition can become false',
         () {
       final fixture = _fixture(completeStep: false);
       final map = fixture.map.copyWith(
@@ -300,7 +300,10 @@ void main() {
             pages: [
               MapEventPage(
                 pageNumber: 0,
-                condition: ScriptConditionFactory.flagIsSet('fact_gate'),
+                condition: ScriptConditionFactory.factEquals(
+                  'fact_gate',
+                  const NarrativeValue.boolean(true),
+                ),
                 isDisabled: true,
               ),
               const MapEventPage(

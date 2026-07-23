@@ -342,6 +342,12 @@ void _appendConditionBindings(
         bindings.add(EventBuilderConditionBinding.eventConsumed(eventId!));
         return;
       }
+    case ScriptConditionType.stepCompleted:
+      final stepId = condition.params[ScriptConditionParams.stepId];
+      if ((stepId ?? '').trim().isNotEmpty) {
+        bindings.add(EventBuilderConditionBinding.storyStepCompleted(stepId!));
+        return;
+      }
     case ScriptConditionType.not:
       final child =
           condition.children.length == 1 ? condition.children.single : null;
@@ -349,6 +355,15 @@ void _appendConditionBindings(
         final eventId = child?.params[ScriptConditionParams.eventId];
         if ((eventId ?? '').trim().isNotEmpty) {
           bindings.add(EventBuilderConditionBinding.eventNotConsumed(eventId!));
+          return;
+        }
+      }
+      if (child?.type == ScriptConditionType.stepCompleted) {
+        final stepId = child?.params[ScriptConditionParams.stepId];
+        if ((stepId ?? '').trim().isNotEmpty) {
+          bindings.add(
+            EventBuilderConditionBinding.storyStepNotCompleted(stepId!),
+          );
           return;
         }
       }
@@ -363,6 +378,10 @@ void _appendConditionBindings(
       }
       return;
     case ScriptConditionType.anyOf:
+    case ScriptConditionType.factEquals:
+    case ScriptConditionType.badgeOwned:
+    case ScriptConditionType.itemQuantityAtLeast:
+    case ScriptConditionType.moneyAtLeast:
     case ScriptConditionType.variableEquals:
     case ScriptConditionType.variableGreaterThan:
     case ScriptConditionType.variableLessThan:

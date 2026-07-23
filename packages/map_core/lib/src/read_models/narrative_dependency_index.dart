@@ -21,6 +21,8 @@ import '../models/world_rule.dart';
 /// Canonical namespaces used by Narrative Studio dependency consumers.
 enum NarrativeDependencyTargetKind {
   fact,
+  badge,
+  item,
   eventV2,
   scene,
   dialogue,
@@ -513,6 +515,14 @@ final class _NarrativeDependencyIndexBuilder {
         fact.id,
         fact.label,
         path: 'facts[${fact.id}]',
+      );
+    }
+    for (final badge in project.badges) {
+      _definition(
+        NarrativeDependencyTargetKind.badge,
+        badge.id,
+        badge.label,
+        path: 'badges[${badge.id}]',
       );
     }
     for (final dialogue in project.dialogues) {
@@ -1008,6 +1018,52 @@ final class _NarrativeDependencyIndexBuilder {
           if (flag != null && flag.isNotEmpty) {
             _collectLegacyFactRef(flag, owner, '$path.params.flagName');
           }
+        case ScriptConditionType.factEquals:
+          final factId = condition.params[ScriptConditionParams.factId]?.trim();
+          if (factId != null && factId.isNotEmpty) {
+            _collectLegacyFactRef(factId, owner, '$path.params.factId');
+          }
+        case ScriptConditionType.stepCompleted:
+          final stepId = condition.params[ScriptConditionParams.stepId]?.trim();
+          if (stepId != null && stepId.isNotEmpty) {
+            _usage(
+              target: NarrativeDependencyKey(
+                NarrativeDependencyTargetKind.step,
+                stepId,
+              ),
+              owner: owner,
+              path: '$path.params.stepId',
+              criticality: NarrativeDependencyCriticality.runtimeBlocking,
+            );
+          }
+        case ScriptConditionType.badgeOwned:
+          final badgeId =
+              condition.params[ScriptConditionParams.badgeId]?.trim();
+          if (badgeId != null && badgeId.isNotEmpty) {
+            _usage(
+              target: NarrativeDependencyKey(
+                NarrativeDependencyTargetKind.badge,
+                badgeId,
+              ),
+              owner: owner,
+              path: '$path.params.badgeId',
+              criticality: NarrativeDependencyCriticality.runtimeBlocking,
+            );
+          }
+        case ScriptConditionType.itemQuantityAtLeast:
+          final itemId = condition.params[ScriptConditionParams.itemId]?.trim();
+          if (itemId != null && itemId.isNotEmpty) {
+            _usage(
+              target: NarrativeDependencyKey(
+                NarrativeDependencyTargetKind.item,
+                itemId,
+              ),
+              owner: owner,
+              path: '$path.params.itemId',
+              criticality: NarrativeDependencyCriticality.authoringWarning,
+              resolution: NarrativeDependencyResolution.legacyExternal,
+            );
+          }
         case ScriptConditionType.eventIsConsumed:
           final eventId =
               condition.params[ScriptConditionParams.eventId]?.trim();
@@ -1035,7 +1091,16 @@ final class _NarrativeDependencyIndexBuilder {
               criticality: NarrativeDependencyCriticality.runtimeBlocking,
             );
           }
-        default:
+        case ScriptConditionType.allOf:
+        case ScriptConditionType.anyOf:
+        case ScriptConditionType.not:
+        case ScriptConditionType.moneyAtLeast:
+        case ScriptConditionType.variableEquals:
+        case ScriptConditionType.variableGreaterThan:
+        case ScriptConditionType.variableLessThan:
+        case ScriptConditionType.fieldAbilityUnlocked:
+        case ScriptConditionType.partyHasMove:
+        case ScriptConditionType.partyHasUsableMove:
           break;
       }
       for (var index = 0; index < condition.children.length; index++) {

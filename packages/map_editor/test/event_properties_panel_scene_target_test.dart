@@ -9,6 +9,25 @@ import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/panels/event_properties_panel.dart';
 
 void main() {
+  test('condition dropdown keeps its existing guided catalogue', () {
+    final source = File('lib/src/ui/panels/event_properties_panel.dart')
+        .readAsStringSync();
+    final start = source.indexOf('enum _EventConditionMode');
+    final end = source.indexOf('}', start);
+    final conditionModes = source.substring(start, end);
+
+    expect(conditionModes, contains('none'));
+    expect(conditionModes, contains('flagIsSet'));
+    expect(conditionModes, contains('flagIsUnset'));
+    expect(conditionModes, contains('eventIsConsumed'));
+    expect(conditionModes, contains('rawJson'));
+    expect(conditionModes, isNot(contains('factEquals')));
+    expect(conditionModes, isNot(contains('stepCompleted')));
+    expect(conditionModes, isNot(contains('badgeOwned')));
+    expect(conditionModes, isNot(contains('itemQuantityAtLeast')));
+    expect(conditionModes, isNot(contains('moneyAtLeast')));
+  });
+
   testWidgets('scene picker selects and clears a real Scene V1 target',
       (tester) async {
     final container = ProviderContainer();

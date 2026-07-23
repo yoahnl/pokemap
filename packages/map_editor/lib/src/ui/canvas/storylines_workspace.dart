@@ -3517,12 +3517,29 @@ List<_StorylineOutcomeChoice> _outcomeChoices(List<SceneAsset> scenes) {
 }
 
 String? _simpleFactId(ScriptCondition? condition) {
-  if (condition == null ||
-      (condition.type != ScriptConditionType.flagIsSet &&
-          condition.type != ScriptConditionType.flagIsUnset)) {
-    return null;
-  }
-  return condition.params[ScriptConditionParams.flagName];
+  if (condition == null || condition.children.isNotEmpty) return null;
+  return switch (condition.type) {
+    ScriptConditionType.flagIsSet ||
+    ScriptConditionType.flagIsUnset =>
+      condition.params[ScriptConditionParams.flagName],
+    ScriptConditionType.allOf ||
+    ScriptConditionType.anyOf ||
+    ScriptConditionType.not ||
+    ScriptConditionType.factEquals ||
+    ScriptConditionType.stepCompleted ||
+    ScriptConditionType.badgeOwned ||
+    ScriptConditionType.itemQuantityAtLeast ||
+    ScriptConditionType.moneyAtLeast ||
+    ScriptConditionType.variableEquals ||
+    ScriptConditionType.variableGreaterThan ||
+    ScriptConditionType.variableLessThan ||
+    ScriptConditionType.fieldAbilityUnlocked ||
+    ScriptConditionType.partyHasMove ||
+    ScriptConditionType.partyHasUsableMove ||
+    ScriptConditionType.eventIsConsumed ||
+    ScriptConditionType.playerOnMap =>
+      null,
+  };
 }
 
 class _CreateStructureItemDialog extends StatefulWidget {

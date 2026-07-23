@@ -1472,6 +1472,22 @@ void _collectLegacyConditionVariables(
       if (factId != null && factId.isNotEmpty) {
         target.add('fact\u001f$factId');
       }
+    case ScriptConditionType.factEquals:
+      final valueType =
+          condition.params[ScriptConditionParams.valueType]?.trim();
+      final value = condition.params[ScriptConditionParams.value]?.trim();
+      final factId = condition.params[ScriptConditionParams.factId]?.trim();
+      if (valueType == NarrativeValueKind.boolean.wireName &&
+          (value == 'true' || value == 'false') &&
+          factId != null &&
+          factId.isNotEmpty) {
+        target.add('fact\u001f$factId');
+      }
+    case ScriptConditionType.stepCompleted:
+    case ScriptConditionType.badgeOwned:
+    case ScriptConditionType.itemQuantityAtLeast:
+    case ScriptConditionType.moneyAtLeast:
+      break;
     case ScriptConditionType.eventIsConsumed:
       final eventId = condition.params[ScriptConditionParams.eventId]?.trim();
       if (eventId != null && eventId.isNotEmpty) {
@@ -1532,6 +1548,22 @@ bool? _evaluateLegacyConditionForAssignment(
           condition.params[ScriptConditionParams.mapId]?.trim();
       if (expectedMapId == null || expectedMapId.isEmpty) return null;
       return expectedMapId == mapId;
+    case ScriptConditionType.factEquals:
+      final valueType =
+          condition.params[ScriptConditionParams.valueType]?.trim();
+      final value = condition.params[ScriptConditionParams.value]?.trim();
+      final factId = condition.params[ScriptConditionParams.factId]?.trim();
+      if (valueType != NarrativeValueKind.boolean.wireName ||
+          (value != 'true' && value != 'false') ||
+          factId == null ||
+          factId.isEmpty) {
+        return null;
+      }
+      return assignment['fact\u001f$factId'] == (value == 'true');
+    case ScriptConditionType.stepCompleted:
+    case ScriptConditionType.badgeOwned:
+    case ScriptConditionType.itemQuantityAtLeast:
+    case ScriptConditionType.moneyAtLeast:
     case ScriptConditionType.variableEquals:
     case ScriptConditionType.variableGreaterThan:
     case ScriptConditionType.variableLessThan:

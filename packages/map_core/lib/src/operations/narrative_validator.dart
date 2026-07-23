@@ -367,6 +367,7 @@ void _collectScenarioDiagnostics({
         scenarioId: scenarioId,
       ),
       readFlags: readFlags,
+      readSteps: readSteps,
     );
   }
 
@@ -405,6 +406,7 @@ void _collectScenarioDiagnostics({
           nodeId: nodeId,
         ),
         readFlags: readFlags,
+        readSteps: readSteps,
       );
     }
     _collectNodeReferenceDiagnostics(
@@ -883,14 +885,22 @@ void _collectScriptConditionReads(
   ScriptCondition condition, {
   required _NarrativeRef ref,
   required Map<String, List<_NarrativeRef>> readFlags,
+  required Map<String, List<_NarrativeRef>> readSteps,
 }) {
   switch (condition.type) {
     case ScriptConditionType.flagIsSet:
     case ScriptConditionType.flagIsUnset:
       _addRef(readFlags, condition.params[ScriptConditionParams.flagName], ref);
+    case ScriptConditionType.factEquals:
+      _addRef(readFlags, condition.params[ScriptConditionParams.factId], ref);
+    case ScriptConditionType.stepCompleted:
+      _addRef(readSteps, condition.params[ScriptConditionParams.stepId], ref);
     case ScriptConditionType.allOf:
     case ScriptConditionType.anyOf:
     case ScriptConditionType.not:
+    case ScriptConditionType.badgeOwned:
+    case ScriptConditionType.itemQuantityAtLeast:
+    case ScriptConditionType.moneyAtLeast:
     case ScriptConditionType.variableEquals:
     case ScriptConditionType.variableGreaterThan:
     case ScriptConditionType.variableLessThan:
@@ -906,6 +916,7 @@ void _collectScriptConditionReads(
       condition.children[i],
       ref: ref.withPath('${ref.path}.children.$i'),
       readFlags: readFlags,
+      readSteps: readSteps,
     );
   }
 }

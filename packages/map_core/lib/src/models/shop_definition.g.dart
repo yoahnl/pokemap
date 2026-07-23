@@ -11,7 +11,7 @@ _$ShopEntryDefinitionImpl _$$ShopEntryDefinitionImplFromJson(
     _$ShopEntryDefinitionImpl(
       itemId: json['itemId'] as String,
       price: _shopIntegerFromJson(json['price']),
-      stock: _shopIntegerFromJson(json['stock']),
+      stock: _shopNullableIntegerFromJson(json['stock']),
     );
 
 Map<String, dynamic> _$$ShopEntryDefinitionImplToJson(
@@ -31,6 +31,11 @@ _$ShopDefinitionImpl _$$ShopDefinitionImplFromJson(Map<String, dynamic> json) =>
                   ShopEntryDefinition.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      states: (json['states'] as List<dynamic>?)
+              ?.map((e) =>
+                  ShopStateDefinition.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$$ShopDefinitionImplToJson(
@@ -39,4 +44,5 @@ Map<String, dynamic> _$$ShopDefinitionImplToJson(
       'id': instance.id,
       'label': instance.label,
       'entries': instance.entries.map((e) => e.toJson()).toList(),
+      'states': instance.states.map((e) => e.toJson()).toList(),
     };

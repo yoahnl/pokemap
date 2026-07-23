@@ -303,6 +303,8 @@ String _canonicalKindLabel(
   }
   return switch (key.kind) {
     NarrativeDependencyTargetKind.fact => 'Fact',
+    NarrativeDependencyTargetKind.badge => 'Badge',
+    NarrativeDependencyTargetKind.item => 'Objet',
     NarrativeDependencyTargetKind.eventV2 => 'Event',
     NarrativeDependencyTargetKind.scene => 'Scene',
     NarrativeDependencyTargetKind.dialogue => 'Dialogue',
@@ -340,6 +342,8 @@ String _canonicalGroupLabel(
   }
   return switch (key.kind) {
     NarrativeDependencyTargetKind.fact => 'Facts',
+    NarrativeDependencyTargetKind.badge => 'Badges',
+    NarrativeDependencyTargetKind.item => 'Objets',
     NarrativeDependencyTargetKind.eventV2 => 'Events',
     NarrativeDependencyTargetKind.scene => 'Scenes',
     NarrativeDependencyTargetKind.dialogue => 'Dialogues',
@@ -1276,7 +1280,27 @@ Iterable<String> _flagNamesFromCondition(ScriptCondition? condition) sync* {
         yield flagName;
       }
       break;
-    default:
+    case ScriptConditionType.factEquals:
+      final factId = condition.params[ScriptConditionParams.factId]?.trim();
+      if (factId != null && factId.isNotEmpty) {
+        yield factId;
+      }
+      break;
+    case ScriptConditionType.allOf:
+    case ScriptConditionType.anyOf:
+    case ScriptConditionType.not:
+    case ScriptConditionType.stepCompleted:
+    case ScriptConditionType.badgeOwned:
+    case ScriptConditionType.itemQuantityAtLeast:
+    case ScriptConditionType.moneyAtLeast:
+    case ScriptConditionType.variableEquals:
+    case ScriptConditionType.variableGreaterThan:
+    case ScriptConditionType.variableLessThan:
+    case ScriptConditionType.fieldAbilityUnlocked:
+    case ScriptConditionType.partyHasMove:
+    case ScriptConditionType.partyHasUsableMove:
+    case ScriptConditionType.eventIsConsumed:
+    case ScriptConditionType.playerOnMap:
       break;
   }
   for (final child in condition.children) {

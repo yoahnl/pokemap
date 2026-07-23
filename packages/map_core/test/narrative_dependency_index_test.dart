@@ -3,6 +3,89 @@ import 'package:test/test.dart';
 
 void main() {
   group('NarrativeDependencyIndex contract', () {
+    test('indexes typed progression condition references at exact paths', () {
+      final condition = ScriptConditionFactory.allOf(<ScriptCondition>[
+        ScriptConditionFactory.factEquals(
+          'fact.story',
+          const NarrativeValue.string('true'),
+        ),
+        ScriptConditionFactory.stepCompleted('step.prerequisite'),
+        ScriptConditionFactory.badgeOwned('badge.port'),
+        ScriptConditionFactory.itemQuantityAtLeast('potion', 2),
+        ScriptConditionFactory.moneyAtLeast(500),
+      ]);
+      final storyline = StorylineAsset(
+        id: 'story.main',
+        type: StorylineType.main,
+        title: 'Main',
+        chapters: <StorylineChapter>[
+          StorylineChapter(
+            id: 'chapter.port',
+            title: 'Port',
+            order: 0,
+            steps: <StorylineStep>[
+              StorylineStep(
+                id: 'step.prerequisite',
+                title: 'Prerequisite',
+                order: 0,
+              ),
+              StorylineStep(
+                id: 'step.shop',
+                title: 'Shop',
+                order: 1,
+                entryCondition: condition,
+              ),
+            ],
+          ),
+        ],
+      );
+      final index = buildNarrativeDependencyIndex(
+        project: _project(
+          facts: <NarrativeFactDefinition>[
+            NarrativeFactDefinition(
+              id: 'fact.story',
+              label: 'Story state',
+              initialValue: NarrativeValue.string(''),
+            ),
+          ],
+          badges: const <BadgeDefinition>[
+            BadgeDefinition(id: 'badge.port', label: 'Port'),
+          ],
+          storylines: <StorylineAsset>[storyline],
+        ),
+      );
+
+      final usages = index.usagesOwnedBy(
+        const NarrativeDependencyKey(
+          NarrativeDependencyTargetKind.storyline,
+          'story.main',
+        ),
+      );
+      NarrativeDependencyUsage usageFor(NarrativeDependencyTargetKind kind) =>
+          usages.singleWhere((usage) => usage.target.kind == kind);
+
+      expect(
+        usageFor(NarrativeDependencyTargetKind.fact).path,
+        endsWith('entryCondition.children[0].params.factId'),
+      );
+      expect(
+        usageFor(NarrativeDependencyTargetKind.step).path,
+        endsWith('entryCondition.children[1].params.stepId'),
+      );
+      expect(
+        usageFor(NarrativeDependencyTargetKind.badge).path,
+        endsWith('entryCondition.children[2].params.badgeId'),
+      );
+      expect(
+        usageFor(NarrativeDependencyTargetKind.item).path,
+        endsWith('entryCondition.children[3].params.itemId'),
+      );
+      expect(
+        usages.where((usage) => usage.target.id == '500'),
+        isEmpty,
+      );
+    });
+
     test('indexes project media and FX definitions', () {
       final index = buildNarrativeDependencyIndex(
         project: _project().copyWith(cinematicMediaAssets: [
@@ -3001,6 +3084,7 @@ ProjectManifest _project({
   List<ProjectMapEntry> maps = const <ProjectMapEntry>[],
   List<ProjectDialogueEntry> dialogues = const <ProjectDialogueEntry>[],
   List<NarrativeFactDefinition> facts = const <NarrativeFactDefinition>[],
+  List<BadgeDefinition> badges = const <BadgeDefinition>[],
   List<SceneAsset> scenes = const <SceneAsset>[],
   List<StorylineAsset> storylines = const <StorylineAsset>[],
   List<CinematicAsset> cinematics = const <CinematicAsset>[],
@@ -3015,6 +3099,7 @@ ProjectManifest _project({
     tilesets: const [],
     dialogues: dialogues,
     facts: facts,
+    badges: badges,
     scenes: scenes,
     storylines: storylines,
     cinematics: cinematics,

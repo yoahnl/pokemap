@@ -23,6 +23,7 @@ export 'src/models/path_center_pattern.dart';
 export 'src/models/project_path_pattern_preset.dart';
 export 'src/models/project_manifest.dart';
 export 'src/models/shop_definition.dart';
+export 'src/models/shop_state_definition.dart';
 export 'src/models/badge_definition.dart';
 export 'src/validation/player_roster_validation.dart';
 export 'src/models/project_new_game_config.dart';

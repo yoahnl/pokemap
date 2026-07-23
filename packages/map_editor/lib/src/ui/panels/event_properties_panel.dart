@@ -1533,7 +1533,21 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
           return _EventConditionMode.flagIsUnset;
         case ScriptConditionType.eventIsConsumed:
           return _EventConditionMode.eventIsConsumed;
-        default:
+        case ScriptConditionType.allOf:
+        case ScriptConditionType.anyOf:
+        case ScriptConditionType.not:
+        case ScriptConditionType.factEquals:
+        case ScriptConditionType.stepCompleted:
+        case ScriptConditionType.badgeOwned:
+        case ScriptConditionType.itemQuantityAtLeast:
+        case ScriptConditionType.moneyAtLeast:
+        case ScriptConditionType.variableEquals:
+        case ScriptConditionType.variableGreaterThan:
+        case ScriptConditionType.variableLessThan:
+        case ScriptConditionType.fieldAbilityUnlocked:
+        case ScriptConditionType.partyHasMove:
+        case ScriptConditionType.partyHasUsableMove:
+        case ScriptConditionType.playerOnMap:
           break;
       }
     }
@@ -1551,7 +1565,22 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
         condition.params[ScriptConditionParams.flagName] ?? '',
       ScriptConditionType.eventIsConsumed =>
         condition.params[ScriptConditionParams.eventId] ?? '',
-      _ => '',
+      ScriptConditionType.allOf ||
+      ScriptConditionType.anyOf ||
+      ScriptConditionType.not ||
+      ScriptConditionType.factEquals ||
+      ScriptConditionType.stepCompleted ||
+      ScriptConditionType.badgeOwned ||
+      ScriptConditionType.itemQuantityAtLeast ||
+      ScriptConditionType.moneyAtLeast ||
+      ScriptConditionType.variableEquals ||
+      ScriptConditionType.variableGreaterThan ||
+      ScriptConditionType.variableLessThan ||
+      ScriptConditionType.fieldAbilityUnlocked ||
+      ScriptConditionType.partyHasMove ||
+      ScriptConditionType.partyHasUsableMove ||
+      ScriptConditionType.playerOnMap =>
+        '',
     };
   }
 

@@ -577,11 +577,28 @@ void _projectCondition({
 
 String? _simpleFactId(ScriptCondition condition) {
   if (condition.children.isNotEmpty) return null;
-  if (condition.type != ScriptConditionType.flagIsSet &&
-      condition.type != ScriptConditionType.flagIsUnset) {
-    return null;
-  }
-  final id = condition.params[ScriptConditionParams.flagName]?.trim();
+  final id = switch (condition.type) {
+    ScriptConditionType.flagIsSet ||
+    ScriptConditionType.flagIsUnset =>
+      condition.params[ScriptConditionParams.flagName]?.trim(),
+    ScriptConditionType.allOf ||
+    ScriptConditionType.anyOf ||
+    ScriptConditionType.not ||
+    ScriptConditionType.factEquals ||
+    ScriptConditionType.stepCompleted ||
+    ScriptConditionType.badgeOwned ||
+    ScriptConditionType.itemQuantityAtLeast ||
+    ScriptConditionType.moneyAtLeast ||
+    ScriptConditionType.variableEquals ||
+    ScriptConditionType.variableGreaterThan ||
+    ScriptConditionType.variableLessThan ||
+    ScriptConditionType.fieldAbilityUnlocked ||
+    ScriptConditionType.partyHasMove ||
+    ScriptConditionType.partyHasUsableMove ||
+    ScriptConditionType.eventIsConsumed ||
+    ScriptConditionType.playerOnMap =>
+      null,
+  };
   return id == null || id.isEmpty ? null : id;
 }
 

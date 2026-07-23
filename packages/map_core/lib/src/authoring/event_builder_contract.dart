@@ -203,10 +203,6 @@ final class EventBuilderConditionBinding {
 
   /// Compile seulement le sous-ensemble que [ScriptCondition] sait exprimer
   /// sans mensonge.
-  ///
-  /// Les Story Steps restent typés ici, mais non compilés : le modèle actuel
-  /// n'a pas de `ScriptConditionType.storyStepCompleted`. Les encoder comme un
-  /// flag ou une variable opaque casserait la frontière produit du lot.
   ScriptCondition? toScriptCondition() {
     return switch (kind) {
       EventBuilderConditionKind.factIsTrue =>
@@ -218,9 +214,12 @@ final class EventBuilderConditionBinding {
       EventBuilderConditionKind.eventNotConsumed => ScriptConditionFactory.not(
           ScriptConditionFactory.eventIsConsumed(referenceId),
         ),
-      EventBuilderConditionKind.storyStepCompleted ||
+      EventBuilderConditionKind.storyStepCompleted =>
+        ScriptConditionFactory.stepCompleted(referenceId),
       EventBuilderConditionKind.storyStepNotCompleted =>
-        null,
+        ScriptConditionFactory.not(
+          ScriptConditionFactory.stepCompleted(referenceId),
+        ),
     };
   }
 

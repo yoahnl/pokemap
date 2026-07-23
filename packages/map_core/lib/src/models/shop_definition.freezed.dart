@@ -23,7 +23,7 @@ mixin _$ShopEntryDefinition {
   String get itemId => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _shopIntegerFromJson)
   int get price => throw _privateConstructorUsedError;
-  @JsonKey(fromJson: _shopIntegerFromJson)
+  @JsonKey(fromJson: _shopNullableIntegerFromJson)
   int? get stock => throw _privateConstructorUsedError;
 
   /// Serializes this ShopEntryDefinition to a JSON map.
@@ -45,7 +45,7 @@ abstract class $ShopEntryDefinitionCopyWith<$Res> {
   $Res call(
       {String itemId,
       @JsonKey(fromJson: _shopIntegerFromJson) int price,
-      @JsonKey(fromJson: _shopIntegerFromJson) int? stock});
+      @JsonKey(fromJson: _shopNullableIntegerFromJson) int? stock});
 }
 
 /// @nodoc
@@ -95,7 +95,7 @@ abstract class _$$ShopEntryDefinitionImplCopyWith<$Res>
   $Res call(
       {String itemId,
       @JsonKey(fromJson: _shopIntegerFromJson) int price,
-      @JsonKey(fromJson: _shopIntegerFromJson) int? stock});
+      @JsonKey(fromJson: _shopNullableIntegerFromJson) int? stock});
 }
 
 /// @nodoc
@@ -138,7 +138,7 @@ class _$ShopEntryDefinitionImpl extends _ShopEntryDefinition {
   const _$ShopEntryDefinitionImpl(
       {required this.itemId,
       @JsonKey(fromJson: _shopIntegerFromJson) required this.price,
-      @JsonKey(fromJson: _shopIntegerFromJson) this.stock})
+      @JsonKey(fromJson: _shopNullableIntegerFromJson) this.stock})
       : super._();
 
   factory _$ShopEntryDefinitionImpl.fromJson(Map<String, dynamic> json) =>
@@ -150,7 +150,7 @@ class _$ShopEntryDefinitionImpl extends _ShopEntryDefinition {
   @JsonKey(fromJson: _shopIntegerFromJson)
   final int price;
   @override
-  @JsonKey(fromJson: _shopIntegerFromJson)
+  @JsonKey(fromJson: _shopNullableIntegerFromJson)
   final int? stock;
 
   @override
@@ -193,7 +193,7 @@ abstract class _ShopEntryDefinition extends ShopEntryDefinition {
   const factory _ShopEntryDefinition(
           {required final String itemId,
           @JsonKey(fromJson: _shopIntegerFromJson) required final int price,
-          @JsonKey(fromJson: _shopIntegerFromJson) final int? stock}) =
+          @JsonKey(fromJson: _shopNullableIntegerFromJson) final int? stock}) =
       _$ShopEntryDefinitionImpl;
   const _ShopEntryDefinition._() : super._();
 
@@ -206,7 +206,7 @@ abstract class _ShopEntryDefinition extends ShopEntryDefinition {
   @JsonKey(fromJson: _shopIntegerFromJson)
   int get price;
   @override
-  @JsonKey(fromJson: _shopIntegerFromJson)
+  @JsonKey(fromJson: _shopNullableIntegerFromJson)
   int? get stock;
 
   /// Create a copy of ShopEntryDefinition
@@ -226,6 +226,7 @@ mixin _$ShopDefinition {
   String get id => throw _privateConstructorUsedError;
   String get label => throw _privateConstructorUsedError;
   List<ShopEntryDefinition> get entries => throw _privateConstructorUsedError;
+  List<ShopStateDefinition> get states => throw _privateConstructorUsedError;
 
   /// Serializes this ShopDefinition to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -243,7 +244,11 @@ abstract class $ShopDefinitionCopyWith<$Res> {
           ShopDefinition value, $Res Function(ShopDefinition) then) =
       _$ShopDefinitionCopyWithImpl<$Res, ShopDefinition>;
   @useResult
-  $Res call({String id, String label, List<ShopEntryDefinition> entries});
+  $Res call(
+      {String id,
+      String label,
+      List<ShopEntryDefinition> entries,
+      List<ShopStateDefinition> states});
 }
 
 /// @nodoc
@@ -264,6 +269,7 @@ class _$ShopDefinitionCopyWithImpl<$Res, $Val extends ShopDefinition>
     Object? id = null,
     Object? label = null,
     Object? entries = null,
+    Object? states = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -278,6 +284,10 @@ class _$ShopDefinitionCopyWithImpl<$Res, $Val extends ShopDefinition>
           ? _value.entries
           : entries // ignore: cast_nullable_to_non_nullable
               as List<ShopEntryDefinition>,
+      states: null == states
+          ? _value.states
+          : states // ignore: cast_nullable_to_non_nullable
+              as List<ShopStateDefinition>,
     ) as $Val);
   }
 }
@@ -290,7 +300,11 @@ abstract class _$$ShopDefinitionImplCopyWith<$Res>
       __$$ShopDefinitionImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String id, String label, List<ShopEntryDefinition> entries});
+  $Res call(
+      {String id,
+      String label,
+      List<ShopEntryDefinition> entries,
+      List<ShopStateDefinition> states});
 }
 
 /// @nodoc
@@ -309,6 +323,7 @@ class __$$ShopDefinitionImplCopyWithImpl<$Res>
     Object? id = null,
     Object? label = null,
     Object? entries = null,
+    Object? states = null,
   }) {
     return _then(_$ShopDefinitionImpl(
       id: null == id
@@ -323,6 +338,10 @@ class __$$ShopDefinitionImplCopyWithImpl<$Res>
           ? _value._entries
           : entries // ignore: cast_nullable_to_non_nullable
               as List<ShopEntryDefinition>,
+      states: null == states
+          ? _value._states
+          : states // ignore: cast_nullable_to_non_nullable
+              as List<ShopStateDefinition>,
     ));
   }
 }
@@ -334,8 +353,10 @@ class _$ShopDefinitionImpl extends _ShopDefinition {
   const _$ShopDefinitionImpl(
       {required this.id,
       required this.label,
-      final List<ShopEntryDefinition> entries = const []})
+      final List<ShopEntryDefinition> entries = const [],
+      final List<ShopStateDefinition> states = const []})
       : _entries = entries,
+        _states = states,
         super._();
 
   factory _$ShopDefinitionImpl.fromJson(Map<String, dynamic> json) =>
@@ -354,9 +375,18 @@ class _$ShopDefinitionImpl extends _ShopDefinition {
     return EqualUnmodifiableListView(_entries);
   }
 
+  final List<ShopStateDefinition> _states;
+  @override
+  @JsonKey()
+  List<ShopStateDefinition> get states {
+    if (_states is EqualUnmodifiableListView) return _states;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_states);
+  }
+
   @override
   String toString() {
-    return 'ShopDefinition(id: $id, label: $label, entries: $entries)';
+    return 'ShopDefinition(id: $id, label: $label, entries: $entries, states: $states)';
   }
 
   @override
@@ -366,13 +396,18 @@ class _$ShopDefinitionImpl extends _ShopDefinition {
             other is _$ShopDefinitionImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.label, label) || other.label == label) &&
-            const DeepCollectionEquality().equals(other._entries, _entries));
+            const DeepCollectionEquality().equals(other._entries, _entries) &&
+            const DeepCollectionEquality().equals(other._states, _states));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType, id, label, const DeepCollectionEquality().hash(_entries));
+      runtimeType,
+      id,
+      label,
+      const DeepCollectionEquality().hash(_entries),
+      const DeepCollectionEquality().hash(_states));
 
   /// Create a copy of ShopDefinition
   /// with the given fields replaced by the non-null parameter values.
@@ -395,7 +430,8 @@ abstract class _ShopDefinition extends ShopDefinition {
   const factory _ShopDefinition(
       {required final String id,
       required final String label,
-      final List<ShopEntryDefinition> entries}) = _$ShopDefinitionImpl;
+      final List<ShopEntryDefinition> entries,
+      final List<ShopStateDefinition> states}) = _$ShopDefinitionImpl;
   const _ShopDefinition._() : super._();
 
   factory _ShopDefinition.fromJson(Map<String, dynamic> json) =
@@ -407,6 +443,8 @@ abstract class _ShopDefinition extends ShopDefinition {
   String get label;
   @override
   List<ShopEntryDefinition> get entries;
+  @override
+  List<ShopStateDefinition> get states;
 
   /// Create a copy of ShopDefinition
   /// with the given fields replaced by the non-null parameter values.

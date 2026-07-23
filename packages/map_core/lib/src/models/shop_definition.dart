@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'shop_state_definition.dart';
+
 part 'shop_definition.freezed.dart';
 part 'shop_definition.g.dart';
 
@@ -10,6 +12,11 @@ int _shopIntegerFromJson(Object? value) {
   return value;
 }
 
+int? _shopNullableIntegerFromJson(Object? value) {
+  if (value == null) return null;
+  return _shopIntegerFromJson(value);
+}
+
 @freezed
 class ShopEntryDefinition with _$ShopEntryDefinition {
   const ShopEntryDefinition._();
@@ -17,7 +24,7 @@ class ShopEntryDefinition with _$ShopEntryDefinition {
   const factory ShopEntryDefinition({
     required String itemId,
     @JsonKey(fromJson: _shopIntegerFromJson) required int price,
-    @JsonKey(fromJson: _shopIntegerFromJson) int? stock,
+    @JsonKey(fromJson: _shopNullableIntegerFromJson) int? stock,
   }) = _ShopEntryDefinition;
 
   factory ShopEntryDefinition.fromJson(Map<String, dynamic> json) =>
@@ -52,6 +59,7 @@ class ShopDefinition with _$ShopDefinition {
     required String id,
     required String label,
     @Default([]) List<ShopEntryDefinition> entries,
+    @Default([]) List<ShopStateDefinition> states,
   }) = _ShopDefinition;
 
   factory ShopDefinition.fromJson(Map<String, dynamic> json) =>
@@ -77,10 +85,22 @@ class ShopDefinition with _$ShopDefinition {
         );
       }
     }
+    final normalizedStates = states
+        .map((state) => state.normalized(knownItemIds: knownItemIds))
+        .toList(growable: false);
+    final stateIds = <String>{};
+    for (final state in normalizedStates) {
+      if (!stateIds.add(state.id)) {
+        throw StateError(
+          'ShopDefinition states must not repeat id "${state.id}"',
+        );
+      }
+    }
     return copyWith(
       id: normalizedId,
       label: normalizedLabel,
       entries: normalizedEntries,
+      states: normalizedStates,
     );
   }
 }
