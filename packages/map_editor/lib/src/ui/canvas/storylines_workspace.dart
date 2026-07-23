@@ -358,6 +358,7 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
             NarrativeStudioAssetKind.cinematic ||
             NarrativeStudioAssetKind.dialogue ||
             NarrativeStudioAssetKind.fact ||
+            NarrativeStudioAssetKind.shop ||
             NarrativeStudioAssetKind.worldRule ||
             NarrativeStudioAssetKind.map ||
             NarrativeStudioAssetKind.diagnostic:

@@ -162,6 +162,7 @@ NarrativeStudioRouteLocation _rootLocation(
       NarrativeStudioDestination.dialogues =>
         NarrativeStudioRouteLocation.dialogues(),
       NarrativeStudioDestination.facts => NarrativeStudioRouteLocation.facts(),
+      NarrativeStudioDestination.shops => NarrativeStudioRouteLocation.shops(),
       NarrativeStudioDestination.worldRules =>
         NarrativeStudioRouteLocation.worldRules(),
       NarrativeStudioDestination.validator =>

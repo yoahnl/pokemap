@@ -17,6 +17,7 @@ void main() {
         EditorWorkspaceMode.cutscene: NarrativeStudioDestination.cinematics,
         EditorWorkspaceMode.dialogue: NarrativeStudioDestination.dialogues,
         EditorWorkspaceMode.facts: NarrativeStudioDestination.facts,
+        EditorWorkspaceMode.shops: NarrativeStudioDestination.shops,
         EditorWorkspaceMode.worldRules: NarrativeStudioDestination.worldRules,
         EditorWorkspaceMode.narrativeValidator:
             NarrativeStudioDestination.validator,
@@ -67,6 +68,7 @@ void main() {
           NarrativeStudioDestination.cinematics,
           NarrativeStudioDestination.dialogues,
           NarrativeStudioDestination.facts,
+          NarrativeStudioDestination.shops,
           NarrativeStudioDestination.worldRules,
           NarrativeStudioDestination.validator,
         ],

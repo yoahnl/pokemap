@@ -74,6 +74,10 @@ class EditorWorkspaceController {
     return _openWorkspace(current, EditorWorkspaceMode.facts);
   }
 
+  EditorState selectShopsWorkspace(EditorState current) {
+    return _openWorkspace(current, EditorWorkspaceMode.shops);
+  }
+
   EditorState selectWorldRulesWorkspace(EditorState current) {
     return _openWorkspace(current, EditorWorkspaceMode.worldRules);
   }

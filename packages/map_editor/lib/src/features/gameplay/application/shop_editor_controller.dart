@@ -43,6 +43,8 @@ final class ShopEditorValidationException implements Exception {
 /// The UI never asks for technical identifiers: stable shop ids are derived
 /// once from the readable label and item ids always come from [itemOptions].
 final class ShopEditorController {
+  static const String defaultStateId = '__default__';
+
   ShopEditorController({
     required ProjectManifest manifest,
     required List<ShopEditorItemOption> itemOptions,
@@ -72,6 +74,20 @@ final class ShopEditorController {
         'Boutique inconnue : $shopId.',
       ),
     );
+  }
+
+  ShopStateDefinition stateById(String shopId, String stateId) {
+    if (stateId == defaultStateId) {
+      throw const ShopEditorValidationException(
+        'L’état par défaut est implicite et ne possède pas de configuration.',
+      );
+    }
+    return shopById(shopId).states.firstWhere(
+          (state) => state.id == stateId,
+          orElse: () => throw ShopEditorValidationException(
+            'État de boutique inconnu : $stateId.',
+          ),
+        );
   }
 
   ShopDefinition createShop({required String label}) {
@@ -182,6 +198,186 @@ final class ShopEditorController {
     );
   }
 
+  ShopStateDefinition createStateFromDefault({
+    required String shopId,
+    required String label,
+    required ScriptCondition activation,
+    int priority = 0,
+  }) {
+    final shop = shopById(shopId);
+    return _createState(
+      shop: shop,
+      label: label,
+      activation: activation,
+      priority: priority,
+      entries: shop.entries,
+    );
+  }
+
+  ShopStateDefinition createEmptyState({
+    required String shopId,
+    required String label,
+    required ScriptCondition activation,
+    int priority = 0,
+  }) {
+    return _createState(
+      shop: shopById(shopId),
+      label: label,
+      activation: activation,
+      priority: priority,
+      entries: const <ShopEntryDefinition>[],
+    );
+  }
+
+  ShopStateDefinition duplicateState({
+    required String shopId,
+    required String stateId,
+  }) {
+    final shop = shopById(shopId);
+    final source = stateById(shopId, stateId);
+    final state = source.copyWith(
+      id: _uniqueStateId(shop, source.label),
+      label: '${source.label} (copie)',
+    );
+    _replaceShop(
+      shopId,
+      shop.copyWith(states: <ShopStateDefinition>[...shop.states, state]),
+    );
+    return state;
+  }
+
+  void renameState({
+    required String shopId,
+    required String stateId,
+    required String label,
+  }) {
+    final normalizedLabel = label.trim();
+    if (normalizedLabel.isEmpty) {
+      throw const ShopEditorValidationException(
+        'Le nom de l’état est obligatoire.',
+      );
+    }
+    _replaceState(
+      shopId,
+      stateId,
+      stateById(shopId, stateId).copyWith(label: normalizedLabel),
+    );
+  }
+
+  void updateStateSettings({
+    required String shopId,
+    required String stateId,
+    required int priority,
+    required bool isOpen,
+    String? storefrontLabel,
+    required String welcomeMessage,
+    required String closedMessage,
+  }) {
+    _replaceState(
+      shopId,
+      stateId,
+      stateById(shopId, stateId).copyWith(
+        priority: priority,
+        isOpen: isOpen,
+        storefrontLabel: storefrontLabel,
+        welcomeMessage: welcomeMessage,
+        closedMessage: closedMessage,
+      ),
+    );
+  }
+
+  void replaceStateActivation({
+    required String shopId,
+    required String stateId,
+    required ScriptCondition activation,
+  }) {
+    _replaceState(
+      shopId,
+      stateId,
+      stateById(shopId, stateId).copyWith(activation: activation),
+    );
+  }
+
+  void addStateEntry({
+    required String shopId,
+    required String stateId,
+    required String itemId,
+    required int price,
+    int? stock,
+  }) {
+    final state = stateById(shopId, stateId);
+    if (state.entries.any((entry) => entry.itemId == itemId)) {
+      throw const ShopEditorValidationException(
+        'Cet objet est déjà présent dans cet état.',
+      );
+    }
+    final entry = _validatedEntry(itemId: itemId, price: price, stock: stock);
+    _replaceState(
+      shopId,
+      stateId,
+      state.copyWith(
+        entries: <ShopEntryDefinition>[...state.entries, entry],
+      ),
+    );
+  }
+
+  void updateStateEntry({
+    required String shopId,
+    required String stateId,
+    required String itemId,
+    required int price,
+    int? stock,
+  }) {
+    final state = stateById(shopId, stateId);
+    final index = state.entries.indexWhere((entry) => entry.itemId == itemId);
+    if (index < 0) {
+      throw ShopEditorValidationException('Objet inconnu : $itemId.');
+    }
+    final entries = <ShopEntryDefinition>[...state.entries];
+    entries[index] = _validatedEntry(
+      itemId: itemId,
+      price: price,
+      stock: stock,
+    );
+    _replaceState(shopId, stateId, state.copyWith(entries: entries));
+  }
+
+  void removeStateEntry({
+    required String shopId,
+    required String stateId,
+    required String itemId,
+  }) {
+    final state = stateById(shopId, stateId);
+    if (!state.entries.any((entry) => entry.itemId == itemId)) return;
+    _replaceState(
+      shopId,
+      stateId,
+      state.copyWith(
+        entries: state.entries
+            .where((entry) => entry.itemId != itemId)
+            .toList(growable: false),
+      ),
+    );
+  }
+
+  void deleteState({required String shopId, required String stateId}) {
+    if (stateId == defaultStateId) {
+      throw const ShopEditorValidationException(
+        'L’état par défaut ne peut pas être supprimé.',
+      );
+    }
+    final shop = shopById(shopId);
+    stateById(shopId, stateId);
+    _replaceShop(
+      shopId,
+      shop.copyWith(
+        states: shop.states
+            .where((state) => state.id != stateId)
+            .toList(growable: false),
+      ),
+    );
+  }
+
   List<ShopSceneReference> referencesFor(String shopId) {
     final references = <ShopSceneReference>[];
     for (final scene in _manifest.scenes) {
@@ -239,6 +435,94 @@ final class ShopEditorController {
   }
 
   Set<String> get _knownItemIds => itemOptions.map((item) => item.id).toSet();
+
+  ShopStateDefinition _createState({
+    required ShopDefinition shop,
+    required String label,
+    required ScriptCondition activation,
+    required int priority,
+    required List<ShopEntryDefinition> entries,
+  }) {
+    final normalizedLabel = label.trim();
+    if (normalizedLabel.isEmpty) {
+      throw const ShopEditorValidationException(
+        'Le nom de l’état est obligatoire.',
+      );
+    }
+    final state = ShopStateDefinition(
+      id: _uniqueStateId(shop, normalizedLabel),
+      label: normalizedLabel,
+      priority: priority,
+      activation: activation,
+      entries: List<ShopEntryDefinition>.of(entries),
+    ).normalized(knownItemIds: _knownItemIds);
+    _replaceShop(
+      shop.id,
+      shop.copyWith(states: <ShopStateDefinition>[...shop.states, state]),
+    );
+    return state;
+  }
+
+  String _uniqueStateId(ShopDefinition shop, String label) {
+    final baseId = _slug(label);
+    if (baseId.isEmpty) {
+      throw const ShopEditorValidationException(
+        'Le nom doit contenir au moins une lettre ou un chiffre.',
+      );
+    }
+    final existingIds = shop.states.map((state) => state.id).toSet();
+    var id = baseId;
+    var suffix = 2;
+    while (existingIds.contains(id)) {
+      id = '$baseId-$suffix';
+      suffix += 1;
+    }
+    return id;
+  }
+
+  ShopEntryDefinition _validatedEntry({
+    required String itemId,
+    required int price,
+    required int? stock,
+  }) {
+    if (!itemOptions.any((item) => item.id == itemId)) {
+      throw const ShopEditorValidationException(
+        'Choisissez un objet du catalogue.',
+      );
+    }
+    if (price <= 0) {
+      throw const ShopEditorValidationException(
+        'Le prix doit être strictement positif.',
+      );
+    }
+    if (stock != null && stock < 0) {
+      throw const ShopEditorValidationException(
+        'Le stock ne peut pas être négatif.',
+      );
+    }
+    return ShopEntryDefinition(
+      itemId: itemId,
+      price: price,
+      stock: stock,
+    ).normalized(knownItemIds: _knownItemIds);
+  }
+
+  void _replaceState(
+    String shopId,
+    String stateId,
+    ShopStateDefinition replacement,
+  ) {
+    final shop = shopById(shopId);
+    final index = shop.states.indexWhere((state) => state.id == stateId);
+    if (index < 0) {
+      throw ShopEditorValidationException(
+        'État de boutique inconnu : $stateId.',
+      );
+    }
+    final states = <ShopStateDefinition>[...shop.states];
+    states[index] = replacement;
+    _replaceShop(shopId, shop.copyWith(states: states));
+  }
 
   void _replaceShop(String shopId, ShopDefinition replacement) {
     final index = shops.indexWhere((shop) => shop.id == shopId);

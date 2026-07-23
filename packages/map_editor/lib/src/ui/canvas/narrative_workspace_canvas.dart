@@ -11,6 +11,8 @@ import '../../application/models/narrative_authoring_transaction.dart';
 import '../../domain/repositories/repositories.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
+import '../../features/gameplay/application/shop_editor_controller.dart';
+import '../../features/gameplay/presentation/shop_editor_panel.dart';
 import '../../features/narrative/application/overview/narrative_overview_read_model.dart';
 import '../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../features/narrative/state/narrative_workspace_providers.dart';
@@ -66,7 +68,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
     final studioNavigation =
         ref.watch(narrativeStudioNavigationControllerProvider);
     final sceneConsequenceCatalogsAsync =
-        editor.workspaceMode == EditorWorkspaceMode.scenes
+        editor.workspaceMode == EditorWorkspaceMode.scenes ||
+                editor.workspaceMode == EditorWorkspaceMode.shops
             ? ref.watch(
                 sceneConsequenceCatalogsProvider(editor.projectRootPath),
               )
@@ -657,6 +660,17 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               description:
                   'Chargez un projet pour gérer ses faits et règles du monde.',
               icon: Icon(CupertinoIcons.doc_text),
+            ),
+          );
+        case EditorWorkspaceMode.shops:
+          return NarrativeStudioWorkspacePage(
+            presentation: narrativeStudioRoutePresentationFor(
+              EditorWorkspaceMode.shops,
+            )!,
+            body: const PokeMapEmptyState(
+              title: 'Aucun projet chargé',
+              description: 'Chargez un projet pour configurer ses boutiques.',
+              icon: Icon(CupertinoIcons.cart),
             ),
           );
         case EditorWorkspaceMode.cutscene:
@@ -1764,6 +1778,30 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               ? studioNavigation.location.selection?.assetId
               : null,
           requestedSelectionNonce: studioNavigation.revision,
+        ),
+      EditorWorkspaceMode.shops => NarrativeStudioWorkspacePage(
+          presentation: narrativeStudioRoutePresentationFor(
+            EditorWorkspaceMode.shops,
+          )!,
+          body: ShopEditorPanel(
+            controller: ShopEditorController(
+              manifest: editor.project!,
+              itemOptions: [
+                for (final option in baseSceneConsequenceCatalogs.items.options)
+                  ShopEditorItemOption(id: option.id, label: option.label),
+              ],
+            ),
+            catalogMessage: baseSceneConsequenceCatalogs.items.message,
+            onRetryCatalog: () => ref.invalidate(
+              sceneConsequenceCatalogsProvider(editor.projectRootPath),
+            ),
+            onManifestChanged: (manifest) {
+              editorNotifier.applyInMemoryProjectManifest(
+                manifest,
+                statusMessage: 'Boutiques modifiées',
+              );
+            },
+          ),
         ),
       EditorWorkspaceMode.worldRules => _buildFactsWorldRulesWorkspace(
           editor: editor,

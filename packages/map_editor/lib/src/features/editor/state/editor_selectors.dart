@@ -155,6 +155,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.cutscene => 'Cutscene Studio',
     EditorWorkspaceMode.dialogue => 'Dialogue Studio',
     EditorWorkspaceMode.facts => 'Facts Manager',
+    EditorWorkspaceMode.shops => 'Boutique Builder',
     EditorWorkspaceMode.worldRules => 'World Rules Manager',
     EditorWorkspaceMode.narrativeValidator => 'Narrative Validator',
     EditorWorkspaceMode.pathStudio => 'Path Studio',
@@ -189,6 +190,8 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
       'Création de conversations : blocs visuels, prévisualisation, export Yarn — pas un IDE de script brut.',
     EditorWorkspaceMode.facts =>
       'Registre no-code des faits persistants lisibles par les scènes et règles du monde.',
+    EditorWorkspaceMode.shops =>
+      'Catalogues, prix et disponibilité pilotés par la progression du jeu.',
     EditorWorkspaceMode.worldRules =>
       'Règles visibles du monde basées sur des sources authorées et des cibles de carte.',
     EditorWorkspaceMode.narrativeValidator =>

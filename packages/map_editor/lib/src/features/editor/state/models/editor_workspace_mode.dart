@@ -43,6 +43,9 @@ enum EditorWorkspaceMode {
   /// Manager no-code des Facts authorés.
   facts,
 
+  /// Shop Builder no-code et états conditionnels des boutiques.
+  shops,
+
   /// Manager no-code des règles visibles du monde.
   worldRules,
 

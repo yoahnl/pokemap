@@ -271,6 +271,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
           notifier.selectDialogueWorkspace();
         case NarrativeStudioDestination.facts:
           notifier.selectFactsWorkspace();
+        case NarrativeStudioDestination.shops:
+          notifier.selectShopsWorkspace();
         case NarrativeStudioDestination.worldRules:
           notifier.selectWorldRulesWorkspace();
         case NarrativeStudioDestination.validator:
@@ -446,6 +448,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       EditorWorkspaceMode.cutscene ||
       EditorWorkspaceMode.dialogue ||
       EditorWorkspaceMode.facts ||
+      EditorWorkspaceMode.shops ||
       EditorWorkspaceMode.worldRules =>
         true,
       EditorWorkspaceMode.narrativeValidator => true,
@@ -495,6 +498,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
             EditorWorkspaceMode.cutscene ||
             EditorWorkspaceMode.dialogue ||
             EditorWorkspaceMode.facts ||
+            EditorWorkspaceMode.shops ||
             EditorWorkspaceMode.worldRules =>
               true,
             EditorWorkspaceMode.narrativeValidator => true,
@@ -509,6 +513,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         EditorWorkspaceMode.cutscene ||
         EditorWorkspaceMode.dialogue ||
         EditorWorkspaceMode.facts ||
+        EditorWorkspaceMode.shops ||
         EditorWorkspaceMode.worldRules =>
           true,
         EditorWorkspaceMode.narrativeValidator => true,
@@ -1172,6 +1177,10 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                               EditorChrome
                                                                   .islandCoolTint,
                                                             EditorWorkspaceMode
+                                                                  .shops =>
+                                                              EditorChrome
+                                                                  .islandCoolTint,
+                                                            EditorWorkspaceMode
                                                                   .worldRules =>
                                                               EditorChrome
                                                                   .islandCoolTint,
@@ -1217,6 +1226,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
                                                                   .facts =>
+                                                              const _EmptyWorkspaceInspector(),
+                                                            EditorWorkspaceMode
+                                                                  .shops =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
                                                                   .worldRules =>
@@ -1389,6 +1401,8 @@ bool _narrativeLocationMatchesWorkspace(
       location.destination == NarrativeStudioDestination.dialogues,
     EditorWorkspaceMode.facts =>
       location.destination == NarrativeStudioDestination.facts,
+    EditorWorkspaceMode.shops =>
+      location.destination == NarrativeStudioDestination.shops,
     EditorWorkspaceMode.worldRules =>
       location.destination == NarrativeStudioDestination.worldRules,
     EditorWorkspaceMode.narrativeValidator =>
@@ -1601,6 +1615,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.cutscene ||
       EditorWorkspaceMode.dialogue ||
       EditorWorkspaceMode.facts ||
+      EditorWorkspaceMode.shops ||
       EditorWorkspaceMode.worldRules ||
       EditorWorkspaceMode.narrativeValidator =>
         colors.narrative,
@@ -1622,6 +1637,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.cutscene ||
       EditorWorkspaceMode.dialogue ||
       EditorWorkspaceMode.facts ||
+      EditorWorkspaceMode.shops ||
       EditorWorkspaceMode.worldRules ||
       EditorWorkspaceMode.narrativeValidator =>
         PokeMapBadgeVariant.narrative,
@@ -1641,6 +1657,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.cutscene => 'Cinématiques',
       EditorWorkspaceMode.dialogue => 'Dialogue',
       EditorWorkspaceMode.facts => 'Facts',
+      EditorWorkspaceMode.shops => 'Boutiques',
       EditorWorkspaceMode.worldRules => 'Règles',
       EditorWorkspaceMode.narrativeValidator => 'Validateur',
       EditorWorkspaceMode.pathStudio => 'Chemins',
@@ -1802,6 +1819,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
               EditorWorkspaceMode.cutscene => CupertinoIcons.play_rectangle,
               EditorWorkspaceMode.dialogue => CupertinoIcons.text_bubble,
               EditorWorkspaceMode.facts => CupertinoIcons.doc_text,
+              EditorWorkspaceMode.shops => CupertinoIcons.cart,
               EditorWorkspaceMode.worldRules => CupertinoIcons.checkmark_seal,
               EditorWorkspaceMode.narrativeValidator =>
                 CupertinoIcons.checkmark_shield,
@@ -2103,6 +2121,7 @@ String _narrativeDestinationCommandLabel(
       NarrativeStudioDestination.cinematics => 'Ouvrir les cinématiques',
       NarrativeStudioDestination.dialogues => 'Ouvrir les dialogues',
       NarrativeStudioDestination.facts => 'Ouvrir les facts',
+      NarrativeStudioDestination.shops => 'Ouvrir les boutiques',
       NarrativeStudioDestination.worldRules => 'Ouvrir les règles du monde',
       NarrativeStudioDestination.validator => 'Ouvrir le validateur',
     };

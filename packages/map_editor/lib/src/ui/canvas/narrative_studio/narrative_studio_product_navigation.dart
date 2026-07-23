@@ -201,6 +201,7 @@ NarrativeStudioRouteLocation _defaultLocationFor(
       NarrativeStudioDestination.dialogues =>
         NarrativeStudioRouteLocation.dialogues(),
       NarrativeStudioDestination.facts => NarrativeStudioRouteLocation.facts(),
+      NarrativeStudioDestination.shops => NarrativeStudioRouteLocation.shops(),
       NarrativeStudioDestination.worldRules =>
         NarrativeStudioRouteLocation.worldRules(),
       NarrativeStudioDestination.validator =>
@@ -260,6 +261,7 @@ String _destinationLabel(
       NarrativeStudioDestination.cinematics => context.pokeMapL10n.cinematics,
       NarrativeStudioDestination.dialogues => context.pokeMapL10n.dialogues,
       NarrativeStudioDestination.facts => context.pokeMapL10n.facts,
+      NarrativeStudioDestination.shops => 'Boutiques',
       NarrativeStudioDestination.worldRules => context.pokeMapL10n.worldRules,
       NarrativeStudioDestination.validator => context.pokeMapL10n.validator,
     };
@@ -292,6 +294,10 @@ const _items = <_DestinationNavigationItem>[
   _DestinationNavigationItem(
     destination: NarrativeStudioDestination.facts,
     icon: CupertinoIcons.doc_text,
+  ),
+  _DestinationNavigationItem(
+    destination: NarrativeStudioDestination.shops,
+    icon: CupertinoIcons.cart,
   ),
   _DestinationNavigationItem(
     destination: NarrativeStudioDestination.worldRules,

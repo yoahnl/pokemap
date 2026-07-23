@@ -32,6 +32,7 @@ class EditorCanvasHost extends ConsumerWidget {
       EditorWorkspaceMode.cutscene ||
       EditorWorkspaceMode.dialogue ||
       EditorWorkspaceMode.facts ||
+      EditorWorkspaceMode.shops ||
       EditorWorkspaceMode.worldRules =>
         const NarrativeWorkspaceCanvas(),
       EditorWorkspaceMode.narrativeValidator =>

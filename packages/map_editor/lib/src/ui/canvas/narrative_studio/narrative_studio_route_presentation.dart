@@ -47,6 +47,7 @@ NarrativeStudioRouteLocation? narrativeStudioRouteLocationFor(
       EditorWorkspaceMode.cutscene => NarrativeStudioRouteLocation.cinematics(),
       EditorWorkspaceMode.dialogue => NarrativeStudioRouteLocation.dialogues(),
       EditorWorkspaceMode.facts => NarrativeStudioRouteLocation.facts(),
+      EditorWorkspaceMode.shops => NarrativeStudioRouteLocation.shops(),
       EditorWorkspaceMode.worldRules =>
         NarrativeStudioRouteLocation.worldRules(),
       EditorWorkspaceMode.narrativeValidator =>
@@ -123,6 +124,12 @@ NarrativeStudioRoutePresentation narrativeStudioRoutePresentationForLocation(
           destination: NarrativeStudioDestination.facts,
           label: 'Facts',
           breadcrumbLabels: ['Facts'],
+        ),
+      NarrativeStudioChildRoute.shopBuilder =>
+        const NarrativeStudioRoutePresentation(
+          destination: NarrativeStudioDestination.shops,
+          label: 'Boutique Builder',
+          breadcrumbLabels: ['Boutique Builder'],
         ),
       NarrativeStudioChildRoute.worldRulesManager =>
         const NarrativeStudioRoutePresentation(

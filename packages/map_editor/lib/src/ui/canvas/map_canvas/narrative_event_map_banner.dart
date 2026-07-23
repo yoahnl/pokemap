@@ -672,6 +672,7 @@ class _NarrativeMapReturnBanner extends ConsumerWidget {
       NarrativeStudioDestination.cinematics => 'la cinématique',
       NarrativeStudioDestination.dialogues => 'le dialogue',
       NarrativeStudioDestination.facts => 'la Fact',
+      NarrativeStudioDestination.shops => 'la boutique',
       NarrativeStudioDestination.worldRules => 'la règle du monde',
       NarrativeStudioDestination.validator => 'le diagnostic',
     };
@@ -702,6 +703,8 @@ class _NarrativeMapReturnBanner extends ConsumerWidget {
           notifier.selectDialogueWorkspace();
         case NarrativeStudioChildRoute.factsManager:
           notifier.selectFactsWorkspace();
+        case NarrativeStudioChildRoute.shopBuilder:
+          notifier.selectShopsWorkspace();
         case NarrativeStudioChildRoute.worldRulesManager:
           notifier.selectWorldRulesWorkspace();
         case NarrativeStudioChildRoute.validatorDiagnostics:

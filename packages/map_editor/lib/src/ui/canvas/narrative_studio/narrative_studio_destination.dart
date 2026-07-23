@@ -12,6 +12,7 @@ enum NarrativeStudioDestination {
   cinematics,
   dialogues,
   facts,
+  shops,
   worldRules,
   validator,
 }
@@ -33,6 +34,7 @@ enum NarrativeStudioChildRoute {
   cinematicLegacy,
   dialogueEditor,
   factsManager,
+  shopBuilder,
   worldRulesManager,
   validatorDiagnostics,
 }
@@ -46,6 +48,7 @@ enum NarrativeStudioAssetKind {
   cinematic,
   dialogue,
   fact,
+  shop,
   worldRule,
   map,
   diagnostic,
@@ -192,6 +195,15 @@ final class NarrativeStudioRouteLocation {
         selection: selection,
       );
 
+  factory NarrativeStudioRouteLocation.shops({
+    NarrativeStudioAssetSelection? selection,
+  }) =>
+      NarrativeStudioRouteLocation._(
+        destination: NarrativeStudioDestination.shops,
+        childRoute: NarrativeStudioChildRoute.shopBuilder,
+        selection: selection,
+      );
+
   factory NarrativeStudioRouteLocation.worldRules({
     NarrativeStudioAssetSelection? selection,
   }) =>
@@ -264,6 +276,9 @@ Set<NarrativeStudioChildRoute> _childrenForDestination(
       NarrativeStudioDestination.facts => const {
           NarrativeStudioChildRoute.factsManager,
         },
+      NarrativeStudioDestination.shops => const {
+          NarrativeStudioChildRoute.shopBuilder,
+        },
       NarrativeStudioDestination.worldRules => const {
           NarrativeStudioChildRoute.worldRulesManager,
         },
@@ -297,6 +312,9 @@ Set<NarrativeStudioAssetKind> _assetsForDestination(
         },
       NarrativeStudioDestination.facts => const {
           NarrativeStudioAssetKind.fact,
+        },
+      NarrativeStudioDestination.shops => const {
+          NarrativeStudioAssetKind.shop,
         },
       NarrativeStudioDestination.worldRules => const {
           NarrativeStudioAssetKind.worldRule,

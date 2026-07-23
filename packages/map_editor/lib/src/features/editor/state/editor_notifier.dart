@@ -3189,6 +3189,11 @@ class EditorNotifier extends _$EditorNotifier {
     state = _editorWorkspaceController.selectFactsWorkspace(state);
   }
 
+  /// Bascule vers le Shop Builder no-code.
+  void selectShopsWorkspace() {
+    state = _editorWorkspaceController.selectShopsWorkspace(state);
+  }
+
   /// Bascule vers le manager des règles du monde.
   void selectWorldRulesWorkspace() {
     state = _editorWorkspaceController.selectWorldRulesWorkspace(state);
