@@ -537,6 +537,10 @@ host sans diagnostic ; commit créé avec la présente mise à jour.**
 
 ## Task 3.4 — Valider et exposer les shops dans l'éditeur
 
+**Statut : terminé le 2026-07-23 — contrôleur pur, panneau Design System,
+11 tests ciblés verts et analyse Editor sans diagnostic ; commit créé avec
+la présente mise à jour.**
+
 **Files:**
 
 - Create directory: `packages/map_editor/lib/src/features/gameplay/application/`
@@ -547,11 +551,11 @@ host sans diagnostic ; commit créé avec la présente mise à jour.**
 - Create: `packages/map_editor/test/shop_editor_controller_test.dart`
 - Create: `packages/map_editor/test/shop_editor_panel_test.dart`
 
-- [ ] **Step 1:** Ajouter création, renommage, suppression gardée et édition de stock par pickers catalogue.
-- [ ] **Step 2:** Empêcher la suppression d'un shop référencé par une Scene sans choix explicite de réparation.
-- [ ] **Step 3:** Éviter toute saisie manuelle d'ID dans le chemin normal.
-- [ ] **Step 4:** Tester doublons, références cassées, prix négatif et sauvegarde/rechargement.
-- [ ] **Step 5:** Commit proposé : `feat(editor): add guided shop authoring`.
+- [x] **Step 1:** Ajouter création, renommage, suppression gardée et édition de stock par pickers catalogue.
+- [x] **Step 2:** Empêcher la suppression d'un shop référencé par une Scene sans choix explicite de réparation.
+- [x] **Step 3:** Éviter toute saisie manuelle d'ID dans le chemin normal.
+- [x] **Step 4:** Tester doublons, références cassées, prix négatif et sauvegarde/rechargement.
+- [x] **Step 5:** Commit créé : `feat(editor): add guided shop authoring`.
 
 ## Task 3.5 — Intégration service runtime
 

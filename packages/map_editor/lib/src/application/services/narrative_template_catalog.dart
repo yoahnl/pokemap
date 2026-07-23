@@ -31,6 +31,7 @@ final class NarrativeTemplateDefinition {
     required this.label,
     required NarrativeCommandDescriptor command,
     required this.physicalSourceKind,
+    this.authoringHint,
     Map<String, String> additionalRequiredParameters = const <String, String>{},
   })  : id = 'eventScene.${kind.name}',
         targetKind = NarrativeTemplateTargetKind.eventScene,
@@ -46,6 +47,7 @@ final class NarrativeTemplateDefinition {
     required this.id,
     required this.label,
     required this.targetKind,
+    this.authoringHint,
     Map<String, String> parameterLabels = const <String, String>{},
   })  : assert(targetKind != NarrativeTemplateTargetKind.eventScene),
         _command = null,
@@ -60,6 +62,7 @@ final class NarrativeTemplateDefinition {
   final NarrativeCommandDescriptor? _command;
   final NarrativeTemplatePhysicalSourceKind? physicalSourceKind;
   final Map<String, String> parameterLabels;
+  final String? authoringHint;
 
   NarrativeCommandDescriptor get command {
     final value = _command;
@@ -138,6 +141,9 @@ final class NarrativeTemplateCatalog {
           label: 'Boutique',
           command: command(NarrativeCommandIds.openShop),
           physicalSourceKind: NarrativeTemplatePhysicalSourceKind.entity,
+          authoringHint:
+              'Créez d’abord la boutique dans le catalogue des boutiques, '
+              'puis choisissez-la dans la Scene.',
         ),
         NarrativeTemplateDefinition(
           kind: NarrativeTemplateKind.nurse,

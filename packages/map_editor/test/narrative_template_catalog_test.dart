@@ -35,6 +35,10 @@ void main() {
             .parameterLabels,
         containsPair('factId', 'Fact source'),
       );
+      expect(
+        catalog.byKind(NarrativeTemplateKind.shop).authoringHint,
+        contains('catalogue des boutiques'),
+      );
     });
 
     test('item ball preview creates one Event pointing to one Scene action',
