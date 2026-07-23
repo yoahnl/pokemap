@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "projectFingerprint": "sha256:dab55e949848f49bcfb863bc4c771ffbf0bed6cdad8f1203679a4232bf79d445",
+  "projectFingerprint": "sha256:0c4aaff915b201f171eeb0ef12aff36276595efa029a38646bad319929183fcf",
   "validatorVersion": "narrative-validator-v1",
   "profileId": "selbrume-release-v1",
   "profileVersion": 1,
@@ -10,6 +10,6 @@
   ],
   "fixtureId": "selbrume",
   "result": "pass",
-  "completedAt": "2026-07-21T00:54:36.550962Z",
+  "completedAt": "2026-07-23T04:53:20.569408Z",
   "limitations": []
 }

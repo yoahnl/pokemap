@@ -728,7 +728,7 @@ void main() {
   );
 
   test(
-    'failed restored outcome authority keeps pending delivery and load fails',
+    'failed restored outcome authority rolls back the pending delivery and load',
     () async {
       final root = await Directory.systemTemp.createTemp(
         'runtime_restore_outcome_retry_',
@@ -796,12 +796,7 @@ void main() {
       expect(game.debugLastCompletedMapActivation, initialActivation);
       expect(
         state.narrativeEventProgress.pendingNarrativeOutcomeDeliveries,
-        hasLength(1),
-      );
-      expect(
-        state.narrativeEventProgress.pendingNarrativeOutcomeDeliveries.single
-            .deliveryId,
-        _retryDeliveryId,
+        isEmpty,
       );
       expect(
         state.narrativeEventProgress.deliveredNarrativeOutcomeDeliveryIds,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
@@ -31,6 +32,103 @@ void main() {
             diagnostic.severity == NarrativeProjectDiagnosticSeverity.error,
       ),
       isEmpty,
+    );
+    final symbolicStates = <NarrativeSymbolicState>[
+      ...baseline.symbolicReachability!.exploredStates,
+      ...baseline.symbolicReachability!.terminalStates,
+    ];
+    expect(
+      symbolicStates.any(
+        (state) =>
+            state.factValues['fact_passage_dames_unlocked']?.toJson() == true,
+      ),
+      isTrue,
+      reason:
+          'The symbolic proof must expose the fact that removes both Passage des Dames gates.',
+    );
+    expect(
+      symbolicStates.any(
+        (state) => state.unlockedFieldAbilities.contains(FieldAbility.surf),
+      ),
+      isTrue,
+      reason:
+          'The symbolic proof must expose Surf before the physical causeway proof.',
+    );
+    final unlockedWorldState = GameState(
+      saveId: 'physical-world-rule-proof',
+      playerMovementMode: MovementMode.surf,
+      progression: const PlayerProgression(
+        unlockedFieldAbilities: <FieldAbility>[FieldAbility.surf],
+      ),
+      narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
+        valuesByFactId: const <String, NarrativeValue>{
+          'fact_passage_dames_unlocked': NarrativeValue.boolean(true),
+        },
+      ),
+    );
+    expect(
+      projectWorldRuleEffects(
+        fixture.project,
+        unlockedWorldState,
+        maps: fixture.mapsById.values.toList(growable: false),
+      ).map((effect) => effect.ruleId),
+      contains('world_rule_open_passage_to_phare'),
+    );
+    final passage = fixture.mapsById['map_passage_dames']!;
+    final passageWorld = GameplayWorldState.initial(
+      map: passage,
+      playerPos: const GridPos(x: 30, y: 0),
+      playerMovementMode: MovementMode.surf,
+      project: fixture.project,
+      mapEntityPresencePredicate: (mapId, entity) =>
+          entity.id != 'gate_passage_to_phare',
+    );
+    expect(passageWorld.isBlocked(59, 12), isFalse);
+    expect(
+      _hasWalkablePath(
+        passageWorld,
+        start: const GridPos(x: 30, y: 0),
+        goal: const GridPos(x: 59, y: 12),
+        size: passage.size,
+      ),
+      isTrue,
+      reason:
+          'The unlocked Passage des Dames component must reach the lighthouse border.',
+    );
+    final lighthouseExterior = fixture.mapsById['map_phare_exterieur']!;
+    final lighthouseWorld = GameplayWorldState.initial(
+      map: lighthouseExterior,
+      playerPos: const GridPos(x: 0, y: 12),
+      project: fixture.project,
+    );
+    expect(
+      lighthouseWorld.isBlocked(0, 12),
+      isFalse,
+      reason:
+          'The authored landing cell for Passage des Dames must remain walkable.',
+    );
+    final unlockedSymbolicState = symbolicStates.firstWhere(
+      (state) =>
+          state.factValues['fact_passage_dames_unlocked']?.toJson() == true &&
+          state.unlockedFieldAbilities.contains(FieldAbility.surf),
+    );
+    final isolatedPhysical = validateNarrativePhysicalReachability(
+      project: fixture.project,
+      maps: fixture.mapsById.values.toList(growable: false),
+      narrativeReport: NarrativeSymbolicReachabilityReport(
+        verdict: NarrativeSymbolicVerdict.pass,
+        terminalStates: <NarrativeSymbolicState>[unlockedSymbolicState],
+        exploredStates: <NarrativeSymbolicState>[unlockedSymbolicState],
+        issues: const <NarrativeSymbolicIssue>[],
+        reachableSceneIds: const <String>{},
+        exploredStateCount: 1,
+      ),
+    );
+    expect(
+      isolatedPhysical.reachableMapIds,
+      contains('map_phare_exterieur'),
+      reason:
+          'A symbolic state with the passage fact true must physically reach the lighthouse.',
     );
     final physical = validateNarrativePhysicalReachability(
       project: fixture.project,
@@ -180,6 +278,37 @@ void main() {
       containsPair('fact_lysa_tone_confident', true),
     );
   });
+}
+
+bool _hasWalkablePath(
+  GameplayWorldState world, {
+  required GridPos start,
+  required GridPos goal,
+  required GridSize size,
+}) {
+  final queue = ListQueue<GridPos>()..add(start);
+  final visited = <GridPos>{start};
+  while (queue.isNotEmpty) {
+    final current = queue.removeFirst();
+    if (current == goal) return true;
+    for (final next in <GridPos>[
+      GridPos(x: current.x + 1, y: current.y),
+      GridPos(x: current.x - 1, y: current.y),
+      GridPos(x: current.x, y: current.y + 1),
+      GridPos(x: current.x, y: current.y - 1),
+    ]) {
+      if (next.x < 0 ||
+          next.y < 0 ||
+          next.x >= size.width ||
+          next.y >= size.height ||
+          world.isBlocked(next.x, next.y) ||
+          !visited.add(next)) {
+        continue;
+      }
+      queue.add(next);
+    }
+  }
+  return false;
 }
 
 String _resolveCondition(

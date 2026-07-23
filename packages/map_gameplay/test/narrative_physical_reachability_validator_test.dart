@@ -330,6 +330,59 @@ void main() {
       expect(result.provenance.single.nodeId, 'complete_gate');
     });
 
+    test('crosses a Surf gate after the ability is proven symbolically', () {
+      final map = _map(
+        id: 'start',
+        width: 5,
+        height: 1,
+        gameplayZones: const [
+          MapGameplayZone(
+            id: 'surf_gate',
+            kind: GameplayZoneKind.movement,
+            area: MapRect(
+              pos: GridPos(x: 2, y: 0),
+              size: GridSize(width: 1, height: 1),
+            ),
+            movement: MovementZonePayload(requiredMode: MovementMode.surf),
+          ),
+        ],
+        entities: [
+          _spawn(y: 0),
+          const MapEntity(
+            id: 'goal',
+            name: 'But',
+            kind: MapEntityKind.npc,
+            pos: GridPos(x: 4, y: 0),
+          ),
+        ],
+      );
+      final progressed = NarrativeSymbolicState(
+        unlockedFieldAbilities: const {FieldAbility.surf},
+        provenance: const [
+          NarrativeSymbolicProvenance(
+            sceneId: 'scene_unlock_surf',
+            nodeId: 'unlock_surf',
+            description: 'Surf débloqué.',
+          ),
+        ],
+      );
+
+      final report = validateNarrativePhysicalReachability(
+        project: _project([
+          _event(
+            _eventA,
+            NarrativeEventSourceRef.entityInteract('start', 'goal'),
+          ),
+        ]),
+        maps: [map],
+        narrativeReport: _symbolicReport(extraStates: [progressed]),
+      );
+
+      final result = report.resultForEvent(_eventA)!;
+      expect(result.status, NarrativePhysicalSourceStatus.progressionRequired);
+      expect(result.provenance.single.nodeId, 'unlock_surf');
+    });
+
     test('keeps exhausted exploration and unknown progression indeterminate',
         () {
       final map = _map(
@@ -444,6 +497,7 @@ MapData _map({
   List<MapTrigger> triggers = const [],
   List<MapWarp> warps = const [],
   List<MapConnection> connections = const [],
+  List<MapGameplayZone> gameplayZones = const [],
 }) {
   return MapData(
     id: id,
@@ -461,6 +515,7 @@ MapData _map({
     triggers: triggers,
     warps: warps,
     connections: connections,
+    gameplayZones: gameplayZones,
   );
 }
 

@@ -40,6 +40,8 @@ void main() {
             ),
           ),
         ),
+        runtimePlayerPokemonProgressionCatalogLoader:
+            _loadWhiteoutProgressionCatalogs,
       );
 
       game.onGameResize(Vector2(640, 480));
@@ -76,6 +78,22 @@ void main() {
       );
     });
   });
+}
+
+Future<RuntimePlayerPokemonProgressionCatalogs>
+    _loadWhiteoutProgressionCatalogs({
+  required GameState gameState,
+  required String projectRootDirectory,
+  required ProjectPokemonConfig pokemonConfig,
+}) async {
+  return const RuntimePlayerPokemonProgressionCatalogs(
+    growthRateIdBySpeciesId: <String, String>{
+      'sproutle': 'medium_slow',
+    },
+    maxPpByMoveId: <String, int>{
+      'tackle': 35,
+    },
+  );
 }
 
 Future<void> _waitForActivationDispatch(PlayableMapGame game) async {

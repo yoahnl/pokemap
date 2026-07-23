@@ -2450,6 +2450,8 @@ PlayableMapGame _game({
     narrativeRuntimeActivityGate: narrativeRuntimeActivityGate,
     saveRepository: saveRepository,
     runtimeMapBundleLoader: runtimeMapBundleLoader,
+    runtimePlayerPokemonProgressionCatalogLoader:
+        _loadQualifiedOutcomeProgressionCatalogs,
     initialMapActivationReason: initialMapActivationReason,
   );
 }
@@ -2464,11 +2466,28 @@ final class _QualifiedOutcomeTestGame extends PlayableMapGame {
     super.narrativeRuntimeActivityGate,
     super.saveRepository,
     super.runtimeMapBundleLoader,
+    super.runtimePlayerPokemonProgressionCatalogLoader,
     super.initialMapActivationReason,
   });
 
   @override
   bool get isLoaded => true;
+}
+
+Future<RuntimePlayerPokemonProgressionCatalogs>
+    _loadQualifiedOutcomeProgressionCatalogs({
+  required GameState gameState,
+  required String projectRootDirectory,
+  required ProjectPokemonConfig pokemonConfig,
+}) async {
+  return const RuntimePlayerPokemonProgressionCatalogs(
+    growthRateIdBySpeciesId: <String, String>{
+      'sproutle': 'medium_slow',
+    },
+    maxPpByMoveId: <String, int>{
+      'tackle': 35,
+    },
+  );
 }
 
 Future<void> _load(PlayableMapGame game) async {

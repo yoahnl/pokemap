@@ -86,8 +86,8 @@ void main() {
           .singleWhere((table) => table.id == _encounterTableId);
       expect(encounterTable.encounterKind, EncounterKind.walk);
       expect(encounterTable.entries.single.speciesId, _initialSpeciesId);
-      expect(encounterTable.entries.single.minLevel, 1);
-      expect(encounterTable.entries.single.maxLevel, 5);
+      expect(encounterTable.entries.single.minLevel, 11);
+      expect(encounterTable.entries.single.maxLevel, 11);
       expect(
         routeMap.gameplayZones.where(
           (zone) =>

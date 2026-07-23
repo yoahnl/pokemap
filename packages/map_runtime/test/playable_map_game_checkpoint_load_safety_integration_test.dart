@@ -573,6 +573,8 @@ PlayableMapGame _game({
     dialogueSessionLoader: dialogueSessionLoader,
     runtimeMapBundleLoader: runtimeMapBundleLoader,
     runtimeTilesetImageLoader: runtimeTilesetImageLoader,
+    runtimePlayerPokemonProgressionCatalogLoader:
+        _loadCheckpointProgressionCatalogs,
     beforeBattleHandoffPreparation: beforeBattleHandoffPreparation,
   );
 }
@@ -587,11 +589,30 @@ final class _TestPlayableMapGame extends PlayableMapGame {
     super.dialogueSessionLoader,
     super.runtimeMapBundleLoader,
     super.runtimeTilesetImageLoader,
+    super.runtimePlayerPokemonProgressionCatalogLoader,
     super.beforeBattleHandoffPreparation,
   });
 
   @override
   bool get isLoaded => true;
+}
+
+Future<RuntimePlayerPokemonProgressionCatalogs>
+    _loadCheckpointProgressionCatalogs({
+  required GameState gameState,
+  required String projectRootDirectory,
+  required ProjectPokemonConfig pokemonConfig,
+}) async {
+  return const RuntimePlayerPokemonProgressionCatalogs(
+    growthRateIdBySpeciesId: <String, String>{
+      'aquafi': 'medium_slow',
+      'sproutle': 'medium_slow',
+    },
+    maxPpByMoveId: <String, int>{
+      'surf': 15,
+      'tackle': 35,
+    },
+  );
 }
 
 Future<void> _load(PlayableMapGame game) async {

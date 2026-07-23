@@ -927,10 +927,10 @@ impose un nouveau candidat.
 - Modify after Task 6.1 creates it: `examples/playable_runtime_host/tool/verify_mvp_release.dart`
 - Modify: `reports/gameplay/fg_183_regression_matrix_v0.md`
 
-- [ ] **Step 1:** Exécuter strictement, sans parallélisme : Core, Gameplay, Battle, Runtime, Editor, Host.
-- [ ] **Step 2:** Pour chaque package, exécuter la suite complète puis l'analyse.
-- [ ] **Step 3:** Ajouter les deux smokes runtime imposés par `AGENTS.md`, la Golden Slice et le seed Selbrume `--check`.
-- [ ] **Step 4:** Arrêter au premier échec et conserver le log exact.
+- [x] **Step 1:** Exécuter strictement, sans parallélisme : Core, Gameplay, Battle, Runtime, Editor, Host.
+- [x] **Step 2:** Pour chaque package, exécuter la suite complète puis l'analyse.
+- [x] **Step 3:** Ajouter les deux smokes runtime imposés par `AGENTS.md`, la Golden Slice et le seed Selbrume `--check`.
+- [x] **Step 4:** Arrêter au premier échec et conserver le log exact.
 - [ ] **Step 5:** Après correction, créer un nouveau `releaseCandidateCommit` et recommencer toute la matrice sur ce candidat.
 - [ ] **Step 6:** Commande finale attendue :
 

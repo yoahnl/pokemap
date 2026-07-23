@@ -1,6 +1,6 @@
 # FG-183 — Regression Matrix V0
 
-Date: 2026-07-21 · mise à jour Phase 4 le 2026-07-23
+Date: 2026-07-21 · mise à jour Phase 6 le 2026-07-23
 
 Proposed status: **DONE**
 
@@ -9,6 +9,15 @@ Proposed status: **DONE**
 Cette matrice relie les lots FG-180 à FG-185 aux tests qui prouvent leur
 contrat, distingue une boucle rapide des suites exhaustives et fournit les
 commandes package-scoped attendues dans ce monorepo sans orchestrateur.
+
+Depuis la Phase 6, la matrice n'est plus seulement documentaire :
+`MvpReleaseCommandMatrix.full` l'exécute dans un ordre fixe et fail-fast, puis
+`tool/verify_mvp_release.dart` collecte les sorties dans un receipt lié au
+commit, au tree hash Selbrume et au SHA-256 du package.
+
+Le statut **DONE** de FG-183 couvre l'existence et le comportement de la
+matrice. Il ne vaut pas GO de release : FG-185 reste fail-closed tant que le
+package de Task 6.3 et les receipts automatisé/humain ne sont pas disponibles.
 
 ## Audit initial
 
@@ -126,9 +135,49 @@ Runtime battle/P6 : +7, All tests passed!
 Host fixture/E2E/launch : +3, All tests passed!
 ```
 
+## Audit séquentiel Phase 6
+
+Baseline : `main` à `63e598d2a`, worktree propre avant les corrections du lot.
+Les packages ont été lancés l'un après l'autre ; aucun package de test n'a été
+exécuté en parallèle avec un autre.
+
+| Étape | Résultat frais | Décision |
+|---|---|---|
+| Core suite complète | `+4399`, succès après correction du libellé canonique `FG-014` | PASS |
+| Core analyse | `No issues found!` | PASS |
+| Gameplay suite complète | `+382`, succès ; test ciblé Surf ensuite `+10` | PASS |
+| Gameplay analyse | `No issues found!` | PASS |
+| Battle suite complète | `+1740`, succès | PASS |
+| Battle analyse | `No issues found!` | PASS |
+| Runtime, première passe | `+1978 ~1 -76` | FAIL conservé dans `/tmp/pokemap_phase6_runtime_tests.log` |
+| Runtime après correction | `+2055 ~1`, succès | PASS |
+| Runtime analyse | `No issues found!` | PASS |
+| Editor, première passe | `+4106 -4` : fixtures/topologie/receipt obsolètes | FAIL corrigé |
+| Editor, deuxième passe | `+4109 -1` : unique mesure de ratio `3.6789 > 3.5`, alors que le P95 absolu reste `8112 µs < 20000 µs` | FLAKE de contention, test isolé `+1` à ratio `1.92` |
+| Editor analyse | `No issues found!` | PASS |
+| Host, première passe | `+114 -1` : empreinte déterministe du manifest obsolète | FAIL corrigé ; test ciblé `+1` |
+| Host analyse | `No issues found!` | PASS |
+| Seed Selbrume `--check` | `Selbrume canonical narrative content is up to date.` | PASS |
+
+Les défauts produit découverts ont été corrigés sans abaisser les validations :
+
+- le validateur physique transporte désormais badges/capacités symboliques et
+  traverse une zone Surf seulement après le déblocage prouvé de Surf ;
+- les fixtures Runtime hydratent explicitement les catalogues de progression ;
+- les contrats de maps, services, encounter niveau 11 et warp de retour du port
+  reflètent les données Selbrume courantes ;
+- la fixture Event V2 et le receipt narratif ont été régénérés avec leurs outils
+  canoniques.
+
+La commande finale `verify_mvp_release.dart --full` n'est volontairement pas
+exécutable à cette étape : elle refuse l'absence de
+`build/mvp-release/selbrume-macos.zip`. La Task 6.3 produit ce package ; la
+matrice complète est alors relancée depuis Core sur le commit candidat final.
+
 ## Limites et risques
 
-- La matrice ne lance aucune commande elle-même.
+- `MvpReleaseCommandMatrix` lance désormais les commandes ; le document
+  conserve aussi leur forme lisible pour l'audit humain.
 - Les fichiers de test peuvent évoluer; FG-184 rendra le statut des lots
   automatisable, pas la découverte sémantique de tous les tests.
 - Les comptes de fichiers sont informatifs, pas des mesures de couverture.
@@ -143,3 +192,13 @@ Host fixture/E2E/launch : +3, All tests passed!
 | Tests | PASS — gate rapide fraîche `+11`, `+14`, `+7`, `+3` |
 | Build / Validation | Reporté à FG-185 pour la matrice exhaustive |
 | Critique | PASS — aucune couverture chiffrée inventée |
+
+## Auto-critique Phase 6
+
+- Le run Editor complet a exposé un test de ratio sensible à la contention
+  interne de `flutter test`; son exécution isolée est verte mais ne remplace pas
+  la relance exhaustive du candidat final.
+- Les sorties sous `/tmp` sont des diagnostics locaux, pas des artefacts de
+  release. Seul le receipt généré par la gate finale sera une preuve durable.
+- Aucune conclusion GO n'est tirée avant le package, le walkthrough et la
+  validation du même `releaseCandidateCommit`.

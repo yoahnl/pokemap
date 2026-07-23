@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'dart:collection';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
@@ -81,8 +83,14 @@ void main() {
     final zones = <String, MapGameplayZone>{
       for (final zone in map.gameplayZones) zone.id: zone,
     };
-    expect(zones.keys,
-        unorderedEquals(<String>['zone_port_entry', 'zone_port_center']));
+    expect(
+      zones.keys,
+      unorderedEquals(<String>[
+        'zone_port_entry',
+        'zone_port_center',
+        'zone_port_surf_training',
+      ]),
+    );
     expect(
       zones['zone_port_entry']!.area,
       const MapRect(
@@ -97,11 +105,18 @@ void main() {
         size: GridSize(width: 14, height: 8),
       ),
     );
-    for (final zone in zones.values) {
+    for (final zone in <MapGameplayZone>[
+      zones['zone_port_entry']!,
+      zones['zone_port_center']!,
+    ]) {
       expect(zone.kind, GameplayZoneKind.special);
       expect(zone.special?.scriptKey, isNull);
       expect(zone.special?.properties['inert'], 'true');
     }
+    final surfTraining = zones['zone_port_surf_training']!;
+    expect(surfTraining.kind, GameplayZoneKind.movement);
+    expect(surfTraining.movement?.requiredMode, MovementMode.surf);
+    expect(surfTraining.area.pos, const GridPos(x: 18, y: 18));
 
     final triggerById = <String, MapTrigger>{
       for (final trigger in map.triggers) trigger.id: trigger,
@@ -152,7 +167,30 @@ void main() {
         'npc_pecheur',
         'fog_port',
         'goelise_nest_proxy',
+        'service_port_shop',
+        'service_port_pc',
+        'service_port_healing',
+        'service_port_ferry',
+        'surf_training_marker',
       ]),
+    );
+    for (final serviceId in const <String>[
+      'service_port_shop',
+      'service_port_pc',
+      'service_port_healing',
+      'service_port_ferry',
+    ]) {
+      expect(
+        entitiesById[serviceId]?.properties['contractRole'],
+        'selbrume_player_service_source',
+        reason: serviceId,
+      );
+    }
+    _expectWorldStateVisual(
+      map,
+      id: 'surf_training_marker',
+      pos: const GridPos(x: 18, y: 18),
+      elementId: 'el_selbrume_passage_ecume_h',
     );
     _expectNarrativeNpc(
       map,
@@ -236,7 +274,6 @@ void main() {
       () => MapValidator.validate(map, projectDialogueContext: manifest),
       returnsNormally,
     );
-
     final entitiesById = <String, MapEntity>{
       for (final entity in map.entities) entity.id: entity,
     };
@@ -326,12 +363,34 @@ void main() {
         ),
       ]),
     );
-    expect(map.warps, hasLength(1));
-    final warp = map.warps.single;
-    expect(warp.id, 'warp_bourg_to_maison');
-    expect(warp.pos, const GridPos(x: 13, y: 23));
-    expect(warp.targetMapId, 'map_maison_joueur');
-    expect(warp.targetPos, const GridPos(x: 10, y: 13));
+    expect(map.warps, hasLength(2));
+    final warpsById = <String, MapWarp>{
+      for (final warp in map.warps) warp.id: warp,
+    };
+    expect(
+      warpsById['warp_bourg_to_maison']?.pos,
+      const GridPos(x: 13, y: 23),
+    );
+    expect(
+      warpsById['warp_bourg_to_maison']?.targetMapId,
+      'map_maison_joueur',
+    );
+    expect(
+      warpsById['warp_bourg_to_maison']?.targetPos,
+      const GridPos(x: 10, y: 13),
+    );
+    expect(
+      warpsById['warp_bourg_port_arrival']?.pos,
+      const GridPos(x: 27, y: 52),
+    );
+    expect(
+      warpsById['warp_bourg_port_arrival']?.targetMapId,
+      'map_port_brisants',
+    );
+    expect(
+      warpsById['warp_bourg_port_arrival']?.targetPos,
+      const GridPos(x: 27, y: 2),
+    );
     expect(
       <String>{
         for (final connection in map.connections) connection.targetMapId,
@@ -1024,6 +1083,25 @@ void main() {
       () => MapValidator.validate(map, projectDialogueContext: manifest),
       returnsNormally,
     );
+    final unlockedWorld = GameplayWorldState.initial(
+      map: map,
+      playerPos: const GridPos(x: 30, y: 0),
+      playerMovementMode: MovementMode.surf,
+      project: manifest,
+      mapEntityPresencePredicate: (mapId, entity) =>
+          entity.id != 'gate_passage_to_phare',
+    );
+    final connectivity = _walkabilityDiagnosis(
+      unlockedWorld,
+      start: const GridPos(x: 30, y: 0),
+      goal: const GridPos(x: 59, y: 12),
+      size: map.size,
+    );
+    expect(
+      connectivity.reachedGoal,
+      isTrue,
+      reason: connectivity.summary,
+    );
     expect(
       map.connections,
       unorderedEquals(<MapConnection>[
@@ -1041,7 +1119,11 @@ void main() {
     expect(map.events, isEmpty);
     expect(
       map.entities.map((entity) => entity.id),
-      unorderedEquals(<String>['gate_passage_to_phare', 'fog_passage']),
+      unorderedEquals(<String>[
+        'gate_passage_to_phare',
+        'fog_passage',
+        'surf_gate_marker',
+      ]),
     );
     _expectRouteLock(
       map,
@@ -1056,8 +1138,17 @@ void main() {
       pos: const GridPos(x: 28, y: 8),
       elementId: 'el_selbrume_fx_brume_basse',
     );
-    expect(map.gameplayZones, hasLength(1));
-    final zone = map.gameplayZones.single;
+    _expectWorldStateVisual(
+      map,
+      id: 'surf_gate_marker',
+      pos: const GridPos(x: 48, y: 10),
+      elementId: 'el_selbrume_passage_ecume_v',
+    );
+    expect(map.gameplayZones, hasLength(2));
+    final zonesById = <String, MapGameplayZone>{
+      for (final zone in map.gameplayZones) zone.id: zone,
+    };
+    final zone = zonesById['zone_passage_entry']!;
     expect(zone.id, 'zone_passage_entry');
     expect(zone.kind, GameplayZoneKind.special);
     expect(
@@ -1071,6 +1162,16 @@ void main() {
       'contractRole': 'navigation_anchor',
       'inert': 'true',
     });
+    final surfGate = zonesById['zone_passage_surf_gate']!;
+    expect(surfGate.kind, GameplayZoneKind.movement);
+    expect(surfGate.movement?.requiredMode, MovementMode.surf);
+    expect(
+      surfGate.area,
+      const MapRect(
+        pos: GridPos(x: 48, y: 0),
+        size: GridSize(width: 3, height: 24),
+      ),
+    );
     expect(map.triggers, hasLength(1));
     final trigger = map.triggers.single;
     expect(trigger.id, 'zone_passage_entry');
@@ -1878,6 +1979,51 @@ void main() {
       ),
     );
   });
+}
+
+({bool reachedGoal, String summary}) _walkabilityDiagnosis(
+  GameplayWorldState world, {
+  required GridPos start,
+  required GridPos goal,
+  required GridSize size,
+}) {
+  final queue = ListQueue<GridPos>()..add(start);
+  final visited = <GridPos>{start};
+  while (queue.isNotEmpty) {
+    final current = queue.removeFirst();
+    if (current == goal) {
+      return (
+        reachedGoal: true,
+        summary: 'Reached $goal through ${visited.length} cells.',
+      );
+    }
+    for (final next in <GridPos>[
+      GridPos(x: current.x + 1, y: current.y),
+      GridPos(x: current.x - 1, y: current.y),
+      GridPos(x: current.x, y: current.y + 1),
+      GridPos(x: current.x, y: current.y - 1),
+    ]) {
+      if (next.x < 0 ||
+          next.y < 0 ||
+          next.x >= size.width ||
+          next.y >= size.height ||
+          world.isBlocked(next.x, next.y) ||
+          !visited.add(next)) {
+        continue;
+      }
+      queue.add(next);
+    }
+  }
+  final maxX = visited.map((cell) => cell.x).reduce((a, b) => a > b ? a : b);
+  final frontier = visited
+      .where((cell) => cell.x == maxX)
+      .toList(growable: false)
+    ..sort((left, right) => left.y.compareTo(right.y));
+  return (
+    reachedGoal: false,
+    summary:
+        'No unlocked causeway path: visited=${visited.length}, maxX=$maxX, frontier=$frontier.',
+  );
 }
 
 MapPlacedElement _expectPlacement(

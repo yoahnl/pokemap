@@ -308,7 +308,14 @@ void main() {
       reason: 'The nest is a World Rule-compatible entity visual now; a '
           'static duplicate would remain painted after collection.',
     );
-    expect(dynamicPortElementIds, <String>{'el_port_ref_nest'});
+    expect(
+      dynamicPortElementIds,
+      <String>{
+        'el_port_ref_nest',
+        'el_port_ref_sign_small',
+        'el_port_ref_boat_small',
+      },
+    );
     expect(
       <String>{...placedPortElementIds, ...dynamicPortElementIds},
       unorderedEquals(const <String>{

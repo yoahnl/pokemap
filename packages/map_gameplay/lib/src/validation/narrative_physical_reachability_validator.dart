@@ -376,12 +376,23 @@ _StateExploration _exploreSymbolicState({
   required NarrativeSymbolicState symbolicState,
   required _ExplorationBudget budget,
 }) {
+  final movementMode =
+      symbolicState.unlockedFieldAbilities.contains(FieldAbility.surf)
+          ? MovementMode.surf
+          : MovementMode.walk;
   final gameState = GameState(
     saveId: 'narrative_physical_validation',
     currentMapId: startMapId,
     playerPosition: startPos,
+    playerMovementMode: movementMode,
+    trainerProfile: TrainerProfile(
+      name: 'Validation',
+      badgeIds: symbolicState.badgeIds.toList()..sort(),
+    ),
     progression: PlayerProgression(
       completedStepIds: symbolicState.completedStepIds.toList()..sort(),
+      unlockedFieldAbilities: symbolicState.unlockedFieldAbilities.toList()
+        ..sort((left, right) => left.moveId.compareTo(right.moveId)),
     ),
     narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
       valuesByFactId: symbolicState.factValues,
@@ -431,6 +442,7 @@ _StateExploration _exploreSymbolicState({
         project: project,
         tileWidth: project.settings.tileWidth,
         tileHeight: project.settings.tileHeight,
+        playerMovementMode: movementMode,
         mapEntityPresencePredicate: (mapId, entity) =>
             visibilityByEntity['$mapId/${entity.id}'] ?? true,
       ),
@@ -535,6 +547,7 @@ _StateExploration _exploreSymbolicState({
           project: project,
           tileWidth: project.settings.tileWidth,
           tileHeight: project.settings.tileHeight,
+          playerMovementMode: movementMode,
           mapEntityPresencePredicate: (mapId, entity) =>
               visibilityByEntity['$mapId/${entity.id}'] ?? true,
         ),
@@ -688,7 +701,8 @@ Map<GridPos, int> _walkableComponentIndex(GameplayWorldState world) {
 
 bool _isProjectedWalkable(GameplayWorldState world, GridPos cell) =>
     !world.isCellCenterBlockedLegacyForGridIndexedSystems(cell.x, cell.y) &&
-    !world.isWaterCell(cell.x, cell.y);
+    (!world.isWaterCell(cell.x, cell.y) ||
+        world.player.movementMode == MovementMode.surf);
 
 _PathSearch _findPathToWarp({
   required GameplayWorldState world,
@@ -824,8 +838,13 @@ List<NarrativeSymbolicState> _canonicalStates(
         .intersection(relevantConsumedEventIds)
         .toList(growable: false)
       ..sort();
+    final fieldAbilities = state.unlockedFieldAbilities
+        .map((ability) => ability.moveId)
+        .toList(growable: false)
+      ..sort();
     return '${facts.join('|')}|steps=${steps.join(',')}|'
-        'consumed=${consumed.join(',')}';
+        'consumed=${consumed.join(',')}|'
+        'fieldAbilities=${fieldAbilities.join(',')}';
   }
 
   final byKey = <String, NarrativeSymbolicState>{
@@ -839,6 +858,8 @@ List<NarrativeSymbolicState> _canonicalStates(
       },
       completedStepIds: candidate.completedStepIds,
       consumedEventIds: candidate.consumedEventIds,
+      badgeIds: candidate.badgeIds,
+      unlockedFieldAbilities: candidate.unlockedFieldAbilities,
       emittedOutcomeKeys: candidate.emittedOutcomeKeys,
       executedEventIds: candidate.executedEventIds,
       provenance: candidate.provenance,

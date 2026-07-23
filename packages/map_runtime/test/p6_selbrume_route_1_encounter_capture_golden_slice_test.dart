@@ -61,13 +61,13 @@ void main() {
       final table = routeBundle.manifest.encounterTables.singleWhere(
         (candidate) => candidate.id == _encounterTableId,
       );
-      expect(table.name, 'grass path route 1');
+      expect(table.name, 'Herbes des marais salants');
       expect(table.encounterKind, EncounterKind.walk);
       expect(table.entries, hasLength(1));
       final entry = table.entries.single;
       expect(entry.speciesId, _capturedSpeciesId);
-      expect(entry.minLevel, 1);
-      expect(entry.maxLevel, 5);
+      expect(entry.minLevel, 11);
+      expect(entry.maxLevel, 11);
       expect(entry.weight, 1);
 
       final encounterZones = routeBundle.map.gameplayZones
@@ -181,7 +181,7 @@ void main() {
       expect(encounter.speciesId, _capturedSpeciesId);
       expect(encounter.minLevel, entry.minLevel);
       expect(encounter.maxLevel, entry.maxLevel);
-      expect(encounter.level, 3);
+      expect(encounter.level, 11);
       expect(encounter.playerPos, encounterPos);
 
       final request = buildBattleStartRequestFromEncounter(
@@ -195,7 +195,7 @@ void main() {
       expect(request.zoneId, firstEncounterZone.id);
       expect(request.tableId, _encounterTableId);
       expect(request.speciesId, _capturedSpeciesId);
-      expect(request.level, 3);
+      expect(request.level, 11);
       expect(request.returnContext.mapId, _routeMapId);
       expect(request.returnContext.playerPos, encounterPos);
 
@@ -249,7 +249,7 @@ void main() {
       expect(reloaded.party.members, hasLength(2));
       expect(reloaded.party.members.first.speciesId, _initialSpeciesId);
       expect(reloaded.party.members.last.speciesId, _capturedSpeciesId);
-      expect(reloaded.party.members.last.level, 3);
+      expect(reloaded.party.members.last.level, 11);
       expect(reloaded.party.members.last.knownMoveIds, _initialMoves);
       expect(reloaded.pokemonStorage.storedPokemon, isEmpty);
       expect(_bagQuantity(reloaded, _captureItemId), 4);

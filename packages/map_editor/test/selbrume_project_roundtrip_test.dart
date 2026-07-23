@@ -103,14 +103,34 @@ void main() {
     expect(_seedFingerprint(maraisRaw), _seedFingerprint(sourceMarais));
 
     expect(maps['map_bourg_selbrume']!.connections, hasLength(2));
+    expect(maps['map_bourg_selbrume']!.warps, hasLength(2));
     expect(
-      maps['map_bourg_selbrume']!.warps.single,
+      maps['map_bourg_selbrume']!.warps.singleWhere(
+            (warp) => warp.id == 'warp_bourg_to_maison',
+          ),
       isA<MapWarp>()
           .having((warp) => warp.id, 'id', 'warp_bourg_to_maison')
           .having(
             (warp) => warp.targetMapId,
             'targetMapId',
             'map_maison_joueur',
+          ),
+    );
+    expect(
+      maps['map_bourg_selbrume']!.warps.singleWhere(
+            (warp) => warp.id == 'warp_bourg_port_arrival',
+          ),
+      isA<MapWarp>()
+          .having((warp) => warp.pos, 'pos', const GridPos(x: 27, y: 52))
+          .having(
+            (warp) => warp.targetMapId,
+            'targetMapId',
+            'map_port_brisants',
+          )
+          .having(
+            (warp) => warp.targetPos,
+            'targetPos',
+            const GridPos(x: 27, y: 2),
           ),
     );
     expect(maps['map_marais_salants']!.connections, hasLength(2));
@@ -1279,9 +1299,11 @@ void main() {
         ),
       ]),
     );
-    expect(bourg.warps, hasLength(1));
+    expect(bourg.warps, hasLength(2));
     expect(
-      bourg.warps.single,
+      bourg.warps.singleWhere(
+        (warp) => warp.id == 'warp_bourg_to_maison',
+      ),
       isA<MapWarp>()
           .having((warp) => warp.id, 'id', 'warp_bourg_to_maison')
           .having((warp) => warp.pos, 'pos', const GridPos(x: 13, y: 23))
@@ -1294,6 +1316,23 @@ void main() {
             (warp) => warp.targetPos,
             'targetPos',
             const GridPos(x: 10, y: 13),
+          ),
+    );
+    expect(
+      bourg.warps.singleWhere(
+        (warp) => warp.id == 'warp_bourg_port_arrival',
+      ),
+      isA<MapWarp>()
+          .having((warp) => warp.pos, 'pos', const GridPos(x: 27, y: 52))
+          .having(
+            (warp) => warp.targetMapId,
+            'targetMapId',
+            'map_port_brisants',
+          )
+          .having(
+            (warp) => warp.targetPos,
+            'targetPos',
+            const GridPos(x: 27, y: 2),
           ),
     );
     expect(

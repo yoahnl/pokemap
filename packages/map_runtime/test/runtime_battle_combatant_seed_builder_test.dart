@@ -1143,6 +1143,11 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         'spe': 45,
       },
       'abilities': <String, String>{'primary': 'overgrow'},
+      'progression': <String, Object>{
+        'growthRateId': 'medium_slow',
+        'baseExp': 64,
+        'catchRate': 45,
+      },
       'refs': <String, String>{'learnset': 'sproutle'},
     },
   );
@@ -1163,6 +1168,11 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         'spe': 65,
       },
       'abilities': <String, String>{'primary': 'blaze'},
+      'progression': <String, Object>{
+        'growthRateId': 'medium_slow',
+        'baseExp': 62,
+        'catchRate': 45,
+      },
       'refs': <String, String>{'learnset': 'sparkitten'},
     },
   );
@@ -1183,6 +1193,11 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         'spe': 43,
       },
       'abilities': <String, String>{'primary': 'torrent'},
+      'progression': <String, Object>{
+        'growthRateId': 'medium_slow',
+        'baseExp': 63,
+        'catchRate': 45,
+      },
       'refs': <String, String>{'learnset': 'aquafi'},
     },
   );
@@ -1560,6 +1575,11 @@ Future<void> _rewriteSpeciesWithoutLearnsetRef(
         'spe': 45,
       },
       'abilities': <String, String>{'primary': primaryAbilityId},
+      'progression': <String, Object>{
+        'growthRateId': 'medium_slow',
+        'baseExp': 64,
+        'catchRate': 45,
+      },
       // Le test retire volontairement `refs.learnset` pour prouver que le
       // seam M7 conserve bien le fallback historique vers l'id d'espèce.
     },

@@ -97,6 +97,12 @@ const Map<String, List<(String, GridPos, String, GridPos)>> _authoredWarps =
       'map_maison_joueur',
       GridPos(x: 10, y: 13),
     ),
+    (
+      'warp_bourg_port_arrival',
+      GridPos(x: 27, y: 52),
+      'map_port_brisants',
+      GridPos(x: 27, y: 2),
+    ),
   ],
   'map_phare_exterieur': <(String, GridPos, String, GridPos)>[
     (
@@ -775,6 +781,13 @@ Future<SelbrumeGeneratorResult> generateSelbrumeCanonicalMaps(
                 targetMapId: 'map_maison_joueur',
                 targetPos: GridPos(x: 10, y: 13),
               ),
+              MapWarp(
+                id: 'warp_bourg_port_arrival',
+                pos: GridPos(x: 27, y: 52),
+                targetMapId: 'map_port_brisants',
+                targetPos: GridPos(x: 27, y: 2),
+                triggerMode: MapWarpTriggerMode.onBump,
+              ),
             ],
           ),
     'map_port_brisants':
@@ -1323,8 +1336,7 @@ void _validateAuthoredMapContract(
   for (final contract in _authoredLandmarks[map.id] ??
       const <(String, String, String, GridPos, bool)>[]) {
     final placed = placedById[contract.$1];
-    if (map.id == 'map_port_brisants' &&
-        contract.$1 == 'pe_port_nid_goelise') {
+    if (map.id == 'map_port_brisants' && contract.$1 == 'pe_port_nid_goelise') {
       // The promoted project must never retain both visual owners: the static
       // placement cannot react to World Rules, whereas the entity proxy can.
       if (placed != null || !_matchesPromotedNarrativeLandmark(map, contract)) {
@@ -3601,6 +3613,13 @@ MapData _buildBourgPilot(Map<String, dynamic> sourceJson) {
         triggerMode: MapWarpTriggerMode.onBump,
         allowedApproachFacings: <EntityFacing>[EntityFacing.south],
         triggerPadding: WarpTriggerPadding(bottom: 8),
+      ),
+      MapWarp(
+        id: 'warp_bourg_port_arrival',
+        pos: GridPos(x: 27, y: 52),
+        targetMapId: 'map_port_brisants',
+        targetPos: GridPos(x: 27, y: 2),
+        triggerMode: MapWarpTriggerMode.onBump,
       ),
     ],
     mapMetadata: const MapMetadata(
@@ -6990,15 +7009,27 @@ void _validateTask7Output({
       })) {
     throw StateError('Task 7 Bourg connections are not exact.');
   }
-  if (bourg.warps.length != 1) {
-    throw StateError('Task 7 Bourg must expose one player-house warp.');
+  if (bourg.warps.length != 2) {
+    throw StateError(
+      'Task 7 Bourg must expose the player-house and port-arrival warps.',
+    );
   }
-  final warp = bourg.warps.single;
-  if (warp.id != 'warp_bourg_to_maison' ||
-      warp.pos != const GridPos(x: 13, y: 23) ||
-      warp.targetMapId != 'map_maison_joueur' ||
-      warp.targetPos != const GridPos(x: 10, y: 13)) {
+  final warpById = <String, MapWarp>{
+    for (final warp in bourg.warps) warp.id: warp,
+  };
+  final houseWarp = warpById['warp_bourg_to_maison'];
+  if (houseWarp == null ||
+      houseWarp.pos != const GridPos(x: 13, y: 23) ||
+      houseWarp.targetMapId != 'map_maison_joueur' ||
+      houseWarp.targetPos != const GridPos(x: 10, y: 13)) {
     throw StateError('Task 7 Bourg player-house warp is invalid.');
+  }
+  final portArrivalWarp = warpById['warp_bourg_port_arrival'];
+  if (portArrivalWarp == null ||
+      portArrivalWarp.pos != const GridPos(x: 27, y: 52) ||
+      portArrivalWarp.targetMapId != 'map_port_brisants' ||
+      portArrivalWarp.targetPos != const GridPos(x: 27, y: 2)) {
+    throw StateError('Task 7 Bourg port-arrival warp is invalid.');
   }
 
   final primary = bourg.layers

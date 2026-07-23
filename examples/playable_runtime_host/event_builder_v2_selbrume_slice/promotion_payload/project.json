@@ -28126,8 +28126,11 @@
       "battleThemeId": null,
       "characterId": "character_lysa",
       "id": "trainer_lysa_port",
+      "moneyReward": 0,
       "name": "Lysa du port",
       "portraitElementId": null,
+      "rewardFlagIds": [],
+      "rewardItemGrants": [],
       "tags": [
         "selbrume",
         "phase-j"

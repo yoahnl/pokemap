@@ -370,7 +370,7 @@ Objectif : le joueur peut démarrer une partie, recevoir un état initial, chois
 | FG-011 | New Game Runtime Flow V0 | `⬜ TODO` | — |
 | FG-012 | Starter Selection Model V0 | `⬜ TODO` | — |
 | FG-013 | Starter Selection Runtime Flow V0 | `⬜ TODO` | — |
-| FG-014 | Save/Load Transaction Hardening V0 | `✅ DONE V0` | `playable_map_game_save_load_transaction_test.dart` + Golden Slice Selbrume rollback/retry |
+| FG-014 | Save/Load Transaction Hardening V0 | `✅ DONE` | `playable_map_game_save_load_transaction_test.dart` + Golden Slice Selbrume rollback/retry |
 | FG-015 | Runtime Pause Menu Shell V0 | `⬜ TODO` | — |
 | FG-016 | Golden Runtime Boot Smoke V0 | `⬜ TODO` | — |
 
