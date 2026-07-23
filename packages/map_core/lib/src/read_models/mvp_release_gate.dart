@@ -68,13 +68,59 @@ final class MvpReleaseGateExecutionReceipt {
 
     return MvpReleaseGateExecutionReceipt._(
       criterion: criterion,
-      summary: summary,
-      source: source,
-      releaseCandidateCommit: releaseCandidateCommit,
-      command: command,
+      summary: summary.trim(),
+      source: source.trim(),
+      releaseCandidateCommit: releaseCandidateCommit.toLowerCase(),
+      command: command.trim(),
       exitCode: exitCode,
-      outputDigestSha256: outputDigestSha256,
+      outputDigestSha256: outputDigestSha256.toLowerCase(),
     );
+  }
+
+  factory MvpReleaseGateExecutionReceipt.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    final rawCriterion = json['criterion'];
+    final rawSummary = json['summary'];
+    final rawSource = json['source'];
+    final rawCommit = json['releaseCandidateCommit'];
+    final rawCommand = json['command'];
+    final rawExitCode = json['exitCode'];
+    final rawOutputDigest = json['outputDigestSha256'];
+    if (rawCriterion is! String ||
+        rawSummary is! String ||
+        rawSource is! String ||
+        rawCommit is! String ||
+        rawCommand is! String ||
+        rawExitCode is! int ||
+        rawOutputDigest is! String) {
+      throw const FormatException(
+        'Malformed MVP release gate execution receipt.',
+      );
+    }
+    final criterion = MvpReleaseGateCriterion.values
+        .where((candidate) => candidate.name == rawCriterion)
+        .firstOrNull;
+    if (criterion == null) {
+      throw FormatException(
+        'Unknown MVP release gate criterion: $rawCriterion',
+      );
+    }
+    try {
+      return MvpReleaseGateExecutionReceipt.validated(
+        criterion: criterion,
+        summary: rawSummary,
+        source: rawSource,
+        releaseCandidateCommit: rawCommit,
+        command: rawCommand,
+        exitCode: rawExitCode,
+        outputDigestSha256: rawOutputDigest,
+      );
+    } on ArgumentError catch (error) {
+      throw FormatException(
+        'Invalid MVP release gate execution receipt: $error',
+      );
+    }
   }
 
   final MvpReleaseGateCriterion criterion;
@@ -84,6 +130,16 @@ final class MvpReleaseGateExecutionReceipt {
   final String command;
   final int exitCode;
   final String outputDigestSha256;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'criterion': criterion.name,
+        'summary': summary,
+        'source': source,
+        'releaseCandidateCommit': releaseCandidateCommit,
+        'command': command,
+        'exitCode': exitCode,
+        'outputDigestSha256': outputDigestSha256,
+      };
 }
 
 /// Evidence supplied to the FG-185 release-gate aggregator.

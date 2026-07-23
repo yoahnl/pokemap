@@ -13,6 +13,22 @@ void main() {
       expect(receipt.outputDigestSha256, _outputDigestSha256);
     });
 
+    test('round-trips strict embedded execution receipt JSON', () {
+      final receipt = _receipt(MvpReleaseGateCriterion.goldenSlice);
+
+      expect(
+        MvpReleaseGateExecutionReceipt.fromJson(receipt.toJson()).toJson(),
+        receipt.toJson(),
+      );
+      expect(
+        () => MvpReleaseGateExecutionReceipt.fromJson(
+          Map<String, dynamic>.from(receipt.toJson())
+            ..['criterion'] = 'unknown',
+        ),
+        throwsFormatException,
+      );
+    });
+
     test('rejects invalid structured execution metadata', () {
       expect(
         () => _receipt(MvpReleaseGateCriterion.goldenSlice, summary: '   '),

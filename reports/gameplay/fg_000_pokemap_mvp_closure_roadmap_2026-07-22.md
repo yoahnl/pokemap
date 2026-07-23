@@ -902,14 +902,22 @@ impose un nouveau candidat.
 - Modify: `packages/map_core/lib/src/read_models/mvp_release_gate.dart`
 - Modify: `packages/map_core/test/mvp_release_gate_test.dart`
 
-- [ ] **Step 1:** Faire produire un receipt JSON et un résumé Markdown déterministes.
-- [ ] **Step 2:** Définir deux payloads validés et versionnés : receipt automatisé et receipt de walkthrough humain.
-- [ ] **Step 3:** Exiger `releaseCandidateCommit`, date, tree hash projet, package SHA, cwd, commande, exit code, durée et sources.
-- [ ] **Step 4:** Exiger une preuve reliée pour chacun des 19 critères produit et chaque critère technique de release.
-- [ ] **Step 5:** Retourner un code non nul dès qu'un critère échoue.
-- [ ] **Step 6:** Refuser receipt périmé, autre candidat, tree hash différent, package différent ou preuve dupliquée.
-- [ ] **Step 7:** Tester quick, full, échec de commande, preuve périmée, projet altéré et receipt humain mal formé.
-- [ ] **Step 8:** Commit proposé : `feat(host): add executable MVP release gate`.
+- [x] **Step 1:** Faire produire un receipt JSON et un résumé Markdown déterministes.
+- [x] **Step 2:** Définir deux payloads validés et versionnés : receipt automatisé et receipt de walkthrough humain.
+- [x] **Step 3:** Exiger `releaseCandidateCommit`, date, tree hash projet, package SHA, cwd, commande, exit code, durée et sources.
+- [x] **Step 4:** Exiger une preuve reliée pour chacun des 19 critères produit et chaque critère technique de release.
+- [x] **Step 5:** Retourner un code non nul dès qu'un critère échoue.
+- [x] **Step 6:** Refuser receipt périmé, autre candidat, tree hash différent, package différent ou preuve dupliquée.
+- [x] **Step 7:** Tester quick, full, échec de commande, preuve périmée, projet altéré et receipt humain mal formé.
+- [x] **Step 8:** Commit proposé : `feat(host): add executable MVP release gate`.
+
+**Preuve Task 6.1 (2026-07-23) :**
+
+- schema automatisé `MvpReleaseEvidenceReceipt` v2 et receipt humain v1 ;
+- JSON et Markdown déterministes, matrice quick/full ordonnée et fail-fast ;
+- `dart test test/mvp_release_evidence_receipt_test.dart test/mvp_release_gate_test.dart -r compact` : `+16`, succès ;
+- tests Host ciblés release/readiness : `+11`, succès ;
+- `dart analyze` Core et `flutter analyze` Host : aucune issue.
 
 ## Task 6.2 — FG-183 : matrice séquentielle
 
