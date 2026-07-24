@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "selbrume.healing-service",
+  "title": "Poste de soins du Port",
+  "projectId": "selbrume",
+  "policy": "probe",
+  "start": {
+    "newGame": true
+  },
+  "steps": [
+    {
+      "id": "open-port-route",
+      "command": "probe.overrideFact",
+      "factId": "fact_mael_mission_given",
+      "value": true
+    },
+    {
+      "id": "seed-injured-party",
+      "command": "probe.seedParty",
+      "pokemon": [
+        {
+          "speciesId": "squirtle",
+          "natureId": "hardy",
+          "abilityId": "torrent",
+          "gender": null,
+          "level": 15,
+          "ivs": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 0,
+            "specialDefense": 0,
+            "speed": 0
+          },
+          "evs": {
+            "hp": 0,
+            "attack": 0,
+            "defense": 0,
+            "specialAttack": 0,
+            "specialDefense": 0,
+            "speed": 0
+          },
+          "knownMoveIds": [
+            "tackle",
+            "tail_whip",
+            "water_gun",
+            "surf"
+          ],
+          "experience": 2534,
+          "currentPpByMoveId": null,
+          "currentHp": 1,
+          "statusId": "",
+          "isShiny": false,
+          "heldItemId": ""
+        }
+      ]
+    },
+    {
+      "id": "cross-to-port",
+      "command": "movement.crossConnection",
+      "direction": "south",
+      "preferredAxis": 26
+    },
+    {
+      "id": "heal-party",
+      "command": "service.heal"
+    },
+    {
+      "id": "assert-party-healed",
+      "assert": "party.0.currentHp",
+      "greaterThan": 1
+    }
+  ]
+}

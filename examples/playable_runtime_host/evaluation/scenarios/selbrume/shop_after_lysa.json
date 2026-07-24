@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "selbrume.shop.after-lysa",
+  "title": "Boutique du Port après Lysa",
+  "projectId": "selbrume",
+  "policy": "probe",
+  "start": {
+    "newGame": true
+  },
+  "steps": [
+    {
+      "id": "open-port-route",
+      "command": "probe.overrideFact",
+      "factId": "fact_mael_mission_given",
+      "value": true
+    },
+    {
+      "id": "unlock-after-lysa",
+      "command": "probe.overrideFact",
+      "factId": "fact_rival_port_defeated",
+      "value": true
+    },
+    {
+      "id": "fund-trainer",
+      "command": "probe.setMoney",
+      "value": 1000
+    },
+    {
+      "id": "seed-empty-shop-bag",
+      "command": "probe.seedBag",
+      "quantities": {
+        "poke-ball": 1
+      }
+    },
+    {
+      "id": "cross-to-port",
+      "command": "movement.crossConnection",
+      "direction": "south",
+      "preferredAxis": 26
+    },
+    {
+      "id": "buy-potion",
+      "command": "service.shop.buy",
+      "itemId": "potion",
+      "quantity": 1
+    },
+    {
+      "id": "assert-after-lysa-profile",
+      "assert": "shop.activeStateId",
+      "equals": "after-lysa"
+    },
+    {
+      "id": "assert-after-lysa-price",
+      "assert": "shop.catalogue.potion",
+      "equals": 250
+    },
+    {
+      "id": "assert-potion-added",
+      "assert": "bag.potion",
+      "equals": 1
+    },
+    {
+      "id": "assert-money-spent",
+      "assert": "state.money",
+      "equals": 750
+    }
+  ]
+}

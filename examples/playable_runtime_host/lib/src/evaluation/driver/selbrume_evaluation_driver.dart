@@ -41,6 +41,7 @@ final class SelbrumeEvaluationDriver
   final Map<String, Set<String>> _runtimeRejectedEdgesByMapId =
       <String, Set<String>>{};
   final Map<String, GameState> _checkpoints = <String, GameState>{};
+  Map<String, Object?> _lastShop = const <String, Object?>{};
 
   GameState get state => game.gameStateSnapshot;
 
@@ -140,7 +141,9 @@ final class SelbrumeEvaluationDriver
       ),
       progression: Map<String, Object?>.from(current.progression.toJson()),
       money: current.trainerProfile.money,
+      badges: current.trainerProfile.badgeIds,
       bag: bag,
+      shop: _lastShop,
       party: current.party.members
           .map((pokemon) => Map<String, Object?>.from(pokemon.toJson()))
           .toList(growable: false),
@@ -192,11 +195,8 @@ final class SelbrumeEvaluationDriver
       final before = game.debugPlayerGridPosition;
       await _tapMovement(_controlForDirection(direction));
       if (_hasBattleHandoff) {
-        throw EvaluationDriverFailure(
-          operation: 'movement.navigate',
-          message: 'An incidental encounter interrupted navigation.',
-          snapshot: snapshot(),
-        );
+        await resolveBattle('run');
+        continue;
       }
       if (game.debugPlayerGridPosition == before) {
         _runtimeRejectedEdgesByMapId
@@ -272,6 +272,65 @@ final class SelbrumeEvaluationDriver
   }
 
   @override
+  Future<void> enterGameplayZone(String zoneId) async {
+    final zone = _currentMap.gameplayZones
+        .where((candidate) => candidate.id == zoneId)
+        .firstOrNull;
+    _require(
+      zone != null,
+      operation: 'movement.enterGameplayZone',
+      message: 'Gameplay zone "$zoneId" does not exist on '
+          '${state.currentMapId}.',
+    );
+    final target = zone!.area.pos;
+    final candidates = <({GridPos position, Direction facing, int length})>[];
+    for (final facing in Direction.values) {
+      final position = GridPos(
+        x: target.x - facing.dx,
+        y: target.y - facing.dy,
+      );
+      final path = _pathTo(position);
+      if (path != null) {
+        candidates.add((
+          position: position,
+          facing: facing,
+          length: path.length,
+        ));
+      }
+    }
+    _require(
+      candidates.isNotEmpty,
+      operation: 'movement.enterGameplayZone',
+      message: 'Gameplay zone "$zoneId" has no reachable approach.',
+    );
+    candidates.sort((left, right) => left.length.compareTo(right.length));
+    final approach = candidates.first;
+    await navigateTo(approach.position.x, approach.position.y);
+    await _tapMovement(_controlForDirection(approach.facing));
+    await _pumpUntil(
+      () => game.debugFlowPhaseName == 'dialogue',
+      operation: 'movement.enterGameplayZone',
+      driveCinematic: true,
+      maxTicks: 6000,
+    );
+    _pressPrimary(operation: 'movement.enterGameplayZone');
+    await _pumpUntil(
+      () => game.debugFlowPhaseName == 'overworld',
+      operation: 'movement.enterGameplayZone',
+      driveCinematic: true,
+      drivePlainDialogue: true,
+      allowTransitionClock: true,
+      maxTicks: 6000,
+    );
+    await _tapMovement(_controlForDirection(approach.facing));
+    _require(
+      game.debugPlayerGridPosition == target,
+      operation: 'movement.enterGameplayZone',
+      message: 'Gameplay zone "$zoneId" did not accept physical traversal.',
+    );
+  }
+
+  @override
   Future<void> interact(String entityId) async {
     final entity =
         _currentMap.entities.where((entry) => entry.id == entityId).firstOrNull;
@@ -283,6 +342,9 @@ final class SelbrumeEvaluationDriver
     final approach = _shortestReachableApproach(entity!);
     await navigateTo(approach.stagingPosition.x, approach.stagingPosition.y);
     await _tapMovement(_controlForDirection(approach.facing));
+    if (_hasBattleHandoff) {
+      await resolveBattle('run');
+    }
     _require(
       game.debugPlayerGridPosition == approach.position,
       operation: 'world.interact',
@@ -293,7 +355,10 @@ final class SelbrumeEvaluationDriver
   }
 
   @override
-  Future<void> enterTrigger(String triggerId) async {
+  Future<void> enterTrigger(
+    String triggerId, {
+    bool expectBattle = false,
+  }) async {
     final trigger = _currentMap.triggers
         .where((entry) => entry.id == triggerId)
         .firstOrNull;
@@ -307,6 +372,51 @@ final class SelbrumeEvaluationDriver
       await navigateTo(outside.x, outside.y);
     }
     final target = _reachableCellInArea(trigger.area);
+    if (expectBattle) {
+      var movementAttempted = false;
+      for (var attempt = 0; attempt < 600; attempt += 1) {
+        if (movementAttempted &&
+            (game.debugFlowPhaseName == 'battleTransition' ||
+                game.debugFlowPhaseName == 'battle')) {
+          await _pumpUntil(
+            () => game.debugFlowPhaseName == 'battle',
+            operation: 'world.enterTrigger',
+            driveCinematic: true,
+            drivePlainDialogue: true,
+            allowTransitionClock: true,
+            maxTicks: 6000,
+          );
+          return;
+        }
+        if (game.debugPlayerGridPosition == target) break;
+        final path = _pathTo(target);
+        _require(
+          path != null && path.isNotEmpty,
+          operation: 'world.enterTrigger',
+          message: 'No physical route reaches battle trigger "$triggerId".',
+        );
+        final direction = path!.first;
+        final before = game.debugPlayerGridPosition;
+        await _tapMovement(_controlForDirection(direction));
+        movementAttempted = true;
+        if (game.debugPlayerGridPosition == before &&
+            game.debugFlowPhaseName != 'battleTransition' &&
+            game.debugFlowPhaseName != 'battle') {
+          _runtimeRejectedEdgesByMapId
+              .putIfAbsent(state.currentMapId, () => <String>{})
+              .add(_edgeKey(before, direction));
+        }
+      }
+      await _pumpUntil(
+        () => game.debugFlowPhaseName == 'battle',
+        operation: 'world.enterTrigger',
+        driveCinematic: true,
+        drivePlainDialogue: true,
+        allowTransitionClock: true,
+        maxTicks: 6000,
+      );
+      return;
+    }
     await navigateTo(target.x, target.y);
   }
 
@@ -346,6 +456,62 @@ final class SelbrumeEvaluationDriver
   }
 
   @override
+  Future<void> enterWildEncounter() async {
+    final zone = _currentMap.gameplayZones.firstWhere(
+      (candidate) => candidate.kind == GameplayZoneKind.encounter,
+      orElse: () => throw EvaluationDriverFailure(
+        operation: 'world.enterEncounter',
+        message: 'No encounter zone exists on ${state.currentMapId}.',
+        snapshot: snapshot(),
+      ),
+    );
+    if (_contains(zone.area, game.debugPlayerGridPosition)) {
+      final outside = _reachableCellOutsideArea(zone.area);
+      for (var attempt = 0; attempt < 600; attempt += 1) {
+        if (_hasBattleHandoff) {
+          await _pumpUntil(
+            () => game.debugFlowPhaseName == 'battle',
+            operation: 'world.enterEncounter',
+            allowTransitionClock: true,
+          );
+          return;
+        }
+        if (game.debugPlayerGridPosition == outside) break;
+        final path = _pathTo(outside);
+        _require(
+          path != null && path.isNotEmpty,
+          operation: 'world.enterEncounter',
+          message: 'No physical route exits the encounter zone.',
+        );
+        await _tapMovement(_controlForDirection(path!.first));
+      }
+    }
+    final target = _reachableCellInArea(zone.area);
+    for (var attempt = 0; attempt < 600; attempt += 1) {
+      if (_hasBattleHandoff) {
+        await _pumpUntil(
+          () => game.debugFlowPhaseName == 'battle',
+          operation: 'world.enterEncounter',
+          allowTransitionClock: true,
+        );
+        return;
+      }
+      final path = _pathTo(target);
+      _require(
+        path != null && path.isNotEmpty,
+        operation: 'world.enterEncounter',
+        message: 'No physical route reaches the encounter zone.',
+      );
+      await _tapMovement(_controlForDirection(path!.first));
+    }
+    throw EvaluationDriverFailure(
+      operation: 'world.enterEncounter',
+      message: 'No wild encounter started after 600 physical steps.',
+      snapshot: snapshot(),
+    );
+  }
+
+  @override
   Future<void> waitForFact(
     String factId, {
     Duration? timeout,
@@ -361,10 +527,19 @@ final class SelbrumeEvaluationDriver
       drivePlainDialogue: true,
       allowTransitionClock: true,
     );
+    await _settleToOverworld(operation: 'world.waitForFact');
   }
 
   @override
   Future<void> advanceDialogue() async {
+    if (game.debugFlowPhaseName != 'dialogue') {
+      await _pumpUntil(
+        () => game.debugFlowPhaseName == 'dialogue',
+        operation: 'dialogue.advance',
+        driveCinematic: true,
+        maxTicks: 6000,
+      );
+    }
     _require(
       game.debugFlowPhaseName == 'dialogue',
       operation: 'dialogue.advance',
@@ -384,6 +559,14 @@ final class SelbrumeEvaluationDriver
       operation: 'dialogue.choose',
       message: 'choiceIndex must be non-negative.',
     );
+    if (game.debugFlowPhaseName != 'dialogue') {
+      await _pumpUntil(
+        () => game.debugFlowPhaseName == 'dialogue',
+        operation: 'dialogue.choose',
+        driveCinematic: true,
+        maxTicks: 6000,
+      );
+    }
     _require(
       game.debugFlowPhaseName == 'dialogue',
       operation: 'dialogue.choose',
@@ -540,6 +723,72 @@ final class SelbrumeEvaluationDriver
   }
 
   @override
+  Future<void> resolveBattle(String strategy) async {
+    _require(
+      const <String>{'win', 'lose', 'capture', 'run'}.contains(strategy),
+      operation: 'battle.resolve',
+      message: 'Unknown battle strategy "$strategy".',
+    );
+    await _pumpUntil(
+      () => game.debugFlowPhaseName == 'battle',
+      operation: 'battle.resolve',
+      driveCinematic: true,
+      drivePlainDialogue: true,
+      allowTransitionClock: true,
+      maxTicks: 6000,
+    );
+    for (var turn = 0; turn < 80; turn += 1) {
+      if (game.debugFlowPhaseName != 'battle') return;
+      await _waitForBattleInputReady();
+      final finished =
+          game.debugBattleSessionSnapshot?.state.isFinished ?? false;
+      if (game.debugPostBattleOverlayMounted || finished) {
+        await completePostBattle();
+        return;
+      }
+      switch (strategy) {
+        case 'capture':
+          await attemptCapture();
+        case 'run':
+          await runFromBattle();
+        case 'lose':
+          final moves = game.debugBattleSessionSnapshot!.state.player.moves;
+          final index = moves.indexWhere(
+            (move) => move.power == 0 && move.currentPp > 0,
+          );
+          _require(
+            index >= 0,
+            operation: 'battle.resolve',
+            message: 'The active battler has no usable status move.',
+          );
+          await chooseBattleMove(index);
+        case 'win':
+          final moves = game.debugBattleSessionSnapshot!.state.player.moves;
+          var bestIndex = -1;
+          var bestPower = -1;
+          for (var index = 0; index < moves.length; index += 1) {
+            final move = moves[index];
+            if (move.currentPp > 0 && move.power > bestPower) {
+              bestIndex = index;
+              bestPower = move.power;
+            }
+          }
+          _require(
+            bestIndex >= 0 && bestPower > 0,
+            operation: 'battle.resolve',
+            message: 'The active battler has no usable damaging move.',
+          );
+          await chooseBattleMove(bestIndex);
+      }
+    }
+    throw EvaluationDriverFailure(
+      operation: 'battle.resolve',
+      message: 'Battle exceeded 80 player turns.',
+      snapshot: snapshot(),
+    );
+  }
+
+  @override
   Future<void> inspectShop() async {
     final requestCount = playerServices.shopRequests.length;
     await interact('service_port_shop');
@@ -550,6 +799,7 @@ final class SelbrumeEvaluationDriver
       drivePlainDialogue: true,
       allowTransitionClock: true,
     );
+    _rememberShop(playerServices.shopRequests.last);
     await _settleToOverworld(operation: 'service.shop.inspect');
   }
 
@@ -571,6 +821,7 @@ final class SelbrumeEvaluationDriver
         drivePlainDialogue: true,
         allowTransitionClock: true,
       );
+      _rememberShop(playerServices.shopRequests.last);
       await _settleToOverworld(operation: 'service.shop.buy');
     }
   }
@@ -578,9 +829,23 @@ final class SelbrumeEvaluationDriver
   @override
   Future<void> healParty() async {
     final openedCount = playerServices.openedServices.length;
+    final hpBefore = state.party.members
+        .map((pokemon) => pokemon.currentHp)
+        .toList(growable: false);
     await interact('service_port_healing');
     await _pumpUntil(
-      () => playerServices.openedServices.length == openedCount + 1,
+      () {
+        if (playerServices.openedServices.length == openedCount + 1) {
+          return true;
+        }
+        final hpAfter = state.party.members
+            .map((pokemon) => pokemon.currentHp)
+            .toList(growable: false);
+        return hpAfter.length == hpBefore.length &&
+            Iterable<int>.generate(hpAfter.length).any(
+              (index) => hpAfter[index] > hpBefore[index],
+            );
+      },
       operation: 'service.heal',
       driveCinematic: true,
       drivePlainDialogue: true,
@@ -770,6 +1035,19 @@ final class SelbrumeEvaluationDriver
   int _bagQuantity(String itemId) => state.bag.entries
       .where((entry) => entry.itemId == itemId)
       .fold(0, (total, entry) => total + entry.quantity);
+
+  void _rememberShop(PlayerServiceShopRequest request) {
+    _lastShop = <String, Object?>{
+      'id': request.shop.id,
+      'activeStateId': request.resolvedState.stateId,
+      'isOpen': request.resolvedState.isOpen,
+      'catalogue': <String, int>{
+        for (final entry in request.resolvedState.entries)
+          entry.itemId: entry.price,
+      },
+      'message': request.resolvedState.message,
+    };
+  }
 
   Future<void> _waitForBattleInputReady() async {
     await _pumpUntil(

@@ -1,0 +1,718 @@
+{
+  "schemaVersion": 1,
+  "id": "selbrume.mvp",
+  "title": "Certification complète du MVP Selbrume",
+  "projectId": "selbrume",
+  "policy": "certify",
+  "start": {
+    "newGame": true
+  },
+  "criteria": [
+    {
+      "id": "MVP-01",
+      "stepIds": ["new-game"]
+    },
+    {
+      "id": "MVP-02",
+      "stepIds": ["assert-starter"]
+    },
+    {
+      "id": "MVP-03",
+      "stepIds": ["cross-to-port", "cross-to-marsh", "reach-lighthouse"]
+    },
+    {
+      "id": "MVP-04",
+      "stepIds": ["speak-with-mael", "start-crystal-quest"]
+    },
+    {
+      "id": "MVP-05",
+      "stepIds": ["choose-starter", "choose-port-response"]
+    },
+    {
+      "id": "MVP-06",
+      "stepIds": ["wait-port-alert", "resolve-mist-source"]
+    },
+    {
+      "id": "MVP-07",
+      "stepIds": ["enter-first-wild-encounter"]
+    },
+    {
+      "id": "MVP-08",
+      "stepIds": ["capture-first-wild", "assert-species-caught"]
+    },
+    {
+      "id": "MVP-09",
+      "stepIds": ["capture-to-storage", "assert-storage-overflow"]
+    },
+    {
+      "id": "MVP-10",
+      "stepIds": ["win-lysa", "win-first-guardian", "win-second-guardian"]
+    },
+    {
+      "id": "MVP-11",
+      "stepIds": ["assert-level-gained", "buy-after-lysa"]
+    },
+    {
+      "id": "MVP-12",
+      "stepIds": ["assert-level-gained"]
+    },
+    {
+      "id": "MVP-13",
+      "stepIds": ["assert-move-learned"]
+    },
+    {
+      "id": "MVP-14",
+      "stepIds": ["assert-badge"]
+    },
+    {
+      "id": "MVP-15",
+      "stepIds": ["assert-surf-unlocked", "activate-port-surf", "cross-passage-channel"]
+    },
+    {
+      "id": "MVP-16",
+      "stepIds": ["buy-before-lysa", "buy-after-lysa", "buy-after-story"]
+    },
+    {
+      "id": "MVP-17",
+      "stepIds": ["heal-after-lysa"]
+    },
+    {
+      "id": "MVP-18",
+      "stepIds": ["save-before-port", "reload-before-port", "save-after-boss", "reload-after-boss"]
+    },
+    {
+      "id": "MVP-19",
+      "stepIds": ["assert-story-complete"]
+    }
+  ],
+  "steps": [
+    {
+      "id": "new-game",
+      "command": "game.new"
+    },
+    {
+      "id": "speak-with-mael",
+      "command": "world.interact",
+      "entityId": "npc_mael"
+    },
+    {
+      "id": "choose-starter",
+      "command": "dialogue.choose",
+      "choiceIndex": 2,
+      "linesBeforeChoice": 1
+    },
+    {
+      "id": "wait-starter",
+      "command": "world.waitForFact",
+      "factId": "fact_mael_mission_given"
+    },
+    {
+      "id": "assert-starter",
+      "assert": "party.0.speciesId",
+      "equals": "squirtle"
+    },
+    {
+      "id": "assert-capture-kit",
+      "assert": "bag.poke-ball",
+      "equals": 5
+    },
+    {
+      "id": "save-before-port",
+      "command": "save.write"
+    },
+    {
+      "id": "reload-before-port",
+      "command": "save.reload"
+    },
+    {
+      "id": "cross-to-port",
+      "command": "movement.crossConnection",
+      "direction": "south",
+      "preferredAxis": 26
+    },
+    {
+      "id": "enter-port-alert",
+      "command": "world.enterTrigger",
+      "triggerId": "zone_port_entry"
+    },
+    {
+      "id": "choose-port-response",
+      "command": "dialogue.choose",
+      "choiceIndex": 1,
+      "linesBeforeChoice": 2
+    },
+    {
+      "id": "wait-port-alert",
+      "command": "world.waitForFact",
+      "factId": "fact_port_alert_seen"
+    },
+    {
+      "id": "buy-before-lysa",
+      "command": "service.shop.buy",
+      "itemId": "poke-ball",
+      "quantity": 1
+    },
+    {
+      "id": "challenge-lysa",
+      "command": "world.interact",
+      "entityId": "npc_lysa"
+    },
+    {
+      "id": "win-lysa",
+      "command": "battle.resolve",
+      "strategy": "win"
+    },
+    {
+      "id": "wait-lysa-victory",
+      "command": "world.waitForFact",
+      "factId": "fact_rival_port_defeated"
+    },
+    {
+      "id": "assert-level-gained",
+      "assert": "party.0.level",
+      "greaterThan": 15
+    },
+    {
+      "id": "assert-evolution",
+      "assert": "party.0.speciesId",
+      "equals": "wartortle"
+    },
+    {
+      "id": "assert-move-learned",
+      "assert": "party.0.knownMoveIds",
+      "contains": "bite"
+    },
+    {
+      "id": "assert-badge",
+      "assert": "trainer.badges",
+      "contains": "badge_brisants"
+    },
+    {
+      "id": "assert-surf-unlocked",
+      "assert": "progression.unlockedFieldAbilities",
+      "contains": "surf"
+    },
+    {
+      "id": "buy-after-lysa",
+      "command": "service.shop.buy",
+      "itemId": "potion",
+      "quantity": 1
+    },
+    {
+      "id": "assert-after-lysa-shop",
+      "assert": "shop.activeStateId",
+      "equals": "after-lysa"
+    },
+    {
+      "id": "heal-after-lysa",
+      "command": "service.heal"
+    },
+    {
+      "id": "checkpoint-after-lysa",
+      "command": "evidence.checkpoint",
+      "checkpointId": "after-lysa"
+    },
+    {
+      "id": "cross-port-north",
+      "command": "movement.crossConnection",
+      "direction": "north"
+    },
+    {
+      "id": "cross-route-east",
+      "command": "movement.crossConnection",
+      "direction": "east",
+      "preferredAxis": 22
+    },
+    {
+      "id": "cross-to-marsh",
+      "command": "movement.crossConnection",
+      "direction": "east",
+      "preferredAxis": 22
+    },
+    {
+      "id": "enter-marsh",
+      "command": "world.enterTrigger",
+      "triggerId": "zone_marais_entry"
+    },
+    {
+      "id": "wait-marsh",
+      "command": "world.waitForFact",
+      "factId": "fact_marais_unlocked"
+    },
+    {
+      "id": "enter-first-wild-encounter",
+      "command": "world.enterEncounter"
+    },
+    {
+      "id": "capture-first-wild",
+      "command": "battle.resolve",
+      "strategy": "capture"
+    },
+    {
+      "id": "assert-species-caught",
+      "assert": "progression.caughtSpeciesIds",
+      "contains": "pidgeotto"
+    },
+    {
+      "id": "enter-second-wild-encounter",
+      "command": "world.enterEncounter"
+    },
+    {
+      "id": "capture-second-wild",
+      "command": "battle.resolve",
+      "strategy": "capture"
+    },
+    {
+      "id": "enter-third-wild-encounter",
+      "command": "world.enterEncounter"
+    },
+    {
+      "id": "capture-third-wild",
+      "command": "battle.resolve",
+      "strategy": "capture"
+    },
+    {
+      "id": "enter-fourth-wild-encounter",
+      "command": "world.enterEncounter"
+    },
+    {
+      "id": "capture-fourth-wild",
+      "command": "battle.resolve",
+      "strategy": "capture"
+    },
+    {
+      "id": "enter-fifth-wild-encounter",
+      "command": "world.enterEncounter"
+    },
+    {
+      "id": "capture-fifth-wild",
+      "command": "battle.resolve",
+      "strategy": "capture"
+    },
+    {
+      "id": "enter-overflow-wild-encounter",
+      "command": "world.enterEncounter"
+    },
+    {
+      "id": "capture-to-storage",
+      "command": "battle.resolve",
+      "strategy": "capture"
+    },
+    {
+      "id": "assert-party-full",
+      "assert": "party.length",
+      "equals": 6
+    },
+    {
+      "id": "assert-storage-overflow",
+      "assert": "storage.length",
+      "greaterThan": 0
+    },
+    {
+      "id": "return-route-west",
+      "command": "movement.crossConnection",
+      "direction": "west"
+    },
+    {
+      "id": "return-port-west",
+      "command": "movement.crossConnection",
+      "direction": "west"
+    },
+    {
+      "id": "return-port-south",
+      "command": "movement.crossConnection",
+      "direction": "south",
+      "preferredAxis": 39
+    },
+    {
+      "id": "withdraw-pc-capture",
+      "command": "service.pc.withdraw",
+      "pokemonId": "pidgeotto"
+    },
+    {
+      "id": "back-route-north",
+      "command": "movement.crossConnection",
+      "direction": "north"
+    },
+    {
+      "id": "back-route-east",
+      "command": "movement.crossConnection",
+      "direction": "east",
+      "preferredAxis": 22
+    },
+    {
+      "id": "back-marsh-east",
+      "command": "movement.crossConnection",
+      "direction": "east",
+      "preferredAxis": 22
+    },
+    {
+      "id": "start-crystal-quest",
+      "command": "world.interact",
+      "entityId": "npc_mado"
+    },
+    {
+      "id": "wait-crystal-quest",
+      "command": "world.waitForFact",
+      "factId": "fact_crystals_quest_started"
+    },
+    {
+      "id": "inspect-glass-clue",
+      "command": "world.interact",
+      "entityId": "clue_glass_object"
+    },
+    {
+      "id": "wait-glass-clue",
+      "command": "world.waitForFact",
+      "factId": "fact_clue_glass_found"
+    },
+    {
+      "id": "enter-electric-clue",
+      "command": "world.enterTrigger",
+      "triggerId": "tr_marais_indice_traces_electriques"
+    },
+    {
+      "id": "wait-electric-clue",
+      "command": "world.waitForFact",
+      "factId": "fact_clue_electric_tracks_found"
+    },
+    {
+      "id": "enter-lens-clue",
+      "command": "world.enterTrigger",
+      "triggerId": "tr_marais_indice_repere_lentille"
+    },
+    {
+      "id": "wait-lens-clue",
+      "command": "world.waitForFact",
+      "factId": "fact_clue_lighthouse_mark_found"
+    },
+    {
+      "id": "collect-crystal-one",
+      "command": "world.enterTrigger",
+      "triggerId": "tr_marais_cristal_1"
+    },
+    {
+      "id": "wait-crystal-one",
+      "command": "world.waitForFact",
+      "factId": "fact_crystal_1_found"
+    },
+    {
+      "id": "collect-crystal-two",
+      "command": "world.enterTrigger",
+      "triggerId": "tr_marais_cristal_2"
+    },
+    {
+      "id": "wait-crystal-two",
+      "command": "world.waitForFact",
+      "factId": "fact_crystal_2_found"
+    },
+    {
+      "id": "collect-crystal-three",
+      "command": "world.enterTrigger",
+      "triggerId": "tr_marais_cristal_3"
+    },
+    {
+      "id": "wait-crystal-three",
+      "command": "world.waitForFact",
+      "factId": "fact_crystal_3_found"
+    },
+    {
+      "id": "finish-crystal-quest",
+      "command": "world.interact",
+      "entityId": "npc_mado"
+    },
+    {
+      "id": "wait-crystal-reward",
+      "command": "world.waitForFact",
+      "factId": "fact_crystals_quest_completed"
+    },
+    {
+      "id": "checkpoint-after-marsh",
+      "command": "evidence.checkpoint",
+      "checkpointId": "after-marsh"
+    },
+    {
+      "id": "return-from-marsh-west",
+      "command": "movement.crossConnection",
+      "direction": "west"
+    },
+    {
+      "id": "return-from-route-west",
+      "command": "movement.crossConnection",
+      "direction": "west"
+    },
+    {
+      "id": "return-to-port-south",
+      "command": "movement.crossConnection",
+      "direction": "south",
+      "preferredAxis": 39
+    },
+    {
+      "id": "speak-with-soline",
+      "command": "world.interact",
+      "entityId": "npc_soline"
+    },
+    {
+      "id": "wait-passage-unlock",
+      "command": "world.waitForFact",
+      "factId": "fact_passage_dames_unlocked"
+    },
+    {
+      "id": "start-goelise-quest",
+      "command": "world.interact",
+      "entityId": "npc_pecheur"
+    },
+    {
+      "id": "wait-goelise-quest",
+      "command": "world.waitForFact",
+      "factId": "fact_goelise_quest_started"
+    },
+    {
+      "id": "enter-goelise-nest",
+      "command": "world.enterTrigger",
+      "triggerId": "tr_port_nest"
+    },
+    {
+      "id": "wait-goelise-return",
+      "command": "world.waitForFact",
+      "factId": "fact_goelise_object_returned"
+    },
+    {
+      "id": "finish-goelise-quest",
+      "command": "world.interact",
+      "entityId": "npc_pecheur"
+    },
+    {
+      "id": "wait-goelise-reward",
+      "command": "world.waitForFact",
+      "factId": "fact_goelise_quest_completed"
+    },
+    {
+      "id": "activate-port-surf",
+      "command": "movement.enterGameplayZone",
+      "zoneId": "zone_port_surf_training"
+    },
+    {
+      "id": "leave-port-north",
+      "command": "movement.crossConnection",
+      "direction": "north"
+    },
+    {
+      "id": "cross-passage-route-east",
+      "command": "movement.crossConnection",
+      "direction": "east",
+      "preferredAxis": 28
+    },
+    {
+      "id": "cross-passage-marsh-east",
+      "command": "movement.crossConnection",
+      "direction": "east",
+      "preferredAxis": 28
+    },
+    {
+      "id": "cross-passage-south",
+      "command": "movement.crossConnection",
+      "direction": "south",
+      "preferredAxis": 28
+    },
+    {
+      "id": "cross-passage-channel",
+      "command": "movement.crossConnection",
+      "direction": "east",
+      "preferredAxis": 10
+    },
+    {
+      "id": "reach-lighthouse",
+      "command": "world.enterTrigger",
+      "triggerId": "zone_lighthouse_entry"
+    },
+    {
+      "id": "wait-lighthouse",
+      "command": "world.waitForFact",
+      "factId": "fact_lighthouse_reached"
+    },
+    {
+      "id": "speak-with-yvon",
+      "command": "world.interact",
+      "entityId": "npc_yvon"
+    },
+    {
+      "id": "wait-cabin-quest",
+      "command": "world.waitForFact",
+      "factId": "fact_cabin_quest_started"
+    },
+    {
+      "id": "collect-cabin-key",
+      "command": "world.enterTrigger",
+      "triggerId": "tr_cabin_key_outside"
+    },
+    {
+      "id": "wait-cabin-key",
+      "command": "world.waitForFact",
+      "factId": "fact_cabin_key_found"
+    },
+    {
+      "id": "enter-cabin",
+      "command": "world.enterWarp",
+      "warpId": "warp_phare_ext_to_cabane"
+    },
+    {
+      "id": "read-cabin-journal",
+      "command": "world.enterTrigger",
+      "triggerId": "tr_cabane_journal"
+    },
+    {
+      "id": "wait-cabin-complete",
+      "command": "world.waitForFact",
+      "factId": "fact_cabin_quest_completed"
+    },
+    {
+      "id": "leave-cabin",
+      "command": "world.enterWarp",
+      "warpId": "warp_cabane_to_phare_exterieur"
+    },
+    {
+      "id": "enter-lighthouse",
+      "command": "world.enterWarp",
+      "warpId": "warp_phare_ext_to_interieur"
+    },
+    {
+      "id": "read-lighthouse-note",
+      "command": "world.enterTrigger",
+      "triggerId": "tr_phare_note"
+    },
+    {
+      "id": "wait-lighthouse-note",
+      "command": "world.waitForFact",
+      "factId": "fact_lighthouse_old_note_read"
+    },
+    {
+      "id": "challenge-first-guardian",
+      "command": "world.enterTrigger",
+      "triggerId": "tr_phare_guardian_1",
+      "expectBattle": true
+    },
+    {
+      "id": "win-first-guardian",
+      "command": "battle.resolve",
+      "strategy": "win"
+    },
+    {
+      "id": "wait-first-guardian",
+      "command": "world.waitForFact",
+      "factId": "fact_lighthouse_guardian_1_defeated"
+    },
+    {
+      "id": "challenge-second-guardian",
+      "command": "world.enterTrigger",
+      "triggerId": "tr_phare_guardian_2",
+      "expectBattle": true
+    },
+    {
+      "id": "win-second-guardian",
+      "command": "battle.resolve",
+      "strategy": "win"
+    },
+    {
+      "id": "wait-second-guardian",
+      "command": "world.waitForFact",
+      "factId": "fact_lighthouse_guardian_2_defeated"
+    },
+    {
+      "id": "enter-lighthouse-summit",
+      "command": "world.enterWarp",
+      "warpId": "warp_phare_interieur_to_sommet"
+    },
+    {
+      "id": "challenge-mist-source",
+      "command": "world.enterTrigger",
+      "triggerId": "tr_sommet_confrontation",
+      "expectBattle": true
+    },
+    {
+      "id": "resolve-mist-source",
+      "command": "battle.resolve",
+      "strategy": "win"
+    },
+    {
+      "id": "wait-mist-resolved",
+      "command": "world.waitForFact",
+      "factId": "fact_mist_source_resolved"
+    },
+    {
+      "id": "save-after-boss",
+      "command": "save.write"
+    },
+    {
+      "id": "reload-after-boss",
+      "command": "save.reload"
+    },
+    {
+      "id": "leave-summit",
+      "command": "world.enterWarp",
+      "warpId": "warp_sommet_to_phare_interieur"
+    },
+    {
+      "id": "leave-lighthouse",
+      "command": "world.enterWarp",
+      "warpId": "warp_phare_interieur_to_exterieur"
+    },
+    {
+      "id": "return-passage-west",
+      "command": "movement.crossConnection",
+      "direction": "west"
+    },
+    {
+      "id": "return-passage-north",
+      "command": "movement.crossConnection",
+      "direction": "north"
+    },
+    {
+      "id": "return-marsh-west",
+      "command": "movement.crossConnection",
+      "direction": "west"
+    },
+    {
+      "id": "return-route-again-west",
+      "command": "movement.crossConnection",
+      "direction": "west"
+    },
+    {
+      "id": "return-port-final",
+      "command": "movement.crossConnection",
+      "direction": "south",
+      "preferredAxis": 24
+    },
+    {
+      "id": "enter-port-epilogue",
+      "command": "world.enterTrigger",
+      "triggerId": "zone_port_center"
+    },
+    {
+      "id": "wait-story-complete",
+      "command": "world.waitForFact",
+      "factId": "fact_main_story_completed"
+    },
+    {
+      "id": "assert-story-complete",
+      "assert": "facts.fact_main_story_completed",
+      "isTrue": true
+    },
+    {
+      "id": "buy-after-story",
+      "command": "service.shop.buy",
+      "itemId": "poke-ball",
+      "quantity": 1
+    },
+    {
+      "id": "assert-story-shop",
+      "assert": "shop.activeStateId",
+      "equals": "story-finished"
+    },
+    {
+      "id": "final-checkpoint",
+      "command": "evidence.checkpoint",
+      "checkpointId": "after-epilogue"
+    }
+  ]
+}

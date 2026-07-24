@@ -15,6 +15,7 @@ final class EvaluationStateSnapshot {
     Map<String, Object?> eventLedger = const <String, Object?>{},
     Map<String, Object?> progression = const <String, Object?>{},
     required this.money,
+    List<String> badges = const <String>[],
     Map<String, int> bag = const <String, int>{},
     Map<String, Object?> shop = const <String, Object?>{},
     List<Map<String, Object?>> party = const <Map<String, Object?>>[],
@@ -31,6 +32,7 @@ final class EvaluationStateSnapshot {
         facts = _freezeMap(facts),
         eventLedger = _freezeMap(eventLedger),
         progression = _freezeMap(progression),
+        badges = List<String>.unmodifiable(badges),
         bag = Map<String, int>.unmodifiable(bag),
         shop = _freezeMap(shop),
         party = _freezeMapList(party),
@@ -52,6 +54,7 @@ final class EvaluationStateSnapshot {
   final Map<String, Object?> eventLedger;
   final Map<String, Object?> progression;
   final int money;
+  final List<String> badges;
   final Map<String, int> bag;
   final Map<String, Object?> shop;
   final List<Map<String, Object?>> party;
@@ -76,7 +79,10 @@ final class EvaluationStateSnapshot {
       'facts': facts,
       'eventLedger': eventLedger,
       'progression': progression,
-      'trainer': <String, Object?>{'money': money},
+      'trainer': <String, Object?>{
+        'money': money,
+        'badges': badges,
+      },
       'bag': bag,
       'shop': shop,
       'party': party,

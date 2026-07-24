@@ -22,6 +22,6 @@ void main() {
     skip: requestPath == null
         ? 'Worker entry is launched by PokeMap Eval.'
         : false,
-    timeout: const Timeout(Duration(minutes: 2)),
+    timeout: const Timeout(Duration(minutes: 10)),
   );
 }

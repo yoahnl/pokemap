@@ -39,6 +39,10 @@ const evaluationCommandCatalog = <String, EvaluationCommandDefinition>{
     requiredKeys: <String>{'direction'},
     optionalKeys: <String>{'preferredAxis'},
   ),
+  'movement.enterGameplayZone': EvaluationCommandDefinition(
+    operation: 'movement.enterGameplayZone',
+    requiredKeys: <String>{'zoneId'},
+  ),
   'world.interact': EvaluationCommandDefinition(
     operation: 'world.interact',
     requiredKeys: <String>{'entityId'},
@@ -46,10 +50,15 @@ const evaluationCommandCatalog = <String, EvaluationCommandDefinition>{
   'world.enterTrigger': EvaluationCommandDefinition(
     operation: 'world.enterTrigger',
     requiredKeys: <String>{'triggerId'},
+    optionalKeys: <String>{'expectBattle'},
   ),
   'world.enterWarp': EvaluationCommandDefinition(
     operation: 'world.enterWarp',
     requiredKeys: <String>{'warpId'},
+  ),
+  'world.enterEncounter': EvaluationCommandDefinition(
+    operation: 'world.enterEncounter',
+    requiredKeys: <String>{},
   ),
   'world.waitForFact': EvaluationCommandDefinition(
     operation: 'world.waitForFact',
@@ -84,6 +93,10 @@ const evaluationCommandCatalog = <String, EvaluationCommandDefinition>{
   'battle.completePostBattle': EvaluationCommandDefinition(
     operation: 'battle.completePostBattle',
     requiredKeys: <String>{},
+  ),
+  'battle.resolve': EvaluationCommandDefinition(
+    operation: 'battle.resolve',
+    requiredKeys: <String>{'strategy'},
   ),
   'service.shop.inspect': EvaluationCommandDefinition(
     operation: 'service.shop.inspect',

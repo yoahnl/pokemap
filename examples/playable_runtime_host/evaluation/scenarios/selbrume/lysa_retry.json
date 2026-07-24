@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "id": "selbrume.lysa-retry",
+  "title": "Défaite, soins et revanche contre Lysa",
+  "projectId": "selbrume",
+  "policy": "probe",
+  "start": {
+    "newGame": true
+  },
+  "steps": [
+    {
+      "id": "mark-diagnostic-run",
+      "command": "probe.setMoney",
+      "value": 500
+    },
+    {
+      "id": "speak-with-mael",
+      "command": "world.interact",
+      "entityId": "npc_mael"
+    },
+    {
+      "id": "choose-squirtle",
+      "command": "dialogue.choose",
+      "choiceIndex": 2,
+      "linesBeforeChoice": 1
+    },
+    {
+      "id": "wait-starter",
+      "command": "world.waitForFact",
+      "factId": "fact_mael_mission_given"
+    },
+    {
+      "id": "cross-to-port",
+      "command": "movement.crossConnection",
+      "direction": "south",
+      "preferredAxis": 26
+    },
+    {
+      "id": "enter-port-alert",
+      "command": "world.enterTrigger",
+      "triggerId": "zone_port_entry"
+    },
+    {
+      "id": "choose-port-response",
+      "command": "dialogue.choose",
+      "choiceIndex": 0,
+      "linesBeforeChoice": 2
+    },
+    {
+      "id": "wait-port-alert",
+      "command": "world.waitForFact",
+      "factId": "fact_port_alert_seen"
+    },
+    {
+      "id": "challenge-lysa",
+      "command": "world.interact",
+      "entityId": "npc_lysa"
+    },
+    {
+      "id": "lose-first-battle",
+      "command": "battle.resolve",
+      "strategy": "lose"
+    },
+    {
+      "id": "wait-loss-recorded",
+      "command": "world.waitForFact",
+      "factId": "fact_rival_port_lost_once"
+    },
+    {
+      "id": "assert-loss-recorded",
+      "assert": "facts.fact_rival_port_lost_once",
+      "isTrue": true
+    },
+    {
+      "id": "heal-before-retry",
+      "command": "service.heal"
+    },
+    {
+      "id": "retry-lysa",
+      "command": "world.interact",
+      "entityId": "npc_lysa"
+    },
+    {
+      "id": "win-retry",
+      "command": "battle.resolve",
+      "strategy": "win"
+    },
+    {
+      "id": "wait-victory-recorded",
+      "command": "world.waitForFact",
+      "factId": "fact_rival_port_defeated"
+    },
+    {
+      "id": "assert-victory-recorded",
+      "assert": "facts.fact_rival_port_defeated",
+      "isTrue": true
+    }
+  ]
+}

@@ -258,15 +258,20 @@ final class EvaluationScenarioRunner {
           arguments.requireString('direction'),
           preferredAxis: arguments.optionalInt('preferredAxis'),
         ),
+      'movement.enterGameplayZone' => driver.enterGameplayZone(
+          arguments.requireString('zoneId'),
+        ),
       'world.interact' => driver.interact(
           arguments.requireString('entityId'),
         ),
       'world.enterTrigger' => driver.enterTrigger(
           arguments.requireString('triggerId'),
+          expectBattle: arguments.optionalBool('expectBattle') ?? false,
         ),
       'world.enterWarp' => driver.enterWarp(
           arguments.requireString('warpId'),
         ),
+      'world.enterEncounter' => driver.enterWildEncounter(),
       'world.waitForFact' => driver.waitForFact(
           arguments.requireString('factId'),
           timeout: arguments.optionalDuration('timeoutMilliseconds'),
@@ -286,6 +291,9 @@ final class EvaluationScenarioRunner {
       'battle.capture' => driver.attemptCapture(),
       'battle.run' => driver.runFromBattle(),
       'battle.completePostBattle' => driver.completePostBattle(),
+      'battle.resolve' => driver.resolveBattle(
+          arguments.requireString('strategy'),
+        ),
       'service.shop.inspect' => driver.inspectShop(),
       'service.shop.buy' => driver.buy(
           arguments.requireString('itemId'),
@@ -433,6 +441,11 @@ final class _EvaluationArguments {
     throw EvaluationScenarioExecutionError(
       'Argument "$key" must be a boolean.',
     );
+  }
+
+  bool? optionalBool(String key) {
+    if (!values.containsKey(key)) return null;
+    return requireBool(key);
   }
 
   Map<String, int> requireIntMap(String key) {

@@ -12,11 +12,18 @@ abstract interface class EvaluationDriver {
     int? preferredAxis,
   });
 
+  Future<void> enterGameplayZone(String zoneId);
+
   Future<void> interact(String entityId);
 
-  Future<void> enterTrigger(String triggerId);
+  Future<void> enterTrigger(
+    String triggerId, {
+    bool expectBattle = false,
+  });
 
   Future<void> enterWarp(String warpId);
+
+  Future<void> enterWildEncounter();
 
   Future<void> waitForFact(
     String factId, {
@@ -39,6 +46,8 @@ abstract interface class EvaluationDriver {
   Future<void> runFromBattle();
 
   Future<void> completePostBattle();
+
+  Future<void> resolveBattle(String strategy);
 
   Future<void> inspectShop();
 

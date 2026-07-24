@@ -42,6 +42,7 @@ const _stringArgumentKeys = <String>{
   'pokemonId',
   'triggerId',
   'warpId',
+  'zoneId',
 };
 const _nonNegativeIntegerArgumentKeys = <String>{
   'choiceIndex',
@@ -52,7 +53,9 @@ const _nonNegativeIntegerArgumentKeys = <String>{
   'y',
 };
 const _directions = <String>{'north', 'east', 'south', 'west'};
+const _battleStrategies = <String>{'win', 'lose', 'capture', 'run'};
 final _idPattern = RegExp(r'^[a-z0-9][a-z0-9._-]*$');
+final _criterionIdPattern = RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]*$');
 final _absolutePathPattern = RegExp(r'^(?:/|[A-Za-z]:[\\/]|file:)');
 
 final class EvaluationScenarioParser {
@@ -240,7 +243,7 @@ final class EvaluationScenarioParser {
         path: criterionPath,
         required: const <String>{'id', 'stepIds'},
       );
-      final id = _id(criterion['id'], '$criterionPath.id');
+      final id = _criterionId(criterion['id'], '$criterionPath.id');
       if (!ids.add(id)) {
         _fail('$criterionPath.id', 'Criterion id "$id" is duplicated.');
       }
@@ -274,10 +277,19 @@ final class EvaluationScenarioParser {
       return;
     }
     switch (key) {
+      case 'expectBattle':
+        if (value is! bool) {
+          _fail(path, 'expectBattle must be a boolean.');
+        }
       case 'direction':
         final direction = _nonBlankString(value, path);
         if (!_directions.contains(direction)) {
           _fail(path, 'direction must be north, east, south, or west.');
+        }
+      case 'strategy':
+        final strategy = _nonBlankString(value, path);
+        if (!_battleStrategies.contains(strategy)) {
+          _fail(path, 'strategy must be win, lose, capture, or run.');
         }
       case 'quantity':
         if (_integer(value, path) < 1) {
@@ -364,6 +376,17 @@ String _id(Object? value, String path) {
     _fail(
       path,
       'Expected a lowercase id containing letters, digits, ".", "_", or "-".',
+    );
+  }
+  return id;
+}
+
+String _criterionId(Object? value, String path) {
+  final id = _nonBlankString(value, path);
+  if (!_criterionIdPattern.hasMatch(id)) {
+    _fail(
+      path,
+      'Expected a criterion id containing letters, digits, ".", "_", or "-".',
     );
   }
   return id;

@@ -61,6 +61,7 @@ Future<EvaluationWorkerResult> _executeRequest(
   final scenario = const EvaluationScenarioParser().parseString(scenarioSource);
   final projectRoot = Directory(p.join(hostRoot.path, request.projectRoot));
   final projectTreeHash = await _treeDigest(projectRoot);
+  final commit = await _gitHead(hostRoot);
   final evaluationCodeDigest = await _treeDigest(
     Directory(p.join(
       hostRoot.path,
@@ -120,7 +121,7 @@ Future<EvaluationWorkerResult> _executeRequest(
     policy: scenario.policy,
     target: EvaluationTarget.headless,
     evidenceLevel: runResult.evidenceLevel,
-    commit: null,
+    commit: commit,
     projectTreeHash: projectTreeHash,
     commandDigest: sha256.convert(utf8.encode(scenarioSource)).toString(),
     outputDigest: sha256.convert(await eventsFile.readAsBytes()).toString(),
@@ -142,7 +143,7 @@ Future<EvaluationWorkerResult> _executeRequest(
     },
     artifacts: const <String>['events.jsonl'],
     error: runResult.error,
-    relativeReceiptPath: 'receipt.json',
+    relativeReceiptPath: '${request.outputDirectory}/receipt.json',
     declaredCriterionIds:
         scenario.criteria.map((criterion) => criterion.id).toList(),
     productCriteria: runResult.productCriteria,
@@ -157,6 +158,18 @@ Future<EvaluationWorkerResult> _executeRequest(
     receiptPath: portableReceiptPath,
     message: runResult.error?['message'] as String?,
   );
+}
+
+Future<String> _gitHead(Directory repositoryRoot) async {
+  final result = await Process.run(
+    'git',
+    const <String>['rev-parse', 'HEAD'],
+    workingDirectory: repositoryRoot.path,
+  );
+  if (result.exitCode != 0) {
+    throw StateError('Unable to resolve the evaluation commit.');
+  }
+  return (result.stdout as String).trim().toLowerCase();
 }
 
 Future<String> _treeDigest(Directory root) async {

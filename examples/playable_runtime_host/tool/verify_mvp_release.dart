@@ -3,11 +3,12 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
+import 'package:pokemap_loader/src/evaluation/runner/evaluation_release_adapter.dart';
+import 'package:pokemap_loader/src/evaluation/worker/evaluation_worker_protocol.dart';
+import 'package:pokemap_loader/src/evaluation/worker/headless_worker_process.dart';
 import 'package:pokemap_loader/src/mvp_release_command_matrix.dart';
 import 'package:pokemap_loader/src/mvp_release_evidence_collector.dart';
 import 'package:pokemap_loader/src/project_tree_digest.dart';
-
-import 'src/selbrume_mvp_journey_verifier.dart';
 
 Future<void> main(List<String> arguments) async {
   try {
@@ -37,13 +38,43 @@ Future<void> main(List<String> arguments) async {
     final treeHash = await const ProjectTreeDigest().compute(projectRoot);
     final packageHash = await sha256.bind(package.openRead()).first;
 
-    final journey = await SelbrumeMvpJourneyVerifier(
-      hostRoot: hostRoot,
-      projectRoot: projectRoot,
-    ).verify();
-    if (!journey.isSuccessful) {
-      throw StateError('The executable Selbrume product journey failed.');
+    final evaluationRunId =
+        'release-${DateTime.now().toUtc().microsecondsSinceEpoch}';
+    final evaluationOutput = 'build/pokemap-eval/runs/$evaluationRunId';
+    final evaluationResult = await HeadlessWorkerProcess(
+      hostRoot: repositoryRoot,
+      packageRoot: hostRoot,
+      stderrSink: stderr.write,
+    ).run(
+      EvaluationWorkerRequest.run(
+        runId: evaluationRunId,
+        projectRoot: p
+            .relative(projectRoot.path, from: repositoryRoot.path)
+            .replaceAll(r'\', '/'),
+        scenarioPath:
+            'examples/playable_runtime_host/evaluation/scenarios/selbrume/'
+            'mvp_certification.json',
+        outputDirectory: evaluationOutput,
+      ),
+    );
+    if (evaluationResult.exitCode != 0 ||
+        evaluationResult.receiptPath == null) {
+      throw StateError(
+        'The reusable Selbrume evaluation failed: '
+        '${evaluationResult.message ?? evaluationResult.status.name}.',
+      );
     }
+    final evaluationReceipt = jsonDecode(
+      await File(
+        p.join(repositoryRoot.path, evaluationResult.receiptPath),
+      ).readAsString(),
+    ) as Map<String, dynamic>;
+    final productCriteria =
+        const EvaluationReleaseAdapter().productCriteriaJson(
+      evaluationReceipt,
+      expectedCommit: commit,
+      expectedProjectTreeHash: treeHash,
+    );
 
     final matrix = options.full
         ? MvpReleaseCommandMatrix.full(repositoryRoot.path)
@@ -66,7 +97,7 @@ Future<void> main(List<String> arguments) async {
       capturedAtUtc: capturedAt,
       projectTreeHashSha256: treeHash,
       packageSha256: packageHash.toString(),
-      productCriteria: journey.criteria,
+      productCriteria: productCriteria,
       commandResults: results,
     );
     final validation = const MvpReleaseEvidenceCollector().validate(
