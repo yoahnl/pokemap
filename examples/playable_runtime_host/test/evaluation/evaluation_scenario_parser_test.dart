@@ -57,12 +57,24 @@ void main() {
   });
 
   test('catalog declares the complete V1 allowlist', () {
-    expect(evaluationCommandCatalog, hasLength(28));
+    expect(evaluationCommandCatalog, hasLength(31));
     expect(
       evaluationCommandCatalog['service.shop.buy']?.requiredKeys,
       <String>{'itemId', 'quantity'},
     );
     expect(evaluationCommandCatalog['game.new']?.probeOnly, isFalse);
+    expect(
+      evaluationCommandCatalog['movement.enterGameplayZone']?.requiredKeys,
+      <String>{'zoneId'},
+    );
+    expect(
+      evaluationCommandCatalog['world.enterTrigger']?.optionalKeys,
+      <String>{'expectBattle'},
+    );
+    expect(
+      evaluationCommandCatalog['battle.resolve']?.requiredKeys,
+      <String>{'strategy'},
+    );
     expect(evaluationCommandCatalog['probe.goto']?.probeOnly, isTrue);
   });
 

@@ -3,6 +3,19 @@
 Host Flutter desktop minimal pour charger un `project.json` PokeMap et lancer
 le runtime Flame localement.
 
+## PokeMap Eval headless
+
+Le host fournit aussi un pilote headless pour exécuter des scénarios Selbrume,
+inspecter des checkpoints et produire les preuves de certification du MVP.
+Les commandes, politiques, codes de sortie et artefacts sont documentés dans
+[`evaluation/README.md`](evaluation/README.md).
+
+Exemple :
+
+```bash
+dart run tool/pokemap_eval.dart run selbrume.mvp --policy certify
+```
+
 ## Package macOS autonome Selbrume
 
 Le host résout en priorité le projet livré dans
