@@ -6,6 +6,7 @@ import 'package:pokemap_loader/src/evaluation/contracts/evaluation_scenario.dart
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_state_snapshot.dart';
 import 'package:pokemap_loader/src/evaluation/driver/evaluation_driver.dart';
 import 'package:pokemap_loader/src/evaluation/runner/evaluation_assertion_evaluator.dart';
+import 'package:pokemap_loader/src/evaluation/runner/evaluation_run_control.dart';
 import 'package:pokemap_loader/src/evaluation/runner/evaluation_scenario_runner.dart';
 
 void main() {
@@ -40,6 +41,38 @@ void main() {
     expect(result.status, EvaluationRunStatus.succeeded);
     expect(result.diff.changeAt('trainer.money')?.after, 750);
     expect(result.productCriteria.single.passed, isTrue);
+  });
+
+  test('runner applies control only between complete scenario steps', () async {
+    final driver = _FakeEvaluationDriver(initialMoney: 1000);
+    final control = EvaluationRunControl.paused();
+    addTearDown(control.close);
+    final events = <EvaluationEvent>[];
+    var finished = false;
+
+    final run = EvaluationScenarioRunner(
+      driver: driver,
+      eventSink: events.add,
+      runIdFactory: () => 'run-controlled',
+      runControl: control,
+    ).run(_shopScenario()).whenComplete(() => finished = true);
+    await pumpEventQueue();
+
+    expect(driver._money, 1000);
+    expect(finished, isFalse);
+    expect(events.map((event) => event.type), contains('run.paused'));
+
+    control.step();
+    await pumpEventQueue();
+
+    expect(driver._money, 750);
+    expect(finished, isFalse);
+
+    control.resume();
+    final result = await run;
+
+    expect(result.status, EvaluationRunStatus.succeeded);
+    expect(events.map((event) => event.type), contains('run.resumed'));
   });
 
   test('certification stops on the first failed assertion', () async {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../contracts/evaluation_event.dart';
 import '../contracts/evaluation_policy.dart';
 import '../contracts/evaluation_receipt.dart';
@@ -7,6 +9,7 @@ import '../driver/evaluation_driver.dart';
 import '../scenario/evaluation_command_catalog.dart';
 import '../scenario/evaluation_policy_validator.dart';
 import 'evaluation_assertion_evaluator.dart';
+import 'evaluation_run_control.dart';
 import 'evaluation_state_diff.dart';
 
 typedef EvaluationEventSink = void Function(EvaluationEvent event);
@@ -55,6 +58,7 @@ final class EvaluationScenarioRunner {
     EvaluationStateDiffer stateDiffer = const EvaluationStateDiffer(),
     String Function()? runIdFactory,
     this.checkpointProvenance,
+    this.runControl,
   })  : _assertionEvaluator = assertionEvaluator,
         _policyValidator = policyValidator,
         _stateDiffer = stateDiffer,
@@ -67,6 +71,7 @@ final class EvaluationScenarioRunner {
   final EvaluationStateDiffer _stateDiffer;
   final String Function() _runIdFactory;
   final Map<String, Object?>? checkpointProvenance;
+  final EvaluationRunControl? runControl;
 
   Future<EvaluationScenarioRunResult> run(EvaluationScenario scenario) async {
     final runId = _runIdFactory();
@@ -84,6 +89,16 @@ final class EvaluationScenarioRunner {
       );
       events.add(event);
       eventSink?.call(event);
+    }
+
+    StreamSubscription<EvaluationRunControlTransition>? controlSubscription;
+    if (runControl case final control?) {
+      controlSubscription = control.transitions.listen((transition) {
+        emit(transition.eventType, <String, Object?>{
+          'state': transition.state.name,
+          'previousState': transition.previousState.name,
+        });
+      });
     }
 
     final initialState = driver.snapshot();
@@ -111,6 +126,20 @@ final class EvaluationScenarioRunner {
       if (checkpointProvenance != null)
         'checkpointProvenance': checkpointProvenance,
     });
+    if (runControl case final control?
+        when control.state != EvaluationControlState.running) {
+      emit(
+        switch (control.state) {
+          EvaluationControlState.paused => 'run.paused',
+          EvaluationControlState.cancelled => 'run.cancelled',
+          EvaluationControlState.running => 'run.resumed',
+        },
+        <String, Object?>{
+          'state': control.state.name,
+          'previousState': null,
+        },
+      );
+    }
 
     if (status == EvaluationRunStatus.succeeded) {
       try {
@@ -127,6 +156,16 @@ final class EvaluationScenarioRunner {
 
     if (status == EvaluationRunStatus.succeeded) {
       for (var index = 0; index < scenario.steps.length; index += 1) {
+        try {
+          await runControl?.beforeStep();
+        } on EvaluationRunCancelled catch (failure) {
+          status = EvaluationRunStatus.cancelled;
+          error = <String, Object?>{
+            'kind': 'cancelled',
+            'message': failure.toString(),
+          };
+          break;
+        }
         final step = scenario.steps[index];
         emit('step.started', <String, Object?>{
           'index': index,
@@ -192,6 +231,14 @@ final class EvaluationScenarioRunner {
           );
           stop = true;
         }
+        if (runControl?.state == EvaluationControlState.cancelled) {
+          status = EvaluationRunStatus.cancelled;
+          error = <String, Object?>{
+            'kind': 'cancelled',
+            'message': const EvaluationRunCancelled().toString(),
+          };
+          stop = true;
+        }
         stepResults.add(result);
         emit('step.finished', <String, Object?>{
           ...result.toJson(),
@@ -214,6 +261,7 @@ final class EvaluationScenarioRunner {
       declaredCriterionCount: scenario.criteria.length,
       shortcutsUsed: shortcutsUsed,
     );
+    await controlSubscription?.cancel();
     emit('run.finished', <String, Object?>{
       'status': status.name,
       'evidenceLevel': evidenceLevel.name,
