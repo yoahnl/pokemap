@@ -232,10 +232,23 @@ final class InteractiveWorkerLaunch {
       }),
     );
 
+    Map<String, Object?>? lastEvent;
     while (true) {
-      final envelope = await _nextEnvelope(lines).timeout(_readyTimeout);
+      final Map<String, Object?> envelope;
+      try {
+        envelope = await _nextEnvelope(lines).timeout(_readyTimeout);
+      } on TimeoutException {
+        throw TimeoutException(
+          'No interactive envelope arrived within '
+          '${_readyTimeout.inSeconds}s; lastEvent=${jsonEncode(lastEvent)}',
+        );
+      }
       switch (envelope['type']) {
         case 'bridge.event':
+          final event = envelope['event'];
+          lastEvent = event is Map
+              ? Map<String, Object?>.from(event)
+              : <String, Object?>{'invalidEvent': event};
           continue;
         case 'bridge.error':
           throw FormatException(

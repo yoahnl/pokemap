@@ -61,6 +61,28 @@ final class SelbrumeEvaluationDriver
   EvaluationPlayerServiceHost get headlessPlayerServices =>
       _requireHeadlessPlayerServices();
 
+  Future<void> waitUntilRuntimeReady({bool driveDialogue = false}) {
+    bool predicate() =>
+        game.debugFlowPhaseName == 'overworld' &&
+        !game.debugHasPendingMapTransition &&
+        !game.debugIsMapActivationDispatchInFlight &&
+        !game.debugIsNarrativeSpatialDispatchInFlight &&
+        !game.debugIsNarrativeOutcomeWorkInFlight &&
+        !game.debugIsCinematicPlaying;
+    return _ownsGame
+        ? _pumpUntil(
+            predicate,
+            operation: 'game.ready',
+            allowTransitionClock: true,
+            maxTicks: 6000,
+          )
+        : _waitForLiveRuntime(
+            predicate,
+            operation: 'game.ready',
+            driveDialogue: driveDialogue,
+          );
+  }
+
   factory SelbrumeEvaluationDriver.attach({
     required PlayableMapGame game,
     required ProjectManifest project,
@@ -291,6 +313,9 @@ final class SelbrumeEvaluationDriver
         await _pumpUntil(
           () =>
               !game.debugHasPendingMapTransition &&
+              !game.debugIsMapActivationDispatchInFlight &&
+              !game.debugIsNarrativeSpatialDispatchInFlight &&
+              !game.debugIsNarrativeOutcomeWorkInFlight &&
               game.debugFlowPhaseName == 'overworld',
           operation: 'movement.crossConnection',
           allowTransitionClock: true,
@@ -830,7 +855,13 @@ final class SelbrumeEvaluationDriver
   Future<void> inspectShop() async {
     final attachedServices = _attachedServices;
     if (attachedServices != null) {
-      await attachedServices.inspectShop();
+      await _runVisiblePlayerService(
+        attachedServices,
+        kind: 'shop',
+        entityId: 'service_port_shop',
+        operation: 'service.shop.inspect',
+        action: attachedServices.inspectShop,
+      );
       return;
     }
     final playerServices = _requireHeadlessPlayerServices();
@@ -856,7 +887,13 @@ final class SelbrumeEvaluationDriver
     );
     final attachedServices = _attachedServices;
     if (attachedServices != null) {
-      await attachedServices.buy(itemId, quantity);
+      await _runVisiblePlayerService(
+        attachedServices,
+        kind: 'shop',
+        entityId: 'service_port_shop',
+        operation: 'service.shop.buy',
+        action: () => attachedServices.buy(itemId, quantity),
+      );
       return;
     }
     final playerServices = _requireHeadlessPlayerServices();
@@ -880,7 +917,25 @@ final class SelbrumeEvaluationDriver
   Future<void> healParty() async {
     final attachedServices = _attachedServices;
     if (attachedServices != null) {
-      await attachedServices.healParty();
+      final hpBefore = state.party.members
+          .map((pokemon) => pokemon.currentHp)
+          .toList(growable: false);
+      await _runVisiblePlayerService(
+        attachedServices,
+        kind: 'heal',
+        entityId: 'service_port_healing',
+        operation: 'service.heal',
+        action: attachedServices.healParty,
+        completedWithoutOverlay: () {
+          final hpAfter = state.party.members
+              .map((pokemon) => pokemon.currentHp)
+              .toList(growable: false);
+          return hpAfter.length == hpBefore.length &&
+              Iterable<int>.generate(hpAfter.length).any(
+                (index) => hpAfter[index] > hpBefore[index],
+              );
+        },
+      );
       return;
     }
     final playerServices = _requireHeadlessPlayerServices();
@@ -914,7 +969,13 @@ final class SelbrumeEvaluationDriver
   Future<void> withdrawFromPc(String pokemonId) async {
     final attachedServices = _attachedServices;
     if (attachedServices != null) {
-      await attachedServices.withdrawFromPc(pokemonId);
+      await _runVisiblePlayerService(
+        attachedServices,
+        kind: 'pc',
+        entityId: 'service_port_pc',
+        operation: 'service.pc.withdraw',
+        action: () => attachedServices.withdrawFromPc(pokemonId),
+      );
       return;
     }
     final playerServices = _requireHeadlessPlayerServices();
@@ -1204,6 +1265,44 @@ final class SelbrumeEvaluationDriver
       allowTransitionClock: true,
       maxTicks: 6000,
     );
+  }
+
+  Future<void> _runVisiblePlayerService(
+    EvaluationPlayerServiceAutomation services, {
+    required String kind,
+    required String entityId,
+    required String operation,
+    required Future<void> Function() action,
+    bool Function()? completedWithoutOverlay,
+  }) async {
+    if (services is! EvaluationVisiblePlayerServiceAutomation) {
+      await action();
+      return;
+    }
+    await interact(entityId);
+    await _waitForLiveRuntime(
+      () =>
+          services.activeServiceName == kind ||
+          (completedWithoutOverlay?.call() ?? false),
+      operation: '$operation.open',
+      driveDialogue: true,
+    );
+    if (services.activeServiceName != kind) {
+      await waitUntilRuntimeReady(driveDialogue: true);
+      return;
+    }
+    try {
+      await action();
+    } finally {
+      if (services.activeServiceName == kind) {
+        await services.closeActiveService();
+      }
+      await _waitForLiveRuntime(
+        () => services.activeServiceName == null,
+        operation: '$operation.close',
+      );
+    }
+    await waitUntilRuntimeReady(driveDialogue: true);
   }
 
   Future<void> _commitProbeState(
@@ -1586,6 +1685,31 @@ final class SelbrumeEvaluationDriver
     throw EvaluationDriverFailure(
       operation: operation,
       message: 'Timed out after $maxTicks headless ticks.',
+      snapshot: snapshot(),
+    );
+  }
+
+  Future<void> _waitForLiveRuntime(
+    bool Function() predicate, {
+    required String operation,
+    int maxTicks = 3750,
+    bool driveDialogue = false,
+  }) async {
+    for (var index = 0; index < maxTicks; index += 1) {
+      if (predicate()) return;
+      if (driveDialogue &&
+          game.debugIsCinematicPlaying &&
+          game.debugCinematicDialogueLine != null) {
+        _pressPrimary(operation: operation);
+      } else if (driveDialogue && game.debugFlowPhaseName == 'dialogue') {
+        _pressPrimary(operation: operation);
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+    }
+    if (predicate()) return;
+    throw EvaluationDriverFailure(
+      operation: operation,
+      message: 'Timed out while waiting for the visible runtime.',
       snapshot: snapshot(),
     );
   }

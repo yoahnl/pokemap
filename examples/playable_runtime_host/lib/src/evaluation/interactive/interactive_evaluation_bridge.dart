@@ -45,17 +45,19 @@ final class InteractiveEvaluationBridge {
     required EvaluationPlayerServiceAutomation services,
     InteractiveEvaluationEventSink? eventSink,
   }) async {
+    final driver = SelbrumeEvaluationDriver.attach(
+      game: game,
+      project: project,
+      projectRoot: projectRoot,
+      services: services,
+    );
     final bridge = InteractiveEvaluationBridge(
       config: config,
-      driver: SelbrumeEvaluationDriver.attach(
-        game: game,
-        project: project,
-        projectRoot: projectRoot,
-        services: services,
-      ),
+      driver: driver,
       eventSink: eventSink,
     );
     try {
+      await driver.waitUntilRuntimeReady();
       await bridge.connect();
       return bridge;
     } catch (_) {

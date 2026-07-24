@@ -88,6 +88,13 @@ abstract interface class EvaluationPlayerServiceAutomation {
   Future<void> withdrawFromPc(String pokemonId);
 }
 
+abstract interface class EvaluationVisiblePlayerServiceAutomation
+    implements EvaluationPlayerServiceAutomation {
+  String? get activeServiceName;
+
+  Future<void> closeActiveService();
+}
+
 final class EvaluationDriverFailure implements Exception {
   const EvaluationDriverFailure({
     required this.operation,

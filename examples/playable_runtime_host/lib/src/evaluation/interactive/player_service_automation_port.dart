@@ -138,10 +138,13 @@ abstract interface class PlayerServiceAutomationSession {
 /// It deliberately exposes neither widget keys nor coordinates. Collision
 /// visualization is also outside this API and remains disabled by the host.
 final class PlayerServiceAutomationPort
-    implements EvaluationPlayerServiceAutomation {
+    implements EvaluationVisiblePlayerServiceAutomation {
   PlayerServiceAutomationSession? _active;
 
   PlayerServiceAutomationKind? get activeService => _active?.kind;
+
+  @override
+  String? get activeServiceName => activeService?.name;
 
   void register(PlayerServiceAutomationSession session) {
     final active = _active;
@@ -219,6 +222,11 @@ final class PlayerServiceAutomationPort
           ),
         ),
     };
+  }
+
+  @override
+  Future<void> closeActiveService() async {
+    _requireSuccess(await closeActive());
   }
 
   @override
