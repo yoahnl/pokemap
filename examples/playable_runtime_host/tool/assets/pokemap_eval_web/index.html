@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta
+    name="pokemap-eval-token"
+    content="__POKEMAP_EVAL_TOKEN__"
+  >
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>PokeMap Eval</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <a class="skip-link" href="#workspace-main">Aller au parcours</a>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="PokeMap Eval, accueil">
+        <span class="brand-name">PokeMap Eval</span>
+      </a>
+      <span class="breadcrumb" aria-hidden="true">
+        Selbrume / Évaluation headless
+      </span>
+      <span
+        id="runner-status"
+        class="connection-status connection-status--waiting"
+        role="status"
+      >
+        Runner en attente
+      </span>
+    </header>
+
+    <div class="workspace">
+      <nav class="workspace-navigation" aria-label="Scénarios">
+        <section class="navigation-section">
+          <h2 class="navigation-heading">Projet</h2>
+          <div id="project-list" class="navigation-list" aria-live="polite">
+            <p class="navigation-placeholder">Chargement du projet…</p>
+          </div>
+        </section>
+
+        <section class="navigation-section">
+          <h2 class="navigation-heading">Campagnes</h2>
+          <div id="campaign-list" class="navigation-list">
+            <p class="navigation-placeholder">Aucune campagne sélectionnée</p>
+          </div>
+        </section>
+
+        <section class="navigation-section">
+          <h2 class="navigation-heading">Scénarios ciblés</h2>
+          <div id="scenario-list" class="navigation-list" aria-live="polite">
+            <p class="navigation-placeholder">Sélectionnez un projet</p>
+          </div>
+        </section>
+
+        <section class="navigation-section navigation-section--history">
+          <h2 class="navigation-heading">Historique</h2>
+          <div id="history-list" class="navigation-list" aria-live="polite">
+            <p class="navigation-placeholder">Aucune exécution récente</p>
+          </div>
+        </section>
+      </nav>
+
+      <main id="workspace-main" class="workspace-main" tabindex="-1">
+        <header class="run-header">
+          <div>
+            <p class="eyebrow">Certification locale</p>
+            <h1 id="run-title">Choisissez un scénario</h1>
+            <p id="run-subtitle" class="run-subtitle">
+              Lancez un diagnostic headless sans ouvrir la fenêtre du jeu.
+            </p>
+          </div>
+          <div class="target-switcher" aria-label="Cible d’exécution">
+            <button
+              id="target-headless"
+              class="target-option is-selected"
+              type="button"
+              aria-pressed="true"
+            >
+              Headless
+            </button>
+            <button
+              id="target-interactive"
+              class="target-option"
+              type="button"
+              disabled
+              title="Disponible dans la V2"
+            >
+              Interactif · Bientôt
+            </button>
+          </div>
+        </header>
+
+        <section id="run-toolbar" class="run-toolbar" aria-label="Contrôles">
+          <button id="run-button" class="button button--primary" type="button" disabled>
+            Exécuter
+          </button>
+          <button id="step-button" class="button" type="button" disabled>
+            Pas à pas
+          </button>
+          <button id="pause-button" class="button" type="button" disabled>
+            Pause
+          </button>
+          <button id="resume-button" class="button" type="button" disabled>
+            Reprendre
+          </button>
+          <button id="cancel-button" class="button button--danger" type="button" disabled>
+            Arrêter
+          </button>
+          <button id="receipt-button" class="button button--receipt" type="button" disabled>
+            Ouvrir le reçu
+          </button>
+          <button
+            id="inspector-toggle"
+            class="button button--inspector"
+            type="button"
+            aria-expanded="false"
+            aria-controls="workspace-inspector"
+          >
+            Inspecteur
+          </button>
+        </section>
+
+        <section id="run-metrics" class="run-metrics" aria-label="Progression">
+          <article class="metric-card">
+            <span class="metric-label">Progression</span>
+            <strong id="metric-progress" class="metric-value">0 / 0</strong>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Réussites</span>
+            <strong id="metric-success" class="metric-value metric-value--success">0</strong>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Échecs</span>
+            <strong id="metric-failure" class="metric-value">0</strong>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Durée</span>
+            <strong id="metric-duration" class="metric-value">—</strong>
+          </article>
+        </section>
+
+        <section class="timeline-panel" aria-labelledby="timeline-title">
+          <header class="panel-heading">
+            <div>
+              <p class="eyebrow">Parcours</p>
+              <h2 id="timeline-title">Parcours d’exécution</h2>
+            </div>
+            <span id="timeline-status" class="panel-status">Prêt</span>
+          </header>
+          <ol id="run-timeline" class="run-timeline" aria-live="polite">
+            <li class="timeline-empty">
+              <strong>Aucune exécution active</strong>
+              <span>Les étapes apparaîtront ici dans leur ordre réel.</span>
+            </li>
+          </ol>
+        </section>
+
+        <section class="event-console" aria-label="Dernier événement">
+          <span class="console-label">Événement</span>
+          <code id="event-console">En attente d’un scénario.</code>
+        </section>
+      </main>
+
+      <aside
+        id="workspace-inspector"
+        class="workspace-inspector"
+        aria-label="Inspecteur de l’étape"
+      >
+        <header class="inspector-heading">
+          <div>
+            <p class="eyebrow">Étape sélectionnée</p>
+            <h2 id="inspector-title">Aucune étape</h2>
+          </div>
+          <span id="inspector-status" class="inspector-status">En attente</span>
+        </header>
+        <div id="inspector-tabs" class="inspector-tabs" role="tablist">
+          <button
+            id="tab-diff"
+            class="inspector-tab is-selected"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="inspector-content"
+            data-tab="diff"
+          >
+            Diff
+          </button>
+          <button
+            id="tab-state"
+            class="inspector-tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="inspector-content"
+            data-tab="state"
+          >
+            État
+          </button>
+          <button
+            id="tab-trace"
+            class="inspector-tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="inspector-content"
+            data-tab="trace"
+          >
+            Trace
+          </button>
+          <button
+            id="tab-proof"
+            class="inspector-tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="inspector-content"
+            data-tab="proof"
+          >
+            Preuves
+          </button>
+        </div>
+        <section id="inspector-content" class="inspector-content" role="tabpanel">
+          <div class="inspector-empty">
+            <strong>Sélectionnez une étape</strong>
+            <p>Ses différences, son état et ses preuves apparaîtront ici.</p>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
