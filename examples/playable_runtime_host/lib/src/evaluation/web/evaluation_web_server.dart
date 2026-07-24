@@ -5,8 +5,11 @@ import 'dart:math';
 
 import 'package:path/path.dart' as p;
 
+import '../contracts/evaluation_event.dart';
 import '../contracts/evaluation_policy.dart';
+import '../runner/evaluation_run_control.dart';
 import 'evaluation_run_store.dart';
+import 'evaluation_worker_pool.dart';
 
 final class EvaluationWebProjectDescriptor {
   EvaluationWebProjectDescriptor({
@@ -107,6 +110,17 @@ abstract base class EvaluationWebOrchestrator {
 
   Future<EvaluationWebArtifact?> readArtifact(String artifactId) async {
     return null;
+  }
+
+  EvaluationRunRecord? activeRun(String runId) => null;
+
+  Stream<EvaluationEvent>? eventsFor(String runId) => null;
+
+  Future<EvaluationControlState> controlRun(
+    String runId,
+    EvaluationWorkerControlAction action,
+  ) {
+    throw StateError('Run $runId cannot be controlled.');
   }
 
   Future<void> close();
@@ -359,6 +373,40 @@ final class EvaluationWebServer {
       return;
     }
 
+    if (segments.length == 4 &&
+        segments[0] == 'api' &&
+        segments[1] == 'runs' &&
+        segments[3] == 'events') {
+      if (request.method != 'GET') {
+        await _writeError(
+          request.response,
+          HttpStatus.methodNotAllowed,
+          'method_not_allowed',
+        );
+        return;
+      }
+      await _streamRunEvents(request.response, segments[2]);
+      return;
+    }
+
+    if (segments.length == 4 && segments[0] == 'api' && segments[1] == 'runs') {
+      if (request.method != 'POST') {
+        await _writeError(
+          request.response,
+          HttpStatus.methodNotAllowed,
+          'method_not_allowed',
+        );
+        return;
+      }
+      await _controlRun(
+        request.response,
+        runId: segments[2],
+        actionName: segments[3],
+        body: mutationBody!,
+      );
+      return;
+    }
+
     if (segments.length == 3 && segments[0] == 'api' && segments[1] == 'runs') {
       if (request.method != 'GET') {
         await _writeError(
@@ -435,6 +483,111 @@ final class EvaluationWebServer {
       HttpStatus.notFound,
       'not_found',
     );
+  }
+
+  Future<void> _streamRunEvents(
+    HttpResponse response,
+    String runId,
+  ) async {
+    final snapshot = orchestrator.activeRun(runId);
+    final liveEvents = orchestrator.eventsFor(runId);
+    if (snapshot == null || liveEvents == null) {
+      await _writeError(
+        response,
+        HttpStatus.notFound,
+        'run_not_found',
+      );
+      return;
+    }
+
+    response
+      ..statusCode = HttpStatus.ok
+      ..bufferOutput = false
+      ..headers.contentType = ContentType(
+        'text',
+        'event-stream',
+        charset: 'utf-8',
+      );
+    response.headers
+      ..set(HttpHeaders.cacheControlHeader, 'no-cache')
+      ..set(HttpHeaders.connectionHeader, 'keep-alive');
+
+    late final StreamSubscription<EvaluationEvent> subscription;
+    subscription = liveEvents.listen(
+      (event) {
+        _writeServerSentEvent(response, event);
+        unawaited(response.flush().catchError((Object _) {}));
+      },
+      onError: (Object _) {
+        unawaited(response.close());
+      },
+      onDone: () {
+        unawaited(response.close());
+      },
+      cancelOnError: true,
+    );
+    subscription.pause();
+    try {
+      for (final event in snapshot.events) {
+        _writeServerSentEvent(response, event);
+      }
+      await response.flush();
+      subscription.resume();
+      await response.done;
+    } on Object {
+      // A disconnected browser is a normal end to a live SSE subscription.
+    } finally {
+      await subscription.cancel();
+      await response.close();
+    }
+  }
+
+  Future<void> _controlRun(
+    HttpResponse response, {
+    required String runId,
+    required String actionName,
+    required String body,
+  }) async {
+    final action = EvaluationWorkerControlAction.values
+        .where((candidate) => candidate.name == actionName)
+        .firstOrNull;
+    if (action == null) {
+      await _writeError(response, HttpStatus.notFound, 'action_not_found');
+      return;
+    }
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is! Map || decoded.isNotEmpty) {
+        throw const FormatException('Control body must be empty.');
+      }
+    } on Object {
+      await _writeError(response, HttpStatus.badRequest, 'invalid_body');
+      return;
+    }
+
+    if (orchestrator.activeRun(runId) == null) {
+      final history = await orchestrator.loadHistory();
+      final isFinished = history.any((run) => run.runId == runId);
+      await _writeError(
+        response,
+        isFinished ? HttpStatus.conflict : HttpStatus.notFound,
+        isFinished ? 'run_finished' : 'run_not_found',
+      );
+      return;
+    }
+
+    try {
+      final state = await orchestrator.controlRun(runId, action);
+      await _writeJson(response, HttpStatus.ok, <String, Object?>{
+        'runId': runId,
+        'action': action.name,
+        'state': state.name,
+      });
+    } on EvaluationRunCancelled {
+      await _writeError(response, HttpStatus.conflict, 'run_cancelled');
+    } on StateError {
+      await _writeError(response, HttpStatus.conflict, 'invalid_run_state');
+    }
   }
 
   Future<void> _startRun(HttpResponse response, String body) async {
@@ -564,6 +717,16 @@ final class EvaluationWebServer {
     response.write(jsonEncode(json));
     await response.close();
   }
+}
+
+void _writeServerSentEvent(
+  HttpResponse response,
+  EvaluationEvent event,
+) {
+  response
+    ..write('id: ${event.sequence}\n')
+    ..write('event: ${event.type}\n')
+    ..write('data: ${jsonEncode(event.toJson())}\n\n');
 }
 
 final class _StaticAsset {

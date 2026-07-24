@@ -5,18 +5,24 @@ import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
 import '../contracts/evaluation_policy.dart';
+import '../contracts/evaluation_event.dart';
 import '../contracts/evaluation_receipt.dart';
 import '../contracts/evaluation_scenario.dart';
 import '../driver/selbrume_evaluation_driver.dart';
 import '../runner/evaluation_checkpoint_cache.dart';
+import '../runner/evaluation_run_control.dart';
 import '../runner/evaluation_scenario_runner.dart';
 import '../scenario/evaluation_scenario_parser.dart';
 import 'evaluation_worker_protocol.dart';
 import 'headless_worker_process.dart';
 
+typedef HeadlessEvaluationEventSink = void Function(EvaluationEvent event);
+
 Future<EvaluationWorkerResult> runHeadlessEvaluationRequest(
   EvaluationWorkerRequest request, {
   Directory? hostRoot,
+  EvaluationRunControl? runControl,
+  HeadlessEvaluationEventSink? eventSink,
 }) async {
   final root = hostRoot ?? _hostRootFromEnvironment();
   final outputDirectory = Directory(
@@ -33,6 +39,8 @@ Future<EvaluationWorkerResult> runHeadlessEvaluationRequest(
       request,
       hostRoot: root,
       outputDirectory: outputDirectory,
+      runControl: runControl,
+      eventSink: eventSink,
     );
   } on EvaluationScenarioFormatException catch (failure) {
     result = EvaluationWorkerResult.completed(
@@ -55,6 +63,8 @@ Future<EvaluationWorkerResult> _executeRequest(
   EvaluationWorkerRequest request, {
   required Directory hostRoot,
   required Directory outputDirectory,
+  EvaluationRunControl? runControl,
+  HeadlessEvaluationEventSink? eventSink,
 }) async {
   final scenarioFile = File(p.join(hostRoot.path, request.scenarioPath));
   final scenarioSource = await scenarioFile.readAsString();
@@ -105,7 +115,9 @@ Future<EvaluationWorkerResult> _executeRequest(
       checkpointProvenance: checkpointProvenance.toJson(),
       eventSink: (event) {
         eventsSink.writeln(jsonEncode(event.toJson()));
+        eventSink?.call(event);
       },
+      runControl: runControl,
     ).run(scenario);
   } finally {
     await eventsSink.flush();
