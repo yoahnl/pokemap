@@ -692,6 +692,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       nextGame.setDialogueTextSpeed(_playerOptions.dialogueTextSpeed);
       if (interactiveEvaluationConfig.enabled) {
         await WidgetsBinding.instance.endOfFrame;
+        await nextGame.loaded.timeout(const Duration(seconds: 60));
         if (!mounted || !identical(_game, nextGame)) return;
         _interactiveBridge = await InteractiveEvaluationBridge.attach(
           config: interactiveEvaluationConfig,
