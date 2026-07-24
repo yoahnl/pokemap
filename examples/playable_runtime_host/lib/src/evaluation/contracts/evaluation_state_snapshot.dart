@@ -61,6 +61,8 @@ final class EvaluationStateSnapshot {
   final Map<String, Object?>? activeBattle;
   final Map<String, Object?> saveMetadata;
 
+  String get currentMapId => mapId;
+
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'projectId': projectId,

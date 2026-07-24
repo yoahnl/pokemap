@@ -1,14 +1,14 @@
 import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
 
-import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
+import 'package:pokemap_loader/src/evaluation/driver/evaluation_game_fixtures.dart';
+import 'package:pokemap_loader/src/evaluation/driver/selbrume_evaluation_driver.dart';
 
 import 'support/selbrume_player_service_test_host.dart';
 
@@ -73,13 +73,21 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('FG-182 product journey source excludes forged gameplay shortcuts', () {
-    final source = File(
+    final source = <String>[
       p.join(
         Directory.current.path,
         'test',
         'selbrume_player_journey_e2e_test.dart',
       ),
-    ).readAsStringSync();
+      p.join(
+        Directory.current.path,
+        'lib',
+        'src',
+        'evaluation',
+        'driver',
+        'selbrume_evaluation_driver.dart',
+      ),
+    ].map((path) => File(path).readAsStringSync()).join('\n');
     final forbiddenFragments = <String>[
       <String>['_finished', 'Outcome('].join(),
       <String>['GameState', 'Mutations'].join(),
@@ -791,7 +799,7 @@ final class _SelbrumeJourney {
     required this.expectedWalkthroughStepIds,
   });
 
-  final _JourneyPlayableMapGame game;
+  final EvaluationPlayableMapGame game;
   final ProjectManifest project;
   final Directory projectRoot;
   final SelbrumePlayerServiceTestHost playerServices;
@@ -855,42 +863,12 @@ final class _SelbrumeJourney {
   static Future<_SelbrumeJourney> start() async {
     final repositoryRoot = _findRepositoryRoot();
     final projectRoot = Directory(p.join(repositoryRoot.path, 'selbrume'));
-    final projectPath = p.join(projectRoot.path, 'project.json');
-    final bundle = await loadRuntimeMapBundle(
-      projectFilePath: projectPath,
-      mapId: 'map_bourg_selbrume',
+    final driver = await SelbrumeEvaluationDriver.start(
+      projectRoot: projectRoot,
+      runId: 'fg-182-canonical-journey',
     );
-    final saveRepository = _SerializedMemoryGameSaveRepository();
-    final playerServices = SelbrumePlayerServiceTestHost();
-    final game = _JourneyPlayableMapGame(
-      bundle: bundle,
-      projectFilePath: projectPath,
-      saveRepository: saveRepository,
-      encounterRandom: _AlwaysEncounterRandom(),
-    );
-    game.setPlayerServiceRuntimeController(
-      PlayerServiceRuntimeController(
-        currentGameState: () => game.playerServiceGameStateSnapshot,
-        host: playerServices,
-        commitAndSave: game.commitAndSavePlayerServiceState,
-        setInputLocked: (locked) => game.setExternalInputLock(
-          RuntimeExternalInputLock.playerService,
-          locked: locked,
-        ),
-        loadRecoveryCaps: (state) => loadRuntimePlayerServiceRecoveryCaps(
-          gameState: state,
-          projectRootDirectory: bundle.projectRootDirectory,
-          pokemonConfig: bundle.manifest.pokemon,
-        ),
-        // The production host resolves typed Facts from the manifest. Keep the
-        // Golden Slice on that same boundary so a missing Fact context cannot
-        // silently project every conditional shop back to its default state.
-        conditionContext: ScriptEvaluationContext(
-          narrativeFactResolver:
-              NarrativeFactRuntimeResolver.fromFacts(bundle.manifest.facts),
-        ),
-      ),
-    );
+    final game = driver.game;
+    final playerServices = driver.playerServices;
     final walkthrough = jsonDecode(
       File(p.join(projectRoot.path, 'walkthrough.json')).readAsStringSync(),
     ) as Map<String, dynamic>;
@@ -900,16 +878,10 @@ final class _SelbrumeJourney {
         .toList(growable: false);
     final journey = _SelbrumeJourney._(
       game: game,
-      project: bundle.manifest,
+      project: driver.project,
       projectRoot: projectRoot,
       playerServices: playerServices,
       expectedWalkthroughStepIds: expectedWalkthroughStepIds,
-    );
-    game.onGameResize(Vector2(640, 480));
-    await game.onLoad();
-    await journey._pumpUntil(
-      () => !game.debugIsMapActivationDispatchInFlight,
-      label: 'initial New Game activation',
     );
     expect(journey.state.currentMapId, 'map_bourg_selbrume');
     expect(journey.state.party.members, isEmpty);
@@ -2302,58 +2274,7 @@ final class _SelbrumeJourney {
   }
 }
 
-final class _JourneyPlayableMapGame extends PlayableMapGame {
-  _JourneyPlayableMapGame({
-    required super.bundle,
-    required super.projectFilePath,
-    required super.saveRepository,
-    required super.encounterRandom,
-  });
-
-  @override
-  bool get isLoaded => true;
-}
-
-/// Forces the production encounter policy to take its encounter branch while
-/// leaving table selection, battle setup and capture RNG untouched.
-final class _AlwaysEncounterRandom implements math.Random {
-  @override
-  bool nextBool() => false;
-
-  @override
-  double nextDouble() => 0;
-
-  @override
-  int nextInt(int max) => 0;
-}
-
 enum _BattleStrategy { win, lose, flee, capture }
-
-final class _SerializedMemoryGameSaveRepository implements GameSaveRepository {
-  String? _payload;
-
-  @override
-  Future<void> save(GameState value) async {
-    _payload = jsonEncode(value.toJson());
-  }
-
-  @override
-  Future<GameState?> load() async {
-    final payload = _payload;
-    if (payload == null) return null;
-    return normalizeLoadedGameState(
-      GameState.fromJson(
-        jsonDecode(payload) as Map<String, dynamic>,
-      ),
-    );
-  }
-
-  @override
-  Future<bool> exists() async => _payload != null;
-
-  @override
-  Future<void> delete() async => _payload = null;
-}
 
 final class _DialogueChoice {
   const _DialogueChoice({this.linesBeforeChoice, this.choiceIndex = 0});
