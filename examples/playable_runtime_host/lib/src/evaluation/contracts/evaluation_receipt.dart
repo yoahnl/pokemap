@@ -286,6 +286,92 @@ final class EvaluationReceipt {
     );
   }
 
+  factory EvaluationReceipt.fromJson(Map<String, Object?> json) {
+    final schemaVersion = _jsonInt(json, 'schemaVersion');
+    if (schemaVersion != EvaluationReceipt.schemaVersion) {
+      throw FormatException(
+        'Unsupported evaluation receipt schema version $schemaVersion.',
+      );
+    }
+
+    final initialState = _snapshotFromJson(
+      _jsonMap(json, 'initialState'),
+      'initialState',
+    );
+    final finalState = _snapshotFromJson(
+      _jsonMap(json, 'finalState'),
+      'finalState',
+    );
+    final startedAt = _jsonDateTime(json, 'startedAt');
+    final finishedAt = _jsonDateTime(json, 'finishedAt');
+
+    return EvaluationReceipt.validated(
+      runId: _jsonString(json, 'runId'),
+      projectId: _jsonString(json, 'projectId'),
+      scenarioId: _jsonString(json, 'scenarioId'),
+      scenarioVersion: _jsonInt(json, 'scenarioVersion'),
+      policy: _jsonEnum(
+        EvaluationPolicy.values,
+        _jsonString(json, 'policy'),
+        'policy',
+      ),
+      target: _jsonEnum(
+        EvaluationTarget.values,
+        _jsonString(json, 'target'),
+        'target',
+      ),
+      evidenceLevel: _jsonEnum(
+        EvaluationEvidenceLevel.values,
+        _jsonString(json, 'evidenceLevel'),
+        'evidenceLevel',
+      ),
+      commit: _jsonNullableString(json, 'commit'),
+      projectTreeHash: _jsonString(json, 'projectTreeHash'),
+      commandDigest: _jsonString(json, 'commandDigest'),
+      outputDigest: _jsonString(json, 'outputDigest'),
+      startedAt: startedAt,
+      finishedAt: finishedAt,
+      duration: Duration(
+        milliseconds: _jsonInt(json, 'durationMilliseconds'),
+      ),
+      status: _jsonEnum(
+        EvaluationRunStatus.values,
+        _jsonString(json, 'status'),
+        'status',
+      ),
+      exitCode: _jsonInt(json, 'exitCode'),
+      initialState: initialState,
+      finalState: finalState,
+      diff: _diffFromJson(_jsonMap(json, 'diff')),
+      stepResults: _jsonList(json, 'stepResults').map((value) {
+        final item = _valueAsMap(value, 'stepResults');
+        return EvaluationStepResult(
+          index: _jsonInt(item, 'index'),
+          stepId: _jsonString(item, 'stepId'),
+          passed: _jsonBool(item, 'passed'),
+          details: _jsonMap(item, 'details'),
+        );
+      }).toList(growable: false),
+      shortcutsUsed: _jsonStringList(json, 'shortcutsUsed'),
+      checkpointProvenance: _jsonNullableMap(
+        json,
+        'checkpointProvenance',
+      ),
+      artifacts: _jsonStringList(json, 'artifacts'),
+      error: _jsonNullableMap(json, 'error'),
+      relativeReceiptPath: _jsonString(json, 'relativeReceiptPath'),
+      declaredCriterionIds: _jsonStringList(json, 'declaredCriterionIds'),
+      productCriteria: _jsonList(json, 'productCriteria').map((value) {
+        final item = _valueAsMap(value, 'productCriteria');
+        return EvaluationProductCriterionResult(
+          id: _jsonString(item, 'id'),
+          summary: _jsonString(item, 'summary'),
+          passed: _jsonBool(item, 'passed'),
+        );
+      }).toList(growable: false),
+    );
+  }
+
   static const schemaVersion = 1;
 
   final String runId;
@@ -356,6 +442,175 @@ final class EvaluationReceipt {
           .toList(growable: false),
     };
   }
+}
+
+EvaluationStateSnapshot _snapshotFromJson(
+  Map<String, Object?> json,
+  String name,
+) {
+  final world = _jsonMap(json, 'world');
+  final position = _jsonMap(world, 'position');
+  final trainer = _jsonMap(json, 'trainer');
+  return EvaluationStateSnapshot(
+    projectId: _jsonString(json, 'projectId'),
+    runId: _jsonString(json, 'runId'),
+    mapId: _jsonString(world, 'mapId'),
+    x: _jsonInt(position, 'x'),
+    y: _jsonInt(position, 'y'),
+    movementMode: _jsonString(world, 'movementMode'),
+    entityVisibility: _jsonBoolMap(world, 'entityVisibility'),
+    facts: _jsonMap(json, 'facts'),
+    eventLedger: _jsonMap(json, 'eventLedger'),
+    progression: _jsonMap(json, 'progression'),
+    money: _jsonInt(trainer, 'money'),
+    badges: _jsonStringList(trainer, 'badges'),
+    bag: _jsonIntMap(json, 'bag'),
+    shop: _jsonMap(json, 'shop'),
+    party: _jsonMapList(json, 'party'),
+    storage: _jsonMapList(json, 'storage'),
+    activeDialogue: _jsonNullableMap(json, 'dialogue'),
+    activeScene: _jsonNullableMap(json, 'scene'),
+    activeBattle: _jsonNullableMap(json, 'battle'),
+    saveMetadata: _jsonMap(json, 'save'),
+  );
+}
+
+EvaluationStateDiff _diffFromJson(Map<String, Object?> json) {
+  final changes = _jsonList(json, 'changes').map((value) {
+    final item = _valueAsMap(value, 'diff.changes');
+    return EvaluationStateChange(
+      path: _jsonString(item, 'path'),
+      kind: _jsonEnum(
+        EvaluationChangeKind.values,
+        _jsonString(item, 'kind'),
+        'diff.changes.kind',
+      ),
+      before: item['before'],
+      after: item['after'],
+    );
+  }).toList(growable: false);
+  return EvaluationStateDiff(changes);
+}
+
+Map<String, Object?> _jsonMap(Map<String, Object?> json, String key) {
+  return _valueAsMap(json[key], key);
+}
+
+Map<String, Object?>? _jsonNullableMap(
+  Map<String, Object?> json,
+  String key,
+) {
+  final value = json[key];
+  return value == null ? null : _valueAsMap(value, key);
+}
+
+Map<String, Object?> _valueAsMap(Object? value, String name) {
+  if (value is! Map) {
+    throw FormatException('$name must be a JSON object.');
+  }
+  try {
+    return Map<String, Object?>.from(value);
+  } on TypeError {
+    throw FormatException('$name must have string keys.');
+  }
+}
+
+List<Object?> _jsonList(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is! List) {
+    throw FormatException('$key must be a JSON array.');
+  }
+  return List<Object?>.from(value);
+}
+
+List<String> _jsonStringList(Map<String, Object?> json, String key) {
+  return _jsonList(json, key).map((value) {
+    if (value is! String) {
+      throw FormatException('$key must contain only strings.');
+    }
+    return value;
+  }).toList(growable: false);
+}
+
+List<Map<String, Object?>> _jsonMapList(
+  Map<String, Object?> json,
+  String key,
+) {
+  return _jsonList(json, key)
+      .map((value) => _valueAsMap(value, key))
+      .toList(growable: false);
+}
+
+Map<String, bool> _jsonBoolMap(Map<String, Object?> json, String key) {
+  final values = _jsonMap(json, key);
+  return values.map((entryKey, value) {
+    if (value is! bool) {
+      throw FormatException('$key.$entryKey must be a boolean.');
+    }
+    return MapEntry<String, bool>(entryKey, value);
+  });
+}
+
+Map<String, int> _jsonIntMap(Map<String, Object?> json, String key) {
+  final values = _jsonMap(json, key);
+  return values.map((entryKey, value) {
+    if (value is! int) {
+      throw FormatException('$key.$entryKey must be an integer.');
+    }
+    return MapEntry<String, int>(entryKey, value);
+  });
+}
+
+String _jsonString(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is! String) {
+    throw FormatException('$key must be a string.');
+  }
+  return value;
+}
+
+String? _jsonNullableString(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value != null && value is! String) {
+    throw FormatException('$key must be a string or null.');
+  }
+  return value as String?;
+}
+
+int _jsonInt(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is! int) {
+    throw FormatException('$key must be an integer.');
+  }
+  return value;
+}
+
+bool _jsonBool(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is! bool) {
+    throw FormatException('$key must be a boolean.');
+  }
+  return value;
+}
+
+DateTime _jsonDateTime(Map<String, Object?> json, String key) {
+  final value = _jsonString(json, key);
+  final parsed = DateTime.tryParse(value);
+  if (parsed == null) {
+    throw FormatException('$key must be an ISO-8601 timestamp.');
+  }
+  return parsed.toUtc();
+}
+
+T _jsonEnum<T extends Enum>(
+  List<T> values,
+  String value,
+  String key,
+) {
+  for (final candidate in values) {
+    if (candidate.name == value) return candidate;
+  }
+  throw FormatException('$key has unsupported value "$value".');
 }
 
 int _exitCodeFor(EvaluationRunStatus status) {
