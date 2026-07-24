@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "gameId": "games.example.complete",
+  "profileId": "player-1",
+  "slotId": "slot-1",
+  "saveId": "018f255f-2d50-4f4f-8aa2-c893ae06b8c1",
+  "createdAt": "2026-07-25T10:00:00Z",
+  "updatedAt": "2026-07-25T10:00:00Z",
+  "gameVersion": "1.2.0",
+  "projectFormat": "v2",
+  "saveFormat": 1,
+  "compatibilityId": "campaign-v1",
+  "status": "active",
+  "playTimeSeconds": 0,
+  "state": {
+    "mapId": "start",
+    "player": {
+      "x": 4,
+      "y": 7
+    }
+  },
+  "checksum": {
+    "algorithm": "sha256",
+    "value": "cd6ae9c5e1ae4c3c9ae5ba5574545de893e7ebeabbe1169f9870dec61aacde77"
+  }
+}

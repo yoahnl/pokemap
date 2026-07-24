@@ -1,0 +1,26 @@
+{
+  "packageFormat": 1,
+  "gameId": "Complete Adventure",
+  "gameVersion": "1.0.0",
+  "title": "Invalid",
+  "author": { "name": "Example" },
+  "compatibility": {
+    "minHubVersion": "1.0.0",
+    "runtimeApi": ">=1.0.0 <2.0.0",
+    "projectFormat": "v2",
+    "saveFormat": 1,
+    "compatibilityId": "main",
+    "requiredCapabilities": []
+  },
+  "locales": { "default": "fr", "supported": ["fr"] },
+  "content": {
+    "fileCount": 1,
+    "totalBytes": 24,
+    "treeSha256": "e21fddff269f718118bf1bda81c75726b57a9a34a9fd74497b53517069862a3b",
+    "files": [{
+      "path": "project/project.json",
+      "size": 24,
+      "sha256": "1bcbf797acc5b8dc08dcba7f4da52a7d7b09f97cc5ec1905b8093d6f0faa097a"
+    }]
+  }
+}
