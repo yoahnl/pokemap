@@ -207,6 +207,10 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   // on veut retrouver vite le dernier projet, sans jamais bloquer le chargement
   // si le fichier local est absent ou invalide.
   Future<void> _restoreLastSession() async {
+    if (interactiveEvaluationConfig.enabled) {
+      await _restoreInteractiveEvaluationProject();
+      return;
+    }
     try {
       final file = File(_prefsFilePath());
       if (await file.exists()) {
@@ -250,6 +254,50 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     await _restoreBundledProject();
   }
 
+  Future<void> _restoreInteractiveEvaluationProject() async {
+    final relativeProjectFile = interactiveEvaluationConfig.projectFile!;
+    final projectFile = await _findInteractiveProjectFile(relativeProjectFile);
+    if (projectFile == null || !mounted) {
+      _runtimeHostLog(
+        'interactive project not found relativePath=$relativeProjectFile',
+      );
+      if (mounted) {
+        setState(() {
+          _error = 'Projet interactif introuvable : $relativeProjectFile';
+        });
+      }
+      return;
+    }
+    _runtimeHostLog('interactive project resolved path=${projectFile.path}');
+    setState(() {
+      _projectFilePath = projectFile.path;
+      _selectedMapId = null;
+    });
+    await _loadProjectMapsFromManifest(projectFile.path);
+    await _loadPartyBuilderOptions(projectFile.path);
+    if (!mounted || _selectedMapId == null) return;
+    await _load();
+  }
+
+  Future<File?> _findInteractiveProjectFile(String relativePath) async {
+    final visited = <String>{};
+    final seeds = <Directory>[
+      Directory.current.absolute,
+      File(Platform.resolvedExecutable).parent.absolute,
+    ];
+    for (final seed in seeds) {
+      var candidate = seed;
+      while (visited.add(candidate.path)) {
+        final projectFile = File('${candidate.path}/$relativePath');
+        if (await projectFile.exists()) return projectFile.absolute;
+        final parent = candidate.parent;
+        if (parent.path == candidate.path) break;
+        candidate = parent;
+      }
+    }
+    return null;
+  }
+
   Future<void> _restoreBundledProject() async {
     final bundledProject = await const BundledRuntimeProject().resolve();
     if (bundledProject == null || !mounted) return;
@@ -265,6 +313,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   // Host session and presentation options remain local preferences, never
   // gameplay state. The versioned gameplay save stays in its own pipeline.
   Future<void> _persistLastSession() async {
+    if (interactiveEvaluationConfig.enabled) return;
     try {
       final file = File(_prefsFilePath());
       final payload = <String, dynamic>{

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_policy.dart';
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_scenario.dart';
+import 'package:pokemap_loader/src/evaluation/interactive/interactive_worker_client.dart';
 import 'package:pokemap_loader/src/evaluation/scenario/evaluation_scenario_parser.dart';
 import 'package:pokemap_loader/src/evaluation/web/evaluation_web_launcher.dart';
 import 'package:pokemap_loader/src/evaluation/worker/evaluation_worker_protocol.dart';
@@ -28,6 +29,7 @@ final class PokeMapEvalOptions {
     this.includeParty = false,
     this.includeBag = false,
     this.jsonOnly = false,
+    this.target = EvaluationTarget.headless,
     this.port = 0,
     this.openBrowser = true,
   });
@@ -41,6 +43,7 @@ final class PokeMapEvalOptions {
   final bool includeParty;
   final bool includeBag;
   final bool jsonOnly;
+  final EvaluationTarget target;
   final int port;
   final bool openBrowser;
 }
@@ -61,10 +64,12 @@ final class PokeMapEvalCli {
   PokeMapEvalCli({
     required this.repositoryRoot,
     required this.worker,
+    PokeMapEvalWorker? interactiveWorker,
     required this.stdoutSink,
     required this.stderrSink,
     String Function()? runIdFactory,
-  }) : _runIdFactory = runIdFactory ?? _defaultRunId;
+  })  : interactiveWorker = interactiveWorker ?? worker,
+        _runIdFactory = runIdFactory ?? _defaultRunId;
 
   factory PokeMapEvalCli.standard() {
     final root = _discoverRepositoryRoot();
@@ -76,6 +81,12 @@ final class PokeMapEvalCli {
           stderrSink: stderr.write,
         ),
       ),
+      interactiveWorker: _InteractiveProcessWorker(
+        InteractiveWorkerClient(
+          repositoryRoot: root,
+          stderrSink: stderr.write,
+        ),
+      ),
       stdoutSink: stdout.writeln,
       stderrSink: stderr.writeln,
     );
@@ -83,6 +94,7 @@ final class PokeMapEvalCli {
 
   final Directory repositoryRoot;
   final PokeMapEvalWorker worker;
+  final PokeMapEvalWorker interactiveWorker;
   final PokeMapEvalOutputSink stdoutSink;
   final PokeMapEvalOutputSink stderrSink;
   final String Function() _runIdFactory;
@@ -196,6 +208,7 @@ final class PokeMapEvalCli {
       discovered: matches.single,
       policyOverride: options.policy,
       jsonOnly: options.jsonOnly,
+      target: options.target,
     );
   }
 
@@ -242,6 +255,7 @@ final class PokeMapEvalCli {
       outputDirectory: outputDirectory,
       runId: runId,
       jsonOnly: options.jsonOnly,
+      target: EvaluationTarget.headless,
     );
   }
 
@@ -295,6 +309,7 @@ final class PokeMapEvalCli {
     required _DiscoveredScenario discovered,
     required EvaluationPolicy? policyOverride,
     required bool jsonOnly,
+    required EvaluationTarget target,
   }) async {
     final runId = _runIdFactory();
     final outputDirectory = _outputDirectory(runId);
@@ -326,6 +341,7 @@ final class PokeMapEvalCli {
       outputDirectory: outputDirectory,
       runId: runId,
       jsonOnly: jsonOnly,
+      target: target,
     );
   }
 
@@ -335,12 +351,17 @@ final class PokeMapEvalCli {
     required String outputDirectory,
     required String runId,
     required bool jsonOnly,
+    required EvaluationTarget target,
   }) async {
     stderrSink(
       'PokeMap Eval: ${scenario.id} '
-      '(${scenario.policy.name}, headless)',
+      '(${scenario.policy.name}, ${target.name})',
     );
-    final result = await worker.run(
+    final selectedWorker = switch (target) {
+      EvaluationTarget.headless => worker,
+      EvaluationTarget.interactive => interactiveWorker,
+    };
+    final result = await selectedWorker.run(
       EvaluationWorkerRequest.run(
         runId: runId,
         projectRoot: scenario.projectId,
@@ -368,7 +389,7 @@ final class PokeMapEvalCli {
         <String, Object?>{
           'runId': result.runId,
           'scenarioId': scenario.id,
-          'target': 'headless',
+          'target': target.name,
           'status': result.status.name,
           'exitCode': result.exitCode,
           'durationMilliseconds': null,
@@ -464,6 +485,17 @@ final class _HeadlessProcessWorker implements PokeMapEvalWorker {
   @override
   Future<EvaluationWorkerResult> run(EvaluationWorkerRequest request) {
     return process.run(request);
+  }
+}
+
+final class _InteractiveProcessWorker implements PokeMapEvalWorker {
+  const _InteractiveProcessWorker(this.client);
+
+  final InteractiveWorkerClient client;
+
+  @override
+  Future<EvaluationWorkerResult> run(EvaluationWorkerRequest request) {
+    return client.run(request);
   }
 }
 
@@ -601,6 +633,7 @@ PokeMapEvalOptions _parseRun(List<String> arguments) {
   }
   final scenarioId = arguments.first;
   EvaluationPolicy? policy;
+  var target = EvaluationTarget.headless;
   var jsonOnly = false;
   var index = 1;
   while (index < arguments.length) {
@@ -618,6 +651,16 @@ PokeMapEvalOptions _parseRun(List<String> arguments) {
       case '--json':
         jsonOnly = true;
         index += 1;
+      case '--target':
+        final value = _optionValue(arguments, index, '--target');
+        target = switch (value) {
+          'headless' => EvaluationTarget.headless,
+          'interactive' => EvaluationTarget.interactive,
+          _ => throw PokeMapEvalUsageException(
+              'Unknown evaluation target "$value".',
+            ),
+        };
+        index += 2;
       default:
         throw PokeMapEvalUsageException(
           'Unknown option "${arguments[index]}".',
@@ -629,6 +672,7 @@ PokeMapEvalOptions _parseRun(List<String> arguments) {
     scenarioId: scenarioId,
     policy: policy,
     jsonOnly: jsonOnly,
+    target: target,
   );
 }
 
@@ -775,7 +819,8 @@ String _usage() {
   return '''
 Usage:
   pokemap eval list [--project <id>]
-  pokemap eval run <scenario-id> [--policy probe|certify] [--json]
+  pokemap eval run <scenario-id> [--policy probe|certify]
+    [--target headless|interactive] [--json]
   pokemap eval inspect --checkpoint <id> [--facts] [--party] [--bag]
   pokemap eval history [--json]
   pokemap eval web [--project <id>] [--port <0..65535>] [--no-open]''';

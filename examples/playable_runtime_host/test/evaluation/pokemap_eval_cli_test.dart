@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:pokemap_loader/src/evaluation/contracts/evaluation_policy.dart';
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_receipt.dart';
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_scenario.dart';
 import 'package:pokemap_loader/src/evaluation/scenario/evaluation_scenario_parser.dart';
@@ -19,6 +20,44 @@ void main() {
     expect(options.command, PokeMapEvalCommand.run);
     expect(options.scenarioId, 'selbrume.shop.after-lysa');
     expect(options.jsonOnly, isTrue);
+    expect(options.target, EvaluationTarget.headless);
+  });
+
+  test('run target selects the interactive worker without changing policy',
+      () async {
+    final options = PokeMapEvalCli.parse(
+      <String>[
+        'run',
+        'selbrume.shop.after-lysa',
+        '--target',
+        'interactive',
+      ],
+    );
+    expect(options.target, EvaluationTarget.interactive);
+    expect(options.policy, isNull);
+
+    final fixture = await _CliFixture.create();
+    addTearDown(fixture.dispose);
+    await fixture.writeScenario();
+    fixture.interactiveWorker.result = EvaluationWorkerResult.completed(
+      runId: 'run-test',
+      status: EvaluationRunStatus.succeeded,
+      exitCode: 0,
+    );
+
+    final result = await fixture.cli.execute(
+      <String>[
+        'run',
+        'selbrume.test',
+        '--target',
+        'interactive',
+      ],
+    );
+
+    expect(result.exitCode, 0);
+    expect(fixture.worker.requests, isEmpty);
+    expect(fixture.interactiveWorker.requests, hasLength(1));
+    expect(fixture.stderr.toString(), contains('(probe, interactive)'));
   });
 
   test('functional failure maps to exit code 1', () async {
@@ -177,6 +216,7 @@ final class _CliFixture {
   _CliFixture._({
     required this.root,
     required this.worker,
+    required this.interactiveWorker,
     required this.stdout,
     required this.stderr,
     required this.cli,
@@ -184,6 +224,7 @@ final class _CliFixture {
 
   final Directory root;
   final _FakeWorker worker;
+  final _FakeWorker interactiveWorker;
   final StringBuffer stdout;
   final StringBuffer stderr;
   final PokeMapEvalCli cli;
@@ -191,16 +232,19 @@ final class _CliFixture {
   static Future<_CliFixture> create() async {
     final root = await Directory.systemTemp.createTemp('pokemap-eval-cli-');
     final worker = _FakeWorker();
+    final interactiveWorker = _FakeWorker();
     final stdout = StringBuffer();
     final stderr = StringBuffer();
     return _CliFixture._(
       root: root,
       worker: worker,
+      interactiveWorker: interactiveWorker,
       stdout: stdout,
       stderr: stderr,
       cli: PokeMapEvalCli(
         repositoryRoot: root,
         worker: worker,
+        interactiveWorker: interactiveWorker,
         stdoutSink: stdout.writeln,
         stderrSink: stderr.writeln,
         runIdFactory: () => 'run-test',
