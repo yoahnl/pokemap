@@ -5,7 +5,110 @@ import 'dart:math';
 
 import 'package:path/path.dart' as p;
 
-abstract interface class EvaluationWebOrchestrator {
+import '../contracts/evaluation_policy.dart';
+import 'evaluation_run_store.dart';
+
+final class EvaluationWebProjectDescriptor {
+  EvaluationWebProjectDescriptor({
+    required String id,
+    required String label,
+  })  : id = _validatedIdentifier(id, 'project id'),
+        label = _nonBlank(label, 'project label');
+
+  final String id;
+  final String label;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'id': id,
+        'label': label,
+      };
+}
+
+final class EvaluationWebScenarioDescriptor {
+  EvaluationWebScenarioDescriptor({
+    required String id,
+    required String title,
+    required String projectId,
+    required this.policy,
+    required this.stepCount,
+    required List<String> criterionIds,
+  })  : id = _validatedIdentifier(id, 'scenario id'),
+        title = _nonBlank(title, 'scenario title'),
+        projectId = _validatedIdentifier(projectId, 'scenario project id'),
+        criterionIds = List<String>.unmodifiable(
+          criterionIds.map(
+            (criterionId) => _validatedIdentifier(criterionId, 'criterion id'),
+          ),
+        ) {
+    if (stepCount < 0) {
+      throw ArgumentError.value(
+        stepCount,
+        'stepCount',
+        'Step count must not be negative.',
+      );
+    }
+  }
+
+  final String id;
+  final String title;
+  final String projectId;
+  final EvaluationPolicy policy;
+  final int stepCount;
+  final List<String> criterionIds;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'id': id,
+        'title': title,
+        'projectId': projectId,
+        'policy': policy.name,
+        'stepCount': stepCount,
+        'criterionIds': criterionIds,
+      };
+}
+
+final class EvaluationWebArtifact {
+  EvaluationWebArtifact({
+    required String id,
+    required this.contentType,
+    required List<int> bytes,
+  })  : id = _validatedIdentifier(id, 'artifact id'),
+        bytes = List<int>.unmodifiable(bytes);
+
+  final String id;
+  final ContentType contentType;
+  final List<int> bytes;
+}
+
+abstract base class EvaluationWebOrchestrator {
+  Future<List<EvaluationWebProjectDescriptor>> listProjects() async {
+    return const <EvaluationWebProjectDescriptor>[];
+  }
+
+  Future<List<EvaluationWebScenarioDescriptor>> listScenarios({
+    String? projectId,
+  }) async {
+    return const <EvaluationWebScenarioDescriptor>[];
+  }
+
+  Future<List<EvaluationRunRecord>> listActiveRuns() async {
+    return const <EvaluationRunRecord>[];
+  }
+
+  Future<List<EvaluationRunHistoryRecord>> loadHistory() async {
+    return const <EvaluationRunHistoryRecord>[];
+  }
+
+  Future<EvaluationRunRecord> startRun({
+    required EvaluationWebScenarioDescriptor scenario,
+    required EvaluationTarget target,
+  }) {
+    throw UnsupportedError('This orchestrator cannot start evaluation runs.');
+  }
+
+  Future<EvaluationWebArtifact?> readArtifact(String artifactId) async {
+    return null;
+  }
+
   Future<void> close();
 }
 
@@ -106,6 +209,7 @@ final class EvaluationWebServer {
         return;
       }
 
+      String? mutationBody;
       if (_isMutation(request.method)) {
         if (request.headers.value(tokenHeader) != sessionToken) {
           await _writeError(
@@ -124,8 +228,8 @@ final class EvaluationWebServer {
           );
           return;
         }
-        final body = await _readBody(request);
-        if (body == null) {
+        mutationBody = await _readBody(request);
+        if (mutationBody == null) {
           await _writeError(
             request.response,
             HttpStatus.requestEntityTooLarge,
@@ -142,11 +246,7 @@ final class EvaluationWebServer {
         return;
       }
 
-      await _writeError(
-        request.response,
-        HttpStatus.notFound,
-        'not_found',
-      );
+      await _handleApi(request, mutationBody);
     } on Object {
       try {
         await _writeError(
@@ -158,6 +258,254 @@ final class EvaluationWebServer {
         await request.response.close();
       }
     }
+  }
+
+  Future<void> _handleApi(
+    HttpRequest request,
+    String? mutationBody,
+  ) async {
+    final segments = request.uri.pathSegments;
+    if (_matches(segments, const <String>['api', 'projects'])) {
+      if (request.method != 'GET') {
+        await _writeError(
+          request.response,
+          HttpStatus.methodNotAllowed,
+          'method_not_allowed',
+        );
+        return;
+      }
+      if (request.uri.queryParameters.isNotEmpty) {
+        await _writeError(
+          request.response,
+          HttpStatus.badRequest,
+          'invalid_query',
+        );
+        return;
+      }
+      final projects = await orchestrator.listProjects();
+      await _writeJson(request.response, HttpStatus.ok, <String, Object?>{
+        'projects':
+            projects.map((project) => project.toJson()).toList(growable: false),
+      });
+      return;
+    }
+
+    if (_matches(segments, const <String>['api', 'scenarios'])) {
+      if (request.method != 'GET') {
+        await _writeError(
+          request.response,
+          HttpStatus.methodNotAllowed,
+          'method_not_allowed',
+        );
+        return;
+      }
+      if (request.uri.queryParameters.keys.any((key) => key != 'project')) {
+        await _writeError(
+          request.response,
+          HttpStatus.badRequest,
+          'invalid_query',
+        );
+        return;
+      }
+      final projectId = request.uri.queryParameters['project'];
+      if (projectId != null && !_isIdentifier(projectId)) {
+        await _writeError(
+          request.response,
+          HttpStatus.badRequest,
+          'invalid_identifier',
+        );
+        return;
+      }
+      final scenarios = await orchestrator.listScenarios(
+        projectId: projectId,
+      );
+      await _writeJson(request.response, HttpStatus.ok, <String, Object?>{
+        'scenarios': scenarios
+            .map((scenario) => scenario.toJson())
+            .toList(growable: false),
+      });
+      return;
+    }
+
+    if (_matches(segments, const <String>['api', 'runs'])) {
+      if (request.method == 'GET') {
+        final active = await orchestrator.listActiveRuns();
+        final history = await orchestrator.loadHistory();
+        await _writeJson(request.response, HttpStatus.ok, <String, Object?>{
+          'runs': <Map<String, Object?>>[
+            for (final run in active)
+              <String, Object?>{
+                ...run.toJson(),
+                'source': 'active',
+              },
+            for (final run in history)
+              <String, Object?>{
+                ...run.toJson(),
+                'source': 'history',
+              },
+          ],
+        });
+        return;
+      }
+      if (request.method == 'POST') {
+        await _startRun(request.response, mutationBody!);
+        return;
+      }
+      await _writeError(
+        request.response,
+        HttpStatus.methodNotAllowed,
+        'method_not_allowed',
+      );
+      return;
+    }
+
+    if (segments.length == 3 && segments[0] == 'api' && segments[1] == 'runs') {
+      if (request.method != 'GET') {
+        await _writeError(
+          request.response,
+          HttpStatus.methodNotAllowed,
+          'method_not_allowed',
+        );
+        return;
+      }
+      final runId = segments[2];
+      final active = await orchestrator.listActiveRuns();
+      for (final run in active) {
+        if (run.runId == runId) {
+          await _writeJson(request.response, HttpStatus.ok, <String, Object?>{
+            'run': <String, Object?>{
+              ...run.toJson(),
+              'source': 'active',
+            },
+          });
+          return;
+        }
+      }
+      final history = await orchestrator.loadHistory();
+      for (final run in history) {
+        if (run.runId == runId) {
+          await _writeJson(request.response, HttpStatus.ok, <String, Object?>{
+            'run': <String, Object?>{
+              ...run.toJson(),
+              'source': 'history',
+              'receipt': run.receipt.toJson(),
+            },
+          });
+          return;
+        }
+      }
+      await _writeError(
+        request.response,
+        HttpStatus.notFound,
+        'run_not_found',
+      );
+      return;
+    }
+
+    if (segments.length == 3 &&
+        segments[0] == 'api' &&
+        segments[1] == 'artifacts') {
+      if (request.method != 'GET') {
+        await _writeError(
+          request.response,
+          HttpStatus.methodNotAllowed,
+          'method_not_allowed',
+        );
+        return;
+      }
+      final artifact = await orchestrator.readArtifact(segments[2]);
+      if (artifact == null) {
+        await _writeError(
+          request.response,
+          HttpStatus.notFound,
+          'artifact_not_found',
+        );
+        return;
+      }
+      request.response
+        ..statusCode = HttpStatus.ok
+        ..headers.contentType = artifact.contentType
+        ..add(artifact.bytes);
+      await request.response.close();
+      return;
+    }
+
+    await _writeError(
+      request.response,
+      HttpStatus.notFound,
+      'not_found',
+    );
+  }
+
+  Future<void> _startRun(HttpResponse response, String body) async {
+    final Map<String, Object?> json;
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is! Map) {
+        throw const FormatException('Body must be an object.');
+      }
+      json = Map<String, Object?>.from(decoded);
+    } on Object {
+      await _writeError(response, HttpStatus.badRequest, 'invalid_body');
+      return;
+    }
+    if (json.length != 2 ||
+        !json.containsKey('scenarioId') ||
+        !json.containsKey('target') ||
+        json['scenarioId'] is! String ||
+        json['target'] is! String) {
+      await _writeError(response, HttpStatus.badRequest, 'invalid_body');
+      return;
+    }
+    final scenarioId = json['scenarioId']! as String;
+    if (!_isIdentifier(scenarioId)) {
+      await _writeError(
+        response,
+        HttpStatus.badRequest,
+        'invalid_identifier',
+      );
+      return;
+    }
+    final targetName = json['target']! as String;
+    if (targetName == EvaluationTarget.interactive.name) {
+      await _writeError(
+        response,
+        HttpStatus.conflict,
+        'target_unavailable',
+      );
+      return;
+    }
+    if (targetName != EvaluationTarget.headless.name) {
+      await _writeError(response, HttpStatus.badRequest, 'invalid_target');
+      return;
+    }
+    final matches = (await orchestrator.listScenarios())
+        .where((scenario) => scenario.id == scenarioId)
+        .toList(growable: false);
+    if (matches.isEmpty) {
+      await _writeError(
+        response,
+        HttpStatus.notFound,
+        'scenario_not_found',
+      );
+      return;
+    }
+    if (matches.length != 1) {
+      await _writeError(
+        response,
+        HttpStatus.conflict,
+        'scenario_ambiguous',
+      );
+      return;
+    }
+    final run = await orchestrator.startRun(
+      scenario: matches.single,
+      target: EvaluationTarget.headless,
+    );
+    await _writeJson(response, HttpStatus.accepted, <String, Object?>{
+      'runId': run.runId,
+      'run': run.toJson(),
+    });
   }
 
   Future<void> _serveAsset(
@@ -203,6 +551,17 @@ final class EvaluationWebServer {
     response.statusCode = statusCode;
     response.headers.contentType = ContentType.json;
     response.write(jsonEncode(<String, Object?>{'error': code}));
+    await response.close();
+  }
+
+  static Future<void> _writeJson(
+    HttpResponse response,
+    int statusCode,
+    Map<String, Object?> json,
+  ) async {
+    response.statusCode = statusCode;
+    response.headers.contentType = ContentType.json;
+    response.write(jsonEncode(json));
     await response.close();
   }
 }
@@ -287,5 +646,31 @@ bool _hasValidApiIdentifiers(List<String> segments) {
   final collection = segments[1];
   if (collection != 'runs' && collection != 'artifacts') return true;
   final identifier = segments[2];
-  return RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$').hasMatch(identifier);
+  return _isIdentifier(identifier);
+}
+
+bool _matches(List<String> left, List<String> right) {
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index += 1) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
+}
+
+String _validatedIdentifier(String value, String name) {
+  if (!_isIdentifier(value)) {
+    throw ArgumentError.value(value, name, 'Invalid identifier.');
+  }
+  return value;
+}
+
+bool _isIdentifier(String value) {
+  return RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$').hasMatch(value);
+}
+
+String _nonBlank(String value, String name) {
+  if (value.trim().isEmpty) {
+    throw ArgumentError.value(value, name, 'Value must not be blank.');
+  }
+  return value;
 }

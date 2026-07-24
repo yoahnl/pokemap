@@ -185,7 +185,7 @@ Future<_HttpResponse> _request(
   }
 }
 
-final class _FakeOrchestrator implements EvaluationWebOrchestrator {
+final class _FakeOrchestrator extends EvaluationWebOrchestrator {
   var closeCount = 0;
 
   @override
