@@ -867,8 +867,8 @@ final class _SelbrumeJourney {
       projectRoot: projectRoot,
       runId: 'fg-182-canonical-journey',
     );
-    final game = driver.game;
-    final playerServices = driver.playerServices;
+    final game = driver.headlessGame;
+    final playerServices = driver.headlessPlayerServices;
     final walkthrough = jsonDecode(
       File(p.join(projectRoot.path, 'walkthrough.json')).readAsStringSync(),
     ) as Map<String, dynamic>;

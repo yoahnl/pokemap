@@ -50,6 +50,17 @@ final class SelbrumeEvaluationDriver
 
   GameState get state => game.gameStateSnapshot;
 
+  EvaluationPlayableMapGame get headlessGame {
+    final current = game;
+    if (current is! EvaluationPlayableMapGame) {
+      throw StateError('The attached interactive driver has no headless game.');
+    }
+    return current;
+  }
+
+  EvaluationPlayerServiceHost get headlessPlayerServices =>
+      _requireHeadlessPlayerServices();
+
   factory SelbrumeEvaluationDriver.attach({
     required PlayableMapGame game,
     required ProjectManifest project,
