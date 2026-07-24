@@ -13,6 +13,7 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
 import '../contracts/evaluation_state_snapshot.dart';
+import '../runner/evaluation_checkpoint_cache.dart';
 import 'evaluation_driver.dart';
 import 'evaluation_game_fixtures.dart';
 import 'evaluation_player_service_host.dart';
@@ -25,6 +26,8 @@ final class SelbrumeEvaluationDriver
     required this.projectRoot,
     required this.playerServices,
     required this.runId,
+    required this.checkpointCache,
+    required this.checkpointProvenance,
   });
 
   final EvaluationPlayableMapGame game;
@@ -32,6 +35,8 @@ final class SelbrumeEvaluationDriver
   final Directory projectRoot;
   final EvaluationPlayerServiceHost playerServices;
   final String runId;
+  final EvaluationCheckpointCache? checkpointCache;
+  final EvaluationCheckpointProvenance? checkpointProvenance;
   final Map<String, MapData> _mapsById = <String, MapData>{};
   final Map<String, Set<String>> _runtimeRejectedEdgesByMapId =
       <String, Set<String>>{};
@@ -42,7 +47,14 @@ final class SelbrumeEvaluationDriver
   static Future<SelbrumeEvaluationDriver> start({
     required Directory projectRoot,
     String runId = 'evaluation-run',
+    EvaluationCheckpointCache? checkpointCache,
+    EvaluationCheckpointProvenance? checkpointProvenance,
   }) async {
+    if ((checkpointCache == null) != (checkpointProvenance == null)) {
+      throw ArgumentError(
+        'checkpointCache and checkpointProvenance must be supplied together.',
+      );
+    }
     final projectPath = p.join(projectRoot.path, 'project.json');
     final bundle = await loadRuntimeMapBundle(
       projectFilePath: projectPath,
@@ -82,6 +94,8 @@ final class SelbrumeEvaluationDriver
       projectRoot: projectRoot,
       playerServices: playerServices,
       runId: runId,
+      checkpointCache: checkpointCache,
+      checkpointProvenance: checkpointProvenance,
     );
     game.onGameResize(Vector2(640, 480));
     await game.onLoad();
@@ -635,11 +649,29 @@ final class SelbrumeEvaluationDriver
     );
     await save();
     _checkpoints[checkpointId] = state;
+    final cache = checkpointCache;
+    final provenance = checkpointProvenance;
+    if (cache != null && provenance != null) {
+      await cache.store(checkpointId, provenance, state);
+    }
   }
 
   @override
   Future<void> probeLoadCheckpoint(String checkpointId) async {
-    final checkpoint = _checkpoints[checkpointId];
+    var checkpoint = _checkpoints[checkpointId];
+    final cache = checkpointCache;
+    final provenance = checkpointProvenance;
+    if (checkpoint == null && cache != null && provenance != null) {
+      try {
+        checkpoint = await cache.load(checkpointId, provenance);
+      } on Object catch (failure) {
+        throw EvaluationDriverFailure(
+          operation: 'probe.loadCheckpoint',
+          message: failure.toString(),
+          snapshot: snapshot(),
+        );
+      }
+    }
     _require(
       checkpoint != null,
       operation: 'probe.loadCheckpoint',

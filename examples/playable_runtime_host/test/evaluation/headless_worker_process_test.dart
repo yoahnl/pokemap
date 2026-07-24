@@ -131,6 +131,23 @@ void main() {
         File(p.join(root.path, result.receiptPath!)).existsSync(),
         isTrue,
       );
+      final receipt = jsonDecode(
+        await File(p.join(root.path, result.receiptPath!)).readAsString(),
+      ) as Map<String, Object?>;
+      expect(
+        receipt['checkpointProvenance'],
+        isA<Map<String, Object?>>()
+            .having(
+              (value) => value['projectTreeHashSha256'],
+              'project hash',
+              matches(RegExp(r'^[0-9a-f]{64}$')),
+            )
+            .having(
+              (value) => value['evaluationCodeDigestSha256'],
+              'evaluation code digest',
+              matches(RegExp(r'^[0-9a-f]{64}$')),
+            ),
+      );
     },
     timeout: const Timeout(Duration(minutes: 3)),
   );

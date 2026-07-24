@@ -16,6 +16,10 @@ void main() {
       driver: driver,
       eventSink: events.add,
       runIdFactory: () => 'run-shop',
+      checkpointProvenance: const <String, Object?>{
+        'scenarioId': 'selbrume.shared-checkpoints',
+        'saveSchemaVersion': 1,
+      },
     ).run(_shopScenario());
 
     expect(
@@ -25,6 +29,13 @@ void main() {
       ),
     );
     expect(events.first.type, 'run.started');
+    expect(
+      events.first.payload['checkpointProvenance'],
+      const <String, Object?>{
+        'scenarioId': 'selbrume.shared-checkpoints',
+        'saveSchemaVersion': 1,
+      },
+    );
     expect(events.last.type, 'run.finished');
     expect(result.status, EvaluationRunStatus.succeeded);
     expect(result.diff.changeAt('trainer.money')?.after, 750);

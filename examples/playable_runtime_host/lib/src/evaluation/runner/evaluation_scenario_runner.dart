@@ -54,6 +54,7 @@ final class EvaluationScenarioRunner {
         const EvaluationPolicyValidator(),
     EvaluationStateDiffer stateDiffer = const EvaluationStateDiffer(),
     String Function()? runIdFactory,
+    this.checkpointProvenance,
   })  : _assertionEvaluator = assertionEvaluator,
         _policyValidator = policyValidator,
         _stateDiffer = stateDiffer,
@@ -65,6 +66,7 @@ final class EvaluationScenarioRunner {
   final EvaluationPolicyValidator _policyValidator;
   final EvaluationStateDiffer _stateDiffer;
   final String Function() _runIdFactory;
+  final Map<String, Object?>? checkpointProvenance;
 
   Future<EvaluationScenarioRunResult> run(EvaluationScenario scenario) async {
     final runId = _runIdFactory();
@@ -106,6 +108,8 @@ final class EvaluationScenarioRunner {
       'scenarioId': scenario.id,
       'policy': scenario.policy.name,
       'initialState': initialState.toJson(),
+      if (checkpointProvenance != null)
+        'checkpointProvenance': checkpointProvenance,
     });
 
     if (status == EvaluationRunStatus.succeeded) {

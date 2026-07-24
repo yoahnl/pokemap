@@ -8,6 +8,7 @@ import '../contracts/evaluation_policy.dart';
 import '../contracts/evaluation_receipt.dart';
 import '../contracts/evaluation_scenario.dart';
 import '../driver/selbrume_evaluation_driver.dart';
+import '../runner/evaluation_checkpoint_cache.dart';
 import '../runner/evaluation_scenario_runner.dart';
 import '../scenario/evaluation_scenario_parser.dart';
 import 'evaluation_worker_protocol.dart';
@@ -59,6 +60,32 @@ Future<EvaluationWorkerResult> _executeRequest(
   final scenarioSource = await scenarioFile.readAsString();
   final scenario = const EvaluationScenarioParser().parseString(scenarioSource);
   final projectRoot = Directory(p.join(hostRoot.path, request.projectRoot));
+  final projectTreeHash = await _treeDigest(projectRoot);
+  final evaluationCodeDigest = await _treeDigest(
+    Directory(p.join(
+      hostRoot.path,
+      'examples',
+      'playable_runtime_host',
+      'lib',
+      'src',
+      'evaluation',
+    )),
+  );
+  final checkpointProvenance = EvaluationCheckpointProvenance(
+    projectTreeHashSha256: projectTreeHash,
+    evaluationCodeDigestSha256: evaluationCodeDigest,
+    scenarioId: '${scenario.projectId}.shared-checkpoints',
+    scenarioVersion: 1,
+    saveSchemaVersion: 1,
+  );
+  final checkpointCache = EvaluationCheckpointCache(
+    root: Directory(p.join(
+      hostRoot.path,
+      'build',
+      'pokemap-eval',
+      'cache',
+    )),
+  );
   final eventsFile = File(p.join(outputDirectory.path, 'events.jsonl'));
   final eventsSink = eventsFile.openWrite(mode: FileMode.writeOnly);
   final startedAt = DateTime.now().toUtc();
@@ -68,10 +95,13 @@ Future<EvaluationWorkerResult> _executeRequest(
     driver = await SelbrumeEvaluationDriver.start(
       projectRoot: projectRoot,
       runId: request.runId,
+      checkpointCache: checkpointCache,
+      checkpointProvenance: checkpointProvenance,
     );
     runResult = await EvaluationScenarioRunner(
       driver: driver,
       runIdFactory: () => request.runId,
+      checkpointProvenance: checkpointProvenance.toJson(),
       eventSink: (event) {
         eventsSink.writeln(jsonEncode(event.toJson()));
       },
@@ -91,7 +121,7 @@ Future<EvaluationWorkerResult> _executeRequest(
     target: EvaluationTarget.headless,
     evidenceLevel: runResult.evidenceLevel,
     commit: null,
-    projectTreeHash: await _treeDigest(projectRoot),
+    projectTreeHash: projectTreeHash,
     commandDigest: sha256.convert(utf8.encode(scenarioSource)).toString(),
     outputDigest: sha256.convert(await eventsFile.readAsBytes()).toString(),
     startedAt: startedAt,
@@ -104,11 +134,11 @@ Future<EvaluationWorkerResult> _executeRequest(
     diff: runResult.diff,
     stepResults: runResult.stepResults,
     shortcutsUsed: runResult.shortcutsUsed,
-    checkpointProvenance: switch (scenario.start) {
-      EvaluationCheckpointStart(:final checkpointId) => <String, Object?>{
-          'checkpointId': checkpointId
-        },
-      _ => null,
+    checkpointProvenance: <String, Object?>{
+      ...checkpointProvenance.toJson(),
+      'provenanceDigestSha256': checkpointProvenance.digestSha256,
+      if (scenario.start case EvaluationCheckpointStart(:final checkpointId))
+        'startCheckpointId': checkpointId,
     },
     artifacts: const <String>['events.jsonl'],
     error: runResult.error,
