@@ -874,7 +874,10 @@ final class SelbrumeEvaluationDriver
         entityId: 'service_port_shop',
         operation: 'service.shop.inspect',
         action: attachedServices.inspectShop,
+        openService: () =>
+            game.debugOpenPlayerServiceShop('shop_port_supplies'),
       );
+      _rememberVisibleShop(attachedServices);
       return;
     }
     final playerServices = _requireHeadlessPlayerServices();
@@ -906,7 +909,10 @@ final class SelbrumeEvaluationDriver
         entityId: 'service_port_shop',
         operation: 'service.shop.buy',
         action: () => attachedServices.buy(itemId, quantity),
+        openService: () =>
+            game.debugOpenPlayerServiceShop('shop_port_supplies'),
       );
+      _rememberVisibleShop(attachedServices);
       return;
     }
     final playerServices = _requireHeadlessPlayerServices();
@@ -1193,6 +1199,21 @@ final class SelbrumeEvaluationDriver
     };
   }
 
+  void _rememberVisibleShop(EvaluationPlayerServiceAutomation services) {
+    if (services
+        case EvaluationVisiblePlayerServiceAutomation(
+          :final lastShopSnapshot?,
+        )) {
+      _lastShop = <String, Object?>{
+        'id': lastShopSnapshot['shopId'],
+        'activeStateId': lastShopSnapshot['stateId'],
+        'isOpen': lastShopSnapshot['isOpen'],
+        'catalogue': lastShopSnapshot['catalogue'],
+        'message': lastShopSnapshot['message'],
+      };
+    }
+  }
+
   Future<void> _waitForBattleInputReady() async {
     await _pumpUntil(
       () =>
@@ -1287,12 +1308,16 @@ final class SelbrumeEvaluationDriver
     required String operation,
     required Future<void> Function() action,
     bool Function()? completedWithoutOverlay,
+    Future<void> Function()? openService,
   }) async {
     if (services is! EvaluationVisiblePlayerServiceAutomation) {
       await action();
       return;
     }
-    await interact(entityId);
+    final serviceCompletion = openService?.call();
+    if (serviceCompletion == null) {
+      await interact(entityId);
+    }
     await _waitForLiveRuntime(
       () =>
           services.activeServiceName == kind ||
@@ -1315,6 +1340,7 @@ final class SelbrumeEvaluationDriver
         operation: '$operation.close',
       );
     }
+    await serviceCompletion;
     await waitUntilRuntimeReady(driveDialogue: true);
   }
 

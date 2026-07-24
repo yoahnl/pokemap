@@ -35,13 +35,19 @@ void main() {
     );
 
     expect(port.activeService, PlayerServiceAutomationKind.shop);
-    final result = await port.buyItem(itemId: 'potion', quantity: 1);
+    await port.buy('potion', 1);
     await tester.pump();
 
-    expect(result.completed, isTrue);
     expect(currentState.trainerProfile.money, 700);
     expect(currentState.bag.entries.single.itemId, 'potion');
     expect(currentState.bag.entries.single.quantity, 1);
+    expect(
+      port.lastShopSnapshot,
+      containsPair(
+        'catalogue',
+        <String, int>{'potion': 300},
+      ),
+    );
   });
 
   testWidgets('automation unregisters when the overlay closes', (tester) async {

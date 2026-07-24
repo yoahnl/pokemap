@@ -92,6 +92,8 @@ abstract interface class EvaluationVisiblePlayerServiceAutomation
     implements EvaluationPlayerServiceAutomation {
   String? get activeServiceName;
 
+  Map<String, Object?>? get lastShopSnapshot;
+
   Future<void> closeActiveService();
 }
 

@@ -140,11 +140,15 @@ abstract interface class PlayerServiceAutomationSession {
 final class PlayerServiceAutomationPort
     implements EvaluationVisiblePlayerServiceAutomation {
   PlayerServiceAutomationSession? _active;
+  Map<String, Object?>? _lastShopSnapshot;
 
   PlayerServiceAutomationKind? get activeService => _active?.kind;
 
   @override
   String? get activeServiceName => activeService?.name;
+
+  @override
+  Map<String, Object?>? get lastShopSnapshot => _lastShopSnapshot;
 
   void register(PlayerServiceAutomationSession session) {
     final active = _active;
@@ -153,6 +157,9 @@ final class PlayerServiceAutomationPort
       throw StateError(
         'A ${active.kind.name} player service is already active.',
       );
+    }
+    if (session.kind == PlayerServiceAutomationKind.shop) {
+      _lastShopSnapshot = null;
     }
     _active = session;
   }
@@ -231,12 +238,13 @@ final class PlayerServiceAutomationPort
 
   @override
   Future<void> inspectShop() async {
-    _requireSuccess(await inspect());
+    _rememberShop(_requireSuccess(await inspect()));
   }
 
   @override
   Future<void> buy(String itemId, int quantity) async {
     _requireSuccess(await buyItem(itemId: itemId, quantity: quantity));
+    _rememberShop(_requireSuccess(await inspect()));
   }
 
   @override
@@ -249,11 +257,17 @@ final class PlayerServiceAutomationPort
     _requireSuccess(await withdraw(pokemonId: pokemonId));
   }
 
-  void _requireSuccess(PlayerServiceAutomationResult result) {
-    if (result.completed) return;
+  PlayerServiceAutomationResult _requireSuccess(
+    PlayerServiceAutomationResult result,
+  ) {
+    if (result.completed) return result;
     throw PlayerServiceAutomationException(
       failure: result.failure ?? PlayerServiceAutomationFailure.rejected,
       message: result.message ?? 'The interactive player service failed.',
     );
+  }
+
+  void _rememberShop(PlayerServiceAutomationResult result) {
+    _lastShopSnapshot = Map<String, Object?>.unmodifiable(result.details);
   }
 }

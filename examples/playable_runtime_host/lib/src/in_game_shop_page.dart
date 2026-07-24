@@ -251,6 +251,10 @@ class _InGameShopPageState extends State<InGameShopPage> {
         'shopId': shop.id,
         'stateId': resolved.stateId,
         'isOpen': resolved.isOpen,
+        'catalogue': <String, int>{
+          for (final entry in resolved.entries) entry.itemId: entry.price,
+        },
+        'message': resolved.message,
         'items': resolved.entries
             .map((entry) => entry.itemId)
             .toList(growable: false),

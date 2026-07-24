@@ -1619,6 +1619,30 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _playerServiceRuntimeController = controller;
   }
 
+  /// Opens the production Shop overlay for typed interactive evaluation.
+  ///
+  /// This stays on the real player-service controller: pricing, conditions,
+  /// commits, saves and input locks are not duplicated in the evaluator.
+  @visibleForTesting
+  Future<void> debugOpenPlayerServiceShop(String shopId) async {
+    final shop = _bundle.manifest.shops
+        .where((candidate) => candidate.id == shopId)
+        .firstOrNull;
+    if (shop == null) {
+      throw StateError('Unknown player-service Shop "$shopId".');
+    }
+    final controller = _playerServiceRuntimeController;
+    if (controller == null) {
+      throw StateError('The player-service controller is unavailable.');
+    }
+    final result = await controller.openShop(shop);
+    if (result.status != PlayerServiceRuntimeStatus.completed) {
+      throw StateError(
+        'The player-service Shop ended with ${result.status.name}.',
+      );
+    }
+  }
+
   /// Commits a player-service mutation to the live narrative state and save.
   ///
   /// A failed save restores the previous in-memory transaction snapshot so a

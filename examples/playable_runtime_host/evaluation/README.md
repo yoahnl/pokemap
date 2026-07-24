@@ -1,8 +1,9 @@
 # PokeMap Eval
 
-PokeMap Eval pilote le runtime Selbrume sans fenêtre visible à partir de
-scénarios JSON versionnés. Il produit des événements ordonnés et un reçu
-portable sans modifier le projet source ni les sauvegardes du joueur.
+PokeMap Eval pilote le runtime Selbrume à partir de scénarios JSON versionnés,
+soit rapidement sans fenêtre, soit dans la véritable fenêtre macOS. Les deux
+cibles produisent des événements ordonnés et un reçu portable sans modifier le
+projet source ni les sauvegardes habituelles du joueur.
 
 ## Commandes
 
@@ -12,6 +13,8 @@ Depuis `examples/playable_runtime_host` :
 dart run tool/pokemap_eval.dart list --project selbrume
 dart run tool/pokemap_eval.dart run selbrume.shop.after-lysa
 dart run tool/pokemap_eval.dart run selbrume.healing-service
+dart run tool/pokemap_eval.dart run selbrume.shop.after-lysa \
+  --target interactive
 dart run tool/pokemap_eval.dart run selbrume.lysa-retry
 dart run tool/pokemap_eval.dart run selbrume.mvp --policy certify
 dart run tool/pokemap_eval.dart inspect --checkpoint after-lysa --facts --party --bag
@@ -41,14 +44,23 @@ navigateur comme un argument de processus unique, sans shell.
 Le cockpit permet de :
 
 - choisir le projet et le scénario ;
-- lancer un probe headless ;
+- choisir une cible headless ou, lorsqu’elle est disponible, interactive ;
+- régler la vitesse de lecture interactive sur 0,5×, 1× ou 2× ;
 - suivre chaque étape dans la timeline en direct ;
 - mettre en pause, avancer d’une étape, reprendre ou annuler ;
 - inspecter Diff, State, Trace et Proof ;
 - retrouver les reçus des exécutions précédentes.
 
-La cible « Interactif » reste volontairement désactivée dans cette V1. Elle
-sera raccordée au runtime visible dans la phase suivante.
+La capacité interactive est annoncée uniquement sur macOS lorsqu’un exécutable
+Flutter local peut lancer le host desktop. Elle ouvre une fenêtre de jeu réelle
+et utilise les mêmes écrans Boutique, Centre Pokémon et PC que le joueur. La
+« Vitesse de lecture » ne modifie ni le delta de simulation Flame ni les
+calculs de combat : elle agit uniquement sur les délais entre les actions
+automatisées et les avances de dialogue.
+
+La cible ne change jamais la politique du scénario. Un scénario `probe` reste
+diagnostique en interactif et une certification conserve toutes ses
+restrictions.
 
 ## Politiques et preuves
 
@@ -87,6 +99,9 @@ build/pokemap-eval/runs/<run-id>/
   worker-result.json
   events.jsonl
   receipt.json
+  artifacts/
+    frame-metrics.json
+    <capture-demandee>.png
 
 build/pokemap-eval/cache/<provenance>/<checkpoint-id>/
   manifest.json
@@ -96,6 +111,18 @@ build/pokemap-eval/cache/<provenance>/<checkpoint-id>/
 Un checkpoint n’est réutilisé que si le hash du projet, le digest du code
 d’évaluation, la version du scénario et la version de save correspondent
 exactement. Un cache incomplet, altéré ou périmé est refusé.
+
+Les métriques de frames sont agrégées uniquement pendant la run interactive :
+nombre de frames, moyennes et maxima des durées build/raster. Une capture PNG
+n’est créée que lorsqu’une étape `evidence.snapshot` la demande, ou lorsque la
+capture du premier échec a été explicitement activée. Il n’existe aucune
+capture automatique à chaque étape.
+
+Le bridge interactif est réservé au debug, se connecte exclusivement en
+loopback et exige un jeton éphémère fort. Une build release ignore tous les
+defines d’évaluation et démarre sans port, jeton ou socket d’évaluation. Les
+visualisations de collisions et de collisions PNJ restent forcées à `false`
+pendant les runs interactives.
 
 ## Gate rapide et validation complète
 
@@ -110,6 +137,8 @@ flutter test \
   test/evaluation/evaluation_policy_validator_test.dart \
   test/evaluation/evaluation_evidence_contract_test.dart
 flutter test test/evaluation/headless_worker_process_test.dart
+flutter test test/evaluation/interactive_release_absence_test.dart
+flutter test test/evaluation/evaluation_target_parity_test.dart
 dart run tool/pokemap_eval.dart run selbrume.shop.after-lysa
 ```
 
@@ -118,8 +147,5 @@ La validation complète du sous-système est :
 ```bash
 flutter test test/evaluation
 dart run tool/pokemap_eval.dart run selbrume.mvp --policy certify
+flutter build macos --release
 ```
-
-Le mode interactif/non-headless sera ajouté dans une phase ultérieure. Les
-scénarios et contrats restent indépendants de la cible pour permettre cette
-extension.
