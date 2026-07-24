@@ -7,7 +7,8 @@ import 'package:path/path.dart' as p;
 
 import '../contracts/evaluation_receipt.dart';
 import '../worker/evaluation_worker_protocol.dart';
-import 'interactive_evaluation_bridge.dart';
+
+const _interactiveProtocolVersion = 1;
 
 abstract interface class InteractiveProcessRunner {
   Future<InteractiveChildProcess> start(
@@ -217,7 +218,7 @@ final class InteractiveWorkerLaunch {
 
     socket.writeln(jsonEncode(const <String, Object?>{
       'type': 'bridge.accepted',
-      'protocolVersion': interactiveEvaluationProtocolVersion,
+      'protocolVersion': _interactiveProtocolVersion,
     }));
     final ready = await _nextEnvelope(lines).timeout(_readyTimeout);
     _validateReady(ready, expectedProjectId: request.projectRoot);
@@ -262,7 +263,7 @@ final class InteractiveWorkerLaunch {
         expectedKeys.difference(envelope.keys.toSet()).isEmpty &&
         envelope['type'] == 'bridge.hello' &&
         envelope['target'] == 'interactive' &&
-        envelope['protocolVersion'] == interactiveEvaluationProtocolVersion &&
+        envelope['protocolVersion'] == _interactiveProtocolVersion &&
         envelope['token'] is String &&
         _constantTimeEquals(envelope['token']! as String, _token);
   }
@@ -281,7 +282,7 @@ final class InteractiveWorkerLaunch {
         expectedKeys.difference(envelope.keys.toSet()).isNotEmpty ||
         envelope['type'] != 'bridge.ready' ||
         envelope['target'] != 'interactive' ||
-        envelope['protocolVersion'] != interactiveEvaluationProtocolVersion ||
+        envelope['protocolVersion'] != _interactiveProtocolVersion ||
         envelope['projectId'] != expectedProjectId) {
       throw const FormatException('Invalid bridge.ready envelope.');
     }
