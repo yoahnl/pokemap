@@ -17,6 +17,7 @@ import 'src/in_game_heal_flow.dart';
 import 'src/in_game_pc_page.dart';
 import 'src/in_game_shop_page.dart';
 import 'src/bundled_runtime_project.dart';
+import 'src/evaluation/interactive/interactive_evaluation_bridge.dart';
 import 'src/evaluation/interactive/interactive_evaluation_config.dart';
 import 'src/evaluation/interactive/player_service_automation_port.dart';
 import 'src/runtime_demo_party_seed.dart';
@@ -92,6 +93,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       interactiveEvaluationConfig.enabled
           ? PlayerServiceAutomationPort()
           : null;
+  InteractiveEvaluationBridge? _interactiveBridge;
 
   static const _prefsFileName = '.playable_runtime_host_prefs.json';
 
@@ -110,6 +112,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     _runtimeInfoTicker?.cancel();
     _gamepadPresenceTimer?.cancel();
     _runtimeGamepadSubscription?.cancel();
+    unawaited(_disposeInteractiveBridge());
     super.dispose();
   }
 
@@ -517,6 +520,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     _runtimeHostLog(
       'map load start projectFilePath=$projectFilePath mapId=$mapId',
     );
+    await _disposeInteractiveBridge();
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -621,15 +626,32 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         _saveLoadStatus = null;
         _saveLoadError = null;
       });
-      nextGame.setCollisionOverlayVisible(_showCollisionOverlay);
-      nextGame
-          .setNpcCollisionDebugOverlayVisible(_showNpcCollisionDebugOverlay);
+      // Interactive evaluation never enables the expensive collision layers.
+      nextGame.setCollisionOverlayVisible(
+        interactiveEvaluationConfig.enabled ? false : _showCollisionOverlay,
+      );
+      nextGame.setNpcCollisionDebugOverlayVisible(
+        interactiveEvaluationConfig.enabled
+            ? false
+            : _showNpcCollisionDebugOverlay,
+      );
       nextGame.setFpsOverlayVisible(_showFpsOverlay);
       nextGame.setSurfingEnabled(_surfingEnabled);
       nextGame.setBattleFlutterCommandOverlayPreferred(
         _prefersBattleFlutterCommandOverlay,
       );
       nextGame.setDialogueTextSpeed(_playerOptions.dialogueTextSpeed);
+      if (interactiveEvaluationConfig.enabled) {
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted || !identical(_game, nextGame)) return;
+        _interactiveBridge = await InteractiveEvaluationBridge.attach(
+          config: interactiveEvaluationConfig,
+          game: nextGame,
+          project: bundle.manifest,
+          projectRoot: Directory(bundle.projectRootDirectory),
+          services: _playerServiceAutomationPort!,
+        );
+      }
       _startRuntimeInfoTicker();
       await _persistLastSession();
       _runtimeHostLog('map load completed mapId=$mapId');
@@ -649,13 +671,23 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
 
   // Retour au chargeur de projet.
   // On ne détruit pas de données persistées, on ferme juste la session runtime.
-  void _reset() => setState(() {
-        _stopRuntimeInfoTicker();
-        _game = null;
-        _error = null;
-        _saveLoadStatus = null;
-        _saveLoadError = null;
-      });
+  Future<void> _reset() async {
+    await _disposeInteractiveBridge();
+    if (!mounted) return;
+    setState(() {
+      _stopRuntimeInfoTicker();
+      _game = null;
+      _error = null;
+      _saveLoadStatus = null;
+      _saveLoadError = null;
+    });
+  }
+
+  Future<void> _disposeInteractiveBridge() async {
+    final bridge = _interactiveBridge;
+    _interactiveBridge = null;
+    await bridge?.dispose();
+  }
 
   // Les boutons historiques du host réutilisent désormais le même flux que
   // l'écran "Sauvegarde" du menu in-game, pour garder une seule source de
