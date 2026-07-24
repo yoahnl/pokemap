@@ -117,6 +117,30 @@ void main() {
     expect(interactive.json['error'], 'target_unavailable');
   });
 
+  test('run creation forwards interactive target and playback rate', () async {
+    orchestrator.availableTargets = const <EvaluationTarget>{
+      EvaluationTarget.headless,
+      EvaluationTarget.interactive,
+    };
+
+    final response = await _requestJson(
+      server.uri.resolve('/api/runs'),
+      method: 'POST',
+      token: server.sessionToken,
+      jsonBody: <String, Object?>{
+        'scenarioId': 'selbrume.shop.after-lysa',
+        'target': 'interactive',
+        'playbackRate': 2,
+      },
+    );
+
+    expect(response.statusCode, HttpStatus.accepted);
+    expect(orchestrator.startedTargets, <EvaluationTarget>[
+      EvaluationTarget.interactive,
+    ]);
+    expect(orchestrator.startedPlaybackRates, <double>[2]);
+  });
+
   test('artifact IDs are opaque and cannot escape the run directory', () async {
     final artifact = await _request(
       server.uri.resolve('/api/artifacts/receipt-001'),
@@ -205,6 +229,12 @@ final class _FakeApiOrchestrator extends EvaluationWebOrchestrator {
 
   final EvaluationRunStore store;
   final List<String> startedScenarioIds = <String>[];
+  final List<EvaluationTarget> startedTargets = <EvaluationTarget>[];
+  final List<double> startedPlaybackRates = <double>[];
+  @override
+  Set<EvaluationTarget> availableTargets = const <EvaluationTarget>{
+    EvaluationTarget.headless
+  };
   var _nextRun = 1;
 
   @override
@@ -238,8 +268,11 @@ final class _FakeApiOrchestrator extends EvaluationWebOrchestrator {
   Future<EvaluationRunRecord> startRun({
     required EvaluationWebScenarioDescriptor scenario,
     required EvaluationTarget target,
+    double playbackRate = 1,
   }) async {
     startedScenarioIds.add(scenario.id);
+    startedTargets.add(target);
+    startedPlaybackRates.add(playbackRate);
     return store.create(
       EvaluationRunDescriptor(
         runId: 'run-api-${_nextRun++}',

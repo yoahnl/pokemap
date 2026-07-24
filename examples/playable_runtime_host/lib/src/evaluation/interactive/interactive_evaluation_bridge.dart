@@ -50,6 +50,7 @@ final class InteractiveEvaluationBridge {
       project: project,
       projectRoot: projectRoot,
       services: services,
+      playbackRate: config.playbackRate,
     );
     final bridge = InteractiveEvaluationBridge(
       config: config,

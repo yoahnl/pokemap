@@ -7,6 +7,7 @@ import '../contracts/evaluation_event.dart';
 import '../contracts/evaluation_policy.dart';
 import '../contracts/evaluation_receipt.dart';
 import '../contracts/evaluation_scenario.dart';
+import '../interactive/interactive_worker_client.dart';
 import '../runner/evaluation_run_control.dart';
 import '../scenario/evaluation_scenario_parser.dart';
 import '../worker/evaluation_worker_protocol.dart';
@@ -98,11 +99,23 @@ final class EvaluationWebApplication {
     String Function()? runIdFactory,
     DateTime Function()? clock,
     void Function(String chunk)? stderrSink,
+    bool? interactiveAvailable,
+    InteractiveWorkerClient? interactiveWorkerClient,
   }) async {
     final root = repositoryRoot.absolute;
+    final canRunInteractive = interactiveAvailable ??
+        (interactiveWorkerClient != null ||
+            await _detectInteractiveAvailability());
     final orchestrator = LocalEvaluationWebOrchestrator(
       repositoryRoot: root,
       selectedProjectId: projectId,
+      interactiveWorkerClient: canRunInteractive
+          ? interactiveWorkerClient ??
+              InteractiveWorkerClient(
+                repositoryRoot: root,
+                stderrSink: stderrSink,
+              )
+          : null,
       workerPool: EvaluationWorkerPool(
         factory: workerFactory ??
             PersistentEvaluationWorkerFactory(
@@ -137,6 +150,7 @@ final class LocalEvaluationWebOrchestrator extends EvaluationWebOrchestrator {
     required Directory repositoryRoot,
     required this.workerPool,
     required this.runStore,
+    this.interactiveWorkerClient,
     this.selectedProjectId,
     String Function()? runIdFactory,
     DateTime Function()? clock,
@@ -147,12 +161,21 @@ final class LocalEvaluationWebOrchestrator extends EvaluationWebOrchestrator {
   final Directory repositoryRoot;
   final EvaluationWorkerPool workerPool;
   final EvaluationRunStore runStore;
+  final InteractiveWorkerClient? interactiveWorkerClient;
   final String? selectedProjectId;
   final String Function() _runIdFactory;
   final DateTime Function() _clock;
   final Map<String, String> _projectByRunId = <String, String>{};
   final Map<String, File> _artifactFiles = <String, File>{};
   bool _closed = false;
+
+  @override
+  Set<EvaluationTarget> get availableTargets => interactiveWorkerClient == null
+      ? const <EvaluationTarget>{EvaluationTarget.headless}
+      : const <EvaluationTarget>{
+          EvaluationTarget.headless,
+          EvaluationTarget.interactive,
+        };
 
   @override
   Future<List<EvaluationWebProjectDescriptor>> listProjects() async {
@@ -202,10 +225,11 @@ final class LocalEvaluationWebOrchestrator extends EvaluationWebOrchestrator {
   Future<EvaluationRunRecord> startRun({
     required EvaluationWebScenarioDescriptor scenario,
     required EvaluationTarget target,
+    double playbackRate = 1,
   }) async {
     if (_closed) throw StateError('Evaluation web orchestrator is closed.');
-    if (target != EvaluationTarget.headless) {
-      throw StateError('Only headless evaluation is available in V1.');
+    if (!availableTargets.contains(target)) {
+      throw StateError('Evaluation target ${target.name} is unavailable.');
     }
     final matches = (await _discoverScenarios())
         .where((entry) => entry.scenario.id == scenario.id)
@@ -232,7 +256,14 @@ final class LocalEvaluationWebOrchestrator extends EvaluationWebOrchestrator {
       ),
     );
     _projectByRunId[runId] = entry.scenario.projectId;
-    unawaited(_execute(entry, runId));
+    unawaited(
+      _execute(
+        entry,
+        runId,
+        target: target,
+        playbackRate: playbackRate,
+      ),
+    );
     return record;
   }
 
@@ -271,8 +302,14 @@ final class LocalEvaluationWebOrchestrator extends EvaluationWebOrchestrator {
     if (projectId == null) {
       throw StateError('Unknown evaluation run $runId.');
     }
-    if (runStore.requireRun(runId).events.lastOrNull?.type == 'run.finished') {
+    final run = runStore.requireRun(runId);
+    if (run.events.lastOrNull?.type == 'run.finished') {
       throw StateError('Evaluation run $runId has already finished.');
+    }
+    if (run.descriptor.target == EvaluationTarget.interactive) {
+      throw StateError(
+        'Interactive pause and step controls are not supported.',
+      );
     }
     await workerPool.control(
       projectId: projectId,
@@ -295,7 +332,12 @@ final class LocalEvaluationWebOrchestrator extends EvaluationWebOrchestrator {
     await runStore.close();
   }
 
-  Future<void> _execute(_DiscoveredWebScenario entry, String runId) async {
+  Future<void> _execute(
+    _DiscoveredWebScenario entry,
+    String runId, {
+    required EvaluationTarget target,
+    required double playbackRate,
+  }) async {
     try {
       final outputDirectory = p.posix.join(
         'build',
@@ -303,18 +345,26 @@ final class LocalEvaluationWebOrchestrator extends EvaluationWebOrchestrator {
         'runs',
         runId,
       );
-      final result = await workerPool.run(
-        projectId: entry.scenario.projectId,
-        request: EvaluationWorkerRequest.run(
-          runId: runId,
-          projectRoot: entry.scenario.projectId,
-          scenarioPath: _portableRelativePath(entry.file),
-          outputDirectory: outputDirectory,
-        ),
-        eventSink: runStore.append,
-        releaseEvidenceCandidate:
-            entry.scenario.policy == EvaluationPolicy.certify,
+      final request = EvaluationWorkerRequest.run(
+        runId: runId,
+        projectRoot: entry.scenario.projectId,
+        scenarioPath: _portableRelativePath(entry.file),
+        outputDirectory: outputDirectory,
       );
+      final result = switch (target) {
+        EvaluationTarget.headless => await workerPool.run(
+            projectId: entry.scenario.projectId,
+            request: request,
+            eventSink: runStore.append,
+            releaseEvidenceCandidate:
+                entry.scenario.policy == EvaluationPolicy.certify,
+          ),
+        EvaluationTarget.interactive => await interactiveWorkerClient!.run(
+            request,
+            playbackRate: playbackRate,
+            eventSink: runStore.append,
+          ),
+      };
       if (result.receiptPath case final receiptPath?) {
         final receipt = File(p.join(repositoryRoot.path, receiptPath));
         if (_isWithinRepository(receipt)) {
@@ -423,6 +473,20 @@ final class LocalEvaluationWebOrchestrator extends EvaluationWebOrchestrator {
     return relative != '..' &&
         !relative.startsWith('..${p.separator}') &&
         !p.isAbsolute(relative);
+  }
+}
+
+Future<bool> _detectInteractiveAvailability() async {
+  if (!Platform.isMacOS) return false;
+  try {
+    final result = await Process.run(
+      'flutter',
+      const <String>['--version'],
+      runInShell: false,
+    );
+    return result.exitCode == 0;
+  } on ProcessException {
+    return false;
   }
 }
 

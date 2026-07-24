@@ -1,6 +1,7 @@
 'use strict';
 
 const state = {
+  capabilities: {targets: ['headless']},
   projects: [],
   scenarios: [],
   runs: [],
@@ -12,6 +13,8 @@ const state = {
   events: [],
   selectedStepId: null,
   selectedTab: 'diff',
+  selectedTarget: 'headless',
+  playbackRate: 1,
   eventSource: null,
   connected: false,
   startedAt: null,
@@ -44,8 +47,6 @@ const controlPaths = {
   resume: '/resume',
   cancel: '/cancel',
 };
-
-const interactiveTargetLabel = 'Interactif · Bientôt';
 
 class ApiError extends Error {
   constructor(status, code) {
@@ -251,15 +252,45 @@ function selectedScenario() {
   return state.scenarios.find((scenario) => scenario.id === state.scenarioId);
 }
 
+function targetAvailable(target) {
+  return Array.isArray(state.capabilities.targets) &&
+    state.capabilities.targets.includes(target);
+}
+
+function selectTarget(selectedTarget) {
+  if (state.runId || !targetAvailable(selectedTarget)) {
+    return;
+  }
+  state.selectedTarget = selectedTarget;
+  renderRun();
+}
+
+function renderTargetControls() {
+  if (!targetAvailable(state.selectedTarget)) {
+    state.selectedTarget = 'headless';
+  }
+  const locked = Boolean(state.runId);
+  for (const target of ['headless', 'interactive']) {
+    const button = element(`target-${target}`);
+    const selected = state.selectedTarget === target;
+    button.classList.toggle('is-selected', selected);
+    button.setAttribute('aria-pressed', String(selected));
+    button.disabled = locked || !targetAvailable(target);
+  }
+  const playback = element('playback-control');
+  playback.hidden = state.selectedTarget !== 'interactive';
+  element('playback-rate').value = String(state.playbackRate);
+}
+
 function renderSelection() {
   const scenario = selectedScenario();
-  element('target-interactive').textContent = interactiveTargetLabel;
+  renderTargetControls();
   element('run-title').textContent = scenario
     ? scenario.title
     : 'Choisissez un scénario';
   element('run-subtitle').textContent = scenario
-    ? `${scenario.stepCount} étapes · politique ${scenario.policy} · cible headless`
-    : 'Lancez un diagnostic headless sans ouvrir la fenêtre du jeu.';
+    ? `${scenario.stepCount} étapes · politique ${scenario.policy} · cible ${state.selectedTarget}`
+    : 'Choisissez une exécution rapide ou une fenêtre de jeu visible.';
   element('run-button').disabled = !scenario || Boolean(state.runId);
 }
 
@@ -339,7 +370,10 @@ async function startRun() {
       method: 'POST',
       body: JSON.stringify({
         scenarioId: scenario.id,
-        target: 'headless',
+        target: state.selectedTarget,
+        ...(state.selectedTarget === 'interactive'
+          ? {playbackRate: state.playbackRate}
+          : {}),
       }),
     });
     state.runId = payload.runId;
@@ -592,11 +626,15 @@ function renderControls() {
   const hasRun = Boolean(state.runId);
   const terminal = isTerminal();
   const paused = isPaused();
+  const interactiveRun = state.run?.target === 'interactive';
   element('run-button').disabled = !selectedScenario() || hasRun;
-  element('step-button').disabled = !hasRun || terminal || !paused;
-  element('pause-button').disabled = !hasRun || terminal || paused;
-  element('resume-button').disabled = !hasRun || terminal || !paused;
-  element('cancel-button').disabled = !hasRun || terminal;
+  element('step-button').disabled =
+    !hasRun || terminal || !paused || interactiveRun;
+  element('pause-button').disabled =
+    !hasRun || terminal || paused || interactiveRun;
+  element('resume-button').disabled =
+    !hasRun || terminal || !paused || interactiveRun;
+  element('cancel-button').disabled = !hasRun || terminal || interactiveRun;
   element('receipt-button').disabled = !state.receipt;
 }
 
@@ -915,6 +953,9 @@ async function loadRunDetails(runId) {
       state.events = eventsFromReceipt(state.receipt);
     }
     state.scenarioId = payload.run.scenarioId;
+    if (targetAvailable(payload.run.target)) {
+      state.selectedTarget = payload.run.target;
+    }
     const steps = buildSteps();
     state.selectedStepId = steps.at(-1)?.id || null;
     renderRun();
@@ -950,6 +991,17 @@ function messageForError(error) {
 
 function bindControls() {
   element('run-button').addEventListener('click', startRun);
+  for (const target of ['headless', 'interactive']) {
+    element(`target-${target}`).addEventListener('click', () => {
+      selectTarget(target);
+    });
+  }
+  element('playback-rate').addEventListener('change', (event) => {
+    const playbackRate = Number(event.target.value);
+    if ([0.5, 1, 2].includes(playbackRate)) {
+      state.playbackRate = playbackRate;
+    }
+  });
   for (const action of ['step', 'pause', 'resume', 'cancel']) {
     element(`${action}-button`).addEventListener('click', () => {
       void controlRun(action);
@@ -980,11 +1032,18 @@ async function initialize() {
   renderRun();
   setRunnerStatus('Connexion au runner', 'waiting');
   try {
-    const [projectsPayload, scenariosPayload, runsPayload] = await Promise.all([
+    const [
+      capabilitiesPayload,
+      projectsPayload,
+      scenariosPayload,
+      runsPayload,
+    ] = await Promise.all([
+      api('/api/capabilities'),
       api('/api/projects'),
       api('/api/scenarios'),
       api('/api/runs'),
     ]);
+    state.capabilities = capabilitiesPayload;
     state.projects = Array.isArray(projectsPayload.projects)
       ? projectsPayload.projects
       : [];

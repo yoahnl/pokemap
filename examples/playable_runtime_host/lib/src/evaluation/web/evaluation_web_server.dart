@@ -83,6 +83,9 @@ final class EvaluationWebArtifact {
 }
 
 abstract base class EvaluationWebOrchestrator {
+  Set<EvaluationTarget> get availableTargets =>
+      const <EvaluationTarget>{EvaluationTarget.headless};
+
   Future<List<EvaluationWebProjectDescriptor>> listProjects() async {
     return const <EvaluationWebProjectDescriptor>[];
   }
@@ -104,6 +107,7 @@ abstract base class EvaluationWebOrchestrator {
   Future<EvaluationRunRecord> startRun({
     required EvaluationWebScenarioDescriptor scenario,
     required EvaluationTarget target,
+    double playbackRate = 1,
   }) {
     throw UnsupportedError('This orchestrator cannot start evaluation runs.');
   }
@@ -279,6 +283,41 @@ final class EvaluationWebServer {
     String? mutationBody,
   ) async {
     final segments = request.uri.pathSegments;
+    if (_matches(segments, const <String>['api', 'capabilities'])) {
+      if (request.method != 'GET') {
+        await _writeError(
+          request.response,
+          HttpStatus.methodNotAllowed,
+          'method_not_allowed',
+        );
+        return;
+      }
+      if (request.uri.queryParameters.isNotEmpty) {
+        await _writeError(
+          request.response,
+          HttpStatus.badRequest,
+          'invalid_query',
+        );
+        return;
+      }
+      final targets = EvaluationTarget.values
+          .where(orchestrator.availableTargets.contains)
+          .map((target) => target.name)
+          .toList(growable: false);
+      await _writeJson(request.response, HttpStatus.ok, <String, Object?>{
+        'targets': targets,
+        if (orchestrator.availableTargets
+            .contains(EvaluationTarget.interactive))
+          'interactive': <String, Object?>{
+            'platform': 'macos',
+            'frameMetrics': true,
+            'capture': true,
+            'playbackRates': <double>[0.5, 1, 2],
+          },
+      });
+      return;
+    }
+
     if (_matches(segments, const <String>['api', 'projects'])) {
       if (request.method != 'GET') {
         await _writeError(
@@ -612,7 +651,14 @@ final class EvaluationWebServer {
       await _writeError(response, HttpStatus.badRequest, 'invalid_body');
       return;
     }
-    if (json.length != 2 ||
+    const allowedKeys = <String>{
+      'scenarioId',
+      'target',
+      'playbackRate',
+    };
+    if (json.length < 2 ||
+        json.length > 3 ||
+        json.keys.any((key) => !allowedKeys.contains(key)) ||
         !json.containsKey('scenarioId') ||
         !json.containsKey('target') ||
         json['scenarioId'] is! String ||
@@ -630,7 +676,14 @@ final class EvaluationWebServer {
       return;
     }
     final targetName = json['target']! as String;
-    if (targetName == EvaluationTarget.interactive.name) {
+    final target = EvaluationTarget.values
+        .where((candidate) => candidate.name == targetName)
+        .firstOrNull;
+    if (target == null) {
+      await _writeError(response, HttpStatus.badRequest, 'invalid_target');
+      return;
+    }
+    if (!orchestrator.availableTargets.contains(target)) {
       await _writeError(
         response,
         HttpStatus.conflict,
@@ -638,10 +691,17 @@ final class EvaluationWebServer {
       );
       return;
     }
-    if (targetName != EvaluationTarget.headless.name) {
-      await _writeError(response, HttpStatus.badRequest, 'invalid_target');
+    final playbackValue = json['playbackRate'] ?? 1;
+    if (playbackValue is! num ||
+        !const <double>[0.5, 1, 2].contains(playbackValue.toDouble())) {
+      await _writeError(
+        response,
+        HttpStatus.badRequest,
+        'invalid_playback_rate',
+      );
       return;
     }
+    final playbackRate = playbackValue.toDouble();
     final matches = (await orchestrator.listScenarios())
         .where((scenario) => scenario.id == scenarioId)
         .toList(growable: false);
@@ -663,7 +723,8 @@ final class EvaluationWebServer {
     }
     final run = await orchestrator.startRun(
       scenario: matches.single,
-      target: EvaluationTarget.headless,
+      target: target,
+      playbackRate: playbackRate,
     );
     await _writeJson(response, HttpStatus.accepted, <String, Object?>{
       'runId': run.runId,

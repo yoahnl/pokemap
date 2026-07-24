@@ -27,11 +27,13 @@ final class SelbrumeEvaluationDriver
     required this.playerServices,
     required EvaluationPlayerServiceAutomation? attachedServices,
     required bool ownsGame,
+    required double playbackRate,
     required this.runId,
     required this.checkpointCache,
     required this.checkpointProvenance,
   })  : _attachedServices = attachedServices,
-        _ownsGame = ownsGame;
+        _ownsGame = ownsGame,
+        _playbackRate = playbackRate;
 
   final PlayableMapGame game;
   final ProjectManifest project;
@@ -39,6 +41,7 @@ final class SelbrumeEvaluationDriver
   final EvaluationPlayerServiceHost? playerServices;
   final EvaluationPlayerServiceAutomation? _attachedServices;
   final bool _ownsGame;
+  final double _playbackRate;
   final String runId;
   final EvaluationCheckpointCache? checkpointCache;
   final EvaluationCheckpointProvenance? checkpointProvenance;
@@ -88,8 +91,16 @@ final class SelbrumeEvaluationDriver
     required ProjectManifest project,
     required Directory projectRoot,
     required EvaluationPlayerServiceAutomation services,
+    double playbackRate = 1,
     String runId = 'interactive-evaluation-run',
   }) {
+    if (!playbackRate.isFinite || playbackRate <= 0 || playbackRate > 4) {
+      throw ArgumentError.value(
+        playbackRate,
+        'playbackRate',
+        'Playback rate must be greater than 0 and at most 4.',
+      );
+    }
     return SelbrumeEvaluationDriver._(
       game: game,
       project: project,
@@ -97,6 +108,7 @@ final class SelbrumeEvaluationDriver
       playerServices: null,
       attachedServices: services,
       ownsGame: false,
+      playbackRate: playbackRate,
       runId: runId,
       checkpointCache: null,
       checkpointProvenance: null,
@@ -154,6 +166,7 @@ final class SelbrumeEvaluationDriver
       playerServices: playerServices,
       attachedServices: null,
       ownsGame: true,
+      playbackRate: 1,
       runId: runId,
       checkpointCache: checkpointCache,
       checkpointProvenance: checkpointProvenance,
@@ -1695,6 +1708,9 @@ final class SelbrumeEvaluationDriver
     int maxTicks = 3750,
     bool driveDialogue = false,
   }) async {
+    final tickDelay = Duration(
+      microseconds: (16000 / _playbackRate).round(),
+    );
     for (var index = 0; index < maxTicks; index += 1) {
       if (predicate()) return;
       if (driveDialogue &&
@@ -1704,7 +1720,7 @@ final class SelbrumeEvaluationDriver
       } else if (driveDialogue && game.debugFlowPhaseName == 'dialogue') {
         _pressPrimary(operation: operation);
       }
-      await Future<void>.delayed(const Duration(milliseconds: 16));
+      await Future<void>.delayed(tickDelay);
     }
     if (predicate()) return;
     throw EvaluationDriverFailure(

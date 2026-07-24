@@ -33,7 +33,8 @@ void main() {
     }
     expect(source, contains('event.sequence'));
     expect(source, contains('selectedTab = \'diff\''));
-    expect(source, contains('Interactif · Bientôt'));
+    expect(source, contains('selectedTarget'));
+    expect(source, contains("api('/api/capabilities')"));
     expect(source, contains('eventsFromReceipt'));
     expect(source, contains('receipt.stepResults'));
     expect(source, contains('infrastructure_failure'));

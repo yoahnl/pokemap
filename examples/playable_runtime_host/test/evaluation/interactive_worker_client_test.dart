@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:pokemap_loader/src/evaluation/contracts/evaluation_event.dart';
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_receipt.dart';
 import 'package:pokemap_loader/src/evaluation/interactive/interactive_worker_client.dart';
 import 'package:pokemap_loader/src/evaluation/worker/evaluation_worker_protocol.dart';
@@ -24,6 +25,7 @@ void main() {
 
     final launch = await client.launch(
       projectFile: 'selbrume/project.json',
+      playbackRate: 2,
     );
     addTearDown(launch.close);
 
@@ -39,6 +41,7 @@ void main() {
         '--dart-define=POKEMAP_EVAL_HOST=127.0.0.1',
         '--dart-define=POKEMAP_EVAL_TOKEN=$_token',
         '--dart-define=POKEMAP_EVAL_PROJECT=selbrume/project.json',
+        '--dart-define=POKEMAP_EVAL_PLAYBACK_RATE=2.0',
       ]),
     );
     expect(
@@ -92,6 +95,7 @@ void main() {
       readyTimeout: const Duration(seconds: 1),
     );
 
+    final events = <EvaluationEvent>[];
     final result = await client.run(
       EvaluationWorkerRequest.run(
         runId: 'interactive-success',
@@ -99,10 +103,12 @@ void main() {
         scenarioPath: 'scenario.json',
         outputDirectory: 'build/run',
       ),
+      eventSink: events.add,
     );
 
     expect(result.status, EvaluationRunStatus.succeeded);
     expect(result.exitCode, 0);
+    expect(events.single.type, 'run.started');
     expect(process.child.killCalls, 1);
   });
 }
@@ -194,6 +200,18 @@ final class _BridgeProcessRunner implements InteractiveProcessRunner {
       'projectId': 'selbrume',
     }));
     final request = await _nextJson(lines);
+    socket.writeln(jsonEncode(<String, Object?>{
+      'type': 'bridge.event',
+      'requestId': request['requestId'],
+      'runId': request['runId'],
+      'event': <String, Object?>{
+        'schemaVersion': 1,
+        'runId': request['runId'],
+        'sequence': 1,
+        'type': 'run.started',
+        'payload': const <String, Object?>{},
+      },
+    }));
     socket.writeln(jsonEncode(<String, Object?>{
       'type': 'bridge.result',
       'requestId': request['requestId'],

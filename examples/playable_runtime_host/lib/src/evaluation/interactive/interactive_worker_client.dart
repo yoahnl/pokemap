@@ -5,6 +5,7 @@ import 'dart:math';
 
 import 'package:path/path.dart' as p;
 
+import '../contracts/evaluation_event.dart';
 import '../contracts/evaluation_receipt.dart';
 import '../worker/evaluation_worker_protocol.dart';
 
@@ -81,8 +82,16 @@ final class InteractiveWorkerClient {
 
   Future<InteractiveWorkerLaunch> launch({
     required String projectFile,
+    double playbackRate = 1,
   }) async {
     _validatePortablePath(projectFile, 'projectFile');
+    if (!playbackRate.isFinite || playbackRate <= 0 || playbackRate > 4) {
+      throw ArgumentError.value(
+        playbackRate,
+        'playbackRate',
+        'Playback rate must be greater than 0 and at most 4.',
+      );
+    }
     final token = _tokenGenerator();
     if (token.length < 32 ||
         token.length > 512 ||
@@ -107,6 +116,7 @@ final class InteractiveWorkerClient {
           '--dart-define=POKEMAP_EVAL_PORT=${listener.port}',
           '--dart-define=POKEMAP_EVAL_TOKEN=$token',
           '--dart-define=POKEMAP_EVAL_PROJECT=$projectFile',
+          '--dart-define=POKEMAP_EVAL_PLAYBACK_RATE=$playbackRate',
         ],
         workingDirectory: packageRoot.path,
         runInShell: false,
@@ -125,7 +135,11 @@ final class InteractiveWorkerClient {
     }
   }
 
-  Future<EvaluationWorkerResult> run(EvaluationWorkerRequest request) async {
+  Future<EvaluationWorkerResult> run(
+    EvaluationWorkerRequest request, {
+    double playbackRate = 1,
+    void Function(EvaluationEvent event)? eventSink,
+  }) async {
     InteractiveWorkerLaunch? session;
     try {
       final scenarioFile = File(
@@ -134,10 +148,12 @@ final class InteractiveWorkerClient {
       final scenarioSource = await scenarioFile.readAsString();
       session = await launch(
         projectFile: '${request.projectRoot}/project.json',
+        playbackRate: playbackRate,
       );
       return await session.run(
         request: request,
         scenarioSource: scenarioSource,
+        eventSink: eventSink,
       );
     } on TimeoutException catch (failure) {
       return EvaluationWorkerResult.infrastructureFailure(
@@ -185,6 +201,7 @@ final class InteractiveWorkerLaunch {
   Future<EvaluationWorkerResult> run({
     required EvaluationWorkerRequest request,
     required String scenarioSource,
+    void Function(EvaluationEvent event)? eventSink,
   }) async {
     final socket = await _listener.first.timeout(_readyTimeout);
     _socket = socket;
@@ -249,6 +266,7 @@ final class InteractiveWorkerLaunch {
           lastEvent = event is Map
               ? Map<String, Object?>.from(event)
               : <String, Object?>{'invalidEvent': event};
+          eventSink?.call(_evaluationEventFromJson(lastEvent));
           continue;
         case 'bridge.error':
           throw FormatException(
@@ -354,6 +372,31 @@ final class InteractiveWorkerLaunch {
       _child.kill(ProcessSignal.sigkill);
     }
   }
+}
+
+EvaluationEvent _evaluationEventFromJson(Map<String, Object?> json) {
+  const expectedKeys = <String>{
+    'schemaVersion',
+    'runId',
+    'sequence',
+    'type',
+    'payload',
+  };
+  if (json.keys.toSet().difference(expectedKeys).isNotEmpty ||
+      expectedKeys.difference(json.keys.toSet()).isNotEmpty ||
+      json['schemaVersion'] != EvaluationEvent.schemaVersion ||
+      json['runId'] is! String ||
+      json['sequence'] is! int ||
+      json['type'] is! String ||
+      json['payload'] is! Map) {
+    throw const FormatException('Invalid interactive evaluation event.');
+  }
+  return EvaluationEvent(
+    runId: json['runId']! as String,
+    sequence: json['sequence']! as int,
+    type: json['type']! as String,
+    payload: Map<String, Object?>.from(json['payload']! as Map),
+  );
 }
 
 final class InteractiveWorkerAuthenticationException implements Exception {
