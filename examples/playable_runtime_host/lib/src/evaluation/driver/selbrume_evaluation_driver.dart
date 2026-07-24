@@ -114,7 +114,7 @@ final class SelbrumeEvaluationDriver
       );
     }
     return EvaluationStateSnapshot(
-      projectId: project.name,
+      projectId: p.basename(projectRoot.path),
       runId: runId,
       mapId: current.currentMapId,
       x: current.playerPosition.x,
