@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import 'evaluation/interactive/player_service_automation_port.dart';
+
 typedef InGamePlayerStateCommit = Future<void> Function(GameState state);
 typedef InGamePlayerStateReader = GameState Function();
+typedef InGamePlayerServiceClose = Future<void> Function();
 
 class InGameShopPage extends StatefulWidget {
   const InGameShopPage({
@@ -13,6 +16,8 @@ class InGameShopPage extends StatefulWidget {
     required this.onStateCommitted,
     this.currentGameState,
     this.conditionContext = const ScriptEvaluationContext(),
+    this.automationPort,
+    this.onAutomationClose,
   });
 
   final GameState gameState;
@@ -20,6 +25,8 @@ class InGameShopPage extends StatefulWidget {
   final InGamePlayerStateCommit onStateCommitted;
   final InGamePlayerStateReader? currentGameState;
   final ScriptEvaluationContext conditionContext;
+  final PlayerServiceAutomationPort? automationPort;
+  final InGamePlayerServiceClose? onAutomationClose;
 
   @override
   State<InGameShopPage> createState() => _InGameShopPageState();
@@ -35,6 +42,8 @@ class _InGameShopPageState extends State<InGameShopPage> {
   bool _busy = false;
   String? _feedback;
   bool _feedbackIsError = false;
+  late final _ShopAutomationSession _automationSession =
+      _ShopAutomationSession(this);
 
   ShopDefinition? get _shop {
     final id = _shopId;
@@ -46,11 +55,27 @@ class _InGameShopPageState extends State<InGameShopPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    widget.automationPort?.register(_automationSession);
+  }
+
+  @override
   void didUpdateWidget(covariant InGameShopPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(widget.automationPort, oldWidget.automationPort)) {
+      oldWidget.automationPort?.unregister(_automationSession);
+      widget.automationPort?.register(_automationSession);
+    }
     if (widget.gameState != oldWidget.gameState) {
       _gameState = widget.gameState;
     }
+  }
+
+  @override
+  void dispose() {
+    widget.automationPort?.unregister(_automationSession);
+    super.dispose();
   }
 
   @override
@@ -207,13 +232,83 @@ class _InGameShopPageState extends State<InGameShopPage> {
     );
   }
 
-  Future<void> _buy(
+  Future<PlayerServiceAutomationResult> _inspectShop() async {
+    final shop = _shop;
+    if (shop == null) {
+      return const PlayerServiceAutomationResult.failed(
+        failure: PlayerServiceAutomationFailure.invalidRequest,
+        message: 'No shop is available.',
+      );
+    }
+    final state = widget.currentGameState?.call() ?? _gameState;
+    final resolved = _resolver.resolve(
+      shop: shop,
+      gameState: state,
+      conditionContext: widget.conditionContext,
+    );
+    return PlayerServiceAutomationResult.success(
+      details: <String, Object?>{
+        'shopId': shop.id,
+        'stateId': resolved.stateId,
+        'isOpen': resolved.isOpen,
+        'items': resolved.entries
+            .map((entry) => entry.itemId)
+            .toList(growable: false),
+      },
+    );
+  }
+
+  Future<PlayerServiceAutomationResult> _buyItem(
+    String itemId,
+    int quantity,
+  ) async {
+    if (quantity <= 0) {
+      return const PlayerServiceAutomationResult.failed(
+        failure: PlayerServiceAutomationFailure.invalidRequest,
+        message: 'Shop quantity must be positive.',
+      );
+    }
+    final shop = _shop;
+    if (shop == null) {
+      return const PlayerServiceAutomationResult.failed(
+        failure: PlayerServiceAutomationFailure.invalidRequest,
+        message: 'No shop is available.',
+      );
+    }
+    final state = widget.currentGameState?.call() ?? _gameState;
+    final resolved = _resolver.resolve(
+      shop: shop,
+      gameState: state,
+      conditionContext: widget.conditionContext,
+    );
+    ShopEntryDefinition? selectedEntry;
+    for (final entry in resolved.entries) {
+      if (entry.itemId == itemId) {
+        selectedEntry = entry;
+        break;
+      }
+    }
+    if (!resolved.isOpen || selectedEntry == null) {
+      return PlayerServiceAutomationResult.failed(
+        failure: PlayerServiceAutomationFailure.invalidRequest,
+        message: 'Item "$itemId" is not available in the visible shop.',
+      );
+    }
+    return _buy(shop, resolved, selectedEntry, quantity);
+  }
+
+  Future<PlayerServiceAutomationResult> _buy(
     ShopDefinition shop,
     ResolvedShopState renderedState,
     ShopEntryDefinition entry,
     int quantity,
   ) async {
-    if (_busy) return;
+    if (_busy) {
+      return const PlayerServiceAutomationResult.failed(
+        failure: PlayerServiceAutomationFailure.busy,
+        message: 'The shop is already processing a purchase.',
+      );
+    }
     setState(() {
       _busy = true;
       _feedback = null;
@@ -236,7 +331,10 @@ class _InGameShopPageState extends State<InGameShopPage> {
           _feedbackIsError = false;
           _feedback = 'La boutique a changé. Le catalogue a été actualisé.';
         });
-        return;
+        return const PlayerServiceAutomationResult.failed(
+          failure: PlayerServiceAutomationFailure.rejected,
+          message: 'The shop catalogue changed before the purchase.',
+        );
       }
       setState(() {
         _gameState = transactionState;
@@ -244,26 +342,87 @@ class _InGameShopPageState extends State<InGameShopPage> {
         _feedbackIsError = true;
         _feedback = _failureLabel(result.failure!);
       });
-      return;
+      return PlayerServiceAutomationResult.failed(
+        failure: PlayerServiceAutomationFailure.rejected,
+        message: _failureLabel(result.failure!),
+      );
     }
     try {
       await widget.onStateCommitted(result.state);
-      if (!mounted) return;
+      if (!mounted) {
+        return const PlayerServiceAutomationResult.failed(
+          failure: PlayerServiceAutomationFailure.rejected,
+          message: 'The shop closed before the purchase completed.',
+        );
+      }
       setState(() {
         _gameState = result.state;
         _busy = false;
         _feedbackIsError = false;
         _feedback = 'Achat effectué : $quantity × ${_itemLabel(entry.itemId)}.';
       });
+      return PlayerServiceAutomationResult.success(
+        details: <String, Object?>{
+          'itemId': entry.itemId,
+          'quantity': quantity,
+        },
+      );
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return PlayerServiceAutomationResult.failed(
+          failure: PlayerServiceAutomationFailure.rejected,
+          message: 'The shop closed after a failed purchase: $error',
+        );
+      }
       setState(() {
         _busy = false;
         _feedbackIsError = true;
         _feedback = 'Échec de l’achat : $error';
       });
+      return PlayerServiceAutomationResult.failed(
+        failure: PlayerServiceAutomationFailure.rejected,
+        message: 'The purchase could not be committed: $error',
+      );
     }
   }
+
+  Future<PlayerServiceAutomationResult> _closeFromAutomation() async {
+    final close = widget.onAutomationClose;
+    if (close == null) {
+      return const PlayerServiceAutomationResult.failed(
+        failure: PlayerServiceAutomationFailure.invalidRequest,
+        message: 'The visible shop cannot be closed by automation.',
+      );
+    }
+    await close();
+    return const PlayerServiceAutomationResult.success();
+  }
+}
+
+final class _ShopAutomationSession implements PlayerServiceAutomationSession {
+  const _ShopAutomationSession(this.owner);
+
+  final _InGameShopPageState owner;
+
+  @override
+  PlayerServiceAutomationKind get kind => PlayerServiceAutomationKind.shop;
+
+  @override
+  Future<PlayerServiceAutomationResult> invoke(
+    PlayerServiceAutomationCommand command,
+  ) =>
+      switch (command) {
+        InspectShopAutomationCommand() => owner._inspectShop(),
+        BuyShopItemAutomationCommand(:final itemId, :final quantity) =>
+          owner._buyItem(itemId, quantity),
+        CloseShopAutomationCommand() => owner._closeFromAutomation(),
+        _ => Future<PlayerServiceAutomationResult>.value(
+            const PlayerServiceAutomationResult.failed(
+              failure: PlayerServiceAutomationFailure.wrongService,
+              message: 'The command does not belong to the Shop service.',
+            ),
+          ),
+      };
 }
 
 String _itemLabel(String itemId) => switch (itemId) {

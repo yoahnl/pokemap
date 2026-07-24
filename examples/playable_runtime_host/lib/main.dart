@@ -13,9 +13,12 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'src/in_game_menu.dart';
+import 'src/in_game_heal_flow.dart';
 import 'src/in_game_pc_page.dart';
 import 'src/in_game_shop_page.dart';
 import 'src/bundled_runtime_project.dart';
+import 'src/evaluation/interactive/interactive_evaluation_config.dart';
+import 'src/evaluation/interactive/player_service_automation_port.dart';
 import 'src/runtime_demo_party_seed.dart';
 import 'src/runtime_gamepad_bridge.dart';
 import 'src/runtime_gamepad_presence.dart';
@@ -85,6 +88,10 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   StreamSubscription<NormalizedGamepadEvent>? _runtimeGamepadSubscription;
   final RuntimeGamepadPresence _runtimeGamepadPresence =
       RuntimeGamepadPresence();
+  late final PlayerServiceAutomationPort? _playerServiceAutomationPort =
+      interactiveEvaluationConfig.enabled
+          ? PlayerServiceAutomationPort()
+          : null;
 
   static const _prefsFileName = '.playable_runtime_host_prefs.json';
 
@@ -589,6 +596,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
           host: _RuntimePlayerServiceOverlayHost(
             contextBuilder: () => context,
             isMounted: () => mounted,
+            automationPort: _playerServiceAutomationPort,
           ),
           commitAndSave: nextGame.commitAndSavePlayerServiceState,
           setInputLocked: (locked) => nextGame.setExternalInputLock(
@@ -1241,10 +1249,12 @@ final class _RuntimePlayerServiceOverlayHost
   const _RuntimePlayerServiceOverlayHost({
     required this.contextBuilder,
     required this.isMounted,
+    required this.automationPort,
   });
 
   final BuildContext Function() contextBuilder;
   final bool Function() isMounted;
+  final PlayerServiceAutomationPort? automationPort;
 
   @override
   Future<PlayerServiceHostResult> openShop(
@@ -1253,12 +1263,14 @@ final class _RuntimePlayerServiceOverlayHost
     return _open(
       title: request.resolvedState.storefrontLabel,
       gameState: request.gameState,
-      bodyBuilder: (state, stageState, currentState) => InGameShopPage(
+      bodyBuilder: (state, stageState, currentState, close) => InGameShopPage(
         gameState: state,
         shops: <ShopDefinition>[request.shop],
         onStateCommitted: stageState,
         currentGameState: currentState,
         conditionContext: request.conditionContext,
+        automationPort: automationPort,
+        onAutomationClose: close,
       ),
     );
   }
@@ -1268,9 +1280,11 @@ final class _RuntimePlayerServiceOverlayHost
     return _open(
       title: 'PC Pokémon',
       gameState: request.gameState,
-      bodyBuilder: (state, stageState, _) => InGamePcPage(
+      bodyBuilder: (state, stageState, _, close) => InGamePcPage(
         gameState: state,
         onStateCommitted: stageState,
+        automationPort: automationPort,
+        onAutomationClose: close,
       ),
     );
   }
@@ -1278,11 +1292,18 @@ final class _RuntimePlayerServiceOverlayHost
   @override
   Future<PlayerServiceHostResult> openHealCenter(
     PlayerServiceHealRequest request,
-  ) {
-    throw UnsupportedError(
-      'Healing is a canonical Scene consequence, not an interactive route.',
-    );
-  }
+  ) =>
+      _open(
+        title: 'Centre Pokémon',
+        gameState: request.gameState,
+        bodyBuilder: (state, stageState, _, close) => InGameHealFlow(
+          gameState: state,
+          recoveryCaps: request.recoveryCaps,
+          onStateCommitted: stageState,
+          automationPort: automationPort,
+          onAutomationClose: close,
+        ),
+      );
 
   Future<PlayerServiceHostResult> _open({
     required String title,
@@ -1311,6 +1332,7 @@ typedef _PlayerServiceBodyBuilder = Widget Function(
   GameState gameState,
   Future<void> Function(GameState state) stageState,
   GameState Function() currentGameState,
+  Future<void> Function() close,
 );
 
 final class _RuntimePlayerServiceRoute extends StatefulWidget {
@@ -1349,6 +1371,10 @@ final class _RuntimePlayerServiceRouteState
               _gameState,
               _stageState,
               () => _gameState,
+              () async {
+                if (!mounted) return;
+                Navigator.of(context).pop(_gameState);
+              },
             ),
           ),
           SafeArea(

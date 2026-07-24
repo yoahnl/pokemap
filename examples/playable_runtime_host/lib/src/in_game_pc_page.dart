@@ -2,17 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import 'evaluation/interactive/player_service_automation_port.dart';
+
 typedef InGamePcStateCommit = Future<void> Function(GameState state);
+typedef InGamePcAutomationClose = Future<void> Function();
 
 class InGamePcPage extends StatefulWidget {
   const InGamePcPage({
     super.key,
     required this.gameState,
     required this.onStateCommitted,
+    this.automationPort,
+    this.onAutomationClose,
   });
 
   final GameState gameState;
   final InGamePcStateCommit onStateCommitted;
+  final PlayerServiceAutomationPort? automationPort;
+  final InGamePcAutomationClose? onAutomationClose;
 
   @override
   State<InGamePcPage> createState() => _InGamePcPageState();
@@ -28,9 +35,40 @@ class _InGamePcPageState extends State<InGamePcPage> {
   bool _busy = false;
   String? _feedback;
   bool _feedbackIsError = false;
+  late final _PcAutomationSession _automationSession =
+      _PcAutomationSession(this);
 
   PokemonBox get _box =>
       _gameState.pokemonStorage.boxes.firstWhere((box) => box.id == _boxId);
+
+  @override
+  void initState() {
+    super.initState();
+    widget.automationPort?.register(_automationSession);
+  }
+
+  @override
+  void didUpdateWidget(covariant InGamePcPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(widget.automationPort, oldWidget.automationPort)) {
+      oldWidget.automationPort?.unregister(_automationSession);
+      widget.automationPort?.register(_automationSession);
+    }
+    if (widget.gameState != oldWidget.gameState) {
+      _gameState = widget.gameState.copyWith(
+        pokemonStorage: widget.gameState.pokemonStorage.normalized(),
+      );
+      if (!_gameState.pokemonStorage.boxes.any((box) => box.id == _boxId)) {
+        _boxId = _gameState.pokemonStorage.boxes.first.id;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.automationPort?.unregister(_automationSession);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -154,7 +192,7 @@ class _InGamePcPageState extends State<InGamePcPage> {
         ),
       );
 
-  Future<void> _deposit(int partyIndex) => _apply(
+  Future<PlayerServiceAutomationResult> _deposit(int partyIndex) => _apply(
         _operations.deposit(
           state: _gameState,
           partyIndex: partyIndex,
@@ -163,7 +201,11 @@ class _InGamePcPageState extends State<InGamePcPage> {
         success: 'Pokémon déposé dans ${_box.label}.',
       );
 
-  Future<void> _withdraw(String boxId, int boxIndex) => _apply(
+  Future<PlayerServiceAutomationResult> _withdraw(
+    String boxId,
+    int boxIndex,
+  ) =>
+      _apply(
         _operations.withdraw(
           state: _gameState,
           boxId: boxId,
@@ -172,7 +214,11 @@ class _InGamePcPageState extends State<InGamePcPage> {
         success: 'Pokémon retiré de la box.',
       );
 
-  Future<void> _swapLead(String boxId, int boxIndex) => _apply(
+  Future<PlayerServiceAutomationResult> _swapLead(
+    String boxId,
+    int boxIndex,
+  ) =>
+      _apply(
         _operations.swapPartyWithBox(
           state: _gameState,
           partyIndex: 0,
@@ -182,37 +228,133 @@ class _InGamePcPageState extends State<InGamePcPage> {
         success: 'Pokémon échangé avec le lead.',
       );
 
-  Future<void> _apply(
+  Future<PlayerServiceAutomationResult> _withdrawByPokemonId(
+    String pokemonId,
+  ) {
+    for (final box in _gameState.pokemonStorage.boxes) {
+      for (var index = 0; index < box.pokemon.length; index++) {
+        if (box.pokemon[index].speciesId == pokemonId) {
+          return _withdraw(box.id, index);
+        }
+      }
+    }
+    return Future<PlayerServiceAutomationResult>.value(
+      PlayerServiceAutomationResult.failed(
+        failure: PlayerServiceAutomationFailure.invalidRequest,
+        message: 'Pokémon "$pokemonId" was not found in PC storage.',
+      ),
+    );
+  }
+
+  Future<PlayerServiceAutomationResult> _depositByPokemonId(
+    String pokemonId,
+  ) {
+    for (var index = 0; index < _gameState.party.members.length; index++) {
+      if (_gameState.party.members[index].speciesId == pokemonId) {
+        return _deposit(index);
+      }
+    }
+    return Future<PlayerServiceAutomationResult>.value(
+      PlayerServiceAutomationResult.failed(
+        failure: PlayerServiceAutomationFailure.invalidRequest,
+        message: 'Pokémon "$pokemonId" was not found in the party.',
+      ),
+    );
+  }
+
+  Future<PlayerServiceAutomationResult> _apply(
     PlayerStorageOperationResult result, {
     required String success,
   }) async {
-    if (_busy) return;
+    if (_busy) {
+      return const PlayerServiceAutomationResult.failed(
+        failure: PlayerServiceAutomationFailure.busy,
+        message: 'The PC is already processing an operation.',
+      );
+    }
     if (!result.isSuccess) {
       setState(() {
         _feedbackIsError = true;
         _feedback = _storageFailureLabel(result.failure!);
       });
-      return;
+      return PlayerServiceAutomationResult.failed(
+        failure: PlayerServiceAutomationFailure.rejected,
+        message: _storageFailureLabel(result.failure!),
+      );
     }
     setState(() => _busy = true);
     try {
       await widget.onStateCommitted(result.state);
-      if (!mounted) return;
+      if (!mounted) {
+        return const PlayerServiceAutomationResult.failed(
+          failure: PlayerServiceAutomationFailure.rejected,
+          message: 'The PC overlay closed before commit completed.',
+        );
+      }
       setState(() {
         _gameState = result.state;
         _busy = false;
         _feedbackIsError = false;
         _feedback = success;
       });
+      return const PlayerServiceAutomationResult.success();
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return PlayerServiceAutomationResult.failed(
+          failure: PlayerServiceAutomationFailure.rejected,
+          message: 'The PC overlay closed after a failed commit: $error',
+        );
+      }
       setState(() {
         _busy = false;
         _feedbackIsError = true;
         _feedback = 'Échec de la mise à jour du PC : $error';
       });
+      return PlayerServiceAutomationResult.failed(
+        failure: PlayerServiceAutomationFailure.rejected,
+        message: 'The PC operation could not be committed: $error',
+      );
     }
   }
+
+  Future<PlayerServiceAutomationResult> _closeFromAutomation() async {
+    final close = widget.onAutomationClose;
+    if (close == null) {
+      return const PlayerServiceAutomationResult.failed(
+        failure: PlayerServiceAutomationFailure.invalidRequest,
+        message: 'The PC overlay cannot be closed by automation.',
+      );
+    }
+    await close();
+    return const PlayerServiceAutomationResult.success();
+  }
+}
+
+final class _PcAutomationSession implements PlayerServiceAutomationSession {
+  const _PcAutomationSession(this.owner);
+
+  final _InGamePcPageState owner;
+
+  @override
+  PlayerServiceAutomationKind get kind => PlayerServiceAutomationKind.pc;
+
+  @override
+  Future<PlayerServiceAutomationResult> invoke(
+    PlayerServiceAutomationCommand command,
+  ) =>
+      switch (command) {
+        WithdrawPcPokemonAutomationCommand(:final pokemonId) =>
+          owner._withdrawByPokemonId(pokemonId),
+        DepositPcPokemonAutomationCommand(:final pokemonId) =>
+          owner._depositByPokemonId(pokemonId),
+        ClosePcAutomationCommand() => owner._closeFromAutomation(),
+        _ => Future<PlayerServiceAutomationResult>.value(
+            const PlayerServiceAutomationResult.failed(
+              failure: PlayerServiceAutomationFailure.wrongService,
+              message: 'The command does not belong to the PC service.',
+            ),
+          ),
+      };
 }
 
 String _storageFailureLabel(PlayerStorageFailure failure) => switch (failure) {
