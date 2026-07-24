@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_policy.dart';
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_scenario.dart';
 import 'package:pokemap_loader/src/evaluation/scenario/evaluation_scenario_parser.dart';
+import 'package:pokemap_loader/src/evaluation/web/evaluation_web_launcher.dart';
 import 'package:pokemap_loader/src/evaluation/worker/evaluation_worker_protocol.dart';
 import 'package:pokemap_loader/src/evaluation/worker/headless_worker_process.dart';
 
@@ -13,6 +14,7 @@ enum PokeMapEvalCommand {
   run,
   inspect,
   history,
+  web,
 }
 
 final class PokeMapEvalOptions {
@@ -26,6 +28,8 @@ final class PokeMapEvalOptions {
     this.includeParty = false,
     this.includeBag = false,
     this.jsonOnly = false,
+    this.port = 0,
+    this.openBrowser = true,
   });
 
   final PokeMapEvalCommand command;
@@ -37,6 +41,8 @@ final class PokeMapEvalOptions {
   final bool includeParty;
   final bool includeBag;
   final bool jsonOnly;
+  final int port;
+  final bool openBrowser;
 }
 
 final class PokeMapEvalCliResult {
@@ -90,6 +96,7 @@ final class PokeMapEvalCli {
       'run' => _parseRun(arguments.skip(1).toList()),
       'inspect' => _parseInspect(arguments.skip(1).toList()),
       'history' => _parseHistory(arguments.skip(1).toList()),
+      'web' => _parseWeb(arguments.skip(1).toList()),
       final command => throw PokeMapEvalUsageException(
           'Unknown command "$command".',
         ),
@@ -111,6 +118,7 @@ final class PokeMapEvalCli {
         PokeMapEvalCommand.run => await _run(options),
         PokeMapEvalCommand.inspect => await _inspect(options),
         PokeMapEvalCommand.history => await _history(options),
+        PokeMapEvalCommand.web => await _web(options),
       };
     } on PokeMapEvalUsageException catch (failure) {
       stderrSink(failure.message);
@@ -121,7 +129,34 @@ final class PokeMapEvalCli {
     } on FileSystemException catch (failure) {
       stderrSink('Evaluation infrastructure error: ${failure.message}');
       return const PokeMapEvalCliResult(3);
+    } on SocketException catch (failure) {
+      stderrSink('Evaluation network error: ${failure.message}');
+      return const PokeMapEvalCliResult(3);
+    } on StateError catch (failure) {
+      stderrSink('Evaluation infrastructure error: $failure');
+      return const PokeMapEvalCliResult(3);
     }
+  }
+
+  Future<PokeMapEvalCliResult> _web(PokeMapEvalOptions options) async {
+    final application = await EvaluationWebApplication.start(
+      repositoryRoot: repositoryRoot,
+      assetsRoot: evaluationWebAssetsForScript(Platform.script),
+      port: options.port,
+      projectId: options.projectId,
+      stderrSink: stderr.write,
+    );
+    stdoutSink('PokeMap Eval cockpit: ${application.uri}');
+    if (options.openBrowser) {
+      final opened = await EvaluationWebLauncher().open(application.uri);
+      if (!opened) {
+        stderrSink(
+          'Unable to open a browser automatically. '
+          'Open ${application.uri} manually.',
+        );
+      }
+    }
+    return const PokeMapEvalCliResult(0);
   }
 
   Future<PokeMapEvalCliResult> _list(PokeMapEvalOptions options) async {
@@ -658,6 +693,48 @@ PokeMapEvalOptions _parseHistory(List<String> arguments) {
   );
 }
 
+PokeMapEvalOptions _parseWeb(List<String> arguments) {
+  String? projectId;
+  var port = 0;
+  var openBrowser = true;
+  var index = 0;
+  while (index < arguments.length) {
+    switch (arguments[index]) {
+      case '--project':
+        projectId = _optionValue(arguments, index, '--project');
+        index += 2;
+      case '--port':
+        final value = _optionValue(arguments, index, '--port');
+        port = int.tryParse(value) ?? -1;
+        if (port < 0 || port > 65535) {
+          throw const PokeMapEvalUsageException(
+            '--port must be an integer between 0 and 65535.',
+          );
+        }
+        index += 2;
+      case '--no-open':
+        openBrowser = false;
+        index += 1;
+      default:
+        throw PokeMapEvalUsageException(
+          'Unknown option "${arguments[index]}".',
+        );
+    }
+  }
+  if (projectId != null &&
+      !RegExp(r'^[a-z0-9][a-z0-9._-]*$').hasMatch(projectId)) {
+    throw const PokeMapEvalUsageException(
+      'web requires a portable --project id.',
+    );
+  }
+  return PokeMapEvalOptions(
+    command: PokeMapEvalCommand.web,
+    projectId: projectId,
+    port: port,
+    openBrowser: openBrowser,
+  );
+}
+
 String _optionValue(List<String> arguments, int index, String option) {
   if (index + 1 >= arguments.length || arguments[index + 1].startsWith('-')) {
     throw PokeMapEvalUsageException('$option requires a value.');
@@ -700,5 +777,6 @@ Usage:
   pokemap eval list [--project <id>]
   pokemap eval run <scenario-id> [--policy probe|certify] [--json]
   pokemap eval inspect --checkpoint <id> [--facts] [--party] [--bag]
-  pokemap eval history [--json]''';
+  pokemap eval history [--json]
+  pokemap eval web [--project <id>] [--port <0..65535>] [--no-open]''';
 }
