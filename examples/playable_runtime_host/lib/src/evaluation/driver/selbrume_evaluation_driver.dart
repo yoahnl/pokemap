@@ -25,15 +25,20 @@ final class SelbrumeEvaluationDriver
     required this.project,
     required this.projectRoot,
     required this.playerServices,
+    required EvaluationPlayerServiceAutomation? attachedServices,
+    required bool ownsGame,
     required this.runId,
     required this.checkpointCache,
     required this.checkpointProvenance,
-  });
+  })  : _attachedServices = attachedServices,
+        _ownsGame = ownsGame;
 
-  final EvaluationPlayableMapGame game;
+  final PlayableMapGame game;
   final ProjectManifest project;
   final Directory projectRoot;
-  final EvaluationPlayerServiceHost playerServices;
+  final EvaluationPlayerServiceHost? playerServices;
+  final EvaluationPlayerServiceAutomation? _attachedServices;
+  final bool _ownsGame;
   final String runId;
   final EvaluationCheckpointCache? checkpointCache;
   final EvaluationCheckpointProvenance? checkpointProvenance;
@@ -44,6 +49,26 @@ final class SelbrumeEvaluationDriver
   Map<String, Object?> _lastShop = const <String, Object?>{};
 
   GameState get state => game.gameStateSnapshot;
+
+  factory SelbrumeEvaluationDriver.attach({
+    required PlayableMapGame game,
+    required ProjectManifest project,
+    required Directory projectRoot,
+    required EvaluationPlayerServiceAutomation services,
+    String runId = 'interactive-evaluation-run',
+  }) {
+    return SelbrumeEvaluationDriver._(
+      game: game,
+      project: project,
+      projectRoot: projectRoot,
+      playerServices: null,
+      attachedServices: services,
+      ownsGame: false,
+      runId: runId,
+      checkpointCache: null,
+      checkpointProvenance: null,
+    );
+  }
 
   static Future<SelbrumeEvaluationDriver> start({
     required Directory projectRoot,
@@ -94,6 +119,8 @@ final class SelbrumeEvaluationDriver
       project: bundle.manifest,
       projectRoot: projectRoot,
       playerServices: playerServices,
+      attachedServices: null,
+      ownsGame: true,
       runId: runId,
       checkpointCache: checkpointCache,
       checkpointProvenance: checkpointProvenance,
@@ -790,6 +817,12 @@ final class SelbrumeEvaluationDriver
 
   @override
   Future<void> inspectShop() async {
+    final attachedServices = _attachedServices;
+    if (attachedServices != null) {
+      await attachedServices.inspectShop();
+      return;
+    }
+    final playerServices = _requireHeadlessPlayerServices();
     final requestCount = playerServices.shopRequests.length;
     await interact('service_port_shop');
     await _pumpUntil(
@@ -810,6 +843,12 @@ final class SelbrumeEvaluationDriver
       operation: 'service.shop.buy',
       message: 'quantity must be positive.',
     );
+    final attachedServices = _attachedServices;
+    if (attachedServices != null) {
+      await attachedServices.buy(itemId, quantity);
+      return;
+    }
+    final playerServices = _requireHeadlessPlayerServices();
     for (var index = 0; index < quantity; index += 1) {
       final purchaseCount = playerServices.purchasedItemIds.length;
       playerServices.queueShopPurchase(itemId);
@@ -828,6 +867,12 @@ final class SelbrumeEvaluationDriver
 
   @override
   Future<void> healParty() async {
+    final attachedServices = _attachedServices;
+    if (attachedServices != null) {
+      await attachedServices.healParty();
+      return;
+    }
+    final playerServices = _requireHeadlessPlayerServices();
     final openedCount = playerServices.openedServices.length;
     final hpBefore = state.party.members
         .map((pokemon) => pokemon.currentHp)
@@ -856,6 +901,12 @@ final class SelbrumeEvaluationDriver
 
   @override
   Future<void> withdrawFromPc(String pokemonId) async {
+    final attachedServices = _attachedServices;
+    if (attachedServices != null) {
+      await attachedServices.withdrawFromPc(pokemonId);
+      return;
+    }
+    final playerServices = _requireHeadlessPlayerServices();
     final stored = state.pokemonStorage.boxes
         .expand((box) => box.pokemon)
         .where((pokemon) => pokemon.speciesId == pokemonId)
@@ -1029,7 +1080,15 @@ final class SelbrumeEvaluationDriver
 
   @override
   Future<void> dispose() async {
-    game.onRemove();
+    if (_ownsGame) game.onRemove();
+  }
+
+  EvaluationPlayerServiceHost _requireHeadlessPlayerServices() {
+    final services = playerServices;
+    if (services == null) {
+      throw StateError('Headless player services are unavailable.');
+    }
+    return services;
   }
 
   int _bagQuantity(String itemId) => state.bag.entries
