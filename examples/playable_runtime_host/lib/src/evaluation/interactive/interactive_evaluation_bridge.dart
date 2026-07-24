@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:path/path.dart' as p;
 
 import '../contracts/evaluation_event.dart';
 import '../contracts/evaluation_receipt.dart';
@@ -13,22 +14,34 @@ import '../runner/evaluation_scenario_runner.dart';
 import '../scenario/evaluation_policy_validator.dart';
 import '../scenario/evaluation_scenario_parser.dart';
 import 'interactive_evaluation_config.dart';
+import 'interactive_frame_metrics.dart';
 
 const interactiveEvaluationProtocolVersion = 1;
 const _maximumEnvelopeLength = 1024 * 1024;
 
 typedef InteractiveEvaluationEventSink = void Function(EvaluationEvent event);
+typedef InteractiveEvaluationSurfaceCapture = Future<List<int>> Function();
 
 final class InteractiveEvaluationBridge {
   InteractiveEvaluationBridge({
     required this.config,
     required this.driver,
     this.eventSink,
-  });
+    Directory? repositoryRoot,
+    this.captureSurface,
+    InteractiveFrameMetricsCollector? frameMetricsCollector,
+    this.captureFirstFailure = false,
+  })  : repositoryRoot = repositoryRoot?.absolute,
+        frameMetricsCollector =
+            frameMetricsCollector ?? InteractiveFrameMetricsCollector();
 
   final InteractiveEvaluationConfig config;
   final EvaluationDriver driver;
   final InteractiveEvaluationEventSink? eventSink;
+  final Directory? repositoryRoot;
+  final InteractiveEvaluationSurfaceCapture? captureSurface;
+  final InteractiveFrameMetricsCollector frameMetricsCollector;
+  final bool captureFirstFailure;
 
   Socket? _socket;
   StreamSubscription<String>? _subscription;
@@ -43,6 +56,7 @@ final class InteractiveEvaluationBridge {
     required ProjectManifest project,
     required Directory projectRoot,
     required EvaluationPlayerServiceAutomation services,
+    required InteractiveEvaluationSurfaceCapture captureSurface,
     InteractiveEvaluationEventSink? eventSink,
   }) async {
     final driver = SelbrumeEvaluationDriver.attach(
@@ -56,6 +70,8 @@ final class InteractiveEvaluationBridge {
       config: config,
       driver: driver,
       eventSink: eventSink,
+      repositoryRoot: projectRoot.parent,
+      captureSurface: captureSurface,
     );
     try {
       await driver.waitUntilRuntimeReady();
@@ -200,6 +216,7 @@ final class InteractiveEvaluationBridge {
       'requestId',
       'runId',
       'scenario',
+      'outputDirectory',
     };
     if (envelope.keys.toSet().difference(expectedKeys).isNotEmpty ||
         expectedKeys.difference(envelope.keys.toSet()).isNotEmpty) {
@@ -213,10 +230,15 @@ final class InteractiveEvaluationBridge {
     final requestId = _nonBlankString(envelope['requestId']);
     final runId = _nonBlankString(envelope['runId']);
     final scenarioSource = _nonBlankString(envelope['scenario']);
-    if (requestId == null || runId == null || scenarioSource == null) {
+    final outputDirectory = _nonBlankString(envelope['outputDirectory']);
+    if (requestId == null ||
+        runId == null ||
+        scenarioSource == null ||
+        outputDirectory == null) {
       _rejectEnvelope(
         'invalid_envelope',
-        'requestId, runId, and scenario must be non-blank strings.',
+        'requestId, runId, scenario, and outputDirectory must be '
+            'non-blank strings.',
       );
       return;
     }
@@ -248,25 +270,97 @@ final class InteractiveEvaluationBridge {
         return;
       }
 
-      final result = await EvaluationScenarioRunner(
-        driver: driver,
-        runIdFactory: () => runId,
-        eventSink: (event) {
-          eventSink?.call(event);
-          _send(<String, Object?>{
-            'type': 'bridge.event',
-            'requestId': requestId,
-            'runId': runId,
-            'event': event.toJson(),
-          });
+      final runOutputDirectory = _resolveRunOutputDirectory(
+        outputDirectory,
+        runId: runId,
+      );
+      final artifacts = <String>[];
+      EvaluationEvent? terminalEvent;
+      frameMetricsCollector.start();
+      late final EvaluationScenarioRunResult result;
+      try {
+        result = await EvaluationScenarioRunner(
+          driver: driver,
+          runIdFactory: () => runId,
+          evidenceCapture: ({
+            required String stepId,
+            String? name,
+          }) async {
+            final artifact = await _captureEvidence(
+              runOutputDirectory,
+              stepId: stepId,
+              name: name,
+            );
+            artifacts.add(artifact);
+          },
+          eventSink: (event) {
+            if (event.type == 'run.finished') {
+              terminalEvent = event;
+              return;
+            }
+            _sendBridgeEvent(
+              event,
+              requestId: requestId,
+              runId: runId,
+            );
+          },
+        ).run(scenario);
+        if (captureFirstFailure &&
+            result.status != EvaluationRunStatus.succeeded &&
+            captureSurface != null) {
+          artifacts.add(
+            await _captureEvidence(
+              runOutputDirectory,
+              stepId: 'first-failure',
+              name: 'first-failure',
+            ),
+          );
+        }
+      } finally {
+        frameMetricsCollector.stop();
+      }
+      final frameMetrics = frameMetricsCollector.snapshot();
+      artifacts.add(
+        await _writeFrameMetrics(
+          runOutputDirectory,
+          frameMetrics,
+        ),
+      );
+      final originalTerminal = terminalEvent;
+      if (originalTerminal == null) {
+        throw StateError('Interactive runner omitted run.finished.');
+      }
+      final enrichedTerminal = EvaluationEvent(
+        runId: originalTerminal.runId,
+        sequence: originalTerminal.sequence,
+        type: originalTerminal.type,
+        payload: <String, Object?>{
+          ...originalTerminal.payload,
+          'frameMetrics': frameMetrics.toJson(),
+          'artifacts': artifacts,
         },
-      ).run(scenario);
+      );
+      _sendBridgeEvent(
+        enrichedTerminal,
+        requestId: requestId,
+        runId: runId,
+      );
       _sendResult(
         requestId: requestId,
         runId: runId,
         status: result.status,
         exitCode: _exitCodeFor(result.status),
+        evidenceLevel: result.evidenceLevel.name,
+        initialState: result.initialState.toJson(),
         finalState: result.finalState.toJson(),
+        diff: result.diff.toJson(),
+        stepResults: result.stepResults.map((step) => step.toJson()).toList(),
+        productCriteria: result.productCriteria
+            .map((criterion) => criterion.toJson())
+            .toList(),
+        shortcutsUsed: result.shortcutsUsed,
+        artifacts: artifacts,
+        frameMetrics: frameMetrics.toJson(),
         error: result.error,
       );
     } on EvaluationScenarioFormatException catch (failure) {
@@ -299,7 +393,15 @@ final class InteractiveEvaluationBridge {
     required String runId,
     required EvaluationRunStatus status,
     required int exitCode,
+    String? evidenceLevel,
+    Map<String, Object?>? initialState,
     Map<String, Object?>? finalState,
+    Map<String, Object?>? diff,
+    List<Map<String, Object?>>? stepResults,
+    List<Map<String, Object?>>? productCriteria,
+    List<String>? shortcutsUsed,
+    List<String>? artifacts,
+    Map<String, Object?>? frameMetrics,
     Map<String, Object?>? error,
   }) {
     _send(<String, Object?>{
@@ -308,9 +410,78 @@ final class InteractiveEvaluationBridge {
       'runId': runId,
       'status': status.name,
       'exitCode': exitCode,
+      if (evidenceLevel != null) 'evidenceLevel': evidenceLevel,
+      if (initialState != null) 'initialState': initialState,
       if (finalState != null) 'finalState': finalState,
+      if (diff != null) 'diff': diff,
+      if (stepResults != null) 'stepResults': stepResults,
+      if (productCriteria != null) 'productCriteria': productCriteria,
+      if (shortcutsUsed != null) 'shortcutsUsed': shortcutsUsed,
+      if (artifacts != null) 'artifacts': artifacts,
+      if (frameMetrics != null) 'frameMetrics': frameMetrics,
       if (error != null) 'error': error,
     });
+  }
+
+  void _sendBridgeEvent(
+    EvaluationEvent event, {
+    required String requestId,
+    required String runId,
+  }) {
+    eventSink?.call(event);
+    _send(<String, Object?>{
+      'type': 'bridge.event',
+      'requestId': requestId,
+      'runId': runId,
+      'event': event.toJson(),
+    });
+  }
+
+  Directory _resolveRunOutputDirectory(
+    String relative, {
+    required String runId,
+  }) {
+    final root = repositoryRoot;
+    if (root == null ||
+        relative != 'build/pokemap-eval/runs/$runId' ||
+        relative.startsWith('/') ||
+        relative.contains(r'\') ||
+        relative
+            .split('/')
+            .any((segment) => segment.isEmpty || segment == '..')) {
+      throw const FormatException(
+        'Interactive outputDirectory must identify its own run directory.',
+      );
+    }
+    return Directory(p.join(root.path, relative));
+  }
+
+  Future<String> _captureEvidence(
+    Directory outputDirectory, {
+    required String stepId,
+    String? name,
+  }) async {
+    final capture = captureSurface;
+    if (capture == null) {
+      throw StateError('Visible surface capture is unavailable.');
+    }
+    final slug = _artifactSlug(name ?? stepId);
+    final relative = 'artifacts/$slug.png';
+    final file = File(p.join(outputDirectory.path, relative));
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes(await capture(), flush: true);
+    return relative;
+  }
+
+  Future<String> _writeFrameMetrics(
+    Directory outputDirectory,
+    InteractiveFrameMetricsSnapshot snapshot,
+  ) async {
+    const relative = 'artifacts/frame-metrics.json';
+    final file = File(p.join(outputDirectory.path, relative));
+    await file.parent.create(recursive: true);
+    await file.writeAsString(jsonEncode(snapshot.toJson()), flush: true);
+    return relative;
   }
 
   void _rejectEnvelope(String code, String message) {
@@ -364,6 +535,7 @@ final class InteractiveEvaluationBridge {
       ),
     );
     await _subscription?.cancel();
+    frameMetricsCollector.stop();
     try {
       await _socket?.close();
     } on StateError {
@@ -371,6 +543,16 @@ final class InteractiveEvaluationBridge {
     }
     await driver.dispose();
   }
+}
+
+String _artifactSlug(String value) {
+  final slug = value
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9._-]+'), '-')
+      .replaceAll(RegExp(r'^[-.]+|[-.]+$'), '');
+  if (slug.isEmpty) return 'capture';
+  return slug.length <= 64 ? slug : slug.substring(0, 64);
 }
 
 final class InteractiveEvaluationAuthenticationException implements Exception {

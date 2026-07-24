@@ -13,6 +13,10 @@ import 'evaluation_run_control.dart';
 import 'evaluation_state_diff.dart';
 
 typedef EvaluationEventSink = void Function(EvaluationEvent event);
+typedef EvaluationEvidenceCapture = Future<void> Function({
+  required String stepId,
+  String? name,
+});
 
 final class EvaluationScenarioRunResult {
   EvaluationScenarioRunResult({
@@ -59,6 +63,7 @@ final class EvaluationScenarioRunner {
     String Function()? runIdFactory,
     this.checkpointProvenance,
     this.runControl,
+    this.evidenceCapture,
   })  : _assertionEvaluator = assertionEvaluator,
         _policyValidator = policyValidator,
         _stateDiffer = stateDiffer,
@@ -72,6 +77,7 @@ final class EvaluationScenarioRunner {
   final String Function() _runIdFactory;
   final Map<String, Object?>? checkpointProvenance;
   final EvaluationRunControl? runControl;
+  final EvaluationEvidenceCapture? evidenceCapture;
 
   Future<EvaluationScenarioRunResult> run(EvaluationScenario scenario) async {
     final runId = _runIdFactory();
@@ -354,7 +360,12 @@ final class EvaluationScenarioRunner {
       'evidence.checkpoint' => driver.createCheckpoint(
           arguments.requireString('checkpointId'),
         ),
-      'evidence.snapshot' => Future<void>.value(),
+      'evidence.snapshot' => evidenceCapture == null
+          ? Future<void>.value()
+          : evidenceCapture!(
+              stepId: step.id,
+              name: arguments.optionalString('name'),
+            ),
       'probe.loadCheckpoint' => driver.probeLoadCheckpoint(
           arguments.requireString('checkpointId'),
         ),
@@ -471,6 +482,11 @@ final class _EvaluationArguments {
   int? optionalInt(String key) {
     if (!values.containsKey(key)) return null;
     return requireInt(key);
+  }
+
+  String? optionalString(String key) {
+    if (!values.containsKey(key)) return null;
+    return requireString(key);
   }
 
   int? optionalNonNegativeInt(String key) {

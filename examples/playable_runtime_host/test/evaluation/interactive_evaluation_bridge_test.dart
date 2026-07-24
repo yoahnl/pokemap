@@ -11,6 +11,8 @@ import 'package:pokemap_loader/src/evaluation/interactive/interactive_evaluation
 const _token = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('bridge authenticates before announcing runtime readiness', () async {
     final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
     addTearDown(server.close);
@@ -84,6 +86,7 @@ void main() {
         'type': 'run',
         'requestId': 'request-1',
         'runId': 'run-policy',
+        'outputDirectory': 'build/pokemap-eval/runs/run-policy',
         'scenario': jsonEncode(<String, Object?>{
           'schemaVersion': 1,
           'id': 'selbrume.interactive-policy',
@@ -110,6 +113,97 @@ void main() {
     expect(result['exitCode'], 4);
     expect(result['requestId'], 'request-1');
     expect(result['runId'], 'run-policy');
+    await connection.close();
+  });
+
+  test('bridge records frame metrics and requested captures', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'pokemap-interactive-evidence-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(server.close);
+    final serverSide = _acceptBridge(
+      server,
+      response: const <String, Object?>{
+        'type': 'bridge.accepted',
+        'protocolVersion': 1,
+      },
+    );
+    final bridge = InteractiveEvaluationBridge(
+      config: _config(server.port),
+      driver: _FakeEvaluationDriver(),
+      repositoryRoot: root,
+      captureSurface: () async => <int>[137, 80, 78, 71],
+    );
+    addTearDown(bridge.dispose);
+
+    await bridge.connect();
+    final connection = await serverSide;
+    connection.socket.writeln(
+      jsonEncode(<String, Object?>{
+        'type': 'run',
+        'requestId': 'request-evidence',
+        'runId': 'run-evidence',
+        'outputDirectory': 'build/pokemap-eval/runs/run-evidence',
+        'scenario': jsonEncode(<String, Object?>{
+          'schemaVersion': 1,
+          'id': 'selbrume.interactive-evidence',
+          'title': 'Interactive evidence',
+          'projectId': 'selbrume',
+          'policy': 'probe',
+          'start': <String, Object?>{'newGame': true},
+          'steps': <Map<String, Object?>>[
+            <String, Object?>{
+              'id': 'visible-state',
+              'command': 'evidence.snapshot',
+              'name': 'Visible state',
+            },
+          ],
+        }),
+      }),
+    );
+
+    Map<String, Object?>? terminal;
+    Map<String, Object?>? result;
+    while (result == null) {
+      final envelope = await connection.nextJson();
+      if (envelope['type'] == 'bridge.event') {
+        final event = Map<String, Object?>.from(envelope['event']! as Map);
+        if (event['type'] == 'run.finished') terminal = event;
+      } else if (envelope['type'] == 'bridge.result') {
+        result = envelope;
+      }
+    }
+
+    expect(result['status'], 'succeeded');
+    expect(
+      Map<String, Object?>.from(terminal!['payload']! as Map),
+      allOf(
+        containsPair('frameMetrics', isA<Map>()),
+        containsPair(
+          'artifacts',
+          <String>[
+            'artifacts/visible-state.png',
+            'artifacts/frame-metrics.json',
+          ],
+        ),
+      ),
+    );
+    expect(
+      File(
+        '${root.path}/build/pokemap-eval/runs/run-evidence/'
+        'artifacts/visible-state.png',
+      ).existsSync(),
+      isTrue,
+    );
+    expect(
+      File(
+        '${root.path}/build/pokemap-eval/runs/run-evidence/'
+        'artifacts/frame-metrics.json',
+      ).existsSync(),
+      isTrue,
+    );
     await connection.close();
   });
 }

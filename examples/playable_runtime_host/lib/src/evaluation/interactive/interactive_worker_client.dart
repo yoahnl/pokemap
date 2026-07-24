@@ -3,10 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
 import '../contracts/evaluation_event.dart';
+import '../contracts/evaluation_policy.dart';
 import '../contracts/evaluation_receipt.dart';
+import '../scenario/evaluation_scenario_parser.dart';
 import '../worker/evaluation_worker_protocol.dart';
 
 const _interactiveProtocolVersion = 1;
@@ -124,6 +127,7 @@ final class InteractiveWorkerClient {
       return InteractiveWorkerLaunch._(
         listener: listener,
         child: child,
+        repositoryRoot: repositoryRoot,
         token: token,
         readyTimeout: readyTimeout,
         stderrSink: _stderrSink,
@@ -176,6 +180,7 @@ final class InteractiveWorkerLaunch {
   InteractiveWorkerLaunch._({
     required ServerSocket listener,
     required InteractiveChildProcess child,
+    required this.repositoryRoot,
     required String token,
     required Duration readyTimeout,
     required void Function(String chunk) stderrSink,
@@ -190,6 +195,7 @@ final class InteractiveWorkerLaunch {
 
   final ServerSocket _listener;
   final InteractiveChildProcess _child;
+  final Directory repositoryRoot;
   final String _token;
   final Duration _readyTimeout;
   late final StreamSubscription<List<int>> _stdoutSubscription;
@@ -246,9 +252,12 @@ final class InteractiveWorkerLaunch {
         'requestId': request.runId,
         'runId': request.runId,
         'scenario': scenarioSource,
+        'outputDirectory': request.outputDirectory,
       }),
     );
 
+    final startedAt = DateTime.now().toUtc();
+    final events = <EvaluationEvent>[];
     Map<String, Object?>? lastEvent;
     while (true) {
       final Map<String, Object?> envelope;
@@ -266,7 +275,9 @@ final class InteractiveWorkerLaunch {
           lastEvent = event is Map
               ? Map<String, Object?>.from(event)
               : <String, Object?>{'invalidEvent': event};
-          eventSink?.call(_evaluationEventFromJson(lastEvent));
+          final parsedEvent = _evaluationEventFromJson(lastEvent);
+          events.add(parsedEvent);
+          eventSink?.call(parsedEvent);
           continue;
         case 'bridge.error':
           throw FormatException(
@@ -274,7 +285,13 @@ final class InteractiveWorkerLaunch {
             '${envelope['message'] ?? envelope['code']}',
           );
         case 'bridge.result':
-          return _resultFromEnvelope(envelope, request);
+          return await _resultFromEnvelope(
+            envelope,
+            request,
+            scenarioSource: scenarioSource,
+            events: events,
+            startedAt: startedAt,
+          );
         default:
           throw FormatException(
             'Unsupported interactive bridge response "${envelope['type']}".',
@@ -319,10 +336,13 @@ final class InteractiveWorkerLaunch {
     }
   }
 
-  EvaluationWorkerResult _resultFromEnvelope(
+  Future<EvaluationWorkerResult> _resultFromEnvelope(
     Map<String, Object?> envelope,
-    EvaluationWorkerRequest request,
-  ) {
+    EvaluationWorkerRequest request, {
+    required String scenarioSource,
+    required List<EvaluationEvent> events,
+    required DateTime startedAt,
+  }) async {
     if (envelope['requestId'] != request.runId ||
         envelope['runId'] != request.runId) {
       throw const FormatException(
@@ -345,23 +365,121 @@ final class InteractiveWorkerLaunch {
       );
     }
     final error = envelope['error'];
+    String? receiptPath;
+    if (status == EvaluationRunStatus.succeeded ||
+        status == EvaluationRunStatus.failed ||
+        status == EvaluationRunStatus.cancelled) {
+      if (!envelope.containsKey('evidenceLevel')) {
+        return EvaluationWorkerResult.completed(
+          runId: request.runId,
+          status: status,
+          exitCode: exitCode,
+          message: error == null ? null : jsonEncode(error),
+        );
+      }
+      receiptPath = await _writeInteractiveReceipt(
+        envelope,
+        request,
+        scenarioSource: scenarioSource,
+        events: events,
+        startedAt: startedAt,
+        finishedAt: DateTime.now().toUtc(),
+      );
+    }
     return EvaluationWorkerResult.completed(
       runId: request.runId,
       status: status,
       exitCode: exitCode,
+      receiptPath: receiptPath,
       message: error == null ? null : jsonEncode(error),
     );
+  }
+
+  Future<String> _writeInteractiveReceipt(
+    Map<String, Object?> envelope,
+    EvaluationWorkerRequest request, {
+    required String scenarioSource,
+    required List<EvaluationEvent> events,
+    required DateTime startedAt,
+    required DateTime finishedAt,
+  }) async {
+    final scenario =
+        const EvaluationScenarioParser().parseString(scenarioSource);
+    final outputDirectory = Directory(
+      p.join(repositoryRoot.path, request.outputDirectory),
+    );
+    await outputDirectory.create(recursive: true);
+    final eventsFile = File(p.join(outputDirectory.path, 'events.jsonl'));
+    final eventsSource =
+        events.map((event) => jsonEncode(event.toJson())).join('\n');
+    await eventsFile.writeAsString(
+      eventsSource.isEmpty ? '' : '$eventsSource\n',
+      flush: true,
+    );
+    final artifacts = _stringList(envelope['artifacts'], 'artifacts');
+    final receiptPath = '${request.outputDirectory}/receipt.json';
+    final receiptJson = <String, Object?>{
+      'schemaVersion': EvaluationReceipt.schemaVersion,
+      'runId': request.runId,
+      'projectId': scenario.projectId,
+      'scenarioId': scenario.id,
+      'scenarioVersion': scenario.schemaVersion,
+      'policy': scenario.policy.name,
+      'target': EvaluationTarget.interactive.name,
+      'evidenceLevel': _requiredString(
+        envelope['evidenceLevel'],
+        'evidenceLevel',
+      ),
+      'commit': await _gitHead(repositoryRoot),
+      'projectTreeHash': await _treeDigest(
+        Directory(p.join(repositoryRoot.path, request.projectRoot)),
+      ),
+      'commandDigest': sha256.convert(utf8.encode(scenarioSource)).toString(),
+      'outputDigest': sha256.convert(await eventsFile.readAsBytes()).toString(),
+      'startedAt': startedAt.toIso8601String(),
+      'finishedAt': finishedAt.toIso8601String(),
+      'durationMilliseconds': finishedAt.difference(startedAt).inMilliseconds,
+      'status': _requiredString(envelope['status'], 'status'),
+      'exitCode': envelope['exitCode'],
+      'initialState': _receiptSnapshot(
+        envelope['initialState'],
+        name: 'initialState',
+        runId: request.runId,
+        projectId: scenario.projectId,
+      ),
+      'finalState': _receiptSnapshot(
+        envelope['finalState'],
+        name: 'finalState',
+        runId: request.runId,
+        projectId: scenario.projectId,
+      ),
+      'diff': _requiredMap(envelope['diff'], 'diff'),
+      'stepResults': _requiredList(envelope['stepResults'], 'stepResults'),
+      'shortcutsUsed': _stringList(
+        envelope['shortcutsUsed'],
+        'shortcutsUsed',
+      ),
+      'checkpointProvenance': null,
+      'artifacts': <String>['events.jsonl', ...artifacts],
+      'error': envelope['error'],
+      'relativeReceiptPath': receiptPath,
+      'declaredCriterionIds':
+          scenario.criteria.map((criterion) => criterion.id).toList(),
+      'productCriteria':
+          _requiredList(envelope['productCriteria'], 'productCriteria'),
+    };
+    final receipt = EvaluationReceipt.fromJson(receiptJson);
+    final destination = File(p.join(outputDirectory.path, 'receipt.json'));
+    await _writeJsonAtomically(destination, receipt.toJson());
+    return receiptPath;
   }
 
   Future<void> close() async {
     if (_closed) return;
     _closed = true;
     await _lines?.cancel();
-    try {
-      await _socket?.close();
-    } on StateError {
-      // The runtime may close first after receiving its result.
-    }
+    _socket?.destroy();
+    _socket = null;
     await _listener.close();
     await _stdoutSubscription.cancel();
     await _stderrSubscription.cancel();
@@ -372,6 +490,87 @@ final class InteractiveWorkerLaunch {
       _child.kill(ProcessSignal.sigkill);
     }
   }
+}
+
+String _requiredString(Object? value, String name) {
+  if (value is String && value.trim().isNotEmpty) return value;
+  throw FormatException('Interactive result $name must be a string.');
+}
+
+Map<String, Object?> _requiredMap(Object? value, String name) {
+  if (value is Map) return Map<String, Object?>.from(value);
+  throw FormatException('Interactive result $name must be an object.');
+}
+
+Map<String, Object?> _receiptSnapshot(
+  Object? value, {
+  required String name,
+  required String runId,
+  required String projectId,
+}) {
+  return <String, Object?>{
+    ..._requiredMap(value, name),
+    'runId': runId,
+    'projectId': projectId,
+  };
+}
+
+List<Object?> _requiredList(Object? value, String name) {
+  if (value is List) return List<Object?>.from(value);
+  throw FormatException('Interactive result $name must be a list.');
+}
+
+List<String> _stringList(Object? value, String name) {
+  if (value is! List || value.any((item) => item is! String)) {
+    throw FormatException(
+      'Interactive result $name must contain only strings.',
+    );
+  }
+  return value.cast<String>().toList(growable: false);
+}
+
+Future<String> _gitHead(Directory repositoryRoot) async {
+  final result = await Process.run(
+    'git',
+    const <String>['rev-parse', 'HEAD'],
+    workingDirectory: repositoryRoot.path,
+    runInShell: false,
+  );
+  if (result.exitCode != 0) {
+    throw StateError('Unable to resolve the evaluation commit.');
+  }
+  return (result.stdout as String).trim().toLowerCase();
+}
+
+Future<String> _treeDigest(Directory root) async {
+  final files = await root
+      .list(recursive: true, followLinks: false)
+      .where((entity) => entity is File)
+      .cast<File>()
+      .toList();
+  files.sort(
+    (left, right) => p
+        .relative(left.path, from: root.path)
+        .compareTo(p.relative(right.path, from: root.path)),
+  );
+  final entries = <String>[];
+  for (final file in files) {
+    final relative =
+        p.relative(file.path, from: root.path).replaceAll(r'\', '/');
+    final digest = await sha256.bind(file.openRead()).first;
+    entries.add('$relative\u0000$digest');
+  }
+  return sha256.convert(utf8.encode(entries.join('\u0000'))).toString();
+}
+
+Future<void> _writeJsonAtomically(
+  File destination,
+  Map<String, Object?> json,
+) async {
+  final temporary = File('${destination.path}.tmp');
+  await temporary.writeAsString(jsonEncode(json), flush: true);
+  if (await destination.exists()) await destination.delete();
+  await temporary.rename(destination.path);
 }
 
 EvaluationEvent _evaluationEventFromJson(Map<String, Object?> json) {

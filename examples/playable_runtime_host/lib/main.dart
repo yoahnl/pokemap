@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/rendering.dart';
 import 'package:gamepads/gamepads.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:map_core/map_core.dart';
@@ -94,6 +96,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
           ? PlayerServiceAutomationPort()
           : null;
   InteractiveEvaluationBridge? _interactiveBridge;
+  final GlobalKey _interactiveGameSurfaceKey = GlobalKey();
 
   static const _prefsFileName = '.playable_runtime_host_prefs.json';
 
@@ -700,6 +703,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
           project: bundle.manifest,
           projectRoot: Directory(bundle.projectRootDirectory),
           services: _playerServiceAutomationPort!,
+          captureSurface: _captureInteractiveGameSurface,
         );
       }
       _startRuntimeInfoTicker();
@@ -737,6 +741,25 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     final bridge = _interactiveBridge;
     _interactiveBridge = null;
     await bridge?.dispose();
+  }
+
+  Future<List<int>> _captureInteractiveGameSurface() async {
+    await WidgetsBinding.instance.endOfFrame;
+    final boundary =
+        _interactiveGameSurfaceKey.currentContext?.findRenderObject();
+    if (boundary is! RenderRepaintBoundary) {
+      throw StateError('The interactive game surface is unavailable.');
+    }
+    final image = await boundary.toImage(pixelRatio: 1);
+    try {
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (bytes == null) {
+        throw StateError('The interactive game surface could not be encoded.');
+      }
+      return bytes.buffer.asUint8List();
+    } finally {
+      image.dispose();
+    }
   }
 
   // Les boutons historiques du host réutilisent désormais le même flux que
@@ -1013,7 +1036,10 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         ),
         body: Stack(
           children: [
-            GameWidget(game: game),
+            RepaintBoundary(
+              key: _interactiveGameSurfaceKey,
+              child: GameWidget(game: game),
+            ),
             ValueListenableBuilder<BattleCommandOverlaySnapshot?>(
               valueListenable: game.battleCommandOverlayListenable,
               builder: (context, snapshot, child) {
