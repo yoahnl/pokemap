@@ -417,18 +417,6 @@ final class EvaluationWebServer {
         return;
       }
       final runId = segments[2];
-      final active = await orchestrator.listActiveRuns();
-      for (final run in active) {
-        if (run.runId == runId) {
-          await _writeJson(request.response, HttpStatus.ok, <String, Object?>{
-            'run': <String, Object?>{
-              ...run.toJson(),
-              'source': 'active',
-            },
-          });
-          return;
-        }
-      }
       final history = await orchestrator.loadHistory();
       for (final run in history) {
         if (run.runId == runId) {
@@ -437,6 +425,18 @@ final class EvaluationWebServer {
               ...run.toJson(),
               'source': 'history',
               'receipt': run.receipt.toJson(),
+            },
+          });
+          return;
+        }
+      }
+      final active = await orchestrator.listActiveRuns();
+      for (final run in active) {
+        if (run.runId == runId) {
+          await _writeJson(request.response, HttpStatus.ok, <String, Object?>{
+            'run': <String, Object?>{
+              ...run.toJson(),
+              'source': 'active',
             },
           });
           return;
@@ -512,18 +512,18 @@ final class EvaluationWebServer {
       ..set(HttpHeaders.cacheControlHeader, 'no-cache')
       ..set(HttpHeaders.connectionHeader, 'keep-alive');
 
+    final streamEnded = Completer<void>();
+    void finishStream() {
+      if (!streamEnded.isCompleted) streamEnded.complete();
+    }
+
     late final StreamSubscription<EvaluationEvent> subscription;
     subscription = liveEvents.listen(
       (event) {
         _writeServerSentEvent(response, event);
-        unawaited(response.flush().catchError((Object _) {}));
       },
-      onError: (Object _) {
-        unawaited(response.close());
-      },
-      onDone: () {
-        unawaited(response.close());
-      },
+      onError: (Object _, StackTrace __) => finishStream(),
+      onDone: finishStream,
       cancelOnError: true,
     );
     subscription.pause();
@@ -533,12 +533,22 @@ final class EvaluationWebServer {
       }
       await response.flush();
       subscription.resume();
-      await response.done;
+      // Stream completion and browser disconnection race each other. Waiting
+      // for either one here keeps response.close() single-owner and prevents
+      // concurrent HttpResponse closes during application shutdown.
+      await Future.any<void>(<Future<void>>[
+        response.done,
+        streamEnded.future,
+      ]);
     } on Object {
       // A disconnected browser is a normal end to a live SSE subscription.
     } finally {
       await subscription.cancel();
-      await response.close();
+      try {
+        await response.close();
+      } on Object {
+        // The browser or HttpServer may already own the completed response.
+      }
     }
   }
 

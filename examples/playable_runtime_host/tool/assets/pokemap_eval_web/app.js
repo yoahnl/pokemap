@@ -23,6 +23,7 @@ const terminalEventTypes = [
   'worker.failed',
   'assertion.failed',
 ];
+const infrastructureStepId = 'infrastructure_failure';
 
 const streamedEventTypes = [
   'run.started',
@@ -269,6 +270,62 @@ function closeEventSource() {
   }
 }
 
+function eventsFromReceipt(receipt) {
+  if (!receipt || !Array.isArray(receipt.stepResults)) {
+    return [];
+  }
+  const events = [];
+  let sequence = 1;
+  events.push({
+    runId: receipt.runId,
+    sequence: sequence++,
+    type: 'run.started',
+    payload: {
+      scenarioId: receipt.scenarioId,
+      policy: receipt.policy,
+      target: receipt.target,
+      initialState: receipt.initialState,
+    },
+  });
+  for (const result of receipt.stepResults) {
+    const kind = result.details?.kind || 'step';
+    events.push({
+      runId: receipt.runId,
+      sequence: sequence++,
+      type: 'step.started',
+      payload: {
+        index: result.index,
+        stepId: result.stepId,
+        kind,
+      },
+    });
+    events.push({
+      runId: receipt.runId,
+      sequence: sequence++,
+      type: 'step.finished',
+      payload: {
+        index: result.index,
+        stepId: result.stepId,
+        kind,
+        passed: result.passed,
+        details: result.details,
+      },
+    });
+  }
+  events.push({
+    runId: receipt.runId,
+    sequence,
+    type: 'run.finished',
+    payload: {
+      status: receipt.status,
+      evidenceLevel: receipt.evidenceLevel,
+      diff: receipt.diff,
+      productCriteria: receipt.productCriteria,
+    },
+  });
+  return events;
+}
+
 async function startRun() {
   const scenario = selectedScenario();
   if (!scenario) {
@@ -356,10 +413,26 @@ function acceptEvent(event) {
   ) {
     if (typeof stepId === 'string') {
       state.selectedStepId = stepId;
+    } else if (
+      event.type === 'worker.failed' ||
+      event.payload?.status === 'infrastructureFailure'
+    ) {
+      // A worker can disappear before the first authored step begins. Give
+      // that terminal state a real timeline target instead of leaving an
+      // apparently loading cockpit behind.
+      state.selectedStepId = infrastructureStepId;
     }
     state.selectedTab = 'diff';
   }
   if (terminalEventTypes.includes(event.type)) {
+    if (
+      event.type === 'worker.failed' ||
+      event.payload?.status === 'infrastructureFailure'
+    ) {
+      setRunnerStatus('Worker en échec', 'failed');
+    } else {
+      setRunnerStatus('Runner connecté', 'connected');
+    }
     closeEventSource();
     void refreshRuns();
     void loadRunDetails(state.runId);
@@ -396,6 +469,32 @@ function buildSteps() {
       step.passed = false;
     }
     steps.set(stepId, step);
+  }
+  if (steps.size === 0) {
+    const infrastructureEvent = [...state.events].reverse().find(
+      (event) =>
+        event.type === 'worker.failed' ||
+        (
+          event.type === 'run.finished' &&
+          event.payload?.status === 'infrastructureFailure'
+        ),
+    );
+    if (infrastructureEvent) {
+      steps.set(infrastructureStepId, {
+        id: infrastructureStepId,
+        title: 'Échec d’infrastructure',
+        index: 0,
+        kind: 'infrastructure',
+        status: 'failure',
+        passed: false,
+        details: {
+          error:
+            infrastructureEvent.payload?.error ||
+            'Le worker headless a interrompu l’exécution.',
+        },
+        events: [infrastructureEvent],
+      });
+    }
   }
   return [...steps.values()].sort((left, right) => {
     const leftIndex = Number.isInteger(left.index)
@@ -445,7 +544,11 @@ function renderTimeline() {
       .filter(Boolean)
       .join(' ');
     button.append(
-      textNode('strong', 'timeline-step-title', formatIdentifier(step.id)),
+      textNode(
+        'strong',
+        'timeline-step-title',
+        step.title || formatIdentifier(step.id),
+      ),
       textNode(
         'span',
         'timeline-step-status',
@@ -521,7 +624,13 @@ function renderRunStatus() {
     label = 'Annulé';
   }
   if (terminal?.type === 'run.finished') {
-    label = terminal.payload?.status === 'succeeded' ? 'Réussi' : 'Échec';
+    label = terminal.payload?.status === 'succeeded'
+      ? 'Réussi'
+      : terminal.payload?.status === 'cancelled'
+        ? 'Annulé'
+        : terminal.payload?.status === 'infrastructureFailure'
+          ? 'Worker en échec'
+          : 'Échec';
   }
   if (terminal?.type === 'worker.failed') {
     label = 'Worker en échec';
@@ -562,7 +671,20 @@ function renderDiff(target, step) {
   const finalChanges =
     latestEvent('run.finished')?.payload?.diff?.changes || [];
   const visibleChanges = changes.length > 0 ? changes : finalChanges;
-  if (visibleChanges.length === 0) {
+  if (step.id === infrastructureStepId) {
+    section.append(
+      textNode(
+        'p',
+        'inspector-placeholder',
+        'Le worker headless a interrompu l’exécution avant la première étape.',
+      ),
+      textNode(
+        'code',
+        'proof-value',
+        step.details?.error || 'Erreur d’infrastructure inconnue.',
+      ),
+    );
+  } else if (visibleChanges.length === 0) {
     section.append(
       textNode(
         'p',
@@ -696,7 +818,7 @@ function renderInspector() {
   target.replaceChildren();
   const step = selectedStep();
   element('inspector-title').textContent = step
-    ? formatIdentifier(step.id)
+    ? step.title || formatIdentifier(step.id)
     : 'Aucune étape';
   element('inspector-status').textContent = step
     ? step.status === 'success'
@@ -789,6 +911,8 @@ async function loadRunDetails(runId) {
       state.events = [...payload.run.events].sort(
         (left, right) => left.sequence - right.sequence,
       );
+    } else if (state.receipt) {
+      state.events = eventsFromReceipt(state.receipt);
     }
     state.scenarioId = payload.run.scenarioId;
     const steps = buildSteps();

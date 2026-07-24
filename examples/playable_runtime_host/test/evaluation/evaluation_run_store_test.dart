@@ -57,6 +57,23 @@ void main() {
     );
   });
 
+  test('run.finished derives the terminal lifecycle from its status', () {
+    store.create(_descriptor('run-success'));
+    store.append(
+      EvaluationEvent(
+        runId: 'run-success',
+        sequence: 1,
+        type: 'run.finished',
+        payload: const <String, Object?>{'status': 'succeeded'},
+      ),
+    );
+
+    expect(
+      store.requireRun('run-success').lifecycle,
+      EvaluationRunLifecycle.succeeded,
+    );
+  });
+
   test('history loads only validated portable receipt paths', () async {
     await _writeReceipt(
       historyRoot,

@@ -186,7 +186,11 @@ final class LocalEvaluationWebOrchestrator extends EvaluationWebOrchestrator {
 
   @override
   Future<List<EvaluationRunRecord>> listActiveRuns() async {
-    return runStore.activeRuns;
+    final historyIds =
+        (await runStore.loadHistory()).map((record) => record.runId).toSet();
+    return runStore.activeRuns
+        .where((record) => !historyIds.contains(record.runId))
+        .toList(growable: false);
   }
 
   @override
@@ -266,6 +270,9 @@ final class LocalEvaluationWebOrchestrator extends EvaluationWebOrchestrator {
     final projectId = _projectByRunId[runId];
     if (projectId == null) {
       throw StateError('Unknown evaluation run $runId.');
+    }
+    if (runStore.requireRun(runId).events.lastOrNull?.type == 'run.finished') {
+      throw StateError('Evaluation run $runId has already finished.');
     }
     await workerPool.control(
       projectId: projectId,

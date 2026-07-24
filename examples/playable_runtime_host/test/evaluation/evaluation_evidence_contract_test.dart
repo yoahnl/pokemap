@@ -218,6 +218,18 @@ void main() {
       expect(receipt.toJson()['relativeReceiptPath'], 'receipt.json');
       expect(receipt.toJson()['artifacts'], <String>['artifacts/start.png']);
     });
+
+    test('round-trips timestamps with sub-millisecond precision', () {
+      final json = _receipt().toJson()
+        ..['startedAt'] = '2026-07-24T08:00:00.000123Z'
+        ..['finishedAt'] = '2026-07-24T08:00:01.000999Z'
+        ..['durationMilliseconds'] = 1000;
+
+      final receipt = EvaluationReceipt.fromJson(json);
+
+      expect(receipt.duration, const Duration(microseconds: 1000876));
+      expect(receipt.toJson()['durationMilliseconds'], 1000);
+    });
   });
 }
 

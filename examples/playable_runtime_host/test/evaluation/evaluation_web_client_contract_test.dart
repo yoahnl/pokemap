@@ -26,7 +26,7 @@ void main() {
     final source = _asset('app.js');
 
     for (final action in <String>['step', 'pause', 'resume', 'cancel']) {
-      expect(source, contains('/${action}'));
+      expect(source, contains('/$action'));
     }
     for (final tab in <String>['diff', 'state', 'trace', 'proof']) {
       expect(source, contains("'$tab'"));
@@ -34,6 +34,16 @@ void main() {
     expect(source, contains('event.sequence'));
     expect(source, contains('selectedTab = \'diff\''));
     expect(source, contains('Interactif · Bientôt'));
+    expect(source, contains('eventsFromReceipt'));
+    expect(source, contains('receipt.stepResults'));
+    expect(source, contains('infrastructure_failure'));
+    expect(
+      source,
+      contains(
+        'Le worker headless a interrompu l’exécution avant la première étape.',
+      ),
+    );
+    expect(source, contains("setRunnerStatus('Worker en échec', 'failed')"));
   });
 }
 

@@ -16,10 +16,39 @@ dart run tool/pokemap_eval.dart run selbrume.lysa-retry
 dart run tool/pokemap_eval.dart run selbrume.mvp --policy certify
 dart run tool/pokemap_eval.dart inspect --checkpoint after-lysa --facts --party --bag
 dart run tool/pokemap_eval.dart history
+dart run tool/pokemap_eval.dart web --project selbrume
 ```
 
 Ajouter `--json` à `run`, `inspect` ou `history` produit une seule ligne JSON,
 adaptée aux scripts et à la CI.
+
+## Cockpit web local
+
+La commande `web` ouvre le cockpit Timeline C dans le navigateur et réutilise
+exactement les mêmes scénarios et reçus que la CLI :
+
+```bash
+dart run tool/pokemap_eval.dart web --project selbrume
+dart run tool/pokemap_eval.dart web --project selbrume --no-open
+dart run tool/pokemap_eval.dart web --project selbrume --port 55123
+```
+
+Le port `0` par défaut choisit automatiquement un port libre. Le serveur
+n’écoute que sur `127.0.0.1`, injecte un jeton de session éphémère dans la page
+et refuse toute mutation qui ne le présente pas. L’URL est transmise au
+navigateur comme un argument de processus unique, sans shell.
+
+Le cockpit permet de :
+
+- choisir le projet et le scénario ;
+- lancer un probe headless ;
+- suivre chaque étape dans la timeline en direct ;
+- mettre en pause, avancer d’une étape, reprendre ou annuler ;
+- inspecter Diff, State, Trace et Proof ;
+- retrouver les reçus des exécutions précédentes.
+
+La cible « Interactif » reste volontairement désactivée dans cette V1. Elle
+sera raccordée au runtime visible dans la phase suivante.
 
 ## Politiques et preuves
 

@@ -181,6 +181,42 @@ void main() {
       ]);
     });
 
+    test('SSE serializes a burst of live events', () async {
+      orchestrator.createRun('run-burst');
+      store.append(_event('run-burst', 1, 'run.started'));
+      final connection = await _openSse(
+        server.uri.resolve('/api/runs/run-burst/events'),
+      );
+      addTearDown(connection.close);
+
+      for (var sequence = 2; sequence <= 13; sequence += 1) {
+        store.append(_event('run-burst', sequence, 'step.finished'));
+      }
+
+      final events = await connection.events
+          .take(13)
+          .toList()
+          .timeout(const Duration(seconds: 2));
+      expect(
+        events.map((event) => event['sequence']),
+        List<int>.generate(13, (index) => index + 1),
+      );
+    });
+
+    test('server shutdown closes an open SSE response exactly once', () async {
+      orchestrator.createRun('run-shutdown');
+      store.append(_event('run-shutdown', 1, 'run.started'));
+      final connection = await _openSse(
+        server.uri.resolve('/api/runs/run-shutdown/events'),
+      );
+
+      await server.close();
+      connection.close();
+
+      // close() is idempotent so the group tearDown can safely call it again.
+      await server.close();
+    });
+
     test('control routes drive the run control and reject terminal runs',
         () async {
       orchestrator.createRun('run-controlled');

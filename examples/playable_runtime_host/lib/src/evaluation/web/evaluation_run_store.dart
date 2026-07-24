@@ -257,7 +257,15 @@ final class _MutableEvaluationRunRecord {
 
 EvaluationRunLifecycle _lifecycleFor(List<EvaluationEvent> events) {
   if (events.isEmpty) return EvaluationRunLifecycle.queued;
-  return switch (events.last.type) {
+  final last = events.last;
+  if (last.type == 'run.finished') {
+    return switch (last.payload['status']) {
+      'succeeded' => EvaluationRunLifecycle.succeeded,
+      'cancelled' => EvaluationRunLifecycle.cancelled,
+      _ => EvaluationRunLifecycle.failed,
+    };
+  }
+  return switch (last.type) {
     'run.paused' => EvaluationRunLifecycle.paused,
     'run.succeeded' || 'run.completed' => EvaluationRunLifecycle.succeeded,
     'run.failed' => EvaluationRunLifecycle.failed,

@@ -304,6 +304,12 @@ final class EvaluationReceipt {
     );
     final startedAt = _jsonDateTime(json, 'startedAt');
     final finishedAt = _jsonDateTime(json, 'finishedAt');
+    final duration = finishedAt.difference(startedAt);
+    if (_jsonInt(json, 'durationMilliseconds') != duration.inMilliseconds) {
+      throw const FormatException(
+        'Receipt duration must match its timestamp range.',
+      );
+    }
 
     return EvaluationReceipt.validated(
       runId: _jsonString(json, 'runId'),
@@ -331,9 +337,7 @@ final class EvaluationReceipt {
       outputDigest: _jsonString(json, 'outputDigest'),
       startedAt: startedAt,
       finishedAt: finishedAt,
-      duration: Duration(
-        milliseconds: _jsonInt(json, 'durationMilliseconds'),
-      ),
+      duration: duration,
       status: _jsonEnum(
         EvaluationRunStatus.values,
         _jsonString(json, 'status'),

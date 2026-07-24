@@ -349,7 +349,12 @@ final class _PersistentEvaluationWorkerHandle
     }
     _healthy = false;
     await _subscription.cancel();
-    await socket.close();
+    try {
+      await socket.close();
+    } on StateError {
+      // A crashed worker destroys its socket from the connection callback.
+      // Closing that already-destroyed sink is best-effort during shutdown.
+    }
     try {
       await process.exitCode.timeout(const Duration(seconds: 5));
     } on TimeoutException {
