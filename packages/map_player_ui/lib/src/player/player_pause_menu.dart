@@ -156,3 +156,123 @@ class PlayerPauseMenu extends StatelessWidget {
         PlayerPauseAction.returnToTitle => Icons.logout_rounded,
       };
 }
+
+/// Root navigation reused inside the responsive runtime-owned pause shell.
+class PlayerPauseNavigation extends StatelessWidget {
+  const PlayerPauseNavigation({
+    super.key,
+    required this.gameTitle,
+    required this.actions,
+    required this.onSelected,
+    this.useGrid = false,
+    this.scrollKey,
+  });
+
+  final String gameTitle;
+  final Map<PlayerPauseAction, PlayerActionAvailability> actions;
+  final ValueChanged<PlayerPauseAction> onSelected;
+  final bool useGrid;
+  final Key? scrollKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final firstEnabledAction = PlayerPauseAction.values
+        .where((action) => _availability(context, action).isEnabled)
+        .firstOrNull;
+    return Column(
+      key: const ValueKey<String>('runtime-pause-navigation'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Semantics(
+          header: true,
+          child: Text(
+            context.playerL10n.pause,
+            style: Theme.of(context).textTheme.headlineMedium,
+          ),
+        ),
+        const SizedBox(height: PlayerSpacing.xs),
+        Text(gameTitle, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: PlayerSpacing.lg),
+        Expanded(
+          child: useGrid
+              ? GridView.builder(
+                  key: scrollKey ?? const ValueKey<String>('player-pause-grid'),
+                  itemCount: PlayerPauseAction.values.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisExtent: 68,
+                    crossAxisSpacing: PlayerSpacing.sm,
+                    mainAxisSpacing: PlayerSpacing.sm,
+                  ),
+                  itemBuilder: (context, index) => _action(
+                    context,
+                    PlayerPauseAction.values[index],
+                    firstEnabledAction,
+                  ),
+                )
+              : ListView.separated(
+                  key: scrollKey ?? const ValueKey<String>('player-pause-list'),
+                  itemCount: PlayerPauseAction.values.length,
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: PlayerSpacing.xs),
+                  itemBuilder: (context, index) => _action(
+                    context,
+                    PlayerPauseAction.values[index],
+                    firstEnabledAction,
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _action(
+    BuildContext context,
+    PlayerPauseAction action,
+    PlayerPauseAction? firstEnabledAction,
+  ) {
+    final availability = _availability(context, action);
+    return PlayerActionButton(
+      label: _label(context, action),
+      icon: _icon(action),
+      autofocus: action == firstEnabledAction,
+      secondary: action == PlayerPauseAction.returnToTitle,
+      disabledReason: availability.disabledReason,
+      onPressed: availability.isEnabled ? () => onSelected(action) : null,
+    );
+  }
+
+  PlayerActionAvailability _availability(
+    BuildContext context,
+    PlayerPauseAction action,
+  ) =>
+      actions[action] ??
+      PlayerActionAvailability.disabled(
+        context.playerL10n.actionUnavailable,
+      );
+
+  String _label(BuildContext context, PlayerPauseAction action) {
+    final l10n = context.playerL10n;
+    return switch (action) {
+      PlayerPauseAction.resume => l10n.resume,
+      PlayerPauseAction.party => l10n.party,
+      PlayerPauseAction.bag => l10n.bag,
+      PlayerPauseAction.pokedex => l10n.pokedex,
+      PlayerPauseAction.map => l10n.map,
+      PlayerPauseAction.save => l10n.save,
+      PlayerPauseAction.options => l10n.options,
+      PlayerPauseAction.returnToTitle => l10n.returnToTitle,
+    };
+  }
+
+  IconData _icon(PlayerPauseAction action) => switch (action) {
+        PlayerPauseAction.resume => Icons.play_arrow_rounded,
+        PlayerPauseAction.party => Icons.groups_rounded,
+        PlayerPauseAction.bag => Icons.backpack_rounded,
+        PlayerPauseAction.pokedex => Icons.menu_book_rounded,
+        PlayerPauseAction.map => Icons.map_rounded,
+        PlayerPauseAction.save => Icons.save_rounded,
+        PlayerPauseAction.options => Icons.tune_rounded,
+        PlayerPauseAction.returnToTitle => Icons.logout_rounded,
+      };
+}

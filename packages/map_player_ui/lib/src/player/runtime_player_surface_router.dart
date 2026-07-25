@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
+import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import 'player_pause_menu.dart';
 import 'player_session_surfaces.dart';
 import 'player_title_screen.dart';
+import 'runtime_player_pause_shell.dart';
 
 typedef RuntimePlayerActionCallback = Future<RuntimePlayerCommandResult>
     Function(RuntimePlayerAction action);
@@ -81,13 +83,22 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
           onCancel: _callbackFor(RuntimePlayerAction.cancel),
         ),
       RuntimePlayerPhase.playing => null,
-      RuntimePlayerPhase.paused => PlayerPauseMenu(
+      RuntimePlayerPhase.paused => RuntimePlayerPauseShell(
           gameTitle: snapshot.gameTitle,
+          pauseSection: snapshot.pauseSection ?? RuntimePlayerPauseSection.root,
           actions: <PlayerPauseAction, PlayerActionAvailability>{
             for (final action in PlayerPauseAction.values)
               action: _pauseAvailability(context, action),
           },
           onSelected: (action) => _dispatch(_pauseAction(action)),
+          onBackToRoot: () => _dispatch(RuntimePlayerAction.returnToPauseRoot),
+          onTouchMenu: _callbackFor(RuntimePlayerAction.resume),
+          activeInputSource: snapshot.activeInputSource,
+          detail: PlayerEmptyState(
+            icon: Icons.explore_rounded,
+            title: _pauseSectionLabel(context),
+            message: context.playerL10n.actionUnavailable,
+          ),
         ),
       RuntimePlayerPhase.saving => PlayerLoadingSurface(
           stage: l10n.save,
@@ -226,6 +237,18 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
         PlayerPauseAction.options => RuntimePlayerAction.openOptions,
         PlayerPauseAction.returnToTitle => RuntimePlayerAction.returnToTitle,
       };
+
+  String _pauseSectionLabel(BuildContext context) {
+    final l10n = context.playerL10n;
+    return switch (snapshot.pauseSection) {
+      RuntimePlayerPauseSection.party => l10n.party,
+      RuntimePlayerPauseSection.bag => l10n.bag,
+      RuntimePlayerPauseSection.pokedex => l10n.pokedex,
+      RuntimePlayerPauseSection.map => l10n.map,
+      RuntimePlayerPauseSection.options => l10n.options,
+      RuntimePlayerPauseSection.root || null => l10n.pause,
+    };
+  }
 
   bool _usesGameScene(RuntimePlayerPhase phase) => switch (phase) {
         RuntimePlayerPhase.loadingSession ||
