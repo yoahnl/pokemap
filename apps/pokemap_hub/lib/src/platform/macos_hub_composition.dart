@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core.dart';
@@ -175,16 +175,15 @@ Future<void> _pickAndImport(HubDashboardController controller) async {
       );
       return;
     }
-    final result = await FilePicker.platform.pickFiles(
-      dialogTitle: 'Importer un jeu PokeMap',
-      allowMultiple: false,
-      allowedExtensions: const <String>['pokemapgame'],
-      type: FileType.custom,
-      lockParentWindow: true,
+    const typeGroup = XTypeGroup(
+      label: 'Jeu PokeMap',
+      extensions: <String>['pokemapgame'],
     );
-    final path = result?.files.single.path;
-    if (path == null) return;
-    await controller.importPackage(File(path));
+    final selectedFile = await openFile(
+      acceptedTypeGroups: <XTypeGroup>[typeGroup],
+    );
+    if (selectedFile == null) return;
+    await controller.importPackage(File(selectedFile.path));
   } on Object catch (error, stackTrace) {
     await controller.reportImportPickerFailure(
       code: 'importPicker.openFailed',
