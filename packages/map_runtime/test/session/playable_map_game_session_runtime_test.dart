@@ -42,6 +42,26 @@ void main() {
       gameState: const GameState(
         saveId: '123e4567-e89b-42d3-a456-426614174000',
         currentMapId: 'p3_test_map',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'sparkitten',
+              natureId: 'hardy',
+              abilityId: 'blaze',
+              level: 7,
+              currentHp: 23,
+            ),
+          ],
+        ),
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(
+              itemId: 'potion',
+              categoryId: 'medicine',
+              quantity: 2,
+            ),
+          ],
+        ),
       ),
     );
     PlayableMapGame? mounted;
@@ -66,6 +86,21 @@ void main() {
     await runtime.load(progress.add);
     expect(mounted, isNotNull);
     expect(progress.last.stage, 'ready');
+    await runtime.pause();
+    final pauseDetails = await runtime.loadPauseDetails();
+    expect(
+      pauseDetails[RuntimePlayerPauseSection.party]!.entries.single.title,
+      'Sparkitten',
+    );
+    expect(
+      pauseDetails[RuntimePlayerPauseSection.bag]!.entries.single.trailingLabel,
+      '×2',
+    );
+    expect(
+      pauseDetails,
+      contains(RuntimePlayerPauseSection.pokedex),
+    );
+    await runtime.resume();
     final checkpoint = await runtime.captureCheckpoint();
     expect(checkpoint?.saveId, save.saveId);
     expect(checkpoint?.playTimeSeconds, greaterThanOrEqualTo(90));

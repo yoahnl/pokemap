@@ -406,4 +406,7 @@ export 'src/player/runtime_player_coordinator.dart';
 export 'src/player/runtime_input_lock_manager.dart';
 export 'src/player/runtime_player_input.dart';
 export 'src/player/runtime_player_models.dart';
+export 'src/player/runtime_player_pause_data.dart';
+export 'src/player/runtime_player_pause_data_builder.dart'
+    show RuntimePlayerPauseDataBuilder;
 export 'src/player/runtime_world_service_models.dart';

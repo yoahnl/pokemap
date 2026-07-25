@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../presentation/flame/runtime_input_authority.dart';
 import '../presentation/flame/runtime_input_event.dart';
+import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_world_service_models.dart';
 import 'game_session_contract.dart';
 
@@ -39,6 +40,7 @@ final class InProcessGameSessionAdapter
     implements
         GameSessionAdapter,
         GameSessionInputLockPort,
+        RuntimePlayerPauseDataPort,
         RuntimeWorldServicePort {
   InProcessGameSessionAdapter({
     required InProcessGameSessionRuntimeFactory runtimeFactory,
@@ -52,6 +54,7 @@ final class InProcessGameSessionAdapter
   StreamSubscription<GameSessionAdapterEvent>? _runtimeEvents;
   StreamSubscription<RuntimeWorldServiceSnapshot?>? _runtimeWorldServices;
   RuntimeWorldServicePort? _worldServicePort;
+  RuntimePlayerPauseDataPort? _pauseDataPort;
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   GameSessionDescriptor? _descriptor;
   bool _disposed = false;
@@ -89,6 +92,9 @@ final class InProcessGameSessionAdapter
         _publishWorldService,
       );
     }
+    if (runtime case final RuntimePlayerPauseDataPort port) {
+      _pauseDataPort = port;
+    }
   }
 
   @override
@@ -113,6 +119,18 @@ final class InProcessGameSessionAdapter
       );
     }
     return port.dispatchWorldService(command);
+  }
+
+  @override
+  Future<Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>
+      loadPauseDetails() {
+    final port = _pauseDataPort;
+    if (port == null || _disposed) {
+      return Future.value(
+        const <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{},
+      );
+    }
+    return port.loadPauseDetails();
   }
 
   @override
@@ -190,6 +208,7 @@ final class InProcessGameSessionAdapter
     await _runtimeWorldServices?.cancel();
     _runtimeWorldServices = null;
     _worldServicePort = null;
+    _pauseDataPort = null;
     _publishWorldService(null);
     final runtime = _runtime;
     _runtime = null;

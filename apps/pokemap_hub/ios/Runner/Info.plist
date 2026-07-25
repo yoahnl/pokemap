@@ -27,11 +27,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Avelune n’utilise pas votre appareil photo. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
+	<string>PokeMap Hub n’utilise pas votre appareil photo. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Avelune n’accède pas à votre position. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
+	<string>PokeMap Hub n’accède pas à votre position. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Avelune n’accède pas à votre photothèque. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
+	<string>PokeMap Hub n’accède pas à votre photothèque. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -57,6 +57,29 @@
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.archive</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>PokeMap Game Package</string>
+			<key>UTTypeIdentifier</key>
+			<string>app.pokemap.game-package</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>pokemapgame</string>
+				</array>
+				<key>public.mime-type</key>
+				<string>application/x-pokemap-game</string>
+			</dict>
+		</dict>
+	</array>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>UISupportedInterfaceOrientations</key>

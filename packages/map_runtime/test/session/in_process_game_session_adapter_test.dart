@@ -93,6 +93,23 @@ void main() {
     expect(snapshots.last, isNull);
     await subscription.cancel();
   });
+
+  test('in-process adapter forwards runtime-owned pause data', () async {
+    final runtime = _FakePauseDataRuntime('session-a');
+    final adapter = InProcessGameSessionAdapter(
+      runtimeFactory: (_) => runtime,
+    );
+
+    await adapter.prepare(_descriptor());
+    final details = await adapter.loadPauseDetails();
+
+    expect(
+      details[RuntimePlayerPauseSection.party]!.entries.single.title,
+      'Salamèche',
+    );
+    expect(runtime.calls, contains('pause-details'));
+    await adapter.dispose();
+  });
 }
 
 GameSessionDescriptor _descriptor() => GameSessionDescriptor(
@@ -224,5 +241,28 @@ final class _FakeContextualRuntime extends _FakeInProcessRuntime
   Future<void> dispose() async {
     await _worldServices.close();
     await super.dispose();
+  }
+}
+
+final class _FakePauseDataRuntime extends _FakeInProcessRuntime
+    implements RuntimePlayerPauseDataPort {
+  _FakePauseDataRuntime(super.sessionId);
+
+  @override
+  Future<Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>
+      loadPauseDetails() async {
+    calls.add('pause-details');
+    return <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{
+      RuntimePlayerPauseSection.party: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.party,
+        title: 'Équipe',
+        entries: <RuntimePlayerDetailEntrySnapshot>[
+          RuntimePlayerDetailEntrySnapshot(
+            id: 'party.0',
+            title: 'Salamèche',
+          ),
+        ],
+      ),
+    };
   }
 }

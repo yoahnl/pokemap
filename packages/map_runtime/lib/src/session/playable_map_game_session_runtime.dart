@@ -7,6 +7,8 @@ import 'package:map_gameplay/map_gameplay.dart';
 import '../application/load_runtime_map_bundle.dart';
 import '../application/map_activation.dart';
 import '../application/player_service_runtime_controller.dart';
+import '../player/runtime_player_pause_data.dart';
+import '../player/runtime_player_pause_data_builder.dart';
 import '../player/runtime_world_service_models.dart';
 import '../presentation/flame/playable_map_game.dart';
 import '../presentation/flame/runtime_input_authority.dart';
@@ -30,6 +32,7 @@ final class PlayableMapGameSessionRuntime
     implements
         InProcessGameSessionRuntime,
         GameSessionInputLockPort,
+        RuntimePlayerPauseDataPort,
         RuntimeWorldServicePort {
   PlayableMapGameSessionRuntime({
     required this.descriptor,
@@ -62,6 +65,8 @@ final class PlayableMapGameSessionRuntime
   PlayerServiceRuntimeController? _playerServices;
   StreamSubscription<RuntimeWorldServiceSnapshot?>? _playerServiceSnapshots;
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
+  String? _projectRootDirectory;
+  ProjectPokemonConfig? _pokemonConfig;
   DateTime? _createdAt;
   String? _saveId;
   int _basePlayTimeSeconds = 0;
@@ -156,6 +161,8 @@ final class PlayableMapGameSessionRuntime
       projectFilePath: projectFilePath,
       mapId: mapId,
     );
+    _projectRootDirectory = bundle.projectRootDirectory;
+    _pokemonConfig = bundle.manifest.pokemon;
     final memorySaves = _SessionMemoryGameSaveRepository(initialState);
     final game = PlayableMapGame(
       bundle: bundle,
@@ -217,6 +224,25 @@ final class PlayableMapGameSessionRuntime
     final game = _requireGame();
     _playWatch.stop();
     game.pauseEngine();
+  }
+
+  @override
+  Future<Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>
+      loadPauseDetails() {
+    final game = _requireGame();
+    final projectRootDirectory = _projectRootDirectory;
+    final pokemonConfig = _pokemonConfig;
+    if (projectRootDirectory == null || pokemonConfig == null) {
+      return Future.value(
+        const <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{},
+      );
+    }
+    return const RuntimePlayerPauseDataBuilder().build(
+      gameState: game.gameStateSnapshot,
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+      locale: descriptor.locale,
+    );
   }
 
   @override
@@ -327,6 +353,8 @@ final class PlayableMapGameSessionRuntime
     _publishWorldService(null);
     final game = _game;
     _game = null;
+    _projectRootDirectory = null;
+    _pokemonConfig = null;
     if (game != null && _mounted) {
       await _unmountGame(game);
       _mounted = false;

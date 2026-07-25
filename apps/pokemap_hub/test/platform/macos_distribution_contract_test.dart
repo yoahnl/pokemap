@@ -54,8 +54,8 @@ void main() {
       () async {
     final window =
         await File('macos/Runner/MainFlutterWindow.swift').readAsString();
-    final composition = await File(
-      'lib/src/platform/macos_hub_composition.dart',
+    final adapter = await File(
+      'lib/src/platform/macos_hub_platform_adapter.dart',
     ).readAsString();
 
     expect(window, contains('import Security'));
@@ -66,20 +66,38 @@ void main() {
       contains('com.apple.security.files.user-selected.read-only'),
     );
     expect(
-      composition,
+      adapter,
       contains("invokeMethod<bool>('canSelectPackages')"),
     );
-    expect(composition, contains('reportImportPickerFailure'));
+    expect(adapter, contains('HubPackagePickerFailure'));
+  });
+
+  test('macOS package picker uses the Hub native bridge', () async {
+    final window =
+        await File('macos/Runner/MainFlutterWindow.swift').readAsString();
+    final adapter = await File(
+      'lib/src/platform/macos_hub_platform_adapter.dart',
+    ).readAsString();
+
+    expect(window, contains('import UniformTypeIdentifiers'));
+    expect(window, contains('case "pickPackage"'));
+    expect(window, contains('NSOpenPanel()'));
+    expect(window, contains('allowedContentTypes'));
+    expect(
+      adapter,
+      contains("invokeMethod<String>('pickPackage')"),
+    );
+    expect(adapter, isNot(contains('openFile(')));
   });
 
   test('application entry point composes PokeMap Hub, not a demo counter',
       () async {
     final main = await File('lib/main.dart').readAsString();
     final composition =
-        await File('lib/src/platform/macos_hub_composition.dart')
-            .readAsString();
+        await File('lib/src/platform/hub_composition.dart').readAsString();
 
-    expect(main, contains('MacOSHubComposition'));
+    expect(main, contains('PokeMapHubBootstrap'));
+    expect(main, isNot(contains('MacOSHubComposition')));
     expect(composition, contains('PokeMapHubApp'));
     expect(composition, contains('GamePackageInstaller'));
     expect(composition, contains('_loadInstalledProjectSmoke'));
@@ -93,17 +111,16 @@ void main() {
         await File('macos/Runner/AppDelegate.swift').readAsString();
     final window =
         await File('macos/Runner/MainFlutterWindow.swift').readAsString();
-    final composition = await File(
-      'lib/src/platform/macos_hub_composition.dart',
+    final adapter = await File(
+      'lib/src/platform/macos_hub_platform_adapter.dart',
     ).readAsString();
 
     expect(appDelegate, contains('openFiles filenames'));
     expect(appDelegate, contains('takePendingPackagePaths'));
     expect(window, contains('app.pokemap.hub/package_open'));
     expect(window, contains('flushPendingPackagePaths'));
-    expect(
-        composition, contains("MethodChannel('app.pokemap.hub/package_open')"));
-    expect(composition, contains("call.method != 'openPackages'"));
-    expect(composition, contains("invokeMethod<void>('ready')"));
+    expect(adapter, contains("MethodChannel('app.pokemap.hub/package_open')"));
+    expect(adapter, contains("call.method != 'openPackages'"));
+    expect(adapter, contains("invokeMethod<void>('ready')"));
   });
 }

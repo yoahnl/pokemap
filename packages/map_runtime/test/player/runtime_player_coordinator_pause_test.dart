@@ -63,6 +63,86 @@ void main() {
     );
   });
 
+  test('pause surfaces receive live data from the active runtime', () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    harness.adapter.pauseDetails =
+        <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{
+      RuntimePlayerPauseSection.party: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.party,
+        title: 'Équipe',
+        entries: <RuntimePlayerDetailEntrySnapshot>[
+          RuntimePlayerDetailEntrySnapshot(
+            id: 'party.0',
+            title: 'Salamèche',
+            subtitle: 'Niv. 16 · PV 38/38',
+          ),
+        ],
+      ),
+      RuntimePlayerPauseSection.bag: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.bag,
+        title: 'Sac',
+        entries: <RuntimePlayerDetailEntrySnapshot>[
+          RuntimePlayerDetailEntrySnapshot(
+            id: 'bag.medicine.potion',
+            title: 'Potion',
+            trailingLabel: '×3',
+          ),
+        ],
+      ),
+      RuntimePlayerPauseSection.pokedex: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.pokedex,
+        title: 'Pokédex',
+        entries: <RuntimePlayerDetailEntrySnapshot>[
+          RuntimePlayerDetailEntrySnapshot(
+            id: 'charmander',
+            title: 'Salamèche',
+            subtitle: '#004 · Capturé',
+          ),
+        ],
+      ),
+    };
+
+    await _openMenu(harness);
+
+    expect(harness.adapter.calls, contains('pause-details'));
+    expect(
+      harness.coordinator.snapshot
+          .pauseDetailFor(RuntimePlayerPauseSection.party)!
+          .entries
+          .single
+          .title,
+      'Salamèche',
+    );
+    expect(
+      harness.coordinator.snapshot
+          .pauseDetailFor(RuntimePlayerPauseSection.bag)!
+          .entries
+          .single
+          .trailingLabel,
+      '×3',
+    );
+    expect(
+      harness.coordinator.snapshot
+          .isActionEnabled(RuntimePlayerAction.openPokedex),
+      isTrue,
+    );
+
+    final openPokedex = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.openPokedex,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+
+    expect(openPokedex.status, RuntimePlayerCommandStatus.accepted);
+    expect(
+      harness.coordinator.snapshot.pauseSection,
+      RuntimePlayerPauseSection.pokedex,
+    );
+  });
+
   test('navigates to a detail section and returns to the pause root', () async {
     final harness = RuntimePlayerTestHarness();
     addTearDown(harness.dispose);

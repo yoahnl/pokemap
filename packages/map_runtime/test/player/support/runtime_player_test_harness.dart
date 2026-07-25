@@ -228,7 +228,10 @@ final class MemoryRuntimeExternalExit implements RuntimeExternalExit {
 }
 
 final class FakeRuntimeSessionAdapter
-    implements GameSessionAdapter, RuntimeWorldServicePort {
+    implements
+        GameSessionAdapter,
+        RuntimePlayerPauseDataPort,
+        RuntimeWorldServicePort {
   FakeRuntimeSessionAdapter(this.sessionId);
 
   final String sessionId;
@@ -237,6 +240,9 @@ final class FakeRuntimeSessionAdapter
   final _worldServices =
       StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
   final worldServiceCommands = <RuntimeWorldServiceCommand>[];
+  Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
+      pauseDetails =
+      const <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{};
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   GameSessionCheckpoint? checkpoint;
   int disposeCalls = 0;
@@ -255,6 +261,13 @@ final class FakeRuntimeSessionAdapter
   @override
   Stream<RuntimeWorldServiceSnapshot?> get worldServiceSnapshots =>
       _worldServices.stream;
+
+  @override
+  Future<Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>
+      loadPauseDetails() async {
+    calls.add('pause-details');
+    return pauseDetails;
+  }
 
   void emit(GameSessionAdapterEvent event) => _events.add(event);
 

@@ -6,6 +6,7 @@ import '../session/game_session_contract.dart';
 import '../session/game_session_controller.dart';
 import 'runtime_player_host.dart';
 import 'runtime_player_models.dart';
+import 'runtime_player_pause_data.dart';
 import 'runtime_world_service_models.dart';
 
 /// Runtime-owned state machine for title, session and player surfaces.
@@ -272,9 +273,11 @@ final class RuntimePlayerCoordinator {
         return _launch(retry);
       case RuntimePlayerAction.openMenu:
         await _sessions.pause();
-        if (_snapshot.phase != RuntimePlayerPhase.paused) {
-          _publishPause(RuntimePlayerPauseSection.root);
-        }
+        final pauseDetails = await _sessions.loadPauseDetails();
+        _publishPause(
+          RuntimePlayerPauseSection.root,
+          pauseDetails: pauseDetails,
+        );
         return const RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.accepted,
         );
@@ -778,6 +781,7 @@ final class RuntimePlayerCoordinator {
       _snapshot.next(
         phase: RuntimePlayerPhase.playing,
         clearPauseSection: true,
+        clearPauseDetails: true,
         clearLoadingProgress: true,
         clearFailure: true,
         clearWorldService: true,
@@ -795,7 +799,10 @@ final class RuntimePlayerCoordinator {
     String? logicalSelectionId,
     GameSessionFailure? failure,
     bool clearFailure = false,
+    Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>?
+        pauseDetails,
   }) {
+    final effectivePauseDetails = pauseDetails ?? _snapshot.pauseDetails;
     _publish(
       _snapshot.next(
         phase: RuntimePlayerPhase.paused,
@@ -803,8 +810,10 @@ final class RuntimePlayerCoordinator {
         logicalSelectionId: logicalSelectionId,
         failure: failure,
         clearFailure: clearFailure,
+        pauseDetails: effectivePauseDetails,
         actions: _pauseActions(
           includeReturnToRoot: section != RuntimePlayerPauseSection.root,
+          pauseDetails: effectivePauseDetails,
         ),
       ),
     );
@@ -886,6 +895,8 @@ final class RuntimePlayerCoordinator {
 
   List<RuntimePlayerActionAvailability> _pauseActions({
     required bool includeReturnToRoot,
+    required Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
+        pauseDetails,
   }) {
     return <RuntimePlayerActionAvailability>[
       const RuntimePlayerActionAvailability.enabled(
@@ -897,7 +908,7 @@ final class RuntimePlayerCoordinator {
       const RuntimePlayerActionAvailability.enabled(
         RuntimePlayerAction.openBag,
       ),
-      if (_hasCapability('pokedex.v1'))
+      if (pauseDetails.containsKey(RuntimePlayerPauseSection.pokedex))
         const RuntimePlayerActionAvailability.enabled(
           RuntimePlayerAction.openPokedex,
         )

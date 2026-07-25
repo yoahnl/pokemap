@@ -1,6 +1,7 @@
 import Cocoa
 import FlutterMacOS
 import Security
+import UniformTypeIdentifiers
 
 class MainFlutterWindow: NSWindow {
   private var packageOpenChannel: FlutterMethodChannel?
@@ -41,6 +42,18 @@ class MainFlutterWindow: NSWindow {
         result(nil)
       case "canSelectPackages":
         result(Self.hasUserSelectedFileReadEntitlement())
+      case "pickPackage":
+        guard let self = self else {
+          result(
+            FlutterError(
+              code: "picker.windowUnavailable",
+              message: "The Hub window is unavailable.",
+              details: nil
+            )
+          )
+          return
+        }
+        self.presentPackagePicker(result)
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -51,6 +64,33 @@ class MainFlutterWindow: NSWindow {
       queue: .main
     ) { [weak self] _ in
       self?.flushPendingPackagePaths()
+    }
+  }
+
+  private func presentPackagePicker(_ result: @escaping FlutterResult) {
+    guard let packageType = UTType(filenameExtension: "pokemapgame") else {
+      result(
+        FlutterError(
+          code: "picker.typeUnavailable",
+          message: "The PokeMap game package type is unavailable.",
+          details: nil
+        )
+      )
+      return
+    }
+    let panel = NSOpenPanel()
+    panel.allowedContentTypes = [packageType]
+    panel.allowsMultipleSelection = false
+    panel.canChooseDirectories = false
+    panel.canChooseFiles = true
+    panel.prompt = "Importer"
+    panel.message = "Sélectionnez un jeu PokeMap au format .pokemapgame."
+    panel.beginSheetModal(for: self) { response in
+      guard response == .OK else {
+        result(nil)
+        return
+      }
+      result(panel.url?.path)
     }
   }
 

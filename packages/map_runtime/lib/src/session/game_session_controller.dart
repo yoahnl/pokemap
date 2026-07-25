@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../presentation/flame/runtime_input_authority.dart';
 import '../presentation/flame/runtime_input_event.dart';
+import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_world_service_models.dart';
 import 'game_session_contract.dart';
 
@@ -12,7 +13,8 @@ import 'game_session_contract.dart';
 /// The controller never reads package paths and never persists saves itself.
 /// Both authorities are injected by the Hub, which keeps this facade usable by
 /// the developer host without creating a dependency on the Hub application.
-final class GameSessionController implements RuntimeWorldServicePort {
+final class GameSessionController
+    implements RuntimePlayerPauseDataPort, RuntimeWorldServicePort {
   GameSessionController({
     required GameSessionAdapterFactory adapterFactory,
     required GameSessionCheckpointCommitter commitCheckpoint,
@@ -44,6 +46,7 @@ final class GameSessionController implements RuntimeWorldServicePort {
   StreamSubscription<GameSessionAdapterEvent>? _adapterEvents;
   StreamSubscription<RuntimeWorldServiceSnapshot?>? _adapterWorldServices;
   RuntimeWorldServicePort? _worldServicePort;
+  RuntimePlayerPauseDataPort? _pauseDataPort;
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   bool _controllerDisposed = false;
   final Set<String> _completionKeys = <String>{};
@@ -76,6 +79,20 @@ final class GameSessionController implements RuntimeWorldServicePort {
       );
     }
     return port.dispatchWorldService(command);
+  }
+
+  @override
+  Future<Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>
+      loadPauseDetails() {
+    final port = _pauseDataPort;
+    if (port == null ||
+        _controllerDisposed ||
+        _snapshot.state != GameSessionState.paused) {
+      return Future.value(
+        const <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{},
+      );
+    }
+    return port.loadPauseDetails();
   }
 
   Future<void> prepare(GameSessionDescriptor descriptor) {
@@ -123,6 +140,9 @@ final class GameSessionController implements RuntimeWorldServicePort {
           },
         );
         await adapter.prepare(descriptor).timeout(prepareTimeout);
+        if (adapter case final RuntimePlayerPauseDataPort port) {
+          _pauseDataPort = port;
+        }
         if (adapter case final RuntimeWorldServicePort port) {
           _worldServicePort = port;
           _publishWorldService(port.worldServiceSnapshot);
@@ -718,6 +738,7 @@ final class GameSessionController implements RuntimeWorldServicePort {
     final worldServices = _adapterWorldServices;
     _adapterWorldServices = null;
     _worldServicePort = null;
+    _pauseDataPort = null;
     try {
       await worldServices?.cancel();
     } on Object catch (error) {

@@ -2,6 +2,7 @@ import 'dart:collection';
 
 import '../session/game_session_contract.dart';
 import '../session/player_input.dart';
+import 'runtime_player_pause_data.dart';
 import 'runtime_world_service_models.dart';
 
 enum RuntimePlayerPhase {
@@ -19,15 +20,6 @@ enum RuntimePlayerPhase {
   disposingSession,
   externalExit,
   error,
-}
-
-enum RuntimePlayerPauseSection {
-  root,
-  party,
-  bag,
-  pokedex,
-  map,
-  options,
 }
 
 enum RuntimePlayerAction {
@@ -126,61 +118,6 @@ final class RuntimePlayerCommandResult {
 
   final RuntimePlayerCommandStatus status;
   final String? safeMessage;
-}
-
-/// Generic data-only row rendered by a runtime-owned pause detail surface.
-final class RuntimePlayerDetailEntrySnapshot {
-  RuntimePlayerDetailEntrySnapshot({
-    required this.id,
-    required this.title,
-    this.subtitle,
-    this.trailingLabel,
-    this.progress,
-  }) {
-    if (id.trim().isEmpty || title.trim().isEmpty) {
-      throw ArgumentError('Detail entry id and title must not be empty.');
-    }
-    if (progress case final value? when value < 0 || value > 1) {
-      throw ArgumentError.value(
-        value,
-        'progress',
-        'must be between zero and one',
-      );
-    }
-  }
-
-  final String id;
-  final String title;
-  final String? subtitle;
-  final String? trailingLabel;
-  final double? progress;
-}
-
-/// Data-only presentation for one non-root pause section.
-final class RuntimePlayerPauseDetailSnapshot {
-  RuntimePlayerPauseDetailSnapshot({
-    required this.section,
-    required this.title,
-    List<RuntimePlayerDetailEntrySnapshot> entries =
-        const <RuntimePlayerDetailEntrySnapshot>[],
-    this.emptyMessage,
-  }) : entries = List<RuntimePlayerDetailEntrySnapshot>.unmodifiable(entries) {
-    if (section == RuntimePlayerPauseSection.root) {
-      throw ArgumentError.value(
-        section,
-        'section',
-        'the pause root is navigation, not a detail surface',
-      );
-    }
-    if (title.trim().isEmpty) {
-      throw ArgumentError.value(title, 'title', 'must not be empty');
-    }
-  }
-
-  final RuntimePlayerPauseSection section;
-  final String title;
-  final List<RuntimePlayerDetailEntrySnapshot> entries;
-  final String? emptyMessage;
 }
 
 /// Immutable presentation state owned by the runtime player coordinator.
