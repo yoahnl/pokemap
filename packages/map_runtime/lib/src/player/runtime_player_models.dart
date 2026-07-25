@@ -109,6 +109,24 @@ final class RuntimePlayerCommand {
   final Object? payload;
 }
 
+enum RuntimePlayerCommandStatus {
+  accepted,
+  stale,
+  unavailable,
+  cancelled,
+  failed,
+}
+
+final class RuntimePlayerCommandResult {
+  const RuntimePlayerCommandResult({
+    required this.status,
+    this.safeMessage,
+  });
+
+  final RuntimePlayerCommandStatus status;
+  final String? safeMessage;
+}
+
 /// Immutable presentation state owned by the runtime player coordinator.
 final class RuntimePlayerSnapshot {
   RuntimePlayerSnapshot({
