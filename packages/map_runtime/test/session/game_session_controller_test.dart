@@ -186,11 +186,18 @@ void main() {
 
       await controller.pause();
       await controller.pauseForLifecycle();
+      await controller.pauseForLifecycle();
       expect(controller.snapshot.state, GameSessionState.lifecyclePaused);
       expect(controller.snapshot.lifecycleResumeState, GameSessionState.paused);
 
       await controller.resumeFromLifecycle();
+      await controller.resumeFromLifecycle();
       expect(controller.snapshot.state, GameSessionState.paused);
+      expect(
+        adapter.calls.where((call) => call == 'pause'),
+        hasLength(1),
+        reason: 'Repeated background notifications must be idempotent.',
+      );
       expect(
         adapter.calls.where((call) => call == 'resume'),
         isEmpty,
@@ -198,6 +205,48 @@ void main() {
       );
 
       await controller.returnToHub(checkpoint: false);
+      await controller.dispose();
+    });
+
+    test('teardown errors release the adapter and keep controller reusable',
+        () async {
+      final adapters = <_FakeSessionAdapter>[];
+      final controller = GameSessionController(
+        adapterFactory: (descriptor) {
+          final adapter = _FakeSessionAdapter(
+            descriptor.sessionId,
+            stopError:
+                adapters.isEmpty ? StateError('native stop failed') : null,
+            disposeError:
+                adapters.isEmpty ? StateError('native dispose failed') : null,
+          );
+          adapters.add(adapter);
+          return adapter;
+        },
+        commitCheckpoint: (_) async {},
+      );
+      final first = _descriptor(sessionId: 'teardown-failure');
+      await controller.prepare(first);
+      await controller.start();
+      adapters.single.emit(GameSessionRunning(first.sessionId));
+      await controller.settle();
+
+      await controller.returnToTitle(checkpoint: false);
+
+      expect(controller.snapshot.state, GameSessionState.disposed);
+      expect(controller.snapshot.exitReason, GameSessionExitReason.title);
+      expect(
+        controller.snapshot.failure?.recoverability,
+        GameSessionFailureRecoverability.titleOrHub,
+      );
+      expect(
+        controller.snapshot.lastDiagnostic?.code,
+        'session.dispose.failed',
+      );
+
+      await controller.prepare(_descriptor(sessionId: 'fresh-session'));
+      expect(adapters, hasLength(2));
+      await controller.terminate();
       await controller.dispose();
     });
 
@@ -374,11 +423,19 @@ GameCompletionEvent _completion(
 }
 
 final class _FakeSessionAdapter implements GameSessionAdapter {
-  _FakeSessionAdapter(this.sessionId, {this.startError, this.startWait});
+  _FakeSessionAdapter(
+    this.sessionId, {
+    this.startError,
+    this.startWait,
+    this.stopError,
+    this.disposeError,
+  });
 
   final String sessionId;
   final Object? startError;
   final Future<void>? startWait;
+  final Object? stopError;
+  final Object? disposeError;
   final calls = <String>[];
   final completionAcknowledgements = <bool>[];
   final _events = StreamController<GameSessionAdapterEvent>.broadcast();
@@ -432,12 +489,14 @@ final class _FakeSessionAdapter implements GameSessionAdapter {
   @override
   Future<void> stop(GameSessionExitReason reason) async {
     calls.add('stop:${reason.name}');
+    if (stopError case final error?) throw error;
   }
 
   @override
   Future<void> dispose() async {
     calls.add('dispose');
     await _events.close();
+    if (disposeError case final error?) throw error;
   }
 
   @override

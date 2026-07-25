@@ -31,7 +31,9 @@ final class RuntimePlayerTestHarness {
       saveGateway: saves,
       preferencesGateway: preferences,
       sessionController: sessions,
+      externalExit: exit,
     );
+    exit.disposedProbe = () => coordinator.isDisposed;
   }
 
   final MemoryRuntimeGameSource source;
@@ -190,10 +192,13 @@ final class MemoryPlayerPreferencesGateway implements PlayerPreferencesGateway {
 
 final class MemoryRuntimeExternalExit implements RuntimeExternalExit {
   int calls = 0;
+  bool disposedWhenCalled = false;
+  bool Function()? disposedProbe;
 
   @override
   Future<void> returnToHost() async {
     calls++;
+    disposedWhenCalled = disposedProbe?.call() ?? false;
   }
 }
 
@@ -207,6 +212,8 @@ final class FakeRuntimeSessionAdapter implements GameSessionAdapter {
   int disposeCalls = 0;
   bool gameplayLocked = false;
   final completionAcknowledgements = <bool>[];
+  Object? stopError;
+  Object? disposeError;
 
   @override
   Stream<GameSessionAdapterEvent> get events => _events.stream;
@@ -236,6 +243,7 @@ final class FakeRuntimeSessionAdapter implements GameSessionAdapter {
     calls.add('dispose');
     disposeCalls++;
     await _events.close();
+    if (disposeError case final error?) throw error;
   }
 
   @override
@@ -273,6 +281,7 @@ final class FakeRuntimeSessionAdapter implements GameSessionAdapter {
   @override
   Future<void> stop(GameSessionExitReason reason) async {
     calls.add('stop:${reason.name}');
+    if (stopError case final error?) throw error;
   }
 }
 

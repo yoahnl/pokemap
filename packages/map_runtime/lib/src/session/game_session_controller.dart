@@ -171,6 +171,7 @@ final class GameSessionController {
 
   Future<void> pauseForLifecycle() {
     return _serialize(() async {
+      if (_snapshot.state == GameSessionState.lifecyclePaused) return;
       const allowed = <GameSessionState>{
         GameSessionState.starting,
         GameSessionState.loading,
@@ -193,6 +194,10 @@ final class GameSessionController {
 
   Future<void> resumeFromLifecycle() {
     return _serialize(() async {
+      if (_snapshot.state != GameSessionState.lifecyclePaused &&
+          _snapshot.lifecycleResumeState == null) {
+        return;
+      }
       _requireState(
         <GameSessionState>{GameSessionState.lifecyclePaused},
         'resumeFromLifecycle',
@@ -569,9 +574,11 @@ final class GameSessionController {
     }
     _publish(_snapshot.copyWith(state: GameSessionState.stopping));
     final adapter = _adapter!;
+    Object? teardownError;
     try {
       await adapter.stop(reason).timeout(stopTimeout);
-    } on Object {
+    } on Object catch (error) {
+      teardownError = error;
       // Dispose is still mandatory; the exit reason records the requested
       // product destination while diagnostics retain the adapter failure.
       _publish(
@@ -583,11 +590,29 @@ final class GameSessionController {
         ),
       );
     }
-    await _disposeAdapter();
+    final disposeError = await _disposeAdapter();
+    if (disposeError != null) {
+      teardownError ??= disposeError;
+      _publish(
+        _snapshot.copyWith(
+          lastDiagnostic: const GameSessionDiagnosticData(
+            code: 'session.dispose.failed',
+            severity: GameSessionDiagnosticSeverity.warning,
+          ),
+        ),
+      );
+    }
+    const teardownFailure = GameSessionFailure(
+      code: GameSessionFailureCode.runtime,
+      recoverability: GameSessionFailureRecoverability.titleOrHub,
+      safeMessage: 'The previous game session did not close cleanly.',
+    );
     _publish(
       _snapshot.copyWith(
         state: GameSessionState.disposed,
         exitReason: reason,
+        failure: teardownError == null ? null : teardownFailure,
+        clearFailure: teardownError == null,
         clearLifecycleResumeState: true,
         clearPendingCompletion: true,
       ),
@@ -617,14 +642,24 @@ final class GameSessionController {
     );
   }
 
-  Future<void> _disposeAdapter() async {
+  Future<Object?> _disposeAdapter() async {
+    Object? firstError;
     final subscription = _adapterEvents;
     _adapterEvents = null;
-    await subscription?.cancel();
+    try {
+      await subscription?.cancel();
+    } on Object catch (error) {
+      firstError = error;
+    }
     final adapter = _adapter;
     _adapter = null;
-    await adapter?.dispose();
     _descriptor = null;
+    try {
+      await adapter?.dispose();
+    } on Object catch (error) {
+      firstError ??= error;
+    }
+    return firstError;
   }
 
   void _requireState(Set<GameSessionState> allowed, String operation) {

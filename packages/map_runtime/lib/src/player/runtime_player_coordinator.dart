@@ -17,10 +17,12 @@ final class RuntimePlayerCoordinator {
     required PlayerSaveGateway saveGateway,
     required PlayerPreferencesGateway preferencesGateway,
     required GameSessionController sessionController,
+    required RuntimeExternalExit externalExit,
   })  : _gameSource = gameSource,
         _saveGateway = saveGateway,
         _preferencesGateway = preferencesGateway,
         _sessions = sessionController,
+        _externalExit = externalExit,
         _snapshot = RuntimePlayerSnapshot(
           revision: 0,
           phase: RuntimePlayerPhase.boot,
@@ -38,6 +40,7 @@ final class RuntimePlayerCoordinator {
   final PlayerSaveGateway _saveGateway;
   final PlayerPreferencesGateway _preferencesGateway;
   final GameSessionController _sessions;
+  final RuntimeExternalExit _externalExit;
   final _snapshots = StreamController<RuntimePlayerSnapshot>.broadcast();
   late final StreamSubscription<GameSessionSnapshot> _sessionSubscription;
   Future<void> _tail = Future<void>.value();
@@ -46,12 +49,14 @@ final class RuntimePlayerCoordinator {
   PlayerPreferencesSnapshot? _preferences;
   PlayerSaveSummary? _latestSave;
   _RuntimeLaunchRequest? _retryLaunch;
+  RuntimePlayerSnapshot? _lifecycleResumeSnapshot;
   int _launchGeneration = 0;
   bool _disposed = false;
 
   RuntimePlayerSnapshot get snapshot => _snapshot;
   Stream<RuntimePlayerSnapshot> get snapshots => _snapshots.stream;
   PlayerPreferencesSnapshot? get preferences => _preferences;
+  bool get isDisposed => _disposed;
 
   Future<void> initialize() {
     return _serialize(() async {
@@ -71,6 +76,66 @@ final class RuntimePlayerCoordinator {
       return _cancel(command);
     }
     return _serialize(() => _dispatchSerialized(command));
+  }
+
+  Future<void> pauseForLifecycle() {
+    return _serialize(() async {
+      _ensureOpen();
+      if (_snapshot.phase == RuntimePlayerPhase.lifecyclePaused) return;
+      if (_sessions.snapshot.state != GameSessionState.running &&
+          _sessions.snapshot.state != GameSessionState.paused) {
+        return;
+      }
+      final resumeSnapshot = _snapshot;
+      await _sessions.pauseForLifecycle();
+      _lifecycleResumeSnapshot = resumeSnapshot;
+      _publish(
+        _snapshot.next(
+          phase: RuntimePlayerPhase.lifecyclePaused,
+          actions: const <RuntimePlayerActionAvailability>[],
+        ),
+      );
+    });
+  }
+
+  Future<void> resumeFromLifecycle() {
+    return _serialize(() async {
+      _ensureOpen();
+      if (_snapshot.phase != RuntimePlayerPhase.lifecyclePaused) return;
+      final resumeSnapshot = _lifecycleResumeSnapshot;
+      if (resumeSnapshot == null) {
+        throw StateError('The player lifecycle resume state is missing.');
+      }
+      await _sessions.resumeFromLifecycle();
+      _lifecycleResumeSnapshot = null;
+      switch (resumeSnapshot.phase) {
+        case RuntimePlayerPhase.paused:
+          _publishPause(
+            resumeSnapshot.pauseSection ?? RuntimePlayerPauseSection.root,
+            logicalSelectionId: resumeSnapshot.logicalSelectionId,
+            failure: resumeSnapshot.failure,
+            clearFailure: resumeSnapshot.failure == null,
+          );
+        case RuntimePlayerPhase.playing:
+          _publishPlaying();
+        case RuntimePlayerPhase.boot:
+        case RuntimePlayerPhase.title:
+        case RuntimePlayerPhase.preparingSession:
+        case RuntimePlayerPhase.loadingSession:
+        case RuntimePlayerPhase.saving:
+        case RuntimePlayerPhase.lifecyclePaused:
+        case RuntimePlayerPhase.completing:
+        case RuntimePlayerPhase.result:
+        case RuntimePlayerPhase.credits:
+        case RuntimePlayerPhase.disposingSession:
+        case RuntimePlayerPhase.externalExit:
+        case RuntimePlayerPhase.error:
+          throw StateError(
+            'Unsupported player lifecycle resume phase: '
+            '${resumeSnapshot.phase.name}.',
+          );
+      }
+    });
   }
 
   Future<RuntimePlayerCommandResult> _dispatchSerialized(
@@ -270,26 +335,90 @@ final class RuntimePlayerCoordinator {
           status: RuntimePlayerCommandStatus.accepted,
         );
       case RuntimePlayerAction.finishCredits:
+        return _returnToTitle(checkpoint: false);
       case RuntimePlayerAction.returnToTitle:
-        _publish(
-          _snapshot.next(
-            phase: RuntimePlayerPhase.disposingSession,
-            actions: const <RuntimePlayerActionAvailability>[],
-          ),
-        );
-        await _sessions.returnToTitle(checkpoint: false);
-        if (_sessions.snapshot.state == GameSessionState.disposed) {
-          _publishTitle();
-        }
-        return const RuntimePlayerCommandResult(
-          status: RuntimePlayerCommandStatus.accepted,
+        return _returnToTitle(
+          checkpoint: _snapshot.phase == RuntimePlayerPhase.paused,
         );
       case RuntimePlayerAction.cancel:
-      case RuntimePlayerAction.returnToHost:
         return const RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.unavailable,
           safeMessage: 'This action is not available on the current surface.',
         );
+      case RuntimePlayerAction.returnToHost:
+        _publish(
+          _snapshot.next(
+            phase: RuntimePlayerPhase.externalExit,
+            actions: const <RuntimePlayerActionAvailability>[],
+          ),
+        );
+        try {
+          await _disposeOwnedResources();
+          await _externalExit.returnToHost();
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.accepted,
+          );
+        } catch (_) {
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.failed,
+            safeMessage: 'The player could not return to its host.',
+          );
+        }
+    }
+  }
+
+  Future<RuntimePlayerCommandResult> _returnToTitle({
+    required bool checkpoint,
+  }) async {
+    final pauseSection =
+        _snapshot.pauseSection ?? RuntimePlayerPauseSection.root;
+    final logicalSelectionId = _snapshot.logicalSelectionId;
+    _publish(
+      _snapshot.next(
+        phase: RuntimePlayerPhase.disposingSession,
+        actions: const <RuntimePlayerActionAvailability>[],
+        clearFailure: true,
+      ),
+    );
+    try {
+      await _sessions.returnToTitle(checkpoint: checkpoint);
+      if (_sessions.snapshot.state == GameSessionState.disposed) {
+        _publishTitle(failure: _sessions.snapshot.failure);
+      }
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.accepted,
+      );
+    } on GameSessionException catch (error) {
+      if (error.code == GameSessionErrorCode.checkpointRejected &&
+          _sessions.snapshot.state == GameSessionState.paused) {
+        final failure = _sessions.snapshot.failure ??
+            const GameSessionFailure(
+              code: GameSessionFailureCode.storage,
+              recoverability: GameSessionFailureRecoverability.retry,
+              safeMessage: 'The checkpoint could not be saved.',
+            );
+        _publishPause(
+          pauseSection,
+          logicalSelectionId: logicalSelectionId,
+          failure: failure,
+        );
+        return RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.failed,
+          safeMessage: failure.safeMessage,
+        );
+      }
+      _publishFailure(
+        const GameSessionFailure(
+          code: GameSessionFailureCode.runtime,
+          recoverability: GameSessionFailureRecoverability.titleOrHub,
+          safeMessage: 'The game session could not be closed safely.',
+        ),
+        allowRetry: false,
+      );
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.failed,
+        safeMessage: 'The game session could not be closed safely.',
+      );
     }
   }
 
@@ -449,12 +578,16 @@ final class RuntimePlayerCoordinator {
   }
 
   Future<void> dispose() async {
+    await _disposeOwnedResources();
+  }
+
+  Future<void> _disposeOwnedResources() async {
     if (_disposed) return;
+    _disposed = true;
     _launchGeneration++;
     await _cancelLiveSession();
     await _sessionSubscription.cancel();
     await _sessions.dispose();
-    _disposed = true;
     await _snapshots.close();
   }
 
@@ -525,18 +658,19 @@ final class RuntimePlayerCoordinator {
       case GameSessionState.disposed:
         if (session.exitReason == GameSessionExitReason.cancelled ||
             session.exitReason == GameSessionExitReason.title) {
-          _publishTitle();
+          _publishTitle(failure: session.failure);
         }
     }
   }
 
-  void _publishTitle() {
+  void _publishTitle({GameSessionFailure? failure}) {
     _publish(
       _snapshot.next(
         phase: RuntimePlayerPhase.title,
         clearPauseSection: true,
         clearLoadingProgress: true,
-        clearFailure: true,
+        failure: failure,
+        clearFailure: failure == null,
         clearResult: true,
         clearCredits: true,
         clearLogicalSelection: true,
@@ -648,6 +782,9 @@ final class RuntimePlayerCoordinator {
           RuntimePlayerAction.load,
           reason: unavailableReason,
         ),
+      const RuntimePlayerActionAvailability.enabled(
+        RuntimePlayerAction.returnToHost,
+      ),
     ];
   }
 
@@ -688,9 +825,8 @@ final class RuntimePlayerCoordinator {
       const RuntimePlayerActionAvailability.enabled(
         RuntimePlayerAction.openOptions,
       ),
-      RuntimePlayerActionAvailability.disabled(
+      const RuntimePlayerActionAvailability.enabled(
         RuntimePlayerAction.returnToTitle,
-        reason: 'Return to title is not available during this transition.',
       ),
       if (includeReturnToRoot)
         const RuntimePlayerActionAvailability.enabled(
