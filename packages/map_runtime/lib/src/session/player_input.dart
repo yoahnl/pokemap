@@ -4,7 +4,7 @@ import '../presentation/flame/runtime_input_event.dart';
 
 enum PlayerInputAction { up, down, left, right, confirm, back, menu }
 
-enum PlayerInputSource { keyboard, gamepad, touch }
+enum PlayerInputSource { keyboard, mouse, touch, controller }
 
 enum PlayerInputSurface { gameplay, title, pause, result, credits, blocked }
 

@@ -402,4 +402,5 @@ export 'src/session/in_process_game_session_adapter.dart';
 export 'src/session/playable_map_game_session_runtime.dart';
 export 'src/session/player_input.dart';
 export 'src/player/runtime_player_host.dart';
+export 'src/player/runtime_player_input.dart';
 export 'src/player/runtime_player_models.dart';

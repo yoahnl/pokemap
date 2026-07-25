@@ -5,11 +5,11 @@ void main() {
   test('converts the runtime Menu control into a shared player command', () {
     final command = playerInputCommandFromRuntimeEvent(
       const RuntimeInputEvent.press(RuntimeInputControl.menu),
-      source: PlayerInputSource.gamepad,
+      source: PlayerInputSource.controller,
     );
 
     expect(command.action, PlayerInputAction.menu);
-    expect(command.source, PlayerInputSource.gamepad);
+    expect(command.source, PlayerInputSource.controller);
     expect(command.isPress, isTrue);
   });
 
@@ -39,7 +39,7 @@ void main() {
       await router.route(
         const PlayerInputCommand.press(
           PlayerInputAction.right,
-          source: PlayerInputSource.gamepad,
+          source: PlayerInputSource.controller,
         ),
       ),
       isTrue,
@@ -52,7 +52,7 @@ void main() {
     await router.route(
       const PlayerInputCommand.press(
         PlayerInputAction.menu,
-        source: PlayerInputSource.gamepad,
+        source: PlayerInputSource.controller,
       ),
     );
     expect(menuToggles, 1);
@@ -62,7 +62,7 @@ void main() {
     await router.route(
       const PlayerInputCommand.press(
         PlayerInputAction.down,
-        source: PlayerInputSource.gamepad,
+        source: PlayerInputSource.controller,
       ),
     );
     expect(shell.single.action, PlayerInputAction.down);
@@ -70,7 +70,7 @@ void main() {
     await router.route(
       const PlayerInputCommand.press(
         PlayerInputAction.menu,
-        source: PlayerInputSource.gamepad,
+        source: PlayerInputSource.controller,
       ),
     );
     expect(menuToggles, 2);
@@ -131,6 +131,7 @@ void main() {
       () async {
     var gameplayCalls = 0;
     var shellCalls = 0;
+    var menuToggles = 0;
     final router = PlayerInputRouter(
       surface: () => PlayerInputSurface.blocked,
       routeGameplay: (_) {
@@ -138,7 +139,7 @@ void main() {
         return true;
       },
       routeSurface: (_) async => shellCalls++,
-      toggleMenu: () async {},
+      toggleMenu: () async => menuToggles++,
       releaseGameplayDirections: () {},
     );
 
@@ -151,7 +152,17 @@ void main() {
       ),
       isTrue,
     );
+    expect(
+      await router.route(
+        const PlayerInputCommand.press(
+          PlayerInputAction.menu,
+          source: PlayerInputSource.controller,
+        ),
+      ),
+      isTrue,
+    );
     expect(gameplayCalls, 0);
     expect(shellCalls, 0);
+    expect(menuToggles, 0);
   });
 }
