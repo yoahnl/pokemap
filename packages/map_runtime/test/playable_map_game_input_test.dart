@@ -2166,8 +2166,28 @@ void main() {
 
       final rootSnapshot = game.battleCommandOverlayListenable.value!;
       expect(rootSnapshot.mode, BattleCommandOverlayMode.root);
+      expect(rootSnapshot.revision, greaterThan(0));
 
-      expect(game.selectBattleRootEntry(0), isTrue);
+      expect(
+        game.dispatchBattlePresentationCommand(
+          BattleSelectEntryCommand(
+            snapshotRevision: rootSnapshot.revision - 1,
+            expectedMode: rootSnapshot.mode,
+            entryIndex: 0,
+          ),
+        ),
+        isFalse,
+      );
+      expect(
+        game.dispatchBattlePresentationCommand(
+          BattleSelectEntryCommand(
+            snapshotRevision: rootSnapshot.revision,
+            expectedMode: rootSnapshot.mode,
+            entryIndex: 0,
+          ),
+        ),
+        isTrue,
+      );
       await _pumpUntil(
         game,
         () =>

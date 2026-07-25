@@ -234,6 +234,19 @@ final class PokeMapPlayerLocalizations {
   String get cancelling => _fr ? 'Annulation' : 'Cancelling';
   String get recovering => _fr ? 'Récupération' : 'Recovering';
   String get preparing => _fr ? 'Préparation' : 'Preparing';
+  String get back => _fr ? 'Retour' : 'Back';
+  String get mandatoryReplacement =>
+      _fr ? 'Remplacement obligatoire' : 'Replacement required';
+  String get levelAbbreviation => _fr ? 'N.' : 'Lv.';
+  String get hpAbbreviation => _fr ? 'PV' : 'HP';
+  String get showFullText => _fr ? 'Afficher' : 'Show';
+  String get next => _fr ? 'Suite' : 'Next';
+  String get yourChoice => _fr ? 'Votre choix' : 'Your choice';
+  String get postBattle => _fr ? 'Après-combat' : 'Post-battle';
+  String get progression => _fr ? 'Progression' : 'Progress';
+  String get battleResult => _fr ? 'Résultat du combat' : 'Battle result';
+  String get reward => _fr ? 'Récompense' : 'Reward';
+  String get decision => _fr ? 'Décision' : 'Decision';
 
   String installedGameCount(int count) => _fr
       ? '$count jeu${count > 1 ? 'x' : ''} '
@@ -243,6 +256,13 @@ final class PokeMapPlayerLocalizations {
   String diagnosticsToReview(int count) => _fr
       ? '$count diagnostic${count > 1 ? 's' : ''} à consulter'
       : '$count diagnostic${count == 1 ? '' : 's'} to review';
+
+  String levelLabel(int level) => '$levelAbbreviation $level';
+
+  String hpLabel(int current, int maximum) =>
+      '$current / $maximum $hpAbbreviation';
+
+  String postBattleProgress(int current, int total) => '$current / $total';
 }
 
 extension PokeMapPlayerLocalizationContext on BuildContext {

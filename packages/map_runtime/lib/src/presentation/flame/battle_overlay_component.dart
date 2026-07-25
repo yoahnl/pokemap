@@ -525,6 +525,7 @@ class BattleOverlayComponent extends PositionComponent {
   String? _bagFeedbackMessage;
   BattleBagMenuActionMedicineTarget? _selectedMedicineAction;
   BattleCommandOverlaySnapshot? _currentCommandOverlaySnapshot;
+  int _commandOverlayRevision = 0;
   final Map<String, String?> _bagIconAssetPathByItemId = <String, String?>{};
   final Map<String, Future<void>> _pendingBagIconPathsByItemId =
       <String, Future<void>>{};
@@ -1523,7 +1524,17 @@ class BattleOverlayComponent extends PositionComponent {
     required bool interactionsEnabled,
   }) {
     final layout = currentSceneLayout;
+    final isForcedReplacement =
+        partyMenuModel.mode == BattlePartyMenuMode.forcedReplacement &&
+            menuModel.mode == BattleCommandMenuMode.pokemon;
     final snapshot = BattleCommandOverlaySnapshot(
+      revision: ++_commandOverlayRevision,
+      phase: isForcedReplacement
+          ? BattlePresentationPhase.forcedReplacement
+          : interactionsEnabled
+              ? BattlePresentationPhase.choosingCommand
+              : BattlePresentationPhase.presentingTurn,
+      forcedReplacement: isForcedReplacement,
       mode: _overlayModeForMenuMode(menuModel.mode),
       panelRect: layout.commandPanelRect,
       enemyHud: _buildHudSnapshot(

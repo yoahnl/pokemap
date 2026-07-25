@@ -4,6 +4,7 @@ import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
 import 'package:map_runtime/src/application/parse_yarn_dialogue.dart';
 import 'package:map_runtime/src/presentation/flame/dialogue_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/dialogue_text_speed.dart';
+import 'package:map_runtime/src/presentation/flutter/dialogue_presentation_snapshot.dart';
 
 void main() {
   group('Yarn dialogue outcomes', () {
@@ -114,14 +115,21 @@ Guide: Continuons.
         ],
         'Start',
       )!;
+      final snapshots = <DialoguePresentationSnapshot>[];
       final overlay = DialogueOverlayComponent(
         session: session,
         textSpeed: RuntimeDialogueTextSpeed.normal,
+        renderInFlame: false,
+        onPresentationSnapshotChanged: (snapshot) {
+          if (snapshot != null) snapshots.add(snapshot);
+        },
         onFinished: (_) {},
         viewportSize: Vector2(320, 240),
       );
       await overlay.onLoad();
 
+      expect(snapshots.single.speaker, 'Lysa');
+      expect(snapshots.single.text, isEmpty);
       overlay.update(
         RuntimeDialogueTextSpeed.normal.revealInterval!.inMicroseconds /
             Duration.microsecondsPerSecond *
@@ -129,6 +137,7 @@ Guide: Continuons.
       );
 
       expect(overlay.visibleText.runes.length, 3);
+      expect(snapshots.last.revision, greaterThan(snapshots.first.revision));
       expect(overlay.isCurrentLineFullyRevealed, isFalse);
       expect(
         (overlay.currentSession.state as DialogueShowingLine).text,

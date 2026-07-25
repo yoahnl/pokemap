@@ -30,6 +30,11 @@ void main() {
       expect(overlay.messageSemanticKey, 'post-battle-message');
       expect(overlay.currentMessageText, 'Victoire !');
       expect(overlay.decisionLabels, isEmpty);
+      expect(overlay.currentPresentationSnapshot?.message, 'Victoire !');
+      expect(
+        overlay.currentPresentationSnapshot?.messageKind,
+        RuntimePostBattleMessageKind.victory,
+      );
 
       while (!overlay.isCompleted) {
         expect(overlay.validateSelectedChoice(), isTrue);
@@ -39,6 +44,28 @@ void main() {
       expect(completionCount, 1);
       expect(overlay.validateSelectedChoice(), isFalse);
       expect(completionCount, 1);
+    });
+
+    test('publishes state without mounting Flame chrome in player mode',
+        () async {
+      final coordinator = RuntimePostBattleDecisionCoordinator(
+        resolveReward: _automaticResolution,
+      );
+      final overlay = PostBattleProgressionOverlayComponent(
+        initialResult: await _begin(coordinator),
+        viewportSize: Vector2(800, 600),
+        renderInFlame: false,
+        onMoveLearningDecision: (_) => throw StateError('not expected'),
+        onEvolutionDecision: (_) => throw StateError('not expected'),
+        onCompleted: () {},
+      );
+      final game = FlameGame();
+      await game.add(overlay);
+      await game.ready();
+
+      expect(overlay.currentPresentationSnapshot?.message, 'Victoire !');
+      expect(overlay.children, isEmpty);
+      expect(overlay.containsLocalPoint(Vector2(20, 20)), isFalse);
     });
 
     test('uses exact move decisions and exposes four replacement labels',

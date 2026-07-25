@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import '../../application/runtime_post_battle_decision_coordinator.dart';
+import '../flutter/post_battle_presentation_snapshot.dart';
 
 typedef PostBattleMoveLearningDecisionHandler
     = RuntimePostBattleCoordinatorResult Function(
@@ -29,24 +30,34 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent
     required this.onMoveLearningDecision,
     required this.onEvolutionDecision,
     required this.onCompleted,
+    this.onPresentationSnapshotChanged,
+    bool renderInFlame = true,
   })  : _transaction = initialResult.transaction,
         _failure = initialResult.failure,
+        _renderInFlame = renderInFlame,
         super(
           size: viewportSize,
           anchor: Anchor.topLeft,
           priority: 99,
-        );
+        ) {
+    _publishPresentationSnapshot();
+  }
 
   final PostBattleMoveLearningDecisionHandler onMoveLearningDecision;
   final PostBattleEvolutionDecisionHandler onEvolutionDecision;
   final VoidCallback onCompleted;
+  final ValueChanged<PostBattlePresentationSnapshot?>?
+      onPresentationSnapshotChanged;
 
   RuntimePostBattleTransaction? _transaction;
   RuntimePostBattleCoordinatorFailure? _failure;
+  bool _renderInFlame;
   final Completer<void> _completion = Completer<void>();
   int _messageIndex = 0;
   int _selectedDecisionIndex = 0;
   bool _isCompleted = false;
+  int _presentationRevision = 0;
+  PostBattlePresentationSnapshot? _currentPresentationSnapshot;
 
   RectangleComponent? _scrim;
   RectangleComponent? _panel;
@@ -105,6 +116,8 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent
   Future<void> get completionFuture => _completion.future;
   bool get isCompleted => _isCompleted;
   int get selectedDecisionIndex => _selectedDecisionIndex;
+  PostBattlePresentationSnapshot? get currentPresentationSnapshot =>
+      _currentPresentationSnapshot;
 
   @visibleForTesting
   Rect get debugPanelRect => _layoutMetrics.panelRect;
@@ -168,6 +181,16 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    if (_renderInFlame) {
+      await _mountFlamePresentation();
+    }
+    _publishPresentationSnapshot();
+  }
+
+  Future<void> _mountFlamePresentation() async {
+    if (_scrim != null) {
+      return;
+    }
     final layout = _layoutMetrics;
     _scrim = RectangleComponent(
       size: size.clone(),
@@ -203,6 +226,34 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent
     _syncLayout();
     _syncText();
   }
+
+  void setRenderInFlame(bool renderInFlame) {
+    if (_renderInFlame == renderInFlame) {
+      return;
+    }
+    _renderInFlame = renderInFlame;
+    if (!renderInFlame) {
+      _scrim?.removeFromParent();
+      _panel?.removeFromParent();
+      _title?.removeFromParent();
+      _message?.removeFromParent();
+      for (final choice in _choiceTexts) {
+        choice.removeFromParent();
+      }
+      _choiceTexts.clear();
+      _scrim = null;
+      _panel = null;
+      _title = null;
+      _message = null;
+    } else if (isLoaded) {
+      unawaited(_mountFlamePresentation());
+    }
+    _publishPresentationSnapshot();
+  }
+
+  @override
+  bool containsLocalPoint(Vector2 point) =>
+      _renderInFlame && super.containsLocalPoint(point);
 
   @override
   void onGameResize(Vector2 size) {
@@ -415,23 +466,51 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent
     }
     _choiceTexts.clear();
     final labels = decisionLabels;
-    for (var index = 0; index < labels.length; index++) {
-      final selected = index == _selectedDecisionIndex;
-      final text = TextComponent(
-        text: '${selected ? '▶ ' : '  '}${labels[index]}',
-        textRenderer: TextPaint(
-          style: TextStyle(
-            color: selected ? const Color(0xFF7FB6FF) : Colors.white,
-            fontSize: 19,
-            fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+    if (_renderInFlame) {
+      for (var index = 0; index < labels.length; index++) {
+        final selected = index == _selectedDecisionIndex;
+        final text = TextComponent(
+          text: '${selected ? '▶ ' : '  '}${labels[index]}',
+          textRenderer: TextPaint(
+            style: TextStyle(
+              color: selected ? const Color(0xFF7FB6FF) : Colors.white,
+              fontSize: 19,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+            ),
           ),
-        ),
-        priority: 2,
-      );
-      _choiceTexts.add(text);
-      add(text);
+          priority: 2,
+        );
+        _choiceTexts.add(text);
+        add(text);
+      }
     }
     _syncLayout();
+    _publishPresentationSnapshot();
+  }
+
+  void _publishPresentationSnapshot() {
+    final labels = decisionLabels;
+    final snapshot = PostBattlePresentationSnapshot(
+      revision: ++_presentationRevision,
+      messageIndex: _messageIndex,
+      messageCount: _messages.length,
+      messageKind: currentMessageKind,
+      message: _isCompleted ? 'Terminé.' : currentMessageText,
+      choices: List<PostBattlePresentationChoice>.unmodifiable(
+        <PostBattlePresentationChoice>[
+          for (var index = 0; index < labels.length; index++)
+            PostBattlePresentationChoice(
+              index: index,
+              label: labels[index],
+              selected: index == _selectedDecisionIndex,
+            ),
+        ],
+      ),
+      completed: _isCompleted,
+      hasFailure: _failure != null,
+    );
+    _currentPresentationSnapshot = snapshot;
+    onPresentationSnapshotChanged?.call(snapshot);
   }
 
   _PostBattleOverlayLayout get _layoutMetrics =>

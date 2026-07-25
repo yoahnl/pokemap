@@ -6,6 +6,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../../player/player_shell_controller.dart';
 import '../../player/player_shell_models.dart';
+import 'hub_runtime_presentation.dart';
 
 final class HubSaveSelection {
   const HubSaveSelection({
@@ -283,6 +284,12 @@ class HubPlayerShellView extends StatefulWidget {
     this.onPauseSectionRequested,
     this.options,
     this.titleData,
+    this.runtimePresentationController,
+    this.playerPreferences = const player_ui.PlayerPreferences(),
+    this.feedback,
+    this.assetPreloader,
+    this.itemIconBuilder,
+    this.portraitBuilder,
     this.initializeController = true,
     this.disposeController = false,
   });
@@ -297,6 +304,12 @@ class HubPlayerShellView extends StatefulWidget {
   final ValueChanged<player_ui.PlayerPauseAction>? onPauseSectionRequested;
   final Widget? options;
   final player_ui.PlayerTitleViewData? titleData;
+  final HubRuntimePresentationController? runtimePresentationController;
+  final player_ui.PlayerPreferences playerPreferences;
+  final player_ui.PlayerFeedbackController? feedback;
+  final player_ui.PlayerAssetPreloader? assetPreloader;
+  final Widget Function(String assetPath)? itemIconBuilder;
+  final Widget Function(String speaker)? portraitBuilder;
   final bool initializeController;
   final bool disposeController;
 
@@ -387,9 +400,21 @@ class _HubPlayerShellViewState extends State<HubPlayerShellView>
         ),
       );
     }
+    final runtimePresentationController = widget.runtimePresentationController;
+    final presentedGameView = runtimePresentationController == null
+        ? widget.gameView
+        : HubRuntimePresentation(
+            controller: runtimePresentationController,
+            gameView: widget.gameView,
+            preferences: widget.playerPreferences,
+            feedback: widget.feedback,
+            assetPreloader: widget.assetPreloader,
+            itemIconBuilder: widget.itemIconBuilder,
+            portraitBuilder: widget.portraitBuilder,
+          );
     return HubPlayerShellSurface(
       snapshot: _snapshot,
-      gameView: widget.gameView,
+      gameView: presentedGameView,
       pauseActions: widget.pauseActions,
       titleData: widget.titleData,
       onTitleAction: _handleTitleAction,

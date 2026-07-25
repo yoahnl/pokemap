@@ -102,6 +102,9 @@ import 'battle_background_resolver.dart';
 import 'battle_medicine_target_menu_model.dart';
 import 'battle_pokemon_sprite_resolver.dart';
 import '../flutter/battle_command_overlay_snapshot.dart';
+import '../flutter/dialogue_presentation_snapshot.dart';
+import '../flutter/post_battle_presentation_snapshot.dart';
+import '../flutter/runtime_notification_snapshot.dart';
 import 'battle_visual_asset_cache.dart';
 import 'runtime_input_event.dart';
 import 'runtime_input_authority.dart';
@@ -370,11 +373,30 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   DialogueOverlayComponent? _dialogueOverlay;
   RuntimeDialogueTextSpeed _dialogueTextSpeed =
       RuntimeDialogueTextSpeed.instant;
+  final ValueNotifier<DialoguePresentationSnapshot?>
+      _dialoguePresentationNotifier =
+      ValueNotifier<DialoguePresentationSnapshot?>(null);
+  DialoguePresentationSnapshot? _pendingDialoguePresentationSnapshot;
+  bool _dialoguePresentationPostFrameFlushScheduled = false;
+  bool _preferDialogueFlutterOverlay = false;
   BattleTransitionOverlayComponent? _battleTransitionOverlay;
   BattleOverlayComponent? _battleOverlay;
   PostBattleProgressionOverlayComponent? _postBattleProgressionOverlay;
+  final ValueNotifier<PostBattlePresentationSnapshot?>
+      _postBattlePresentationNotifier =
+      ValueNotifier<PostBattlePresentationSnapshot?>(null);
+  PostBattlePresentationSnapshot? _pendingPostBattlePresentationSnapshot;
+  bool _postBattlePresentationPostFrameFlushScheduled = false;
+  bool _preferPostBattleFlutterOverlay = false;
   WarpTransitionOverlayComponent? _warpTransitionOverlay;
   TextComponent? _notification;
+  final ValueNotifier<RuntimeNotificationSnapshot?>
+      _runtimeNotificationNotifier =
+      ValueNotifier<RuntimeNotificationSnapshot?>(null);
+  RuntimeNotificationSnapshot? _pendingRuntimeNotificationSnapshot;
+  bool _runtimeNotificationPostFrameFlushScheduled = false;
+  bool _preferFlutterNotifications = false;
+  int _runtimeNotificationRevision = 0;
   final List<OverworldActorComponent> _npcActors = [];
   final ShadowRuntimeCollectionController _actorShadowCollectionController =
       ShadowRuntimeCollectionController();
@@ -1497,6 +1519,164 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   RuntimeDialogueTextSpeed get dialogueTextSpeed => _dialogueTextSpeed;
 
+  /// Confie la boîte de dialogue au shell Flutter sans déplacer la machine
+  /// d'état Yarn hors du runtime.
+  void setDialogueFlutterOverlayPreferred(bool preferred) {
+    _preferDialogueFlutterOverlay = preferred;
+    _dialogueOverlay?.setRenderInFlame(!preferred);
+  }
+
+  ValueListenable<DialoguePresentationSnapshot?>
+      get dialoguePresentationListenable => _dialoguePresentationNotifier;
+
+  void setFlutterNotificationsPreferred(bool preferred) {
+    _preferFlutterNotifications = preferred;
+    final component = _notification;
+    if (preferred && component != null) {
+      component.removeFromParent();
+      _notification = null;
+    }
+  }
+
+  ValueListenable<RuntimeNotificationSnapshot?>
+      get runtimeNotificationListenable => _runtimeNotificationNotifier;
+
+  void setPostBattleFlutterOverlayPreferred(bool preferred) {
+    _preferPostBattleFlutterOverlay = preferred;
+    _postBattleProgressionOverlay?.setRenderInFlame(!preferred);
+  }
+
+  ValueListenable<PostBattlePresentationSnapshot?>
+      get postBattlePresentationListenable => _postBattlePresentationNotifier;
+
+  bool dispatchPostBattlePresentationCommand(
+    PostBattlePresentationCommand command,
+  ) {
+    final snapshot = _postBattlePresentationNotifier.value;
+    final overlay = _postBattleProgressionOverlay;
+    if (snapshot == null ||
+        overlay == null ||
+        !validatePostBattlePresentationCommand(snapshot, command).accepted) {
+      return false;
+    }
+    switch (command) {
+      case PostBattleAdvanceCommand():
+        return overlay.validateSelectedChoice();
+      case PostBattleSelectDecisionCommand(:final decisionIndex):
+        return overlay.selectDecision(decisionIndex) &&
+            overlay.validateSelectedChoice();
+    }
+  }
+
+  bool dispatchDialoguePresentationCommand(
+    DialoguePresentationCommand command,
+  ) {
+    final snapshot = _dialoguePresentationNotifier.value;
+    final overlay = _dialogueOverlay;
+    if (snapshot == null ||
+        overlay == null ||
+        !validateDialoguePresentationCommand(snapshot, command).accepted) {
+      return false;
+    }
+    switch (command) {
+      case DialogueAdvanceCommand():
+        _advanceDialogue();
+      case DialogueSelectChoiceCommand(:final choiceIndex):
+        final state = overlay.currentSession.state;
+        if (state is! DialogueWaitingForChoice) {
+          return false;
+        }
+        overlay.moveCursor(choiceIndex - state.selectedIndex);
+        _confirmDialogueChoice();
+    }
+    return true;
+  }
+
+  void _setDialoguePresentationSnapshot(
+    DialoguePresentationSnapshot? snapshot,
+  ) {
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    final shouldDefer = phase == SchedulerPhase.persistentCallbacks ||
+        phase == SchedulerPhase.midFrameMicrotasks;
+    if (!shouldDefer) {
+      _pendingDialoguePresentationSnapshot = null;
+      _dialoguePresentationNotifier.value = snapshot;
+      return;
+    }
+    _pendingDialoguePresentationSnapshot = snapshot;
+    if (_dialoguePresentationPostFrameFlushScheduled) {
+      return;
+    }
+    _dialoguePresentationPostFrameFlushScheduled = true;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _dialoguePresentationPostFrameFlushScheduled = false;
+      final pending = _pendingDialoguePresentationSnapshot;
+      _pendingDialoguePresentationSnapshot = null;
+      _dialoguePresentationNotifier.value = pending;
+    });
+  }
+
+  void _publishRuntimeNotification(
+    String text, {
+    RuntimeNotificationTone tone = RuntimeNotificationTone.info,
+  }) {
+    _setRuntimeNotificationSnapshot(
+      RuntimeNotificationSnapshot(
+        revision: ++_runtimeNotificationRevision,
+        text: text,
+        tone: tone,
+      ),
+    );
+  }
+
+  void _setRuntimeNotificationSnapshot(
+    RuntimeNotificationSnapshot? snapshot,
+  ) {
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    final shouldDefer = phase == SchedulerPhase.persistentCallbacks ||
+        phase == SchedulerPhase.midFrameMicrotasks;
+    if (!shouldDefer) {
+      _pendingRuntimeNotificationSnapshot = null;
+      _runtimeNotificationNotifier.value = snapshot;
+      return;
+    }
+    _pendingRuntimeNotificationSnapshot = snapshot;
+    if (_runtimeNotificationPostFrameFlushScheduled) {
+      return;
+    }
+    _runtimeNotificationPostFrameFlushScheduled = true;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _runtimeNotificationPostFrameFlushScheduled = false;
+      final pending = _pendingRuntimeNotificationSnapshot;
+      _pendingRuntimeNotificationSnapshot = null;
+      _runtimeNotificationNotifier.value = pending;
+    });
+  }
+
+  void _setPostBattlePresentationSnapshot(
+    PostBattlePresentationSnapshot? snapshot,
+  ) {
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    final shouldDefer = phase == SchedulerPhase.persistentCallbacks ||
+        phase == SchedulerPhase.midFrameMicrotasks;
+    if (!shouldDefer) {
+      _pendingPostBattlePresentationSnapshot = null;
+      _postBattlePresentationNotifier.value = snapshot;
+      return;
+    }
+    _pendingPostBattlePresentationSnapshot = snapshot;
+    if (_postBattlePresentationPostFrameFlushScheduled) {
+      return;
+    }
+    _postBattlePresentationPostFrameFlushScheduled = true;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _postBattlePresentationPostFrameFlushScheduled = false;
+      final pending = _pendingPostBattlePresentationSnapshot;
+      _pendingPostBattlePresentationSnapshot = null;
+      _postBattlePresentationNotifier.value = pending;
+    });
+  }
+
   /// Compat historique : l'ancien seam mobile pilotait un faux scroll tactile
   /// directement dans le panneau Flame. Le lot mobile Flutter redirige ce
   /// toggle vers la nouvelle surcouche widget sans casser les appels existants.
@@ -1540,6 +1720,35 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
     _battleCommandOverlayNotifier.value = snapshot;
+  }
+
+  /// Point d'entrée unique des commandes de la présentation battle Flutter.
+  ///
+  /// Les anciennes méthodes ciblées restent publiques pour le host développeur,
+  /// mais le shell joueur passe par ce contrat afin de refuser les taps issus
+  /// d'un snapshot obsolète.
+  bool dispatchBattlePresentationCommand(
+    BattlePresentationCommand command,
+  ) {
+    final snapshot = _battleCommandOverlayNotifier.value;
+    if (snapshot == null ||
+        !validateBattlePresentationCommand(snapshot, command).accepted) {
+      return false;
+    }
+    return switch (command) {
+      BattleBackCommand() => backFromBattleOverlay(),
+      BattleSelectEntryCommand(:final entryIndex) => switch (snapshot.mode) {
+          BattleCommandOverlayMode.root => selectBattleRootEntry(entryIndex),
+          BattleCommandOverlayMode.fight ||
+          BattleCommandOverlayMode.continueOnly =>
+            selectBattleChoiceEntry(entryIndex),
+          BattleCommandOverlayMode.bag => selectBattleBagEntry(entryIndex),
+          BattleCommandOverlayMode.pokemon =>
+            selectBattlePartyEntry(entryIndex),
+          BattleCommandOverlayMode.bagMedicineTarget =>
+            selectBattleMedicineTargetEntry(entryIndex),
+        },
+    };
   }
 
   bool selectBattleRootEntry(int index) {
@@ -2070,6 +2279,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleOverlay = null;
     _postBattleProgressionOverlay?.removeFromParent();
     _postBattleProgressionOverlay = null;
+    _setPostBattlePresentationSnapshot(null);
     _setBattleCommandOverlaySnapshot(null);
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
@@ -6765,6 +6975,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _flowPhase = _RuntimeFlowPhase.battleTransition;
     _notification?.removeFromParent();
     _notification = null;
+    _setRuntimeNotificationSnapshot(null);
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
     _battleOverlay?.removeFromParent();
@@ -7424,6 +7635,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       postBattleOverlay = PostBattleProgressionOverlayComponent(
         initialResult: result,
         viewportSize: camera.viewport.size,
+        renderInFlame: !_preferPostBattleFlutterOverlay,
+        onPresentationSnapshotChanged: _setPostBattlePresentationSnapshot,
         onMoveLearningDecision: (decision) {
           final transaction = postBattleOverlay.currentTransaction;
           if (transaction == null) {
@@ -7462,6 +7675,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         postBattleOverlay.removeFromParent();
         if (identical(_postBattleProgressionOverlay, postBattleOverlay)) {
           _postBattleProgressionOverlay = null;
+          _setPostBattlePresentationSnapshot(null);
         }
       }
     } catch (error, stackTrace) {
@@ -7549,6 +7763,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleOverlay = null;
     _postBattleProgressionOverlay?.removeFromParent();
     _postBattleProgressionOverlay = null;
+    _setPostBattlePresentationSnapshot(null);
     _setBattleCommandOverlaySnapshot(null);
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
@@ -7670,6 +7885,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleOverlay = null;
     _postBattleProgressionOverlay?.removeFromParent();
     _postBattleProgressionOverlay = null;
+    _setPostBattlePresentationSnapshot(null);
     _setBattleCommandOverlaySnapshot(null);
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
@@ -9412,6 +9628,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }) {
     _notification?.removeFromParent();
     _notification = null;
+    _setRuntimeNotificationSnapshot(null);
     _clearBlockingInteractionWithoutUnlock(reason: 'dialogueOpened');
     _clearPressedMovementControls();
     _flowPhase = _RuntimeFlowPhase.dialogue;
@@ -9420,9 +9637,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       session: session,
       viewportSize: camera.viewport.size,
       textSpeed: _dialogueTextSpeed,
+      renderInFlame: !_preferDialogueFlutterOverlay,
+      onPresentationSnapshotChanged: _setDialoguePresentationSnapshot,
       onFinished: (outcomeId) {
         debugPrint('[dialogue] dialogue closed');
         _dialogueOverlay = null;
+        _setDialoguePresentationSnapshot(null);
         _flowPhase = _RuntimeFlowPhase.overworld;
         _awaitingSurfConfirmation = false;
         final action = _pendingPostDialogueAction;
@@ -9794,27 +10014,39 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   void _showNotification(String text) {
     _notification?.removeFromParent();
-    final paint = TextPaint(
-      style: const TextStyle(
-        fontSize: 16,
-        color: Colors.white,
-        backgroundColor: Color(0xAA000000),
-      ),
-    );
-    final component = TextComponent(
-      text: text,
-      textRenderer: paint,
-      anchor: Anchor.topCenter,
-    );
-    component.position = Vector2(
-      camera.viewport.size.x / 2,
-      camera.viewport.size.y - 48,
-    );
-    camera.viewport.add(component);
-    _notification = component;
+    _notification = null;
+    _publishRuntimeNotification(text);
+    final revision = _runtimeNotificationRevision;
+    TextComponent? component;
+    if (!_preferFlutterNotifications) {
+      final paint = TextPaint(
+        style: const TextStyle(
+          fontSize: 16,
+          color: Colors.white,
+          backgroundColor: Color(0xAA000000),
+        ),
+      );
+      component = TextComponent(
+        text: text,
+        textRenderer: paint,
+        anchor: Anchor.topCenter,
+      );
+      component.position = Vector2(
+        camera.viewport.size.x / 2,
+        camera.viewport.size.y - 48,
+      );
+      camera.viewport.add(component);
+      _notification = component;
+    }
     Future.delayed(const Duration(seconds: 2), () {
-      if (_notification == component) {
-        component.removeFromParent();
+      if (_runtimeNotificationNotifier.value?.revision == revision) {
+        component?.removeFromParent();
+        if (_notification == component) {
+          _notification = null;
+        }
+        _setRuntimeNotificationSnapshot(null);
+      } else if (_notification == component) {
+        component?.removeFromParent();
         _notification = null;
       }
     });
@@ -10892,6 +11124,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _pendingPlacedElementBehavior = null;
     _notification?.removeFromParent();
     _notification = null;
+    _setRuntimeNotificationSnapshot(null);
     _completePendingSceneDialogue(
       const SceneDialogueRuntimeAwaitableResult.failed(
         errorCode: SceneDialogueRuntimeAwaitableErrorCode.cancelled,
@@ -10900,6 +11133,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     _dialogueOverlay?.removeFromParent();
     _dialogueOverlay = null;
+    _setDialoguePresentationSnapshot(null);
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
     _battleOverlay?.removeFromParent();
@@ -12495,6 +12729,7 @@ final class _PlayableMapCinematicRuntimeHost
     );
     _game._dialogueOverlay?.removeFromParent();
     _game._dialogueOverlay = null;
+    _game._setDialoguePresentationSnapshot(null);
     if (_game._flowPhase == _RuntimeFlowPhase.dialogue) {
       _game._flowPhase = _RuntimeFlowPhase.overworld;
     }

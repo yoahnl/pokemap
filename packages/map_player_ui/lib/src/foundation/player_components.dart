@@ -204,12 +204,15 @@ class PlayerBadge extends StatelessWidget {
             children: <Widget>[
               Icon(icon, size: 16, color: foreground),
               const SizedBox(width: PlayerSpacing.xs),
-              Text(
-                label,
-                style: Theme.of(context)
-                    .textTheme
-                    .labelMedium
-                    ?.copyWith(color: foreground, fontWeight: FontWeight.w700),
+              Flexible(
+                child: Text(
+                  label,
+                  softWrap: true,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: foreground,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
               ),
             ],
           ),

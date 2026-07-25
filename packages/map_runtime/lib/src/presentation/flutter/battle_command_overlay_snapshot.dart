@@ -18,6 +18,16 @@ enum BattleCommandOverlayMode {
   continueOnly,
 }
 
+/// Phase de présentation canonique exposée au shell joueur.
+///
+/// Cette information évite à l'UI Flutter de déduire une règle métier à
+/// partir du texte du prompt ou de l'état des boutons.
+enum BattlePresentationPhase {
+  choosingCommand,
+  presentingTurn,
+  forcedReplacement,
+}
+
 /// Type visuel borné d'une entrée du panneau.
 ///
 /// Ce type n'ouvre pas un système générique de widgets battle : il décrit
@@ -200,6 +210,9 @@ class BattleCommandOverlayHudSnapshot {
 
 class BattleCommandOverlaySnapshot {
   const BattleCommandOverlaySnapshot({
+    this.revision = 0,
+    this.phase = BattlePresentationPhase.choosingCommand,
+    this.forcedReplacement = false,
     required this.mode,
     required this.panelRect,
     required this.enemyHud,
@@ -213,6 +226,13 @@ class BattleCommandOverlaySnapshot {
     required this.canGoBack,
   });
 
+  /// Identifiant monotone d'une version visible de la présentation.
+  ///
+  /// Les commandes joueur transportent cette révision afin qu'une interaction
+  /// différée ne puisse pas agir sur un menu devenu obsolète.
+  final int revision;
+  final BattlePresentationPhase phase;
+  final bool forcedReplacement;
   final BattleCommandOverlayMode mode;
   final Rect panelRect;
   final BattleCommandOverlayHudSnapshot enemyHud;
@@ -231,6 +251,9 @@ class BattleCommandOverlaySnapshot {
       return true;
     }
     return other is BattleCommandOverlaySnapshot &&
+        other.revision == revision &&
+        other.phase == phase &&
+        other.forcedReplacement == forcedReplacement &&
         other.mode == mode &&
         other.panelRect == panelRect &&
         other.enemyHud == enemyHud &&
@@ -246,6 +269,9 @@ class BattleCommandOverlaySnapshot {
 
   @override
   int get hashCode => Object.hash(
+        revision,
+        phase,
+        forcedReplacement,
         mode,
         panelRect,
         enemyHud,
@@ -258,4 +284,110 @@ class BattleCommandOverlaySnapshot {
         interactionsEnabled,
         canGoBack,
       );
+}
+
+/// Commande fermée envoyée par la présentation Flutter au runtime.
+///
+/// L'UI ne manipule ni `BattleSession`, ni les modèles de menu Flame. Elle
+/// décrit uniquement l'intention associée au snapshot qu'elle affiche.
+sealed class BattlePresentationCommand {
+  const BattlePresentationCommand({
+    required this.snapshotRevision,
+    required this.expectedMode,
+  });
+
+  final int snapshotRevision;
+  final BattleCommandOverlayMode expectedMode;
+}
+
+final class BattleSelectEntryCommand extends BattlePresentationCommand {
+  const BattleSelectEntryCommand({
+    required super.snapshotRevision,
+    required super.expectedMode,
+    required this.entryIndex,
+  });
+
+  final int entryIndex;
+}
+
+final class BattleBackCommand extends BattlePresentationCommand {
+  const BattleBackCommand({
+    required super.snapshotRevision,
+    required super.expectedMode,
+  });
+}
+
+enum BattlePresentationCommandRejection {
+  staleSnapshot,
+  modeMismatch,
+  interactionsDisabled,
+  entryMissing,
+  entryDisabled,
+  backUnavailable,
+}
+
+class BattlePresentationCommandValidation {
+  const BattlePresentationCommandValidation._({
+    required this.accepted,
+    this.rejection,
+  });
+
+  const BattlePresentationCommandValidation.accepted() : this._(accepted: true);
+
+  const BattlePresentationCommandValidation.rejected(
+    BattlePresentationCommandRejection rejection,
+  ) : this._(accepted: false, rejection: rejection);
+
+  final bool accepted;
+  final BattlePresentationCommandRejection? rejection;
+}
+
+/// Valide une commande contre l'unique snapshot qui l'a produite.
+BattlePresentationCommandValidation validateBattlePresentationCommand(
+  BattleCommandOverlaySnapshot snapshot,
+  BattlePresentationCommand command,
+) {
+  if (command.snapshotRevision != snapshot.revision) {
+    return const BattlePresentationCommandValidation.rejected(
+      BattlePresentationCommandRejection.staleSnapshot,
+    );
+  }
+  if (command.expectedMode != snapshot.mode) {
+    return const BattlePresentationCommandValidation.rejected(
+      BattlePresentationCommandRejection.modeMismatch,
+    );
+  }
+  if (!snapshot.interactionsEnabled) {
+    return const BattlePresentationCommandValidation.rejected(
+      BattlePresentationCommandRejection.interactionsDisabled,
+    );
+  }
+  return switch (command) {
+    BattleSelectEntryCommand(:final entryIndex) =>
+      _validateBattleEntrySelection(snapshot, entryIndex),
+    BattleBackCommand() => snapshot.canGoBack
+        ? const BattlePresentationCommandValidation.accepted()
+        : const BattlePresentationCommandValidation.rejected(
+            BattlePresentationCommandRejection.backUnavailable,
+          ),
+  };
+}
+
+BattlePresentationCommandValidation _validateBattleEntrySelection(
+  BattleCommandOverlaySnapshot snapshot,
+  int entryIndex,
+) {
+  final matchingEntries =
+      snapshot.entries.where((entry) => entry.index == entryIndex);
+  if (matchingEntries.isEmpty) {
+    return const BattlePresentationCommandValidation.rejected(
+      BattlePresentationCommandRejection.entryMissing,
+    );
+  }
+  if (!matchingEntries.first.enabled) {
+    return const BattlePresentationCommandValidation.rejected(
+      BattlePresentationCommandRejection.entryDisabled,
+    );
+  }
+  return const BattlePresentationCommandValidation.accepted();
 }

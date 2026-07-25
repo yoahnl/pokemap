@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
 import '../../application/dialogue_runtime_models.dart';
+import '../flutter/dialogue_presentation_snapshot.dart';
 import 'dialogue_text_speed.dart';
 
 typedef OnDialogueFinished = void Function(String? outcomeId);
@@ -12,7 +13,10 @@ class DialogueOverlayComponent extends PositionComponent {
     required this.onFinished,
     required Vector2 viewportSize,
     this.textSpeed = RuntimeDialogueTextSpeed.instant,
+    this.onPresentationSnapshotChanged,
+    bool renderInFlame = true,
   })  : _session = session,
+        _renderInFlame = renderInFlame,
         super(
           position: Vector2.zero(),
           size: viewportSize,
@@ -21,9 +25,14 @@ class DialogueOverlayComponent extends PositionComponent {
 
   DialogueSession _session;
   final OnDialogueFinished onFinished;
+  final ValueChanged<DialoguePresentationSnapshot?>?
+      onPresentationSnapshotChanged;
   RuntimeDialogueTextSpeed textSpeed;
+  bool _renderInFlame;
   int _visibleRuneCount = 0;
   double _revealAccumulatorSeconds = 0;
+  int _presentationRevision = 0;
+  DialoguePresentationSnapshot? _currentPresentationSnapshot;
 
   static const double _kBoxHeightFraction = 0.28;
   static const double _kPaddingH = 20.0;
@@ -67,6 +76,9 @@ class DialogueOverlayComponent extends PositionComponent {
         _visibleRuneCount >= state.text.runes.length;
   }
 
+  DialoguePresentationSnapshot? get currentPresentationSnapshot =>
+      _currentPresentationSnapshot;
+
   @override
   Future<void> onLoad() async {
     _cursorPainter = TextPainter(
@@ -78,6 +90,7 @@ class DialogueOverlayComponent extends PositionComponent {
     )..layout();
     _resetRevealForCurrentState();
     _rebuildPainters();
+    _publishPresentationSnapshot();
     return super.onLoad();
   }
 
@@ -102,6 +115,12 @@ class DialogueOverlayComponent extends PositionComponent {
     final runeCount = state.text.runes.length;
     _visibleRuneCount = (_visibleRuneCount + revealed).clamp(0, runeCount);
     _rebuildLinePainters(state);
+    _publishPresentationSnapshot();
+  }
+
+  void setRenderInFlame(bool renderInFlame) {
+    _renderInFlame = renderInFlame;
+    _publishPresentationSnapshot();
   }
 
   void setTextSpeed(RuntimeDialogueTextSpeed speed) {
@@ -115,6 +134,7 @@ class DialogueOverlayComponent extends PositionComponent {
     }
     if (isLoaded) {
       _rebuildPainters();
+      _publishPresentationSnapshot();
     }
   }
 
@@ -186,6 +206,9 @@ class DialogueOverlayComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
+    if (!_renderInFlame) {
+      return;
+    }
     final state = _session.state;
     if (state is DialogueShowingLine) {
       _renderLine(canvas);
@@ -255,6 +278,7 @@ class DialogueOverlayComponent extends PositionComponent {
 
   void moveCursor(int delta) {
     _session = _session.moveChoiceCursor(delta);
+    _publishPresentationSnapshot();
   }
 
   bool confirmChoice() {
@@ -271,6 +295,7 @@ class DialogueOverlayComponent extends PositionComponent {
     _session = next;
     _resetRevealForCurrentState();
     _rebuildPainters();
+    _publishPresentationSnapshot();
     return true;
   }
 
@@ -279,6 +304,7 @@ class DialogueOverlayComponent extends PositionComponent {
       _revealCurrentLineFully();
       if (isLoaded) {
         _rebuildPainters();
+        _publishPresentationSnapshot();
       }
       return true;
     }
@@ -291,7 +317,19 @@ class DialogueOverlayComponent extends PositionComponent {
     _session = next;
     _resetRevealForCurrentState();
     _rebuildPainters();
+    _publishPresentationSnapshot();
     return true;
+  }
+
+  void _publishPresentationSnapshot() {
+    final snapshot = buildDialoguePresentationSnapshot(
+      session: _session,
+      revision: ++_presentationRevision,
+      visibleText: visibleText,
+      isCurrentLineFullyRevealed: isCurrentLineFullyRevealed,
+    );
+    _currentPresentationSnapshot = snapshot;
+    onPresentationSnapshotChanged?.call(snapshot);
   }
 
   void _resetRevealForCurrentState() {

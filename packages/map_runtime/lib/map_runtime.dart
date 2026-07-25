@@ -138,13 +138,43 @@ export 'src/presentation/flame/flame_cinematic_fx_playback_adapter.dart'
 export 'src/presentation/flutter/battle_command_overlay_snapshot.dart'
     show
         BattleCommandOverlayMode,
+        BattlePresentationPhase,
         BattleCommandOverlayEntryKind,
         BattleCommandOverlayEntryTone,
         BattleCommandOverlayEntry,
         BattleCommandOverlayHudSnapshot,
-        BattleCommandOverlaySnapshot;
+        BattleCommandOverlaySnapshot,
+        BattlePresentationCommand,
+        BattleSelectEntryCommand,
+        BattleBackCommand,
+        BattlePresentationCommandRejection,
+        BattlePresentationCommandValidation,
+        validateBattlePresentationCommand;
 export 'src/presentation/flutter/battle_mobile_command_overlay.dart'
     show BattleMobileCommandOverlay;
+export 'src/presentation/flutter/dialogue_presentation_snapshot.dart'
+    show
+        DialoguePresentationMode,
+        DialoguePresentationChoice,
+        DialoguePresentationSnapshot,
+        DialoguePresentationCommand,
+        DialogueAdvanceCommand,
+        DialogueSelectChoiceCommand,
+        DialoguePresentationCommandRejection,
+        DialoguePresentationCommandValidation,
+        validateDialoguePresentationCommand;
+export 'src/presentation/flutter/runtime_notification_snapshot.dart'
+    show RuntimeNotificationTone, RuntimeNotificationSnapshot;
+export 'src/presentation/flutter/post_battle_presentation_snapshot.dart'
+    show
+        PostBattlePresentationChoice,
+        PostBattlePresentationSnapshot,
+        PostBattlePresentationCommand,
+        PostBattleAdvanceCommand,
+        PostBattleSelectDecisionCommand,
+        PostBattlePresentationCommandRejection,
+        PostBattlePresentationCommandValidation,
+        validatePostBattlePresentationCommand;
 export 'src/presentation/flame/runtime_input_event.dart'
     show RuntimeInputControl, RuntimeInputEvent, RuntimeInputEventPhase;
 export 'src/presentation/flame/runtime_input_key_bindings.dart'

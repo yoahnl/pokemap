@@ -12,6 +12,8 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  map_runtime:
+    path: ../map_runtime
 
 dev_dependencies:
   flutter_test:
