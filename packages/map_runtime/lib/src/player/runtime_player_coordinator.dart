@@ -143,16 +143,72 @@ final class RuntimePlayerCoordinator {
           );
         }
         return _launch(retry);
-      case RuntimePlayerAction.cancel:
       case RuntimePlayerAction.openMenu:
+        await _sessions.pause();
+        if (_snapshot.phase != RuntimePlayerPhase.paused) {
+          _publishPause(RuntimePlayerPauseSection.root);
+        }
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.accepted,
+        );
       case RuntimePlayerAction.resume:
+        await _sessions.resume();
+        if (_snapshot.phase != RuntimePlayerPhase.playing) {
+          _publishPlaying();
+        }
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.accepted,
+        );
       case RuntimePlayerAction.openParty:
+        _publishPause(
+          RuntimePlayerPauseSection.party,
+          logicalSelectionId: 'pause.party',
+        );
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.accepted,
+        );
       case RuntimePlayerAction.openBag:
+        _publishPause(
+          RuntimePlayerPauseSection.bag,
+          logicalSelectionId: 'pause.bag',
+        );
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.accepted,
+        );
       case RuntimePlayerAction.openPokedex:
+        _publishPause(
+          RuntimePlayerPauseSection.pokedex,
+          logicalSelectionId: 'pause.pokedex',
+        );
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.accepted,
+        );
       case RuntimePlayerAction.openMap:
-      case RuntimePlayerAction.save:
+        _publishPause(
+          RuntimePlayerPauseSection.map,
+          logicalSelectionId: 'pause.map',
+        );
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.accepted,
+        );
       case RuntimePlayerAction.openOptions:
+        _publishPause(
+          RuntimePlayerPauseSection.options,
+          logicalSelectionId: 'pause.options',
+        );
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.accepted,
+        );
       case RuntimePlayerAction.returnToPauseRoot:
+        _publishPause(
+          RuntimePlayerPauseSection.root,
+          logicalSelectionId: _snapshot.logicalSelectionId,
+        );
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.accepted,
+        );
+      case RuntimePlayerAction.cancel:
+      case RuntimePlayerAction.save:
       case RuntimePlayerAction.returnToTitle:
       case RuntimePlayerAction.showCredits:
       case RuntimePlayerAction.finishCredits:
@@ -354,19 +410,13 @@ final class RuntimePlayerCoordinator {
           ),
         );
       case GameSessionState.running:
-        _publish(
-          _snapshot.next(
-            phase: RuntimePlayerPhase.playing,
-            clearLoadingProgress: true,
-            clearFailure: true,
-            actions: const <RuntimePlayerActionAvailability>[
-              RuntimePlayerActionAvailability.enabled(
-                RuntimePlayerAction.openMenu,
-              ),
-            ],
-          ),
-        );
+        if (_snapshot.phase != RuntimePlayerPhase.playing) {
+          _publishPlaying();
+        }
       case GameSessionState.paused:
+        if (_snapshot.phase != RuntimePlayerPhase.paused) {
+          _publishPause(RuntimePlayerPauseSection.root);
+        }
       case GameSessionState.lifecyclePaused:
       case GameSessionState.completing:
       case GameSessionState.completed:
@@ -400,6 +450,38 @@ final class RuntimePlayerCoordinator {
         clearCredits: true,
         clearLogicalSelection: true,
         actions: _titleActions,
+      ),
+    );
+  }
+
+  void _publishPlaying() {
+    _publish(
+      _snapshot.next(
+        phase: RuntimePlayerPhase.playing,
+        clearPauseSection: true,
+        clearLoadingProgress: true,
+        clearFailure: true,
+        actions: const <RuntimePlayerActionAvailability>[
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.openMenu,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _publishPause(
+    RuntimePlayerPauseSection section, {
+    String? logicalSelectionId,
+  }) {
+    _publish(
+      _snapshot.next(
+        phase: RuntimePlayerPhase.paused,
+        pauseSection: section,
+        logicalSelectionId: logicalSelectionId,
+        actions: _pauseActions(
+          includeReturnToRoot: section != RuntimePlayerPauseSection.root,
+        ),
       ),
     );
   }
@@ -454,6 +536,61 @@ final class RuntimePlayerCoordinator {
           reason: unavailableReason,
         ),
     ];
+  }
+
+  List<RuntimePlayerActionAvailability> _pauseActions({
+    required bool includeReturnToRoot,
+  }) {
+    return <RuntimePlayerActionAvailability>[
+      const RuntimePlayerActionAvailability.enabled(
+        RuntimePlayerAction.resume,
+      ),
+      const RuntimePlayerActionAvailability.enabled(
+        RuntimePlayerAction.openParty,
+      ),
+      const RuntimePlayerActionAvailability.enabled(
+        RuntimePlayerAction.openBag,
+      ),
+      if (_hasCapability('pokedex.v1'))
+        const RuntimePlayerActionAvailability.enabled(
+          RuntimePlayerAction.openPokedex,
+        )
+      else
+        RuntimePlayerActionAvailability.disabled(
+          RuntimePlayerAction.openPokedex,
+          reason: 'This game does not provide a Pokédex.',
+        ),
+      if (_hasCapability('map.v1'))
+        const RuntimePlayerActionAvailability.enabled(
+          RuntimePlayerAction.openMap,
+        )
+      else
+        RuntimePlayerActionAvailability.disabled(
+          RuntimePlayerAction.openMap,
+          reason: 'This game does not provide a player map.',
+        ),
+      RuntimePlayerActionAvailability.disabled(
+        RuntimePlayerAction.save,
+        reason: 'Saving is not available from this player surface yet.',
+      ),
+      const RuntimePlayerActionAvailability.enabled(
+        RuntimePlayerAction.openOptions,
+      ),
+      RuntimePlayerActionAvailability.disabled(
+        RuntimePlayerAction.returnToTitle,
+        reason: 'Return to title is not available during this transition.',
+      ),
+      if (includeReturnToRoot)
+        const RuntimePlayerActionAvailability.enabled(
+          RuntimePlayerAction.returnToPauseRoot,
+        ),
+    ];
+  }
+
+  bool _hasCapability(String capability) {
+    return _sessions.snapshot.descriptor?.grantedCapabilities
+            .contains(capability) ??
+        false;
   }
 
   static const _cancelActions = <RuntimePlayerActionAvailability>[

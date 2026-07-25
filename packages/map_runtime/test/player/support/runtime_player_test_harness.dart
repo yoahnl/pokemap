@@ -281,3 +281,22 @@ PlayerSaveSummary compatiblePlayerSave(GameIdentity identity) {
     canContinue: true,
   );
 }
+
+Future<void> launchHarnessToPlaying(RuntimePlayerTestHarness harness) async {
+  await harness.coordinator.initialize();
+  final result = await harness.coordinator.dispatch(
+    RuntimePlayerCommand(
+      action: RuntimePlayerAction.newGame,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+      payload: const RuntimePlayerLoadSlot(
+        profileId: 'player',
+        slotId: 'slot_1',
+      ),
+    ),
+  );
+  if (result.status != RuntimePlayerCommandStatus.accepted) {
+    throw StateError('The test player session did not launch.');
+  }
+  harness.adapter.emitRunning();
+  await harness.coordinator.settle();
+}
