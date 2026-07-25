@@ -192,10 +192,12 @@ final class GamePackageContentValidator {
           _audioExtensions.contains(extension) ||
           _fontExtensions.contains(extension);
     }
-    if (path.startsWith('project/assets/')) {
-      return _imageExtensions.contains(extension) ||
+    if (path.startsWith('project/assets/') ||
+        path.startsWith('project/data/')) {
+      final isMedia = _imageExtensions.contains(extension) ||
           _audioExtensions.contains(extension) ||
           _fontExtensions.contains(extension);
+      if (isMedia) return true;
     }
     return path.startsWith('project/') && extension == '.json';
   }

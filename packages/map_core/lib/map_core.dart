@@ -234,6 +234,8 @@ export 'src/read_models/cinematic_storyboard_read_model.dart';
 export 'src/read_models/cinematic_media_catalog.dart';
 export 'src/runtime/cinematic_media_playback_contract.dart';
 export 'src/runtime/cinematic_playback_preflight.dart';
+export 'src/dialogue/runtime_dialogue_document.dart';
+export 'src/dialogue/yarn_dialogue_compiler.dart';
 export 'src/read_models/cinematic_timeline_time_layout_read_model.dart';
 export 'src/read_models/cinematic_actor_display_preview_model.dart';
 export 'src/read_models/cinematic_preview_playback_plan.dart';

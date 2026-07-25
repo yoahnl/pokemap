@@ -10,6 +10,8 @@ The package owns:
 - deterministic, data-only ZIP building;
 - bounded ZIP inspection, hostile-input validation and trust policy;
 - host compatibility, release activation rules and install receipts.
+- canonical, hash-bound `GamePackageInstallRequest` handoffs between
+  independently built authoring and Hub applications.
 
 It does not install files, choose Application Support paths, launch sessions,
 render UI, or depend on Flutter, Flame, the runtime, editor, Hub, or developer
@@ -43,6 +45,12 @@ trusted `GamePackageSignatureVerifier` and select
 The random-access source must remain immutable for the whole inspection. The
 Hub filesystem adapter is intentionally outside this pure-Dart package and
 must hold a stable file handle or otherwise guarantee that contract.
+
+Direct editor installation uses a two-file inbox protocol. The producer
+promotes immutable `<requestId>.pokemapgame` bytes first and the canonical
+`<requestId>.request.json` marker last. The Hub treats both as hostile, checks
+the relative basename and SHA-256 again, and only then invokes its normal
+atomic installer with the `localExport` source.
 
 `GamePackageBuilder.build` accepts an already prepared, player-safe runtime
 projection. It must not be pointed at an author workspace: the Phase 7 editor

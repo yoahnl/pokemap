@@ -187,6 +187,18 @@ class TopToolbar extends ConsumerWidget {
                     )
                 : null,
           ),
+          ToolbarCapsuleButton(
+            icon: CupertinoIcons.archivebox,
+            tooltip: 'Export Game',
+            onPressed:
+                toolbar.project != null && toolbar.projectRootPath != null
+                    ? () => showTopToolbarGameExportDialog(
+                          context,
+                          projectRootPath: toolbar.projectRootPath!,
+                          projectName: toolbar.project!.name,
+                        )
+                    : null,
+          ),
         ],
       ),
       if (!isNarrativeOverview)

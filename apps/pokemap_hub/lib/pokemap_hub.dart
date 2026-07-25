@@ -5,6 +5,7 @@ export 'src/library/game_library.dart';
 export 'src/library/game_library_codec.dart';
 export 'src/library/game_library_store.dart';
 export 'src/install/file_package_source.dart';
+export 'src/install/editor_export_install_inbox.dart';
 export 'src/install/game_maintenance_service.dart';
 export 'src/install/game_installation_diagnostic.dart';
 export 'src/install/game_installation_ports.dart';

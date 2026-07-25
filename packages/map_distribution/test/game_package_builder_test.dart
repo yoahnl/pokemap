@@ -149,6 +149,17 @@ void main() {
     });
 
     test('rejects authoring artifacts and validates projection closure', () {
+      expect(
+        () => builder.build(
+          manifest: _draftManifest(),
+          payloadFiles: <String, List<int>>{
+            'project/project.json': _validProjectBytes(),
+            'project/data/catalog.json': utf8.encode('{"items":[]}'),
+            'project/data/pokemon/media/creature.png': _onePixelPngHeader(),
+          },
+        ),
+        returnsNormally,
+      );
       for (final excludedPath in <String>[
         'project/.dart_tool/cache.json',
         'project/fixtures/debug.json',

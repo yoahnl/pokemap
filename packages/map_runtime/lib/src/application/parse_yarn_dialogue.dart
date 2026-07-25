@@ -1,105 +1,34 @@
+import 'package:map_core/map_core.dart';
+
 import 'dialogue_runtime_models.dart';
 
-List<YarnNode> parseYarnFile(String content) {
-  final nodes = <YarnNode>[];
-  String? currentTitle;
-  bool inBody = false;
-  final rootSteps = <YarnStep>[];
-  bool inChoiceBlock = false;
-  final currentChoices = <YarnChoice>[];
-  String? currentChoiceText;
-  String? currentChoiceOutcomeId;
-  final currentChoiceSteps = <YarnStep>[];
+List<YarnNode> parseYarnFile(String content) =>
+    runtimeDialogueNodesFromDocument(
+      const YarnDialogueCompiler().compile(content),
+    );
 
-  void closeChoiceOption() {
-    if (currentChoiceText != null) {
-      currentChoices.add(YarnChoice(
-        text: currentChoiceText!,
-        steps: List.unmodifiable(currentChoiceSteps),
-        outcomeId: currentChoiceOutcomeId,
-      ));
-      currentChoiceText = null;
-      currentChoiceOutcomeId = null;
-      currentChoiceSteps.clear();
-    }
-  }
+List<YarnNode> runtimeDialogueNodesFromDocument(
+  RuntimeDialogueDocument document,
+) =>
+    document.nodes.map(_node).toList(growable: false);
 
-  void closeChoiceBlock() {
-    closeChoiceOption();
-    if (currentChoices.isNotEmpty) {
-      rootSteps.add(YarnStepChoiceBlock(List.unmodifiable(currentChoices)));
-      currentChoices.clear();
-    }
-    inChoiceBlock = false;
-  }
+YarnNode _node(RuntimeDialogueNode node) => YarnNode(
+      title: node.title,
+      steps: node.steps.map(_step).toList(growable: false),
+    );
 
-  for (final raw in content.split('\n')) {
-    final line = raw.trimRight();
-
-    if (!inBody) {
-      final trimmed = line.trim();
-      if (trimmed.startsWith('title:')) {
-        currentTitle = trimmed.substring('title:'.length).trim();
-      } else if (trimmed == '---') {
-        inBody = true;
-        rootSteps.clear();
-        inChoiceBlock = false;
-        currentChoices.clear();
-        currentChoiceText = null;
-        currentChoiceOutcomeId = null;
-        currentChoiceSteps.clear();
-      }
-    } else {
-      final trimmed = line.trim();
-      if (trimmed == '===') {
-        if (inChoiceBlock) closeChoiceBlock();
-        if (currentTitle != null && rootSteps.isNotEmpty) {
-          nodes.add(YarnNode(
-            title: currentTitle,
-            steps: List.unmodifiable(rootSteps),
-          ));
-        }
-        currentTitle = null;
-        rootSteps.clear();
-        inBody = false;
-      } else if (trimmed.isEmpty) {
-        // skip
-      } else if (line.startsWith(' ') || line.startsWith('\t')) {
-        if (currentChoiceText != null &&
-            trimmed.startsWith('<<outcome ') &&
-            trimmed.endsWith('>>')) {
-          final outcomeId =
-              trimmed.substring('<<outcome '.length, trimmed.length - 2).trim();
-          if (outcomeId.isNotEmpty) {
-            currentChoiceOutcomeId = outcomeId;
-          }
-        } else if (trimmed.startsWith('<<jump ') && trimmed.endsWith('>>')) {
-          final target =
-              trimmed.substring('<<jump '.length, trimmed.length - 2).trim();
-          currentChoiceSteps.add(YarnStepJump(target));
-        } else if (!(trimmed.startsWith('<<') && trimmed.endsWith('>>'))) {
-          currentChoiceSteps.add(YarnStepLine(trimmed));
-        }
-      } else if (trimmed.startsWith('->')) {
-        if (!inChoiceBlock) {
-          inChoiceBlock = true;
-        } else {
-          closeChoiceOption();
-        }
-        currentChoiceText = trimmed.substring(2).trim();
-      } else if (trimmed.startsWith('<<jump ') && trimmed.endsWith('>>')) {
-        if (inChoiceBlock) closeChoiceBlock();
-        final target =
-            trimmed.substring('<<jump '.length, trimmed.length - 2).trim();
-        rootSteps.add(YarnStepJump(target));
-      } else if (trimmed.startsWith('<<') && trimmed.endsWith('>>')) {
-        if (inChoiceBlock) closeChoiceBlock();
-      } else {
-        if (inChoiceBlock) closeChoiceBlock();
-        rootSteps.add(YarnStepLine(trimmed));
-      }
-    }
-  }
-
-  return nodes;
-}
+YarnStep _step(RuntimeDialogueStep step) => switch (step) {
+      RuntimeDialogueLine() => YarnStepLine(step.text),
+      RuntimeDialogueJump() => YarnStepJump(step.targetNode),
+      RuntimeDialogueChoiceBlock() => YarnStepChoiceBlock(
+          step.choices
+              .map(
+                (choice) => YarnChoice(
+                  text: choice.text,
+                  steps: choice.steps.map(_step).toList(growable: false),
+                  outcomeId: choice.outcomeId,
+                ),
+              )
+              .toList(growable: false),
+        ),
+    };

@@ -24,6 +24,59 @@ void main() {
     expect(violations, isEmpty);
   });
 
+  test('distribution handoff stays pure and editor never depends on Hub',
+      () async {
+    final repositoryRoot = Directory.current.parent.parent;
+    final distributionPubspec = await File(
+      p.join(
+        repositoryRoot.path,
+        'packages',
+        'map_distribution',
+        'pubspec.yaml',
+      ),
+    ).readAsString();
+    final editorPubspec = await File(
+      p.join(repositoryRoot.path, 'packages', 'map_editor', 'pubspec.yaml'),
+    ).readAsString();
+    final violations = <String>[
+      for (final forbidden in <String>[
+        'flutter:',
+        'map_editor:',
+        'pokemap_hub:',
+        'playable_runtime_host:',
+      ])
+        if (distributionPubspec.contains(forbidden))
+          'map_distribution depends on $forbidden',
+      for (final forbidden in <String>[
+        'pokemap_hub:',
+        'playable_runtime_host:',
+      ])
+        if (editorPubspec.contains(forbidden))
+          'map_editor depends on $forbidden',
+      if (!editorPubspec.contains('map_distribution:'))
+        'map_editor does not use the pure distribution contract',
+    ];
+    final editorLib = Directory(
+      p.join(repositoryRoot.path, 'packages', 'map_editor', 'lib'),
+    );
+    await for (final entity
+        in editorLib.list(recursive: true, followLinks: false)) {
+      if (entity is! File || !entity.path.endsWith('.dart')) continue;
+      final source = await entity.readAsString();
+      for (final forbidden in <String>[
+        'package:pokemap_hub/',
+        'package:playable_runtime_host/',
+        'examples/playable_runtime_host',
+      ]) {
+        if (source.contains(forbidden)) {
+          violations.add('${p.relative(entity.path)} imports $forbidden');
+        }
+      }
+    }
+
+    expect(violations, isEmpty);
+  });
+
   test('player UI is reusable and runtime never depends on it', () async {
     final repositoryRoot = Directory.current.parent.parent;
     final playerUi = Directory(

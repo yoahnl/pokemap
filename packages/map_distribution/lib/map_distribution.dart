@@ -10,6 +10,7 @@ export 'src/game_package_inspection.dart';
 export 'src/game_package_inspector.dart';
 export 'src/game_package_install_receipt.dart';
 export 'src/game_package_install_receipt_codec.dart';
+export 'src/game_package_install_request.dart';
 export 'src/game_package_inventory_builder.dart';
 export 'src/game_package_manifest.dart';
 export 'src/game_package_manifest_codec.dart';

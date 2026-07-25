@@ -34,6 +34,40 @@ void main() {
     controller.dispose();
   });
 
+  test('initialization consumes editor exports before reading the library',
+      () async {
+    var consumed = false;
+    final controller = HubDashboardController(
+      libraryStore: libraryStore,
+      activityReader: (_) async => const HubGameActivity(),
+      editorExportConsumer: () async {
+        consumed = true;
+        await libraryStore.save(
+          GameLibrary(
+            revision: 1,
+            updatedAt: DateTime.utc(2026, 7, 25),
+            games: <InstalledGame>[
+              _game('games.example.exported', 'Exported'),
+            ],
+          ),
+        );
+        return const <EditorExportInstallResult>[
+          EditorExportInstallResult(
+            requestId: 'export-004',
+            status: EditorExportInstallStatus.installed,
+            code: 'installed',
+          ),
+        ];
+      },
+    );
+
+    await controller.initialize();
+
+    expect(consumed, isTrue);
+    expect(controller.snapshot.games.single.game.title, 'Exported');
+    controller.dispose();
+  });
+
   test('search, recent ordering, and selection are deterministic', () async {
     await libraryStore.save(
       GameLibrary(

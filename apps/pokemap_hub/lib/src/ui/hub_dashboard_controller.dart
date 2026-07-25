@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
+import '../install/editor_export_install_inbox.dart';
 import '../install/game_installation_diagnostic.dart';
 import '../library/game_library.dart';
 import '../library/game_library_store.dart';
@@ -198,12 +199,15 @@ typedef HubPackageImporter = Future<void> Function(
   GameInstallProgressListener onProgress,
 );
 typedef HubStorageReader = Future<HubStorageSnapshot> Function();
+typedef HubEditorExportConsumer = Future<List<EditorExportInstallResult>>
+    Function();
 
 final class HubDashboardController extends ChangeNotifier {
   HubDashboardController({
     required this.libraryStore,
     required this.activityReader,
     this.importer,
+    this.editorExportConsumer,
     this.preferencesStore,
     this.storageReader,
   });
@@ -211,6 +215,7 @@ final class HubDashboardController extends ChangeNotifier {
   final GameLibraryStore libraryStore;
   final HubGameActivityReader activityReader;
   final HubPackageImporter? importer;
+  final HubEditorExportConsumer? editorExportConsumer;
   final HubPreferencesStore? preferencesStore;
   final HubStorageReader? storageReader;
 
@@ -225,6 +230,7 @@ final class HubDashboardController extends ChangeNotifier {
     _publish(_snapshot.copyWith(status: HubDashboardStatus.loading));
     try {
       final preferences = await preferencesStore?.load();
+      final exportDiagnostics = await _consumeEditorExports();
       await _reload(
         preferences: preferences?.preferences,
       );
@@ -244,11 +250,12 @@ final class HubDashboardController extends ChangeNotifier {
             recommendation: 'Vérifiez les réglages avant de jouer.',
           ),
       ];
-      if (preferenceDiagnostics.isNotEmpty) {
+      if (preferenceDiagnostics.isNotEmpty || exportDiagnostics.isNotEmpty) {
         _publish(
           _snapshot.copyWith(
             diagnostics: <HubDiagnostic>[
               ..._snapshot.diagnostics,
+              ...exportDiagnostics,
               ...preferenceDiagnostics,
             ],
           ),
@@ -266,6 +273,45 @@ final class HubDashboardController extends ChangeNotifier {
   }
 
   Future<void> refresh() => _reload();
+
+  Future<List<HubDiagnostic>> _consumeEditorExports() async {
+    final consume = editorExportConsumer;
+    if (consume == null) return const <HubDiagnostic>[];
+    try {
+      final results = await consume();
+      return <HubDiagnostic>[
+        for (final result in results)
+          if (result.status == EditorExportInstallStatus.failed)
+            HubDiagnostic(
+              code: 'editorExport.${result.code}',
+              severity: HubDiagnosticSeverity.warning,
+              message:
+                  'Un jeu exporté depuis l’éditeur n’a pas pu être installé.',
+              recommendation:
+                  'Corrigez le package dans l’éditeur puis relancez l’export.',
+            )
+          else if (result.code == 'installedCleanupPending')
+            const HubDiagnostic(
+              code: 'editorExport.cleanupPending',
+              severity: HubDiagnosticSeverity.information,
+              message:
+                  'Un jeu exporté a été installé, mais son transfert reste à nettoyer.',
+              recommendation:
+                  'Le Hub réessaiera de nettoyer son inbox au prochain démarrage.',
+            ),
+      ];
+    } on Object {
+      return const <HubDiagnostic>[
+        HubDiagnostic(
+          code: 'editorExport.inboxUnavailable',
+          severity: HubDiagnosticSeverity.warning,
+          message: 'Les exports en attente ne peuvent pas être consultés.',
+          recommendation:
+              'La bibliothèque existante reste disponible. Réessayez plus tard.',
+        ),
+      ];
+    }
+  }
 
   void selectSection(HubSection section) {
     _publish(

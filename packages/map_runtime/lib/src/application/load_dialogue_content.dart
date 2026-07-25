@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:map_core/map_core.dart';
 
 import 'dialogue_runtime_models.dart';
 import 'parse_yarn_dialogue.dart';
@@ -12,16 +13,28 @@ import 'resolve_dialogue.dart';
 /// Returns null if the file cannot be read, has no nodes, or the requested
 /// node is not found.
 Future<DialogueSession?> loadDialogueContent(ResolvedDialogue resolved) async {
-  final String content;
+  final List<YarnNode> nodes;
   try {
-    content = await File(resolved.absoluteFilePath).readAsString();
+    final file = File(resolved.absoluteFilePath);
+    if (resolved.absoluteFilePath.toLowerCase().endsWith('.json')) {
+      final document = const RuntimeDialogueDocumentCodec().decodeUtf8(
+        await file.readAsBytes(),
+      );
+      nodes = runtimeDialogueNodesFromDocument(document);
+    } else {
+      nodes = parseYarnFile(await file.readAsString());
+    }
   } catch (e) {
-    debugPrint('[dialogue] failed to read file ${resolved.absoluteFilePath}: $e');
+    debugPrint(
+      '[dialogue] failed to load file ${resolved.absoluteFilePath}: $e',
+    );
     return null;
   }
 
-  final nodes = parseYarnFile(content);
-  debugPrint('[dialogue] parsed ${nodes.length} node(s) from ${resolved.absoluteFilePath}');
+  debugPrint(
+    '[dialogue] parsed ${nodes.length} node(s) from '
+    '${resolved.absoluteFilePath}',
+  );
 
   if (nodes.isEmpty) {
     debugPrint('[dialogue] no nodes found in file');
@@ -37,12 +50,14 @@ Future<DialogueSession?> loadDialogueContent(ResolvedDialogue resolved) async {
   final startTitle = resolved.startNode;
   if (startTitle != null && startTitle.isNotEmpty) {
     if (session.currentNodeTitle != startTitle) {
-      debugPrint('[dialogue] requested node "$startTitle" not found — falling back to "${session.currentNodeTitle}"');
+      debugPrint(
+          '[dialogue] requested node "$startTitle" not found — falling back to "${session.currentNodeTitle}"');
     } else {
       debugPrint('[dialogue] starting at node "$startTitle"');
     }
   } else {
-    debugPrint('[dialogue] no startNode specified — using first node "${session.currentNodeTitle}"');
+    debugPrint(
+        '[dialogue] no startNode specified — using first node "${session.currentNodeTitle}"');
   }
 
   return session;

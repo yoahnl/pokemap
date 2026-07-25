@@ -2,10 +2,13 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show showDialog;
 import 'package:flutter/services.dart';
+import 'package:map_editor/game_export.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../../../../features/editor/state/editor_notifier.dart';
 import '../../cupertino_editor_widgets.dart';
@@ -512,4 +515,50 @@ Widget topToolbarSettingsCharacterField(
       ),
     ],
   );
+}
+
+Future<void> showTopToolbarGameExportDialog(
+  BuildContext context, {
+  required String projectRootPath,
+  required String projectName,
+}) async {
+  final appSupport = await getApplicationSupportDirectory();
+  if (!context.mounted) return;
+  final controller = GamePackageExportController(
+    projectRoot: Directory(projectRootPath),
+    projectName: projectName,
+    profileStore: GamePackageExportProfileStore(
+      projectRoot: Directory(projectRootPath),
+    ),
+    installRequestPublisher: HubInstallRequestPublisher(
+      inbox: Directory(
+        p.join(appSupport.path, 'PokeMap', 'import-inbox'),
+      ),
+    ),
+  );
+  try {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => GamePackageExportDialog(
+        controller: controller,
+        chooseOutputFile: (suggestedFileName) async {
+          final selectedPath = await FilePicker.platform.saveFile(
+            dialogTitle: 'Exporter le jeu PokeMap',
+            fileName: suggestedFileName,
+            type: FileType.custom,
+            allowedExtensions: const <String>['pokemapgame'],
+          );
+          if (selectedPath == null) return null;
+          final normalizedPath =
+              selectedPath.toLowerCase().endsWith('.pokemapgame')
+                  ? selectedPath
+                  : '$selectedPath.pokemapgame';
+          return File(normalizedPath);
+        },
+      ),
+    );
+  } finally {
+    controller.dispose();
+  }
 }
