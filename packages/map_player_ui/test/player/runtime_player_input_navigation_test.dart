@@ -161,6 +161,29 @@ void main() {
     expect(semantics.hint, contains('Entrée'));
   });
 
+  testWidgets('rapid restore requests focus only the latest logical item',
+      (tester) async {
+    await _setSurface(tester, const Size(844, 390));
+    final focusController = RuntimePlayerFocusController();
+    addTearDown(focusController.dispose);
+
+    await tester.pumpWidget(_app(_shell(
+      focusController: focusController,
+    )));
+    focusController.restoreSelection('pause.party');
+    focusController.restoreSelection('pause.bag');
+    focusController.restoreSelection('pause.options');
+    tester.view.physicalSize = const Size(1280, 800);
+    await tester.pump();
+    await tester.pump();
+
+    expect(focusController.logicalSelectionId, 'pause.options');
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      'Player action: Options',
+    );
+  });
+
   testWidgets('compact gameplay exposes a touch menu opener', (tester) async {
     await _setSurface(tester, const Size(390, 844));
     final actions = <RuntimePlayerAction>[];

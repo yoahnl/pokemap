@@ -13,6 +13,7 @@ final class RuntimePlayerFocusController extends ChangeNotifier {
   final _nodeListeners = <String, VoidCallback>{};
   String? _logicalSelectionId;
   PlayerInputSource _activeInputSource;
+  int _focusRequestGeneration = 0;
   bool _disposed = false;
 
   String? get logicalSelectionId => _logicalSelectionId;
@@ -67,8 +68,9 @@ final class RuntimePlayerFocusController extends ChangeNotifier {
   }
 
   void _requestFocusAfterLayout(String logicalId) {
+    final generation = ++_focusRequestGeneration;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_disposed) return;
+      if (_disposed || generation != _focusRequestGeneration) return;
       final node = _nodes[logicalId];
       if (node != null && node.context != null && node.canRequestFocus) {
         node.requestFocus();
@@ -80,6 +82,7 @@ final class RuntimePlayerFocusController extends ChangeNotifier {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
+    _focusRequestGeneration++;
     for (final entry in _nodes.entries) {
       final listener = _nodeListeners[entry.key];
       if (listener != null) entry.value.removeListener(listener);

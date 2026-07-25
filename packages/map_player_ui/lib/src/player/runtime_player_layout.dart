@@ -15,6 +15,9 @@ RuntimePlayerLayoutClass classifyRuntimePlayerLayout(
   if (width >= 900 && height >= 560) {
     return RuntimePlayerLayoutClass.expanded;
   }
+  if (width < 480) {
+    return RuntimePlayerLayoutClass.compactPortrait;
+  }
   if (height >= width * 1.1) {
     return RuntimePlayerLayoutClass.compactPortrait;
   }

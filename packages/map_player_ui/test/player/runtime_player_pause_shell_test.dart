@@ -13,6 +13,13 @@ void main() {
     );
     expect(
       classifyRuntimePlayerLayout(
+        const BoxConstraints.tightFor(width: 390, height: 340),
+      ),
+      RuntimePlayerLayoutClass.compactPortrait,
+      reason: 'A portrait phone must not become two-column above a keyboard.',
+    );
+    expect(
+      classifyRuntimePlayerLayout(
         const BoxConstraints.tightFor(width: 844, height: 390),
       ),
       RuntimePlayerLayoutClass.compactLandscape,

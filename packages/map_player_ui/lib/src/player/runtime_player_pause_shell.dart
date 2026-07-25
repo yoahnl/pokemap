@@ -45,7 +45,17 @@ class RuntimePlayerPauseShell extends StatefulWidget {
 class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   late RuntimePlayerFocusController _focusController;
   late bool _ownsFocusController;
+  final Map<RuntimePlayerLayoutClass, ScrollController>
+      _navigationScrollControllers =
+      <RuntimePlayerLayoutClass, ScrollController>{};
+  final Map<RuntimePlayerLayoutClass, ScrollController>
+      _detailScrollControllers = <RuntimePlayerLayoutClass, ScrollController>{};
+  final Map<RuntimePlayerLayoutClass, double> _navigationScrollOffsets =
+      <RuntimePlayerLayoutClass, double>{};
+  final Map<RuntimePlayerLayoutClass, double> _detailScrollOffsets =
+      <RuntimePlayerLayoutClass, double>{};
   RuntimePlayerLayoutClass? _lastLayout;
+  int _scrollRestoreGeneration = 0;
 
   @override
   void initState() {
@@ -89,6 +99,12 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   @override
   void dispose() {
     _detachFocusController();
+    for (final controller in _navigationScrollControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in _detailScrollControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -122,11 +138,13 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                 builder: (context, constraints) {
                   final layout = classifyRuntimePlayerLayout(constraints);
                   if (_lastLayout != layout) {
+                    _rememberScrollOffsets(_lastLayout);
                     _lastLayout = layout;
                     _focusController.restoreSelection(
                       widget.logicalSelectionId ??
                           _focusController.logicalSelectionId,
                     );
+                    _restoreScrollOffsetsAfterLayout(layout);
                   }
                   return Stack(
                     key: ValueKey<String>(
@@ -136,14 +154,16 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                     children: <Widget>[
                       switch (layout) {
                         RuntimePlayerLayoutClass.compactPortrait =>
-                          _compactPortrait(context),
+                          _compactPortrait(context, layout),
                         RuntimePlayerLayoutClass.compactLandscape => _twoColumn(
                             context,
+                            layout: layout,
                             widthFactor: .78,
                             navigationWidth: 220,
                           ),
                         RuntimePlayerLayoutClass.expanded => _twoColumn(
                             context,
+                            layout: layout,
                             widthFactor: null,
                             navigationWidth: 280,
                           ),
@@ -187,11 +207,14 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     );
   }
 
-  Widget _compactPortrait(BuildContext context) {
+  Widget _compactPortrait(
+    BuildContext context,
+    RuntimePlayerLayoutClass layout,
+  ) {
     if (widget.pauseSection != RuntimePlayerPauseSection.root) {
       return PlayerPanel(
         padding: const EdgeInsets.all(PlayerSpacing.md),
-        child: _detailPane(context),
+        child: _detailPane(context, layout),
       );
     }
     return Align(
@@ -202,7 +225,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         child: PlayerPanel(
           padding: const EdgeInsets.all(PlayerSpacing.md),
           elevated: true,
-          child: _navigation(),
+          child: _navigation(layout),
         ),
       ),
     );
@@ -210,6 +233,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
 
   Widget _twoColumn(
     BuildContext context, {
+    required RuntimePlayerLayoutClass layout,
     required double? widthFactor,
     required double navigationWidth,
   }) {
@@ -229,13 +253,14 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
             SizedBox(
               width: navigationWidth,
               child: _navigation(
+                layout,
                 scrollKey: const ValueKey<String>(
                   'runtime-pause-navigation-scroll',
                 ),
               ),
             ),
             const SizedBox(width: PlayerSpacing.md),
-            Expanded(child: _detailPane(context)),
+            Expanded(child: _detailPane(context, layout)),
           ],
         ),
       ),
@@ -255,17 +280,29 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     );
   }
 
-  Widget _navigation({Key? scrollKey}) {
+  Widget _navigation(
+    RuntimePlayerLayoutClass layout, {
+    Key? scrollKey,
+  }) {
     return PlayerPauseNavigation(
       gameTitle: widget.gameTitle,
       actions: widget.actions,
       onSelected: widget.onSelected,
       scrollKey: scrollKey,
+      scrollController: _navigationScrollControllers.putIfAbsent(
+        layout,
+        () => ScrollController(
+          debugLabel: 'Runtime pause navigation ${layout.name}',
+        ),
+      ),
       focusController: _focusController,
     );
   }
 
-  Widget _detailPane(BuildContext context) {
+  Widget _detailPane(
+    BuildContext context,
+    RuntimePlayerLayoutClass layout,
+  ) {
     final hasDetail = widget.pauseSection != RuntimePlayerPauseSection.root;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -297,6 +334,12 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         Expanded(
           child: SingleChildScrollView(
             key: const ValueKey<String>('runtime-pause-detail-scroll'),
+            controller: _detailScrollControllers.putIfAbsent(
+              layout,
+              () => ScrollController(
+                debugLabel: 'Runtime pause detail ${layout.name}',
+              ),
+            ),
             child: hasDetail
                 ? widget.detail
                 : PlayerEmptyState(
@@ -307,6 +350,51 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
           ),
         ),
       ],
+    );
+  }
+
+  void _rememberScrollOffsets(RuntimePlayerLayoutClass? layout) {
+    if (layout == null) return;
+    final navigation = _navigationScrollControllers[layout];
+    if (navigation != null && navigation.hasClients) {
+      _navigationScrollOffsets[layout] = navigation.offset;
+    }
+    final detail = _detailScrollControllers[layout];
+    if (detail != null && detail.hasClients) {
+      _detailScrollOffsets[layout] = detail.offset;
+    }
+  }
+
+  void _restoreScrollOffsetsAfterLayout(RuntimePlayerLayoutClass layout) {
+    final generation = ++_scrollRestoreGeneration;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || generation != _scrollRestoreGeneration) return;
+      _restoreScrollOffset(
+        _navigationScrollControllers[layout],
+        _navigationScrollOffsets[layout],
+      );
+      _restoreScrollOffset(
+        _detailScrollControllers[layout],
+        _detailScrollOffsets[layout],
+      );
+    });
+  }
+
+  void _restoreScrollOffset(
+    ScrollController? controller,
+    double? offset,
+  ) {
+    if (controller == null ||
+        offset == null ||
+        !controller.hasClients ||
+        !controller.position.hasContentDimensions) {
+      return;
+    }
+    controller.jumpTo(
+      offset.clamp(
+        controller.position.minScrollExtent,
+        controller.position.maxScrollExtent,
+      ),
     );
   }
 

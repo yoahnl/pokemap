@@ -167,6 +167,7 @@ class PlayerPauseNavigation extends StatelessWidget {
     required this.onSelected,
     this.useGrid = false,
     this.scrollKey,
+    this.scrollController,
     this.focusController,
   });
 
@@ -175,6 +176,7 @@ class PlayerPauseNavigation extends StatelessWidget {
   final ValueChanged<PlayerPauseAction> onSelected;
   final bool useGrid;
   final Key? scrollKey;
+  final ScrollController? scrollController;
   final RuntimePlayerFocusController? focusController;
 
   @override
@@ -182,50 +184,57 @@ class PlayerPauseNavigation extends StatelessWidget {
     final firstEnabledAction = PlayerPauseAction.values
         .where((action) => _availability(context, action).isEnabled)
         .firstOrNull;
-    return Column(
-      key: const ValueKey<String>('runtime-pause-navigation'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Semantics(
-          header: true,
-          child: Text(
-            context.playerL10n.pause,
-            style: Theme.of(context).textTheme.headlineMedium,
+    return SingleChildScrollView(
+      key: scrollKey ??
+          ValueKey<String>(
+            useGrid ? 'player-pause-grid' : 'player-pause-list',
           ),
-        ),
-        const SizedBox(height: PlayerSpacing.xs),
-        Text(gameTitle, style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: PlayerSpacing.lg),
-        Expanded(
-          child: useGrid
-              ? GridView.builder(
-                  key: scrollKey ?? const ValueKey<String>('player-pause-grid'),
-                  itemCount: PlayerPauseAction.values.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisExtent: 68,
-                    crossAxisSpacing: PlayerSpacing.sm,
-                    mainAxisSpacing: PlayerSpacing.sm,
-                  ),
-                  itemBuilder: (context, index) => _action(
-                    context,
-                    PlayerPauseAction.values[index],
-                    firstEnabledAction,
-                  ),
-                )
-              : ListView.separated(
-                  key: scrollKey ?? const ValueKey<String>('player-pause-list'),
-                  itemCount: PlayerPauseAction.values.length,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(height: PlayerSpacing.xs),
-                  itemBuilder: (context, index) => _action(
-                    context,
-                    PlayerPauseAction.values[index],
-                    firstEnabledAction,
-                  ),
-                ),
-        ),
-      ],
+      controller: scrollController,
+      child: Column(
+        key: const ValueKey<String>('runtime-pause-navigation'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Semantics(
+            header: true,
+            child: Text(
+              context.playerL10n.pause,
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+          ),
+          const SizedBox(height: PlayerSpacing.xs),
+          Text(gameTitle, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: PlayerSpacing.lg),
+          if (useGrid)
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: PlayerPauseAction.values.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisExtent: 68,
+                crossAxisSpacing: PlayerSpacing.sm,
+                mainAxisSpacing: PlayerSpacing.sm,
+              ),
+              itemBuilder: (context, index) => _action(
+                context,
+                PlayerPauseAction.values[index],
+                firstEnabledAction,
+              ),
+            )
+          else
+            for (var index = 0;
+                index < PlayerPauseAction.values.length;
+                index++) ...<Widget>[
+              _action(
+                context,
+                PlayerPauseAction.values[index],
+                firstEnabledAction,
+              ),
+              if (index != PlayerPauseAction.values.length - 1)
+                const SizedBox(height: PlayerSpacing.xs),
+            ],
+        ],
+      ),
     );
   }
 
