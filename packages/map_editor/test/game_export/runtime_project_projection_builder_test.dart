@@ -77,7 +77,10 @@ void main() {
 
     final authorProject =
         await File(p.join(root.path, 'project.json')).readAsString();
-    expect(authorProject, contains('sk-author-secret-1234567890'));
+    expect(
+      authorProject,
+      contains('fixture-secret-that-must-not-ship'),
+    );
     expect(
       await File(p.join(root.path, 'dialogues', 'intro.yarn')).exists(),
       isTrue,

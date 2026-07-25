@@ -1,0 +1,203 @@
+name: PokeMap Hub product certification
+
+on:
+  pull_request:
+    paths:
+      - "apps/pokemap_hub/**"
+      - "packages/map_core/**"
+      - "packages/map_distribution/**"
+      - "packages/map_editor/**"
+      - "packages/map_gameplay/**"
+      - "packages/map_player_ui/**"
+      - "packages/map_runtime/**"
+      - "tool/pokemap_product_certification/**"
+      - ".github/workflows/pokemap_hub_product_certification.yml"
+  push:
+    branches: [main]
+    tags: ["pokemap-hub-v*"]
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_REVISION: 677d472756f83c14371dd8cc624387065f3d32a7
+
+jobs:
+  verify:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin "$FLUTTER_REVISION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach FETCH_HEAD
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Hub tests and analysis
+        working-directory: apps/pokemap_hub
+        run: |
+          flutter pub get
+          flutter test
+          flutter analyze
+          flutter build macos --release
+      - name: Product certification contracts
+        working-directory: tool/pokemap_product_certification
+        run: |
+          flutter pub get
+          flutter test
+          flutter analyze
+
+  notarized-release:
+    if: startsWith(github.ref, 'refs/tags/pokemap-hub-v')
+    needs: verify
+    runs-on: macos-15
+    timeout-minutes: 60
+    environment: pokemap-hub-release
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin "$FLUTTER_REVISION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach FETCH_HEAD
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Import ephemeral Developer ID identity
+        env:
+          DEVELOPER_ID_P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
+          DEVELOPER_ID_P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          CERTIFICATE_PATH="$RUNNER_TEMP/developer-id.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/pokemap-release.keychain-db"
+          printf '%s' "$DEVELOPER_ID_P12_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$DEVELOPER_ID_P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+      - name: Build and sign
+        working-directory: apps/pokemap_hub
+        env:
+          DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
+        run: |
+          flutter pub get
+          flutter build macos --release
+          APP_PATH="build/macos/Build/Products/Release/PokeMap Hub.app"
+          find "$APP_PATH/Contents/Frameworks" -type f \
+            \( -name '*.dylib' -o -perm -111 \) -print0 |
+            while IFS= read -r -d '' BINARY; do
+              codesign --force --options runtime --timestamp \
+                --sign "$DEVELOPER_ID_APPLICATION" "$BINARY"
+            done
+          find "$APP_PATH/Contents/Frameworks" -type d -name '*.framework' -print0 |
+            while IFS= read -r -d '' FRAMEWORK; do
+              codesign --force --options runtime --timestamp \
+                --sign "$DEVELOPER_ID_APPLICATION" "$FRAMEWORK"
+            done
+          codesign --force --options runtime --timestamp \
+            --entitlements macos/Runner/Release.entitlements \
+            --sign "$DEVELOPER_ID_APPLICATION" "$APP_PATH"
+          codesign --verify --deep --strict --verbose=4 "$APP_PATH"
+          codesign -d --entitlements :- "$APP_PATH" > "$RUNNER_TEMP/release-entitlements.plist"
+          test "$(plutil -extract com.apple.security.app-sandbox raw -o - "$RUNNER_TEMP/release-entitlements.plist")" = "true"
+          test "$(plutil -extract com.apple.security.files.user-selected.read-only raw -o - "$RUNNER_TEMP/release-entitlements.plist")" = "true"
+          ! plutil -extract com.apple.security.get-task-allow raw -o - "$RUNNER_TEMP/release-entitlements.plist"
+          ! plutil -extract com.apple.security.cs.allow-jit raw -o - "$RUNNER_TEMP/release-entitlements.plist"
+          ! plutil -extract com.apple.security.cs.disable-library-validation raw -o - "$RUNNER_TEMP/release-entitlements.plist"
+          ! plutil -extract com.apple.security.network.client raw -o - "$RUNNER_TEMP/release-entitlements.plist"
+          hdiutil create -volname "PokeMap Hub" -srcfolder "$APP_PATH" -ov -format UDZO build/PokeMapHub.dmg
+      - name: Build neutral certification package
+        working-directory: tool/pokemap_product_certification
+        run: |
+          flutter pub get
+          flutter test test/build_neutral_package_artifact_test.dart \
+            --dart-define=POKEMAP_CERTIFICATION_OUTPUT="$GITHUB_WORKSPACE/apps/pokemap_hub/build/neutral-certification.pokemapgame"
+      - name: Notarize, staple and assess
+        working-directory: apps/pokemap_hub
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+        run: |
+          xcrun notarytool store-credentials pokemap-release \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APP_SPECIFIC_PASSWORD"
+          xcrun notarytool submit build/PokeMapHub.dmg \
+            --keychain-profile pokemap-release \
+            --wait \
+            --output-format json > "$RUNNER_TEMP/notary-result.json"
+          xcrun stapler staple build/PokeMapHub.dmg
+          xcrun stapler validate build/PokeMapHub.dmg
+          spctl --assess --type execute --verbose=4 "build/macos/Build/Products/Release/PokeMap Hub.app"
+          hdiutil verify build/PokeMapHub.dmg
+      - name: Cold-install, relaunch and verify release gate
+        working-directory: apps/pokemap_hub
+        run: |
+          CLEAN_ROOT="$(mktemp -d)"
+          MOUNT_POINT="$CLEAN_ROOT/mount"
+          INSTALLED_ROOT="$CLEAN_ROOT/Applications"
+          CLEAN_HOME="$CLEAN_ROOT/home"
+          mkdir -p "$MOUNT_POINT" "$INSTALLED_ROOT" "$CLEAN_HOME"
+          hdiutil attach -nobrowse -readonly -mountpoint "$MOUNT_POINT" build/PokeMapHub.dmg
+          ditto "$MOUNT_POINT/PokeMap Hub.app" "$INSTALLED_ROOT/PokeMap Hub.app"
+          hdiutil detach "$MOUNT_POINT"
+          INSTALLED_APP="$INSTALLED_ROOT/PokeMap Hub.app"
+          test ! -e "$CLEAN_ROOT/pokemonProject"
+          ! find "$INSTALLED_APP" -type l -exec readlink {} \; | grep -F "$GITHUB_WORKSPACE"
+          for RUN in 1 2; do
+            HOME="$CLEAN_HOME" sandbox-exec \
+              -p '(version 1)(allow default)(deny network*)' \
+              "$INSTALLED_APP/Contents/MacOS/PokeMap Hub" \
+              > "$RUNNER_TEMP/cold-launch-$RUN.log" 2>&1 &
+            APP_PID=$!
+            sleep 5
+            kill -0 "$APP_PID"
+            kill "$APP_PID"
+            wait "$APP_PID" || true
+          done
+          APP_VERSION="$(plutil -extract CFBundleShortVersionString raw -o - "$INSTALLED_APP/Contents/Info.plist")"
+          BUILD_NUMBER="$(plutil -extract CFBundleVersion raw -o - "$INSTALLED_APP/Contents/Info.plist")"
+          ARCHITECTURES="$(lipo -archs "$INSTALLED_APP/Contents/MacOS/PokeMap Hub" | jq -R 'split(" ")')"
+          DMG_SHA256="$(shasum -a 256 build/PokeMapHub.dmg | cut -d ' ' -f 1)"
+          DMG_BYTES="$(stat -f '%z' build/PokeMapHub.dmg)"
+          PACKAGE_SHA256="$(shasum -a 256 build/neutral-certification.pokemapgame | cut -d ' ' -f 1)"
+          NOTARY_ID="$(jq -r '.id' "$RUNNER_TEMP/notary-result.json")"
+          jq -n \
+            --arg appVersion "$APP_VERSION" \
+            --arg buildNumber "$BUILD_NUMBER" \
+            --arg artifactSha256 "$DMG_SHA256" \
+            --argjson artifactBytes "$DMG_BYTES" \
+            --argjson architectures "$ARCHITECTURES" \
+            --arg notarySubmissionId "$NOTARY_ID" \
+            --arg neutralPackageSha256 "$PACKAGE_SHA256" \
+            '{
+              schemaVersion: 1,
+              bundleId: "app.pokemap.hub",
+              appVersion: $appVersion,
+              buildNumber: $buildNumber,
+              artifactSha256: $artifactSha256,
+              artifactBytes: $artifactBytes,
+              architectures: $architectures,
+              notarySubmissionId: $notarySubmissionId,
+              neutralPackageSha256: $neutralPackageSha256,
+              repositoryAbsent: true,
+              networkDisabled: true,
+              signedWithDeveloperId: true,
+              hardenedRuntime: true,
+              notarized: true,
+              stapled: true,
+              gatekeeperAccepted: true,
+              coldInstalled: true,
+              relaunched: true,
+              createdAt: (now | todateiso8601)
+            }' > build/macos-certification-receipt.json
+          dart run tool/release/verify_macos_distribution.dart \
+            --dmg build/PokeMapHub.dmg \
+            --neutral-package build/neutral-certification.pokemapgame \
+            --receipt build/macos-certification-receipt.json \
+            --notary-profile pokemap-release

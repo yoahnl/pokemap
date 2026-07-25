@@ -1,13 +1,12 @@
-name: pokemap_hub
-description: PokeMap Hub composition root and player application.
-version: 0.1.0+1
+name: pokemap_product_certification
+description: Offline product-certification harness for PokeMap Hub.
+version: 0.1.0
 publish_to: none
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
 
 dependencies:
-  archive: 4.0.9
   crypto: ^3.0.7
   flutter:
     sdk: flutter
@@ -15,20 +14,21 @@ dependencies:
     path: ../../packages/map_core
   map_distribution:
     path: ../../packages/map_distribution
-  map_player_ui:
-    path: ../../packages/map_player_ui
+  map_editor:
+    path: ../../packages/map_editor
+  map_gameplay:
+    path: ../../packages/map_gameplay
   map_runtime:
     path: ../../packages/map_runtime
   path: ^1.9.0
-  path_provider: ^2.1.6
-  file_picker: ^8.3.7
+  pokemap_hub:
+    path: ../../apps/pokemap_hub
   pub_semver: ^2.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   lints: ^3.0.0
-  test: ^1.24.0
 
 flutter:
   uses-material-design: true
