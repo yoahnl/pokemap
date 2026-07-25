@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:map_core/map_core.dart';
@@ -170,8 +173,32 @@ final class InstalledGameVerification {
   bool get isHealthy => code == InstalledGameVerificationCode.healthy;
 }
 
+typedef InstalledGameFileIntegrityCheck = Future<InstalledGameVerificationCode?>
+    Function(
+  File file,
+  GamePackageFileEntry entry,
+);
+
 final class InstalledGameVerifier {
-  const InstalledGameVerifier();
+  const InstalledGameVerifier({
+    this.maxConcurrentFileChecks = 8,
+    InstalledGameFileIntegrityCheck? fileIntegrityCheck,
+  })  : fileIntegrityCheck =
+            fileIntegrityCheck ?? _checkInstalledGameFileIntegrity,
+        _usesDefaultIntegrityCheck = fileIntegrityCheck == null,
+        assert(maxConcurrentFileChecks > 0);
+
+  final int maxConcurrentFileChecks;
+  final InstalledGameFileIntegrityCheck fileIntegrityCheck;
+  final bool _usesDefaultIntegrityCheck;
+
+  int get _effectiveMaxConcurrentFileChecks {
+    if (maxConcurrentFileChecks < 1) return 1;
+    if (maxConcurrentFileChecks > _maxConcurrentIntegrityWorkers) {
+      return _maxConcurrentIntegrityWorkers;
+    }
+    return maxConcurrentFileChecks;
+  }
 
   Future<InstalledGameVerification> verify({
     required Directory supportRoot,
@@ -271,9 +298,8 @@ final class InstalledGameVerifier {
     final actual = <String>{};
     await for (final entity
         in versionRoot.list(recursive: true, followLinks: false)) {
-      final type = await FileSystemEntity.type(entity.path, followLinks: false);
-      if (type == FileSystemEntityType.directory) continue;
-      if (type != FileSystemEntityType.file) {
+      if (entity is Directory) continue;
+      if (entity is! File) {
         return InstalledGameVerification(
           code: InstalledGameVerificationCode.unsafeEntry,
           manifest: manifest,
@@ -303,26 +329,31 @@ final class InstalledGameVerifier {
         affectedPaths: missing,
       );
     }
-    for (final entry in manifest.content.files) {
-      final file = File(p.joinAll(<String>[
-        versionRoot.path,
-        ...p.posix.split(entry.path),
-      ]));
-      if (await file.length() != entry.size) {
+    final entries = manifest.content.files;
+    final failureByIndex =
+        List<InstalledGameVerificationCode?>.filled(entries.length, null);
+    if (_usesDefaultIntegrityCheck) {
+      await _checkDefaultFileIntegrity(
+        versionRoot: versionRoot,
+        entries: entries,
+        failureByIndex: failureByIndex,
+      );
+    } else {
+      await _checkFileIntegrityWithCallback(
+        versionRoot: versionRoot,
+        entries: entries,
+        indexes: List<int>.generate(entries.length, (index) => index),
+        failureByIndex: failureByIndex,
+      );
+    }
+    for (var index = 0; index < failureByIndex.length; index++) {
+      final failure = failureByIndex[index];
+      if (failure != null) {
         return InstalledGameVerification(
-          code: InstalledGameVerificationCode.sizeMismatch,
+          code: failure,
           manifest: manifest,
           receipt: receipt,
-          affectedPaths: <String>[entry.path],
-        );
-      }
-      final digest = await sha256.bind(file.openRead()).first;
-      if (digest.toString() != entry.sha256) {
-        return InstalledGameVerification(
-          code: InstalledGameVerificationCode.hashMismatch,
-          manifest: manifest,
-          receipt: receipt,
-          affectedPaths: <String>[entry.path],
+          affectedPaths: <String>[entries[index].path],
         );
       }
     }
@@ -331,5 +362,211 @@ final class InstalledGameVerifier {
       manifest: manifest,
       receipt: receipt,
     );
+  }
+
+  Future<void> _checkDefaultFileIntegrity({
+    required Directory versionRoot,
+    required List<GamePackageFileEntry> entries,
+    required List<InstalledGameVerificationCode?> failureByIndex,
+  }) async {
+    final bufferedBatches = List<List<List<Object>>>.generate(
+      _effectiveMaxConcurrentFileChecks,
+      (_) => <List<Object>>[],
+    );
+    var bufferedIndex = 0;
+    for (var index = 0; index < entries.length; index++) {
+      final entry = entries[index];
+      bufferedBatches[bufferedIndex++ % bufferedBatches.length].add(
+        <Object>[
+          index,
+          p.joinAll(<String>[
+            versionRoot.path,
+            ...p.posix.split(entry.path),
+          ]),
+          entry.size,
+          entry.sha256,
+        ],
+      );
+    }
+
+    Future<void> checkBufferedBatch(List<List<Object>> batch) async {
+      final failure = await _installedGameIntegrityIsolates.run(
+        () => Isolate.run(
+          () => _checkBufferedInstalledGameFiles(batch),
+        ),
+      );
+      if (failure == null) return;
+      final index = failure[0] as int;
+      failureByIndex[index] =
+          InstalledGameVerificationCode.values[failure[1] as int];
+    }
+
+    await Future.wait<void>(<Future<void>>[
+      for (final batch in bufferedBatches)
+        if (batch.isNotEmpty) checkBufferedBatch(batch),
+    ]);
+  }
+
+  Future<void> _checkFileIntegrityWithCallback({
+    required Directory versionRoot,
+    required List<GamePackageFileEntry> entries,
+    required List<int> indexes,
+    required List<InstalledGameVerificationCode?> failureByIndex,
+  }) async {
+    var nextIndex = 0;
+
+    Future<void> checkNextFiles() async {
+      while (nextIndex < indexes.length) {
+        final index = indexes[nextIndex++];
+        final entry = entries[index];
+        final file = File(p.joinAll(<String>[
+          versionRoot.path,
+          ...p.posix.split(entry.path),
+        ]));
+        failureByIndex[index] = await fileIntegrityCheck(file, entry);
+      }
+    }
+
+    final workerCount = indexes.length < _effectiveMaxConcurrentFileChecks
+        ? indexes.length
+        : _effectiveMaxConcurrentFileChecks;
+    await Future.wait<void>(
+      List<Future<void>>.generate(workerCount, (_) => checkNextFiles()),
+    );
+  }
+}
+
+Future<InstalledGameVerificationCode?> _checkInstalledGameFileIntegrity(
+  File file,
+  GamePackageFileEntry entry,
+) async {
+  try {
+    if (entry.size <= _maxBufferedIntegrityFileBytes) {
+      final bytes = await file.readAsBytes();
+      if (bytes.length != entry.size) {
+        return InstalledGameVerificationCode.sizeMismatch;
+      }
+      return sha256.convert(bytes).toString() == entry.sha256
+          ? null
+          : InstalledGameVerificationCode.hashMismatch;
+    }
+    if (await file.length() != entry.size) {
+      return InstalledGameVerificationCode.sizeMismatch;
+    }
+    final digest = await sha256.bind(file.openRead()).first;
+    return digest.toString() == entry.sha256
+        ? null
+        : InstalledGameVerificationCode.hashMismatch;
+  } on FileSystemException {
+    return InstalledGameVerificationCode.missingFile;
+  }
+}
+
+const int _maxBufferedIntegrityFileBytes = 4 * 1024 * 1024;
+const int _maxConcurrentIntegrityWorkers = 8;
+final _installedGameIntegrityIsolates = _InstalledGameIntegrityIsolateLimiter(
+  maxConcurrent: _maxConcurrentIntegrityWorkers,
+);
+
+List<Object>? _checkBufferedInstalledGameFiles(List<List<Object>> entries) {
+  for (final entry in entries) {
+    final index = entry[0] as int;
+    try {
+      final file = File(entry[1] as String);
+      final expectedSize = entry[2] as int;
+      final digest = expectedSize <= _maxBufferedIntegrityFileBytes
+          ? _digestBufferedFile(file, expectedSize)
+          : _digestStreamedFile(file, expectedSize);
+      if (digest == null) {
+        return <Object>[
+          index,
+          InstalledGameVerificationCode.sizeMismatch.index,
+        ];
+      }
+      if (digest != entry[3]) {
+        return <Object>[
+          index,
+          InstalledGameVerificationCode.hashMismatch.index,
+        ];
+      }
+    } on FileSystemException {
+      return <Object>[
+        index,
+        InstalledGameVerificationCode.missingFile.index,
+      ];
+    }
+  }
+  return null;
+}
+
+String? _digestBufferedFile(File file, int expectedSize) {
+  final bytes = file.readAsBytesSync();
+  if (bytes.length != expectedSize) return null;
+  return sha256.convert(bytes).toString();
+}
+
+String? _digestStreamedFile(File file, int expectedSize) {
+  final input = file.openSync();
+  final digestSink = _InstalledGameDigestSink();
+  final conversion = sha256.startChunkedConversion(digestSink);
+  var totalBytes = 0;
+  try {
+    final buffer = Uint8List(256 * 1024);
+    while (true) {
+      final count = input.readIntoSync(buffer);
+      if (count == 0) break;
+      totalBytes += count;
+      conversion.add(
+        count == buffer.length
+            ? buffer
+            : Uint8List.sublistView(buffer, 0, count),
+      );
+    }
+    conversion.close();
+  } finally {
+    input.closeSync();
+  }
+  if (totalBytes != expectedSize) return null;
+  return digestSink.digest.toString();
+}
+
+final class _InstalledGameDigestSink implements Sink<Digest> {
+  Digest? _digest;
+
+  Digest get digest => _digest!;
+
+  @override
+  void add(Digest data) {
+    _digest = data;
+  }
+
+  @override
+  void close() {}
+}
+
+final class _InstalledGameIntegrityIsolateLimiter {
+  _InstalledGameIntegrityIsolateLimiter({required this.maxConcurrent});
+
+  final int maxConcurrent;
+  final List<Completer<void>> _waiters = <Completer<void>>[];
+  int _active = 0;
+
+  Future<T> run<T>(Future<T> Function() action) async {
+    if (_active < maxConcurrent) {
+      _active++;
+    } else {
+      final waiter = Completer<void>();
+      _waiters.add(waiter);
+      await waiter.future;
+    }
+    try {
+      return await action();
+    } finally {
+      if (_waiters.isNotEmpty) {
+        _waiters.removeAt(0).complete();
+      } else {
+        _active--;
+      }
+    }
   }
 }

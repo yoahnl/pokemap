@@ -160,6 +160,7 @@ final class PlayableMapGameSessionRuntime
     final bundle = await loadRuntimeMapBundle(
       projectFilePath: projectFilePath,
       mapId: mapId,
+      preloadedManifest: manifest,
     );
     _projectRootDirectory = bundle.projectRootDirectory;
     _pokemonConfig = bundle.manifest.pokemon;

@@ -25,6 +25,27 @@ void main() {
       expect(profile.manualAddedCells, _buildingBlockingCells);
     });
   });
+
+  test('reuses a previously validated manifest when loading a map bundle',
+      () async {
+    final fixtureProject = File(
+      'test/fixtures/p3_scenario_runtime_golden_path/project.json',
+    ).absolute;
+    final manifest = await loadProjectManifestFromFile(fixtureProject.path);
+    final unavailableProjectPath = p.join(
+      fixtureProject.parent.path,
+      'project-already-loaded.json',
+    );
+
+    final bundle = await loadRuntimeMapBundle(
+      projectFilePath: unavailableProjectPath,
+      mapId: 'p3_test_map',
+      preloadedManifest: manifest,
+    );
+
+    expect(bundle.manifest, same(manifest));
+    expect(bundle.map.id, 'p3_test_map');
+  });
 }
 
 Map<String, dynamic> _legacyBuildingProjectJson() {

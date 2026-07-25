@@ -63,6 +63,7 @@ final class RuntimePlayerCoordinator {
   RuntimePlayerSnapshot get snapshot => _snapshot;
   Stream<RuntimePlayerSnapshot> get snapshots => _snapshots.stream;
   PlayerPreferencesSnapshot? get preferences => _preferences;
+  PlayerSaveSummary? get latestSave => _latestSave;
   bool get isDisposed => _disposed;
 
   Future<void> initialize() {
@@ -636,8 +637,15 @@ final class RuntimePlayerCoordinator {
 
   Future<bool> _loadTitleData({GameSessionFailure? failure}) async {
     try {
-      _preferences = await _preferencesGateway.load();
-      _latestSave = await _saveGateway.readLatestSummary();
+      final titleData = await Future.wait<Object?>(
+        <Future<Object?>>[
+          _preferencesGateway.load(),
+          _saveGateway.readLatestSummary(),
+        ],
+        eagerError: false,
+      );
+      _preferences = titleData[0]! as PlayerPreferencesSnapshot;
+      _latestSave = titleData[1] as PlayerSaveSummary?;
       _validateSaveScope(_latestSave);
       _retryLaunch = null;
       _publishTitle(failure: failure);

@@ -122,11 +122,13 @@ ProjectMapEntry? projectMapEntryForId(ProjectManifest manifest, String mapId) {
 Future<RuntimeMapBundle> loadRuntimeMapBundle({
   required String projectFilePath,
   required String mapId,
+  ProjectManifest? preloadedManifest,
 }) async {
   _runtimeLoaderLog(
     'bundle load start projectFilePath=$projectFilePath mapId=$mapId',
   );
-  final manifest = await loadProjectManifestFromFile(projectFilePath);
+  final manifest =
+      preloadedManifest ?? await loadProjectManifestFromFile(projectFilePath);
   final entry = projectMapEntryForId(manifest, mapId);
   if (entry == null) {
     _runtimeLoaderLog(

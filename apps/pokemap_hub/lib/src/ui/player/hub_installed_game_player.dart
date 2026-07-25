@@ -99,7 +99,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         externalExit: HubRuntimeExternalExit(widget.onHubRequested),
       );
       await coordinator.initialize();
-      final latestSave = await saveGateway.readLatestSummary();
+      final latestSave = coordinator.latestSave;
       if (!mounted) {
         await coordinator.dispose();
         return;

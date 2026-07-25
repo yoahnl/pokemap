@@ -3254,14 +3254,29 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     _bundle = await prepareBorderRuntimeBundle(_bundle);
     _runtimeBundleByMapId[_bundle.map.id] = _bundle;
-    _gameState = await _hydrateOwnedPlayerPokemonProgression(_gameState);
+    final hydratedGameState = _hydrateOwnedPlayerPokemonProgression(_gameState);
+    final rootBorderAssets = _loadBorderRuntimeAssets(_bundle);
+    debugPrint('[runtime_game] tileset image load start map=${_bundle.map.id}');
+    final tilesetImages =
+        _loadTilesetImagesCached(_bundle.tilesetAbsolutePathsById);
+    final bootResources = await Future.wait<Object?>(
+      <Future<Object?>>[
+        hydratedGameState,
+        rootBorderAssets,
+        tilesetImages,
+      ],
+      eagerError: false,
+    );
+    _gameState = bootResources[0]! as GameState;
+    final loadedRootBorderAssets =
+        bootResources[1]! as BorderRuntimeAssetBundle;
+    final images = bootResources[2]! as Map<String, RuntimeTilesetImage>;
     // The coordinator was constructed before asynchronous catalogue loading.
     // Publish the hydrated snapshot before any map-enter dispatch can observe
     // the game as playable.
     await _narrativeStateTransactions.transact<void>((_) {
       return NarrativeEventStateTransaction.commit(_gameState, null);
     });
-    final rootBorderAssets = await _loadBorderRuntimeAssets(_bundle);
     final activation = _createMapActivation(
       mapId: _bundle.map.id,
       reason: initialMapActivationReason,
@@ -3339,9 +3354,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         );
       }
     }
-    debugPrint('[runtime_game] tileset image load start map=${_bundle.map.id}');
-    final images =
-        await _loadTilesetImagesCached(_bundle.tilesetAbsolutePathsById);
     debugPrint(
       '[runtime_game] tileset image load ok count=${images.length} map=${_bundle.map.id}',
     );
@@ -3350,7 +3362,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final rootMap = await _mountLoadedMap(
       bundle: _bundle,
       tileImagesById: images,
-      borderAssets: rootBorderAssets,
+      borderAssets: loadedRootBorderAssets,
       originCellX: 0,
       originCellY: 0,
     );

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -5,6 +6,7 @@ import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -261,6 +263,50 @@ void main() {
       expect(pokemon.currentPpByMoveId, {'water_gun': 25});
     });
 
+    test('starts independent catalogue and tileset IO concurrently', () async {
+      final catalogueGate = Completer<void>();
+      final tilesetGate = Completer<void>();
+      var catalogueStarted = false;
+      var tilesetStarted = false;
+      final game = PlayableMapGame(
+        bundle: _runtimeBundle(
+          newGameEnabled: true,
+          tilesetAbsolutePathsById: const {
+            'fixture': '/tmp/progression_hydration/fixture.png',
+          },
+        ),
+        projectFilePath: '/tmp/progression_hydration/project.json',
+        runtimePlayerPokemonProgressionCatalogLoader: ({
+          required gameState,
+          required projectRootDirectory,
+          required pokemonConfig,
+        }) async {
+          catalogueStarted = true;
+          await catalogueGate.future;
+          return _catalogs();
+        },
+        runtimeTilesetImageLoader: (
+          absolutePathByTilesetId, {
+          transparentColorByTilesetId = const {},
+        }) async {
+          tilesetStarted = true;
+          await tilesetGate.future;
+          return <String, RuntimeTilesetImage>{};
+        },
+      );
+
+      game.onGameResize(Vector2(320, 240));
+      final loading = game.onLoad();
+      try {
+        await _waitUntil(() => catalogueStarted);
+        await _waitUntil(() => tilesetStarted);
+      } finally {
+        catalogueGate.complete();
+        tilesetGate.complete();
+      }
+      await loading;
+    });
+
     test('hydrates a legacy Pokemon restored by loadGame', () async {
       final repository = _MemoryGameSaveRepository(
         const GameState(
@@ -380,7 +426,18 @@ Future<void> _waitForActivationDispatch(PlayableMapGame game) async {
   fail('Timed out waiting for map activation dispatch.');
 }
 
-RuntimeMapBundle _runtimeBundle({required bool newGameEnabled}) {
+Future<void> _waitUntil(bool Function() predicate) async {
+  for (var attempt = 0; attempt < 1000; attempt++) {
+    if (predicate()) return;
+    await Future<void>.delayed(const Duration(milliseconds: 1));
+  }
+  fail('Condition was not reached before the test timeout.');
+}
+
+RuntimeMapBundle _runtimeBundle({
+  required bool newGameEnabled,
+  Map<String, String> tilesetAbsolutePathsById = const {},
+}) {
   const pokemon = PlayerPokemon(
     speciesId: 'wartortle',
     natureId: 'bold',
@@ -428,7 +485,7 @@ RuntimeMapBundle _runtimeBundle({required bool newGameEnabled}) {
       mapMetadata: MapMetadata(defaultSpawnId: 'spawn_start'),
     ),
     projectRootDirectory: '/tmp/progression_hydration',
-    tilesetAbsolutePathsById: const {},
+    tilesetAbsolutePathsById: tilesetAbsolutePathsById,
   );
 }
 

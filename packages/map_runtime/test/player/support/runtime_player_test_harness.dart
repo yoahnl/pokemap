@@ -139,6 +139,8 @@ final class MemoryPlayerSaveGateway implements PlayerSaveGateway {
   PlayerSaveSummary? _latestSave;
   Object? commitError;
   Completer<void>? commitGate;
+  Completer<void>? latestSummaryGate;
+  int latestSummaryReads = 0;
   int activeCommits = 0;
   int maxConcurrentCommits = 0;
 
@@ -184,7 +186,11 @@ final class MemoryPlayerSaveGateway implements PlayerSaveGateway {
   }
 
   @override
-  Future<PlayerSaveSummary?> readLatestSummary() async => _latestSave;
+  Future<PlayerSaveSummary?> readLatestSummary() async {
+    latestSummaryReads++;
+    await latestSummaryGate?.future;
+    return _latestSave;
+  }
 
   @override
   Future<PlayerSaveSummary?> readSummary(SaveSlotAddress address) async {
@@ -200,10 +206,12 @@ final class MemoryPlayerPreferencesGateway implements PlayerPreferencesGateway {
   int loads = 0;
   int saves = 0;
   Object? loadError;
+  Completer<void>? loadGate;
 
   @override
   Future<PlayerPreferencesSnapshot> load() async {
     loads++;
+    await loadGate?.future;
     if (loadError case final error?) throw error;
     return current;
   }

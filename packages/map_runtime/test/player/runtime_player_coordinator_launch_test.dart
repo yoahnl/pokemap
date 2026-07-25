@@ -47,6 +47,32 @@ void main() {
     );
   });
 
+  test('loads title preferences and save summary concurrently once', () async {
+    final seed = RuntimePlayerTestHarness();
+    final save = compatiblePlayerSave(seed.source.identity);
+    await seed.dispose();
+    final harness = RuntimePlayerTestHarness(latestSave: save);
+    addTearDown(harness.dispose);
+    final preferencesGate = Completer<void>();
+    final saveGate = Completer<void>();
+    harness.preferences.loadGate = preferencesGate;
+    harness.saves.latestSummaryGate = saveGate;
+
+    final initialization = harness.coordinator.initialize();
+    try {
+      await Future<void>.delayed(Duration.zero);
+      expect(harness.preferences.loads, 1);
+      expect(harness.saves.latestSummaryReads, 1);
+    } finally {
+      preferencesGate.complete();
+      saveGate.complete();
+    }
+    await initialization;
+
+    expect(harness.coordinator.latestSave, same(save));
+    expect(harness.saves.latestSummaryReads, 1);
+  });
+
   test('launches a new game and follows session progress into playing',
       () async {
     final harness = RuntimePlayerTestHarness();
