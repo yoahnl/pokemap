@@ -208,6 +208,51 @@ void main() {
     expect(transactionFailure.error, isA<StateError>());
     expect(locks, <bool>[true, false, true, false]);
   });
+
+  test('access policy is evaluated before input is locked', () async {
+    const state = GameState(saveId: 'services');
+    final locks = <bool>[];
+    var hostCalls = 0;
+    final host = _Host(
+      onShop: (_) async {
+        hostCalls += 1;
+        return const PlayerServiceHostResult.cancelled();
+      },
+    );
+    final controller = PlayerServiceRuntimeController(
+      currentGameState: () => state,
+      host: host,
+      commitAndSave: (_) async {},
+      setInputLocked: locks.add,
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{},
+      ),
+      grantedCapabilities: const <String>{'service.shop.v1'},
+    );
+
+    final missingCapability = await controller.openShop(
+      const ShopDefinition(id: 'mart', label: 'Boutique'),
+      request: const OpenShopService(
+        interactionId: 'npc.mart',
+        shopId: 'mart',
+        requiredCapabilities: <String>{'service.shop.premium.v1'},
+      ),
+    );
+    final falseFact = await controller.openShop(
+      const ShopDefinition(id: 'mart', label: 'Boutique'),
+      request: OpenShopService(
+        interactionId: 'npc.mart',
+        shopId: 'mart',
+        availabilityCondition: ScriptConditionFactory.flagIsSet('mart_is_open'),
+      ),
+    );
+
+    expect(missingCapability.status, PlayerServiceRuntimeStatus.unavailable);
+    expect(falseFact.status, PlayerServiceRuntimeStatus.unavailable);
+    expect(hostCalls, 0);
+    expect(locks, isEmpty);
+    expect(controller.isActive, isFalse);
+  });
 }
 
 final class _Host implements PlayerServiceOverlayHost {

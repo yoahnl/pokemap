@@ -42,6 +42,7 @@ import '../../application/npc_overworld_movement_defaults.dart';
 import '../../application/npc_runtime_presence.dart';
 import '../../application/placed_behavior_runtime_cooldown.dart';
 import '../../application/player_service_runtime_controller.dart';
+import '../../player/runtime_world_service_models.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_battle_setup_mapper.dart';
 import '../../application/runtime_battle_outcome_apply.dart';
@@ -8509,8 +8510,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           command,
           currentGameState: currentGameState,
         ),
-        openShop: _executeSceneOpenShopCommand,
-        openPc: _executeSceneOpenPcCommand,
+        openWorldService: _executeSceneWorldServiceRequest,
       ).execute,
     );
   }
@@ -8609,39 +8609,51 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  Future<String> _executeSceneOpenShopCommand(
-    SceneInteractiveCommand command,
+  Future<String> _executeSceneWorldServiceRequest(
+    RuntimeWorldServiceRequest request,
   ) async {
-    if (command is! SceneOpenShopInteractiveCommand) return 'cancelled';
+    final controller = _playerServiceRuntimeController;
+    if (controller == null) {
+      _notifySceneCommand('Service joueur indisponible dans ce host.');
+      return 'cancelled';
+    }
+    switch (request) {
+      case OpenShopService(:final shopId):
+        return _executeSceneOpenShopRequest(
+          controller,
+          request,
+          shopId,
+        );
+      case OpenPcService():
+        return _scenePortForPlayerService(
+          await controller.openPc(request: request),
+        );
+      case OpenHealService():
+        return _scenePortForPlayerService(
+          await controller.openHealCenter(request: request),
+        );
+    }
+  }
+
+  Future<String> _executeSceneOpenShopRequest(
+    PlayerServiceRuntimeController controller,
+    OpenShopService request,
+    String shopId,
+  ) async {
     ShopDefinition? shop;
     for (final candidate in _bundle.manifest.shops) {
-      if (candidate.id == command.shopId) {
+      if (candidate.id == shopId) {
         shop = candidate;
         break;
       }
     }
     if (shop == null) {
-      _notifySceneCommand('Boutique ${command.shopId} introuvable.');
+      _notifySceneCommand('Boutique $shopId introuvable.');
       return 'cancelled';
     }
-    final controller = _playerServiceRuntimeController;
-    if (controller == null) {
-      _notifySceneCommand('Boutique indisponible dans ce host.');
-      return 'cancelled';
-    }
-    return _scenePortForPlayerService(await controller.openShop(shop));
-  }
-
-  Future<String> _executeSceneOpenPcCommand(
-    SceneInteractiveCommand command,
-  ) async {
-    if (command is! SceneOpenPcInteractiveCommand) return 'cancelled';
-    final controller = _playerServiceRuntimeController;
-    if (controller == null) {
-      _notifySceneCommand('PC indisponible dans ce host.');
-      return 'cancelled';
-    }
-    return _scenePortForPlayerService(await controller.openPc());
+    return _scenePortForPlayerService(
+      await controller.openShop(shop, request: request),
+    );
   }
 
   String _scenePortForPlayerService(PlayerServiceRuntimeResult result) {
@@ -8656,6 +8668,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         if (session != null) session.gameState = nextState;
         return 'completed';
       case PlayerServiceRuntimeStatus.cancelled:
+        return 'cancelled';
+      case PlayerServiceRuntimeStatus.unavailable:
+        _notifySceneCommand(
+          result.safeMessage ?? 'Service joueur indisponible.',
+        );
         return 'cancelled';
       case PlayerServiceRuntimeStatus.busy:
         _notifySceneCommand('Un service joueur est déjà ouvert.');

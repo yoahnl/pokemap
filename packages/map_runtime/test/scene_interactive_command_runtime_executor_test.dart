@@ -33,6 +33,48 @@ void main() {
     expect(calls, SceneInteractiveCommandKind.values);
   });
 
+  test('projects Scene services into typed world requests', () async {
+    final requests = <RuntimeWorldServiceRequest>[];
+    final executor = SceneInteractiveCommandRuntimeExecutor(
+      warp: (_) async => 'completed',
+      openWorldService: (request) async {
+        requests.add(request);
+        return 'cancelled';
+      },
+    );
+
+    await executor.execute(
+      SceneRuntimePlanIntent.executeInteractiveCommand(
+        command: SceneInteractiveCommand.openShop(shopId: 'shop.port'),
+      ),
+    );
+    await executor.execute(
+      SceneRuntimePlanIntent.executeInteractiveCommand(
+        command: SceneInteractiveCommand.openPc(storageId: 'regional'),
+      ),
+    );
+
+    expect(
+      requests,
+      <Object>[
+        isA<OpenShopService>()
+            .having((value) => value.shopId, 'shopId', 'shop.port')
+            .having(
+              (value) => value.interactionId,
+              'interactionId',
+              'scene.openShop:shop.port',
+            ),
+        isA<OpenPcService>()
+            .having((value) => value.storageId, 'storageId', 'regional')
+            .having(
+              (value) => value.interactionId,
+              'interactionId',
+              'scene.openPc:regional',
+            ),
+      ],
+    );
+  });
+
   test('invalid result fails explicitly before Scene progression', () async {
     var calls = 0;
     final executor = SceneInteractiveCommandRuntimeExecutor(

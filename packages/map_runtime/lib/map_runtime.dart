@@ -405,3 +405,4 @@ export 'src/player/runtime_player_host.dart';
 export 'src/player/runtime_player_coordinator.dart';
 export 'src/player/runtime_player_input.dart';
 export 'src/player/runtime_player_models.dart';
+export 'src/player/runtime_world_service_models.dart';

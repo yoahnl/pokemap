@@ -1,7 +1,12 @@
 import 'package:map_core/map_core.dart';
 
+import '../../player/runtime_world_service_models.dart';
+
 typedef SceneInteractiveCommandHandler = Future<String> Function(
   SceneInteractiveCommand command,
+);
+typedef SceneWorldServiceRequestHandler = Future<String> Function(
+  RuntimeWorldServiceRequest request,
 );
 
 /// Closed dispatcher for awaitable Scene commands.
@@ -11,13 +16,15 @@ typedef SceneInteractiveCommandHandler = Future<String> Function(
 final class SceneInteractiveCommandRuntimeExecutor {
   const SceneInteractiveCommandRuntimeExecutor({
     required this.warp,
-    required this.openShop,
-    required this.openPc,
+    this.openShop,
+    this.openPc,
+    this.openWorldService,
   });
 
   final SceneInteractiveCommandHandler warp;
-  final SceneInteractiveCommandHandler openShop;
-  final SceneInteractiveCommandHandler openPc;
+  final SceneInteractiveCommandHandler? openShop;
+  final SceneInteractiveCommandHandler? openPc;
+  final SceneWorldServiceRequestHandler? openWorldService;
 
   Future<String> execute(SceneRuntimePlanIntent intent) async {
     if (intent.kind != SceneRuntimePlanIntentKind.executeInteractiveCommand) {
@@ -31,12 +38,17 @@ final class SceneInteractiveCommandRuntimeExecutor {
     if (command == null) {
       throw StateError('Interactive Scene intent has no command payload.');
     }
-    final handler = switch (command.kind) {
-      SceneInteractiveCommandKind.warp => warp,
-      SceneInteractiveCommandKind.openShop => openShop,
-      SceneInteractiveCommandKind.openPc => openPc,
+    final output = switch (command.kind) {
+      SceneInteractiveCommandKind.warp => await warp(command),
+      SceneInteractiveCommandKind.openShop => await _executeService(
+          command,
+          legacyHandler: openShop,
+        ),
+      SceneInteractiveCommandKind.openPc => await _executeService(
+          command,
+          legacyHandler: openPc,
+        ),
     };
-    final output = await handler(command);
     if (!command.outputPortIds.contains(output)) {
       throw StateError(
         'Unsupported ${command.kind.name} result "$output"; expected '
@@ -44,5 +56,42 @@ final class SceneInteractiveCommandRuntimeExecutor {
       );
     }
     return output;
+  }
+
+  Future<String> _executeService(
+    SceneInteractiveCommand command, {
+    required SceneInteractiveCommandHandler? legacyHandler,
+  }) {
+    final worldHandler = openWorldService;
+    if (worldHandler != null) {
+      return worldHandler(_worldServiceRequest(command));
+    }
+    if (legacyHandler == null) {
+      throw StateError(
+        'No handler is installed for ${command.kind.name}.',
+      );
+    }
+    return legacyHandler(command);
+  }
+
+  RuntimeWorldServiceRequest _worldServiceRequest(
+    SceneInteractiveCommand command,
+  ) {
+    return switch (command) {
+      SceneOpenShopInteractiveCommand(:final shopId) => OpenShopService(
+          interactionId: 'scene.openShop:$shopId',
+          shopId: shopId,
+        ),
+      SceneOpenPcInteractiveCommand(:final storageId) => OpenPcService(
+          interactionId: 'scene.openPc:${storageId ?? 'default'}',
+          storageId: storageId,
+        ),
+      SceneWarpInteractiveCommand() => throw StateError(
+          'Warp commands are not world services.',
+        ),
+      _ => throw StateError(
+          'Unsupported world-service command: ${command.kind.name}.',
+        ),
+    };
   }
 }

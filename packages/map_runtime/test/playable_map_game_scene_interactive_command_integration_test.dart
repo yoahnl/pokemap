@@ -67,6 +67,8 @@ final class _PlayerServiceHost implements PlayerServiceOverlayHost {
   @override
   Future<PlayerServiceHostResult> openShop(PlayerServiceShopRequest request) {
     shopCalls += 1;
+    expect(request.worldRequest?.interactionId, 'scene.openShop:shop.port');
+    expect(request.worldRequest?.shopId, 'shop.port');
     return Future<PlayerServiceHostResult>.value(
       PlayerServiceHostResult.completed(request.gameState),
     );
@@ -75,6 +77,7 @@ final class _PlayerServiceHost implements PlayerServiceOverlayHost {
   @override
   Future<PlayerServiceHostResult> openPc(PlayerServicePcRequest request) {
     pcCalls += 1;
+    expect(request.worldRequest?.interactionId, 'scene.openPc:default');
     return Future<PlayerServiceHostResult>.value(
       const PlayerServiceHostResult.cancelled(),
     );

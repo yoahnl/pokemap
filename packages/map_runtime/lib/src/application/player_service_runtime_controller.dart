@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import '../player/runtime_world_service_models.dart';
 import 'runtime_player_pokemon_progression_hydrator.dart';
 import 'runtime_pokemon_species_loader.dart';
 
@@ -28,11 +29,13 @@ final class PlayerServiceShopRequest extends PlayerServiceRequest {
   const PlayerServiceShopRequest({
     required super.gameState,
     required super.recoveryCaps,
+    this.worldRequest,
     required this.shop,
     required this.resolvedState,
     required this.conditionContext,
   });
 
+  final OpenShopService? worldRequest;
   final ShopDefinition shop;
   final ResolvedShopState resolvedState;
   final ScriptEvaluationContext conditionContext;
@@ -42,14 +45,20 @@ final class PlayerServicePcRequest extends PlayerServiceRequest {
   const PlayerServicePcRequest({
     required super.gameState,
     required super.recoveryCaps,
+    this.worldRequest,
   });
+
+  final OpenPcService? worldRequest;
 }
 
 final class PlayerServiceHealRequest extends PlayerServiceRequest {
   const PlayerServiceHealRequest({
     required super.gameState,
     required super.recoveryCaps,
+    this.worldRequest,
   });
+
+  final OpenHealService? worldRequest;
 }
 
 final class PlayerServiceHostResult {
@@ -73,13 +82,20 @@ abstract interface class PlayerServiceOverlayHost {
   );
 }
 
-enum PlayerServiceRuntimeStatus { completed, cancelled, busy, failed }
+enum PlayerServiceRuntimeStatus {
+  completed,
+  cancelled,
+  unavailable,
+  busy,
+  failed,
+}
 
 final class PlayerServiceRuntimeResult {
   const PlayerServiceRuntimeResult._({
     required this.status,
     this.gameState,
     this.error,
+    this.safeMessage,
   });
 
   const PlayerServiceRuntimeResult.completed(GameState gameState)
@@ -91,6 +107,12 @@ final class PlayerServiceRuntimeResult {
   const PlayerServiceRuntimeResult.cancelled()
       : this._(status: PlayerServiceRuntimeStatus.cancelled);
 
+  const PlayerServiceRuntimeResult.unavailable(String safeMessage)
+      : this._(
+          status: PlayerServiceRuntimeStatus.unavailable,
+          safeMessage: safeMessage,
+        );
+
   const PlayerServiceRuntimeResult.busy()
       : this._(status: PlayerServiceRuntimeStatus.busy);
 
@@ -100,6 +122,7 @@ final class PlayerServiceRuntimeResult {
   final PlayerServiceRuntimeStatus status;
   final GameState? gameState;
   final Object? error;
+  final String? safeMessage;
 }
 
 typedef PlayerServiceGameStateReader = GameState Function();
@@ -120,12 +143,14 @@ final class PlayerServiceRuntimeController {
     required PlayerServiceInputLockSetter setInputLocked,
     required PlayerServiceRecoveryCapsLoader loadRecoveryCaps,
     ScriptEvaluationContext conditionContext = const ScriptEvaluationContext(),
+    Set<String> grantedCapabilities = const <String>{},
   })  : _currentGameState = currentGameState,
         _host = host,
         _commitAndSave = commitAndSave,
         _setInputLocked = setInputLocked,
         _loadRecoveryCaps = loadRecoveryCaps,
-        _conditionContext = conditionContext;
+        _conditionContext = conditionContext,
+        _grantedCapabilities = Set<String>.unmodifiable(grantedCapabilities);
 
   final PlayerServiceGameStateReader _currentGameState;
   final PlayerServiceOverlayHost _host;
@@ -133,12 +158,31 @@ final class PlayerServiceRuntimeController {
   final PlayerServiceInputLockSetter _setInputLocked;
   final PlayerServiceRecoveryCapsLoader _loadRecoveryCaps;
   final ScriptEvaluationContext _conditionContext;
+  final Set<String> _grantedCapabilities;
   bool _active = false;
 
   bool get isActive => _active;
 
-  Future<PlayerServiceRuntimeResult> openShop(ShopDefinition shop) {
+  Future<PlayerServiceRuntimeResult> openShop(
+    ShopDefinition shop, {
+    OpenShopService? request,
+  }) {
+    final worldRequest = request ??
+        OpenShopService(
+          interactionId: 'runtime.shop:${shop.id}',
+          shopId: shop.id,
+        );
+    if (worldRequest.shopId != shop.id) {
+      return Future<PlayerServiceRuntimeResult>.value(
+        PlayerServiceRuntimeResult.failed(
+          ArgumentError(
+            'The world-service shop id does not match the resolved shop.',
+          ),
+        ),
+      );
+    }
     return _run(
+      worldRequest,
       (state, caps) {
         final normalizedShop = shop.normalized();
         final resolvedState = const ShopStateResolver().resolve(
@@ -150,6 +194,7 @@ final class PlayerServiceRuntimeController {
           PlayerServiceShopRequest(
             gameState: state,
             recoveryCaps: caps,
+            worldRequest: worldRequest,
             shop: normalizedShop,
             resolvedState: resolvedState,
             conditionContext: _conditionContext,
@@ -159,35 +204,72 @@ final class PlayerServiceRuntimeController {
     );
   }
 
-  Future<PlayerServiceRuntimeResult> openPc() {
+  Future<PlayerServiceRuntimeResult> openPc({
+    OpenPcService? request,
+  }) {
+    final worldRequest =
+        request ?? const OpenPcService(interactionId: 'runtime.pc:default');
     return _run(
+      worldRequest,
       (state, caps) => _host.openPc(
-        PlayerServicePcRequest(gameState: state, recoveryCaps: caps),
+        PlayerServicePcRequest(
+          gameState: state,
+          recoveryCaps: caps,
+          worldRequest: worldRequest,
+        ),
       ),
     );
   }
 
-  Future<PlayerServiceRuntimeResult> openHealCenter() {
+  Future<PlayerServiceRuntimeResult> openHealCenter({
+    OpenHealService? request,
+  }) {
+    final worldRequest =
+        request ?? const OpenHealService(interactionId: 'runtime.heal:default');
     return _run(
+      worldRequest,
       (state, caps) => _host.openHealCenter(
-        PlayerServiceHealRequest(gameState: state, recoveryCaps: caps),
+        PlayerServiceHealRequest(
+          gameState: state,
+          recoveryCaps: caps,
+          worldRequest: worldRequest,
+        ),
       ),
     );
   }
 
   Future<PlayerServiceRuntimeResult> _run(
+    RuntimeWorldServiceRequest request,
     Future<PlayerServiceHostResult> Function(
       GameState state,
       RuntimePlayerServiceRecoveryCaps caps,
     ) open,
   ) async {
     if (_active) return const PlayerServiceRuntimeResult.busy();
+    final state = _currentGameState();
+    final missingCapabilities =
+        request.requiredCapabilities.difference(_grantedCapabilities);
+    if (missingCapabilities.isNotEmpty) {
+      return const PlayerServiceRuntimeResult.unavailable(
+        'Ce service n’est pas pris en charge par ce jeu.',
+      );
+    }
+    final condition = request.availabilityCondition;
+    if (condition != null &&
+        !const ScriptConditionEvaluator().evaluate(
+          condition,
+          state,
+          context: _conditionContext,
+        )) {
+      return const PlayerServiceRuntimeResult.unavailable(
+        'Ce service n’est pas disponible pour le moment.',
+      );
+    }
     _active = true;
     var inputLocked = false;
     try {
       _setInputLocked(true);
       inputLocked = true;
-      final state = _currentGameState();
       final caps = await _loadRecoveryCaps(state);
       final hostResult = await open(state, caps);
       if (hostResult.cancelled) {
