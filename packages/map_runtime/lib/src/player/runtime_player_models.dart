@@ -127,6 +127,61 @@ final class RuntimePlayerCommandResult {
   final String? safeMessage;
 }
 
+/// Generic data-only row rendered by a runtime-owned pause detail surface.
+final class RuntimePlayerDetailEntrySnapshot {
+  RuntimePlayerDetailEntrySnapshot({
+    required this.id,
+    required this.title,
+    this.subtitle,
+    this.trailingLabel,
+    this.progress,
+  }) {
+    if (id.trim().isEmpty || title.trim().isEmpty) {
+      throw ArgumentError('Detail entry id and title must not be empty.');
+    }
+    if (progress case final value? when value < 0 || value > 1) {
+      throw ArgumentError.value(
+        value,
+        'progress',
+        'must be between zero and one',
+      );
+    }
+  }
+
+  final String id;
+  final String title;
+  final String? subtitle;
+  final String? trailingLabel;
+  final double? progress;
+}
+
+/// Data-only presentation for one non-root pause section.
+final class RuntimePlayerPauseDetailSnapshot {
+  RuntimePlayerPauseDetailSnapshot({
+    required this.section,
+    required this.title,
+    List<RuntimePlayerDetailEntrySnapshot> entries =
+        const <RuntimePlayerDetailEntrySnapshot>[],
+    this.emptyMessage,
+  }) : entries = List<RuntimePlayerDetailEntrySnapshot>.unmodifiable(entries) {
+    if (section == RuntimePlayerPauseSection.root) {
+      throw ArgumentError.value(
+        section,
+        'section',
+        'the pause root is navigation, not a detail surface',
+      );
+    }
+    if (title.trim().isEmpty) {
+      throw ArgumentError.value(title, 'title', 'must not be empty');
+    }
+  }
+
+  final RuntimePlayerPauseSection section;
+  final String title;
+  final List<RuntimePlayerDetailEntrySnapshot> entries;
+  final String? emptyMessage;
+}
+
 /// Immutable presentation state owned by the runtime player coordinator.
 final class RuntimePlayerSnapshot {
   RuntimePlayerSnapshot({
@@ -142,7 +197,14 @@ final class RuntimePlayerSnapshot {
     this.failure,
     this.logicalSelectionId,
     this.activeInputSource,
-  }) : actions = List<RuntimePlayerActionAvailability>.unmodifiable(actions) {
+    Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot> pauseDetails =
+        const <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{},
+  })  : actions = List<RuntimePlayerActionAvailability>.unmodifiable(actions),
+        pauseDetails = UnmodifiableMapView<RuntimePlayerPauseSection,
+            RuntimePlayerPauseDetailSnapshot>(
+          Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>.from(
+              pauseDetails),
+        ) {
     if (revision < 0) {
       throw ArgumentError.value(revision, 'revision', 'must be non-negative');
     }
@@ -161,6 +223,16 @@ final class RuntimePlayerSnapshot {
       }
       actionStates[availability.action] = availability;
     }
+    for (final entry in this.pauseDetails.entries) {
+      if (entry.key == RuntimePlayerPauseSection.root ||
+          entry.key != entry.value.section) {
+        throw ArgumentError.value(
+          entry.key,
+          'pauseDetails',
+          'keys must match their non-root detail section',
+        );
+      }
+    }
     _actionStates = UnmodifiableMapView<RuntimePlayerAction,
         RuntimePlayerActionAvailability>(actionStates);
   }
@@ -176,6 +248,8 @@ final class RuntimePlayerSnapshot {
   final GameSessionFailure? failure;
   final String? logicalSelectionId;
   final PlayerInputSource? activeInputSource;
+  final Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
+      pauseDetails;
 
   late final Map<RuntimePlayerAction, RuntimePlayerActionAvailability>
       _actionStates;
@@ -185,6 +259,11 @@ final class RuntimePlayerSnapshot {
 
   String? unavailableReasonFor(RuntimePlayerAction action) =>
       _actionStates[action]?.unavailableReason;
+
+  RuntimePlayerPauseDetailSnapshot? pauseDetailFor(
+    RuntimePlayerPauseSection section,
+  ) =>
+      pauseDetails[section];
 
   RuntimePlayerSnapshot next({
     RuntimePlayerPhase? phase,
@@ -204,6 +283,9 @@ final class RuntimePlayerSnapshot {
     bool clearLogicalSelection = false,
     PlayerInputSource? activeInputSource,
     bool clearActiveInputSource = false,
+    Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>?
+        pauseDetails,
+    bool clearPauseDetails = false,
   }) {
     return RuntimePlayerSnapshot(
       revision: revision + 1,
@@ -223,6 +305,10 @@ final class RuntimePlayerSnapshot {
       activeInputSource: clearActiveInputSource
           ? null
           : activeInputSource ?? this.activeInputSource,
+      pauseDetails: clearPauseDetails
+          ? const <RuntimePlayerPauseSection,
+              RuntimePlayerPauseDetailSnapshot>{}
+          : pauseDetails ?? this.pauseDetails,
     );
   }
 }

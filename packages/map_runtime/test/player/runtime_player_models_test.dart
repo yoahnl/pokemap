@@ -84,6 +84,69 @@ void main() {
     );
   });
 
+  test('snapshot owns immutable pause detail presentation data', () {
+    final entries = <RuntimePlayerDetailEntrySnapshot>[
+      RuntimePlayerDetailEntrySnapshot(
+        id: 'party-1',
+        title: 'Salamèche',
+        subtitle: 'N. 16',
+        trailingLabel: '38 / 38 PV',
+        progress: 1,
+      ),
+    ];
+    final detail = RuntimePlayerPauseDetailSnapshot(
+      section: RuntimePlayerPauseSection.party,
+      title: 'Équipe',
+      entries: entries,
+      emptyMessage: 'Votre équipe est vide.',
+    );
+    final details =
+        <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{
+      RuntimePlayerPauseSection.party: detail,
+    };
+    final snapshot = RuntimePlayerSnapshot(
+      revision: 4,
+      phase: RuntimePlayerPhase.paused,
+      gameTitle: 'Contract Test',
+      pauseSection: RuntimePlayerPauseSection.party,
+      pauseDetails: details,
+    );
+
+    entries.clear();
+    details.clear();
+
+    expect(
+      snapshot.pauseDetailFor(RuntimePlayerPauseSection.party)?.entries,
+      hasLength(1),
+    );
+    expect(
+      () => snapshot.pauseDetails.clear(),
+      throwsUnsupportedError,
+    );
+    expect(
+      snapshot.next().pauseDetailFor(RuntimePlayerPauseSection.party),
+      same(detail),
+    );
+  });
+
+  test('pause detail rejects root sections and invalid progress', () {
+    expect(
+      () => RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.root,
+        title: 'Pause',
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => RuntimePlayerDetailEntrySnapshot(
+        id: 'invalid',
+        title: 'Invalid',
+        progress: 1.5,
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('commands retain the exact source snapshot revision', () {
     const command = RuntimePlayerCommand(
       action: RuntimePlayerAction.load,

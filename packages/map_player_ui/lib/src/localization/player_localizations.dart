@@ -97,6 +97,9 @@ final class PokeMapPlayerLocalizations {
       _fr ? 'Aucune sauvegarde disponible' : 'No save available';
   String get noSaveToLoad =>
       _fr ? 'Aucune sauvegarde à charger' : 'No save to load';
+  String get noPlayerDetailAvailable => _fr
+      ? 'Aucune information à afficher pour le moment.'
+      : 'No information is available yet.';
   String get unavailableInGame =>
       _fr ? 'Indisponible dans ce jeu' : 'Unavailable in this game';
   String get directReturnHub => _fr

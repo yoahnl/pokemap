@@ -1,8 +1,58 @@
 import 'package:flutter/material.dart';
+import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+
+class PlayerDetailEntryCard extends StatelessWidget {
+  const PlayerDetailEntryCard({
+    super.key,
+    required this.entry,
+  });
+
+  final RuntimePlayerDetailEntrySnapshot entry;
+
+  @override
+  Widget build(BuildContext context) => PlayerPanel(
+        child: Semantics(
+          container: true,
+          label: entry.title,
+          value: entry.trailingLabel,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      entry.title,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  if (entry.trailingLabel case final trailing?)
+                    Text(
+                      trailing,
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                ],
+              ),
+              if (entry.subtitle case final subtitle?) ...<Widget>[
+                const SizedBox(height: PlayerSpacing.xs),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+              if (entry.progress case final progress?) ...<Widget>[
+                const SizedBox(height: PlayerSpacing.sm),
+                LinearProgressIndicator(value: progress),
+              ],
+            ],
+          ),
+        ),
+      );
+}
 
 class PlayerLoadingSurface extends StatelessWidget {
   const PlayerLoadingSurface({
