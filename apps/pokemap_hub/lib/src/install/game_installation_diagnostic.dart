@@ -68,13 +68,20 @@ final class GameInstallationDiagnostic {
 }
 
 final class GameInstallationException implements Exception {
-  const GameInstallationException(this.diagnostic);
+  const GameInstallationException(
+    this.diagnostic, {
+    this.cause,
+    this.stackTrace,
+  });
 
   final GameInstallationDiagnostic diagnostic;
+  final Object? cause;
+  final StackTrace? stackTrace;
 
   @override
   String toString() => 'GameInstallationException(${diagnostic.code.name} at '
-      '${diagnostic.stage.name})';
+      '${diagnostic.stage.name})'
+      '${cause == null ? '' : ': $cause'}';
 }
 
 final class GameInstallProgress {

@@ -1,5 +1,6 @@
 import Cocoa
 import FlutterMacOS
+import Security
 
 class MainFlutterWindow: NSWindow {
   private var packageOpenChannel: FlutterMethodChannel?
@@ -33,13 +34,16 @@ class MainFlutterWindow: NSWindow {
     )
     packageOpenChannel = channel
     channel.setMethodCallHandler { [weak self] call, result in
-      guard call.method == "ready" else {
+      switch call.method {
+      case "ready":
+        self?.isDartPackageBridgeReady = true
+        self?.flushPendingPackagePaths()
+        result(nil)
+      case "canSelectPackages":
+        result(Self.hasUserSelectedFileReadEntitlement())
+      default:
         result(FlutterMethodNotImplemented)
-        return
       }
-      self?.isDartPackageBridgeReady = true
-      self?.flushPendingPackagePaths()
-      result(nil)
     }
     packageOpenObserver = NotificationCenter.default.addObserver(
       forName: AppDelegate.packageOpenNotification,
@@ -48,6 +52,20 @@ class MainFlutterWindow: NSWindow {
     ) { [weak self] _ in
       self?.flushPendingPackagePaths()
     }
+  }
+
+  private static func hasUserSelectedFileReadEntitlement() -> Bool {
+    guard
+      let task = SecTaskCreateFromSelf(nil),
+      let value = SecTaskCopyValueForEntitlement(
+        task,
+        "com.apple.security.files.user-selected.read-only" as CFString,
+        nil
+      )
+    else {
+      return false
+    }
+    return (value as? Bool) == true
   }
 
   private func flushPendingPackagePaths() {

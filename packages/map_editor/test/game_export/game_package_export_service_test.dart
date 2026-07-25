@@ -77,6 +77,48 @@ void main() {
     );
   });
 
+  test(
+      'falls back to a verified direct write when macOS denies sibling staging',
+      () async {
+    final root = await createAuthorProject();
+    addTearDown(() => root.delete(recursive: true));
+    var atomicWriteAttempted = false;
+    final service = GamePackageExportService(
+      atomicFileWriter: ({
+        required outputFile,
+        required packageBytes,
+        required packageSha256,
+      }) async {
+        atomicWriteAttempted = true;
+        throw FileSystemException(
+          'Operation not permitted',
+          '${outputFile.path}.sandbox-stage.tmp',
+          const OSError('Operation not permitted', 1),
+        );
+      },
+    );
+    final output = File(
+      p.join(root.parent.path, 'sandbox-selected.pokemapgame'),
+    );
+    addTearDown(() async {
+      if (await output.exists()) await output.delete();
+    });
+
+    final artifact = await service.exportToFile(
+      projectRoot: root,
+      profile: neutralExportProfile(),
+      outputFile: output,
+    );
+
+    expect(atomicWriteAttempted, isTrue);
+    expect(await output.readAsBytes(), artifact.packageBytes);
+    expect(
+      const GamePackageInspector().inspect(await output.readAsBytes()).manifest,
+      isA<GamePackageManifest>(),
+    );
+    expect(await File('${output.path}.backup').exists(), isFalse);
+  });
+
   test('refuses a required capability outside the Phase 0 host contract',
       () async {
     final root = await createAuthorProject(withDialogue: false);

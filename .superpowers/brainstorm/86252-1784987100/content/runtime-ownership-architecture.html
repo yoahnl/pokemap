@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PokeMap — Propriété de la session joueur</title>
+  <style>
+    :root { color-scheme:dark; --bg:#07101c; --card:#122236; --card2:#1b3048; --line:#486785; --text:#f7f9fc; --muted:#a1b3c6; --accent:#70d7e4; --focus:#ffd166; --good:#79e2ad; --bad:#ff8f9c; }
+    *{box-sizing:border-box} body{margin:0;min-height:100vh;padding:40px 22px 70px;background:radial-gradient(circle at 15% 0%,rgba(112,215,228,.13),transparent 32rem),var(--bg);color:var(--text);font:15px/1.48 Inter,system-ui,sans-serif}
+    main{width:min(1160px,100%);margin:auto} h1{margin:0;font-size:clamp(30px,4vw,48px);line-height:1.07;letter-spacing:-.04em}.lead{max-width:900px;margin:14px 0 28px;color:var(--muted);font-size:17px}
+    .options{display:grid;gap:22px}.option{border:1px solid var(--line);border-radius:24px;background:linear-gradient(150deg,#172a3f,#0c1827);overflow:hidden;cursor:pointer;box-shadow:0 22px 60px rgba(0,0,0,.4);transition:.16s}.option:hover{transform:translateY(-2px);border-color:var(--accent)}.option.selected{border-color:var(--focus);box-shadow:0 0 0 3px rgba(255,209,102,.2),0 22px 60px rgba(0,0,0,.4)}
+    .head{display:flex;gap:15px;padding:21px 23px;border-bottom:1px solid var(--line)}.letter{display:grid;place-items:center;flex:0 0 42px;height:42px;border-radius:13px;background:var(--accent);color:#09232a;font-weight:950}.head h2{margin:0 0 4px;font-size:22px}.head p{margin:0;color:var(--muted)}.recommended{color:var(--good);font-weight:850}
+    .body{display:grid;grid-template-columns:1.3fr .7fr;gap:18px;padding:20px}.diagram{display:flex;align-items:stretch;gap:9px;min-height:190px}.node{display:flex;flex:1;flex-direction:column;justify-content:center;min-width:0;padding:15px;border:1px solid var(--line);border-radius:15px;background:var(--card2);text-align:center}.node strong{display:block;margin-bottom:5px}.node small{color:var(--muted)}.arrow{display:grid;place-items:center;color:var(--accent);font-size:24px;font-weight:900}.runtime{border-color:var(--accent)}.hub{border-color:#8fa4ba}.ui{border-color:var(--focus)}.new{border-color:#c599ff}
+    .facts{display:grid;gap:10px}.fact{padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:rgba(18,34,54,.8);color:var(--muted)}.fact b{color:var(--text)}.plus{color:var(--good)}.minus{color:var(--bad)}
+    .rule{margin-top:22px;padding:15px 17px;border:1px solid var(--accent);border-radius:15px;background:rgba(112,215,228,.08);color:var(--muted)}.rule b{color:var(--text)}
+    @media(max-width:820px){.body{grid-template-columns:1fr}.diagram{flex-direction:column}.arrow{transform:rotate(90deg)}}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Où vit réellement le joueur ?</h1>
+  <p class="lead">Dans les trois options, le Hub ne dessine aucune UI en jeu. Il sélectionne une version installée, fournit les sauvegardes et reçoit « retour au Hub ». Le projet JSON est chargé et interprété par le runtime.</p>
+
+  <section class="options">
+    <article class="option" data-choice="runtime-authority-player-ui-renderer" onclick="toggleSelect(this)">
+      <header class="head">
+        <div class="letter">A</div>
+        <div>
+          <h2>Runtime autoritaire + renderer map_player_ui <span class="recommended">— recommandé</span></h2>
+          <p>Le runtime possède états, navigation, focus et commandes. map_player_ui ne fait que rendre les snapshots Flutter.</p>
+        </div>
+      </header>
+      <div class="body">
+        <div class="diagram">
+          <div class="node hub"><strong>pokemap_hub</strong><small>installer · bibliothèque · saves · lancement</small></div>
+          <div class="arrow">→</div>
+          <div class="node ui"><strong>map_player_ui</strong><small>PokeMapPlayerSessionView · menu A1 · thème · accessibilité</small></div>
+          <div class="arrow">⇄</div>
+          <div class="node runtime"><strong>map_runtime</strong><small>JSON · Flame · session · input router · services contextuels</small></div>
+        </div>
+        <div class="facts">
+          <div class="fact plus"><b>+</b> respecte le sens existant : map_player_ui dépend du runtime, jamais l’inverse</div>
+          <div class="fact plus"><b>+</b> aucun widget ou état de session dans le Hub</div>
+          <div class="fact plus"><b>+</b> design system joueur réutilisé sans duplication</div>
+          <div class="fact"><b>Nuance :</b> le widget vit physiquement dans map_player_ui, mais son état et ses décisions viennent uniquement du runtime</div>
+        </div>
+      </div>
+    </article>
+
+    <article class="option" data-choice="everything-inside-map-runtime" onclick="toggleSelect(this)">
+      <header class="head">
+        <div class="letter">B</div>
+        <div>
+          <h2>Tout placer directement dans map_runtime</h2>
+          <p>Le package runtime contient Flame, la session et tous les widgets Flutter joueur.</p>
+        </div>
+      </header>
+      <div class="body">
+        <div class="diagram">
+          <div class="node hub"><strong>pokemap_hub</strong><small>installer · bibliothèque · saves</small></div>
+          <div class="arrow">→</div>
+          <div class="node runtime"><strong>map_runtime</strong><small>JSON · Flame · session · menu Flutter · thème · services</small></div>
+        </div>
+        <div class="facts">
+          <div class="fact plus"><b>+</b> correspond littéralement à « tout vient de map_runtime »</div>
+          <div class="fact minus"><b>−</b> duplique ou déplace le design system déjà construit dans map_player_ui</div>
+          <div class="fact minus"><b>−</b> grossit fortement le runtime et mélange moteur, orchestration et présentation produit</div>
+          <div class="fact minus"><b>−</b> rend map_player_ui presque inutile</div>
+        </div>
+      </div>
+    </article>
+
+    <article class="option" data-choice="new-player-shell-package" onclick="toggleSelect(this)">
+      <header class="head">
+        <div class="letter">C</div>
+        <div>
+          <h2>Nouveau package map_player_shell</h2>
+          <p>Un package de composition dédié assemble map_runtime et map_player_ui ; le Hub ne dépend que de ce shell.</p>
+        </div>
+      </header>
+      <div class="body">
+        <div class="diagram">
+          <div class="node hub"><strong>pokemap_hub</strong><small>bibliothèque · lancement</small></div>
+          <div class="arrow">→</div>
+          <div class="node new"><strong>map_player_shell</strong><small>composition complète de la session joueur</small></div>
+          <div class="arrow">→</div>
+          <div style="display:grid;gap:8px;flex:1">
+            <div class="node runtime"><strong>map_runtime</strong><small>moteur et contrats</small></div>
+            <div class="node ui"><strong>map_player_ui</strong><small>widgets et thème</small></div>
+          </div>
+        </div>
+        <div class="facts">
+          <div class="fact plus"><b>+</b> frontière produit extrêmement nette</div>
+          <div class="fact plus"><b>+</b> Hub minimal et runtime moteur préservé</div>
+          <div class="fact minus"><b>−</b> nouveau package, nouveaux barrels et plus de plomberie</div>
+          <div class="fact minus"><b>−</b> complexité prématurée tant qu’il n’existe qu’un player officiel</div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <div class="rule">
+    <b>Règle commune pour Boutique et Centre Pokémon :</b>
+    une interaction de monde déclenche une commande Scene typée (`openShop`, `healParty` ou `openHealCenter`). Le runtime verrouille l’overworld puis publie l’écran Flutter approprié. Ces services ne figurent jamais dans le menu pause.
+  </div>
+</main>
+</body>
+</html>

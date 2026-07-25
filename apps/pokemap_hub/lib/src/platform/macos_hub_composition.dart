@@ -79,6 +79,9 @@ final class MacOSHubComposition {
       },
       editorExportConsumer: inbox.consumePending,
       preferencesStore: HubPreferencesStore(supportRoot: supportRoot),
+      diagnosticLogFile: File(
+        p.join(supportRoot.path, 'logs', 'hub-import.log'),
+      ),
     );
     final actions = HubUiActions(
       onImportRequested: () {
@@ -153,16 +156,45 @@ GamePackageHostCompatibility _hostCompatibility() =>
     );
 
 Future<void> _pickAndImport(HubDashboardController controller) async {
-  final result = await FilePicker.platform.pickFiles(
-    dialogTitle: 'Importer un jeu PokeMap',
-    allowMultiple: false,
-    allowedExtensions: const <String>['pokemapgame'],
-    type: FileType.custom,
-    lockParentWindow: true,
-  );
-  final path = result?.files.single.path;
-  if (path == null) return;
-  await controller.importPackage(File(path));
+  try {
+    final canSelectPackages = await MacOSHubComposition._packageOpenChannel
+            .invokeMethod<bool>('canSelectPackages') ??
+        false;
+    if (!canSelectPackages) {
+      await controller.reportImportPickerFailure(
+        code: 'importPicker.missingEntitlement',
+        message: 'Le sélecteur de fichiers ne peut pas s’ouvrir.',
+        recommendation:
+            'Fermez complètement le Hub puis relancez une build signée avec '
+            'l’autorisation de lire les fichiers sélectionnés.',
+        cause: StateError(
+          'Missing com.apple.security.files.user-selected.read-only '
+          'entitlement.',
+        ),
+        stackTrace: StackTrace.current,
+      );
+      return;
+    }
+    final result = await FilePicker.platform.pickFiles(
+      dialogTitle: 'Importer un jeu PokeMap',
+      allowMultiple: false,
+      allowedExtensions: const <String>['pokemapgame'],
+      type: FileType.custom,
+      lockParentWindow: true,
+    );
+    final path = result?.files.single.path;
+    if (path == null) return;
+    await controller.importPackage(File(path));
+  } on Object catch (error, stackTrace) {
+    await controller.reportImportPickerFailure(
+      code: 'importPicker.openFailed',
+      message: 'Le sélecteur de fichiers n’a pas pu être ouvert.',
+      recommendation: 'Fermez complètement le Hub, relancez-le puis réessayez. '
+          'Les détails techniques sont disponibles dans Diagnostics.',
+      cause: error,
+      stackTrace: stackTrace,
+    );
+  }
 }
 
 Future<int> _availableDiskBytes(Directory supportRoot) async {

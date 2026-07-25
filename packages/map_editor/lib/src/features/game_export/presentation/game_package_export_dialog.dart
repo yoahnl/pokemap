@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../theme/theme.dart';
@@ -40,6 +41,7 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
   late final Map<String, TextEditingController> _fields;
   bool _didSyncLoadedProfile = false;
   bool _quickMode = true;
+  bool _diagnosticCopied = false;
   String? _pickerErrorMessage;
 
   @override
@@ -67,6 +69,9 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
         snapshot.status == GamePackageExportStatus.ready) {
       _didSyncLoadedProfile = true;
       _writeDraft(snapshot.draft);
+    }
+    if (snapshot.status != GamePackageExportStatus.error) {
+      _diagnosticCopied = false;
     }
     if (mounted) setState(() {});
   }
@@ -419,8 +424,68 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                         severity: PokeMapDiagnosticSeverity.error,
                         title: 'Export impossible',
                         message: snapshot.safeErrorMessage!,
-                        actionLabel: 'Corriger les informations',
+                        actionLabel: snapshot.errorCode == 'exportWriteFailed'
+                            ? 'Choisir un autre emplacement'
+                            : 'Corriger les informations',
                         onAction: widget.controller.clearError,
+                      ),
+                    ],
+                    if (snapshot.technicalErrorDetails != null) ...[
+                      const SizedBox(height: 10),
+                      PokeMapCard(
+                        key: const ValueKey<String>(
+                          'game-export-technical-diagnostic',
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            const PokeMapSectionHeader(
+                              title: 'Détails techniques',
+                              description:
+                                  'Ces informations permettent de comprendre '
+                                  'l’échec et peuvent être jointes à un ticket.',
+                            ),
+                            const SizedBox(height: 10),
+                            SelectableText(
+                              snapshot.technicalErrorDetails!,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: colors.textSecondary,
+                                    fontFamily: 'monospace',
+                                  ),
+                            ),
+                            if (snapshot.diagnosticLogPath != null) ...[
+                              const SizedBox(height: 10),
+                              Text(
+                                'Journal : ${snapshot.diagnosticLogPath}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(color: colors.textMuted),
+                              ),
+                            ],
+                            const SizedBox(height: 10),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: PokeMapButton(
+                                key: const ValueKey<String>(
+                                  'game-export-copy-diagnostic',
+                                ),
+                                onPressed: _copyDiagnostic,
+                                variant: PokeMapButtonVariant.secondary,
+                                size: PokeMapButtonSize.small,
+                                leading: const Icon(Icons.copy_outlined),
+                                child: Text(
+                                  _diagnosticCopied
+                                      ? 'Diagnostic copié'
+                                      : 'Copier le diagnostic',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                     if (snapshot.status == GamePackageExportStatus.succeeded &&
@@ -496,6 +561,20 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
     final file = await widget.chooseOutputFile(suggested);
     if (file == null || !mounted) return;
     await widget.controller.export(profile: profile, outputFile: file);
+  }
+
+  Future<void> _copyDiagnostic() async {
+    final snapshot = widget.controller.snapshot;
+    final details = snapshot.technicalErrorDetails;
+    if (details == null) return;
+    final content = <String>[
+      details,
+      if (snapshot.diagnosticLogPath != null)
+        'Journal : ${snapshot.diagnosticLogPath}',
+    ].join('\n');
+    await Clipboard.setData(ClipboardData(text: content));
+    if (!mounted) return;
+    setState(() => _diagnosticCopied = true);
   }
 
   Widget _field(

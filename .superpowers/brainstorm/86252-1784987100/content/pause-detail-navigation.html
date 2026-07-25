@@ -1,0 +1,78 @@
+<h2>Comment ouvrir Équipe, Sac, Pokédex et Options ?</h2>
+<p class="subtitle">
+  Le panneau A reste le point d’entrée. La différence porte sur la place donnée aux écrans détaillés.
+</p>
+
+<div class="cards">
+  <div class="card" data-choice="responsive-detail" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="split">
+        <div class="mockup">
+          <div class="mockup-header">Desktop / paysage</div>
+          <div class="mockup-body" style="display:flex;min-height:250px;background:#15202d">
+            <div style="flex:1;padding:18px;color:#8094aa">Jeu sous le voile</div>
+            <div style="width:480px;background:#26384d;padding:16px">
+              <div style="display:flex;gap:16px">
+                <div style="width:120px;border-right:1px solid #587089">
+                  <strong>Pause</strong><br><br>
+                  Reprendre<br><b>Équipe</b><br>Sac<br>Pokédex<br>Carte<br>Options
+                </div>
+                <div style="flex:1">
+                  <strong>Équipe</strong>
+                  <div style="margin-top:12px;border:1px solid #587089;border-radius:10px;padding:12px">Charmander — N.16<br>38 / 38 PV</div>
+                  <div style="margin-top:8px;border:1px solid #587089;border-radius:10px;padding:12px">Pikachu — N.12<br>29 / 34 PV</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mockup">
+          <div class="mockup-header">Mobile / portrait</div>
+          <div class="mockup-body" style="min-height:250px;background:#26384d;padding:16px">
+            <strong>← Équipe</strong>
+            <div style="margin-top:14px;border:1px solid #587089;border-radius:10px;padding:12px">Charmander — N.16<br>38 / 38 PV</div>
+            <div style="margin-top:8px;border:1px solid #587089;border-radius:10px;padding:12px">Pikachu — N.12<br>29 / 34 PV</div>
+            <button class="mock-button" style="width:100%;margin-top:18px">Retour au menu</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A1 — Détail réellement adaptatif (recommandé)</h3>
+      <p>Desktop : le panneau s’élargit et conserve la navigation. Mobile : le détail devient une page Flutter plein écran avec retour explicite.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="fixed-panel-detail" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="split">
+        <div class="mockup">
+          <div class="mockup-header">Desktop / paysage</div>
+          <div class="mockup-body" style="display:flex;min-height:250px;background:#15202d">
+            <div style="flex:1;padding:18px;color:#8094aa">Jeu sous le voile</div>
+            <div class="mock-sidebar" style="width:220px">
+              <strong>← Équipe</strong><br><br>
+              Charmander<br>38 / 38 PV<br><br>
+              Pikachu<br>29 / 34 PV<br><br>
+              <button class="mock-button">Retour</button>
+            </div>
+          </div>
+        </div>
+        <div class="mockup">
+          <div class="mockup-header">Mobile / portrait</div>
+          <div class="mockup-body" style="min-height:250px;background:#15202d;padding-top:70px">
+            <div style="height:180px;border-radius:22px 22px 0 0;background:#26384d;padding:16px;overflow:hidden">
+              <strong>← Équipe</strong><br><br>
+              Charmander — 38 / 38 PV<br><br>
+              Pikachu — 29 / 34 PV
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A2 — Tout reste dans le petit panneau</h3>
+      <p>Transition très simple, mais les listes, descriptions d’objets et options deviennent vite étroites ou nécessitent beaucoup de défilement.</p>
+    </div>
+  </div>
+</div>

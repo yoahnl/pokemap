@@ -9,6 +9,45 @@ import 'package:test/test.dart';
 import '../support/game_package_fixture.dart';
 
 void main() {
+  test('preserves the filesystem cause when the selected package is unreadable',
+      () async {
+    final root = await Directory.systemTemp.createTemp(
+      'hub-unreadable-package-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final packageDirectory =
+        await Directory('${root.path}/blocked.pokemapgame').create();
+    final installer = GamePackageInstaller(
+      supportRoot: Directory('${root.path}/support'),
+      inspector: GamePackageInspector(
+        hostCompatibility: testHostCompatibility(),
+      ),
+      availableDiskBytes: (_) async => 1 << 40,
+      loadSmoke: (_, __) async {},
+      prepareSavesForUpdate: (_, __) async => const SaveUpdatePreparation(),
+    );
+
+    await expectLater(
+      installer.install(
+        File(packageDirectory.path),
+        source: GamePackageInstallSource.localFile,
+      ),
+      throwsA(
+        isA<GameInstallationException>()
+            .having(
+              (error) => error.diagnostic.code,
+              'code',
+              GameInstallationErrorCode.integrityFailed,
+            )
+            .having(
+              (error) => error.cause,
+              'cause',
+              isA<FileSystemException>(),
+            ),
+      ),
+    );
+  });
+
   group('GamePackageInstaller', () {
     late Directory root;
     late Directory packages;

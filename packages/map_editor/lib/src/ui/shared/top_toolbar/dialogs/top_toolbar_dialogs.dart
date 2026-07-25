@@ -530,6 +530,9 @@ Future<void> showTopToolbarGameExportDialog(
     profileStore: GamePackageExportProfileStore(
       projectRoot: Directory(projectRootPath),
     ),
+    diagnosticLogFile: File(
+      p.join(appSupport.path, 'PokeMap', 'logs', 'game-export.log'),
+    ),
     installRequestPublisher: HubInstallRequestPublisher(
       inbox: Directory(
         p.join(appSupport.path, 'PokeMap', 'import-inbox'),

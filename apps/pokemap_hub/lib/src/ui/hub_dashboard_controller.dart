@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -25,6 +26,8 @@ final class HubDiagnostic {
     required this.message,
     required this.recommendation,
     this.gameId,
+    this.technicalDetails,
+    this.logPath,
   });
 
   final String code;
@@ -32,6 +35,8 @@ final class HubDiagnostic {
   final String message;
   final String recommendation;
   final String? gameId;
+  final String? technicalDetails;
+  final String? logPath;
 }
 
 final class HubStorageSnapshot {
@@ -210,6 +215,7 @@ final class HubDashboardController extends ChangeNotifier {
     this.editorExportConsumer,
     this.preferencesStore,
     this.storageReader,
+    this.diagnosticLogFile,
   });
 
   final GameLibraryStore libraryStore;
@@ -218,6 +224,7 @@ final class HubDashboardController extends ChangeNotifier {
   final HubEditorExportConsumer? editorExportConsumer;
   final HubPreferencesStore? preferencesStore;
   final HubStorageReader? storageReader;
+  final File? diagnosticLogFile;
 
   HubDashboardSnapshot _snapshot = HubDashboardSnapshot.initial();
   GameInstallCancellationToken? _installCancellation;
@@ -391,11 +398,26 @@ final class HubDashboardController extends ChangeNotifier {
         },
       );
       await _reload();
-    } on GameInstallationException catch (error) {
+    } on GameInstallationException catch (error, stackTrace) {
       if (error.diagnostic.code == GameInstallationErrorCode.cancelled) {
         await _reload();
         return;
       }
+      final effectiveStackTrace = error.stackTrace ?? stackTrace;
+      final details = _technicalDetails(
+        code: 'install.${error.diagnostic.code.name}',
+        operation: 'import',
+        packagePath: package.path,
+        cause: error.cause ?? error,
+        stackTrace: effectiveStackTrace,
+      );
+      final logPath = await _appendDiagnostic(
+        code: 'install.${error.diagnostic.code.name}',
+        operation: 'import',
+        packagePath: package.path,
+        cause: error.cause ?? error,
+        stackTrace: effectiveStackTrace,
+      );
       _publish(
         _snapshot.copyWith(
           status: HubDashboardStatus.error,
@@ -411,12 +433,28 @@ final class HubDashboardController extends ChangeNotifier {
                   ? 'Utilisez Réparer depuis la fiche du jeu.'
                   : 'Le package installé précédemment reste disponible.',
               gameId: error.diagnostic.gameId,
+              technicalDetails: details,
+              logPath: logPath,
             ),
           ],
         ),
       );
-    } on Object {
+    } on Object catch (error, stackTrace) {
       const message = 'Le package n’a pas pu être installé.';
+      final details = _technicalDetails(
+        code: 'install.unexpected',
+        operation: 'import',
+        packagePath: package.path,
+        cause: error,
+        stackTrace: stackTrace,
+      );
+      final logPath = await _appendDiagnostic(
+        code: 'install.unexpected',
+        operation: 'import',
+        packagePath: package.path,
+        cause: error,
+        stackTrace: stackTrace,
+      );
       _publish(
         _snapshot.copyWith(
           status: HubDashboardStatus.error,
@@ -424,12 +462,14 @@ final class HubDashboardController extends ChangeNotifier {
           safeErrorMessage: message,
           diagnostics: <HubDiagnostic>[
             ..._snapshot.diagnostics,
-            const HubDiagnostic(
+            HubDiagnostic(
               code: 'install.unexpected',
               severity: HubDiagnosticSeverity.error,
               message: message,
               recommendation:
                   'Le package installé précédemment reste disponible.',
+              technicalDetails: details,
+              logPath: logPath,
             ),
           ],
         ),
@@ -439,7 +479,105 @@ final class HubDashboardController extends ChangeNotifier {
     }
   }
 
+  Future<void> reportImportPickerFailure({
+    required String code,
+    required String message,
+    required String recommendation,
+    required Object cause,
+    required StackTrace stackTrace,
+  }) async {
+    const packagePath = '<aucun package sélectionné>';
+    final details = _technicalDetails(
+      code: code,
+      operation: 'pickPackage',
+      packagePath: packagePath,
+      cause: cause,
+      stackTrace: stackTrace,
+    );
+    final logPath = await _appendDiagnostic(
+      code: code,
+      operation: 'pickPackage',
+      packagePath: packagePath,
+      cause: cause,
+      stackTrace: stackTrace,
+    );
+    if (_disposed) return;
+    _publish(
+      _snapshot.copyWith(
+        status: HubDashboardStatus.error,
+        clearInstallProgress: true,
+        safeErrorMessage: message,
+        diagnostics: <HubDiagnostic>[
+          ..._snapshot.diagnostics.where(
+            (diagnostic) => diagnostic.code != code,
+          ),
+          HubDiagnostic(
+            code: code,
+            severity: HubDiagnosticSeverity.error,
+            message: message,
+            recommendation: recommendation,
+            technicalDetails: details,
+            logPath: logPath,
+          ),
+        ],
+      ),
+    );
+  }
+
   void cancelImport() => _installCancellation?.cancel();
+
+  Future<String?> _appendDiagnostic({
+    required String code,
+    required String operation,
+    required String packagePath,
+    required Object cause,
+    required StackTrace stackTrace,
+  }) async {
+    final logFile = diagnosticLogFile;
+    if (logFile == null) return null;
+    try {
+      await logFile.parent.create(recursive: true);
+      final sink = logFile.openWrite(mode: FileMode.append);
+      sink.writeln(
+        jsonEncode(<String, Object?>{
+          'timestamp': DateTime.now().toUtc().toIso8601String(),
+          'feature': 'hub-package-import',
+          'operation': operation,
+          'code': code,
+          'packagePath': packagePath,
+          'cause': cause.toString(),
+          'stackTrace': stackTrace.toString(),
+        }),
+      );
+      await sink.flush();
+      await sink.close();
+      return logFile.path;
+    } on Object {
+      return null;
+    }
+  }
+
+  static String _technicalDetails({
+    required String code,
+    required String operation,
+    required String packagePath,
+    required Object cause,
+    required StackTrace stackTrace,
+  }) {
+    final stackLines = stackTrace
+        .toString()
+        .split('\n')
+        .where((line) => line.trim().isNotEmpty)
+        .take(12)
+        .join('\n');
+    return <String>[
+      'Code : $code',
+      'Opération : $operation',
+      'Package : $packagePath',
+      'Cause système : $cause',
+      if (stackLines.isNotEmpty) 'Pile :\n$stackLines',
+    ].join('\n');
+  }
 
   Future<void> _reload({
     PlayerPreferences? preferences,

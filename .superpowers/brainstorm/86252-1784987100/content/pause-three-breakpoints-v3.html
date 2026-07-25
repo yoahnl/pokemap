@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PokeMap — Menu runtime sur trois breakpoints</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page:#07101c; --surface:#101e2e; --panel:#1a2d43; --panel2:#233b55;
+      --line:#45627f; --text:#f7f9fc; --muted:#9eb1c5; --accent:#70d7e4;
+      --focus:#ffd166; --success:#79e2ad; --ink:#09232a;
+    }
+    * { box-sizing:border-box }
+    body {
+      margin:0; min-height:100vh; padding:38px 22px 70px;
+      background:radial-gradient(circle at 10% 0%,rgba(112,215,228,.14),transparent 30rem),var(--page);
+      color:var(--text); font:15px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;
+    }
+    main { width:min(1380px,100%); margin:auto }
+    h1 { margin:0; font-size:clamp(30px,4vw,50px); letter-spacing:-.04em; line-height:1.05 }
+    .lead { max-width:920px; margin:14px 0 18px; color:var(--muted); font-size:17px }
+    .contract { display:flex; flex-wrap:wrap; gap:9px; margin:0 0 28px }
+    .pill { padding:8px 12px; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--muted) }
+    .pill b { color:var(--text) }
+    .key { display:inline-grid; place-items:center; min-width:24px; height:24px; margin:0 2px; padding:0 6px; border:1px solid #7890aa; border-bottom-width:3px; border-radius:7px; background:#263f59; color:white; font-size:11px; font-weight:900 }
+    .choices { display:grid; gap:24px }
+    .choice {
+      overflow:hidden; border:1px solid var(--line); border-radius:24px;
+      background:linear-gradient(150deg,#172a3f,#0c1827); box-shadow:0 24px 65px rgba(0,0,0,.42);
+      cursor:pointer; transition:.16s ease;
+    }
+    .choice:hover { transform:translateY(-2px); border-color:var(--accent) }
+    .choice.selected { border-color:var(--focus); box-shadow:0 0 0 3px rgba(255,209,102,.22),0 24px 65px rgba(0,0,0,.42) }
+    .head { display:flex; gap:15px; padding:20px 22px; border-bottom:1px solid var(--line) }
+    .letter { display:grid; place-items:center; flex:0 0 42px; height:42px; border-radius:13px; background:var(--accent); color:var(--ink); font-weight:950 }
+    h2 { margin:0 0 4px; font-size:22px }
+    .head p { margin:0; color:var(--muted) }
+    .recommended { color:var(--success); font-weight:850 }
+    .devices { display:grid; grid-template-columns:1.2fr 1fr .72fr; gap:14px; padding:16px }
+    .device { overflow:hidden; min-width:0; border:1px solid var(--line); border-radius:17px; background:#08121f }
+    .device-head { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:44px; padding:8px 12px; background:#122235; color:var(--muted); font-size:12px; font-weight:800 }
+    .stage { position:relative; overflow:hidden; background:linear-gradient(rgba(5,13,22,.48),rgba(5,13,22,.48)),linear-gradient(130deg,#31593f 0 50%,#907754 50% 64%,#31593f 64%) }
+    .stage.desktop { display:flex; min-height:315px }
+    .stage.landscape { display:flex; min-height:255px }
+    .stage.portrait { min-height:315px; padding-top:84px }
+    .world { display:grid; place-items:center; flex:1; padding:12px; color:rgba(255,255,255,.62); text-align:center; font-weight:750 }
+    .panel { padding:14px; background:rgba(20,37,56,.98); border-left:1px solid var(--line) }
+    .desktop .panel { width:63% }
+    .landscape .panel { width:68% }
+    .portrait .panel { min-height:231px; border:0; border-top:1px solid var(--line); border-radius:22px 22px 0 0 }
+    .split { display:grid; grid-template-columns:128px 1fr; gap:13px; height:100% }
+    .landscape .split { grid-template-columns:106px 1fr }
+    .nav { padding-right:11px; border-right:1px solid var(--line) }
+    .nav h3,.detail h3 { margin:0 0 10px; font-size:18px }
+    .item,.pokemon { min-height:40px; margin-bottom:6px; padding:9px 10px; border:1px solid transparent; border-radius:10px; background:rgba(35,59,85,.74); color:var(--muted) }
+    .item.focus,.pokemon.focus { border-color:var(--focus); box-shadow:0 0 0 2px rgba(255,209,102,.17); color:var(--text) }
+    .pokemon { min-height:64px; border-color:#466482; color:var(--text) }
+    .hp { height:6px; margin-top:7px; border-radius:10px; background:#09131f }
+    .hp:before { content:""; display:block; width:82%; height:100%; border-radius:inherit; background:var(--success) }
+    .portrait-title { display:flex; align-items:center; justify-content:space-between; margin-bottom:11px; font-weight:900; font-size:18px }
+    .touch-menu { position:absolute; right:12px; bottom:12px; display:grid; place-items:center; width:52px; height:52px; border:1px solid var(--accent); border-radius:50%; background:var(--accent); color:var(--ink); font-weight:950 }
+    .fixed .desktop .panel { width:245px }
+    .fixed .landscape .panel { width:245px }
+    .fixed .split { display:block }
+    .fixed .nav { display:none }
+    .legend { display:flex; flex-wrap:wrap; gap:8px 16px; margin-top:18px; padding:13px 15px; border:1px solid var(--line); border-radius:13px; background:rgba(8,18,31,.8); color:var(--muted); font-size:13px }
+    .legend b { color:var(--text) }
+    @media(max-width:1000px){ .devices{grid-template-columns:1fr 1fr}.device:last-child{grid-column:1/-1;max-width:430px} }
+    @media(max-width:680px){ body{padding:24px 10px 50px}.devices{grid-template-columns:1fr}.device:last-child{grid-column:auto;max-width:none} }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Un menu, trois dispositions réelles</h1>
+  <p class="lead">Le runtime choisit sa disposition avec les contraintes Flutter disponibles, pas avec le type d’appareil. La manette reste fonctionnelle dans les trois cas.</p>
+  <div class="contract">
+    <div class="pill"><b>PC</b> <span class="key">⌨</span> clavier <span class="key">↖</span> souris <span class="key">🎮</span> manette</div>
+    <div class="pill"><b>Mobile portrait</b> <span class="key">☝</span> tactile <span class="key">🎮</span> manette</div>
+    <div class="pill"><b>Mobile paysage</b> <span class="key">☝</span> tactile <span class="key">🎮</span> manette</div>
+  </div>
+
+  <section class="choices">
+    <article class="choice" data-choice="responsive-detail-three-breakpoints" onclick="toggleSelect(this)">
+      <header class="head">
+        <div class="letter">A1</div>
+        <div>
+          <h2>Détail adaptatif sur trois breakpoints <span class="recommended">— recommandé</span></h2>
+          <p>Desktop : grand panneau latéral. Mobile paysage : panneau compact à deux colonnes. Mobile portrait : page dédiée avec grandes cibles tactiles.</p>
+        </div>
+      </header>
+      <div class="devices">
+        <div class="device">
+          <div class="device-head"><span>PC / grand paysage</span><span><span class="key">⌨</span><span class="key">↖</span><span class="key">🎮</span></span></div>
+          <div class="stage desktop">
+            <div class="world">Monde en pause<br>visible derrière le voile</div>
+            <div class="panel">
+              <div class="split">
+                <div class="nav"><h3>Pause</h3><div class="item">Reprendre</div><div class="item focus">Équipe</div><div class="item">Sac</div><div class="item">Pokédex</div><div class="item">Options</div></div>
+                <div class="detail"><h3>Équipe · 2/6</h3><div class="pokemon"><b>Charmander · N.16</b><br><small>38 / 38 PV</small><div class="hp"></div></div><div class="pokemon focus"><b>Pikachu · N.12</b><br><small>29 / 34 PV</small><div class="hp"></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="device">
+          <div class="device-head"><span>Mobile / paysage</span><span><span class="key">☝</span><span class="key">🎮</span></span></div>
+          <div class="stage landscape">
+            <div class="world">Jeu sous le voile</div>
+            <div class="panel">
+              <div class="split">
+                <div class="nav"><h3>Pause</h3><div class="item focus">Équipe</div><div class="item">Sac</div><div class="item">Options</div></div>
+                <div class="detail"><h3>Équipe</h3><div class="pokemon focus"><b>Charmander</b><br><small>38 / 38 PV</small><div class="hp"></div></div><div class="pokemon"><b>Pikachu</b><br><small>29 / 34 PV</small></div></div>
+              </div>
+            </div>
+            <div class="touch-menu">Ⅱ</div>
+          </div>
+        </div>
+
+        <div class="device">
+          <div class="device-head"><span>Mobile / portrait</span><span><span class="key">☝</span><span class="key">🎮</span></span></div>
+          <div class="stage portrait">
+            <div class="panel">
+              <div class="portrait-title"><span>‹ Équipe</span><small>2 / 6</small></div>
+              <div class="pokemon"><b>Charmander · N.16</b><br><small>38 / 38 PV</small><div class="hp"></div></div>
+              <div class="pokemon focus"><b>Pikachu · N.12</b><br><small>29 / 34 PV</small><div class="hp"></div></div>
+            </div>
+            <div class="touch-menu">Ⅱ</div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="choice fixed" data-choice="fixed-panel-three-breakpoints" onclick="toggleSelect(this)">
+      <header class="head">
+        <div class="letter">A2</div>
+        <div>
+          <h2>Petit panneau fixe dans les trois dispositions</h2>
+          <p>Simple à construire, mais trop étroit en paysage et trop bas en portrait dès que le contenu devient riche.</p>
+        </div>
+      </header>
+      <div class="devices">
+        <div class="device">
+          <div class="device-head"><span>PC</span><span><span class="key">⌨</span><span class="key">↖</span><span class="key">🎮</span></span></div>
+          <div class="stage desktop"><div class="world">Monde en pause</div><div class="panel"><div class="split"><div class="detail"><h3>‹ Équipe</h3><div class="pokemon focus"><b>Charmander</b><br><small>38 / 38 PV</small></div><div class="pokemon"><b>Pikachu</b><br><small>29 / 34 PV</small></div></div></div></div></div>
+        </div>
+        <div class="device">
+          <div class="device-head"><span>Mobile / paysage</span><span><span class="key">☝</span><span class="key">🎮</span></span></div>
+          <div class="stage landscape"><div class="world">Jeu</div><div class="panel"><div class="split"><div class="detail"><h3>‹ Équipe</h3><div class="pokemon focus"><b>Charmander</b><br><small>38 / 38 PV</small></div><div class="pokemon"><b>Pikachu</b><br><small>29 / 34 PV</small></div></div></div></div><div class="touch-menu">Ⅱ</div></div>
+        </div>
+        <div class="device">
+          <div class="device-head"><span>Mobile / portrait</span><span><span class="key">☝</span><span class="key">🎮</span></span></div>
+          <div class="stage portrait"><div class="panel"><div class="portrait-title"><span>‹ Équipe</span></div><div class="pokemon focus"><b>Charmander</b><br><small>38 / 38 PV</small></div></div><div class="touch-menu">Ⅱ</div></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <div class="legend">
+    <b>Navigation commune</b>
+    <span>D-pad / stick / flèches : focus</span>
+    <span>A / Entrée / clic / tap : valider</span>
+    <span>B / Échap : retour</span>
+    <span>Start / bouton tactile : ouvrir ou reprendre</span>
+    <span>changement d’orientation : focus et écran courant conservés</span>
+  </div>
+</main>
+</body>
+</html>

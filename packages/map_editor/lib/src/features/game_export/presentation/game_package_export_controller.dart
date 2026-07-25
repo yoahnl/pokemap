@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -130,6 +131,9 @@ final class GamePackageExportSnapshot {
     this.artifact,
     this.installRequest,
     this.safeErrorMessage,
+    this.errorCode,
+    this.technicalErrorDetails,
+    this.diagnosticLogPath,
   });
 
   final GamePackageExportStatus status;
@@ -137,6 +141,9 @@ final class GamePackageExportSnapshot {
   final GamePackageExportArtifact? artifact;
   final GamePackageInstallRequest? installRequest;
   final String? safeErrorMessage;
+  final String? errorCode;
+  final String? technicalErrorDetails;
+  final String? diagnosticLogPath;
 
   bool get isBusy =>
       status == GamePackageExportStatus.loading ||
@@ -151,6 +158,9 @@ final class GamePackageExportSnapshot {
     GamePackageInstallRequest? installRequest,
     bool clearInstallRequest = false,
     String? safeErrorMessage,
+    String? errorCode,
+    String? technicalErrorDetails,
+    String? diagnosticLogPath,
     bool clearError = false,
   }) =>
       GamePackageExportSnapshot(
@@ -161,6 +171,12 @@ final class GamePackageExportSnapshot {
             clearInstallRequest ? null : installRequest ?? this.installRequest,
         safeErrorMessage:
             clearError ? null : safeErrorMessage ?? this.safeErrorMessage,
+        errorCode: clearError ? null : errorCode ?? this.errorCode,
+        technicalErrorDetails: clearError
+            ? null
+            : technicalErrorDetails ?? this.technicalErrorDetails,
+        diagnosticLogPath:
+            clearError ? null : diagnosticLogPath ?? this.diagnosticLogPath,
       );
 }
 
@@ -171,6 +187,7 @@ final class GamePackageExportController extends ChangeNotifier {
     required this.profileStore,
     this.exportService = const GamePackageExportService(),
     this.installRequestPublisher,
+    this.diagnosticLogFile,
     LocalGameIdGenerator? localGameIdGenerator,
   })  : _localGameId = (localGameIdGenerator ?? _generateLocalGameId).call(),
         _snapshot = GamePackageExportSnapshot(
@@ -183,6 +200,7 @@ final class GamePackageExportController extends ChangeNotifier {
   final GamePackageExportProfileStore profileStore;
   final GamePackageExportService exportService;
   final HubInstallRequestPublisher? installRequestPublisher;
+  final File? diagnosticLogFile;
   final String _localGameId;
 
   GamePackageExportSnapshot _snapshot;
@@ -239,9 +257,13 @@ final class GamePackageExportController extends ChangeNotifier {
           clearError: true,
         ),
       );
-    } on Object {
-      _publishError(
-        'Les métadonnées de publication ne peuvent pas être ouvertes.',
+    } on Object catch (error, stackTrace) {
+      await _publishUnexpectedError(
+        operation: 'initialisation',
+        userMessage:
+            'Les métadonnées de publication ne peuvent pas être ouvertes.',
+        error: error,
+        stackTrace: stackTrace,
       );
     }
   }
@@ -252,8 +274,13 @@ final class GamePackageExportController extends ChangeNotifier {
   ) async {
     try {
       await export(profile: draft.toProfile(), outputFile: outputFile);
-    } on GamePackageExportException catch (error) {
-      _publishError(_safeMessage(error));
+    } on GamePackageExportException catch (error, stackTrace) {
+      await _publishExportError(
+        operation: 'export',
+        error: error,
+        stackTrace: stackTrace,
+        destinationPath: outputFile.path,
+      );
     }
   }
 
@@ -283,18 +310,32 @@ final class GamePackageExportController extends ChangeNotifier {
           artifact: artifact,
         ),
       );
-    } on GamePackageExportException catch (error) {
-      _publishError(_safeMessage(error));
-    } on Object {
-      _publishError('Le package ne peut pas être exporté pour le moment.');
+    } on GamePackageExportException catch (error, stackTrace) {
+      await _publishExportError(
+        operation: 'export',
+        error: error,
+        stackTrace: stackTrace,
+        destinationPath: outputFile.path,
+      );
+    } on Object catch (error, stackTrace) {
+      await _publishUnexpectedError(
+        operation: 'export',
+        userMessage: 'Le package ne peut pas être exporté pour le moment.',
+        error: error,
+        stackTrace: stackTrace,
+        destinationPath: outputFile.path,
+      );
     }
   }
 
   Future<void> installInHub(GamePackageExportProfile profile) async {
     final publisher = installRequestPublisher;
     if (publisher == null) {
-      _publishError(
-        'L’installation directe dans le Hub n’est pas disponible.',
+      await _publishUnexpectedError(
+        operation: 'installation',
+        userMessage: 'L’installation directe dans le Hub n’est pas disponible.',
+        error: StateError('HubInstallRequestPublisher is not configured.'),
+        stackTrace: StackTrace.current,
       );
       return;
     }
@@ -321,11 +362,19 @@ final class GamePackageExportController extends ChangeNotifier {
           installRequest: request,
         ),
       );
-    } on GamePackageExportException catch (error) {
-      _publishError(_safeMessage(error));
-    } on Object {
-      _publishError(
-        'Le jeu ne peut pas être transmis à PokeMap Hub pour le moment.',
+    } on GamePackageExportException catch (error, stackTrace) {
+      await _publishExportError(
+        operation: 'installation',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    } on Object catch (error, stackTrace) {
+      await _publishUnexpectedError(
+        operation: 'installation',
+        userMessage:
+            'Le jeu ne peut pas être transmis à PokeMap Hub pour le moment.',
+        error: error,
+        stackTrace: stackTrace,
       );
     }
   }
@@ -340,13 +389,132 @@ final class GamePackageExportController extends ChangeNotifier {
     );
   }
 
-  void _publishError(String message) {
+  void _publishError({
+    required String message,
+    String? errorCode,
+    String? technicalErrorDetails,
+    String? diagnosticLogPath,
+  }) {
     _publish(
       _snapshot.copyWith(
         status: GamePackageExportStatus.error,
         safeErrorMessage: message,
+        errorCode: errorCode,
+        technicalErrorDetails: technicalErrorDetails,
+        diagnosticLogPath: diagnosticLogPath,
       ),
     );
+  }
+
+  Future<void> _publishExportError({
+    required String operation,
+    required GamePackageExportException error,
+    required StackTrace stackTrace,
+    String? destinationPath,
+  }) async {
+    final details = _technicalDetails(
+      operation: operation,
+      code: error.code,
+      path: error.path ?? destinationPath,
+      cause: error.cause ?? error,
+      stackTrace: stackTrace,
+    );
+    final logPath = await _appendDiagnostic(
+      operation: operation,
+      code: error.code,
+      path: error.path ?? destinationPath,
+      cause: error.cause ?? error,
+      stackTrace: stackTrace,
+    );
+    _publishError(
+      message: _safeMessage(error),
+      errorCode: error.code,
+      technicalErrorDetails: details,
+      diagnosticLogPath: logPath,
+    );
+  }
+
+  Future<void> _publishUnexpectedError({
+    required String operation,
+    required String userMessage,
+    required Object error,
+    required StackTrace stackTrace,
+    String? destinationPath,
+  }) async {
+    const code = 'unexpectedExportError';
+    final details = _technicalDetails(
+      operation: operation,
+      code: code,
+      path: destinationPath,
+      cause: error,
+      stackTrace: stackTrace,
+    );
+    final logPath = await _appendDiagnostic(
+      operation: operation,
+      code: code,
+      path: destinationPath,
+      cause: error,
+      stackTrace: stackTrace,
+    );
+    _publishError(
+      message: userMessage,
+      errorCode: code,
+      technicalErrorDetails: details,
+      diagnosticLogPath: logPath,
+    );
+  }
+
+  Future<String?> _appendDiagnostic({
+    required String operation,
+    required String code,
+    required Object cause,
+    required StackTrace stackTrace,
+    String? path,
+  }) async {
+    final logFile = diagnosticLogFile;
+    if (logFile == null) return null;
+    try {
+      await logFile.parent.create(recursive: true);
+      final sink = logFile.openWrite(mode: FileMode.append);
+      sink.writeln(
+        jsonEncode(<String, Object?>{
+          'timestamp': DateTime.now().toUtc().toIso8601String(),
+          'feature': 'game-export',
+          'operation': operation,
+          'code': code,
+          if (path != null) 'path': path,
+          'cause': cause.toString(),
+          'stackTrace': stackTrace.toString(),
+        }),
+      );
+      await sink.flush();
+      await sink.close();
+      return logFile.path;
+    } on Object {
+      return null;
+    }
+  }
+
+  static String _technicalDetails({
+    required String operation,
+    required String code,
+    required Object cause,
+    required StackTrace stackTrace,
+    String? path,
+  }) {
+    final stackLines = stackTrace
+        .toString()
+        .split('\n')
+        .where((line) => line.trim().isNotEmpty)
+        .take(12)
+        .join('\n');
+    return <String>[
+      'Code : $code',
+      'Opération : $operation',
+      if (path != null) 'Chemin : $path',
+      'Cause système : $cause',
+      if (stackLines.isNotEmpty) 'Pile :\n$stackLines',
+    ].join('\n');
   }
 
   String _safeMessage(GamePackageExportException error) => switch (error.code) {
@@ -390,6 +558,12 @@ final class GamePackageExportController extends ChangeNotifier {
           'L’inventaire des fichiers du jeu dépasse la limite de 4 Mio du '
               'format .pokemapgame v1. Retirez les fichiers runtime inutilisés '
               'ou regroupez les données avant de réessayer.',
+        'exportWriteFailed' =>
+          'Le package a bien été construit et certifié, mais PokeMap ne peut '
+              'pas l’écrire dans « ${error.path ?? 'l’emplacement choisi'} ». '
+              'Vérifiez les autorisations, l’espace disque et que la '
+              'destination n’est pas un dossier, puis réessayez. Le détail '
+              'système est disponible ci-dessous.',
         _ => error.message,
       };
 

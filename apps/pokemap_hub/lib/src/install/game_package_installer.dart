@@ -123,13 +123,15 @@ final class GamePackageInstaller {
     try {
       _emit(onProgress, stage: stage);
       initialInspection = await _inspect(packageFile);
-    } on GamePackageFormatException catch (error) {
-      throw _formatFailure(error, stage);
-    } on Object {
+    } on GamePackageFormatException catch (error, stackTrace) {
+      throw _formatFailure(error, stage, null, null, stackTrace);
+    } on Object catch (error, stackTrace) {
       throw _failure(
         GameInstallationErrorCode.integrityFailed,
         stage,
         retryable: true,
+        cause: error,
+        stackTrace: stackTrace,
       );
     }
 
@@ -549,14 +551,20 @@ final class GamePackageInstaller {
         );
       }
       rethrow;
-    } on GamePackageFormatException catch (error) {
+    } on GamePackageFormatException catch (error, stackTrace) {
       if (!promotionStarted &&
           transactionRoot != null &&
           await transactionRoot.exists()) {
         await transactionRoot.delete(recursive: true);
       }
-      throw _formatFailure(error, stage, gameId, gameVersion);
-    } on Object {
+      throw _formatFailure(
+        error,
+        stage,
+        gameId,
+        gameVersion,
+        stackTrace,
+      );
+    } on Object catch (error, stackTrace) {
       if (!promotionStarted &&
           transactionRoot != null &&
           await transactionRoot.exists()) {
@@ -571,6 +579,8 @@ final class GamePackageInstaller {
         gameVersion: gameVersion,
         retryable: true,
         repairSuggested: promotionStarted,
+        cause: error,
+        stackTrace: stackTrace,
       );
     }
   }
@@ -1220,6 +1230,7 @@ final class GamePackageInstaller {
     GameInstallStage stage, [
     String? gameId,
     String? gameVersion,
+    StackTrace? stackTrace,
   ]) {
     final code = switch (error.code) {
       'releaseConflict' => GameInstallationErrorCode.releaseConflict,
@@ -1237,6 +1248,8 @@ final class GamePackageInstaller {
       gameId: gameId,
       gameVersion: gameVersion,
       retryable: code != GameInstallationErrorCode.integrityFailed,
+      cause: error,
+      stackTrace: stackTrace,
     );
   }
 
@@ -1266,6 +1279,8 @@ final class GamePackageInstaller {
     String? gameVersion,
     bool retryable = false,
     bool repairSuggested = false,
+    Object? cause,
+    StackTrace? stackTrace,
   }) =>
       GameInstallationException(
         GameInstallationDiagnostic(
@@ -1276,6 +1291,8 @@ final class GamePackageInstaller {
           retryable: retryable,
           repairSuggested: repairSuggested,
         ),
+        cause: cause,
+        stackTrace: stackTrace,
       );
 
   Future<T> _withMutationLock<T>(Future<T> Function() operation) {

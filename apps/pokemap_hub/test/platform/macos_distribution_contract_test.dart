@@ -39,6 +39,39 @@ void main() {
     expect(project, isNot(contains('DEVELOPMENT_TEAM = ')));
   });
 
+  test('Debug can read a package explicitly selected by the player', () async {
+    final entitlements =
+        await File('macos/Runner/DebugProfile.entitlements').readAsString();
+
+    expect(entitlements, contains('com.apple.security.app-sandbox'));
+    expect(
+      entitlements,
+      contains('com.apple.security.files.user-selected.read-only'),
+    );
+  });
+
+  test('macOS reports a missing picker entitlement instead of failing silently',
+      () async {
+    final window =
+        await File('macos/Runner/MainFlutterWindow.swift').readAsString();
+    final composition = await File(
+      'lib/src/platform/macos_hub_composition.dart',
+    ).readAsString();
+
+    expect(window, contains('import Security'));
+    expect(window, contains('canSelectPackages'));
+    expect(window, contains('SecTaskCopyValueForEntitlement'));
+    expect(
+      window,
+      contains('com.apple.security.files.user-selected.read-only'),
+    );
+    expect(
+      composition,
+      contains("invokeMethod<bool>('canSelectPackages')"),
+    );
+    expect(composition, contains('reportImportPickerFailure'));
+  });
+
   test('application entry point composes PokeMap Hub, not a demo counter',
       () async {
     final main = await File('lib/main.dart').readAsString();

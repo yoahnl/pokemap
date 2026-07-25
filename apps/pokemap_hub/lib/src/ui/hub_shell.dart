@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 import '../install/game_installation_diagnostic.dart';
@@ -84,12 +85,15 @@ class HubShell extends StatelessWidget {
         ),
       );
     }
-    if (snapshot.status == HubDashboardStatus.error && snapshot.games.isEmpty) {
-      final diagnostic = snapshot.diagnostics
-          .where(
-            (diagnostic) => diagnostic.severity == HubDiagnosticSeverity.error,
-          )
-          .firstOrNull;
+    final emptyLibraryError = snapshot.diagnostics
+        .where(
+          (diagnostic) => diagnostic.severity == HubDiagnosticSeverity.error,
+        )
+        .firstOrNull;
+    if (snapshot.status == HubDashboardStatus.error &&
+        snapshot.games.isEmpty &&
+        emptyLibraryError?.code.startsWith('importPicker.') != true) {
+      final diagnostic = emptyLibraryError;
       return PlayerErrorSurface(
         title: context.playerL10n.hubAttentionTitle,
         message: diagnostic == null
@@ -880,6 +884,39 @@ class _DiagnosticCard extends StatelessWidget {
                     diagnostic.code,
                     style: Theme.of(context).textTheme.labelSmall,
                   ),
+                  if (diagnostic.technicalDetails != null) ...[
+                    const SizedBox(height: PlayerSpacing.sm),
+                    SelectableText(
+                      diagnostic.technicalDetails!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontFamily: 'monospace',
+                          ),
+                    ),
+                    if (diagnostic.logPath != null) ...[
+                      const SizedBox(height: PlayerSpacing.xs),
+                      SelectableText(
+                        'Journal : ${diagnostic.logPath}',
+                        style: Theme.of(context).textTheme.labelSmall,
+                      ),
+                    ],
+                    const SizedBox(height: PlayerSpacing.xs),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => Clipboard.setData(
+                          ClipboardData(
+                            text: <String>[
+                              diagnostic.technicalDetails!,
+                              if (diagnostic.logPath != null)
+                                'Journal : ${diagnostic.logPath}',
+                            ].join('\n'),
+                          ),
+                        ),
+                        icon: const Icon(Icons.copy_rounded),
+                        label: const Text('Copier le diagnostic'),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

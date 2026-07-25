@@ -222,6 +222,86 @@ void main() {
     controller.dispose();
   });
 
+  test('installation failures persist their exact cause in the Hub log',
+      () async {
+    final log = File('${root.path}/logs/hub.log');
+    final controller = HubDashboardController(
+      libraryStore: libraryStore,
+      activityReader: (_) async => const HubGameActivity(),
+      diagnosticLogFile: log,
+      importer: (_, __, ___) async {
+        throw GameInstallationException(
+          const GameInstallationDiagnostic(
+            code: GameInstallationErrorCode.integrityFailed,
+            stage: GameInstallStage.inspecting,
+            retryable: true,
+            repairSuggested: false,
+          ),
+          cause: FileSystemException(
+            'Operation not permitted',
+            '${root.path}/selbrume.pokemapgame',
+            const OSError('Operation not permitted', 1),
+          ),
+        );
+      },
+    );
+    await controller.initialize();
+    final package = File('${root.path}/selbrume.pokemapgame');
+    await package.writeAsBytes(<int>[1]);
+
+    await controller.importPackage(package);
+
+    final diagnostic = controller.snapshot.diagnostics.last;
+    expect(diagnostic.code, 'install.integrityFailed');
+    expect(diagnostic.technicalDetails, contains('Operation not permitted'));
+    expect(diagnostic.technicalDetails, contains(package.path));
+    expect(diagnostic.logPath, log.path);
+    expect(await log.exists(), isTrue);
+    final persisted = await log.readAsString();
+    expect(persisted, contains('Operation not permitted'));
+    expect(persisted, contains(package.path));
+    controller.dispose();
+  });
+
+  test('file picker failures are visible and persisted before installation',
+      () async {
+    final log = File('${root.path}/logs/hub-import.log');
+    final controller = HubDashboardController(
+      libraryStore: libraryStore,
+      activityReader: (_) async => const HubGameActivity(),
+      diagnosticLogFile: log,
+    );
+    await controller.initialize();
+
+    await controller.reportImportPickerFailure(
+      code: 'importPicker.missingEntitlement',
+      message: 'Le sélecteur de fichiers ne peut pas s’ouvrir.',
+      recommendation: 'Fermez complètement le Hub puis relancez-le.',
+      cause: StateError(
+        'Missing com.apple.security.files.user-selected.read-only entitlement.',
+      ),
+      stackTrace: StackTrace.current,
+    );
+
+    final diagnostic = controller.snapshot.diagnostics.last;
+    expect(controller.snapshot.status, HubDashboardStatus.error);
+    expect(
+      controller.snapshot.safeErrorMessage,
+      'Le sélecteur de fichiers ne peut pas s’ouvrir.',
+    );
+    expect(diagnostic.code, 'importPicker.missingEntitlement');
+    expect(diagnostic.recommendation, contains('relancez'));
+    expect(
+      diagnostic.technicalDetails,
+      contains('com.apple.security.files.user-selected.read-only'),
+    );
+    expect(diagnostic.logPath, log.path);
+    final persisted = await log.readAsString();
+    expect(persisted, contains('"operation":"pickPackage"'));
+    expect(persisted, contains('"code":"importPicker.missingEntitlement"'));
+    controller.dispose();
+  });
+
   test('rapid preference changes are persisted in order', () async {
     final preferences = HubPreferencesStore(supportRoot: root);
     final controller = HubDashboardController(

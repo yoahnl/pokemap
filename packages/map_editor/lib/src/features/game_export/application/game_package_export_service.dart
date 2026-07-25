@@ -7,6 +7,26 @@ import 'package:pub_semver/pub_semver.dart';
 import 'game_package_export_profile.dart';
 import 'runtime_project_projection_builder.dart';
 
+typedef GamePackageAtomicFileWriter = Future<void> Function({
+  required File outputFile,
+  required List<int> packageBytes,
+  required String packageSha256,
+});
+
+final class GamePackageExportWriteFailure implements Exception {
+  const GamePackageExportWriteFailure({
+    required this.atomicError,
+    required this.directError,
+  });
+
+  final Object atomicError;
+  final Object directError;
+
+  @override
+  String toString() => 'Atomic sibling write failed: $atomicError '
+      'Direct selected-file write failed: $directError';
+}
+
 final class GamePackageExportCertification {
   GamePackageExportCertification({
     required List<String> diagnostics,
@@ -43,10 +63,12 @@ final class GamePackageExportService {
   const GamePackageExportService({
     this.projectionBuilder = const RuntimeProjectProjectionBuilder(),
     this.packageBuilder = const GamePackageBuilder(),
+    this.atomicFileWriter,
   });
 
   final RuntimeProjectProjectionBuilder projectionBuilder;
   final GamePackageBuilder packageBuilder;
+  final GamePackageAtomicFileWriter? atomicFileWriter;
 
   Future<GamePackageExportArtifact> build({
     required Directory projectRoot,
@@ -185,15 +207,72 @@ final class GamePackageExportService {
       );
     }
     final artifact = await build(projectRoot: projectRoot, profile: profile);
-    await outputFile.parent.create(recursive: true);
+    try {
+      await outputFile.parent.create(recursive: true);
+    } on Object catch (error) {
+      throw GamePackageExportException(
+        code: 'exportWriteFailed',
+        path: outputFile.path,
+        message: 'The export destination cannot be prepared.',
+        cause: error,
+      );
+    }
+    final atomicWriter = atomicFileWriter ?? _writeAtomically;
+    try {
+      await atomicWriter(
+        outputFile: outputFile,
+        packageBytes: artifact.packageBytes,
+        packageSha256: artifact.packageSha256,
+      );
+      return artifact;
+    } on FileSystemException catch (atomicError) {
+      // NSSavePanel grants a sandboxed macOS application access to the exact
+      // selected file, but not necessarily to sibling `.tmp` or `.backup`
+      // files. Keep the crash-atomic path as the default, then fall back to a
+      // flushed, digest-verified write to the explicitly selected file.
+      try {
+        await _writeDirectlyToSelectedFile(
+          outputFile: outputFile,
+          packageBytes: artifact.packageBytes,
+          packageSha256: artifact.packageSha256,
+        );
+        return artifact;
+      } on Object catch (directError) {
+        throw GamePackageExportException(
+          code: 'exportWriteFailed',
+          path: outputFile.path,
+          message: 'The certified package could not be written.',
+          cause: GamePackageExportWriteFailure(
+            atomicError: atomicError,
+            directError: directError,
+          ),
+        );
+      }
+    } on GamePackageExportException {
+      rethrow;
+    } on Object catch (error) {
+      throw GamePackageExportException(
+        code: 'exportWriteFailed',
+        path: outputFile.path,
+        message: 'The certified package could not be written atomically.',
+        cause: error,
+      );
+    }
+  }
+
+  static Future<void> _writeAtomically({
+    required File outputFile,
+    required List<int> packageBytes,
+    required String packageSha256,
+  }) async {
     final token = '${DateTime.now().microsecondsSinceEpoch}-$pid';
     final temporary = File('${outputFile.path}.$token.tmp');
     final backup = File('${outputFile.path}.backup');
     var backedUp = false;
     try {
-      await temporary.writeAsBytes(artifact.packageBytes, flush: true);
+      await temporary.writeAsBytes(packageBytes, flush: true);
       final writtenBytes = await temporary.readAsBytes();
-      if (sha256.convert(writtenBytes).toString() != artifact.packageSha256) {
+      if (sha256.convert(writtenBytes).toString() != packageSha256) {
         throw const GamePackageExportException(
           code: 'exportWriteVerificationFailed',
           message: 'Written package digest differs from the certified bytes.',
@@ -206,19 +285,54 @@ final class GamePackageExportService {
       }
       await temporary.rename(outputFile.path);
       if (backedUp && await backup.exists()) await backup.delete();
-      return artifact;
-    } on Object catch (error) {
-      if (!await outputFile.exists() && backedUp && await backup.exists()) {
-        await backup.rename(outputFile.path);
+    } on Object {
+      try {
+        if (!await outputFile.exists() && backedUp && await backup.exists()) {
+          await backup.rename(outputFile.path);
+        }
+      } on Object {
+        // Preserve the original filesystem error. The backup remains beside
+        // the destination for manual recovery if automatic restoration fails.
       }
-      if (await temporary.exists()) await temporary.delete();
-      if (error is GamePackageExportException) rethrow;
-      throw GamePackageExportException(
-        code: 'exportWriteFailed',
-        path: outputFile.path,
-        message: 'The certified package could not be written atomically.',
-        cause: error,
-      );
+      try {
+        if (await temporary.exists()) await temporary.delete();
+      } on Object {
+        // Best-effort staging cleanup must not hide the original failure.
+      }
+      rethrow;
+    }
+  }
+
+  static Future<void> _writeDirectlyToSelectedFile({
+    required File outputFile,
+    required List<int> packageBytes,
+    required String packageSha256,
+  }) async {
+    List<int>? previousBytes;
+    if (await outputFile.exists()) {
+      previousBytes = await outputFile.readAsBytes();
+    }
+    try {
+      await outputFile.writeAsBytes(packageBytes, flush: true);
+      final writtenBytes = await outputFile.readAsBytes();
+      if (sha256.convert(writtenBytes).toString() != packageSha256) {
+        throw const GamePackageExportException(
+          code: 'exportWriteVerificationFailed',
+          message: 'Written package digest differs from the certified bytes.',
+        );
+      }
+    } on Object {
+      try {
+        if (previousBytes != null) {
+          await outputFile.writeAsBytes(previousBytes, flush: true);
+        } else if (await outputFile.exists()) {
+          await outputFile.delete();
+        }
+      } on Object {
+        // Preserve the write error; restoration is a best-effort safeguard for
+        // a destination selected by the user.
+      }
+      rethrow;
     }
   }
 

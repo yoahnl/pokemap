@@ -131,6 +131,60 @@ void main() {
     expect(game.debugIsBattleResolving, isFalse);
   });
 
+  test('final Flutter acknowledgement clears presentation and restores input',
+      () async {
+    final game = _TestPlayableMapGame(
+      bundle: _bundle(),
+      projectFilePath: '/tmp/post-battle/project.json',
+      saveData: saveDataFromGameState(_state()),
+      postBattleDecisionCoordinator: RuntimePostBattleDecisionCoordinator(
+        resolveReward: _failingResolution,
+      ),
+      runtimePlayerPokemonProgressionCatalogLoader: _loadCatalogs,
+    )..setPostBattleFlutterOverlayPreferred(true);
+    game.onGameResize(Vector2(640, 480));
+    await game.onLoad();
+    await _waitForActivationDispatch(game);
+    await game.debugStartPostBattleForTest(
+      context: _context(),
+      outcome: _outcome(),
+    );
+
+    final presentation = game.postBattlePresentationListenable.value;
+    expect(presentation, isNotNull);
+    expect(presentation!.completed, isFalse);
+    expect(
+      game.dispatchPostBattlePresentationCommand(
+        PostBattleAdvanceCommand(
+          snapshotRevision: presentation.revision,
+        ),
+      ),
+      isTrue,
+    );
+    await game.debugWaitForPostBattleCompletion();
+
+    expect(game.postBattlePresentationListenable.value, isNull);
+    expect(game.debugPostBattleOverlayMounted, isFalse);
+    expect(game.debugFlowPhaseName, 'overworld');
+    expect(game.debugIsBattleResolving, isFalse);
+
+    expect(
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.right),
+      ),
+      isTrue,
+    );
+    game.update(0.016);
+    expect(
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.release(RuntimeInputControl.right),
+      ),
+      isTrue,
+    );
+    await _waitForPlayerStep(game);
+    expect(game.debugPlayerGridPosition, const GridPos(x: 2, y: 1));
+  });
+
   test('failed overlay mount rolls back and completes without a softlock',
       () async {
     final game = _TestPlayableMapGame(
@@ -388,6 +442,15 @@ Future<void> _waitForActivationDispatch(PlayableMapGame game) async {
     await Future<void>.delayed(Duration.zero);
   }
   fail('Timed out waiting for the initial activation.');
+}
+
+Future<void> _waitForPlayerStep(PlayableMapGame game) async {
+  for (var index = 0; index < 240; index++) {
+    if (!game.debugIsPlayerStepping) return;
+    game.update(0.016);
+    await Future<void>.delayed(Duration.zero);
+  }
+  fail('Timed out waiting for player movement after post-battle cleanup.');
 }
 
 Future<RuntimeBattleRewardResolution> _pendingMoveResolution({

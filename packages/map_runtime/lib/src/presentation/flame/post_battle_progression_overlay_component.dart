@@ -404,6 +404,7 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent
   void _completeOnce() {
     if (_isCompleted) return;
     _isCompleted = true;
+    _syncText();
     try {
       onCompleted();
       if (!_completion.isCompleted) _completion.complete();
@@ -412,8 +413,6 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent
         _completion.completeError(error, stackTrace);
       }
       rethrow;
-    } finally {
-      _syncText();
     }
   }
 

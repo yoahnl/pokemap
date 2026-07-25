@@ -1,0 +1,115 @@
+<h2>Quelle forme doit prendre le menu runtime ?</h2>
+<p class="subtitle">
+  Les trois variantes sont des overlays Flutter appartenant à map_runtime.
+  Boutique, Centre Pokémon et PC n’apparaissent volontairement dans aucune variante.
+</p>
+
+<div class="cards">
+  <div class="card" data-choice="adaptive-panel" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="split">
+        <div class="mockup">
+          <div class="mockup-header">Desktop / paysage</div>
+          <div class="mockup-body" style="display:flex;min-height:220px;background:#15202d">
+            <div style="flex:1;padding:20px;color:#9fb1c5">Jeu visible<br><br>La session reste lisible derrière un voile.</div>
+            <div class="mock-sidebar" style="width:210px">
+              <strong>Pause</strong><br><br>
+              ▶ Reprendre<br>● Équipe<br>▣ Sac<br>▤ Pokédex<br>◇ Carte<br>▣ Sauvegarder<br>⚙ Options<br>↩ Retour au titre
+            </div>
+          </div>
+        </div>
+        <div class="mockup">
+          <div class="mockup-header">Mobile / portrait</div>
+          <div class="mockup-body" style="min-height:220px;background:#15202d;padding-top:70px">
+            <div style="height:150px;border-radius:22px 22px 0 0;background:#26384d;padding:18px">
+              <strong>Pause</strong>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+                <button class="mock-button">Reprendre</button>
+                <button class="mock-button">Équipe</button>
+                <button class="mock-button">Sac</button>
+                <button class="mock-button">Sauvegarder</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Panneau adaptatif (recommandé)</h3>
+      <p>Panneau latéral en grand écran, feuille modale en portrait. Le jeu reste visible et la navigation conserve le même ordre.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="centered-modal" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="split">
+        <div class="mockup">
+          <div class="mockup-header">Desktop / paysage</div>
+          <div class="mockup-body" style="min-height:220px;background:#15202d;padding:35px">
+            <div style="margin:auto;max-width:320px;background:#26384d;border-radius:18px;padding:18px">
+              <strong>Pause</strong>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+                <button class="mock-button">Reprendre</button>
+                <button class="mock-button">Équipe</button>
+                <button class="mock-button">Sac</button>
+                <button class="mock-button">Options</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mockup">
+          <div class="mockup-header">Mobile / portrait</div>
+          <div class="mockup-body" style="min-height:220px;background:#15202d;padding:24px 12px">
+            <div style="background:#26384d;border-radius:18px;padding:16px">
+              <strong>Pause</strong><br><br>
+              <button class="mock-button" style="width:100%">Reprendre</button>
+              <button class="mock-button" style="width:100%;margin-top:6px">Équipe</button>
+              <button class="mock-button" style="width:100%;margin-top:6px">Sac</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Modale centrée universelle</h3>
+      <p>Une seule structure sur toutes les plateformes. Plus simple, mais l’espace desktop est moins bien exploité et le mobile devient vite long.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="full-screen" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="split">
+        <div class="mockup">
+          <div class="mockup-header">Desktop / paysage</div>
+          <div class="mockup-body" style="min-height:220px;background:#26384d;padding:20px">
+            <strong>Menu joueur</strong>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px">
+              <button class="mock-button">Équipe</button>
+              <button class="mock-button">Sac</button>
+              <button class="mock-button">Pokédex</button>
+              <button class="mock-button">Carte</button>
+              <button class="mock-button">Sauvegarde</button>
+              <button class="mock-button">Options</button>
+            </div>
+          </div>
+        </div>
+        <div class="mockup">
+          <div class="mockup-header">Mobile / portrait</div>
+          <div class="mockup-body" style="min-height:220px;background:#26384d;padding:16px">
+            <strong>Menu joueur</strong>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
+              <button class="mock-button">Équipe</button>
+              <button class="mock-button">Sac</button>
+              <button class="mock-button">Pokédex</button>
+              <button class="mock-button">Carte</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Écran joueur plein format</h3>
+      <p>Très lisible et extensible, mais masque complètement le jeu et ressemble davantage à une route qu’à une pause instantanée.</p>
+    </div>
+  </div>
+</div>

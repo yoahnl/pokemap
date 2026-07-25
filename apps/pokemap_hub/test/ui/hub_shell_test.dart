@@ -230,6 +230,62 @@ void main() {
     expect(find.text('Ce jeu est incompatible.'), findsOneWidget);
     expect(find.text('Aube'), findsOneWidget);
   });
+
+  testWidgets(
+      'picker failures keep the empty library usable and expose diagnostics',
+      (tester) async {
+    const diagnostic = HubDiagnostic(
+      code: 'importPicker.missingEntitlement',
+      severity: HubDiagnosticSeverity.error,
+      message: 'Le sélecteur de fichiers ne peut pas s’ouvrir.',
+      recommendation: 'Fermez complètement le Hub puis relancez-le.',
+      technicalDetails: 'Autorisation macOS manquante.',
+      logPath: '/tmp/hub-import.log',
+    );
+    final snapshot = HubDashboardSnapshot(
+      status: HubDashboardStatus.error,
+      library: GameLibrary.empty(),
+      games: const <HubGameView>[],
+      diagnostics: const <HubDiagnostic>[diagnostic],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        HubShell(
+          snapshot: snapshot,
+          actions: const HubUiActions(),
+          onSectionSelected: (_) {},
+          onQueryChanged: (_) {},
+          onGameSelected: (_) {},
+          onGameDetailsClosed: () {},
+          onPreferencesChanged: (_) {},
+        ),
+      ),
+    );
+
+    expect(
+      find.text('Le sélecteur de fichiers ne peut pas s’ouvrir.'),
+      findsOneWidget,
+    );
+    expect(find.text('Importer un jeu'), findsWidgets);
+
+    await tester.pumpWidget(
+      _app(
+        HubShell(
+          snapshot: snapshot.copyWith(section: HubSection.diagnostics),
+          actions: const HubUiActions(),
+          onSectionSelected: (_) {},
+          onQueryChanged: (_) {},
+          onGameSelected: (_) {},
+          onGameDetailsClosed: () {},
+          onPreferencesChanged: (_) {},
+        ),
+      ),
+    );
+
+    expect(find.text('Autorisation macOS manquante.'), findsOneWidget);
+    expect(find.text('Journal : /tmp/hub-import.log'), findsOneWidget);
+  });
 }
 
 HubGameView _view({bool canContinue = false}) {
