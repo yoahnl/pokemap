@@ -44,7 +44,7 @@ class PlayerResultSurface extends StatelessWidget {
   final String title;
   final String summary;
   final List<String> details;
-  final VoidCallback onShowCredits;
+  final VoidCallback? onShowCredits;
 
   @override
   Widget build(BuildContext context) => _CenteredSessionPanel(
@@ -63,6 +63,9 @@ class PlayerResultSurface extends StatelessWidget {
             icon: Icons.movie_filter_rounded,
             autofocus: true,
             onPressed: onShowCredits,
+            disabledReason: onShowCredits == null
+                ? context.playerL10n.actionUnavailable
+                : null,
           ),
         ],
       );
@@ -126,16 +129,22 @@ class PlayerErrorSurface extends StatelessWidget {
     required this.message,
     required this.recommendation,
     this.code,
+    this.stage,
     this.onRetry,
+    this.onCancel,
     this.onReturnToHub,
+    this.onShowDiagnostics,
   });
 
   final String title;
   final String message;
   final String recommendation;
   final String? code;
+  final String? stage;
   final VoidCallback? onRetry;
+  final VoidCallback? onCancel;
   final VoidCallback? onReturnToHub;
+  final VoidCallback? onShowDiagnostics;
 
   @override
   Widget build(BuildContext context) => _CenteredSessionPanel(
@@ -158,6 +167,14 @@ class PlayerErrorSurface extends StatelessWidget {
               tone: PlayerBadgeTone.danger,
             ),
           ],
+          if (stage != null) ...<Widget>[
+            const SizedBox(height: PlayerSpacing.xs),
+            PlayerBadge(
+              label: stage!,
+              icon: Icons.route_rounded,
+              tone: PlayerBadgeTone.warning,
+            ),
+          ],
           if (onRetry != null) ...<Widget>[
             const SizedBox(height: PlayerSpacing.lg),
             PlayerActionButton(
@@ -175,6 +192,25 @@ class PlayerErrorSurface extends StatelessWidget {
               secondary: true,
               autofocus: onRetry == null,
               onPressed: onReturnToHub,
+            ),
+          ],
+          if (onCancel != null) ...<Widget>[
+            const SizedBox(height: PlayerSpacing.xs),
+            PlayerActionButton(
+              label: context.playerL10n.close,
+              icon: Icons.close_rounded,
+              secondary: true,
+              autofocus: onRetry == null,
+              onPressed: onCancel,
+            ),
+          ],
+          if (onShowDiagnostics != null) ...<Widget>[
+            const SizedBox(height: PlayerSpacing.xs),
+            PlayerActionButton(
+              label: context.playerL10n.diagnostics,
+              icon: Icons.health_and_safety_outlined,
+              secondary: true,
+              onPressed: onShowDiagnostics,
             ),
           ],
         ],

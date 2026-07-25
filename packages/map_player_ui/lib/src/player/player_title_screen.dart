@@ -15,6 +15,23 @@ enum PlayerTitleMenuAction {
 }
 
 @immutable
+final class RuntimePlayerTitlePresentation {
+  const RuntimePlayerTitlePresentation({
+    required this.author,
+    this.description,
+    this.background,
+    this.logo,
+    this.accentColor,
+  });
+
+  final String author;
+  final String? description;
+  final ImageProvider? background;
+  final ImageProvider? logo;
+  final Color? accentColor;
+}
+
+@immutable
 final class PlayerTitleViewData {
   PlayerTitleViewData({
     required this.gameTitle,
