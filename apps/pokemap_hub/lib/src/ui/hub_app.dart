@@ -7,6 +7,12 @@ import 'hub_dashboard_controller.dart';
 import 'hub_game_views.dart';
 import 'hub_shell.dart';
 
+typedef HubPlayerBuilder = Widget Function(
+  BuildContext context,
+  HubGameView game,
+  Future<void> Function() onHubRequested,
+);
+
 /// Player application root. Platform composition injects package picking,
 /// install/maintenance, and session launch actions.
 class PokeMapHubApp extends StatefulWidget {
@@ -14,11 +20,13 @@ class PokeMapHubApp extends StatefulWidget {
     super.key,
     required this.controller,
     this.actions = const HubUiActions(),
+    this.playerBuilder,
     this.initializeController = true,
   });
 
   final HubDashboardController controller;
   final HubUiActions actions;
+  final HubPlayerBuilder? playerBuilder;
   final bool initializeController;
 
   @override
@@ -26,12 +34,40 @@ class PokeMapHubApp extends StatefulWidget {
 }
 
 class _PokeMapHubAppState extends State<PokeMapHubApp> {
+  HubGameView? _activeGame;
+
   @override
   void initState() {
     super.initState();
     if (widget.initializeController) {
       unawaited(widget.controller.initialize());
     }
+  }
+
+  HubUiActions get _effectiveActions {
+    final actions = widget.actions;
+    final playerBuilder = widget.playerBuilder;
+    if (playerBuilder == null) return actions;
+    return HubUiActions(
+      onImportRequested: actions.onImportRequested,
+      onContinue: _openPlayer,
+      onNewGame: _openPlayer,
+      onUpdate: actions.onUpdate,
+      onRepair: actions.onRepair,
+      onManageSaves: actions.onManageSaves,
+      onUninstall: actions.onUninstall,
+    );
+  }
+
+  void _openPlayer(HubGameView game) {
+    if (_activeGame?.game.gameId == game.game.gameId) return;
+    setState(() => _activeGame = game);
+  }
+
+  Future<void> _returnToHub() async {
+    if (_activeGame == null) return;
+    setState(() => _activeGame = null);
+    await widget.controller.refresh();
   }
 
   @override
@@ -71,17 +107,22 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
                 child: child!,
               );
             },
-            home: HubShell(
-              snapshot: snapshot,
-              actions: widget.actions,
-              onSectionSelected: widget.controller.selectSection,
-              onQueryChanged: widget.controller.setQuery,
-              onGameSelected: widget.controller.selectGame,
-              onGameDetailsClosed: widget.controller.closeGameDetails,
-              onPreferencesChanged: (preferences) =>
-                  unawaited(widget.controller.updatePreferences(preferences)),
-              onCancelInstall: widget.controller.cancelImport,
-            ),
+            home: switch ((_activeGame, widget.playerBuilder)) {
+              (final game?, final playerBuilder?) =>
+                playerBuilder(context, game, _returnToHub),
+              _ => HubShell(
+                  snapshot: snapshot,
+                  actions: _effectiveActions,
+                  onSectionSelected: widget.controller.selectSection,
+                  onQueryChanged: widget.controller.setQuery,
+                  onGameSelected: widget.controller.selectGame,
+                  onGameDetailsClosed: widget.controller.closeGameDetails,
+                  onPreferencesChanged: (preferences) => unawaited(
+                    widget.controller.updatePreferences(preferences),
+                  ),
+                  onCancelInstall: widget.controller.cancelImport,
+                ),
+            },
           );
         },
       );

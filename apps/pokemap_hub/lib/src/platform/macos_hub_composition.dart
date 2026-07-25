@@ -23,11 +23,13 @@ final class MacOSHubComposition {
     required this.supportRoot,
     required this.controller,
     required this.actions,
+    required this.launchResolver,
   });
 
   final Directory supportRoot;
   final HubDashboardController controller;
   final HubUiActions actions;
+  final InstalledGameLaunchResolver launchResolver;
   static const MethodChannel _packageOpenChannel =
       MethodChannel('app.pokemap.hub/package_open');
 
@@ -87,6 +89,7 @@ final class MacOSHubComposition {
       supportRoot: supportRoot,
       controller: controller,
       actions: actions,
+      launchResolver: launchResolver,
     );
     await composition._attachPackageOpenBridge();
     return composition;
@@ -95,6 +98,17 @@ final class MacOSHubComposition {
   Widget buildApp() => PokeMapHubApp(
         controller: controller,
         actions: actions,
+        playerBuilder: (context, game, onHubRequested) =>
+            HubInstalledGamePlayer(
+          supportRoot: supportRoot,
+          launchResolver: launchResolver,
+          game: game.game,
+          preferences: controller.snapshot.preferences,
+          diagnosticLogFile: File(
+            p.join(supportRoot.path, 'logs', 'hub-player.log'),
+          ),
+          onHubRequested: onHubRequested,
+        ),
       );
 
   Future<void> _attachPackageOpenBridge() async {

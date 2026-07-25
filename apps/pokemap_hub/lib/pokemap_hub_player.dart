@@ -5,11 +5,14 @@
 library;
 
 export 'pokemap_hub.dart';
+export 'src/player/hub_player_preferences_gateway.dart';
+export 'src/player/hub_player_save_gateway.dart';
+export 'src/player/hub_runtime_external_exit.dart';
+export 'src/player/hub_runtime_game_source.dart';
 export 'src/player/hub_session_checkpoint_committer.dart';
 export 'src/player/player_shell_controller.dart';
 export 'src/player/player_shell_models.dart';
 export 'src/ui/player/hub_player_shell_view.dart';
-export 'src/ui/player/hub_runtime_presentation.dart';
 export 'src/session/hub_in_process_session_factory.dart';
 export 'src/session/installed_game_launch_resolver.dart';
 export 'src/session/package_asset_resolver.dart';
