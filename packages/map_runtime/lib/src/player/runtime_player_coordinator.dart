@@ -443,7 +443,13 @@ final class RuntimePlayerCoordinator {
     try {
       await _sessions.returnToTitle(checkpoint: checkpoint);
       if (_sessions.snapshot.state == GameSessionState.disposed) {
-        _publishTitle(failure: _sessions.snapshot.failure);
+        final loaded = await _loadTitleData();
+        if (!loaded) {
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.failed,
+            safeMessage: 'Player data could not be refreshed.',
+          );
+        }
       }
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.accepted,

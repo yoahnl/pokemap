@@ -1889,23 +1889,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Future<void> commitAndSavePlayerServiceState(GameState nextState) async {
     final activeScene = _activeNarrativeSceneWorkingSession;
     if (activeScene != null) {
+      // The Scene owns the current atomic state transaction. Persisting here
+      // would checkpoint a transient sceneActive state and is intentionally
+      // rejected by the save interlock. The completed Scene publishes this
+      // working state; the player shell can then checkpoint it safely.
       activeScene.gameState = nextState;
-      if (!activeScene.playerServiceCommitDeferred) {
-        final deferred = _narrativeStateTransactions
-            .deferAfterCurrentCommit((committed) async {
-          final saved = await _saveGameUseCase.execute(committed);
-          if (!saved) {
-            throw StateError('Player service state could not be saved.');
-          }
-          _applyNarrativeGameState(committed);
-        });
-        if (deferred) {
-          activeScene.playerServiceCommitDeferred = true;
-          return;
-        }
-      } else {
-        return;
-      }
+      return;
     }
     final previousState = await _narrativeStateTransactions.read();
     try {
@@ -13211,7 +13200,6 @@ final class _NarrativeSceneWorkingSession {
   _NarrativeSceneWorkingSession(this.gameState);
 
   GameState gameState;
-  bool playerServiceCommitDeferred = false;
 }
 
 final class _NarrativeOutcomeContinuationContext {

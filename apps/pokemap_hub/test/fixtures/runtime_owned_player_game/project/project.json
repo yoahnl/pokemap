@@ -1,0 +1,163 @@
+{
+  "name": "Les Îles Claires",
+  "version": "v1",
+  "maps": [
+    {
+      "id": "runtime_harbor",
+      "name": "Port des Îles Claires",
+      "relativePath": "maps/runtime_harbor.json",
+      "role": "exterior",
+      "sortOrder": 0
+    }
+  ],
+  "tilesets": [],
+  "shops": [
+    {
+      "id": "harbor_shop",
+      "label": "Boutique du Rivage",
+      "entries": [
+        {
+          "itemId": "potion",
+          "price": 60,
+          "stock": 3
+        }
+      ]
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene_harbor_shop",
+      "name": "Boutique du Rivage",
+      "graph": {
+        "startNodeId": "start",
+        "nodes": [
+          {
+            "id": "start",
+            "kind": "start",
+            "payload": {
+              "kind": "start"
+            }
+          },
+          {
+            "id": "service",
+            "kind": "action",
+            "payload": {
+              "kind": "action",
+              "parameters": {},
+              "interactiveCommand": {
+                "kind": "openShop",
+                "shopId": "harbor_shop"
+              }
+            }
+          },
+          {
+            "id": "end",
+            "kind": "end",
+            "payload": {
+              "kind": "end"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "start-service",
+            "fromNodeId": "start",
+            "fromPortId": "completed",
+            "toNodeId": "service",
+            "kind": "default"
+          },
+          {
+            "id": "service-completed",
+            "fromNodeId": "service",
+            "fromPortId": "completed",
+            "toNodeId": "end",
+            "kind": "actionCompleted"
+          },
+          {
+            "id": "service-cancelled",
+            "fromNodeId": "service",
+            "fromPortId": "cancelled",
+            "toNodeId": "end",
+            "kind": "actionCompleted"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scene_harbor_heal",
+      "name": "Centre Pokémon",
+      "graph": {
+        "startNodeId": "start",
+        "nodes": [
+          {
+            "id": "start",
+            "kind": "start",
+            "payload": {
+              "kind": "start"
+            }
+          },
+          {
+            "id": "service",
+            "kind": "action",
+            "payload": {
+              "kind": "action",
+              "parameters": {},
+              "interactiveCommand": {
+                "kind": "openHeal",
+                "requiresConfirmation": true
+              }
+            }
+          },
+          {
+            "id": "end",
+            "kind": "end",
+            "payload": {
+              "kind": "end"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "start-service",
+            "fromNodeId": "start",
+            "fromPortId": "completed",
+            "toNodeId": "service",
+            "kind": "default"
+          },
+          {
+            "id": "service-completed",
+            "fromNodeId": "service",
+            "fromPortId": "completed",
+            "toNodeId": "end",
+            "kind": "actionCompleted"
+          },
+          {
+            "id": "service-cancelled",
+            "fromNodeId": "service",
+            "fromPortId": "cancelled",
+            "toNodeId": "end",
+            "kind": "actionCompleted"
+          }
+        ]
+      }
+    }
+  ],
+  "newGame": {
+    "enabled": true,
+    "startMapId": "runtime_harbor",
+    "startSpawnId": "runtime_spawn",
+    "playerName": "Joueur",
+    "startingMoney": 500,
+    "initialBag": [],
+    "initialParty": [],
+    "initialFacts": {},
+    "starterOptions": []
+  },
+  "settings": {
+    "tileWidth": 16,
+    "tileHeight": 16,
+    "displayScale": 2,
+    "defaultMapWidth": 5,
+    "defaultMapHeight": 4
+  }
+}

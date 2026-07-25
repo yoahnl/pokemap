@@ -160,6 +160,17 @@ final class MemoryPlayerSaveGateway implements PlayerSaveGateway {
       await commitGate?.future;
       if (commitError case final error?) throw error;
       commits.add(request);
+      latestSave = PlayerSaveSummary(
+        address: SaveSlotAddress(
+          gameId: request.descriptor.identity.gameId,
+          profileId: request.descriptor.profileId,
+          slotId: request.descriptor.slotId,
+        ),
+        updatedAt: request.checkpoint.updatedAt,
+        playTimeSeconds: request.checkpoint.playTimeSeconds,
+        status: request.status,
+        canContinue: request.status == SaveStatus.active,
+      );
     } finally {
       activeCommits--;
     }

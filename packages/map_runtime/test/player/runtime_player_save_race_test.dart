@@ -87,6 +87,47 @@ void main() {
     expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.title);
   });
 
+  test('a confirmed Save enables Continue after returning to title', () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    await openHarnessPause(harness);
+    harness.adapter.checkpoint = testPlayerCheckpoint();
+
+    final save = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.save,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+    expect(save.status, RuntimePlayerCommandStatus.accepted);
+
+    final title = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.returnToTitle,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+    expect(title.status, RuntimePlayerCommandStatus.accepted);
+    expect(
+      harness.coordinator.snapshot
+          .isActionEnabled(RuntimePlayerAction.continueGame),
+      isTrue,
+    );
+
+    final continueGame = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.continueGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+
+    expect(continueGame.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.source.requests.last.launchMode,
+        GameSessionLaunchMode.continueGame);
+    expect(harness.source.requests.last.saveReadHandle, isNotNull);
+  });
+
   test('GameCompleted is committed after an active Save without overlap',
       () async {
     final harness = RuntimePlayerTestHarness();

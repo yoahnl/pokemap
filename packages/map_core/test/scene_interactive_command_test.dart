@@ -53,6 +53,18 @@ void main() {
       'completed',
       'cancelled',
     ]);
+    final diagnostics = diagnoseScene(roundTrip);
+    expect(
+      diagnostics.hasErrors,
+      isFalse,
+      reason: diagnostics.diagnostics
+          .map((diagnostic) => '${diagnostic.code.name}: ${diagnostic.message}')
+          .join('\n'),
+    );
+    expect(
+      diagnostics.byCode(SceneDiagnosticCode.actionPayloadLegacyUnsupported),
+      isEmpty,
+    );
   });
 }
 
@@ -84,6 +96,13 @@ SceneAsset _interactiveScene() => SceneAsset(
             id: 'shop-end',
             fromNodeId: 'shop',
             fromPortId: 'completed',
+            toNodeId: 'end',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+          SceneEdge(
+            id: 'shop-cancelled',
+            fromNodeId: 'shop',
+            fromPortId: 'cancelled',
             toNodeId: 'end',
             kind: SceneEdgeKind.actionCompleted,
           ),

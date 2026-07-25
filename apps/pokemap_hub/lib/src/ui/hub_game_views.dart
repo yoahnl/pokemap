@@ -95,6 +95,7 @@ class _HubGameCard extends StatelessWidget {
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(
+          key: ValueKey<String>('hub-game-card-${game.gameId}'),
           onTap: onPressed,
           borderRadius: BorderRadius.circular(PlayerRadii.md),
           child: PlayerPanel(

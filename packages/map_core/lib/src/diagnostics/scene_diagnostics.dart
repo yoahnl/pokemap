@@ -605,6 +605,10 @@ void _diagnoseActionNode(
     return;
   }
 
+  if (payload.interactiveCommand != null) {
+    return;
+  }
+
   final consequence = payload.consequence;
   if (consequence == null) {
     diagnostics.add(
@@ -1413,16 +1417,7 @@ List<_SceneOutputPortSpec>? _v0OutputPortSpecsForNode(
       ],
     SceneNodeKind.yarnDialogue => _yarnDialogueOutputPortSpecs(node),
     SceneNodeKind.battle => _battleOutputPortSpecs(node),
-    SceneNodeKind.action => const [
-        _SceneOutputPortSpec(
-          id: 'completed',
-          edgeKinds: {
-            SceneEdgeKind.defaultFlow,
-            SceneEdgeKind.actionCompleted,
-          },
-          required: true,
-        ),
-      ],
+    SceneNodeKind.action => _actionOutputPortSpecs(node),
     SceneNodeKind.cinematic => const [
         _SceneOutputPortSpec(
           id: 'completed',
@@ -1433,6 +1428,25 @@ List<_SceneOutputPortSpec>? _v0OutputPortSpecsForNode(
     SceneNodeKind.end => const [],
     SceneNodeKind.branchByOutcome => _branchOutputPortSpecs(node, nodeById),
   };
+}
+
+List<_SceneOutputPortSpec> _actionOutputPortSpecs(SceneNode node) {
+  final payload = node.payload;
+  final interactiveCommand =
+      payload is SceneActionPayload ? payload.interactiveCommand : null;
+  final outputPortIds =
+      interactiveCommand?.outputPortIds ?? const <String>['completed'];
+  return <_SceneOutputPortSpec>[
+    for (final outputPortId in outputPortIds)
+      _SceneOutputPortSpec(
+        id: outputPortId,
+        edgeKinds: const {
+          SceneEdgeKind.defaultFlow,
+          SceneEdgeKind.actionCompleted,
+        },
+        required: true,
+      ),
+  ];
 }
 
 List<_SceneOutputPortSpec> _branchOutputPortSpecs(
