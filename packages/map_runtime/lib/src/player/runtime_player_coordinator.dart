@@ -133,6 +133,21 @@ final class RuntimePlayerCoordinator {
         }
         return _launchSave(save, GameSessionLaunchMode.load);
       case RuntimePlayerAction.retry:
+        if (_snapshot.phase == RuntimePlayerPhase.completing &&
+            _sessions.snapshot.state == GameSessionState.completing) {
+          await _sessions.retryCompletion();
+          if (_sessions.snapshot.state == GameSessionState.completed) {
+            _publishCompletionResult();
+            return const RuntimePlayerCommandResult(
+              status: RuntimePlayerCommandStatus.accepted,
+            );
+          }
+          return RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.failed,
+            safeMessage: _sessions.snapshot.failure?.safeMessage ??
+                'The final checkpoint could not be saved.',
+          );
+        }
         final retry = _retryLaunch;
         if (retry == null) {
           final loaded = await _loadTitleData();
@@ -207,11 +222,69 @@ final class RuntimePlayerCoordinator {
         return const RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.accepted,
         );
-      case RuntimePlayerAction.cancel:
       case RuntimePlayerAction.save:
-      case RuntimePlayerAction.returnToTitle:
+        final section =
+            _snapshot.pauseSection ?? RuntimePlayerPauseSection.root;
+        final logicalSelectionId = _snapshot.logicalSelectionId;
+        _publish(
+          _snapshot.next(
+            phase: RuntimePlayerPhase.saving,
+            actions: const <RuntimePlayerActionAvailability>[],
+            clearFailure: true,
+          ),
+        );
+        final saved = await _sessions.requestCheckpoint();
+        _publishPause(
+          section,
+          logicalSelectionId: logicalSelectionId,
+          failure: saved ? null : _sessions.snapshot.failure,
+          clearFailure: saved,
+        );
+        return RuntimePlayerCommandResult(
+          status: saved
+              ? RuntimePlayerCommandStatus.accepted
+              : RuntimePlayerCommandStatus.failed,
+          safeMessage: saved
+              ? null
+              : _sessions.snapshot.failure?.safeMessage ??
+                  'The checkpoint could not be saved.',
+        );
       case RuntimePlayerAction.showCredits:
+        final completion = _sessions.committedCompletion;
+        if (completion == null) {
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.unavailable,
+            safeMessage: 'No completed game credits are available.',
+          );
+        }
+        _publish(
+          _snapshot.next(
+            phase: RuntimePlayerPhase.credits,
+            result: completion.result,
+            credits: completion.credits,
+            clearFailure: true,
+            actions: _creditsActions,
+          ),
+        );
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.accepted,
+        );
       case RuntimePlayerAction.finishCredits:
+      case RuntimePlayerAction.returnToTitle:
+        _publish(
+          _snapshot.next(
+            phase: RuntimePlayerPhase.disposingSession,
+            actions: const <RuntimePlayerActionAvailability>[],
+          ),
+        );
+        await _sessions.returnToTitle(checkpoint: false);
+        if (_sessions.snapshot.state == GameSessionState.disposed) {
+          _publishTitle();
+        }
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.accepted,
+        );
+      case RuntimePlayerAction.cancel:
       case RuntimePlayerAction.returnToHost:
         return const RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.unavailable,
@@ -414,12 +487,29 @@ final class RuntimePlayerCoordinator {
           _publishPlaying();
         }
       case GameSessionState.paused:
-        if (_snapshot.phase != RuntimePlayerPhase.paused) {
+        if (_snapshot.phase != RuntimePlayerPhase.paused &&
+            _snapshot.phase != RuntimePlayerPhase.saving) {
           _publishPause(RuntimePlayerPauseSection.root);
         }
       case GameSessionState.lifecyclePaused:
+        return;
       case GameSessionState.completing:
+        _publish(
+          _snapshot.next(
+            phase: RuntimePlayerPhase.completing,
+            failure: session.failure,
+            clearFailure: session.failure == null,
+            actions: session.completionCommitFailed
+                ? const <RuntimePlayerActionAvailability>[
+                    RuntimePlayerActionAvailability.enabled(
+                      RuntimePlayerAction.retry,
+                    ),
+                  ]
+                : const <RuntimePlayerActionAvailability>[],
+          ),
+        );
       case GameSessionState.completed:
+        _publishCompletionResult();
       case GameSessionState.stopping:
         return;
       case GameSessionState.failed:
@@ -433,7 +523,8 @@ final class RuntimePlayerCoordinator {
           allowRetry: true,
         );
       case GameSessionState.disposed:
-        if (session.exitReason == GameSessionExitReason.cancelled) {
+        if (session.exitReason == GameSessionExitReason.cancelled ||
+            session.exitReason == GameSessionExitReason.title) {
           _publishTitle();
         }
     }
@@ -473,12 +564,16 @@ final class RuntimePlayerCoordinator {
   void _publishPause(
     RuntimePlayerPauseSection section, {
     String? logicalSelectionId,
+    GameSessionFailure? failure,
+    bool clearFailure = false,
   }) {
     _publish(
       _snapshot.next(
         phase: RuntimePlayerPhase.paused,
         pauseSection: section,
         logicalSelectionId: logicalSelectionId,
+        failure: failure,
+        clearFailure: clearFailure,
         actions: _pauseActions(
           includeReturnToRoot: section != RuntimePlayerPauseSection.root,
         ),
@@ -504,6 +599,24 @@ final class RuntimePlayerCoordinator {
             RuntimePlayerAction.cancel,
           ),
         ],
+      ),
+    );
+  }
+
+  void _publishCompletionResult() {
+    final completion = _sessions.committedCompletion;
+    if (completion == null || _snapshot.phase == RuntimePlayerPhase.result) {
+      return;
+    }
+    _publish(
+      _snapshot.next(
+        phase: RuntimePlayerPhase.result,
+        clearPauseSection: true,
+        clearLoadingProgress: true,
+        clearFailure: true,
+        result: completion.result,
+        credits: completion.credits,
+        actions: _resultActions,
       ),
     );
   }
@@ -569,9 +682,8 @@ final class RuntimePlayerCoordinator {
           RuntimePlayerAction.openMap,
           reason: 'This game does not provide a player map.',
         ),
-      RuntimePlayerActionAvailability.disabled(
+      const RuntimePlayerActionAvailability.enabled(
         RuntimePlayerAction.save,
-        reason: 'Saving is not available from this player surface yet.',
       ),
       const RuntimePlayerActionAvailability.enabled(
         RuntimePlayerAction.openOptions,
@@ -595,6 +707,16 @@ final class RuntimePlayerCoordinator {
 
   static const _cancelActions = <RuntimePlayerActionAvailability>[
     RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.cancel),
+  ];
+
+  static const _resultActions = <RuntimePlayerActionAvailability>[
+    RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.showCredits),
+    RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.returnToTitle),
+  ];
+
+  static const _creditsActions = <RuntimePlayerActionAvailability>[
+    RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.finishCredits),
+    RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.returnToTitle),
   ];
 
   bool get _hasLiveSession =>

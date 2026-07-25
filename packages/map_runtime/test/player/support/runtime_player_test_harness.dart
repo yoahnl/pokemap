@@ -205,6 +205,8 @@ final class FakeRuntimeSessionAdapter implements GameSessionAdapter {
   final _events = StreamController<GameSessionAdapterEvent>.broadcast();
   GameSessionCheckpoint? checkpoint;
   int disposeCalls = 0;
+  bool gameplayLocked = false;
+  final completionAcknowledgements = <bool>[];
 
   @override
   Stream<GameSessionAdapterEvent> get events => _events.stream;
@@ -213,9 +215,14 @@ final class FakeRuntimeSessionAdapter implements GameSessionAdapter {
 
   void emitRunning() => emit(GameSessionRunning(sessionId));
 
+  void emitCompletion(GameCompletionEvent completion) {
+    emit(GameSessionCompleted(completion));
+  }
+
   @override
   Future<void> acknowledgeCompletion({required bool accepted}) async {
     calls.add('completion:$accepted');
+    completionAcknowledgements.add(accepted);
   }
 
   @override
@@ -240,6 +247,7 @@ final class FakeRuntimeSessionAdapter implements GameSessionAdapter {
   @override
   Future<void> lockGameplayForCompletion() async {
     calls.add('lock-completion');
+    gameplayLocked = true;
   }
 
   @override
@@ -299,4 +307,55 @@ Future<void> launchHarnessToPlaying(RuntimePlayerTestHarness harness) async {
   }
   harness.adapter.emitRunning();
   await harness.coordinator.settle();
+}
+
+Future<void> openHarnessPause(RuntimePlayerTestHarness harness) async {
+  final result = await harness.coordinator.dispatch(
+    RuntimePlayerCommand(
+      action: RuntimePlayerAction.openMenu,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    ),
+  );
+  if (result.status != RuntimePlayerCommandStatus.accepted) {
+    throw StateError('The test pause menu did not open.');
+  }
+}
+
+GameSessionCheckpoint testPlayerCheckpoint({
+  DateTime? updatedAt,
+}) {
+  final timestamp = updatedAt ?? DateTime.utc(2026, 7, 25, 14);
+  return GameSessionCheckpoint(
+    saveId: 'runtime-player-save',
+    createdAt: DateTime.utc(2026, 7, 25, 12),
+    updatedAt: timestamp,
+    playTimeSeconds: 240,
+    state: const <String, Object?>{
+      'currentMapId': 'runtime-player-map',
+    },
+  );
+}
+
+GameCompletionEvent testPlayerCompletion(RuntimePlayerTestHarness harness) {
+  final completedAt = DateTime.utc(2026, 7, 25, 15);
+  return GameCompletionEvent(
+    sessionId: harness.adapter.sessionId,
+    gameId: harness.source.identity.gameId,
+    endingId: 'main-ending',
+    outcome: GameCompletionOutcome.victory,
+    completedAt: completedAt,
+    playTimeSeconds: 240,
+    result: const GameResultSnapshot(
+      title: 'Victoire',
+      summary: 'La région est sauvée.',
+    ),
+    credits: const GameCreditsSnapshot(
+      title: 'Runtime Player Test',
+      author: 'PokeMap',
+      endingLabel: 'Fin principale',
+    ),
+    destination: GameCompletionDestination.playerChoice,
+    allowPostGameContinue: false,
+    finalCheckpoint: testPlayerCheckpoint(updatedAt: completedAt),
+  );
 }
