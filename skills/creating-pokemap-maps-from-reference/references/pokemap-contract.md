@@ -2,39 +2,107 @@
 
 ## Source of truth
 
-- Project catalog: `selbrume/project.json` (`ProjectManifest`).
-- Maps: `selbrume/maps/*.json` (`MapData`).
-- Shared models: `packages/map_core/lib/src/models/`.
-- Editor session: `packages/map_editor/lib/src/features/editor/state/editor_notifier.dart`.
-- Deterministic Selbrume precedent: `packages/map_editor/tool/generate_selbrume_canonical_maps.dart`.
-- Runtime proof: `packages/map_runtime/test/selbrume_map_catalog_integrity_test.dart` and `selbrume_map_render_smoke_test.dart`.
+- Use the selected PokeMap project's `project.json` and `maps/*.json`.
+- Read shared schemas in `packages/map_core/lib/src/models/`.
+- Use `EditorNotifier` for a real editor load/save/reload proof.
+- Use existing deterministic map generators and runtime smoke tests as patterns.
 
-Do not make Desktop folders, complete reference renders, Tiled, or another editor a runtime dependency.
+Desktop source folders, screenshots, Tiled, RPG Maker, or another editor may provide
+references. They must never become runtime dependencies.
 
-## Authored data
+## Choose the authoring mode
 
-Use `PathLayer` for connected terrain such as roads and water, `TileLayer` for authored tile data, `EnvironmentLayer` for procedural natural masses, and `MapPlacedElement` for editable landmarks and props. Preserve entities, triggers, gameplay zones, events, warps, connections, metadata, layer order, collisions, and lighting unless the brief explicitly changes them.
+| Mode | Collision/gameplay rule |
+|---|---|
+| `rebuild-existing` | Preserve entities, triggers, zones, events, warps, connections, IDs, and collisions unless the user explicitly scopes changes. |
+| `new` | Design collisions and navigation from the approved floor plan, then prove required routes. There is no legacy collision contract to “freeze.” |
 
-Store `pokemapPlacementOrigin` in `MapPlacedElement.properties`:
+Stop when requested visuals conflict with a protected gameplay contract. Request a
+separate decision instead of moving gameplay data silently.
 
-- `authored`: deliberate landmark or hand-adjustment;
+## Native data responsibilities
+
+Use:
+
+- `TileLayer` for authored repeatable tile data;
+- `PathLayer` and surfaces for connected terrain;
+- `EnvironmentLayer` for eligible procedural natural masses;
+- `MapPlacedElement` for independently bounded architecture, landmarks, and props;
+- collision/gameplay layers for gameplay truth, never visual camouflage.
+
+Keep floors, paths, normal walls, corners, door openings, roofs, props, foreground
+occluders, and effects separable enough to edit. A single placed element covering the
+whole map is not native modular authoring, even though its JSON is technically editable.
+
+Store `pokemapPlacementOrigin` in placement properties when generated:
+
+- `authored`: deliberate landmark or hand adjustment;
 - `tile_index`: derived from positive tile patterns;
 - `environment`: generated from a persisted Environment area.
 
-Legacy placements without the marker are authored. Loading a map must not silently migrate or re-index them.
+Legacy placements without the marker remain authored.
+
+## Grid and atlas semantics
+
+Read `settings.tileWidth`, `settings.tileHeight`, and `settings.displayScale`; do not
+conflate native grid dimensions with runtime pixels.
+
+For tile layers, verify the engine's one-based atlas tile convention: serialized tile
+ID `0` means empty, so atlas cell index `N` is normally serialized as `N + 1`.
+Prove this through the actual renderer; an off-by-one error can look like a scale or
+spacing problem.
+
+Every tile and collision array must contain exactly `mapWidth × mapHeight` entries.
+Every placed element frame must resolve to a known project element and tileset.
+
+## Placement bounds and map edges
+
+Compute each placed element's maximum frame footprint. Require:
+
+```text
+0 <= x
+0 <= y
+x + width  <= map.width
+y + height <= map.height
+```
+
+Do not rely on renderer clipping. Reject an ordinary placed element that covers all four
+map edges; use modular parts. Allow a full-canvas element only for a deliberately
+approved backdrop whose exception is recorded by element ID.
+
+Run the one-cell padded-canvas proof from `map-quality-gates.md`.
+
+## Collision and navigation
+
+For a rebuild, compare protected collision and gameplay data before/after. For a new
+map, author collision footprints from ground contact and validate them.
+
+Require:
+
+- exactly one intended collision truth for runtime;
+- correct grid length and boolean values;
+- walkable entry/exit cells;
+- four-directional reachability from the primary entry to every required target;
+- clear approach cells for doors, warps, and interactions;
+- explicit justification for disconnected walkable components.
+
+Never infer collision from opaque reference pixels.
 
 ## Environment
 
-Persist the preset in `ProjectManifest.environmentPresets`. Persist each area mask, seed, target tile layer, parameters, and `generatedPlacementIds`. Generate with the existing Environment use cases in `packages/map_editor/lib/src/application/use_cases/`; do not implement a second random scatterer. Protect route cells plus at least one cell around exits, doors, warps, interactions, and large footprints.
+Persist presets, area masks, seeds, target layers, parameters, and generated placement
+IDs. Use the existing Environment use cases in `map_editor`; do not add an independent
+random scatterer. Exclude routes, landmarks, doors, exits, interactions, and their safety
+buffers. Regenerate twice and compare generated IDs, elements, and positions.
 
 ## Required proof
 
-1. Generator/authoring command is deterministic and has a check-only mode.
-2. Project and every changed map decode and validate.
-3. A disposable-copy test opens through `EditorNotifier.loadMap`, changes an unrelated value, saves, reloads, and proves authored/tile-index/Environment placements persist.
-4. Runtime catalog, render, collision, and traversal checks pass for changed maps.
-5. Captures are grid-off and include overview, player-scale routes, landmarks, exits, and collision overlay.
+1. Deterministic authoring command with a check-only mode when generated.
+2. Project and changed maps decode and validate.
+3. Editor load, unrelated edit, save, reload preserves authored data.
+4. Structural validator passes explicit entries and targets.
+5. Runtime catalog, asset loading, render, collision, and traversal checks pass.
+6. Capture pack satisfies `visual-acceptance.md`.
 
-The generic asset audit proposes filesystem candidates; it does not silently rewrite `project.json`. Remove an approved stale catalog entry in the same project change, rerun the graph, then apply only the reviewed hash. Pass identical test/reference root labels to dry-run and apply.
-
-Run package commands from their own directories. Prefer focused tests first, then `flutter test`, `flutter analyze`, and the relevant editor/runtime builds.
+Run package commands from their own directories. Prefer focused tests, then the relevant
+package test/analyze commands required by repository instructions.

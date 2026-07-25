@@ -62,6 +62,38 @@ def main() -> int:
 - Asset inventory: `{inventory_name}`
 - Inventory SHA-256 / count: `{inventory_evidence}`
 
+## Map contract
+
+- Map role and story moment: TODO
+- Map mode (`new` / `rebuild-existing`): TODO
+- Native grid size in cells: TODO
+- Required entrances, exits, warps, interactions, and reservations: TODO
+- Explicit non-goals: TODO
+
+## Scale contract
+
+| Benchmark | Native size | Runtime size | Relationship to player | Evidence |
+|---|---:|---:|---|---|
+| Project tile | TODO | TODO | TODO | project settings |
+| Player sprite/collision | TODO | TODO | reference benchmark | scale-board capture |
+| Standard door | TODO | TODO | player fits visually | scale-board capture |
+| Representative seat/bed/tree/rail | TODO | TODO | plausible real-world ratio | scale-board capture |
+
+Do not place production assets until the player, a door, and one representative
+object from every used size family read coherently in one grid-off scale board.
+
+## Functional topology
+
+| Node | Cell/area | Required approach | Connected from | Blocking/occlusion rule |
+|---|---|---|---|---|
+| Primary entry | TODO | TODO | n/a | TODO |
+| Required destination | TODO | TODO | primary entry | TODO |
+
+- Main player route: TODO
+- Intentional one-cell choke points: TODO
+- Optional/decorative unreachable areas: TODO
+- Collision component and reachability evidence: TODO
+
 ## Composition zones
 
 | Zone | Approximate bounds/proportion | Visual purpose | Traversable? | Existing asset candidates |
@@ -83,11 +115,31 @@ def main() -> int:
 - Environment exclusions and one-cell buffers: TODO
 - Foreground occlusion expectations: TODO
 
+## Edge-independence proof
+
+- Full-canvas composite elements: `none` unless an explicit backdrop exception is approved
+- Placements outside map bounds: `none`
+- Architecture relying on viewport/map clipping: `none`
+- One-cell padded-canvas comparison: TODO
+- Modular wall, corner, doorway, roof, and foreground pieces: TODO
+
+The padded-canvas comparison must look intentionally complete. Map borders may
+bound gameplay space; they must never act as a crop mask for oversized art.
+
 ## Asset decisions
 
 | Visual need | Existing candidates checked | Decision | Provenance | Source/output hashes | New asset justification |
 |---|---|---|---|---|---|
 | TODO | TODO | TODO | TODO | TODO | `none` unless a named gap remains |
+
+## Layer and occlusion plan
+
+| Bottom-to-top layer | Contents | Editable primitive | Collision owner |
+|---|---|---|---|
+| TODO | TODO | tile / path / environment / placed element | TODO |
+
+Do not replace floors, normal architecture, or furnished rooms with one flattened
+map-sized element.
 
 ## Environment plan
 
@@ -105,28 +157,35 @@ Regenerate twice and compare placement IDs, element IDs, and positions byte-for-
 - Context composite (rocks, docks, reeds, beach): TODO
 - Seam and last-to-first loop evidence: TODO
 
-## Technical preservation
+## Collision and preservation contract
 
 - Existing entities/triggers/zones/events/warps/connections to preserve: TODO
 - Required IDs and narrative reservations: TODO
-- Collision and traversal evidence: TODO
+- Existing collision mode (`frozen` / `newly authored`): TODO
+- Entrance-to-destination traversal evidence: TODO
 - Real EditorNotifier load/save/reload evidence: TODO
 
-## Comparable capture set
+## Engine proof
 
-| Capture | Camera/viewport | Scale | Lighting/time | Grid | Required comparison |
-|---|---|---:|---|---|---|
-| Overview | TODO | TODO | TODO | off | reference / current / candidate |
-| Player route | TODO | TODO | TODO | off | readability and collision |
+| Proof | Camera/viewport | Scale | Grid | Required result |
+|---|---|---:|---|---|
+| Native authoring overview | TODO | 1× | off | no clipping, seam, void, or placeholder |
+| Scale board | TODO | 1× and runtime | off | player/door/props coherent |
+| Collision overlay | full map | native | on | honest footprints and connected route |
+| Padded-canvas edge test | +1 cell each side | native | off | composition independent from map crop |
+| Actual runtime render | same crop | project display scale | off | matches authoring intent |
+| Reference comparison | identical crop | identical | off | reference / candidate side by side |
 
 ## Visual review
 
 | Axis | Score (1–5) | Evidence / correction |
 |---|---:|---|
 | Composition | TODO | TODO |
+| Scale coherence | TODO | TODO |
 | Style coherence | TODO | TODO |
 | Navigation readability | TODO | TODO |
 | Place identity | TODO | TODO |
+| Edge independence | TODO | TODO |
 | Finish | TODO | TODO |
 
 Every axis requires 4/5 or higher plus explicit human approval.

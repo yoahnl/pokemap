@@ -114,6 +114,198 @@ class ReferenceBriefTest(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(reference.read_bytes(), original)
 
+    def test_brief_requires_scale_topology_and_edge_independence_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            reference = root / "reference.png"
+            output = root / "brief.md"
+            _write_rgba_png(reference, (1, 2, 3, 255))
+
+            result = _run(
+                "create_reference_brief.py",
+                "--reference",
+                str(reference),
+                "--map-id",
+                "map_test",
+                "--output",
+                str(output),
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            brief = output.read_text(encoding="utf-8")
+            self.assertIn("## Scale contract", brief)
+            self.assertIn("## Functional topology", brief)
+            self.assertIn("## Edge-independence proof", brief)
+            self.assertIn("## Engine proof", brief)
+
+
+class ValidateAuthoredMapTest(unittest.TestCase):
+    def _fixture(
+        self,
+        root: Path,
+        *,
+        element_width: int = 2,
+        element_height: int = 2,
+        position: tuple[int, int] = (1, 1),
+        collisions: list[bool] | None = None,
+    ) -> tuple[Path, Path]:
+        project = root / "project.json"
+        map_file = root / "map.json"
+        project.write_text(
+            json.dumps(
+                {
+                    "settings": {
+                        "tileWidth": 32,
+                        "tileHeight": 32,
+                        "displayScale": 2.0,
+                    },
+                    "tilesets": [{"id": "tileset_test"}],
+                    "elements": [
+                        {
+                            "id": "element_test",
+                            "name": "Test prop",
+                            "tilesetId": "tileset_test",
+                            "frames": [
+                                {
+                                    "source": {
+                                        "x": 0,
+                                        "y": 0,
+                                        "width": element_width,
+                                        "height": element_height,
+                                    }
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        map_file.write_text(
+            json.dumps(
+                {
+                    "id": "map_test",
+                    "size": {"width": 4, "height": 4},
+                    "tilesetId": "tileset_test",
+                    "properties": {
+                        "referenceRuntimeUnderlay": False,
+                        "pokemapAuthored": True,
+                    },
+                    "layers": [
+                        {
+                            "runtimeType": "tile",
+                            "id": "visual",
+                            "tiles": [0] * 16,
+                        },
+                        {
+                            "runtimeType": "collision",
+                            "id": "collision",
+                            "collisions": collisions or [False] * 16,
+                        },
+                    ],
+                    "placedElements": [
+                        {
+                            "id": "placed_test",
+                            "layerId": "visual",
+                            "elementId": "element_test",
+                            "pos": {"x": position[0], "y": position[1]},
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        return project, map_file
+
+    def test_rejects_a_full_canvas_element_used_as_a_map_shell(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project, map_file = self._fixture(
+                Path(temporary),
+                element_width=4,
+                element_height=4,
+                position=(0, 0),
+            )
+
+            result = _run(
+                "validate_authored_map.py",
+                "--project",
+                str(project),
+                "--map",
+                str(map_file),
+                "--entry",
+                "0,0",
+                "--target",
+                "3,3",
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("full-canvas-composite", result.stdout)
+
+    def test_accepts_modular_in_bounds_elements_and_connected_routes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project, map_file = self._fixture(Path(temporary))
+
+            result = _run(
+                "validate_authored_map.py",
+                "--project",
+                str(project),
+                "--map",
+                str(map_file),
+                "--entry",
+                "0,0",
+                "--target",
+                "3,3",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("PASS", result.stdout)
+
+    def test_rejects_out_of_bounds_elements_even_when_the_engine_clips_them(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project, map_file = self._fixture(
+                Path(temporary),
+                element_width=2,
+                element_height=2,
+                position=(3, 3),
+            )
+
+            result = _run(
+                "validate_authored_map.py",
+                "--project",
+                str(project),
+                "--map",
+                str(map_file),
+                "--entry",
+                "0,0",
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("out-of-bounds-element", result.stdout)
+
+    def test_rejects_an_unreachable_required_target(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            collisions = [False] * 16
+            collisions[4:8] = [True] * 4
+            project, map_file = self._fixture(
+                Path(temporary),
+                collisions=collisions,
+            )
+
+            result = _run(
+                "validate_authored_map.py",
+                "--project",
+                str(project),
+                "--map",
+                str(map_file),
+                "--entry",
+                "0,0",
+                "--target",
+                "0,3",
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("unreachable-target", result.stdout)
+
 
 class AssetUsageApplyTest(unittest.TestCase):
     def _fixture(self, root: Path) -> tuple[Path, Path, Path]:

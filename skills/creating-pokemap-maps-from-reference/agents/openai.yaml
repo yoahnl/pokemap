@@ -1,4 +1,4 @@
 interface:
-  display_name: "Créer une map depuis une référence"
-  short_description: "Transformer une image en map PokeMap éditable"
-  default_prompt: "Use $creating-pokemap-maps-from-reference to build an editable PokeMap map from this reference image while reusing existing assets."
+  display_name: "Composer une map PokeMap cohérente"
+  short_description: "Créer des maps logiques, belles et éditables"
+  default_prompt: "Use $creating-pokemap-maps-from-reference to author this PokeMap map with coherent scale, connected navigation, modular assets, and real runtime proof."

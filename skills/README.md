@@ -34,7 +34,7 @@ If instructions conflict, use the stricter safe rule and report the conflict.
 | `finishing-a-development-branch` | Wrapping up verified work and choosing merge/PR/cleanup options. | Never perform Git write operations unless the user explicitly asked. |
 | `using-git-worktrees` | Creating or using isolated worktrees. | In PokeMap, use only with explicit user permission because root `AGENTS.md` forbids silent worktree changes. |
 | `writing-skills` | Creating, editing, or validating skills. | Use when changing this directory or adding new skills. |
-| `creating-pokemap-maps-from-reference` | Rebuilding an editable PokeMap map from a screenshot, concept image, or full-map render. | Reuse and audit assets first; preserve native layers, Environment data, gameplay contracts, and visual review evidence. |
+| `creating-pokemap-maps-from-reference` | Authoring, rebuilding, or reviewing an editable PokeMap map from a screenshot, bible, concept image, or full-map render. | Enforces scale boards, connected routes, modular bounds-safe assets, edge independence, runtime proof, and visual acceptance gates. |
 
 ## PokeMap-Specific Guidance
 
