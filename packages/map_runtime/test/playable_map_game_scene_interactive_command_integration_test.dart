@@ -28,13 +28,18 @@ void main() {
     final shopPort = await game.debugExecuteSceneInteractiveCommand(
       SceneInteractiveCommand.openShop(shopId: 'shop.port'),
     );
+    final healPort = await game.debugExecuteSceneInteractiveCommand(
+      SceneInteractiveCommand.openHeal(),
+    );
     final pcPort = await game.debugExecuteSceneInteractiveCommand(
       SceneInteractiveCommand.openPc(),
     );
 
     expect(shopPort, 'completed');
+    expect(healPort, 'completed');
     expect(pcPort, 'cancelled');
     expect(host.shopCalls, 1);
+    expect(host.healCalls, 1);
     expect(host.pcCalls, 1);
   });
 
@@ -53,6 +58,12 @@ void main() {
     );
     expect(
       await game.debugExecuteSceneInteractiveCommand(
+        SceneInteractiveCommand.openHeal(),
+      ),
+      'cancelled',
+    );
+    expect(
+      await game.debugExecuteSceneInteractiveCommand(
         SceneInteractiveCommand.openPc(),
       ),
       'cancelled',
@@ -62,6 +73,7 @@ void main() {
 
 final class _PlayerServiceHost implements PlayerServiceOverlayHost {
   int shopCalls = 0;
+  int healCalls = 0;
   int pcCalls = 0;
 
   @override
@@ -87,8 +99,11 @@ final class _PlayerServiceHost implements PlayerServiceOverlayHost {
   Future<PlayerServiceHostResult> openHealCenter(
     PlayerServiceHealRequest request,
   ) {
+    healCalls += 1;
+    expect(request.worldRequest?.interactionId, 'scene.openHeal');
+    expect(request.worldRequest?.requiresConfirmation, isTrue);
     return Future<PlayerServiceHostResult>.value(
-      const PlayerServiceHostResult.cancelled(),
+      PlayerServiceHostResult.completed(request.gameState),
     );
   }
 }

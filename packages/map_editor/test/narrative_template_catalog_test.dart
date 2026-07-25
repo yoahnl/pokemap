@@ -17,6 +17,10 @@ void main() {
         isTrue,
       );
       expect(
+        catalog.byKind(NarrativeTemplateKind.nurse).command.id,
+        NarrativeCommandIds.openHeal,
+      );
+      expect(
         catalog.byKind(NarrativeTemplateKind.badgeReward).isPublishable,
         isTrue,
       );
@@ -44,6 +48,10 @@ void main() {
         () {
       final payloads = <SceneActionPayload>[
         buildScenePayloadForNarrativeCommand(
+          commandId: NarrativeCommandIds.openHeal,
+          parameters: const {'requiresConfirmation': 'false'},
+        ) as SceneActionPayload,
+        buildScenePayloadForNarrativeCommand(
           commandId: NarrativeCommandIds.healParty,
           parameters: const {},
         ) as SceneActionPayload,
@@ -57,13 +65,17 @@ void main() {
         ) as SceneActionPayload,
       ];
 
-      expect(payloads[0].consequence, SceneConsequence.healParty());
       expect(
-        payloads[1].consequence,
+        payloads[0].interactiveCommand,
+        SceneInteractiveCommand.openHeal(requiresConfirmation: false),
+      );
+      expect(payloads[1].consequence, SceneConsequence.healParty());
+      expect(
+        payloads[2].consequence,
         SceneConsequence.awardBadge(badgeId: 'badge_tide'),
       );
       expect(
-        payloads[2].consequence,
+        payloads[3].consequence,
         SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
       );
       for (final payload in payloads) {

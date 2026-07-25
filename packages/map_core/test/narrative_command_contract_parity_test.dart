@@ -154,6 +154,9 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
       NarrativeCommandIds.openShop: () => SceneActionPayload.interactive(
             SceneInteractiveCommand.openShop(shopId: 'shop_port'),
           ),
+      NarrativeCommandIds.openHeal: () => SceneActionPayload.interactive(
+            SceneInteractiveCommand.openHeal(),
+          ),
       NarrativeCommandIds.openPc: () => SceneActionPayload.interactive(
             SceneInteractiveCommand.openPc(),
           ),

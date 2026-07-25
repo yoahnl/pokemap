@@ -129,6 +129,45 @@ final class RuntimeShopServiceContent {
   final int totalPrice;
 }
 
+final class RuntimeHealPartyMemberSnapshot {
+  const RuntimeHealPartyMemberSnapshot({
+    required this.partyIndex,
+    required this.label,
+    required this.currentHp,
+    required this.maxHp,
+    required this.hasStatus,
+    required this.depletedMoveCount,
+  })  : assert(partyIndex >= 0),
+        assert(label != ''),
+        assert(currentHp >= 0),
+        assert(maxHp > 0),
+        assert(depletedMoveCount >= 0);
+
+  final int partyIndex;
+  final String label;
+  final int currentHp;
+  final int maxHp;
+  final bool hasStatus;
+  final int depletedMoveCount;
+}
+
+/// Runtime-owned healing projection. Recovery caps are already resolved.
+final class RuntimeHealServiceContent {
+  RuntimeHealServiceContent({
+    required this.title,
+    required this.message,
+    List<RuntimeHealPartyMemberSnapshot> members =
+        const <RuntimeHealPartyMemberSnapshot>[],
+    this.wasHealed = false,
+  })  : assert(title != ''),
+        members = List<RuntimeHealPartyMemberSnapshot>.unmodifiable(members);
+
+  final String title;
+  final String message;
+  final List<RuntimeHealPartyMemberSnapshot> members;
+  final bool wasHealed;
+}
+
 final class RuntimeWorldServiceActionAvailability {
   const RuntimeWorldServiceActionAvailability.enabled(this.action)
       : isEnabled = true,

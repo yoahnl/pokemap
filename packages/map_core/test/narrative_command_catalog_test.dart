@@ -95,6 +95,7 @@ void main() {
     );
     expect(catalog.byId(NarrativeCommandIds.warp)!.fgLotId, 'FG-090');
     expect(catalog.byId(NarrativeCommandIds.openShop)!.fgLotId, 'FG-091');
+    expect(catalog.byId(NarrativeCommandIds.openHeal)!.fgLotId, 'FG-071');
     expect(catalog.byId(NarrativeCommandIds.openPc)!.fgLotId, 'FG-091');
   });
 

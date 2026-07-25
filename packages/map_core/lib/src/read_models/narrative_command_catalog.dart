@@ -11,6 +11,7 @@ abstract final class NarrativeCommandIds {
   static const giveConfiguredStarter = 'giveConfiguredStarter';
   static const warp = 'warp';
   static const openShop = 'openShop';
+  static const openHeal = 'openHeal';
   static const openPc = 'openPc';
   static const dialogue = 'dialogue';
   static const trainerBattle = 'trainerBattle';
@@ -173,6 +174,18 @@ final class NarrativeCommandCatalog {
           NarrativeCommandIds.openShop, 'Ouvrir une boutique', 'FG-091', [
         _parameter('shopId', 'Boutique', NarrativeCommandParameterKind.shop),
       ]),
+      interactive(
+        NarrativeCommandIds.openHeal,
+        'Ouvrir un service de soin',
+        'FG-071',
+        [
+          _parameter(
+            'requiresConfirmation',
+            'Demander confirmation',
+            NarrativeCommandParameterKind.boolean,
+          ),
+        ],
+      ),
       interactive(
           NarrativeCommandIds.openPc, 'Ouvrir le PC', 'FG-091', const []),
       node(

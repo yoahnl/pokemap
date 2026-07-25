@@ -202,6 +202,57 @@ void main() {
     expect(controller.worldServiceCommands.single.snapshotRevision, 4);
   });
 
+  testWidgets('renders contextual healing over the mounted runtime scene',
+      (tester) async {
+    final lifecycle = _SceneLifecycle();
+    final service = RuntimeWorldServiceSnapshot(
+      revision: 12,
+      request: const OpenHealService(interactionId: 'npc.nurse'),
+      stage: RuntimeWorldServiceStage.active,
+      content: RuntimeHealServiceContent(
+        title: 'Centre Pokémon',
+        message: 'Soigner l’équipe ?',
+        members: const <RuntimeHealPartyMemberSnapshot>[
+          RuntimeHealPartyMemberSnapshot(
+            partyIndex: 0,
+            label: 'Sproutle',
+            currentHp: 3,
+            maxHp: 24,
+            hasStatus: true,
+            depletedMoveCount: 1,
+          ),
+        ],
+      ),
+      actions: const <RuntimeWorldServiceActionAvailability>[
+        RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.confirm,
+        ),
+        RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.cancel,
+        ),
+      ],
+    );
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(
+        revision: 21,
+        phase: RuntimePlayerPhase.playing,
+        worldService: service,
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(_app(_view(controller, lifecycle: lifecycle)));
+
+    expect(
+        find.byKey(const ValueKey<String>('test-game-scene')), findsOneWidget);
+    expect(find.text('Centre Pokémon'), findsOneWidget);
+    expect(lifecycle.mounts, 1);
+    await tester.tap(find.byKey(const ValueKey<String>('heal-confirm')));
+    expect(controller.worldServiceCommands.single.action,
+        RuntimeWorldServiceAction.confirm);
+    expect(controller.worldServiceCommands.single.snapshotRevision, 12);
+  });
+
   testWidgets('shows safe error context and optional diagnostics',
       (tester) async {
     var diagnosticCalls = 0;

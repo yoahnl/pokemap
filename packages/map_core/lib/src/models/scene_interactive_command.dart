@@ -1,6 +1,6 @@
 import 'package:meta/meta.dart' show immutable;
 
-enum SceneInteractiveCommandKind { warp, openShop, openPc }
+enum SceneInteractiveCommandKind { warp, openShop, openHeal, openPc }
 
 @immutable
 abstract base class SceneInteractiveCommand {
@@ -13,6 +13,10 @@ abstract base class SceneInteractiveCommand {
 
   factory SceneInteractiveCommand.openShop({required String shopId}) =
       SceneOpenShopInteractiveCommand;
+
+  factory SceneInteractiveCommand.openHeal({
+    bool requiresConfirmation,
+  }) = SceneOpenHealInteractiveCommand;
 
   factory SceneInteractiveCommand.openPc({String storageId}) =
       SceneOpenPcInteractiveCommand;
@@ -31,6 +35,10 @@ abstract base class SceneInteractiveCommand {
         ),
       SceneInteractiveCommandKind.openShop => SceneOpenShopInteractiveCommand(
           shopId: _required(json, 'shopId'),
+        ),
+      SceneInteractiveCommandKind.openHeal => SceneOpenHealInteractiveCommand(
+          requiresConfirmation:
+              _optionalBool(json, 'requiresConfirmation') ?? true,
         ),
       SceneInteractiveCommandKind.openPc => SceneOpenPcInteractiveCommand(
           storageId: _optional(json, 'storageId'),
@@ -102,6 +110,35 @@ final class SceneOpenShopInteractiveCommand extends SceneInteractiveCommand {
 }
 
 @immutable
+final class SceneOpenHealInteractiveCommand extends SceneInteractiveCommand {
+  const SceneOpenHealInteractiveCommand({
+    this.requiresConfirmation = true,
+  });
+
+  final bool requiresConfirmation;
+
+  @override
+  SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.openHeal;
+
+  @override
+  List<String> get outputPortIds => const ['completed', 'cancelled'];
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'kind': kind.name,
+        'requiresConfirmation': requiresConfirmation,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      other is SceneOpenHealInteractiveCommand &&
+      other.requiresConfirmation == requiresConfirmation;
+
+  @override
+  int get hashCode => requiresConfirmation.hashCode;
+}
+
+@immutable
 final class SceneOpenPcInteractiveCommand extends SceneInteractiveCommand {
   SceneOpenPcInteractiveCommand({String? storageId})
       : storageId =
@@ -145,5 +182,12 @@ String? _optional(Map<String, dynamic> json, String field) {
   final value = json[field];
   if (value == null) return null;
   if (value is! String) throw FormatException('$field must be a string.');
+  return value;
+}
+
+bool? _optionalBool(Map<String, dynamic> json, String field) {
+  final value = json[field];
+  if (value == null) return null;
+  if (value is! bool) throw FormatException('$field must be a boolean.');
   return value;
 }

@@ -2158,6 +2158,8 @@ final class _NarrativeDependencyIndexBuilder {
           criticality: NarrativeDependencyCriticality.authoringWarning,
           resolution: NarrativeDependencyResolution.legacyExternal,
         );
+      case SceneOpenHealInteractiveCommand():
+        break;
       case SceneOpenPcInteractiveCommand():
         break;
     }

@@ -48,6 +48,7 @@ void main() {
     final executor = SceneInteractiveCommandRuntimeExecutor(
       warp: handler,
       openShop: handler,
+      openHeal: handler,
       openPc: handler,
     );
 
@@ -162,6 +163,7 @@ Map<String, SceneInteractiveCommand Function()> _interactiveSamples() => {
           ),
       NarrativeCommandIds.openShop: () =>
           SceneInteractiveCommand.openShop(shopId: 'shop_port'),
+      NarrativeCommandIds.openHeal: SceneInteractiveCommand.openHeal,
       NarrativeCommandIds.openPc: SceneInteractiveCommand.openPc,
     };
 

@@ -17,12 +17,14 @@ final class SceneInteractiveCommandRuntimeExecutor {
   const SceneInteractiveCommandRuntimeExecutor({
     required this.warp,
     this.openShop,
+    this.openHeal,
     this.openPc,
     this.openWorldService,
   });
 
   final SceneInteractiveCommandHandler warp;
   final SceneInteractiveCommandHandler? openShop;
+  final SceneInteractiveCommandHandler? openHeal;
   final SceneInteractiveCommandHandler? openPc;
   final SceneWorldServiceRequestHandler? openWorldService;
 
@@ -43,6 +45,10 @@ final class SceneInteractiveCommandRuntimeExecutor {
       SceneInteractiveCommandKind.openShop => await _executeService(
           command,
           legacyHandler: openShop,
+        ),
+      SceneInteractiveCommandKind.openHeal => await _executeService(
+          command,
+          legacyHandler: openHeal,
         ),
       SceneInteractiveCommandKind.openPc => await _executeService(
           command,
@@ -81,6 +87,11 @@ final class SceneInteractiveCommandRuntimeExecutor {
       SceneOpenShopInteractiveCommand(:final shopId) => OpenShopService(
           interactionId: 'scene.openShop:$shopId',
           shopId: shopId,
+        ),
+      SceneOpenHealInteractiveCommand(:final requiresConfirmation) =>
+        OpenHealService(
+          interactionId: 'scene.openHeal',
+          requiresConfirmation: requiresConfirmation,
         ),
       SceneOpenPcInteractiveCommand(:final storageId) => OpenPcService(
           interactionId: 'scene.openPc:${storageId ?? 'default'}',

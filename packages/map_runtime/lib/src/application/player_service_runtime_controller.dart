@@ -182,6 +182,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   bool _disposed = false;
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   _ContextualShopSession? _shopSession;
+  _ContextualHealSession? _healSession;
 
   bool get isActive => _active;
 
@@ -266,16 +267,13 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   }) {
     final worldRequest =
         request ?? const OpenHealService(interactionId: 'runtime.heal:default');
+    if (_host == null) {
+      return _runContextualHeal(worldRequest);
+    }
     return _run(
       worldRequest,
       (state, caps) {
-        final host = _host;
-        if (host == null) {
-          return Future<PlayerServiceHostResult>.value(
-            const PlayerServiceHostResult.cancelled(),
-          );
-        }
-        return host.openHealCenter(
+        return _host!.openHealCenter(
           PlayerServiceHealRequest(
             gameState: state,
             recoveryCaps: caps,
@@ -300,23 +298,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     }
     if (_active) return const PlayerServiceRuntimeResult.busy();
     final state = _currentGameState();
-    final missingCapabilities =
-        request.requiredCapabilities.difference(_grantedCapabilities);
-    if (missingCapabilities.isNotEmpty) {
-      return const PlayerServiceRuntimeResult.unavailable(
-        'Ce service n’est pas pris en charge par ce jeu.',
-      );
-    }
-    final condition = request.availabilityCondition;
-    if (condition != null &&
-        !const ScriptConditionEvaluator().evaluate(
-          condition,
-          state,
-          context: _conditionContext,
-        )) {
-      return const PlayerServiceRuntimeResult.unavailable(
-        'Ce service n’est pas disponible pour le moment.',
-      );
+    final unavailableReason = _worldRequestUnavailableReason(request, state);
+    if (unavailableReason != null) {
+      return PlayerServiceRuntimeResult.unavailable(unavailableReason);
     }
     _active = true;
     var inputLocked = false;
@@ -342,6 +326,77 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       if (inputLocked) _setInputLocked(false);
       _active = false;
     }
+  }
+
+  Future<PlayerServiceRuntimeResult> _runContextualHeal(
+    OpenHealService request,
+  ) async {
+    if (_disposed) {
+      return PlayerServiceRuntimeResult.failed(
+        StateError('The player-service controller is disposed.'),
+      );
+    }
+    if (_active) return const PlayerServiceRuntimeResult.busy();
+    final state = _currentGameState();
+    final unavailableReason = _worldRequestUnavailableReason(request, state);
+    if (unavailableReason != null) {
+      return PlayerServiceRuntimeResult.unavailable(unavailableReason);
+    }
+    _active = true;
+    var inputLocked = false;
+    try {
+      _setInputLocked(true);
+      inputLocked = true;
+      final caps = await _loadRecoveryCaps(state);
+      final session = _ContextualHealSession(
+        request: request,
+        gameState: state,
+        recoveryCaps: caps,
+      );
+      if (!request.requiresConfirmation) {
+        if (!_hasAllHealCaps(session)) {
+          return const PlayerServiceRuntimeResult.unavailable(
+            'Les données de soin de l’équipe sont incomplètes.',
+          );
+        }
+        final recovered = _recoverHealSession(session);
+        if (recovered != state) {
+          await _commitAndSave(recovered);
+        }
+        return PlayerServiceRuntimeResult.completed(recovered);
+      }
+      _healSession = session;
+      _publishWorldService(_buildHealSnapshot(session));
+      return await session.result.future;
+    } catch (error) {
+      return PlayerServiceRuntimeResult.failed(error);
+    } finally {
+      _healSession = null;
+      _publishWorldService(null);
+      if (inputLocked) _setInputLocked(false);
+      _active = false;
+    }
+  }
+
+  String? _worldRequestUnavailableReason(
+    RuntimeWorldServiceRequest request,
+    GameState state,
+  ) {
+    final missingCapabilities =
+        request.requiredCapabilities.difference(_grantedCapabilities);
+    if (missingCapabilities.isNotEmpty) {
+      return 'Ce service n’est pas pris en charge par ce jeu.';
+    }
+    final condition = request.availabilityCondition;
+    if (condition != null &&
+        !const ScriptConditionEvaluator().evaluate(
+          condition,
+          state,
+          context: _conditionContext,
+        )) {
+      return 'Ce service n’est pas disponible pour le moment.';
+    }
+    return null;
   }
 
   Future<PlayerServiceHostResult> _openContextualShop(
@@ -392,13 +447,186 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       );
     }
     final shop = _shopSession;
-    if (shop == null) {
-      return const RuntimeWorldServiceCommandResult(
-        status: RuntimeWorldServiceCommandStatus.unavailable,
-        safeMessage: 'Ce service n’accepte pas cette action.',
+    if (shop != null) return _dispatchShop(shop, command);
+    final heal = _healSession;
+    if (heal != null) return _dispatchHeal(heal, command);
+    return const RuntimeWorldServiceCommandResult(
+      status: RuntimeWorldServiceCommandStatus.unavailable,
+      safeMessage: 'Ce service n’accepte pas cette action.',
+    );
+  }
+
+  Future<RuntimeWorldServiceCommandResult> _dispatchHeal(
+    _ContextualHealSession session,
+    RuntimeWorldServiceCommand command,
+  ) async {
+    switch (command.action) {
+      case RuntimeWorldServiceAction.confirm:
+        _publishWorldService(
+          _buildHealSnapshot(
+            session,
+            stage: RuntimeWorldServiceStage.applying,
+            safeMessage: 'Soin en cours…',
+          ),
+        );
+        try {
+          final recovered = _recoverHealSession(session);
+          if (recovered != session.gameState) {
+            await _commitAndSave(recovered);
+          }
+          session
+            ..gameState = recovered
+            ..wasHealed = true
+            ..failure = null;
+          _publishWorldService(
+            _buildHealSnapshot(
+              session,
+              stage: RuntimeWorldServiceStage.completed,
+              safeMessage: recovered == session.initialGameState
+                  ? 'Votre équipe est déjà entièrement soignée.'
+                  : 'Votre équipe est entièrement soignée.',
+            ),
+          );
+          return const RuntimeWorldServiceCommandResult(
+            status: RuntimeWorldServiceCommandStatus.accepted,
+          );
+        } catch (error) {
+          session.failure = error;
+          const message = 'Le soin n’a pas pu être enregistré.';
+          _publishWorldService(
+            _buildHealSnapshot(
+              session,
+              stage: RuntimeWorldServiceStage.failed,
+              safeMessage: message,
+            ),
+          );
+          return const RuntimeWorldServiceCommandResult(
+            status: RuntimeWorldServiceCommandStatus.failed,
+            safeMessage: message,
+          );
+        }
+      case RuntimeWorldServiceAction.close:
+      case RuntimeWorldServiceAction.cancel:
+        if (session.wasHealed) {
+          session.result.complete(
+            PlayerServiceRuntimeResult.completed(session.gameState),
+          );
+        } else if (session.failure case final error?) {
+          session.result.complete(PlayerServiceRuntimeResult.failed(error));
+        } else {
+          session.result.complete(
+            const PlayerServiceRuntimeResult.cancelled(),
+          );
+        }
+      case RuntimeWorldServiceAction.select:
+      case RuntimeWorldServiceAction.decreaseQuantity:
+      case RuntimeWorldServiceAction.increaseQuantity:
+      case RuntimeWorldServiceAction.deposit:
+      case RuntimeWorldServiceAction.withdraw:
+        return const RuntimeWorldServiceCommandResult(
+          status: RuntimeWorldServiceCommandStatus.unavailable,
+          safeMessage: 'Cette commande ne concerne pas le soin.',
+        );
+    }
+    return const RuntimeWorldServiceCommandResult(
+      status: RuntimeWorldServiceCommandStatus.accepted,
+    );
+  }
+
+  RuntimeWorldServiceSnapshot _buildHealSnapshot(
+    _ContextualHealSession session, {
+    RuntimeWorldServiceStage stage = RuntimeWorldServiceStage.active,
+    String? safeMessage,
+  }) {
+    final members = <RuntimeHealPartyMemberSnapshot>[];
+    for (var index = 0;
+        index < session.gameState.party.members.length;
+        index++) {
+      final member = session.gameState.party.members[index];
+      final maxHp =
+          session.recoveryCaps.maxHpByPartyIndex[index] ?? member.currentHp;
+      final moveCaps = session.recoveryCaps.maxPpByPartyIndex[index] ??
+          const <String, int>{};
+      final depletedMoveCount = member.knownMoveIds.where((moveId) {
+        final maxPp = moveCaps[moveId];
+        final currentPp = member.currentPpByMoveId?[moveId];
+        return maxPp != null && currentPp != null && currentPp < maxPp;
+      }).length;
+      members.add(
+        RuntimeHealPartyMemberSnapshot(
+          partyIndex: index,
+          label: _shopItemLabel(member.speciesId),
+          currentHp: member.currentHp,
+          maxHp: maxHp > 0 ? maxHp : 1,
+          hasStatus: member.statusId.isNotEmpty,
+          depletedMoveCount: depletedMoveCount,
+        ),
       );
     }
-    return _dispatchShop(shop, command);
+    final canHeal = members.isNotEmpty && _hasAllHealCaps(session);
+    return RuntimeWorldServiceSnapshot(
+      revision: (_worldServiceSnapshot?.revision ?? -1) + 1,
+      request: session.request,
+      stage: stage,
+      content: RuntimeHealServiceContent(
+        title: 'Centre Pokémon',
+        message: stage == RuntimeWorldServiceStage.completed
+            ? 'Le soin est terminé.'
+            : 'Restaurer les PV, les PP et les altérations de statut.',
+        members: members,
+        wasHealed: session.wasHealed,
+      ),
+      safeMessage: safeMessage,
+      actions: switch (stage) {
+        RuntimeWorldServiceStage.applying =>
+          const <RuntimeWorldServiceActionAvailability>[],
+        RuntimeWorldServiceStage.completed =>
+          const <RuntimeWorldServiceActionAvailability>[
+            RuntimeWorldServiceActionAvailability.enabled(
+              RuntimeWorldServiceAction.close,
+            ),
+          ],
+        RuntimeWorldServiceStage.failed ||
+        RuntimeWorldServiceStage.active ||
+        RuntimeWorldServiceStage.opening =>
+          <RuntimeWorldServiceActionAvailability>[
+            if (canHeal)
+              const RuntimeWorldServiceActionAvailability.enabled(
+                RuntimeWorldServiceAction.confirm,
+              )
+            else
+              RuntimeWorldServiceActionAvailability.disabled(
+                RuntimeWorldServiceAction.confirm,
+                reason: members.isEmpty
+                    ? 'Aucun Pokémon dans l’équipe.'
+                    : 'Les données de soin de l’équipe sont incomplètes.',
+              ),
+            const RuntimeWorldServiceActionAvailability.enabled(
+              RuntimeWorldServiceAction.cancel,
+            ),
+            const RuntimeWorldServiceActionAvailability.enabled(
+              RuntimeWorldServiceAction.close,
+            ),
+          ],
+      },
+    );
+  }
+
+  bool _hasAllHealCaps(_ContextualHealSession session) {
+    return List<int>.generate(
+      session.gameState.party.members.length,
+      (index) => index,
+    ).every(
+      (index) => (session.recoveryCaps.maxHpByPartyIndex[index] ?? 0) > 0,
+    );
+  }
+
+  GameState _recoverHealSession(_ContextualHealSession session) {
+    return const GameStateMutations().recoverParty(
+      session.initialGameState,
+      maxHpByPartyIndex: session.recoveryCaps.maxHpByPartyIndex,
+      maxPpByPartyIndex: session.recoveryCaps.maxPpByPartyIndex,
+    );
   }
 
   RuntimeWorldServiceCommandResult _dispatchShop(
@@ -634,6 +862,11 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       shop.result.complete(const PlayerServiceHostResult.cancelled());
     }
     _shopSession = null;
+    final heal = _healSession;
+    if (heal != null && !heal.result.isCompleted) {
+      heal.result.complete(const PlayerServiceRuntimeResult.cancelled());
+    }
+    _healSession = null;
     _publishWorldService(null);
     await _worldServiceSnapshots.close();
   }
@@ -652,6 +885,23 @@ final class _ContextualShopSession {
   ResolvedShopState resolved;
   String? selectedItemId;
   int quantity = 1;
+}
+
+final class _ContextualHealSession {
+  _ContextualHealSession({
+    required this.request,
+    required GameState gameState,
+    required this.recoveryCaps,
+  })  : initialGameState = gameState,
+        gameState = gameState;
+
+  final OpenHealService request;
+  final GameState initialGameState;
+  final RuntimePlayerServiceRecoveryCaps recoveryCaps;
+  final result = Completer<PlayerServiceRuntimeResult>();
+  GameState gameState;
+  bool wasHealed = false;
+  Object? failure;
 }
 
 String _categoryForShopItem(String itemId) {

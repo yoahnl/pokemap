@@ -14,6 +14,7 @@ void main() {
     final executor = SceneInteractiveCommandRuntimeExecutor(
       warp: handler,
       openShop: handler,
+      openHeal: handler,
       openPc: handler,
     );
     for (final command in <SceneInteractiveCommand>[
@@ -22,6 +23,7 @@ void main() {
         warpId: 'warp.arrival',
       ),
       SceneInteractiveCommand.openShop(shopId: 'shop.port'),
+      SceneInteractiveCommand.openHeal(),
       SceneInteractiveCommand.openPc(),
     ]) {
       final result = await executor.execute(
@@ -50,6 +52,13 @@ void main() {
     );
     await executor.execute(
       SceneRuntimePlanIntent.executeInteractiveCommand(
+        command: SceneInteractiveCommand.openHeal(
+          requiresConfirmation: false,
+        ),
+      ),
+    );
+    await executor.execute(
+      SceneRuntimePlanIntent.executeInteractiveCommand(
         command: SceneInteractiveCommand.openPc(storageId: 'regional'),
       ),
     );
@@ -63,6 +72,17 @@ void main() {
               (value) => value.interactionId,
               'interactionId',
               'scene.openShop:shop.port',
+            ),
+        isA<OpenHealService>()
+            .having(
+              (value) => value.requiresConfirmation,
+              'requiresConfirmation',
+              isFalse,
+            )
+            .having(
+              (value) => value.interactionId,
+              'interactionId',
+              'scene.openHeal',
             ),
         isA<OpenPcService>()
             .having((value) => value.storageId, 'storageId', 'regional')

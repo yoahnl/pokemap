@@ -148,7 +148,7 @@ final class NarrativeTemplateCatalog {
         NarrativeTemplateDefinition(
           kind: NarrativeTemplateKind.nurse,
           label: 'Infirmière',
-          command: command(NarrativeCommandIds.healParty),
+          command: command(NarrativeCommandIds.openHeal),
           physicalSourceKind: NarrativeTemplatePhysicalSourceKind.entity,
         ),
         NarrativeTemplateDefinition(
@@ -669,6 +669,11 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
       ),
     NarrativeCommandIds.openShop => SceneActionPayload.interactive(
         SceneInteractiveCommand.openShop(shopId: parameters['shopId']!),
+      ),
+    NarrativeCommandIds.openHeal => SceneActionPayload.interactive(
+        SceneInteractiveCommand.openHeal(
+          requiresConfirmation: parameters['requiresConfirmation'] != 'false',
+        ),
       ),
     NarrativeCommandIds.openPc => SceneActionPayload.interactive(
         switch (parameters['storageId']) {

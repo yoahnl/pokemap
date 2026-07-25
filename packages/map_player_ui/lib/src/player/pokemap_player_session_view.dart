@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'player_title_screen.dart';
+import 'player_heal_confirmation.dart';
 import 'player_shop_overlay.dart';
 import 'runtime_player_surface_router.dart';
 
@@ -124,9 +125,11 @@ class _RuntimeWorldServiceOverlay extends StatelessWidget {
           snapshot: snapshot,
           onCommand: (command) => onCommand(command),
         ),
-      RuntimeWorldServiceKind.heal ||
-      RuntimeWorldServiceKind.pc =>
-        const SizedBox.shrink(),
+      RuntimeWorldServiceKind.heal => PlayerHealConfirmation(
+          snapshot: snapshot,
+          onCommand: (command) => onCommand(command),
+        ),
+      RuntimeWorldServiceKind.pc => const SizedBox.shrink(),
     };
   }
 }

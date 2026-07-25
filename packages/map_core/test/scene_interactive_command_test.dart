@@ -9,6 +9,7 @@ void main() {
         warpId: 'warp.arrival',
       ),
       SceneInteractiveCommand.openShop(shopId: 'shop.port'),
+      SceneInteractiveCommand.openHeal(requiresConfirmation: false),
       SceneInteractiveCommand.openPc(storageId: 'pc.main'),
     ];
 
