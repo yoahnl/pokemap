@@ -47,9 +47,18 @@ void main() {
     );
     expect(info, contains('app.pokemap.game-package'));
     expect(info, contains('<string>pokemapgame</string>'));
-    expect(project, contains('PRODUCT_BUNDLE_IDENTIFIER = app.pokemap.hub;'));
-    expect(project, contains('INFOPLIST_KEY_CFBundleDisplayName = "PokeMap Hub";'));
-    expect(project.toLowerCase(), isNot(contains('avelune')));
-    expect(info.toLowerCase(), isNot(contains('avelune')));
+    expect(
+      RegExp(
+        r'PRODUCT_BUNDLE_IDENTIFIER = com\.yoahnl\.avelune\.player;',
+      ).allMatches(project),
+      hasLength(3),
+    );
+    expect(
+      RegExp(
+        r'INFOPLIST_KEY_CFBundleDisplayName = Avelune;',
+      ).allMatches(project),
+      hasLength(3),
+    );
+    expect(info, contains('<string>Avelune</string>'));
   });
 }
