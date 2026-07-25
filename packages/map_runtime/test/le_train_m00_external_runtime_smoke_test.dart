@@ -17,7 +17,7 @@ void main() {
         '/Users/karim/Desktop/pokeMap Project/le_train_de_17h42';
     const outputPath =
         '$projectRoot/previews/m00_authoring/'
-        'map_hanazuki_guesthouse_room_runtime_render_512x384.png';
+        'map_hanazuki_guesthouse_room_runtime_render_1024x768.png';
 
     final bundle = await loadRuntimeMapBundle(
       projectFilePath: '$projectRoot/project.json',
@@ -46,6 +46,7 @@ void main() {
     final png = await rendered.toByteData(format: ui.ImageByteFormat.png);
 
     expect(bundle.map.size, const GridSize(width: 16, height: 12));
+    expect((width, height), (1024, 768));
     expect(bundle.map.placedElements, hasLength(28));
     expect(images, contains('tileset_m00_hanazuki_guesthouse_room'));
     expect(png, isNotNull);
