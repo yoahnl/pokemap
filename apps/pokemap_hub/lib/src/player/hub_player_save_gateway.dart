@@ -16,6 +16,8 @@ final class HubPlayerSaveGateway implements PlayerSaveGateway {
 
   final HubSaveStore store;
   final HubSessionCheckpointCommitter _checkpointCommitter;
+  final Map<_CheckpointCommitKey, Future<void>> _pendingCommits =
+      <_CheckpointCommitKey, Future<void>>{};
 
   @override
   GameIdentity get identity => store.identity;
@@ -42,7 +44,29 @@ final class HubPlayerSaveGateway implements PlayerSaveGateway {
 
   @override
   Future<void> commit(GameSessionCheckpointCommit request) {
-    return _checkpointCommitter.commit(request);
+    final descriptor = request.descriptor;
+    final key = (
+      identity: descriptor.identity,
+      address: SaveSlotAddress(
+        gameId: descriptor.identity.gameId,
+        profileId: descriptor.profileId,
+        slotId: descriptor.slotId,
+      ),
+      checkpoint: request.checkpoint,
+      status: request.status,
+      completedAt: request.completedAt,
+    );
+    final active = _pendingCommits[key];
+    if (active != null) return active;
+
+    late final Future<void> tracked;
+    tracked = _checkpointCommitter.commit(request).whenComplete(() {
+      if (identical(_pendingCommits[key], tracked)) {
+        _pendingCommits.remove(key);
+      }
+    });
+    _pendingCommits[key] = tracked;
+    return tracked;
   }
 
   PlayerSaveSummary _summary(SaveSlotRead read) {
@@ -72,3 +96,11 @@ String _safeReason(SaveSlotReadStatus status) => switch (status) {
       SaveSlotReadStatus.recoveredFromBackup =>
         'This save is temporarily unavailable.',
     };
+
+typedef _CheckpointCommitKey = ({
+  GameIdentity identity,
+  SaveSlotAddress address,
+  GameSessionCheckpoint checkpoint,
+  SaveStatus status,
+  DateTime? completedAt,
+});

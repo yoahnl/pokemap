@@ -92,6 +92,81 @@ void main() {
       throwsA(isA<HubSessionCheckpointException>()),
     );
   });
+
+  test('publishes success only after the exact disk generation is confirmed',
+      () async {
+    var confirmed = false;
+    store = HubSaveStore(
+      supportRoot: supportRoot,
+      identity: identity,
+      faultHook: (stage) async {
+        if (stage == SaveWriteStage.afterCurrentConfirmed) {
+          confirmed = true;
+        }
+      },
+    );
+    final committer = HubSessionCheckpointCommitter(store: store);
+
+    await committer.commit(
+      GameSessionCheckpointCommit(
+        descriptor: _descriptor(identity).publicContext,
+        checkpoint: _checkpoint(),
+        status: SaveStatus.active,
+      ),
+    );
+
+    expect(confirmed, isTrue);
+    final read = await store.read(activeAddress(identity));
+    expect(read.status, SaveSlotReadStatus.valid);
+    expect(read.envelope?.checksum, isA<SaveChecksum>());
+  });
+
+  test('a corrupt promoted generation restores the previous valid save',
+      () async {
+    final stable = HubSessionCheckpointCommitter(store: store);
+    final previousAt = DateTime.utc(2026, 7, 25, 1);
+    await stable.commit(
+      GameSessionCheckpointCommit(
+        descriptor: _descriptor(identity).publicContext,
+        checkpoint: _checkpoint(updatedAt: previousAt),
+        status: SaveStatus.active,
+      ),
+    );
+    final primary = File(
+      '${supportRoot.path}/saves/${identity.gameId}/player-1/slot-1/save.json',
+    );
+    final hostileStore = HubSaveStore(
+      supportRoot: supportRoot,
+      identity: identity,
+      faultHook: (stage) async {
+        if (stage == SaveWriteStage.afterCurrentPromoted) {
+          await primary.writeAsString('{corrupt', flush: true);
+        }
+      },
+    );
+    final hostile = HubSessionCheckpointCommitter(store: hostileStore);
+
+    await expectLater(
+      hostile.commit(
+        GameSessionCheckpointCommit(
+          descriptor: _descriptor(identity).publicContext,
+          checkpoint: _checkpoint(updatedAt: DateTime.utc(2026, 7, 25, 2)),
+          status: SaveStatus.active,
+        ),
+      ),
+      throwsA(
+        isA<HubSessionCheckpointException>().having(
+          (error) => error.code,
+          'code',
+          HubSessionCheckpointErrorCode.writeFailed,
+        ),
+      ),
+    );
+
+    final recovered = await store.read(activeAddress(identity));
+    expect(recovered.status, SaveSlotReadStatus.valid);
+    expect(recovered.envelope?.updatedAt, previousAt);
+  });
 }
 
 SaveSlotAddress activeAddress(GameIdentity identity) => SaveSlotAddress(

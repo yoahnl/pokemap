@@ -6,6 +6,7 @@ import '../saves/hub_save_store.dart';
 enum HubSessionCheckpointErrorCode {
   identityMismatch,
   invalidCompletion,
+  verificationFailed,
   writeFailed,
 }
 
@@ -68,7 +69,18 @@ final class HubSessionCheckpointCommitter {
       state: checkpoint.state,
     );
     try {
-      await store.write(envelope);
+      final confirmed = await store.writeVerified(envelope);
+      if (confirmed.address != envelope.address ||
+          confirmed.checksum != envelope.checksum ||
+          confirmed.status != envelope.status ||
+          confirmed.completedAt != envelope.completedAt) {
+        throw const HubSessionCheckpointException(
+          HubSessionCheckpointErrorCode.verificationFailed,
+          'The confirmed checkpoint does not match the proposed generation.',
+        );
+      }
+    } on HubSessionCheckpointException {
+      rethrow;
     } catch (error) {
       throw HubSessionCheckpointException(
         HubSessionCheckpointErrorCode.writeFailed,

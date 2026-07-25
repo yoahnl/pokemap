@@ -135,8 +135,12 @@ final class MemoryPlayerSaveGateway implements PlayerSaveGateway {
   final GameIdentity identity;
   final _summaries = <SaveSlotAddress, PlayerSaveSummary>{};
   final commits = <GameSessionCheckpointCommit>[];
+  final commitAttempts = <GameSessionCheckpointCommit>[];
   PlayerSaveSummary? _latestSave;
   Object? commitError;
+  Completer<void>? commitGate;
+  int activeCommits = 0;
+  int maxConcurrentCommits = 0;
 
   set latestSave(PlayerSaveSummary? value) {
     _latestSave = value;
@@ -147,8 +151,18 @@ final class MemoryPlayerSaveGateway implements PlayerSaveGateway {
 
   @override
   Future<void> commit(GameSessionCheckpointCommit request) async {
-    if (commitError case final error?) throw error;
-    commits.add(request);
+    commitAttempts.add(request);
+    activeCommits++;
+    if (activeCommits > maxConcurrentCommits) {
+      maxConcurrentCommits = activeCommits;
+    }
+    try {
+      await commitGate?.future;
+      if (commitError case final error?) throw error;
+      commits.add(request);
+    } finally {
+      activeCommits--;
+    }
   }
 
   @override

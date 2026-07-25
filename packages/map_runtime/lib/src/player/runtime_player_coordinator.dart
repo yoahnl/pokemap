@@ -55,6 +55,7 @@ final class RuntimePlayerCoordinator {
   PlayerSaveSummary? _latestSave;
   _RuntimeLaunchRequest? _retryLaunch;
   RuntimePlayerSnapshot? _lifecycleResumeSnapshot;
+  Future<bool>? _activeSaveBoundary;
   int _launchGeneration = 0;
   bool _disposed = false;
 
@@ -79,6 +80,40 @@ final class RuntimePlayerCoordinator {
     _ensureOpen();
     if (command.action == RuntimePlayerAction.cancel) {
       return _cancel(command);
+    }
+    if (command.snapshotRevision == _snapshot.revision &&
+        _snapshot.phase == RuntimePlayerPhase.saving) {
+      switch (command.action) {
+        case RuntimePlayerAction.save:
+          return Future<RuntimePlayerCommandResult>.value(
+            const RuntimePlayerCommandResult(
+              status: RuntimePlayerCommandStatus.unavailable,
+              safeMessage: 'A checkpoint is already in progress.',
+            ),
+          );
+        case RuntimePlayerAction.returnToTitle:
+          final boundary = _activeSaveBoundary;
+          if (boundary != null) {
+            return _serialize(() => _returnToTitleAfterSave(boundary));
+          }
+        case RuntimePlayerAction.newGame:
+        case RuntimePlayerAction.continueGame:
+        case RuntimePlayerAction.load:
+        case RuntimePlayerAction.retry:
+        case RuntimePlayerAction.openMenu:
+        case RuntimePlayerAction.resume:
+        case RuntimePlayerAction.openParty:
+        case RuntimePlayerAction.openBag:
+        case RuntimePlayerAction.openPokedex:
+        case RuntimePlayerAction.openMap:
+        case RuntimePlayerAction.openOptions:
+        case RuntimePlayerAction.returnToPauseRoot:
+        case RuntimePlayerAction.showCredits:
+        case RuntimePlayerAction.finishCredits:
+        case RuntimePlayerAction.cancel:
+        case RuntimePlayerAction.returnToHost:
+          break;
+      }
     }
     return _serialize(() => _dispatchSerialized(command));
   }
@@ -303,6 +338,9 @@ final class RuntimePlayerCoordinator {
         final section =
             _snapshot.pauseSection ?? RuntimePlayerPauseSection.root;
         final logicalSelectionId = _snapshot.logicalSelectionId;
+        final boundary = Completer<bool>();
+        final boundaryFuture = boundary.future;
+        _activeSaveBoundary = boundaryFuture;
         _publish(
           _snapshot.next(
             phase: RuntimePlayerPhase.saving,
@@ -310,22 +348,32 @@ final class RuntimePlayerCoordinator {
             clearFailure: true,
           ),
         );
-        final saved = await _sessions.requestCheckpoint();
-        _publishPause(
-          section,
-          logicalSelectionId: logicalSelectionId,
-          failure: saved ? null : _sessions.snapshot.failure,
-          clearFailure: saved,
-        );
-        return RuntimePlayerCommandResult(
-          status: saved
-              ? RuntimePlayerCommandStatus.accepted
-              : RuntimePlayerCommandStatus.failed,
-          safeMessage: saved
-              ? null
-              : _sessions.snapshot.failure?.safeMessage ??
-                  'The checkpoint could not be saved.',
-        );
+        try {
+          final saved = await _sessions.requestCheckpoint();
+          _publishPause(
+            section,
+            logicalSelectionId: logicalSelectionId,
+            failure: saved ? null : _sessions.snapshot.failure,
+            clearFailure: saved,
+          );
+          boundary.complete(saved);
+          return RuntimePlayerCommandResult(
+            status: saved
+                ? RuntimePlayerCommandStatus.accepted
+                : RuntimePlayerCommandStatus.failed,
+            safeMessage: saved
+                ? null
+                : _sessions.snapshot.failure?.safeMessage ??
+                    'The checkpoint could not be saved.',
+          );
+        } catch (error, stackTrace) {
+          boundary.complete(false);
+          Error.throwWithStackTrace(error, stackTrace);
+        } finally {
+          if (identical(_activeSaveBoundary, boundaryFuture)) {
+            _activeSaveBoundary = null;
+          }
+        }
       case RuntimePlayerAction.showCredits:
         final completion = _sessions.committedCompletion;
         if (completion == null) {
@@ -432,6 +480,20 @@ final class RuntimePlayerCoordinator {
         safeMessage: 'The game session could not be closed safely.',
       );
     }
+  }
+
+  Future<RuntimePlayerCommandResult> _returnToTitleAfterSave(
+    Future<bool> boundary,
+  ) async {
+    final saved = await boundary;
+    if (!saved) {
+      return RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.failed,
+        safeMessage: _sessions.snapshot.failure?.safeMessage ??
+            'The checkpoint could not be saved.',
+      );
+    }
+    return _returnToTitle(checkpoint: false);
   }
 
   Future<RuntimePlayerCommandResult> _launchSave(

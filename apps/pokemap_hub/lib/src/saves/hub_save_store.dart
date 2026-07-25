@@ -66,6 +66,11 @@ final class HubSaveStore {
   static int _nonce = 0;
 
   Future<void> write(SaveEnvelope envelope) async {
+    await writeVerified(envelope);
+  }
+
+  /// Atomically writes and returns the exact generation confirmed on disk.
+  Future<SaveEnvelope> writeVerified(SaveEnvelope envelope) async {
     _assertAddressScope(envelope.address);
     final validated = codec.decode(
       codec.encode(envelope),
@@ -84,9 +89,12 @@ final class HubSaveStore {
       );
     }
     final slot = (await _safeSlotDirectory(envelope.address, create: true))!;
-    await _queueSlot<void>(
+    return _queueSlot<SaveEnvelope>(
       slot.path,
-      () => _withFileLock<void>(slot, () => _writeLocked(slot, validated)),
+      () => _withFileLock<SaveEnvelope>(
+        slot,
+        () => _writeLocked(slot, validated),
+      ),
     );
   }
 
@@ -395,7 +403,7 @@ final class HubSaveStore {
     );
   }
 
-  Future<void> _writeLocked(
+  Future<SaveEnvelope> _writeLocked(
     Directory slot,
     SaveEnvelope envelope, {
     bool allowMigrationSource = false,
@@ -463,12 +471,19 @@ final class HubSaveStore {
       await _fault(SaveWriteStage.afterBackupPromoted);
       await temporary.rename(current.path);
       await _fault(SaveWriteStage.afterCurrentPromoted);
-      codec.decode(
+      final confirmed = codec.decode(
         await current.readAsString(),
         expectedAddress: envelope.address,
         acceptedSaveFormats: <int>{identity.saveFormat},
       );
+      if (confirmed.checksum != envelope.checksum) {
+        throw const SaveStorageException(
+          SaveStorageErrorCode.invalidEnvelope,
+          'The confirmed save does not match the proposed generation.',
+        );
+      }
       await _fault(SaveWriteStage.afterCurrentConfirmed);
+      return confirmed;
     } catch (error) {
       await _restoreAnyValidCurrent(
         slot: slot,

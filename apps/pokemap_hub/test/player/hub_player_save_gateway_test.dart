@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:pokemap_hub/src/player/hub_player_save_gateway.dart';
+import 'package:pokemap_hub/src/player/hub_session_checkpoint_committer.dart';
 import 'package:pokemap_hub/src/saves/hub_save_store.dart';
 import 'package:pokemap_hub/src/saves/save_storage_diagnostic.dart';
 
@@ -121,6 +123,114 @@ void main() {
     expect(stored.envelope?.saveId, checkpoint.saveId);
     expect(stored.envelope?.state['currentMapId'], 'port');
   });
+
+  test('coalesces an identical checkpoint while its write is in flight',
+      () async {
+    final gate = Completer<void>();
+    var temporaryWrites = 0;
+    store = HubSaveStore(
+      supportRoot: root,
+      identity: identity,
+      faultHook: (stage) async {
+        if (stage != SaveWriteStage.afterTemporaryFlushed) return;
+        temporaryWrites++;
+        await gate.future;
+      },
+    );
+    gateway = HubPlayerSaveGateway(store: store);
+    final request = GameSessionCheckpointCommit(
+      descriptor: _descriptor(identity).publicContext,
+      checkpoint: _checkpoint(revision: 1),
+      status: SaveStatus.active,
+    );
+
+    final first = gateway.commit(request);
+    final second = gateway.commit(request);
+    await _waitUntil(() => temporaryWrites == 1);
+    gate.complete();
+    await Future.wait(<Future<void>>[first, second]);
+
+    expect(temporaryWrites, 1);
+    final stored = await store.read(activeAddress(identity));
+    expect(stored.envelope?.state['revision'], 1);
+  });
+
+  test('keeps the previous generation around failures before promotion',
+      () async {
+    for (final failureStage in <SaveWriteStage>[
+      SaveWriteStage.afterTemporaryVerified,
+      SaveWriteStage.afterCurrentStagedAsBackup,
+    ]) {
+      final caseRoot =
+          await Directory.systemTemp.createTemp('hub-gateway-race-');
+      addTearDown(() async {
+        if (await caseRoot.exists()) await caseRoot.delete(recursive: true);
+      });
+      final stableStore =
+          HubSaveStore(supportRoot: caseRoot, identity: identity);
+      await stableStore.write(_envelope(identity));
+      final failingStore = HubSaveStore(
+        supportRoot: caseRoot,
+        identity: identity,
+        faultHook: (stage) async {
+          if (stage == failureStage) {
+            throw StateError('injected ${stage.name}');
+          }
+        },
+      );
+      final failingGateway = HubPlayerSaveGateway(store: failingStore);
+
+      await expectLater(
+        failingGateway.commit(
+          GameSessionCheckpointCommit(
+            descriptor: _descriptor(identity).publicContext,
+            checkpoint: _checkpoint(revision: 2),
+            status: SaveStatus.active,
+          ),
+        ),
+        throwsA(isA<HubSessionCheckpointException>()),
+        reason: failureStage.name,
+      );
+
+      final recovered = await stableStore.read(activeAddress(identity));
+      expect(recovered.envelope?.saveId, _envelope(identity).saveId);
+      expect(
+        recovered.envelope?.state['currentMapId'],
+        'port',
+        reason: failureStage.name,
+      );
+    }
+  });
+
+  test('releases a failed coalesced checkpoint so the player can retry',
+      () async {
+    var failNextWrite = true;
+    store = HubSaveStore(
+      supportRoot: root,
+      identity: identity,
+      faultHook: (stage) async {
+        if (failNextWrite && stage == SaveWriteStage.afterTemporaryVerified) {
+          failNextWrite = false;
+          throw StateError('injected first failure');
+        }
+      },
+    );
+    gateway = HubPlayerSaveGateway(store: store);
+    final request = GameSessionCheckpointCommit(
+      descriptor: _descriptor(identity).publicContext,
+      checkpoint: _checkpoint(revision: 3),
+      status: SaveStatus.active,
+    );
+
+    await expectLater(
+      gateway.commit(request),
+      throwsA(isA<HubSessionCheckpointException>()),
+    );
+    await gateway.commit(request);
+
+    final stored = await store.read(activeAddress(identity));
+    expect(stored.envelope?.state['revision'], 3);
+  });
 }
 
 SaveEnvelope _envelope(GameIdentity identity) {
@@ -151,3 +261,33 @@ GameSessionDescriptor _descriptor(GameIdentity identity) =>
       locale: 'fr-FR',
       accessibility: const GameSessionAccessibilityOptions(),
     );
+
+SaveSlotAddress activeAddress(GameIdentity identity) => SaveSlotAddress(
+      gameId: identity.gameId,
+      profileId: 'player-1',
+      slotId: 'slot-1',
+    );
+
+GameSessionCheckpoint _checkpoint({required int revision}) {
+  return GameSessionCheckpoint(
+    saveId: '550e8400-e29b-41d4-a716-44665544000$revision',
+    createdAt: DateTime.utc(2026, 7, 25, 10),
+    updatedAt: DateTime.utc(2026, 7, 25, 11, revision),
+    playTimeSeconds: 180 + revision,
+    state: <String, Object?>{
+      'currentMapId': 'route-$revision',
+      'revision': revision,
+    },
+  );
+}
+
+Future<void> _waitUntil(
+  bool Function() predicate, {
+  int attempts = 50,
+}) async {
+  for (var attempt = 0; attempt < attempts; attempt++) {
+    if (predicate()) return;
+    await Future<void>.delayed(Duration.zero);
+  }
+  fail('Condition was not reached before the test timeout.');
+}
