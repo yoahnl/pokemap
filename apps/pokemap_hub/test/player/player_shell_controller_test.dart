@@ -85,6 +85,19 @@ void main() {
     expect(shell.snapshot.state, PlayerShellState.playing);
   });
 
+  test('player shell exposes checkpoint saving from gameplay and pause',
+      () async {
+    await shell.initialize();
+    await shell.startNewGame(profileId: 'player-1', slotId: 'slot-1');
+    await shell.settle();
+
+    expect(await shell.save(), isTrue);
+    await shell.togglePause();
+    expect(await shell.save(), isTrue);
+    expect(adapters.single.calls.where((call) => call == 'checkpoint'),
+        hasLength(2));
+  });
+
   test('lifecycle is a no-op on title and restores an active session',
       () async {
     await shell.initialize();
@@ -400,7 +413,10 @@ final class _ShellAdapter implements GameSessionAdapter {
   Future<void> resume() async => calls.add('resume');
 
   @override
-  Future<GameSessionCheckpoint?> captureCheckpoint() async => null;
+  Future<GameSessionCheckpoint?> captureCheckpoint() async {
+    calls.add('checkpoint');
+    return null;
+  }
 
   @override
   Future<void> lockGameplayForCompletion() async =>

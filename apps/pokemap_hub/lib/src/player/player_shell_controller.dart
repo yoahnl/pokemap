@@ -176,6 +176,35 @@ final class PlayerShellController {
     }
   }
 
+  Future<bool> save() async {
+    _ensureOpen();
+    if (_snapshot.state != PlayerShellState.playing &&
+        _snapshot.state != PlayerShellState.paused) {
+      throw StateError('Save is unavailable in ${_snapshot.state.name}.');
+    }
+    return sessions.requestCheckpoint();
+  }
+
+  Future<void> cancelLoading() async {
+    _ensureOpen();
+    if (_snapshot.state != PlayerShellState.loadingSession) {
+      throw StateError(
+        'Loading cancellation is unavailable in ${_snapshot.state.name}.',
+      );
+    }
+    await sessions.cancelLoading();
+    await _refreshTitle();
+  }
+
+  Future<void> retryCompletion() async {
+    _ensureOpen();
+    if (_snapshot.state != PlayerShellState.completing ||
+        _snapshot.failure == null) {
+      throw StateError('No completion checkpoint is waiting for a retry.');
+    }
+    await sessions.retryCompletion();
+  }
+
   Future<void> pauseForLifecycle() async {
     const pausable = <GameSessionState>{
       GameSessionState.starting,
