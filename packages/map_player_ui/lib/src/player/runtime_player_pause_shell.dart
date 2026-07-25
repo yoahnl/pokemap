@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
 
@@ -6,9 +7,11 @@ import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_pause_menu.dart';
+import 'runtime_player_actions.dart';
+import 'runtime_player_focus_controller.dart';
 import 'runtime_player_layout.dart';
 
-class RuntimePlayerPauseShell extends StatelessWidget {
+class RuntimePlayerPauseShell extends StatefulWidget {
   const RuntimePlayerPauseShell({
     super.key,
     required this.gameTitle,
@@ -19,6 +22,8 @@ class RuntimePlayerPauseShell extends StatelessWidget {
     required this.detail,
     this.onTouchMenu,
     this.activeInputSource,
+    this.logicalSelectionId,
+    this.focusController,
   });
 
   final String gameTitle;
@@ -29,72 +34,161 @@ class RuntimePlayerPauseShell extends StatelessWidget {
   final Widget detail;
   final VoidCallback? onTouchMenu;
   final PlayerInputSource? activeInputSource;
+  final String? logicalSelectionId;
+  final RuntimePlayerFocusController? focusController;
+
+  @override
+  State<RuntimePlayerPauseShell> createState() =>
+      _RuntimePlayerPauseShellState();
+}
+
+class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
+  late RuntimePlayerFocusController _focusController;
+  late bool _ownsFocusController;
+  RuntimePlayerLayoutClass? _lastLayout;
+
+  @override
+  void initState() {
+    super.initState();
+    _attachFocusController();
+    _applyExternalFocusState();
+  }
+
+  @override
+  void didUpdateWidget(covariant RuntimePlayerPauseShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusController != widget.focusController) {
+      _detachFocusController();
+      _attachFocusController();
+    }
+    _applyExternalFocusState();
+  }
+
+  void _attachFocusController() {
+    _ownsFocusController = widget.focusController == null;
+    _focusController = widget.focusController ?? RuntimePlayerFocusController();
+    _focusController.addListener(_onFocusStateChanged);
+  }
+
+  void _detachFocusController() {
+    _focusController.removeListener(_onFocusStateChanged);
+    if (_ownsFocusController) _focusController.dispose();
+  }
+
+  void _applyExternalFocusState() {
+    if (widget.activeInputSource case final source?) {
+      _focusController.noteInputSource(source);
+    }
+    _focusController.restoreSelection(widget.logicalSelectionId);
+  }
+
+  void _onFocusStateChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _detachFocusController();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: context.playerColors.scrim,
-      child: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final layout = classifyRuntimePlayerLayout(constraints);
-            return Stack(
-              key: ValueKey<String>(
-                'runtime-pause-layout-${layout.name}',
-              ),
-              fit: StackFit.expand,
-              children: <Widget>[
-                switch (layout) {
-                  RuntimePlayerLayoutClass.compactPortrait =>
-                    _compactPortrait(context),
-                  RuntimePlayerLayoutClass.compactLandscape => _twoColumn(
-                      context,
-                      widthFactor: .78,
-                      navigationWidth: 220,
-                    ),
-                  RuntimePlayerLayoutClass.expanded => _twoColumn(
-                      context,
-                      widthFactor: null,
-                      navigationWidth: 280,
-                    ),
-                },
-                if (layout != RuntimePlayerLayoutClass.expanded &&
-                    onTouchMenu != null)
-                  Positioned(
-                    top: PlayerSpacing.sm,
-                    right: PlayerSpacing.sm,
-                    child: AnimatedOpacity(
-                      key: const ValueKey<String>(
-                        'runtime-pause-touch-menu-opacity',
-                      ),
-                      opacity: activeInputSource == PlayerInputSource.controller
-                          ? .42
-                          : 1,
-                      duration: context.playerMotion.fast,
-                      child: IconButton.filled(
-                        key: const ValueKey<String>(
-                          'runtime-pause-touch-menu',
-                        ),
-                        tooltip: context.playerL10n.resume,
-                        onPressed: onTouchMenu,
-                        constraints: const BoxConstraints.tightFor(
-                          width: 56,
-                          height: 56,
-                        ),
-                        icon: const Icon(Icons.pause_rounded),
-                      ),
-                    ),
-                  ),
-              ],
-            );
+    return RuntimePlayerActions(
+      onBack: widget.onBackToRoot,
+      onMenu: widget.onTouchMenu ?? widget.onBackToRoot,
+      onInputSourceChanged: _focusController.noteInputSource,
+      child: MouseRegion(
+        onHover: (_) =>
+            _focusController.noteInputSource(PlayerInputSource.mouse),
+        child: Listener(
+          onPointerDown: (event) {
+            final source = switch (event.kind) {
+              PointerDeviceKind.mouse => PlayerInputSource.mouse,
+              PointerDeviceKind.touch ||
+              PointerDeviceKind.stylus =>
+                PlayerInputSource.touch,
+              PointerDeviceKind.invertedStylus ||
+              PointerDeviceKind.trackpad ||
+              PointerDeviceKind.unknown =>
+                _focusController.activeInputSource,
+            };
+            _focusController.noteInputSource(source);
           },
+          child: Material(
+            color: context.playerColors.scrim,
+            child: SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final layout = classifyRuntimePlayerLayout(constraints);
+                  if (_lastLayout != layout) {
+                    _lastLayout = layout;
+                    _focusController.restoreSelection(
+                      widget.logicalSelectionId ??
+                          _focusController.logicalSelectionId,
+                    );
+                  }
+                  return Stack(
+                    key: ValueKey<String>(
+                      'runtime-pause-layout-${layout.name}',
+                    ),
+                    fit: StackFit.expand,
+                    children: <Widget>[
+                      switch (layout) {
+                        RuntimePlayerLayoutClass.compactPortrait =>
+                          _compactPortrait(context),
+                        RuntimePlayerLayoutClass.compactLandscape => _twoColumn(
+                            context,
+                            widthFactor: .78,
+                            navigationWidth: 220,
+                          ),
+                        RuntimePlayerLayoutClass.expanded => _twoColumn(
+                            context,
+                            widthFactor: null,
+                            navigationWidth: 280,
+                          ),
+                      },
+                      if (layout != RuntimePlayerLayoutClass.expanded &&
+                          widget.onTouchMenu != null)
+                        Positioned(
+                          top: PlayerSpacing.sm,
+                          right: PlayerSpacing.sm,
+                          child: AnimatedOpacity(
+                            key: const ValueKey<String>(
+                              'runtime-pause-touch-menu-opacity',
+                            ),
+                            opacity: _focusController.activeInputSource ==
+                                    PlayerInputSource.controller
+                                ? .42
+                                : 1,
+                            duration: context.playerMotion.fast,
+                            child: IconButton.filled(
+                              key: const ValueKey<String>(
+                                'runtime-pause-touch-menu',
+                              ),
+                              tooltip: context.playerL10n.resume,
+                              onPressed: widget.onTouchMenu,
+                              constraints: const BoxConstraints.tightFor(
+                                width: 56,
+                                height: 56,
+                              ),
+                              icon: const Icon(Icons.pause_rounded),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _compactPortrait(BuildContext context) {
-    if (pauseSection != RuntimePlayerPauseSection.root) {
+    if (widget.pauseSection != RuntimePlayerPauseSection.root) {
       return PlayerPanel(
         padding: const EdgeInsets.all(PlayerSpacing.md),
         child: _detailPane(context),
@@ -108,11 +202,7 @@ class RuntimePlayerPauseShell extends StatelessWidget {
         child: PlayerPanel(
           padding: const EdgeInsets.all(PlayerSpacing.md),
           elevated: true,
-          child: PlayerPauseNavigation(
-            gameTitle: gameTitle,
-            actions: actions,
-            onSelected: onSelected,
-          ),
+          child: _navigation(),
         ),
       ),
     );
@@ -138,10 +228,7 @@ class RuntimePlayerPauseShell extends StatelessWidget {
           children: <Widget>[
             SizedBox(
               width: navigationWidth,
-              child: PlayerPauseNavigation(
-                gameTitle: gameTitle,
-                actions: actions,
-                onSelected: onSelected,
+              child: _navigation(
                 scrollKey: const ValueKey<String>(
                   'runtime-pause-navigation-scroll',
                 ),
@@ -168,8 +255,18 @@ class RuntimePlayerPauseShell extends StatelessWidget {
     );
   }
 
+  Widget _navigation({Key? scrollKey}) {
+    return PlayerPauseNavigation(
+      gameTitle: widget.gameTitle,
+      actions: widget.actions,
+      onSelected: widget.onSelected,
+      scrollKey: scrollKey,
+      focusController: _focusController,
+    );
+  }
+
   Widget _detailPane(BuildContext context) {
-    final hasDetail = pauseSection != RuntimePlayerPauseSection.root;
+    final hasDetail = widget.pauseSection != RuntimePlayerPauseSection.root;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -179,7 +276,7 @@ class RuntimePlayerPauseShell extends StatelessWidget {
               IconButton(
                 key: const ValueKey<String>('runtime-pause-back-to-root'),
                 tooltip: context.playerL10n.back,
-                onPressed: onBackToRoot,
+                onPressed: widget.onBackToRoot,
                 constraints: const BoxConstraints.tightFor(
                   width: 48,
                   height: 48,
@@ -189,7 +286,7 @@ class RuntimePlayerPauseShell extends StatelessWidget {
             Expanded(
               child: Text(
                 hasDetail
-                    ? _sectionLabel(context, pauseSection)
+                    ? _sectionLabel(context, widget.pauseSection)
                     : context.playerL10n.pause,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
@@ -201,7 +298,7 @@ class RuntimePlayerPauseShell extends StatelessWidget {
           child: SingleChildScrollView(
             key: const ValueKey<String>('runtime-pause-detail-scroll'),
             child: hasDetail
-                ? detail
+                ? widget.detail
                 : PlayerEmptyState(
                     icon: Icons.gamepad_rounded,
                     title: context.playerL10n.pause,

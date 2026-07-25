@@ -16,6 +16,8 @@ export 'src/player/pokemap_player_session_view.dart';
 export 'src/player/player_session_surfaces.dart';
 export 'src/player/player_title_screen.dart';
 export 'src/player/runtime_player_surface_router.dart';
+export 'src/player/runtime_player_actions.dart';
+export 'src/player/runtime_player_focus_controller.dart';
 export 'src/player/runtime_player_layout.dart';
 export 'src/player/runtime_player_detail_router.dart';
 export 'src/player/runtime_player_pause_shell.dart';

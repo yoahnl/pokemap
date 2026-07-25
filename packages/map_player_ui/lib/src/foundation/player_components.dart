@@ -70,6 +70,10 @@ class PlayerActionButton extends StatefulWidget {
     this.autofocus = false,
     this.secondary = false,
     this.trailing,
+    this.focusNode,
+    this.showFocusHighlight = true,
+    this.selected = false,
+    this.shortcutLabel,
   });
 
   final String label;
@@ -79,6 +83,10 @@ class PlayerActionButton extends StatefulWidget {
   final bool autofocus;
   final bool secondary;
   final Widget? trailing;
+  final FocusNode? focusNode;
+  final bool showFocusHighlight;
+  final bool selected;
+  final String? shortcutLabel;
 
   @override
   State<PlayerActionButton> createState() => _PlayerActionButtonState();
@@ -86,13 +94,16 @@ class PlayerActionButton extends StatefulWidget {
 
 class _PlayerActionButtonState extends State<PlayerActionButton> {
   late final FocusNode _focusNode;
+  late final bool _ownsFocusNode;
   var _focused = false;
 
   @override
   void initState() {
     super.initState();
-    _focusNode = FocusNode(debugLabel: 'Player action: ${widget.label}')
-      ..addListener(_onFocusChanged);
+    _ownsFocusNode = widget.focusNode == null;
+    _focusNode = widget.focusNode ??
+        FocusNode(debugLabel: 'Player action: ${widget.label}');
+    _focusNode.addListener(_onFocusChanged);
   }
 
   void _onFocusChanged() {
@@ -101,9 +112,8 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
 
   @override
   void dispose() {
-    _focusNode
-      ..removeListener(_onFocusChanged)
-      ..dispose();
+    _focusNode.removeListener(_onFocusChanged);
+    if (_ownsFocusNode) _focusNode.dispose();
     super.dispose();
   }
 
@@ -141,8 +151,9 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
       key: ValueKey<String>('player-action-semantics-${widget.label}'),
       button: true,
       enabled: enabled,
+      selected: widget.selected,
       label: widget.label,
-      hint: enabled ? null : widget.disabledReason,
+      hint: _semanticsHint(enabled),
       child: Tooltip(
         message: enabled ? widget.label : widget.disabledReason ?? widget.label,
         child: AnimatedContainer(
@@ -153,15 +164,24 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(PlayerRadii.sm + 3),
             border: Border.all(
-              color:
-                  _focused ? colors.focus : colors.focus.withValues(alpha: 0),
-              width: _focused ? 3 : 1,
+              color: _focused && widget.showFocusHighlight
+                  ? colors.focus
+                  : colors.focus.withValues(alpha: 0),
+              width: _focused && widget.showFocusHighlight ? 3 : 1,
             ),
           ),
           child: SizedBox(width: double.infinity, child: button),
         ),
       ),
     );
+  }
+
+  String? _semanticsHint(bool enabled) {
+    final parts = <String>[
+      if (!enabled && widget.disabledReason != null) widget.disabledReason!,
+      if (widget.shortcutLabel != null) widget.shortcutLabel!,
+    ];
+    return parts.isEmpty ? null : parts.join('. ');
   }
 }
 

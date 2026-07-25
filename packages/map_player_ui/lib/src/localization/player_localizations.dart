@@ -93,6 +93,7 @@ final class PokeMapPlayerLocalizations {
       _fr ? 'Aucun problème détecté' : 'No issue detected';
   String get actionUnavailable =>
       _fr ? 'Action indisponible' : 'Action unavailable';
+  String get confirmShortcut => _fr ? 'Entrée / bouton A' : 'Enter / A button';
   String get noSaveAvailable =>
       _fr ? 'Aucune sauvegarde disponible' : 'No save available';
   String get noSaveToLoad =>

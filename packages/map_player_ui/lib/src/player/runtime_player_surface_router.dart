@@ -8,6 +8,7 @@ import '../localization/player_localizations.dart';
 import 'player_pause_menu.dart';
 import 'player_session_surfaces.dart';
 import 'player_title_screen.dart';
+import 'runtime_player_actions.dart';
 import 'runtime_player_detail_router.dart';
 import 'runtime_player_pause_shell.dart';
 
@@ -82,7 +83,10 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
           progress: _progress,
           onCancel: _callbackFor(RuntimePlayerAction.cancel),
         ),
-      RuntimePlayerPhase.playing => null,
+      RuntimePlayerPhase.playing => RuntimePlayerTouchMenuButton(
+          onPressed: _callbackFor(RuntimePlayerAction.openMenu),
+          activeInputSource: snapshot.activeInputSource,
+        ),
       RuntimePlayerPhase.paused => RuntimePlayerPauseShell(
           gameTitle: snapshot.gameTitle,
           pauseSection: snapshot.pauseSection ?? RuntimePlayerPauseSection.root,
@@ -91,9 +95,15 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
               action: _pauseAvailability(context, action),
           },
           onSelected: (action) => _dispatch(_pauseAction(action)),
-          onBackToRoot: () => _dispatch(RuntimePlayerAction.returnToPauseRoot),
+          onBackToRoot: () => _dispatch(
+            snapshot.pauseSection == null ||
+                    snapshot.pauseSection == RuntimePlayerPauseSection.root
+                ? RuntimePlayerAction.resume
+                : RuntimePlayerAction.returnToPauseRoot,
+          ),
           onTouchMenu: _callbackFor(RuntimePlayerAction.resume),
           activeInputSource: snapshot.activeInputSource,
+          logicalSelectionId: snapshot.logicalSelectionId,
           detail: RuntimePlayerDetailRouter(snapshot: snapshot),
         ),
       RuntimePlayerPhase.saving => PlayerLoadingSurface(

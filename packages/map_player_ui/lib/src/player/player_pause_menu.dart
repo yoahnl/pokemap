@@ -4,6 +4,7 @@ import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import 'runtime_player_focus_controller.dart';
 
 enum PlayerPauseAction {
   resume,
@@ -166,6 +167,7 @@ class PlayerPauseNavigation extends StatelessWidget {
     required this.onSelected,
     this.useGrid = false,
     this.scrollKey,
+    this.focusController,
   });
 
   final String gameTitle;
@@ -173,6 +175,7 @@ class PlayerPauseNavigation extends StatelessWidget {
   final ValueChanged<PlayerPauseAction> onSelected;
   final bool useGrid;
   final Key? scrollKey;
+  final RuntimePlayerFocusController? focusController;
 
   @override
   Widget build(BuildContext context) {
@@ -232,13 +235,32 @@ class PlayerPauseNavigation extends StatelessWidget {
     PlayerPauseAction? firstEnabledAction,
   ) {
     final availability = _availability(context, action);
+    final logicalId = _logicalId(action);
+    final controller = focusController;
     return PlayerActionButton(
+      key: ValueKey<String>(logicalId),
       label: _label(context, action),
       icon: _icon(action),
-      autofocus: action == firstEnabledAction,
+      focusNode: controller?.nodeFor(
+        logicalId,
+        debugLabel: 'Player action: ${_label(context, action)}',
+      ),
+      showFocusHighlight: controller?.showFocusHighlight ?? true,
+      selected: controller?.logicalSelectionId == logicalId,
+      shortcutLabel: context.playerL10n.confirmShortcut,
+      autofocus: controller?.logicalSelectionId == null &&
+          action == firstEnabledAction,
       secondary: action == PlayerPauseAction.returnToTitle,
       disabledReason: availability.disabledReason,
-      onPressed: availability.isEnabled ? () => onSelected(action) : null,
+      onPressed: availability.isEnabled
+          ? () {
+              controller?.select(
+                logicalId,
+                source: controller.activeInputSource,
+              );
+              onSelected(action);
+            }
+          : null,
     );
   }
 
@@ -275,4 +297,6 @@ class PlayerPauseNavigation extends StatelessWidget {
         PlayerPauseAction.options => Icons.tune_rounded,
         PlayerPauseAction.returnToTitle => Icons.logout_rounded,
       };
+
+  String _logicalId(PlayerPauseAction action) => 'pause.${action.name}';
 }
