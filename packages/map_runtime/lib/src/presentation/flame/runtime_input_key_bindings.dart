@@ -3,6 +3,10 @@ import 'package:flutter/services.dart';
 import 'runtime_input_event.dart';
 
 RuntimeInputControl? runtimeInputControlFromLogicalKey(LogicalKeyboardKey key) {
+  if (key == LogicalKeyboardKey.tab ||
+      key == LogicalKeyboardKey.gameButtonStart) {
+    return RuntimeInputControl.menu;
+  }
   if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.keyW) {
     return RuntimeInputControl.up;
   }

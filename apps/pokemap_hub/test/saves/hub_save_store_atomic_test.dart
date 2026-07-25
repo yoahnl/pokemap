@@ -5,6 +5,8 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub.dart';
 import 'package:test/test.dart';
 
+import '../support/dart_subprocess.dart';
+
 void main() {
   late Directory root;
   late GameIdentity identity;
@@ -145,9 +147,9 @@ void main() {
       await store.write(_envelope(identity, marker: 'old', revision: 1));
 
       final process = await Process.run(
-        Platform.resolvedExecutable,
+        dartSubprocessExecutable(),
         <String>[
-          'run',
+          '--packages=.dart_tool/package_config.json',
           'test/fixtures/atomic_save_crash_writer.dart',
           caseRoot.path,
           stage.name,

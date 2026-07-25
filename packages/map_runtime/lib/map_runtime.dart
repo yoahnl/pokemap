@@ -147,6 +147,8 @@ export 'src/presentation/flutter/battle_mobile_command_overlay.dart'
     show BattleMobileCommandOverlay;
 export 'src/presentation/flame/runtime_input_event.dart'
     show RuntimeInputControl, RuntimeInputEvent, RuntimeInputEventPhase;
+export 'src/presentation/flame/runtime_input_key_bindings.dart'
+    show runtimeInputControlFromLogicalKey, runtimeInputEventFromKeyEvent;
 export 'src/presentation/flame/runtime_input_authority.dart'
     show
         RuntimeInputContext,
@@ -361,3 +363,11 @@ export 'src/infrastructure/file_game_save_repository.dart'
     show FileGameSaveRepository;
 export 'src/application/save_game_use_case.dart' show SaveGameUseCase;
 export 'src/application/load_game_use_case.dart' show LoadGameUseCase;
+
+// Player session shell contracts. These DTOs intentionally expose no Flame
+// component, widget, package path or Hub storage implementation.
+export 'src/session/game_session_contract.dart';
+export 'src/session/game_session_controller.dart' show GameSessionController;
+export 'src/session/in_process_game_session_adapter.dart';
+export 'src/session/playable_map_game_session_runtime.dart';
+export 'src/session/player_input.dart';

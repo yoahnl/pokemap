@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 /// Contrôles runtime réellement supportés aujourd'hui, indépendamment de la
 /// source physique (clavier, manette, boutons tactiles).
 ///
@@ -7,6 +5,7 @@ import 'package:flutter/foundation.dart';
 /// - directions digitales pour le déplacement/navigation;
 /// - action primaire pour confirmer/interagir;
 /// - action secondaire pour revenir/annuler quand le flow le supporte.
+/// - action menu pour céder l'autorité au shell joueur.
 ///
 /// On n'ouvre pas ici un framework d'inputs générique avec axes analogiques,
 /// macros ou mapping produit complet. Ce seam sert uniquement à arrêter de
@@ -18,6 +17,7 @@ enum RuntimeInputControl {
   right,
   primary,
   secondary,
+  menu,
 }
 
 enum RuntimeInputEventPhase {
@@ -25,7 +25,6 @@ enum RuntimeInputEventPhase {
   release,
 }
 
-@immutable
 final class RuntimeInputEvent {
   const RuntimeInputEvent._({
     required this.control,

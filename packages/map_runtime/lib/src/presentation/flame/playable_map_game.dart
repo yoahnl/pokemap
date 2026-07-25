@@ -3043,6 +3043,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool handleRuntimeInputEvent(RuntimeInputEvent event) {
     final control = event.control;
 
+    // Menu/Start belongs to the shared player shell. A bare GameWidget (the
+    // developer host) leaves it unhandled instead of opening product UI from
+    // inside Flame.
+    if (control == RuntimeInputControl.menu) {
+      return false;
+    }
+
     // Flutter overlays such as the pause menu sit outside Flame and therefore
     // cannot rely on focus alone: gamepad events are delivered directly by the
     // host. Consume every runtime command while one of those owners is active.
@@ -3659,6 +3666,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return Direction.east;
       case RuntimeInputControl.primary:
       case RuntimeInputControl.secondary:
+      case RuntimeInputControl.menu:
         return null;
     }
   }

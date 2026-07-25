@@ -3,7 +3,6 @@ import 'dart:ui' show KeyEventDeviceType;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:map_runtime/src/presentation/flame/runtime_input_key_bindings.dart';
 
 void main() {
   group('runtimeInputEventFromKeyEvent', () {
@@ -94,6 +93,30 @@ void main() {
           ),
         ),
         const RuntimeInputEvent.press(RuntimeInputControl.secondary),
+      );
+    });
+
+    test('maps Tab and gamepad Start to menu action', () {
+      expect(
+        runtimeInputEventFromKeyEvent(
+          const KeyDownEvent(
+            physicalKey: PhysicalKeyboardKey.tab,
+            logicalKey: LogicalKeyboardKey.tab,
+            timeStamp: Duration.zero,
+          ),
+        ),
+        const RuntimeInputEvent.press(RuntimeInputControl.menu),
+      );
+      expect(
+        runtimeInputEventFromKeyEvent(
+          const KeyDownEvent(
+            physicalKey: PhysicalKeyboardKey.gameButtonStart,
+            logicalKey: LogicalKeyboardKey.gameButtonStart,
+            timeStamp: Duration.zero,
+            deviceType: KeyEventDeviceType.gamepad,
+          ),
+        ),
+        const RuntimeInputEvent.press(RuntimeInputControl.menu),
       );
     });
 

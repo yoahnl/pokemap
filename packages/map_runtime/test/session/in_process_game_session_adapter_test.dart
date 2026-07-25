@@ -1,0 +1,150 @@
+import 'dart:async';
+
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('in-process adapter owns one disposable runtime graph', () async {
+    late _FakeInProcessRuntime runtime;
+    final descriptor = _descriptor();
+    final adapter = InProcessGameSessionAdapter(
+      runtimeFactory: (createdDescriptor) {
+        expect(createdDescriptor, descriptor);
+        return runtime = _FakeInProcessRuntime(createdDescriptor.sessionId);
+      },
+    );
+    final events = <GameSessionAdapterEvent>[];
+    final subscription = adapter.events.listen(events.add);
+
+    await adapter.prepare(descriptor);
+    await adapter.start();
+    await Future<void>.delayed(Duration.zero);
+    expect(
+      events.whereType<GameSessionReady>().single.sessionId,
+      descriptor.sessionId,
+    );
+    expect(
+      events
+          .whereType<GameSessionLoading>()
+          .map((event) => event.progress.stage),
+      containsAll(<String>['project', 'assets']),
+    );
+    expect(events.whereType<GameSessionRunning>(), hasLength(1));
+
+    await adapter.pause();
+    await adapter.resume();
+    expect(
+        runtime.calls,
+        containsAllInOrder(<String>[
+          'load',
+          'pause',
+          'resume',
+        ]));
+
+    runtime.emit(
+      GameSessionDiagnostic(
+        descriptor.sessionId,
+        const GameSessionDiagnosticData(
+          code: 'runtime.notice',
+          severity: GameSessionDiagnosticSeverity.info,
+        ),
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(events.whereType<GameSessionDiagnostic>(), hasLength(1));
+
+    await adapter.stop(GameSessionExitReason.hub);
+    await adapter.dispose();
+    expect(runtime.calls.sublist(runtime.calls.length - 2), <String>[
+      'stop:hub',
+      'dispose',
+    ]);
+    await subscription.cancel();
+  });
+}
+
+GameSessionDescriptor _descriptor() => GameSessionDescriptor(
+      sessionId: 'session-a',
+      sessionToken: 'secret',
+      identity: GameIdentity(
+        gameId: 'org.example.adventure',
+        gameVersion: '1.0.0',
+        projectFormat: ProjectFormat.v2,
+        saveFormat: 1,
+        compatibilityId: 'story-v1',
+      ),
+      profileId: 'player-1',
+      slotId: 'slot-1',
+      launchMode: GameSessionLaunchMode.newGame,
+      installedVersionHandle: 'install-a',
+      runtimeApiVersion: '1.0.0',
+      grantedCapabilities: const <String>{},
+      locale: 'fr-FR',
+      accessibility: const GameSessionAccessibilityOptions(),
+    );
+
+final class _FakeInProcessRuntime implements InProcessGameSessionRuntime {
+  _FakeInProcessRuntime(this.sessionId);
+
+  final String sessionId;
+  final calls = <String>[];
+  final _events = StreamController<GameSessionAdapterEvent>.broadcast();
+
+  @override
+  Stream<GameSessionAdapterEvent> get events => _events.stream;
+
+  void emit(GameSessionAdapterEvent event) => _events.add(event);
+
+  @override
+  Future<void> load(GameSessionProgressReporter reportProgress) async {
+    calls.add('load');
+    reportProgress(
+      const GameSessionLoadingProgress(
+        stage: 'project',
+        current: 1,
+        total: 2,
+      ),
+    );
+    reportProgress(
+      const GameSessionLoadingProgress(
+        stage: 'assets',
+        current: 2,
+        total: 2,
+      ),
+    );
+  }
+
+  @override
+  Future<void> pause() async => calls.add('pause');
+
+  @override
+  Future<void> resume() async => calls.add('resume');
+
+  @override
+  Future<GameSessionCheckpoint?> captureCheckpoint() async => null;
+
+  @override
+  Future<void> lockGameplayForCompletion() async =>
+      calls.add('lock-completion');
+
+  @override
+  Future<void> acknowledgeCompletion({required bool accepted}) async =>
+      calls.add('completion:$accepted');
+
+  @override
+  Future<void> stop(GameSessionExitReason reason) async =>
+      calls.add('stop:${reason.name}');
+
+  @override
+  Future<void> dispose() async {
+    calls.add('dispose');
+    await _events.close();
+  }
+
+  @override
+  bool handleInput(RuntimeInputEvent event) {
+    calls.add('input:${event.control.name}');
+    return true;
+  }
+}

@@ -20,6 +20,7 @@ enum RuntimeInputContext {
 enum RuntimeExternalInputLock {
   pauseMenu,
   playerService,
+  gameCompletion,
 }
 
 /// Immutable explanation of which player surface currently owns input.

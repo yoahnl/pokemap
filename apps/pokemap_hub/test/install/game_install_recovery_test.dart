@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub.dart';
 import 'package:test/test.dart';
 
+import '../support/dart_subprocess.dart';
 import '../support/game_package_fixture.dart';
 
 void main() {
@@ -34,9 +35,9 @@ void main() {
         );
 
     Future<ProcessResult> crashAt(GameInstallFaultStage stage) => Process.run(
-          Platform.resolvedExecutable,
+          dartSubprocessExecutable(),
           <String>[
-            'run',
+            '--packages=.dart_tool/package_config.json',
             'test/fixtures/atomic_install_crash_writer.dart',
             supportRoot.path,
             package.path,
