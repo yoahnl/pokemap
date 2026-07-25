@@ -292,18 +292,39 @@ class PlayerEmptyState extends StatelessWidget {
       );
 }
 
+enum PlayerProgressStepState { pending, active, completed }
+
+@immutable
+final class PlayerProgressStepData {
+  const PlayerProgressStepData({
+    required this.label,
+    required this.state,
+    this.key,
+  });
+
+  final String label;
+  final PlayerProgressStepState state;
+  final Key? key;
+}
+
 class PlayerProgressCard extends StatelessWidget {
   const PlayerProgressCard({
     super.key,
     required this.title,
     required this.stage,
     this.value,
+    this.progressLabel,
+    this.remainingLabel,
+    this.steps = const <PlayerProgressStepData>[],
     this.onCancel,
   });
 
   final String title;
   final String stage;
   final double? value;
+  final String? progressLabel;
+  final String? remainingLabel;
+  final List<PlayerProgressStepData> steps;
   final VoidCallback? onCancel;
 
   @override
@@ -317,11 +338,43 @@ class PlayerProgressCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Text(title, style: Theme.of(context).textTheme.titleLarge),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  if (progressLabel case final label?)
+                    Text(
+                      label,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: context.playerColors.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                ],
+              ),
               const SizedBox(height: PlayerSpacing.xs),
               Text(stage),
               const SizedBox(height: PlayerSpacing.md),
               LinearProgressIndicator(value: value),
+              if (remainingLabel case final label?) ...<Widget>[
+                const SizedBox(height: PlayerSpacing.sm),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: context.playerColors.textSecondary,
+                      ),
+                ),
+              ],
+              if (steps.isNotEmpty) ...<Widget>[
+                const SizedBox(height: PlayerSpacing.md),
+                Divider(color: context.playerColors.outline),
+                const SizedBox(height: PlayerSpacing.xs),
+                for (final step in steps) _PlayerProgressStep(step: step),
+              ],
               if (onCancel != null) ...<Widget>[
                 const SizedBox(height: PlayerSpacing.md),
                 Align(
@@ -336,4 +389,52 @@ class PlayerProgressCard extends StatelessWidget {
           ),
         ),
       );
+}
+
+class _PlayerProgressStep extends StatelessWidget {
+  const _PlayerProgressStep({required this.step});
+
+  final PlayerProgressStepData step;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.playerColors;
+    final (icon, color) = switch (step.state) {
+      PlayerProgressStepState.completed => (
+          Icons.check_circle_rounded,
+          colors.success
+        ),
+      PlayerProgressStepState.active => (
+          Icons.radio_button_checked_rounded,
+          colors.primary
+        ),
+      PlayerProgressStepState.pending => (
+          Icons.radio_button_unchecked_rounded,
+          colors.textSecondary
+        ),
+    };
+    return Padding(
+      key: step.key,
+      padding: const EdgeInsets.symmetric(vertical: PlayerSpacing.xxs),
+      child: Row(
+        children: <Widget>[
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: PlayerSpacing.sm),
+          Expanded(
+            child: Text(
+              step.label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: step.state == PlayerProgressStepState.pending
+                        ? colors.textSecondary
+                        : colors.textPrimary,
+                    fontWeight: step.state == PlayerProgressStepState.active
+                        ? FontWeight.w700
+                        : null,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

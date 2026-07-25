@@ -1,11 +1,18 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:gamepads/gamepads.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'player_title_screen.dart';
 import 'player_heal_confirmation.dart';
 import 'player_pc_overlay.dart';
 import 'player_shop_overlay.dart';
+import 'runtime_player_actions.dart';
+import 'runtime_player_gamepad_bridge.dart';
 import 'runtime_player_surface_router.dart';
+import 'runtime_player_touch_controls.dart';
 
 /// Small presentation-facing subset of the runtime player coordinator.
 ///
@@ -57,7 +64,7 @@ typedef RuntimePlayerActionPayloadBuilder = Object? Function(
 ///
 /// The widget only renders [RuntimePlayerSnapshot] values and sends versioned
 /// commands back. It never derives a phase from Hub state.
-class PokeMapPlayerSessionView extends StatelessWidget {
+class PokeMapPlayerSessionView extends StatefulWidget {
   const PokeMapPlayerSessionView({
     super.key,
     required this.controller,
@@ -65,6 +72,10 @@ class PokeMapPlayerSessionView extends StatelessWidget {
     required this.gameSceneBuilder,
     this.payloadForAction,
     this.onShowDiagnostics,
+    this.gameplayInputRoute,
+    this.touchControlsAvailable,
+    this.controllerInputEnabled = true,
+    this.controllerInputEvents,
   });
 
   final RuntimePlayerViewController controller;
@@ -72,39 +83,284 @@ class PokeMapPlayerSessionView extends StatelessWidget {
   final WidgetBuilder gameSceneBuilder;
   final RuntimePlayerActionPayloadBuilder? payloadForAction;
   final VoidCallback? onShowDiagnostics;
+  final PlayerGameplayInputRoute? gameplayInputRoute;
+
+  /// Overrides platform detection in embedders and widget tests.
+  ///
+  /// Production players normally leave this null: touch controls are then
+  /// enabled on iOS and Android only.
+  final bool? touchControlsAvailable;
+
+  /// Keeps controller plugin access injectable and optional for standalone
+  /// embedders while remaining enabled in the official player by default.
+  final bool controllerInputEnabled;
+  final Stream<RuntimeInputEvent>? controllerInputEvents;
+
+  @override
+  State<PokeMapPlayerSessionView> createState() =>
+      _PokeMapPlayerSessionViewState();
+}
+
+class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
+  StreamSubscription<RuntimeInputEvent>? _controllerSubscription;
+  late RuntimePlayerSnapshot _latestSnapshot;
+
+  bool get _touchControlsAvailable =>
+      widget.touchControlsAvailable ??
+      (!kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.iOS ||
+              defaultTargetPlatform == TargetPlatform.android));
+
+  @override
+  void initState() {
+    super.initState();
+    _latestSnapshot = widget.controller.snapshot;
+    _bindControllerInputs();
+  }
+
+  @override
+  void didUpdateWidget(covariant PokeMapPlayerSessionView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      _latestSnapshot = widget.controller.snapshot;
+    }
+    if (oldWidget.controllerInputEnabled != widget.controllerInputEnabled ||
+        oldWidget.controllerInputEvents != widget.controllerInputEvents) {
+      _bindControllerInputs();
+    }
+  }
+
+  void _bindControllerInputs() {
+    unawaited(_controllerSubscription?.cancel());
+    _controllerSubscription = null;
+    if (!widget.controllerInputEnabled) return;
+    final events =
+        widget.controllerInputEvents ?? _normalizedControllerInputEvents();
+    _controllerSubscription = events.listen(
+      (event) => unawaited(
+        _routeRuntimeInput(event, source: PlayerInputSource.controller),
+      ),
+      onError: (_, __) {
+        // A missing or disconnected platform controller must never block
+        // keyboard, pointer, or touch play.
+      },
+    );
+  }
+
+  Stream<RuntimeInputEvent> _normalizedControllerInputEvents() async* {
+    final bridge = RuntimePlayerGamepadBridge();
+    await for (final event in Gamepads.normalizedEvents) {
+      for (final runtimeEvent in bridge.handle(event)) {
+        yield runtimeEvent;
+      }
+    }
+  }
+
+  PlayerInputSurface _inputSurface() {
+    final snapshot = _latestSnapshot;
+    if (snapshot.worldService != null) return PlayerInputSurface.title;
+    return switch (snapshot.phase) {
+      RuntimePlayerPhase.playing => PlayerInputSurface.gameplay,
+      RuntimePlayerPhase.title => PlayerInputSurface.title,
+      RuntimePlayerPhase.paused => PlayerInputSurface.pause,
+      RuntimePlayerPhase.result => PlayerInputSurface.result,
+      RuntimePlayerPhase.credits => PlayerInputSurface.credits,
+      RuntimePlayerPhase.boot ||
+      RuntimePlayerPhase.preparingSession ||
+      RuntimePlayerPhase.loadingSession ||
+      RuntimePlayerPhase.saving ||
+      RuntimePlayerPhase.lifecyclePaused ||
+      RuntimePlayerPhase.completing ||
+      RuntimePlayerPhase.disposingSession ||
+      RuntimePlayerPhase.externalExit ||
+      RuntimePlayerPhase.error =>
+        PlayerInputSurface.blocked,
+    };
+  }
+
+  Future<void> _routeRuntimeInput(
+    RuntimeInputEvent event, {
+    required PlayerInputSource source,
+  }) async {
+    final router = PlayerInputRouter(
+      surface: _inputSurface,
+      routeGameplay: widget.gameplayInputRoute ?? (_) => false,
+      routeSurface: _routeSurfaceInput,
+      toggleMenu: _toggleMenu,
+      releaseGameplayDirections: _releaseGameplayDirections,
+    );
+    await router.route(
+      playerInputCommandFromRuntimeEvent(event, source: source),
+    );
+  }
+
+  void _releaseGameplayDirections() {
+    final route = widget.gameplayInputRoute;
+    if (route == null) return;
+    for (final control in const <RuntimeInputControl>[
+      RuntimeInputControl.up,
+      RuntimeInputControl.down,
+      RuntimeInputControl.left,
+      RuntimeInputControl.right,
+    ]) {
+      route(RuntimeInputEvent.release(control));
+    }
+  }
+
+  Future<void> _toggleMenu() async {
+    final snapshot = _latestSnapshot;
+    final action = switch (snapshot.phase) {
+      RuntimePlayerPhase.playing => RuntimePlayerAction.openMenu,
+      RuntimePlayerPhase.paused => RuntimePlayerAction.resume,
+      _ => null,
+    };
+    if (action != null) await _dispatchAction(action);
+  }
+
+  Future<void> _routeSurfaceInput(PlayerInputCommand command) async {
+    if (!command.isPress) return;
+    final snapshot = _latestSnapshot;
+    if (snapshot.phase == RuntimePlayerPhase.paused) {
+      final focusContext = FocusManager.instance.primaryFocus?.context;
+      if (focusContext != null) {
+        Actions.invoke(
+          focusContext,
+          RuntimePlayerLogicalIntent(
+            command.action,
+            source: command.source,
+          ),
+        );
+        return;
+      }
+    }
+    switch (command.action) {
+      case PlayerInputAction.up:
+        FocusManager.instance.primaryFocus
+            ?.focusInDirection(TraversalDirection.up);
+      case PlayerInputAction.down:
+        FocusManager.instance.primaryFocus
+            ?.focusInDirection(TraversalDirection.down);
+      case PlayerInputAction.left:
+        FocusManager.instance.primaryFocus
+            ?.focusInDirection(TraversalDirection.left);
+      case PlayerInputAction.right:
+        FocusManager.instance.primaryFocus
+            ?.focusInDirection(TraversalDirection.right);
+      case PlayerInputAction.confirm:
+        final focusContext = FocusManager.instance.primaryFocus?.context;
+        if (focusContext != null) {
+          Actions.invoke(focusContext, const ActivateIntent());
+        }
+      case PlayerInputAction.back:
+        await _dispatchBack();
+      case PlayerInputAction.menu:
+        // Menu/Start is intercepted by PlayerInputRouter.
+        break;
+    }
+  }
+
+  Future<void> _dispatchBack() async {
+    final snapshot = _latestSnapshot;
+    if (snapshot.worldService case final service?) {
+      final action = service.isActionEnabled(RuntimeWorldServiceAction.close)
+          ? RuntimeWorldServiceAction.close
+          : service.isActionEnabled(RuntimeWorldServiceAction.cancel)
+              ? RuntimeWorldServiceAction.cancel
+              : null;
+      if (action != null) {
+        await widget.controller.dispatchWorldService(
+          RuntimeWorldServiceCommand(
+            action: action,
+            snapshotRevision: service.revision,
+          ),
+        );
+      }
+      return;
+    }
+    final action = switch (snapshot.phase) {
+      RuntimePlayerPhase.title => RuntimePlayerAction.returnToHost,
+      RuntimePlayerPhase.paused
+          when snapshot.pauseSection != null &&
+              snapshot.pauseSection != RuntimePlayerPauseSection.root =>
+        RuntimePlayerAction.returnToPauseRoot,
+      RuntimePlayerPhase.paused => RuntimePlayerAction.resume,
+      RuntimePlayerPhase.credits => snapshot.isActionEnabled(
+          RuntimePlayerAction.finishCredits,
+        )
+            ? RuntimePlayerAction.finishCredits
+            : RuntimePlayerAction.returnToTitle,
+      _ => null,
+    };
+    if (action != null) await _dispatchAction(action);
+  }
+
+  Future<void> _dispatchAction(RuntimePlayerAction action) async {
+    final snapshot = _latestSnapshot;
+    if (!snapshot.isActionEnabled(action)) return;
+    await widget.controller.dispatch(
+      RuntimePlayerCommand(
+        action: action,
+        snapshotRevision: snapshot.revision,
+        payload: widget.payloadForAction?.call(action),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<RuntimePlayerSnapshot>(
-      stream: controller.snapshots,
-      initialData: controller.snapshot,
+      stream: widget.controller.snapshots,
+      initialData: widget.controller.snapshot,
       builder: (context, asyncSnapshot) {
-        final snapshot = asyncSnapshot.data ?? controller.snapshot;
+        final snapshot = asyncSnapshot.data ?? widget.controller.snapshot;
+        _latestSnapshot = snapshot;
+        final showTouchControls = _touchControlsAvailable &&
+            widget.gameplayInputRoute != null &&
+            snapshot.phase == RuntimePlayerPhase.playing &&
+            snapshot.worldService == null;
         return Stack(
           fit: StackFit.expand,
           children: <Widget>[
             RuntimePlayerSurfaceRouter(
               snapshot: snapshot,
-              titlePresentation: titlePresentation,
-              gameSceneBuilder: gameSceneBuilder,
-              onShowDiagnostics: onShowDiagnostics,
-              onAction: (action) => controller.dispatch(
+              titlePresentation: widget.titlePresentation,
+              gameSceneBuilder: widget.gameSceneBuilder,
+              onShowDiagnostics: widget.onShowDiagnostics,
+              onAction: (action) => widget.controller.dispatch(
                 RuntimePlayerCommand(
                   action: action,
                   snapshotRevision: snapshot.revision,
-                  payload: payloadForAction?.call(action),
+                  payload: widget.payloadForAction?.call(action),
                 ),
               ),
             ),
+            if (showTouchControls)
+              Positioned.fill(
+                child: RuntimePlayerTouchControls(
+                  dispatch: (event) => unawaited(
+                    _routeRuntimeInput(
+                      event,
+                      source: PlayerInputSource.touch,
+                    ),
+                  ),
+                ),
+              ),
             if (snapshot.worldService case final service?)
               _RuntimeWorldServiceOverlay(
                 snapshot: service,
-                onCommand: controller.dispatchWorldService,
+                onCommand: widget.controller.dispatchWorldService,
               ),
           ],
         );
       },
     );
+  }
+
+  @override
+  void dispose() {
+    unawaited(_controllerSubscription?.cancel());
+    _releaseGameplayDirections();
+    super.dispose();
   }
 }
 

@@ -286,6 +286,66 @@ void main() {
     expect(find.text('Autorisation macOS manquante.'), findsOneWidget);
     expect(find.text('Journal : /tmp/hub-import.log'), findsOneWidget);
   });
+
+  testWidgets(
+      'installation uses a modal progress screen with percent ETA and steps',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    var cancellations = 0;
+
+    await tester.pumpWidget(
+      _app(
+        HubShell(
+          snapshot: HubDashboardSnapshot(
+            status: HubDashboardStatus.installing,
+            library: GameLibrary.empty(),
+            games: const <HubGameView>[],
+            installProgress: const GameInstallProgress(
+              stage: GameInstallStage.extracting,
+              completedFiles: 5,
+              totalFiles: 10,
+              completedBytes: 500,
+              totalBytes: 1000,
+              cancellable: true,
+            ),
+          ),
+          actions: const HubUiActions(),
+          onSectionSelected: (_) {},
+          onQueryChanged: (_) {},
+          onGameSelected: (_) {},
+          onGameDetailsClosed: () {},
+          onPreferencesChanged: (_) {},
+          onCancelInstall: () => cancellations++,
+        ),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 8));
+
+    expect(
+      find.byKey(const ValueKey<String>('hub-install-progress-screen')),
+      findsOneWidget,
+    );
+    expect(find.text('45 %'), findsOneWidget);
+    expect(find.textContaining('Temps restant estimé'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('hub-install-step-package-completed'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('hub-install-step-extraction-active'),
+      ),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('Annuler'));
+    expect(cancellations, 1);
+  });
 }
 
 HubGameView _view({bool canContinue = false}) {

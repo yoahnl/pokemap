@@ -16,6 +16,10 @@ void main() {
     expect(installedPlayer, contains('RuntimePlayerCoordinator('));
     expect(installedPlayer, contains('PokeMapPlayerSessionView('));
     expect(
+      installedPlayer,
+      contains('gameplayInputRoute: _sessions?.handleInput'),
+    );
+    expect(
       'PokeMapPlayerSessionView('.allMatches(installedPlayer),
       hasLength(1),
     );

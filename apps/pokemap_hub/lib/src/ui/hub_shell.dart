@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
-import '../install/game_installation_diagnostic.dart';
 import 'hub_dashboard_controller.dart';
 import 'hub_game_views.dart';
+import 'hub_install_progress.dart';
 
 class HubShell extends StatelessWidget {
   const HubShell({
@@ -33,40 +33,33 @@ class HubShell extends StatelessWidget {
         body: LayoutBuilder(
           builder: (context, constraints) {
             final wide = constraints.maxWidth >= 840;
-            final content = Stack(
-              children: <Widget>[
-                Positioned.fill(child: _content(context)),
-                if (snapshot.status == HubDashboardStatus.installing)
-                  Positioned(
-                    left: PlayerSpacing.md,
-                    right: PlayerSpacing.md,
-                    bottom: PlayerSpacing.md,
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 620),
-                        child: _installProgress(context),
+            final content = _content(context);
+            final shell = wide
+                ? Row(
+                    children: <Widget>[
+                      _navigationRail(context),
+                      VerticalDivider(
+                        width: 1,
+                        color: context.playerColors.outline,
                       ),
-                    ),
-                  ),
-              ],
-            );
-            if (wide) {
-              return Row(
-                children: <Widget>[
-                  _navigationRail(context),
-                  VerticalDivider(
-                    width: 1,
-                    color: context.playerColors.outline,
-                  ),
-                  Expanded(child: content),
-                ],
-              );
-            }
-            return Column(
+                      Expanded(child: content),
+                    ],
+                  )
+                : Column(
+                    children: <Widget>[
+                      Expanded(child: content),
+                      _navigationBar(context),
+                    ],
+                  );
+            return Stack(
+              fit: StackFit.expand,
               children: <Widget>[
-                Expanded(child: content),
-                _navigationBar(context),
+                shell,
+                if (snapshot.status == HubDashboardStatus.installing)
+                  HubInstallProgressScreen(
+                    progress: snapshot.installProgress,
+                    onCancel: onCancelInstall,
+                  ),
               ],
             );
           },
@@ -223,40 +216,6 @@ class HubShell extends StatelessWidget {
       ),
     ];
   }
-
-  Widget _installProgress(BuildContext context) {
-    final progress = snapshot.installProgress;
-    final value = progress == null || progress.totalBytes <= 0
-        ? null
-        : progress.completedBytes / progress.totalBytes;
-    return PlayerProgressCard(
-      title: context.playerL10n.installingGame,
-      stage: _stageLabel(context, progress?.stage),
-      value: value,
-      onCancel: progress?.cancellable == true ? onCancelInstall : null,
-    );
-  }
-
-  String _stageLabel(BuildContext context, GameInstallStage? stage) =>
-      switch (stage) {
-        GameInstallStage.inspecting => context.playerL10n.loadingPackage,
-        GameInstallStage.checkingCompatibility =>
-          context.playerL10n.checkingCompatibility,
-        GameInstallStage.checkingStorage => context.playerL10n.checkingStorage,
-        GameInstallStage.snapshotting =>
-          context.playerL10n.protectingInstalledVersion,
-        GameInstallStage.extracting => context.playerL10n.secureExtraction,
-        GameInstallStage.verifying => context.playerL10n.verifyingFiles,
-        GameInstallStage.validatingProject => context.playerL10n.validatingGame,
-        GameInstallStage.smokeLoading => context.playerL10n.loadingTrial,
-        GameInstallStage.preparingSaves => context.playerL10n.preparingSaves,
-        GameInstallStage.promoting => context.playerL10n.activatingVersion,
-        GameInstallStage.updatingLibrary => context.playerL10n.updatingLibrary,
-        GameInstallStage.completed => context.playerL10n.installationComplete,
-        GameInstallStage.cancelled => context.playerL10n.cancelling,
-        GameInstallStage.recovering => context.playerL10n.recovering,
-        null => context.playerL10n.preparing,
-      };
 }
 
 final class _HubDestination {

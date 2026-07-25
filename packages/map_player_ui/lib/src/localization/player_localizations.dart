@@ -235,6 +235,14 @@ final class PokeMapPlayerLocalizations {
       _fr ? 'Mise à jour de la bibliothèque' : 'Updating library';
   String get installationComplete =>
       _fr ? 'Installation terminée' : 'Installation complete';
+  String get estimatedTimeCalculating => _fr
+      ? 'Temps restant estimé : calcul en cours…'
+      : 'Estimated time remaining: calculating…';
+  String estimatedTimeRemaining(String duration) => _fr
+      ? 'Temps restant estimé : $duration'
+      : 'Estimated time remaining: $duration';
+  String shortSeconds(int seconds) => _fr ? '$seconds s' : '$seconds sec';
+  String shortMinutes(int minutes) => '$minutes min';
   String get cancelling => _fr ? 'Annulation' : 'Cancelling';
   String get recovering => _fr ? 'Récupération' : 'Recovering';
   String get preparing => _fr ? 'Préparation' : 'Preparing';

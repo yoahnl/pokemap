@@ -335,6 +335,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             description: launch.manifest.description,
           ),
           payloadForAction: _payloadForAction,
+          gameplayInputRoute: _sessions?.handleInput,
           gameSceneBuilder: (_) {
             final game = _mountedGame;
             return game == null

@@ -12,6 +12,8 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  flutter_joystick: ^0.2.2
+  gamepads: ^0.1.10+1
   map_runtime:
     path: ../map_runtime
 

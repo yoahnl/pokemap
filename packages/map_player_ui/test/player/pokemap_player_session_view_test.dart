@@ -341,12 +341,147 @@ void main() {
     await tester.tap(find.text('Diagnostics'));
     expect(diagnosticCalls, 1);
   });
+
+  testWidgets(
+      'owns responsive virtual controls in portrait and landscape gameplay',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final gameplayEvents = <RuntimeInputEvent>[];
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(
+        revision: 23,
+        phase: RuntimePlayerPhase.playing,
+        actions: const <RuntimePlayerActionAvailability>[
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.openMenu,
+          ),
+        ],
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      _app(
+        _view(
+          controller,
+          touchControlsAvailable: true,
+          gameplayInputRoute: (event) {
+            gameplayEvents.add(event);
+            return true;
+          },
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('runtime-player-touch-joystick')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('runtime-player-touch-primary-button'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('runtime-player-touch-secondary-button'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('runtime-player-touch-primary-button'),
+      ),
+    );
+    expect(
+      gameplayEvents,
+      const <RuntimeInputEvent>[
+        RuntimeInputEvent.press(RuntimeInputControl.primary),
+        RuntimeInputEvent.release(RuntimeInputControl.primary),
+      ],
+    );
+
+    tester.view.physicalSize = const Size(844, 390);
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('runtime-player-touch-joystick')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('routes controller gameplay and reserves Start for pause',
+      (tester) async {
+    final controllerEvents = StreamController<RuntimeInputEvent>.broadcast();
+    addTearDown(controllerEvents.close);
+    final gameplayEvents = <RuntimeInputEvent>[];
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(
+        revision: 24,
+        phase: RuntimePlayerPhase.playing,
+        actions: const <RuntimePlayerActionAvailability>[
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.openMenu,
+          ),
+        ],
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      _app(
+        _view(
+          controller,
+          controllerInputEvents: controllerEvents.stream,
+          gameplayInputRoute: (event) {
+            gameplayEvents.add(event);
+            return true;
+          },
+        ),
+      ),
+    );
+
+    controllerEvents.add(
+      const RuntimeInputEvent.press(RuntimeInputControl.right),
+    );
+    await tester.pump();
+    expect(
+      gameplayEvents,
+      const <RuntimeInputEvent>[
+        RuntimeInputEvent.press(RuntimeInputControl.right),
+      ],
+    );
+
+    controllerEvents.add(
+      const RuntimeInputEvent.press(RuntimeInputControl.menu),
+    );
+    await tester.pump();
+    expect(gameplayEvents, hasLength(5));
+    expect(
+      gameplayEvents.skip(1),
+      const <RuntimeInputEvent>[
+        RuntimeInputEvent.release(RuntimeInputControl.up),
+        RuntimeInputEvent.release(RuntimeInputControl.down),
+        RuntimeInputEvent.release(RuntimeInputControl.left),
+        RuntimeInputEvent.release(RuntimeInputControl.right),
+      ],
+    );
+    expect(controller.commands.single.action, RuntimePlayerAction.openMenu);
+    expect(controller.commands.single.snapshotRevision, 24);
+  });
 }
 
 PokeMapPlayerSessionView _view(
   RuntimePlayerViewController controller, {
   _SceneLifecycle? lifecycle,
   VoidCallback? onShowDiagnostics,
+  bool touchControlsAvailable = false,
+  PlayerGameplayInputRoute? gameplayInputRoute,
+  Stream<RuntimeInputEvent>? controllerInputEvents,
 }) {
   return PokeMapPlayerSessionView(
     controller: controller,
@@ -358,6 +493,10 @@ PokeMapPlayerSessionView _view(
       key: const ValueKey<String>('test-game-scene'),
       lifecycle: lifecycle ?? _SceneLifecycle(),
     ),
+    touchControlsAvailable: touchControlsAvailable,
+    gameplayInputRoute: gameplayInputRoute,
+    controllerInputEvents: controllerInputEvents,
+    controllerInputEnabled: controllerInputEvents != null,
     onShowDiagnostics: onShowDiagnostics,
   );
 }
