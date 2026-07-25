@@ -4,9 +4,6 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
-import 'in_game_heal_flow.dart';
-import 'in_game_pc_page.dart';
-import 'in_game_shop_page.dart';
 import 'runtime_player_options.dart';
 import 'runtime_map_destinations.dart';
 import 'runtime_pokedex_loader.dart';
@@ -18,9 +15,6 @@ enum InGameMenuSection {
   pokedex,
   party,
   bag,
-  shop,
-  pc,
-  heal,
   trainer,
   save,
   options,
@@ -76,8 +70,7 @@ class InGameMenuPage extends StatefulWidget {
     required this.onQuitRequested,
     required this.onCloseRequested,
     this.projectMaps = const <ProjectMapEntry>[],
-    this.shops = const <ShopDefinition>[],
-    this.recoveryCaps = const PlayerServiceRecoveryCaps(
+    this.recoveryCaps = const RuntimePlayerServiceRecoveryCaps(
       maxHpByPartyIndex: <int, int>{},
     ),
     this.onPlayerStateCommitted,
@@ -93,8 +86,7 @@ class InGameMenuPage extends StatefulWidget {
   final VoidCallback onQuitRequested;
   final VoidCallback onCloseRequested;
   final List<ProjectMapEntry> projectMaps;
-  final List<ShopDefinition> shops;
-  final PlayerServiceRecoveryCaps recoveryCaps;
+  final RuntimePlayerServiceRecoveryCaps recoveryCaps;
   final Future<void> Function(GameState state)? onPlayerStateCommitted;
 
   @override
@@ -181,33 +173,6 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
                         ),
                       ),
                       _MenuTile(
-                        key: const Key('menu-shop-tile'),
-                        label: 'Boutique',
-                        icon: Icons.storefront,
-                        selected: _selectedSection == InGameMenuSection.shop,
-                        onTap: () => setState(
-                          () => _selectedSection = InGameMenuSection.shop,
-                        ),
-                      ),
-                      _MenuTile(
-                        key: const Key('menu-pc-tile'),
-                        label: 'PC Pokémon',
-                        icon: Icons.dns_outlined,
-                        selected: _selectedSection == InGameMenuSection.pc,
-                        onTap: () => setState(
-                          () => _selectedSection = InGameMenuSection.pc,
-                        ),
-                      ),
-                      _MenuTile(
-                        key: const Key('menu-heal-tile'),
-                        label: 'Centre Pokémon',
-                        icon: Icons.healing,
-                        selected: _selectedSection == InGameMenuSection.heal,
-                        onTap: () => setState(
-                          () => _selectedSection = InGameMenuSection.heal,
-                        ),
-                      ),
-                      _MenuTile(
                         key: const Key('menu-trainer-tile'),
                         label: 'Dresseur',
                         icon: Icons.badge,
@@ -276,20 +241,6 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
                         gameState,
                       ),
                     InGameMenuSection.bag => _BagSection(
-                        gameState: gameState,
-                        recoveryCaps: widget.recoveryCaps,
-                        onStateCommitted: _commitPlayerState,
-                      ),
-                    InGameMenuSection.shop => InGameShopPage(
-                        gameState: gameState,
-                        shops: widget.shops,
-                        onStateCommitted: _commitPlayerState,
-                      ),
-                    InGameMenuSection.pc => InGamePcPage(
-                        gameState: gameState,
-                        onStateCommitted: _commitPlayerState,
-                      ),
-                    InGameMenuSection.heal => InGameHealFlow(
                         gameState: gameState,
                         recoveryCaps: widget.recoveryCaps,
                         onStateCommitted: _commitPlayerState,
@@ -847,7 +798,7 @@ class _BagSection extends StatefulWidget {
   });
 
   final GameState gameState;
-  final PlayerServiceRecoveryCaps recoveryCaps;
+  final RuntimePlayerServiceRecoveryCaps recoveryCaps;
   final Future<void> Function(GameState state) onStateCommitted;
 
   @override
@@ -1031,7 +982,7 @@ class _PartySection extends StatefulWidget {
 
   final GameState gameState;
   final Map<String, String> speciesNamesById;
-  final PlayerServiceRecoveryCaps recoveryCaps;
+  final RuntimePlayerServiceRecoveryCaps recoveryCaps;
   final Future<void> Function(GameState state) onStateCommitted;
 
   @override

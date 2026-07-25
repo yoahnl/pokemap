@@ -253,6 +253,59 @@ void main() {
     expect(controller.worldServiceCommands.single.snapshotRevision, 12);
   });
 
+  testWidgets('renders the contextual PC over the mounted runtime scene',
+      (tester) async {
+    final lifecycle = _SceneLifecycle();
+    final service = RuntimeWorldServiceSnapshot(
+      revision: 14,
+      request: const OpenPcService(
+        interactionId: 'terminal.harbor',
+        storageId: 'box-a',
+      ),
+      stage: RuntimeWorldServiceStage.active,
+      content: RuntimePcServiceContent(
+        title: 'PC Pokémon',
+        message: 'Organisez votre équipe.',
+        selectedBoxId: 'box-a',
+        boxes: const <RuntimePcBoxSnapshot>[
+          RuntimePcBoxSnapshot(
+            boxId: 'box-a',
+            label: 'Box A',
+            count: 0,
+            capacity: 30,
+          ),
+        ],
+      ),
+      actions: const <RuntimeWorldServiceActionAvailability>[
+        RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.select,
+        ),
+        RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.close,
+        ),
+      ],
+    );
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(
+        revision: 22,
+        phase: RuntimePlayerPhase.playing,
+        worldService: service,
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(_app(_view(controller, lifecycle: lifecycle)));
+
+    expect(
+        find.byKey(const ValueKey<String>('test-game-scene')), findsOneWidget);
+    expect(find.text('PC Pokémon'), findsOneWidget);
+    expect(lifecycle.mounts, 1);
+    await tester.tap(find.byKey(const ValueKey<String>('pc-close')));
+    expect(controller.worldServiceCommands.single.action,
+        RuntimeWorldServiceAction.close);
+    expect(controller.worldServiceCommands.single.snapshotRevision, 14);
+  });
+
   testWidgets('shows safe error context and optional diagnostics',
       (tester) async {
     var diagnosticCalls = 0;

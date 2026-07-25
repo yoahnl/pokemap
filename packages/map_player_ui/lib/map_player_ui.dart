@@ -12,6 +12,7 @@ export 'src/player/player_dialogue_overlay.dart';
 export 'src/player/player_heal_confirmation.dart';
 export 'src/player/player_notification_overlay.dart';
 export 'src/player/player_pause_menu.dart';
+export 'src/player/player_pc_overlay.dart';
 export 'src/player/player_post_battle_overlay.dart';
 export 'src/player/player_shop_overlay.dart';
 export 'src/player/pokemap_player_session_view.dart';

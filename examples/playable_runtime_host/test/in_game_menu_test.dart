@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:pokemap_loader/src/in_game_menu.dart';
-import 'package:pokemap_loader/src/in_game_heal_flow.dart';
 import 'package:pokemap_loader/src/runtime_pokedex_loader.dart';
 import 'package:pokemap_loader/src/runtime_player_options.dart';
 import 'package:flutter/material.dart';
@@ -517,7 +516,7 @@ void main() {
           gameStateSnapshotBuilder: () => state,
           pokedexLoader: () async => const <RuntimePokedexEntry>[],
           onPlayerStateCommitted: (next) async => state = next,
-          recoveryCaps: const PlayerServiceRecoveryCaps(
+          recoveryCaps: const RuntimePlayerServiceRecoveryCaps(
             maxHpByPartyIndex: <int, int>{0: 30, 1: 40},
             maxPpByPartyIndex: <int, Map<String, int>>{
               0: <String, int>{'tackle': 35},
@@ -561,9 +560,9 @@ void main() {
     expect(find.textContaining('Potion utilisée'), findsOneWidget);
   });
 
-  testWidgets('opens shop PC and healing services from the locked menu route',
+  testWidgets('keeps shop PC and healing out of the global pause menu',
       (tester) async {
-    var state = _buildGameState();
+    final state = _buildGameState();
     await tester.binding.setSurfaceSize(const Size(1280, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
@@ -571,17 +570,7 @@ void main() {
         home: InGameMenuPage(
           gameStateSnapshotBuilder: () => state,
           pokedexLoader: () async => const <RuntimePokedexEntry>[],
-          onPlayerStateCommitted: (next) async => state = next,
-          shops: const <ShopDefinition>[
-            ShopDefinition(
-              id: 'mart',
-              label: 'Boutique Selbrume',
-              entries: <ShopEntryDefinition>[
-                ShopEntryDefinition(itemId: 'potion', price: 300),
-              ],
-            ),
-          ],
-          recoveryCaps: const PlayerServiceRecoveryCaps(
+          recoveryCaps: const RuntimePlayerServiceRecoveryCaps(
             maxHpByPartyIndex: <int, int>{0: 40},
           ),
           onSaveRequested: () async => const InGameMenuActionResult(),
@@ -596,17 +585,12 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.byKey(const Key('menu-shop-tile')));
-    await tester.pump();
-    expect(find.byKey(const Key('in-game-shop-page')), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('menu-pc-tile')));
-    await tester.pump();
-    expect(find.byKey(const Key('in-game-pc-page')), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('menu-heal-tile')));
-    await tester.pump();
-    expect(find.byKey(const Key('in-game-heal-flow')), findsOneWidget);
+    expect(find.byKey(const Key('menu-shop-tile')), findsNothing);
+    expect(find.byKey(const Key('menu-pc-tile')), findsNothing);
+    expect(find.byKey(const Key('menu-heal-tile')), findsNothing);
+    expect(find.text('Boutique'), findsNothing);
+    expect(find.text('PC Pokémon'), findsNothing);
+    expect(find.text('Centre Pokémon'), findsNothing);
   });
 }
 

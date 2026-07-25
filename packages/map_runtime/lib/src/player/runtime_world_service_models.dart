@@ -168,6 +168,69 @@ final class RuntimeHealServiceContent {
   final bool wasHealed;
 }
 
+final class RuntimePcBoxSnapshot {
+  const RuntimePcBoxSnapshot({
+    required this.boxId,
+    required this.label,
+    required this.count,
+    required this.capacity,
+  })  : assert(boxId != ''),
+        assert(label != ''),
+        assert(count >= 0),
+        assert(capacity > 0),
+        assert(count <= capacity);
+
+  final String boxId;
+  final String label;
+  final int count;
+  final int capacity;
+}
+
+final class RuntimePcPokemonSnapshot {
+  const RuntimePcPokemonSnapshot({
+    required this.targetId,
+    required this.label,
+    required this.level,
+    required this.canTransfer,
+    this.unavailableReason,
+  })  : assert(targetId != ''),
+        assert(label != ''),
+        assert(level > 0),
+        assert(
+          canTransfer || (unavailableReason != null && unavailableReason != ''),
+        );
+
+  /// Opaque target echoed by the player UI. Only the runtime interprets it.
+  final String targetId;
+  final String label;
+  final int level;
+  final bool canTransfer;
+  final String? unavailableReason;
+}
+
+/// Runtime-owned PC projection for one selected box.
+final class RuntimePcServiceContent {
+  RuntimePcServiceContent({
+    required this.title,
+    required this.message,
+    required this.selectedBoxId,
+    List<RuntimePcBoxSnapshot> boxes = const <RuntimePcBoxSnapshot>[],
+    List<RuntimePcPokemonSnapshot> party = const <RuntimePcPokemonSnapshot>[],
+    List<RuntimePcPokemonSnapshot> stored = const <RuntimePcPokemonSnapshot>[],
+  })  : assert(title != ''),
+        assert(selectedBoxId != ''),
+        boxes = List<RuntimePcBoxSnapshot>.unmodifiable(boxes),
+        party = List<RuntimePcPokemonSnapshot>.unmodifiable(party),
+        stored = List<RuntimePcPokemonSnapshot>.unmodifiable(stored);
+
+  final String title;
+  final String message;
+  final String selectedBoxId;
+  final List<RuntimePcBoxSnapshot> boxes;
+  final List<RuntimePcPokemonSnapshot> party;
+  final List<RuntimePcPokemonSnapshot> stored;
+}
+
 final class RuntimeWorldServiceActionAvailability {
   const RuntimeWorldServiceActionAvailability.enabled(this.action)
       : isEnabled = true,

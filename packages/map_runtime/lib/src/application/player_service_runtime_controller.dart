@@ -183,6 +183,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   _ContextualShopSession? _shopSession;
   _ContextualHealSession? _healSession;
+  _ContextualPcSession? _pcSession;
 
   bool get isActive => _active;
 
@@ -242,16 +243,13 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   }) {
     final worldRequest =
         request ?? const OpenPcService(interactionId: 'runtime.pc:default');
+    if (_host == null) {
+      return _runContextualPc(worldRequest);
+    }
     return _run(
       worldRequest,
       (state, caps) {
-        final host = _host;
-        if (host == null) {
-          return Future<PlayerServiceHostResult>.value(
-            const PlayerServiceHostResult.cancelled(),
-          );
-        }
-        return host.openPc(
+        return _host!.openPc(
           PlayerServicePcRequest(
             gameState: state,
             recoveryCaps: caps,
@@ -260,6 +258,52 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         );
       },
     );
+  }
+
+  Future<PlayerServiceRuntimeResult> _runContextualPc(
+    OpenPcService request,
+  ) async {
+    if (_disposed) {
+      return PlayerServiceRuntimeResult.failed(
+        StateError('The player-service controller is disposed.'),
+      );
+    }
+    if (_active) return const PlayerServiceRuntimeResult.busy();
+    final currentState = _currentGameState();
+    final state = currentState.copyWith(
+      pokemonStorage: currentState.pokemonStorage.normalized(),
+    );
+    final unavailableReason = _worldRequestUnavailableReason(request, state);
+    if (unavailableReason != null) {
+      return PlayerServiceRuntimeResult.unavailable(unavailableReason);
+    }
+    _active = true;
+    var inputLocked = false;
+    try {
+      _setInputLocked(true);
+      inputLocked = true;
+      final boxes = state.pokemonStorage.boxes;
+      final preferredBoxId = request.storageId;
+      final selectedBoxId =
+          preferredBoxId != null && boxes.any((box) => box.id == preferredBoxId)
+              ? preferredBoxId
+              : boxes.first.id;
+      final session = _ContextualPcSession(
+        request: request,
+        gameState: state,
+        selectedBoxId: selectedBoxId,
+      );
+      _pcSession = session;
+      _publishWorldService(_buildPcSnapshot(session));
+      return await session.result.future;
+    } catch (error) {
+      return PlayerServiceRuntimeResult.failed(error);
+    } finally {
+      _pcSession = null;
+      _publishWorldService(null);
+      if (inputLocked) _setInputLocked(false);
+      _active = false;
+    }
   }
 
   Future<PlayerServiceRuntimeResult> openHealCenter({
@@ -450,9 +494,247 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     if (shop != null) return _dispatchShop(shop, command);
     final heal = _healSession;
     if (heal != null) return _dispatchHeal(heal, command);
+    final pc = _pcSession;
+    if (pc != null) return _dispatchPc(pc, command);
     return const RuntimeWorldServiceCommandResult(
       status: RuntimeWorldServiceCommandStatus.unavailable,
       safeMessage: 'Ce service n’accepte pas cette action.',
+    );
+  }
+
+  Future<RuntimeWorldServiceCommandResult> _dispatchPc(
+    _ContextualPcSession session,
+    RuntimeWorldServiceCommand command,
+  ) async {
+    switch (command.action) {
+      case RuntimeWorldServiceAction.select:
+        final boxId = command.targetId;
+        if (boxId == null ||
+            !session.gameState.pokemonStorage.boxes
+                .any((box) => box.id == boxId)) {
+          return const RuntimeWorldServiceCommandResult(
+            status: RuntimeWorldServiceCommandStatus.unavailable,
+            safeMessage: 'Cette box n’est plus disponible.',
+          );
+        }
+        session.selectedBoxId = boxId;
+        _publishWorldService(_buildPcSnapshot(session));
+      case RuntimeWorldServiceAction.deposit:
+      case RuntimeWorldServiceAction.withdraw:
+        final targetId = command.targetId;
+        final target = targetId == null ? null : session.targets[targetId];
+        if (target == null || target.action != command.action) {
+          return const RuntimeWorldServiceCommandResult(
+            status: RuntimeWorldServiceCommandStatus.unavailable,
+            safeMessage: 'Ce Pokémon n’est plus disponible.',
+          );
+        }
+        return _applyPcTransfer(session, target);
+      case RuntimeWorldServiceAction.close:
+        session.result.complete(
+          PlayerServiceRuntimeResult.completed(session.gameState),
+        );
+      case RuntimeWorldServiceAction.cancel:
+        session.result.complete(
+          PlayerServiceRuntimeResult.completed(session.gameState),
+        );
+      case RuntimeWorldServiceAction.confirm:
+      case RuntimeWorldServiceAction.decreaseQuantity:
+      case RuntimeWorldServiceAction.increaseQuantity:
+        return const RuntimeWorldServiceCommandResult(
+          status: RuntimeWorldServiceCommandStatus.unavailable,
+          safeMessage: 'Cette commande ne concerne pas le PC.',
+        );
+    }
+    return const RuntimeWorldServiceCommandResult(
+      status: RuntimeWorldServiceCommandStatus.accepted,
+    );
+  }
+
+  Future<RuntimeWorldServiceCommandResult> _applyPcTransfer(
+    _ContextualPcSession session,
+    _PcTransferTarget target,
+  ) async {
+    const operations = PlayerStorageOperations();
+    final result = switch (target.action) {
+      RuntimeWorldServiceAction.deposit => operations.deposit(
+          state: session.gameState,
+          partyIndex: target.index,
+          boxId: session.selectedBoxId,
+        ),
+      RuntimeWorldServiceAction.withdraw => operations.withdraw(
+          state: session.gameState,
+          boxId: target.boxId!,
+          boxIndex: target.index,
+        ),
+      _ => throw StateError('Unsupported PC transfer action.'),
+    };
+    if (!result.isSuccess) {
+      final message = _pcFailureMessage(result.failure!);
+      _publishWorldService(
+        _buildPcSnapshot(session, safeMessage: message),
+      );
+      return RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.unavailable,
+        safeMessage: message,
+      );
+    }
+
+    _publishWorldService(
+      _buildPcSnapshot(
+        session,
+        stage: RuntimeWorldServiceStage.applying,
+        safeMessage: 'Enregistrement du PC…',
+      ),
+    );
+    try {
+      await _commitAndSave(result.state);
+      session.gameState = result.state.copyWith(
+        pokemonStorage: result.state.pokemonStorage.normalized(),
+      );
+      _publishWorldService(
+        _buildPcSnapshot(
+          session,
+          safeMessage: target.action == RuntimeWorldServiceAction.deposit
+              ? 'Pokémon déposé dans la box.'
+              : 'Pokémon ajouté à l’équipe.',
+        ),
+      );
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.accepted,
+      );
+    } catch (error) {
+      const message = 'La modification du PC n’a pas pu être enregistrée.';
+      _publishWorldService(
+        _buildPcSnapshot(session, safeMessage: message),
+      );
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.failed,
+        safeMessage: message,
+      );
+    }
+  }
+
+  RuntimeWorldServiceSnapshot _buildPcSnapshot(
+    _ContextualPcSession session, {
+    RuntimeWorldServiceStage stage = RuntimeWorldServiceStage.active,
+    String? safeMessage,
+  }) {
+    final boxes = session.gameState.pokemonStorage.normalized().boxes;
+    if (!boxes.any((box) => box.id == session.selectedBoxId)) {
+      session.selectedBoxId = boxes.first.id;
+    }
+    final selectedBox =
+        boxes.firstWhere((box) => box.id == session.selectedBoxId);
+    final targets = <String, _PcTransferTarget>{};
+    final party = <RuntimePcPokemonSnapshot>[];
+    const operations = PlayerStorageOperations();
+    for (var index = 0;
+        index < session.gameState.party.members.length;
+        index++) {
+      final pokemon = session.gameState.party.members[index];
+      final result = operations.deposit(
+        state: session.gameState,
+        partyIndex: index,
+        boxId: selectedBox.id,
+      );
+      final targetId = 'party-slot-$index';
+      targets[targetId] = _PcTransferTarget(
+        action: RuntimeWorldServiceAction.deposit,
+        index: index,
+      );
+      party.add(
+        RuntimePcPokemonSnapshot(
+          targetId: targetId,
+          label: _shopItemLabel(pokemon.speciesId),
+          level: pokemon.level,
+          canTransfer: result.isSuccess,
+          unavailableReason:
+              result.isSuccess ? null : _pcFailureMessage(result.failure!),
+        ),
+      );
+    }
+    final stored = <RuntimePcPokemonSnapshot>[];
+    for (var index = 0; index < selectedBox.pokemon.length; index++) {
+      final pokemon = selectedBox.pokemon[index];
+      final result = operations.withdraw(
+        state: session.gameState,
+        boxId: selectedBox.id,
+        boxIndex: index,
+      );
+      final targetId = 'box-slot-${selectedBox.id}-$index';
+      targets[targetId] = _PcTransferTarget(
+        action: RuntimeWorldServiceAction.withdraw,
+        index: index,
+        boxId: selectedBox.id,
+      );
+      stored.add(
+        RuntimePcPokemonSnapshot(
+          targetId: targetId,
+          label: _shopItemLabel(pokemon.speciesId),
+          level: pokemon.level,
+          canTransfer: result.isSuccess,
+          unavailableReason:
+              result.isSuccess ? null : _pcFailureMessage(result.failure!),
+        ),
+      );
+    }
+    session.targets = targets;
+    final canDeposit = party.any((pokemon) => pokemon.canTransfer);
+    final canWithdraw = stored.any((pokemon) => pokemon.canTransfer);
+    return RuntimeWorldServiceSnapshot(
+      revision: (_worldServiceSnapshot?.revision ?? -1) + 1,
+      request: session.request,
+      stage: stage,
+      content: RuntimePcServiceContent(
+        title: 'PC Pokémon',
+        message: 'Organisez votre équipe et vos boxes.',
+        selectedBoxId: selectedBox.id,
+        boxes: boxes
+            .map(
+              (box) => RuntimePcBoxSnapshot(
+                boxId: box.id,
+                label: box.label,
+                count: box.pokemon.length,
+                capacity: box.capacity,
+              ),
+            )
+            .toList(growable: false),
+        party: party,
+        stored: stored,
+      ),
+      safeMessage: safeMessage,
+      logicalSelectionId: selectedBox.id,
+      actions: stage == RuntimeWorldServiceStage.applying
+          ? const <RuntimeWorldServiceActionAvailability>[]
+          : <RuntimeWorldServiceActionAvailability>[
+              const RuntimeWorldServiceActionAvailability.enabled(
+                RuntimeWorldServiceAction.select,
+              ),
+              if (canDeposit)
+                const RuntimeWorldServiceActionAvailability.enabled(
+                  RuntimeWorldServiceAction.deposit,
+                )
+              else
+                RuntimeWorldServiceActionAvailability.disabled(
+                  RuntimeWorldServiceAction.deposit,
+                  reason: party.firstOrNull?.unavailableReason ??
+                      'Aucun Pokémon ne peut être déposé.',
+                ),
+              if (canWithdraw)
+                const RuntimeWorldServiceActionAvailability.enabled(
+                  RuntimeWorldServiceAction.withdraw,
+                )
+              else
+                RuntimeWorldServiceActionAvailability.disabled(
+                  RuntimeWorldServiceAction.withdraw,
+                  reason: stored.firstOrNull?.unavailableReason ??
+                      'Aucun Pokémon ne peut être retiré.',
+                ),
+              const RuntimeWorldServiceActionAvailability.enabled(
+                RuntimeWorldServiceAction.close,
+              ),
+            ],
     );
   }
 
@@ -867,6 +1149,11 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       heal.result.complete(const PlayerServiceRuntimeResult.cancelled());
     }
     _healSession = null;
+    final pc = _pcSession;
+    if (pc != null && !pc.result.isCompleted) {
+      pc.result.complete(const PlayerServiceRuntimeResult.cancelled());
+    }
+    _pcSession = null;
     _publishWorldService(null);
     await _worldServiceSnapshots.close();
   }
@@ -904,6 +1191,32 @@ final class _ContextualHealSession {
   Object? failure;
 }
 
+final class _ContextualPcSession {
+  _ContextualPcSession({
+    required this.request,
+    required this.gameState,
+    required this.selectedBoxId,
+  });
+
+  final OpenPcService request;
+  final result = Completer<PlayerServiceRuntimeResult>();
+  GameState gameState;
+  String selectedBoxId;
+  Map<String, _PcTransferTarget> targets = const <String, _PcTransferTarget>{};
+}
+
+final class _PcTransferTarget {
+  const _PcTransferTarget({
+    required this.action,
+    required this.index,
+    this.boxId,
+  });
+
+  final RuntimeWorldServiceAction action;
+  final int index;
+  final String? boxId;
+}
+
 String _categoryForShopItem(String itemId) {
   final effect = const PlayerItemEffectRegistry.mvp().effectFor(itemId);
   return switch (effect?.kind) {
@@ -934,6 +1247,18 @@ String _shopItemLabel(String itemId) => itemId
       (part) => '${part.substring(0, 1).toUpperCase()}${part.substring(1)}',
     )
     .join(' ');
+
+String _pcFailureMessage(PlayerStorageFailure failure) => switch (failure) {
+      PlayerStorageFailure.invalidRequest => 'Opération PC invalide.',
+      PlayerStorageFailure.invalidPartyIndex => 'Slot d’équipe invalide.',
+      PlayerStorageFailure.invalidBoxId => 'Box inconnue.',
+      PlayerStorageFailure.invalidBoxIndex => 'Slot de box invalide.',
+      PlayerStorageFailure.partyFull => 'L’équipe est pleine.',
+      PlayerStorageFailure.boxFull => 'Cette box est pleine.',
+      PlayerStorageFailure.storageFull => 'Le PC est plein.',
+      PlayerStorageFailure.lastUsablePokemon =>
+        'Impossible de déposer le dernier Pokémon utilisable.',
+    };
 
 /// Resolves the real HP and PP caps needed by Bag and healing screens.
 Future<RuntimePlayerServiceRecoveryCaps> loadRuntimePlayerServiceRecoveryCaps({
