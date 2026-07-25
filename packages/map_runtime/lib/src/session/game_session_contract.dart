@@ -2,6 +2,7 @@ import 'dart:collection';
 
 import 'package:map_core/map_core.dart';
 
+import '../presentation/flame/runtime_input_authority.dart';
 import '../presentation/flame/runtime_input_event.dart';
 
 const int gameSessionProtocolVersion = 1;
@@ -495,6 +496,13 @@ final class GameSessionFatal extends GameSessionAdapterEvent {
   const GameSessionFatal(super.sessionId, this.failure);
 
   final GameSessionFailure failure;
+}
+
+abstract interface class GameSessionInputLockPort {
+  Future<void> setInputLock(
+    RuntimeExternalInputLock owner, {
+    required bool locked,
+  });
 }
 
 abstract interface class GameSessionAdapter {

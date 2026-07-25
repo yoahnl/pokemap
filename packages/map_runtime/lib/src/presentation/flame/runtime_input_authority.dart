@@ -19,6 +19,7 @@ enum RuntimeInputContext {
 /// wrong overlay when more player surfaces are added later.
 enum RuntimeExternalInputLock {
   pauseMenu,
+  lifecycle,
   playerService,
   gameCompletion,
 }

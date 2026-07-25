@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../presentation/flame/runtime_input_authority.dart';
 import '../presentation/flame/runtime_input_event.dart';
 import '../player/runtime_world_service_models.dart';
 import 'game_session_contract.dart';
@@ -35,7 +36,10 @@ typedef InProcessGameSessionRuntimeFactory = InProcessGameSessionRuntime
 /// It intentionally mirrors the future child-process adapter: only the
 /// topology changes, never the controller or player-facing snapshots.
 final class InProcessGameSessionAdapter
-    implements GameSessionAdapter, RuntimeWorldServicePort {
+    implements
+        GameSessionAdapter,
+        GameSessionInputLockPort,
+        RuntimeWorldServicePort {
   InProcessGameSessionAdapter({
     required InProcessGameSessionRuntimeFactory runtimeFactory,
   }) : _runtimeFactory = runtimeFactory;
@@ -144,6 +148,17 @@ final class InProcessGameSessionAdapter
     final descriptor = _requirePrepared();
     await _runtime!.resume();
     _emit(GameSessionRunning(descriptor.sessionId));
+  }
+
+  @override
+  Future<void> setInputLock(
+    RuntimeExternalInputLock owner, {
+    required bool locked,
+  }) async {
+    final runtime = _requireRuntime();
+    if (runtime case final GameSessionInputLockPort port) {
+      await port.setInputLock(owner, locked: locked);
+    }
   }
 
   @override

@@ -77,6 +77,10 @@ void main() {
         locked: true,
       );
 
+      expect(
+        game.debugInputLockSnapshot.activeSurface,
+        RuntimeInputSurface.pause,
+      );
       expect(game.inputAuthoritySnapshot.acceptsRuntimeInput, isFalse);
       expect(game.debugIsGameplayInputLocked, isTrue);
       expect(
@@ -89,10 +93,31 @@ void main() {
       expect(game.debugPlayerGridPosition, initialPosition);
 
       game.setExternalInputLock(
+        RuntimeExternalInputLock.playerService,
+        locked: true,
+      );
+      expect(
+        game.debugInputLockSnapshot.activeSurface,
+        RuntimeInputSurface.playerService,
+      );
+      game.setExternalInputLock(
+        RuntimeExternalInputLock.playerService,
+        locked: false,
+      );
+      expect(
+        game.debugInputLockSnapshot.activeSurface,
+        RuntimeInputSurface.pause,
+      );
+
+      game.setExternalInputLock(
         RuntimeExternalInputLock.pauseMenu,
         locked: false,
       );
 
+      expect(
+        game.debugInputLockSnapshot.activeSurface,
+        RuntimeInputSurface.world,
+      );
       expect(game.inputAuthoritySnapshot.acceptsRuntimeInput, isTrue);
       expect(game.debugIsGameplayInputLocked, isFalse);
     });

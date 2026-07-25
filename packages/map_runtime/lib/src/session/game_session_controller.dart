@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:map_core/map_core.dart';
 
+import '../presentation/flame/runtime_input_authority.dart';
 import '../presentation/flame/runtime_input_event.dart';
 import '../player/runtime_world_service_models.dart';
 import 'game_session_contract.dart';
@@ -193,7 +194,19 @@ final class GameSessionController implements RuntimeWorldServicePort {
   Future<void> pause() {
     return _serialize(() async {
       _requireState(<GameSessionState>{GameSessionState.running}, 'pause');
-      await _adapter!.pause();
+      await _setInputLock(
+        RuntimeExternalInputLock.pauseMenu,
+        locked: true,
+      );
+      try {
+        await _adapter!.pause();
+      } catch (_) {
+        await _setInputLock(
+          RuntimeExternalInputLock.pauseMenu,
+          locked: false,
+        );
+        rethrow;
+      }
       _publish(_snapshot.copyWith(state: GameSessionState.paused));
     });
   }
@@ -202,6 +215,10 @@ final class GameSessionController implements RuntimeWorldServicePort {
     return _serialize(() async {
       _requireState(<GameSessionState>{GameSessionState.paused}, 'resume');
       await _adapter!.resume();
+      await _setInputLock(
+        RuntimeExternalInputLock.pauseMenu,
+        locked: false,
+      );
       _publish(_snapshot.copyWith(state: GameSessionState.running));
     });
   }
@@ -217,8 +234,20 @@ final class GameSessionController implements RuntimeWorldServicePort {
       };
       _requireState(allowed, 'pauseForLifecycle');
       final resumeState = _snapshot.state;
-      if (resumeState != GameSessionState.paused) {
-        await _adapter!.pause();
+      await _setInputLock(
+        RuntimeExternalInputLock.lifecycle,
+        locked: true,
+      );
+      try {
+        if (resumeState != GameSessionState.paused) {
+          await _adapter!.pause();
+        }
+      } catch (_) {
+        await _setInputLock(
+          RuntimeExternalInputLock.lifecycle,
+          locked: false,
+        );
+        rethrow;
       }
       _publish(
         _snapshot.copyWith(
@@ -249,6 +278,10 @@ final class GameSessionController implements RuntimeWorldServicePort {
       if (target != GameSessionState.paused) {
         await _adapter!.resume();
       }
+      await _setInputLock(
+        RuntimeExternalInputLock.lifecycle,
+        locked: false,
+      );
       _publish(
         _snapshot.copyWith(
           state: target,
@@ -707,6 +740,16 @@ final class GameSessionController implements RuntimeWorldServicePort {
       firstError ??= error;
     }
     return firstError;
+  }
+
+  Future<void> _setInputLock(
+    RuntimeExternalInputLock owner, {
+    required bool locked,
+  }) async {
+    final adapter = _adapter;
+    if (adapter case final GameSessionInputLockPort port) {
+      await port.setInputLock(owner, locked: locked);
+    }
   }
 
   void _requireState(Set<GameSessionState> allowed, String operation) {

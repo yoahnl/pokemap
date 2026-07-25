@@ -42,6 +42,7 @@ import '../../application/npc_overworld_movement_defaults.dart';
 import '../../application/npc_runtime_presence.dart';
 import '../../application/placed_behavior_runtime_cooldown.dart';
 import '../../application/player_service_runtime_controller.dart';
+import '../../player/runtime_input_lock_manager.dart';
 import '../../player/runtime_world_service_models.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_battle_setup_mapper.dart';
@@ -142,6 +143,29 @@ enum _RuntimeFlowPhase {
   battleTransition,
   battle,
 }
+
+RuntimeInputLockOwner _inputOwnerForExternalLock(
+  RuntimeExternalInputLock lock,
+) =>
+    switch (lock) {
+      RuntimeExternalInputLock.pauseMenu => RuntimeInputLockOwner.pauseMenu,
+      RuntimeExternalInputLock.lifecycle => RuntimeInputLockOwner.lifecycle,
+      RuntimeExternalInputLock.playerService =>
+        RuntimeInputLockOwner.playerService,
+      RuntimeExternalInputLock.gameCompletion =>
+        RuntimeInputLockOwner.gameCompletion,
+    };
+
+RuntimeInputSurface _inputSurfaceForExternalLock(
+  RuntimeExternalInputLock lock,
+) =>
+    switch (lock) {
+      RuntimeExternalInputLock.pauseMenu => RuntimeInputSurface.pause,
+      RuntimeExternalInputLock.lifecycle => RuntimeInputSurface.background,
+      RuntimeExternalInputLock.playerService =>
+        RuntimeInputSurface.playerService,
+      RuntimeExternalInputLock.gameCompletion => RuntimeInputSurface.completion,
+    };
 
 final class _NarrativeOutcomeRetryPendingException implements Exception {
   const _NarrativeOutcomeRetryPendingException({
@@ -354,8 +378,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   String _activeMapId = '';
   String? _previousMapId;
   _RuntimeFlowPhase _flowPhase = _RuntimeFlowPhase.overworld;
-  final Set<RuntimeExternalInputLock> _externalInputLocks =
-      <RuntimeExternalInputLock>{};
+  final RuntimeInputLockManager _inputLocks = RuntimeInputLockManager();
+  RuntimeInputLockToken? _flowInputLock;
+  RuntimeInputLockToken? _cinematicInputLock;
+  final Map<RuntimeInputLockOwner, RuntimeInputLockToken> _derivedInputLocks =
+      <RuntimeInputLockOwner, RuntimeInputLockToken>{};
+  final Map<RuntimeExternalInputLock, RuntimeInputLockToken>
+      _externalInputLocks = <RuntimeExternalInputLock, RuntimeInputLockToken>{};
   final Set<RuntimeInputControl> _pressedMovementControls =
       <RuntimeInputControl>{};
   RuntimeInputControl? _lastMovementControl;
@@ -445,7 +474,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   late final _PlayableMapCinematicRuntimeHost _cinematicRuntimeHost;
   late final FlameCinematicRuntimePlaybackSink _cinematicRuntimeSink;
   late final CinematicRuntimePlaybackController _cinematicRuntimeController;
-  bool _cinematicInputLocked = false;
   final BattleVisualAssetCache _battleVisualAssetCache =
       BattleVisualAssetCache();
   late final RuntimeBattleSetupMapper _battleSetupMapper =
@@ -1452,6 +1480,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   int _postBattleFlowGeneration = 0;
   Completer<void>? _postBattleFlowCompleter;
   Future<void> _postBattleCompletionFuture = Future<void>.value();
+  RuntimeInputLockToken? _postBattleInputLock;
 
   // Line of Sight (LoS) trainer detection
   final Set<String> _triggeredTrainerBattles = {}; // Anti-retrigger lock
@@ -1899,33 +1928,145 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   /// The single player-input authority exposed to Flutter hosts and tests.
-  ///
-  /// Internal contexts are derived from the existing runtime flow. Only
-  /// external owners are stored, because a Flutter route cannot be represented
-  /// by Flame's private flow enum without creating a second state machine.
   RuntimeInputAuthoritySnapshot get inputAuthoritySnapshot {
-    final context = switch (_flowPhase) {
-      _ when _cinematicInputLocked => RuntimeInputContext.cinematic,
-      _RuntimeFlowPhase.overworld
-          when _activeBlockingInteractionSerial != null ||
-              _blocksOverworldForMapActivationWork ||
-              _blocksOverworldForNarrativeDispatch ||
-              isCutsceneRunning ||
-              _suppressOverworldInputForScriptedPlayerMovement() =>
+    _syncDerivedInputLocks();
+    final lockSnapshot = _inputLocks.snapshot;
+    final externalTokens = _externalInputLocks.values.toSet();
+    final internalTokens = lockSnapshot.activeTokens
+        .where((token) => !externalTokens.contains(token))
+        .toList(growable: false);
+    final internalSurface = internalTokens.isEmpty
+        ? RuntimeInputSurface.world
+        : internalTokens.last.surface;
+    final context = switch (internalSurface) {
+      RuntimeInputSurface.world => RuntimeInputContext.overworld,
+      RuntimeInputSurface.dialogue => RuntimeInputContext.dialogue,
+      RuntimeInputSurface.cinematic => RuntimeInputContext.cinematic,
+      RuntimeInputSurface.battle ||
+      RuntimeInputSurface.progression =>
+        RuntimeInputContext.battle,
+      RuntimeInputSurface.transition => RuntimeInputContext.transition,
+      RuntimeInputSurface.pause ||
+      RuntimeInputSurface.playerService ||
+      RuntimeInputSurface.blocked ||
+      RuntimeInputSurface.background ||
+      RuntimeInputSurface.completion =>
         RuntimeInputContext.blocked,
-      _RuntimeFlowPhase.overworld => RuntimeInputContext.overworld,
-      _RuntimeFlowPhase.dialogue => RuntimeInputContext.dialogue,
-      _RuntimeFlowPhase.battle => RuntimeInputContext.battle,
-      _RuntimeFlowPhase.mapTransition ||
-      _RuntimeFlowPhase.battleTransition =>
-        RuntimeInputContext.transition,
-      _RuntimeFlowPhase.blockingInteraction => RuntimeInputContext.blocked,
     };
     return RuntimeInputAuthoritySnapshot(
       context: context,
       externalLocks:
-          Set<RuntimeExternalInputLock>.unmodifiable(_externalInputLocks),
+          Set<RuntimeExternalInputLock>.unmodifiable(_externalInputLocks.keys),
     );
+  }
+
+  void _setFlowPhase(_RuntimeFlowPhase phase) {
+    final previousToken = _flowInputLock;
+    _flowInputLock = null;
+    if (previousToken != null) {
+      _inputLocks.release(
+        owner: previousToken.owner,
+        token: previousToken,
+      );
+    }
+    _flowPhase = phase;
+    switch (phase) {
+      case _RuntimeFlowPhase.overworld:
+        return;
+      case _RuntimeFlowPhase.blockingInteraction:
+        _flowInputLock = _inputLocks.acquire(
+          owner: RuntimeInputLockOwner.blockingInteraction,
+          surface: RuntimeInputSurface.blocked,
+        );
+      case _RuntimeFlowPhase.dialogue:
+        _flowInputLock = _inputLocks.acquire(
+          owner: RuntimeInputLockOwner.dialogue,
+          surface: RuntimeInputSurface.dialogue,
+        );
+      case _RuntimeFlowPhase.mapTransition:
+      case _RuntimeFlowPhase.battleTransition:
+        _flowInputLock = _inputLocks.acquire(
+          owner: RuntimeInputLockOwner.transition,
+          surface: RuntimeInputSurface.transition,
+        );
+      case _RuntimeFlowPhase.battle:
+        _flowInputLock = _inputLocks.acquire(
+          owner: RuntimeInputLockOwner.battle,
+          surface: RuntimeInputSurface.battle,
+        );
+    }
+  }
+
+  void _setCinematicInputLocked(bool locked) {
+    if (locked) {
+      _cinematicInputLock ??= _inputLocks.acquire(
+        owner: RuntimeInputLockOwner.cinematic,
+        surface: RuntimeInputSurface.cinematic,
+      );
+      if (isLoaded) {
+        _clearPressedMovementControls();
+      }
+      return;
+    }
+    final token = _cinematicInputLock;
+    _cinematicInputLock = null;
+    if (token != null) {
+      _inputLocks.release(
+        owner: RuntimeInputLockOwner.cinematic,
+        token: token,
+      );
+    }
+  }
+
+  void _syncDerivedInputLocks() {
+    _setDerivedInputLock(
+      RuntimeInputLockOwner.blockingInteraction,
+      RuntimeInputSurface.blocked,
+      _activeBlockingInteractionSerial != null,
+    );
+    _setDerivedInputLock(
+      RuntimeInputLockOwner.mapActivation,
+      RuntimeInputSurface.blocked,
+      _blocksOverworldForMapActivationWork,
+    );
+    _setDerivedInputLock(
+      RuntimeInputLockOwner.narrativeDispatch,
+      RuntimeInputSurface.blocked,
+      _blocksOverworldForNarrativeDispatch,
+    );
+    _setDerivedInputLock(
+      RuntimeInputLockOwner.checkpoint,
+      RuntimeInputSurface.blocked,
+      _narrativeActivityGate.checkpointInProgress,
+    );
+    _setDerivedInputLock(
+      RuntimeInputLockOwner.scriptedMovement,
+      RuntimeInputSurface.blocked,
+      _suppressOverworldInputForScriptedPlayerMovement(),
+    );
+    _setDerivedInputLock(
+      RuntimeInputLockOwner.cutscene,
+      RuntimeInputSurface.blocked,
+      isCutsceneRunning,
+    );
+  }
+
+  void _setDerivedInputLock(
+    RuntimeInputLockOwner owner,
+    RuntimeInputSurface surface,
+    bool locked,
+  ) {
+    if (locked) {
+      _derivedInputLocks.putIfAbsent(
+        owner,
+        () => _inputLocks.acquire(owner: owner, surface: surface),
+      );
+      return;
+    }
+    final token = _derivedInputLocks.remove(owner);
+    if (token != null) {
+      _inputLocks.release(owner: owner, token: token);
+    }
   }
 
   /// Acquires or releases a lock owned by a Flutter player surface.
@@ -1938,13 +2079,42 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required bool locked,
   }) {
     if (locked) {
-      _externalInputLocks.add(owner);
+      _externalInputLocks.putIfAbsent(
+        owner,
+        () => _inputLocks.acquire(
+          owner: _inputOwnerForExternalLock(owner),
+          surface: _inputSurfaceForExternalLock(owner),
+        ),
+      );
       if (isLoaded) {
         _clearPressedMovementControls();
       }
       return;
     }
-    _externalInputLocks.remove(owner);
+    final token = _externalInputLocks.remove(owner);
+    if (token != null) {
+      _inputLocks.release(
+        owner: _inputOwnerForExternalLock(owner),
+        token: token,
+      );
+    }
+  }
+
+  void _releasePostBattleInputLock() {
+    final token = _postBattleInputLock;
+    _postBattleInputLock = null;
+    if (token != null) {
+      _inputLocks.release(
+        owner: RuntimeInputLockOwner.postBattleProgression,
+        token: token,
+      );
+    }
+  }
+
+  @visibleForTesting
+  RuntimeInputLockSnapshot get debugInputLockSnapshot {
+    _syncDerivedInputLocks();
+    return _inputLocks.snapshot;
   }
 
   @visibleForTesting
@@ -2255,7 +2425,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (_flowPhase != _RuntimeFlowPhase.overworld) {
       throw StateError('Battle test seam requires overworld flow.');
     }
-    _flowPhase = _RuntimeFlowPhase.battleTransition;
+    _setFlowPhase(_RuntimeFlowPhase.battleTransition);
     await _openBattleOverlay(request);
   }
 
@@ -2291,6 +2461,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _isBattleResolving = false;
     _isPostBattleFlowRunning = false;
     _isPostBattleCommitCompleted = false;
+    _releasePostBattleInputLock();
     _postBattleFlowGeneration += 1;
     final postBattleCompleter = _postBattleFlowCompleter;
     if (postBattleCompleter != null && !postBattleCompleter.isCompleted) {
@@ -2305,7 +2476,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         message: 'Scene dialogue was cancelled by debug battle reset.',
       ),
     );
-    _flowPhase = _RuntimeFlowPhase.overworld;
+    _setFlowPhase(_RuntimeFlowPhase.overworld);
     _clearPressedMovementControls();
   }
 
@@ -2320,7 +2491,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     _activeBattleContext = context;
     _captureAttemptReceipt = captureAttemptReceipt;
-    _flowPhase = _RuntimeFlowPhase.battle;
+    _setFlowPhase(_RuntimeFlowPhase.battle);
     _isBattleResolving = true;
     await _beginPostBattleFlow(outcome);
   }
@@ -2344,7 +2515,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _pendingBattleRequest = null;
     _activeBattleContext = context;
     _captureAttemptReceipt = captureAttemptReceipt;
-    _flowPhase = _RuntimeFlowPhase.battle;
+    _setFlowPhase(_RuntimeFlowPhase.battle);
     _onBattleFinished(outcome);
   }
 
@@ -3217,7 +3388,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _applyDebugTileMarker();
     _resetScriptedNpcMovementController();
     _resetTriggerEnterOccupancy();
-    _flowPhase = _RuntimeFlowPhase.overworld;
+    _setFlowPhase(_RuntimeFlowPhase.overworld);
     _installMapActivation(activation);
     await super.onLoad();
     _runDetachedNarrativeTask(
@@ -3274,8 +3445,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (!isLoaded) {
       return false;
     }
+    final inputAuthority = inputAuthoritySnapshot;
 
-    if (_cinematicInputLocked) {
+    if (inputAuthority.context == RuntimeInputContext.cinematic) {
       if (_isMovementControl(control)) {
         _releaseMovementControl(control);
       }
@@ -3372,40 +3544,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return false;
     }
 
-    if (_activeBlockingInteractionSerial != null) {
+    if (inputAuthority.context == RuntimeInputContext.blocked) {
       if (_isMovementControl(control)) {
         _releaseMovementControl(control);
       }
-      if (event.isPress) {
+      if (event.isPress && _activeBlockingInteractionSerial != null) {
         debugPrint(
           '[scenario_lock] input blocked while pending source=${_activeBlockingInteractionSourceId ?? '-'}',
         );
       }
       return true;
-    }
-
-    // Pendant une cutscene active en overworld, on bloque les entrées joueur
-    // directes (déplacement/interact) pour garder la scène déterministe.
-    if (isCutsceneRunning && _flowPhase == _RuntimeFlowPhase.overworld) {
-      if (_isMovementControl(control)) {
-        _releaseMovementControl(control);
-        return true;
-      }
-      if (event.isPress && control == RuntimeInputControl.primary) {
-        return true;
-      }
-    }
-
-    // Déplacement scripté joueur (scénario / cutscene): pas d’entrées directes.
-    if (_suppressOverworldInputForScriptedPlayerMovement() &&
-        _flowPhase == _RuntimeFlowPhase.overworld) {
-      if (_isMovementControl(control)) {
-        _releaseMovementControl(control);
-        return true;
-      }
-      if (event.isPress && control == RuntimeInputControl.primary) {
-        return true;
-      }
     }
 
     if (_isMovementControl(control)) {
@@ -3421,11 +3569,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return true;
       }
       if (_flowPhase != _RuntimeFlowPhase.overworld) {
-        _releaseMovementControl(control);
-        return true;
-      }
-      if (_blocksOverworldForMapActivationWork ||
-          _blocksOverworldForNarrativeDispatch) {
         _releaseMovementControl(control);
         return true;
       }
@@ -3463,11 +3606,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     if (_flowPhase != _RuntimeFlowPhase.overworld) {
       return false;
-    }
-
-    if (_blocksOverworldForMapActivationWork ||
-        _blocksOverworldForNarrativeDispatch) {
-      return true;
     }
 
     if (control == RuntimeInputControl.primary) {
@@ -3520,7 +3658,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
       if (pendingConnectionEntryAnimation != null && !_player.isStepping) {
         _pendingConnectionEntryAnimation = null;
-        _flowPhase = _RuntimeFlowPhase.overworld;
+        _setFlowPhase(_RuntimeFlowPhase.overworld);
         _resetTriggerEnterOccupancy();
         debugPrint(
           '[connection] transition complete -> map=${pendingConnectionEntryAnimation.mapId} pos=(${_world.player.pos.x}, ${_world.player.pos.y})',
@@ -3704,12 +3842,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
 
-    if (_activeBlockingInteractionSerial != null) {
-      _clearPressedMovementControls();
-      return;
-    }
-
-    if (blocksNewOverworldLaunch) {
+    if (!inputAuthoritySnapshot.acceptsOverworldInput) {
       _clearPressedMovementControls();
       return;
     }
@@ -5653,7 +5786,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _activeBlockingInteractionSerial = serial;
     _activeBlockingInteractionSourceId = source;
     _hasPendingDialogueLoad = pendingDialogueLoad;
-    _flowPhase = _RuntimeFlowPhase.blockingInteraction;
+    _setFlowPhase(_RuntimeFlowPhase.blockingInteraction);
     debugPrint(
       '[scenario_lock] accepted source=$source phase=${pendingDialogueLoad ? 'dialogueLoading' : 'blockingInteraction'} serial=$serial',
     );
@@ -5687,7 +5820,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     _clearBlockingInteractionState();
     if (_flowPhase == _RuntimeFlowPhase.blockingInteraction) {
-      _flowPhase = _RuntimeFlowPhase.overworld;
+      _setFlowPhase(_RuntimeFlowPhase.overworld);
     }
     debugPrint(
       '[scenario_lock] released source=$source reason=$reason serial=$serial',
@@ -6973,7 +7106,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (_flowPhase != _RuntimeFlowPhase.overworld) {
       return;
     }
-    _flowPhase = _RuntimeFlowPhase.battleTransition;
+    _setFlowPhase(_RuntimeFlowPhase.battleTransition);
     _notification?.removeFromParent();
     _notification = null;
     _setRuntimeNotificationSnapshot(null);
@@ -7086,7 +7219,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           psdkSetup?.opponent.speciesId ?? setup!.enemyPokemon.speciesId,
         ),
       ));
-      _flowPhase = _RuntimeFlowPhase.battle;
+      _setFlowPhase(_RuntimeFlowPhase.battle);
 
       // Lot 4 garde le routing de difficulté côté runtime :
       // - la donnée produit vit sur le trainer du projet ;
@@ -7260,7 +7393,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _activeBattleContext = null;
     _captureAttemptReceipt = null;
     _isBattleResolving = false;
-    _flowPhase = _RuntimeFlowPhase.overworld;
+    _setFlowPhase(_RuntimeFlowPhase.overworld);
     _clearPressedMovementControls();
     final scenarioOwner = _pendingScenarioBattleHandoff;
     if (scenarioOwner?.requestId == request.requestId) {
@@ -7611,6 +7744,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _isPostBattleFlowRunning = true;
     _isPostBattleCommitCompleted = false;
     _isBattleResolving = true;
+    _postBattleInputLock ??= _inputLocks.acquire(
+      owner: RuntimeInputLockOwner.postBattleProgression,
+      surface: RuntimeInputSurface.progression,
+    );
     _battleOverlay?.lockForPostBattle();
     _setBattleCommandOverlaySnapshot(null);
     final generation = ++_postBattleFlowGeneration;
@@ -7775,7 +7912,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _isBattleResolving = false;
     _isPostBattleFlowRunning = false;
     _isPostBattleCommitCompleted = false;
-    _flowPhase = _RuntimeFlowPhase.overworld;
+    _releasePostBattleInputLock();
+    _setFlowPhase(_RuntimeFlowPhase.overworld);
     _clearPressedMovementControls();
     final postBattleCompleter = _postBattleFlowCompleter;
     if (postBattleCompleter != null && !postBattleCompleter.isCompleted) {
@@ -7897,6 +8035,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _isBattleResolving = false; // Reset lock anti-spam
     _isPostBattleFlowRunning = false;
     _isPostBattleCommitCompleted = false;
+    _releasePostBattleInputLock();
     final postBattleCompleter = _postBattleFlowCompleter;
     if (postBattleCompleter != null && !postBattleCompleter.isCompleted) {
       postBattleCompleter.complete();
@@ -7958,7 +8097,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       // 3. Reprendre le graphe scénario après le node battle.
       // On remet d'abord en overworld pour que la continuation puisse
       // redispatcher sans être bloquée par le flow phase guard.
-      _flowPhase = _RuntimeFlowPhase.overworld;
+      _setFlowPhase(_RuntimeFlowPhase.overworld);
       _clearPressedMovementControls();
       _prewarmActiveMapBattleData();
       _refreshWorldNpcPresence();
@@ -7976,7 +8115,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
 
-    _flowPhase = _RuntimeFlowPhase.overworld;
+    _setFlowPhase(_RuntimeFlowPhase.overworld);
     _clearPressedMovementControls();
     _prewarmActiveMapBattleData();
     if (sceneBattleOutcomeResult != null) {
@@ -9174,7 +9313,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           _clearBlockingInteractionWithoutUnlock(
             reason: 'scriptWarpPending',
           );
-          _flowPhase = _RuntimeFlowPhase.overworld;
+          _setFlowPhase(_RuntimeFlowPhase.overworld);
         } else if (serial != null) {
           _releaseBlockingInteraction(
             serial: serial,
@@ -9648,7 +9787,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _setRuntimeNotificationSnapshot(null);
     _clearBlockingInteractionWithoutUnlock(reason: 'dialogueOpened');
     _clearPressedMovementControls();
-    _flowPhase = _RuntimeFlowPhase.dialogue;
+    _setFlowPhase(_RuntimeFlowPhase.dialogue);
 
     final overlay = DialogueOverlayComponent(
       session: session,
@@ -9660,7 +9799,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         debugPrint('[dialogue] dialogue closed');
         _dialogueOverlay = null;
         _setDialoguePresentationSnapshot(null);
-        _flowPhase = _RuntimeFlowPhase.overworld;
+        _setFlowPhase(_RuntimeFlowPhase.overworld);
         _awaitingSurfConfirmation = false;
         final action = _pendingPostDialogueAction;
         _pendingPostDialogueAction = null;
@@ -10329,7 +10468,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _refreshWorldNpcPresence();
       await beforeLoadCommitCompletion?.call();
 
-      _flowPhase = _RuntimeFlowPhase.overworld;
+      _setFlowPhase(_RuntimeFlowPhase.overworld);
       _installMapActivation(activation);
       final dispatchResult = await _dispatchCompletedMapActivation(activation);
       if (dispatchResult is MapEnterProductionDispatchFailed ||
@@ -10400,7 +10539,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _pruneLoadedMapsToActiveNeighborhood();
       _resetTriggerEnterOccupancy();
       _refreshWorldNpcPresence();
-      _flowPhase = source.flowPhase;
+      _setFlowPhase(source.flowPhase);
       _currentMapActivationId = source.currentMapActivationId;
       _completedMapActivationDispatchCount =
           source.completedMapActivationDispatchCount;
@@ -10417,7 +10556,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _world = source.world;
       _activeMapId = source.activeMapId;
       _previousMapId = source.previousMapId;
-      _flowPhase = source.flowPhase;
+      _setFlowPhase(source.flowPhase);
       _currentMapActivationId = source.currentMapActivationId;
       _completedMapActivationDispatchCount =
           source.completedMapActivationDispatchCount;
@@ -10562,7 +10701,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       return;
     }
-    _flowPhase = _RuntimeFlowPhase.mapTransition;
+    _setFlowPhase(_RuntimeFlowPhase.mapTransition);
     final activation = _createMapActivation(
       mapId: warp.targetMapId,
       reason: MapActivationReason.warp,
@@ -10719,7 +10858,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     } finally {
       _warpTransitionOverlay?.close();
       _warpTransitionOverlay = null;
-      _flowPhase = _RuntimeFlowPhase.overworld;
+      _setFlowPhase(_RuntimeFlowPhase.overworld);
       debugPrint(
         '[warp] gameplay unlocked map=$_activeMapId pos=(${_world.player.pos.x}, ${_world.player.pos.y})',
       );
@@ -10940,7 +11079,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       return;
     }
-    _flowPhase = _RuntimeFlowPhase.mapTransition;
+    _setFlowPhase(_RuntimeFlowPhase.mapTransition);
     final activation = _createMapActivation(
       mapId: connection.targetMapId,
       reason: MapActivationReason.connection,
@@ -11070,7 +11209,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _showNotification('Connection failed');
     } finally {
       if (!transitionCompleted) {
-        _flowPhase = _RuntimeFlowPhase.overworld;
+        _setFlowPhase(_RuntimeFlowPhase.overworld);
       }
       if (transitionCompleted && _pendingConnectionEntryAnimation == null) {
         _installMapActivation(activation);
@@ -12690,8 +12829,7 @@ final class _PlayableMapCinematicRuntimeHost
 
   @override
   void setCinematicInputLocked(bool locked) {
-    _game._cinematicInputLocked = locked;
-    if (locked) _game._clearPressedMovementControls();
+    _game._setCinematicInputLocked(locked);
   }
 
   @override
@@ -12748,7 +12886,7 @@ final class _PlayableMapCinematicRuntimeHost
     _game._dialogueOverlay = null;
     _game._setDialoguePresentationSnapshot(null);
     if (_game._flowPhase == _RuntimeFlowPhase.dialogue) {
-      _game._flowPhase = _RuntimeFlowPhase.overworld;
+      _game._setFlowPhase(_RuntimeFlowPhase.overworld);
     }
     _game._clearBlockingInteractionWithoutUnlock(
       reason: 'cinematicDialogueCancelled',

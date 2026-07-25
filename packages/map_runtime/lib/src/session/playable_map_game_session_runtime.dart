@@ -27,7 +27,10 @@ typedef SessionSaveIdFactory = String Function();
 /// lifecycle hooks. This class owns everything after construction and invokes
 /// [unmountGame] before clearing Flame components and caches.
 final class PlayableMapGameSessionRuntime
-    implements InProcessGameSessionRuntime, RuntimeWorldServicePort {
+    implements
+        InProcessGameSessionRuntime,
+        GameSessionInputLockPort,
+        RuntimeWorldServicePort {
   PlayableMapGameSessionRuntime({
     required this.descriptor,
     required SessionProjectFilePathLoader projectFilePath,
@@ -224,6 +227,14 @@ final class PlayableMapGameSessionRuntime
     }
     game.resumeEngine();
     _playWatch.start();
+  }
+
+  @override
+  Future<void> setInputLock(
+    RuntimeExternalInputLock owner, {
+    required bool locked,
+  }) async {
+    _requireGame().setExternalInputLock(owner, locked: locked);
   }
 
   @override

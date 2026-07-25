@@ -31,6 +31,10 @@ void main() {
     expect(game.debugPostBattleOverlayMounted, isTrue);
     expect(game.debugFlowPhaseName, 'battle');
     expect(game.debugIsBattleResolving, isTrue);
+    expect(
+      game.debugInputLockSnapshot.activeSurface,
+      RuntimeInputSurface.progression,
+    );
     expect(game.gameStateSnapshot.trainerProfile.money, 0);
     expect(game.gameStateSnapshot.party.members.single.currentHp, 15);
     final lockedPosition = game.debugPlayerGridPosition;
@@ -74,6 +78,7 @@ void main() {
       );
     }
     await game.debugWaitForPostBattleCompletion();
+    await _waitForNarrativeOutcomeIdle(game);
 
     final committed = game.gameStateSnapshot;
     expect(committed.party.members.single.currentHp, 9);
@@ -86,6 +91,10 @@ void main() {
     expect(game.debugPostBattleOverlayMounted, isFalse);
     expect(game.debugFlowPhaseName, 'overworld');
     expect(game.debugIsBattleResolving, isFalse);
+    expect(
+      game.debugInputLockSnapshot.activeSurface,
+      RuntimeInputSurface.world,
+    );
   });
 
   test('failed post-battle resolution rolls back win and restores input',
@@ -167,6 +176,10 @@ void main() {
     expect(game.debugPostBattleOverlayMounted, isFalse);
     expect(game.debugFlowPhaseName, 'overworld');
     expect(game.debugIsBattleResolving, isFalse);
+    expect(
+      game.debugInputLockSnapshot.activeSurface,
+      RuntimeInputSurface.world,
+    );
 
     expect(
       game.handleRuntimeInputEvent(
@@ -327,6 +340,15 @@ Future<void> _acknowledgePostBattle(PlayableMapGame game) async {
     fail('Post-battle acknowledgement exceeded 64 inputs.');
   }
   await game.debugWaitForPostBattleCompletion();
+}
+
+Future<void> _waitForNarrativeOutcomeIdle(PlayableMapGame game) async {
+  for (var attempt = 0;
+      attempt < 100 && game.debugIsNarrativeOutcomeWorkInFlight;
+      attempt++) {
+    await Future<void>.delayed(Duration.zero);
+  }
+  expect(game.debugIsNarrativeOutcomeWorkInFlight, isFalse);
 }
 
 RuntimeActiveBattleContext _captureContext() {

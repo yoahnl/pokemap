@@ -223,10 +223,21 @@ void main() {
       await controller.pauseForLifecycle();
       expect(controller.snapshot.state, GameSessionState.lifecyclePaused);
       expect(controller.snapshot.lifecycleResumeState, GameSessionState.paused);
+      expect(
+        adapter.activeInputLocks,
+        <RuntimeExternalInputLock>{
+          RuntimeExternalInputLock.pauseMenu,
+          RuntimeExternalInputLock.lifecycle,
+        },
+      );
 
       await controller.resumeFromLifecycle();
       await controller.resumeFromLifecycle();
       expect(controller.snapshot.state, GameSessionState.paused);
+      expect(
+        adapter.activeInputLocks,
+        <RuntimeExternalInputLock>{RuntimeExternalInputLock.pauseMenu},
+      );
       expect(
         adapter.calls.where((call) => call == 'pause'),
         hasLength(1),
@@ -457,7 +468,10 @@ GameCompletionEvent _completion(
 }
 
 final class _FakeSessionAdapter
-    implements GameSessionAdapter, RuntimeWorldServicePort {
+    implements
+        GameSessionAdapter,
+        GameSessionInputLockPort,
+        RuntimeWorldServicePort {
   _FakeSessionAdapter(
     this.sessionId, {
     this.startError,
@@ -477,6 +491,7 @@ final class _FakeSessionAdapter
   final _worldServices =
       StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
   final serviceCommands = <RuntimeWorldServiceCommand>[];
+  final activeInputLocks = <RuntimeExternalInputLock>{};
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   bool gameplayLocked = false;
 
@@ -536,6 +551,19 @@ final class _FakeSessionAdapter
   @override
   Future<void> resume() async {
     calls.add('resume');
+  }
+
+  @override
+  Future<void> setInputLock(
+    RuntimeExternalInputLock owner, {
+    required bool locked,
+  }) async {
+    calls.add('input-lock:${owner.name}:$locked');
+    if (locked) {
+      activeInputLocks.add(owner);
+    } else {
+      activeInputLocks.remove(owner);
+    }
   }
 
   @override
