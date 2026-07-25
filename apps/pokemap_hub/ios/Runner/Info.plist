@@ -26,6 +26,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Avelune n’utilise pas votre appareil photo. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Avelune n’accède pas à votre position. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Avelune n’accède pas à votre photothèque. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
