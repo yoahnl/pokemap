@@ -69,7 +69,7 @@ final class GameSessionAccessibilityOptions {
   final bool hapticsEnabled;
 }
 
-/// Immutable launch authority created by the Hub.
+/// Immutable launch authority created by the embedding host.
 ///
 /// The installed version and save are opaque handles. Filesystem paths and
 /// save payloads deliberately stay outside this transport contract.

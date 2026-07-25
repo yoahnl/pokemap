@@ -401,3 +401,4 @@ export 'src/session/game_session_controller.dart' show GameSessionController;
 export 'src/session/in_process_game_session_adapter.dart';
 export 'src/session/playable_map_game_session_runtime.dart';
 export 'src/session/player_input.dart';
+export 'src/player/runtime_player_host.dart';
