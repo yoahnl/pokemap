@@ -443,7 +443,9 @@ final class RuntimePlayerCoordinator {
     try {
       await _sessions.returnToTitle(checkpoint: checkpoint);
       if (_sessions.snapshot.state == GameSessionState.disposed) {
-        final loaded = await _loadTitleData();
+        final loaded = await _loadTitleData(
+          failure: _sessions.snapshot.failure,
+        );
         if (!loaded) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.failed,
@@ -629,13 +631,13 @@ final class RuntimePlayerCoordinator {
     }
   }
 
-  Future<bool> _loadTitleData() async {
+  Future<bool> _loadTitleData({GameSessionFailure? failure}) async {
     try {
       _preferences = await _preferencesGateway.load();
       _latestSave = await _saveGateway.readLatestSummary();
       _validateSaveScope(_latestSave);
       _retryLaunch = null;
-      _publishTitle();
+      _publishTitle(failure: failure);
       return true;
     } catch (_) {
       _publishFailure(

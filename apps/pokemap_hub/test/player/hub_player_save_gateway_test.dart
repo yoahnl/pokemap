@@ -283,11 +283,12 @@ GameSessionCheckpoint _checkpoint({required int revision}) {
 
 Future<void> _waitUntil(
   bool Function() predicate, {
-  int attempts = 50,
+  Duration timeout = const Duration(seconds: 5),
 }) async {
-  for (var attempt = 0; attempt < attempts; attempt++) {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
     if (predicate()) return;
-    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(const Duration(milliseconds: 10));
   }
   fail('Condition was not reached before the test timeout.');
 }
