@@ -1,0 +1,595 @@
+<style>
+  .eval-shell {
+    overflow: hidden;
+    min-height: 690px;
+    margin-top: 22px;
+    border: 1px solid #223750;
+    border-radius: 18px;
+    background: #07111e;
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.28);
+    color: #dce8f8;
+  }
+
+  .eval-topbar {
+    display: flex;
+    height: 54px;
+    align-items: center;
+    gap: 14px;
+    padding: 0 18px;
+    border-bottom: 1px solid #1d3046;
+    background: #091624;
+  }
+
+  .eval-logo {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .eval-logo-mark {
+    display: grid;
+    width: 29px;
+    height: 29px;
+    place-items: center;
+    border-radius: 8px;
+    background: linear-gradient(145deg, #21a7ad, #3f74e6);
+    color: white;
+  }
+
+  .crumb {
+    color: #7f96b1;
+    font-size: 12px;
+  }
+
+  .spacer {
+    flex: 1;
+  }
+
+  .connection {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 10px;
+    border: 1px solid #24573d;
+    border-radius: 8px;
+    background: #0d2a20;
+    color: #63dda0;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .eval-body {
+    display: grid;
+    min-height: 636px;
+    grid-template-columns: 225px minmax(470px, 1fr) 310px;
+  }
+
+  .eval-sidebar,
+  .eval-inspector {
+    background: #0a1726;
+  }
+
+  .eval-sidebar {
+    padding: 14px 12px;
+    border-right: 1px solid #1d3046;
+  }
+
+  .eval-inspector {
+    padding: 15px;
+    border-left: 1px solid #1d3046;
+  }
+
+  .section-label {
+    margin: 13px 8px 7px;
+    color: #6f86a1;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 4px;
+    padding: 9px 10px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: #aabbd0;
+    font-size: 11px;
+  }
+
+  .nav-item.active {
+    border-color: #284e7c;
+    background: #102a49;
+    color: #77a9ff;
+  }
+
+  .nav-status {
+    margin-left: auto;
+    color: #62db9a;
+    font-size: 9px;
+  }
+
+  .eval-workspace {
+    padding: 18px;
+    background:
+      radial-gradient(circle at 60% -20%, rgba(30, 83, 151, 0.16), transparent 40%),
+      #07111e;
+  }
+
+  .workspace-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 15px;
+  }
+
+  .workspace-title {
+    margin: 0;
+    color: #f1f6ff;
+    font-size: 19px;
+  }
+
+  .workspace-subtitle {
+    margin-top: 5px;
+    color: #8499b2;
+    font-size: 11px;
+  }
+
+  .mode-toggle {
+    display: flex;
+    margin-left: auto;
+    padding: 3px;
+    border: 1px solid #253d58;
+    border-radius: 9px;
+    background: #091523;
+  }
+
+  .mode {
+    padding: 7px 10px;
+    border-radius: 6px;
+    color: #778da8;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .mode.active {
+    background: #18365f;
+    color: #77a9ff;
+  }
+
+  .mode.future {
+    opacity: 0.58;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 7px;
+    margin-bottom: 13px;
+  }
+
+  .button {
+    padding: 8px 11px;
+    border: 1px solid #2b4562;
+    border-radius: 7px;
+    background: #102136;
+    color: #bdccdd;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .button.primary {
+    border-color: #267348;
+    background: #103823;
+    color: #6fe3a3;
+  }
+
+  .button.danger {
+    color: #ff8b98;
+  }
+
+  .metric-row {
+    display: grid;
+    margin-bottom: 13px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .metric,
+  .timeline-panel,
+  .inspector-card {
+    border: 1px solid #20354c;
+    border-radius: 10px;
+    background: #0b1a2a;
+  }
+
+  .metric {
+    padding: 10px;
+  }
+
+  .metric-name {
+    color: #788da6;
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .metric-value {
+    margin-top: 5px;
+    color: #edf4ff;
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .metric-value.green {
+    color: #64df9d;
+  }
+
+  .timeline-panel {
+    padding: 14px;
+  }
+
+  .timeline-heading {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+
+  .timeline-heading strong {
+    font-size: 12px;
+  }
+
+  .timeline-heading span {
+    margin-left: auto;
+    color: #7890aa;
+    font-size: 9px;
+  }
+
+  .run-step {
+    position: relative;
+    display: grid;
+    min-height: 47px;
+    margin-left: 13px;
+    padding: 7px 8px 7px 23px;
+    border-left: 1px solid #2a4561;
+    grid-template-columns: 1fr auto;
+  }
+
+  .run-step:last-child {
+    border-left-color: transparent;
+  }
+
+  .step-dot {
+    position: absolute;
+    top: 9px;
+    left: -7px;
+    display: grid;
+    width: 13px;
+    height: 13px;
+    place-items: center;
+    border: 2px solid #2d4b68;
+    border-radius: 50%;
+    background: #0b1a2a;
+    color: transparent;
+    font-size: 7px;
+  }
+
+  .run-step.done .step-dot {
+    border-color: #42ba79;
+    background: #1b7148;
+    color: white;
+  }
+
+  .run-step.running {
+    margin-bottom: 4px;
+    border: 1px solid #315e93;
+    border-radius: 8px;
+    background: #102a47;
+  }
+
+  .run-step.running .step-dot {
+    top: 11px;
+    left: -8px;
+    border-color: #5a97ec;
+    background: #2f6fca;
+  }
+
+  .step-name {
+    color: #c9d7e8;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .step-detail {
+    margin-top: 4px;
+    color: #7188a2;
+    font-size: 9px;
+  }
+
+  .step-time {
+    align-self: start;
+    color: #6f86a0;
+    font-size: 9px;
+  }
+
+  .log-strip {
+    margin-top: 12px;
+    padding: 8px 10px;
+    border: 1px solid #1d3046;
+    border-radius: 8px;
+    background: #040b14;
+    color: #72c997;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 9px;
+  }
+
+  .inspector-title {
+    display: flex;
+    align-items: center;
+    margin-bottom: 13px;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .inspector-title span {
+    margin-left: auto;
+    color: #5f94e6;
+    font-size: 9px;
+  }
+
+  .inspector-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+
+  .inspector-tab {
+    flex: 1;
+    padding: 6px 2px;
+    border-bottom: 2px solid transparent;
+    color: #6f86a0;
+    text-align: center;
+    font-size: 9px;
+  }
+
+  .inspector-tab.active {
+    border-bottom-color: #4d8fe9;
+    color: #82b1f5;
+  }
+
+  .inspector-card {
+    margin-bottom: 9px;
+    padding: 10px;
+  }
+
+  .inspector-card-title {
+    margin-bottom: 7px;
+    color: #8296ae;
+    font-size: 8px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .diff-line {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(63, 86, 112, 0.22);
+    color: #a8b9cd;
+    font-size: 10px;
+  }
+
+  .diff-line:last-child {
+    border-bottom: 0;
+  }
+
+  .diff-positive {
+    color: #62df9c;
+  }
+
+  .footer-hint {
+    color: #6e829a;
+    font-size: 9px;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 1050px) {
+    .eval-body {
+      grid-template-columns: 180px 1fr;
+    }
+
+    .eval-inspector {
+      display: none;
+    }
+  }
+</style>
+
+<h2>Proposition C affinée — Timeline + inspecteur</h2>
+<p class="subtitle">
+  Le parcours reste le centre de l’interface, mais chaque étape donne accès à son état,
+  ses différences et sa trace technique. Le mode interactif utilisera exactement ce cockpit.
+</p>
+
+<div class="eval-shell">
+  <div class="eval-topbar">
+    <div class="eval-logo">
+      <span class="eval-logo-mark">Z</span>
+      <span>PokeMap Eval</span>
+    </div>
+    <span class="crumb">Selbrume / Certification MVP</span>
+    <span class="spacer"></span>
+    <span class="connection">● Runner connecté</span>
+  </div>
+
+  <div class="eval-body">
+    <aside class="eval-sidebar">
+      <div class="section-label">Projet</div>
+      <div class="nav-item active">▣ Selbrume <span class="nav-status">Prêt</span></div>
+
+      <div class="section-label">Campagnes</div>
+      <div class="nav-item active">◉ Parcours MVP</div>
+      <div class="nav-item">⌁ Économie et shops</div>
+      <div class="nav-item">⚔ Combats et capture</div>
+      <div class="nav-item">◆ Progression narrative</div>
+
+      <div class="section-label">Scénarios ciblés</div>
+      <div class="nav-item">Boutique après Lysa</div>
+      <div class="nav-item">Défaite puis revanche</div>
+      <div class="nav-item">Sauvegarde au phare</div>
+
+      <div class="section-label">Historique</div>
+      <div class="nav-item">Dernières exécutions</div>
+      <div class="nav-item">Receipts et captures</div>
+    </aside>
+
+    <main class="eval-workspace">
+      <div class="workspace-header">
+        <div>
+          <h3 class="workspace-title">Certification Selbrume MVP</h3>
+          <div class="workspace-subtitle">19 critères · scénario réel · aucun raccourci autorisé</div>
+        </div>
+        <div class="mode-toggle">
+          <div class="mode active">Headless</div>
+          <div class="mode future">Interactif · bientôt</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="button primary">▶ Exécuter</div>
+        <div class="button">▷ Pas à pas</div>
+        <div class="button">Ⅱ Pause</div>
+        <div class="button danger">■ Arrêter</div>
+        <span class="spacer"></span>
+        <div class="button">Ouvrir le receipt</div>
+      </div>
+
+      <div class="metric-row">
+        <div class="metric">
+          <div class="metric-name">Progression</div>
+          <div class="metric-value">12 / 19</div>
+        </div>
+        <div class="metric">
+          <div class="metric-name">Réussies</div>
+          <div class="metric-value green">12</div>
+        </div>
+        <div class="metric">
+          <div class="metric-name">Échecs</div>
+          <div class="metric-value">0</div>
+        </div>
+        <div class="metric">
+          <div class="metric-name">Durée</div>
+          <div class="metric-value">18,4 s</div>
+        </div>
+      </div>
+
+      <section class="timeline-panel">
+        <div class="timeline-heading">
+          <strong>Parcours d’exécution</strong>
+          <span>Étape 13 sur 19</span>
+        </div>
+
+        <div class="run-step done">
+          <span class="step-dot">✓</span>
+          <div>
+            <div class="step-name">Nouvelle partie</div>
+            <div class="step-detail">Projet chargé sur Bourg des Brumes</div>
+          </div>
+          <span class="step-time">1,2 s</span>
+        </div>
+        <div class="run-step done">
+          <span class="step-dot">✓</span>
+          <div>
+            <div class="step-name">Starter et mission de Maël</div>
+            <div class="step-detail">Carapuce obtenu · 5 Poké Balls ajoutées</div>
+          </div>
+          <span class="step-time">2,8 s</span>
+        </div>
+        <div class="run-step done">
+          <span class="step-dot">✓</span>
+          <div>
+            <div class="step-name">Rencontre et première capture</div>
+            <div class="step-detail">Combat réel · capture envoyée dans l’équipe</div>
+          </div>
+          <span class="step-time">4,1 s</span>
+        </div>
+        <div class="run-step done">
+          <span class="step-dot">✓</span>
+          <div>
+            <div class="step-name">Défaite contrôlée contre Lysa</div>
+            <div class="step-detail">Branche de reprise et soin validés</div>
+          </div>
+          <span class="step-time">5,6 s</span>
+        </div>
+        <div class="run-step running">
+          <span class="step-dot"></span>
+          <div>
+            <div class="step-name">Revanche contre Lysa</div>
+            <div class="step-detail">Combat en cours · choix d’une attaque efficace</div>
+          </div>
+          <span class="step-time">4,7 s</span>
+        </div>
+        <div class="run-step">
+          <span class="step-dot"></span>
+          <div>
+            <div class="step-name">Badge, Surf et boutique dynamique</div>
+            <div class="step-detail">En attente</div>
+          </div>
+        </div>
+        <div class="run-step">
+          <span class="step-dot"></span>
+          <div>
+            <div class="step-name">Phare, boss et épilogue</div>
+            <div class="step-detail">En attente</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="log-strip">18.413s  battle.move.selected  bite  effectiveness=2.0  damage=27</div>
+    </main>
+
+    <aside class="eval-inspector">
+      <div class="inspector-title">
+        Revanche contre Lysa
+        <span>EN COURS</span>
+      </div>
+      <div class="inspector-tabs">
+        <div class="inspector-tab active">Diff</div>
+        <div class="inspector-tab">État</div>
+        <div class="inspector-tab">Trace</div>
+        <div class="inspector-tab">Preuves</div>
+      </div>
+
+      <div class="inspector-card">
+        <div class="inspector-card-title">Combat</div>
+        <div class="diff-line"><span>Adversaire</span><strong>Bulbizarre</strong></div>
+        <div class="diff-line"><span>Attaque</span><strong>Morsure</strong></div>
+        <div class="diff-line"><span>Dégâts</span><strong class="diff-positive">27 PV</strong></div>
+        <div class="diff-line"><span>Efficacité</span><strong>×2</strong></div>
+      </div>
+
+      <div class="inspector-card">
+        <div class="inspector-card-title">État attendu après victoire</div>
+        <div class="diff-line"><span>Badge</span><strong class="diff-positive">+ Brisants</strong></div>
+        <div class="diff-line"><span>Capacité</span><strong class="diff-positive">+ Surf</strong></div>
+        <div class="diff-line"><span>Fact Lysa</span><strong class="diff-positive">true</strong></div>
+        <div class="diff-line"><span>Shop</span><strong>after-lysa</strong></div>
+      </div>
+
+      <div class="inspector-card">
+        <div class="inspector-card-title">Politique</div>
+        <div class="diff-line"><span>Mode</span><strong>Certification</strong></div>
+        <div class="diff-line"><span>Raccourcis</span><strong class="diff-positive">0</strong></div>
+        <div class="diff-line"><span>Éligible release</span><strong class="diff-positive">Oui</strong></div>
+      </div>
+
+      <p class="footer-hint">
+        Un échec ouvre automatiquement la différence complète, la trace JSON
+        et la dernière capture disponible.
+      </p>
+    </aside>
+  </div>
+</div>

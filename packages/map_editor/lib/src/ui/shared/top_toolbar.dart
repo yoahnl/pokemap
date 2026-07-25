@@ -188,6 +188,7 @@ class TopToolbar extends ConsumerWidget {
                 : null,
           ),
           ToolbarCapsuleButton(
+            key: const ValueKey<String>('game-export-toolbar-button'),
             icon: CupertinoIcons.archivebox,
             tooltip: 'Export Game',
             onPressed:

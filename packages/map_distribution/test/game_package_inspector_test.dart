@@ -267,6 +267,31 @@ void main() {
       );
     });
 
+    test('does not treat profile payloads or fingerprints as file references',
+        () {
+      expect(
+        () => inspector.inspect(
+          _rawPackage(<String, List<int>>{
+            'project/project.json': utf8.encode(
+              jsonEncode(<String, Object?>{
+                'name': 'Inspector Test',
+                'version': 'v2',
+                'maps': <Object?>[],
+                'tilesets': <Object?>[],
+                'collisionProfile': <String, Object?>{
+                  'visualMask': <String, Object?>{
+                    'dataBase64': '/P////////////8=',
+                  },
+                },
+                'assetFingerprint': 'sha256:a377c82cce126373f4f824719cc1a775',
+              }),
+            ),
+          }),
+        ),
+        returnsNormally,
+      );
+    });
+
     test('enforces the selected trust channel with an injected verifier', () {
       final projectBytes = _validProjectBytes();
       final unsigned = _build(<String, List<int>>{
@@ -530,6 +555,48 @@ void main() {
       } finally {
         temporaryDirectory.deleteSync(recursive: true);
       }
+    });
+
+    test('does not parse non-ASCII compressed media as a credential URI', () {
+      final ogg = <int>[
+        ...ascii.encode('OggST://'),
+        0x96,
+        0x7d,
+        0xa0,
+        0x68,
+        0xc7,
+        0xd4,
+        0x3e,
+        0x27,
+        0x40,
+      ];
+
+      expect(
+        () => inspector.inspect(_rawPackage(<String, List<int>>{
+          'project/assets/cry.ogg': ogg,
+          'project/project.json': _validProjectBytes(),
+        })),
+        returnsNormally,
+      );
+    });
+
+    test('distinguishes narrative secret assets from credential stores', () {
+      expect(
+        () => inspector.inspect(_rawPackage(<String, List<int>>{
+          'project/assets/items/secret-key.png': _oversizedPng(width: 1),
+          'project/assets/items/secret-potion.png': _oversizedPng(width: 1),
+          'project/project.json': _validProjectBytes(),
+        })),
+        returnsNormally,
+      );
+
+      _expectCode(
+        () => inspector.inspect(_rawPackage(<String, List<int>>{
+          'project/data/secrets.json': utf8.encode('{}'),
+          'project/project.json': _validProjectBytes(),
+        })),
+        'probableSecret',
+      );
     });
 
     test('executes hostile ZIP/content cases through both inspector backends',

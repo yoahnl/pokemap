@@ -34,7 +34,7 @@ final class GamePackageSecurityPolicy {
         _maxProjectHierarchyDepth = maxProjectHierarchyDepth;
 
   static const int maxArchiveBytesV1 = 1073741824;
-  static const int maxManifestBytesV1 = 1048576;
+  static const int maxManifestBytesV1 = 4194304;
   static const int maxPayloadEntriesV1 = 20000;
   static const int maxFileBytesV1 = 268435456;
   static const int maxTotalPayloadBytesV1 = 1073741824;

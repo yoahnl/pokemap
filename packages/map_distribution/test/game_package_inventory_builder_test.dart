@@ -83,6 +83,25 @@ void main() {
         ),
         'invalidMediaType',
       );
+      expect(
+        () => builder.build(<String, List<int>>{
+          'project/project.json': <int>[1],
+          'project/data/invalid?.json': <int>[1],
+        }),
+        throwsA(
+          isA<GamePackageFormatException>()
+              .having(
+                (error) => error.code,
+                'code',
+                'invalidPackagePath',
+              )
+              .having(
+                (error) => error.path,
+                'path',
+                'project/data/invalid?.json',
+              ),
+        ),
+      );
     });
   });
 }

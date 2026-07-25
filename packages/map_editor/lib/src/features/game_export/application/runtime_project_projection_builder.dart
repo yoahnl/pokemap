@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 
 import 'game_package_export_profile.dart';
@@ -186,7 +187,7 @@ final class RuntimeProjectProjectionBuilder {
         logicalPath: relative,
         jsonLike: extension == '.json',
       );
-      final packagePath = 'project/$relative';
+      final packagePath = _normalizePackagePath('project/$relative');
       if (extension == '.json') {
         final decoded = _decodeJson(bytes, relative);
         final scrubbed = _scrubJson(decoded);
@@ -245,14 +246,17 @@ final class RuntimeProjectProjectionBuilder {
     );
     final titleMusicPackagePath = profile.titleMusicPath == null
         ? null
-        : 'project/${profile.titleMusicPath}';
+        : _normalizePackagePath('project/${profile.titleMusicPath}');
     if (titleMusicPackagePath != null &&
-        (!titleMusicPackagePath.startsWith('project/assets/') ||
+        (!_audioExtensions.contains(
+              p.extension(profile.titleMusicPath!).toLowerCase(),
+            ) ||
+            !titleMusicPackagePath.startsWith('project/assets/') ||
             !payload.containsKey(titleMusicPackagePath))) {
       throw GamePackageExportException(
         code: 'invalidTitleMusic',
         path: profile.titleMusicPath,
-        message: 'Title music must reference an exported project asset.',
+        message: 'Title music must reference an exported audio asset.',
       );
     }
 
@@ -399,7 +403,22 @@ final class RuntimeProjectProjectionBuilder {
     }
   }
 
-  List<int> _encodeRuntimeJson(Object? value) => utf8.encode(jsonEncode(value));
+  List<int> _encodeRuntimeJson(Object? value) =>
+      utf8.encode(jsonEncode(_normalizeJsonStrings(value)));
+
+  Object? _normalizeJsonStrings(Object? value) {
+    if (value is String) return PackagePathPolicy.normalizeNfc(value);
+    if (value is List) {
+      return value.map(_normalizeJsonStrings).toList(growable: false);
+    }
+    if (value is Map) {
+      return <String, Object?>{
+        for (final entry in value.entries)
+          entry.key as String: _normalizeJsonStrings(entry.value),
+      };
+    }
+    return value;
+  }
 
   _JsonScrubResult _scrubJson(Object? value) {
     if (value is List) {
@@ -423,6 +442,10 @@ final class RuntimeProjectProjectionBuilder {
           );
         }
         final key = entry.key as String;
+        if (entry.value case final String text
+            when _isAuthorTimeRemoteReference(key, text)) {
+          continue;
+        }
         if (_secretKeys.contains(_normalizeKey(key))) {
           removed++;
           continue;
@@ -492,6 +515,9 @@ final class RuntimeProjectProjectionBuilder {
     return normalized;
   }
 
+  static String _normalizePackagePath(String value) =>
+      PackagePathPolicy.normalizeNfc(value);
+
   static bool _isRuntimeProjectFile(String path, String extension) {
     if (extension == '.json') return true;
     final firstSegment = path.split('/').first;
@@ -521,6 +547,18 @@ final class RuntimeProjectProjectionBuilder {
 
   static String _normalizeKey(String value) =>
       value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+  static bool _isAuthorTimeRemoteReference(String key, String value) {
+    final normalizedKey = _normalizeKey(key);
+    if (!normalizedKey.contains('url') &&
+        !normalizedKey.contains('uri') &&
+        normalizedKey != 'source' &&
+        !normalizedKey.endsWith('source')) {
+      return false;
+    }
+    final uri = Uri.tryParse(value.trim());
+    return uri != null && uri.hasScheme;
+  }
 
   static const Set<String> _secretKeys = <String>{
     'mistralapikey',
@@ -554,14 +592,17 @@ final class RuntimeProjectProjectionBuilder {
   };
   static const Set<String> _projectMediaExtensions = <String>{
     ..._presentationExtensions,
+    ..._audioExtensions,
+    '.ttf',
+    '.otf',
+    '.woff2',
+  };
+  static const Set<String> _audioExtensions = <String>{
     '.ogg',
     '.wav',
     '.mp3',
     '.flac',
     '.m4a',
-    '.ttf',
-    '.otf',
-    '.woff2',
   };
 }
 

@@ -63,7 +63,7 @@ final class GamePackageInventoryBuilder {
     for (final entry in snapshot.entries) {
       PackagePathPolicy.validate(
         entry.key,
-        errorPath: r'$.content.files',
+        errorPath: entry.key,
       );
       if (!collisionKeys.add(PackagePathPolicy.collisionKey(entry.key))) {
         _fail(

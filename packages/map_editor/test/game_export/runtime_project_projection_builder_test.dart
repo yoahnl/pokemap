@@ -156,4 +156,104 @@ void main() {
       ),
     );
   });
+
+  test('rejects an image used as title music with a precise diagnostic',
+      () async {
+    final root = await createAuthorProject();
+    addTearDown(() => root.delete(recursive: true));
+
+    expect(
+      () => const RuntimeProjectProjectionBuilder().build(
+        projectRoot: root,
+        profile: neutralExportProfile().copyWith(
+          titleMusicPath: 'assets/icon.png',
+        ),
+      ),
+      throwsA(
+        isA<GamePackageExportException>()
+            .having((error) => error.code, 'code', 'invalidTitleMusic')
+            .having(
+              (error) => error.path,
+              'path',
+              'assets/icon.png',
+            ),
+      ),
+    );
+  });
+
+  test('normalizes decomposed macOS filenames and JSON references to NFC',
+      () async {
+    final root = await createAuthorProject(withDialogue: false);
+    addTearDown(() => root.delete(recursive: true));
+    const decomposedName = 'poke\u0301mon center.json';
+    const composedName = 'pokémon center.json';
+    final projectFile = File(p.join(root.path, 'project.json'));
+    final project =
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+    (project['maps'] as List<Object?>)[0] = <String, Object?>{
+      'id': 'map.start',
+      'name': 'Centre Pokémon',
+      'relativePath': 'maps/$decomposedName',
+    };
+    await projectFile.writeAsString(jsonEncode(project), flush: true);
+    await File(p.join(root.path, 'maps', 'start.json')).rename(
+      p.join(root.path, 'maps', decomposedName),
+    );
+
+    final result = await const RuntimeProjectProjectionBuilder().build(
+      projectRoot: root,
+      profile: neutralExportProfile(),
+    );
+
+    expect(
+      result.payloadFiles,
+      contains('project/maps/$composedName'),
+    );
+    expect(
+      result.payloadFiles,
+      isNot(contains('project/maps/$decomposedName')),
+    );
+    final projectedProject = jsonDecode(
+      utf8.decode(result.payloadFiles['project/project.json']!),
+    ) as Map<String, dynamic>;
+    expect(
+      (projectedProject['maps'] as List<Object?>)
+          .cast<Map<String, dynamic>>()
+          .single['relativePath'],
+      'maps/$composedName',
+    );
+  });
+
+  test('removes author-time remote asset URLs while keeping local assets',
+      () async {
+    final root = await createAuthorProject(withDialogue: false);
+    addTearDown(() => root.delete(recursive: true));
+    final catalog = File(p.join(root.path, 'data', 'items.json'));
+    await catalog.writeAsString(
+      jsonEncode(<String, Object?>{
+        'entries': <Object?>[
+          <String, Object?>{
+            'id': 'potion',
+            'spriteUrl': 'https://example.invalid/potion.png',
+            'localSpritePath': 'assets/icon.png',
+          },
+        ],
+      }),
+      flush: true,
+    );
+
+    final result = await const RuntimeProjectProjectionBuilder().build(
+      projectRoot: root,
+      profile: neutralExportProfile(),
+    );
+    final projectedCatalog = jsonDecode(
+      utf8.decode(result.payloadFiles['project/data/items.json']!),
+    ) as Map<String, dynamic>;
+    final item = (projectedCatalog['entries'] as List<Object?>)
+        .cast<Map<String, dynamic>>()
+        .single;
+
+    expect(item, isNot(contains('spriteUrl')));
+    expect(item['localSpritePath'], 'assets/icon.png');
+  });
 }

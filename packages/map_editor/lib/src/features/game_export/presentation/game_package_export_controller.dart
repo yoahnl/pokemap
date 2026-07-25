@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -17,6 +18,8 @@ enum GamePackageExportStatus {
   succeeded,
   error,
 }
+
+typedef LocalGameIdGenerator = String Function();
 
 final class GamePackageExportDraft {
   const GamePackageExportDraft({
@@ -168,7 +171,9 @@ final class GamePackageExportController extends ChangeNotifier {
     required this.profileStore,
     this.exportService = const GamePackageExportService(),
     this.installRequestPublisher,
-  }) : _snapshot = GamePackageExportSnapshot(
+    LocalGameIdGenerator? localGameIdGenerator,
+  })  : _localGameId = (localGameIdGenerator ?? _generateLocalGameId).call(),
+        _snapshot = GamePackageExportSnapshot(
           status: GamePackageExportStatus.idle,
           draft: GamePackageExportDraft(title: projectName),
         );
@@ -178,12 +183,47 @@ final class GamePackageExportController extends ChangeNotifier {
   final GamePackageExportProfileStore profileStore;
   final GamePackageExportService exportService;
   final HubInstallRequestPublisher? installRequestPublisher;
+  final String _localGameId;
 
   GamePackageExportSnapshot _snapshot;
   bool _disposed = false;
 
   GamePackageExportSnapshot get snapshot => _snapshot;
   bool get canInstallInHub => installRequestPublisher != null;
+
+  GamePackageExportProfile quickProfile({String? title}) {
+    final draft = _snapshot.draft;
+    final resolvedTitle = title?.trim().isNotEmpty ?? false
+        ? title!.trim()
+        : draft.title.trim().isNotEmpty
+            ? draft.title.trim()
+            : projectName.trim();
+    final gameId =
+        draft.gameId.trim().isEmpty ? _localGameId : draft.gameId.trim();
+    final authorName = draft.authorName.trim().isEmpty
+        ? 'Projet local'
+        : draft.authorName.trim();
+    final version =
+        draft.gameVersion.trim().isEmpty ? '0.1.0' : draft.gameVersion.trim();
+    final defaultLocale =
+        draft.defaultLocale.trim().isEmpty ? 'fr' : draft.defaultLocale.trim();
+    final supportedLocales = GamePackageExportDraft._csv(
+      draft.supportedLocales,
+    );
+
+    return GamePackageExportProfile(
+      gameId: gameId,
+      gameVersion: version,
+      title: resolvedTitle,
+      authorName: authorName,
+      defaultLocale: defaultLocale,
+      supportedLocales: supportedLocales.isEmpty
+          ? <String>[defaultLocale]
+          : supportedLocales.contains(defaultLocale)
+              ? supportedLocales
+              : <String>[defaultLocale, ...supportedLocales],
+    );
+  }
 
   Future<void> initialize() async {
     if (_snapshot.status != GamePackageExportStatus.idle) return;
@@ -318,11 +358,59 @@ final class GamePackageExportController extends ChangeNotifier {
         'invalidLocales' =>
           'La langue principale doit figurer dans les langues disponibles.',
         'probableSecret' =>
-          'Un secret probable reste présent dans la projection joueur.',
+          'Le fichier « ${error.path ?? 'inconnu'} » contient une valeur qui '
+              'ressemble à un secret ou à un identifiant privé. Retirez cette '
+              'valeur du projet joueur avant de réessayer.',
+        'referenceEscapesRoot' =>
+          'Le fichier « ${error.path ?? 'inconnu'} » contient une référence '
+              'absolue, distante ou utilisant « .. ». Remplacez-la par un '
+              'chemin relatif vers un fichier présent dans le projet.',
+        'invalidPackagePath' =>
+          'Le chemin « ${error.path ?? 'inconnu'} » n’est pas compatible avec '
+              'un package multiplateforme. Renommez le fichier sans caractère '
+              'réservé et réessayez.',
+        'projectionPathCollision' =>
+          'Deux fichiers du projet produisent le même chemin '
+              '« ${error.path ?? 'inconnu'} » après normalisation. Renommez '
+              'l’un des deux fichiers.',
         'dialogueCompilationFailed' =>
           'Un dialogue ne peut pas être compilé pour le lecteur.',
+        'missingProjectFile' => _missingProjectFileMessage(error.path),
+        'invalidBrandingAsset' =>
+          'Le fichier de branding « ${error.path ?? 'inconnu'} » utilise un '
+              'format non pris en charge. Utilisez une image PNG, JPG, JPEG '
+              'ou WebP.',
+        'invalidTitleMusic' =>
+          'La musique de titre « ${error.path ?? 'inconnue'} » doit être un '
+              'fichier audio existant : OGG, WAV, MP3, FLAC ou M4A.',
+        'invalidLegalText' =>
+          'Le fichier « ${error.path ?? 'inconnu'} » doit être un texte UTF-8 '
+              'valide.',
+        'manifestTooLarge' =>
+          'L’inventaire des fichiers du jeu dépasse la limite de 4 Mio du '
+              'format .pokemapgame v1. Retirez les fichiers runtime inutilisés '
+              'ou regroupez les données avant de réessayer.',
         _ => error.message,
       };
+
+  static String _missingProjectFileMessage(String? path) {
+    final label = path?.trim();
+    final displayedPath =
+        label == null || label.isEmpty ? 'demandé' : '« $label »';
+    return 'Le fichier $displayedPath est introuvable dans le dossier du '
+        'projet. Ajoutez ce fichier, choisissez un chemin existant, ou laissez '
+        'ce champ vide s’il est optionnel.';
+  }
+
+  static String _generateLocalGameId() {
+    final random = Random.secure();
+    final token = List<int>.generate(
+      16,
+      (_) => random.nextInt(256),
+      growable: false,
+    ).map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+    return 'games.local.g$token';
+  }
 
   void _publish(GamePackageExportSnapshot next) {
     if (_disposed) return;

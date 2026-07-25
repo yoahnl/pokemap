@@ -62,6 +62,30 @@ void main() {
       expect(decoded.toJson(), first.manifest.toJson());
     });
 
+    test('supports a large valid inventory within the v1 entry quota', () {
+      final payload = <String, List<int>>{
+        'project/project.json': _validProjectBytes(),
+        for (var index = 0; index < 11999; index++)
+          'project/data/catalog/'
+              '${index.toString().padLeft(5, '0')}.json': utf8.encode('{}'),
+      };
+
+      final built = builder.build(
+        manifest: _draftManifest(),
+        payloadFiles: payload,
+      );
+
+      expect(built.manifest.content.fileCount, 12000);
+      expect(
+        const GamePackageInspector()
+            .inspect(built.packageBytes)
+            .manifest
+            .content
+            .fileCount,
+        12000,
+      );
+    });
+
     test('does not allow a stale signature to cover changed content', () {
       final unsigned = builder.build(
         manifest: _draftManifest(),

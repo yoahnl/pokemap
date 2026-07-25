@@ -20,7 +20,7 @@ Toutes les limites sont inclusives. Tout dépassement est bloquant.
 |---|---:|
 | fichier `.pokemapgame` | 1 073 741 824 octets (1 GiB) |
 | payload total déclaré et extrait | 1 073 741 824 octets |
-| `game-manifest.json` | 1 048 576 octets |
+| `game-manifest.json` | 4 194 304 octets (4 MiB) |
 | nombre d’entrées payload | 20 000 |
 | fichier payload individuel | 268 435 456 octets (256 MiB) |
 | chemin UTF-8 normalisé | 512 octets |
@@ -84,7 +84,10 @@ Blocage sur :
   `privateKey`, `password` lorsqu’elles ont une valeur non vide ;
 - blocs PEM privés ;
 - préfixes de tokens connus et credentials dans URI ;
-- fichiers `.env`, keystore, certificat privé ou nom contenant `secret`.
+- fichiers `.env`, keystore, certificat privé ou noms explicitement réservés
+  aux secrets (`secret`, `secrets`, `credentials`, `client-secret`,
+  `service-account`). Un asset métier tel que `secret-potion.png` n'est pas
+  un secret sur la seule base de son nom ; son contenu reste inspecté.
 
 Les heuristiques d’entropie seules produisent un diagnostic de review côté
 export, pas un rejet installateur, afin d’éviter de classifier des hashes et

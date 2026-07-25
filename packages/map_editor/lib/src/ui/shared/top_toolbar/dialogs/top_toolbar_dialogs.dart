@@ -556,6 +556,32 @@ Future<void> showTopToolbarGameExportDialog(
                   : '$selectedPath.pokemapgame';
           return File(normalizedPath);
         },
+        chooseProjectFile: (type) async {
+          final extensions = switch (type) {
+            GamePackageProjectFileType.image => const <String>[
+                'png',
+                'jpg',
+                'jpeg',
+                'webp'
+              ],
+            GamePackageProjectFileType.audio => const <String>[
+                'ogg',
+                'wav',
+                'mp3',
+                'flac',
+                'm4a'
+              ],
+            GamePackageProjectFileType.text => const <String>['txt', 'md'],
+          };
+          final result = await FilePicker.platform.pickFiles(
+            dialogTitle: 'Choisir un fichier du projet',
+            type: FileType.custom,
+            allowedExtensions: extensions,
+            allowMultiple: false,
+          );
+          final selectedPath = result?.files.single.path;
+          return selectedPath == null ? null : File(selectedPath);
+        },
       ),
     );
   } finally {

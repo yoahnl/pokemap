@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
@@ -12,15 +13,23 @@ typedef GamePackageOutputPicker = Future<File?> Function(
   String suggestedFileName,
 );
 
+enum GamePackageProjectFileType { image, audio, text }
+
+typedef GamePackageProjectFilePicker = Future<File?> Function(
+  GamePackageProjectFileType type,
+);
+
 class GamePackageExportDialog extends StatefulWidget {
   const GamePackageExportDialog({
     super.key,
     required this.controller,
     required this.chooseOutputFile,
+    required this.chooseProjectFile,
   });
 
   final GamePackageExportController controller;
   final GamePackageOutputPicker chooseOutputFile;
+  final GamePackageProjectFilePicker chooseProjectFile;
 
   @override
   State<GamePackageExportDialog> createState() =>
@@ -30,6 +39,8 @@ class GamePackageExportDialog extends StatefulWidget {
 class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
   late final Map<String, TextEditingController> _fields;
   bool _didSyncLoadedProfile = false;
+  bool _quickMode = true;
+  String? _pickerErrorMessage;
 
   @override
   void initState() {
@@ -65,7 +76,7 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
     final colors = context.pokeMapColors;
     final snapshot = widget.controller.snapshot;
     final draft = _draft();
-    final profile = _validProfile(draft);
+    final profile = _quickMode ? _validQuickProfile() : _validProfile(draft);
     final isBusy = snapshot.isBusy;
     return Dialog(
       backgroundColor: colors.surfaceBase,
@@ -123,194 +134,285 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    const PokeMapDiagnosticCallout(
-                      severity: PokeMapDiagnosticSeverity.info,
-                      title: 'Identité stable',
-                      message:
-                          'Le gameId est choisi une seule fois. Il ne dépend '
-                          'jamais du titre ou du nom du dossier.',
-                    ),
-                    const SizedBox(height: 14),
-                    PokeMapCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: <Widget>[
-                          const PokeMapSectionHeader(
-                            title: 'Jeu et version',
-                          ),
-                          const SizedBox(height: 12),
-                          _responsivePair(
-                            context,
-                            _field(
-                              'gameId',
-                              'Game ID stable',
-                              key: const ValueKey<String>(
-                                'game-export-game-id',
-                              ),
-                              hint: 'games.studio.auteur.aventure',
-                              autofocus: true,
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: PokeMapSegmentedTabs(
+                        tabs: <PokeMapSegmentedTab>[
+                          PokeMapSegmentedTab(
+                            key: const ValueKey<String>(
+                              'game-export-quick-mode',
                             ),
-                            _field(
-                              'gameVersion',
-                              'Version',
-                              hint: '1.0.0',
-                            ),
+                            label: 'Export rapide',
+                            icon: Icons.bolt_outlined,
+                            selected: _quickMode,
+                            onTap: isBusy
+                                ? null
+                                : () => setState(() {
+                                      _quickMode = true;
+                                      _pickerErrorMessage = null;
+                                    }),
                           ),
-                          const SizedBox(height: 12),
-                          _field('title', 'Titre du jeu'),
-                          const SizedBox(height: 12),
-                          _field(
-                            'description',
-                            'Description',
-                            hint: 'Présentation courte pour la bibliothèque',
+                          PokeMapSegmentedTab(
+                            key: const ValueKey<String>(
+                              'game-export-full-mode',
+                            ),
+                            label: 'Publication complète',
+                            icon: Icons.tune_outlined,
+                            selected: !_quickMode,
+                            onTap: isBusy
+                                ? null
+                                : () => setState(() {
+                                      _quickMode = false;
+                                      _pickerErrorMessage = null;
+                                    }),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 14),
-                    PokeMapCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: <Widget>[
-                          const PokeMapSectionHeader(
-                            title: 'Auteur et langues',
-                          ),
-                          const SizedBox(height: 12),
-                          _responsivePair(
-                            context,
-                            _field(
-                              'authorName',
-                              'Auteur ou studio',
-                              key: const ValueKey<String>(
-                                'game-export-author',
+                    if (_quickMode) ...[
+                      const PokeMapDiagnosticCallout(
+                        severity: PokeMapDiagnosticSeverity.info,
+                        title: 'Prêt pour un test local',
+                        message:
+                            'Aucune métadonnée de publication ni aucun visuel '
+                            'n’est requis. PokeMap crée une identité locale '
+                            'stable et conserve la version 0.1.0.',
+                      ),
+                      const SizedBox(height: 14),
+                      PokeMapCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            const PokeMapSectionHeader(
+                              title: 'Jeu à tester',
+                              description:
+                                  'Le titre vient du projet et peut être '
+                                  'ajusté pour ce package de test.',
+                            ),
+                            const SizedBox(height: 12),
+                            _field('title', 'Titre du jeu', autofocus: true),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      const PokeMapDiagnosticCallout(
+                        severity: PokeMapDiagnosticSeverity.info,
+                        title: 'Identité stable',
+                        message:
+                            'Le gameId est choisi une seule fois. Il ne dépend '
+                            'jamais du titre ou du nom du dossier.',
+                      ),
+                      const SizedBox(height: 14),
+                      PokeMapCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            const PokeMapSectionHeader(
+                              title: 'Jeu et version',
+                            ),
+                            const SizedBox(height: 12),
+                            _responsivePair(
+                              context,
+                              _field(
+                                'gameId',
+                                'Game ID stable',
+                                key: const ValueKey<String>(
+                                  'game-export-game-id',
+                                ),
+                                hint: 'games.studio.auteur.aventure',
+                                autofocus: true,
+                              ),
+                              _field(
+                                'gameVersion',
+                                'Version',
+                                hint: '1.0.0',
                               ),
                             ),
+                            const SizedBox(height: 12),
+                            _field('title', 'Titre du jeu'),
+                            const SizedBox(height: 12),
                             _field(
-                              'authorUrl',
-                              'Site auteur',
-                              hint: 'https://example.com',
+                              'description',
+                              'Description',
+                              hint: 'Présentation courte pour la bibliothèque',
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          _responsivePair(
-                            context,
-                            _field(
-                              'defaultLocale',
-                              'Langue principale',
-                              hint: 'fr',
-                            ),
-                            _field(
-                              'supportedLocales',
-                              'Langues disponibles',
-                              hint: 'fr, en',
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          _responsivePair(
-                            context,
-                            _field(
-                              'publisherName',
-                              'Éditeur (optionnel)',
-                            ),
-                            _field(
-                              'publisherUrl',
-                              'Site de l’éditeur',
-                              hint: 'https://example.com',
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          _field(
-                            'requiredCapabilities',
-                            'Capacités runtime requises',
-                            hint: 'capacité-1, capacité-2',
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    PokeMapCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: <Widget>[
-                          const PokeMapSectionHeader(
-                            title: 'Branding déclaratif',
-                          ),
-                          const SizedBox(height: 12),
-                          _responsivePair(
-                            context,
-                            _field(
-                              'iconPath',
-                              'Icône',
-                              key: const ValueKey<String>(
-                                'game-export-icon',
+                      const SizedBox(height: 14),
+                      PokeMapCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            const PokeMapSectionHeader(
+                              title: 'Auteur et langues',
+                            ),
+                            const SizedBox(height: 12),
+                            _responsivePair(
+                              context,
+                              _field(
+                                'authorName',
+                                'Auteur ou studio',
+                                key: const ValueKey<String>(
+                                  'game-export-author',
+                                ),
                               ),
-                              hint: 'assets/icon.png',
-                            ),
-                            _field(
-                              'coverPath',
-                              'Couverture',
-                              hint: 'assets/cover.png',
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          _responsivePair(
-                            context,
-                            _field(
-                              'heroPath',
-                              'Illustration titre',
-                              hint: 'assets/hero.png',
-                            ),
-                            _field(
-                              'accentColor',
-                              'Couleur d’accent',
-                              hint: '#5B68F6',
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          _responsivePair(
-                            context,
-                            _field(
-                              'titleMusicPath',
-                              'Musique du titre',
-                              hint: 'assets/audio/title.ogg',
-                            ),
-                            _field(
-                              'layoutVariant',
-                              'Variante de mise en page',
-                              hint: 'classic',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    PokeMapCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: <Widget>[
-                          const PokeMapSectionHeader(
-                            title: 'Mentions légales',
-                          ),
-                          const SizedBox(height: 12),
-                          _responsivePair(
-                            context,
-                            _field(
-                              'licensePath',
-                              'Licence',
-                              key: const ValueKey<String>(
-                                'game-export-license',
+                              _field(
+                                'authorUrl',
+                                'Site auteur',
+                                hint: 'https://example.com',
                               ),
-                              hint: 'LICENSE.txt',
                             ),
+                            const SizedBox(height: 12),
+                            _responsivePair(
+                              context,
+                              _field(
+                                'defaultLocale',
+                                'Langue principale',
+                                hint: 'fr',
+                              ),
+                              _field(
+                                'supportedLocales',
+                                'Langues disponibles',
+                                hint: 'fr, en',
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _responsivePair(
+                              context,
+                              _field(
+                                'publisherName',
+                                'Éditeur (optionnel)',
+                              ),
+                              _field(
+                                'publisherUrl',
+                                'Site de l’éditeur',
+                                hint: 'https://example.com',
+                              ),
+                            ),
+                            const SizedBox(height: 12),
                             _field(
-                              'creditsPath',
-                              'Crédits',
-                              hint: 'CREDITS.txt',
+                              'requiredCapabilities',
+                              'Capacités runtime requises',
+                              hint: 'capacité-1, capacité-2',
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 14),
+                      PokeMapCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            const PokeMapSectionHeader(
+                              title: 'Branding déclaratif',
+                              description:
+                                  'Laissez vide tout fichier que vous ne '
+                                  'fournissez pas. Les chemins sont relatifs au '
+                                  'dossier du projet.',
+                            ),
+                            const SizedBox(height: 12),
+                            _responsivePair(
+                              context,
+                              _projectFileField(
+                                'iconPath',
+                                'Icône (optionnelle)',
+                                GamePackageProjectFileType.image,
+                                fieldKey: const ValueKey<String>(
+                                  'game-export-icon',
+                                ),
+                                pickerKey: const ValueKey<String>(
+                                  'game-export-icon-picker',
+                                ),
+                                hint: 'assets/icon.png',
+                              ),
+                              _projectFileField(
+                                'coverPath',
+                                'Couverture (optionnelle)',
+                                GamePackageProjectFileType.image,
+                                hint: 'assets/cover.png',
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _responsivePair(
+                              context,
+                              _projectFileField(
+                                'heroPath',
+                                'Illustration titre (optionnelle)',
+                                GamePackageProjectFileType.image,
+                                hint: 'assets/hero.png',
+                              ),
+                              _field(
+                                'accentColor',
+                                'Couleur d’accent',
+                                hint: '#5B68F6',
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _responsivePair(
+                              context,
+                              _projectFileField(
+                                'titleMusicPath',
+                                'Musique du titre (optionnelle)',
+                                GamePackageProjectFileType.audio,
+                                hint: 'assets/audio/title.ogg',
+                              ),
+                              _field(
+                                'layoutVariant',
+                                'Variante de mise en page',
+                                hint: 'classic',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      PokeMapCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            const PokeMapSectionHeader(
+                              title: 'Mentions légales',
+                              description:
+                                  'Ces fichiers sont optionnels. Les chemins '
+                                  'renseignés doivent déjà exister dans le '
+                                  'dossier du projet.',
+                            ),
+                            const SizedBox(height: 12),
+                            _responsivePair(
+                              context,
+                              _projectFileField(
+                                'licensePath',
+                                'Licence (optionnelle)',
+                                GamePackageProjectFileType.text,
+                                fieldKey: const ValueKey<String>(
+                                  'game-export-license',
+                                ),
+                                pickerKey: const ValueKey<String>(
+                                  'game-export-license-picker',
+                                ),
+                                hint: 'LICENSE.txt',
+                              ),
+                              _projectFileField(
+                                'creditsPath',
+                                'Crédits (optionnels)',
+                                GamePackageProjectFileType.text,
+                                hint: 'CREDITS.txt',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    if (_pickerErrorMessage != null) ...[
+                      const SizedBox(height: 14),
+                      PokeMapDiagnosticCallout(
+                        severity: PokeMapDiagnosticSeverity.error,
+                        title: 'Fichier non sélectionné',
+                        message: _pickerErrorMessage!,
+                      ),
+                    ],
                     if (snapshot.safeErrorMessage != null) ...[
                       const SizedBox(height: 14),
                       PokeMapDiagnosticCallout(
@@ -362,7 +464,11 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                     isLoading:
                         snapshot.status == GamePackageExportStatus.installing,
                     leading: const Icon(Icons.install_desktop_outlined),
-                    child: const Text('Installer dans le Hub'),
+                    child: Text(
+                      _quickMode
+                          ? 'Installer et tester'
+                          : 'Installer dans le Hub',
+                    ),
                   ),
                   PokeMapButton(
                     onPressed: profile == null || isBusy
@@ -371,7 +477,9 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                     isLoading:
                         snapshot.status == GamePackageExportStatus.exporting,
                     leading: const Icon(Icons.archive_outlined),
-                    child: const Text('Exporter le jeu'),
+                    child: Text(
+                      _quickMode ? 'Exporter pour tester' : 'Exporter le jeu',
+                    ),
                   ),
                 ],
               ),
@@ -406,6 +514,97 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
         enabled: !widget.controller.snapshot.isBusy,
         onChanged: (_) => setState(() {}),
       );
+
+  Widget _projectFileField(
+    String name,
+    String label,
+    GamePackageProjectFileType type, {
+    Key? fieldKey,
+    Key? pickerKey,
+    String? hint,
+  }) {
+    final isBusy = widget.controller.snapshot.isBusy;
+    final hasValue = _fields[name]!.text.trim().isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        PokeMapTextField(
+          label: label,
+          controller: _fields[name],
+          fieldKey: fieldKey,
+          hintText: hint,
+          enabled: !isBusy,
+          readOnly: true,
+          onTap: isBusy ? null : () => _pickProjectFile(name, type),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: <Widget>[
+            PokeMapButton(
+              key: pickerKey,
+              onPressed: isBusy ? null : () => _pickProjectFile(name, type),
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              leading: const Icon(Icons.folder_open_outlined),
+              child: const Text('Choisir un fichier'),
+            ),
+            if (hasValue)
+              PokeMapButton(
+                onPressed: isBusy
+                    ? null
+                    : () => setState(() {
+                          _fields[name]!.clear();
+                          _pickerErrorMessage = null;
+                        }),
+                variant: PokeMapButtonVariant.ghost,
+                size: PokeMapButtonSize.small,
+                child: const Text('Retirer'),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickProjectFile(
+    String fieldName,
+    GamePackageProjectFileType type,
+  ) async {
+    final selected = await widget.chooseProjectFile(type);
+    if (selected == null || !mounted) return;
+    final projectRoot =
+        p.normalize(p.absolute(widget.controller.projectRoot.path));
+    final selectedPath = p.normalize(p.absolute(selected.path));
+    final selectedType = await FileSystemEntity.type(
+      selectedPath,
+      followLinks: false,
+    );
+    if (!mounted) return;
+    if (selectedType != FileSystemEntityType.file) {
+      setState(() {
+        _pickerErrorMessage =
+            'Le fichier choisi est introuvable ou n’est pas un fichier '
+            'ordinaire.';
+      });
+      return;
+    }
+    if (!p.isWithin(projectRoot, selectedPath)) {
+      setState(() {
+        _pickerErrorMessage =
+            'Choisissez un fichier situé dans le dossier du projet. Les '
+            'fichiers externes ne peuvent pas être distribués.';
+      });
+      return;
+    }
+    final relativePath =
+        p.relative(selectedPath, from: projectRoot).replaceAll(r'\', '/');
+    setState(() {
+      _fields[fieldName]!.text = relativePath;
+      _pickerErrorMessage = null;
+    });
+  }
 
   Widget _responsivePair(
     BuildContext context,
@@ -460,6 +659,16 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
   GamePackageExportProfile? _validProfile(GamePackageExportDraft draft) {
     try {
       return draft.toProfile();
+    } on GamePackageExportException {
+      return null;
+    }
+  }
+
+  GamePackageExportProfile? _validQuickProfile() {
+    try {
+      return widget.controller.quickProfile(
+        title: _fields['title']!.text,
+      );
     } on GamePackageExportException {
       return null;
     }

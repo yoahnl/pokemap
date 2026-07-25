@@ -47,6 +47,9 @@ abstract final class PackagePathPolicy {
   static String collisionKey(String value) =>
       unorm.nfc(UnicodeCaseFolding.fold(unorm.nfc(value)));
 
+  /// Returns the NFC representation required for package-relative paths.
+  static String normalizeNfc(String value) => unorm.nfc(value);
+
   static int compareUtf8(String left, String right) {
     final leftBytes = utf8.encode(left);
     final rightBytes = utf8.encode(right);

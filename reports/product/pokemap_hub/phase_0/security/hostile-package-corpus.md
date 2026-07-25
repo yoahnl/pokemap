@@ -20,7 +20,7 @@ représenter par un simple JSON (doublons, liens, offsets, tailles forgées).
 | HP-013 | 20 001 fichiers | `entryCountExceeded` |
 | HP-014 | fichier 256 MiB + 1 | `entryTooLarge` |
 | HP-015 | payload 1 GiB + 1 | `archiveTooLarge` |
-| HP-016 | manifest 1 MiB + 1 | `manifestTooLarge` |
+| HP-016 | manifest 4 MiB + 1 | `manifestTooLarge` |
 | HP-017 | profondeur 33 / segment 256 / path 513 | `invalidPath` |
 | HP-018 | taille centrale fausse | `sizeMismatch` |
 | HP-019 | hash fichier faux | `hashMismatch` |

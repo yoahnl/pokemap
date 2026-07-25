@@ -348,15 +348,9 @@ final class GamePackageContentValidator {
 
   bool _isReferenceKey(String key) {
     final normalized = _normalizeKey(key);
-    return normalized.contains('path') ||
-        normalized.contains('uri') ||
-        normalized.contains('url') ||
-        normalized.contains('asset') ||
-        normalized.contains('source') ||
-        normalized.contains('file') ||
-        normalized.endsWith('dir') ||
-        normalized.endsWith('directory') ||
-        normalized.endsWith('root');
+    return _referenceKeys.contains(normalized) ||
+        _camelCaseReferenceSuffix.hasMatch(key) ||
+        _separatedReferenceSuffix.hasMatch(key);
   }
 
   bool _isNonEmpty(Object? value) => switch (value) {
@@ -513,6 +507,23 @@ final class GamePackageContentValidator {
     'privatekey',
     'password',
   };
+  static const Set<String> _referenceKeys = <String>{
+    'path',
+    'paths',
+    'uri',
+    'uris',
+    'url',
+    'urls',
+    'asset',
+    'assets',
+    'source',
+    'sources',
+    'file',
+    'files',
+    'dir',
+    'directory',
+    'root',
+  };
   static const Set<int> _jpegSofMarkers = <int>{
     0xc0,
     0xc1,
@@ -529,7 +540,21 @@ final class GamePackageContentValidator {
     0xcf,
   };
   static final RegExp _secretFile = RegExp(
-    r'(^|/)(?:\.env(?:\.|$)|.*secret.*|.*\.(?:p12|pfx|jks|keystore|pem|key)$)',
+    r'(^|/)(?:'
+    r'\.env(?:\.|$)|'
+    r'(?:secrets?|credentials?|client[-_.]?secret|service[-_.]?account)'
+    r'(?:\.[^/]*)?$|'
+    r'.*\.(?:p12|pfx|jks|keystore|pem|key)$'
+    r')',
+    caseSensitive: false,
+  );
+  static final RegExp _camelCaseReferenceSuffix = RegExp(
+    r'(?:Path|Paths|Uri|Uris|Url|Urls|Asset|Assets|Source|Sources|File|Files|'
+    r'Dir|Directory|Root)$',
+  );
+  static final RegExp _separatedReferenceSuffix = RegExp(
+    r'(?:^|[_-])(?:path|paths|uri|uris|url|urls|asset|assets|source|sources|'
+    r'file|files|dir|directory|root)$',
     caseSensitive: false,
   );
   static final RegExp _privatePem =
@@ -590,7 +615,8 @@ final class GamePackageBinarySecretScanner {
               path: path,
               message: 'Probable credential material detected.',
             );
-          } else if (_endsUriAuthority(byte)) {
+          } else if (_endsUriAuthority(byte) ||
+              !_isAsciiUriAuthorityByte(byte)) {
             _uriState = 0;
             _uriAuthorityHasContent = false;
           } else {
@@ -635,4 +661,7 @@ final class GamePackageBinarySecretScanner {
       byte == 0x5c ||
       byte == 0x3f ||
       byte == 0x23;
+
+  static bool _isAsciiUriAuthorityByte(int byte) =>
+      byte >= 0x21 && byte <= 0x7e;
 }

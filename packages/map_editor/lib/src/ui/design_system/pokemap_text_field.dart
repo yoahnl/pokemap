@@ -15,7 +15,9 @@ class PokeMapTextField extends StatelessWidget {
     this.errorText,
     this.onChanged,
     this.onSubmitted,
+    this.onTap,
     this.enabled = true,
+    this.readOnly = false,
     this.autofocus = false,
     this.keyboardType,
     this.textInputAction = TextInputAction.done,
@@ -30,7 +32,9 @@ class PokeMapTextField extends StatelessWidget {
   final String? errorText;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
+  final VoidCallback? onTap;
   final bool enabled;
+  final bool readOnly;
   final bool autofocus;
   final TextInputType? keyboardType;
   final TextInputAction textInputAction;
@@ -63,8 +67,10 @@ class PokeMapTextField extends StatelessWidget {
               focusNode: focusNode,
               autofocus: autofocus,
               enabled: enabled,
+              readOnly: readOnly,
               keyboardType: keyboardType,
               textInputAction: textInputAction,
+              onTap: onTap,
               onChanged: onChanged,
               onSubmitted: onSubmitted,
               style: TextStyle(
