@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
@@ -135,7 +137,7 @@ typedef PlayerServiceRecoveryCapsLoader
 ///
 /// The host owns presentation. This controller owns ordering, input release and
 /// the single commit-and-save transaction after a successful close.
-final class PlayerServiceRuntimeController {
+final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   PlayerServiceRuntimeController({
     required PlayerServiceGameStateReader currentGameState,
     required PlayerServiceOverlayHost host,
@@ -152,16 +154,44 @@ final class PlayerServiceRuntimeController {
         _conditionContext = conditionContext,
         _grantedCapabilities = Set<String>.unmodifiable(grantedCapabilities);
 
+  PlayerServiceRuntimeController.contextual({
+    required PlayerServiceGameStateReader currentGameState,
+    required PlayerServiceStateTransaction commitAndSave,
+    required PlayerServiceInputLockSetter setInputLocked,
+    required PlayerServiceRecoveryCapsLoader loadRecoveryCaps,
+    ScriptEvaluationContext conditionContext = const ScriptEvaluationContext(),
+    Set<String> grantedCapabilities = const <String>{},
+  })  : _currentGameState = currentGameState,
+        _host = null,
+        _commitAndSave = commitAndSave,
+        _setInputLocked = setInputLocked,
+        _loadRecoveryCaps = loadRecoveryCaps,
+        _conditionContext = conditionContext,
+        _grantedCapabilities = Set<String>.unmodifiable(grantedCapabilities);
+
   final PlayerServiceGameStateReader _currentGameState;
-  final PlayerServiceOverlayHost _host;
+  final PlayerServiceOverlayHost? _host;
   final PlayerServiceStateTransaction _commitAndSave;
   final PlayerServiceInputLockSetter _setInputLocked;
   final PlayerServiceRecoveryCapsLoader _loadRecoveryCaps;
   final ScriptEvaluationContext _conditionContext;
   final Set<String> _grantedCapabilities;
+  final _worldServiceSnapshots =
+      StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
   bool _active = false;
+  bool _disposed = false;
+  RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
+  _ContextualShopSession? _shopSession;
 
   bool get isActive => _active;
+
+  @override
+  RuntimeWorldServiceSnapshot? get worldServiceSnapshot =>
+      _worldServiceSnapshot;
+
+  @override
+  Stream<RuntimeWorldServiceSnapshot?> get worldServiceSnapshots =>
+      _worldServiceSnapshots.stream;
 
   Future<PlayerServiceRuntimeResult> openShop(
     ShopDefinition shop, {
@@ -190,16 +220,18 @@ final class PlayerServiceRuntimeController {
           gameState: state,
           conditionContext: _conditionContext,
         );
-        return _host.openShop(
-          PlayerServiceShopRequest(
-            gameState: state,
-            recoveryCaps: caps,
-            worldRequest: worldRequest,
-            shop: normalizedShop,
-            resolvedState: resolvedState,
-            conditionContext: _conditionContext,
-          ),
+        final serviceRequest = PlayerServiceShopRequest(
+          gameState: state,
+          recoveryCaps: caps,
+          worldRequest: worldRequest,
+          shop: normalizedShop,
+          resolvedState: resolvedState,
+          conditionContext: _conditionContext,
         );
+        final host = _host;
+        return host == null
+            ? _openContextualShop(serviceRequest)
+            : host.openShop(serviceRequest);
       },
     );
   }
@@ -211,13 +243,21 @@ final class PlayerServiceRuntimeController {
         request ?? const OpenPcService(interactionId: 'runtime.pc:default');
     return _run(
       worldRequest,
-      (state, caps) => _host.openPc(
-        PlayerServicePcRequest(
-          gameState: state,
-          recoveryCaps: caps,
-          worldRequest: worldRequest,
-        ),
-      ),
+      (state, caps) {
+        final host = _host;
+        if (host == null) {
+          return Future<PlayerServiceHostResult>.value(
+            const PlayerServiceHostResult.cancelled(),
+          );
+        }
+        return host.openPc(
+          PlayerServicePcRequest(
+            gameState: state,
+            recoveryCaps: caps,
+            worldRequest: worldRequest,
+          ),
+        );
+      },
     );
   }
 
@@ -228,13 +268,21 @@ final class PlayerServiceRuntimeController {
         request ?? const OpenHealService(interactionId: 'runtime.heal:default');
     return _run(
       worldRequest,
-      (state, caps) => _host.openHealCenter(
-        PlayerServiceHealRequest(
-          gameState: state,
-          recoveryCaps: caps,
-          worldRequest: worldRequest,
-        ),
-      ),
+      (state, caps) {
+        final host = _host;
+        if (host == null) {
+          return Future<PlayerServiceHostResult>.value(
+            const PlayerServiceHostResult.cancelled(),
+          );
+        }
+        return host.openHealCenter(
+          PlayerServiceHealRequest(
+            gameState: state,
+            recoveryCaps: caps,
+            worldRequest: worldRequest,
+          ),
+        );
+      },
     );
   }
 
@@ -245,6 +293,11 @@ final class PlayerServiceRuntimeController {
       RuntimePlayerServiceRecoveryCaps caps,
     ) open,
   ) async {
+    if (_disposed) {
+      return PlayerServiceRuntimeResult.failed(
+        StateError('The player-service controller is disposed.'),
+      );
+    }
     if (_active) return const PlayerServiceRuntimeResult.busy();
     final state = _currentGameState();
     final missingCapabilities =
@@ -290,7 +343,347 @@ final class PlayerServiceRuntimeController {
       _active = false;
     }
   }
+
+  Future<PlayerServiceHostResult> _openContextualShop(
+    PlayerServiceShopRequest request,
+  ) {
+    final session = _ContextualShopSession(
+      request: request,
+      gameState: request.gameState,
+    );
+    _shopSession = session;
+    _publishWorldService(_buildShopSnapshot(session));
+    return session.result.future.whenComplete(() {
+      if (identical(_shopSession, session)) {
+        _shopSession = null;
+        _publishWorldService(null);
+      }
+    });
+  }
+
+  @override
+  Future<RuntimeWorldServiceCommandResult> dispatchWorldService(
+    RuntimeWorldServiceCommand command,
+  ) async {
+    if (_disposed) {
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.failed,
+        safeMessage: 'Le service joueur est fermé.',
+      );
+    }
+    final snapshot = _worldServiceSnapshot;
+    if (snapshot == null) {
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.unavailable,
+        safeMessage: 'Aucun service contextuel n’est ouvert.',
+      );
+    }
+    if (command.snapshotRevision != snapshot.revision) {
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.stale,
+        safeMessage: 'Le service a changé avant cette action.',
+      );
+    }
+    if (!snapshot.isActionEnabled(command.action)) {
+      return RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.unavailable,
+        safeMessage: snapshot.unavailableReasonFor(command.action) ??
+            'Cette action n’est pas disponible.',
+      );
+    }
+    final shop = _shopSession;
+    if (shop == null) {
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.unavailable,
+        safeMessage: 'Ce service n’accepte pas cette action.',
+      );
+    }
+    return _dispatchShop(shop, command);
+  }
+
+  RuntimeWorldServiceCommandResult _dispatchShop(
+    _ContextualShopSession session,
+    RuntimeWorldServiceCommand command,
+  ) {
+    switch (command.action) {
+      case RuntimeWorldServiceAction.select:
+        final targetId = command.targetId;
+        if (targetId == null ||
+            !session.resolved.entries
+                .any((entry) => entry.itemId == targetId)) {
+          return const RuntimeWorldServiceCommandResult(
+            status: RuntimeWorldServiceCommandStatus.unavailable,
+            safeMessage: 'Cet objet n’est plus disponible.',
+          );
+        }
+        session
+          ..selectedItemId = targetId
+          ..quantity = 1;
+        _publishWorldService(_buildShopSnapshot(session));
+      case RuntimeWorldServiceAction.decreaseQuantity:
+        session.quantity = (session.quantity - 1).clamp(1, 10);
+        _publishWorldService(_buildShopSnapshot(session));
+      case RuntimeWorldServiceAction.increaseQuantity:
+        final maximum = _maximumShopQuantity(session);
+        session.quantity = (session.quantity + 1).clamp(1, maximum);
+        _publishWorldService(_buildShopSnapshot(session));
+      case RuntimeWorldServiceAction.confirm:
+        return _purchaseFromShop(session, command);
+      case RuntimeWorldServiceAction.close:
+        session.result.complete(
+          PlayerServiceHostResult.completed(session.gameState),
+        );
+      case RuntimeWorldServiceAction.cancel:
+        session.result.complete(const PlayerServiceHostResult.cancelled());
+      case RuntimeWorldServiceAction.deposit:
+      case RuntimeWorldServiceAction.withdraw:
+        return const RuntimeWorldServiceCommandResult(
+          status: RuntimeWorldServiceCommandStatus.unavailable,
+          safeMessage: 'Cette commande ne concerne pas la Boutique.',
+        );
+    }
+    return const RuntimeWorldServiceCommandResult(
+      status: RuntimeWorldServiceCommandStatus.accepted,
+    );
+  }
+
+  RuntimeWorldServiceCommandResult _purchaseFromShop(
+    _ContextualShopSession session,
+    RuntimeWorldServiceCommand command,
+  ) {
+    final itemId = command.targetId ?? session.selectedItemId;
+    final quantity = command.quantity ?? session.quantity;
+    if (itemId == null) {
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.unavailable,
+        safeMessage: 'Sélectionnez un objet.',
+      );
+    }
+    final result = const GameStateMutations().purchaseFromResolvedShop(
+      session.gameState,
+      shop: session.request.shop,
+      expectedStateId: session.resolved.stateId,
+      itemId: itemId,
+      categoryId: _categoryForShopItem(itemId),
+      quantity: quantity,
+      conditionContext: session.request.conditionContext,
+    );
+    if (!result.isSuccess) {
+      final message = _shopFailureMessage(result.failure!);
+      _publishWorldService(
+        _buildShopSnapshot(session, safeMessage: message),
+      );
+      return RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.unavailable,
+        safeMessage: message,
+      );
+    }
+    session
+      ..gameState = result.state
+      ..resolved = const ShopStateResolver().resolve(
+        shop: session.request.shop,
+        gameState: result.state,
+        conditionContext: session.request.conditionContext,
+      )
+      ..selectedItemId = itemId
+      ..quantity = 1;
+    _publishWorldService(
+      _buildShopSnapshot(
+        session,
+        safeMessage: 'Achat effectué.',
+      ),
+    );
+    return const RuntimeWorldServiceCommandResult(
+      status: RuntimeWorldServiceCommandStatus.accepted,
+    );
+  }
+
+  RuntimeWorldServiceSnapshot _buildShopSnapshot(
+    _ContextualShopSession session, {
+    String? safeMessage,
+  }) {
+    final entries = session.resolved.entries
+        .map(
+          (entry) => RuntimeShopEntrySnapshot(
+            itemId: entry.itemId,
+            label: _shopItemLabel(entry.itemId),
+            unitPrice: entry.price,
+            remainingStock: _remainingShopStock(
+              session,
+              entry,
+            ),
+          ),
+        )
+        .toList(growable: false);
+    session.selectedItemId ??= entries.firstOrNull?.itemId;
+    final selected = entries
+        .where((entry) => entry.itemId == session.selectedItemId)
+        .firstOrNull;
+    final totalPrice = (selected?.unitPrice ?? 0) * session.quantity;
+    final canPurchase = session.resolved.isOpen &&
+        selected != null &&
+        (selected.remainingStock == null ||
+            selected.remainingStock! >= session.quantity) &&
+        totalPrice <= session.gameState.trainerProfile.money;
+    final confirmReason = !session.resolved.isOpen
+        ? 'Cette boutique est fermée.'
+        : selected == null
+            ? 'Cette boutique est vide.'
+            : selected.remainingStock != null &&
+                    selected.remainingStock! < session.quantity
+                ? 'Stock insuffisant.'
+                : totalPrice > session.gameState.trainerProfile.money
+                    ? 'Fonds insuffisants.'
+                    : null;
+    return RuntimeWorldServiceSnapshot(
+      revision: (_worldServiceSnapshot?.revision ?? -1) + 1,
+      request: session.request.worldRequest!,
+      stage: RuntimeWorldServiceStage.active,
+      content: RuntimeShopServiceContent(
+        title: session.resolved.storefrontLabel,
+        message: session.resolved.message,
+        money: session.gameState.trainerProfile.money,
+        entries: entries,
+        selectedItemId: session.selectedItemId,
+        quantity: session.quantity,
+        totalPrice: totalPrice,
+      ),
+      safeMessage: safeMessage,
+      logicalSelectionId: session.selectedItemId,
+      actions: <RuntimeWorldServiceActionAvailability>[
+        if (entries.isEmpty)
+          RuntimeWorldServiceActionAvailability.disabled(
+            RuntimeWorldServiceAction.select,
+            reason: 'Cette boutique est vide.',
+          )
+        else
+          const RuntimeWorldServiceActionAvailability.enabled(
+            RuntimeWorldServiceAction.select,
+          ),
+        if (session.quantity > 1)
+          const RuntimeWorldServiceActionAvailability.enabled(
+            RuntimeWorldServiceAction.decreaseQuantity,
+          )
+        else
+          RuntimeWorldServiceActionAvailability.disabled(
+            RuntimeWorldServiceAction.decreaseQuantity,
+            reason: 'La quantité minimale est 1.',
+          ),
+        if (selected != null &&
+            session.quantity < _maximumShopQuantity(session))
+          const RuntimeWorldServiceActionAvailability.enabled(
+            RuntimeWorldServiceAction.increaseQuantity,
+          )
+        else
+          RuntimeWorldServiceActionAvailability.disabled(
+            RuntimeWorldServiceAction.increaseQuantity,
+            reason: 'Quantité maximale atteinte.',
+          ),
+        if (canPurchase)
+          const RuntimeWorldServiceActionAvailability.enabled(
+            RuntimeWorldServiceAction.confirm,
+          )
+        else
+          RuntimeWorldServiceActionAvailability.disabled(
+            RuntimeWorldServiceAction.confirm,
+            reason: confirmReason ?? 'Achat indisponible.',
+          ),
+        const RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.close,
+        ),
+      ],
+    );
+  }
+
+  int _maximumShopQuantity(_ContextualShopSession session) {
+    final itemId = session.selectedItemId;
+    if (itemId == null) return 1;
+    final entry =
+        session.resolved.entries.where((entry) => entry.itemId == itemId).first;
+    final remaining = _remainingShopStock(session, entry);
+    return remaining == null ? 10 : remaining.clamp(1, 10);
+  }
+
+  int? _remainingShopStock(
+    _ContextualShopSession session,
+    ShopEntryDefinition entry,
+  ) {
+    final stock = entry.stock;
+    if (stock == null) return null;
+    final stockKey = session.resolved.isDefault
+        ? '${session.request.shop.id}::${entry.itemId}'
+        : '${session.request.shop.id}::${session.resolved.stateId}::'
+            '${entry.itemId}';
+    final purchased =
+        session.gameState.progression.shopPurchaseCounts[stockKey] ?? 0;
+    return (stock - purchased).clamp(0, stock);
+  }
+
+  void _publishWorldService(RuntimeWorldServiceSnapshot? snapshot) {
+    _worldServiceSnapshot = snapshot;
+    if (!_worldServiceSnapshots.isClosed) {
+      _worldServiceSnapshots.add(snapshot);
+    }
+  }
+
+  Future<void> dispose() async {
+    if (_disposed) return;
+    _disposed = true;
+    final shop = _shopSession;
+    if (shop != null && !shop.result.isCompleted) {
+      shop.result.complete(const PlayerServiceHostResult.cancelled());
+    }
+    _shopSession = null;
+    _publishWorldService(null);
+    await _worldServiceSnapshots.close();
+  }
 }
+
+final class _ContextualShopSession {
+  _ContextualShopSession({
+    required this.request,
+    required this.gameState,
+  })  : resolved = request.resolvedState,
+        selectedItemId = request.resolvedState.entries.firstOrNull?.itemId;
+
+  final PlayerServiceShopRequest request;
+  final result = Completer<PlayerServiceHostResult>();
+  GameState gameState;
+  ResolvedShopState resolved;
+  String? selectedItemId;
+  int quantity = 1;
+}
+
+String _categoryForShopItem(String itemId) {
+  final effect = const PlayerItemEffectRegistry.mvp().effectFor(itemId);
+  return switch (effect?.kind) {
+    PlayerItemEffectKind.healHp ||
+    PlayerItemEffectKind.cureStatus ||
+    PlayerItemEffectKind.revive ||
+    PlayerItemEffectKind.restorePp =>
+      'medicine',
+    _ => 'items',
+  };
+}
+
+String _shopFailureMessage(ShopPurchaseFailure failure) => switch (failure) {
+      ShopPurchaseFailure.invalidRequest => 'Achat invalide.',
+      ShopPurchaseFailure.unknownItem => 'Objet inconnu.',
+      ShopPurchaseFailure.insufficientFunds => 'Fonds insuffisants.',
+      ShopPurchaseFailure.outOfStock => 'Stock insuffisant.',
+      ShopPurchaseFailure.shopClosed => 'Cette boutique est fermée.',
+      ShopPurchaseFailure.shopStateChanged =>
+        'La boutique a changé. Le catalogue a été actualisé.',
+    };
+
+String _shopItemLabel(String itemId) => itemId
+    .replaceAll('_', '-')
+    .split('-')
+    .where((part) => part.isNotEmpty)
+    .map(
+      (part) => '${part.substring(0, 1).toUpperCase()}${part.substring(1)}',
+    )
+    .join(' ');
 
 /// Resolves the real HP and PP caps needed by Bag and healing screens.
 Future<RuntimePlayerServiceRecoveryCaps> loadRuntimePlayerServiceRecoveryCaps({

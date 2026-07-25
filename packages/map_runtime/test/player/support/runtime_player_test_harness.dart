@@ -202,12 +202,17 @@ final class MemoryRuntimeExternalExit implements RuntimeExternalExit {
   }
 }
 
-final class FakeRuntimeSessionAdapter implements GameSessionAdapter {
+final class FakeRuntimeSessionAdapter
+    implements GameSessionAdapter, RuntimeWorldServicePort {
   FakeRuntimeSessionAdapter(this.sessionId);
 
   final String sessionId;
   final calls = <String>[];
   final _events = StreamController<GameSessionAdapterEvent>.broadcast();
+  final _worldServices =
+      StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
+  final worldServiceCommands = <RuntimeWorldServiceCommand>[];
+  RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   GameSessionCheckpoint? checkpoint;
   int disposeCalls = 0;
   bool gameplayLocked = false;
@@ -218,9 +223,22 @@ final class FakeRuntimeSessionAdapter implements GameSessionAdapter {
   @override
   Stream<GameSessionAdapterEvent> get events => _events.stream;
 
+  @override
+  RuntimeWorldServiceSnapshot? get worldServiceSnapshot =>
+      _worldServiceSnapshot;
+
+  @override
+  Stream<RuntimeWorldServiceSnapshot?> get worldServiceSnapshots =>
+      _worldServices.stream;
+
   void emit(GameSessionAdapterEvent event) => _events.add(event);
 
   void emitRunning() => emit(GameSessionRunning(sessionId));
+
+  void publishWorldService(RuntimeWorldServiceSnapshot? snapshot) {
+    _worldServiceSnapshot = snapshot;
+    _worldServices.add(snapshot);
+  }
 
   void emitCompletion(GameCompletionEvent completion) {
     emit(GameSessionCompleted(completion));
@@ -242,8 +260,19 @@ final class FakeRuntimeSessionAdapter implements GameSessionAdapter {
   Future<void> dispose() async {
     calls.add('dispose');
     disposeCalls++;
+    await _worldServices.close();
     await _events.close();
     if (disposeError case final error?) throw error;
+  }
+
+  @override
+  Future<RuntimeWorldServiceCommandResult> dispatchWorldService(
+    RuntimeWorldServiceCommand command,
+  ) async {
+    worldServiceCommands.add(command);
+    return const RuntimeWorldServiceCommandResult(
+      status: RuntimeWorldServiceCommandStatus.accepted,
+    );
   }
 
   @override

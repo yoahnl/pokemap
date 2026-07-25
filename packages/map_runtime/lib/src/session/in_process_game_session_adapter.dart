@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../presentation/flame/runtime_input_event.dart';
+import '../player/runtime_world_service_models.dart';
 import 'game_session_contract.dart';
 
 typedef GameSessionProgressReporter = void Function(
@@ -33,15 +34,21 @@ typedef InProcessGameSessionRuntimeFactory = InProcessGameSessionRuntime
 ///
 /// It intentionally mirrors the future child-process adapter: only the
 /// topology changes, never the controller or player-facing snapshots.
-final class InProcessGameSessionAdapter implements GameSessionAdapter {
+final class InProcessGameSessionAdapter
+    implements GameSessionAdapter, RuntimeWorldServicePort {
   InProcessGameSessionAdapter({
     required InProcessGameSessionRuntimeFactory runtimeFactory,
   }) : _runtimeFactory = runtimeFactory;
 
   final InProcessGameSessionRuntimeFactory _runtimeFactory;
   final _events = StreamController<GameSessionAdapterEvent>.broadcast();
+  final _worldServiceSnapshots =
+      StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
   InProcessGameSessionRuntime? _runtime;
   StreamSubscription<GameSessionAdapterEvent>? _runtimeEvents;
+  StreamSubscription<RuntimeWorldServiceSnapshot?>? _runtimeWorldServices;
+  RuntimeWorldServicePort? _worldServicePort;
+  RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   GameSessionDescriptor? _descriptor;
   bool _disposed = false;
 
@@ -71,6 +78,37 @@ final class InProcessGameSessionAdapter implements GameSessionAdapter {
         );
       },
     );
+    if (runtime case final RuntimeWorldServicePort port) {
+      _worldServicePort = port;
+      _worldServiceSnapshot = port.worldServiceSnapshot;
+      _runtimeWorldServices = port.worldServiceSnapshots.listen(
+        _publishWorldService,
+      );
+    }
+  }
+
+  @override
+  RuntimeWorldServiceSnapshot? get worldServiceSnapshot =>
+      _worldServiceSnapshot;
+
+  @override
+  Stream<RuntimeWorldServiceSnapshot?> get worldServiceSnapshots =>
+      _worldServiceSnapshots.stream;
+
+  @override
+  Future<RuntimeWorldServiceCommandResult> dispatchWorldService(
+    RuntimeWorldServiceCommand command,
+  ) {
+    final port = _worldServicePort;
+    if (port == null || _disposed) {
+      return Future<RuntimeWorldServiceCommandResult>.value(
+        const RuntimeWorldServiceCommandResult(
+          status: RuntimeWorldServiceCommandStatus.unavailable,
+          safeMessage: 'The active runtime exposes no contextual service.',
+        ),
+      );
+    }
+    return port.dispatchWorldService(command);
   }
 
   @override
@@ -134,10 +172,15 @@ final class InProcessGameSessionAdapter implements GameSessionAdapter {
     _disposed = true;
     await _runtimeEvents?.cancel();
     _runtimeEvents = null;
+    await _runtimeWorldServices?.cancel();
+    _runtimeWorldServices = null;
+    _worldServicePort = null;
+    _publishWorldService(null);
     final runtime = _runtime;
     _runtime = null;
     await runtime?.dispose();
     await _events.close();
+    await _worldServiceSnapshots.close();
   }
 
   GameSessionDescriptor _requirePrepared() {
@@ -155,5 +198,12 @@ final class InProcessGameSessionAdapter implements GameSessionAdapter {
 
   void _emit(GameSessionAdapterEvent event) {
     if (!_events.isClosed) _events.add(event);
+  }
+
+  void _publishWorldService(RuntimeWorldServiceSnapshot? snapshot) {
+    _worldServiceSnapshot = snapshot;
+    if (!_worldServiceSnapshots.isClosed) {
+      _worldServiceSnapshots.add(snapshot);
+    }
   }
 }

@@ -6,6 +6,7 @@ import '../session/game_session_contract.dart';
 import '../session/game_session_controller.dart';
 import 'runtime_player_host.dart';
 import 'runtime_player_models.dart';
+import 'runtime_world_service_models.dart';
 
 /// Runtime-owned state machine for title, session and player surfaces.
 ///
@@ -34,6 +35,8 @@ final class RuntimePlayerCoordinator {
       );
     }
     _sessionSubscription = _sessions.snapshots.listen(_onSessionSnapshot);
+    _worldServiceSubscription =
+        _sessions.worldServiceSnapshots.listen(_onWorldServiceSnapshot);
   }
 
   final RuntimeGameSource _gameSource;
@@ -43,6 +46,8 @@ final class RuntimePlayerCoordinator {
   final RuntimeExternalExit _externalExit;
   final _snapshots = StreamController<RuntimePlayerSnapshot>.broadcast();
   late final StreamSubscription<GameSessionSnapshot> _sessionSubscription;
+  late final StreamSubscription<RuntimeWorldServiceSnapshot?>
+      _worldServiceSubscription;
   Future<void> _tail = Future<void>.value();
 
   RuntimePlayerSnapshot _snapshot;
@@ -76,6 +81,13 @@ final class RuntimePlayerCoordinator {
       return _cancel(command);
     }
     return _serialize(() => _dispatchSerialized(command));
+  }
+
+  Future<RuntimeWorldServiceCommandResult> dispatchWorldService(
+    RuntimeWorldServiceCommand command,
+  ) {
+    _ensureOpen();
+    return _sessions.dispatchWorldService(command);
   }
 
   Future<void> pauseForLifecycle() {
@@ -586,6 +598,7 @@ final class RuntimePlayerCoordinator {
     _disposed = true;
     _launchGeneration++;
     await _cancelLiveSession();
+    await _worldServiceSubscription.cancel();
     await _sessionSubscription.cancel();
     await _sessions.dispose();
     await _snapshots.close();
@@ -663,6 +676,16 @@ final class RuntimePlayerCoordinator {
     }
   }
 
+  void _onWorldServiceSnapshot(RuntimeWorldServiceSnapshot? service) {
+    if (_disposed || identical(_snapshot.worldService, service)) return;
+    _publish(
+      _snapshot.next(
+        worldService: service,
+        clearWorldService: service == null,
+      ),
+    );
+  }
+
   void _publishTitle({GameSessionFailure? failure}) {
     _publish(
       _snapshot.next(
@@ -674,6 +697,7 @@ final class RuntimePlayerCoordinator {
         clearResult: true,
         clearCredits: true,
         clearLogicalSelection: true,
+        clearWorldService: true,
         actions: _titleActions,
       ),
     );
@@ -686,6 +710,7 @@ final class RuntimePlayerCoordinator {
         clearPauseSection: true,
         clearLoadingProgress: true,
         clearFailure: true,
+        clearWorldService: true,
         actions: const <RuntimePlayerActionAvailability>[
           RuntimePlayerActionAvailability.enabled(
             RuntimePlayerAction.openMenu,
@@ -748,6 +773,7 @@ final class RuntimePlayerCoordinator {
         clearPauseSection: true,
         clearLoadingProgress: true,
         clearFailure: true,
+        clearWorldService: true,
         result: completion.result,
         credits: completion.credits,
         actions: _resultActions,

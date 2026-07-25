@@ -99,6 +99,40 @@ void main() {
       await controller.dispose();
     });
 
+    test('forwards contextual service snapshots through the session boundary',
+        () async {
+      late _FakeSessionAdapter adapter;
+      final controller = GameSessionController(
+        adapterFactory: (descriptor) =>
+            adapter = _FakeSessionAdapter(descriptor.sessionId),
+        commitCheckpoint: (_) async {},
+      );
+      final snapshots = <RuntimeWorldServiceSnapshot?>[];
+      final subscription =
+          controller.worldServiceSnapshots.listen(snapshots.add);
+
+      await controller.prepare(_descriptor(sessionId: 'service-session'));
+      adapter.publishShop();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.worldServiceSnapshot?.revision, 5);
+      expect(snapshots.last?.request.kind, RuntimeWorldServiceKind.shop);
+      final result = await controller.dispatchWorldService(
+        const RuntimeWorldServiceCommand(
+          action: RuntimeWorldServiceAction.close,
+          snapshotRevision: 5,
+        ),
+      );
+      expect(result.status, RuntimeWorldServiceCommandStatus.accepted);
+      expect(adapter.serviceCommands.single.action,
+          RuntimeWorldServiceAction.close);
+
+      await controller.terminate();
+      expect(snapshots.last, isNull);
+      await controller.dispose();
+      await subscription.cancel();
+    });
+
     test('publishes loading progress while runtime start is still pending',
         () async {
       final startGate = Completer<void>();
@@ -422,7 +456,8 @@ GameCompletionEvent _completion(
   );
 }
 
-final class _FakeSessionAdapter implements GameSessionAdapter {
+final class _FakeSessionAdapter
+    implements GameSessionAdapter, RuntimeWorldServicePort {
   _FakeSessionAdapter(
     this.sessionId, {
     this.startError,
@@ -439,12 +474,47 @@ final class _FakeSessionAdapter implements GameSessionAdapter {
   final calls = <String>[];
   final completionAcknowledgements = <bool>[];
   final _events = StreamController<GameSessionAdapterEvent>.broadcast();
+  final _worldServices =
+      StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
+  final serviceCommands = <RuntimeWorldServiceCommand>[];
+  RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   bool gameplayLocked = false;
 
   @override
   Stream<GameSessionAdapterEvent> get events => _events.stream;
 
+  @override
+  RuntimeWorldServiceSnapshot? get worldServiceSnapshot =>
+      _worldServiceSnapshot;
+
+  @override
+  Stream<RuntimeWorldServiceSnapshot?> get worldServiceSnapshots =>
+      _worldServices.stream;
+
   void emit(GameSessionAdapterEvent event) => _events.add(event);
+
+  void publishShop() {
+    final snapshot = RuntimeWorldServiceSnapshot(
+      revision: 5,
+      request: const OpenShopService(
+        interactionId: 'npc.shop',
+        shopId: 'mart',
+      ),
+      stage: RuntimeWorldServiceStage.active,
+    );
+    _worldServiceSnapshot = snapshot;
+    _worldServices.add(snapshot);
+  }
+
+  @override
+  Future<RuntimeWorldServiceCommandResult> dispatchWorldService(
+    RuntimeWorldServiceCommand command,
+  ) async {
+    serviceCommands.add(command);
+    return const RuntimeWorldServiceCommandResult(
+      status: RuntimeWorldServiceCommandStatus.accepted,
+    );
+  }
 
   @override
   Future<void> prepare(GameSessionDescriptor descriptor) async {
@@ -495,6 +565,7 @@ final class _FakeSessionAdapter implements GameSessionAdapter {
   @override
   Future<void> dispose() async {
     calls.add('dispose');
+    await _worldServices.close();
     await _events.close();
     if (disposeError case final error?) throw error;
   }

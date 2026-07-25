@@ -147,6 +147,61 @@ void main() {
     expect(lifecycle.disposals, 1);
   });
 
+  testWidgets('renders a contextual shop over the mounted runtime scene',
+      (tester) async {
+    final lifecycle = _SceneLifecycle();
+    final service = RuntimeWorldServiceSnapshot(
+      revision: 4,
+      request: const OpenShopService(
+        interactionId: 'npc.merchant',
+        shopId: 'mart',
+      ),
+      stage: RuntimeWorldServiceStage.active,
+      content: RuntimeShopServiceContent(
+        title: 'Boutique du Port',
+        message: 'Bienvenue !',
+        money: 500,
+        entries: const <RuntimeShopEntrySnapshot>[
+          RuntimeShopEntrySnapshot(
+            itemId: 'potion',
+            label: 'Potion',
+            unitPrice: 60,
+          ),
+        ],
+        selectedItemId: 'potion',
+        totalPrice: 60,
+      ),
+      actions: const <RuntimeWorldServiceActionAvailability>[
+        RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.confirm,
+        ),
+        RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.close,
+        ),
+      ],
+    );
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(
+        revision: 18,
+        phase: RuntimePlayerPhase.playing,
+        worldService: service,
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(_app(_view(controller, lifecycle: lifecycle)));
+
+    expect(
+        find.byKey(const ValueKey<String>('test-game-scene')), findsOneWidget);
+    expect(find.text('Boutique du Port'), findsOneWidget);
+    expect(lifecycle.mounts, 1);
+
+    await tester.tap(find.byKey(const ValueKey<String>('shop-close')));
+    expect(controller.worldServiceCommands.single.action,
+        RuntimeWorldServiceAction.close);
+    expect(controller.worldServiceCommands.single.snapshotRevision, 4);
+  });
+
   testWidgets('shows safe error context and optional diagnostics',
       (tester) async {
     var diagnosticCalls = 0;
@@ -210,6 +265,7 @@ RuntimePlayerSnapshot _snapshot({
       const <RuntimePlayerActionAvailability>[],
   GameSessionLoadingProgress? loadingProgress,
   GameSessionFailure? failure,
+  RuntimeWorldServiceSnapshot? worldService,
 }) {
   return RuntimePlayerSnapshot(
     revision: revision,
@@ -221,6 +277,7 @@ RuntimePlayerSnapshot _snapshot({
     actions: actions,
     loadingProgress: loadingProgress,
     failure: failure,
+    worldService: worldService,
     result: phase == RuntimePlayerPhase.result
         ? const GameResultSnapshot(
             title: 'Victoire',
@@ -263,6 +320,7 @@ final class _FakeRuntimePlayerCoordinator
 
   final _snapshots = StreamController<RuntimePlayerSnapshot>.broadcast();
   final commands = <RuntimePlayerCommand>[];
+  final worldServiceCommands = <RuntimeWorldServiceCommand>[];
   RuntimePlayerSnapshot _snapshot;
 
   @override
@@ -283,6 +341,16 @@ final class _FakeRuntimePlayerCoordinator
     commands.add(command);
     return const RuntimePlayerCommandResult(
       status: RuntimePlayerCommandStatus.accepted,
+    );
+  }
+
+  @override
+  Future<RuntimeWorldServiceCommandResult> dispatchWorldService(
+    RuntimeWorldServiceCommand command,
+  ) async {
+    worldServiceCommands.add(command);
+    return const RuntimeWorldServiceCommandResult(
+      status: RuntimeWorldServiceCommandStatus.accepted,
     );
   }
 

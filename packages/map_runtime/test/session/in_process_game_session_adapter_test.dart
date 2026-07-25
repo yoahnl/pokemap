@@ -62,6 +62,37 @@ void main() {
     ]);
     await subscription.cancel();
   });
+
+  test('in-process adapter forwards contextual service state and commands',
+      () async {
+    final runtime = _FakeContextualRuntime('session-a');
+    final adapter = InProcessGameSessionAdapter(
+      runtimeFactory: (_) => runtime,
+    );
+    final snapshots = <RuntimeWorldServiceSnapshot?>[];
+    final subscription = adapter.worldServiceSnapshots.listen(snapshots.add);
+
+    await adapter.prepare(_descriptor());
+    runtime.publishShop();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(adapter.worldServiceSnapshot?.request.kind,
+        RuntimeWorldServiceKind.shop);
+    expect(snapshots.last?.revision, 3);
+
+    final result = await adapter.dispatchWorldService(
+      const RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.close,
+        snapshotRevision: 3,
+      ),
+    );
+    expect(result.status, RuntimeWorldServiceCommandStatus.accepted);
+    expect(runtime.commands.single.action, RuntimeWorldServiceAction.close);
+
+    await adapter.dispose();
+    expect(snapshots.last, isNull);
+    await subscription.cancel();
+  });
 }
 
 GameSessionDescriptor _descriptor() => GameSessionDescriptor(
@@ -84,7 +115,7 @@ GameSessionDescriptor _descriptor() => GameSessionDescriptor(
       accessibility: const GameSessionAccessibilityOptions(),
     );
 
-final class _FakeInProcessRuntime implements InProcessGameSessionRuntime {
+class _FakeInProcessRuntime implements InProcessGameSessionRuntime {
   _FakeInProcessRuntime(this.sessionId);
 
   final String sessionId;
@@ -146,5 +177,52 @@ final class _FakeInProcessRuntime implements InProcessGameSessionRuntime {
   bool handleInput(RuntimeInputEvent event) {
     calls.add('input:${event.control.name}');
     return true;
+  }
+}
+
+final class _FakeContextualRuntime extends _FakeInProcessRuntime
+    implements RuntimeWorldServicePort {
+  _FakeContextualRuntime(super.sessionId);
+
+  final _worldServices =
+      StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
+  final commands = <RuntimeWorldServiceCommand>[];
+  RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
+
+  @override
+  RuntimeWorldServiceSnapshot? get worldServiceSnapshot =>
+      _worldServiceSnapshot;
+
+  @override
+  Stream<RuntimeWorldServiceSnapshot?> get worldServiceSnapshots =>
+      _worldServices.stream;
+
+  void publishShop() {
+    final snapshot = RuntimeWorldServiceSnapshot(
+      revision: 3,
+      request: const OpenShopService(
+        interactionId: 'npc.merchant',
+        shopId: 'mart',
+      ),
+      stage: RuntimeWorldServiceStage.active,
+    );
+    _worldServiceSnapshot = snapshot;
+    _worldServices.add(snapshot);
+  }
+
+  @override
+  Future<RuntimeWorldServiceCommandResult> dispatchWorldService(
+    RuntimeWorldServiceCommand command,
+  ) async {
+    commands.add(command);
+    return const RuntimeWorldServiceCommandResult(
+      status: RuntimeWorldServiceCommandStatus.accepted,
+    );
+  }
+
+  @override
+  Future<void> dispose() async {
+    await _worldServices.close();
+    await super.dispose();
   }
 }

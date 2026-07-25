@@ -204,6 +204,41 @@ void main() {
     );
   });
 
+  test('projects contextual world services without replacing the player phase',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    final service = RuntimeWorldServiceSnapshot(
+      revision: 8,
+      request: const OpenShopService(
+        interactionId: 'npc.merchant',
+        shopId: 'mart',
+      ),
+      stage: RuntimeWorldServiceStage.active,
+    );
+
+    harness.adapter.publishWorldService(service);
+    await harness.coordinator.settle();
+
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.playing);
+    expect(harness.coordinator.snapshot.worldService, same(service));
+    final result = await harness.coordinator.dispatchWorldService(
+      const RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.close,
+        snapshotRevision: 8,
+      ),
+    );
+    expect(result.status, RuntimeWorldServiceCommandStatus.accepted);
+    expect(harness.adapter.worldServiceCommands.single.action,
+        RuntimeWorldServiceAction.close);
+
+    harness.adapter.publishWorldService(null);
+    await harness.coordinator.settle();
+    expect(harness.coordinator.snapshot.worldService, isNull);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.playing);
+  });
+
   test('retry recovers a title initialization failure without deadlocking',
       () async {
     final harness = RuntimePlayerTestHarness();

@@ -2,6 +2,7 @@ import 'dart:collection';
 
 import '../session/game_session_contract.dart';
 import '../session/player_input.dart';
+import 'runtime_world_service_models.dart';
 
 enum RuntimePlayerPhase {
   boot,
@@ -197,6 +198,7 @@ final class RuntimePlayerSnapshot {
     this.failure,
     this.logicalSelectionId,
     this.activeInputSource,
+    this.worldService,
     Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot> pauseDetails =
         const <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{},
   })  : actions = List<RuntimePlayerActionAvailability>.unmodifiable(actions),
@@ -248,6 +250,7 @@ final class RuntimePlayerSnapshot {
   final GameSessionFailure? failure;
   final String? logicalSelectionId;
   final PlayerInputSource? activeInputSource;
+  final RuntimeWorldServiceSnapshot? worldService;
   final Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
       pauseDetails;
 
@@ -283,6 +286,8 @@ final class RuntimePlayerSnapshot {
     bool clearLogicalSelection = false,
     PlayerInputSource? activeInputSource,
     bool clearActiveInputSource = false,
+    RuntimeWorldServiceSnapshot? worldService,
+    bool clearWorldService = false,
     Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>?
         pauseDetails,
     bool clearPauseDetails = false,
@@ -305,6 +310,8 @@ final class RuntimePlayerSnapshot {
       activeInputSource: clearActiveInputSource
           ? null
           : activeInputSource ?? this.activeInputSource,
+      worldService:
+          clearWorldService ? null : worldService ?? this.worldService,
       pauseDetails: clearPauseDetails
           ? const <RuntimePlayerPauseSection,
               RuntimePlayerPauseDetailSnapshot>{}

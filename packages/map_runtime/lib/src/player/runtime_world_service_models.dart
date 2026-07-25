@@ -87,6 +87,48 @@ enum RuntimeWorldServiceAction {
   withdraw,
 }
 
+final class RuntimeShopEntrySnapshot {
+  const RuntimeShopEntrySnapshot({
+    required this.itemId,
+    required this.label,
+    required this.unitPrice,
+    this.remainingStock,
+  })  : assert(itemId != ''),
+        assert(label != ''),
+        assert(unitPrice >= 0),
+        assert(remainingStock == null || remainingStock >= 0);
+
+  final String itemId;
+  final String label;
+  final int unitPrice;
+  final int? remainingStock;
+}
+
+/// Runtime-owned Shop projection. Prices and availability are already resolved.
+final class RuntimeShopServiceContent {
+  RuntimeShopServiceContent({
+    required this.title,
+    required this.message,
+    required this.money,
+    List<RuntimeShopEntrySnapshot> entries = const <RuntimeShopEntrySnapshot>[],
+    this.selectedItemId,
+    this.quantity = 1,
+    this.totalPrice = 0,
+  })  : assert(title != ''),
+        assert(money >= 0),
+        assert(quantity > 0),
+        assert(totalPrice >= 0),
+        entries = List<RuntimeShopEntrySnapshot>.unmodifiable(entries);
+
+  final String title;
+  final String message;
+  final int money;
+  final List<RuntimeShopEntrySnapshot> entries;
+  final String? selectedItemId;
+  final int quantity;
+  final int totalPrice;
+}
+
 final class RuntimeWorldServiceActionAvailability {
   const RuntimeWorldServiceActionAvailability.enabled(this.action)
       : isEnabled = true,

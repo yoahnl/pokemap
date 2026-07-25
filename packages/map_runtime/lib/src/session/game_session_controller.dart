@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:map_core/map_core.dart';
 
 import '../presentation/flame/runtime_input_event.dart';
+import '../player/runtime_world_service_models.dart';
 import 'game_session_contract.dart';
 
 /// Authoritative session state machine shared by in-process and child adapters.
@@ -10,7 +11,7 @@ import 'game_session_contract.dart';
 /// The controller never reads package paths and never persists saves itself.
 /// Both authorities are injected by the Hub, which keeps this facade usable by
 /// the developer host without creating a dependency on the Hub application.
-final class GameSessionController {
+final class GameSessionController implements RuntimeWorldServicePort {
   GameSessionController({
     required GameSessionAdapterFactory adapterFactory,
     required GameSessionCheckpointCommitter commitCheckpoint,
@@ -33,11 +34,16 @@ final class GameSessionController {
   final Duration stopTimeout;
 
   final _snapshots = StreamController<GameSessionSnapshot>.broadcast();
+  final _worldServiceSnapshots =
+      StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
   Future<void> _tail = Future<void>.value();
   GameSessionSnapshot _snapshot = const GameSessionSnapshot.idle();
   GameSessionDescriptor? _descriptor;
   GameSessionAdapter? _adapter;
   StreamSubscription<GameSessionAdapterEvent>? _adapterEvents;
+  StreamSubscription<RuntimeWorldServiceSnapshot?>? _adapterWorldServices;
+  RuntimeWorldServicePort? _worldServicePort;
+  RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   bool _controllerDisposed = false;
   final Set<String> _completionKeys = <String>{};
   GameCompletionEvent? _pendingCompletion;
@@ -46,6 +52,30 @@ final class GameSessionController {
   GameSessionSnapshot get snapshot => _snapshot;
   Stream<GameSessionSnapshot> get snapshots => _snapshots.stream;
   GameCompletionEvent? get committedCompletion => _committedCompletion;
+
+  @override
+  RuntimeWorldServiceSnapshot? get worldServiceSnapshot =>
+      _worldServiceSnapshot;
+
+  @override
+  Stream<RuntimeWorldServiceSnapshot?> get worldServiceSnapshots =>
+      _worldServiceSnapshots.stream;
+
+  @override
+  Future<RuntimeWorldServiceCommandResult> dispatchWorldService(
+    RuntimeWorldServiceCommand command,
+  ) {
+    final port = _worldServicePort;
+    if (port == null || _controllerDisposed) {
+      return Future<RuntimeWorldServiceCommandResult>.value(
+        const RuntimeWorldServiceCommandResult(
+          status: RuntimeWorldServiceCommandStatus.unavailable,
+          safeMessage: 'The active session exposes no contextual service.',
+        ),
+      );
+    }
+    return port.dispatchWorldService(command);
+  }
 
   Future<void> prepare(GameSessionDescriptor descriptor) {
     return _serialize(() async {
@@ -92,6 +122,13 @@ final class GameSessionController {
           },
         );
         await adapter.prepare(descriptor).timeout(prepareTimeout);
+        if (adapter case final RuntimeWorldServicePort port) {
+          _worldServicePort = port;
+          _publishWorldService(port.worldServiceSnapshot);
+          _adapterWorldServices = port.worldServiceSnapshots.listen(
+            _publishWorldService,
+          );
+        }
         _publish(_snapshot.copyWith(state: GameSessionState.prepared));
       } on TimeoutException catch (error) {
         await _failAndDispose(
@@ -326,6 +363,7 @@ final class GameSessionController {
     await terminate();
     _controllerDisposed = true;
     await _snapshots.close();
+    await _worldServiceSnapshots.close();
   }
 
   /// Loading signals are presentation-only and may arrive while [start] owns
@@ -644,6 +682,15 @@ final class GameSessionController {
 
   Future<Object?> _disposeAdapter() async {
     Object? firstError;
+    final worldServices = _adapterWorldServices;
+    _adapterWorldServices = null;
+    _worldServicePort = null;
+    try {
+      await worldServices?.cancel();
+    } on Object catch (error) {
+      firstError = error;
+    }
+    _publishWorldService(null);
     final subscription = _adapterEvents;
     _adapterEvents = null;
     try {
@@ -683,6 +730,13 @@ final class GameSessionController {
   void _publish(GameSessionSnapshot next) {
     _snapshot = next;
     if (!_snapshots.isClosed) _snapshots.add(next);
+  }
+
+  void _publishWorldService(RuntimeWorldServiceSnapshot? snapshot) {
+    _worldServiceSnapshot = snapshot;
+    if (!_worldServiceSnapshots.isClosed) {
+      _worldServiceSnapshots.add(snapshot);
+    }
   }
 
   Future<T> _serialize<T>(FutureOr<T> Function() operation) {

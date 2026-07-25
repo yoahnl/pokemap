@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import '../application/load_runtime_map_bundle.dart';
 import '../application/map_activation.dart';
+import '../application/player_service_runtime_controller.dart';
+import '../player/runtime_world_service_models.dart';
 import '../presentation/flame/playable_map_game.dart';
 import '../presentation/flame/runtime_input_authority.dart';
 import '../presentation/flame/runtime_input_event.dart';
@@ -24,7 +27,7 @@ typedef SessionSaveIdFactory = String Function();
 /// lifecycle hooks. This class owns everything after construction and invokes
 /// [unmountGame] before clearing Flame components and caches.
 final class PlayableMapGameSessionRuntime
-    implements InProcessGameSessionRuntime {
+    implements InProcessGameSessionRuntime, RuntimeWorldServicePort {
   PlayableMapGameSessionRuntime({
     required this.descriptor,
     required SessionProjectFilePathLoader projectFilePath,
@@ -48,9 +51,14 @@ final class PlayableMapGameSessionRuntime
   final SessionSaveIdFactory _saveIdFactory;
   final DateTime Function() _now;
   final _events = StreamController<GameSessionAdapterEvent>.broadcast();
+  final _worldServiceSnapshots =
+      StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
   final Stopwatch _playWatch = Stopwatch();
 
   PlayableMapGame? _game;
+  PlayerServiceRuntimeController? _playerServices;
+  StreamSubscription<RuntimeWorldServiceSnapshot?>? _playerServiceSnapshots;
+  RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   DateTime? _createdAt;
   String? _saveId;
   int _basePlayTimeSeconds = 0;
@@ -63,6 +71,30 @@ final class PlayableMapGameSessionRuntime
 
   @override
   Stream<GameSessionAdapterEvent> get events => _events.stream;
+
+  @override
+  RuntimeWorldServiceSnapshot? get worldServiceSnapshot =>
+      _worldServiceSnapshot;
+
+  @override
+  Stream<RuntimeWorldServiceSnapshot?> get worldServiceSnapshots =>
+      _worldServiceSnapshots.stream;
+
+  @override
+  Future<RuntimeWorldServiceCommandResult> dispatchWorldService(
+    RuntimeWorldServiceCommand command,
+  ) {
+    final services = _playerServices;
+    if (services == null || _disposed) {
+      return Future<RuntimeWorldServiceCommandResult>.value(
+        const RuntimeWorldServiceCommandResult(
+          status: RuntimeWorldServiceCommandStatus.unavailable,
+          safeMessage: 'No contextual world service is active.',
+        ),
+      );
+    }
+    return services.dispatchWorldService(command);
+  }
 
   @override
   Future<void> load(GameSessionProgressReporter reportProgress) async {
@@ -133,6 +165,31 @@ final class PlayableMapGameSessionRuntime
               : MapActivationReason.saveRestore,
     );
     _game = game;
+    final playerServices = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => game.playerServiceGameStateSnapshot,
+      commitAndSave: game.commitAndSavePlayerServiceState,
+      setInputLocked: (locked) => game.setExternalInputLock(
+        RuntimeExternalInputLock.playerService,
+        locked: locked,
+      ),
+      loadRecoveryCaps: (state) => loadRuntimePlayerServiceRecoveryCaps(
+        gameState: state,
+        projectRootDirectory: bundle.projectRootDirectory,
+        pokemonConfig: bundle.manifest.pokemon,
+      ),
+      conditionContext: ScriptEvaluationContext(
+        narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(
+          bundle.manifest.facts,
+        ),
+      ),
+      grantedCapabilities: descriptor.grantedCapabilities,
+    );
+    _playerServices = playerServices;
+    _worldServiceSnapshot = playerServices.worldServiceSnapshot;
+    _playerServiceSnapshots = playerServices.worldServiceSnapshots.listen(
+      _publishWorldService,
+    );
+    game.setPlayerServiceRuntimeController(playerServices);
     reportProgress(
       const GameSessionLoadingProgress(
         stage: 'mount',
@@ -251,6 +308,12 @@ final class PlayableMapGameSessionRuntime
     if (_disposed) return;
     _disposed = true;
     _playWatch.stop();
+    await _playerServiceSnapshots?.cancel();
+    _playerServiceSnapshots = null;
+    final playerServices = _playerServices;
+    _playerServices = null;
+    await playerServices?.dispose();
+    _publishWorldService(null);
     final game = _game;
     _game = null;
     if (game != null && _mounted) {
@@ -260,6 +323,7 @@ final class PlayableMapGameSessionRuntime
     // Flame's public dispose clears components plus per-game asset caches.
     game?.dispose();
     await _events.close();
+    await _worldServiceSnapshots.close();
   }
 
   void _validateInitialSave(SaveEnvelope? save) {
@@ -289,6 +353,13 @@ final class PlayableMapGameSessionRuntime
 
   void _ensureNotDisposed() {
     if (_disposed) throw StateError('The playable runtime is disposed.');
+  }
+
+  void _publishWorldService(RuntimeWorldServiceSnapshot? snapshot) {
+    _worldServiceSnapshot = snapshot;
+    if (!_worldServiceSnapshots.isClosed) {
+      _worldServiceSnapshots.add(snapshot);
+    }
   }
 }
 
