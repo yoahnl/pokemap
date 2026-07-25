@@ -8,5 +8,6 @@ tailles et SHA-256 des manifests valides.
   nécessaire au repository documentaire : le test décode le base64, sans
   whitespace, vers le path logique `presentation/icon.png` avant calcul ;
 - le fichier `.base64` n’est jamais une entrée du package ;
-- la fixture projet est minimale pour les tests de contrat distribution, pas
-  une preuve de smoke runtime. La Phase 1/3 ajoutera un projet neutre complet.
+- la fixture projet passe le parseur et le validateur pur `map_core`, mais ne
+  constitue pas une preuve de smoke runtime avec map de démarrage ; ce gate
+  appartient à l’installation en staging.

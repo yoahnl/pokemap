@@ -30,8 +30,8 @@
   },
   "content": {
     "fileCount": 3,
-    "totalBytes": 100,
-    "treeSha256": "a18e71e7e3e2214ee53d701834b80ecf7948514da4841cf8943c93ace06606b7",
+    "totalBytes": 143,
+    "treeSha256": "cd6c49ab5b9b0fb6e8874d05ddc694da918998861ad01596e53e920d2d89e52e",
     "files": [
       {
         "path": "legal/CREDITS.txt",
@@ -47,8 +47,8 @@
       },
       {
         "path": "project/project.json",
-        "size": 24,
-        "sha256": "1bcbf797acc5b8dc08dcba7f4da52a7d7b09f97cc5ec1905b8093d6f0faa097a",
+        "size": 67,
+        "sha256": "82ddfe9aafca7405dee512ff36b44beb35be90ef53053b3f35e09a0dd8d615b9",
         "mediaType": "application/json"
       }
     ]

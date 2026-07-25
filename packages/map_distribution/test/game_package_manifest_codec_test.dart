@@ -1,0 +1,462 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:map_distribution/map_distribution.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('GamePackageManifestCodec', () {
+    const codec = GamePackageManifestCodec();
+
+    test('round-trips a minimal manifest canonically', () {
+      final manifest = codec.decodeJson(_minimalManifestJson());
+
+      expect(manifest.packageFormat, 1);
+      expect(manifest.gameId, 'games.example.minimal');
+      expect(manifest.gameVersion.toString(), '1.0.0');
+      expect(manifest.compatibility.runtimeApi.allows(manifest.gameVersion),
+          isTrue);
+      expect(
+        jsonDecode(codec.encodeCanonicalJson(manifest)),
+        _minimalManifestJson(),
+      );
+      expect(
+        codec.decodeUtf8(codec.encodeCanonicalUtf8(manifest)).toJson(),
+        manifest.toJson(),
+      );
+    });
+
+    test('round-trips all optional declarative fields', () {
+      final json = _minimalManifestJson()
+        ..['description'] = 'Neutral fixture'
+        ..['publisher'] = <String, Object?>{
+          'name': 'Example Publisher',
+          'url': 'https://example.invalid',
+        }
+        ..['branding'] = <String, Object?>{
+          'icon': 'presentation/icon.png',
+          'cover': 'presentation/cover.png',
+          'hero': 'presentation/hero.png',
+          'accentColor': '#6D5EFCAA',
+          'titleMusic': 'project/assets/title.ogg',
+          'layoutVariant': 'cinematic',
+        }
+        ..['signature'] = <String, Object?>{
+          'algorithm': 'ed25519',
+          'keyId': 'example:key-1',
+          'value': base64Encode(Uint8List(64)),
+        };
+      final compatibility = json['compatibility']! as Map<String, Object?>;
+      compatibility['requiredCapabilities'] = <String>[
+        'dialogue.choices@1',
+        'overworld.menu@1',
+      ];
+      final locales = json['locales']! as Map<String, Object?>;
+      locales['supported'] = <String>['fr-FR', 'en-US'];
+      locales['default'] = 'fr-FR';
+      final content = json['content']! as Map<String, Object?>;
+      final projectFile =
+          (content['files']! as List<Object?>).single as Map<String, Object?>;
+      content
+        ..['fileCount'] = 5
+        ..['files'] = <Object?>[
+          _emptyFile('presentation/cover.png'),
+          _emptyFile('presentation/hero.png'),
+          _emptyFile('presentation/icon.png'),
+          _emptyFile('project/assets/title.ogg'),
+          projectFile,
+        ];
+      content['treeSha256'] = _treeHashFromJson(content['files']!);
+
+      final manifest = codec.decodeJson(json);
+
+      expect(manifest.publisher?.name, 'Example Publisher');
+      expect(manifest.branding?.layoutVariant, 'cinematic');
+      expect(manifest.signature?.algorithm, 'ed25519');
+      expect(codec.decodeJson(manifest.toJson()).toJson(), manifest.toJson());
+    });
+
+    test('signature preimage omits only the root signature', () {
+      final json = _minimalManifestJson()
+        ..['signature'] = <String, Object?>{
+          'algorithm': 'ed25519',
+          'keyId': 'example:key-1',
+          'value': base64Encode(Uint8List(64)),
+        };
+      final manifest = codec.decodeJson(json);
+
+      final preimage = jsonDecode(
+        utf8.decode(codec.signaturePreimageUtf8(manifest)),
+      ) as Map<String, Object?>;
+
+      expect(preimage, isNot(contains('signature')));
+      expect(preimage['gameId'], manifest.gameId);
+      expect(codec.encodeCanonicalJson(manifest), contains('"signature"'));
+    });
+
+    test('decodeUtf8 requires canonical JSON bytes', () {
+      final canonical = codec.encodeCanonicalUtf8(
+        codec.decodeJson(_minimalManifestJson()),
+      );
+      final pretty = const JsonEncoder.withIndent('  ').convert(
+        _minimalManifestJson(),
+      );
+      final duplicate = utf8.decode(canonical).replaceFirst(
+          '"packageFormat":1',
+          ''
+              '"packageFormat":1,"packageFormat":1');
+
+      expect(codec.decodeUtf8(canonical).gameId, 'games.example.minimal');
+      _expectCode(
+        () => codec.decodeUtf8(utf8.encode(pretty)),
+        'nonCanonicalManifest',
+        r'$',
+      );
+      _expectCode(
+        () => codec.decodeUtf8(utf8.encode(duplicate)),
+        'nonCanonicalManifest',
+        r'$',
+      );
+    });
+
+    test('encode and signature preimage revalidate public model values', () {
+      final valid = codec.decodeJson(_minimalManifestJson());
+      final invalid = GamePackageManifest(
+        packageFormat: 2,
+        gameId: valid.gameId,
+        gameVersion: valid.gameVersion,
+        title: valid.title,
+        author: valid.author,
+        compatibility: valid.compatibility,
+        locales: valid.locales,
+        content: valid.content,
+      );
+
+      _expectCode(
+        () => codec.encodeCanonicalJson(invalid),
+        'packageFormatUnsupported',
+        r'$.packageFormat',
+      );
+      _expectCode(
+        () => codec.signaturePreimageUtf8(invalid),
+        'packageFormatUnsupported',
+        r'$.packageFormat',
+      );
+    });
+
+    test('rejects unknown fields at every object level', () {
+      final root = _minimalManifestJson()..['executableEntryPoint'] = 'main';
+      _expectCode(() => codec.decodeJson(root), 'unknownField', r'$');
+
+      final nested = _minimalManifestJson();
+      (nested['compatibility']! as Map<String, Object?>)['future'] = true;
+      _expectCode(
+        () => codec.decodeJson(nested),
+        'unknownField',
+        r'$.compatibility',
+      );
+    });
+
+    test('rejects missing fields and invalid value types', () {
+      final missing = _minimalManifestJson()..remove('gameId');
+      _expectCode(() => codec.decodeJson(missing), 'missingField', r'$.gameId');
+
+      final wrongType = _minimalManifestJson()..['packageFormat'] = '1';
+      _expectCode(
+        () => codec.decodeJson(wrongType),
+        'invalidType',
+        r'$.packageFormat',
+      );
+    });
+
+    test('rejects invalid identity, versions and project format', () {
+      for (final id in <String>[
+        'Complete Adventure',
+        'games.example',
+        'Games.example.game',
+        'a.${'b' * 125}.c',
+      ]) {
+        final json = _minimalManifestJson()..['gameId'] = id;
+        _expectCode(() => codec.decodeJson(json), 'invalidGameId', r'$.gameId');
+      }
+
+      for (final version in <String>['v1.0.0', '1.0.0-01', '1.0']) {
+        final json = _minimalManifestJson()..['gameVersion'] = version;
+        _expectCode(
+          () => codec.decodeJson(json),
+          'invalidSemVer',
+          r'$.gameVersion',
+        );
+      }
+
+      final futureProject = _minimalManifestJson();
+      (futureProject['compatibility']!
+          as Map<String, Object?>)['projectFormat'] = 'v3';
+      expect(
+        codec.decodeJson(futureProject).compatibility.projectFormat,
+        'v3',
+      );
+
+      final invalidProject = _minimalManifestJson();
+      (invalidProject['compatibility']!
+          as Map<String, Object?>)['projectFormat'] = '3';
+      _expectCode(
+        () => codec.decodeJson(invalidProject),
+        'invalidProjectFormat',
+        r'$.compatibility.projectFormat',
+      );
+
+      final unsafeSaveFormat = _minimalManifestJson();
+      (unsafeSaveFormat['compatibility']!
+              as Map<String, Object?>)['saveFormat'] =
+          CanonicalJson.maxSafeInteger + 1;
+      _expectCode(
+        () => codec.decodeJson(unsafeSaveFormat),
+        'invalidSaveFormat',
+        r'$.compatibility.saveFormat',
+      );
+    });
+
+    test('rejects invalid capabilities and locale configuration', () {
+      final duplicate = _minimalManifestJson();
+      (duplicate['compatibility']!
+          as Map<String, Object?>)['requiredCapabilities'] = <String>[
+        'dialogue.choices@1',
+        'dialogue.choices@1',
+      ];
+      _expectCode(
+        () => codec.decodeJson(duplicate),
+        'duplicateCapability',
+        r'$.compatibility.requiredCapabilities',
+      );
+
+      final malformed = _minimalManifestJson();
+      (malformed['compatibility']!
+          as Map<String, Object?>)['requiredCapabilities'] = <String>[
+        'dialogue.choices@0',
+      ];
+      _expectCode(
+        () => codec.decodeJson(malformed),
+        'invalidCapability',
+        r'$.compatibility.requiredCapabilities[0]',
+      );
+
+      final locale = _minimalManifestJson();
+      (locale['locales']! as Map<String, Object?>)
+        ..['default'] = 'en'
+        ..['supported'] = <String>['fr'];
+      _expectCode(
+        () => codec.decodeJson(locale),
+        'defaultLocaleNotSupported',
+        r'$.locales.default',
+      );
+    });
+
+    test('allows only credential-free HTTP(S) party metadata URLs', () {
+      final valid = _minimalManifestJson();
+      (valid['author']! as Map<String, Object?>)['url'] =
+          'https://example.invalid/studio';
+      expect(
+        codec.decodeJson(valid).author.url.toString(),
+        'https://example.invalid/studio',
+      );
+
+      for (final source in <String>[
+        'file:///tmp/studio',
+        'mailto:studio@example.invalid',
+        'http:opaque',
+        'https://user:password@example.invalid',
+      ]) {
+        final invalid = _minimalManifestJson();
+        (invalid['author']! as Map<String, Object?>)['url'] = source;
+        _expectCode(
+          () => codec.decodeJson(invalid),
+          'invalidUri',
+          r'$.author.url',
+        );
+      }
+    });
+
+    test('uses code-point string lengths and strict shared path policy', () {
+      final astralTitle = _minimalManifestJson()..['title'] = '😀' * 100;
+      expect(codec.decodeJson(astralTitle).title.runes.length, 100);
+
+      for (final path in <String>[
+        'project/./project.json',
+        'project/maps/e\u0301.json',
+        'project/AUX.json',
+        'project/maps/trailing. ',
+        'project/${'a' * 256}.json',
+        'project/${List<String>.filled(32, 'd').join('/')}/project.json',
+      ]) {
+        final json = _minimalManifestJson();
+        final content = json['content']! as Map<String, Object?>;
+        final file =
+            (content['files']! as List<Object?>).single as Map<String, Object?>;
+        file['path'] = path;
+        _expectCode(
+          () => codec.decodeJson(json),
+          'invalidPackagePath',
+          r'$.content.files[0].path',
+        );
+      }
+    });
+
+    test('rejects normalized case collisions and wrong branding roots', () {
+      final collision = _minimalManifestJson();
+      final content = collision['content']! as Map<String, Object?>;
+      final projectFile =
+          (content['files']! as List<Object?>).single as Map<String, Object?>;
+      content
+        ..['fileCount'] = 3
+        ..['totalBytes'] = 24
+        ..['files'] = <Object?>[
+          _emptyFile('presentation/Icon.png'),
+          _emptyFile('presentation/icon.png'),
+          projectFile,
+        ];
+      content['treeSha256'] = _treeHashFromJson(content['files']!);
+      _expectCode(
+        () => codec.decodeJson(collision),
+        'pathCollision',
+        r'$.content.files[1].path',
+      );
+
+      final branding = _minimalManifestJson()
+        ..['branding'] = <String, Object?>{
+          'icon': 'project/project.json',
+        };
+      _expectCode(
+        () => codec.decodeJson(branding),
+        'invalidBrandingReference',
+        r'$.branding.icon',
+      );
+    });
+
+    test('uses Unicode caseless matching for collision keys', () {
+      expect(
+        PackagePathPolicy.collisionKey('project/straße.json'),
+        PackagePathPolicy.collisionKey('project/STRASSE.json'),
+      );
+      expect(
+        PackagePathPolicy.collisionKey('project/Σ.json'),
+        PackagePathPolicy.collisionKey('project/ς.json'),
+      );
+      expect(
+        PackagePathPolicy.collisionKey('project/ᾀ.json'),
+        PackagePathPolicy.collisionKey('project/ἀι.json'),
+      );
+      expect(
+        PackagePathPolicy.collisionKey('project/ﬓ.json'),
+        PackagePathPolicy.collisionKey('project/մն.json'),
+      );
+      expect(
+        PackagePathPolicy.collisionKey('project/İ.json'),
+        PackagePathPolicy.collisionKey('project/i\u0307.json'),
+      );
+    });
+
+    test('rejects invalid signatures and malformed UTF-8 JSON', () {
+      final signature = _minimalManifestJson()
+        ..['signature'] = <String, Object?>{
+          'algorithm': 'rsa',
+          'keyId': 'key',
+          'value': 'not-base64',
+        };
+      _expectCode(
+        () => codec.decodeJson(signature),
+        'unsupportedSignatureAlgorithm',
+        r'$.signature.algorithm',
+      );
+
+      final nonCanonicalBase64 = _minimalManifestJson()
+        ..['signature'] = <String, Object?>{
+          'algorithm': 'ed25519',
+          'keyId': 'example:key-1',
+          'value': '${base64Encode(Uint8List(63))}====',
+        };
+      _expectCode(
+        () => codec.decodeJson(nonCanonicalBase64),
+        'invalidSignature',
+        r'$.signature.value',
+      );
+
+      expect(
+        () => codec.decodeUtf8(<int>[0xff]),
+        throwsA(
+          isA<GamePackageFormatException>()
+              .having((error) => error.code, 'code', 'invalidUtf8'),
+        ),
+      );
+    });
+  });
+}
+
+void _expectCode(
+  void Function() operation,
+  String code,
+  String path,
+) {
+  expect(
+    operation,
+    throwsA(
+      isA<GamePackageFormatException>()
+          .having((error) => error.code, 'code', code)
+          .having((error) => error.path, 'path', path),
+    ),
+  );
+}
+
+Map<String, Object?> _minimalManifestJson() => <String, Object?>{
+      'packageFormat': 1,
+      'gameId': 'games.example.minimal',
+      'gameVersion': '1.0.0',
+      'title': 'Minimal Adventure',
+      'author': <String, Object?>{'name': 'Example Studio'},
+      'compatibility': <String, Object?>{
+        'minHubVersion': '1.0.0',
+        'runtimeApi': '>=1.0.0 <2.0.0',
+        'projectFormat': 'v2',
+        'saveFormat': 1,
+        'compatibilityId': 'main',
+        'requiredCapabilities': <String>[],
+      },
+      'locales': <String, Object?>{
+        'default': 'fr',
+        'supported': <String>['fr'],
+      },
+      'content': <String, Object?>{
+        'fileCount': 1,
+        'totalBytes': 24,
+        'treeSha256':
+            'e21fddff269f718118bf1bda81c75726b57a9a34a9fd74497b53517069862a3b',
+        'files': <Object?>[
+          <String, Object?>{
+            'path': 'project/project.json',
+            'size': 24,
+            'sha256':
+                '1bcbf797acc5b8dc08dcba7f4da52a7d7b09f97cc5ec1905b8093d6f0faa097a',
+            'mediaType': 'application/json',
+          },
+        ],
+      },
+    };
+
+Map<String, Object?> _emptyFile(String path) => <String, Object?>{
+      'path': path,
+      'size': 0,
+      'sha256':
+          'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    };
+
+String _treeHashFromJson(Object files) => ContentTreeHasher.sha256Hex(
+      (files as List<Object?>).map((value) {
+        final json = value! as Map<String, Object?>;
+        return GamePackageFileEntry(
+          path: json['path']! as String,
+          size: json['size']! as int,
+          sha256: json['sha256']! as String,
+          mediaType: json['mediaType'] as String?,
+        );
+      }),
+    );

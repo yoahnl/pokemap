@@ -76,6 +76,11 @@ projection propre qui exclut au minimum :
 - Dart, scripts, plugins natifs, binaires et extensions moteur arbitraires.
 
 La projection est validée comme un projet neuf avant packaging.
+Les dialogues auteur sont compilés vers une représentation JSON data-only et
+leurs références sont réécrites avant ce gate ; un fichier Yarn brut n’est
+jamais une entrée distribuable. Le builder de Phase 1 reçoit cette projection
+déjà préparée, puis réapplique exclusions, fermeture des références explicites
+et validation pure `map_core`.
 
 ## ZIP déterministe
 
@@ -86,7 +91,10 @@ V1 fixe volontairement un profil simple :
 - aucune entrée répertoire, symlink, hardlink ou fichier spécial ;
 - ordre lexicographique des noms normalisés par octets UTF-8 ;
 - timestamp DOS `1980-01-01 00:00:00` pour toutes les entrées ;
-- mode Unix fichier régulier `0100644`, attributs plateforme neutralisés ;
+- `version made by = 0x0314` (Unix, ZIP 2.0), `version needed = 20`,
+  UTF-8 flag `0x0800`, attributs internes nuls ;
+- attributs externes exactement `0x81a40000`, soit fichier Unix régulier
+  `0100644` sans bits plateforme additionnels ;
 - aucun extra field, commentaire, data descriptor ou archive comment ;
 - `game-manifest.json` utilise UTF-8 sans BOM et JCS (RFC 8785).
 

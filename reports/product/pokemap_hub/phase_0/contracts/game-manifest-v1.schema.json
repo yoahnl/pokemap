@@ -43,9 +43,13 @@
         "runtimeApi": { "$ref": "#/$defs/semverRange" },
         "projectFormat": {
           "type": "string",
-          "enum": ["v1", "v2"]
+          "pattern": "^v[1-9][0-9]*$"
         },
-        "saveFormat": { "type": "integer", "minimum": 1 },
+        "saveFormat": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
         "compatibilityId": {
           "type": "string",
           "minLength": 1,
@@ -169,7 +173,12 @@
       "required": ["name"],
       "properties": {
         "name": { "type": "string", "minLength": 1, "maxLength": 120 },
-        "url": { "type": "string", "format": "uri", "maxLength": 2048 }
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://",
+          "maxLength": 2048
+        }
       }
     },
     "locale": {

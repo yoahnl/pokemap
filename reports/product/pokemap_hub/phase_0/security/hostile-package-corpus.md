@@ -40,6 +40,16 @@ représenter par un simple JSON (doublons, liens, offsets, tailles forgées).
 | HP-033 | annulation à mi-extraction | staging retiré, courant intact |
 | HP-034 | kill avant promotion | courant intact, staging récupérable |
 | HP-035 | kill après version move, avant current | ancienne version courante, repair finalise/nettoie |
+| HP-036 | JSON trop profond ou >1 000 000 nœuds | `entryTooLarge` |
+| HP-037 | hiérarchie/collections projet hors budget | `projectComplexityExceeded` |
+| HP-038 | save/cache/debug/fixture dans la projection | `executableContent` |
+| HP-039 | secret explicite dans manifest ou média binaire | `probableSecret` |
+
+Répartition d’exécution : `map_distribution` couvre en Phase 1 HP-001 à
+HP-032 et HP-036 à HP-039 sur les ports mémoire et random-access lorsque le
+cas est matérialisable sans allocation hostile. HP-033 à HP-035 dépendent du
+staging, de la promotion atomique et de `current.json` ; ils sont des kill
+tests obligatoires de la Phase 3, pas des tests unitaires du codec ZIP.
 
 Chaque fixture doit vérifier qu’aucun fichier n’est créé hors du staging, que
 `current.json` et les saves restent identiques et que le code diagnostic ne

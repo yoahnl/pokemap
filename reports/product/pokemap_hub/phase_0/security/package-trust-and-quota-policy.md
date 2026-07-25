@@ -27,8 +27,14 @@ Toutes les limites sont inclusives. Tout dépassement est bloquant.
 | segment de chemin UTF-8 | 255 octets |
 | profondeur | 32 segments |
 | fichier JSON individuel | 33 554 432 octets (32 MiB) |
+| profondeur JSON | 128 conteneurs |
+| nœuds JSON | 1 000 000 |
+| entrées de collections projet | 100 000 |
+| entrées par hiérarchie projet | 1 024 |
+| profondeur de hiérarchie projet | 32 |
 | largeur ou hauteur image | 8 192 pixels |
 | pixels décodés par image | 67 108 864 |
+| en-tête média inspectable | 1 048 576 octets (1 MiB) |
 | progression/log diagnostic en mémoire | 4 MiB par session |
 
 L’espace libre requis avant staging est
@@ -40,6 +46,9 @@ data descriptor est rejetée.
 Une plateforme peut appliquer une limite **plus basse** pour sa certification,
 mais doit l’annoncer avant sélection et produire un diagnostic compatible. Elle
 ne peut accepter plus sans réviser la policy.
+
+Les limites structurelles JSON/projet s’appliquent avant les validateurs
+`map_core` afin de borner aussi le coût CPU des graphes et hiérarchies hostiles.
 
 ## Chemins
 

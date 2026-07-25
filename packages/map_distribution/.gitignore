@@ -1,0 +1,4 @@
+# Dart package outputs.
+.dart_tool/
+pubspec.lock
+build/
