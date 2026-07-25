@@ -1,0 +1,17 @@
+name: pokemap_hub
+description: PokeMap Hub composition root and player application.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  crypto: ^3.0.7
+  map_core:
+    path: ../../packages/map_core
+  path: ^1.9.0
+
+dev_dependencies:
+  lints: ^3.0.0
+  test: ^1.24.0
