@@ -2,6 +2,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import 'enums.dart';
 import 'narrative_value.dart';
+import 'scene_finish_game_contract.dart';
 
 enum SceneConsequenceKind {
   setFact,
@@ -15,6 +16,7 @@ enum SceneConsequenceKind {
   healParty,
   awardBadge,
   unlockFieldAbility,
+  finishGame,
 }
 
 @immutable
@@ -101,6 +103,18 @@ abstract base class SceneConsequence {
     String? notes,
   }) = SceneUnlockFieldAbilityConsequence;
 
+  factory SceneConsequence.finishGame({
+    int contractVersion,
+    required String endingId,
+    required SceneGameCompletionOutcome outcome,
+    SceneFinishGameCommitPolicy commitPolicy,
+    required SceneFinishGameResult result,
+    SceneFinishGameCredits? credits,
+    required ScenePostGamePolicy postGamePolicy,
+    String? label,
+    String? notes,
+  }) = SceneFinishGameConsequence;
+
   factory SceneConsequence.fromJson(Map<String, dynamic> json) {
     final kind = _readKind(json['kind']);
     return switch (kind) {
@@ -123,6 +137,8 @@ abstract base class SceneConsequence {
         SceneAwardBadgeConsequence.fromJson(json),
       SceneConsequenceKind.unlockFieldAbility =>
         SceneUnlockFieldAbilityConsequence.fromJson(json),
+      SceneConsequenceKind.finishGame =>
+        SceneFinishGameConsequence.fromJson(json),
     };
   }
 
@@ -706,6 +722,169 @@ final class SceneUnlockFieldAbilityConsequence extends SceneConsequence {
   int get hashCode => Object.hash(ability, label, notes);
 }
 
+/// Terminal authored consequence.
+///
+/// [endingId] forms the idempotency key with the active session. The only V1
+/// commit policy requires the final checkpoint to be persisted before result
+/// or credits presentation. A null [credits] value asks the runtime to build
+/// its safe project-metadata fallback.
+@immutable
+final class SceneFinishGameConsequence extends SceneConsequence {
+  SceneFinishGameConsequence({
+    this.contractVersion = sceneFinishGameContractVersion,
+    required String endingId,
+    required this.outcome,
+    this.commitPolicy = SceneFinishGameCommitPolicy.persistBeforePresentation,
+    required this.result,
+    this.credits,
+    required this.postGamePolicy,
+    String? label,
+    String? notes,
+  })  : endingId = endingId.trim(),
+        label = _trimOptional(label),
+        notes = _trimOptional(notes) {
+    if (contractVersion != sceneFinishGameContractVersion) {
+      throw ArgumentError.value(
+        contractVersion,
+        'contractVersion',
+        'Only Finish Game contract version '
+            '$sceneFinishGameContractVersion is supported.',
+      );
+    }
+  }
+
+  factory SceneFinishGameConsequence.fromJson(Map<String, dynamic> json) {
+    final version = json['contractVersion'];
+    if (version == null) {
+      return SceneFinishGameConsequence._fromLegacyJson(json);
+    }
+    if (version is! int || version != sceneFinishGameContractVersion) {
+      throw FormatException(
+        'Unsupported Finish Game contractVersion: $version.',
+      );
+    }
+    return SceneFinishGameConsequence(
+      contractVersion: version,
+      endingId: _readRequiredString(json, 'endingId'),
+      outcome: _readGameCompletionOutcome(json['outcome']),
+      commitPolicy: _readFinishGameCommitPolicy(json['commitPolicy']),
+      result: SceneFinishGameResult.fromJson(json['result']),
+      credits: json['credits'] == null
+          ? null
+          : SceneFinishGameCredits.fromJson(json['credits']),
+      postGamePolicy: _readPostGamePolicy(json['postGamePolicy']),
+      label: _readOptionalString(json, 'label'),
+      notes: _readOptionalString(json, 'notes'),
+    );
+  }
+
+  factory SceneFinishGameConsequence._fromLegacyJson(
+    Map<String, dynamic> json,
+  ) {
+    final rawDetails = json['resultDetails'];
+    if (rawDetails != null &&
+        (rawDetails is! List || rawDetails.any((entry) => entry is! String))) {
+      throw const FormatException(
+        'Legacy Finish Game resultDetails must be a list of strings.',
+      );
+    }
+    final hasCredits = const [
+      'creditsTitle',
+      'creditsAuthor',
+      'creditsEndingLabel',
+    ].any(json.containsKey);
+    return SceneFinishGameConsequence(
+      endingId: _readRequiredString(json, 'endingId'),
+      outcome: _readGameCompletionOutcome(json['outcome']),
+      result: SceneFinishGameResult(
+        title: SceneLocalizedText(
+          fallback: _readRequiredString(json, 'resultTitle'),
+        ),
+        summary: SceneLocalizedText(
+          fallback: _readRequiredString(json, 'resultSummary'),
+        ),
+        details: [
+          for (final detail in (rawDetails as List? ?? const []))
+            SceneLocalizedText(fallback: detail as String),
+        ],
+      ),
+      credits: hasCredits
+          ? SceneFinishGameCredits(
+              title: SceneLocalizedText(
+                fallback: _readRequiredString(json, 'creditsTitle'),
+              ),
+              author: _readRequiredString(json, 'creditsAuthor'),
+              endingLabel: SceneLocalizedText(
+                fallback: _readRequiredString(json, 'creditsEndingLabel'),
+              ),
+              skippable: json['creditsSkippable'] == null
+                  ? true
+                  : _readRequiredBool(json, 'creditsSkippable'),
+            )
+          : null,
+      postGamePolicy: json['postGamePolicy'] == null
+          ? ScenePostGamePolicy.returnToTitle
+          : _readPostGamePolicy(json['postGamePolicy']),
+      label: _readOptionalString(json, 'label'),
+      notes: _readOptionalString(json, 'notes'),
+    );
+  }
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.finishGame;
+
+  final int contractVersion;
+  final String endingId;
+  final SceneGameCompletionOutcome outcome;
+  final SceneFinishGameCommitPolicy commitPolicy;
+  final SceneFinishGameResult result;
+  final SceneFinishGameCredits? credits;
+  final ScenePostGamePolicy postGamePolicy;
+  final String? label;
+  final String? notes;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'kind': _kindToJson(kind),
+        'contractVersion': contractVersion,
+        'endingId': endingId,
+        'outcome': outcome.name,
+        'commitPolicy': commitPolicy.name,
+        'result': result.toJson(),
+        'credits': credits?.toJson(),
+        'postGamePolicy': postGamePolicy.name,
+        'label': label,
+        'notes': notes,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneFinishGameConsequence &&
+          other.contractVersion == contractVersion &&
+          other.endingId == endingId &&
+          other.outcome == outcome &&
+          other.commitPolicy == commitPolicy &&
+          other.result == result &&
+          other.credits == credits &&
+          other.postGamePolicy == postGamePolicy &&
+          other.label == label &&
+          other.notes == notes;
+
+  @override
+  int get hashCode => Object.hash(
+        contractVersion,
+        endingId,
+        outcome,
+        commitPolicy,
+        result,
+        credits,
+        postGamePolicy,
+        label,
+        notes,
+      );
+}
+
 SceneConsequenceKind _readKind(Object? value) {
   if (value is! String) {
     throw FormatException(
@@ -734,7 +913,46 @@ String _kindToJson(SceneConsequenceKind kind) {
     SceneConsequenceKind.healParty => 'healParty',
     SceneConsequenceKind.awardBadge => 'awardBadge',
     SceneConsequenceKind.unlockFieldAbility => 'unlockFieldAbility',
+    SceneConsequenceKind.finishGame => 'finishGame',
   };
+}
+
+SceneGameCompletionOutcome _readGameCompletionOutcome(Object? value) {
+  return _readNamedEnum(
+    value,
+    SceneGameCompletionOutcome.values,
+    'outcome',
+  );
+}
+
+SceneFinishGameCommitPolicy _readFinishGameCommitPolicy(Object? value) {
+  return _readNamedEnum(
+    value,
+    SceneFinishGameCommitPolicy.values,
+    'commitPolicy',
+  );
+}
+
+ScenePostGamePolicy _readPostGamePolicy(Object? value) {
+  return _readNamedEnum(
+    value,
+    ScenePostGamePolicy.values,
+    'postGamePolicy',
+  );
+}
+
+T _readNamedEnum<T extends Enum>(
+  Object? value,
+  List<T> values,
+  String field,
+) {
+  if (value is! String) {
+    throw FormatException('SceneConsequence.$field must be a string.');
+  }
+  for (final candidate in values) {
+    if (candidate.name == value) return candidate;
+  }
+  throw FormatException('Unknown SceneConsequence.$field: $value.');
 }
 
 FieldAbility _readFieldAbility(Map<String, dynamic> json, String key) {

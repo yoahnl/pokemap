@@ -1034,6 +1034,15 @@ void main() {
         ),
         SceneConsequence.giveConfiguredStarter(starterOptionId: ' '),
         SceneConsequence.awardBadge(badgeId: ' '),
+        SceneConsequence.finishGame(
+          endingId: ' ',
+          outcome: SceneGameCompletionOutcome.completed,
+          result: SceneFinishGameResult(
+            title: SceneLocalizedText(fallback: 'Fin'),
+            summary: SceneLocalizedText(fallback: 'Merci.'),
+          ),
+          postGamePolicy: ScenePostGamePolicy.returnToTitle,
+        ),
       ];
 
       for (final consequence in consequences) {

@@ -155,6 +155,15 @@ void main() {
         SceneConsequence.healParty(),
         SceneConsequence.awardBadge(badgeId: 'badge_tide'),
         SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
+        SceneConsequence.finishGame(
+          endingId: 'ending_selbrume',
+          outcome: SceneGameCompletionOutcome.victory,
+          result: SceneFinishGameResult(
+            title: SceneLocalizedText(fallback: 'Selbrume est sauvée'),
+            summary: SceneLocalizedText(fallback: 'La brume se retire.'),
+          ),
+          postGamePolicy: ScenePostGamePolicy.returnToHub,
+        ),
       ];
 
       final result = previewSceneRuntimePath(

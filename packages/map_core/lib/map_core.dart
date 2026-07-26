@@ -57,6 +57,7 @@ export 'src/models/scene_asset.dart';
 export 'src/models/scene_interactive_command.dart';
 export 'src/models/narrative_command_descriptor.dart';
 export 'src/models/scene_consequence.dart';
+export 'src/models/scene_finish_game_contract.dart';
 export 'src/models/storyline_asset.dart';
 export 'src/models/world_rule.dart';
 export 'src/models/visual_frame_json.dart';

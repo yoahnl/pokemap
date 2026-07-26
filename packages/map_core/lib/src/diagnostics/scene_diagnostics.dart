@@ -855,6 +855,51 @@ void _diagnoseConsequenceShape(
           ),
         );
       }
+    case SceneFinishGameConsequence():
+      if (consequence.endingId.trim().isEmpty) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceMissingTarget,
+            severity: SceneDiagnosticSeverity.error,
+            message:
+                'La conséquence finishGame doit définir un identifiant de fin stable.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Nommer cette fin du jeu.',
+          ),
+        );
+      } else if (consequence.result.title.fallback.trim().isEmpty ||
+          consequence.result.summary.fallback.trim().isEmpty) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceInvalidValue,
+            severity: SceneDiagnosticSeverity.error,
+            message:
+                'La conséquence finishGame exige un titre et un résumé de résultat.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Renseigner le résultat affiché au joueur.',
+          ),
+        );
+      } else if (consequence.credits != null &&
+          (consequence.credits!.title.fallback.trim().isEmpty ||
+              consequence.credits!.author.trim().isEmpty ||
+              consequence.credits!.endingLabel.fallback.trim().isEmpty)) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceInvalidValue,
+            severity: SceneDiagnosticSeverity.error,
+            message:
+                'Les crédits finishGame doivent avoir un titre, un auteur et un libellé de fin.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Compléter les crédits ou les désactiver.',
+          ),
+        );
+      }
   }
 }
 
@@ -1039,6 +1084,8 @@ void _diagnoseActionConsequenceAgainstProject(
           ),
         );
       }
+    case SceneFinishGameConsequence():
+      break;
   }
 }
 

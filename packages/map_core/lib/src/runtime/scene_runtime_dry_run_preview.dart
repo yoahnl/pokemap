@@ -428,6 +428,11 @@ _PreviewConsequenceResult _previewConsequence({
           consequence.ability,
         },
       );
+    case SceneFinishGameConsequence():
+      before = 'completion=pending';
+      after = 'completion=${consequence.endingId} '
+          '(${consequence.postGamePolicy.name})';
+      next = state;
   }
   return _PreviewConsequenceResult(
     state: next,
