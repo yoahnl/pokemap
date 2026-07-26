@@ -23,6 +23,8 @@ enum NarrativeCommandParameterKind {
   shop,
   badge,
   fieldAbility,
+  completionOutcome,
+  postGamePolicy,
   trainer,
   dialogue,
   cinematic,

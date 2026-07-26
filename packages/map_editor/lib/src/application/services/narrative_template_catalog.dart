@@ -15,6 +15,7 @@ enum NarrativeTemplateKind {
   nurse,
   starter,
   badgeReward,
+  gameEnding,
   cinematicEstablishingShot,
   cinematicDialogueBeat,
   worldRuleFactVisibility,
@@ -162,6 +163,15 @@ final class NarrativeTemplateCatalog {
           label: 'Récompense de badge',
           command: command(NarrativeCommandIds.awardBadge),
           physicalSourceKind: null,
+        ),
+        NarrativeTemplateDefinition(
+          kind: NarrativeTemplateKind.gameEnding,
+          label: 'Fin du jeu',
+          command: command(NarrativeCommandIds.finishGame),
+          physicalSourceKind: null,
+          authoringHint:
+              'Configurez le résultat, les crédits optionnels et la destination '
+              'du joueur après la fin.',
         ),
         NarrativeTemplateDefinition.asset(
           kind: NarrativeTemplateKind.cinematicEstablishingShot,
@@ -403,6 +413,9 @@ NarrativeTemplatePreview previewNarrativeTemplate({
   diagnostics.addAll(
     _diagnoseParameterValues(template.command, request.parameters),
   );
+  if (template.command.id == NarrativeCommandIds.finishGame) {
+    diagnostics.addAll(_diagnoseFinishGameParameters(request.parameters));
+  }
   diagnostics.addAll(
     _diagnoseProjectReferences(
       project,
@@ -526,11 +539,35 @@ List<String> _diagnoseParameterValues(
         if (value != 'true' && value != 'false') {
           diagnostics.add('${parameter.label} doit valoir vrai ou faux.');
         }
+      case NarrativeCommandParameterKind.completionOutcome:
+        if (!SceneGameCompletionOutcome.values
+            .any((outcome) => outcome.name == value)) {
+          diagnostics.add('${parameter.label} est inconnue.');
+        }
+      case NarrativeCommandParameterKind.postGamePolicy:
+        if (!ScenePostGamePolicy.values.any((policy) => policy.name == value)) {
+          diagnostics.add('${parameter.label} est inconnue.');
+        }
       default:
         break;
     }
   }
   return diagnostics;
+}
+
+List<String> _diagnoseFinishGameParameters(Map<String, String> parameters) {
+  if (parameters['includeCredits'] != 'true') return const [];
+  final missing = <String>[
+    for (final entry in const {
+      'creditsTitle': 'Titre des crédits',
+      'creditsAuthor': 'Auteur',
+      'creditsEndingLabel': 'Libellé de fin',
+    }.entries)
+      if (parameters[entry.key]?.trim().isEmpty ?? true) entry.value,
+  ];
+  return missing.isEmpty
+      ? const []
+      : ['Crédits incomplets : ${missing.join(', ')}.'];
 }
 
 List<String> _diagnoseProjectReferences(
@@ -589,7 +626,8 @@ NarrativeEventReusePolicy _reusePolicy(NarrativeTemplateKind kind) =>
       NarrativeTemplateKind.hiddenItem ||
       NarrativeTemplateKind.trainer ||
       NarrativeTemplateKind.starter ||
-      NarrativeTemplateKind.badgeReward =>
+      NarrativeTemplateKind.badgeReward ||
+      NarrativeTemplateKind.gameEnding =>
         NarrativeEventReusePolicy.oneShot,
       NarrativeTemplateKind.cinematicEstablishingShot ||
       NarrativeTemplateKind.cinematicDialogueBeat ||
@@ -661,6 +699,9 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
           ability: _fieldAbilityFromId(parameters['abilityId']!),
         ),
       ),
+    NarrativeCommandIds.finishGame => SceneActionPayload.consequence(
+        _buildFinishGameConsequence(parameters),
+      ),
     NarrativeCommandIds.warp => SceneActionPayload.interactive(
         SceneInteractiveCommand.warp(
           destinationMapId: parameters['destinationMapId']!,
@@ -702,6 +743,100 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         'An unsupported Narrative command cannot produce a Scene payload.',
       ),
   };
+}
+
+SceneFinishGameConsequence _buildFinishGameConsequence(
+  Map<String, String> parameters,
+) {
+  String required(String id) {
+    final value = parameters[id]?.trim();
+    if (value == null || value.isEmpty) {
+      throw ArgumentError.value(value, id, 'Ce champ est obligatoire.');
+    }
+    return value;
+  }
+
+  SceneLocalizedText localized(String fallbackId, String englishId) {
+    final english = parameters[englishId]?.trim();
+    return SceneLocalizedText(
+      fallback: required(fallbackId),
+      translations: {
+        if (english != null && english.isNotEmpty) 'en': english,
+      },
+    );
+  }
+
+  final outcome = SceneGameCompletionOutcome.values.firstWhere(
+    (candidate) => candidate.name == required('outcome'),
+    orElse: () => throw ArgumentError.value(
+      parameters['outcome'],
+      'outcome',
+      'Issue de partie inconnue.',
+    ),
+  );
+  final postGamePolicy = ScenePostGamePolicy.values.firstWhere(
+    (candidate) => candidate.name == required('postGamePolicy'),
+    orElse: () => throw ArgumentError.value(
+      parameters['postGamePolicy'],
+      'postGamePolicy',
+      'Politique postgame inconnue.',
+    ),
+  );
+  final includeCredits = parameters['includeCredits'] == 'true';
+
+  return SceneFinishGameConsequence(
+    endingId: _endingIdFromFriendlyName(required('endingName')),
+    outcome: outcome,
+    result: SceneFinishGameResult(
+      title: localized('resultTitle', 'resultTitleEn'),
+      summary: localized('resultSummary', 'resultSummaryEn'),
+    ),
+    credits: includeCredits
+        ? SceneFinishGameCredits(
+            title: localized('creditsTitle', 'creditsTitleEn'),
+            author: required('creditsAuthor'),
+            endingLabel: localized(
+              'creditsEndingLabel',
+              'creditsEndingLabelEn',
+            ),
+            skippable: parameters['creditsSkippable'] != 'false',
+          )
+        : null,
+    postGamePolicy: postGamePolicy,
+  );
+}
+
+String _endingIdFromFriendlyName(String name) {
+  const accents = {
+    'à': 'a',
+    'â': 'a',
+    'ä': 'a',
+    'ç': 'c',
+    'é': 'e',
+    'è': 'e',
+    'ê': 'e',
+    'ë': 'e',
+    'î': 'i',
+    'ï': 'i',
+    'ô': 'o',
+    'ö': 'o',
+    'ù': 'u',
+    'û': 'u',
+    'ü': 'u',
+    'ÿ': 'y',
+  };
+  final normalized = name
+      .trim()
+      .toLowerCase()
+      .split('')
+      .map((character) => accents[character] ?? character)
+      .join()
+      .replaceAll(RegExp('[^a-z0-9]+'), '-')
+      .replaceAll(RegExp(r'^-+|-+$'), '');
+  if (normalized.isEmpty) {
+    throw ArgumentError.value(name, 'endingName', 'Nom de fin invalide.');
+  }
+  return 'ending.$normalized';
 }
 
 FieldAbility _fieldAbilityFromId(String id) {

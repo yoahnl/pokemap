@@ -183,6 +183,46 @@ void main() {
     expect(find.text('Donner un badge'), findsNothing);
     expect(find.text('Modifier la présence d’un PNJ'), findsNothing);
   });
+
+  testWidgets('Finish Game uses friendly fields and guided policy pickers',
+      (tester) async {
+    SceneNodePayload? submitted;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.finishGame,
+      runtimeCommandIds: const {NarrativeCommandIds.finishGame},
+      initialParameters: const {
+        'endingName': 'Selbrume sauvée',
+        'resultTitle': 'Selbrume est sauvée',
+        'resultSummary': 'La brume se retire.',
+        'includeCredits': 'false',
+      },
+      onSubmit: (payload) => submitted = payload,
+    );
+
+    expect(find.text('Issue de la partie'), findsOneWidget);
+    expect(find.text('Après la fin'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('scene-action-parameter-endingId')),
+      findsNothing,
+    );
+
+    final finishSubmit = find.byKey(const ValueKey('scene-action-submit'));
+    await tester.ensureVisible(finishSubmit);
+    final finishButton = tester.widget<PokeMapButton>(finishSubmit);
+    expect(finishButton.onPressed, isNotNull);
+    finishButton.onPressed!();
+    await tester.pump();
+
+    final consequence = (submitted! as SceneActionPayload).consequence!
+        as SceneFinishGameConsequence;
+    expect(consequence.endingId, 'ending.selbrume-sauvee');
+    expect(consequence.credits, isNull);
+    expect(
+      consequence.postGamePolicy,
+      ScenePostGamePolicy.continueGame,
+    );
+  });
 }
 
 Future<void> _pumpBuilder(

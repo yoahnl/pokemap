@@ -85,6 +85,45 @@ void main() {
         NarrativeCommandCapabilityStatus.unsupported);
   });
 
+  test('Finish Game is authorable but remains runtime-gated for RM-012', () {
+    final command = NarrativeCommandCatalog.canonical().byId(
+      NarrativeCommandIds.finishGame,
+    )!;
+
+    expect(command.backend, NarrativeCommandBackend.sceneConsequence);
+    expect(command.wireId, 'SceneConsequence.finishGame');
+    expect(command.isPersistent, isTrue);
+    expect(
+      command.capabilities.model,
+      NarrativeCommandCapabilityStatus.supported,
+    );
+    expect(
+      command.capabilities.editor,
+      NarrativeCommandCapabilityStatus.supported,
+    );
+    expect(
+      command.capabilities.runtime,
+      NarrativeCommandCapabilityStatus.unsupported,
+    );
+    expect(command.isPublishable, isFalse);
+    expect(
+      command.parameters.map((parameter) => parameter.id),
+      isNot(contains('endingId')),
+    );
+    expect(
+      command.parameters
+          .singleWhere((parameter) => parameter.id == 'outcome')
+          .kind,
+      NarrativeCommandParameterKind.completionOutcome,
+    );
+    expect(
+      command.parameters
+          .singleWhere((parameter) => parameter.id == 'postGamePolicy')
+          .kind,
+      NarrativeCommandParameterKind.postGamePolicy,
+    );
+  });
+
   test('canonical gameplay commands carry the corrected FG references', () {
     final catalog = NarrativeCommandCatalog.canonical();
     expect(catalog.byId(NarrativeCommandIds.healParty)!.fgLotId, 'FG-085');

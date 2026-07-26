@@ -20,6 +20,7 @@ abstract final class NarrativeCommandIds {
   static const healParty = 'healParty';
   static const awardBadge = 'awardBadge';
   static const unlockFieldAbility = 'unlockFieldAbility';
+  static const finishGame = 'finishGame';
   static const setNpcPresence = 'setNpcPresence';
 }
 
@@ -28,6 +29,13 @@ final class NarrativeCommandCatalog {
 
   factory NarrativeCommandCatalog.canonical() {
     const supported = NarrativeCommandCapabilities.supported();
+    const authorablePendingRuntime = NarrativeCommandCapabilities(
+      model: NarrativeCommandCapabilityStatus.supported,
+      editor: NarrativeCommandCapabilityStatus.supported,
+      runtime: NarrativeCommandCapabilityStatus.unsupported,
+      reason:
+          'Authoring disponible ; l’exécution runtime est livrée par RM-012.',
+    );
     NarrativeCommandCapabilities unsupported(String reason) =>
         NarrativeCommandCapabilities(
           model: NarrativeCommandCapabilityStatus.unsupported,
@@ -165,6 +173,97 @@ final class NarrativeCommandCatalog {
           ),
         ],
       ),
+      NarrativeCommandDescriptor(
+        id: NarrativeCommandIds.finishGame,
+        label: 'Terminer le jeu',
+        description:
+            'Enregistre la fin, affiche le résultat et applique la politique postgame.',
+        backend: NarrativeCommandBackend.sceneConsequence,
+        capabilities: authorablePendingRuntime,
+        fgLotId: 'FG-147',
+        wireId: 'SceneConsequence.finishGame',
+        parameters: [
+          _parameter(
+            'endingName',
+            'Nom de cette fin',
+            NarrativeCommandParameterKind.text,
+          ),
+          _parameter(
+            'outcome',
+            'Issue de la partie',
+            NarrativeCommandParameterKind.completionOutcome,
+          ),
+          _parameter(
+            'resultTitle',
+            'Titre du résultat',
+            NarrativeCommandParameterKind.text,
+          ),
+          _parameter(
+            'resultTitleEn',
+            'Titre du résultat (anglais)',
+            NarrativeCommandParameterKind.text,
+            required: false,
+          ),
+          _parameter(
+            'resultSummary',
+            'Résumé du résultat',
+            NarrativeCommandParameterKind.text,
+          ),
+          _parameter(
+            'resultSummaryEn',
+            'Résumé du résultat (anglais)',
+            NarrativeCommandParameterKind.text,
+            required: false,
+          ),
+          _parameter(
+            'includeCredits',
+            'Afficher des crédits',
+            NarrativeCommandParameterKind.boolean,
+          ),
+          _parameter(
+            'creditsTitle',
+            'Titre des crédits',
+            NarrativeCommandParameterKind.text,
+            required: false,
+          ),
+          _parameter(
+            'creditsTitleEn',
+            'Titre des crédits (anglais)',
+            NarrativeCommandParameterKind.text,
+            required: false,
+          ),
+          _parameter(
+            'creditsAuthor',
+            'Auteur',
+            NarrativeCommandParameterKind.text,
+            required: false,
+          ),
+          _parameter(
+            'creditsEndingLabel',
+            'Libellé de fin',
+            NarrativeCommandParameterKind.text,
+            required: false,
+          ),
+          _parameter(
+            'creditsEndingLabelEn',
+            'Libellé de fin (anglais)',
+            NarrativeCommandParameterKind.text,
+            required: false,
+          ),
+          _parameter(
+            'creditsSkippable',
+            'Crédits skippables',
+            NarrativeCommandParameterKind.boolean,
+            required: false,
+          ),
+          _parameter(
+            'postGamePolicy',
+            'Après la fin',
+            NarrativeCommandParameterKind.postGamePolicy,
+          ),
+        ],
+        isPersistent: true,
+      ),
       interactive(NarrativeCommandIds.warp, 'Téléporter', 'FG-090', [
         _parameter(
             'destinationMapId', 'Map', NarrativeCommandParameterKind.map),
@@ -257,6 +356,12 @@ final class NarrativeCommandCatalog {
 NarrativeCommandParameterDescriptor _parameter(
   String id,
   String label,
-  NarrativeCommandParameterKind kind,
-) =>
-    NarrativeCommandParameterDescriptor(id: id, label: label, kind: kind);
+  NarrativeCommandParameterKind kind, {
+  bool required = true,
+}) =>
+    NarrativeCommandParameterDescriptor(
+      id: id,
+      label: label,
+      kind: kind,
+      required: required,
+    );

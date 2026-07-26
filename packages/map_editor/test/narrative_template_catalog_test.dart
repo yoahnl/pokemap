@@ -8,10 +8,10 @@ void main() {
       final catalog = NarrativeTemplateCatalog.canonical();
 
       expect(catalog.schemaVersion, 1);
-      expect(catalog.eventSceneTemplates, hasLength(10));
+      expect(catalog.eventSceneTemplates, hasLength(11));
       expect(catalog.cinematicTemplates, hasLength(2));
       expect(catalog.worldRuleTemplates, hasLength(2));
-      expect(catalog.templates, hasLength(14));
+      expect(catalog.templates, hasLength(15));
       expect(
         catalog.byKind(NarrativeTemplateKind.nurse).isPublishable,
         isTrue,
@@ -41,6 +41,14 @@ void main() {
       expect(
         catalog.byKind(NarrativeTemplateKind.shop).authoringHint,
         contains('catalogue des boutiques'),
+      );
+      expect(
+        catalog.byKind(NarrativeTemplateKind.gameEnding).command.id,
+        NarrativeCommandIds.finishGame,
+      );
+      expect(
+        catalog.byKind(NarrativeTemplateKind.gameEnding).authoringHint,
+        contains('résultat'),
       );
     });
 
@@ -81,6 +89,38 @@ void main() {
       for (final payload in payloads) {
         expect(SceneNodePayload.fromJson(payload.toJson()), payload);
       }
+    });
+
+    test('Finish Game builds a localized terminal payload from friendly fields',
+        () {
+      final payload = buildScenePayloadForNarrativeCommand(
+        commandId: NarrativeCommandIds.finishGame,
+        parameters: const {
+          'endingName': 'Selbrume sauvée',
+          'outcome': 'victory',
+          'resultTitle': 'Selbrume est sauvée',
+          'resultTitleEn': 'Selbrume is safe',
+          'resultSummary': 'La brume se retire.',
+          'resultSummaryEn': 'The mist clears.',
+          'includeCredits': 'true',
+          'creditsTitle': 'Crédits',
+          'creditsTitleEn': 'Credits',
+          'creditsAuthor': 'PokeMap',
+          'creditsEndingLabel': 'Fin — Selbrume sauvée',
+          'creditsEndingLabelEn': 'The End — Selbrume is safe',
+          'creditsSkippable': 'true',
+          'postGamePolicy': 'returnToHub',
+        },
+      ) as SceneActionPayload;
+
+      final consequence = payload.consequence! as SceneFinishGameConsequence;
+      expect(consequence.endingId, 'ending.selbrume-sauvee');
+      expect(consequence.outcome, SceneGameCompletionOutcome.victory);
+      expect(consequence.result.title.resolve('en-US'), 'Selbrume is safe');
+      expect(consequence.credits!.title.resolve('en'), 'Credits');
+      expect(consequence.credits!.skippable, isTrue);
+      expect(consequence.postGamePolicy, ScenePostGamePolicy.returnToHub);
+      expect(SceneNodePayload.fromJson(payload.toJson()), payload);
     });
 
     test('legacy action remains readable but cannot masquerade as supported',

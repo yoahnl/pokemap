@@ -75,11 +75,20 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
 
   List<NarrativeCommandDescriptor> get _availableCommands => [
         for (final command in _catalog.commands)
-          if (command.capabilities.runtime ==
+          if (command.capabilities.editor ==
                   NarrativeCommandCapabilityStatus.supported &&
-              (widget.runtimeCommandIds?.contains(command.id) ?? true))
+              _runtimeAllows(command))
             command,
       ];
+
+  bool _runtimeAllows(NarrativeCommandDescriptor command) {
+    final runtimeCommandIds = widget.runtimeCommandIds;
+    if (runtimeCommandIds != null) {
+      return runtimeCommandIds.contains(command.id);
+    }
+    return command.capabilities.runtime ==
+        NarrativeCommandCapabilityStatus.supported;
+  }
 
   String _initialCommandId() {
     final requested = widget.initialCommandId;
@@ -110,7 +119,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           _values[parameter.id] = value;
           _textControllers[parameter.id] = TextEditingController(text: value);
         default:
-          final options = widget.pickerOptions[parameter.kind] ?? const [];
+          final options = _optionsFor(parameter.kind);
           if (initial?.trim().isNotEmpty == true) {
             _values[parameter.id] = initial!.trim();
           } else if (options.isNotEmpty) {
@@ -130,8 +139,33 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
 
   List<NarrativeCommandParameterDescriptor> get _missingParameters => [
         for (final parameter in _command.parameters)
-          if (parameter.required && !_hasValidValue(parameter)) parameter,
+          if (_isParameterVisible(parameter) &&
+              _isParameterRequired(parameter) &&
+              !_hasValidValue(parameter))
+            parameter,
       ];
+
+  bool _isParameterRequired(NarrativeCommandParameterDescriptor parameter) {
+    if (_command.id == NarrativeCommandIds.finishGame &&
+        _values['includeCredits'] == 'true' &&
+        const {
+          'creditsTitle',
+          'creditsAuthor',
+          'creditsEndingLabel',
+        }.contains(parameter.id)) {
+      return true;
+    }
+    return parameter.required;
+  }
+
+  bool _isParameterVisible(NarrativeCommandParameterDescriptor parameter) {
+    if (_command.id != NarrativeCommandIds.finishGame) return true;
+    if (!parameter.id.startsWith('credits') ||
+        parameter.id == 'includeCredits') {
+      return true;
+    }
+    return _values['includeCredits'] == 'true';
+  }
 
   bool _hasValidValue(NarrativeCommandParameterDescriptor parameter) {
     final value = _values[parameter.id]?.trim();
@@ -141,7 +175,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       return parsed != null && parsed > 0;
     }
     if (_isReferenceParameter(parameter)) {
-      final options = widget.pickerOptions[parameter.kind] ?? const [];
+      final options = _optionsFor(parameter.kind);
       return options.any((option) => option.id == value);
     }
     return true;
@@ -152,7 +186,11 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       parameter.kind != NarrativeCommandParameterKind.integer &&
       parameter.kind != NarrativeCommandParameterKind.text;
 
-  bool get _canSubmit => _command.isPublishable && _missingParameters.isEmpty;
+  bool get _canSubmit =>
+      _command.capabilities.editor ==
+          NarrativeCommandCapabilityStatus.supported &&
+      _runtimeAllows(_command) &&
+      _missingParameters.isEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -207,10 +245,11 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
             missingParameterLabels:
                 _missingParameters.map((parameter) => parameter.label).toList(),
           ),
-          for (final parameter in _command.parameters) ...[
-            const SizedBox(height: 12),
-            _buildParameter(parameter),
-          ],
+          for (final parameter in _command.parameters)
+            if (_isParameterVisible(parameter)) ...[
+              const SizedBox(height: 12),
+              _buildParameter(parameter),
+            ],
           if (_submissionError != null) ...[
             const SizedBox(height: 12),
             PokeMapDiagnosticCallout(
@@ -252,7 +291,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           onChanged: (value) => _setValue(parameter.id, value),
         );
       default:
-        final options = widget.pickerOptions[parameter.kind] ?? const [];
+        final options = _optionsFor(parameter.kind);
         final currentValue = _values[parameter.id];
         if (currentValue != null &&
             currentValue.isNotEmpty &&
@@ -283,6 +322,36 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           onChanged: (value) => _setValue(parameter.id, value),
         );
     }
+  }
+
+  List<SceneActionPickerOption> _optionsFor(
+    NarrativeCommandParameterKind kind,
+  ) {
+    return switch (kind) {
+      NarrativeCommandParameterKind.completionOutcome => const [
+          SceneActionPickerOption(id: 'completed', label: 'Partie terminée'),
+          SceneActionPickerOption(id: 'victory', label: 'Victoire'),
+          SceneActionPickerOption(
+            id: 'alternateEnding',
+            label: 'Fin alternative',
+          ),
+        ],
+      NarrativeCommandParameterKind.postGamePolicy => const [
+          SceneActionPickerOption(
+            id: 'continueGame',
+            label: 'Continuer en postgame',
+          ),
+          SceneActionPickerOption(
+            id: 'returnToTitle',
+            label: 'Retourner au titre',
+          ),
+          SceneActionPickerOption(
+            id: 'returnToHub',
+            label: 'Retourner au Hub',
+          ),
+        ],
+      _ => widget.pickerOptions[kind] ?? const [],
+    };
   }
 
   void _setValue(String parameterId, String value) {
