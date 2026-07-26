@@ -44,19 +44,97 @@ void main() {
       expect(stats.speed, 97);
     });
 
-    test('keeps nature handling explicitly neutral in the MVP', () {
-      expect(PokemonNatureStatPolicy.values, [PokemonNatureStatPolicy.neutral]);
+    test('applies a canonical non-neutral nature after the stat floor', () {
+      expect(
+        PokemonNatureStatPolicy.values,
+        [
+          PokemonNatureStatPolicy.neutral,
+          PokemonNatureStatPolicy.canonical,
+        ],
+      );
 
       final stats = const PokemonStatCalculator().calculate(
         baseStats: bulbasaur,
         ivs: const PokemonStatSpread(),
         evs: const PokemonStatSpread(),
-        level: 5,
+        level: 50,
+        naturePolicy: PokemonNatureStatPolicy.canonical,
+        natureId: 'bold',
       );
 
-      expect(stats.maxHp, 19);
-      expect(stats.attack, 9);
-      expect(stats.specialAttack, 11);
+      expect(stats.maxHp, 105);
+      expect(stats.attack, 48);
+      expect(stats.defense, 59);
+      expect(stats.specialAttack, 70);
+    });
+
+    test('keeps all five canonical neutral natures neutral', () {
+      const neutralIds = <String>[
+        'hardy',
+        'docile',
+        'serious',
+        'bashful',
+        'quirky',
+      ];
+
+      for (final natureId in neutralIds) {
+        final stats = const PokemonStatCalculator().calculate(
+          baseStats: bulbasaur,
+          ivs: const PokemonStatSpread(),
+          evs: const PokemonStatSpread(),
+          level: 50,
+          naturePolicy: PokemonNatureStatPolicy.canonical,
+          natureId: natureId,
+        );
+        expect(stats.attack, 54, reason: natureId);
+        expect(stats.defense, 54, reason: natureId);
+      }
+    });
+
+    test('exposes all 25 canonical natures exactly once', () {
+      expect(canonicalPokemonNatureIds, hasLength(25));
+      expect(canonicalPokemonNatureIds.toSet(), hasLength(25));
+      expect(canonicalPokemonNatureIds, containsAll(<String>['bold', 'calm']));
+    });
+
+    test('rejects an unknown nature in canonical mode', () {
+      expect(
+        () => const PokemonStatCalculator().calculate(
+          baseStats: bulbasaur,
+          ivs: const PokemonStatSpread(),
+          evs: const PokemonStatSpread(),
+          level: 50,
+          naturePolicy: PokemonNatureStatPolicy.canonical,
+          natureId: 'invented',
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('defines deterministic wild and trainer opponent spreads', () {
+      expect(
+        PokemonOpponentStatProfile.wildV0.natureId,
+        'hardy',
+      );
+      expect(
+        PokemonOpponentStatProfile.wildV0.ivs,
+        const PokemonStatSpread(),
+      );
+      expect(
+        PokemonOpponentStatProfile.trainerV0.ivs,
+        const PokemonStatSpread(
+          hp: 15,
+          attack: 15,
+          defense: 15,
+          specialAttack: 15,
+          specialDefense: 15,
+          speed: 15,
+        ),
+      );
+      expect(
+        PokemonOpponentStatProfile.trainerV0.evs,
+        const PokemonStatSpread(),
+      );
     });
 
     test('rejects values outside the persisted stat contract', () {

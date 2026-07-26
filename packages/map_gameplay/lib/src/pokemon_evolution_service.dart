@@ -142,15 +142,16 @@ final class PokemonEvolutionService {
       throw StateError('Pokemon current HP is outside its source maximum.');
     }
 
-    // Nature is persisted but the MVP does not yet own a canonical nature
-    // catalogue, so target stats intentionally use the documented neutral
-    // calculator policy while preserving the persisted nature id.
+    // Evolution keeps the same persisted identity and stat determinants. The
+    // target species therefore receives the exact canonical nature modifier
+    // instead of momentarily using a neutral projection.
     final targetStats = statCalculator.calculate(
       baseStats: validatedCandidate.targetBaseStats,
       ivs: pokemon.ivs,
       evs: pokemon.evs,
       level: pokemon.level,
-      naturePolicy: PokemonNatureStatPolicy.neutral,
+      naturePolicy: PokemonNatureStatPolicy.canonical,
+      natureId: pokemon.natureId,
     );
     final abilityId =
         validatedCandidate.targetAbilityIds.contains(pokemon.abilityId)

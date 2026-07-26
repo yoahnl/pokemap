@@ -1,5 +1,6 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import 'battle_start_request.dart';
 import 'runtime_battle_move_bridge.dart';
@@ -438,27 +439,27 @@ class RuntimeBattleCombatantSeedBuilder {
           playerPokemon.knownMoveIds.isEmpty ? null : currentPpByMoveId,
     );
 
-    final maxHp = _calculateMaxHp(
-      baseHp: species.baseHp,
-      level: playerPokemon.level,
-      ivHp: playerPokemon.ivs.hp,
-      evHp: playerPokemon.evs.hp,
-    );
-    final stats = _calculateStatsSnapshot(
+    final calculatedStats = _calculateResolvedStats(
       species: species,
       level: playerPokemon.level,
       ivs: playerPokemon.ivs,
       evs: playerPokemon.evs,
+      natureId: playerPokemon.natureId,
+      profileLabel: 'player',
     );
 
     return RuntimeBattleCombatantSeed(
       speciesId: playerPokemon.speciesId.trim(),
       level: playerPokemon.level,
-      maxHp: maxHp,
+      maxHp: calculatedStats.maxHp,
       catchRate: species.catchRate,
-      stats: stats,
+      stats: _toBattleStatsSnapshot(calculatedStats),
       typing: _buildBattleTypingSnapshot(species),
-      currentHp: _clampInt(playerPokemon.currentHp, min: 0, max: maxHp),
+      currentHp: _clampInt(
+        playerPokemon.currentHp,
+        min: 0,
+        max: calculatedStats.maxHp,
+      ),
       abilityId: playerPokemon.abilityId.trim().isEmpty
           ? 'unknown'
           : playerPokemon.abilityId.trim(),
@@ -498,27 +499,27 @@ class RuntimeBattleCombatantSeedBuilder {
           playerPokemon.knownMoveIds.isEmpty ? null : currentPpByMoveId,
     );
 
-    final maxHp = _calculateMaxHp(
-      baseHp: species.baseHp,
-      level: playerPokemon.level,
-      ivHp: playerPokemon.ivs.hp,
-      evHp: playerPokemon.evs.hp,
-    );
-    final stats = _calculateStatsSnapshot(
+    final calculatedStats = _calculateResolvedStats(
       species: species,
       level: playerPokemon.level,
       ivs: playerPokemon.ivs,
       evs: playerPokemon.evs,
+      natureId: playerPokemon.natureId,
+      profileLabel: 'player',
     );
 
     return RuntimePsdkBattleCombatantSeed(
       speciesId: playerPokemon.speciesId.trim(),
       level: playerPokemon.level,
-      maxHp: maxHp,
+      maxHp: calculatedStats.maxHp,
       catchRate: species.catchRate,
-      stats: stats,
+      stats: _toBattleStatsSnapshot(calculatedStats),
       typing: _buildBattleTypingSnapshot(species),
-      currentHp: _clampInt(playerPokemon.currentHp, min: 0, max: maxHp),
+      currentHp: _clampInt(
+        playerPokemon.currentHp,
+        min: 0,
+        max: calculatedStats.maxHp,
+      ),
       abilityId: playerPokemon.abilityId.trim().isEmpty
           ? 'unknown'
           : playerPokemon.abilityId.trim(),
@@ -554,19 +555,22 @@ class RuntimeBattleCombatantSeedBuilder {
       moveIds: moveIds,
       combatantLabel: 'Le Pokémon sauvage "${request.speciesId}"',
     );
+    const opponentProfile = PokemonOpponentStatProfile.wildV0;
+    final calculatedStats = _calculateResolvedStats(
+      species: species,
+      level: request.level,
+      ivs: opponentProfile.ivs,
+      evs: opponentProfile.evs,
+      natureId: opponentProfile.natureId,
+      profileLabel: opponentProfile.profileId,
+    );
 
     return RuntimeBattleCombatantSeed(
       speciesId: request.speciesId.trim(),
       level: request.level,
-      maxHp: _calculateMaxHp(
-        baseHp: species.baseHp,
-        level: request.level,
-      ),
+      maxHp: calculatedStats.maxHp,
       catchRate: species.catchRate,
-      stats: _calculateStatsSnapshot(
-        species: species,
-        level: request.level,
-      ),
+      stats: _toBattleStatsSnapshot(calculatedStats),
       typing: _buildBattleTypingSnapshot(species),
       abilityId: species.primaryAbilityId.isEmpty
           ? 'unknown'
@@ -598,19 +602,22 @@ class RuntimeBattleCombatantSeedBuilder {
       moveIds: moveIds,
       combatantLabel: 'Le Pokémon sauvage "${request.speciesId}"',
     );
+    const opponentProfile = PokemonOpponentStatProfile.wildV0;
+    final calculatedStats = _calculateResolvedStats(
+      species: species,
+      level: request.level,
+      ivs: opponentProfile.ivs,
+      evs: opponentProfile.evs,
+      natureId: opponentProfile.natureId,
+      profileLabel: opponentProfile.profileId,
+    );
 
     return RuntimePsdkBattleCombatantSeed(
       speciesId: request.speciesId.trim(),
       level: request.level,
-      maxHp: _calculateMaxHp(
-        baseHp: species.baseHp,
-        level: request.level,
-      ),
+      maxHp: calculatedStats.maxHp,
       catchRate: species.catchRate,
-      stats: _calculateStatsSnapshot(
-        species: species,
-        level: request.level,
-      ),
+      stats: _toBattleStatsSnapshot(calculatedStats),
       typing: _buildBattleTypingSnapshot(species),
       abilityId: species.primaryAbilityId.isEmpty
           ? 'unknown'
@@ -647,19 +654,22 @@ class RuntimeBattleCombatantSeedBuilder {
       combatantLabel:
           'Le Pokémon du dresseur "$trainerName" (${teamMember.speciesId})',
     );
+    const opponentProfile = PokemonOpponentStatProfile.trainerV0;
+    final calculatedStats = _calculateResolvedStats(
+      species: species,
+      level: teamMember.level,
+      ivs: opponentProfile.ivs,
+      evs: opponentProfile.evs,
+      natureId: opponentProfile.natureId,
+      profileLabel: opponentProfile.profileId,
+    );
 
     return RuntimeBattleCombatantSeed(
       speciesId: teamMember.speciesId.trim(),
       level: teamMember.level,
-      maxHp: _calculateMaxHp(
-        baseHp: species.baseHp,
-        level: teamMember.level,
-      ),
+      maxHp: calculatedStats.maxHp,
       catchRate: species.catchRate,
-      stats: _calculateStatsSnapshot(
-        species: species,
-        level: teamMember.level,
-      ),
+      stats: _toBattleStatsSnapshot(calculatedStats),
       typing: _buildBattleTypingSnapshot(species),
       abilityId: species.primaryAbilityId.isEmpty
           ? 'unknown'
@@ -696,19 +706,22 @@ class RuntimeBattleCombatantSeedBuilder {
       combatantLabel:
           'Le Pokémon du dresseur "$trainerName" (${teamMember.speciesId})',
     );
+    const opponentProfile = PokemonOpponentStatProfile.trainerV0;
+    final calculatedStats = _calculateResolvedStats(
+      species: species,
+      level: teamMember.level,
+      ivs: opponentProfile.ivs,
+      evs: opponentProfile.evs,
+      natureId: opponentProfile.natureId,
+      profileLabel: opponentProfile.profileId,
+    );
 
     return RuntimePsdkBattleCombatantSeed(
       speciesId: teamMember.speciesId.trim(),
       level: teamMember.level,
-      maxHp: _calculateMaxHp(
-        baseHp: species.baseHp,
-        level: teamMember.level,
-      ),
+      maxHp: calculatedStats.maxHp,
       catchRate: species.catchRate,
-      stats: _calculateStatsSnapshot(
-        species: species,
-        level: teamMember.level,
-      ),
+      stats: _toBattleStatsSnapshot(calculatedStats),
       typing: _buildBattleTypingSnapshot(species),
       abilityId: species.primaryAbilityId.isEmpty
           ? 'unknown'
@@ -807,73 +820,52 @@ class RuntimeBattleCombatantSeedBuilder {
     return currentPpByMoveId;
   }
 
-  int _calculateMaxHp({
-    required int baseHp,
-    required int level,
-    int ivHp = 0,
-    int evHp = 0,
-  }) {
-    final safeBaseHp = _clampInt(baseHp, min: 1, max: 255);
-    final safeLevel = _clampInt(level, min: 1, max: 100);
-    final safeIv = _clampInt(ivHp, min: 0, max: 31);
-    final safeEv = _clampInt(evHp, min: 0, max: 252);
-
-    final hp =
-        (((2 * safeBaseHp + safeIv + (safeEv ~/ 4)) * safeLevel) ~/ 100) +
-            safeLevel +
-            10;
-    return _clampInt(hp, min: 1, max: 999);
-  }
-
-  BattleStatsSnapshot _calculateStatsSnapshot({
+  PokemonCalculatedStats _calculateResolvedStats({
     required RuntimePokemonSpecies species,
     required int level,
-    PokemonStatSpread ivs = const PokemonStatSpread(),
-    PokemonStatSpread evs = const PokemonStatSpread(),
+    required PokemonStatSpread ivs,
+    required PokemonStatSpread evs,
+    required String natureId,
+    required String profileLabel,
   }) {
-    // BE2 résout ici les stats battle non-HP pour une raison simple :
-    // - `map_runtime` possède encore la donnée projet (species, niveau, IV/EV) ;
-    // - `map_battle` ne doit jamais relire le JSON projet brut ;
-    // - le handoff battle doit donc déjà recevoir un snapshot typé, prêt à
-    //   l'emploi, au lieu d'un bricolage `power + stages`.
-    //
-    // Politique volontairement bornée :
-    // - joueur : on utilise les IV/EV réellement présents dans la sauvegarde ;
-    // - sauvage / trainer : IV/EV par défaut à 0, déterministes, documentés ;
-    // - nature neutre pour tout le monde dans BE2 ;
-    // - `speed` est déjà transportée pour préparer la suite, sans être
-    //   consommée pour l'ordre d'action dans ce lot.
+    // The project-aware runtime resolves raw species data once, then delegates
+    // every formula and nature rule to the pure gameplay package. This keeps
+    // legacy and PSDK seeds byte-for-byte aligned without teaching map_battle
+    // how to read project catalogues.
+    try {
+      return const PokemonStatCalculator().calculate(
+        baseStats: PokemonBaseStats(
+          hp: species.baseHp,
+          attack: species.baseAttack,
+          defense: species.baseDefense,
+          specialAttack: species.baseSpecialAttack,
+          specialDefense: species.baseSpecialDefense,
+          speed: species.baseSpeed,
+        ),
+        ivs: ivs,
+        evs: evs,
+        level: level,
+        naturePolicy: PokemonNatureStatPolicy.canonical,
+        natureId: natureId,
+      );
+    } on ArgumentError catch (error) {
+      throw RuntimeBattleSetupException(
+        'Les stats du combattant ne respectent pas le contrat battle.',
+        debugDetails: 'profile=$profileLabel, speciesId=${species.id}, '
+            'natureId=$natureId, ivs=$ivs, evs=$evs, error=$error',
+      );
+    }
+  }
+
+  BattleStatsSnapshot _toBattleStatsSnapshot(
+    PokemonCalculatedStats calculated,
+  ) {
     return BattleStatsSnapshot(
-      attack: _calculateResolvedNonHpStat(
-        baseStat: species.baseAttack,
-        level: level,
-        iv: ivs.attack,
-        ev: evs.attack,
-      ),
-      defense: _calculateResolvedNonHpStat(
-        baseStat: species.baseDefense,
-        level: level,
-        iv: ivs.defense,
-        ev: evs.defense,
-      ),
-      specialAttack: _calculateResolvedNonHpStat(
-        baseStat: species.baseSpecialAttack,
-        level: level,
-        iv: ivs.specialAttack,
-        ev: evs.specialAttack,
-      ),
-      specialDefense: _calculateResolvedNonHpStat(
-        baseStat: species.baseSpecialDefense,
-        level: level,
-        iv: ivs.specialDefense,
-        ev: evs.specialDefense,
-      ),
-      speed: _calculateResolvedNonHpStat(
-        baseStat: species.baseSpeed,
-        level: level,
-        iv: ivs.speed,
-        ev: evs.speed,
-      ),
+      attack: calculated.attack,
+      defense: calculated.defense,
+      specialAttack: calculated.specialAttack,
+      specialDefense: calculated.specialDefense,
+      speed: calculated.speed,
     );
   }
 
@@ -889,27 +881,6 @@ class RuntimeBattleCombatantSeedBuilder {
       primaryType: species.typing.first,
       secondaryType: species.typing.length > 1 ? species.typing[1] : null,
     );
-  }
-
-  int _calculateResolvedNonHpStat({
-    required int baseStat,
-    required int level,
-    int iv = 0,
-    int ev = 0,
-  }) {
-    final safeBaseStat = _clampInt(baseStat, min: 1, max: 255);
-    final safeLevel = _clampInt(level, min: 1, max: 100);
-    final safeIv = _clampInt(iv, min: 0, max: 31);
-    final safeEv = _clampInt(ev, min: 0, max: 252);
-
-    // Formule volontairement Pokémon-like, mais limitée et déterministe :
-    // floor(((2 * base + iv + floor(ev / 4)) * level) / 100) + 5
-    //
-    // BE2 ne gère pas encore les natures. On garde donc ici un multiplicateur
-    // neutre implicite de 1.0 au lieu d'introduire une mécanique partielle.
-    final resolved =
-        (((2 * safeBaseStat + safeIv + (safeEv ~/ 4)) * safeLevel) ~/ 100) + 5;
-    return _clampInt(resolved, min: 1, max: 999);
   }
 
   int _clampInt(

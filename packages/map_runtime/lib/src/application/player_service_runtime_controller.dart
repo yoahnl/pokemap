@@ -1292,6 +1292,8 @@ Future<RuntimePlayerServiceRecoveryCaps> loadRuntimePlayerServiceRecoveryCaps({
       ivs: pokemon.ivs,
       evs: pokemon.evs,
       level: pokemon.level,
+      naturePolicy: PokemonNatureStatPolicy.canonical,
+      natureId: pokemon.natureId,
     );
     maxHpByPartyIndex[index] = stats.maxHp;
   }

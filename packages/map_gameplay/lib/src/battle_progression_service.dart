@@ -216,6 +216,8 @@ final class BattleProgressionService {
         ivs: member.ivs,
         evs: member.evs,
         level: newLevel,
+        naturePolicy: PokemonNatureStatPolicy.canonical,
+        natureId: member.natureId,
       );
       final newCurrentHp = newLevel == member.level
           ? member.currentHp

@@ -225,7 +225,7 @@ void main() {
       expect(setup.playerPokemon.typing, isNotNull);
       expect(setup.playerPokemon.typing!.primaryType, equals('grass'));
       expect(setup.playerPokemon.typing!.secondaryType, isNull);
-      expect(setup.playerPokemon.stats.attack, equals(16));
+      expect(setup.playerPokemon.stats.attack, equals(14));
       expect(setup.playerPokemon.stats.specialAttack, equals(20));
       expect(setup.playerPokemon.stats.speed, equals(15));
       expect(

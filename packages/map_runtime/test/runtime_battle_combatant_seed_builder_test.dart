@@ -77,8 +77,8 @@ void main() {
       expect(seed.abilityId, equals('overgrow'));
       expect(seed.typing.primaryType, equals('grass'));
       expect(seed.typing.secondaryType, isNull);
-      expect(seed.stats.attack, equals(20));
-      expect(seed.stats.defense, equals(16));
+      expect(seed.stats.attack, equals(18));
+      expect(seed.stats.defense, equals(17));
       expect(seed.stats.specialAttack, equals(23));
       expect(seed.stats.specialDefense, equals(20));
       expect(seed.stats.speed, equals(17));
@@ -167,7 +167,8 @@ void main() {
       expect(setup.maxHp, equals(36));
       expect(setup.abilityId, equals('overgrow'));
       expect(setup.types.primary, equals('grass'));
-      expect(setup.stats.attack, equals(20));
+      expect(setup.stats.attack, equals(18));
+      expect(setup.stats.defense, equals(17));
       expect(
           setup.moves.map((move) => move.id).toList(),
           equals(
@@ -558,11 +559,12 @@ void main() {
       expect(seed.abilityId, equals('torrent'));
       expect(seed.typing.primaryType, equals('water'));
       expect(seed.typing.secondaryType, equals('fairy'));
-      expect(seed.stats.attack, equals(22));
-      expect(seed.stats.defense, equals(28));
-      expect(seed.stats.specialAttack, equals(23));
-      expect(seed.stats.specialDefense, equals(28));
-      expect(seed.stats.speed, equals(20));
+      expect(seed.maxHp, equals(46));
+      expect(seed.stats.attack, equals(24));
+      expect(seed.stats.defense, equals(31));
+      expect(seed.stats.specialAttack, equals(25));
+      expect(seed.stats.specialDefense, equals(30));
+      expect(seed.stats.speed, equals(23));
       expect(
         seed.moves.map((move) => move.id).toList(growable: false),
         equals(<String>['water_gun', 'tail_whip']),
@@ -584,6 +586,45 @@ void main() {
       expect(
         psdkSeed.toPsdkBattleCombatantSetup().heldItemId,
         equals('mystic_water'),
+      );
+      expect(psdkSeed.maxHp, equals(46));
+      expect(psdkSeed.stats.attack, equals(24));
+      expect(psdkSeed.stats.speed, equals(23));
+    });
+
+    test('rejects an unknown saved nature instead of neutralizing it',
+        () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+
+      await expectLater(
+        () => builder.buildPlayerPsdkCombatantSeed(
+          projectRootDirectory: tempProjectRoot.path,
+          pokemonConfig: _pokemonConfig(),
+          movesCatalog: movesCatalog,
+          playerPokemon: const PlayerPokemon(
+            speciesId: 'sproutle',
+            natureId: 'invented',
+            abilityId: 'overgrow',
+            level: 12,
+            knownMoveIds: <String>['vine_whip'],
+            currentPpByMoveId: <String, int>{'vine_whip': 35},
+            currentHp: 23,
+          ),
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            allOf(
+              contains('natureId=invented'),
+              contains('profile=player'),
+            ),
+          ),
+        ),
       );
     });
 

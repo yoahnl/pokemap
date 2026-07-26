@@ -183,6 +183,8 @@ final class RuntimeBattleRewardResolver {
           ivs: member.ivs,
           evs: member.evs,
           level: member.level,
+          naturePolicy: PokemonNatureStatPolicy.canonical,
+          natureId: member.natureId,
         );
         metadata.add(
           BattleProgressionPartySlotMetadata(

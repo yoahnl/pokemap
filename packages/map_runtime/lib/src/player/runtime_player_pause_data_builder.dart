@@ -324,6 +324,8 @@ final class _RuntimeSpeciesPresentation {
             ivs: pokemon.ivs,
             evs: pokemon.evs,
             level: pokemon.level,
+            naturePolicy: PokemonNatureStatPolicy.canonical,
+            natureId: pokemon.natureId,
           )
           .maxHp;
     } on Object {
