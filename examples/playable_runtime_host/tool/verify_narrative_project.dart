@@ -72,6 +72,9 @@ Future<NarrativeRuntimeSmokeReceipt?> verifyNarrativeProject({
     fixtureId: p.basename(p.normalize(p.absolute(projectRoot))),
     result: NarrativeRuntimeSmokeResult.pass,
     completedAt: completedAt ?? DateTime.now().toUtc(),
+    limitations: const [
+      'PARTIAL / NO-GO baseline: runtime smoke only; FG-185 is not promoted.',
+    ],
   );
 }
 

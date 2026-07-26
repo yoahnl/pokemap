@@ -46,5 +46,11 @@ void main() {
     );
     expect(executed, selbrumeReleaseV1Profile.requiredSuiteIds);
     expect(receipt?.result, NarrativeRuntimeSmokeResult.pass);
+    expect(
+      receipt?.limitations,
+      contains(
+        'PARTIAL / NO-GO baseline: runtime smoke only; FG-185 is not promoted.',
+      ),
+    );
   });
 }
