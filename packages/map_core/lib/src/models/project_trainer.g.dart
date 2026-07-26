@@ -73,6 +73,9 @@ _$ProjectTrainerEntryImpl _$$ProjectTrainerEntryImplFromJson(
               ?.map((e) => e as String)
               .toList() ??
           const [],
+      rewardBadgeId: json['rewardBadgeId'] as String?,
+      rewardFieldAbilityUnlock: $enumDecodeNullable(
+          _$FieldAbilityEnumMap, json['rewardFieldAbilityUnlock']),
       team: (json['team'] as List<dynamic>?)
               ?.map((e) => ProjectTrainerPokemonEntry.fromJson(
                   e as Map<String, dynamic>))
@@ -99,6 +102,20 @@ Map<String, dynamic> _$$ProjectTrainerEntryImplToJson(
       'rewardItemGrants':
           instance.rewardItemGrants.map((e) => e.toJson()).toList(),
       'rewardFlagIds': instance.rewardFlagIds,
+      if (instance.rewardBadgeId case final value?) 'rewardBadgeId': value,
+      if (_$FieldAbilityEnumMap[instance.rewardFieldAbilityUnlock]
+          case final value?)
+        'rewardFieldAbilityUnlock': value,
       'team': instance.team.map((e) => e.toJson()).toList(),
       'tags': instance.tags,
     };
+
+const _$FieldAbilityEnumMap = {
+  FieldAbility.surf: 'surf',
+  FieldAbility.cut: 'cut',
+  FieldAbility.strength: 'strength',
+  FieldAbility.flash: 'flash',
+  FieldAbility.rockSmash: 'rock_smash',
+  FieldAbility.waterfall: 'waterfall',
+  FieldAbility.dive: 'dive',
+};

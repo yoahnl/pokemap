@@ -17,6 +17,8 @@ import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_
 import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_dropdown_field.dart';
 import 'package:map_editor/src/ui/panels/trainer_library_panel.dart';
 
 void main() {
@@ -442,6 +444,137 @@ void main() {
 
     trainer = container.read(editorNotifierProvider).project!.trainers.single;
     expect(trainer.battleDifficulty, isNull);
+  });
+
+  testWidgets(
+      'authors complete trainer victory rewards through guided controls',
+      (tester) async {
+    final repository = _FakeProjectRepository();
+    const workspace = _FakeWorkspace();
+    final container = ProviderContainer(
+      overrides: [
+        projectRepositoryProvider.overrideWithValue(repository),
+        projectWorkspaceFactoryProvider.overrideWithValue(
+          const _FakeWorkspaceFactory(workspace),
+        ),
+        pokedexEntryLoaderProvider.overrideWithValue(
+          (_) async => _speciesEntries,
+        ),
+        pokedexMovesCatalogLoaderProvider.overrideWithValue(
+          (_) async => _movesCatalogView,
+        ),
+        pokedexSpeciesDetailLoaderProvider.overrideWithValue(
+          (_, speciesId) async =>
+              _detailsById[speciesId] ??
+              (throw EditorNotFoundException('Missing detail: $speciesId')),
+        ),
+        loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
+          LoadPokemonItemsCatalogUseCase(
+            readRepository: _FakePokemonReadRepository(
+              catalogByKey: <String, PokemonCatalogFile>{
+                'items': _itemsCatalog,
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/trainers_panel_rewards_test',
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
+        name: 'trainers_panel_rewards_test',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        badges: <BadgeDefinition>[
+          BadgeDefinition(id: 'tide_badge', label: 'Badge Marée'),
+        ],
+        trainers: <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'misty',
+            name: 'Misty',
+            trainerClass: 'Gym Leader',
+          ),
+        ],
+      ),
+    );
+
+    await pumpTrainerPanel(tester, container);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Modifier').first);
+    await settleTrainerUi(tester);
+
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-edit-reward-money-field')),
+      '480',
+    );
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-edit-reward-flags-field')),
+      'story:misty_defeated, story:cerulean_open',
+    );
+
+    tester
+        .widget<PokeMapDropdownField<String>>(
+          find.byKey(
+            const Key('trainer-library-edit-reward-item-dropdown'),
+          ),
+        )
+        .onChanged('oran_berry');
+    await settleTrainerUi(tester);
+    await tester.enterText(
+      find.byKey(
+        const Key('trainer-library-edit-reward-item-quantity-field'),
+      ),
+      '2',
+    );
+    final addItemButton = find.byKey(
+      const Key('trainer-library-edit-reward-item-add-button'),
+    );
+    await tester.ensureVisible(addItemButton);
+    tester.widget<PokeMapButton>(addItemButton).onPressed!.call();
+    await settleTrainerUi(tester);
+
+    tester
+        .widget<PokeMapDropdownField<String>>(
+          find.byKey(
+            const Key('trainer-library-edit-reward-badge-dropdown'),
+          ),
+        )
+        .onChanged('tide_badge');
+    tester
+        .widget<PokeMapDropdownField<String>>(
+          find.byKey(
+            const Key(
+              'trainer-library-edit-reward-field-ability-dropdown',
+            ),
+          ),
+        )
+        .onChanged(FieldAbility.surf.moveId);
+    await settleTrainerUi(tester);
+
+    final saveButton = find.text('Enregistrer');
+    await tester.ensureVisible(saveButton);
+    await tester.tap(saveButton);
+    await tester.pumpAndSettle();
+
+    final trainer =
+        container.read(editorNotifierProvider).project!.trainers.single;
+    expect(trainer.moneyReward, 480);
+    expect(
+      trainer.rewardItemGrants,
+      const <ProjectTrainerItemGrant>[
+        ProjectTrainerItemGrant(itemId: 'oran_berry', quantity: 2),
+      ],
+    );
+    expect(
+      trainer.rewardFlagIds,
+      const <String>['story:misty_defeated', 'story:cerulean_open'],
+    );
+    expect(trainer.rewardBadgeId, 'tide_badge');
+    expect(trainer.rewardFieldAbilityUnlock, FieldAbility.surf);
   });
 
   testWidgets(

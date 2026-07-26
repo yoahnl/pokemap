@@ -166,6 +166,15 @@ class _TrainerEditorCard extends StatelessWidget {
     required this.battleThemeController,
     required this.victoryThemeController,
     required this.tagsController,
+    required this.rewardMoneyController,
+    required this.rewardFlagsController,
+    required this.rewardItemQuantityController,
+    required this.references,
+    required this.badges,
+    required this.selectedRewardItemId,
+    required this.rewardItemGrants,
+    required this.rewardBadgeId,
+    required this.rewardFieldAbilityUnlock,
     required this.battleDifficulty,
     required this.battleBackgroundRelativePath,
     required this.projectRootPath,
@@ -181,6 +190,11 @@ class _TrainerEditorCard extends StatelessWidget {
     required this.onPickBattleBackground,
     required this.onClearBattleBackground,
     required this.onSelectCharacter,
+    required this.onSelectRewardItem,
+    required this.onAddRewardItem,
+    required this.onRemoveRewardItem,
+    required this.onSelectRewardBadge,
+    required this.onSelectRewardFieldAbility,
     required this.onCancel,
     required this.onSubmit,
   });
@@ -193,6 +207,15 @@ class _TrainerEditorCard extends StatelessWidget {
   final TextEditingController battleThemeController;
   final TextEditingController victoryThemeController;
   final TextEditingController tagsController;
+  final TextEditingController rewardMoneyController;
+  final TextEditingController rewardFlagsController;
+  final TextEditingController rewardItemQuantityController;
+  final _TrainerReferenceData references;
+  final List<BadgeDefinition> badges;
+  final String? selectedRewardItemId;
+  final List<ProjectTrainerItemGrant> rewardItemGrants;
+  final String? rewardBadgeId;
+  final FieldAbility? rewardFieldAbilityUnlock;
   final int? battleDifficulty;
   final String? battleBackgroundRelativePath;
   final String? projectRootPath;
@@ -208,6 +231,11 @@ class _TrainerEditorCard extends StatelessWidget {
   final VoidCallback onPickBattleBackground;
   final VoidCallback onClearBattleBackground;
   final ValueChanged<String?> onSelectCharacter;
+  final ValueChanged<String?> onSelectRewardItem;
+  final VoidCallback onAddRewardItem;
+  final ValueChanged<String> onRemoveRewardItem;
+  final ValueChanged<String?> onSelectRewardBadge;
+  final ValueChanged<FieldAbility?> onSelectRewardFieldAbility;
   final VoidCallback onCancel;
   final VoidCallback onSubmit;
 
@@ -381,6 +409,24 @@ class _TrainerEditorCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
+            _TrainerRewardEditor(
+              createMode: createMode,
+              moneyController: rewardMoneyController,
+              flagsController: rewardFlagsController,
+              itemQuantityController: rewardItemQuantityController,
+              references: references,
+              badges: badges,
+              selectedItemId: selectedRewardItemId,
+              itemGrants: rewardItemGrants,
+              badgeId: rewardBadgeId,
+              fieldAbilityUnlock: rewardFieldAbilityUnlock,
+              onSelectItem: onSelectRewardItem,
+              onAddItem: onAddRewardItem,
+              onRemoveItem: onRemoveRewardItem,
+              onSelectBadge: onSelectRewardBadge,
+              onSelectFieldAbility: onSelectRewardFieldAbility,
+            ),
+            const SizedBox(height: 8),
             CupertinoButton(
               padding: EdgeInsets.zero,
               minimumSize: const Size(1, 24),
@@ -411,7 +457,8 @@ class _TrainerEditorCard extends StatelessWidget {
                     width: 1,
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
               if (!portraitIsKnown)
                 const Padding(
@@ -442,7 +489,8 @@ class _TrainerEditorCard extends StatelessWidget {
                     width: 1,
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
               const SizedBox(height: 6),
               CupertinoTextField(
@@ -461,7 +509,8 @@ class _TrainerEditorCard extends StatelessWidget {
                     width: 1,
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
               const SizedBox(height: 6),
               CupertinoTextField(
@@ -480,238 +529,242 @@ class _TrainerEditorCard extends StatelessWidget {
                     width: 1,
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
-            const SizedBox(height: 6),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: EditorChrome.islandFillElevated(context),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: accent.withValues(alpha: 0.18),
+              const SizedBox(height: 6),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: EditorChrome.islandFillElevated(context),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: accent.withValues(alpha: 0.18),
+                  ),
                 ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'Image de fond de combat (optionnelle)',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      hasExplicitBattleBackground
-                          ? battleBackgroundRelativePath!.trim()
-                          : 'Aucun fond spécifique sélectionné.',
-                      style: TextStyle(
-                        color: hasExplicitBattleBackground
-                            ? EditorChrome.primaryLabel(context)
-                            : subtle,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: SizedBox(
-                        key: Key(
-                          createMode
-                              ? 'trainer-library-create-background-preview'
-                              : 'trainer-library-edit-background-preview',
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Image de fond de combat (optionnelle)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
                         ),
-                        height: 88,
-                        child: ColoredBox(
-                          color: EditorChrome.islandFillElevated(context),
-                          child: Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 54,
-                                  height: 54,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(12),
-                                    gradient: LinearGradient(
-                                      colors: battleBackgroundExists
-                                          ? <Color>[
-                                              accent.withValues(alpha: 0.85),
-                                              EditorChrome.accentJade
-                                                  .withValues(alpha: 0.72),
-                                            ]
-                                          : <Color>[
-                                              EditorChrome.accentCoral
-                                                  .withValues(alpha: 0.65),
-                                              EditorChrome.accentWarm
-                                                  .withValues(alpha: 0.38),
-                                            ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        hasExplicitBattleBackground
+                            ? battleBackgroundRelativePath!.trim()
+                            : 'Aucun fond spécifique sélectionné.',
+                        style: TextStyle(
+                          color: hasExplicitBattleBackground
+                              ? EditorChrome.primaryLabel(context)
+                              : subtle,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          height: 1.35,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: SizedBox(
+                          key: Key(
+                            createMode
+                                ? 'trainer-library-create-background-preview'
+                                : 'trainer-library-edit-background-preview',
+                          ),
+                          height: 88,
+                          child: ColoredBox(
+                            color: EditorChrome.islandFillElevated(context),
+                            child: Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 54,
+                                    height: 54,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      gradient: LinearGradient(
+                                        colors: battleBackgroundExists
+                                            ? <Color>[
+                                                accent.withValues(alpha: 0.85),
+                                                EditorChrome.accentJade
+                                                    .withValues(alpha: 0.72),
+                                              ]
+                                            : <Color>[
+                                                EditorChrome.accentCoral
+                                                    .withValues(alpha: 0.65),
+                                                EditorChrome.accentWarm
+                                                    .withValues(alpha: 0.38),
+                                              ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      battleBackgroundExists
+                                          ? CupertinoIcons
+                                              .photo_fill_on_rectangle_fill
+                                          : CupertinoIcons
+                                              .exclamationmark_triangle_fill,
+                                      color: CupertinoColors.white,
+                                      size: 24,
                                     ),
                                   ),
-                                  child: Icon(
-                                    battleBackgroundExists
-                                        ? CupertinoIcons.photo_fill_on_rectangle_fill
-                                        : CupertinoIcons.exclamationmark_triangle_fill,
-                                    color: CupertinoColors.white,
-                                    size: 24,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        hasExplicitBattleBackground
-                                            ? (battleBackgroundExists
-                                                ? 'Image projet liée'
-                                                : 'Fichier lié manquant')
-                                            : 'Aucune image liée',
-                                        style: TextStyle(
-                                          color: EditorChrome.primaryLabel(
-                                            context,
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          hasExplicitBattleBackground
+                                              ? (battleBackgroundExists
+                                                  ? 'Image projet liée'
+                                                  : 'Fichier lié manquant')
+                                              : 'Aucune image liée',
+                                          style: TextStyle(
+                                            color: EditorChrome.primaryLabel(
+                                              context,
+                                            ),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
                                           ),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w800,
                                         ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        hasExplicitBattleBackground
-                                            ? (battleBackgroundExists
-                                                ? 'Le runtime tentera d’utiliser cette image spécifique avant le fond contextuel.'
-                                                : 'Le runtime ignorera ce fichier manquant et se rabattra sur le fond contextuel.')
-                                            : 'Choisissez une image locale du projet pour remplacer le fond de combat contextuel.',
-                                        style: TextStyle(
-                                          color: subtle,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          height: 1.35,
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          hasExplicitBattleBackground
+                                              ? (battleBackgroundExists
+                                                  ? 'Le runtime tentera d’utiliser cette image spécifique avant le fond contextuel.'
+                                                  : 'Le runtime ignorera ce fichier manquant et se rabattra sur le fond contextuel.')
+                                              : 'Choisissez une image locale du projet pour remplacer le fond de combat contextuel.',
+                                          style: TextStyle(
+                                            color: subtle,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            height: 1.35,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        CupertinoButton(
-                          key: Key(
-                            createMode
-                                ? 'trainer-library-create-background-pick-button'
-                                : 'trainer-library-edit-background-pick-button',
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          CupertinoButton(
+                            key: Key(
+                              createMode
+                                  ? 'trainer-library-create-background-pick-button'
+                                  : 'trainer-library-edit-background-pick-button',
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            minimumSize: const Size(1, 28),
+                            onPressed: onPickBattleBackground,
+                            child: const Text(
+                              'Choisir une image',
+                              style: TextStyle(fontSize: 12),
+                            ),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
+                          const SizedBox(width: 6),
+                          CupertinoButton(
+                            key: Key(
+                              createMode
+                                  ? 'trainer-library-create-background-clear-button'
+                                  : 'trainer-library-edit-background-clear-button',
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            minimumSize: const Size(1, 28),
+                            onPressed: onClearBattleBackground,
+                            child: const Text(
+                              'Effacer',
+                              style: TextStyle(fontSize: 12),
+                            ),
                           ),
-                          minimumSize: const Size(1, 28),
-                          onPressed: onPickBattleBackground,
-                          child: const Text(
-                            'Choisir une image',
-                            style: TextStyle(fontSize: 12),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        CupertinoButton(
-                          key: Key(
-                            createMode
-                                ? 'trainer-library-create-background-clear-button'
-                                : 'trainer-library-edit-background-clear-button',
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          minimumSize: const Size(1, 28),
-                          onPressed: onClearBattleBackground,
-                          child: const Text(
-                            'Effacer',
-                            style: TextStyle(fontSize: 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Cette option lie une image locale du projet par chemin relatif. Si le fichier disparaît, le runtime se rabattra sur le fond par défaut.',
-                      style: TextStyle(
-                        color: subtle,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        height: 1.35,
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'Cette option lie une image locale du projet par chemin relatif. Si le fichier disparaît, le runtime se rabattra sur le fond par défaut.',
+                        style: TextStyle(
+                          color: subtle,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Ces refs optionnelles restent brutes pour le moment. Le fond de combat trainer reste un simple chemin relatif projet qui override le fond contextuel côté runtime ; battle theme, victory theme et tags restent conservés tels quels.',
-              style: TextStyle(
-                color: subtle,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                height: 1.35,
-              ),
-            ),
-          ],
-          if (validationMessage != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              validationMessage!,
-              style: const TextStyle(
-                color: EditorChrome.inspectorJoyCoral,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                height: 1.35,
-              ),
-            ),
-          ],
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              CupertinoButton(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                minimumSize: const Size(1, 28),
-                onPressed: onCancel,
-                child: const Text('Annuler', style: TextStyle(fontSize: 13)),
-              ),
-              const SizedBox(width: 6),
-              CupertinoButton.filled(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                minimumSize: const Size(1, 28),
-                onPressed: onSubmit,
-                child: Text(
-                  createMode ? 'Créer' : 'Enregistrer',
-                  style: const TextStyle(fontSize: 13),
+              const SizedBox(height: 6),
+              Text(
+                'Ces refs optionnelles restent brutes pour le moment. Le fond de combat trainer reste un simple chemin relatif projet qui override le fond contextuel côté runtime ; battle theme, victory theme et tags restent conservés tels quels.',
+                style: TextStyle(
+                  color: subtle,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  height: 1.35,
                 ),
               ),
             ],
-          ),
-        ],
+            if (validationMessage != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                validationMessage!,
+                style: const TextStyle(
+                  color: EditorChrome.inspectorJoyCoral,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  height: 1.35,
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                CupertinoButton(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  minimumSize: const Size(1, 28),
+                  onPressed: onCancel,
+                  child: const Text('Annuler', style: TextStyle(fontSize: 13)),
+                ),
+                const SizedBox(width: 6),
+                CupertinoButton.filled(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  minimumSize: const Size(1, 28),
+                  onPressed: onSubmit,
+                  child: Text(
+                    createMode ? 'Créer' : 'Enregistrer',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
   }
 }
 

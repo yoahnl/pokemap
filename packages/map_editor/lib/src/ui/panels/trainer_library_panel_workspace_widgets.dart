@@ -478,6 +478,15 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             battleThemeController: _newBattleThemeController,
             victoryThemeController: _newVictoryThemeController,
             tagsController: _newTagsController,
+            rewardMoneyController: _newRewardMoneyController,
+            rewardFlagsController: _newRewardFlagsController,
+            rewardItemQuantityController: _newRewardItemQuantityController,
+            references: references,
+            badges: project.badges,
+            selectedRewardItemId: _newRewardItemId,
+            rewardItemGrants: _newRewardItemGrants,
+            rewardBadgeId: _newRewardBadgeId,
+            rewardFieldAbilityUnlock: _newRewardFieldAbilityUnlock,
             battleDifficulty: _newBattleDifficulty,
             battleBackgroundRelativePath: _newBattleBackgroundRelativePath,
             projectRootPath: ref.read(editorNotifierProvider).projectRootPath,
@@ -493,6 +502,11 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             onPickBattleBackground: _pickCreateBattleBackground,
             onClearBattleBackground: _clearCreateBattleBackground,
             onSelectCharacter: _setNewCharacterId,
+            onSelectRewardItem: _selectNewRewardItem,
+            onAddRewardItem: _addNewRewardItem,
+            onRemoveRewardItem: _removeNewRewardItem,
+            onSelectRewardBadge: _selectNewRewardBadge,
+            onSelectRewardFieldAbility: _selectNewRewardFieldAbility,
             onCancel: _cancelCreateTrainerDraft,
             onSubmit: () => _handleCreateTrainer(
               notifier: notifier,
@@ -532,6 +546,15 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             battleThemeController: _editBattleThemeController,
             victoryThemeController: _editVictoryThemeController,
             tagsController: _editTagsController,
+            rewardMoneyController: _editRewardMoneyController,
+            rewardFlagsController: _editRewardFlagsController,
+            rewardItemQuantityController: _editRewardItemQuantityController,
+            references: references,
+            badges: project.badges,
+            selectedRewardItemId: _editRewardItemId,
+            rewardItemGrants: _editRewardItemGrants,
+            rewardBadgeId: _editRewardBadgeId,
+            rewardFieldAbilityUnlock: _editRewardFieldAbilityUnlock,
             battleDifficulty: _editBattleDifficulty,
             battleBackgroundRelativePath: _editBattleBackgroundRelativePath,
             projectRootPath: ref.read(editorNotifierProvider).projectRootPath,
@@ -547,6 +570,11 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             onPickBattleBackground: _pickEditBattleBackground,
             onClearBattleBackground: _clearEditBattleBackground,
             onSelectCharacter: _setEditCharacterId,
+            onSelectRewardItem: _selectEditRewardItem,
+            onAddRewardItem: _addEditRewardItem,
+            onRemoveRewardItem: _removeEditRewardItem,
+            onSelectRewardBadge: _selectEditRewardBadge,
+            onSelectRewardFieldAbility: _selectEditRewardFieldAbility,
             onCancel: _cancelTrainerEditor,
             onSubmit: () => _handleUpdateTrainer(
               notifier: notifier,
@@ -678,8 +706,9 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
       );
     }
 
-    final editorTitle =
-        _editingPokemonIndex == null ? 'NOUVEAU POKÉMON D’ÉQUIPE' : 'MODIFIER LE POKÉMON D’ÉQUIPE';
+    final editorTitle = _editingPokemonIndex == null
+        ? 'NOUVEAU POKÉMON D’ÉQUIPE'
+        : 'MODIFIER LE POKÉMON D’ÉQUIPE';
 
     return ListView(
       key: const Key('trainer-library-editor-scroll'),
@@ -1071,7 +1100,9 @@ class _TrainerStudioIdentityCard extends StatelessWidget {
                   'Victory theme: ${trainer.victoryThemeId!.trim()}',
                 if (trainer.battleDifficulty != null)
                   'Difficulty: ${trainer.battleDifficulty}/10',
-                if ((trainer.battleBackgroundRelativePath ?? '').trim().isNotEmpty)
+                if ((trainer.battleBackgroundRelativePath ?? '')
+                    .trim()
+                    .isNotEmpty)
                   'Background: ${trainer.battleBackgroundRelativePath!.trim()}',
               ].isEmpty
                   ? 'No optional refs configured yet. You can still author a complete battle team right away.'

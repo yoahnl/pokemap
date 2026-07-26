@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'enums.dart';
+
 part 'project_trainer.freezed.dart';
 part 'project_trainer.g.dart';
 
@@ -124,6 +126,8 @@ class ProjectTrainerEntry with _$ProjectTrainerEntry {
     int moneyReward,
     @Default([]) List<ProjectTrainerItemGrant> rewardItemGrants,
     @Default([]) List<String> rewardFlagIds,
+    @JsonKey(includeIfNull: false) String? rewardBadgeId,
+    @JsonKey(includeIfNull: false) FieldAbility? rewardFieldAbilityUnlock,
     @Default([]) List<ProjectTrainerPokemonEntry> team,
     @Default([]) List<String> tags,
   }) = _ProjectTrainerEntry;

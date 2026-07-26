@@ -113,6 +113,8 @@ void main() {
                 ProjectTrainerItemGrant(itemId: 'potion', quantity: 2),
               ],
               rewardFlagIds: <String>['story:iris_won'],
+              rewardBadgeId: 'tide_badge',
+              rewardFieldAbilityUnlock: FieldAbility.surf,
             ),
           ],
         ),
@@ -130,6 +132,8 @@ void main() {
         ],
       );
       expect(resolution.reward.flagIds, <String>['story:iris_won']);
+      expect(resolution.reward.badgeId, 'tide_badge');
+      expect(resolution.reward.fieldAbilityUnlock, FieldAbility.surf);
       expect(resolution.progression.state.trainerProfile.money, 0);
       expect(resolution.progression.state.bag.entries, isEmpty);
       expect(resolution.progression.state.storyFlags.activeFlags, isEmpty);

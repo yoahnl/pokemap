@@ -41,6 +41,16 @@ List<String> _normalizeTrainerStringList(Iterable<String> rawValues) {
       .toList(growable: false);
 }
 
+List<ProjectTrainerItemGrant> _normalizeTrainerItemGrants(
+  Iterable<ProjectTrainerItemGrant> grants,
+) {
+  return grants
+      .map(
+        (grant) => grant.copyWith(itemId: grant.itemId.trim()),
+      )
+      .toList(growable: false);
+}
+
 String? _normalizeOptionalTrainerRelativePath(String? rawValue) {
   final trimmed = rawValue?.trim() ?? '';
   if (trimmed.isEmpty) {
@@ -69,6 +79,12 @@ class CreateTrainerUseCase {
     String? portraitElementId,
     String? battleThemeId,
     String? victoryThemeId,
+    int moneyReward = 0,
+    List<ProjectTrainerItemGrant> rewardItemGrants =
+        const <ProjectTrainerItemGrant>[],
+    List<String> rewardFlagIds = const <String>[],
+    String? rewardBadgeId,
+    FieldAbility? rewardFieldAbilityUnlock,
     List<String> tags = const [],
   }) async {
     final trimmedName = name.trim();
@@ -97,6 +113,12 @@ class CreateTrainerUseCase {
       victoryThemeId: victoryThemeId?.trim().isEmpty == true
           ? null
           : victoryThemeId?.trim(),
+      moneyReward: moneyReward,
+      rewardItemGrants: _normalizeTrainerItemGrants(rewardItemGrants),
+      rewardFlagIds: _normalizeTrainerStringList(rewardFlagIds),
+      rewardBadgeId:
+          rewardBadgeId?.trim().isEmpty == true ? null : rewardBadgeId?.trim(),
+      rewardFieldAbilityUnlock: rewardFieldAbilityUnlock,
       tags: _normalizeTrainerStringList(tags),
     );
     final updated = project.copyWith(
@@ -131,6 +153,13 @@ class UpdateTrainerUseCase {
         const TrainerFieldUpdate<String>.keep(),
     TrainerFieldUpdate<String> victoryThemeId =
         const TrainerFieldUpdate<String>.keep(),
+    int? moneyReward,
+    List<ProjectTrainerItemGrant>? rewardItemGrants,
+    List<String>? rewardFlagIds,
+    TrainerFieldUpdate<String> rewardBadgeId =
+        const TrainerFieldUpdate<String>.keep(),
+    TrainerFieldUpdate<FieldAbility> rewardFieldAbilityUnlock =
+        const TrainerFieldUpdate<FieldAbility>.keep(),
     List<String>? tags,
   }) async {
     final index = project.trainers.indexWhere((t) => t.id == trainerId);
@@ -149,6 +178,13 @@ class UpdateTrainerUseCase {
     var updatedTrainer = current.copyWith(
       name: trimmedName,
       trainerClass: trimmedClass,
+      moneyReward: moneyReward ?? current.moneyReward,
+      rewardItemGrants: rewardItemGrants == null
+          ? current.rewardItemGrants
+          : _normalizeTrainerItemGrants(rewardItemGrants),
+      rewardFlagIds: rewardFlagIds == null
+          ? current.rewardFlagIds
+          : _normalizeTrainerStringList(rewardFlagIds),
       tags: tags == null ? current.tags : _normalizeTrainerStringList(tags),
     );
     if (!battleDifficulty.isKeep) {
@@ -185,6 +221,17 @@ class UpdateTrainerUseCase {
       final v = victoryThemeId.valueOrNull?.trim();
       updatedTrainer = updatedTrainer.copyWith(
         victoryThemeId: (v == null || v.isEmpty) ? null : v,
+      );
+    }
+    if (!rewardBadgeId.isKeep) {
+      final value = rewardBadgeId.valueOrNull?.trim();
+      updatedTrainer = updatedTrainer.copyWith(
+        rewardBadgeId: value == null || value.isEmpty ? null : value,
+      );
+    }
+    if (!rewardFieldAbilityUnlock.isKeep) {
+      updatedTrainer = updatedTrainer.copyWith(
+        rewardFieldAbilityUnlock: rewardFieldAbilityUnlock.valueOrNull,
       );
     }
     final trainers = List<ProjectTrainerEntry>.from(project.trainers);
@@ -287,10 +334,8 @@ class UpdateTrainerPokemonUseCase {
     List<String>? moves,
     TrainerFieldUpdate<String> heldItemId =
         const TrainerFieldUpdate<String>.keep(),
-    TrainerFieldUpdate<String> formId =
-        const TrainerFieldUpdate<String>.keep(),
-    TrainerFieldUpdate<String> gender =
-        const TrainerFieldUpdate<String>.keep(),
+    TrainerFieldUpdate<String> formId = const TrainerFieldUpdate<String>.keep(),
+    TrainerFieldUpdate<String> gender = const TrainerFieldUpdate<String>.keep(),
     bool? shiny,
   }) async {
     final trainerIndex = project.trainers.indexWhere((t) => t.id == trainerId);

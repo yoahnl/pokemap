@@ -104,6 +104,12 @@ void main() {
         trainerClass: 'Trainer',
         rewardFlagIds: <String>[''],
       ),
+      'empty badge id': const ProjectTrainerEntry(
+        id: 'rookie',
+        name: 'Rookie',
+        trainerClass: 'Trainer',
+        rewardBadgeId: ' ',
+      ),
     };
     for (final invalidReward in invalidRewards.entries) {
       test('rejects ${invalidReward.key}', () {
@@ -121,5 +127,33 @@ void main() {
         );
       });
     }
+
+    test('rejects a reward badge that is absent from the project manifest', () {
+      final manifest = ProjectManifest(
+        name: 'trainer_reward_badge_validation_test',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        trainers: const <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'misty',
+            name: 'Misty',
+            trainerClass: 'Gym Leader',
+            rewardBadgeId: 'tide_badge',
+          ),
+        ],
+        surfaceCatalog: ProjectSurfaceCatalog(),
+      );
+
+      expect(
+        () => ProjectValidator.validate(manifest),
+        throwsA(
+          isA<ValidationException>().having(
+            (error) => error.toString(),
+            'message',
+            contains('rewardBadgeId'),
+          ),
+        ),
+      );
+    });
   });
 }

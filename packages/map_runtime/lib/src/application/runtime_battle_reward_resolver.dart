@@ -295,6 +295,9 @@ BattleReward _rewardFor({
       flagIds: outcome.isVictory
           ? trainer?.rewardFlagIds ?? const <String>[]
           : const <String>[],
+      badgeId: outcome.isVictory ? trainer?.rewardBadgeId : null,
+      fieldAbilityUnlock:
+          outcome.isVictory ? trainer?.rewardFieldAbilityUnlock : null,
     );
   }
   if (request is! WildBattleStartRequest &&

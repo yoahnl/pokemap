@@ -22,6 +22,11 @@ import '../../application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import 'battle_background_path_utils.dart';
+import '../design_system/pokemap_button.dart';
+import '../design_system/pokemap_card.dart';
+import '../design_system/pokemap_dropdown_field.dart';
+import '../design_system/pokemap_section_header.dart';
+import '../design_system/pokemap_text_field.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_embedded_widgets.dart';
 
@@ -31,6 +36,7 @@ import '../shared/inspector_embedded_widgets.dart';
 part 'trainer_library_panel_support.dart';
 part 'trainer_library_panel_trainer_widgets.dart';
 part 'trainer_library_panel_pokemon_widgets.dart';
+part 'trainer_library_panel_reward_widgets.dart';
 part 'trainer_library_panel_workspace_widgets.dart';
 
 const PokemonSpeciesLookupService _speciesLookupService =
@@ -77,10 +83,18 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   final _newBattleThemeController = TextEditingController();
   final _newVictoryThemeController = TextEditingController();
   final _newTagsController = TextEditingController();
+  final _newRewardMoneyController = TextEditingController(text: '0');
+  final _newRewardFlagsController = TextEditingController();
+  final _newRewardItemQuantityController = TextEditingController(text: '1');
   final _trainerSearchController = TextEditingController();
   String? _newCharacterId;
   int? _newBattleDifficulty;
   String? _newBattleBackgroundRelativePath;
+  String? _newRewardItemId;
+  List<ProjectTrainerItemGrant> _newRewardItemGrants =
+      const <ProjectTrainerItemGrant>[];
+  String? _newRewardBadgeId;
+  FieldAbility? _newRewardFieldAbilityUnlock;
   bool _showCreateForm = false;
   bool _showCreateAdvanced = false;
   String? _createTrainerValidationMessage;
@@ -96,9 +110,17 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   final _editBattleThemeController = TextEditingController();
   final _editVictoryThemeController = TextEditingController();
   final _editTagsController = TextEditingController();
+  final _editRewardMoneyController = TextEditingController(text: '0');
+  final _editRewardFlagsController = TextEditingController();
+  final _editRewardItemQuantityController = TextEditingController(text: '1');
   String? _editCharacterId;
   int? _editBattleDifficulty;
   String? _editBattleBackgroundRelativePath;
+  String? _editRewardItemId;
+  List<ProjectTrainerItemGrant> _editRewardItemGrants =
+      const <ProjectTrainerItemGrant>[];
+  String? _editRewardBadgeId;
+  FieldAbility? _editRewardFieldAbilityUnlock;
   bool _showEditAdvanced = false;
   String? _editTrainerValidationMessage;
 
@@ -146,6 +168,9 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _newBattleThemeController.dispose();
     _newVictoryThemeController.dispose();
     _newTagsController.dispose();
+    _newRewardMoneyController.dispose();
+    _newRewardFlagsController.dispose();
+    _newRewardItemQuantityController.dispose();
     _trainerSearchController
       ..removeListener(_handleRosterSearchChanged)
       ..dispose();
@@ -156,6 +181,9 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _editBattleThemeController.dispose();
     _editVictoryThemeController.dispose();
     _editTagsController.dispose();
+    _editRewardMoneyController.dispose();
+    _editRewardFlagsController.dispose();
+    _editRewardItemQuantityController.dispose();
 
     _pokemonSpeciesController.dispose();
     _pokemonLevelController.dispose();
@@ -365,6 +393,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       battleDifficulty: _newBattleDifficulty,
       battleBackgroundRelativePath: _newBattleBackgroundRelativePath,
       portraitElementId: _newPortraitController.text,
+      rewardMoney: _newRewardMoneyController.text,
+      rewardBadgeId: _newRewardBadgeId,
     );
     setState(() {
       _createTrainerValidationMessage = validation;
@@ -382,6 +412,11 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       portraitElementId: _newPortraitController.text,
       battleThemeId: _newBattleThemeController.text,
       victoryThemeId: _newVictoryThemeController.text,
+      moneyReward: int.parse(_newRewardMoneyController.text.trim()),
+      rewardItemGrants: _newRewardItemGrants,
+      rewardFlagIds: _splitCommaSeparatedValues(_newRewardFlagsController.text),
+      rewardBadgeId: _newRewardBadgeId,
+      rewardFieldAbilityUnlock: _newRewardFieldAbilityUnlock,
       tags: _splitCommaSeparatedValues(_newTagsController.text),
     );
     if (!mounted) {
@@ -412,6 +447,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       battleDifficulty: _editBattleDifficulty,
       battleBackgroundRelativePath: _editBattleBackgroundRelativePath,
       portraitElementId: _editPortraitController.text,
+      rewardMoney: _editRewardMoneyController.text,
+      rewardBadgeId: _editRewardBadgeId,
     );
     setState(() {
       _editTrainerValidationMessage = validation;
@@ -430,6 +467,12 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       portraitElementId: _editPortraitController.text,
       battleThemeId: _editBattleThemeController.text,
       victoryThemeId: _editVictoryThemeController.text,
+      moneyReward: int.parse(_editRewardMoneyController.text.trim()),
+      rewardItemGrants: _editRewardItemGrants,
+      rewardFlagIds:
+          _splitCommaSeparatedValues(_editRewardFlagsController.text),
+      rewardBadgeId: _editRewardBadgeId,
+      rewardFieldAbilityUnlock: _editRewardFieldAbilityUnlock,
       tags: _splitCommaSeparatedValues(_editTagsController.text),
     );
     if (!mounted) {
@@ -473,6 +516,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     required int? battleDifficulty,
     required String? battleBackgroundRelativePath,
     required String portraitElementId,
+    required String rewardMoney,
+    required String? rewardBadgeId,
   }) {
     if (name.trim().isEmpty) {
       return 'Trainer name cannot be empty.';
@@ -490,6 +535,14 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     if (battleDifficulty != null &&
         (battleDifficulty < 1 || battleDifficulty > 10)) {
       return 'Battle difficulty must stay between 1 and 10.';
+    }
+    final parsedRewardMoney = int.tryParse(rewardMoney.trim());
+    if (parsedRewardMoney == null || parsedRewardMoney < 0) {
+      return 'La récompense en argent doit être un entier positif ou nul.';
+    }
+    if (rewardBadgeId != null &&
+        !project.badges.any((badge) => badge.id == rewardBadgeId)) {
+      return 'Le badge de récompense n’existe plus dans le projet.';
     }
 
     final normalizedBattleBackgroundPath =
@@ -519,9 +572,16 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _newBattleThemeController.clear();
     _newVictoryThemeController.clear();
     _newTagsController.clear();
+    _newRewardMoneyController.text = '0';
+    _newRewardFlagsController.clear();
+    _newRewardItemQuantityController.text = '1';
     _newCharacterId = null;
     _newBattleDifficulty = null;
     _newBattleBackgroundRelativePath = null;
+    _newRewardItemId = null;
+    _newRewardItemGrants = const <ProjectTrainerItemGrant>[];
+    _newRewardBadgeId = null;
+    _newRewardFieldAbilityUnlock = null;
   }
 
   void _openCreateTrainerForm() {
@@ -542,6 +602,130 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   void _setNewCharacterId(String? characterId) {
     setState(() {
       _newCharacterId = characterId;
+    });
+  }
+
+  void _addNewRewardItem() {
+    final itemId = _newRewardItemId;
+    final quantity = int.tryParse(_newRewardItemQuantityController.text.trim());
+    if (itemId == null || itemId.isEmpty) {
+      setState(() {
+        _createTrainerValidationMessage =
+            'Sélectionnez un objet de récompense.';
+      });
+      return;
+    }
+    if (quantity == null || quantity <= 0) {
+      setState(() {
+        _createTrainerValidationMessage =
+            'La quantité de récompense doit être un entier positif.';
+      });
+      return;
+    }
+    if (_newRewardItemGrants.any((grant) => grant.itemId == itemId)) {
+      setState(() {
+        _createTrainerValidationMessage =
+            'Cet objet est déjà présent dans les récompenses.';
+      });
+      return;
+    }
+    setState(() {
+      _newRewardItemGrants = <ProjectTrainerItemGrant>[
+        ..._newRewardItemGrants,
+        ProjectTrainerItemGrant(itemId: itemId, quantity: quantity),
+      ];
+      _newRewardItemId = null;
+      _newRewardItemQuantityController.text = '1';
+      _createTrainerValidationMessage = null;
+    });
+  }
+
+  void _selectNewRewardItem(String? itemId) {
+    setState(() {
+      _newRewardItemId = itemId;
+      _createTrainerValidationMessage = null;
+    });
+  }
+
+  void _removeNewRewardItem(String itemId) {
+    setState(() {
+      _newRewardItemGrants = _newRewardItemGrants
+          .where((grant) => grant.itemId != itemId)
+          .toList(growable: false);
+    });
+  }
+
+  void _selectNewRewardBadge(String? badgeId) {
+    setState(() {
+      _newRewardBadgeId = badgeId;
+    });
+  }
+
+  void _selectNewRewardFieldAbility(FieldAbility? ability) {
+    setState(() {
+      _newRewardFieldAbilityUnlock = ability;
+    });
+  }
+
+  void _addEditRewardItem() {
+    final itemId = _editRewardItemId;
+    final quantity =
+        int.tryParse(_editRewardItemQuantityController.text.trim());
+    if (itemId == null || itemId.isEmpty) {
+      setState(() {
+        _editTrainerValidationMessage = 'Sélectionnez un objet de récompense.';
+      });
+      return;
+    }
+    if (quantity == null || quantity <= 0) {
+      setState(() {
+        _editTrainerValidationMessage =
+            'La quantité de récompense doit être un entier positif.';
+      });
+      return;
+    }
+    if (_editRewardItemGrants.any((grant) => grant.itemId == itemId)) {
+      setState(() {
+        _editTrainerValidationMessage =
+            'Cet objet est déjà présent dans les récompenses.';
+      });
+      return;
+    }
+    setState(() {
+      _editRewardItemGrants = <ProjectTrainerItemGrant>[
+        ..._editRewardItemGrants,
+        ProjectTrainerItemGrant(itemId: itemId, quantity: quantity),
+      ];
+      _editRewardItemId = null;
+      _editRewardItemQuantityController.text = '1';
+      _editTrainerValidationMessage = null;
+    });
+  }
+
+  void _selectEditRewardItem(String? itemId) {
+    setState(() {
+      _editRewardItemId = itemId;
+      _editTrainerValidationMessage = null;
+    });
+  }
+
+  void _removeEditRewardItem(String itemId) {
+    setState(() {
+      _editRewardItemGrants = _editRewardItemGrants
+          .where((grant) => grant.itemId != itemId)
+          .toList(growable: false);
+    });
+  }
+
+  void _selectEditRewardBadge(String? badgeId) {
+    setState(() {
+      _editRewardBadgeId = badgeId;
+    });
+  }
+
+  void _selectEditRewardFieldAbility(FieldAbility? ability) {
+    setState(() {
+      _editRewardFieldAbilityUnlock = ability;
     });
   }
 
@@ -594,10 +778,16 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       _editBattleThemeController.text = trainer.battleThemeId ?? '';
       _editVictoryThemeController.text = trainer.victoryThemeId ?? '';
       _editTagsController.text = trainer.tags.join(', ');
+      _editRewardMoneyController.text = trainer.moneyReward.toString();
+      _editRewardFlagsController.text = trainer.rewardFlagIds.join(', ');
+      _editRewardItemQuantityController.text = '1';
       _editCharacterId = trainer.characterId;
       _editBattleDifficulty = trainer.battleDifficulty;
-      _editBattleBackgroundRelativePath =
-          trainer.battleBackgroundRelativePath;
+      _editBattleBackgroundRelativePath = trainer.battleBackgroundRelativePath;
+      _editRewardItemId = null;
+      _editRewardItemGrants = trainer.rewardItemGrants;
+      _editRewardBadgeId = trainer.rewardBadgeId;
+      _editRewardFieldAbilityUnlock = trainer.rewardFieldAbilityUnlock;
       _showEditAdvanced = false;
       _editTrainerValidationMessage = null;
       _showCreateForm = false;
@@ -719,7 +909,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     });
   }
 
-  Future<String?> _pickBattleBackgroundAbsolutePath(String projectRootPath) async {
+  Future<String?> _pickBattleBackgroundAbsolutePath(
+      String projectRootPath) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: const <String>[
@@ -1035,5 +1226,9 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _showEditAdvanced = false;
     _editBattleDifficulty = null;
     _editBattleBackgroundRelativePath = null;
+    _editRewardItemId = null;
+    _editRewardItemGrants = const <ProjectTrainerItemGrant>[];
+    _editRewardBadgeId = null;
+    _editRewardFieldAbilityUnlock = null;
   }
 }

@@ -11974,6 +11974,12 @@ class EditorNotifier extends _$EditorNotifier {
     String? portraitElementId,
     String? battleThemeId,
     String? victoryThemeId,
+    int moneyReward = 0,
+    List<ProjectTrainerItemGrant> rewardItemGrants =
+        const <ProjectTrainerItemGrant>[],
+    List<String> rewardFlagIds = const <String>[],
+    String? rewardBadgeId,
+    FieldAbility? rewardFieldAbilityUnlock,
     List<String> tags = const <String>[],
   }) async {
     final fs = _projectWorkspace;
@@ -11992,6 +11998,11 @@ class EditorNotifier extends _$EditorNotifier {
         portraitElementId: portraitElementId,
         battleThemeId: battleThemeId,
         victoryThemeId: victoryThemeId,
+        moneyReward: moneyReward,
+        rewardItemGrants: rewardItemGrants,
+        rewardFlagIds: rewardFlagIds,
+        rewardBadgeId: rewardBadgeId,
+        rewardFieldAbilityUnlock: rewardFieldAbilityUnlock,
         tags: tags,
       );
       state = state.copyWith(
@@ -12018,6 +12029,11 @@ class EditorNotifier extends _$EditorNotifier {
     Object? portraitElementId = _trainerUnset,
     Object? battleThemeId = _trainerUnset,
     Object? victoryThemeId = _trainerUnset,
+    int? moneyReward,
+    List<ProjectTrainerItemGrant>? rewardItemGrants,
+    List<String>? rewardFlagIds,
+    Object? rewardBadgeId = _trainerUnset,
+    Object? rewardFieldAbilityUnlock = _trainerUnset,
     List<String>? tags,
   }) async {
     final fs = _projectWorkspace;
@@ -12038,6 +12054,12 @@ class EditorNotifier extends _$EditorNotifier {
         portraitElementId: _trainerFieldUpdate<String>(portraitElementId),
         battleThemeId: _trainerFieldUpdate<String>(battleThemeId),
         victoryThemeId: _trainerFieldUpdate<String>(victoryThemeId),
+        moneyReward: moneyReward,
+        rewardItemGrants: rewardItemGrants,
+        rewardFlagIds: rewardFlagIds,
+        rewardBadgeId: _trainerFieldUpdate<String>(rewardBadgeId),
+        rewardFieldAbilityUnlock:
+            _trainerFieldUpdate<FieldAbility>(rewardFieldAbilityUnlock),
         tags: tags,
       );
       state = state.copyWith(

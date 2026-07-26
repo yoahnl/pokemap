@@ -1320,6 +1320,7 @@ class ProjectValidator {
   static void _validateTrainers(ProjectManifest manifest) {
     final elementIds = manifest.elements.map((e) => e.id).toSet();
     final characterIds = manifest.characters.map((c) => c.id).toSet();
+    final badgeIds = manifest.badges.map((badge) => badge.id).toSet();
     for (final trainer in manifest.trainers) {
       final id = trainer.id.trim();
       if (id.isEmpty) {
@@ -1376,6 +1377,20 @@ class ProjectValidator {
         if (!rewardFlagIds.add(flagId)) {
           throw ValidationException(
             'Trainer $id rewardFlagIds contains duplicate flag "$flagId"',
+          );
+        }
+      }
+      final rewardBadgeId = trainer.rewardBadgeId?.trim();
+      if (rewardBadgeId != null) {
+        if (rewardBadgeId.isEmpty) {
+          throw ValidationException(
+            'Trainer $id rewardBadgeId must not be empty when provided',
+          );
+        }
+        if (!badgeIds.contains(rewardBadgeId)) {
+          throw ValidationException(
+            'Trainer $id rewardBadgeId "$rewardBadgeId" does not exist in '
+            'project badges',
           );
         }
       }

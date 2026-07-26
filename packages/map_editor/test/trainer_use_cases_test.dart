@@ -15,7 +15,8 @@ void main() {
   });
 
   group('trainer use cases', () {
-    test('create trainer keeps battleDifficulty null when no explicit value is authored',
+    test(
+        'create trainer keeps battleDifficulty null when no explicit value is authored',
         () async {
       final useCase = CreateTrainerUseCase(repository);
 
@@ -40,8 +41,7 @@ void main() {
         name: '  Misty  ',
         trainerClass: '  Gym Leader  ',
         battleDifficulty: 7,
-        battleBackgroundRelativePath:
-            r' assets\battle_backgrounds\misty.png ',
+        battleBackgroundRelativePath: r' assets\battle_backgrounds\misty.png ',
         battleThemeId: ' battle_theme ',
         victoryThemeId: ' victory_theme ',
         tags: <String>[' rival ', ' ', ' gym '],
@@ -60,6 +60,61 @@ void main() {
       expect(trainer.victoryThemeId, 'victory_theme');
       expect(trainer.tags, <String>['rival', 'gym']);
       expect(repository.savedProjects.single.trainers.single.name, 'Misty');
+    });
+
+    test('create and update trainer author complete normalized rewards',
+        () async {
+      final createUseCase = CreateTrainerUseCase(repository);
+      final updateUseCase = UpdateTrainerUseCase(repository);
+
+      final created = await createUseCase.execute(
+        workspace,
+        _project(
+          badges: const <BadgeDefinition>[
+            BadgeDefinition(id: 'tide_badge', label: 'Badge Marée'),
+          ],
+        ),
+        name: '  Misty  ',
+        trainerClass: '  Gym Leader  ',
+        moneyReward: 640,
+        rewardItemGrants: const <ProjectTrainerItemGrant>[
+          ProjectTrainerItemGrant(itemId: ' potion ', quantity: 2),
+        ],
+        rewardFlagIds: const <String>[' story:misty_won ', ' '],
+        rewardBadgeId: ' tide_badge ',
+        rewardFieldAbilityUnlock: FieldAbility.surf,
+      );
+
+      final trainer = created.trainers.single;
+      expect(trainer.moneyReward, 640);
+      expect(
+        trainer.rewardItemGrants,
+        const <ProjectTrainerItemGrant>[
+          ProjectTrainerItemGrant(itemId: 'potion', quantity: 2),
+        ],
+      );
+      expect(trainer.rewardFlagIds, const <String>['story:misty_won']);
+      expect(trainer.rewardBadgeId, 'tide_badge');
+      expect(trainer.rewardFieldAbilityUnlock, FieldAbility.surf);
+
+      final cleared = await updateUseCase.execute(
+        workspace,
+        created,
+        trainerId: trainer.id,
+        moneyReward: 0,
+        rewardItemGrants: const <ProjectTrainerItemGrant>[],
+        rewardFlagIds: const <String>[],
+        rewardBadgeId: const TrainerFieldUpdate<String>.set(null),
+        rewardFieldAbilityUnlock:
+            const TrainerFieldUpdate<FieldAbility>.set(null),
+      );
+
+      final clearedTrainer = cleared.trainers.single;
+      expect(clearedTrainer.moneyReward, 0);
+      expect(clearedTrainer.rewardItemGrants, isEmpty);
+      expect(clearedTrainer.rewardFlagIds, isEmpty);
+      expect(clearedTrainer.rewardBadgeId, isNull);
+      expect(clearedTrainer.rewardFieldAbilityUnlock, isNull);
     });
 
     test('update trainer can author and clear difficulty/background fields',
@@ -153,7 +208,8 @@ void main() {
               name: 'Misty',
               trainerClass: 'Gym Leader',
               battleDifficulty: 8,
-              battleBackgroundRelativePath: 'assets/battle_backgrounds/misty.png',
+              battleBackgroundRelativePath:
+                  'assets/battle_backgrounds/misty.png',
               characterId: 'misty_character',
               portraitElementId: 'misty_portrait',
               battleThemeId: 'misty_theme',
@@ -302,6 +358,7 @@ ProjectManifest _project({
   List<ProjectTrainerEntry> trainers = const <ProjectTrainerEntry>[],
   List<ProjectElementEntry> elements = const <ProjectElementEntry>[],
   List<ProjectCharacterEntry> characters = const <ProjectCharacterEntry>[],
+  List<BadgeDefinition> badges = const <BadgeDefinition>[],
   List<ProjectTilesetEntry> tilesets = const <ProjectTilesetEntry>[
     ProjectTilesetEntry(
       id: 'tileset_1',
@@ -310,7 +367,8 @@ ProjectManifest _project({
     ),
   ],
 }) {
-  return ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+  return ProjectManifest(
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: 'trainer_use_case_test',
     maps: const <ProjectMapEntry>[],
     tilesets: tilesets,
@@ -322,6 +380,7 @@ ProjectManifest _project({
     ],
     elements: elements,
     characters: characters,
+    badges: badges,
     trainers: trainers,
   );
 }

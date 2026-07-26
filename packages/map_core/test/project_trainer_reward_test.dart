@@ -13,6 +13,13 @@ void main() {
       expect(trainer.moneyReward, 0);
       expect(trainer.rewardItemGrants, isEmpty);
       expect(trainer.rewardFlagIds, isEmpty);
+      expect(trainer.rewardBadgeId, isNull);
+      expect(trainer.rewardFieldAbilityUnlock, isNull);
+      expect(trainer.toJson(), isNot(contains('rewardBadgeId')));
+      expect(
+        trainer.toJson(),
+        isNot(contains('rewardFieldAbilityUnlock')),
+      );
     });
 
     test('typed rewards survive JSON round-trip', () {
@@ -25,11 +32,15 @@ void main() {
           ProjectTrainerItemGrant(itemId: 'potion', quantity: 2),
         ],
         rewardFlagIds: <String>['rival_defeated'],
+        rewardBadgeId: 'tide_badge',
+        rewardFieldAbilityUnlock: FieldAbility.surf,
       );
 
       final restored = ProjectTrainerEntry.fromJson(trainer.toJson());
 
       expect(restored, trainer);
+      expect(restored.rewardBadgeId, 'tide_badge');
+      expect(restored.rewardFieldAbilityUnlock, FieldAbility.surf);
     });
 
     test('rejects fractional money and item quantities instead of truncating',

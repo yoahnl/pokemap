@@ -565,6 +565,11 @@ mixin _$ProjectTrainerEntry {
   List<ProjectTrainerItemGrant> get rewardItemGrants =>
       throw _privateConstructorUsedError;
   List<String> get rewardFlagIds => throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
+  String? get rewardBadgeId => throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
+  FieldAbility? get rewardFieldAbilityUnlock =>
+      throw _privateConstructorUsedError;
   List<ProjectTrainerPokemonEntry> get team =>
       throw _privateConstructorUsedError;
   List<String> get tags => throw _privateConstructorUsedError;
@@ -598,6 +603,8 @@ abstract class $ProjectTrainerEntryCopyWith<$Res> {
       @JsonKey(fromJson: _projectTrainerMoneyRewardFromJson) int moneyReward,
       List<ProjectTrainerItemGrant> rewardItemGrants,
       List<String> rewardFlagIds,
+      @JsonKey(includeIfNull: false) String? rewardBadgeId,
+      @JsonKey(includeIfNull: false) FieldAbility? rewardFieldAbilityUnlock,
       List<ProjectTrainerPokemonEntry> team,
       List<String> tags});
 }
@@ -629,6 +636,8 @@ class _$ProjectTrainerEntryCopyWithImpl<$Res, $Val extends ProjectTrainerEntry>
     Object? moneyReward = null,
     Object? rewardItemGrants = null,
     Object? rewardFlagIds = null,
+    Object? rewardBadgeId = freezed,
+    Object? rewardFieldAbilityUnlock = freezed,
     Object? team = null,
     Object? tags = null,
   }) {
@@ -681,6 +690,14 @@ class _$ProjectTrainerEntryCopyWithImpl<$Res, $Val extends ProjectTrainerEntry>
           ? _value.rewardFlagIds
           : rewardFlagIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      rewardBadgeId: freezed == rewardBadgeId
+          ? _value.rewardBadgeId
+          : rewardBadgeId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      rewardFieldAbilityUnlock: freezed == rewardFieldAbilityUnlock
+          ? _value.rewardFieldAbilityUnlock
+          : rewardFieldAbilityUnlock // ignore: cast_nullable_to_non_nullable
+              as FieldAbility?,
       team: null == team
           ? _value.team
           : team // ignore: cast_nullable_to_non_nullable
@@ -714,6 +731,8 @@ abstract class _$$ProjectTrainerEntryImplCopyWith<$Res>
       @JsonKey(fromJson: _projectTrainerMoneyRewardFromJson) int moneyReward,
       List<ProjectTrainerItemGrant> rewardItemGrants,
       List<String> rewardFlagIds,
+      @JsonKey(includeIfNull: false) String? rewardBadgeId,
+      @JsonKey(includeIfNull: false) FieldAbility? rewardFieldAbilityUnlock,
       List<ProjectTrainerPokemonEntry> team,
       List<String> tags});
 }
@@ -743,6 +762,8 @@ class __$$ProjectTrainerEntryImplCopyWithImpl<$Res>
     Object? moneyReward = null,
     Object? rewardItemGrants = null,
     Object? rewardFlagIds = null,
+    Object? rewardBadgeId = freezed,
+    Object? rewardFieldAbilityUnlock = freezed,
     Object? team = null,
     Object? tags = null,
   }) {
@@ -795,6 +816,14 @@ class __$$ProjectTrainerEntryImplCopyWithImpl<$Res>
           ? _value._rewardFlagIds
           : rewardFlagIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      rewardBadgeId: freezed == rewardBadgeId
+          ? _value.rewardBadgeId
+          : rewardBadgeId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      rewardFieldAbilityUnlock: freezed == rewardFieldAbilityUnlock
+          ? _value.rewardFieldAbilityUnlock
+          : rewardFieldAbilityUnlock // ignore: cast_nullable_to_non_nullable
+              as FieldAbility?,
       team: null == team
           ? _value._team
           : team // ignore: cast_nullable_to_non_nullable
@@ -825,6 +854,8 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
       this.moneyReward = 0,
       final List<ProjectTrainerItemGrant> rewardItemGrants = const [],
       final List<String> rewardFlagIds = const [],
+      @JsonKey(includeIfNull: false) this.rewardBadgeId,
+      @JsonKey(includeIfNull: false) this.rewardFieldAbilityUnlock,
       final List<ProjectTrainerPokemonEntry> team = const [],
       final List<String> tags = const []})
       : _rewardItemGrants = rewardItemGrants,
@@ -905,6 +936,12 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
     return EqualUnmodifiableListView(_rewardFlagIds);
   }
 
+  @override
+  @JsonKey(includeIfNull: false)
+  final String? rewardBadgeId;
+  @override
+  @JsonKey(includeIfNull: false)
+  final FieldAbility? rewardFieldAbilityUnlock;
   final List<ProjectTrainerPokemonEntry> _team;
   @override
   @JsonKey()
@@ -925,7 +962,7 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
 
   @override
   String toString() {
-    return 'ProjectTrainerEntry(id: $id, name: $name, trainerClass: $trainerClass, battleDifficulty: $battleDifficulty, battleBackgroundRelativePath: $battleBackgroundRelativePath, characterId: $characterId, portraitElementId: $portraitElementId, battleThemeId: $battleThemeId, victoryThemeId: $victoryThemeId, moneyReward: $moneyReward, rewardItemGrants: $rewardItemGrants, rewardFlagIds: $rewardFlagIds, team: $team, tags: $tags)';
+    return 'ProjectTrainerEntry(id: $id, name: $name, trainerClass: $trainerClass, battleDifficulty: $battleDifficulty, battleBackgroundRelativePath: $battleBackgroundRelativePath, characterId: $characterId, portraitElementId: $portraitElementId, battleThemeId: $battleThemeId, victoryThemeId: $victoryThemeId, moneyReward: $moneyReward, rewardItemGrants: $rewardItemGrants, rewardFlagIds: $rewardFlagIds, rewardBadgeId: $rewardBadgeId, rewardFieldAbilityUnlock: $rewardFieldAbilityUnlock, team: $team, tags: $tags)';
   }
 
   @override
@@ -957,6 +994,11 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
                 .equals(other._rewardItemGrants, _rewardItemGrants) &&
             const DeepCollectionEquality()
                 .equals(other._rewardFlagIds, _rewardFlagIds) &&
+            (identical(other.rewardBadgeId, rewardBadgeId) ||
+                other.rewardBadgeId == rewardBadgeId) &&
+            (identical(
+                    other.rewardFieldAbilityUnlock, rewardFieldAbilityUnlock) ||
+                other.rewardFieldAbilityUnlock == rewardFieldAbilityUnlock) &&
             const DeepCollectionEquality().equals(other._team, _team) &&
             const DeepCollectionEquality().equals(other._tags, _tags));
   }
@@ -977,6 +1019,8 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
       moneyReward,
       const DeepCollectionEquality().hash(_rewardItemGrants),
       const DeepCollectionEquality().hash(_rewardFlagIds),
+      rewardBadgeId,
+      rewardFieldAbilityUnlock,
       const DeepCollectionEquality().hash(_team),
       const DeepCollectionEquality().hash(_tags));
 
@@ -1012,6 +1056,9 @@ abstract class _ProjectTrainerEntry implements ProjectTrainerEntry {
       final int moneyReward,
       final List<ProjectTrainerItemGrant> rewardItemGrants,
       final List<String> rewardFlagIds,
+      @JsonKey(includeIfNull: false) final String? rewardBadgeId,
+      @JsonKey(includeIfNull: false)
+      final FieldAbility? rewardFieldAbilityUnlock,
       final List<ProjectTrainerPokemonEntry> team,
       final List<String> tags}) = _$ProjectTrainerEntryImpl;
 
@@ -1073,6 +1120,12 @@ abstract class _ProjectTrainerEntry implements ProjectTrainerEntry {
   List<ProjectTrainerItemGrant> get rewardItemGrants;
   @override
   List<String> get rewardFlagIds;
+  @override
+  @JsonKey(includeIfNull: false)
+  String? get rewardBadgeId;
+  @override
+  @JsonKey(includeIfNull: false)
+  FieldAbility? get rewardFieldAbilityUnlock;
   @override
   List<ProjectTrainerPokemonEntry> get team;
   @override
