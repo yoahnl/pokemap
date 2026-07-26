@@ -40083,6 +40083,54 @@
             }
           },
           {
+            "id": "node_8",
+            "kind": "action",
+            "title": "Terminer le jeu — Selbrume sauvée",
+            "payload": {
+              "kind": "action",
+              "parameters": {},
+              "consequence": {
+                "kind": "finishGame",
+                "contractVersion": 1,
+                "endingId": "ending.selbrume-sauvee",
+                "outcome": "victory",
+                "commitPolicy": "persistBeforePresentation",
+                "result": {
+                  "title": {
+                    "fallback": "Selbrume est sauvée",
+                    "translations": {
+                      "en": "Selbrume is safe"
+                    }
+                  },
+                  "summary": {
+                    "fallback": "La lumière du phare traverse de nouveau la brume et les habitants reprennent la mer.",
+                    "translations": {
+                      "en": "The lighthouse shines through the mist again, and the islanders return to sea."
+                    }
+                  }
+                },
+                "credits": {
+                  "title": {
+                    "fallback": "Crédits — Selbrume",
+                    "translations": {
+                      "en": "Selbrume Credits"
+                    }
+                  },
+                  "author": "Selbrume",
+                  "endingLabel": {
+                    "fallback": "Fin principale — Selbrume sauvée",
+                    "translations": {
+                      "en": "Main ending — Selbrume is safe"
+                    }
+                  },
+                  "skippable": true
+                },
+                "postGamePolicy": "returnToHub",
+                "label": "Terminer Selbrume"
+              }
+            }
+          },
+          {
             "id": "node_end",
             "kind": "end",
             "title": "Fin",
@@ -40149,8 +40197,16 @@
             "label": "completed"
           },
           {
-            "id": "edge_node_7_node_end",
+            "id": "edge_node_7_node_8",
             "fromNodeId": "node_7",
+            "fromPortId": "completed",
+            "toNodeId": "node_8",
+            "kind": "actionCompleted",
+            "label": "completed"
+          },
+          {
+            "id": "edge_node_8_node_end",
+            "fromNodeId": "node_8",
             "fromPortId": "completed",
             "toNodeId": "node_end",
             "kind": "actionCompleted",
@@ -40201,8 +40257,13 @@
             "y": 80.0
           },
           {
-            "nodeId": "node_end",
+            "nodeId": "node_8",
             "x": 2424.0,
+            "y": 80.0
+          },
+          {
+            "nodeId": "node_end",
+            "x": 2724.0,
             "y": 80.0
           }
         ],

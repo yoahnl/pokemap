@@ -11,6 +11,7 @@ final class EvaluationPlayableMapGame extends PlayableMapGame {
     required super.projectFilePath,
     required super.saveRepository,
     required super.encounterRandom,
+    super.gameCompletionEmitter,
   });
 
   @override

@@ -31,9 +31,11 @@ final class SelbrumeEvaluationDriver
     required this.runId,
     required this.checkpointCache,
     required this.checkpointProvenance,
+    required List<GameCompletionRequest> gameCompletionRequests,
   })  : _attachedServices = attachedServices,
         _ownsGame = ownsGame,
-        _playbackRate = playbackRate;
+        _playbackRate = playbackRate,
+        _gameCompletionRequests = gameCompletionRequests;
 
   final PlayableMapGame game;
   final ProjectManifest project;
@@ -45,6 +47,7 @@ final class SelbrumeEvaluationDriver
   final String runId;
   final EvaluationCheckpointCache? checkpointCache;
   final EvaluationCheckpointProvenance? checkpointProvenance;
+  final List<GameCompletionRequest> _gameCompletionRequests;
   final Map<String, MapData> _mapsById = <String, MapData>{};
   final Map<String, Set<String>> _runtimeRejectedEdgesByMapId =
       <String, Set<String>>{};
@@ -63,6 +66,9 @@ final class SelbrumeEvaluationDriver
 
   EvaluationPlayerServiceHost get headlessPlayerServices =>
       _requireHeadlessPlayerServices();
+
+  UnmodifiableListView<GameCompletionRequest> get gameCompletionRequests =>
+      UnmodifiableListView<GameCompletionRequest>(_gameCompletionRequests);
 
   Future<void> waitUntilRuntimeReady({bool driveDialogue = false}) {
     bool predicate() =>
@@ -112,6 +118,7 @@ final class SelbrumeEvaluationDriver
       runId: runId,
       checkpointCache: null,
       checkpointProvenance: null,
+      gameCompletionRequests: <GameCompletionRequest>[],
     );
   }
 
@@ -133,11 +140,15 @@ final class SelbrumeEvaluationDriver
     );
     final saveRepository = SerializedEvaluationSaveRepository();
     final playerServices = EvaluationPlayerServiceHost();
+    final gameCompletionRequests = <GameCompletionRequest>[];
     final game = EvaluationPlayableMapGame(
       bundle: bundle,
       projectFilePath: projectPath,
       saveRepository: saveRepository,
       encounterRandom: AlwaysEncounterRandom(),
+      gameCompletionEmitter: (request) async {
+        gameCompletionRequests.add(request);
+      },
     );
     game.setPlayerServiceRuntimeController(
       PlayerServiceRuntimeController(
@@ -170,6 +181,7 @@ final class SelbrumeEvaluationDriver
       runId: runId,
       checkpointCache: checkpointCache,
       checkpointProvenance: checkpointProvenance,
+      gameCompletionRequests: gameCompletionRequests,
     );
     game.onGameResize(Vector2(640, 480));
     await game.onLoad();

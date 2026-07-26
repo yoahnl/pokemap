@@ -678,6 +678,26 @@ void main() {
       );
       await journey.enterTrigger('zone_port_center');
       await journey.waitForFact('fact_main_story_completed');
+      await journey.waitForGameCompletion();
+      expect(journey.gameCompletionRequests, hasLength(1));
+      final completion = journey.gameCompletionRequests.single;
+      expect(completion.endingId, 'ending.selbrume-sauvee');
+      expect(completion.outcome, GameCompletionOutcome.victory);
+      expect(completion.result.title, 'Selbrume est sauvée');
+      expect(
+        completion.result.summary,
+        'La lumière du phare traverse de nouveau la brume et les habitants '
+        'reprennent la mer.',
+      );
+      expect(completion.credits.title, 'Crédits — Selbrume');
+      expect(completion.credits.author, 'Selbrume');
+      expect(
+        completion.credits.endingLabel,
+        'Fin principale — Selbrume sauvée',
+      );
+      expect(completion.credits.skippable, isTrue);
+      expect(completion.destination, GameCompletionDestination.hub);
+      expect(completion.allowPostGameContinue, isFalse);
       await journey.purchaseAtPort(
         'poke-ball',
         expectedStateId: 'story-finished',
@@ -796,6 +816,7 @@ final class _SelbrumeJourney {
     required this.project,
     required this.projectRoot,
     required this.playerServices,
+    required this.gameCompletionRequests,
     required this.expectedWalkthroughStepIds,
   });
 
@@ -803,6 +824,7 @@ final class _SelbrumeJourney {
   final ProjectManifest project;
   final Directory projectRoot;
   final SelbrumePlayerServiceTestHost playerServices;
+  final List<GameCompletionRequest> gameCompletionRequests;
   final List<String> expectedWalkthroughStepIds;
   final List<String> completedWalkthroughStepIds = <String>[];
   final Map<String, MapData> _mapsById = <String, MapData>{};
@@ -881,6 +903,7 @@ final class _SelbrumeJourney {
       project: driver.project,
       projectRoot: projectRoot,
       playerServices: playerServices,
+      gameCompletionRequests: driver.gameCompletionRequests,
       expectedWalkthroughStepIds: expectedWalkthroughStepIds,
     );
     expect(journey.state.currentMapId, 'map_bourg_selbrume');
@@ -980,6 +1003,13 @@ final class _SelbrumeJourney {
     await _settleUntil(
       () => state.narrativeFactRuntimeState.overridesByFactId[factId] == true,
       label: 'Fact $factId',
+    );
+  }
+
+  Future<void> waitForGameCompletion() async {
+    await _settleUntil(
+      () => gameCompletionRequests.isNotEmpty,
+      label: 'Game completion request',
     );
   }
 
