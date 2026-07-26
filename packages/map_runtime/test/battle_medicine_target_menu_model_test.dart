@@ -32,6 +32,7 @@ BattleCombatantData _combatant({
   int level = 30,
   int maxHp = 40,
   int? currentHp,
+  BattleMajorStatusState? majorStatus,
   required List<BattleMoveData> moves,
 }) {
   return BattleCombatantData(
@@ -40,6 +41,7 @@ BattleCombatantData _combatant({
     level: level,
     maxHp: maxHp,
     currentHp: currentHp,
+    majorStatus: majorStatus,
     stats: _stats(),
     moves: moves,
   );
@@ -320,6 +322,80 @@ void main() {
         model.entries.map((entry) => entry.isSelectable),
         const <bool>[false, false, false],
       );
+    });
+
+    test('status medicine selects only targets with a compatible status', () {
+      final model = buildBattleMedicineTargetMenuModel(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            majorStatus: const BattleMajorStatusState.psn(),
+            moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+          ),
+          playerReserve: <BattleCombatantData>[
+            _combatant(
+              speciesId: 'healthy_bench',
+              lineupIndex: 1,
+              moves: <BattleMoveData>[
+                _move(id: 'scratch', name: 'Scratch'),
+              ],
+            ),
+          ],
+          enemy: _combatant(
+            speciesId: 'wild_enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+          ),
+        ),
+        itemId: 'antidote',
+        categoryId: 'medicine',
+      );
+
+      expect(model.activeEntry.isSelectable, isTrue);
+      expect(model.reserveEntries.single.isSelectable, isFalse);
+      expect(
+        model.reserveEntries.single.disabledReason,
+        BattleMedicineTargetDisabledReason.noCompatibleStatus,
+      );
+    });
+
+    test('revive selects only fainted targets, including reserves', () {
+      final model = buildBattleMedicineTargetMenuModel(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            currentHp: 40,
+            moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+          ),
+          playerReserve: <BattleCombatantData>[
+            _combatant(
+              speciesId: 'fainted_bench',
+              lineupIndex: 1,
+              currentHp: 0,
+              moves: <BattleMoveData>[
+                _move(id: 'scratch', name: 'Scratch'),
+              ],
+            ),
+          ],
+          enemy: _combatant(
+            speciesId: 'wild_enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+          ),
+        ),
+        itemId: 'revive',
+        categoryId: 'medicine',
+      );
+
+      expect(model.activeEntry.isSelectable, isFalse);
+      expect(
+        model.activeEntry.disabledReason,
+        BattleMedicineTargetDisabledReason.notFainted,
+      );
+      expect(model.reserveEntries.single.isSelectable, isTrue);
+      expect(model.hasSelectableEntries, isTrue);
     });
   });
 }

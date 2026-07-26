@@ -26,6 +26,7 @@ sealed class BattleDecision {
   const factory BattleDecision.item({
     required String itemId,
     required PsdkBattleSlotRef target,
+    int? targetPartyIndex,
     required PsdkBattleItemActionEffect effect,
     bool highPriority,
   }) = BattleItemDecision;
@@ -69,12 +70,14 @@ final class BattleItemDecision extends BattleDecision {
   const BattleItemDecision({
     required this.itemId,
     required this.target,
+    this.targetPartyIndex,
     required this.effect,
     this.highPriority = false,
   });
 
   final String itemId;
   final PsdkBattleSlotRef target;
+  final int? targetPartyIndex;
   final PsdkBattleItemActionEffect effect;
   final bool highPriority;
 }
@@ -177,6 +180,7 @@ final class BattleEngineDecisionRequest {
     required this.actor,
     required List<BattleMoveDecisionOption> fightChoices,
     required List<BattleSwitchDecisionOption> switchChoices,
+    required this.partySize,
     required this.canCapture,
     required this.canFlee,
   })  : fightChoices =
@@ -191,6 +195,7 @@ final class BattleEngineDecisionRequest {
         actor: psdkPlayerSlot,
         fightChoices: const <BattleMoveDecisionOption>[],
         switchChoices: const <BattleSwitchDecisionOption>[],
+        partySize: context.state.partyForBank(psdkPlayerSlot.bank).length,
         canCapture: false,
         canFlee: false,
       );
@@ -206,6 +211,7 @@ final class BattleEngineDecisionRequest {
         actor: psdkPlayerSlot,
         fightChoices: const <BattleMoveDecisionOption>[],
         switchChoices: switchChoices,
+        partySize: context.state.partyForBank(psdkPlayerSlot.bank).length,
         canCapture: false,
         canFlee: false,
       );
@@ -241,6 +247,7 @@ final class BattleEngineDecisionRequest {
       actor: psdkPlayerSlot,
       fightChoices: fightChoices,
       switchChoices: switchChoices,
+      partySize: context.state.partyForBank(psdkPlayerSlot.bank).length,
       canCapture: canCapture,
       canFlee: canFlee,
     );
@@ -250,6 +257,7 @@ final class BattleEngineDecisionRequest {
   final PsdkBattleSlotRef actor;
   final List<BattleMoveDecisionOption> fightChoices;
   final List<BattleSwitchDecisionOption> switchChoices;
+  final int partySize;
   final bool canCapture;
   final bool canFlee;
 
@@ -273,7 +281,11 @@ final class BattleEngineDecisionRequest {
         fightChoices.any((choice) => choice.moveSlot == moveSlot),
       BattleSwitchDecision(:final partyIndex) =>
         switchChoices.any((choice) => choice.partyIndex == partyIndex),
-      BattleItemDecision() => false,
+      BattleItemDecision(:final target, :final targetPartyIndex) =>
+        kind == BattleEngineDecisionRequestKind.turnChoice &&
+            target.bank == actor.bank &&
+            (targetPartyIndex == null ||
+                (targetPartyIndex >= 0 && targetPartyIndex < partySize)),
       BattleMegaDecision() => false,
       BattleFleeDecision() => canFlee,
       BattleCaptureDecision(:final itemId) =>

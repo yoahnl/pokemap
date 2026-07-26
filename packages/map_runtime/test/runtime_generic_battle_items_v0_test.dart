@@ -1,0 +1,262 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_runtime/src/application/battle_start_request.dart';
+import 'package:map_runtime/src/application/runtime_battle_bag_hp_heal_item_apply.dart';
+import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
+import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
+
+void main() {
+  group('runtime generic battle items v0', () {
+    test('antidote clears a compatible status then consumes one item', () {
+      final psdkSession = _session(
+        player: _combatant(
+          id: 'player_0',
+          speciesId: 'sproutle',
+          currentHp: 60,
+          majorStatus: PsdkBattleMajorStatus.poison,
+        ),
+      );
+      final displaySession = psdkSession.createLegacyDisplaySession(
+        isTrainerBattle: true,
+        trainerId: 'trainer',
+      );
+
+      final result = tryApplyRuntimePsdkBattleItemUse(
+        psdkSession: psdkSession,
+        displaySession: displaySession,
+        gameState: _gameState(
+          itemId: 'antidote',
+          members: <PlayerPokemon>[
+            _partyMember(
+              speciesId: 'sproutle',
+              currentHp: 60,
+              statusId: 'poison',
+            ),
+          ],
+        ),
+        context: _context(const <int>[0]),
+        itemId: 'antidote',
+        targetLineupIndex: 0,
+        isTrainerBattle: true,
+        trainerId: 'trainer',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.effectKind.name, 'cureStatus');
+      expect(result.updatedDisplaySession.state.player.majorStatus, isNull);
+      expect(result.updatedGameState.party.members.single.statusId, isEmpty);
+      expect(result.updatedGameState.bag.entries, isEmpty);
+      expect(
+        psdkSession.state.psdkState.battlerAt(psdkPlayerSlot).majorStatus,
+        isNull,
+      );
+    });
+
+    test('revive restores a fainted reserve and writes it back', () {
+      final psdkSession = _session(
+        player: _combatant(
+          id: 'player_0',
+          speciesId: 'sproutle',
+          currentHp: 60,
+        ),
+        playerReserves: <PsdkBattleCombatantSetup>[
+          _combatant(
+            id: 'player_1',
+            speciesId: 'benchmon',
+            currentHp: 0,
+          ),
+        ],
+      );
+      final displaySession = psdkSession.createLegacyDisplaySession(
+        isTrainerBattle: true,
+        trainerId: 'trainer',
+      );
+
+      final result = tryApplyRuntimePsdkBattleItemUse(
+        psdkSession: psdkSession,
+        displaySession: displaySession,
+        gameState: _gameState(
+          itemId: 'revive',
+          members: <PlayerPokemon>[
+            _partyMember(speciesId: 'sproutle', currentHp: 60),
+            _partyMember(speciesId: 'benchmon', currentHp: 0),
+          ],
+        ),
+        context: _context(const <int>[0, 1]),
+        itemId: 'revive',
+        targetLineupIndex: 1,
+        isTrainerBattle: true,
+        trainerId: 'trainer',
+      );
+
+      expect(result, isNotNull);
+      expect(result!.effectKind.name, 'revive');
+      expect(result.appliedAmount, 40);
+      expect(
+        result.updatedDisplaySession.state.playerReserve.single.currentHp,
+        40,
+      );
+      expect(result.updatedGameState.party.members[1].currentHp, 40);
+      expect(result.updatedGameState.bag.entries, isEmpty);
+      expect(
+        psdkSession.state.psdkState
+            .partyForBank(psdkPlayerSlot.bank)[1]
+            .currentHp,
+        40,
+      );
+    });
+
+    test('a no-effect item leaves engine, party and bag unchanged', () {
+      final psdkSession = _session(
+        player: _combatant(
+          id: 'player_0',
+          speciesId: 'sproutle',
+          currentHp: 80,
+        ),
+      );
+      final displaySession = psdkSession.createLegacyDisplaySession(
+        isTrainerBattle: true,
+        trainerId: 'trainer',
+      );
+      final gameState = _gameState(
+        itemId: 'antidote',
+        members: <PlayerPokemon>[
+          _partyMember(speciesId: 'sproutle', currentHp: 80),
+        ],
+      );
+
+      final result = tryApplyRuntimePsdkBattleItemUse(
+        psdkSession: psdkSession,
+        displaySession: displaySession,
+        gameState: gameState,
+        context: _context(const <int>[0]),
+        itemId: 'antidote',
+        targetLineupIndex: 0,
+        isTrainerBattle: true,
+        trainerId: 'trainer',
+      );
+
+      expect(result, isNull);
+      expect(psdkSession.state.turnNumber, 0);
+      expect(gameState.party.members.single.currentHp, 80);
+      expect(gameState.bag.entries.single.quantity, 1);
+    });
+  });
+}
+
+RuntimePsdkBattleSessionAdapter _session({
+  required PsdkBattleCombatantSetup player,
+  List<PsdkBattleCombatantSetup> playerReserves =
+      const <PsdkBattleCombatantSetup>[],
+}) {
+  return RuntimePsdkBattleSessionAdapter.fromSetup(
+    PsdkBattleSetup.singles(
+      player: player,
+      playerReserves: playerReserves,
+      opponent: _combatant(
+        id: 'opponent_0',
+        speciesId: 'sparkitten',
+        currentHp: 80,
+      ),
+      rngSeeds: const PsdkBattleRngSeeds(
+        moveDamage: 17,
+        moveCritical: 23,
+        moveAccuracy: 31,
+        generic: 47,
+      ),
+    ),
+  );
+}
+
+PsdkBattleCombatantSetup _combatant({
+  required String id,
+  required String speciesId,
+  required int currentHp,
+  PsdkBattleMajorStatus? majorStatus,
+}) {
+  return PsdkBattleCombatantSetup(
+    id: id,
+    speciesId: speciesId,
+    displayName: speciesId,
+    level: 20,
+    maxHp: 80,
+    currentHp: currentHp,
+    majorStatus: majorStatus,
+    types: const PsdkBattleTypes(primary: 'normal'),
+    stats: const PsdkBattleStats(
+      attack: 50,
+      defense: 50,
+      specialAttack: 50,
+      specialDefense: 50,
+      speed: 50,
+    ),
+    moves: <PsdkBattleMoveData>[
+      PsdkBattleMoveData(
+        id: '$id-wait',
+        dbSymbol: '$id-wait',
+        name: 'Wait',
+        type: 'normal',
+        category: PsdkBattleMoveCategory.status,
+        power: 0,
+        accuracy: 100,
+        pp: 35,
+        priority: 0,
+        battleEngineMethod: 's_basic',
+        target: PsdkBattleMoveTarget.user,
+      ),
+    ],
+  );
+}
+
+GameState _gameState({
+  required String itemId,
+  required List<PlayerPokemon> members,
+}) {
+  return GameState(
+    saveId: 'generic-battle-items-v0',
+    bag: Bag(
+      entries: <BagEntry>[
+        BagEntry(itemId: itemId, categoryId: 'medicine', quantity: 1),
+      ],
+    ),
+    party: PlayerParty(members: members),
+  );
+}
+
+PlayerPokemon _partyMember({
+  required String speciesId,
+  required int currentHp,
+  String statusId = '',
+}) {
+  return PlayerPokemon(
+    speciesId: speciesId,
+    natureId: 'hardy',
+    abilityId: 'pressure',
+    level: 20,
+    knownMoveIds: const <String>['wait'],
+    currentHp: currentHp,
+    statusId: statusId,
+  );
+}
+
+RuntimeActiveBattleContext _context(List<int> lineupPartyIndices) {
+  return RuntimeActiveBattleContext.withLineupMapping(
+    request: const TrainerBattleStartRequest(
+      requestId: 'trainer-request',
+      createdAtEpochMs: 1,
+      returnContext: OverworldReturnContext(
+        mapId: 'field_map',
+        playerPos: GridPos(x: 1, y: 1),
+        playerFacing: Direction.north,
+      ),
+      trainerId: 'trainer',
+      npcEntityId: 'npc_trainer',
+      mapId: 'field_map',
+      playerPos: GridPos(x: 1, y: 1),
+    ),
+    playerPartyIndex: lineupPartyIndices.first,
+    playerPartySlotIndicesByLineupIndex: lineupPartyIndices,
+  );
+}

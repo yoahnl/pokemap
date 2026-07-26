@@ -988,7 +988,7 @@ void main() {
       }
     });
 
-    test('PSDK HP medicines stay limited to the active battler', () {
+    test('PSDK HP medicines can target a reserve battler atomically', () {
       final psdkSession = _psdkSession(
         currentHp: 30,
         maxHp: 100,
@@ -1031,10 +1031,23 @@ void main() {
         trainerId: 'trainer',
       );
 
-      expect(result, isNull);
-      expect(gameState.bag.entries.single.quantity, equals(1));
+      expect(result, isNotNull);
+      expect(result!.targetLineupIndex, 1);
+      final displayItemAction = result.updatedDisplaySession.state.currentTurn!
+          .playerAction as BattleActionBagHpHealItemUse;
+      expect(displayItemAction.targetLineupIndex, 1);
+      expect(result.updatedDisplaySession.state.playerReserve.single.currentHp,
+          equals(60));
+      expect(result.updatedGameState.party.members[1].currentHp, equals(60));
+      expect(result.updatedGameState.bag.entries, isEmpty);
       expect(psdkSession.state.psdkState.battlerAt(psdkPlayerSlot).currentHp,
           equals(30));
+      expect(
+        psdkSession.state.psdkState
+            .partyForBank(psdkPlayerSlot.bank)[1]
+            .currentHp,
+        equals(60),
+      );
     });
   });
 }

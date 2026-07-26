@@ -1,5 +1,6 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 enum BattleBagMenuMode {
   empty,
@@ -267,20 +268,14 @@ BattleBagItemKind _classifyBagItem(BagEntry bagEntry) {
 }
 
 bool _isSupportedMedicine(BagEntry bagEntry) {
-  // Lot 9-h factorise ici le strict minimum utile :
-  // - `potion`
-  // - `super-potion`
-  // - `hyper-potion`
-  // - `max-potion`
-  //
-  // On ne bascule pas vers un registre d'items ni vers un catalogue runtime.
   if (bagEntry.categoryId != 'medicine') {
     return false;
   }
-  return bagEntry.itemId == 'potion' ||
-      bagEntry.itemId == 'super-potion' ||
-      bagEntry.itemId == 'hyper-potion' ||
-      bagEntry.itemId == 'max-potion';
+  final effect =
+      const PlayerItemEffectRegistry.mvp().effectFor(bagEntry.itemId);
+  return effect?.kind == PlayerItemEffectKind.healHp ||
+      effect?.kind == PlayerItemEffectKind.cureStatus ||
+      effect?.kind == PlayerItemEffectKind.revive;
 }
 
 BattleBagMenuDisabledReason _captureDisabledReason({

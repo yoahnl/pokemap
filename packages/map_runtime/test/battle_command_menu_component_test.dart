@@ -661,7 +661,7 @@ void main() {
     });
 
     test(
-        'battle bag submenu renders selectable potion and disabled unsupported entries',
+        'battle bag submenu renders supported medicines and disables unknown items',
         () async {
       final overlay = BattleOverlayComponent(
         session: _session(
@@ -715,11 +715,11 @@ void main() {
       );
       expect(
         panel.currentBagSelectableStates,
-        const <bool>[false, true, false],
+        const <bool>[true, true, false],
       );
       expect(
         panel.currentBagStatusLabels,
-        const <String>['Unsupported medicine', 'OK', 'Unsupported item'],
+        const <String>['OK', 'OK', 'Unsupported item'],
       );
     });
 

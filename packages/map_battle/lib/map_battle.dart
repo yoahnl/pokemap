@@ -111,6 +111,7 @@ export 'src/domain/action/battle_action.dart'
         PsdkBattleMegaAction,
         PsdkBattleMegaEvolution,
         PsdkBattleNoAction,
+        PsdkBattleReviveItemEffect,
         PsdkBattleShiftAction,
         PsdkBattleStatusCureItemEffect,
         PsdkBattleSwitchAction;

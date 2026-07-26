@@ -640,7 +640,7 @@ void main() {
       );
     });
 
-    test('unsupported medicine stays visible but disabled', () {
+    test('canonical status medicine opens a target action', () {
       final session = _session(
         player: _combatant(
           speciesId: 'sproutle',
@@ -669,12 +669,13 @@ void main() {
       final entry = model.entries.single;
       expect(entry.kind, equals(BattleBagItemKind.medicine));
       expect(entry.quantity, equals(2));
-      expect(entry.isSelectable, isFalse);
-      expect(
-        entry.disabledReason,
-        equals(BattleBagMenuDisabledReason.unsupportedMedicine),
-      );
-      expect(entry.action, isNull);
+      expect(entry.isSelectable, isTrue);
+      expect(entry.disabledReason, isNull);
+      expect(entry.action, isA<BattleBagMenuActionMedicineTarget>());
+      final action = entry.action! as BattleBagMenuActionMedicineTarget;
+      expect(action.itemId, 'antidote');
+      expect(action.categoryId, 'medicine');
+      expect(action.quantity, 2);
     });
 
     test('potion is non-selectable when the current request disallows bag', () {

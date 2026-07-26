@@ -1645,6 +1645,9 @@ String _medicineTargetStatusLabel(BattleMedicineTargetEntry entry) {
     BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest =>
       'Indisponible',
     BattleMedicineTargetDisabledReason.fullHp => 'Full HP',
+    BattleMedicineTargetDisabledReason.noCompatibleStatus =>
+      'Statut incompatible',
+    BattleMedicineTargetDisabledReason.notFainted => 'Pas K.O.',
     BattleMedicineTargetDisabledReason.fainted || null => 'K.O.',
   };
 }

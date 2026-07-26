@@ -34,6 +34,7 @@ final class PsdkBattleActionDecisionMapper {
       BattleItemDecision(
         :final itemId,
         :final target,
+        :final targetPartyIndex,
         :final effect,
         :final highPriority,
       ) =>
@@ -41,6 +42,7 @@ final class PsdkBattleActionDecisionMapper {
           user: user,
           itemId: itemId,
           target: target,
+          targetPartyIndex: targetPartyIndex,
           effect: effect,
           highPriority: highPriority,
         ),

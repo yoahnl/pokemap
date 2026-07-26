@@ -475,6 +475,7 @@ class PsdkBattleItemEvent extends PsdkBattleEvent {
     this.turn,
     required this.user,
     this.target,
+    this.partyIndex,
     required this.itemId,
   })  : action = 'consumed',
         super(kind: 'item_consumed');
@@ -482,6 +483,7 @@ class PsdkBattleItemEvent extends PsdkBattleEvent {
   final int? turn;
   final PsdkBattleSlotRef user;
   final PsdkBattleSlotRef? target;
+  final int? partyIndex;
   final String itemId;
   final String action;
 
@@ -491,6 +493,7 @@ class PsdkBattleItemEvent extends PsdkBattleEvent {
         if (turn != null) 'turn': turn,
         'user': user.toJson(),
         if (target != null) 'target': target!.toJson(),
+        if (partyIndex != null) 'partyIndex': partyIndex,
         'itemId': itemId,
         'action': action,
       };

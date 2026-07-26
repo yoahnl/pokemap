@@ -2810,8 +2810,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         }
         final characterId =
             resolveNpcCharacterId(entity, loaded.bundle.manifest);
-        final character =
-            characterId == null ? null : charById[characterId];
+        final character = characterId == null ? null : charById[characterId];
         if (character == null) continue;
         final actor = OverworldActorComponent(
           character: character,
@@ -7446,7 +7445,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           },
           preferTouchListDragScroll: false,
           useFlutterCommandOverlay: _preferBattleFlutterCommandOverlay,
-          allowMedicineReserveTargets: _psdkBattleSession == null,
+          allowMedicineReserveTargets: true,
         ),
       );
       camera.viewport.add(overlay);
@@ -7738,7 +7737,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         final request = activeBattleContext.request;
         final isTrainerBattle = request is TrainerBattleStartRequest;
         final trainerId = isTrainerBattle ? request.trainerId : null;
-        final result = tryApplyRuntimePsdkBattleBagHpHealItemUse(
+        final result = tryApplyRuntimePsdkBattleItemUse(
           psdkSession: psdkSession,
           displaySession: battleSession,
           gameState: _battleRuntimeGameState,
@@ -8950,8 +8949,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   void _processPendingSceneNpcMoves() {
     if (_pendingSceneNpcMovesByEntity.isEmpty) return;
-    final entityIds =
-        _pendingSceneNpcMovesByEntity.keys.toList(growable: false)..sort();
+    final entityIds = _pendingSceneNpcMovesByEntity.keys.toList(growable: false)
+      ..sort();
     for (final entityId in entityIds) {
       final completer = _pendingSceneNpcMovesByEntity[entityId];
       if (completer == null) continue;

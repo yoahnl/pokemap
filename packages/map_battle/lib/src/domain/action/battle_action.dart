@@ -136,11 +136,19 @@ final class PsdkBattleStatusCureItemEffect extends PsdkBattleItemActionEffect {
   }
 }
 
+final class PsdkBattleReviveItemEffect extends PsdkBattleItemActionEffect {
+  const PsdkBattleReviveItemEffect({required this.percent})
+      : assert(percent > 0 && percent <= 100);
+
+  final int percent;
+}
+
 final class PsdkBattleItemAction extends PsdkBattleAction {
   const PsdkBattleItemAction({
     required PsdkBattleSlotRef user,
     required this.itemId,
     required this.target,
+    this.targetPartyIndex,
     required this.effect,
     this.highPriority = false,
   }) : super(
@@ -152,6 +160,7 @@ final class PsdkBattleItemAction extends PsdkBattleAction {
 
   final String itemId;
   final PsdkBattleSlotRef target;
+  final int? targetPartyIndex;
   final PsdkBattleItemActionEffect effect;
   final bool highPriority;
 }

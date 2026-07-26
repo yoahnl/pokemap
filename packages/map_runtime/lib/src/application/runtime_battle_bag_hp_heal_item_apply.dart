@@ -1,5 +1,6 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import 'runtime_battle_outcome_apply.dart';
 import 'runtime_psdk_battle_session_adapter.dart';
@@ -43,6 +44,26 @@ class RuntimePsdkBattleBagHpHealItemApplyResult {
   final String targetSpeciesId;
   final int targetLineupIndex;
   final int healedAmount;
+}
+
+class RuntimePsdkBattleItemApplyResult {
+  const RuntimePsdkBattleItemApplyResult({
+    required this.updatedDisplaySession,
+    required this.updatedGameState,
+    required this.itemId,
+    required this.effectKind,
+    required this.targetSpeciesId,
+    required this.targetLineupIndex,
+    required this.appliedAmount,
+  });
+
+  final BattleSession updatedDisplaySession;
+  final GameState updatedGameState;
+  final String itemId;
+  final PlayerItemEffectKind effectKind;
+  final String targetSpeciesId;
+  final int targetLineupIndex;
+  final int appliedAmount;
 }
 
 /// Runtime owner du mini-slice BAG HP-heal battle.
@@ -141,66 +162,130 @@ RuntimePsdkBattleBagHpHealItemApplyResult?
   String? trainerId,
   bool allowCapture = false,
 }) {
-  if (psdkSession.decisionRequest.kind !=
-      BattleEngineDecisionRequestKind.turnChoice) {
-    return null;
-  }
-
   final itemSpec = _runtimeItemSpecForItemId(itemId);
   if (itemSpec == null) {
     return null;
   }
-
-  final targetCombatant = displaySession.state.player;
-  if (targetCombatant.lineupIndex != targetLineupIndex ||
-      targetCombatant.isFainted ||
-      targetCombatant.currentHp >= targetCombatant.maxHp) {
-    return null;
-  }
-
-  if (!_hasBagHpHealItemAvailable(
-    bag: gameState.bag,
-    itemSpec: itemSpec,
-  )) {
-    return null;
-  }
-
-  final healedAmount = switch (itemSpec.effect) {
-    BattleBagFlatHpHealEffect(:final amount) => amount.clamp(
-        0,
-        targetCombatant.maxHp - targetCombatant.currentHp,
-      ),
-    BattleBagRestoreToFullHpHealEffect() =>
-      targetCombatant.maxHp - targetCombatant.currentHp,
-  };
-  if (healedAmount <= 0) {
-    return null;
-  }
-
-  psdkSession.submitHpHealItem(
-    itemId: itemSpec.itemId,
-    effect: _toPsdkHpHealItemEffect(itemSpec.effect),
+  final generic = tryApplyRuntimePsdkBattleItemUse(
+    psdkSession: psdkSession,
+    displaySession: displaySession,
+    gameState: gameState,
+    context: context,
+    itemId: itemId,
+    targetLineupIndex: targetLineupIndex,
+    isTrainerBattle: isTrainerBattle,
+    trainerId: trainerId,
+    allowCapture: allowCapture,
   );
+  if (generic == null || generic.effectKind != PlayerItemEffectKind.healHp) {
+    return null;
+  }
+
+  return RuntimePsdkBattleBagHpHealItemApplyResult(
+    updatedDisplaySession: generic.updatedDisplaySession,
+    updatedGameState: generic.updatedGameState,
+    itemKind: itemSpec.kind,
+    targetSpeciesId: generic.targetSpeciesId,
+    targetLineupIndex: generic.targetLineupIndex,
+    healedAmount: generic.appliedAmount,
+  );
+}
+
+RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
+  required RuntimePsdkBattleSessionAdapter psdkSession,
+  required BattleSession displaySession,
+  required GameState gameState,
+  required RuntimeActiveBattleContext context,
+  required String itemId,
+  required int targetLineupIndex,
+  required bool isTrainerBattle,
+  String? trainerId,
+  bool allowCapture = false,
+  PlayerItemEffectRegistry registry = const PlayerItemEffectRegistry.mvp(),
+}) {
+  if (psdkSession.decisionRequest.kind !=
+      BattleEngineDecisionRequestKind.turnChoice) {
+    return null;
+  }
+  final effect = registry.effectFor(itemId);
+  if (effect == null ||
+      (effect.kind != PlayerItemEffectKind.healHp &&
+          effect.kind != PlayerItemEffectKind.cureStatus &&
+          effect.kind != PlayerItemEffectKind.revive)) {
+    return null;
+  }
+  if (!_hasMedicineAvailable(bag: gameState.bag, itemId: itemId)) {
+    return null;
+  }
+
+  final party = psdkSession.state.psdkState.partyForBank(psdkPlayerSlot.bank);
+  final targetPartyIndex = party.indexWhere(
+    (candidate) =>
+        _runtimeLineupIndexFromPsdkId(candidate.id) == targetLineupIndex,
+  );
+  if (targetPartyIndex < 0) {
+    return null;
+  }
+  final targetBefore = party[targetPartyIndex];
+  final battleEffect = _battleItemEffectFor(
+    effect: effect,
+    target: targetBefore,
+  );
+  if (battleEffect == null) {
+    return null;
+  }
+
+  final turn = psdkSession.submitBattleItem(
+    itemId: itemId,
+    targetPartyIndex: targetPartyIndex,
+    effect: battleEffect,
+  );
+  final receipts = turn.timeline.events
+      .whereType<BattleItemTimelineEvent>()
+      .where(
+        (event) =>
+            event.kind == 'item_consumed' &&
+            event.itemId == itemId &&
+            event.partyIndex == targetPartyIndex,
+      )
+      .toList(growable: false);
+  if (receipts.length != 1) {
+    throw StateError(
+      'Accepted battle item must emit one matching consumed receipt.',
+    );
+  }
+
+  final targetAfter = psdkSession.state.psdkState
+      .partyForBank(psdkPlayerSlot.bank)[targetPartyIndex];
   final updatedDisplaySession = psdkSession.createLegacyDisplaySession(
     isTrainerBattle: isTrainerBattle,
     trainerId: trainerId,
     allowCapture: allowCapture,
     allowFlee: displaySession.setup.allowFlee,
   );
-  final updatedGameState = _applyCommittedBagHpHealItemTurnToRuntimeState(
+  final withWriteBack = writePlayerBattleLineupBackToPartySlots(
     gameState: gameState,
     context: context,
-    updatedSession: updatedDisplaySession,
-    itemSpec: itemSpec,
+    battleState: updatedDisplaySession.state,
+  );
+  final updatedGameState = withWriteBack.copyWith(
+    bag: _consumeOneMedicineOrThrow(
+      bag: withWriteBack.bag,
+      itemId: itemId,
+    ),
   );
 
-  return RuntimePsdkBattleBagHpHealItemApplyResult(
+  return RuntimePsdkBattleItemApplyResult(
     updatedDisplaySession: updatedDisplaySession,
     updatedGameState: updatedGameState,
-    itemKind: itemSpec.kind,
-    targetSpeciesId: targetCombatant.speciesId,
-    targetLineupIndex: targetCombatant.lineupIndex,
-    healedAmount: healedAmount,
+    itemId: itemId,
+    effectKind: effect.kind,
+    targetSpeciesId: targetAfter.speciesId,
+    targetLineupIndex: targetLineupIndex,
+    appliedAmount: (targetAfter.currentHp - targetBefore.currentHp).clamp(
+      0,
+      targetAfter.maxHp,
+    ),
   );
 }
 
@@ -367,6 +452,110 @@ Bag _consumeOneBagHpHealItemOrThrow({
   return Bag(entries: nextEntries).normalized();
 }
 
+bool _hasMedicineAvailable({
+  required Bag bag,
+  required String itemId,
+}) {
+  return bag.normalized().entries.any(
+        (entry) =>
+            entry.itemId == itemId &&
+            entry.categoryId == _runtimeBattleMedicineCategoryId &&
+            entry.quantity > 0,
+      );
+}
+
+Bag _consumeOneMedicineOrThrow({
+  required Bag bag,
+  required String itemId,
+}) {
+  final nextEntries = <BagEntry>[];
+  var consumed = false;
+  for (final entry in bag.normalized().entries) {
+    if (!consumed &&
+        entry.itemId == itemId &&
+        entry.categoryId == _runtimeBattleMedicineCategoryId) {
+      consumed = true;
+      if (entry.quantity > 1) {
+        nextEntries.add(entry.copyWith(quantity: entry.quantity - 1));
+      }
+    } else {
+      nextEntries.add(entry);
+    }
+  }
+  if (!consumed) {
+    throw StateError(
+      'Accepted battle item $itemId is absent from the medicine bag.',
+    );
+  }
+  return Bag(entries: nextEntries).normalized();
+}
+
+PsdkBattleItemActionEffect? _battleItemEffectFor({
+  required PlayerItemEffectDefinition effect,
+  required PsdkBattleCombatant target,
+}) {
+  return switch (effect.kind) {
+    PlayerItemEffectKind.healHp =>
+      target.isFainted || target.currentHp >= target.maxHp
+          ? null
+          : effect.amount >= 0x7fffffff
+              ? const PsdkBattleHpHealItemEffect.full()
+              : PsdkBattleHpHealItemEffect.flat(effect.amount),
+    PlayerItemEffectKind.cureStatus => _statusCureEffectFor(
+        effect: effect,
+        target: target,
+      ),
+    PlayerItemEffectKind.revive => target.isFainted
+        ? PsdkBattleReviveItemEffect(percent: effect.revivePercent)
+        : null,
+    PlayerItemEffectKind.restorePp ||
+    PlayerItemEffectKind.keyItem ||
+    PlayerItemEffectKind.ballMetadata =>
+      null,
+  };
+}
+
+PsdkBattleStatusCureItemEffect? _statusCureEffectFor({
+  required PlayerItemEffectDefinition effect,
+  required PsdkBattleCombatant target,
+}) {
+  final status = target.majorStatus;
+  if (status == null || target.isFainted) {
+    return null;
+  }
+  if (effect.curesAnyStatus) {
+    return const PsdkBattleStatusCureItemEffect.any();
+  }
+  final statuses = effect.statusIds
+      .map(_psdkStatusForGameplayItemStatus)
+      .whereType<PsdkBattleMajorStatus>()
+      .toSet();
+  if (!statuses.contains(status)) {
+    return null;
+  }
+  return PsdkBattleStatusCureItemEffect.only(statuses);
+}
+
+PsdkBattleMajorStatus? _psdkStatusForGameplayItemStatus(String statusId) {
+  return switch (statusId.trim()) {
+    'paralysis' || 'paralyzed' => PsdkBattleMajorStatus.paralysis,
+    'burn' => PsdkBattleMajorStatus.burn,
+    'poison' => PsdkBattleMajorStatus.poison,
+    'badly-poisoned' => PsdkBattleMajorStatus.toxic,
+    'sleep' => PsdkBattleMajorStatus.sleep,
+    'freeze' || 'frozen' => PsdkBattleMajorStatus.freeze,
+    _ => null,
+  };
+}
+
+int _runtimeLineupIndexFromPsdkId(String id) {
+  final separator = id.lastIndexOf('_');
+  if (separator < 0 || separator == id.length - 1) {
+    return 0;
+  }
+  return int.tryParse(id.substring(separator + 1)) ?? 0;
+}
+
 _RuntimeBattleBagHpHealItemSpec _runtimeItemSpec(
   BattleBagHpHealItemKind kind,
 ) {
@@ -407,17 +596,6 @@ _RuntimeBattleBagHpHealItemSpec? _runtimeItemSpecForItemId(String itemId) {
     'hyper-potion' => _runtimeItemSpec(BattleBagHpHealItemKind.hyperPotion),
     'max-potion' => _runtimeItemSpec(BattleBagHpHealItemKind.maxPotion),
     _ => null,
-  };
-}
-
-PsdkBattleHpHealItemEffect _toPsdkHpHealItemEffect(
-  BattleBagHpHealEffect effect,
-) {
-  return switch (effect) {
-    BattleBagFlatHpHealEffect(:final amount) =>
-      PsdkBattleHpHealItemEffect.flat(amount),
-    BattleBagRestoreToFullHpHealEffect() =>
-      const PsdkBattleHpHealItemEffect.full(),
   };
 }
 

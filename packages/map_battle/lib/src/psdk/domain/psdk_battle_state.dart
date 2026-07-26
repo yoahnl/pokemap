@@ -133,6 +133,35 @@ class PsdkBattleState {
     return replaceBattler(slot, update(battlerAt(slot)));
   }
 
+  /// Replaces one party member and keeps the active slot synchronized when
+  /// that member is currently on the field.
+  PsdkBattleState replacePartyBattler({
+    required int bank,
+    required int partyIndex,
+    required PsdkBattleCombatant battler,
+  }) {
+    final party = partyForBank(bank);
+    if (partyIndex < 0 || partyIndex >= party.length) {
+      throw RangeError.range(partyIndex, 0, party.length - 1, 'partyIndex');
+    }
+    final replacedId = party[partyIndex].id;
+    final nextParty = List<PsdkBattleCombatant>.of(party, growable: false);
+    nextParty[partyIndex] = battler;
+    final nextCombatants = <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      ..._combatants,
+      for (final entry in _combatants.entries)
+        if (entry.key.bank == bank && entry.value.id == replacedId)
+          entry.key: battler,
+    };
+    return copyWith(
+      combatants: nextCombatants,
+      parties: <int, List<PsdkBattleCombatant>>{
+        ..._parties,
+        bank: nextParty,
+      },
+    );
+  }
+
   PsdkBattleState copyWith({
     Map<PsdkBattleSlotRef, PsdkBattleCombatant>? combatants,
     Map<int, List<PsdkBattleCombatant>>? parties,

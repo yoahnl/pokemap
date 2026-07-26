@@ -218,6 +218,12 @@ final class BattleTurnRunner {
         }
         if (action is PsdkBattleItemAction) {
           final item = _resolveItemAction(action);
+          if (action.user == psdkPlayerSlot && !item.applied) {
+            throw BattleDecisionRejectedError(
+              requestKind: BattleEngineDecisionRequestKind.turnChoice,
+              decision: playerDecision,
+            );
+          }
           _context.applyStateAndRng(
             nextState: item.state,
             nextRng: item.rng,

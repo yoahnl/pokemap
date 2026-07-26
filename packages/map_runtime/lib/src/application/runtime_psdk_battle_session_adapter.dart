@@ -95,10 +95,23 @@ final class RuntimePsdkBattleSessionAdapter {
     required String itemId,
     required PsdkBattleItemActionEffect effect,
   }) {
+    return submitBattleItem(
+      itemId: itemId,
+      targetPartyIndex: null,
+      effect: effect,
+    );
+  }
+
+  BattleEngineTurnResult submitBattleItem({
+    required String itemId,
+    required int? targetPartyIndex,
+    required PsdkBattleItemActionEffect effect,
+  }) {
     return submitDecision(
       BattleDecision.item(
         itemId: itemId,
         target: psdkPlayerSlot,
+        targetPartyIndex: targetPartyIndex,
         effect: effect,
         highPriority: true,
       ),
@@ -154,6 +167,8 @@ final class RuntimePsdkBattleSessionAdapter {
         final itemEvent = _toLegacyBagHpHealItemEvent(
           itemKind: itemKind,
           event: event,
+          targetPartyIndex:
+              decision is BattleItemDecision ? decision.targetPartyIndex : null,
         );
         bagHpHealItemEvents.add(itemEvent);
         timeline.add(BattleTurnBagHpHealItemEvent(itemEvent));
@@ -222,12 +237,17 @@ final class RuntimePsdkBattleSessionAdapter {
   BattleBagHpHealItemEvent _toLegacyBagHpHealItemEvent({
     required BattleBagHpHealItemKind itemKind,
     required BattleHealTimelineEvent event,
+    required int? targetPartyIndex,
   }) {
     final side = _legacySideForPosition(event.target);
-    final target = state.psdkState.battlerAt(
-      PsdkBattleSlotRef(
-          bank: event.target.bank, position: event.target.position),
-    );
+    final target = targetPartyIndex == null
+        ? state.psdkState.battlerAt(
+            PsdkBattleSlotRef(
+              bank: event.target.bank,
+              position: event.target.position,
+            ),
+          )
+        : state.psdkState.partyForBank(event.target.bank)[targetPartyIndex];
     return BattleBagHpHealItemEvent(
       itemKind: itemKind,
       side: side,
@@ -249,10 +269,16 @@ final class RuntimePsdkBattleSessionAdapter {
           ),
           moveIndex: moveSlot,
         ),
-      BattleItemDecision(:final itemId, :final target, :final effect) =>
+      BattleItemDecision(
+        :final itemId,
+        :final target,
+        :final targetPartyIndex,
+        :final effect,
+      ) =>
         _toLegacyBattleItemAction(
           itemId: itemId,
           target: target,
+          targetPartyIndex: targetPartyIndex,
           effect: effect,
         ),
       BattleFleeDecision() => const BattleActionRun(),
@@ -283,24 +309,29 @@ final class RuntimePsdkBattleSessionAdapter {
     return events.single;
   }
 
-  BattleActionBagHpHealItemUse _toLegacyBattleItemAction({
+  BattleAction _toLegacyBattleItemAction({
     required String itemId,
     required PsdkBattleSlotRef target,
+    required int? targetPartyIndex,
     required PsdkBattleItemActionEffect effect,
   }) {
-    final itemKind = _legacyHpHealItemKind(itemId);
-    if (itemKind == null) {
-      throw UnsupportedError(
-        'PSDK battle runtime display only supports HP-heal item narration for now (itemId=$itemId).',
-      );
-    }
-    return BattleActionBagHpHealItemUse(
-      itemKind: itemKind,
-      targetLineupIndex: _lineupIndexFromPsdkId(
-        state.psdkState.battlerAt(target).id,
-      ),
-      effect: _toLegacyHpHealEffect(effect),
-    );
+    return switch (effect) {
+      final PsdkBattleHpHealItemEffect hpEffect => BattleActionBagHpHealItemUse(
+          itemKind:
+              _legacyHpHealItemKind(itemId) ?? BattleBagHpHealItemKind.potion,
+          targetLineupIndex: _lineupIndexFromPsdkId(
+            targetPartyIndex == null
+                ? state.psdkState.battlerAt(target).id
+                : state.psdkState
+                    .partyForBank(target.bank)[targetPartyIndex]
+                    .id,
+          ),
+          effect: _toLegacyHpHealEffect(hpEffect),
+        ),
+      PsdkBattleStatusCureItemEffect() ||
+      PsdkBattleReviveItemEffect() =>
+        const BattleActionNone(),
+    };
   }
 
   BattleBagHpHealEffect _toLegacyHpHealEffect(
@@ -311,7 +342,9 @@ final class RuntimePsdkBattleSessionAdapter {
         restoreToFull
             ? const BattleBagRestoreToFullHpHealEffect()
             : BattleBagFlatHpHealEffect(amount!),
-      PsdkBattleStatusCureItemEffect() => throw UnsupportedError(
+      PsdkBattleStatusCureItemEffect() ||
+      PsdkBattleReviveItemEffect() =>
+        throw UnsupportedError(
           'PSDK battle runtime display only supports HP-heal item narration for now.',
         ),
     };

@@ -183,6 +183,7 @@ sealed class BattleTimelineEvent {
         turn: event.turn,
         user: _fromPsdkSlot(event.user),
         target: event.target == null ? null : _fromPsdkSlot(event.target!),
+        partyIndex: event.partyIndex,
         itemId: event.itemId,
       );
     }
@@ -978,6 +979,7 @@ final class BattleItemTimelineEvent extends BattleTimelineEvent {
     required this.itemId,
     required this.user,
     this.target,
+    this.partyIndex,
   }) : super(kind: 'item_used', turn: turn);
 
   const BattleItemTimelineEvent.consumed({
@@ -985,11 +987,13 @@ final class BattleItemTimelineEvent extends BattleTimelineEvent {
     required this.itemId,
     required this.user,
     this.target,
+    this.partyIndex,
   }) : super(kind: 'item_consumed', turn: turn);
 
   final String itemId;
   final BattlePositionRef user;
   final BattlePositionRef? target;
+  final int? partyIndex;
 
   @override
   Map<String, Object?> toJson() {
@@ -998,6 +1002,7 @@ final class BattleItemTimelineEvent extends BattleTimelineEvent {
       'itemId': itemId,
       'user': _slotJson(user),
       if (target != null) 'target': _slotJson(target!),
+      if (partyIndex != null) 'partyIndex': partyIndex,
     };
   }
 
@@ -1009,6 +1014,8 @@ final class BattleItemTimelineEvent extends BattleTimelineEvent {
     return PsdkBattleItemEvent.consumed(
       turn: turn,
       user: _toPsdkSlot(user),
+      target: target == null ? null : _toPsdkSlot(target!),
+      partyIndex: partyIndex,
       itemId: itemId,
     );
   }

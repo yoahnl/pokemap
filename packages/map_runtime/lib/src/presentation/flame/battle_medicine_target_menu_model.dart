@@ -1,8 +1,11 @@
 import 'package:map_battle/map_battle.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 enum BattleMedicineTargetDisabledReason {
   fainted,
   fullHp,
+  noCompatibleStatus,
+  notFainted,
   notAllowedByCurrentRequest,
 }
 
@@ -60,9 +63,11 @@ BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
   required String itemId,
   required String categoryId,
   bool Function(BattleCombatant combatant)? isTargetAllowed,
+  PlayerItemEffectRegistry registry = const PlayerItemEffectRegistry.mvp(),
 }) {
   final allowsTargeting = session.decisionRequest is BattleTurnChoiceRequest;
   final allowsCombatant = isTargetAllowed ?? (_) => true;
+  final effect = registry.effectFor(itemId);
 
   BattleMedicineTargetEntry buildEntry({
     required int visualIndex,
@@ -71,17 +76,18 @@ BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
     required bool isActive,
   }) {
     final isFainted = combatant.isFainted;
-    final isFullHp = combatant.currentHp >= combatant.maxHp;
     final targetAllowed = allowsCombatant(combatant);
+    final effectDisabledReason = _effectDisabledReason(
+      combatant: combatant,
+      effect: effect,
+    );
     final isSelectable =
-        allowsTargeting && targetAllowed && !isFainted && !isFullHp;
+        allowsTargeting && targetAllowed && effectDisabledReason == null;
     final disabledReason = isSelectable
         ? null
         : !allowsTargeting || !targetAllowed
             ? BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest
-            : isFainted
-                ? BattleMedicineTargetDisabledReason.fainted
-                : BattleMedicineTargetDisabledReason.fullHp;
+            : effectDisabledReason;
 
     return BattleMedicineTargetEntry(
       visualIndex: visualIndex,
@@ -126,4 +132,56 @@ BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
       <BattleMedicineTargetEntry>[activeEntry, ...reserveEntries],
     ),
   );
+}
+
+BattleMedicineTargetDisabledReason? _effectDisabledReason({
+  required BattleCombatant combatant,
+  required PlayerItemEffectDefinition? effect,
+}) {
+  if (effect == null) {
+    return BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest;
+  }
+  return switch (effect.kind) {
+    PlayerItemEffectKind.healHp => combatant.isFainted
+        ? BattleMedicineTargetDisabledReason.fainted
+        : combatant.currentHp >= combatant.maxHp
+            ? BattleMedicineTargetDisabledReason.fullHp
+            : null,
+    PlayerItemEffectKind.cureStatus => combatant.isFainted
+        ? BattleMedicineTargetDisabledReason.fainted
+        : _effectCuresStatus(effect, combatant.majorStatus)
+            ? null
+            : BattleMedicineTargetDisabledReason.noCompatibleStatus,
+    PlayerItemEffectKind.revive => combatant.isFainted
+        ? null
+        : BattleMedicineTargetDisabledReason.notFainted,
+    PlayerItemEffectKind.restorePp ||
+    PlayerItemEffectKind.keyItem ||
+    PlayerItemEffectKind.ballMetadata =>
+      BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest,
+  };
+}
+
+bool _effectCuresStatus(
+  PlayerItemEffectDefinition effect,
+  BattleMajorStatusState? status,
+) {
+  if (status == null) {
+    return false;
+  }
+  if (effect.curesAnyStatus) {
+    return true;
+  }
+  return _gameplayStatusIds(status.id).any(effect.statusIds.contains);
+}
+
+Set<String> _gameplayStatusIds(BattleMajorStatusId status) {
+  return switch (status) {
+    BattleMajorStatusId.par => const <String>{'paralysis', 'paralyzed'},
+    BattleMajorStatusId.brn => const <String>{'burn'},
+    BattleMajorStatusId.psn => const <String>{'poison'},
+    BattleMajorStatusId.tox => const <String>{'badly-poisoned'},
+    BattleMajorStatusId.slp => const <String>{'sleep'},
+    BattleMajorStatusId.frz => const <String>{'freeze', 'frozen'},
+  };
 }
