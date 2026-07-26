@@ -262,6 +262,17 @@ export 'src/application/scene_runtime/scene_cinematic_runtime_awaitable_result.d
         SceneCinematicRuntimeAwaitableStatus;
 export 'src/application/scene_runtime/scene_consequence_runtime_writer.dart'
     show SceneConsequenceRuntimeWriter;
+export 'src/application/scene_runtime/narrative_game_completion_runtime_coordinator.dart'
+    show
+        GameCompletionRequestEmitter,
+        NarrativeGameCompletionRuntimeCoordinator;
+export 'src/application/scene_runtime/scene_finish_game_runtime_mapper.dart'
+    show SceneFinishGameRuntimeMapper;
+export 'src/application/scene_runtime/scene_game_completion_metadata.dart'
+    show
+        gameStateAllowsPostGameContinue,
+        sceneGameCompletionEndingMetadataKey,
+        sceneGameCompletionPostGamePolicyMetadataKey;
 export 'src/application/scene_runtime/scene_interactive_command_runtime_executor.dart'
     show SceneInteractiveCommandHandler, SceneInteractiveCommandRuntimeExecutor;
 export 'src/application/scene_runtime/scene_consequence_runtime_write_result.dart'

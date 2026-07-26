@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import 'scene_consequence_runtime_write_result.dart';
+import 'scene_game_completion_metadata.dart';
 
 final class SceneConsequenceRuntimeWriter {
   const SceneConsequenceRuntimeWriter({
@@ -37,6 +38,7 @@ final class SceneConsequenceRuntimeWriter {
   ) {
     var nextState = gameState;
     final applied = <SceneConsequence>[];
+    SceneFinishGameConsequence? gameCompletion;
     final factWriter = NarrativeFactRuntimeWriter(
       NarrativeFactRuntimeResolver.fromFacts(project.facts),
     );
@@ -52,11 +54,13 @@ final class SceneConsequenceRuntimeWriter {
         );
       }
       nextState = step.gameState!;
+      gameCompletion ??= step.gameCompletion;
       applied.add(consequence);
     }
     return SceneConsequenceRuntimeWriteResult.applied(
       gameState: nextState,
       appliedConsequences: applied,
+      gameCompletion: gameCompletion,
     );
   }
 
@@ -107,6 +111,10 @@ final class SceneConsequenceRuntimeWriter {
       SceneConsequenceKind.unlockFieldAbility => _applyUnlockFieldAbility(
           gameState,
           consequence as SceneUnlockFieldAbilityConsequence,
+        ),
+      SceneConsequenceKind.finishGame => _applyFinishGame(
+          gameState,
+          consequence as SceneFinishGameConsequence,
         ),
     };
   }
@@ -446,6 +454,35 @@ final class SceneConsequenceRuntimeWriter {
       mutations.unlockFieldAbility(gameState, consequence.ability),
     );
   }
+
+  _SceneConsequenceRuntimeWriteStep _applyFinishGame(
+    GameState gameState,
+    SceneFinishGameConsequence consequence,
+  ) {
+    final completedEndingId =
+        gameState.metadata[sceneGameCompletionEndingMetadataKey];
+    if (completedEndingId != null) {
+      if (completedEndingId == consequence.endingId) {
+        return _SceneConsequenceRuntimeWriteStep.applied(gameState);
+      }
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.gameAlreadyCompleted,
+        'Scene consequence finishGame cannot replace completed ending '
+        '"$completedEndingId" with "${consequence.endingId}".',
+      );
+    }
+    return _SceneConsequenceRuntimeWriteStep.applied(
+      gameState.copyWith(
+        metadata: <String, String>{
+          ...gameState.metadata,
+          sceneGameCompletionEndingMetadataKey: consequence.endingId,
+          sceneGameCompletionPostGamePolicyMetadataKey:
+              consequence.postGamePolicy.name,
+        },
+      ),
+      gameCompletion: consequence,
+    );
+  }
 }
 
 final class _SceneConsequenceRuntimeWriteStep {
@@ -453,10 +490,16 @@ final class _SceneConsequenceRuntimeWriteStep {
     this.gameState,
     this.errorCode,
     this.message,
+    this.gameCompletion,
   });
 
-  const _SceneConsequenceRuntimeWriteStep.applied(GameState gameState)
-      : this._(gameState: gameState);
+  const _SceneConsequenceRuntimeWriteStep.applied(
+    GameState gameState, {
+    SceneFinishGameConsequence? gameCompletion,
+  }) : this._(
+          gameState: gameState,
+          gameCompletion: gameCompletion,
+        );
 
   const _SceneConsequenceRuntimeWriteStep.failed(
     SceneConsequenceRuntimeWriteErrorCode errorCode,
@@ -469,4 +512,5 @@ final class _SceneConsequenceRuntimeWriteStep {
   final GameState? gameState;
   final SceneConsequenceRuntimeWriteErrorCode? errorCode;
   final String? message;
+  final SceneFinishGameConsequence? gameCompletion;
 }

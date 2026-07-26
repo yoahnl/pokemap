@@ -290,6 +290,15 @@ Map<String, SceneConsequence Function()> _consequenceSamples() => {
           SceneConsequence.awardBadge(badgeId: 'badge_tide'),
       NarrativeCommandIds.unlockFieldAbility: () =>
           SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
+      NarrativeCommandIds.finishGame: () => SceneConsequence.finishGame(
+            endingId: 'ending.parity',
+            outcome: SceneGameCompletionOutcome.completed,
+            result: SceneFinishGameResult(
+              title: SceneLocalizedText(fallback: 'Fin'),
+              summary: SceneLocalizedText(fallback: 'Test terminé.'),
+            ),
+            postGamePolicy: ScenePostGamePolicy.returnToTitle,
+          ),
     };
 
 Map<String, SceneInteractiveCommand Function()> _interactiveSamples() => {

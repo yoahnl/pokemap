@@ -178,7 +178,89 @@ void main() {
       expect(state.trainerProfile.money, 0);
       expect(state.bag.entries, isEmpty);
     });
+
+    test('returns Finish Game only with its committed terminal state',
+        () async {
+      const state = GameState(saveId: 'save_finish_scene');
+      final project = _project().copyWith(
+        scenes: [..._project().scenes, _finishScene()],
+      );
+
+      final result = await executeNarrativeEventScene(
+        request: const NarrativeSceneExecutionRequest(
+          eventId: 'event_finish',
+          sceneId: 'scene_finish',
+          executionId: 'execution_finish',
+          gameState: state,
+        ),
+        project: project,
+        mapsById: const <String, MapData>{},
+        currentGameState: () => state,
+        callbacks: SceneRuntimeHostCallbacks(
+          evaluateCondition: (_) => throw StateError('Unexpected condition.'),
+          showDialogue: (_) => throw StateError('Unexpected dialogue.'),
+          startBattle: (_) => throw StateError('Unexpected battle.'),
+          playCinematic: (_) => throw StateError('Unexpected cinematic.'),
+        ),
+      );
+
+      expect(result, isA<NarrativeSceneExecutionCompleted>());
+      final completed = result as NarrativeSceneExecutionCompleted;
+      expect(completed.gameCompletion?.endingId, 'ending.selbrume');
+      expect(
+        completed
+            .updatedGameState.metadata[sceneGameCompletionEndingMetadataKey],
+        'ending.selbrume',
+      );
+    });
   });
+}
+
+SceneAsset _finishScene() {
+  return SceneAsset(
+    id: 'scene_finish',
+    name: 'Finish',
+    graph: SceneGraph(
+      startNodeId: 'start',
+      nodes: <SceneNode>[
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'finish',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(
+            SceneConsequence.finishGame(
+              endingId: 'ending.selbrume',
+              outcome: SceneGameCompletionOutcome.victory,
+              result: SceneFinishGameResult(
+                title: SceneLocalizedText(fallback: 'Victoire'),
+                summary: SceneLocalizedText(
+                  fallback: 'Selbrume est sauvée.',
+                ),
+              ),
+              postGamePolicy: ScenePostGamePolicy.returnToTitle,
+            ),
+          ),
+        ),
+        SceneNode(id: 'end', kind: SceneNodeKind.end),
+      ],
+      edges: <SceneEdge>[
+        SceneEdge(
+          id: 'start_finish',
+          fromNodeId: 'start',
+          fromPortId: 'completed',
+          toNodeId: 'finish',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+        SceneEdge(
+          id: 'finish_end',
+          fromNodeId: 'finish',
+          fromPortId: 'completed',
+          toNodeId: 'end',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+      ],
+    ),
+  );
 }
 
 SceneAsset _rejectedActionScene() {

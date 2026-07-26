@@ -71,6 +71,7 @@ import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_result.
 import '../../application/scene_runtime/scene_event_runtime_hook.dart';
 import '../../application/scene_runtime/scene_fact_condition_runtime_resolver.dart';
 import '../../application/scene_runtime/scene_interactive_command_runtime_executor.dart';
+import '../../application/scene_runtime/narrative_game_completion_runtime_coordinator.dart';
 import '../../application/scene_runtime/scene_runtime_host_callbacks.dart';
 import '../../application/scene_runtime/scene_runtime_hook_result.dart';
 import '../../application/scenario_runtime/scenario_runtime_executor.dart';
@@ -223,6 +224,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     @visibleForTesting this.afterNarrativeAuthorityPreparation,
     @visibleForTesting this.beforeBattleHandoffPreparation,
     @visibleForTesting this.beforeLoadCommitCompletion,
+    GameCompletionRequestEmitter? gameCompletionEmitter,
+    this.runtimeLocale = 'fr-FR',
     this.shadowCollectionProvider,
     this.enableActorContactShadows = true,
     this.enableStaticPlacedElementShadows = true,
@@ -244,6 +247,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (bundleTransformer != null) {
       _bundle = bundleTransformer!(_bundle);
     }
+    _gameCompletionCoordinator = gameCompletionEmitter == null
+        ? null
+        : NarrativeGameCompletionRuntimeCoordinator(
+            project: _bundle.manifest,
+            locale: runtimeLocale,
+            emitCompletion: gameCompletionEmitter,
+          );
     _isProjectNewGameBoot =
         saveData == null && _bundle.manifest.newGame.enabled;
     if (_isProjectNewGameBoot) {
@@ -344,6 +354,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final RuntimeMapBundle Function(RuntimeMapBundle bundle)? bundleTransformer;
   final List<RuntimeCutsceneAsset> runtimeCutscenes;
   final MapActivationReason initialMapActivationReason;
+  final String runtimeLocale;
 
   /// Deterministic async instrumentation for activation-dispatch race tests.
   ///
@@ -834,10 +845,23 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           final hydratedGameState = await _hydrateOwnedPlayerPokemonProgression(
             result.updatedGameState,
           );
+          final gameCompletion = result.gameCompletion;
+          if (gameCompletion != null) {
+            final coordinator = _gameCompletionCoordinator;
+            if (coordinator == null) {
+              return NarrativeSceneExecutionResult.failed(
+                StateError(
+                  'Finish Game requires an active session completion port.',
+                ),
+              );
+            }
+            coordinator.queue(gameCompletion);
+          }
           session.gameState = hydratedGameState;
           return NarrativeSceneExecutionResult.completed(
             updatedGameState: hydratedGameState,
             qualifiedOutcomes: result.qualifiedOutcomes,
+            gameCompletion: gameCompletion,
           );
         } catch (error) {
           return NarrativeSceneExecutionResult.failed(error);
@@ -874,6 +898,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _gameState = gameState;
     if (isLoaded) {
       _refreshWorldNpcPresence();
+    }
+    final completionCoordinator = _gameCompletionCoordinator;
+    if (completionCoordinator != null) {
+      unawaited(
+        completionCoordinator.onGameStateCommitted(gameState).catchError(
+          (Object error, StackTrace stackTrace) {
+            debugPrint(
+              '[game_completion] emission failed: $error\n$stackTrace',
+            );
+            _showNotification('Fin de partie impossible.');
+          },
+        ),
+      );
     }
   }
 
@@ -1430,6 +1467,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   // narrative coordinator share this gate so checkpoints cannot overlap a
   // dispatch, Scene execution or restore-outbox drain.
   late final NarrativeRuntimeActivityGate _narrativeActivityGate;
+  late final NarrativeGameCompletionRuntimeCoordinator?
+      _gameCompletionCoordinator;
   late final NarrativeEventStateTransactions _narrativeStateTransactions;
   late final MapEnterProductionDispatchBridge _mapEnterDispatchBridge;
   late final NarrativeSpatialProductionDispatchBridge _spatialDispatchBridge;
@@ -8566,6 +8605,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         session.gameState = await _hydrateOwnedPlayerPokemonProgression(
           result.updatedGameState ?? session.gameState,
         );
+        final gameCompletion = result.consequenceWriteResult?.gameCompletion;
+        if (gameCompletion != null) {
+          final coordinator = _gameCompletionCoordinator;
+          if (coordinator == null) {
+            throw StateError(
+              'Finish Game requires an active session completion port.',
+            );
+          }
+          coordinator.queue(gameCompletion);
+        }
         _applyNarrativeGameState(session.gameState);
         final outcomes = <NarrativeOutcomeRef>[
           ...hostedBattleOutcomes,

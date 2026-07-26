@@ -168,4 +168,47 @@ void main() {
       containsAllInOrder(<String>['stop:title', 'dispose']),
     );
   });
+
+  test('Hub completion exits to the host after credits', () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    harness.adapter.emitCompletion(
+      testPlayerCompletion(
+        harness,
+        destination: GameCompletionDestination.hub,
+      ),
+    );
+    await harness.coordinator.settle();
+
+    expect(
+      harness.coordinator.snapshot
+          .isActionEnabled(RuntimePlayerAction.returnToHost),
+      isTrue,
+    );
+    expect(
+      harness.coordinator.snapshot
+          .isActionEnabled(RuntimePlayerAction.returnToTitle),
+      isFalse,
+    );
+
+    await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.showCredits,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+    final finished = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.finishCredits,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+    await harness.coordinator.settle();
+
+    expect(finished.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.externalExit);
+    expect(harness.exit.calls, 1);
+    expect(harness.sessions.snapshot.state, GameSessionState.disposed);
+  });
 }

@@ -85,7 +85,7 @@ void main() {
         NarrativeCommandCapabilityStatus.unsupported);
   });
 
-  test('Finish Game is authorable but remains runtime-gated for RM-012', () {
+  test('Finish Game is publishable after RM-012 runtime wiring', () {
     final command = NarrativeCommandCatalog.canonical().byId(
       NarrativeCommandIds.finishGame,
     )!;
@@ -103,9 +103,9 @@ void main() {
     );
     expect(
       command.capabilities.runtime,
-      NarrativeCommandCapabilityStatus.unsupported,
+      NarrativeCommandCapabilityStatus.supported,
     );
-    expect(command.isPublishable, isFalse);
+    expect(command.isPublishable, isTrue);
     expect(
       command.parameters.map((parameter) => parameter.id),
       isNot(contains('endingId')),

@@ -52,6 +52,55 @@ void main() {
     expect(handle, isNot(contains(envelope.slotId)));
   });
 
+  test('completed saves respect the authored post-game policy on reload',
+      () async {
+    for (final testCase in <({
+      ScenePostGamePolicy policy,
+      bool canContinue,
+    })>[
+      (
+        policy: ScenePostGamePolicy.continueGame,
+        canContinue: true,
+      ),
+      (
+        policy: ScenePostGamePolicy.returnToTitle,
+        canContinue: false,
+      ),
+      (
+        policy: ScenePostGamePolicy.returnToHub,
+        canContinue: false,
+      ),
+    ]) {
+      final envelope = _envelope(
+        identity,
+        status: SaveStatus.completed,
+        completedAt: DateTime.utc(2026, 7, 25, 11),
+        state: <String, Object?>{
+          'currentMapId': 'port',
+          'metadata': <String, String>{
+            sceneGameCompletionEndingMetadataKey: 'ending.selbrume',
+            sceneGameCompletionPostGamePolicyMetadataKey: testCase.policy.name,
+          },
+        },
+      );
+      await store.write(envelope);
+
+      final summary = await gateway.readSummary(envelope.address);
+      final handle = await gateway.openReadHandle(envelope.address);
+
+      expect(
+        summary?.canContinue,
+        testCase.canContinue,
+        reason: testCase.policy.name,
+      );
+      expect(
+        handle != null,
+        testCase.canContinue,
+        reason: testCase.policy.name,
+      );
+    }
+  });
+
   test('refuses another game and does not leak another profile or slot',
       () async {
     final envelope = _envelope(identity);
@@ -233,7 +282,14 @@ void main() {
   });
 }
 
-SaveEnvelope _envelope(GameIdentity identity) {
+SaveEnvelope _envelope(
+  GameIdentity identity, {
+  SaveStatus status = SaveStatus.active,
+  DateTime? completedAt,
+  Map<String, Object?> state = const <String, Object?>{
+    'currentMapId': 'port',
+  },
+}) {
   return const SaveEnvelopeCodec().create(
     identity: identity,
     profileId: 'player-1',
@@ -241,9 +297,10 @@ SaveEnvelope _envelope(GameIdentity identity) {
     saveId: '550e8400-e29b-41d4-a716-446655440000',
     createdAt: DateTime.utc(2026, 7, 25, 10),
     updatedAt: DateTime.utc(2026, 7, 25, 11),
-    status: SaveStatus.active,
+    status: status,
+    completedAt: completedAt,
     playTimeSeconds: 120,
-    state: const <String, Object?>{'currentMapId': 'port'},
+    state: state,
   );
 }
 

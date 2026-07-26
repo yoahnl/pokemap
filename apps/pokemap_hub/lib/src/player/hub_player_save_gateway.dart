@@ -38,8 +38,8 @@ final class HubPlayerSaveGateway implements PlayerSaveGateway {
   Future<String?> openReadHandle(SaveSlotAddress address) async {
     final read = await store.read(address);
     final envelope = read.envelope;
-    if (!read.canContinue || envelope == null) return null;
-    return hubSaveReadHandle(envelope);
+    if (!_canContinue(read, envelope)) return null;
+    return hubSaveReadHandle(envelope!);
   }
 
   @override
@@ -71,17 +71,26 @@ final class HubPlayerSaveGateway implements PlayerSaveGateway {
 
   PlayerSaveSummary _summary(SaveSlotRead read) {
     final envelope = read.envelope;
+    final canContinue = _canContinue(read, envelope);
     return PlayerSaveSummary(
       address: read.address,
       updatedAt: envelope?.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0),
       playTimeSeconds: envelope?.playTimeSeconds ?? 0,
       status: envelope?.status ?? SaveStatus.active,
-      canContinue: read.canContinue && envelope != null,
-      safeUnavailableReason: read.canContinue && envelope != null
+      canContinue: canContinue,
+      safeUnavailableReason: canContinue
           ? null
-          : _safeReason(read.status),
+          : envelope?.status == SaveStatus.completed
+              ? 'This ending does not allow post-game continuation.'
+              : _safeReason(read.status),
     );
   }
+}
+
+bool _canContinue(SaveSlotRead read, SaveEnvelope? envelope) {
+  if (!read.canContinue || envelope == null) return false;
+  if (envelope.status != SaveStatus.completed) return true;
+  return gameStateAllowsPostGameContinue(envelope.state);
 }
 
 String _safeReason(SaveSlotReadStatus status) => switch (status) {

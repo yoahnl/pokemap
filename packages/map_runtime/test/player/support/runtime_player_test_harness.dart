@@ -420,7 +420,12 @@ GameSessionCheckpoint testPlayerCheckpoint({
   );
 }
 
-GameCompletionEvent testPlayerCompletion(RuntimePlayerTestHarness harness) {
+GameCompletionEvent testPlayerCompletion(
+  RuntimePlayerTestHarness harness, {
+  GameCompletionDestination destination =
+      GameCompletionDestination.playerChoice,
+  bool allowPostGameContinue = false,
+}) {
   final completedAt = DateTime.utc(2026, 7, 25, 15);
   return GameCompletionEvent(
     sessionId: harness.adapter.sessionId,
@@ -438,8 +443,8 @@ GameCompletionEvent testPlayerCompletion(RuntimePlayerTestHarness harness) {
       author: 'PokeMap',
       endingLabel: 'Fin principale',
     ),
-    destination: GameCompletionDestination.playerChoice,
-    allowPostGameContinue: false,
+    destination: destination,
+    allowPostGameContinue: allowPostGameContinue,
     finalCheckpoint: testPlayerCheckpoint(updatedAt: completedAt),
   );
 }

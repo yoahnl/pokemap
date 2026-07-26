@@ -30,6 +30,7 @@ enum SceneConsequenceRuntimeWriteErrorCode {
   unknownBadge,
   ambiguousBadge,
   partyFull,
+  gameAlreadyCompleted,
 }
 
 final class SceneConsequenceRuntimeWriteResult {
@@ -37,6 +38,7 @@ final class SceneConsequenceRuntimeWriteResult {
     required this.status,
     required this.gameState,
     required List<SceneConsequence> appliedConsequences,
+    this.gameCompletion,
     this.errorCode,
     this.message,
     this.failedConsequence,
@@ -46,10 +48,12 @@ final class SceneConsequenceRuntimeWriteResult {
   SceneConsequenceRuntimeWriteResult.applied({
     required GameState gameState,
     required List<SceneConsequence> appliedConsequences,
+    SceneFinishGameConsequence? gameCompletion,
   }) : this._(
           status: SceneConsequenceRuntimeWriteStatus.applied,
           gameState: gameState,
           appliedConsequences: appliedConsequences,
+          gameCompletion: gameCompletion,
         );
 
   SceneConsequenceRuntimeWriteResult.failed({
@@ -70,6 +74,7 @@ final class SceneConsequenceRuntimeWriteResult {
   final SceneConsequenceRuntimeWriteStatus status;
   final GameState gameState;
   final List<SceneConsequence> appliedConsequences;
+  final SceneFinishGameConsequence? gameCompletion;
   final SceneConsequenceRuntimeWriteErrorCode? errorCode;
   final String? message;
   final SceneConsequence? failedConsequence;

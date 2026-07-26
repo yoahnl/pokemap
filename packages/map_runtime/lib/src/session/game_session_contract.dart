@@ -264,6 +264,7 @@ final class GameCreditsSnapshot {
     this.contributors = const <String>[],
     this.licenses = const <String>[],
     required this.endingLabel,
+    this.skippable = true,
   });
 
   final String title;
@@ -271,6 +272,7 @@ final class GameCreditsSnapshot {
   final List<String> contributors;
   final List<String> licenses;
   final String endingLabel;
+  final bool skippable;
 }
 
 /// Runtime-facing request produced by a future no-code "Finish game" command.

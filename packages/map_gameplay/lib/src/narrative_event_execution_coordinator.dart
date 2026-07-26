@@ -52,10 +52,12 @@ sealed class NarrativeSceneExecutionResult {
   factory NarrativeSceneExecutionResult.completed({
     required GameState updatedGameState,
     required List<NarrativeOutcomeRef> qualifiedOutcomes,
+    SceneFinishGameConsequence? gameCompletion,
   }) {
     return NarrativeSceneExecutionCompleted(
       updatedGameState: updatedGameState,
       qualifiedOutcomes: qualifiedOutcomes,
+      gameCompletion: gameCompletion,
     );
   }
 
@@ -73,10 +75,12 @@ final class NarrativeSceneExecutionCompleted
   NarrativeSceneExecutionCompleted({
     required this.updatedGameState,
     required List<NarrativeOutcomeRef> qualifiedOutcomes,
+    this.gameCompletion,
   }) : qualifiedOutcomes = List.unmodifiable(qualifiedOutcomes);
 
   final GameState updatedGameState;
   final List<NarrativeOutcomeRef> qualifiedOutcomes;
+  final SceneFinishGameConsequence? gameCompletion;
 }
 
 final class NarrativeSceneExecutionFailed

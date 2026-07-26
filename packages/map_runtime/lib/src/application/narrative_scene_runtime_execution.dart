@@ -114,6 +114,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   final sceneOutcomeId = execution.sceneOutcomeId;
   return NarrativeSceneExecutionResult.completed(
     updatedGameState: writeResult.gameState,
+    gameCompletion: writeResult.gameCompletion,
     qualifiedOutcomes: <NarrativeOutcomeRef>[
       ...hostedBattleOutcomes,
       if (sceneOutcomeId != null)

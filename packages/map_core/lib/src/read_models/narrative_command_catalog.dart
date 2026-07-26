@@ -29,13 +29,6 @@ final class NarrativeCommandCatalog {
 
   factory NarrativeCommandCatalog.canonical() {
     const supported = NarrativeCommandCapabilities.supported();
-    const authorablePendingRuntime = NarrativeCommandCapabilities(
-      model: NarrativeCommandCapabilityStatus.supported,
-      editor: NarrativeCommandCapabilityStatus.supported,
-      runtime: NarrativeCommandCapabilityStatus.unsupported,
-      reason:
-          'Authoring disponible ; l’exécution runtime est livrée par RM-012.',
-    );
     NarrativeCommandCapabilities unsupported(String reason) =>
         NarrativeCommandCapabilities(
           model: NarrativeCommandCapabilityStatus.unsupported,
@@ -179,7 +172,7 @@ final class NarrativeCommandCatalog {
         description:
             'Enregistre la fin, affiche le résultat et applique la politique postgame.',
         backend: NarrativeCommandBackend.sceneConsequence,
-        capabilities: authorablePendingRuntime,
+        capabilities: supported,
         fgLotId: 'FG-147',
         wireId: 'SceneConsequence.finishGame',
         parameters: [

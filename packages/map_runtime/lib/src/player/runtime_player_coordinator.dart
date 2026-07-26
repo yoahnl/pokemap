@@ -414,13 +414,17 @@ final class RuntimePlayerCoordinator {
             result: completion.result,
             credits: completion.credits,
             clearFailure: true,
-            actions: _creditsActions,
+            actions: _creditsActions(completion),
           ),
         );
         return const RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.accepted,
         );
       case RuntimePlayerAction.finishCredits:
+        if (_sessions.committedCompletion?.destination ==
+            GameCompletionDestination.hub) {
+          return _returnToHost();
+        }
         return _returnToTitle(checkpoint: false);
       case RuntimePlayerAction.returnToTitle:
         return _returnToTitle(
@@ -432,24 +436,28 @@ final class RuntimePlayerCoordinator {
           safeMessage: 'This action is not available on the current surface.',
         );
       case RuntimePlayerAction.returnToHost:
-        _publish(
-          _snapshot.next(
-            phase: RuntimePlayerPhase.externalExit,
-            actions: const <RuntimePlayerActionAvailability>[],
-          ),
-        );
-        try {
-          await _disposeOwnedResources();
-          await _externalExit.returnToHost();
-          return const RuntimePlayerCommandResult(
-            status: RuntimePlayerCommandStatus.accepted,
-          );
-        } catch (_) {
-          return const RuntimePlayerCommandResult(
-            status: RuntimePlayerCommandStatus.failed,
-            safeMessage: 'The player could not return to its host.',
-          );
-        }
+        return _returnToHost();
+    }
+  }
+
+  Future<RuntimePlayerCommandResult> _returnToHost() async {
+    _publish(
+      _snapshot.next(
+        phase: RuntimePlayerPhase.externalExit,
+        actions: const <RuntimePlayerActionAvailability>[],
+      ),
+    );
+    try {
+      await _disposeOwnedResources();
+      await _externalExit.returnToHost();
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.accepted,
+      );
+    } catch (_) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.failed,
+        safeMessage: 'The player could not return to its host.',
+      );
     }
   }
 
@@ -886,7 +894,7 @@ final class RuntimePlayerCoordinator {
         clearWorldService: true,
         result: completion.result,
         credits: completion.credits,
-        actions: _resultActions,
+        actions: _resultActions(completion),
       ),
     );
   }
@@ -986,15 +994,33 @@ final class RuntimePlayerCoordinator {
     RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.cancel),
   ];
 
-  static const _resultActions = <RuntimePlayerActionAvailability>[
-    RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.showCredits),
-    RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.returnToTitle),
-  ];
+  List<RuntimePlayerActionAvailability> _resultActions(
+    GameCompletionEvent completion,
+  ) =>
+      <RuntimePlayerActionAvailability>[
+        const RuntimePlayerActionAvailability.enabled(
+          RuntimePlayerAction.showCredits,
+        ),
+        RuntimePlayerActionAvailability.enabled(
+          completion.destination == GameCompletionDestination.hub
+              ? RuntimePlayerAction.returnToHost
+              : RuntimePlayerAction.returnToTitle,
+        ),
+      ];
 
-  static const _creditsActions = <RuntimePlayerActionAvailability>[
-    RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.finishCredits),
-    RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.returnToTitle),
-  ];
+  List<RuntimePlayerActionAvailability> _creditsActions(
+    GameCompletionEvent completion,
+  ) =>
+      <RuntimePlayerActionAvailability>[
+        const RuntimePlayerActionAvailability.enabled(
+          RuntimePlayerAction.finishCredits,
+        ),
+        RuntimePlayerActionAvailability.enabled(
+          completion.destination == GameCompletionDestination.hub
+              ? RuntimePlayerAction.returnToHost
+              : RuntimePlayerAction.returnToTitle,
+        ),
+      ];
 
   bool get _hasLiveSession =>
       _sessions.snapshot.state != GameSessionState.idle &&

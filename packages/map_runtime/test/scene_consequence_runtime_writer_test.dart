@@ -24,6 +24,54 @@ void main() {
       expect(state.storyFlags.activeFlags, isEmpty);
     });
 
+    test('finishGame persists one terminal marker and is replay-safe', () {
+      const state = GameState(saveId: 'save_finish');
+      final writer = SceneConsequenceRuntimeWriter(project: _project());
+      final consequence = SceneConsequence.finishGame(
+        endingId: 'ending.selbrume',
+        outcome: SceneGameCompletionOutcome.victory,
+        result: SceneFinishGameResult(
+          title: SceneLocalizedText(fallback: 'Victoire'),
+          summary: SceneLocalizedText(fallback: 'Selbrume est sauvée.'),
+        ),
+        postGamePolicy: ScenePostGamePolicy.returnToHub,
+      );
+
+      final applied = writer.applyOne(state, consequence);
+      final replayed = writer.applyOne(applied.gameState, consequence);
+      final conflicting = writer.applyOne(
+        applied.gameState,
+        SceneConsequence.finishGame(
+          endingId: 'ending.other',
+          outcome: SceneGameCompletionOutcome.alternateEnding,
+          result: SceneFinishGameResult(
+            title: SceneLocalizedText(fallback: 'Autre fin'),
+            summary: SceneLocalizedText(fallback: 'Une autre conclusion.'),
+          ),
+          postGamePolicy: ScenePostGamePolicy.returnToTitle,
+        ),
+      );
+
+      expect(applied.success, isTrue);
+      expect(applied.gameCompletion, same(consequence));
+      expect(
+        applied.gameState.metadata[sceneGameCompletionEndingMetadataKey],
+        'ending.selbrume',
+      );
+      expect(
+        applied
+            .gameState.metadata[sceneGameCompletionPostGamePolicyMetadataKey],
+        ScenePostGamePolicy.returnToHub.name,
+      );
+      expect(replayed.success, isTrue);
+      expect(replayed.gameCompletion, isNull);
+      expect(
+        conflicting.errorCode,
+        SceneConsequenceRuntimeWriteErrorCode.gameAlreadyCompleted,
+      );
+      expect(conflicting.gameState, same(applied.gameState));
+    });
+
     test('setFact true activates Fact runtime key', () {
       const state = GameState(saveId: 'save_test');
       final writer = SceneConsequenceRuntimeWriter(

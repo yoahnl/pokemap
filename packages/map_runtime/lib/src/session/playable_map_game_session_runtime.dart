@@ -170,6 +170,8 @@ final class PlayableMapGameSessionRuntime
       projectFilePath: projectFilePath,
       saveData: saveData,
       saveRepository: memorySaves,
+      gameCompletionEmitter: emitCompletion,
+      runtimeLocale: descriptor.locale,
       initialMapActivationReason:
           descriptor.launchMode == GameSessionLaunchMode.newGame
               ? MapActivationReason.initialBoot

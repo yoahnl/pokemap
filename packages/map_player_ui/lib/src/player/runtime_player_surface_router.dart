@@ -139,8 +139,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
           title: snapshot.credits?.title ?? snapshot.gameTitle,
           author: snapshot.credits?.author ?? titlePresentation.author,
           endingLabel: snapshot.credits?.endingLabel,
-          onReturnToTitle: _callbackFor(RuntimePlayerAction.finishCredits) ??
-              _callbackFor(RuntimePlayerAction.returnToTitle),
+          onReturnToTitle: _callbackFor(RuntimePlayerAction.returnToTitle),
           onReturnToHub: _callbackFor(RuntimePlayerAction.returnToHost),
         ),
       RuntimePlayerPhase.disposingSession => PlayerLoadingSurface(

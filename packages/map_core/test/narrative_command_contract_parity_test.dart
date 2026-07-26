@@ -145,6 +145,17 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
           SceneActionPayload.consequence(
             SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
           ),
+      NarrativeCommandIds.finishGame: () => SceneActionPayload.consequence(
+            SceneConsequence.finishGame(
+              endingId: 'ending.parity',
+              outcome: SceneGameCompletionOutcome.completed,
+              result: SceneFinishGameResult(
+                title: SceneLocalizedText(fallback: 'Fin'),
+                summary: SceneLocalizedText(fallback: 'Test terminé.'),
+              ),
+              postGamePolicy: ScenePostGamePolicy.returnToTitle,
+            ),
+          ),
       NarrativeCommandIds.warp: () => SceneActionPayload.interactive(
             SceneInteractiveCommand.warp(
               destinationMapId: 'map_port',
