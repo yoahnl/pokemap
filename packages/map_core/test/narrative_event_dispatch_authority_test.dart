@@ -119,6 +119,43 @@ void main() {
       );
     });
 
+    test('exact source ordering conflicts fail before dispatch planning', () {
+      final source = NarrativeEventSourceRef.mapEnter('map');
+      final registry = _registry(
+        mode: EventSystemMode.v2Only,
+        records: [
+          _record(_eventA, source: source, priority: 4, order: 2),
+          _record(_eventB, source: source, priority: 4, order: 2),
+        ],
+      );
+      final conflict =
+          buildNarrativeEventSourceIndex(registry.records).conflicts.single;
+
+      final preparation = NarrativeEventDispatchAuthority.prepare(
+        registryResult: EventRegistryDecodeResult.decoded(registry),
+        occurrence: NarrativeEventOccurrence(source: source),
+        factResolver: NarrativeFactRuntimeResolver.fromFacts(const []),
+        projectCatalog: f1ProjectCatalogForRegistry(
+          registry,
+          diagnostics: [
+            NarrativeEventProjectDiagnostic(
+              code: 'sourceOrderingConflict',
+              severity: NarrativeEventProjectDiagnosticSeverity.error,
+              message: conflict.diagnostic,
+              path: 'eventRegistry.sources.map',
+            ),
+          ],
+        ),
+      );
+
+      expect(preparation, isA<NarrativeEventDispatchAuthorityBlocked>());
+      expect(
+        (preparation as NarrativeEventDispatchAuthorityBlocked).reason,
+        NarrativeEventDispatchAuthorityBlockReason.projectCatalogBlocked,
+      );
+      expect(preparation.diagnostics, contains('sourceOrderingConflict'));
+    });
+
     test('global claim conflicts block dualRead preparation', () {
       final source = NarrativeEventSourceRef.mapEnter('map');
       final provenance = LegacySourceRef.mapEvent('map', 'legacy');

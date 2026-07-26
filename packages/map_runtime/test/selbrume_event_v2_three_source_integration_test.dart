@@ -18,6 +18,123 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('J3 Selbrume sources through PlayableMapGame production hooks', () {
+    test('canonical Lysa cohort has two deterministic authority keys',
+        () async {
+      final fixture = SelbrumeEventV2RuntimeFixture.locateCanonical();
+      final bundle = await fixture.loadHarnessBundle(
+        mapId: selbrumePortMapId,
+        playerPos: const GridPos(x: 26, y: 17),
+        facing: EntityFacing.north,
+      );
+      final source = NarrativeEventSourceRef.entityInteract(
+        selbrumePortMapId,
+        selbrumeLysaEntityId,
+      );
+      final index = buildNarrativeEventSourceIndex(
+        bundle.manifest.eventRegistry!.records,
+      );
+      final lysaRecords = index.index.recordsFor(source);
+
+      expect(index.conflicts.where((conflict) => conflict.source == source),
+          isEmpty);
+      expect(
+        lysaRecords.map((record) => record.id),
+        <String>[selbrumeLysaRematchEventId, selbrumeLysaEventId],
+        reason: 'Runtime authority orders priority DESC then order ASC.',
+      );
+      expect(
+        lysaRecords
+            .singleWhere(
+              (record) =>
+                  record.definitionOrNull?.priority == 0 &&
+                  record.definitionOrNull?.order == 0,
+            )
+            .id,
+        selbrumeLysaEventId,
+      );
+      expect(
+        lysaRecords
+            .singleWhere(
+              (record) =>
+                  record.definitionOrNull?.priority == 1 &&
+                  record.definitionOrNull?.order == 5,
+            )
+            .id,
+        selbrumeLysaRematchEventId,
+      );
+    });
+
+    test('canonical Lysa one-shot stays consumed after a save reload',
+        () async {
+      final fixture = SelbrumeEventV2RuntimeFixture.locateCanonical();
+      const playerPos = GridPos(x: 26, y: 17);
+      const facing = EntityFacing.north;
+      final source = NarrativeEventSourceRef.entityInteract(
+        selbrumePortMapId,
+        selbrumeLysaEntityId,
+      );
+      final bundle = await fixture.loadHarnessBundle(
+        mapId: selbrumePortMapId,
+        playerPos: playerPos,
+        facing: facing,
+      );
+      final serialized = saveDataFromGameState(
+        GameState(
+          saveId: 'sel_fin_00_lysa_reload',
+          currentMapId: selbrumePortMapId,
+          playerPosition: playerPos,
+          playerFacing: facing,
+          narrativeEventProgress: NarrativeEventProgress(
+            consumedNarrativeEventIds: const <String>{
+              selbrumeLysaEventId,
+            },
+          ),
+          narrativeFactRuntimeState: NarrativeFactRuntimeState(
+            overridesByFactId: const <String, bool>{
+              'fact_port_alert_seen': true,
+            },
+          ),
+        ),
+      ).toJson();
+      final reloadedSave = SaveData.fromJson(serialized);
+      final decisions = <NarrativeEventDispatchDecision>[];
+      late _TestPlayableMapGame game;
+      game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: fixture.projectPath,
+        saveData: reloadedSave,
+        initialMapActivationReason: MapActivationReason.saveRestore,
+        afterNarrativeAuthorityPreparation: (occurrence, preparation) async {
+          if (occurrence.source == source &&
+              preparation is NarrativeEventDispatchAuthorityReady) {
+            decisions.add(
+              preparation.plan(gameState: game.gameStateSnapshot),
+            );
+          }
+        },
+      );
+
+      await _load(game);
+      expect(
+        game.gameStateSnapshot.narrativeEventProgress.consumedNarrativeEventIds,
+        contains(selbrumeLysaEventId),
+      );
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ),
+        isTrue,
+      );
+      await _pumpUntil(game, () => decisions.isNotEmpty);
+
+      expect(decisions.single, isNot(isA<NarrativeEventDispatchHandled>()));
+      expect(
+        _reasons(decisions.single),
+        contains(NarrativeEventDispatchReason.eventConsumed),
+      );
+      expect(game.debugIsNarrativeSpatialDispatchInFlight, isFalse);
+    });
+
     for (final fixture in <SelbrumeEventV2RuntimeFixture>[
       SelbrumeEventV2RuntimeFixture.locate(),
       SelbrumeEventV2RuntimeFixture.locateCanonical(),
@@ -59,10 +176,21 @@ void main() {
             playerPos: target.playerPos,
             facing: target.facing,
           );
-          final authoredRecord =
-              bundle.manifest.eventRegistry!.records.singleWhere(
-            (record) => record.definitionOrNull?.source == source,
+          final sourceRecords = buildNarrativeEventSourceIndex(
+            bundle.manifest.eventRegistry!.records,
+          ).index.recordsFor(source);
+          final authoredById = sourceRecords.singleWhere(
+            (record) => record.id == target.eventId,
           );
+          final authoredDefinition = authoredById.definitionOrNull!;
+          final authoredRecord = sourceRecords.singleWhere(
+            (record) =>
+                record.definitionOrNull?.priority ==
+                    authoredDefinition.priority &&
+                record.definitionOrNull?.order == authoredDefinition.order,
+          );
+          expect(authoredRecord.id, target.eventId);
+          expect(authoredRecord.definitionOrNull?.source, source);
           expect(
             authoredRecord.definitionOrNull?.sceneId,
             target.sceneId,
@@ -227,10 +355,21 @@ void main() {
           playerPos: const GridPos(x: 25, y: 1),
           facing: EntityFacing.east,
         );
-        final authoredRecord =
-            bundle.manifest.eventRegistry!.records.singleWhere(
-          (record) => record.definitionOrNull?.source == source,
+        final sourceRecords = buildNarrativeEventSourceIndex(
+          bundle.manifest.eventRegistry!.records,
+        ).index.recordsFor(source);
+        final authoredById = sourceRecords.singleWhere(
+          (record) => record.id == selbrumePortEntryEventId,
         );
+        final authoredDefinition = authoredById.definitionOrNull!;
+        final authoredRecord = sourceRecords.singleWhere(
+          (record) =>
+              record.definitionOrNull?.priority ==
+                  authoredDefinition.priority &&
+              record.definitionOrNull?.order == authoredDefinition.order,
+        );
+        expect(authoredRecord.id, selbrumePortEntryEventId);
+        expect(authoredRecord.definitionOrNull?.source, source);
         expect(
           authoredRecord.definitionOrNull?.sceneId,
           selbrumePortEntrySceneId,

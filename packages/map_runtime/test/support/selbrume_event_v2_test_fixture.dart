@@ -13,6 +13,7 @@ const selbrumeLysaSceneId = 'scene_lysa_port';
 const selbrumePortEntrySceneId = 'scene_port_entry';
 const selbrumeClueSceneId = 'scene_clue_glass';
 const selbrumeLysaEventId = 'evt_019abcde-4000-7000-8000-000000000001';
+const selbrumeLysaRematchEventId = 'evt_019abcde-5000-7000-8000-000000000041';
 const selbrumePortEntryEventId = 'evt_019abcde-4000-7000-8000-000000000002';
 const selbrumeClueEventId = 'evt_019abcde-4000-7000-8000-000000000003';
 
