@@ -10,6 +10,7 @@ import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/storyline_asset.dart';
+import '../models/world_rule.dart';
 import '../read_models/narrative_command_catalog.dart';
 
 enum NarrativeSymbolicVerdict { pass, fail, indeterminate }
@@ -149,10 +150,22 @@ final class NarrativeSymbolicReachabilityReport {
     required List<NarrativeSymbolicIssue> issues,
     required Set<String> reachableSceneIds,
     required this.exploredStateCount,
+    List<NarrativeSymbolicState>? evidenceStates,
+    List<NarrativeSymbolicFactEvidenceComponent> independentFactComponents =
+        const <NarrativeSymbolicFactEvidenceComponent>[],
   })  : terminalStates = List.unmodifiable(terminalStates),
         exploredStates = List.unmodifiable(exploredStates),
         issues = List.unmodifiable(issues),
-        reachableSceneIds = Set.unmodifiable(reachableSceneIds);
+        reachableSceneIds = Set.unmodifiable(reachableSceneIds),
+        evidenceStates = List.unmodifiable(
+          evidenceStates ??
+              <NarrativeSymbolicState>[
+                ...exploredStates,
+                ...terminalStates,
+              ],
+        ),
+        independentFactComponents =
+            List.unmodifiable(independentFactComponents);
 
   final NarrativeSymbolicVerdict verdict;
   final List<NarrativeSymbolicState> terminalStates;
@@ -160,23 +173,92 @@ final class NarrativeSymbolicReachabilityReport {
   final List<NarrativeSymbolicIssue> issues;
   final Set<String> reachableSceneIds;
   final int exploredStateCount;
+  final List<NarrativeSymbolicState> evidenceStates;
+  final List<NarrativeSymbolicFactEvidenceComponent> independentFactComponents;
 
-  bool canSatisfyAllTrueFacts(Set<String> factIds) => terminalStates.any(
-        (state) => factIds.every(state.hasTrueFact),
-      );
+  bool canSatisfyAllTrueFacts(Set<String> factIds) {
+    final requiredFromMainComponent = {...factIds};
+    var compatibleMainStates = evidenceStates.toList(growable: false);
+    for (final component in independentFactComponents) {
+      final requiredFromComponent =
+          requiredFromMainComponent.intersection(component.factIds);
+      if (requiredFromComponent.isNotEmpty) {
+        final compatibleMainKeys = <String>{};
+        for (final state in component.states) {
+          if (!requiredFromComponent.every(state.hasTrueFact)) continue;
+          compatibleMainKeys.addAll(
+            component.compatibleMainStateKeysByStateKey[state.semanticKey] ??
+                const <String>{},
+          );
+        }
+        if (compatibleMainKeys.isEmpty) return false;
+        compatibleMainStates = compatibleMainStates
+            .where(
+              (state) => compatibleMainKeys.contains(state.semanticKey),
+            )
+            .toList(growable: false);
+        if (compatibleMainStates.isEmpty) return false;
+      }
+      requiredFromMainComponent.removeAll(component.factIds);
+    }
+    return compatibleMainStates.any(
+      (state) => requiredFromMainComponent.every(state.hasTrueFact),
+    );
+  }
 
   Set<String> get trueFactIds => {
-        for (final state in [...exploredStates, ...terminalStates])
+        for (final state in evidenceStates)
           for (final entry in state.factValues.entries)
             if (entry.value.kind == NarrativeValueKind.boolean &&
                 entry.value.boolValue)
               entry.key,
+        for (final component in independentFactComponents)
+          for (final state in component.states)
+            for (final entry in state.factValues.entries)
+              if (entry.value.kind == NarrativeValueKind.boolean &&
+                  entry.value.boolValue)
+                entry.key,
       };
 
   Set<String> get completedStepIds => {
-        for (final state in [...exploredStates, ...terminalStates])
-          ...state.completedStepIds,
+        for (final state in evidenceStates) ...state.completedStepIds,
+        for (final component in independentFactComponents)
+          for (final state in component.states) ...state.completedStepIds,
       };
+}
+
+/// Compact proof for one storyline component that was proven independent from
+/// the main story and every other component.
+///
+/// A query may choose one state from each component without materializing the
+/// Cartesian product of all side-quest branches.
+@immutable
+final class NarrativeSymbolicFactEvidenceComponent {
+  NarrativeSymbolicFactEvidenceComponent({
+    required Set<String> factIds,
+    required List<NarrativeSymbolicState> states,
+    required Map<String, Set<String>> compatibleMainStateKeysByStateKey,
+  })  : factIds = Set.unmodifiable(factIds),
+        states = List.unmodifiable(states),
+        compatibleMainStateKeysByStateKey =
+            _freezeSharedCompatibilitySets(compatibleMainStateKeysByStateKey);
+
+  final Set<String> factIds;
+  final List<NarrativeSymbolicState> states;
+  final Map<String, Set<String>> compatibleMainStateKeysByStateKey;
+}
+
+Map<String, Set<String>> _freezeSharedCompatibilitySets(
+  Map<String, Set<String>> values,
+) {
+  final frozenBySource = Map<Set<String>, Set<String>>.identity();
+  return Map.unmodifiable({
+    for (final entry in values.entries)
+      entry.key: frozenBySource.putIfAbsent(
+        entry.value,
+        () => Set.unmodifiable(entry.value),
+      ),
+  });
 }
 
 NarrativeSymbolicReachabilityReport solveNarrativeSceneSymbolically(
@@ -427,39 +509,112 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
       if (record.enabledOrNull == true && record.definitionOrNull != null)
         record.definitionOrNull!,
   ]..sort((left, right) {
-      final priority = right.priority.compareTo(left.priority);
-      return priority != 0 ? priority : left.order.compareTo(right.order);
+      return _compareNarrativeDefinitions(left, right);
     });
-  final seen = <String>{};
-  var progress = true;
-  while (progress && frontier.isNotEmpty) {
-    progress = false;
-    final nextFrontier = <NarrativeSymbolicState>[];
-    for (final state in frontier) {
-      final stateKey = state.semanticKey;
-      if (!seen.add(stateKey)) {
-        _addUniqueState(nextFrontier, state);
-        continue;
+  List<NarrativeSymbolicState> exploreDefinitions(
+    List<NarrativeEventDefinition> batch,
+    List<NarrativeSymbolicState> seeds, {
+    List<NarrativeSymbolicState>? eventBoundaryStates,
+  }) {
+    var batchFrontier = seeds;
+    final seen = <String>{};
+    final eventBoundaryStateKeys = eventBoundaryStates == null
+        ? null
+        : {
+            for (final state in eventBoundaryStates) state.semanticKey,
+          };
+
+    void addEventBoundaryState(NarrativeSymbolicState state) {
+      if (eventBoundaryStates == null ||
+          !eventBoundaryStateKeys!.add(state.semanticKey)) {
+        return;
       }
-      if (remainingBudget < 1) {
-        issues.add(
-          NarrativeSymbolicIssue(
-            code: NarrativeSymbolicIssueCode.budgetExceeded,
-            verdict: NarrativeSymbolicVerdict.indeterminate,
-            message:
-                'Le budget symbolique global de $explorationBudget états est dépassé.',
-            sceneId: '',
-            provenance: state.provenance,
-          ),
+      eventBoundaryStates.add(state);
+    }
+
+    var progress = true;
+    while (progress && batchFrontier.isNotEmpty) {
+      progress = false;
+      final nextFrontier = <NarrativeSymbolicState>[];
+      final nextFrontierKeys = <String>{};
+
+      void addNextFrontierState(NarrativeSymbolicState state) {
+        if (nextFrontierKeys.add(state.semanticKey)) {
+          nextFrontier.add(state);
+        }
+      }
+
+      for (final state in batchFrontier) {
+        final stateKey = state.semanticKey;
+        if (!seen.add(stateKey)) {
+          addNextFrontierState(state);
+          continue;
+        }
+        if (remainingBudget < 1) {
+          issues.add(
+            NarrativeSymbolicIssue(
+              code: NarrativeSymbolicIssueCode.budgetExceeded,
+              verdict: NarrativeSymbolicVerdict.indeterminate,
+              message:
+                  'Le budget symbolique global de $explorationBudget états est dépassé.',
+              sceneId: '',
+              provenance: state.provenance,
+            ),
+          );
+          addNextFrontierState(state.copyWith(indeterminate: true));
+          continue;
+        }
+        final candidates = <NarrativeEventDefinition>[];
+        for (final definition in batch) {
+          if (state.executedEventIds.contains(definition.id)) continue;
+          final scene = scenesById[definition.sceneId];
+          if (scene == null || _isDisabledOptionalScene(project, scene)) {
+            continue;
+          }
+          final source = _sourceEligibility(
+            definition.source,
+            state,
+            mapsById,
+          );
+          final conditions = _eventExpressionValue(
+            definition.conditionExpression,
+            state,
+          );
+          if (source == false || conditions == false) continue;
+          if (source == null || conditions == null) {
+            issues.add(
+              NarrativeSymbolicIssue(
+                code: NarrativeSymbolicIssueCode.unsupportedCondition,
+                verdict: NarrativeSymbolicVerdict.indeterminate,
+                message:
+                    'L’éligibilité de l’Event ${definition.id} dépend d’une feature non prouvée.',
+                sceneId: definition.sceneId,
+                eventId: definition.id,
+                provenance: state.provenance,
+              ),
+            );
+          }
+          candidates.add(definition);
+        }
+        if (candidates.isEmpty) {
+          addNextFrontierState(state);
+          continue;
+        }
+        progress = true;
+        // Candidate definitions are already sorted by runtime priority/order.
+        // Executing every eligible sibling here explores permutations of the
+        // same authored Events (A→B and B→A) even when their resulting semantic
+        // state is identical. Execute the canonical next Event only; its Scene
+        // still forks every exclusive route.
+        final definition = candidates.first;
+        final scene = scenesById[definition.sceneId]!;
+        var eventState = state.copyWith(
+          executedEventIds: {...state.executedEventIds, definition.id},
+          consumedEventIds:
+              definition.reusePolicy == NarrativeEventReusePolicy.oneShot
+                  ? {...state.consumedEventIds, definition.id}
+                  : state.consumedEventIds,
         );
-        _addUniqueState(nextFrontier, state.copyWith(indeterminate: true));
-        continue;
-      }
-      final candidates = <NarrativeEventDefinition>[];
-      for (final definition in definitions) {
-        if (state.executedEventIds.contains(definition.id)) continue;
-        final scene = scenesById[definition.sceneId];
-        if (scene == null || _isDisabledOptionalScene(project, scene)) continue;
         final source = _sourceEligibility(
           definition.source,
           state,
@@ -469,94 +624,217 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
           definition.conditionExpression,
           state,
         );
-        if (source == false || conditions == false) continue;
         if (source == null || conditions == null) {
-          issues.add(
-            NarrativeSymbolicIssue(
-              code: NarrativeSymbolicIssueCode.unsupportedCondition,
-              verdict: NarrativeSymbolicVerdict.indeterminate,
-              message:
-                  'L’éligibilité de l’Event ${definition.id} dépend d’une feature non prouvée.',
-              sceneId: definition.sceneId,
-              eventId: definition.id,
-              provenance: state.provenance,
-            ),
-          );
+          eventState = eventState.copyWith(indeterminate: true);
         }
-        candidates.add(definition);
-      }
-      if (candidates.isEmpty) {
-        _addUniqueState(nextFrontier, state);
-        continue;
-      }
-      progress = true;
-      // Candidate definitions are already sorted by runtime priority/order.
-      // Executing every eligible sibling here explores permutations of the
-      // same authored Events (A→B and B→A) even when their resulting semantic
-      // state is identical. That factorial expansion made a real project
-      // indeterminate without uncovering another Scene branch. Execute the
-      // canonical next Event only; its Scene still forks every exclusive
-      // Dialogue/Condition/Battle route, and newly eligible Events are picked
-      // on the following frontier iteration.
-      final definition = candidates.first;
-      final scene = scenesById[definition.sceneId]!;
-      var eventState = state.copyWith(
-        executedEventIds: {...state.executedEventIds, definition.id},
-        consumedEventIds:
-            definition.reusePolicy == NarrativeEventReusePolicy.oneShot
-                ? {...state.consumedEventIds, definition.id}
-                : state.consumedEventIds,
-      );
-      final source = _sourceEligibility(
-        definition.source,
-        state,
-        mapsById,
-      );
-      final conditions = _eventExpressionValue(
-        definition.conditionExpression,
-        state,
-      );
-      if (source == null || conditions == null) {
-        eventState = eventState.copyWith(indeterminate: true);
-      }
-      final result = solveNarrativeSceneSymbolically(
-        scene,
-        initialState: eventState,
-        explorationBudget: remainingBudget,
-        commandCatalog: catalog,
-        eventId: definition.id,
-      );
-      exploredCount += result.exploredStateCount;
-      remainingBudget -= result.exploredStateCount;
-      explored.addAll(result.exploredStates);
-      reachableSceneIds.add(scene.id);
-      final optional = _isOptionalScene(project, scene);
-      issues.addAll([
-        for (final issue in result.issues)
-          NarrativeSymbolicIssue(
-            code: issue.code,
-            verdict: issue.verdict,
-            message: issue.message,
-            sceneId: issue.sceneId,
-            nodeId: issue.nodeId,
-            eventId: issue.eventId,
-            optional: optional,
-            provenance: issue.provenance,
-          ),
-      ]);
-      if (result.terminalStates.isEmpty && optional) {
-        _addUniqueState(nextFrontier, eventState);
-      }
-      for (final terminal in result.terminalStates) {
-        _addUniqueState(
-          nextFrontier,
-          _applyStorylineOutcomeEffects(project, terminal),
+        final result = solveNarrativeSceneSymbolically(
+          scene,
+          initialState: eventState,
+          explorationBudget: remainingBudget,
+          commandCatalog: catalog,
+          eventId: definition.id,
         );
+        exploredCount += result.exploredStateCount;
+        remainingBudget -= result.exploredStateCount;
+        explored.addAll(result.exploredStates);
+        reachableSceneIds.add(scene.id);
+        final optional = _isOptionalScene(project, scene);
+        issues.addAll([
+          for (final issue in result.issues)
+            NarrativeSymbolicIssue(
+              code: issue.code,
+              verdict: issue.verdict,
+              message: issue.message,
+              sceneId: issue.sceneId,
+              nodeId: issue.nodeId,
+              eventId: issue.eventId,
+              optional: optional,
+              provenance: issue.provenance,
+            ),
+        ]);
+        if (result.terminalStates.isEmpty && optional) {
+          addNextFrontierState(eventState);
+        }
+        for (final terminal in result.terminalStates) {
+          final boundaryState =
+              _applyStorylineOutcomeEffects(project, terminal);
+          if (eventBoundaryStates != null) {
+            addEventBoundaryState(boundaryState);
+          }
+          addNextFrontierState(boundaryState);
+        }
+      }
+      batchFrontier = nextFrontier;
+    }
+    return batchFrontier;
+  }
+
+  final optionalDefinitionsByStoryline =
+      <String, List<NarrativeEventDefinition>>{};
+  final mandatoryDefinitions = <NarrativeEventDefinition>[];
+  for (final definition in definitions) {
+    final scene = scenesById[definition.sceneId];
+    if (scene == null || !_isOptionalScene(project, scene)) {
+      mandatoryDefinitions.add(definition);
+      continue;
+    }
+    optionalDefinitionsByStoryline
+        .putIfAbsent(scene.storylineId!, () => <NarrativeEventDefinition>[])
+        .add(definition);
+  }
+  final optionalBatches = optionalDefinitionsByStoryline.values
+      .map((definitions) => [...definitions])
+      .toList();
+  var mergedOptionalBatch = true;
+  while (mergedOptionalBatch) {
+    mergedOptionalBatch = false;
+    for (var leftIndex = 0;
+        leftIndex < optionalBatches.length && !mergedOptionalBatch;
+        leftIndex++) {
+      final leftFootprint = _narrativeBatchFootprint(
+        project: project,
+        definitions: optionalBatches[leftIndex],
+        scenesById: scenesById,
+      );
+      for (var rightIndex = leftIndex + 1;
+          rightIndex < optionalBatches.length;
+          rightIndex++) {
+        final rightFootprint = _narrativeBatchFootprint(
+          project: project,
+          definitions: optionalBatches[rightIndex],
+          scenesById: scenesById,
+        );
+        if (!_narrativeBatchesAreCoupled(
+          leftFootprint,
+          rightFootprint,
+        )) {
+          continue;
+        }
+        optionalBatches[leftIndex]
+          ..addAll(optionalBatches[rightIndex])
+          ..sort(_compareNarrativeDefinitions);
+        optionalBatches.removeAt(rightIndex);
+        mergedOptionalBatch = true;
+        break;
       }
     }
-    frontier = nextFrontier;
   }
-  terminals.addAll(frontier);
+  var promotedOptionalBatch = true;
+  while (promotedOptionalBatch) {
+    promotedOptionalBatch = false;
+    final mandatoryFootprint = _narrativeBatchFootprint(
+      project: project,
+      definitions: mandatoryDefinitions,
+      scenesById: scenesById,
+    );
+    for (var index = 0; index < optionalBatches.length; index++) {
+      final optionalFootprint = _narrativeBatchFootprint(
+        project: project,
+        definitions: optionalBatches[index],
+        scenesById: scenesById,
+      );
+      if (!_optionalBatchMustJoinMandatory(
+        optionalFootprint,
+        mandatoryFootprint,
+      )) {
+        continue;
+      }
+      mandatoryDefinitions
+        ..addAll(optionalBatches.removeAt(index))
+        ..sort(_compareNarrativeDefinitions);
+      promotedOptionalBatch = true;
+      break;
+    }
+  }
+
+  final mandatoryEvidenceStates = <NarrativeSymbolicState>[
+    ...frontier,
+  ];
+  final mandatoryTerminals = exploreDefinitions(
+    mandatoryDefinitions,
+    frontier,
+    eventBoundaryStates: mandatoryEvidenceStates,
+  );
+  terminals.addAll(mandatoryTerminals);
+  for (final terminal in mandatoryTerminals) {
+    _addUniqueState(mandatoryEvidenceStates, terminal);
+  }
+  final independentFactComponents = <NarrativeSymbolicFactEvidenceComponent>[];
+  final allEventBoundaryStates = <NarrativeSymbolicState>[
+    ...mandatoryEvidenceStates,
+  ];
+  final mainProvenanceIndex =
+      _NarrativeProvenanceDescendantIndex(mandatoryEvidenceStates);
+  optionalBatches.sort((left, right) {
+    final leftId = scenesById[left.first.sceneId]?.storylineId ?? '';
+    final rightId = scenesById[right.first.sceneId]?.storylineId ?? '';
+    return leftId.compareTo(rightId);
+  });
+  for (final batch in optionalBatches) {
+    final projectedSeeds = _projectSymbolicSeeds(
+      project: project,
+      definitions: batch,
+      scenesById: scenesById,
+      states: mandatoryEvidenceStates,
+    );
+    final seeds = projectedSeeds.states;
+    final footprint = _narrativeBatchFootprint(
+      project: project,
+      definitions: batch,
+      scenesById: scenesById,
+    );
+    final optionalBoundaryStates = <NarrativeSymbolicState>[...seeds];
+    final optionalTerminals = exploreDefinitions(
+      batch,
+      seeds,
+      eventBoundaryStates: optionalBoundaryStates,
+    );
+    terminals.addAll(optionalTerminals);
+    for (final state in optionalBoundaryStates) {
+      _addUniqueState(allEventBoundaryStates, state);
+    }
+    final batchEventIds = batch.map((definition) => definition.id).toSet();
+    final compatibleMainKeysBySeedStateKey = <String, Set<String>>{
+      for (final seed in seeds)
+        seed.semanticKey: {
+          for (final origin
+              in projectedSeeds.originsBySeedStateKey[seed.semanticKey] ??
+                  const <NarrativeSymbolicState>[])
+            ...mainProvenanceIndex.descendantStateKeys(origin.provenance),
+        },
+    };
+    final componentWrites = _NarrativeComponentWrites.from(
+      footprint.writes,
+      batchEventIds,
+    );
+    final compatibleMainKeysByAgreementKey = <String, Set<String>>{};
+    for (final seed in seeds) {
+      compatibleMainKeysByAgreementKey
+          .putIfAbsent(
+            componentWrites.agreementKey(seed),
+            () => <String>{},
+          )
+          .addAll(
+            compatibleMainKeysBySeedStateKey[seed.semanticKey] ??
+                const <String>{},
+          );
+    }
+    independentFactComponents.add(
+      NarrativeSymbolicFactEvidenceComponent(
+        factIds: {
+          for (final write in footprint.writes)
+            if (write.startsWith('fact:')) write.substring('fact:'.length),
+        },
+        states: optionalBoundaryStates,
+        compatibleMainStateKeysByStateKey: {
+          for (final state in optionalBoundaryStates)
+            state.semanticKey: compatibleMainKeysByAgreementKey[
+                    componentWrites.agreementKey(state)] ??
+                const <String>{},
+        },
+      ),
+    );
+  }
 
   for (final definition in definitions) {
     final requiredTrueFacts = <String>{};
@@ -573,7 +851,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
       );
     }
     if (requiredTrueFacts.length < 2) continue;
-    final states = [...explored, ...terminals];
+    final states = allEventBoundaryStates;
     final individuallyPossible = requiredTrueFacts.every(
       (factId) => states.any((state) => state.hasTrueFact(factId)),
     );
@@ -604,7 +882,466 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
     issues: _deduplicateIssues(issues),
     reachableSceneIds: reachableSceneIds,
     exploredStateCount: exploredCount,
+    evidenceStates: mandatoryEvidenceStates,
+    independentFactComponents: independentFactComponents,
   );
+}
+
+final class _ProjectedSymbolicSeeds {
+  _ProjectedSymbolicSeeds({
+    required List<NarrativeSymbolicState> states,
+    required Map<String, List<NarrativeSymbolicState>> originsBySeedStateKey,
+  })  : states = List.unmodifiable(states),
+        originsBySeedStateKey =
+            Map<String, List<NarrativeSymbolicState>>.unmodifiable({
+          for (final entry in originsBySeedStateKey.entries)
+            entry.key: List<NarrativeSymbolicState>.unmodifiable(entry.value),
+        });
+
+  final List<NarrativeSymbolicState> states;
+  final Map<String, List<NarrativeSymbolicState>> originsBySeedStateKey;
+}
+
+_ProjectedSymbolicSeeds _projectSymbolicSeeds({
+  required ProjectManifest project,
+  required List<NarrativeEventDefinition> definitions,
+  required Map<String, SceneAsset> scenesById,
+  required List<NarrativeSymbolicState> states,
+}) {
+  final relevantFactIds = <String>{};
+  final relevantStepIds = <String>{};
+  final relevantConsumedEventIds = <String>{};
+  final relevantOutcomeKeys = <String>{};
+  final definitionIds = definitions.map((definition) => definition.id).toSet();
+
+  for (final definition in definitions) {
+    _collectEventConditionReads(
+      definition.conditionExpression,
+      factIds: relevantFactIds,
+      consumedEventIds: relevantConsumedEventIds,
+    );
+    definition.source.when(
+      entityInteract: (_, __) {},
+      triggerEnter: (_, __) {},
+      mapEnter: (_) {},
+      outcomeReceived: (outcome) {
+        if (outcome.producerKind == NarrativeOutcomeProducerKind.scene) {
+          relevantOutcomeKeys.add(
+            _outcomeKey(outcome.producerId, outcome.outcomeId),
+          );
+        }
+      },
+    );
+    final scene = scenesById[definition.sceneId];
+    if (scene == null) continue;
+    for (final node in scene.graph.nodes) {
+      final payload = node.payload;
+      if (payload is! SceneConditionPayload) continue;
+      final source = payload.conditionSource;
+      if (source == null) continue;
+      switch (source.sourceKind) {
+        case SceneConditionSourceKind.fact:
+        case SceneConditionSourceKind.factLikeStoryFlag:
+          relevantFactIds.add(source.sourceId);
+        case SceneConditionSourceKind.storyStepCompletion:
+          relevantStepIds.add(source.sourceId);
+        case SceneConditionSourceKind.consumedEvent:
+          relevantConsumedEventIds.add(source.sourceId);
+        case SceneConditionSourceKind.storyStepActive:
+        case SceneConditionSourceKind.inventoryItem:
+        case SceneConditionSourceKind.partyState:
+        case SceneConditionSourceKind.trainerDefeated:
+        case SceneConditionSourceKind.dialogueOutcome:
+        case SceneConditionSourceKind.battleOutcome:
+        case SceneConditionSourceKind.scriptVariable:
+        case SceneConditionSourceKind.worldState:
+          break;
+      }
+    }
+  }
+
+  // Preserve every dimension that can change physical reachability. Optional
+  // storylines are solved independently, but their seed must still represent
+  // main-story gates such as a passage opened by a Fact or completed step.
+  for (final rule in project.worldRules) {
+    switch (rule.source.kind) {
+      case WorldRuleSourceKind.fact:
+        relevantFactIds.add(rule.source.sourceId);
+      case WorldRuleSourceKind.storyStepCompletion:
+        relevantStepIds.add(rule.source.sourceId);
+      case WorldRuleSourceKind.consumedEvent:
+        relevantConsumedEventIds.add(rule.source.sourceId);
+    }
+  }
+
+  String projectionKey(NarrativeSymbolicState state) {
+    final facts = <String>[
+      for (final factId in relevantFactIds)
+        if (state.factValues[factId] case final value?)
+          '$factId=${value.kind.wireName}:${value.toJson()}',
+    ]..sort();
+    final steps = state.completedStepIds.intersection(relevantStepIds).toList()
+      ..sort();
+    final consumed = state.consumedEventIds
+        .intersection(relevantConsumedEventIds)
+        .toList()
+      ..sort();
+    final outcomes = state.emittedOutcomeKeys
+        .intersection(relevantOutcomeKeys)
+        .toList()
+      ..sort();
+    final executed = state.executedEventIds.intersection(definitionIds).toList()
+      ..sort();
+    final badges = state.badgeIds.toList()..sort();
+    final fieldAbilities = state.unlockedFieldAbilities
+        .map((ability) => ability.moveId)
+        .toList()
+      ..sort();
+    return <String>[
+      ...facts,
+      'steps=${steps.join(',')}',
+      'consumed=${consumed.join(',')}',
+      'outcomes=${outcomes.join(',')}',
+      'executed=${executed.join(',')}',
+      'badges=${badges.join(',')}',
+      'field=${fieldAbilities.join(',')}',
+      'indeterminate=${state.indeterminate}',
+    ].join('|');
+  }
+
+  final byProjection = <String, NarrativeSymbolicState>{};
+  final originsByProjection = <String, List<NarrativeSymbolicState>>{};
+  final originKeysByProjection = <String, Set<String>>{};
+  for (final state in states) {
+    final key = projectionKey(state);
+    final origins = originsByProjection.putIfAbsent(
+      key,
+      () => <NarrativeSymbolicState>[],
+    );
+    final originKeys = originKeysByProjection.putIfAbsent(
+      key,
+      () => <String>{},
+    );
+    if (originKeys.add(state.semanticKey)) {
+      origins.add(state);
+    }
+    final existing = byProjection[key];
+    if (existing == null || existing.indeterminate && !state.indeterminate) {
+      byProjection[key] = state;
+    }
+  }
+  return _ProjectedSymbolicSeeds(
+    states: byProjection.values.toList(growable: false),
+    originsBySeedStateKey: {
+      for (final entry in byProjection.entries)
+        entry.value.semanticKey:
+            originsByProjection[entry.key] ?? const <NarrativeSymbolicState>[],
+    },
+  );
+}
+
+void _collectEventConditionReads(
+  NarrativeEventConditionExpression expression, {
+  required Set<String> factIds,
+  required Set<String> consumedEventIds,
+}) {
+  switch (expression) {
+    case NarrativeEventConditionLeaf(:final condition):
+      condition.whenTyped(
+        fact: (factId, _, __) => factIds.add(factId),
+        narrativeEventConsumed: (eventId, _) => consumedEventIds.add(eventId),
+      );
+    case NarrativeEventConditionAll(:final children):
+    case NarrativeEventConditionAny(:final children):
+      for (final child in children) {
+        _collectEventConditionReads(
+          child,
+          factIds: factIds,
+          consumedEventIds: consumedEventIds,
+        );
+      }
+    case NarrativeEventConditionNot(:final child):
+      _collectEventConditionReads(
+        child,
+        factIds: factIds,
+        consumedEventIds: consumedEventIds,
+      );
+  }
+}
+
+int _compareNarrativeDefinitions(
+  NarrativeEventDefinition left,
+  NarrativeEventDefinition right,
+) {
+  final priority = right.priority.compareTo(left.priority);
+  if (priority != 0) return priority;
+  final order = left.order.compareTo(right.order);
+  return order != 0 ? order : left.id.compareTo(right.id);
+}
+
+final class _NarrativeBatchFootprint {
+  const _NarrativeBatchFootprint({
+    required this.reads,
+    required this.writes,
+  });
+
+  final Set<String> reads;
+  final Set<String> writes;
+}
+
+_NarrativeBatchFootprint _narrativeBatchFootprint({
+  required ProjectManifest project,
+  required List<NarrativeEventDefinition> definitions,
+  required Map<String, SceneAsset> scenesById,
+}) {
+  final reads = <String>{};
+  final writes = <String>{};
+  final sceneIds = definitions.map((definition) => definition.sceneId).toSet();
+
+  for (final definition in definitions) {
+    final factIds = <String>{};
+    final consumedEventIds = <String>{};
+    _collectEventConditionReads(
+      definition.conditionExpression,
+      factIds: factIds,
+      consumedEventIds: consumedEventIds,
+    );
+    reads.addAll(factIds.map((id) => 'fact:$id'));
+    reads.addAll(consumedEventIds.map((id) => 'consumed:$id'));
+    definition.source.when(
+      entityInteract: (_, __) {},
+      triggerEnter: (_, __) {},
+      mapEnter: (_) {},
+      outcomeReceived: (outcome) {
+        if (outcome.producerKind == NarrativeOutcomeProducerKind.scene) {
+          reads.add(
+            'outcome:${_outcomeKey(outcome.producerId, outcome.outcomeId)}',
+          );
+        }
+      },
+    );
+    if (definition.reusePolicy == NarrativeEventReusePolicy.oneShot) {
+      writes.add('consumed:${definition.id}');
+    }
+
+    final scene = scenesById[definition.sceneId];
+    if (scene == null) continue;
+    for (final node in scene.graph.nodes) {
+      switch (node.payload) {
+        case SceneConditionPayload(:final conditionSource):
+          final source = conditionSource;
+          if (source == null) continue;
+          switch (source.sourceKind) {
+            case SceneConditionSourceKind.fact:
+            case SceneConditionSourceKind.factLikeStoryFlag:
+              reads.add('fact:${source.sourceId}');
+            case SceneConditionSourceKind.storyStepCompletion:
+              reads.add('step:${source.sourceId}');
+            case SceneConditionSourceKind.consumedEvent:
+              reads.add('consumed:${source.sourceId}');
+            case SceneConditionSourceKind.storyStepActive:
+            case SceneConditionSourceKind.inventoryItem:
+            case SceneConditionSourceKind.partyState:
+            case SceneConditionSourceKind.trainerDefeated:
+            case SceneConditionSourceKind.dialogueOutcome:
+            case SceneConditionSourceKind.battleOutcome:
+            case SceneConditionSourceKind.scriptVariable:
+            case SceneConditionSourceKind.worldState:
+              break;
+          }
+        case SceneActionPayload(:final consequence):
+          switch (consequence) {
+            case SceneSetFactConsequence(:final factId):
+              writes.add('fact:$factId');
+            case SceneCompleteStoryStepConsequence(:final stepId):
+              writes.add('step:$stepId');
+            case SceneMarkEventConsumedConsequence(:final eventId):
+              writes.add('consumed:$eventId');
+            case SceneAwardBadgeConsequence(:final badgeId):
+              writes.add('badge:$badgeId');
+            case SceneUnlockFieldAbilityConsequence(:final ability):
+              writes.add('field:${ability.moveId}');
+            case SceneGiveItemConsequence():
+            case SceneTakeItemConsequence():
+            case SceneGiveMoneyConsequence():
+            case SceneGivePokemonConsequence():
+            case SceneGiveConfiguredStarterConsequence():
+            case SceneHealPartyConsequence():
+            case null:
+              break;
+          }
+        case SceneEndPayload(:final sceneOutcomeId):
+          if (sceneOutcomeId != null) {
+            writes.add('outcome:${_outcomeKey(scene.id, sceneOutcomeId)}');
+          }
+        case _:
+          break;
+      }
+    }
+  }
+
+  for (final storyline in project.storylines) {
+    for (final link in storyline.sceneLinks) {
+      final sceneId = link.sceneRef?.targetId;
+      if (sceneId == null || !sceneIds.contains(sceneId)) continue;
+      for (final outcome in link.outcomeLinks) {
+        for (final effect in outcome.effects) {
+          switch (effect.type) {
+            case StorylineEffectType.completeStep:
+              writes.add('step:${effect.targetId}');
+            case StorylineEffectType.emitFact:
+              writes.add('fact:${effect.targetId}');
+            case StorylineEffectType.activateStep:
+            case StorylineEffectType.unlockStoryline:
+            case StorylineEffectType.setWorldRule:
+            case StorylineEffectType.affectRelationship:
+              break;
+          }
+        }
+      }
+    }
+  }
+
+  return _NarrativeBatchFootprint(
+    reads: Set.unmodifiable(reads),
+    writes: Set.unmodifiable(writes),
+  );
+}
+
+bool _narrativeBatchesAreCoupled(
+  _NarrativeBatchFootprint left,
+  _NarrativeBatchFootprint right,
+) {
+  final leftRelevant = {...left.reads, ...left.writes};
+  final rightRelevant = {...right.reads, ...right.writes};
+  return _setsIntersect(left.writes, rightRelevant) ||
+      _setsIntersect(right.writes, leftRelevant);
+}
+
+bool _optionalBatchMustJoinMandatory(
+  _NarrativeBatchFootprint optional,
+  _NarrativeBatchFootprint mandatory,
+) {
+  return _setsIntersect(
+    optional.writes,
+    {...mandatory.reads, ...mandatory.writes},
+  );
+}
+
+bool _setsIntersect(Set<String> left, Set<String> right) =>
+    left.any(right.contains);
+
+final class _NarrativeComponentWrites {
+  _NarrativeComponentWrites({
+    required this.factIds,
+    required this.stepIds,
+    required this.consumedEventIds,
+    required this.badgeIds,
+    required this.outcomeKeys,
+    required this.fieldAbilityIds,
+    required this.executedEventIds,
+  });
+
+  factory _NarrativeComponentWrites.from(
+    Set<String> writes,
+    Set<String> executedEventIds,
+  ) {
+    Set<String> ids(String prefix) => {
+          for (final write in writes)
+            if (write.startsWith(prefix)) write.substring(prefix.length),
+        };
+
+    return _NarrativeComponentWrites(
+      factIds: ids('fact:'),
+      stepIds: ids('step:'),
+      consumedEventIds: ids('consumed:'),
+      badgeIds: ids('badge:'),
+      outcomeKeys: ids('outcome:'),
+      fieldAbilityIds: ids('field:'),
+      executedEventIds: executedEventIds,
+    );
+  }
+
+  final Set<String> factIds;
+  final Set<String> stepIds;
+  final Set<String> consumedEventIds;
+  final Set<String> badgeIds;
+  final Set<String> outcomeKeys;
+  final Set<String> fieldAbilityIds;
+  final Set<String> executedEventIds;
+
+  String agreementKey(NarrativeSymbolicState state) {
+    return NarrativeSymbolicState(
+      factValues: {
+        for (final entry in state.factValues.entries)
+          if (!factIds.contains(entry.key)) entry.key: entry.value,
+      },
+      completedStepIds: state.completedStepIds.difference(stepIds),
+      consumedEventIds: state.consumedEventIds.difference(consumedEventIds),
+      badgeIds: state.badgeIds.difference(badgeIds),
+      unlockedFieldAbilities: {
+        for (final ability in state.unlockedFieldAbilities)
+          if (!fieldAbilityIds.contains(ability.moveId)) ability,
+      },
+      emittedOutcomeKeys: state.emittedOutcomeKeys.difference(outcomeKeys),
+      executedEventIds: state.executedEventIds.difference(executedEventIds),
+    ).semanticKey;
+  }
+}
+
+final class _NarrativeProvenanceDescendantIndex {
+  _NarrativeProvenanceDescendantIndex(
+    Iterable<NarrativeSymbolicState> mainStates,
+  ) {
+    for (final state in mainStates) {
+      final stateKey = state.semanticKey;
+      var node = _root;
+      node.descendantStateKeys.add(stateKey);
+      for (final entry in state.provenance) {
+        node = node.children.putIfAbsent(
+          _provenanceEntryKey(entry),
+          _NarrativeProvenanceIndexNode.new,
+        );
+        node.descendantStateKeys.add(stateKey);
+      }
+    }
+  }
+
+  final _NarrativeProvenanceIndexNode _root = _NarrativeProvenanceIndexNode();
+
+  Set<String> descendantStateKeys(
+    Iterable<NarrativeSymbolicProvenance> provenance,
+  ) {
+    var node = _root;
+    for (final entry in provenance) {
+      final next = node.children[_provenanceEntryKey(entry)];
+      if (next == null) return const <String>{};
+      node = next;
+    }
+    return node.descendantStateKeys;
+  }
+}
+
+final class _NarrativeProvenanceIndexNode {
+  final Map<String, _NarrativeProvenanceIndexNode> children = {};
+  final Set<String> descendantStateKeys = {};
+}
+
+String _provenanceEntryKey(NarrativeSymbolicProvenance entry) {
+  final buffer = StringBuffer();
+  void writeField(String? value) {
+    final resolved = value ?? '';
+    buffer
+      ..write(resolved.length)
+      ..write(':')
+      ..write(resolved);
+  }
+
+  writeField(entry.sceneId);
+  writeField(entry.nodeId);
+  writeField(entry.eventId);
+  writeField(entry.description);
+  return buffer.toString();
 }
 
 NarrativeSymbolicState _applyAction({

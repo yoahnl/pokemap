@@ -174,7 +174,7 @@ void main() {
       );
     });
 
-    test('does not apply unsupported story step condition as opaque flag', () {
+    test('applies a supported story step condition as a typed predicate', () {
       final event = _event(
         page: const MapEventPage(pageNumber: 0),
       );
@@ -187,9 +187,11 @@ void main() {
         ],
       );
 
+      final updated = applyEventBuilderContractToMapEvent(event, contract);
+
       expect(
-        () => applyEventBuilderContractToMapEvent(event, contract),
-        throwsUnsupportedError,
+        updated.pages.single.condition,
+        ScriptConditionFactory.stepCompleted('step_go_port'),
       );
     });
 
