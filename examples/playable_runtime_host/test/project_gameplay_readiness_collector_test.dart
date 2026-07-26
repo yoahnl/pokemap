@@ -28,6 +28,7 @@ void main() {
       receipt: _receipt(),
       expectedCommit: 'a' * 40,
       actualProjectTreeHashSha256: 'b' * 64,
+      capabilityTruth: _truth(),
     );
 
     expect(result.isReady, isTrue);
@@ -42,6 +43,7 @@ void main() {
       receipt: _receipt(),
       expectedCommit: 'c' * 40,
       actualProjectTreeHashSha256: 'd' * 64,
+      capabilityTruth: _truth(),
     );
 
     expect(result.isReady, isFalse);
@@ -88,6 +90,7 @@ void main() {
         receipt: _receipt(criteria: criteria),
         expectedCommit: 'a' * 40,
         actualProjectTreeHashSha256: 'b' * 64,
+        capabilityTruth: _truth(),
       );
       expect(result.isReady, isFalse);
     }
@@ -99,11 +102,44 @@ void main() {
       receipt: _receipt(exitCode: 1),
       expectedCommit: 'a' * 40,
       actualProjectTreeHashSha256: 'b' * 64,
+      capabilityTruth: _truth(),
     );
 
     expect(result.isReady, isFalse);
     expect(result.issues.join(' '), contains('exit code 1'));
     expect(result.report.errors, isNotEmpty);
+  });
+
+  test('fails event-command readiness on an incomplete promoted capability',
+      () {
+    final result = const ProjectGameplayReadinessCollector().collect(
+      project: selbrume,
+      receipt: _receipt(),
+      expectedCommit: 'a' * 40,
+      actualProjectTreeHashSha256: 'b' * 64,
+      capabilityTruth: const [
+        ProjectCapabilityTruthRecord.promoted(
+          capabilityId: 'narrative.command.test',
+          authoringControl: 'Event Builder',
+          contractField: 'SceneConsequence.test',
+          runtimeConsumer: '',
+          playerSurface: 'Scene flow',
+          positiveTest: 'positive_test.dart',
+          negativeTest: 'negative_test.dart',
+        ),
+      ],
+    );
+
+    expect(result.isReady, isFalse);
+    expect(
+      result.report.errors
+          .singleWhere(
+            (diagnostic) =>
+                diagnostic.check == ProjectGameplayReadinessCheck.eventCommands,
+          )
+          .summary,
+      contains('missingRuntimeConsumer'),
+    );
   });
 }
 
@@ -131,3 +167,21 @@ List<MvpProductCriterionEvidence> _criteria() => MvpProductCriterion.values
       ),
     )
     .toList(growable: false);
+
+List<ProjectCapabilityTruthRecord> _truth() {
+  final catalog = NarrativeCommandCatalog.canonical();
+  final attestation = ProjectCapabilityTruthAttestation(
+    referencesByCapabilityId: {
+      for (final command in catalog.publishable)
+        command.id: 'verified_adapter.dart#${command.id}',
+    },
+  );
+  return buildNarrativeCommandCapabilityTruthMatrix(
+    catalog: catalog,
+    authoring: attestation,
+    runtime: attestation,
+    playerSurface: attestation,
+    positiveTests: attestation,
+    negativeTests: attestation,
+  );
+}

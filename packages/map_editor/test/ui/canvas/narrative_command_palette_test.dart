@@ -2,12 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/narrative_capability_evidence.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_command_palette.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_destination.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
 
 void main() {
+  test('authoring attestation covers every publishable builder command', () {
+    final catalog = NarrativeCommandCatalog.canonical();
+    final attestation =
+        buildMapEditorNarrativeCommandAuthoringAttestation(catalog: catalog);
+
+    expect(
+      attestation.referencesByCapabilityId.keys,
+      unorderedEquals(catalog.publishable.map((command) => command.id)),
+    );
+    expect(
+      attestation.referencesByCapabilityId.values,
+      everyElement(
+        endsWith('scene_action_builder.dart#SceneActionBuilder'),
+      ),
+    );
+  });
+
   testWidgets('palette searches accents, ids and opens the selected asset', (
     tester,
   ) async {
@@ -75,6 +93,7 @@ void main() {
         NarrativeCommandIds.awardBadge,
         NarrativeCommandIds.unlockFieldAbility,
       },
+      capabilityTruth: _completeTruth(),
       onOpenCommand: (command) => opened = command,
     );
     await tester.pumpWidget(
@@ -98,6 +117,26 @@ void main() {
 
     await tester.tap(find.text('Créer · Donner un badge'));
     expect(opened?.id, NarrativeCommandIds.awardBadge);
+  });
+
+  test('authoring actions hide a promoted command with incomplete truth', () {
+    final actions = buildNarrativeCommandAuthoringPaletteActions(
+      runtimeCommandIds: const {NarrativeCommandIds.healParty},
+      capabilityTruth: const [
+        ProjectCapabilityTruthRecord.promoted(
+          capabilityId: 'narrative.command.${NarrativeCommandIds.healParty}',
+          authoringControl: 'SceneActionBuilder.healParty',
+          contractField: 'healParty',
+          runtimeConsumer: '',
+          playerSurface: 'Scene flow',
+          positiveTest: 'positive_test.dart',
+          negativeTest: 'negative_test.dart',
+        ),
+      ],
+      onOpenCommand: (_) {},
+    );
+
+    expect(actions, isEmpty);
   });
 
   testWidgets('product shell opens palette with command K and restores focus', (
@@ -136,6 +175,26 @@ void main() {
     expect(find.byKey(narrativeCommandPaletteKey), findsNothing);
     expect(focusNode.hasFocus, isTrue);
   });
+}
+
+List<ProjectCapabilityTruthRecord> _completeTruth() {
+  final catalog = NarrativeCommandCatalog.canonical();
+  final fallback = ProjectCapabilityTruthAttestation(
+    referencesByCapabilityId: {
+      for (final command in catalog.publishable)
+        command.id: 'verified_adapter.dart#${command.id}',
+    },
+  );
+  return buildNarrativeCommandCapabilityTruthMatrix(
+    catalog: catalog,
+    authoring: buildMapEditorNarrativeCommandAuthoringAttestation(
+      catalog: catalog,
+    ),
+    runtime: fallback,
+    playerSurface: fallback,
+    positiveTests: fallback,
+    negativeTests: fallback,
+  );
 }
 
 final _index = NarrativeGlobalSearchIndex.fromEntries(

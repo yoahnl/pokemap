@@ -3,6 +3,93 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('capability truth promotes exactly the runtime parity samples', () {
+    final catalog = NarrativeCommandCatalog.canonical();
+    final report = ProjectCapabilityTruthReport.evaluate(
+      _truthMatrix(catalog),
+      requiredCapabilityIds: requiredNarrativeCommandCapabilityIds(
+        catalog: catalog,
+      ),
+    );
+    final sampledIds = <String>{
+      ..._consequenceSamples().keys,
+      ..._interactiveSamples().keys,
+      ..._dedicatedSamples().keys,
+    };
+
+    expect(report.isPassing, isTrue, reason: report.agentMarkdown);
+    expect(
+      report.capabilities
+          .where(
+            (capability) =>
+                capability.status == ProjectCapabilityTruthStatus.promoted,
+          )
+          .map((capability) => capability.capabilityId),
+      unorderedEquals(
+        sampledIds.map((id) => 'narrative.command.$id'),
+      ),
+    );
+  });
+
+  test('missing backend attestation fails every published command', () {
+    final catalog = NarrativeCommandCatalog.canonical();
+    final completeRuntime =
+        buildMapRuntimeNarrativeCommandConsumerAttestation(catalog: catalog);
+    for (final command in catalog.publishable) {
+      final incompleteRuntime = ProjectCapabilityTruthAttestation(
+        referencesByCapabilityId: {
+          ...completeRuntime.referencesByCapabilityId,
+        }..remove(command.id),
+      );
+      final report = ProjectCapabilityTruthReport.evaluate(
+        _truthMatrix(
+          catalog,
+          runtime: incompleteRuntime,
+        ),
+        requiredCapabilityIds: requiredNarrativeCommandCapabilityIds(
+          catalog: catalog,
+        ),
+      );
+
+      expect(report.isPassing, isFalse, reason: command.id);
+      expect(
+        report.issues.any(
+          (issue) =>
+              issue.capabilityId == narrativeCommandCapabilityId(command.id) &&
+              issue.code ==
+                  ProjectCapabilityTruthIssueCode.missingRuntimeConsumer,
+        ),
+        isTrue,
+        reason: command.id,
+      );
+    }
+  });
+
+  test('player-surface attestation resolves to the playable game host', () {
+    final catalog = NarrativeCommandCatalog.canonical();
+    final consumers =
+        buildMapRuntimeNarrativeCommandConsumerAttestation(catalog: catalog);
+    final surfaces = buildMapRuntimeNarrativeCommandPlayerSurfaceAttestation(
+      catalog: catalog,
+    );
+
+    expect(
+      surfaces.referencesByCapabilityId.keys,
+      unorderedEquals(catalog.publishable.map((command) => command.id)),
+    );
+    expect(
+      surfaces.referencesByCapabilityId.values,
+      everyElement(endsWith('playable_map_game.dart#PlayableMapGame')),
+    );
+    for (final command in catalog.publishable) {
+      expect(
+        surfaces.referenceFor(command.id),
+        isNot(consumers.referenceFor(command.id)),
+        reason: command.id,
+      );
+    }
+  });
+
   test('every supported consequence reaches an atomic runtime writer', () {
     final catalog = NarrativeCommandCatalog.canonical();
     final samples = _consequenceSamples();
@@ -123,6 +210,55 @@ void main() {
     );
   });
 }
+
+List<ProjectCapabilityTruthRecord> _truthMatrix(
+  NarrativeCommandCatalog catalog, {
+  ProjectCapabilityTruthAttestation? runtime,
+}) {
+  final authoring = ProjectCapabilityTruthAttestation(
+    referencesByCapabilityId: {
+      for (final command in catalog.publishable)
+        command.id: 'packages/map_editor/lib/src/ui/canvas/scenes/'
+            'scene_action_builder.dart#SceneActionBuilder',
+    },
+  );
+  final positiveTests = ProjectCapabilityTruthAttestation(
+    referencesByCapabilityId: {
+      for (final command in catalog.publishable)
+        command.id: 'packages/map_runtime/test/'
+            'narrative_command_runtime_parity_test.dart#'
+            '${_positiveProofName(command.backend)}',
+    },
+  );
+  final negativeTests = ProjectCapabilityTruthAttestation(
+    referencesByCapabilityId: {
+      for (final command in catalog.publishable)
+        command.id: 'packages/map_runtime/test/'
+            'narrative_command_runtime_parity_test.dart#'
+            'missing backend attestation fails every published command',
+    },
+  );
+  return buildNarrativeCommandCapabilityTruthMatrix(
+    catalog: catalog,
+    authoring: authoring,
+    runtime: runtime ??
+        buildMapRuntimeNarrativeCommandConsumerAttestation(catalog: catalog),
+    playerSurface: buildMapRuntimeNarrativeCommandPlayerSurfaceAttestation(
+      catalog: catalog,
+    ),
+    positiveTests: positiveTests,
+    negativeTests: negativeTests,
+  );
+}
+
+String _positiveProofName(NarrativeCommandBackend backend) => switch (backend) {
+      NarrativeCommandBackend.sceneConsequence =>
+        'every supported consequence reaches an atomic runtime writer',
+      NarrativeCommandBackend.interactiveRuntimeCommand =>
+        'every supported interactive command returns a declared output port',
+      NarrativeCommandBackend.dedicatedSceneNode =>
+        'every supported dedicated node reaches a runtime host callback',
+    };
 
 Map<String, SceneConsequence Function()> _consequenceSamples() => {
       NarrativeCommandIds.setFact: () =>

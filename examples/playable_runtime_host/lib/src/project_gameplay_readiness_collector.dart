@@ -21,8 +21,19 @@ final class ProjectGameplayReadinessCollector {
     required MvpReleaseEvidenceReceipt receipt,
     required String expectedCommit,
     required String actualProjectTreeHashSha256,
+    required Iterable<ProjectCapabilityTruthRecord> capabilityTruth,
   }) {
     final issues = <String>[];
+    final capabilityTruthReport = ProjectCapabilityTruthReport.evaluate(
+      capabilityTruth,
+      requiredCapabilityIds: requiredNarrativeCommandCapabilityIds(),
+    );
+    for (final issue in capabilityTruthReport.issues) {
+      issues.add(
+        'Capability truth ${issue.code.name} for '
+        '${issue.capabilityId}: ${issue.message}',
+      );
+    }
     if (receipt.releaseCandidateCommit != expectedCommit.toLowerCase()) {
       issues.add(
         'Receipt commit ${receipt.releaseCandidateCommit} does not match '
@@ -71,7 +82,10 @@ final class ProjectGameplayReadinessCollector {
         .toList(growable: false);
     final report = ProjectGameplayReadinessReport.evaluateProductCriteria(
       productEvidence: effectiveProductEvidence,
-      projectEvidence: _inspectProject(project),
+      projectEvidence: _inspectProject(
+        project,
+        capabilityTruth: capabilityTruthReport,
+      ),
     );
     return ProjectGameplayReadinessCollection(
       report: report,
@@ -81,8 +95,9 @@ final class ProjectGameplayReadinessCollector {
 }
 
 List<ProjectGameplayReadinessEvidence> _inspectProject(
-  ProjectManifest project,
-) {
+  ProjectManifest project, {
+  required ProjectCapabilityTruthReport capabilityTruth,
+}) {
   final mapIds = project.maps.map((map) => map.id).toSet();
   final hasStartState = project.newGame.enabled &&
       project.newGame.startMapId.trim().isNotEmpty &&
@@ -140,8 +155,14 @@ List<ProjectGameplayReadinessEvidence> _inspectProject(
       detail: 'At least one shop has an item.',
     ),
     ProjectGameplayReadinessCheck.eventCommands: (
-      passed: hasEventCommands && project.dialogues.isNotEmpty,
-      detail: 'Scene actions and dialogue assets are authored.',
+      passed: hasEventCommands &&
+          project.dialogues.isNotEmpty &&
+          capabilityTruth.isPassing,
+      detail: capabilityTruth.isPassing
+          ? 'Scene actions and dialogue assets are authored; every promoted '
+              'command has authoring, contract, runtime, player and test proof.'
+          : 'Capability truth gate failed: '
+              '${capabilityTruth.issues.map((issue) => issue.code.name).join(', ')}.',
     ),
     ProjectGameplayReadinessCheck.requiredFlagsReachable: (
       passed: hasConditionalProgression,

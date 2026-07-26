@@ -1,5 +1,9 @@
 library map_runtime;
 
+export 'src/application/scene_runtime/narrative_command_runtime_capability_evidence.dart'
+    show buildMapRuntimeNarrativeCommandConsumerAttestation;
+export 'src/presentation/flame/narrative_command_player_surface_capability_evidence.dart'
+    show buildMapRuntimeNarrativeCommandPlayerSurfaceAttestation;
 export 'src/application/narrative_runtime_smoke_evidence.dart'
     show buildNarrativeRuntimeSmokeEvidence;
 export 'src/application/player_service_runtime_controller.dart'

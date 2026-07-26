@@ -48,15 +48,32 @@ List<NarrativeCommandPaletteAction>
     buildNarrativeCommandAuthoringPaletteActions({
   required Set<String> runtimeCommandIds,
   required ValueChanged<NarrativeCommandDescriptor> onOpenCommand,
+  required Iterable<ProjectCapabilityTruthRecord> capabilityTruth,
   NarrativeCommandCatalog? commandCatalog,
 }) {
   final catalog = commandCatalog ?? NarrativeCommandCatalog.canonical();
+  final truthReport = ProjectCapabilityTruthReport.evaluate(
+    capabilityTruth,
+    requiredCapabilityIds: requiredNarrativeCommandCapabilityIds(
+      catalog: catalog,
+    ),
+  );
+  final blockedCapabilityIds = {
+    for (final issue in truthReport.issues) issue.capabilityId,
+  };
+  final promotedCapabilityIds = {
+    for (final capability in truthReport.capabilities)
+      if (capability.status == ProjectCapabilityTruthStatus.promoted &&
+          !blockedCapabilityIds.contains(capability.capabilityId))
+        capability.capabilityId,
+  };
   return List<NarrativeCommandPaletteAction>.unmodifiable([
     for (final command in catalog.commands)
       if (command.isPublishable &&
           command.capabilities.runtime ==
               NarrativeCommandCapabilityStatus.supported &&
-          runtimeCommandIds.contains(command.id))
+          runtimeCommandIds.contains(command.id) &&
+          promotedCapabilityIds.contains('narrative.command.${command.id}'))
         NarrativeCommandPaletteAction(
           id: 'authoring.${command.id}',
           label: 'Créer · ${command.label}',

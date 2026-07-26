@@ -225,6 +225,7 @@ export 'src/read_models/narrative_event_reachability_report.dart';
 export 'src/read_models/golden_slice_readiness.dart';
 export 'src/read_models/mvp_release_gate.dart';
 export 'src/read_models/project_gameplay_readiness.dart';
+export 'src/read_models/project_capability_truth.dart';
 export 'src/read_models/mvp_product_criterion.dart';
 export 'src/tooling/gameplay_roadmap_dashboard.dart';
 export 'src/read_models/linked_asset_public_contracts.dart';
