@@ -646,7 +646,7 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                       label: 'Objet tenu',
                       description: widget
                               .references.itemsCatalogView.isAvailable
-                          ? 'Recherchez dans le catalogue d’objets local pour choisir un objet tenu.'
+                          ? 'Recherchez dans le catalogue d’objets local pour choisir un objet tenu. Fonction avancée disponible, hors cutline MVP ; validation complète prévue par RM-053.'
                           : _buildAuthorFacingCatalogUnavailableMessage(
                               subjectLabel: 'des objets',
                               fallbackMessage:

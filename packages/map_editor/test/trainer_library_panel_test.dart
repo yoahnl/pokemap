@@ -328,6 +328,10 @@ void main() {
           )
           .first,
     );
+    expect(
+      find.textContaining('hors cutline MVP'),
+      findsOneWidget,
+    );
     await selectTrainerDropdownSuggestion(
       tester,
       'trainer-library-pokemon-item',
