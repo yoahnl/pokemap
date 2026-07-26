@@ -1,14 +1,14 @@
 # Evidence Pack — FG-092 / RM-015, commandes d'état NPC V0
 
-Date de clôture technique provisoire : 2026-07-26
+Date de clôture technique : 2026-07-26
 Lot : `RM-015`
 Gap : `FG-092`
 Roadmap source : `reports/gameplay/fg_000_remediation_and_personalization_roadmap.md`
 
 ## 1. Verdict
 
-**Implémentation du lot : complète. Verdict de gate provisoire :
-`PARTIAL`, promotion `DONE` proposée après la gate séquentielle de Phase 1.**
+**Implémentation du lot : complète. Verdict final : `DONE` proposé pour
+`RM-015` / `FG-092` V0.**
 
 Le produit possède maintenant deux contrats narratifs no-code typés et
 réellement consommés :
@@ -17,11 +17,12 @@ réellement consommés :
 - `moveNpc`, commande interactive qui déplace un NPC présent vers un warp
   auteur et attend un résultat `completed` ou `blocked`.
 
-Les preuves Core, Runtime, Selbrume et les analyseurs concernés sont vertes.
-Les suites complètes Core et Runtime sont vertes. La suite complète Editor
-concurrente a rencontré trois tests sensibles à la charge ; chacun repasse
-isolément. Une exécution Editor complète séquentielle reste donc exigée par la
-gate finale de Phase 1 avant de promouvoir formellement `RM-015` à `DONE`.
+Les preuves Core, Runtime, Editor, Selbrume et les analyseurs concernés sont
+vertes. La suite complète Editor concurrente avait rencontré trois tests
+sensibles à la charge ; chacun repassait isolément. La gate finale de Phase 1
+a depuis exécuté l'intégralité de la suite Editor avec `--concurrency=1` :
+`+4151: All tests passed!`, puis `No issues found!`. Le dernier prérequis de
+promotion est donc satisfait.
 
 La roadmap n'est pas modifiée par ce lot.
 
@@ -212,8 +213,9 @@ coordination active. Les passes indépendantes suivantes ont été effectuées :
 | Runtime | PASS après correction du remontage post-warp |
 | Régression complète Core | PASS |
 | Régression complète Runtime | PASS |
-| Régression complète Editor concurrente | PARTIAL : trois tests de charge rouges, trois retries isolés verts |
-| Auto-critique finale | risque résiduel documenté, aucune dérive de package détectée |
+| Régression complète Editor concurrente | trois tests de charge rouges, trois retries isolés verts |
+| Régression complète Editor séquentielle | PASS : `+4151`, analyse propre |
+| Auto-critique finale | risques résiduels documentés, aucune dérive de package détectée |
 
 ## 6. Commandes et résultats exacts
 
@@ -273,6 +275,21 @@ Suite complète concurrente :
 | `narrative_event_authoring_snapshot_performance_test.dart` | p95 `1 833 349 µs` > `1 250 000 µs` | `+1`, pass ; recovery gate p95 `113 047 µs` < `400 000 µs` |
 | `narrative_global_search_performance_test.dart` | p95 `308 262 µs` > `220 000 µs` | `+1`, pass ; exact p95 `95 069 µs` |
 | `selbrume_two_tier_stone_chain_visual_goldens_test.dart` | timeout 30 s | `+1`, pass |
+
+Gate complète séquentielle de Phase 1 :
+
+```bash
+cd packages/map_editor
+flutter test --concurrency=1 -r failures-only
+flutter analyze
+```
+
+Résultat final :
+
+```text
++4151: All tests passed!
+No issues found! (ran in 5.8s)
+```
 
 ### 6.3 Runtime
 
@@ -338,9 +355,10 @@ Résultat : exit `0`, aucune erreur.
 
 ## 7. Auto-critique et risques
 
-1. **Gate Editor non encore intégralement verte dans une seule exécution.**
-   Les trois échecs sont reproductiblement verts isolément, mais le DoD exige
-   une suite séquentielle complète avant promotion formelle.
+1. **Sensibilité à la concurrence de la gate Editor.** Trois tests de
+   performance/golden ont fluctué sous charge concurrente. La suite complète
+   séquentielle est verte (`+4151`) et constitue la preuve reproductible
+   retenue ; la configuration CI gagnerait à imposer ce mode pour cette gate.
 2. **Stockage metadata V0.** La clé est stable et persistée avec le GameState,
    mais ne possède pas encore de migration dédiée si le format de référence NPC
    change.
