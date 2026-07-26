@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'battle_parity_target.dart';
 import 'generated/psdk_ability_effect_manifest.dart';
 import 'generated/psdk_item_effect_manifest.dart';
 import 'generated/psdk_move_registry_manifest.dart';
@@ -25,6 +26,7 @@ final class PsdkFightParityAudit {
     this.methodEntries = const <PsdkMoveRegistryManifestEntry>[],
     this.effectEntries = const <PsdkEffectParityEntry>[],
     this.runtimeBridge = const PsdkRuntimeBridgeParity.notMeasured(),
+    this.parityTarget = BattleParityTarget.canonicalV1,
   });
 
   factory PsdkFightParityAudit.fromEntries({
@@ -64,10 +66,12 @@ final class PsdkFightParityAudit {
   final List<PsdkMoveRegistryManifestEntry> methodEntries;
   final List<PsdkEffectParityEntry> effectEntries;
   final PsdkRuntimeBridgeParity runtimeBridge;
+  final BattleParityTarget parityTarget;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'sourceDescription': sourceDescription,
+      'parityTarget': parityTarget.toJson(),
       'attacks': <String, Object?>{
         ...attackMetrics.toJson(),
         'entries': attackEntries.map((entry) => entry.toJson()).toList(),
@@ -95,6 +99,25 @@ final class PsdkFightParityAudit {
       ..writeln()
       ..writeln(
         'Important: `partiel` is executable coverage, not strict PSDK parity.',
+      )
+      ..writeln()
+      ..writeln('## Battle Parity Target')
+      ..writeln()
+      ..writeln('Profile: `${_md(parityTarget.profileId)}`')
+      ..writeln()
+      ..writeln('| Axis | Rule | Alignment |')
+      ..writeln('| --- | --- | --- |');
+    for (final axis in parityTarget.axes) {
+      buffer.writeln(
+        '| `${axis.axis.name}` | `${_md(axis.ruleId)}` '
+        '| `${axis.alignment.name}` |',
+      );
+    }
+    buffer
+      ..writeln()
+      ..writeln(
+        'PSDK counters do not prove player parity; runtime bridge, player '
+        'surface and golden E2E evidence remain mandatory.',
       )
       ..writeln()
       ..writeln('## Attack Coverage')
@@ -496,6 +519,7 @@ Future<PsdkFightParityAudit> buildPsdkFightParityAudit({
     methodEntries: audit.methodEntries,
     effectEntries: audit.effectEntries,
     runtimeBridge: runtimeBridge,
+    parityTarget: audit.parityTarget,
   );
 }
 

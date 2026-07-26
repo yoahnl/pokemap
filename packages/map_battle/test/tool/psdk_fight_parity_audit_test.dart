@@ -175,6 +175,13 @@ void main() {
       );
 
       final json = audit.toJson();
+      final parityTarget = json['parityTarget']! as Map<String, Object?>;
+      expect(parityTarget['profileId'], 'pokemap-mainline-hybrid-v1');
+      expect(parityTarget['axes'], hasLength(6));
+      expect(
+        parityTarget['counterPolicy'],
+        containsPair('provesPlayerParity', false),
+      );
       final attacks = (json['attacks']! as Map<String, Object?>)['entries']!
           as List<Object?>;
       expect(attacks, hasLength(3));
@@ -314,6 +321,12 @@ void main() {
       expect(
         markdown,
         contains('`partiel` is executable coverage, not strict PSDK parity.'),
+      );
+      expect(markdown, contains('## Battle Parity Target'));
+      expect(markdown, contains('`pokemap-mainline-hybrid-v1`'));
+      expect(
+        markdown,
+        contains('PSDK counters do not prove player parity'),
       );
       expect(markdown, contains('| move | 0 | 1 | 0 |'));
     });
