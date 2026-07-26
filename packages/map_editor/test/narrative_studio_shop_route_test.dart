@@ -49,6 +49,12 @@ void main() {
       container.read(editorNotifierProvider).workspaceMode,
       EditorWorkspaceMode.shops,
     );
+    expect(
+      find.byKey(
+        const ValueKey<String>('narrative-studio-product-nav-shops'),
+      ),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('shop-editor-panel')), findsOneWidget);
     expect(find.textContaining('Boutique Builder'), findsWidgets);
     expect(tester.takeException(), isNull);

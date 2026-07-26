@@ -77,12 +77,13 @@ void main() {
     });
 
     test(
-      'enables Overview, Dialogues, Facts, World Rules and Validator atomically',
+      'enables Overview, Dialogues, Facts, Shops, World Rules and Validator',
       () {
         for (final workspaceMode in <EditorWorkspaceMode>[
           EditorWorkspaceMode.narrativeOverview,
           EditorWorkspaceMode.dialogue,
           EditorWorkspaceMode.facts,
+          EditorWorkspaceMode.shops,
           EditorWorkspaceMode.worldRules,
           EditorWorkspaceMode.narrativeValidator,
         ]) {
@@ -109,6 +110,7 @@ void main() {
             workspaceMode == EditorWorkspaceMode.cutscene ||
             workspaceMode == EditorWorkspaceMode.dialogue ||
             workspaceMode == EditorWorkspaceMode.facts ||
+            workspaceMode == EditorWorkspaceMode.shops ||
             workspaceMode == EditorWorkspaceMode.worldRules ||
             workspaceMode == EditorWorkspaceMode.narrativeValidator ||
             workspaceMode == EditorWorkspaceMode.narrativeOverview) {

@@ -17,6 +17,7 @@ abstract final class NarrativeStudioShellPolicy {
         workspaceMode == EditorWorkspaceMode.cutscene ||
         workspaceMode == EditorWorkspaceMode.dialogue ||
         workspaceMode == EditorWorkspaceMode.facts ||
+        workspaceMode == EditorWorkspaceMode.shops ||
         workspaceMode == EditorWorkspaceMode.worldRules ||
         workspaceMode == EditorWorkspaceMode.narrativeValidator ||
         workspaceMode == EditorWorkspaceMode.narrativeOverview) {
