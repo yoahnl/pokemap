@@ -59,6 +59,11 @@ String? _normalizeOptionalTrainerRelativePath(String? rawValue) {
   return p.posix.normalize(trimmed.replaceAll(r'\', '/'));
 }
 
+String? _normalizeOptionalTrainerId(String? rawValue) {
+  final trimmed = rawValue?.trim();
+  return trimmed == null || trimmed.isEmpty ? null : trimmed;
+}
+
 // ---------------------------------------------------------------------------
 // Use cases — dresseurs
 // ---------------------------------------------------------------------------
@@ -79,6 +84,11 @@ class CreateTrainerUseCase {
     String? portraitElementId,
     String? battleThemeId,
     String? victoryThemeId,
+    ProjectTrainerTemplateKind? templateKind,
+    ProjectTrainerRematchPolicy? rematchPolicy,
+    String? preBattleDialogueId,
+    String? victoryDialogueId,
+    String? defeatDialogueId,
     int moneyReward = 0,
     List<ProjectTrainerItemGrant> rewardItemGrants =
         const <ProjectTrainerItemGrant>[],
@@ -113,6 +123,11 @@ class CreateTrainerUseCase {
       victoryThemeId: victoryThemeId?.trim().isEmpty == true
           ? null
           : victoryThemeId?.trim(),
+      templateKind: templateKind,
+      rematchPolicy: rematchPolicy,
+      preBattleDialogueId: _normalizeOptionalTrainerId(preBattleDialogueId),
+      victoryDialogueId: _normalizeOptionalTrainerId(victoryDialogueId),
+      defeatDialogueId: _normalizeOptionalTrainerId(defeatDialogueId),
       moneyReward: moneyReward,
       rewardItemGrants: _normalizeTrainerItemGrants(rewardItemGrants),
       rewardFlagIds: _normalizeTrainerStringList(rewardFlagIds),
@@ -152,6 +167,16 @@ class UpdateTrainerUseCase {
     TrainerFieldUpdate<String> battleThemeId =
         const TrainerFieldUpdate<String>.keep(),
     TrainerFieldUpdate<String> victoryThemeId =
+        const TrainerFieldUpdate<String>.keep(),
+    TrainerFieldUpdate<ProjectTrainerTemplateKind> templateKind =
+        const TrainerFieldUpdate<ProjectTrainerTemplateKind>.keep(),
+    TrainerFieldUpdate<ProjectTrainerRematchPolicy> rematchPolicy =
+        const TrainerFieldUpdate<ProjectTrainerRematchPolicy>.keep(),
+    TrainerFieldUpdate<String> preBattleDialogueId =
+        const TrainerFieldUpdate<String>.keep(),
+    TrainerFieldUpdate<String> victoryDialogueId =
+        const TrainerFieldUpdate<String>.keep(),
+    TrainerFieldUpdate<String> defeatDialogueId =
         const TrainerFieldUpdate<String>.keep(),
     int? moneyReward,
     List<ProjectTrainerItemGrant>? rewardItemGrants,
@@ -221,6 +246,37 @@ class UpdateTrainerUseCase {
       final v = victoryThemeId.valueOrNull?.trim();
       updatedTrainer = updatedTrainer.copyWith(
         victoryThemeId: (v == null || v.isEmpty) ? null : v,
+      );
+    }
+    if (!templateKind.isKeep) {
+      updatedTrainer = updatedTrainer.copyWith(
+        templateKind: templateKind.valueOrNull,
+      );
+    }
+    if (!rematchPolicy.isKeep) {
+      updatedTrainer = updatedTrainer.copyWith(
+        rematchPolicy: rematchPolicy.valueOrNull,
+      );
+    }
+    if (!preBattleDialogueId.isKeep) {
+      updatedTrainer = updatedTrainer.copyWith(
+        preBattleDialogueId: _normalizeOptionalTrainerId(
+          preBattleDialogueId.valueOrNull,
+        ),
+      );
+    }
+    if (!victoryDialogueId.isKeep) {
+      updatedTrainer = updatedTrainer.copyWith(
+        victoryDialogueId: _normalizeOptionalTrainerId(
+          victoryDialogueId.valueOrNull,
+        ),
+      );
+    }
+    if (!defeatDialogueId.isKeep) {
+      updatedTrainer = updatedTrainer.copyWith(
+        defeatDialogueId: _normalizeOptionalTrainerId(
+          defeatDialogueId.valueOrNull,
+        ),
       );
     }
     if (!rewardBadgeId.isKeep) {

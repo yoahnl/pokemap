@@ -171,10 +171,16 @@ class _TrainerEditorCard extends StatelessWidget {
     required this.rewardItemQuantityController,
     required this.references,
     required this.badges,
+    required this.dialogues,
     required this.selectedRewardItemId,
     required this.rewardItemGrants,
     required this.rewardBadgeId,
     required this.rewardFieldAbilityUnlock,
+    required this.templateKind,
+    required this.rematchPolicy,
+    required this.preBattleDialogueId,
+    required this.victoryDialogueId,
+    required this.defeatDialogueId,
     required this.battleDifficulty,
     required this.battleBackgroundRelativePath,
     required this.projectRootPath,
@@ -195,6 +201,11 @@ class _TrainerEditorCard extends StatelessWidget {
     required this.onRemoveRewardItem,
     required this.onSelectRewardBadge,
     required this.onSelectRewardFieldAbility,
+    required this.onSelectTemplate,
+    required this.onSelectRematchPolicy,
+    required this.onSelectPreBattleDialogue,
+    required this.onSelectVictoryDialogue,
+    required this.onSelectDefeatDialogue,
     required this.onCancel,
     required this.onSubmit,
   });
@@ -212,10 +223,16 @@ class _TrainerEditorCard extends StatelessWidget {
   final TextEditingController rewardItemQuantityController;
   final _TrainerReferenceData references;
   final List<BadgeDefinition> badges;
+  final List<ProjectDialogueEntry> dialogues;
   final String? selectedRewardItemId;
   final List<ProjectTrainerItemGrant> rewardItemGrants;
   final String? rewardBadgeId;
   final FieldAbility? rewardFieldAbilityUnlock;
+  final ProjectTrainerTemplateKind? templateKind;
+  final ProjectTrainerRematchPolicy? rematchPolicy;
+  final String? preBattleDialogueId;
+  final String? victoryDialogueId;
+  final String? defeatDialogueId;
   final int? battleDifficulty;
   final String? battleBackgroundRelativePath;
   final String? projectRootPath;
@@ -236,6 +253,11 @@ class _TrainerEditorCard extends StatelessWidget {
   final ValueChanged<String> onRemoveRewardItem;
   final ValueChanged<String?> onSelectRewardBadge;
   final ValueChanged<FieldAbility?> onSelectRewardFieldAbility;
+  final ValueChanged<ProjectTrainerTemplateKind?> onSelectTemplate;
+  final ValueChanged<ProjectTrainerRematchPolicy?> onSelectRematchPolicy;
+  final ValueChanged<String?> onSelectPreBattleDialogue;
+  final ValueChanged<String?> onSelectVictoryDialogue;
+  final ValueChanged<String?> onSelectDefeatDialogue;
   final VoidCallback onCancel;
   final VoidCallback onSubmit;
 
@@ -318,6 +340,21 @@ class _TrainerEditorCard extends StatelessWidget {
               characters: characters,
               selectedCharacterId: selectedCharacterId,
               onSelected: onSelectCharacter,
+            ),
+            const SizedBox(height: 12),
+            _TrainerLifecycleEditor(
+              createMode: createMode,
+              dialogues: dialogues,
+              templateKind: templateKind,
+              rematchPolicy: rematchPolicy,
+              preBattleDialogueId: preBattleDialogueId,
+              victoryDialogueId: victoryDialogueId,
+              defeatDialogueId: defeatDialogueId,
+              onSelectTemplate: onSelectTemplate,
+              onSelectRematchPolicy: onSelectRematchPolicy,
+              onSelectPreBattleDialogue: onSelectPreBattleDialogue,
+              onSelectVictoryDialogue: onSelectVictoryDialogue,
+              onSelectDefeatDialogue: onSelectDefeatDialogue,
             ),
             const SizedBox(height: 12),
             DecoratedBox(

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "projectFingerprint": "sha256:03651d6d870eb65765c0fc2a1971981549a0051ac25222b8c17d425a8d8f03c9",
+  "projectFingerprint": "sha256:3f11570bf2d67acec4055259e4506cac24529b73702c51db74dc09567fac15ca",
   "validatorVersion": "narrative-validator-v1",
   "profileId": "selbrume-release-v1",
   "profileVersion": 1,
@@ -10,7 +10,7 @@
   ],
   "fixtureId": "selbrume",
   "result": "pass",
-  "completedAt": "2026-07-26T18:27:04.341338Z",
+  "completedAt": "2026-07-26T23:03:24.838278Z",
   "limitations": [
     "PARTIAL / NO-GO baseline: runtime smoke only; FG-185 is not promoted."
   ]

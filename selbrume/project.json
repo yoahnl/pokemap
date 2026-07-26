@@ -31453,6 +31453,38 @@
       "sortOrder": 0
     },
     {
+      "id": "dialogue_lysa_port_after_win",
+      "name": "Lysa au port · après victoire",
+      "relativePath": "dialogues/lysa_port_after_win.yarn",
+      "tags": [
+        "selbrume",
+        "chapter-1",
+        "rival",
+        "victory"
+      ],
+      "description": "Réplique de Lysa après la victoire du joueur.",
+      "declaredOutcomes": [],
+      "defaultStartNode": "RivalAfterWin",
+      "folderId": null,
+      "sortOrder": 1
+    },
+    {
+      "id": "dialogue_lysa_port_after_loss",
+      "name": "Lysa au port · après défaite",
+      "relativePath": "dialogues/lysa_port_after_loss.yarn",
+      "tags": [
+        "selbrume",
+        "chapter-1",
+        "rival",
+        "defeat"
+      ],
+      "description": "Réplique de Lysa après la défaite du joueur.",
+      "declaredOutcomes": [],
+      "defaultStartNode": "RivalAfterLoss",
+      "folderId": null,
+      "sortOrder": 2
+    },
+    {
       "id": "dialogue_mael_intro",
       "name": "Maël — introduction et mission",
       "relativePath": "dialogues/mael_intro.yarn",
@@ -41933,9 +41965,15 @@
       "portraitElementId": null,
       "battleThemeId": null,
       "victoryThemeId": null,
+      "templateKind": "rival",
+      "preBattleDialogueId": "dialogue_lysa_port",
+      "victoryDialogueId": "dialogue_lysa_port_after_win",
+      "defeatDialogueId": "dialogue_lysa_port_after_loss",
       "moneyReward": 0,
       "rewardItemGrants": [],
-      "rewardFlagIds": [],
+      "rewardFlagIds": [
+        "story:lysa_follow_up"
+      ],
       "team": [
         {
           "speciesId": "bulbasaur",

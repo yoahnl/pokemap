@@ -61,6 +61,7 @@ import '../../application/runtime_post_battle_decision_coordinator.dart';
 import '../../application/runtime_psdk_battle_session_adapter.dart';
 import '../../application/runtime_psdk_battle_setup_mapper.dart';
 import '../../application/runtime_story_branching.dart';
+import '../../application/runtime_trainer_lifecycle_policy.dart';
 import '../../application/scene_runtime/scene_battle_runtime_outcome_adapter.dart';
 import '../../application/scene_runtime/scene_battle_runtime_outcome_result.dart';
 import '../../application/scene_runtime/cinematic_runtime_playback_controller.dart';
@@ -8195,13 +8196,45 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     //     if (!inLoS) _triggeredTrainerBattles.remove(entity.id);
     //   }
     //
-    // Et même si le lock est encore actif, le trainer ne sera pas re-déclenché
-    // car il est marqué defeated dans storyFlags (guard dans _checkTrainerLineOfSight).
+    // Pour un trainer one-shot, le flag defeated bloque aussi tout nouveau
+    // combat. Pour un rematch authorisé, le lock LoS reste la protection
+    // immédiate : le joueur doit quitter puis réentrer dans la zone.
 
     // [SEL-B2] Si ce combat a été lancé depuis un node scénario
     // startTrainerBattle, on pose le flag d'outcome déterministe et on
     // reprend le graphe après le node battle.
     final scenarioOwner = _pendingScenarioBattleHandoff;
+    MapEntity? directPostBattleDialogueNpc;
+    DialogueRef? directPostBattleDialogueRef;
+    if (!postBattleFailed &&
+        scenarioOwner == null &&
+        sceneBattleOutcomeResult == null &&
+        activeBattleContext?.request is TrainerBattleStartRequest) {
+      final trainerRequest =
+          activeBattleContext!.request as TrainerBattleStartRequest;
+      final npc = _world.map.entities.cast<MapEntity?>().firstWhere(
+            (entity) => entity?.id == trainerRequest.npcEntityId,
+            orElse: () => null,
+          );
+      final trainer =
+          _bundle.manifest.trainers.cast<ProjectTrainerEntry?>().firstWhere(
+                (entry) => entry?.id == trainerRequest.trainerId,
+                orElse: () => null,
+              );
+      final result = switch (outcome.type) {
+        BattleOutcomeType.victory => RuntimeTrainerPostBattleResult.victory,
+        BattleOutcomeType.defeat => RuntimeTrainerPostBattleResult.defeat,
+        BattleOutcomeType.runaway || BattleOutcomeType.captured => null,
+      };
+      if (npc?.npc != null && trainer != null && result != null) {
+        directPostBattleDialogueNpc = npc;
+        directPostBattleDialogueRef = resolveRuntimeTrainerPostBattleDialogue(
+          trainer: trainer,
+          npc: npc!.npc!,
+          result: result,
+        );
+      }
+    }
     if (postBattleFailed &&
         scenarioOwner != null &&
         scenarioOwner.requestId == activeBattleContext?.request.requestId) {
@@ -8264,7 +8297,38 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (sceneBattleOutcomeResult != null) {
       _completePendingSceneBattleOutcome(sceneBattleOutcomeResult);
     }
-    _scheduleRootNarrativeOutcomePublication(qualifiedStandaloneOutcome);
+    var standaloneOutcomePublicationScheduled = false;
+    void publishStandaloneOutcomeOnce() {
+      if (standaloneOutcomePublicationScheduled) {
+        return;
+      }
+      standaloneOutcomePublicationScheduled = true;
+      _scheduleRootNarrativeOutcomePublication(qualifiedStandaloneOutcome);
+    }
+
+    final postBattleNpc = directPostBattleDialogueNpc;
+    final postBattleDialogue = directPostBattleDialogueRef;
+    if (postBattleNpc != null && postBattleDialogue != null) {
+      // Le loader peut échouer de façon synchrone ou asynchrone. Le guard
+      // local garantit que l'outcome trainer n'est publié qu'une fois dans
+      // les deux cas, même si `_tryOpenDialogue` retourne `false`.
+      _pendingPostDialogueAction = publishStandaloneOutcomeOnce;
+      final dialogueStarted = _tryOpenDialogue(
+        postBattleNpc.id,
+        postBattleDialogue,
+        postBattleNpc.inspectorHeadline,
+        allowAbsentEntity: true,
+        onLoadFailed: publishStandaloneOutcomeOnce,
+      );
+      if (dialogueStarted) {
+        debugPrint(
+          '[trainer] post-battle dialogue opened npc=${postBattleNpc.id}',
+        );
+        return;
+      }
+      _pendingPostDialogueAction = null;
+    }
+    publishStandaloneOutcomeOnce();
     debugPrint('[battle] overworld resumed');
   }
 
@@ -9920,11 +9984,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   bool _tryOpenDialogue(
-      String entityId, DialogueRef? ref, String fallbackLabel) {
+    String entityId,
+    DialogueRef? ref,
+    String fallbackLabel, {
+    bool allowAbsentEntity = false,
+    void Function()? onLoadFailed,
+  }) {
     if (_flowPhase != _RuntimeFlowPhase.overworld) return false;
     if (_activeBlockingInteractionSerial != null) return false;
     if (_dialogueOverlay != null) return false;
-    if (!_npcEntityAllowedOnActiveMapForDialogue(entityId)) {
+    if (!allowAbsentEntity &&
+        !_npcEntityAllowedOnActiveMapForDialogue(entityId)) {
       debugPrint('[dialogue] blocked: npc absent entityId=$entityId');
       return false;
     }
@@ -9974,6 +10044,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _pendingPostDialogueAction = null;
       _cancelNarrativeContinuationBarrier(entityId);
       _showNotification(fallbackLabel);
+      onLoadFailed?.call();
     }
 
     late final Future<DialogueSession?> loadFuture;
@@ -10162,16 +10233,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
 
-    // Cas 2: trainer déjà battu → defeat dialogue ou fallback
-    if (_storyBranching.isTrainerDefeated(_gameState, trainerId)) {
-      debugPrint(
-        '[interact] trainer already defeated trainer=$trainerId npc=${entity.id}',
-      );
-      _openDefeatDialogue(entity);
-      return;
-    }
-
-    // Cas 3: trainerId invalide → log + fallback dialogue
+    // Cas 2: trainerId invalide → log + fallback dialogue
     final trainer =
         _bundle.manifest.trainers.cast<ProjectTrainerEntry?>().firstWhere(
               (t) => t?.id == trainerId,
@@ -10190,57 +10252,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
 
-    // Cas 4: trainer non battu → battle normal
-    // Vérifier aussi _triggeredTrainerBattles pour éviter double déclenchement
-    if (_triggeredTrainerBattles.contains(entity.id)) {
-      debugPrint(
-        '[interact] trainer battle already triggered (LoS lock) trainer=$trainerId npc=${entity.id}',
-      );
-      // Ne pas déclencher un autre battle, mais ne pas bloquer l'interaction non plus
-      // Juste ignorer silencieusement
-      return;
-    }
-
-    final request = buildTrainerBattleRequestFromNpc(
-      entity: entity,
-      manifest: _bundle.manifest,
-      world: _world,
-    );
-    if (request != null) {
-      debugPrint(
-        '[battle] trainer battle triggered npc=${entity.id} trainer=$trainerId',
-      );
-      // Lock ANTI-RETRIGGER avant de déclencher
-      _triggeredTrainerBattles.add(entity.id);
-      // UNIFIED PATTERN: Store in _pendingBattleRequest, let update() consume it
-      // This is consistent with wild encounters and allows proper timing
-      if (!_tryEnqueueBattleRequest(request)) {
-        _triggeredTrainerBattles.remove(entity.id);
-        debugPrint(
-          '[battle] trainer request rejected: another Battle handoff is pending',
-        );
-      }
-    }
-  }
-
-  void _openDefeatDialogue(MapEntity entity) {
-    final defeatRef = entity.npc?.defeatDialogueRef;
-    if (defeatRef != null) {
-      debugPrint('[interact] opening defeat dialogue npc=${entity.id}');
-      _tryOpenDialogue(entity.id, defeatRef, entity.inspectorHeadline);
-    } else if (_resolveNpcDialogueRef(entity) != null) {
-      debugPrint(
-          '[interact] no defeat dialogue, fallback to normal dialogue npc=${entity.id}');
-      _tryOpenDialogue(
-        entity.id,
-        _resolveNpcDialogueRef(entity),
-        entity.inspectorHeadline,
-      );
-    } else {
-      debugPrint(
-          '[interact] no dialogue for defeated trainer npc=${entity.id}');
-      _showNotification('Le dresseur est déjà vaincu.');
-    }
+    // Le cycle de vie tranche désormais entre dialogue, combat, rematch et
+    // blocage one-shot. Une interaction manuelle peut explicitement relancer
+    // un rematch même si le verrou LoS de la rencontre précédente est actif.
+    _triggerTrainerBattle(entity, fromManualInteraction: true);
   }
 
   /// DEBUG-ONLY: Marque un trainer comme battu.
@@ -10303,8 +10318,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final losRange = entity.npc?.lineOfSightRange ?? 0;
       if (losRange <= 0) continue;
 
-      // Vérifier si déjà battu
-      if (_storyBranching.isTrainerDefeated(_gameState, trainerId)) continue;
+      final trainer =
+          _bundle.manifest.trainers.cast<ProjectTrainerEntry?>().firstWhere(
+                (candidate) => candidate?.id == trainerId,
+                orElse: () => null,
+              );
+      if (trainer == null) continue;
+
+      // Les dresseurs one-shot restent inertes après leur défaite. Un trainer
+      // explicitement rematchable peut se réarmer après sortie de sa LoS.
+      if (_storyBranching.isTrainerDefeated(_gameState, trainerId) &&
+          trainer.rematchPolicy != ProjectTrainerRematchPolicy.allowed) {
+        continue;
+      }
 
       // Anti-retrigger : ignorer si déjà déclenché dans cette session
       if (_triggeredTrainerBattles.contains(entity.id)) {
@@ -10332,8 +10358,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
 
       if (inLoS) {
-        // Lock anti-retrigger AVANT de déclencher
-        _triggeredTrainerBattles.add(entity.id);
         _triggerTrainerBattle(entity);
       }
     }
@@ -10341,28 +10365,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   /// Déclenche un battle trainer (appelé par interaction manuelle OU LoS auto).
   ///
-  /// **Factorisation :** Cette méthode factorise UNIQUEMENT le démarrage du battle.
-  /// Elle ne gère PAS :
-  /// - La vérification trainer déjà battu (déjà fait par l'appelant)
-  /// - Le defeat dialogue (géré par _handleNpcInteraction pour interaction manuelle)
-  ///
   /// **Gestion d'erreur :**
   /// - trainerId invalide → log + notification + pas de crash
   /// - Battle request null → log + pas de battle
-  void _triggerTrainerBattle(MapEntity entity) {
-    final trainerId = entity.npc?.trainerId;
+  void _triggerTrainerBattle(
+    MapEntity entity, {
+    bool lifecycleDialogueHandled = false,
+    bool fromManualInteraction = false,
+  }) {
+    final npc = entity.npc;
+    final trainerId = npc?.trainerId;
     if (trainerId == null || trainerId.isEmpty) {
       debugPrint('[trainer] no trainerId for entity=${entity.id}');
       return;
     }
 
-    // Vérifier si déjà battu (pour LoS — interaction manuelle a déjà son check)
-    if (_storyBranching.isTrainerDefeated(_gameState, trainerId)) {
-      debugPrint('[trainer] already defeated trainer=$trainerId');
-      return;
-    }
-
-    // Vérifier trainer valide
     final trainer =
         _bundle.manifest.trainers.cast<ProjectTrainerEntry?>().firstWhere(
               (t) => t?.id == trainerId,
@@ -10371,6 +10388,64 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (trainer == null) {
       debugPrint('[trainer] not found trainer=$trainerId entity=${entity.id}');
       _showNotification('Dresseur introuvable.');
+      return;
+    }
+
+    final isDefeated = _storyBranching.isTrainerDefeated(_gameState, trainerId);
+    final plan = resolveRuntimeTrainerInteractionPlan(
+      trainer: trainer,
+      npc: npc!,
+      isDefeated: isDefeated,
+    );
+
+    if (!lifecycleDialogueHandled) {
+      switch (plan.disposition) {
+        case RuntimeTrainerInteractionDisposition.dialogueOnly:
+          debugPrint(
+            '[trainer] defeated dialogue trainer=$trainerId entity=${entity.id}',
+          );
+          _tryOpenDialogue(
+            entity.id,
+            plan.dialogue,
+            entity.inspectorHeadline,
+          );
+          return;
+        case RuntimeTrainerInteractionDisposition.blocked:
+          debugPrint('[trainer] already defeated trainer=$trainerId');
+          _showNotification('Le dresseur est déjà vaincu.');
+          return;
+        case RuntimeTrainerInteractionDisposition.dialogueThenBattle:
+          if (_triggeredTrainerBattles.contains(entity.id) &&
+              !fromManualInteraction) {
+            return;
+          }
+          _pendingPostDialogueAction = () => _triggerTrainerBattle(
+                entity,
+                lifecycleDialogueHandled: true,
+                fromManualInteraction: fromManualInteraction,
+              );
+          final dialogueStarted = _tryOpenDialogue(
+            entity.id,
+            plan.dialogue,
+            entity.inspectorHeadline,
+          );
+          if (dialogueStarted) {
+            return;
+          }
+          _pendingPostDialogueAction = null;
+          break;
+        case RuntimeTrainerInteractionDisposition.battle:
+          break;
+      }
+    }
+
+    if (isDefeated &&
+        trainer.rematchPolicy != ProjectTrainerRematchPolicy.allowed) {
+      debugPrint('[trainer] already defeated trainer=$trainerId');
+      return;
+    }
+    if (_triggeredTrainerBattles.contains(entity.id) &&
+        !fromManualInteraction) {
       return;
     }
 
@@ -10383,6 +10458,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (request != null) {
       debugPrint(
           '[trainer] battle triggered trainer=$trainerId entity=${entity.id}');
+      _triggeredTrainerBattles.add(entity.id);
       // UNIFIED PATTERN: Store in _pendingBattleRequest, let update() consume it
       // This is consistent with wild encounters and allows proper timing
       if (!_tryEnqueueBattleRequest(request)) {

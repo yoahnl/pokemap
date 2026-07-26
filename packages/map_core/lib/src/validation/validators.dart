@@ -1,4 +1,5 @@
 import '../exceptions/map_exceptions.dart';
+import '../models/badge_definition.dart';
 import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
@@ -6,6 +7,7 @@ import '../models/map_event_definition.dart';
 import '../models/map_layer.dart';
 import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
+import '../models/project_trainer.dart';
 import '../models/scenario_asset.dart';
 import '../models/script_conditions.dart';
 import '../operations/map_entities.dart';
@@ -1321,6 +1323,11 @@ class ProjectValidator {
     final elementIds = manifest.elements.map((e) => e.id).toSet();
     final characterIds = manifest.characters.map((c) => c.id).toSet();
     final badgeIds = manifest.badges.map((badge) => badge.id).toSet();
+    final badgesById = <String, BadgeDefinition>{
+      for (final badge in manifest.badges) badge.id: badge,
+    };
+    final dialogueIds =
+        manifest.dialogues.map((dialogue) => dialogue.id).toSet();
     for (final trainer in manifest.trainers) {
       final id = trainer.id.trim();
       if (id.isEmpty) {
@@ -1393,6 +1400,67 @@ class ProjectValidator {
             'project badges',
           );
         }
+      }
+      final lifecycleDialogueIds = <String, String?>{
+        'preBattleDialogueId': trainer.preBattleDialogueId,
+        'victoryDialogueId': trainer.victoryDialogueId,
+        'defeatDialogueId': trainer.defeatDialogueId,
+      };
+      for (final entry in lifecycleDialogueIds.entries) {
+        final dialogueId = entry.value?.trim();
+        if (dialogueId == null) {
+          continue;
+        }
+        if (dialogueId.isEmpty) {
+          throw ValidationException(
+            'Trainer $id ${entry.key} must not be empty when provided',
+          );
+        }
+        if (!dialogueIds.contains(dialogueId)) {
+          throw ValidationException(
+            'Trainer $id ${entry.key} "$dialogueId" does not exist in '
+            'project dialogues',
+          );
+        }
+      }
+      switch (trainer.templateKind) {
+        case ProjectTrainerTemplateKind.gymLeader:
+          if (rewardBadgeId == null || rewardBadgeId.isEmpty) {
+            throw ValidationException(
+              'Trainer $id gym leader template requires rewardBadgeId',
+            );
+          }
+          if (trainer.victoryDialogueId?.trim().isEmpty ?? true) {
+            throw ValidationException(
+              'Trainer $id gym leader template requires victoryDialogueId',
+            );
+          }
+          final badgeAbility = badgesById[rewardBadgeId]?.fieldAbilityUnlock;
+          if (badgeAbility != null &&
+              trainer.rewardFieldAbilityUnlock != badgeAbility) {
+            throw ValidationException(
+              'Trainer $id gym leader field ability must match badge '
+              '$rewardBadgeId (${badgeAbility.moveId})',
+            );
+          }
+        case ProjectTrainerTemplateKind.rival:
+          if (trainer.preBattleDialogueId?.trim().isEmpty ?? true) {
+            throw ValidationException(
+              'Trainer $id rival template requires preBattleDialogueId',
+            );
+          }
+          if (trainer.victoryDialogueId?.trim().isEmpty ?? true) {
+            throw ValidationException(
+              'Trainer $id rival template requires victoryDialogueId',
+            );
+          }
+          if (trainer.rewardFlagIds.isEmpty) {
+            throw ValidationException(
+              'Trainer $id rival template requires a follow-up reward flag',
+            );
+          }
+        case null:
+          break;
       }
       final battleBackgroundRelativePath =
           trainer.battleBackgroundRelativePath?.trim();

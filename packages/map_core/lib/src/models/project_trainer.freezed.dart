@@ -570,6 +570,18 @@ mixin _$ProjectTrainerEntry {
   @JsonKey(includeIfNull: false)
   FieldAbility? get rewardFieldAbilityUnlock =>
       throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
+  ProjectTrainerTemplateKind? get templateKind =>
+      throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
+  ProjectTrainerRematchPolicy? get rematchPolicy =>
+      throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
+  String? get preBattleDialogueId => throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
+  String? get victoryDialogueId => throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
+  String? get defeatDialogueId => throw _privateConstructorUsedError;
   List<ProjectTrainerPokemonEntry> get team =>
       throw _privateConstructorUsedError;
   List<String> get tags => throw _privateConstructorUsedError;
@@ -605,6 +617,11 @@ abstract class $ProjectTrainerEntryCopyWith<$Res> {
       List<String> rewardFlagIds,
       @JsonKey(includeIfNull: false) String? rewardBadgeId,
       @JsonKey(includeIfNull: false) FieldAbility? rewardFieldAbilityUnlock,
+      @JsonKey(includeIfNull: false) ProjectTrainerTemplateKind? templateKind,
+      @JsonKey(includeIfNull: false) ProjectTrainerRematchPolicy? rematchPolicy,
+      @JsonKey(includeIfNull: false) String? preBattleDialogueId,
+      @JsonKey(includeIfNull: false) String? victoryDialogueId,
+      @JsonKey(includeIfNull: false) String? defeatDialogueId,
       List<ProjectTrainerPokemonEntry> team,
       List<String> tags});
 }
@@ -638,6 +655,11 @@ class _$ProjectTrainerEntryCopyWithImpl<$Res, $Val extends ProjectTrainerEntry>
     Object? rewardFlagIds = null,
     Object? rewardBadgeId = freezed,
     Object? rewardFieldAbilityUnlock = freezed,
+    Object? templateKind = freezed,
+    Object? rematchPolicy = freezed,
+    Object? preBattleDialogueId = freezed,
+    Object? victoryDialogueId = freezed,
+    Object? defeatDialogueId = freezed,
     Object? team = null,
     Object? tags = null,
   }) {
@@ -698,6 +720,26 @@ class _$ProjectTrainerEntryCopyWithImpl<$Res, $Val extends ProjectTrainerEntry>
           ? _value.rewardFieldAbilityUnlock
           : rewardFieldAbilityUnlock // ignore: cast_nullable_to_non_nullable
               as FieldAbility?,
+      templateKind: freezed == templateKind
+          ? _value.templateKind
+          : templateKind // ignore: cast_nullable_to_non_nullable
+              as ProjectTrainerTemplateKind?,
+      rematchPolicy: freezed == rematchPolicy
+          ? _value.rematchPolicy
+          : rematchPolicy // ignore: cast_nullable_to_non_nullable
+              as ProjectTrainerRematchPolicy?,
+      preBattleDialogueId: freezed == preBattleDialogueId
+          ? _value.preBattleDialogueId
+          : preBattleDialogueId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      victoryDialogueId: freezed == victoryDialogueId
+          ? _value.victoryDialogueId
+          : victoryDialogueId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      defeatDialogueId: freezed == defeatDialogueId
+          ? _value.defeatDialogueId
+          : defeatDialogueId // ignore: cast_nullable_to_non_nullable
+              as String?,
       team: null == team
           ? _value.team
           : team // ignore: cast_nullable_to_non_nullable
@@ -733,6 +775,11 @@ abstract class _$$ProjectTrainerEntryImplCopyWith<$Res>
       List<String> rewardFlagIds,
       @JsonKey(includeIfNull: false) String? rewardBadgeId,
       @JsonKey(includeIfNull: false) FieldAbility? rewardFieldAbilityUnlock,
+      @JsonKey(includeIfNull: false) ProjectTrainerTemplateKind? templateKind,
+      @JsonKey(includeIfNull: false) ProjectTrainerRematchPolicy? rematchPolicy,
+      @JsonKey(includeIfNull: false) String? preBattleDialogueId,
+      @JsonKey(includeIfNull: false) String? victoryDialogueId,
+      @JsonKey(includeIfNull: false) String? defeatDialogueId,
       List<ProjectTrainerPokemonEntry> team,
       List<String> tags});
 }
@@ -764,6 +811,11 @@ class __$$ProjectTrainerEntryImplCopyWithImpl<$Res>
     Object? rewardFlagIds = null,
     Object? rewardBadgeId = freezed,
     Object? rewardFieldAbilityUnlock = freezed,
+    Object? templateKind = freezed,
+    Object? rematchPolicy = freezed,
+    Object? preBattleDialogueId = freezed,
+    Object? victoryDialogueId = freezed,
+    Object? defeatDialogueId = freezed,
     Object? team = null,
     Object? tags = null,
   }) {
@@ -824,6 +876,26 @@ class __$$ProjectTrainerEntryImplCopyWithImpl<$Res>
           ? _value.rewardFieldAbilityUnlock
           : rewardFieldAbilityUnlock // ignore: cast_nullable_to_non_nullable
               as FieldAbility?,
+      templateKind: freezed == templateKind
+          ? _value.templateKind
+          : templateKind // ignore: cast_nullable_to_non_nullable
+              as ProjectTrainerTemplateKind?,
+      rematchPolicy: freezed == rematchPolicy
+          ? _value.rematchPolicy
+          : rematchPolicy // ignore: cast_nullable_to_non_nullable
+              as ProjectTrainerRematchPolicy?,
+      preBattleDialogueId: freezed == preBattleDialogueId
+          ? _value.preBattleDialogueId
+          : preBattleDialogueId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      victoryDialogueId: freezed == victoryDialogueId
+          ? _value.victoryDialogueId
+          : victoryDialogueId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      defeatDialogueId: freezed == defeatDialogueId
+          ? _value.defeatDialogueId
+          : defeatDialogueId // ignore: cast_nullable_to_non_nullable
+              as String?,
       team: null == team
           ? _value._team
           : team // ignore: cast_nullable_to_non_nullable
@@ -856,6 +928,11 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
       final List<String> rewardFlagIds = const [],
       @JsonKey(includeIfNull: false) this.rewardBadgeId,
       @JsonKey(includeIfNull: false) this.rewardFieldAbilityUnlock,
+      @JsonKey(includeIfNull: false) this.templateKind,
+      @JsonKey(includeIfNull: false) this.rematchPolicy,
+      @JsonKey(includeIfNull: false) this.preBattleDialogueId,
+      @JsonKey(includeIfNull: false) this.victoryDialogueId,
+      @JsonKey(includeIfNull: false) this.defeatDialogueId,
       final List<ProjectTrainerPokemonEntry> team = const [],
       final List<String> tags = const []})
       : _rewardItemGrants = rewardItemGrants,
@@ -942,6 +1019,21 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
   @override
   @JsonKey(includeIfNull: false)
   final FieldAbility? rewardFieldAbilityUnlock;
+  @override
+  @JsonKey(includeIfNull: false)
+  final ProjectTrainerTemplateKind? templateKind;
+  @override
+  @JsonKey(includeIfNull: false)
+  final ProjectTrainerRematchPolicy? rematchPolicy;
+  @override
+  @JsonKey(includeIfNull: false)
+  final String? preBattleDialogueId;
+  @override
+  @JsonKey(includeIfNull: false)
+  final String? victoryDialogueId;
+  @override
+  @JsonKey(includeIfNull: false)
+  final String? defeatDialogueId;
   final List<ProjectTrainerPokemonEntry> _team;
   @override
   @JsonKey()
@@ -962,7 +1054,7 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
 
   @override
   String toString() {
-    return 'ProjectTrainerEntry(id: $id, name: $name, trainerClass: $trainerClass, battleDifficulty: $battleDifficulty, battleBackgroundRelativePath: $battleBackgroundRelativePath, characterId: $characterId, portraitElementId: $portraitElementId, battleThemeId: $battleThemeId, victoryThemeId: $victoryThemeId, moneyReward: $moneyReward, rewardItemGrants: $rewardItemGrants, rewardFlagIds: $rewardFlagIds, rewardBadgeId: $rewardBadgeId, rewardFieldAbilityUnlock: $rewardFieldAbilityUnlock, team: $team, tags: $tags)';
+    return 'ProjectTrainerEntry(id: $id, name: $name, trainerClass: $trainerClass, battleDifficulty: $battleDifficulty, battleBackgroundRelativePath: $battleBackgroundRelativePath, characterId: $characterId, portraitElementId: $portraitElementId, battleThemeId: $battleThemeId, victoryThemeId: $victoryThemeId, moneyReward: $moneyReward, rewardItemGrants: $rewardItemGrants, rewardFlagIds: $rewardFlagIds, rewardBadgeId: $rewardBadgeId, rewardFieldAbilityUnlock: $rewardFieldAbilityUnlock, templateKind: $templateKind, rematchPolicy: $rematchPolicy, preBattleDialogueId: $preBattleDialogueId, victoryDialogueId: $victoryDialogueId, defeatDialogueId: $defeatDialogueId, team: $team, tags: $tags)';
   }
 
   @override
@@ -999,30 +1091,46 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
             (identical(
                     other.rewardFieldAbilityUnlock, rewardFieldAbilityUnlock) ||
                 other.rewardFieldAbilityUnlock == rewardFieldAbilityUnlock) &&
+            (identical(other.templateKind, templateKind) ||
+                other.templateKind == templateKind) &&
+            (identical(other.rematchPolicy, rematchPolicy) ||
+                other.rematchPolicy == rematchPolicy) &&
+            (identical(other.preBattleDialogueId, preBattleDialogueId) ||
+                other.preBattleDialogueId == preBattleDialogueId) &&
+            (identical(other.victoryDialogueId, victoryDialogueId) ||
+                other.victoryDialogueId == victoryDialogueId) &&
+            (identical(other.defeatDialogueId, defeatDialogueId) ||
+                other.defeatDialogueId == defeatDialogueId) &&
             const DeepCollectionEquality().equals(other._team, _team) &&
             const DeepCollectionEquality().equals(other._tags, _tags));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      trainerClass,
-      battleDifficulty,
-      battleBackgroundRelativePath,
-      characterId,
-      portraitElementId,
-      battleThemeId,
-      victoryThemeId,
-      moneyReward,
-      const DeepCollectionEquality().hash(_rewardItemGrants),
-      const DeepCollectionEquality().hash(_rewardFlagIds),
-      rewardBadgeId,
-      rewardFieldAbilityUnlock,
-      const DeepCollectionEquality().hash(_team),
-      const DeepCollectionEquality().hash(_tags));
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        name,
+        trainerClass,
+        battleDifficulty,
+        battleBackgroundRelativePath,
+        characterId,
+        portraitElementId,
+        battleThemeId,
+        victoryThemeId,
+        moneyReward,
+        const DeepCollectionEquality().hash(_rewardItemGrants),
+        const DeepCollectionEquality().hash(_rewardFlagIds),
+        rewardBadgeId,
+        rewardFieldAbilityUnlock,
+        templateKind,
+        rematchPolicy,
+        preBattleDialogueId,
+        victoryDialogueId,
+        defeatDialogueId,
+        const DeepCollectionEquality().hash(_team),
+        const DeepCollectionEquality().hash(_tags)
+      ]);
 
   /// Create a copy of ProjectTrainerEntry
   /// with the given fields replaced by the non-null parameter values.
@@ -1059,6 +1167,13 @@ abstract class _ProjectTrainerEntry implements ProjectTrainerEntry {
       @JsonKey(includeIfNull: false) final String? rewardBadgeId,
       @JsonKey(includeIfNull: false)
       final FieldAbility? rewardFieldAbilityUnlock,
+      @JsonKey(includeIfNull: false)
+      final ProjectTrainerTemplateKind? templateKind,
+      @JsonKey(includeIfNull: false)
+      final ProjectTrainerRematchPolicy? rematchPolicy,
+      @JsonKey(includeIfNull: false) final String? preBattleDialogueId,
+      @JsonKey(includeIfNull: false) final String? victoryDialogueId,
+      @JsonKey(includeIfNull: false) final String? defeatDialogueId,
       final List<ProjectTrainerPokemonEntry> team,
       final List<String> tags}) = _$ProjectTrainerEntryImpl;
 
@@ -1126,6 +1241,21 @@ abstract class _ProjectTrainerEntry implements ProjectTrainerEntry {
   @override
   @JsonKey(includeIfNull: false)
   FieldAbility? get rewardFieldAbilityUnlock;
+  @override
+  @JsonKey(includeIfNull: false)
+  ProjectTrainerTemplateKind? get templateKind;
+  @override
+  @JsonKey(includeIfNull: false)
+  ProjectTrainerRematchPolicy? get rematchPolicy;
+  @override
+  @JsonKey(includeIfNull: false)
+  String? get preBattleDialogueId;
+  @override
+  @JsonKey(includeIfNull: false)
+  String? get victoryDialogueId;
+  @override
+  @JsonKey(includeIfNull: false)
+  String? get defeatDialogueId;
   @override
   List<ProjectTrainerPokemonEntry> get team;
   @override

@@ -117,6 +117,72 @@ void main() {
       expect(clearedTrainer.rewardFieldAbilityUnlock, isNull);
     });
 
+    test('create and update trainer author lifecycle templates without raw ids',
+        () async {
+      final createUseCase = CreateTrainerUseCase(repository);
+      final updateUseCase = UpdateTrainerUseCase(repository);
+      final project = _project(
+        dialogues: const <ProjectDialogueEntry>[
+          ProjectDialogueEntry(
+            id: 'rival_before',
+            name: 'Rival · avant combat',
+            relativePath: 'dialogues/rival_before.yarn',
+          ),
+          ProjectDialogueEntry(
+            id: 'rival_victory',
+            name: 'Rival · victoire',
+            relativePath: 'dialogues/rival_victory.yarn',
+          ),
+          ProjectDialogueEntry(
+            id: 'rival_defeat',
+            name: 'Rival · défaite joueur',
+            relativePath: 'dialogues/rival_defeat.yarn',
+          ),
+        ],
+      );
+
+      final created = await createUseCase.execute(
+        workspace,
+        project,
+        name: '  Lysa  ',
+        trainerClass: '  Rival  ',
+        templateKind: ProjectTrainerTemplateKind.rival,
+        rematchPolicy: ProjectTrainerRematchPolicy.allowed,
+        preBattleDialogueId: ' rival_before ',
+        victoryDialogueId: ' rival_victory ',
+        defeatDialogueId: ' rival_defeat ',
+        rewardFlagIds: const <String>[' story:lysa_follow_up '],
+      );
+
+      final trainer = created.trainers.single;
+      expect(trainer.templateKind, ProjectTrainerTemplateKind.rival);
+      expect(trainer.rematchPolicy, ProjectTrainerRematchPolicy.allowed);
+      expect(trainer.preBattleDialogueId, 'rival_before');
+      expect(trainer.victoryDialogueId, 'rival_victory');
+      expect(trainer.defeatDialogueId, 'rival_defeat');
+
+      final cleared = await updateUseCase.execute(
+        workspace,
+        created,
+        trainerId: trainer.id,
+        templateKind:
+            const TrainerFieldUpdate<ProjectTrainerTemplateKind>.set(null),
+        rematchPolicy:
+            const TrainerFieldUpdate<ProjectTrainerRematchPolicy>.set(null),
+        preBattleDialogueId: const TrainerFieldUpdate<String>.set(null),
+        victoryDialogueId: const TrainerFieldUpdate<String>.set(''),
+        defeatDialogueId: const TrainerFieldUpdate<String>.set(null),
+        rewardFlagIds: const <String>[],
+      );
+
+      final clearedTrainer = cleared.trainers.single;
+      expect(clearedTrainer.templateKind, isNull);
+      expect(clearedTrainer.rematchPolicy, isNull);
+      expect(clearedTrainer.preBattleDialogueId, isNull);
+      expect(clearedTrainer.victoryDialogueId, isNull);
+      expect(clearedTrainer.defeatDialogueId, isNull);
+    });
+
     test('update trainer can author and clear difficulty/background fields',
         () async {
       final useCase = UpdateTrainerUseCase(repository);
@@ -359,6 +425,7 @@ ProjectManifest _project({
   List<ProjectElementEntry> elements = const <ProjectElementEntry>[],
   List<ProjectCharacterEntry> characters = const <ProjectCharacterEntry>[],
   List<BadgeDefinition> badges = const <BadgeDefinition>[],
+  List<ProjectDialogueEntry> dialogues = const <ProjectDialogueEntry>[],
   List<ProjectTilesetEntry> tilesets = const <ProjectTilesetEntry>[
     ProjectTilesetEntry(
       id: 'tileset_1',
@@ -381,6 +448,7 @@ ProjectManifest _project({
     elements: elements,
     characters: characters,
     badges: badges,
+    dialogues: dialogues,
     trainers: trainers,
   );
 }

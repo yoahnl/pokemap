@@ -5,6 +5,28 @@ import 'enums.dart';
 part 'project_trainer.freezed.dart';
 part 'project_trainer.g.dart';
 
+/// Preset auteur optionnel d'un dresseur.
+///
+/// `null` sur [ProjectTrainerEntry.templateKind] reste le trainer générique
+/// historique. Les presets spécialisés activent des invariants de validation
+/// supplémentaires sans introduire de moteur de scénario dans `map_core`.
+enum ProjectTrainerTemplateKind {
+  @JsonValue('gym_leader')
+  gymLeader,
+  @JsonValue('rival')
+  rival,
+}
+
+/// Politique MVP de réaffrontement.
+///
+/// `null` reste strictement one-shot pour préserver les projets historiques.
+/// La valeur [allowed] autorise un nouveau combat après le dialogue de victoire,
+/// tout en conservant le flag `trainer_defeated:<id>` comme preuve persistante.
+enum ProjectTrainerRematchPolicy {
+  @JsonValue('allowed')
+  allowed,
+}
+
 int _projectTrainerItemQuantityFromJson(Object? value) {
   if (value is! int) {
     throw FormatException(
@@ -128,6 +150,11 @@ class ProjectTrainerEntry with _$ProjectTrainerEntry {
     @Default([]) List<String> rewardFlagIds,
     @JsonKey(includeIfNull: false) String? rewardBadgeId,
     @JsonKey(includeIfNull: false) FieldAbility? rewardFieldAbilityUnlock,
+    @JsonKey(includeIfNull: false) ProjectTrainerTemplateKind? templateKind,
+    @JsonKey(includeIfNull: false) ProjectTrainerRematchPolicy? rematchPolicy,
+    @JsonKey(includeIfNull: false) String? preBattleDialogueId,
+    @JsonKey(includeIfNull: false) String? victoryDialogueId,
+    @JsonKey(includeIfNull: false) String? defeatDialogueId,
     @Default([]) List<ProjectTrainerPokemonEntry> team,
     @Default([]) List<String> tags,
   }) = _ProjectTrainerEntry;

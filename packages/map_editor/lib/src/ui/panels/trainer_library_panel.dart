@@ -37,6 +37,7 @@ part 'trainer_library_panel_support.dart';
 part 'trainer_library_panel_trainer_widgets.dart';
 part 'trainer_library_panel_pokemon_widgets.dart';
 part 'trainer_library_panel_reward_widgets.dart';
+part 'trainer_library_panel_lifecycle_widgets.dart';
 part 'trainer_library_panel_workspace_widgets.dart';
 
 const PokemonSpeciesLookupService _speciesLookupService =
@@ -95,6 +96,11 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       const <ProjectTrainerItemGrant>[];
   String? _newRewardBadgeId;
   FieldAbility? _newRewardFieldAbilityUnlock;
+  ProjectTrainerTemplateKind? _newTemplateKind;
+  ProjectTrainerRematchPolicy? _newRematchPolicy;
+  String? _newPreBattleDialogueId;
+  String? _newVictoryDialogueId;
+  String? _newDefeatDialogueId;
   bool _showCreateForm = false;
   bool _showCreateAdvanced = false;
   String? _createTrainerValidationMessage;
@@ -121,6 +127,11 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       const <ProjectTrainerItemGrant>[];
   String? _editRewardBadgeId;
   FieldAbility? _editRewardFieldAbilityUnlock;
+  ProjectTrainerTemplateKind? _editTemplateKind;
+  ProjectTrainerRematchPolicy? _editRematchPolicy;
+  String? _editPreBattleDialogueId;
+  String? _editVictoryDialogueId;
+  String? _editDefeatDialogueId;
   bool _showEditAdvanced = false;
   String? _editTrainerValidationMessage;
 
@@ -395,6 +406,12 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       portraitElementId: _newPortraitController.text,
       rewardMoney: _newRewardMoneyController.text,
       rewardBadgeId: _newRewardBadgeId,
+      rewardFieldAbilityUnlock: _newRewardFieldAbilityUnlock,
+      rewardFlagIds: _splitCommaSeparatedValues(_newRewardFlagsController.text),
+      templateKind: _newTemplateKind,
+      preBattleDialogueId: _newPreBattleDialogueId,
+      victoryDialogueId: _newVictoryDialogueId,
+      defeatDialogueId: _newDefeatDialogueId,
     );
     setState(() {
       _createTrainerValidationMessage = validation;
@@ -412,6 +429,11 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       portraitElementId: _newPortraitController.text,
       battleThemeId: _newBattleThemeController.text,
       victoryThemeId: _newVictoryThemeController.text,
+      templateKind: _newTemplateKind,
+      rematchPolicy: _newRematchPolicy,
+      preBattleDialogueId: _newPreBattleDialogueId,
+      victoryDialogueId: _newVictoryDialogueId,
+      defeatDialogueId: _newDefeatDialogueId,
       moneyReward: int.parse(_newRewardMoneyController.text.trim()),
       rewardItemGrants: _newRewardItemGrants,
       rewardFlagIds: _splitCommaSeparatedValues(_newRewardFlagsController.text),
@@ -449,6 +471,13 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       portraitElementId: _editPortraitController.text,
       rewardMoney: _editRewardMoneyController.text,
       rewardBadgeId: _editRewardBadgeId,
+      rewardFieldAbilityUnlock: _editRewardFieldAbilityUnlock,
+      rewardFlagIds:
+          _splitCommaSeparatedValues(_editRewardFlagsController.text),
+      templateKind: _editTemplateKind,
+      preBattleDialogueId: _editPreBattleDialogueId,
+      victoryDialogueId: _editVictoryDialogueId,
+      defeatDialogueId: _editDefeatDialogueId,
     );
     setState(() {
       _editTrainerValidationMessage = validation;
@@ -467,6 +496,11 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       portraitElementId: _editPortraitController.text,
       battleThemeId: _editBattleThemeController.text,
       victoryThemeId: _editVictoryThemeController.text,
+      templateKind: _editTemplateKind,
+      rematchPolicy: _editRematchPolicy,
+      preBattleDialogueId: _editPreBattleDialogueId,
+      victoryDialogueId: _editVictoryDialogueId,
+      defeatDialogueId: _editDefeatDialogueId,
       moneyReward: int.parse(_editRewardMoneyController.text.trim()),
       rewardItemGrants: _editRewardItemGrants,
       rewardFlagIds:
@@ -518,6 +552,12 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     required String portraitElementId,
     required String rewardMoney,
     required String? rewardBadgeId,
+    required FieldAbility? rewardFieldAbilityUnlock,
+    required List<String> rewardFlagIds,
+    required ProjectTrainerTemplateKind? templateKind,
+    required String? preBattleDialogueId,
+    required String? victoryDialogueId,
+    required String? defeatDialogueId,
   }) {
     if (name.trim().isEmpty) {
       return 'Trainer name cannot be empty.';
@@ -543,6 +583,41 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     if (rewardBadgeId != null &&
         !project.badges.any((badge) => badge.id == rewardBadgeId)) {
       return 'Le badge de récompense n’existe plus dans le projet.';
+    }
+    final selectedDialogueIds = <String?>[
+      preBattleDialogueId,
+      victoryDialogueId,
+      defeatDialogueId,
+    ].whereType<String>();
+    for (final dialogueId in selectedDialogueIds) {
+      if (!project.dialogues.any((dialogue) => dialogue.id == dialogueId)) {
+        return 'Le dialogue "$dialogueId" n’existe plus dans le projet.';
+      }
+    }
+    switch (templateKind) {
+      case ProjectTrainerTemplateKind.gymLeader:
+        if (rewardBadgeId == null) {
+          return 'Le template Champion d’Arène exige un badge de récompense.';
+        }
+        if (victoryDialogueId == null) {
+          return 'Le template Champion d’Arène exige un dialogue de victoire.';
+        }
+        final badge = project.badges
+            .where((candidate) => candidate.id == rewardBadgeId)
+            .firstOrNull;
+        if (badge?.fieldAbilityUnlock != null &&
+            rewardFieldAbilityUnlock != badge!.fieldAbilityUnlock) {
+          return 'La capacité de terrain doit correspondre à celle du badge.';
+        }
+      case ProjectTrainerTemplateKind.rival:
+        if (preBattleDialogueId == null || victoryDialogueId == null) {
+          return 'Le template Rival exige les dialogues avant combat et après victoire.';
+        }
+        if (rewardFlagIds.isEmpty) {
+          return 'Le template Rival exige au moins un flag de suivi.';
+        }
+      case null:
+        break;
     }
 
     final normalizedBattleBackgroundPath =
@@ -582,6 +657,11 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _newRewardItemGrants = const <ProjectTrainerItemGrant>[];
     _newRewardBadgeId = null;
     _newRewardFieldAbilityUnlock = null;
+    _newTemplateKind = null;
+    _newRematchPolicy = null;
+    _newPreBattleDialogueId = null;
+    _newVictoryDialogueId = null;
+    _newDefeatDialogueId = null;
   }
 
   void _openCreateTrainerForm() {
@@ -603,6 +683,112 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     setState(() {
       _newCharacterId = characterId;
     });
+  }
+
+  void _selectNewTrainerTemplate(ProjectTrainerTemplateKind? templateKind) {
+    setState(() {
+      _newTemplateKind = templateKind;
+      switch (templateKind) {
+        case ProjectTrainerTemplateKind.gymLeader:
+          _newClassController.text = 'Champion d’Arène';
+          _newBattleDifficulty = 7;
+          _newTagsController.text = _mergeTrainerTags(
+              _newTagsController.text, const ['gym', 'leader']);
+        case ProjectTrainerTemplateKind.rival:
+          _newClassController.text = 'Rival';
+          _newBattleDifficulty = 8;
+          _newTagsController.text = _mergeTrainerTags(
+              _newTagsController.text, const ['rival', 'story']);
+        case null:
+          break;
+      }
+      _createTrainerValidationMessage = null;
+    });
+  }
+
+  void _selectEditTrainerTemplate(ProjectTrainerTemplateKind? templateKind) {
+    setState(() {
+      _editTemplateKind = templateKind;
+      switch (templateKind) {
+        case ProjectTrainerTemplateKind.gymLeader:
+          _editClassController.text = 'Champion d’Arène';
+          _editBattleDifficulty ??= 7;
+          _editTagsController.text = _mergeTrainerTags(
+              _editTagsController.text, const ['gym', 'leader']);
+        case ProjectTrainerTemplateKind.rival:
+          _editClassController.text = 'Rival';
+          _editBattleDifficulty ??= 8;
+          _editTagsController.text = _mergeTrainerTags(
+              _editTagsController.text, const ['rival', 'story']);
+        case null:
+          break;
+      }
+      _editTrainerValidationMessage = null;
+    });
+  }
+
+  void _selectNewRematchPolicy(ProjectTrainerRematchPolicy? policy) {
+    setState(() {
+      _newRematchPolicy = policy;
+      _createTrainerValidationMessage = null;
+    });
+  }
+
+  void _selectEditRematchPolicy(ProjectTrainerRematchPolicy? policy) {
+    setState(() {
+      _editRematchPolicy = policy;
+      _editTrainerValidationMessage = null;
+    });
+  }
+
+  void _selectNewPreBattleDialogue(String? dialogueId) {
+    setState(() {
+      _newPreBattleDialogueId = dialogueId;
+      _createTrainerValidationMessage = null;
+    });
+  }
+
+  void _selectEditPreBattleDialogue(String? dialogueId) {
+    setState(() {
+      _editPreBattleDialogueId = dialogueId;
+      _editTrainerValidationMessage = null;
+    });
+  }
+
+  void _selectNewVictoryDialogue(String? dialogueId) {
+    setState(() {
+      _newVictoryDialogueId = dialogueId;
+      _createTrainerValidationMessage = null;
+    });
+  }
+
+  void _selectEditVictoryDialogue(String? dialogueId) {
+    setState(() {
+      _editVictoryDialogueId = dialogueId;
+      _editTrainerValidationMessage = null;
+    });
+  }
+
+  void _selectNewDefeatDialogue(String? dialogueId) {
+    setState(() {
+      _newDefeatDialogueId = dialogueId;
+      _createTrainerValidationMessage = null;
+    });
+  }
+
+  void _selectEditDefeatDialogue(String? dialogueId) {
+    setState(() {
+      _editDefeatDialogueId = dialogueId;
+      _editTrainerValidationMessage = null;
+    });
+  }
+
+  String _mergeTrainerTags(String rawTags, List<String> presetTags) {
+    final merged = <String>{
+      ..._splitCommaSeparatedValues(rawTags),
+      ...presetTags,
+    };
+    return merged.join(', ');
   }
 
   void _addNewRewardItem() {
@@ -788,6 +974,11 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       _editRewardItemGrants = trainer.rewardItemGrants;
       _editRewardBadgeId = trainer.rewardBadgeId;
       _editRewardFieldAbilityUnlock = trainer.rewardFieldAbilityUnlock;
+      _editTemplateKind = trainer.templateKind;
+      _editRematchPolicy = trainer.rematchPolicy;
+      _editPreBattleDialogueId = trainer.preBattleDialogueId;
+      _editVictoryDialogueId = trainer.victoryDialogueId;
+      _editDefeatDialogueId = trainer.defeatDialogueId;
       _showEditAdvanced = false;
       _editTrainerValidationMessage = null;
       _showCreateForm = false;
@@ -1230,5 +1421,10 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _editRewardItemGrants = const <ProjectTrainerItemGrant>[];
     _editRewardBadgeId = null;
     _editRewardFieldAbilityUnlock = null;
+    _editTemplateKind = null;
+    _editRematchPolicy = null;
+    _editPreBattleDialogueId = null;
+    _editVictoryDialogueId = null;
+    _editDefeatDialogueId = null;
   }
 }

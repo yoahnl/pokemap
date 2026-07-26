@@ -4,9 +4,115 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('trainer interaction opens pre-battle dialogue before handoff',
+      () async {
+    final game = _TestPlayableMapGame(
+      bundle: _bundleWithTrainerLifecycle(),
+      projectFilePath: '/tmp/post-battle/project.json',
+      saveData: saveDataFromGameState(_state()),
+      postBattleDecisionCoordinator: RuntimePostBattleDecisionCoordinator(),
+      runtimePlayerPokemonProgressionCatalogLoader: _loadCatalogs,
+      dialogueSessionLoader: (_) async =>
+          _singleLineDialogueSession('À nous deux !'),
+    );
+    game.onGameResize(Vector2(640, 480));
+    await game.onLoad();
+    await _waitForActivationDispatch(game);
+
+    expect(
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      ),
+      isTrue,
+    );
+    await _waitForFlowPhase(game, 'dialogue');
+    expect(game.debugPendingBattleRequest, isNull);
+
+    expect(
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      ),
+      isTrue,
+    );
+    expect(game.debugFlowPhaseName, 'overworld');
+    expect(game.debugPendingBattleRequest, isA<TrainerBattleStartRequest>());
+  });
+
+  test('trainer victory opens authored dialogue after persistent outcome',
+      () async {
+    final game = _TestPlayableMapGame(
+      bundle: _bundleWithTrainerLifecycle(),
+      projectFilePath: '/tmp/post-battle/project.json',
+      saveData: saveDataFromGameState(_state()),
+      postBattleDecisionCoordinator: RuntimePostBattleDecisionCoordinator(
+        resolveReward: _pendingMoveResolution,
+      ),
+      runtimePlayerPokemonProgressionCatalogLoader: _loadCatalogs,
+      dialogueSessionLoader: (_) async =>
+          _singleLineDialogueSession('Tu as gagné.'),
+    );
+    game.onGameResize(Vector2(640, 480));
+    await game.onLoad();
+    await _waitForActivationDispatch(game);
+    await game.debugStartPostBattleForTest(
+      context: _context(),
+      outcome: _outcome(),
+    );
+
+    await _acknowledgePostBattle(game);
+    await _waitForFlowPhase(game, 'dialogue');
+
+    expect(
+      game.gameStateSnapshot.storyFlags.activeFlags,
+      contains('trainer_defeated:trainer_iris'),
+    );
+    expect(game.debugPendingBattleRequest, isNull);
+
+    expect(
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      ),
+      isTrue,
+    );
+    await _waitForNarrativeOutcomeIdle(game);
+    expect(game.debugFlowPhaseName, 'overworld');
+  });
+
+  test('trainer defeat opens only the authored defeat dialogue', () async {
+    String? loadedDialogueId;
+    final game = _TestPlayableMapGame(
+      bundle: _bundleWithTrainerLifecycle(),
+      projectFilePath: '/tmp/post-battle/project.json',
+      saveData: saveDataFromGameState(_state()),
+      postBattleDecisionCoordinator: RuntimePostBattleDecisionCoordinator(),
+      runtimePlayerPokemonProgressionCatalogLoader: _loadCatalogs,
+      dialogueSessionLoader: (resolved) async {
+        loadedDialogueId = resolved.dialogueId;
+        return _singleLineDialogueSession('On se retrouvera.');
+      },
+    );
+    game.onGameResize(Vector2(640, 480));
+    await game.onLoad();
+    await _waitForActivationDispatch(game);
+    await game.debugStartPostBattleForTest(
+      context: _context(),
+      outcome: _defeatOutcome(),
+    );
+
+    await _acknowledgePostBattle(game);
+    await _waitForFlowPhase(game, 'dialogue');
+
+    expect(loadedDialogueId, 'iris_defeat');
+    expect(
+      game.gameStateSnapshot.storyFlags.activeFlags,
+      isNot(contains('trainer_defeated:trainer_iris')),
+    );
+  });
 
   test('PlayableMapGame keeps battle locked and commits one win decision flow',
       () async {
@@ -320,6 +426,7 @@ final class _TestPlayableMapGame extends PlayableMapGame {
     required super.saveData,
     required super.postBattleDecisionCoordinator,
     required super.runtimePlayerPokemonProgressionCatalogLoader,
+    super.dialogueSessionLoader,
     super.postBattleOverlayMounter,
     super.beforePostBattleStateCommit,
   });
@@ -466,6 +573,20 @@ Future<void> _waitForActivationDispatch(PlayableMapGame game) async {
   fail('Timed out waiting for the initial activation.');
 }
 
+Future<void> _waitForFlowPhase(
+  PlayableMapGame game,
+  String expectedPhase,
+) async {
+  for (var index = 0; index < 240; index++) {
+    if (game.debugFlowPhaseName == expectedPhase) return;
+    await Future<void>.delayed(Duration.zero);
+  }
+  fail(
+    'Timed out waiting for flow phase $expectedPhase '
+    '(current: ${game.debugFlowPhaseName}).',
+  );
+}
+
 Future<void> _waitForPlayerStep(PlayableMapGame game) async {
   for (var index = 0; index < 240; index++) {
     if (!game.debugIsPlayerStepping) return;
@@ -591,6 +712,71 @@ RuntimeMapBundle _bundle() {
   );
 }
 
+RuntimeMapBundle _bundleWithTrainerLifecycle() {
+  final base = _bundle();
+  return RuntimeMapBundle(
+    manifest: base.manifest.copyWith(
+      dialogues: const <ProjectDialogueEntry>[
+        ProjectDialogueEntry(
+          id: 'iris_before',
+          name: 'Iris · avant combat',
+          relativePath: 'dialogues/iris_before.yarn',
+        ),
+        ProjectDialogueEntry(
+          id: 'iris_victory',
+          name: 'Iris · victoire',
+          relativePath: 'dialogues/iris_victory.yarn',
+        ),
+        ProjectDialogueEntry(
+          id: 'iris_defeat',
+          name: 'Iris · défaite du joueur',
+          relativePath: 'dialogues/iris_defeat.yarn',
+        ),
+      ],
+      trainers: const <ProjectTrainerEntry>[
+        ProjectTrainerEntry(
+          id: 'trainer_iris',
+          name: 'Iris',
+          trainerClass: 'Rivale',
+          preBattleDialogueId: 'iris_before',
+          victoryDialogueId: 'iris_victory',
+          defeatDialogueId: 'iris_defeat',
+        ),
+      ],
+    ),
+    map: base.map.copyWith(
+      entities: <MapEntity>[
+        ...base.map.entities,
+        const MapEntity(
+          id: 'npc_iris',
+          kind: MapEntityKind.npc,
+          pos: GridPos(x: 1, y: 2),
+          blocksMovement: true,
+          npc: MapEntityNpcData(
+            displayName: 'Iris',
+            trainerId: 'trainer_iris',
+            facing: EntityFacing.north,
+          ),
+        ),
+      ],
+    ),
+    projectRootDirectory: base.projectRootDirectory,
+    tilesetAbsolutePathsById: base.tilesetAbsolutePathsById,
+  );
+}
+
+DialogueSession _singleLineDialogueSession(String text) {
+  return DialogueSession.start(
+    <YarnNode>[
+      YarnNode(
+        title: 'Start',
+        steps: <YarnStep>[YarnStepLine(text)],
+      ),
+    ],
+    'Start',
+  )!;
+}
+
 GameState _state() {
   return const GameState(
     saveId: 'post-battle-game',
@@ -650,6 +836,18 @@ BattleOutcome _outcome() {
       phase: BattlePhase.finished,
       player: _combatant('hero', level: 5, currentHp: 7),
       enemy: _combatant('foe', level: 14, currentHp: 0),
+      playerParticipantLineupIndexes: const <int>{0},
+    ),
+  );
+}
+
+BattleOutcome _defeatOutcome() {
+  return BattleOutcome(
+    type: BattleOutcomeType.defeat,
+    finalState: BattleState(
+      phase: BattlePhase.finished,
+      player: _combatant('hero', level: 5, currentHp: 0),
+      enemy: _combatant('foe', level: 14, currentHp: 7),
       playerParticipantLineupIndexes: const <int>{0},
     ),
   );

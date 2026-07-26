@@ -32,6 +32,40 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('J4 Selbrume Lysa Golden Slice', () {
+    test('promoted Lysa declares the canonical rival lifecycle template',
+        () async {
+      final fixture = await _loadFixture(promoted: true);
+      final project = fixture.snapshot.project;
+      ProjectValidator.validate(project);
+
+      final trainer =
+          project.trainers.singleWhere((entry) => entry.id == _lysaTrainerId);
+      expect(trainer.templateKind, ProjectTrainerTemplateKind.rival);
+      expect(trainer.rematchPolicy, isNull);
+      expect(trainer.preBattleDialogueId, _lysaDialogueId);
+      expect(
+        trainer.victoryDialogueId,
+        'dialogue_lysa_port_after_win',
+      );
+      expect(
+        trainer.defeatDialogueId,
+        'dialogue_lysa_port_after_loss',
+      );
+      expect(trainer.rewardFlagIds, contains('story:lysa_follow_up'));
+
+      final dialogues = <String, ProjectDialogueEntry>{
+        for (final dialogue in project.dialogues) dialogue.id: dialogue,
+      };
+      expect(
+        dialogues[trainer.victoryDialogueId]?.defaultStartNode,
+        'RivalAfterWin',
+      );
+      expect(
+        dialogues[trainer.defeatDialogueId]?.defaultStartNode,
+        'RivalAfterLoss',
+      );
+    });
+
     for (final promoted in const <bool>[false, true]) {
       for (final battleOutcome in const <String>['victory', 'defeat']) {
         test(

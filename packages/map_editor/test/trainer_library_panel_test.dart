@@ -67,6 +67,24 @@ void main() {
     }
   }
 
+  Future<void> pressCupertinoButtonWithText(
+    WidgetTester tester,
+    String label,
+  ) async {
+    final text = find.text(label);
+    await tester.ensureVisible(text);
+    tester
+        .widget<CupertinoButton>(
+          find.ancestor(
+            of: text,
+            matching: find.byType(CupertinoButton),
+          ),
+        )
+        .onPressed!
+        .call();
+    await settleTrainerUi(tester);
+  }
+
   Future<void> openTrainerDropdown(
     WidgetTester tester,
     String keyPrefix,
@@ -258,8 +276,7 @@ void main() {
       ' rival, gym ',
     );
 
-    await tester.tap(find.text('Créer'));
-    await tester.pumpAndSettle();
+    await pressCupertinoButtonWithText(tester, 'Créer');
 
     final trainer =
         container.read(editorNotifierProvider).project!.trainers.single;
@@ -412,8 +429,7 @@ void main() {
       'Gym Leader',
     );
 
-    await tester.tap(find.text('Créer'));
-    await tester.pumpAndSettle();
+    await pressCupertinoButtonWithText(tester, 'Créer');
 
     var trainer =
         container.read(editorNotifierProvider).project!.trainers.single;
@@ -427,8 +443,7 @@ void main() {
     );
     slider.onChanged!(7);
     await settleTrainerUi(tester);
-    await tester.tap(find.text('Enregistrer'));
-    await tester.pumpAndSettle();
+    await pressCupertinoButtonWithText(tester, 'Enregistrer');
 
     trainer = container.read(editorNotifierProvider).project!.trainers.single;
     expect(trainer.battleDifficulty, 7);
@@ -439,8 +454,7 @@ void main() {
       find.byKey(const Key('trainer-library-edit-difficulty-clear-button')),
     );
     await settleTrainerUi(tester);
-    await tester.tap(find.text('Enregistrer'));
-    await tester.pumpAndSettle();
+    await pressCupertinoButtonWithText(tester, 'Enregistrer');
 
     trainer = container.read(editorNotifierProvider).project!.trainers.single;
     expect(trainer.battleDifficulty, isNull);
@@ -555,10 +569,7 @@ void main() {
         .onChanged(FieldAbility.surf.moveId);
     await settleTrainerUi(tester);
 
-    final saveButton = find.text('Enregistrer');
-    await tester.ensureVisible(saveButton);
-    await tester.tap(saveButton);
-    await tester.pumpAndSettle();
+    await pressCupertinoButtonWithText(tester, 'Enregistrer');
 
     final trainer =
         container.read(editorNotifierProvider).project!.trainers.single;
@@ -575,6 +586,107 @@ void main() {
     );
     expect(trainer.rewardBadgeId, 'tide_badge');
     expect(trainer.rewardFieldAbilityUnlock, FieldAbility.surf);
+  });
+
+  testWidgets('authors a rival lifecycle through guided template controls',
+      (tester) async {
+    final repository = _FakeProjectRepository();
+    const workspace = _FakeWorkspace();
+    final container = ProviderContainer(
+      overrides: [
+        projectRepositoryProvider.overrideWithValue(repository),
+        projectWorkspaceFactoryProvider.overrideWithValue(
+          const _FakeWorkspaceFactory(workspace),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/trainers_panel_lifecycle_test',
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
+        name: 'trainers_panel_lifecycle_test',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        dialogues: <ProjectDialogueEntry>[
+          ProjectDialogueEntry(
+            id: 'lysa_before',
+            name: 'Lysa · avant combat',
+            relativePath: 'dialogues/lysa_before.yarn',
+          ),
+          ProjectDialogueEntry(
+            id: 'lysa_victory',
+            name: 'Lysa · après victoire',
+            relativePath: 'dialogues/lysa_victory.yarn',
+          ),
+          ProjectDialogueEntry(
+            id: 'lysa_defeat',
+            name: 'Lysa · après défaite',
+            relativePath: 'dialogues/lysa_defeat.yarn',
+          ),
+        ],
+        trainers: <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'lysa',
+            name: 'Lysa',
+            trainerClass: 'Dresseuse',
+          ),
+        ],
+      ),
+    );
+
+    await pumpTrainerPanel(tester, container);
+    await settleTrainerUi(tester);
+    await tester.tap(find.text('Modifier').first);
+    await settleTrainerUi(tester);
+
+    void selectLifecycle(String suffix, String value) {
+      tester
+          .widget<PokeMapDropdownField<String>>(
+            find.byKey(
+              Key('trainer-library-edit-lifecycle-$suffix-dropdown'),
+            ),
+          )
+          .onChanged(value);
+    }
+
+    selectLifecycle('template', 'rival');
+    selectLifecycle('rematch', 'allowed');
+    selectLifecycle('pre-battle', 'lysa_before');
+    selectLifecycle('victory', 'lysa_victory');
+    selectLifecycle('defeat', 'lysa_defeat');
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-edit-reward-flags-field')),
+      'story:lysa_follow_up',
+    );
+    await settleTrainerUi(tester);
+
+    final saveButton = find.text('Enregistrer');
+    await tester.ensureVisible(saveButton);
+    tester
+        .widget<CupertinoButton>(
+          find.ancestor(
+            of: saveButton,
+            matching: find.byType(CupertinoButton),
+          ),
+        )
+        .onPressed!
+        .call();
+    await settleTrainerUi(tester);
+
+    final trainer =
+        container.read(editorNotifierProvider).project!.trainers.single;
+    expect(trainer.templateKind, ProjectTrainerTemplateKind.rival);
+    expect(trainer.rematchPolicy, ProjectTrainerRematchPolicy.allowed);
+    expect(trainer.preBattleDialogueId, 'lysa_before');
+    expect(trainer.victoryDialogueId, 'lysa_victory');
+    expect(trainer.defeatDialogueId, 'lysa_defeat');
+    expect(trainer.rewardFlagIds, const <String>['story:lysa_follow_up']);
+    expect(trainer.trainerClass, 'Rival');
+    expect(trainer.battleDifficulty, 8);
+    expect(trainer.tags, containsAll(const <String>['rival', 'story']));
+    expect(repository.lastSavedProject?.trainers.single, trainer);
   });
 
   testWidgets(
@@ -648,8 +760,10 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.text('Afficher les références optionnelles'));
-    await settleTrainerUi(tester);
+    await pressCupertinoButtonWithText(
+      tester,
+      'Afficher les références optionnelles',
+    );
 
     expect(
       find.text('assets/battle_backgrounds/mira.png'),
@@ -659,9 +773,14 @@ void main() {
       find.byKey(const Key('trainer-library-edit-background-pick-button')),
       findsOneWidget,
     );
-    await tester.tap(
-      find.byKey(const Key('trainer-library-edit-background-clear-button')),
-    );
+    tester
+        .widget<CupertinoButton>(
+          find.byKey(
+            const Key('trainer-library-edit-background-clear-button'),
+          ),
+        )
+        .onPressed!
+        .call();
     await settleTrainerUi(tester);
     expect(
       find.text('Aucun fond spécifique sélectionné.'),

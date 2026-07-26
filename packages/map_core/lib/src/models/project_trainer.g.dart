@@ -76,6 +76,13 @@ _$ProjectTrainerEntryImpl _$$ProjectTrainerEntryImplFromJson(
       rewardBadgeId: json['rewardBadgeId'] as String?,
       rewardFieldAbilityUnlock: $enumDecodeNullable(
           _$FieldAbilityEnumMap, json['rewardFieldAbilityUnlock']),
+      templateKind: $enumDecodeNullable(
+          _$ProjectTrainerTemplateKindEnumMap, json['templateKind']),
+      rematchPolicy: $enumDecodeNullable(
+          _$ProjectTrainerRematchPolicyEnumMap, json['rematchPolicy']),
+      preBattleDialogueId: json['preBattleDialogueId'] as String?,
+      victoryDialogueId: json['victoryDialogueId'] as String?,
+      defeatDialogueId: json['defeatDialogueId'] as String?,
       team: (json['team'] as List<dynamic>?)
               ?.map((e) => ProjectTrainerPokemonEntry.fromJson(
                   e as Map<String, dynamic>))
@@ -106,6 +113,18 @@ Map<String, dynamic> _$$ProjectTrainerEntryImplToJson(
       if (_$FieldAbilityEnumMap[instance.rewardFieldAbilityUnlock]
           case final value?)
         'rewardFieldAbilityUnlock': value,
+      if (_$ProjectTrainerTemplateKindEnumMap[instance.templateKind]
+          case final value?)
+        'templateKind': value,
+      if (_$ProjectTrainerRematchPolicyEnumMap[instance.rematchPolicy]
+          case final value?)
+        'rematchPolicy': value,
+      if (instance.preBattleDialogueId case final value?)
+        'preBattleDialogueId': value,
+      if (instance.victoryDialogueId case final value?)
+        'victoryDialogueId': value,
+      if (instance.defeatDialogueId case final value?)
+        'defeatDialogueId': value,
       'team': instance.team.map((e) => e.toJson()).toList(),
       'tags': instance.tags,
     };
@@ -118,4 +137,13 @@ const _$FieldAbilityEnumMap = {
   FieldAbility.rockSmash: 'rock_smash',
   FieldAbility.waterfall: 'waterfall',
   FieldAbility.dive: 'dive',
+};
+
+const _$ProjectTrainerTemplateKindEnumMap = {
+  ProjectTrainerTemplateKind.gymLeader: 'gym_leader',
+  ProjectTrainerTemplateKind.rival: 'rival',
+};
+
+const _$ProjectTrainerRematchPolicyEnumMap = {
+  ProjectTrainerRematchPolicy.allowed: 'allowed',
 };
