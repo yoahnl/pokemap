@@ -42,4 +42,18 @@ final class RuntimeInputAuthoritySnapshot {
       acceptsRuntimeInput && context == RuntimeInputContext.overworld;
 
   bool get isGameplayLocked => !acceptsOverworldInput;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RuntimeInputAuthoritySnapshot &&
+          context == other.context &&
+          externalLocks.length == other.externalLocks.length &&
+          externalLocks.every(other.externalLocks.contains);
+
+  @override
+  int get hashCode => Object.hashAllUnordered(<Object>[
+        context,
+        ...externalLocks,
+      ]);
 }

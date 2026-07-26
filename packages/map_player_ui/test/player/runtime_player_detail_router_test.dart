@@ -9,7 +9,6 @@ void main() {
     RuntimePlayerPauseSection.bag,
     RuntimePlayerPauseSection.pokedex,
     RuntimePlayerPauseSection.map,
-    RuntimePlayerPauseSection.options,
   ]) {
     testWidgets('${section.name} renders runtime-provided detail data',
         (tester) async {
@@ -44,6 +43,47 @@ void main() {
       expect(find.text('Donnée runtime'), findsOneWidget);
     });
   }
+
+  testWidgets('options expose a persisted touch-control opacity slider',
+      (tester) async {
+    PlayerPreferencesSnapshot? changed;
+    final snapshot = RuntimePlayerSnapshot(
+      revision: 3,
+      phase: RuntimePlayerPhase.paused,
+      gameTitle: 'Aube',
+      pauseSection: RuntimePlayerPauseSection.options,
+      preferences: const PlayerPreferencesSnapshot(
+        locale: 'fr',
+        accessibility: GameSessionAccessibilityOptions(),
+        touchControlsOpacity: 0.82,
+      ),
+      actions: const <RuntimePlayerActionAvailability>[
+        RuntimePlayerActionAvailability.enabled(
+          RuntimePlayerAction.openOptions,
+        ),
+        RuntimePlayerActionAvailability.enabled(
+          RuntimePlayerAction.updatePreferences,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(_app(
+      RuntimePlayerDetailRouter(
+        snapshot: snapshot,
+        onPreferencesChanged: (preferences) => changed = preferences,
+      ),
+    ));
+
+    final slider = find.byKey(
+      const ValueKey<String>('touch-controls-opacity-slider'),
+    );
+    expect(slider, findsOneWidget);
+    await tester.drag(slider, const Offset(-120, 0));
+    await tester.pump();
+
+    expect(changed, isNotNull);
+    expect(changed!.touchControlsOpacity, lessThan(0.82));
+  });
 
   testWidgets('missing or empty detail gives a guided empty state',
       (tester) async {

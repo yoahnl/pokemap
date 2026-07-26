@@ -18,6 +18,7 @@ final class PlayerPreferences {
     this.highContrast = false,
     this.hapticsEnabled = true,
     this.showInputHints = true,
+    this.touchControlsOpacity = 0.82,
   });
 
   factory PlayerPreferences.fromJson(Map<String, Object?> json) {
@@ -33,6 +34,7 @@ final class PlayerPreferences {
       'highContrast',
       'hapticsEnabled',
       'showInputHints',
+      'touchControlsOpacity',
     };
     if (json.keys.toSet().difference(keys).isNotEmpty ||
         json['schemaVersion'] != 1) {
@@ -57,11 +59,22 @@ final class PlayerPreferences {
     final musicVolume = read<num>('musicVolume').toDouble();
     final effectsVolume = read<num>('effectsVolume').toDouble();
     final textScale = read<num>('textScale').toDouble();
+    final rawTouchControlsOpacity = json['touchControlsOpacity'];
+    if (rawTouchControlsOpacity != null && rawTouchControlsOpacity is! num) {
+      throw const FormatException(
+        'Invalid preference: touchControlsOpacity.',
+      );
+    }
+    final touchControlsOpacity =
+        (rawTouchControlsOpacity as num?)?.toDouble() ?? 0.82;
     if (<double>[masterVolume, musicVolume, effectsVolume]
             .any((value) => !value.isFinite || value < 0 || value > 1) ||
         !textScale.isFinite ||
         textScale < 0.8 ||
-        textScale > 1.6) {
+        textScale > 1.6 ||
+        !touchControlsOpacity.isFinite ||
+        touchControlsOpacity < 0.3 ||
+        touchControlsOpacity > 1) {
       throw const FormatException('Player preference value out of range.');
     }
     return PlayerPreferences(
@@ -75,6 +88,7 @@ final class PlayerPreferences {
       highContrast: read<bool>('highContrast'),
       hapticsEnabled: read<bool>('hapticsEnabled'),
       showInputHints: read<bool>('showInputHints'),
+      touchControlsOpacity: touchControlsOpacity,
     );
   }
 
@@ -89,6 +103,7 @@ final class PlayerPreferences {
   final bool highContrast;
   final bool hapticsEnabled;
   final bool showInputHints;
+  final double touchControlsOpacity;
 
   Locale? get locale => switch (language) {
         PlayerLanguage.system => null,
@@ -113,6 +128,7 @@ final class PlayerPreferences {
     bool? highContrast,
     bool? hapticsEnabled,
     bool? showInputHints,
+    double? touchControlsOpacity,
   }) =>
       PlayerPreferences(
         language: language ?? this.language,
@@ -125,6 +141,7 @@ final class PlayerPreferences {
         highContrast: highContrast ?? this.highContrast,
         hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
         showInputHints: showInputHints ?? this.showInputHints,
+        touchControlsOpacity: touchControlsOpacity ?? this.touchControlsOpacity,
       );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -139,6 +156,7 @@ final class PlayerPreferences {
         'highContrast': highContrast,
         'hapticsEnabled': hapticsEnabled,
         'showInputHints': showInputHints,
+        'touchControlsOpacity': touchControlsOpacity,
       };
 
   @override
@@ -154,7 +172,8 @@ final class PlayerPreferences {
       reducedMotion == other.reducedMotion &&
       highContrast == other.highContrast &&
       hapticsEnabled == other.hapticsEnabled &&
-      showInputHints == other.showInputHints;
+      showInputHints == other.showInputHints &&
+      touchControlsOpacity == other.touchControlsOpacity;
 
   @override
   int get hashCode => Object.hash(
@@ -169,5 +188,6 @@ final class PlayerPreferences {
         highContrast,
         hapticsEnabled,
         showInputHints,
+        touchControlsOpacity,
       );
 }

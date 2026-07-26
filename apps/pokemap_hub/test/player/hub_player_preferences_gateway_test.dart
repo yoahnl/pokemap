@@ -31,6 +31,7 @@ void main() {
     expect(snapshot.accessibility.reducedMotion, isFalse);
     expect(snapshot.accessibility.textScale, 1);
     expect(snapshot.accessibility.hapticsEnabled, isTrue);
+    expect(snapshot.touchControlsOpacity, 0.82);
   });
 
   test('persists runtime accessibility without losing global audio settings',
@@ -41,6 +42,7 @@ void main() {
         masterVolume: 0.4,
         musicVolume: 0.3,
         effectsVolume: 0.2,
+        touchControlsOpacity: 0.6,
       ),
     );
 
@@ -52,6 +54,7 @@ void main() {
           textScale: 1.4,
           hapticsEnabled: false,
         ),
+        touchControlsOpacity: 0.45,
       ),
     );
 
@@ -63,5 +66,6 @@ void main() {
     expect(persisted.masterVolume, 0.4);
     expect(persisted.musicVolume, 0.3);
     expect(persisted.effectsVolume, 0.2);
+    expect(persisted.touchControlsOpacity, 0.45);
   });
 }

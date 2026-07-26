@@ -36,5 +36,22 @@ void main() {
       expect(snapshot.acceptsOverworldInput, isFalse);
       expect(snapshot.isGameplayLocked, isTrue);
     });
+
+    test('every modal runtime context rejects overworld movement', () {
+      for (final context in RuntimeInputContext.values) {
+        final snapshot = RuntimeInputAuthoritySnapshot(context: context);
+
+        expect(
+          snapshot.acceptsOverworldInput,
+          context == RuntimeInputContext.overworld,
+          reason: '${context.name} must have one explicit movement policy.',
+        );
+        expect(
+          snapshot.isGameplayLocked,
+          context != RuntimeInputContext.overworld,
+          reason: '${context.name} must not leak input into the world.',
+        );
+      }
+    });
   });
 }

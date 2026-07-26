@@ -16,10 +16,12 @@ void main() {
       'highContrast': true,
       'hapticsEnabled': false,
       'showInputHints': true,
+      'touchControlsOpacity': 0.45,
     });
 
     expect(preferences.locale, const Locale('fr'));
     expect(preferences.themeMode, ThemeMode.dark);
+    expect(preferences.touchControlsOpacity, 0.45);
     expect(PlayerPreferences.fromJson(preferences.toJson()), preferences);
     expect(
       () => PlayerPreferences.fromJson(<String, Object?>{

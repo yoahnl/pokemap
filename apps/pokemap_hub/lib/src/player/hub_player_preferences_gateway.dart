@@ -31,6 +31,7 @@ final class HubPlayerPreferencesGateway implements PlayerPreferencesGateway {
         textScale: preferences.textScale,
         hapticsEnabled: preferences.hapticsEnabled,
       ),
+      touchControlsOpacity: preferences.touchControlsOpacity,
     );
   }
 
@@ -43,6 +44,7 @@ final class HubPlayerPreferencesGateway implements PlayerPreferencesGateway {
         reducedMotion: preferences.accessibility.reducedMotion,
         textScale: preferences.accessibility.textScale,
         hapticsEnabled: preferences.accessibility.hapticsEnabled,
+        touchControlsOpacity: preferences.touchControlsOpacity,
       ),
     );
   }

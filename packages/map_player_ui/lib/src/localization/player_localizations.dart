@@ -84,6 +84,8 @@ final class PokeMapPlayerLocalizations {
   String get haptics => _fr ? 'Vibrations' : 'Haptics';
   String get textSize => _fr ? 'Taille du texte' : 'Text size';
   String get inputHints => _fr ? 'Afficher les commandes' : 'Show controls';
+  String get touchControlsOpacity =>
+      _fr ? 'Opacité des commandes tactiles' : 'Touch controls opacity';
   String get healthy => _fr ? 'Installation vérifiée' : 'Installation verified';
   String get needsRepair => _fr ? 'Réparation requise' : 'Repair required';
   String get storage => _fr ? 'Espace disque' : 'Storage';

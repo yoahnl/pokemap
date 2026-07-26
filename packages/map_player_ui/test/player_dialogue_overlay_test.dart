@@ -15,7 +15,7 @@ void main() {
 
     expect(find.text('Lysa'), findsOneWidget);
     expect(find.text('Bienvenue à PokeMap.'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey<String>('dialogue-advance')));
+    await tester.tap(find.byKey(const ValueKey<String>('dialogue-tap-zone')));
     expect(
       command,
       isA<DialogueAdvanceCommand>().having(

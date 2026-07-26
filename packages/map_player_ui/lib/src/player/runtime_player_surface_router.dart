@@ -24,6 +24,9 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
     required this.gameSceneBuilder,
     required this.onAction,
     this.onShowDiagnostics,
+    this.gameplayTouchMenuEnabled = true,
+    this.touchControlsOpacity = 0.82,
+    this.onPreferencesChanged,
   });
 
   final RuntimePlayerSnapshot snapshot;
@@ -31,6 +34,9 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
   final WidgetBuilder gameSceneBuilder;
   final RuntimePlayerActionCallback onAction;
   final VoidCallback? onShowDiagnostics;
+  final bool gameplayTouchMenuEnabled;
+  final double touchControlsOpacity;
+  final ValueChanged<PlayerPreferencesSnapshot>? onPreferencesChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -84,8 +90,11 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
           onCancel: _callbackFor(RuntimePlayerAction.cancel),
         ),
       RuntimePlayerPhase.playing => RuntimePlayerTouchMenuButton(
-          onPressed: _callbackFor(RuntimePlayerAction.openMenu),
+          onPressed: gameplayTouchMenuEnabled
+              ? _callbackFor(RuntimePlayerAction.openMenu)
+              : null,
           activeInputSource: snapshot.activeInputSource,
+          opacity: touchControlsOpacity,
         ),
       RuntimePlayerPhase.paused => RuntimePlayerPauseShell(
           gameTitle: snapshot.gameTitle,
@@ -104,7 +113,10 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
           onTouchMenu: _callbackFor(RuntimePlayerAction.resume),
           activeInputSource: snapshot.activeInputSource,
           logicalSelectionId: snapshot.logicalSelectionId,
-          detail: RuntimePlayerDetailRouter(snapshot: snapshot),
+          detail: RuntimePlayerDetailRouter(
+            snapshot: snapshot,
+            onPreferencesChanged: onPreferencesChanged,
+          ),
         ),
       RuntimePlayerPhase.saving => PlayerLoadingSurface(
           stage: l10n.save,

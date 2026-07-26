@@ -67,10 +67,27 @@ final class PlayerPreferencesSnapshot {
   const PlayerPreferencesSnapshot({
     required this.locale,
     required this.accessibility,
-  }) : assert(locale != '');
+    this.touchControlsOpacity = 0.82,
+  })  : assert(locale != ''),
+        assert(
+          touchControlsOpacity >= 0.3 && touchControlsOpacity <= 1,
+          'touchControlsOpacity must be between 0.3 and 1',
+        );
 
   final String locale;
   final GameSessionAccessibilityOptions accessibility;
+  final double touchControlsOpacity;
+
+  PlayerPreferencesSnapshot copyWith({
+    String? locale,
+    GameSessionAccessibilityOptions? accessibility,
+    double? touchControlsOpacity,
+  }) =>
+      PlayerPreferencesSnapshot(
+        locale: locale ?? this.locale,
+        accessibility: accessibility ?? this.accessibility,
+        touchControlsOpacity: touchControlsOpacity ?? this.touchControlsOpacity,
+      );
 }
 
 /// Host-owned persistence for global player preferences.

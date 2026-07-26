@@ -54,12 +54,46 @@ void main() {
         RuntimePlayerAction.openMap,
         RuntimePlayerAction.save,
         RuntimePlayerAction.openOptions,
+        RuntimePlayerAction.updatePreferences,
         RuntimePlayerAction.returnToTitle,
       },
     );
     expect(
       RuntimePlayerAction.values.map((action) => action.name),
       isNot(contains(anyOf('shop', 'heal', 'pokemonCenter', 'pc'))),
+    );
+  });
+
+  test('options persist touch control opacity through the host gateway',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    await _openMenu(harness);
+    await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.openOptions,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+    final updated = harness.preferences.current.copyWith(
+      touchControlsOpacity: 0.45,
+    );
+
+    final result = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.updatePreferences,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: updated,
+      ),
+    );
+
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.preferences.saves, 1);
+    expect(harness.preferences.current.touchControlsOpacity, 0.45);
+    expect(
+      harness.coordinator.snapshot.preferences?.touchControlsOpacity,
+      0.45,
     );
   });
 

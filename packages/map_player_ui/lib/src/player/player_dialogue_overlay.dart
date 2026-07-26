@@ -42,10 +42,18 @@ class PlayerDialogueOverlay extends StatelessWidget {
                     liveRegion: true,
                     label: _semanticLabel(snapshot),
                     child: switch (snapshot.mode) {
-                      DialoguePresentationMode.line => _DialogueLineContent(
-                          snapshot: snapshot,
-                          onCommand: onCommand,
-                          portraitBuilder: portraitBuilder,
+                      DialoguePresentationMode.line => GestureDetector(
+                          key: const ValueKey<String>('dialogue-tap-zone'),
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => onCommand(
+                            DialogueAdvanceCommand(
+                              snapshotRevision: snapshot.revision,
+                            ),
+                          ),
+                          child: _DialogueLineContent(
+                            snapshot: snapshot,
+                            portraitBuilder: portraitBuilder,
+                          ),
                         ),
                       DialoguePresentationMode.choices =>
                         _DialogueChoiceContent(
@@ -67,12 +75,10 @@ class PlayerDialogueOverlay extends StatelessWidget {
 class _DialogueLineContent extends StatelessWidget {
   const _DialogueLineContent({
     required this.snapshot,
-    required this.onCommand,
     required this.portraitBuilder,
   });
 
   final DialoguePresentationSnapshot snapshot;
-  final ValueChanged<DialoguePresentationCommand> onCommand;
   final Widget Function(String speaker)? portraitBuilder;
 
   @override
@@ -111,28 +117,23 @@ class _DialogueLineContent extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: PlayerSpacing.md),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.icon(
-              key: const ValueKey<String>('dialogue-advance'),
-              onPressed: () => onCommand(
-                DialogueAdvanceCommand(
-                  snapshotRevision: snapshot.revision,
-                ),
-              ),
-              icon: Icon(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: <Widget>[
+              Icon(
                 snapshot.isCurrentLineFullyRevealed
                     ? Icons.navigate_next_rounded
                     : Icons.fast_forward_rounded,
               ),
-              label: Text(
+              const SizedBox(width: PlayerSpacing.xxs),
+              Text(
                 !snapshot.isCurrentLineFullyRevealed
                     ? context.playerL10n.showFullText
                     : snapshot.isLastContent
                         ? context.playerL10n.close
                         : context.playerL10n.next,
               ),
-            ),
+            ],
           ),
         ],
       ),

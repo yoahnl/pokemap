@@ -119,10 +119,12 @@ class RuntimePlayerTouchMenuButton extends StatelessWidget {
     super.key,
     required this.onPressed,
     this.activeInputSource,
-  });
+    this.opacity = 0.82,
+  }) : assert(opacity >= 0.3 && opacity <= 1);
 
   final VoidCallback? onPressed;
   final PlayerInputSource? activeInputSource;
+  final double opacity;
 
   @override
   Widget build(BuildContext context) {
@@ -139,8 +141,10 @@ class RuntimePlayerTouchMenuButton extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(PlayerSpacing.sm),
               child: AnimatedOpacity(
-                opacity:
-                    activeInputSource == PlayerInputSource.controller ? .42 : 1,
+                opacity: opacity *
+                    (activeInputSource == PlayerInputSource.controller
+                        ? .42
+                        : 1),
                 duration: context.playerMotion.fast,
                 child: Material(
                   type: MaterialType.transparency,

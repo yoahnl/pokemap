@@ -631,6 +631,24 @@ class _HubPreferences extends StatelessWidget {
                     onChanged: (value) =>
                         onChanged(preferences.copyWith(textScale: value)),
                   ),
+                  Text(
+                    '${context.playerL10n.touchControlsOpacity} '
+                    '${(preferences.touchControlsOpacity * 100).round()} %',
+                  ),
+                  Slider(
+                    key: const ValueKey<String>(
+                      'hub-touch-controls-opacity-slider',
+                    ),
+                    value: preferences.touchControlsOpacity,
+                    min: 0.3,
+                    max: 1,
+                    divisions: 14,
+                    label:
+                        '${(preferences.touchControlsOpacity * 100).round()} %',
+                    onChanged: (value) => onChanged(
+                      preferences.copyWith(touchControlsOpacity: value),
+                    ),
+                  ),
                   SwitchListTile.adaptive(
                     contentPadding: EdgeInsets.zero,
                     title: Text(context.playerL10n.reducedMotion),

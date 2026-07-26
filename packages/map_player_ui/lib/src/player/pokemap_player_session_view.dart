@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui show KeyEventDeviceType;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:gamepads/gamepads.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'player_title_screen.dart';
+import 'player_dialogue_overlay.dart';
 import 'player_heal_confirmation.dart';
 import 'player_pc_overlay.dart';
 import 'player_shop_overlay.dart';
@@ -76,10 +78,18 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     this.touchControlsAvailable,
     this.controllerInputEnabled = true,
     this.controllerInputEvents,
+    this.gameplayInputAuthority,
+    this.dialoguePresentation,
+    this.onDialogueCommand,
   });
 
   final RuntimePlayerViewController controller;
   final RuntimePlayerTitlePresentation titlePresentation;
+
+  /// Builds the runtime scene below the player surfaces.
+  ///
+  /// A hosted [GameWidget] must use `autofocus: false`: this session view owns
+  /// the single hardware keyboard/controller focus ingress.
   final WidgetBuilder gameSceneBuilder;
   final RuntimePlayerActionPayloadBuilder? payloadForAction;
   final VoidCallback? onShowDiagnostics;
@@ -96,6 +106,13 @@ class PokeMapPlayerSessionView extends StatefulWidget {
   final bool controllerInputEnabled;
   final Stream<RuntimeInputEvent>? controllerInputEvents;
 
+  /// Runtime-owned authority deciding whether overworld touch chrome is legal.
+  final ValueListenable<RuntimeInputAuthoritySnapshot>? gameplayInputAuthority;
+
+  /// Optional Flutter dialogue projection published by the mounted runtime.
+  final ValueListenable<DialoguePresentationSnapshot?>? dialoguePresentation;
+  final ValueChanged<DialoguePresentationCommand>? onDialogueCommand;
+
   @override
   State<PokeMapPlayerSessionView> createState() =>
       _PokeMapPlayerSessionViewState();
@@ -104,6 +121,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
 class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   StreamSubscription<RuntimeInputEvent>? _controllerSubscription;
   late RuntimePlayerSnapshot _latestSnapshot;
+  bool _menuTransitionPending = false;
 
   bool get _touchControlsAvailable =>
       widget.touchControlsAvailable ??
@@ -157,6 +175,10 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   }
 
   PlayerInputSurface _inputSurface() {
+    // Menu opening/closing is asynchronous because the runtime first acquires
+    // its typed pause lock. Treat that hand-off as blocked immediately so a
+    // second key/controller event cannot leak into the world meanwhile.
+    if (_menuTransitionPending) return PlayerInputSurface.blocked;
     final snapshot = _latestSnapshot;
     if (snapshot.worldService != null) return PlayerInputSurface.title;
     return switch (snapshot.phase) {
@@ -194,6 +216,27 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     );
   }
 
+  KeyEventResult _routeHardwareKeyEvent(FocusNode node, KeyEvent event) {
+    final runtimeEvent = runtimeInputEventFromKeyEvent(event);
+    if (runtimeEvent == null) return KeyEventResult.ignored;
+    final isHardwareGamepad = event.deviceType == ui.KeyEventDeviceType.gamepad;
+    if (isHardwareGamepad && widget.controllerInputEnabled) {
+      // The normalized gamepad stream is authoritative while enabled. Some
+      // platforms also expose controller buttons as hardware keys; consuming
+      // that duplicate path prevents one press from being routed twice.
+      return KeyEventResult.handled;
+    }
+    unawaited(
+      _routeRuntimeInput(
+        runtimeEvent,
+        source: isHardwareGamepad
+            ? PlayerInputSource.controller
+            : PlayerInputSource.keyboard,
+      ),
+    );
+    return KeyEventResult.handled;
+  }
+
   void _releaseGameplayDirections() {
     final route = widget.gameplayInputRoute;
     if (route == null) return;
@@ -214,7 +257,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
       RuntimePlayerPhase.paused => RuntimePlayerAction.resume,
       _ => null,
     };
-    if (action != null) await _dispatchAction(action);
+    if (action == null) return;
+    await _dispatchAction(action);
   }
 
   Future<void> _routeSurfaceInput(PlayerInputCommand command) async {
@@ -297,62 +341,131 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   Future<void> _dispatchAction(RuntimePlayerAction action) async {
     final snapshot = _latestSnapshot;
     if (!snapshot.isActionEnabled(action)) return;
-    await widget.controller.dispatch(
-      RuntimePlayerCommand(
-        action: action,
-        snapshotRevision: snapshot.revision,
-        payload: widget.payloadForAction?.call(action),
-      ),
-    );
+    await _dispatchCommand(action, snapshot);
+  }
+
+  Future<RuntimePlayerCommandResult> _dispatchCommand(
+    RuntimePlayerAction action,
+    RuntimePlayerSnapshot snapshot,
+  ) async {
+    final isMenuTransition = action == RuntimePlayerAction.openMenu ||
+        action == RuntimePlayerAction.resume;
+    if (isMenuTransition && _menuTransitionPending) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.unavailable,
+        safeMessage: 'The player menu is already changing state.',
+      );
+    }
+    if (isMenuTransition) _menuTransitionPending = true;
+    try {
+      return await widget.controller.dispatch(
+        RuntimePlayerCommand(
+          action: action,
+          snapshotRevision: snapshot.revision,
+          payload: widget.payloadForAction?.call(action),
+        ),
+      );
+    } finally {
+      if (isMenuTransition) _menuTransitionPending = false;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<RuntimePlayerSnapshot>(
-      stream: widget.controller.snapshots,
-      initialData: widget.controller.snapshot,
-      builder: (context, asyncSnapshot) {
-        final snapshot = asyncSnapshot.data ?? widget.controller.snapshot;
-        _latestSnapshot = snapshot;
-        final showTouchControls = _touchControlsAvailable &&
-            widget.gameplayInputRoute != null &&
-            snapshot.phase == RuntimePlayerPhase.playing &&
-            snapshot.worldService == null;
-        return Stack(
-          fit: StackFit.expand,
-          children: <Widget>[
-            RuntimePlayerSurfaceRouter(
-              snapshot: snapshot,
-              titlePresentation: widget.titlePresentation,
-              gameSceneBuilder: widget.gameSceneBuilder,
-              onShowDiagnostics: widget.onShowDiagnostics,
-              onAction: (action) => widget.controller.dispatch(
-                RuntimePlayerCommand(
-                  action: action,
-                  snapshotRevision: snapshot.revision,
-                  payload: widget.payloadForAction?.call(action),
+    return Focus(
+      key: const ValueKey<String>('runtime-player-keyboard-input-authority'),
+      autofocus: true,
+      onKeyEvent: _routeHardwareKeyEvent,
+      child: StreamBuilder<RuntimePlayerSnapshot>(
+        stream: widget.controller.snapshots,
+        initialData: widget.controller.snapshot,
+        builder: (context, asyncSnapshot) {
+          final snapshot = asyncSnapshot.data ?? widget.controller.snapshot;
+          _latestSnapshot = snapshot;
+          final authority = widget.gameplayInputAuthority;
+          if (authority == null) {
+            return _buildSessionStack(
+              snapshot,
+              const RuntimeInputAuthoritySnapshot(
+                context: RuntimeInputContext.overworld,
+              ),
+            );
+          }
+          return ValueListenableBuilder<RuntimeInputAuthoritySnapshot>(
+            valueListenable: authority,
+            builder: (context, inputAuthority, _) => _buildSessionStack(
+              snapshot,
+              inputAuthority,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSessionStack(
+    RuntimePlayerSnapshot snapshot,
+    RuntimeInputAuthoritySnapshot inputAuthority,
+  ) {
+    final acceptsOverworldTouch = inputAuthority.acceptsOverworldInput;
+    final showTouchControls = _touchControlsAvailable &&
+        widget.gameplayInputRoute != null &&
+        snapshot.phase == RuntimePlayerPhase.playing &&
+        snapshot.worldService == null &&
+        acceptsOverworldTouch;
+    final touchControlsOpacity =
+        snapshot.preferences?.touchControlsOpacity ?? 0.82;
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        RuntimePlayerSurfaceRouter(
+          snapshot: snapshot,
+          titlePresentation: widget.titlePresentation,
+          gameSceneBuilder: widget.gameSceneBuilder,
+          onShowDiagnostics: widget.onShowDiagnostics,
+          gameplayTouchMenuEnabled: acceptsOverworldTouch,
+          touchControlsOpacity: touchControlsOpacity,
+          onPreferencesChanged: (preferences) => widget.controller.dispatch(
+            RuntimePlayerCommand(
+              action: RuntimePlayerAction.updatePreferences,
+              snapshotRevision: snapshot.revision,
+              payload: preferences,
+            ),
+          ),
+          onAction: (action) => _dispatchCommand(action, snapshot),
+        ),
+        if (showTouchControls)
+          Positioned.fill(
+            child: RuntimePlayerTouchControls(
+              opacity: touchControlsOpacity,
+              dispatch: (event) => unawaited(
+                _routeRuntimeInput(
+                  event,
+                  source: PlayerInputSource.touch,
                 ),
               ),
             ),
-            if (showTouchControls)
-              Positioned.fill(
-                child: RuntimePlayerTouchControls(
-                  dispatch: (event) => unawaited(
-                    _routeRuntimeInput(
-                      event,
-                      source: PlayerInputSource.touch,
-                    ),
-                  ),
-                ),
-              ),
-            if (snapshot.worldService case final service?)
-              _RuntimeWorldServiceOverlay(
-                snapshot: service,
-                onCommand: widget.controller.dispatchWorldService,
-              ),
-          ],
-        );
-      },
+          ),
+        if (widget.dialoguePresentation case final dialogue?)
+          ValueListenableBuilder<DialoguePresentationSnapshot?>(
+            valueListenable: dialogue,
+            builder: (context, presentation, _) {
+              final onCommand = widget.onDialogueCommand;
+              if (presentation == null || onCommand == null) {
+                return const SizedBox.shrink();
+              }
+              return PlayerDialogueOverlay(
+                snapshot: presentation,
+                onCommand: onCommand,
+              );
+            },
+          ),
+        if (snapshot.worldService case final service?)
+          _RuntimeWorldServiceOverlay(
+            snapshot: service,
+            onCommand: widget.controller.dispatchWorldService,
+          ),
+      ],
     );
   }
 

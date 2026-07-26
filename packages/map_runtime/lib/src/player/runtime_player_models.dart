@@ -2,6 +2,7 @@ import 'dart:collection';
 
 import '../session/game_session_contract.dart';
 import '../session/player_input.dart';
+import 'runtime_player_host.dart';
 import 'runtime_player_pause_data.dart';
 import 'runtime_world_service_models.dart';
 
@@ -34,6 +35,7 @@ enum RuntimePlayerAction {
   openMap,
   save,
   openOptions,
+  updatePreferences,
   returnToPauseRoot,
   returnToTitle,
   showCredits,
@@ -136,6 +138,7 @@ final class RuntimePlayerSnapshot {
     this.logicalSelectionId,
     this.activeInputSource,
     this.worldService,
+    this.preferences,
     Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot> pauseDetails =
         const <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{},
   })  : actions = List<RuntimePlayerActionAvailability>.unmodifiable(actions),
@@ -188,6 +191,7 @@ final class RuntimePlayerSnapshot {
   final String? logicalSelectionId;
   final PlayerInputSource? activeInputSource;
   final RuntimeWorldServiceSnapshot? worldService;
+  final PlayerPreferencesSnapshot? preferences;
   final Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
       pauseDetails;
 
@@ -225,6 +229,7 @@ final class RuntimePlayerSnapshot {
     bool clearActiveInputSource = false,
     RuntimeWorldServiceSnapshot? worldService,
     bool clearWorldService = false,
+    PlayerPreferencesSnapshot? preferences,
     Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>?
         pauseDetails,
     bool clearPauseDetails = false,
@@ -249,6 +254,7 @@ final class RuntimePlayerSnapshot {
           : activeInputSource ?? this.activeInputSource,
       worldService:
           clearWorldService ? null : worldService ?? this.worldService,
+      preferences: preferences ?? this.preferences,
       pauseDetails: clearPauseDetails
           ? const <RuntimePlayerPauseSection,
               RuntimePlayerPauseDetailSnapshot>{}

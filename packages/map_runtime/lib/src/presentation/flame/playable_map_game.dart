@@ -406,6 +406,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final ValueNotifier<DialoguePresentationSnapshot?>
       _dialoguePresentationNotifier =
       ValueNotifier<DialoguePresentationSnapshot?>(null);
+  final ValueNotifier<RuntimeInputAuthoritySnapshot> _inputAuthorityNotifier =
+      ValueNotifier<RuntimeInputAuthoritySnapshot>(
+    const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.overworld,
+    ),
+  );
   DialoguePresentationSnapshot? _pendingDialoguePresentationSnapshot;
   bool _dialoguePresentationPostFrameFlushScheduled = false;
   bool _preferDialogueFlutterOverlay = false;
@@ -1559,6 +1565,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ValueListenable<DialoguePresentationSnapshot?>
       get dialoguePresentationListenable => _dialoguePresentationNotifier;
 
+  ValueListenable<RuntimeInputAuthoritySnapshot> get inputAuthorityListenable =>
+      _inputAuthorityNotifier;
+
   void setFlutterNotificationsPreferred(bool preferred) {
     _preferFlutterNotifications = preferred;
     final component = _notification;
@@ -1949,6 +1958,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
   }
 
+  void _publishInputAuthoritySnapshot() {
+    final next = inputAuthoritySnapshot;
+    if (_inputAuthorityNotifier.value != next) {
+      _inputAuthorityNotifier.value = next;
+    }
+  }
+
   void _setFlowPhase(_RuntimeFlowPhase phase) {
     final previousToken = _flowInputLock;
     _flowInputLock = null;
@@ -1961,7 +1977,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _flowPhase = phase;
     switch (phase) {
       case _RuntimeFlowPhase.overworld:
-        return;
+        break;
       case _RuntimeFlowPhase.blockingInteraction:
         _flowInputLock = _inputLocks.acquire(
           owner: RuntimeInputLockOwner.blockingInteraction,
@@ -1984,6 +2000,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           surface: RuntimeInputSurface.battle,
         );
     }
+    _publishInputAuthoritySnapshot();
   }
 
   void _setCinematicInputLocked(bool locked) {
@@ -1995,6 +2012,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (isLoaded) {
         _clearPressedMovementControls();
       }
+      _publishInputAuthoritySnapshot();
       return;
     }
     final token = _cinematicInputLock;
@@ -2005,6 +2023,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         token: token,
       );
     }
+    _publishInputAuthoritySnapshot();
   }
 
   void _syncDerivedInputLocks() {
@@ -2078,6 +2097,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (isLoaded) {
         _clearPressedMovementControls();
       }
+      _publishInputAuthoritySnapshot();
       return;
     }
     final token = _externalInputLocks.remove(owner);
@@ -2087,6 +2107,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         token: token,
       );
     }
+    _publishInputAuthoritySnapshot();
   }
 
   void _releasePostBattleInputLock() {
@@ -3461,7 +3482,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return true;
     }
 
-    if (_flowPhase == _RuntimeFlowPhase.battle) {
+    if (inputAuthority.context == RuntimeInputContext.battle) {
       final postBattleOverlay = _postBattleProgressionOverlay;
       if (postBattleOverlay != null) {
         if (event.isPress && control == RuntimeInputControl.up) {
@@ -3496,7 +3517,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final overlay = _battleOverlay;
       if (overlay == null) {
         debugPrint('[battle] Runtime input but overlay is null!');
-        return false;
+        return true;
       }
       if (event.isPress && control == RuntimeInputControl.up) {
         final changed = overlay.moveSelectionUp();
@@ -3525,7 +3546,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           debugPrint(
             '[battle] Validate input pressed but phase changed to $_flowPhase, IGNORING',
           );
-          return false;
+          return true;
         }
         final selectedChoice = overlay.getSelectedChoice();
         debugPrint(
@@ -3540,16 +3561,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           control == RuntimeInputControl.secondary) {
         final handled = overlay.handleEscape();
         debugPrint('[battle] Secondary input pressed, handled=$handled');
-        return handled;
+        return true;
       }
-      return false;
+      return true;
     }
 
-    if (inputAuthority.context == RuntimeInputContext.blocked) {
+    if (inputAuthority.context == RuntimeInputContext.blocked ||
+        inputAuthority.context == RuntimeInputContext.transition) {
       if (_isMovementControl(control)) {
         _releaseMovementControl(control);
       }
-      if (event.isPress && _activeBlockingInteractionSerial != null) {
+      if (inputAuthority.context == RuntimeInputContext.blocked &&
+          event.isPress &&
+          _activeBlockingInteractionSerial != null) {
         debugPrint(
           '[scenario_lock] input blocked while pending source=${_activeBlockingInteractionSourceId ?? '-'}',
         );
@@ -3558,7 +3582,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     if (_isMovementControl(control)) {
-      if (_flowPhase == _RuntimeFlowPhase.dialogue) {
+      if (inputAuthority.context == RuntimeInputContext.dialogue) {
         _releaseMovementControl(control);
         if ((_dialogueOverlay?.isShowingChoices ?? false) && event.isPress) {
           if (control == RuntimeInputControl.up) {
@@ -3569,7 +3593,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         }
         return true;
       }
-      if (_flowPhase != _RuntimeFlowPhase.overworld) {
+      if (inputAuthority.context != RuntimeInputContext.overworld) {
         _releaseMovementControl(control);
         return true;
       }
@@ -3581,16 +3605,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return true;
     }
 
-    if (_flowPhase == _RuntimeFlowPhase.mapTransition ||
-        _flowPhase == _RuntimeFlowPhase.battleTransition) {
-      return false;
-    }
-    if (!event.isPress || event.isRepeat) {
-      return false;
-    }
-
-    if (_flowPhase == _RuntimeFlowPhase.dialogue) {
-      final overlay = _dialogueOverlay!;
+    if (inputAuthority.context == RuntimeInputContext.dialogue) {
+      final overlay = _dialogueOverlay;
+      if (overlay == null || !event.isPress || event.isRepeat) {
+        return true;
+      }
       if (overlay.isShowingChoices) {
         if (control == RuntimeInputControl.primary) {
           _confirmDialogueChoice();
@@ -3602,10 +3621,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           return true;
         }
       }
-      return false;
+      return true;
     }
 
-    if (_flowPhase != _RuntimeFlowPhase.overworld) {
+    if (inputAuthority.context != RuntimeInputContext.overworld) {
+      return true;
+    }
+    if (!event.isPress || event.isRepeat) {
       return false;
     }
 

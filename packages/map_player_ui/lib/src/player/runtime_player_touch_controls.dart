@@ -53,9 +53,11 @@ class RuntimePlayerTouchControls extends StatefulWidget {
   const RuntimePlayerTouchControls({
     super.key,
     required this.dispatch,
-  });
+    this.opacity = 0.82,
+  }) : assert(opacity >= 0.3 && opacity <= 1);
 
   final ValueChanged<RuntimeInputEvent> dispatch;
+  final double opacity;
 
   @override
   State<RuntimePlayerTouchControls> createState() =>
@@ -95,7 +97,8 @@ class _RuntimePlayerTouchControlsState
                 : size.height.clamp(0, 720) * .19)
             .clamp(62.0, 88.0);
         final safePadding = MediaQuery.paddingOf(context);
-        final bottom = (portrait ? 18.0 : 12.0) + safePadding.bottom;
+        final portraitLift = (size.height * 0.075).clamp(54.0, 84.0);
+        final bottom = (portrait ? portraitLift : 12.0) + safePadding.bottom;
         final horizontal = portrait ? 18.0 : 22.0;
 
         return Stack(
@@ -104,27 +107,39 @@ class _RuntimePlayerTouchControlsState
             Positioned(
               left: horizontal + safePadding.left,
               bottom: bottom,
-              child: SizedBox.square(
+              child: Opacity(
                 key: const ValueKey<String>(
-                  'runtime-player-touch-joystick',
+                  'runtime-player-touch-controls-opacity',
                 ),
-                dimension: joystickSize,
-                child: _joystick(context, joystickSize),
+                opacity: widget.opacity,
+                child: SizedBox.square(
+                  key: const ValueKey<String>(
+                    'runtime-player-touch-joystick',
+                  ),
+                  dimension: joystickSize,
+                  child: _joystick(context, joystickSize),
+                ),
               ),
             ),
             Positioned(
               right: horizontal + safePadding.right,
               bottom: bottom,
-              child: _RuntimePlayerTouchActionCluster(
-                portrait: portrait,
-                buttonSize: actionSize,
-                onPrimaryChanged: (pressed) => _dispatchButton(
-                  RuntimeInputControl.primary,
-                  pressed,
+              child: Opacity(
+                key: const ValueKey<String>(
+                  'runtime-player-touch-actions-opacity',
                 ),
-                onSecondaryChanged: (pressed) => _dispatchButton(
-                  RuntimeInputControl.secondary,
-                  pressed,
+                opacity: widget.opacity,
+                child: _RuntimePlayerTouchActionCluster(
+                  portrait: portrait,
+                  buttonSize: actionSize,
+                  onPrimaryChanged: (pressed) => _dispatchButton(
+                    RuntimeInputControl.primary,
+                    pressed,
+                  ),
+                  onSecondaryChanged: (pressed) => _dispatchButton(
+                    RuntimeInputControl.secondary,
+                    pressed,
+                  ),
                 ),
               ),
             ),

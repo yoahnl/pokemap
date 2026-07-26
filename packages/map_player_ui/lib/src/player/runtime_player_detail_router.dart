@@ -11,9 +11,11 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
   const RuntimePlayerDetailRouter({
     super.key,
     required this.snapshot,
+    this.onPreferencesChanged,
   });
 
   final RuntimePlayerSnapshot snapshot;
+  final ValueChanged<PlayerPreferencesSnapshot>? onPreferencesChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +37,17 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         icon: Icons.lock_outline_rounded,
         title: _label(context, section),
         message: unavailableReason,
+      );
+    }
+
+    final preferences = snapshot.preferences;
+    if (section == RuntimePlayerPauseSection.options && preferences != null) {
+      return _RuntimePlayerOptions(
+        preferences: preferences,
+        onChanged:
+            snapshot.isActionEnabled(RuntimePlayerAction.updatePreferences)
+                ? onPreferencesChanged
+                : null,
       );
     }
 
@@ -97,4 +110,71 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         RuntimePlayerPauseSection.map => Icons.map_rounded,
         RuntimePlayerPauseSection.options => Icons.tune_rounded,
       };
+}
+
+class _RuntimePlayerOptions extends StatefulWidget {
+  const _RuntimePlayerOptions({
+    required this.preferences,
+    required this.onChanged,
+  });
+
+  final PlayerPreferencesSnapshot preferences;
+  final ValueChanged<PlayerPreferencesSnapshot>? onChanged;
+
+  @override
+  State<_RuntimePlayerOptions> createState() => _RuntimePlayerOptionsState();
+}
+
+class _RuntimePlayerOptionsState extends State<_RuntimePlayerOptions> {
+  late double _touchControlsOpacity = widget.preferences.touchControlsOpacity;
+
+  @override
+  void didUpdateWidget(covariant _RuntimePlayerOptions oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.preferences.touchControlsOpacity !=
+        widget.preferences.touchControlsOpacity) {
+      _touchControlsOpacity = widget.preferences.touchControlsOpacity;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PlayerPanel(
+      key: const ValueKey<String>('runtime-player-options'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(
+            context.playerL10n.touchControlsOpacity,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: PlayerSpacing.xs),
+          Text('${(_touchControlsOpacity * 100).round()} %'),
+          Slider(
+            key: const ValueKey<String>(
+              'touch-controls-opacity-slider',
+            ),
+            value: _touchControlsOpacity,
+            min: 0.3,
+            max: 1,
+            divisions: 14,
+            label: '${(_touchControlsOpacity * 100).round()} %',
+            onChanged: widget.onChanged == null
+                ? null
+                : (value) => setState(
+                      () => _touchControlsOpacity = value,
+                    ),
+            onChangeEnd: widget.onChanged == null
+                ? null
+                : (value) => widget.onChanged!(
+                      widget.preferences.copyWith(
+                        touchControlsOpacity: value,
+                      ),
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
 }

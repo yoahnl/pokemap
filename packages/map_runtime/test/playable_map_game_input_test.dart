@@ -256,6 +256,18 @@ void main() {
 
       expect(game.debugHasPendingDialogueLoad, isFalse);
       expect(game.debugIsGameplayInputLocked, isTrue);
+      expect(
+        game.inputAuthorityListenable.value.context,
+        RuntimeInputContext.dialogue,
+      );
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.secondary),
+        ),
+        isTrue,
+        reason: 'Dialogue owns every non-Menu command until it closes.',
+      );
+      expect(game.debugFlowPhaseName, 'dialogue');
 
       expect(
         game.handleRuntimeInputEvent(
@@ -265,6 +277,10 @@ void main() {
       );
       expect(game.debugFlowPhaseName, 'overworld');
       expect(game.debugIsGameplayInputLocked, isFalse);
+      expect(
+        game.inputAuthorityListenable.value.context,
+        RuntimeInputContext.overworld,
+      );
     });
 
     test('failed pending dialogue unlocks gameplay and shows fallback',
@@ -1579,6 +1595,20 @@ void main() {
 
       expect(
         game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ),
+        isTrue,
+        reason: 'Transition input must be consumed instead of propagating.',
+      );
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.secondary),
+        ),
+        isTrue,
+        reason: 'Transition input must have one terminal consumer.',
+      );
+      expect(
+        game.handleRuntimeInputEvent(
           const RuntimeInputEvent.press(RuntimeInputControl.left),
         ),
         isTrue,
@@ -2192,6 +2222,17 @@ void main() {
       final rootSnapshot = game.battleCommandOverlayListenable.value!;
       expect(rootSnapshot.mode, BattleCommandOverlayMode.root);
       expect(rootSnapshot.revision, greaterThan(0));
+      expect(
+        game.inputAuthorityListenable.value.context,
+        RuntimeInputContext.battle,
+      );
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.primary),
+        ),
+        isTrue,
+        reason: 'Battle owns every non-Menu command until it closes.',
+      );
 
       expect(
         game.dispatchBattlePresentationCommand(

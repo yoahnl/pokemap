@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:ui' as ui show KeyEventDeviceType;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
@@ -414,6 +417,205 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+      'hides every touch affordance outside authoritative overworld input',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final authority = ValueNotifier<RuntimeInputAuthoritySnapshot>(
+      const RuntimeInputAuthoritySnapshot(
+        context: RuntimeInputContext.overworld,
+      ),
+    );
+    addTearDown(authority.dispose);
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(
+        revision: 25,
+        phase: RuntimePlayerPhase.playing,
+        actions: const <RuntimePlayerActionAvailability>[
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.openMenu,
+          ),
+        ],
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      _app(
+        _view(
+          controller,
+          touchControlsAvailable: true,
+          gameplayInputRoute: (_) => true,
+          gameplayInputAuthority: authority,
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('runtime-player-touch-joystick')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('runtime-player-touch-menu-open')),
+      findsOneWidget,
+    );
+
+    authority.value = const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.battle,
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('runtime-player-touch-joystick')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('runtime-player-touch-primary-button'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('runtime-player-touch-secondary-button'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('runtime-player-touch-menu-open')),
+      findsNothing,
+    );
+
+    authority.value = const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.dialogue,
+    );
+    await tester.pump();
+    expect(
+      find.byKey(
+        const ValueKey<String>('runtime-player-touch-primary-button'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('runtime-player-touch-menu-open')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('renders the runtime dialogue overlay and routes a panel tap',
+      (tester) async {
+    final authority = ValueNotifier<RuntimeInputAuthoritySnapshot>(
+      const RuntimeInputAuthoritySnapshot(
+        context: RuntimeInputContext.dialogue,
+      ),
+    );
+    final dialogue = ValueNotifier<DialoguePresentationSnapshot?>(
+      const DialoguePresentationSnapshot(
+        revision: 8,
+        mode: DialoguePresentationMode.line,
+        nodeTitle: 'intro',
+        speaker: 'Lysa',
+        text: 'Appuie ici pour continuer.',
+        fullText: 'Appuie ici pour continuer.',
+        isCurrentLineFullyRevealed: true,
+        isLastContent: false,
+        choices: <DialoguePresentationChoice>[],
+      ),
+    );
+    addTearDown(authority.dispose);
+    addTearDown(dialogue.dispose);
+    final commands = <DialoguePresentationCommand>[];
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(
+        revision: 26,
+        phase: RuntimePlayerPhase.playing,
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      _app(
+        _view(
+          controller,
+          touchControlsAvailable: true,
+          gameplayInputRoute: (_) => true,
+          gameplayInputAuthority: authority,
+          dialoguePresentation: dialogue,
+          onDialogueCommand: commands.add,
+        ),
+      ),
+    );
+
+    expect(find.text('Appuie ici pour continuer.'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('dialogue-tap-zone')),
+    );
+    expect(
+      commands.single,
+      isA<DialogueAdvanceCommand>().having(
+        (command) => command.snapshotRevision,
+        'revision',
+        8,
+      ),
+    );
+  });
+
+  testWidgets('keeps portrait controls above the bottom thumb obstruction',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(
+        revision: 27,
+        phase: RuntimePlayerPhase.playing,
+        preferences: const PlayerPreferencesSnapshot(
+          locale: 'fr',
+          accessibility: GameSessionAccessibilityOptions(),
+          touchControlsOpacity: .45,
+        ),
+        actions: const <RuntimePlayerActionAvailability>[
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.openMenu,
+          ),
+        ],
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      _app(
+        _view(
+          controller,
+          touchControlsAvailable: true,
+          gameplayInputRoute: (_) => true,
+        ),
+      ),
+    );
+
+    expect(
+      tester
+          .getBottomLeft(
+            find.byKey(
+              const ValueKey<String>('runtime-player-touch-joystick'),
+            ),
+          )
+          .dy,
+      lessThanOrEqualTo(790),
+    );
+    expect(
+      tester
+          .widget<Opacity>(
+            find.byKey(
+              const ValueKey<String>('runtime-player-touch-controls-opacity'),
+            ),
+          )
+          .opacity,
+      .45,
+    );
+  });
+
   testWidgets('routes controller gameplay and reserves Start for pause',
       (tester) async {
     final controllerEvents = StreamController<RuntimeInputEvent>.broadcast();
@@ -473,6 +675,254 @@ void main() {
     expect(controller.commands.single.action, RuntimePlayerAction.openMenu);
     expect(controller.commands.single.snapshotRevision, 24);
   });
+
+  testWidgets('routes keyboard gameplay and Menu through one player ingress',
+      (tester) async {
+    final gameplayEvents = <RuntimeInputEvent>[];
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(
+        revision: 31,
+        phase: RuntimePlayerPhase.playing,
+        actions: const <RuntimePlayerActionAvailability>[
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.openMenu,
+          ),
+        ],
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      _app(
+        _view(
+          controller,
+          controllerInputEnabled: true,
+          gameplayInputRoute: (event) {
+            gameplayEvents.add(event);
+            return true;
+          },
+        ),
+      ),
+    );
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+    await tester.pump();
+
+    expect(
+      gameplayEvents,
+      const <RuntimeInputEvent>[
+        RuntimeInputEvent.press(RuntimeInputControl.right),
+        RuntimeInputEvent.release(RuntimeInputControl.right),
+        RuntimeInputEvent.release(RuntimeInputControl.up),
+        RuntimeInputEvent.release(RuntimeInputControl.down),
+        RuntimeInputEvent.release(RuntimeInputControl.left),
+        RuntimeInputEvent.release(RuntimeInputControl.right),
+      ],
+    );
+    expect(controller.commands, hasLength(1));
+    expect(controller.commands.single.action, RuntimePlayerAction.openMenu);
+    expect(controller.commands.single.snapshotRevision, 31);
+  });
+
+  testWidgets('consumes repeated Menu and plugin-owned hardware gamepad keys',
+      (tester) async {
+    final gameplayEvents = <RuntimeInputEvent>[];
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(
+        revision: 32,
+        phase: RuntimePlayerPhase.playing,
+        actions: const <RuntimePlayerActionAvailability>[
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.openMenu,
+          ),
+        ],
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      _app(
+        _view(
+          controller,
+          controllerInputEnabled: true,
+          gameplayInputRoute: (event) {
+            gameplayEvents.add(event);
+            return true;
+          },
+        ),
+      ),
+    );
+
+    final inputAuthority = tester.widget<Focus>(
+      find.byKey(
+        const ValueKey<String>('runtime-player-keyboard-input-authority'),
+      ),
+    );
+    final focusNode = FocusNode();
+    addTearDown(focusNode.dispose);
+
+    expect(
+      inputAuthority.onKeyEvent!(
+        focusNode,
+        const KeyRepeatEvent(
+          physicalKey: PhysicalKeyboardKey.keyM,
+          logicalKey: LogicalKeyboardKey.keyM,
+          timeStamp: Duration.zero,
+        ),
+      ),
+      KeyEventResult.handled,
+    );
+    expect(
+      inputAuthority.onKeyEvent!(
+        focusNode,
+        const KeyDownEvent(
+          physicalKey: PhysicalKeyboardKey.gameButtonA,
+          logicalKey: LogicalKeyboardKey.gameButtonA,
+          timeStamp: Duration.zero,
+          deviceType: ui.KeyEventDeviceType.gamepad,
+        ),
+      ),
+      KeyEventResult.handled,
+    );
+    await tester.pump();
+
+    expect(gameplayEvents, isEmpty);
+    expect(controller.commands, isEmpty);
+
+    await tester.pumpWidget(
+      _app(
+        _view(
+          controller,
+          controllerInputEnabled: false,
+          gameplayInputRoute: (event) {
+            gameplayEvents.add(event);
+            return true;
+          },
+        ),
+      ),
+    );
+    final hardwareFallback = tester.widget<Focus>(
+      find.byKey(
+        const ValueKey<String>('runtime-player-keyboard-input-authority'),
+      ),
+    );
+    expect(
+      hardwareFallback.onKeyEvent!(
+        focusNode,
+        const KeyDownEvent(
+          physicalKey: PhysicalKeyboardKey.gameButtonA,
+          logicalKey: LogicalKeyboardKey.gameButtonA,
+          timeStamp: Duration.zero,
+          deviceType: ui.KeyEventDeviceType.gamepad,
+        ),
+      ),
+      KeyEventResult.handled,
+    );
+    await tester.pump();
+    expect(
+      gameplayEvents,
+      const <RuntimeInputEvent>[
+        RuntimeInputEvent.press(RuntimeInputControl.primary),
+      ],
+      reason:
+          'Standalone embedders can opt into Flutter hardware gamepad keys.',
+    );
+  });
+
+  testWidgets('blocks gameplay while an asynchronous Menu transition settles',
+      (tester) async {
+    final menuTransition = Completer<RuntimePlayerCommandResult>();
+    final gameplayEvents = <RuntimeInputEvent>[];
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(
+        revision: 33,
+        phase: RuntimePlayerPhase.playing,
+        actions: const <RuntimePlayerActionAvailability>[
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.openMenu,
+          ),
+        ],
+      ),
+      commandCompleter: menuTransition,
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      _app(
+        _view(
+          controller,
+          gameplayInputRoute: (event) {
+            gameplayEvents.add(event);
+            return true;
+          },
+        ),
+      ),
+    );
+    final inputAuthority = tester.widget<Focus>(
+      find.byKey(
+        const ValueKey<String>('runtime-player-keyboard-input-authority'),
+      ),
+    );
+    final focusNode = FocusNode();
+    addTearDown(focusNode.dispose);
+
+    inputAuthority.onKeyEvent!(
+      focusNode,
+      const KeyDownEvent(
+        physicalKey: PhysicalKeyboardKey.keyM,
+        logicalKey: LogicalKeyboardKey.keyM,
+        timeStamp: Duration.zero,
+      ),
+    );
+    await tester.pump();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('runtime-player-touch-menu-open'),
+      ),
+    );
+    await tester.pump();
+    inputAuthority.onKeyEvent!(
+      focusNode,
+      const KeyDownEvent(
+        physicalKey: PhysicalKeyboardKey.arrowRight,
+        logicalKey: LogicalKeyboardKey.arrowRight,
+        timeStamp: Duration.zero,
+      ),
+    );
+    await tester.pump();
+
+    expect(controller.commands, hasLength(1));
+    expect(
+      gameplayEvents,
+      const <RuntimeInputEvent>[
+        RuntimeInputEvent.release(RuntimeInputControl.up),
+        RuntimeInputEvent.release(RuntimeInputControl.down),
+        RuntimeInputEvent.release(RuntimeInputControl.left),
+        RuntimeInputEvent.release(RuntimeInputControl.right),
+      ],
+      reason: 'No new gameplay press may enter while Menu is opening.',
+    );
+
+    controller.publish(
+      _snapshot(
+        revision: 34,
+        phase: RuntimePlayerPhase.paused,
+        actions: const <RuntimePlayerActionAvailability>[
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.resume,
+          ),
+        ],
+      ),
+    );
+    menuTransition.complete(
+      const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.accepted,
+      ),
+    );
+    await tester.pump();
+  });
 }
 
 PokeMapPlayerSessionView _view(
@@ -482,6 +932,10 @@ PokeMapPlayerSessionView _view(
   bool touchControlsAvailable = false,
   PlayerGameplayInputRoute? gameplayInputRoute,
   Stream<RuntimeInputEvent>? controllerInputEvents,
+  ValueListenable<RuntimeInputAuthoritySnapshot>? gameplayInputAuthority,
+  ValueListenable<DialoguePresentationSnapshot?>? dialoguePresentation,
+  ValueChanged<DialoguePresentationCommand>? onDialogueCommand,
+  bool? controllerInputEnabled,
 }) {
   return PokeMapPlayerSessionView(
     controller: controller,
@@ -495,8 +949,12 @@ PokeMapPlayerSessionView _view(
     ),
     touchControlsAvailable: touchControlsAvailable,
     gameplayInputRoute: gameplayInputRoute,
+    gameplayInputAuthority: gameplayInputAuthority,
+    dialoguePresentation: dialoguePresentation,
+    onDialogueCommand: onDialogueCommand,
     controllerInputEvents: controllerInputEvents,
-    controllerInputEnabled: controllerInputEvents != null,
+    controllerInputEnabled:
+        controllerInputEnabled ?? controllerInputEvents != null,
     onShowDiagnostics: onShowDiagnostics,
   );
 }
@@ -509,6 +967,7 @@ RuntimePlayerSnapshot _snapshot({
   GameSessionLoadingProgress? loadingProgress,
   GameSessionFailure? failure,
   RuntimeWorldServiceSnapshot? worldService,
+  PlayerPreferencesSnapshot? preferences,
 }) {
   return RuntimePlayerSnapshot(
     revision: revision,
@@ -521,6 +980,7 @@ RuntimePlayerSnapshot _snapshot({
     loadingProgress: loadingProgress,
     failure: failure,
     worldService: worldService,
+    preferences: preferences,
     result: phase == RuntimePlayerPhase.result
         ? const GameResultSnapshot(
             title: 'Victoire',
@@ -559,9 +1019,13 @@ Widget _app(Widget child) => MaterialApp(
 
 final class _FakeRuntimePlayerCoordinator
     implements RuntimePlayerViewController {
-  _FakeRuntimePlayerCoordinator(this._snapshot);
+  _FakeRuntimePlayerCoordinator(
+    this._snapshot, {
+    this.commandCompleter,
+  });
 
   final _snapshots = StreamController<RuntimePlayerSnapshot>.broadcast();
+  final Completer<RuntimePlayerCommandResult>? commandCompleter;
   final commands = <RuntimePlayerCommand>[];
   final worldServiceCommands = <RuntimeWorldServiceCommand>[];
   RuntimePlayerSnapshot _snapshot;
@@ -582,6 +1046,8 @@ final class _FakeRuntimePlayerCoordinator
     RuntimePlayerCommand command,
   ) async {
     commands.add(command);
+    final pending = commandCompleter;
+    if (pending != null) return pending.future;
     return const RuntimePlayerCommandResult(
       status: RuntimePlayerCommandStatus.accepted,
     );

@@ -128,6 +128,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     if (!mounted) {
       throw StateError('The player surface closed before the game mounted.');
     }
+    game.setDialogueFlutterOverlayPreferred(true);
     setState(() => _mountedGame = game);
   }
 
@@ -153,46 +154,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       }
     }
     return null;
-  }
-
-  KeyEventResult _routeMenuKey(FocusNode node, KeyEvent event) {
-    final runtimeEvent = runtimeInputEventFromKeyEvent(event);
-    if (runtimeEvent?.control != RuntimeInputControl.menu) {
-      return KeyEventResult.ignored;
-    }
-    if (!runtimeEvent!.isPress) return KeyEventResult.handled;
-    final coordinator = _coordinator;
-    final sessions = _sessions;
-    if (coordinator == null || sessions == null) {
-      return KeyEventResult.handled;
-    }
-    final action = switch (coordinator.snapshot.phase) {
-      RuntimePlayerPhase.playing => RuntimePlayerAction.openMenu,
-      RuntimePlayerPhase.paused => RuntimePlayerAction.resume,
-      _ => null,
-    };
-    if (action == null || !coordinator.snapshot.isActionEnabled(action)) {
-      return KeyEventResult.handled;
-    }
-    if (action == RuntimePlayerAction.openMenu) {
-      for (final control in const <RuntimeInputControl>[
-        RuntimeInputControl.up,
-        RuntimeInputControl.down,
-        RuntimeInputControl.left,
-        RuntimeInputControl.right,
-      ]) {
-        sessions.handleInput(RuntimeInputEvent.release(control));
-      }
-    }
-    unawaited(
-      coordinator.dispatch(
-        RuntimePlayerCommand(
-          action: action,
-          snapshotRevision: coordinator.snapshot.revision,
-        ),
-      ),
-    );
-    return KeyEventResult.handled;
   }
 
   Future<void> _handleSystemBack() async {
@@ -324,30 +285,30 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) unawaited(_handleSystemBack());
       },
-      child: Focus(
-        autofocus: true,
-        onKeyEvent: _routeMenuKey,
-        child: player_ui.PokeMapPlayerSessionView(
-          key: const ValueKey<String>('pokemap-runtime-player-view'),
-          controller: viewController,
-          titlePresentation: player_ui.RuntimePlayerTitlePresentation(
-            author: launch.manifest.author.name,
-            description: launch.manifest.description,
-          ),
-          payloadForAction: _payloadForAction,
-          gameplayInputRoute: _sessions?.handleInput,
-          gameSceneBuilder: (_) {
-            final game = _mountedGame;
-            return game == null
-                ? const SizedBox.expand(
-                    key: ValueKey<String>('runtime-game-awaiting-mount'),
-                  )
-                : GameWidget(
-                    key: ObjectKey(game),
-                    game: game,
-                  );
-          },
+      child: player_ui.PokeMapPlayerSessionView(
+        key: const ValueKey<String>('pokemap-runtime-player-view'),
+        controller: viewController,
+        titlePresentation: player_ui.RuntimePlayerTitlePresentation(
+          author: launch.manifest.author.name,
+          description: launch.manifest.description,
         ),
+        payloadForAction: _payloadForAction,
+        gameplayInputRoute: _sessions?.handleInput,
+        gameplayInputAuthority: _mountedGame?.inputAuthorityListenable,
+        dialoguePresentation: _mountedGame?.dialoguePresentationListenable,
+        onDialogueCommand: _mountedGame?.dispatchDialoguePresentationCommand,
+        gameSceneBuilder: (_) {
+          final game = _mountedGame;
+          return game == null
+              ? const SizedBox.expand(
+                  key: ValueKey<String>('runtime-game-awaiting-mount'),
+                )
+              : GameWidget(
+                  key: ObjectKey(game),
+                  game: game,
+                  autofocus: false,
+                );
+        },
       ),
     );
   }

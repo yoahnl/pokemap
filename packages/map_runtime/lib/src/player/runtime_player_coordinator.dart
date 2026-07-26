@@ -109,6 +109,7 @@ final class RuntimePlayerCoordinator {
         case RuntimePlayerAction.openPokedex:
         case RuntimePlayerAction.openMap:
         case RuntimePlayerAction.openOptions:
+        case RuntimePlayerAction.updatePreferences:
         case RuntimePlayerAction.returnToPauseRoot:
         case RuntimePlayerAction.showCredits:
         case RuntimePlayerAction.finishCredits:
@@ -327,6 +328,27 @@ final class RuntimePlayerCoordinator {
           RuntimePlayerPauseSection.options,
           logicalSelectionId: 'pause.options',
         );
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.accepted,
+        );
+      case RuntimePlayerAction.updatePreferences:
+        final preferences = command.payload;
+        if (preferences is! PlayerPreferencesSnapshot) {
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.unavailable,
+            safeMessage: 'Valid player preferences are required.',
+          );
+        }
+        try {
+          await _preferencesGateway.save(preferences);
+        } on Object {
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.failed,
+            safeMessage: 'Player preferences could not be saved.',
+          );
+        }
+        _preferences = preferences;
+        _publish(_snapshot.next(preferences: preferences));
         return const RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.accepted,
         );
@@ -779,6 +801,7 @@ final class RuntimePlayerCoordinator {
         clearCredits: true,
         clearLogicalSelection: true,
         clearWorldService: true,
+        preferences: _preferences,
         actions: _titleActions,
       ),
     );
@@ -939,6 +962,9 @@ final class RuntimePlayerCoordinator {
       ),
       const RuntimePlayerActionAvailability.enabled(
         RuntimePlayerAction.openOptions,
+      ),
+      const RuntimePlayerActionAvailability.enabled(
+        RuntimePlayerAction.updatePreferences,
       ),
       const RuntimePlayerActionAvailability.enabled(
         RuntimePlayerAction.returnToTitle,

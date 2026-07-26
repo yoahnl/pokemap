@@ -20,6 +20,16 @@ void main() {
       contains('gameplayInputRoute: _sessions?.handleInput'),
     );
     expect(
+      installedPlayer,
+      contains('autofocus: false'),
+      reason: 'Hosted GameWidget input must enter through the player router.',
+    );
+    expect(
+      installedPlayer,
+      isNot(contains('_routeMenuKey')),
+      reason: 'The Hub must not own a second keyboard Menu route.',
+    );
+    expect(
       'PokeMapPlayerSessionView('.allMatches(installedPlayer),
       hasLength(1),
     );

@@ -96,7 +96,17 @@ void main() {
       );
     });
 
-    test('maps Tab and gamepad Start to menu action', () {
+    test('maps M, Tab and gamepad Start to menu action', () {
+      expect(
+        runtimeInputEventFromKeyEvent(
+          const KeyDownEvent(
+            physicalKey: PhysicalKeyboardKey.keyM,
+            logicalKey: LogicalKeyboardKey.keyM,
+            timeStamp: Duration.zero,
+          ),
+        ),
+        const RuntimeInputEvent.press(RuntimeInputControl.menu),
+      );
       expect(
         runtimeInputEventFromKeyEvent(
           const KeyDownEvent(

@@ -4,6 +4,7 @@ import 'runtime_input_event.dart';
 
 RuntimeInputControl? runtimeInputControlFromLogicalKey(LogicalKeyboardKey key) {
   if (key == LogicalKeyboardKey.tab ||
+      key == LogicalKeyboardKey.keyM ||
       key == LogicalKeyboardKey.gameButtonStart) {
     return RuntimeInputControl.menu;
   }

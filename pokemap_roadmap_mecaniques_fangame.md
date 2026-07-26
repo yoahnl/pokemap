@@ -1688,7 +1688,7 @@ Objectif : rendre les mécaniques accessibles au joueur.
 | FG-162 | Runtime Options V0 | `⬜ TODO` | — |
 | FG-163 | Runtime Save Menu V0 | `⬜ TODO` | — |
 | FG-164 | Runtime Map / Fast Travel UI V0 | `⬜ TODO` | — |
-| FG-165 | Runtime Input Lock Conventions V0 | `⬜ TODO` | — |
+| FG-165 | Runtime Input Lock Conventions V0 | `✅ DONE` | `reports/gameplay/fg_165_runtime_input_lock_conventions_v0_revalidation_2026-07-26.md` |
 
 ## FG-160 — Pause Menu Complete V0
 
@@ -1745,9 +1745,9 @@ Objectif : rendre les mécaniques accessibles au joueur.
 ### DoD
 
 ```md
-- [ ] Convention unique pour dialogue/menu/battle/overworld.
-- [ ] Pas de double input pendant transition.
-- [ ] Tests ou doc runtime.
+- [x] Convention unique pour dialogue/menu/battle/overworld.
+- [x] Pas de double input pendant transition.
+- [x] Tests ou doc runtime.
 ```
 
 ---
