@@ -484,6 +484,36 @@ void main() {
       find.byKey(const Key('trainer-library-edit-difficulty-slider')),
       findsOneWidget,
     );
+    expect(
+      find.text(
+        'Profil tactique · analyse dégâts/types · switch tactique · objets indisponibles',
+      ),
+      findsOneWidget,
+    );
+
+    var difficultySlider = tester.widget<CupertinoSlider>(
+      find.byKey(const Key('trainer-library-edit-difficulty-slider')),
+    );
+    difficultySlider.onChanged!(2);
+    await settleTrainerUi(tester);
+    expect(
+      find.text(
+        'Profil basique · choix simples · aucun switch tactique · aucun objet',
+      ),
+      findsOneWidget,
+    );
+
+    difficultySlider = tester.widget<CupertinoSlider>(
+      find.byKey(const Key('trainer-library-edit-difficulty-slider')),
+    );
+    difficultySlider.onChanged!(9);
+    await settleTrainerUi(tester);
+    expect(
+      find.text(
+        'Profil avancé · analyse statuts/utilité · switch tactique · objets indisponibles',
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Afficher les références optionnelles'));
     await settleTrainerUi(tester);

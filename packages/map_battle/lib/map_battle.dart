@@ -83,6 +83,7 @@ export 'src/application/battle_session_facade.dart' show BattleSessionFacade;
 export 'src/application/battle_turn_runner.dart' show BattleEngineTurnResult;
 export 'src/domain/ai/psdk_battle_ai.dart'
     show PsdkBattleAi, PsdkBattleAiItemOption;
+export 'src/domain/ai/psdk_battle_ai_policy.dart';
 export 'src/domain/ai/psdk_move_score.dart'
     show PsdkBattleAiMoveChoice, PsdkMoveScore;
 export 'src/domain/battle/battle_context.dart' show BattlePublicState;

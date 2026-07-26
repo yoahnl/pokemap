@@ -8,7 +8,7 @@ import 'runtime_battle_status_bridge.dart';
 /// vocabulary. This adapter keeps that UI contract stable while routing the
 /// actual turn execution through `BattleSessionFacade.fromPsdkSetup`.
 final class RuntimePsdkBattleSessionAdapter {
-  RuntimePsdkBattleSessionAdapter._(this._facade);
+  RuntimePsdkBattleSessionAdapter._(this._facade, this.opponentAi);
 
   factory RuntimePsdkBattleSessionAdapter.fromSetup(
     PsdkBattleSetup setup, {
@@ -19,10 +19,17 @@ final class RuntimePsdkBattleSessionAdapter {
         setup: setup,
         opponentAi: opponentAi,
       ),
+      opponentAi,
     );
   }
 
   final BattleSessionFacade _facade;
+
+  /// Exact AI configuration injected by the runtime for this session.
+  ///
+  /// Keeping this observable avoids test-only access to the facade internals
+  /// and proves that authored difficulty reached the PSDK path.
+  final PsdkBattleAi opponentAi;
   static const _statusBridge = RuntimeBattleStatusBridge();
   BattleDecision? _lastDecision;
   BattleEngineTurnResult? _lastTurnResult;

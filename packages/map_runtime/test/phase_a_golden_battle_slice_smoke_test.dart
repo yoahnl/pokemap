@@ -111,6 +111,14 @@ void main() {
         manifest: bundle.manifest,
       );
       expect(routedPolicy, isA<BattleHighestPowerOpponentPolicy>());
+      final psdkAi = resolveRuntimeTrainerPsdkAi(
+        request: request,
+        manifest: bundle.manifest,
+      );
+      expect(psdkAi.level, 2);
+      expect(psdkAi.canSwitch, isTrue);
+      expect(psdkAi.canUseItem, isFalse);
+      expect(psdkAi.canFlee, isFalse);
 
       final setup = await mapper.map(
         bundle: bundle,

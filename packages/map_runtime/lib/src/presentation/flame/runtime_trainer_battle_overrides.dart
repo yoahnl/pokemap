@@ -32,6 +32,33 @@ BattleOpponentPolicy resolveRuntimeTrainerOpponentPolicy({
   return battleOpponentPolicyForDifficulty(trainer?.battleDifficulty);
 }
 
+/// Resolves the PSDK AI used by the production runtime battle path.
+///
+/// Trainer difficulty used to affect only the legacy opponent policy while
+/// the normal PSDK path silently kept a fixed level-2 AI. This resolver closes
+/// that split. Item actions remain fail-closed: a tactical or advanced profile
+/// receives them only through explicit authored [itemOptions].
+PsdkBattleAi resolveRuntimeTrainerPsdkAi({
+  required BattleStartRequest request,
+  required ProjectManifest manifest,
+  List<PsdkBattleAiItemOption> itemOptions =
+      const <PsdkBattleAiItemOption>[],
+}) {
+  if (request is! TrainerBattleStartRequest &&
+      request is! StaticBattleStartRequest) {
+    // Preserve the pre-RM-021 neutral AI for ordinary wild encounters.
+    return const PsdkBattleAi(level: 2);
+  }
+
+  final trainer = findTrainerEntryForBattleRequest(
+    request: request,
+    manifest: manifest,
+  );
+  return psdkBattleAiPolicyForDifficulty(trainer?.battleDifficulty).createAi(
+    itemOptions: itemOptions,
+  );
+}
+
 /// Relit le trainer authored réellement visé par une requête de combat.
 ///
 /// Pourquoi ce seam existe :

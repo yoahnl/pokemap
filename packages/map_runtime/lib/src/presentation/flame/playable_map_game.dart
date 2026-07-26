@@ -7363,10 +7363,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
 
       if (psdkSetup != null) {
+        final psdkOpponentAi = resolveRuntimeTrainerPsdkAi(
+          request: request,
+          manifest: _bundle.manifest,
+        );
         _psdkBattleSession = _traceSync(
           'battle',
           'createPsdkSession',
-          () => RuntimePsdkBattleSessionAdapter.fromSetup(psdkSetup!),
+          () => RuntimePsdkBattleSessionAdapter.fromSetup(
+            psdkSetup!,
+            opponentAi: psdkOpponentAi,
+          ),
         );
         _battleSession = _psdkBattleSession!.createLegacyDisplaySession(
           isTrainerBattle: request is TrainerBattleStartRequest,

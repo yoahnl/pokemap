@@ -354,6 +354,18 @@ class _TrainerEditorCard extends StatelessWidget {
                       onChanged: onBattleDifficultyChanged,
                     ),
                     Text(
+                      _trainerBattleDifficultyPolicySummary(
+                        battleDifficulty,
+                      ),
+                      style: TextStyle(
+                        color: subtle,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
                       battleDifficulty == null
                           ? 'Aucune difficulté explicite n’est enregistrée. Déplacez le curseur pour définir une valeur de 1 à 10.'
                           : 'La difficulté du dresseur est enregistrée dans les données du projet pour le combat.',
@@ -701,6 +713,21 @@ class _TrainerEditorCard extends StatelessWidget {
     ),
   );
   }
+}
+
+/// Player-facing truth for the three runtime PSDK AI profiles.
+///
+/// Items are announced as unavailable because RM-021 does not invent a hidden
+/// trainer inventory. The battle policy can consume authored options later,
+/// but the current Editor intentionally exposes no such control.
+String _trainerBattleDifficultyPolicySummary(int? difficulty) {
+  if (difficulty == null || difficulty <= 3) {
+    return 'Profil basique · choix simples · aucun switch tactique · aucun objet';
+  }
+  if (difficulty <= 7) {
+    return 'Profil tactique · analyse dégâts/types · switch tactique · objets indisponibles';
+  }
+  return 'Profil avancé · analyse statuts/utilité · switch tactique · objets indisponibles';
 }
 
 class _TrainerCharacterPicker extends StatelessWidget {
