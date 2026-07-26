@@ -36,6 +36,18 @@ const _projectJson = '''{
       ]
     }
   ],
+  "facts": [
+    {
+      "id": "fact_mist_source_resolved",
+      "label": "La source de la brume est résolue",
+      "defaultValue": false
+    },
+    {
+      "id": "fact_ending_seen",
+      "label": "L’épilogue a été vu",
+      "defaultValue": false
+    }
+  ],
   "scenes": [
     {
       "id": "scene_harbor_shop",
@@ -152,8 +164,217 @@ const _projectJson = '''{
           }
         ]
       }
+    },
+    {
+      "id": "scene_selbrume_milestone",
+      "name": "La brume est dissipée",
+      "graph": {
+        "startNodeId": "start",
+        "nodes": [
+          {
+            "id": "start",
+            "kind": "start",
+            "payload": {
+              "kind": "start"
+            }
+          },
+          {
+            "id": "resolve_mist",
+            "kind": "action",
+            "payload": {
+              "kind": "action",
+              "parameters": {},
+              "consequence": {
+                "kind": "setFact",
+                "factId": "fact_mist_source_resolved",
+                "value": true,
+                "label": "Dissiper la brume"
+              }
+            }
+          },
+          {
+            "id": "end",
+            "kind": "end",
+            "payload": {
+              "kind": "end"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "start-resolve",
+            "fromNodeId": "start",
+            "fromPortId": "completed",
+            "toNodeId": "resolve_mist",
+            "kind": "default"
+          },
+          {
+            "id": "resolve-end",
+            "fromNodeId": "resolve_mist",
+            "fromPortId": "completed",
+            "toNodeId": "end",
+            "kind": "actionCompleted"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scene_selbrume_terminal",
+      "name": "Fin de Selbrume",
+      "graph": {
+        "startNodeId": "start",
+        "nodes": [
+          {
+            "id": "start",
+            "kind": "start",
+            "payload": {
+              "kind": "start"
+            }
+          },
+          {
+            "id": "mark_ending",
+            "kind": "action",
+            "payload": {
+              "kind": "action",
+              "parameters": {},
+              "consequence": {
+                "kind": "setFact",
+                "factId": "fact_ending_seen",
+                "value": true,
+                "label": "Marquer l’épilogue comme vu"
+              }
+            }
+          },
+          {
+            "id": "finish_game",
+            "kind": "action",
+            "payload": {
+              "kind": "action",
+              "parameters": {},
+              "consequence": {
+                "kind": "finishGame",
+                "contractVersion": 1,
+                "endingId": "ending.selbrume-sauvee",
+                "outcome": "victory",
+                "commitPolicy": "persistBeforePresentation",
+                "result": {
+                  "title": {
+                    "fallback": "Selbrume est sauvée",
+                    "translations": {
+                      "en": "Selbrume is safe"
+                    }
+                  },
+                  "summary": {
+                    "fallback": "La lumière du phare traverse de nouveau la brume et les habitants reprennent la mer.",
+                    "translations": {
+                      "en": "The lighthouse shines through the mist again, and the islanders return to sea."
+                    }
+                  }
+                },
+                "credits": {
+                  "title": {
+                    "fallback": "Crédits — Selbrume",
+                    "translations": {
+                      "en": "Selbrume Credits"
+                    }
+                  },
+                  "author": "Selbrume",
+                  "endingLabel": {
+                    "fallback": "Fin principale — Selbrume sauvée",
+                    "translations": {
+                      "en": "Main ending — Selbrume is safe"
+                    }
+                  },
+                  "skippable": true
+                },
+                "postGamePolicy": "returnToHub",
+                "label": "Terminer Selbrume"
+              }
+            }
+          },
+          {
+            "id": "end",
+            "kind": "end",
+            "payload": {
+              "kind": "end"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "start-mark",
+            "fromNodeId": "start",
+            "fromPortId": "completed",
+            "toNodeId": "mark_ending",
+            "kind": "default"
+          },
+          {
+            "id": "mark-finish",
+            "fromNodeId": "mark_ending",
+            "fromPortId": "completed",
+            "toNodeId": "finish_game",
+            "kind": "actionCompleted"
+          },
+          {
+            "id": "finish-end",
+            "fromNodeId": "finish_game",
+            "fromPortId": "completed",
+            "toNodeId": "end",
+            "kind": "actionCompleted"
+          }
+        ]
+      }
     }
   ],
+  "eventRegistry": {
+    "schemaVersion": 1,
+    "mode": "dualRead",
+    "records": [
+      {
+        "state": "configured",
+        "definition": {
+          "id": "evt_019abcde-6000-7000-8000-000000000001",
+          "name": "Résoudre la source de la brume",
+          "source": {
+            "kind": "triggerEnter",
+            "mapId": "runtime_harbor",
+            "triggerId": "trigger_selbrume_milestone"
+          },
+          "conditions": [],
+          "sceneId": "scene_selbrume_milestone",
+          "reusePolicy": "oneShot",
+          "priority": 0,
+          "order": 0
+        },
+        "enabled": true
+      },
+      {
+        "state": "configured",
+        "definition": {
+          "id": "evt_019abcde-6000-7000-8000-000000000002",
+          "name": "Terminer Selbrume",
+          "source": {
+            "kind": "triggerEnter",
+            "mapId": "runtime_harbor",
+            "triggerId": "trigger_selbrume_terminal"
+          },
+          "conditions": [
+            {
+              "kind": "fact",
+              "factId": "fact_mist_source_resolved",
+              "expectedValue": true
+            }
+          ],
+          "sceneId": "scene_selbrume_terminal",
+          "reusePolicy": "oneShot",
+          "priority": 0,
+          "order": 1
+        },
+        "enabled": true
+      }
+    ],
+    "legacyClaims": []
+  },
   "newGame": {
     "enabled": true,
     "startMapId": "runtime_harbor",
@@ -262,6 +483,46 @@ const _mapJson = '''{
           }
         }
       ]
+    }
+  ],
+  "triggers": [
+    {
+      "id": "trigger_selbrume_milestone",
+      "name": "Étape terminale de Selbrume",
+      "type": "custom",
+      "area": {
+        "pos": {
+          "x": 2,
+          "y": 2
+        },
+        "size": {
+          "width": 1,
+          "height": 1
+        }
+      },
+      "properties": {
+        "eventId": "event_selbrume_milestone",
+        "reservedForNarrative": "true"
+      }
+    },
+    {
+      "id": "trigger_selbrume_terminal",
+      "name": "Fin de Selbrume",
+      "type": "custom",
+      "area": {
+        "pos": {
+          "x": 2,
+          "y": 3
+        },
+        "size": {
+          "width": 1,
+          "height": 1
+        }
+      },
+      "properties": {
+        "eventId": "event_selbrume_terminal",
+        "reservedForNarrative": "true"
+      }
     }
   ],
   "mapMetadata": {

@@ -87,6 +87,46 @@
       ]
     }
   ],
+  "triggers": [
+    {
+      "id": "trigger_selbrume_milestone",
+      "name": "Étape terminale de Selbrume",
+      "type": "custom",
+      "area": {
+        "pos": {
+          "x": 2,
+          "y": 2
+        },
+        "size": {
+          "width": 1,
+          "height": 1
+        }
+      },
+      "properties": {
+        "eventId": "event_selbrume_milestone",
+        "reservedForNarrative": "true"
+      }
+    },
+    {
+      "id": "trigger_selbrume_terminal",
+      "name": "Fin de Selbrume",
+      "type": "custom",
+      "area": {
+        "pos": {
+          "x": 2,
+          "y": 3
+        },
+        "size": {
+          "width": 1,
+          "height": 1
+        }
+      },
+      "properties": {
+        "eventId": "event_selbrume_terminal",
+        "reservedForNarrative": "true"
+      }
+    }
+  ],
   "mapMetadata": {
     "defaultSpawnId": "runtime_spawn"
   }

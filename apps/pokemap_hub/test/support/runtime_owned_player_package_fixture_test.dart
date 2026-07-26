@@ -69,4 +69,58 @@ void main() {
       );
     }
   });
+
+  test('installed Golden fixture keeps the canonical Selbrume ending contract',
+      () {
+    final fixtureProject = ProjectManifest.fromJson(
+      jsonDecode(
+        utf8.decode(
+          runtimeOwnedPlayerFixturePayload()['project/project.json']!,
+        ),
+      ) as Map<String, dynamic>,
+    );
+    final canonicalProject = ProjectManifest.fromJson(
+      jsonDecode(
+        File(
+          p.join(
+            _repositoryRoot().path,
+            'selbrume',
+            'project.json',
+          ),
+        ).readAsStringSync(),
+      ) as Map<String, dynamic>,
+    );
+
+    expect(
+      _finishGame(fixtureProject, 'scene_selbrume_terminal').toJson(),
+      _finishGame(canonicalProject, 'scene_ending_port').toJson(),
+    );
+  });
+}
+
+SceneFinishGameConsequence _finishGame(
+  ProjectManifest project,
+  String sceneId,
+) {
+  final scene = project.scenes.singleWhere((scene) => scene.id == sceneId);
+  return scene.graph.nodes
+      .map((node) => node.payload)
+      .whereType<SceneActionPayload>()
+      .map((payload) => payload.consequence)
+      .whereType<SceneFinishGameConsequence>()
+      .single;
+}
+
+Directory _repositoryRoot() {
+  var current = Directory.current.absolute;
+  while (true) {
+    if (File(p.join(current.path, 'selbrume', 'project.json')).existsSync()) {
+      return current;
+    }
+    final parent = current.parent;
+    if (parent.path == current.path) {
+      throw StateError('Repository root containing Selbrume was not found.');
+    }
+    current = parent;
+  }
 }

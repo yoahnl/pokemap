@@ -21,6 +21,12 @@ void main() {
   testWidgets(
     'installs a data-only game and completes the runtime-owned player journey',
     (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
       final runtimeLogs = <String>[];
       final previousDebugPrint = debugPrint;
       debugPrint = (message, {wrapWidth}) {
@@ -128,12 +134,15 @@ void main() {
         findsOneWidget,
       );
       await tester.tap(find.byKey(const ValueKey<String>('pause.party')));
-      await _pumpUntilFound(tester, find.text('Équipe'));
+      await _pumpUntilFound(tester, find.text('Aucun Pokémon dans l’équipe.'));
 
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      final resume = find.byKey(const ValueKey<String>('pause.resume'));
+      await tester.ensureVisible(resume);
+      await tester.tap(resume);
       await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.playing));
       await _moveOneTileRight(tester, game);
       expect(game.debugPlayerGridPosition, const GridPos(x: 2, y: 2));
+      await _pumpUntilFact(tester, game, 'fact_mist_source_resolved');
 
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await _pumpUntilFound(tester, find.text('Centre Pokémon'));
@@ -166,7 +175,8 @@ void main() {
         tester,
         find.byKey(const ValueKey<String>('pause.returnToTitle')),
       );
-      await tester.tap(
+      await _tapVisible(
+        tester,
         find.byKey(const ValueKey<String>('pause.returnToTitle')),
       );
       await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.title));
@@ -177,17 +187,57 @@ void main() {
       final restoredGame = _mountedGame(tester);
       await _pumpUntilGameReady(tester, restoredGame);
       expect(restoredGame.debugPlayerGridPosition, const GridPos(x: 2, y: 2));
+      expect(
+        restoredGame.gameStateSnapshot.narrativeFactRuntimeState
+            .overridesByFactId['fact_mist_source_resolved'],
+        isTrue,
+      );
 
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-      await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.paused));
-      await _scrollPauseUntilFound(
+      await _moveOneTileDown(tester, restoredGame);
+      await _pumpUntilFound(
         tester,
-        find.byKey(const ValueKey<String>('pause.returnToTitle')),
+        _playerSurface(RuntimePlayerPhase.result),
       );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('pause.returnToTitle')),
+      expect(find.text('Selbrume est sauvée'), findsOneWidget);
+      expect(
+        find.text(
+          'La lumière du phare traverse de nouveau la brume et les habitants '
+          'reprennent la mer.',
+        ),
+        findsOneWidget,
       );
-      await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.title));
+      final completedAddress = SaveSlotAddress(
+        gameId: installed.game.gameId,
+        profileId: 'default',
+        slotId: 'slot-1',
+      );
+      final completed = await saveStore.read(completedAddress);
+      expect(completed.envelope?.status, SaveStatus.completed);
+      expect(
+        (await HubPlayerSaveGateway(store: saveStore)
+                .readSummary(completedAddress))
+            ?.canContinue,
+        isFalse,
+      );
+      expect(
+        completed.envelope?.state['metadata'],
+        containsPair(
+          sceneGameCompletionEndingMetadataKey,
+          'ending.selbrume-sauvee',
+        ),
+      );
+
+      await tester.tap(find.text('Voir les crédits'));
+      await _pumpUntilFound(
+        tester,
+        _playerSurface(RuntimePlayerPhase.credits),
+      );
+      expect(find.text('Crédits — Selbrume'), findsOneWidget);
+      expect(find.text('Selbrume'), findsOneWidget);
+      expect(
+        find.text('Fin principale — Selbrume sauvée'),
+        findsOneWidget,
+      );
       await tester.tap(find.text('Retour au Hub'));
       await _pumpUntilFound(
         tester,
@@ -200,6 +250,26 @@ void main() {
         findsNothing,
       );
       expect(find.text(_gameTitle), findsWidgets);
+
+      await _dragUntilFound(
+        tester,
+        target: find.text('Nouvelle partie'),
+        scrollView: find.byType(CustomScrollView).last,
+      );
+      await tester.tap(find.text('Nouvelle partie'));
+      await _pumpUntilFound(
+        tester,
+        find.byKey(
+          const ValueKey<String>('pokemap-runtime-player-view'),
+        ),
+      );
+      await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.title));
+      final continueAction = tester.widget<PlayerActionButton>(
+        find.widgetWithText(PlayerActionButton, 'Continuer'),
+      );
+      expect(continueAction.onPressed, isNull);
+      await tester.tap(find.text('Retour au Hub'));
+      await _pumpUntilFound(tester, find.text('Installation vérifiée'));
       expect(
         runtimeLogs.where(
           (message) =>
@@ -328,6 +398,37 @@ Future<void> _moveOneTileRight(
   await tester.pump(const Duration(milliseconds: 150));
 }
 
+Future<void> _moveOneTileDown(
+  WidgetTester tester,
+  PlayableMapGame game,
+) async {
+  final start = game.debugPlayerGridPosition;
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowDown);
+  final deadline = DateTime.now().add(const Duration(seconds: 3));
+  while (game.debugPlayerGridPosition == start &&
+      DateTime.now().isBefore(deadline)) {
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowDown);
+  await tester.pump(const Duration(milliseconds: 150));
+}
+
+Future<void> _pumpUntilFact(
+  WidgetTester tester,
+  PlayableMapGame game,
+  String factId,
+) async {
+  final deadline = DateTime.now().add(const Duration(seconds: 20));
+  while (game.gameStateSnapshot.narrativeFactRuntimeState
+          .overridesByFactId[factId] !=
+      true) {
+    if (DateTime.now().isAfter(deadline)) {
+      fail('Timed out waiting for narrative fact $factId.');
+    }
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
 Future<void> _pumpUntilFound(
   WidgetTester tester,
   Finder finder, {
@@ -362,7 +463,14 @@ Future<void> _dragUntilFound(
   required Finder target,
   required Finder scrollView,
 }) async {
-  for (var attempt = 0; attempt < 10 && target.evaluate().isEmpty; attempt++) {
+  for (var attempt = 0; attempt < 10; attempt++) {
+    if (target.evaluate().isNotEmpty) {
+      await tester.ensureVisible(target.first);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.drag(scrollView, const Offset(0, -80));
+      await tester.pump(const Duration(milliseconds: 100));
+      return;
+    }
     await tester.drag(scrollView, const Offset(0, -240));
     await tester.pump(const Duration(milliseconds: 100));
   }
@@ -371,6 +479,20 @@ Future<void> _dragUntilFound(
       'Timed out scrolling to ${target.describeMatch(Plurality.one)}.',
     );
   }
+}
+
+Future<void> _tapVisible(
+  WidgetTester tester,
+  Finder target,
+) async {
+  final targetRect = tester.getRect(target.first);
+  final logicalViewSize =
+      tester.view.physicalSize / tester.view.devicePixelRatio;
+  final visibleRect = targetRect.intersect(Offset.zero & logicalViewSize);
+  if (visibleRect.isEmpty) {
+    fail('${target.describeMatch(Plurality.one)} is outside the test view.');
+  }
+  await tester.tapAt(visibleRect.center);
 }
 
 Future<void> _scrollPauseUntilFound(
@@ -387,12 +509,21 @@ Future<void> _scrollPauseUntilFound(
       _playerSurface(RuntimePlayerPhase.paused),
     );
   }
+  final navigation = find.byKey(
+    const ValueKey<String>('runtime-pause-navigation-scroll'),
+  );
   final grid = find.byKey(const ValueKey<String>('player-pause-grid'));
   final list = find.byKey(const ValueKey<String>('player-pause-list'));
-  if (grid.evaluate().isEmpty && list.evaluate().isEmpty) {
+  if (navigation.evaluate().isEmpty &&
+      grid.evaluate().isEmpty &&
+      list.evaluate().isEmpty) {
     fail('The paused player exposes no responsive pause scroll view.');
   }
-  final scrollView = grid.evaluate().isNotEmpty ? grid : list;
+  final scrollView = navigation.evaluate().isNotEmpty
+      ? navigation
+      : grid.evaluate().isNotEmpty
+          ? grid
+          : list;
   await _dragUntilFound(
     tester,
     target: target,
