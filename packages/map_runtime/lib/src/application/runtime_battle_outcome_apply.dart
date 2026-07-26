@@ -704,6 +704,65 @@ GameState writePlayerBattleLineupBackToPartySlots({
   );
 }
 
+/// Réconcilie le cycle de vie des objets tenus PSDK avec les slots save.
+///
+/// L'ID save original est conservé tant que l'objet moteur normalisé n'a pas
+/// changé. Une consommation ou un retrait vide le slot ; un objet reçu ou volé
+/// est persisté avec son ID PSDK final.
+GameState writePlayerPsdkHeldItemsBackToPartySlots({
+  required GameState gameState,
+  required RuntimeActiveBattleContext context,
+  required PsdkBattleState psdkState,
+}) {
+  final lineup = psdkState.partyForBank(psdkPlayerSlot.bank);
+  final mapping = context.playerPartySlotIndicesByLineupIndex;
+  if (lineup.length != mapping.length) {
+    throw StateError(
+      'Le write-back held-item ne peut pas réconcilier la lineup PSDK et la '
+      'party runtime: lineupLength=${lineup.length}, '
+      'partyMappingLength=${mapping.length}.',
+    );
+  }
+
+  final members = List<PlayerPokemon>.of(
+    gameState.party.members,
+    growable: false,
+  );
+  for (var lineupIndex = 0; lineupIndex < lineup.length; lineupIndex += 1) {
+    final partyIndex = mapping[lineupIndex];
+    if (partyIndex < 0 || partyIndex >= members.length) {
+      throw StateError(
+        'Le write-back held-item pointe vers un slot party invalide: '
+        'lineupIndex=$lineupIndex, partyIndex=$partyIndex, '
+        'partyLength=${members.length}.',
+      );
+    }
+    final battler = lineup[lineupIndex];
+    final saved = members[partyIndex];
+    final finalEngineItemId =
+        battler.itemConsumed ? null : battler.heldItemId?.trim();
+    final savedEngineItemId = _normalizePsdkHeldItemId(saved.heldItemId);
+    final nextSavedItemId = finalEngineItemId == null
+        ? ''
+        : finalEngineItemId == savedEngineItemId
+            ? saved.heldItemId.trim()
+            : finalEngineItemId;
+    members[partyIndex] = saved.copyWith(heldItemId: nextSavedItemId);
+  }
+
+  return gameState.copyWith(
+    party: gameState.party.copyWith(members: members),
+  );
+}
+
+String? _normalizePsdkHeldItemId(String? itemId) {
+  final trimmed = itemId?.trim();
+  if (trimmed == null || trimmed.isEmpty) {
+    return null;
+  }
+  return trimmed.toLowerCase().replaceAll('-', '_');
+}
+
 List<BattleMove> _persistentWriteBackMoves(List<BattleMove> battleMoves) {
   final persistentMoves = <BattleMove>[];
   final seenMoveIds = <String>{};

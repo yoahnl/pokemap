@@ -86,6 +86,8 @@ export 'src/domain/ai/psdk_battle_ai.dart'
 export 'src/domain/ai/psdk_battle_ai_policy.dart';
 export 'src/domain/ai/psdk_move_score.dart'
     show PsdkBattleAiMoveChoice, PsdkMoveScore;
+export 'src/domain/effect/item/item_effect_registry.dart'
+    show ItemEffectRegistry;
 export 'src/domain/battle/battle_context.dart' show BattlePublicState;
 export 'src/domain/battle/battle_outcome.dart'
     show BattleEngineOutcome, BattleEngineOutcomeKind;

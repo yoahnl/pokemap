@@ -134,11 +134,17 @@ void main() {
             'gastro_acid': 10,
           },
           currentHp: 23,
+          heldItemId: 'leftovers',
         ),
       );
 
       expect(seed.speciesId, equals('sproutle'));
       expect(seed.currentHp, equals(23));
+      expect(seed.heldItemId, equals('leftovers'));
+      expect(
+        seed.toPsdkBattleCombatantSetup().heldItemId,
+        equals('leftovers'),
+      );
       expect(
         seed.moves.map((move) => move.battleEngineMethod).toList(),
         equals(<String>['s_bind', 's_haze', 's_self_stat', 's_gastro_acid']),
@@ -167,6 +173,43 @@ void main() {
           equals(
             <String>['wrap', 'haze', 'coil', 'gastro_acid'],
           ));
+    });
+
+    test('rejects a held item whose PSDK effect is not ported', () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+
+      await expectLater(
+        () => builder.buildPlayerPsdkCombatantSeed(
+          projectRootDirectory: tempProjectRoot.path,
+          pokemonConfig: _pokemonConfig(),
+          movesCatalog: movesCatalog,
+          playerPokemon: const PlayerPokemon(
+            speciesId: 'sproutle',
+            natureId: 'bold',
+            abilityId: 'overgrow',
+            level: 12,
+            knownMoveIds: <String>['vine_whip'],
+            currentPpByMoveId: <String, int>{'vine_whip': 35},
+            currentHp: 23,
+            heldItemId: 'rare-candy',
+          ),
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            allOf(
+              contains('heldItemId=rare-candy'),
+              contains('psdkHeldItemId=rare_candy'),
+              contains('support=not_ported'),
+            ),
+          ),
+        ),
+      );
     });
 
     test(
@@ -523,6 +566,24 @@ void main() {
       expect(
         seed.moves.map((move) => move.id).toList(growable: false),
         equals(<String>['water_gun', 'tail_whip']),
+      );
+
+      final psdkSeed = await builder.buildTrainerPsdkCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        teamMember: const ProjectTrainerPokemonEntry(
+          speciesId: 'aquafi',
+          level: 18,
+          moves: <String>['water_gun', 'tail_whip'],
+          heldItemId: 'mystic-water',
+        ),
+        trainerName: 'Ace Jules',
+      );
+      expect(psdkSeed.heldItemId, equals('mystic_water'));
+      expect(
+        psdkSeed.toPsdkBattleCombatantSetup().heldItemId,
+        equals('mystic_water'),
       );
     });
 

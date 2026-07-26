@@ -63,6 +63,7 @@ void main() {
                   'gastro_acid': 10,
                 },
                 currentHp: 23,
+                heldItemId: 'leftovers',
               ),
             ],
           ),
@@ -77,6 +78,7 @@ void main() {
         setup.player.moves.map((move) => move.battleEngineMethod).toList(),
         equals(<String>['s_bind', 's_haze', 's_self_stat', 's_gastro_acid']),
       );
+      expect(setup.player.heldItemId, equals('leftovers'));
 
       final session = RuntimePsdkBattleSessionAdapter.fromSetup(setup);
       final coilSlot = session.decisionRequest.fightChoices
@@ -113,11 +115,13 @@ void main() {
                 speciesId: 'aquafi',
                 level: 18,
                 moves: <String>['growl'],
+                heldItemId: 'mystic-water',
               ),
               ProjectTrainerPokemonEntry(
                 speciesId: 'sparkitten',
                 level: 17,
                 moves: <String>['ember'],
+                heldItemId: 'oran-berry',
               ),
             ],
           ),
@@ -148,6 +152,11 @@ void main() {
       );
 
       final session = RuntimePsdkBattleSessionAdapter.fromSetup(setup);
+      expect(setup.opponent.heldItemId, equals('mystic_water'));
+      expect(
+        setup.partyForBank(psdkOpponentSlot.bank)[1].heldItemId,
+        equals('oran_berry'),
+      );
       final hyperBeamSlot = session.decisionRequest.fightChoices
           .singleWhere((choice) => choice.moveId == 'hyper_beam')
           .moveSlot;

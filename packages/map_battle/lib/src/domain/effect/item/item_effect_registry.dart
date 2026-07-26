@@ -155,6 +155,9 @@ final class ItemEffectRegistry {
   Set<String> get missingItemIds =>
       _itemIdsWithStatus(PsdkItemPortStatus.missing);
 
+  bool isPorted(String? itemId) =>
+      statusOf(itemId) == PsdkItemPortStatus.ported;
+
   PsdkItemPortStatus statusOf(String? itemId) {
     final normalized = _normalizeItemId(itemId);
     if (normalized == null) {

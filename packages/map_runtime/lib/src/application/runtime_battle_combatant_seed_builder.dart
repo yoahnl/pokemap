@@ -523,6 +523,10 @@ class RuntimeBattleCombatantSeedBuilder {
           ? 'unknown'
           : playerPokemon.abilityId.trim(),
       majorStatus: statusBridge.toPsdkBattleStatus(playerPokemon.statusId),
+      heldItemId: _resolvePsdkHeldItemId(
+        playerPokemon.heldItemId,
+        combatantLabel: combatantLabel,
+      ),
       moves: moveProjection.moves,
       moveDiagnostics: moveProjection.diagnostics,
     );
@@ -709,9 +713,35 @@ class RuntimeBattleCombatantSeedBuilder {
       abilityId: species.primaryAbilityId.isEmpty
           ? 'unknown'
           : species.primaryAbilityId,
+      heldItemId: _resolvePsdkHeldItemId(
+        teamMember.heldItemId,
+        combatantLabel:
+            'Le Pokémon du dresseur "$trainerName" (${teamMember.speciesId})',
+      ),
       moves: moveProjection.moves,
       moveDiagnostics: moveProjection.diagnostics,
     );
+  }
+
+  String? _resolvePsdkHeldItemId(
+    String? heldItemId, {
+    required String combatantLabel,
+  }) {
+    final trimmed = heldItemId?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
+    }
+    final normalized = trimmed.toLowerCase().replaceAll('-', '_');
+    final registry = ItemEffectRegistry();
+    if (!registry.isPorted(normalized) ||
+        registry.create(normalized, owner: psdkPlayerSlot) == null) {
+      throw RuntimeBattleSetupException(
+        '$combatantLabel tient un objet non supporté en combat.',
+        debugDetails:
+            'heldItemId=$trimmed, psdkHeldItemId=$normalized, support=not_ported',
+      );
+    }
+    return normalized;
   }
 
   Future<List<String>> _deriveLearnsetMoveIds({
@@ -1068,6 +1098,7 @@ class RuntimePsdkBattleCombatantSeed {
     required this.stats,
     required this.typing,
     required this.abilityId,
+    this.heldItemId,
     this.majorStatus,
     required this.moves,
     this.moveDiagnostics = const <RuntimeBattleMoveBridgeDiagnostics>[],
@@ -1082,6 +1113,7 @@ class RuntimePsdkBattleCombatantSeed {
   final BattleTypingSnapshot typing;
   final int? currentHp;
   final String abilityId;
+  final String? heldItemId;
   final PsdkBattleMajorStatus? majorStatus;
   final List<PsdkBattleMoveData> moves;
   final List<RuntimeBattleMoveBridgeDiagnostics> moveDiagnostics;
@@ -1118,6 +1150,7 @@ class RuntimePsdkBattleCombatantSeed {
       moves: moves,
       majorStatus: majorStatus,
       abilityId: abilityId,
+      heldItemId: heldItemId,
     );
   }
 }

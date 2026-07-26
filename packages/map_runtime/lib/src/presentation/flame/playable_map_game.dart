@@ -7891,8 +7891,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _postBattleCompletionFuture = completer.future;
 
     try {
+      final psdkState = _psdkBattleSession?.state.psdkState;
+      final transactionBaseState = psdkState == null
+          ? _battleRuntimeGameState
+          : writePlayerPsdkHeldItemsBackToPartySlots(
+              gameState: _battleRuntimeGameState,
+              context: activeBattleContext,
+              psdkState: psdkState,
+            );
       final result = await _postBattleDecisionCoordinator.begin(
-        transactionBaseState: _battleRuntimeGameState,
+        transactionBaseState: transactionBaseState,
         bundle: _bundle,
         runtimeContext: activeBattleContext,
         outcome: outcome,
