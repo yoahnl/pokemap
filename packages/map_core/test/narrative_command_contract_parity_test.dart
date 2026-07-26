@@ -53,17 +53,21 @@ void main() {
     }
   });
 
-  test('deferred commands cannot enter the publishable contract', () {
-    final deferred = NarrativeCommandCatalog.canonical().byId(
-      NarrativeCommandIds.setNpcPresence,
-    )!;
+  test('NPC state commands are published through typed guided contracts', () {
+    final catalog = NarrativeCommandCatalog.canonical();
 
-    expect(deferred.isPublishable, isFalse);
-    expect(
-      deferred.capabilities.runtime,
-      NarrativeCommandCapabilityStatus.unsupported,
-    );
-    expect(deferred.wireId, startsWith('unsupported.'));
+    for (final commandId in [
+      NarrativeCommandIds.setNpcPresence,
+      NarrativeCommandIds.moveNpc,
+    ]) {
+      final descriptor = catalog.byId(commandId)!;
+      expect(descriptor.isPublishable, isTrue, reason: commandId);
+      expect(
+        descriptor.parameters.first.kind,
+        NarrativeCommandParameterKind.npc,
+        reason: commandId,
+      );
+    }
   });
 
   test('static encounter diagnostics require a template, not a trainer', () {
@@ -156,6 +160,14 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
               postGamePolicy: ScenePostGamePolicy.returnToTitle,
             ),
           ),
+      NarrativeCommandIds.setNpcPresence: () =>
+          SceneActionPayload.consequence(
+            SceneConsequence.setNpcPresence(
+              mapId: 'map_port',
+              entityId: 'npc_sailor',
+              present: false,
+            ),
+          ),
       NarrativeCommandIds.warp: () => SceneActionPayload.interactive(
             SceneInteractiveCommand.warp(
               destinationMapId: 'map_port',
@@ -170,6 +182,13 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
           ),
       NarrativeCommandIds.openPc: () => SceneActionPayload.interactive(
             SceneInteractiveCommand.openPc(),
+          ),
+      NarrativeCommandIds.moveNpc: () => SceneActionPayload.interactive(
+            SceneInteractiveCommand.moveNpc(
+              mapId: 'map_port',
+              entityId: 'npc_sailor',
+              warpId: 'warp_arrival',
+            ),
           ),
       NarrativeCommandIds.dialogue: () => SceneYarnDialoguePayload(
             dialogueId: 'dialogue_port',
@@ -349,6 +368,15 @@ MapData _map() => MapData(
           pos: GridPos(x: 1, y: 1),
           targetMapId: 'map_port',
           targetPos: GridPos(x: 2, y: 2),
+        ),
+      ],
+      entities: const [
+        MapEntity(
+          id: 'npc_sailor',
+          kind: MapEntityKind.npc,
+          pos: GridPos(x: 2, y: 1),
+          size: GridSize(width: 1, height: 1),
+          npc: MapEntityNpcData(),
         ),
       ],
     );

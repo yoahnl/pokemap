@@ -3754,6 +3754,14 @@ Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
       for (final map in project.maps)
         SceneActionPickerOption(id: map.id, label: map.name),
     ],
+    NarrativeCommandParameterKind.npc: [
+      for (final entity in activeMap?.entities ?? const <MapEntity>[])
+        if (entity.kind == MapEntityKind.npc)
+          SceneActionPickerOption(
+            id: '${activeMap!.id}::${entity.id}',
+            label: '${activeMap.name} · ${entity.inspectorHeadline}',
+          ),
+    ],
     NarrativeCommandParameterKind.warp: [
       for (final warp in activeMap?.warps ?? const <MapWarp>[])
         SceneActionPickerOption(

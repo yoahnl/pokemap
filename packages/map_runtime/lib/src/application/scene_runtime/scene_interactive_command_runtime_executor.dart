@@ -16,6 +16,7 @@ typedef SceneWorldServiceRequestHandler = Future<String> Function(
 final class SceneInteractiveCommandRuntimeExecutor {
   const SceneInteractiveCommandRuntimeExecutor({
     required this.warp,
+    this.moveNpc,
     this.openShop,
     this.openHeal,
     this.openPc,
@@ -23,6 +24,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
   });
 
   final SceneInteractiveCommandHandler warp;
+  final SceneInteractiveCommandHandler? moveNpc;
   final SceneInteractiveCommandHandler? openShop;
   final SceneInteractiveCommandHandler? openHeal;
   final SceneInteractiveCommandHandler? openPc;
@@ -42,6 +44,10 @@ final class SceneInteractiveCommandRuntimeExecutor {
     }
     final output = switch (command.kind) {
       SceneInteractiveCommandKind.warp => await warp(command),
+      SceneInteractiveCommandKind.moveNpc => await _executeRequired(
+          command,
+          handler: moveNpc,
+        ),
       SceneInteractiveCommandKind.openShop => await _executeService(
           command,
           legacyHandler: openShop,
@@ -62,6 +68,18 @@ final class SceneInteractiveCommandRuntimeExecutor {
       );
     }
     return output;
+  }
+
+  Future<String> _executeRequired(
+    SceneInteractiveCommand command, {
+    required SceneInteractiveCommandHandler? handler,
+  }) {
+    if (handler == null) {
+      throw StateError(
+        'No handler is installed for ${command.kind.name}.',
+      );
+    }
+    return handler(command);
   }
 
   Future<String> _executeService(
@@ -99,6 +117,9 @@ final class SceneInteractiveCommandRuntimeExecutor {
         ),
       SceneWarpInteractiveCommand() => throw StateError(
           'Warp commands are not world services.',
+        ),
+      SceneMoveNpcInteractiveCommand() => throw StateError(
+          'NPC movement commands are not world services.',
         ),
       _ => throw StateError(
           'Unsupported world-service command: ${command.kind.name}.',

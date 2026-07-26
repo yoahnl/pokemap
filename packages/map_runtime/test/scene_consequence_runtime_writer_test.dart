@@ -72,6 +72,62 @@ void main() {
       expect(conflicting.gameState, same(applied.gameState));
     });
 
+    test('setNpcPresence validates the map NPC and persists its override', () {
+      final project = _project(
+        maps: const [
+          ProjectMapEntry(id: 'map_test', name: 'Map', relativePath: 'map.json'),
+        ],
+      );
+      final writer = SceneConsequenceRuntimeWriter(
+        project: project,
+        mapsById: {
+          'map_test': _map(
+            entities: const [
+              MapEntity(
+                id: 'npc_guard',
+                kind: MapEntityKind.npc,
+                pos: GridPos(x: 1, y: 1),
+                size: GridSize(width: 1, height: 1),
+                npc: MapEntityNpcData(),
+              ),
+            ],
+          ),
+        },
+      );
+
+      final hidden = writer.applyOne(
+        const GameState(saveId: 'npc_presence'),
+        SceneConsequence.setNpcPresence(
+          mapId: 'map_test',
+          entityId: 'npc_guard',
+          present: false,
+        ),
+      );
+
+      expect(hidden.success, isTrue);
+      expect(
+        sceneNpcPresenceOverride(
+          hidden.gameState,
+          mapId: 'map_test',
+          entityId: 'npc_guard',
+        ),
+        isFalse,
+      );
+      expect(
+        writer
+            .applyOne(
+              hidden.gameState,
+              SceneConsequence.setNpcPresence(
+                mapId: 'map_test',
+                entityId: 'missing',
+                present: true,
+              ),
+            )
+            .errorCode,
+        SceneConsequenceRuntimeWriteErrorCode.unknownNpc,
+      );
+    });
+
     test('setFact true activates Fact runtime key', () {
       const state = GameState(saveId: 'save_test');
       final writer = SceneConsequenceRuntimeWriter(
@@ -944,12 +1000,16 @@ StorylineAsset _storyline(String storylineId, String stepId) {
   );
 }
 
-MapData _map({List<MapEventDefinition> events = const []}) {
+MapData _map({
+  List<MapEventDefinition> events = const [],
+  List<MapEntity> entities = const [],
+}) {
   return MapData(
     id: 'map_test',
     name: 'Map Test',
     size: const GridSize(width: 4, height: 4),
     events: events,
+    entities: entities,
   );
 }
 

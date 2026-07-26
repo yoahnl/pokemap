@@ -1674,6 +1674,22 @@ void _validateSceneConsequenceForAuthoring(SceneConsequence consequence) {
         'consequence.starterOptionId',
         'giveConfiguredStarter consequence requires a New Game starter option.',
       );
+    case SceneSetNpcPresenceConsequence():
+      _trimRequired(
+        consequence.mapId,
+        'consequence.mapId',
+        'setNpcPresence consequence requires a map id.',
+      );
+      _trimRequired(
+        consequence.entityId,
+        'consequence.entityId',
+        'setNpcPresence consequence requires an NPC id.',
+      );
+    case SceneHealPartyConsequence():
+    case SceneAwardBadgeConsequence():
+    case SceneUnlockFieldAbilityConsequence():
+    case SceneFinishGameConsequence():
+      break;
   }
 }
 
@@ -2331,6 +2347,7 @@ String _defaultConsequenceActionTitle(SceneConsequence consequence) {
     SceneGiveMoneyConsequence() => 'Donner de l’argent',
     SceneGivePokemonConsequence() => 'Donner un Pokémon',
     SceneGiveConfiguredStarterConsequence() => 'Donner un starter configuré',
+    SceneSetNpcPresenceConsequence() => 'Modifier la présence d’un PNJ',
     _ => 'Conséquence',
   };
 }

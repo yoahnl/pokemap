@@ -71,6 +71,7 @@ import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_result.
 import '../../application/scene_runtime/scene_event_runtime_hook.dart';
 import '../../application/scene_runtime/scene_fact_condition_runtime_resolver.dart';
 import '../../application/scene_runtime/scene_interactive_command_runtime_executor.dart';
+import '../../application/scene_runtime/scene_npc_state_metadata.dart';
 import '../../application/scene_runtime/narrative_game_completion_runtime_coordinator.dart';
 import '../../application/scene_runtime/scene_runtime_host_callbacks.dart';
 import '../../application/scene_runtime/scene_runtime_hook_result.dart';
@@ -1395,6 +1396,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   NarrativeRuntimeActivityLease? _cutsceneActivityLease;
   ScriptedEntityMovementController? _scriptedEntityMovementController;
   final Map<String, GridPos> _runtimeNpcPositions = <String, GridPos>{};
+  final Map<String, Completer<String>> _pendingSceneNpcMovesByEntity =
+      <String, Completer<String>>{};
   // Réservations temporaires d'occupation pour PNJ scriptés en cours de pas.
   //
   // Frontière intentionnelle:
@@ -2628,6 +2631,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }) {
     return (String mapId, MapEntity npcEntity) {
       final gameState = gameStateOverride ?? _gameState;
+      final explicitPresence = sceneNpcPresenceOverride(
+        gameState,
+        mapId: mapId,
+        entityId: npcEntity.id,
+      );
+      if (explicitPresence != null) {
+        return explicitPresence;
+      }
       _ensureStepStudioWorldRulesForManifest(manifest);
       final baseVisible = isNpcRuntimePresentOnMap(
         gameState: gameState,
@@ -2719,6 +2730,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _world = _world.withMapEntityPresencePredicate(
       _mapEntityPresencePredicateFor(_bundle.manifest),
     );
+    _mountNewlyPresentNpcActorsOnLoadedMaps();
     // Retirer les acteurs Flame des PNJ désormais absents (évite toute dérive
     // visuelle / hit test si un composant repasse « visible » par défaut).
     _detachAbsentNpcActorsFromAllLoadedMaps();
@@ -2771,6 +2783,62 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           _cancelNarrativeContinuationBarrier(pendingMove.runtimeSourceId);
         }
         _purgeMountedNpcActorForEntity(entityId: id, loaded: loaded);
+      }
+    }
+  }
+
+  void _mountNewlyPresentNpcActorsOnLoadedMaps() {
+    for (final loaded in _loadedMapsById.values) {
+      final charById = {
+        for (final character in loaded.bundle.manifest.characters)
+          character.id: character,
+      };
+      final mapOrigin = _originPixels(
+        originCellX: loaded.originCellX,
+        originCellY: loaded.originCellY,
+      );
+      for (final entity in loaded.bundle.map.entities) {
+        if (entity.kind != MapEntityKind.npc ||
+            sceneNpcPresenceOverride(
+                  _gameState,
+                  mapId: loaded.bundle.map.id,
+                  entityId: entity.id,
+                ) !=
+                true ||
+            loaded.npcActorByEntityId.containsKey(entity.id)) {
+          continue;
+        }
+        final characterId =
+            resolveNpcCharacterId(entity, loaded.bundle.manifest);
+        final character =
+            characterId == null ? null : charById[characterId];
+        if (character == null) continue;
+        final actor = OverworldActorComponent(
+          character: character,
+          tileImages: loaded.tileImagesById,
+          tileWidth: loaded.bundle.manifest.settings.tileWidth,
+          tileHeight: loaded.bundle.manifest.settings.tileHeight,
+          cellWidth: loaded.bundle.cellWidth,
+          cellHeight: loaded.bundle.cellHeight,
+          facing: entity.npc?.facing ?? EntityFacing.south,
+        );
+        actor.configureGridPlacement(
+          pos: entity.pos,
+          footprint: entity.size,
+          mapOrigin: mapOrigin,
+          snapToGrid: true,
+        );
+        loaded.npcActors.add(actor);
+        loaded.npcActorByEntityId[entity.id] = actor;
+        _npcActors.add(actor);
+        world.add(actor);
+        if (loaded.bundle.map.id == _activeMapId) {
+          _runtimeNpcPositions[entity.id] = entity.pos;
+          _scriptedEntityMovementController?.trackEntity(
+            entity.id,
+            entity.pos,
+          );
+        }
       }
     }
   }
@@ -3866,6 +3934,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // - base propre pour un futur "wait movement" en cutscene.
     if (!blocksNewOverworldLaunch) {
       _scriptedEntityMovementController?.update(dt);
+      _processPendingSceneNpcMoves();
       _processPendingScenarioNpcWarpEntries();
       _processPendingScenarioMoveContinuations();
       _processPendingScenarioFollowRequest();
@@ -8721,6 +8790,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           command,
           currentGameState: currentGameState,
         ),
+        moveNpc: (command) => _executeSceneMoveNpcCommand(
+          command,
+          currentGameState: currentGameState,
+        ),
         openWorldService: _executeSceneWorldServiceRequest,
       ).execute,
     );
@@ -8817,6 +8890,77 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       _notifySceneCommand('Warp impossible.');
       return 'blocked';
+    }
+  }
+
+  Future<String> _executeSceneMoveNpcCommand(
+    SceneInteractiveCommand command, {
+    required GameState Function() currentGameState,
+  }) {
+    if (command is! SceneMoveNpcInteractiveCommand || !isLoaded) {
+      return Future<String>.value('blocked');
+    }
+    if (command.mapId != _activeMapId) {
+      _notifySceneCommand(
+        'Le PNJ doit être déplacé depuis la map active.',
+      );
+      return Future<String>.value('blocked');
+    }
+    final map = _world.map;
+    final entity = map.entities
+        .where(
+          (candidate) =>
+              candidate.id == command.entityId &&
+              candidate.kind == MapEntityKind.npc,
+        )
+        .firstOrNull;
+    final warpExists = map.warps.any((warp) => warp.id == command.warpId);
+    final present = entity != null &&
+        _npcPresencePredicateFor(
+          _bundle.manifest,
+          gameStateOverride: currentGameState(),
+        )(map.id, entity);
+    if (!present || !warpExists) {
+      _notifySceneCommand('Déplacement du PNJ impossible.');
+      return Future<String>.value('blocked');
+    }
+    if (_pendingSceneNpcMovesByEntity.containsKey(command.entityId)) {
+      _notifySceneCommand('Ce PNJ est déjà en déplacement.');
+      return Future<String>.value('blocked');
+    }
+    final started = _runScenarioMoveCharacter(
+      entityId: command.entityId,
+      targetKind: 'warp',
+      targetId: command.warpId,
+      waitForCompletion: false,
+      runtimeSourceId: 'scene.moveNpc:${command.mapId}:${command.entityId}',
+    );
+    if (!started) {
+      return Future<String>.value('blocked');
+    }
+    final completer = Completer<String>();
+    _pendingSceneNpcMovesByEntity[command.entityId] = completer;
+    return completer.future;
+  }
+
+  void _processPendingSceneNpcMoves() {
+    if (_pendingSceneNpcMovesByEntity.isEmpty) return;
+    final entityIds =
+        _pendingSceneNpcMovesByEntity.keys.toList(growable: false)..sort();
+    for (final entityId in entityIds) {
+      final completer = _pendingSceneNpcMovesByEntity[entityId];
+      if (completer == null) continue;
+      final status = scriptedNpcMovementStatus(entityId);
+      final output = switch (status.state) {
+        ScriptedEntityMovementState.completed ||
+        ScriptedEntityMovementState.idle =>
+          'completed',
+        ScriptedEntityMovementState.failed => 'blocked',
+        ScriptedEntityMovementState.moving => null,
+      };
+      if (output == null) continue;
+      _pendingSceneNpcMovesByEntity.remove(entityId);
+      if (!completer.isCompleted) completer.complete(output);
     }
   }
 
@@ -9747,6 +9891,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           occlusionPatches: activeLoaded.occlusionPatches,
           npcActors: activeLoaded.npcActors,
           npcActorByEntityId: activeLoaded.npcActorByEntityId,
+          tileImagesById: activeLoaded.tileImagesById,
         );
         _refreshProjectedBuildingShadowCollection(_bundle);
         _refreshStaticPlacedElementShadowCollection(_bundle);
@@ -11685,6 +11830,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       occlusionPatches: occlusionPatches,
       npcActors: npcActors,
       npcActorByEntityId: npcActorByEntityId,
+      tileImagesById: tileImagesById,
     );
     _loadedMapsById[preparedBundle.map.id] = loaded;
     _runtimeBundleByMapId[preparedBundle.map.id] = preparedBundle;
@@ -11833,6 +11979,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       occlusionPatches: loaded.occlusionPatches,
       npcActors: loaded.npcActors,
       npcActorByEntityId: loaded.npcActorByEntityId,
+      tileImagesById: loaded.tileImagesById,
     );
     _loadedMapsById[loaded.bundle.map.id] = updated;
     return updated;
@@ -13125,6 +13272,7 @@ class _LoadedPlayableMap {
     required this.occlusionPatches,
     required this.npcActors,
     required this.npcActorByEntityId,
+    required this.tileImagesById,
   });
 
   final RuntimeMapBundle bundle;
@@ -13135,6 +13283,7 @@ class _LoadedPlayableMap {
   final List<PlacedElementOcclusionPatchComponent> occlusionPatches;
   final List<OverworldActorComponent> npcActors;
   final Map<String, OverworldActorComponent> npcActorByEntityId;
+  final Map<String, RuntimeTilesetImage> tileImagesById;
 }
 
 final class _LoadRuntimeSnapshot {

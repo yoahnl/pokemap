@@ -273,6 +273,10 @@ export 'src/application/scene_runtime/scene_game_completion_metadata.dart'
         gameStateAllowsPostGameContinue,
         sceneGameCompletionEndingMetadataKey,
         sceneGameCompletionPostGamePolicyMetadataKey;
+export 'src/application/scene_runtime/scene_npc_state_metadata.dart'
+    show
+        sceneNpcPresenceMetadataKey,
+        sceneNpcPresenceOverride;
 export 'src/application/scene_runtime/scene_interactive_command_runtime_executor.dart'
     show SceneInteractiveCommandHandler, SceneInteractiveCommandRuntimeExecutor;
 export 'src/application/scene_runtime/scene_consequence_runtime_write_result.dart'

@@ -22,6 +22,7 @@ abstract final class NarrativeCommandIds {
   static const unlockFieldAbility = 'unlockFieldAbility';
   static const finishGame = 'finishGame';
   static const setNpcPresence = 'setNpcPresence';
+  static const moveNpc = 'moveNpc';
 }
 
 final class NarrativeCommandCatalog {
@@ -29,13 +30,6 @@ final class NarrativeCommandCatalog {
 
   factory NarrativeCommandCatalog.canonical() {
     const supported = NarrativeCommandCapabilities.supported();
-    NarrativeCommandCapabilities unsupported(String reason) =>
-        NarrativeCommandCapabilities(
-          model: NarrativeCommandCapabilityStatus.unsupported,
-          editor: NarrativeCommandCapabilityStatus.unsupported,
-          runtime: NarrativeCommandCapabilityStatus.unsupported,
-          reason: reason,
-        );
     NarrativeCommandDescriptor consequence(
       String id,
       String label,
@@ -257,6 +251,23 @@ final class NarrativeCommandCatalog {
         ],
         isPersistent: true,
       ),
+      consequence(
+        NarrativeCommandIds.setNpcPresence,
+        'Modifier la présence d’un PNJ',
+        'FG-092',
+        [
+          _parameter(
+            'npcRef',
+            'PNJ',
+            NarrativeCommandParameterKind.npc,
+          ),
+          _parameter(
+            'present',
+            'Présent sur la map',
+            NarrativeCommandParameterKind.boolean,
+          ),
+        ],
+      ),
       interactive(NarrativeCommandIds.warp, 'Téléporter', 'FG-090', [
         _parameter(
             'destinationMapId', 'Map', NarrativeCommandParameterKind.map),
@@ -280,6 +291,23 @@ final class NarrativeCommandCatalog {
       ),
       interactive(
           NarrativeCommandIds.openPc, 'Ouvrir le PC', 'FG-091', const []),
+      interactive(
+        NarrativeCommandIds.moveNpc,
+        'Déplacer un PNJ',
+        'FG-092',
+        [
+          _parameter(
+            'npcRef',
+            'PNJ',
+            NarrativeCommandParameterKind.npc,
+          ),
+          _parameter(
+            'warpId',
+            'Destination',
+            NarrativeCommandParameterKind.warp,
+          ),
+        ],
+      ),
       node(
         NarrativeCommandIds.dialogue,
         'Jouer un dialogue',
@@ -312,23 +340,6 @@ final class NarrativeCommandCatalog {
         _parameter('cinematicId', 'Cinématique',
             NarrativeCommandParameterKind.cinematic),
       ),
-      for (final entry in [
-        (
-          NarrativeCommandIds.setNpcPresence,
-          'Modifier la présence d’un PNJ',
-          'FG-092',
-          'Utiliser Fact + WorldRule ; aucun override persistant parallèle.',
-        ),
-      ])
-        NarrativeCommandDescriptor(
-          id: entry.$1,
-          label: entry.$2,
-          description: entry.$4,
-          backend: NarrativeCommandBackend.sceneConsequence,
-          capabilities: unsupported(entry.$4),
-          fgLotId: entry.$3,
-          wireId: 'unsupported.${entry.$1}',
-        ),
     ]);
   }
 

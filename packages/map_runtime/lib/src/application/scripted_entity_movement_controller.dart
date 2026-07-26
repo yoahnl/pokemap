@@ -286,6 +286,20 @@ class ScriptedEntityMovementController {
     _patrols.remove(normalized);
   }
 
+  /// Ajoute ou réactive une entité sans réinitialiser les autres mouvements.
+  void trackEntity(String entityId, GridPos pos) {
+    final normalized = entityId.trim();
+    if (normalized.isEmpty) {
+      return;
+    }
+    _trackedPositions[normalized] = pos;
+    _activeTasks.remove(normalized);
+    _statusByEntityId[normalized] = ScriptedEntityMovementStatus.idle(
+      entityId: normalized,
+      currentPos: pos,
+    );
+  }
+
   /// Réaligne la position suivie (ex. joueur après déplacement manuel) sans
   /// interrompre une commande active ni un pas en cours d’animation.
   void syncTrackedEntityPosition(String entityId, GridPos pos) {

@@ -16,6 +16,7 @@ enum SceneConsequenceKind {
   healParty,
   awardBadge,
   unlockFieldAbility,
+  setNpcPresence,
   finishGame,
 }
 
@@ -103,6 +104,14 @@ abstract base class SceneConsequence {
     String? notes,
   }) = SceneUnlockFieldAbilityConsequence;
 
+  factory SceneConsequence.setNpcPresence({
+    required String mapId,
+    required String entityId,
+    required bool present,
+    String? label,
+    String? notes,
+  }) = SceneSetNpcPresenceConsequence;
+
   factory SceneConsequence.finishGame({
     int contractVersion,
     required String endingId,
@@ -137,6 +146,8 @@ abstract base class SceneConsequence {
         SceneAwardBadgeConsequence.fromJson(json),
       SceneConsequenceKind.unlockFieldAbility =>
         SceneUnlockFieldAbilityConsequence.fromJson(json),
+      SceneConsequenceKind.setNpcPresence =>
+        SceneSetNpcPresenceConsequence.fromJson(json),
       SceneConsequenceKind.finishGame =>
         SceneFinishGameConsequence.fromJson(json),
     };
@@ -722,6 +733,63 @@ final class SceneUnlockFieldAbilityConsequence extends SceneConsequence {
   int get hashCode => Object.hash(ability, label, notes);
 }
 
+@immutable
+final class SceneSetNpcPresenceConsequence extends SceneConsequence {
+  SceneSetNpcPresenceConsequence({
+    required String mapId,
+    required String entityId,
+    required this.present,
+    String? label,
+    String? notes,
+  })  : mapId = mapId.trim(),
+        entityId = entityId.trim(),
+        label = _trimOptional(label),
+        notes = _trimOptional(notes);
+
+  factory SceneSetNpcPresenceConsequence.fromJson(
+    Map<String, dynamic> json,
+  ) =>
+      SceneSetNpcPresenceConsequence(
+        mapId: _readRequiredString(json, 'mapId'),
+        entityId: _readRequiredString(json, 'entityId'),
+        present: _readRequiredBool(json, 'present'),
+        label: _readOptionalString(json, 'label'),
+        notes: _readOptionalString(json, 'notes'),
+      );
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.setNpcPresence;
+
+  final String mapId;
+  final String entityId;
+  final bool present;
+  final String? label;
+  final String? notes;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'kind': _kindToJson(kind),
+        'mapId': mapId,
+        'entityId': entityId,
+        'present': present,
+        'label': label,
+        'notes': notes,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneSetNpcPresenceConsequence &&
+          other.mapId == mapId &&
+          other.entityId == entityId &&
+          other.present == present &&
+          other.label == label &&
+          other.notes == notes;
+
+  @override
+  int get hashCode => Object.hash(mapId, entityId, present, label, notes);
+}
+
 /// Terminal authored consequence.
 ///
 /// [endingId] forms the idempotency key with the active session. The only V1
@@ -913,6 +981,7 @@ String _kindToJson(SceneConsequenceKind kind) {
     SceneConsequenceKind.healParty => 'healParty',
     SceneConsequenceKind.awardBadge => 'awardBadge',
     SceneConsequenceKind.unlockFieldAbility => 'unlockFieldAbility',
+    SceneConsequenceKind.setNpcPresence => 'setNpcPresence',
     SceneConsequenceKind.finishGame => 'finishGame',
   };
 }

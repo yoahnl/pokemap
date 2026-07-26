@@ -617,5 +617,41 @@ void main() {
         ScriptedEntityMovementState.idle,
       );
     });
+
+    test('trackEntity reactivates a newly present NPC without a hard reset',
+        () {
+      final controller = ScriptedEntityMovementController(
+        mapSize: const GridSize(width: 6, height: 6),
+        isCellBlocked: (x, y, {ignoreEntityId}) => false,
+        startEntityStep: ({
+          required entityId,
+          required from,
+          required to,
+          required facing,
+          double? durationSeconds,
+        }) =>
+            true,
+        isEntityStepping: (_) => false,
+        onEntityPositionCommitted: (_, __) {},
+      );
+      controller.replaceTrackedEntities(const {
+        'player': GridPos(x: 1, y: 1),
+      });
+
+      controller.trackEntity('npc_guide', const GridPos(x: 3, y: 2));
+
+      expect(
+        controller.trackedPositionOf('npc_guide'),
+        const GridPos(x: 3, y: 2),
+      );
+      expect(
+        controller.statusOf('npc_guide').state,
+        ScriptedEntityMovementState.idle,
+      );
+      expect(
+        controller.trackedPositionOf('player'),
+        const GridPos(x: 1, y: 1),
+      );
+    });
   });
 }

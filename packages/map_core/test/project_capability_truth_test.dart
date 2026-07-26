@@ -194,7 +194,7 @@ void main() {
                   'narrative.command.${NarrativeCommandIds.setNpcPresence}',
             )
             .status,
-        ProjectCapabilityTruthStatus.deferred,
+        ProjectCapabilityTruthStatus.promoted,
       );
     });
   });

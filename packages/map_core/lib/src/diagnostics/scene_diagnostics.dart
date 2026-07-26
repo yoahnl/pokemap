@@ -1,7 +1,9 @@
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import '../models/scene_interactive_command.dart';
 import '../models/map_data.dart';
+import '../models/enums.dart';
 import '../read_models/linked_asset_public_contracts.dart';
 
 enum SceneDiagnosticSeverity {
@@ -39,6 +41,9 @@ enum SceneDiagnosticCode {
   consequenceAmbiguousStoryStep,
   consequenceUnknownStarterOption,
   consequenceUnknownBadge,
+  consequenceUnknownNpc,
+  commandUnknownNpc,
+  commandUnknownWarp,
   consequenceMissingTarget,
   consequenceInvalidValue,
   consequenceLegacyPokemonHpFallback,
@@ -855,6 +860,22 @@ void _diagnoseConsequenceShape(
           ),
         );
       }
+    case SceneSetNpcPresenceConsequence():
+      if (consequence.mapId.trim().isEmpty ||
+          consequence.entityId.trim().isEmpty) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceMissingTarget,
+            severity: SceneDiagnosticSeverity.error,
+            message:
+                'La conséquence setNpcPresence doit cibler un PNJ du projet.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir un PNJ dans la liste guidée.',
+          ),
+        );
+      }
     case SceneFinishGameConsequence():
       if (consequence.endingId.trim().isEmpty) {
         diagnostics.add(
@@ -950,6 +971,44 @@ void _diagnoseActionConsequenceAgainstProject(
   required Map<String, MapData> mapsById,
   required List<SceneDiagnostic> diagnostics,
 }) {
+  final interactiveCommand = payload.interactiveCommand;
+  if (interactiveCommand is SceneMoveNpcInteractiveCommand) {
+    final mapData = mapsById[interactiveCommand.mapId];
+    final npcExists = mapData?.entities.any(
+          (entity) =>
+              entity.id == interactiveCommand.entityId &&
+              entity.kind == MapEntityKind.npc,
+        ) ??
+        false;
+    if (mapData == null || !npcExists) {
+      diagnostics.add(
+        SceneDiagnostic(
+          code: SceneDiagnosticCode.commandUnknownNpc,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'La commande moveNpc cible un PNJ absent du projet.',
+          sceneId: scene.id,
+          nodeId: node.id,
+          target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Choisir un PNJ dans la liste guidée.',
+        ),
+      );
+    } else if (!mapData.warps.any(
+      (warp) => warp.id == interactiveCommand.warpId,
+    )) {
+      diagnostics.add(
+        SceneDiagnostic(
+          code: SceneDiagnosticCode.commandUnknownWarp,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'La commande moveNpc cible une destination absente.',
+          sceneId: scene.id,
+          nodeId: node.id,
+          target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Choisir une destination de la map du PNJ.',
+        ),
+      );
+    }
+  }
+
   final consequence = payload.consequence;
   if (consequence == null) {
     return;
@@ -1081,6 +1140,31 @@ void _diagnoseActionConsequenceAgainstProject(
             nodeId: node.id,
             target: SceneDiagnosticTarget.node,
             suggestedFixLabel: 'Choisir un badge existant dans le projet.',
+          ),
+        );
+      }
+    case SceneSetNpcPresenceConsequence():
+      if (consequence.mapId.trim().isEmpty ||
+          consequence.entityId.trim().isEmpty) {
+        return;
+      }
+      final mapData = mapsById[consequence.mapId];
+      final npcExists = mapData?.entities.any(
+            (entity) =>
+                entity.id == consequence.entityId &&
+                entity.kind == MapEntityKind.npc,
+          ) ??
+          false;
+      if (mapData == null || !npcExists) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceUnknownNpc,
+            severity: SceneDiagnosticSeverity.error,
+            message: 'La conséquence setNpcPresence cible un PNJ absent.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir un PNJ dans la liste guidée.',
           ),
         );
       }

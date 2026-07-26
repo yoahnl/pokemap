@@ -155,6 +155,11 @@ void main() {
         SceneConsequence.healParty(),
         SceneConsequence.awardBadge(badgeId: 'badge_tide'),
         SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
+        SceneConsequence.setNpcPresence(
+          mapId: 'map_port',
+          entityId: 'npc_sailor',
+          present: false,
+        ),
         SceneConsequence.finishGame(
           endingId: 'ending_selbrume',
           outcome: SceneGameCompletionOutcome.victory,
@@ -198,6 +203,10 @@ void main() {
       expect(
         result.consequenceState.unlockedFieldAbilities,
         contains(FieldAbility.surf),
+      );
+      expect(
+        result.consequenceState.npcPresenceByRef['map_port::npc_sailor'],
+        isFalse,
       );
       expect(result.consequenceChanges[3].beforeSummary, contains('2'));
       expect(result.consequenceChanges[3].afterSummary, contains('5'));

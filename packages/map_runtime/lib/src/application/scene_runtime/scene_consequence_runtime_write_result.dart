@@ -31,6 +31,7 @@ enum SceneConsequenceRuntimeWriteErrorCode {
   ambiguousBadge,
   partyFull,
   gameAlreadyCompleted,
+  unknownNpc,
 }
 
 final class SceneConsequenceRuntimeWriteResult {

@@ -702,6 +702,15 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
     NarrativeCommandIds.finishGame => SceneActionPayload.consequence(
         _buildFinishGameConsequence(parameters),
       ),
+    NarrativeCommandIds.setNpcPresence => SceneActionPayload.consequence(
+        switch (_parseNpcRef(parameters['npcRef'])) {
+          (final mapId, final entityId) => SceneConsequence.setNpcPresence(
+              mapId: mapId,
+              entityId: entityId,
+              present: parameters['present'] == 'true',
+            ),
+        },
+      ),
     NarrativeCommandIds.warp => SceneActionPayload.interactive(
         SceneInteractiveCommand.warp(
           destinationMapId: parameters['destinationMapId']!,
@@ -721,6 +730,15 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
           final storageId? =>
             SceneInteractiveCommand.openPc(storageId: storageId),
           null => SceneInteractiveCommand.openPc(),
+        },
+      ),
+    NarrativeCommandIds.moveNpc => SceneActionPayload.interactive(
+        switch (_parseNpcRef(parameters['npcRef'])) {
+          (final mapId, final entityId) => SceneInteractiveCommand.moveNpc(
+              mapId: mapId,
+              entityId: entityId,
+              warpId: parameters['warpId']!,
+            ),
         },
       ),
     NarrativeCommandIds.dialogue => SceneYarnDialoguePayload(
@@ -743,6 +761,20 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         'An unsupported Narrative command cannot produce a Scene payload.',
       ),
   };
+}
+
+(String, String) _parseNpcRef(String? value) {
+  final parts = value?.trim().split('::') ?? const <String>[];
+  if (parts.length != 2 ||
+      parts.first.trim().isEmpty ||
+      parts.last.trim().isEmpty) {
+    throw ArgumentError.value(
+      value,
+      'npcRef',
+      'Choisissez un PNJ dans la liste guidée.',
+    );
+  }
+  return (parts.first.trim(), parts.last.trim());
 }
 
 SceneFinishGameConsequence _buildFinishGameConsequence(

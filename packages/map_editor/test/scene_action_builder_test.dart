@@ -120,6 +120,46 @@ void main() {
     );
   });
 
+  testWidgets('NPC state uses a guided project picker without raw identifiers',
+      (tester) async {
+    SceneActionBuildResult? result;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.setNpcPresence,
+      runtimeCommandIds: const {NarrativeCommandIds.setNpcPresence},
+      options: const {
+        NarrativeCommandParameterKind.npc: [
+          SceneActionPickerOption(
+            id: 'map_port::npc_sailor',
+            label: 'Port · Marin',
+          ),
+        ],
+      },
+      initialParameters: const {'present': 'false'},
+      onSubmitResult: (value) => result = value,
+    );
+
+    expect(find.text('Port · Marin'), findsOneWidget);
+    expect(find.text('PNJ'), findsOneWidget);
+    expect(
+      find.byType(PokeMapDropdownField<String>),
+      findsNWidgets(3),
+    );
+    expect(find.byType(PokeMapTextField), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.pump();
+
+    expect(
+      (result!.payload as SceneActionPayload).consequence,
+      SceneConsequence.setNpcPresence(
+        mapId: 'map_port',
+        entityId: 'npc_sailor',
+        present: false,
+      ),
+    );
+  });
+
   testWidgets('deleted picker target is kept visible and blocks editing',
       (tester) async {
     await _pumpBuilder(

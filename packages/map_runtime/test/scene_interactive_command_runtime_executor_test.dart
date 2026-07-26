@@ -13,6 +13,7 @@ void main() {
 
     final executor = SceneInteractiveCommandRuntimeExecutor(
       warp: handler,
+      moveNpc: handler,
       openShop: handler,
       openHeal: handler,
       openPc: handler,
@@ -20,6 +21,11 @@ void main() {
     for (final command in <SceneInteractiveCommand>[
       SceneInteractiveCommand.warp(
         destinationMapId: 'map.port',
+        warpId: 'warp.arrival',
+      ),
+      SceneInteractiveCommand.moveNpc(
+        mapId: 'map.port',
+        entityId: 'npc.guard',
         warpId: 'warp.arrival',
       ),
       SceneInteractiveCommand.openShop(shopId: 'shop.port'),

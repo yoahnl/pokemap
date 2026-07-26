@@ -1161,12 +1161,18 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
               writes.add('badge:$badgeId');
             case SceneUnlockFieldAbilityConsequence(:final ability):
               writes.add('field:${ability.moveId}');
+            case SceneSetNpcPresenceConsequence(
+                :final mapId,
+                :final entityId,
+              ):
+              writes.add('npc:$mapId:$entityId');
             case SceneGiveItemConsequence():
             case SceneTakeItemConsequence():
             case SceneGiveMoneyConsequence():
             case SceneGivePokemonConsequence():
             case SceneGiveConfiguredStarterConsequence():
             case SceneHealPartyConsequence():
+            case SceneFinishGameConsequence():
             case null:
               break;
           }
@@ -1375,6 +1381,8 @@ NarrativeSymbolicState _applyAction({
       case SceneGivePokemonConsequence():
       case SceneGiveConfiguredStarterConsequence():
       case SceneHealPartyConsequence():
+      case SceneSetNpcPresenceConsequence():
+      case SceneFinishGameConsequence():
         break;
       case SceneAwardBadgeConsequence(:final badgeId):
         next = next.copyWith(badgeIds: {...next.badgeIds, badgeId});

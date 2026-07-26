@@ -19,6 +19,7 @@ enum NarrativeCommandParameterKind {
   species,
   starter,
   map,
+  npc,
   warp,
   shop,
   badge,

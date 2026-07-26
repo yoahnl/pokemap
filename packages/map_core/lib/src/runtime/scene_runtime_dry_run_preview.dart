@@ -30,6 +30,7 @@ final class SceneDryRunConsequenceState {
     Map<String, int> itemQuantityById = const <String, int>{},
     Set<String> badgeIds = const <String>{},
     Set<FieldAbility> unlockedFieldAbilities = const <FieldAbility>{},
+    Map<String, bool> npcPresenceByRef = const <String, bool>{},
     this.money = 0,
     this.partyMemberCount = 0,
     this.partyHealed = false,
@@ -38,6 +39,7 @@ final class SceneDryRunConsequenceState {
         completedStoryStepIds = Set<String>.unmodifiable(completedStoryStepIds),
         itemQuantityById = Map<String, int>.unmodifiable(itemQuantityById),
         badgeIds = Set<String>.unmodifiable(badgeIds),
+        npcPresenceByRef = Map<String, bool>.unmodifiable(npcPresenceByRef),
         unlockedFieldAbilities =
             Set<FieldAbility>.unmodifiable(unlockedFieldAbilities);
 
@@ -50,6 +52,7 @@ final class SceneDryRunConsequenceState {
   final Map<String, int> itemQuantityById;
   final Set<String> badgeIds;
   final Set<FieldAbility> unlockedFieldAbilities;
+  final Map<String, bool> npcPresenceByRef;
   final int money;
   final int partyMemberCount;
   final bool partyHealed;
@@ -428,6 +431,17 @@ _PreviewConsequenceResult _previewConsequence({
           consequence.ability,
         },
       );
+    case SceneSetNpcPresenceConsequence():
+      final ref = '${consequence.mapId}::${consequence.entityId}';
+      before = '$ref=${state.npcPresenceByRef[ref] ?? 'project default'}';
+      after = '$ref=${consequence.present}';
+      next = _copyConsequenceState(
+        state,
+        npcPresenceByRef: {
+          ...state.npcPresenceByRef,
+          ref: consequence.present,
+        },
+      );
     case SceneFinishGameConsequence():
       before = 'completion=pending';
       after = 'completion=${consequence.endingId} '
@@ -453,6 +467,7 @@ SceneDryRunConsequenceState _copyConsequenceState(
   Map<String, int>? itemQuantityById,
   Set<String>? badgeIds,
   Set<FieldAbility>? unlockedFieldAbilities,
+  Map<String, bool>? npcPresenceByRef,
   int? money,
   int? partyMemberCount,
   bool? partyHealed,
@@ -465,6 +480,7 @@ SceneDryRunConsequenceState _copyConsequenceState(
     badgeIds: badgeIds ?? state.badgeIds,
     unlockedFieldAbilities:
         unlockedFieldAbilities ?? state.unlockedFieldAbilities,
+    npcPresenceByRef: npcPresenceByRef ?? state.npcPresenceByRef,
     money: money ?? state.money,
     partyMemberCount: partyMemberCount ?? state.partyMemberCount,
     partyHealed: partyHealed ?? state.partyHealed,

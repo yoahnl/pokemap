@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'global_story_chapter_runtime.dart';
 import 'map_entity_runtime_predicate_evaluator.dart';
 import 'step_studio_world_presence_runtime.dart';
+import 'scene_runtime/scene_npc_state_metadata.dart';
 
 /// Retourne `true` si le PNJ [entity] doit exister sur [mapId] pour ce
 /// [gameState] et ce [manifest] (visibilité PNJ + Step Studio).
@@ -24,6 +25,12 @@ bool isNpcRuntimePresentOnMap({
   if (entity.kind != MapEntityKind.npc) {
     return true;
   }
+  final override = sceneNpcPresenceOverride(
+    gameState,
+    mapId: mapId,
+    entityId: entity.id,
+  );
+  if (override != null) return override;
   final base = MapEntityRuntimePredicateEvaluator(
     gameState: gameState,
     chapterIndex: buildGlobalStoryChapterStepIndex(manifest.scenarios),

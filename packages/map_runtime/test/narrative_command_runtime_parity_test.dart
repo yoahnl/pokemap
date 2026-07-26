@@ -134,6 +134,7 @@ void main() {
 
     final executor = SceneInteractiveCommandRuntimeExecutor(
       warp: handler,
+      moveNpc: handler,
       openShop: handler,
       openHeal: handler,
       openPc: handler,
@@ -198,16 +199,14 @@ void main() {
     );
   });
 
-  test('runtime parity excludes the deferred NPC presence pseudo-command', () {
-    final descriptor = NarrativeCommandCatalog.canonical().byId(
-      NarrativeCommandIds.setNpcPresence,
-    )!;
+  test('runtime parity covers both canonical NPC state commands', () {
+    final catalog = NarrativeCommandCatalog.canonical();
 
-    expect(descriptor.isPublishable, isFalse);
-    expect(
-      descriptor.capabilities.runtime,
-      NarrativeCommandCapabilityStatus.unsupported,
-    );
+    expect(catalog.byId(NarrativeCommandIds.setNpcPresence)!.isPublishable,
+        isTrue);
+    expect(catalog.byId(NarrativeCommandIds.moveNpc)!.isPublishable, isTrue);
+    expect(_consequenceSamples(), contains(NarrativeCommandIds.setNpcPresence));
+    expect(_interactiveSamples(), contains(NarrativeCommandIds.moveNpc));
   });
 }
 
@@ -299,11 +298,22 @@ Map<String, SceneConsequence Function()> _consequenceSamples() => {
             ),
             postGamePolicy: ScenePostGamePolicy.returnToTitle,
           ),
+      NarrativeCommandIds.setNpcPresence: () =>
+          SceneConsequence.setNpcPresence(
+            mapId: 'map_test',
+            entityId: 'npc_guide',
+            present: false,
+          ),
     };
 
 Map<String, SceneInteractiveCommand Function()> _interactiveSamples() => {
       NarrativeCommandIds.warp: () => SceneInteractiveCommand.warp(
             destinationMapId: 'map_test',
+            warpId: 'warp_arrival',
+          ),
+      NarrativeCommandIds.moveNpc: () => SceneInteractiveCommand.moveNpc(
+            mapId: 'map_test',
+            entityId: 'npc_guide',
             warpId: 'warp_arrival',
           ),
       NarrativeCommandIds.openShop: () =>
@@ -412,6 +422,22 @@ MapData _map() => const MapData(
           id: 'event_gate',
           position: EventPosition(layerId: 'base', x: 1, y: 1),
           pages: [MapEventPage(pageNumber: 0)],
+        ),
+      ],
+      warps: [
+        MapWarp(
+          id: 'warp_arrival',
+          pos: GridPos(x: 2, y: 2),
+          targetMapId: 'map_test',
+          targetPos: GridPos(x: 2, y: 2),
+        ),
+      ],
+      entities: [
+        MapEntity(
+          id: 'npc_guide',
+          kind: MapEntityKind.npc,
+          pos: GridPos(x: 1, y: 2),
+          npc: MapEntityNpcData(),
         ),
       ],
     );

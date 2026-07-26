@@ -3,6 +3,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 
 import 'scene_consequence_runtime_write_result.dart';
 import 'scene_game_completion_metadata.dart';
+import 'scene_npc_state_metadata.dart';
 
 final class SceneConsequenceRuntimeWriter {
   const SceneConsequenceRuntimeWriter({
@@ -111,6 +112,10 @@ final class SceneConsequenceRuntimeWriter {
       SceneConsequenceKind.unlockFieldAbility => _applyUnlockFieldAbility(
           gameState,
           consequence as SceneUnlockFieldAbilityConsequence,
+        ),
+      SceneConsequenceKind.setNpcPresence => _applySetNpcPresence(
+          gameState,
+          consequence as SceneSetNpcPresenceConsequence,
         ),
       SceneConsequenceKind.finishGame => _applyFinishGame(
           gameState,
@@ -481,6 +486,41 @@ final class SceneConsequenceRuntimeWriter {
         },
       ),
       gameCompletion: consequence,
+    );
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applySetNpcPresence(
+    GameState gameState,
+    SceneSetNpcPresenceConsequence consequence,
+  ) {
+    final map = mapsById[consequence.mapId];
+    MapEntity? npc;
+    if (map != null) {
+      for (final entity in map.entities) {
+        if (entity.id == consequence.entityId &&
+            entity.kind == MapEntityKind.npc) {
+          npc = entity;
+          break;
+        }
+      }
+    }
+    if (npc == null) {
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.unknownNpc,
+        'Scene consequence setNpcPresence references unknown NPC '
+            '"${consequence.mapId}:${consequence.entityId}".',
+      );
+    }
+    return _SceneConsequenceRuntimeWriteStep.applied(
+      gameState.copyWith(
+        metadata: <String, String>{
+          ...gameState.metadata,
+          sceneNpcPresenceMetadataKey(
+            mapId: consequence.mapId,
+            entityId: consequence.entityId,
+          ): consequence.present ? 'present' : 'hidden',
+        },
+      ),
     );
   }
 }

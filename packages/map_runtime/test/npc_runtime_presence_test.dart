@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import 'package:map_runtime/src/application/npc_runtime_presence.dart';
+import 'package:map_runtime/src/application/scene_runtime/scene_npc_state_metadata.dart';
 import 'package:map_runtime/src/application/step_studio_completion_runtime.dart';
 import 'package:map_runtime/src/application/step_studio_world_presence_runtime.dart';
 
@@ -198,6 +199,28 @@ void main() {
           stepStudioWorldRules: rules,
           mapId: 'bourivka_center',
           entity: hiddenWhen,
+        ),
+        isFalse,
+      );
+    });
+
+    test('a persistent Scene override is the final presence authority', () {
+      final hidden = const GameState(saveId: 's').copyWith(
+        metadata: {
+          sceneNpcPresenceMetadataKey(
+            mapId: 'bourivka_center',
+            entityId: 'emma',
+          ): 'hidden',
+        },
+      );
+
+      expect(
+        isNpcRuntimePresentOnMap(
+          gameState: hidden,
+          manifest: manifest,
+          stepStudioWorldRules: rules,
+          mapId: 'bourivka_center',
+          entity: emma,
         ),
         isFalse,
       );

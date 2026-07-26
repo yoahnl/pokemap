@@ -1,6 +1,6 @@
 import 'package:meta/meta.dart' show immutable;
 
-enum SceneInteractiveCommandKind { warp, openShop, openHeal, openPc }
+enum SceneInteractiveCommandKind { warp, moveNpc, openShop, openHeal, openPc }
 
 @immutable
 abstract base class SceneInteractiveCommand {
@@ -10,6 +10,12 @@ abstract base class SceneInteractiveCommand {
     required String destinationMapId,
     required String warpId,
   }) = SceneWarpInteractiveCommand;
+
+  factory SceneInteractiveCommand.moveNpc({
+    required String mapId,
+    required String entityId,
+    required String warpId,
+  }) = SceneMoveNpcInteractiveCommand;
 
   factory SceneInteractiveCommand.openShop({required String shopId}) =
       SceneOpenShopInteractiveCommand;
@@ -33,6 +39,11 @@ abstract base class SceneInteractiveCommand {
           destinationMapId: _required(json, 'destinationMapId'),
           warpId: _required(json, 'warpId'),
         ),
+      SceneInteractiveCommandKind.moveNpc => SceneMoveNpcInteractiveCommand(
+          mapId: _required(json, 'mapId'),
+          entityId: _required(json, 'entityId'),
+          warpId: _required(json, 'warpId'),
+        ),
       SceneInteractiveCommandKind.openShop => SceneOpenShopInteractiveCommand(
           shopId: _required(json, 'shopId'),
         ),
@@ -49,6 +60,45 @@ abstract base class SceneInteractiveCommand {
   SceneInteractiveCommandKind get kind;
   List<String> get outputPortIds;
   Map<String, dynamic> toJson();
+}
+
+@immutable
+final class SceneMoveNpcInteractiveCommand extends SceneInteractiveCommand {
+  SceneMoveNpcInteractiveCommand({
+    required String mapId,
+    required String entityId,
+    required String warpId,
+  })  : mapId = _normalize(mapId, 'mapId'),
+        entityId = _normalize(entityId, 'entityId'),
+        warpId = _normalize(warpId, 'warpId');
+
+  final String mapId;
+  final String entityId;
+  final String warpId;
+
+  @override
+  SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.moveNpc;
+
+  @override
+  List<String> get outputPortIds => const ['completed', 'blocked'];
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'kind': kind.name,
+        'mapId': mapId,
+        'entityId': entityId,
+        'warpId': warpId,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      other is SceneMoveNpcInteractiveCommand &&
+      other.mapId == mapId &&
+      other.entityId == entityId &&
+      other.warpId == warpId;
+
+  @override
+  int get hashCode => Object.hash(mapId, entityId, warpId);
 }
 
 @immutable

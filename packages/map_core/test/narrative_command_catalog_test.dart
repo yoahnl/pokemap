@@ -48,6 +48,7 @@ void main() {
       NarrativeCommandIds.healParty,
       NarrativeCommandIds.awardBadge,
       NarrativeCommandIds.unlockFieldAbility,
+      NarrativeCommandIds.setNpcPresence,
     ]) {
       final command = catalog.byId(id)!;
       expect(command.isPublishable, isTrue);
@@ -79,10 +80,12 @@ void main() {
       NarrativeCommandParameterKind.fieldAbility,
     );
 
-    final deferred = catalog.byId(NarrativeCommandIds.setNpcPresence)!;
-    expect(deferred.isPublishable, isFalse);
-    expect(deferred.capabilities.runtime,
-        NarrativeCommandCapabilityStatus.unsupported);
+    final moveNpc = catalog.byId(NarrativeCommandIds.moveNpc)!;
+    expect(moveNpc.isPublishable, isTrue);
+    expect(
+      moveNpc.capabilities.runtime,
+      NarrativeCommandCapabilityStatus.supported,
+    );
   });
 
   test('Finish Game is publishable after RM-012 runtime wiring', () {

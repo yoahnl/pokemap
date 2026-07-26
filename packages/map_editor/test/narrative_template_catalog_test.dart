@@ -71,6 +71,20 @@ void main() {
           commandId: NarrativeCommandIds.unlockFieldAbility,
           parameters: const {'abilityId': 'surf'},
         ) as SceneActionPayload,
+        buildScenePayloadForNarrativeCommand(
+          commandId: NarrativeCommandIds.setNpcPresence,
+          parameters: const {
+            'npcRef': 'map_port::npc_sailor',
+            'present': 'false',
+          },
+        ) as SceneActionPayload,
+        buildScenePayloadForNarrativeCommand(
+          commandId: NarrativeCommandIds.moveNpc,
+          parameters: const {
+            'npcRef': 'map_port::npc_sailor',
+            'warpId': 'warp_exit',
+          },
+        ) as SceneActionPayload,
       ];
 
       expect(
@@ -85,6 +99,22 @@ void main() {
       expect(
         payloads[3].consequence,
         SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
+      );
+      expect(
+        payloads[4].consequence,
+        SceneConsequence.setNpcPresence(
+          mapId: 'map_port',
+          entityId: 'npc_sailor',
+          present: false,
+        ),
+      );
+      expect(
+        payloads[5].interactiveCommand,
+        SceneInteractiveCommand.moveNpc(
+          mapId: 'map_port',
+          entityId: 'npc_sailor',
+          warpId: 'warp_exit',
+        ),
       );
       for (final payload in payloads) {
         expect(SceneNodePayload.fromJson(payload.toJson()), payload);
@@ -123,7 +153,7 @@ void main() {
       expect(SceneNodePayload.fromJson(payload.toJson()), payload);
     });
 
-    test('legacy action remains readable but cannot masquerade as supported',
+    test('legacy untyped NPC action remains readable but needs canonical refs',
         () {
       final legacy = SceneNodePayload.fromJson(const {
         'kind': 'action',
@@ -136,7 +166,7 @@ void main() {
       expect(
         () => buildScenePayloadForNarrativeCommand(
           commandId: NarrativeCommandIds.setNpcPresence,
-          parameters: const {'entityId': 'npc_old'},
+          parameters: const {'npcRef': 'npc_old', 'present': 'false'},
         ),
         throwsArgumentError,
       );
