@@ -77,6 +77,75 @@ final class BattleTurnRunner {
   static const BattleMoveHistoryRecorder _moveHistoryRecorder =
       BattleMoveHistoryRecorder();
 
+  /// Applies the mandatory player replacement between two turns.
+  ///
+  /// A forced replacement is not a voluntary switch action: it must not
+  /// increment the turn, enqueue an opponent action, or run end-turn effects.
+  BattleEngineTurnResult replaceFaintedPlayer(
+    BattleSwitchDecision decision,
+  ) {
+    final previousState = _context.state;
+    final previousRng = _context.rng;
+    final previousTurnNumber = _context.turnNumber;
+    final timeline = BattleTimelineBuilder();
+
+    try {
+      final switched = _resolveSwitchAction(
+        PsdkBattleSwitchAction(
+          user: psdkPlayerSlot,
+          partyIndex: decision.partyIndex,
+        ),
+      );
+      if (!switched.applied) {
+        throw BattleDecisionRejectedError(
+          requestKind: BattleEngineDecisionRequestKind.forcedReplacement,
+          decision: decision,
+        );
+      }
+      timeline.add(
+        BattleSwitchOutTimelineEvent(
+          turn: _context.turnNumber,
+          battler: _fromPsdkSlot(psdkPlayerSlot),
+        ),
+      );
+      _context.applyStateAndRng(
+        nextState: switched.state,
+        nextRng: switched.rng,
+      );
+      timeline
+        ..add(
+          BattleSwitchInTimelineEvent(
+            turn: _context.turnNumber,
+            battler: _fromPsdkSlot(psdkPlayerSlot),
+          ),
+        )
+        ..addPsdkAll(switched.events);
+
+      final outcome = _context.resolveOutcome();
+      if (outcome != null) {
+        _context.finish(outcome);
+        timeline.add(BattleEndedTimelineEvent(outcome: outcome));
+      }
+    } catch (_) {
+      _context.restore(
+        state: previousState,
+        rng: previousRng,
+        turnNumber: previousTurnNumber,
+      );
+      rethrow;
+    }
+
+    final publicState = BattlePublicState.fromContext(_context);
+    return BattleEngineTurnResult(
+      state: publicState,
+      timeline: timeline.build(),
+      outcome: publicState.outcome,
+      nextRequest: publicState.isFinished
+          ? null
+          : BattleEngineDecisionRequest.fromContext(_context),
+    );
+  }
+
   BattleEngineTurnResult run(BattleDecision playerDecision) {
     if (!_context.canBattleContinue) {
       return BattleEngineTurnResult(

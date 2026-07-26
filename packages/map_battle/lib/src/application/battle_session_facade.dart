@@ -51,6 +51,20 @@ final class BattleSessionFacade {
   BattleEngineDecisionRequest get decisionRequest => _engine.currentRequest;
 
   BattleEngineTurnResult submit(BattleDecision decision) {
+    final request = decisionRequest;
+    // RM-023 will promote generic items into the request. Mega/shift/no-action
+    // remain trusted engine extension actions. The facade is the player/runtime
+    // authority for the four canonical RM-022 command families.
+    final isCanonicalPlayerCommand = decision is BattleFightDecision ||
+        decision is BattleSwitchDecision ||
+        decision is BattleFleeDecision ||
+        decision is BattleCaptureDecision;
+    if (isCanonicalPlayerCommand && !request.allows(decision)) {
+      throw BattleDecisionRejectedError(
+        requestKind: request.kind,
+        decision: decision,
+      );
+    }
     return _engine.submit(decision);
   }
 }

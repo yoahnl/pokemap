@@ -7642,8 +7642,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             allowCapture: _battleRequestAllowsCapture(request),
             allowFlee: request?.allowsPlayerFlee ?? false,
           );
-        } else if (choice is PlayerBattleChoiceRun) {
-          _battleSession = _battleSession!.applyChoice(choice);
         } else {
           psdkSession.submitPlayerChoice(choice);
           _battleSession = psdkSession.createLegacyDisplaySession(

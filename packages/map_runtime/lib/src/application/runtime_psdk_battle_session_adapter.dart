@@ -88,7 +88,7 @@ final class RuntimePsdkBattleSessionAdapter {
   }
 
   BattleEngineTurnResult submitPlayerChoice(PlayerBattleChoice choice) {
-    return submitDecision(_decisionForChoice(choice));
+    return submitDecision(decisionForPlayerChoice(choice));
   }
 
   BattleEngineTurnResult submitHpHealItem({
@@ -105,7 +105,8 @@ final class RuntimePsdkBattleSessionAdapter {
     );
   }
 
-  BattleDecision _decisionForChoice(PlayerBattleChoice choice) {
+  /// Canonical decision represented by the legacy presentation choice.
+  BattleDecision decisionForPlayerChoice(PlayerBattleChoice choice) {
     return switch (choice) {
       PlayerBattleChoiceFight(:final moveIndex) =>
         BattleDecision.fight(moveSlot: moveIndex),
@@ -119,6 +120,11 @@ final class RuntimePsdkBattleSessionAdapter {
         ),
       PlayerBattleChoiceContinue() => const BattleDecision.noAction(),
     };
+  }
+
+  /// Whether the canonical engine request accepts this presentation choice.
+  bool allowsPlayerChoice(PlayerBattleChoice choice) {
+    return decisionRequest.allows(decisionForPlayerChoice(choice));
   }
 
   BattleTurnResult? _toLegacyDisplayTurnResult() {

@@ -218,6 +218,7 @@ export 'src/data/psdk_move_method_index.dart'
 export 'src/domain/decision/battle_decision.dart'
     show
         BattleDecision,
+        BattleDecisionRejectedError,
         BattleCaptureDecision,
         BattleEngineDecisionRequest,
         BattleEngineDecisionRequestKind,

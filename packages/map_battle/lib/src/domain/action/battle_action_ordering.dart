@@ -84,11 +84,11 @@ final class PsdkBattleActionOrdering {
     return switch (action.kind) {
       PsdkBattleActionKind.highPriorityItem => 80,
       PsdkBattleActionKind.capture => 80,
+      PsdkBattleActionKind.flee => 80,
       PsdkBattleActionKind.switchPokemon => 70,
       PsdkBattleActionKind.mega => 60,
       PsdkBattleActionKind.fight => 50,
       PsdkBattleActionKind.item => 40,
-      PsdkBattleActionKind.flee => 30,
       PsdkBattleActionKind.shift => 20,
       PsdkBattleActionKind.preAttack => 10,
       PsdkBattleActionKind.noAction => 0,

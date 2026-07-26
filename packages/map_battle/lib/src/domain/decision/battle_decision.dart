@@ -111,8 +111,29 @@ final class BattleNoActionDecision extends BattleDecision {
 
 enum BattleEngineDecisionRequestKind {
   turnChoice,
+  forcedReplacement,
   noLegalChoice,
   finished,
+}
+
+/// Raised when a command is not part of the current canonical request.
+///
+/// The rejected command never reaches the turn runner, so state, RNG and turn
+/// number stay unchanged.
+final class BattleDecisionRejectedError extends Error {
+  BattleDecisionRejectedError({
+    required this.requestKind,
+    required this.decision,
+  });
+
+  final BattleEngineDecisionRequestKind requestKind;
+  final BattleDecision decision;
+
+  @override
+  String toString() {
+    return 'BattleDecisionRejectedError: ${decision.runtimeType} is not '
+        'allowed for ${requestKind.name}.';
+  }
 }
 
 /// One legal fight option in a clean battle request.
@@ -157,6 +178,7 @@ final class BattleEngineDecisionRequest {
     required List<BattleMoveDecisionOption> fightChoices,
     required List<BattleSwitchDecisionOption> switchChoices,
     required this.canCapture,
+    required this.canFlee,
   })  : fightChoices =
             List<BattleMoveDecisionOption>.unmodifiable(fightChoices),
         switchChoices =
@@ -170,10 +192,25 @@ final class BattleEngineDecisionRequest {
         fightChoices: const <BattleMoveDecisionOption>[],
         switchChoices: const <BattleSwitchDecisionOption>[],
         canCapture: false,
+        canFlee: false,
       );
     }
 
     final battler = context.state.battlerAt(psdkPlayerSlot);
+    final switchChoices = _switchChoicesFor(context, psdkPlayerSlot);
+    if (battler.isFainted) {
+      return BattleEngineDecisionRequest._(
+        kind: switchChoices.isEmpty
+            ? BattleEngineDecisionRequestKind.noLegalChoice
+            : BattleEngineDecisionRequestKind.forcedReplacement,
+        actor: psdkPlayerSlot,
+        fightChoices: const <BattleMoveDecisionOption>[],
+        switchChoices: switchChoices,
+        canCapture: false,
+        canFlee: false,
+      );
+    }
+
     final fightChoices = <BattleMoveDecisionOption>[
       for (var i = 0; i < battler.moves.length; i += 1)
         if (battler.moves[i].hasUsablePp &&
@@ -190,16 +227,22 @@ final class BattleEngineDecisionRequest {
             target: battler.moves[i].target,
           ),
     ];
-    final switchChoices = _switchChoicesFor(context, psdkPlayerSlot);
+    final canCapture = context.setup.canCapture;
+    final canFlee = context.setup.canFlee;
+    final hasLegalChoice = fightChoices.isNotEmpty ||
+        switchChoices.isNotEmpty ||
+        canCapture ||
+        canFlee;
 
     return BattleEngineDecisionRequest._(
-      kind: fightChoices.isEmpty && switchChoices.isEmpty
+      kind: !hasLegalChoice
           ? BattleEngineDecisionRequestKind.noLegalChoice
           : BattleEngineDecisionRequestKind.turnChoice,
       actor: psdkPlayerSlot,
       fightChoices: fightChoices,
       switchChoices: switchChoices,
-      canCapture: context.setup.canCapture,
+      canCapture: canCapture,
+      canFlee: canFlee,
     );
   }
 
@@ -208,6 +251,7 @@ final class BattleEngineDecisionRequest {
   final List<BattleMoveDecisionOption> fightChoices;
   final List<BattleSwitchDecisionOption> switchChoices;
   final bool canCapture;
+  final bool canFlee;
 
   List<BattleDecision> get allowedDecisions {
     return List<BattleDecision>.unmodifiable(
@@ -218,6 +262,7 @@ final class BattleEngineDecisionRequest {
           BattleDecision.switchPokemon(partyIndex: choice.partyIndex),
         if (canCapture)
           const BattleDecision.capture(itemId: canonicalPokeBallItemId),
+        if (canFlee) const BattleDecision.flee(),
       ],
     );
   }
@@ -230,7 +275,7 @@ final class BattleEngineDecisionRequest {
         switchChoices.any((choice) => choice.partyIndex == partyIndex),
       BattleItemDecision() => false,
       BattleMegaDecision() => false,
-      BattleFleeDecision() => false,
+      BattleFleeDecision() => canFlee,
       BattleCaptureDecision(:final itemId) =>
         canCapture && itemId == canonicalPokeBallItemId,
       BattleShiftDecision() => false,

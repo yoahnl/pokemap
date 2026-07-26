@@ -47,12 +47,20 @@ final class BattleEngine {
   }
 
   BattleEngineTurnResult submit(BattleDecision decision) {
-    return BattleTurnRunner(
+    final request = currentRequest;
+    final runner = BattleTurnRunner(
       _context,
       moveBehaviorRegistry: _moveBehaviorRegistry,
       moveProcedureHooks: _moveProcedureHooks,
       opponentAi: _opponentAi,
-    ).run(decision);
+    );
+    if (request.kind == BattleEngineDecisionRequestKind.forcedReplacement &&
+        decision is BattleSwitchDecision) {
+      return runner.replaceFaintedPlayer(
+        decision,
+      );
+    }
+    return runner.run(decision);
   }
 
   BattlePublicState snapshot() => BattlePublicState.fromContext(_context);
