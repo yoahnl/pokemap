@@ -112,6 +112,38 @@ void main() {
       );
     });
 
+    test('accepts intro videos in landscape and portrait orientations', () {
+      ProjectPresentationProfile profileFor({
+        required int width,
+        required int height,
+      }) =>
+          ProjectPresentationProfile(
+            intro: ProjectIntroVideoProfile(
+              videoPath: 'assets/presentation/intro/intro.mp4',
+              posterPath: 'assets/presentation/intro/poster.png',
+              durationMilliseconds: 12000,
+              width: width,
+              height: height,
+              bitrateKbps: 2400,
+              sizeBytes: 5000000,
+              videoCodec: 'h264',
+            ),
+          );
+
+      expect(
+        validateProjectPresentationProfile(
+          profileFor(width: 1920, height: 1080),
+        ),
+        isEmpty,
+      );
+      expect(
+        validateProjectPresentationProfile(
+          profileFor(width: 1080, height: 1920),
+        ),
+        isEmpty,
+      );
+    });
+
     test('intro video limits and fallback poster fail closed', () {
       const profile = ProjectPresentationProfile(
         intro: ProjectIntroVideoProfile(

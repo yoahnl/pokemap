@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 enum PersonalizationPreviewSurface {
+  intro,
   title,
   dialogue,
   menu,
@@ -36,6 +37,7 @@ final class PersonalizationPreviewProjection {
     final theme = profile.theme ?? safeProjectSemanticTheme;
     final typography = profile.typography;
     final background = switch (surface) {
+      PersonalizationPreviewSurface.intro => theme.titleSurface,
       PersonalizationPreviewSurface.title => theme.titleSurface,
       PersonalizationPreviewSurface.dialogue => theme.dialogueSurface,
       PersonalizationPreviewSurface.menu => theme.menuSurface,
@@ -43,6 +45,7 @@ final class PersonalizationPreviewProjection {
       PersonalizationPreviewSurface.battleHud => theme.battleHudSurface,
     };
     final role = switch (surface) {
+      PersonalizationPreviewSurface.intro => typography?.display,
       PersonalizationPreviewSurface.title => typography?.display,
       PersonalizationPreviewSurface.dialogue => typography?.dialogue,
       PersonalizationPreviewSurface.menu ||

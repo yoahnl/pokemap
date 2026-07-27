@@ -481,14 +481,17 @@ void _validateIntroVideo(
       'Intro duration must be between 1 ms and 120 seconds.',
     );
   }
+  final longestEdge = math.max(intro.width, intro.height);
+  final shortestEdge = math.min(intro.width, intro.height);
   if (intro.width <= 0 ||
       intro.height <= 0 ||
-      intro.width > projectIntroVideoMaxWidth ||
-      intro.height > projectIntroVideoMaxHeight) {
+      longestEdge > projectIntroVideoMaxWidth ||
+      shortestEdge > projectIntroVideoMaxHeight) {
     error(
       'introResolutionExceeded',
       'width',
-      'Intro resolution must not exceed 1920 × 1080.',
+      'Intro resolution must not exceed 1920 px on its longest edge and '
+          '1080 px on its shortest edge.',
     );
   }
   if (intro.bitrateKbps <= 0 ||

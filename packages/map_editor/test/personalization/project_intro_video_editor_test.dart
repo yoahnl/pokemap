@@ -22,6 +22,7 @@ void main() {
     expect(find.text('Importer une vidéo'), findsOneWidget);
     expect(find.textContaining('MP4 · H.264'), findsOneWidget);
     expect(find.textContaining('2 minutes'), findsOneWidget);
+    expect(find.textContaining('paysage ou portrait'), findsOneWidget);
 
     await tester.tap(find.text('Importer une vidéo'));
     expect(importCount, 1);
@@ -56,6 +57,7 @@ void main() {
 
     expect(find.text('00:12'), findsOneWidget);
     expect(find.text('1280 × 720'), findsOneWidget);
+    expect(find.text('Paysage 16:9'), findsOneWidget);
     expect(find.text('Sous-titres WebVTT'), findsOneWidget);
 
     await tester.tap(find.text('Autoriser “Rejouer”'));

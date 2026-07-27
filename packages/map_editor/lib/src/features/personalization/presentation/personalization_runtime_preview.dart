@@ -1,5 +1,9 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
 
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
@@ -81,19 +85,23 @@ class _PersonalizationRuntimePreviewState
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 160),
             child: switch (_surface) {
+              PersonalizationPreviewSurface.intro => _IntroRuntimePreview(
+                  profile: widget.profile.intro,
+                  projectRootPath: widget.projectRootPath,
+                  theme: widget.profile.theme ?? safeProjectSemanticTheme,
+                ),
               PersonalizationPreviewSurface.title =>
                 ProjectBrandingTitlePreview(
-                    key: const ValueKey<String>(
-                      'personalization-title-composition',
-                    ),
-                    projectName: widget.projectName,
-                    projectRootPath: widget.projectRootPath,
-                    branding: widget.profile.branding,
-                    theme: widget.profile.theme ?? safeProjectSemanticTheme,
-                    typography: widget.profile.typography,
+                  key: const ValueKey<String>(
+                    'personalization-title-composition',
                   ),
-              PersonalizationPreviewSurface.dialogue =>
-                _DialogueRuntimePreview(
+                  projectName: widget.projectName,
+                  projectRootPath: widget.projectRootPath,
+                  branding: widget.profile.branding,
+                  theme: widget.profile.theme ?? safeProjectSemanticTheme,
+                  typography: widget.profile.typography,
+                ),
+              PersonalizationPreviewSurface.dialogue => _DialogueRuntimePreview(
                   projection: surfaceProjection,
                   theme: widget.profile.theme ?? safeProjectSemanticTheme,
                 ),
@@ -658,6 +666,170 @@ class _BattleStatusCard extends StatelessWidget {
   }
 }
 
+class _IntroRuntimePreview extends StatelessWidget {
+  const _IntroRuntimePreview({
+    required this.profile,
+    required this.projectRootPath,
+    required this.theme,
+  });
+
+  final ProjectIntroVideoProfile? profile;
+  final String projectRootPath;
+  final ProjectSemanticThemeProfile theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final intro = profile;
+    final background = _previewColor(theme.titleSurface, colors.surfaceSubtle);
+    final foreground = _previewColor(theme.textPrimary, colors.textPrimary);
+    final primary = _previewColor(theme.primary, colors.brandPrimary);
+    if (intro == null) {
+      return _RuntimeFrame(
+        key: const ValueKey<String>('personalization-intro-composition'),
+        background: background,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(Icons.movie_creation_outlined, color: primary, size: 44),
+              const SizedBox(height: 8),
+              Text(
+                'Aucune intro configurée',
+                style: TextStyle(
+                  color: foreground,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final isSkipped = intro.reducedMotionBehavior == 'skip';
+    return _RuntimeFrame(
+      key: const ValueKey<String>('personalization-intro-composition'),
+      background: background,
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          if (isSkipped)
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(Icons.skip_next_outlined, color: primary, size: 46),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Intro ignorée avec les animations réduites',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: foreground,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final aspectRatio = intro.width / intro.height;
+                return Center(
+                  child: AspectRatio(
+                    aspectRatio: aspectRatio,
+                    child: _ProjectIntroPoster(
+                      projectRootPath: projectRootPath,
+                      relativePath: intro.posterPath,
+                      background: background,
+                      foreground: primary,
+                    ),
+                  ),
+                );
+              },
+            ),
+          Positioned(
+            left: 10,
+            top: 10,
+            child: PokeMapBadge(
+              label: _introOrientationLabel(intro.width, intro.height),
+              variant: PokeMapBadgeVariant.info,
+            ),
+          ),
+          Positioned(
+            right: 10,
+            top: 10,
+            child: PokeMapBadge(
+              label: 'Mouvement réduit : '
+                  '${intro.reducedMotionBehavior == 'skip' ? 'passer' : 'poster'}',
+              variant: PokeMapBadgeVariant.info,
+            ),
+          ),
+          Positioned(
+            left: 10,
+            bottom: 10,
+            child: PokeMapBadge(
+              label: _introDuration(intro.durationMilliseconds),
+              icon: const Icon(Icons.schedule_outlined),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProjectIntroPoster extends StatelessWidget {
+  const _ProjectIntroPoster({
+    required this.projectRootPath,
+    required this.relativePath,
+    required this.background,
+    required this.foreground,
+  });
+
+  final String projectRootPath;
+  final String? relativePath;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List?>(
+      future: _readProjectPreviewAsset(projectRootPath, relativePath),
+      builder: (context, snapshot) {
+        final bytes = snapshot.data;
+        if (bytes == null) {
+          return ColoredBox(
+            key: const ValueKey<String>(
+              'personalization-intro-poster-fallback',
+            ),
+            color: background,
+            child: Center(
+              child:
+                  Icon(Icons.play_circle_outline, color: foreground, size: 50),
+            ),
+          );
+        }
+        return Image.memory(
+          bytes,
+          key: const ValueKey<String>('personalization-intro-poster'),
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => ColoredBox(
+            key: const ValueKey<String>(
+              'personalization-intro-poster-fallback',
+            ),
+            color: background,
+            child: Center(
+              child: Icon(Icons.broken_image_outlined, color: foreground),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _RuntimeFrame extends StatelessWidget {
   const _RuntimeFrame({
     super.key,
@@ -694,10 +866,50 @@ Color _previewColor(String value, Color fallback) {
   );
 }
 
-String _surfaceLabel(PersonalizationPreviewSurface surface) => switch (surface) {
+String _surfaceLabel(PersonalizationPreviewSurface surface) =>
+    switch (surface) {
+      PersonalizationPreviewSurface.intro => 'Intro',
       PersonalizationPreviewSurface.title => 'Titre',
       PersonalizationPreviewSurface.dialogue => 'Dialogue',
       PersonalizationPreviewSurface.menu => 'Menu',
       PersonalizationPreviewSurface.overworldHud => 'HUD exploration',
       PersonalizationPreviewSurface.battleHud => 'HUD combat',
     };
+
+String _introOrientationLabel(int width, int height) {
+  if (height > width) return 'Portrait 9:16';
+  if (width > height) return 'Paysage 16:9';
+  return 'Carré 1:1';
+}
+
+String _introDuration(int milliseconds) {
+  final seconds = milliseconds ~/ 1000;
+  final minutes = seconds ~/ 60;
+  final remainder = seconds % 60;
+  return '${minutes.toString().padLeft(2, '0')}:'
+      '${remainder.toString().padLeft(2, '0')}';
+}
+
+Future<Uint8List?> _readProjectPreviewAsset(
+  String projectRootPath,
+  String? relativePath,
+) async {
+  if (projectRootPath.trim().isEmpty ||
+      relativePath == null ||
+      relativePath.trim().isEmpty ||
+      p.isAbsolute(relativePath)) {
+    return null;
+  }
+  final root = p.normalize(p.absolute(projectRootPath));
+  final candidate = p.normalize(p.join(root, relativePath));
+  if (!p.isWithin(root, candidate)) return null;
+  try {
+    if (await FileSystemEntity.type(candidate, followLinks: false) !=
+        FileSystemEntityType.file) {
+      return null;
+    }
+    return await File(candidate).readAsBytes();
+  } on FileSystemException {
+    return null;
+  }
+}

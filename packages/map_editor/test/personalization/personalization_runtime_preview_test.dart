@@ -160,6 +160,51 @@ void main() {
     );
     expect(battleNumbers.style?.fontFamily, 'Aurore Numbers');
   });
+
+  testWidgets('PST-043 previews portrait intro poster and reduced motion',
+      (tester) async {
+    await tester.pumpWidget(
+      _app(
+        const PersonalizationRuntimePreview(
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          profile: ProjectPresentationProfile(
+            intro: ProjectIntroVideoProfile(
+              videoPath: 'assets/presentation/intro/portrait.mp4',
+              posterPath: 'assets/presentation/intro/portrait.png',
+              durationMilliseconds: 12500,
+              width: 1080,
+              height: 1920,
+              bitrateKbps: 2400,
+              sizeBytes: 5000000,
+              videoCodec: 'h264',
+              reducedMotionBehavior: 'poster',
+            ),
+            theme: safeProjectSemanticTheme,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('personalization-preview-intro')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-intro-composition'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Portrait 9:16'), findsOneWidget);
+    expect(find.text('Mouvement réduit : poster'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-intro-poster-fallback'),
+      ),
+      findsOneWidget,
+    );
+  });
 }
 
 Widget _app(Widget child) => MaterialApp(

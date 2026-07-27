@@ -32,8 +32,9 @@ class ProjectIntroVideoEditor extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'MP4 · H.264 · AAC optionnel · 1920 × 1080 maximum · '
-              '2 minutes maximum · 100 Mio maximum.',
+              'MP4 · H.264 · AAC optionnel · paysage ou portrait · '
+              '1920 px maximum sur le côté long · 1080 px sur le côté '
+              'court · 2 minutes maximum · 100 Mio maximum.',
             ),
             const SizedBox(height: 16),
             PokeMapButton(
@@ -70,6 +71,15 @@ class ProjectIntroVideoEditor extends StatelessWidget {
                   PokeMapBadge(
                     label: '${intro.width} × ${intro.height}',
                     icon: const Icon(Icons.aspect_ratio_outlined),
+                  ),
+                  PokeMapBadge(
+                    label: _orientationLabel(intro.width, intro.height),
+                    variant: PokeMapBadgeVariant.info,
+                    icon: Icon(
+                      intro.height > intro.width
+                          ? Icons.stay_current_portrait_outlined
+                          : Icons.stay_current_landscape_outlined,
+                    ),
                   ),
                   PokeMapBadge(
                     label: '${intro.bitrateKbps} kbit/s',
@@ -168,4 +178,10 @@ String _formatDuration(int milliseconds) {
   final remainder = seconds % 60;
   return '${minutes.toString().padLeft(2, '0')}:'
       '${remainder.toString().padLeft(2, '0')}';
+}
+
+String _orientationLabel(int width, int height) {
+  if (height > width) return 'Portrait 9:16';
+  if (width > height) return 'Paysage 16:9';
+  return 'Carré 1:1';
 }
