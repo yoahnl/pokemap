@@ -244,6 +244,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   ) {
     if (widget.pauseSection != RuntimePlayerPauseSection.root) {
       return PlayerPanel(
+        role: PlayerPanelRole.menu,
         padding: const EdgeInsets.all(PlayerSpacing.md),
         child: _detailPane(context, layout),
       );
@@ -254,6 +255,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         heightFactor: .86,
         widthFactor: 1,
         child: PlayerPanel(
+          role: PlayerPanelRole.menu,
           padding: const EdgeInsets.all(PlayerSpacing.md),
           elevated: true,
           child: _navigation(layout),
@@ -276,6 +278,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         maxWidth: widthFactor == null ? 820 : double.infinity,
       ),
       child: PlayerPanel(
+        role: PlayerPanelRole.menu,
         padding: const EdgeInsets.all(PlayerSpacing.md),
         elevated: true,
         child: Row(

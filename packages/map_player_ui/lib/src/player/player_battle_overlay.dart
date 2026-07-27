@@ -97,6 +97,7 @@ class _BattleHud extends StatelessWidget {
     return PlayerPanel(
       padding: const EdgeInsets.all(PlayerSpacing.sm),
       elevated: true,
+      role: PlayerPanelRole.battleHud,
       child: Semantics(
         container: true,
         label: '${snapshot.ownerLabel}, ${snapshot.speciesLabel}, '
@@ -192,6 +193,7 @@ class _BattleCommandPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return PlayerPanel(
       elevated: true,
+      role: PlayerPanelRole.battleHud,
       padding: const EdgeInsets.all(PlayerSpacing.sm),
       child: FocusTraversalGroup(
         policy: ReadingOrderTraversalPolicy(),

@@ -167,6 +167,9 @@ final class GamePackageExportService {
                     ProjectTypographyRole.numbers,
                   ),
                 ),
+          theme: projection.presentation.theme == null
+              ? null
+              : _packageSemanticTheme(projection.presentation.theme!),
         ),
         content: emptyContent,
       );
@@ -401,6 +404,28 @@ final class GamePackageExportService {
       fallbackFamilies: projected.profile.fallbackFamilies,
     );
   }
+
+  static GamePackageSemanticTheme _packageSemanticTheme(
+    ProjectSemanticThemeProfile theme,
+  ) =>
+      GamePackageSemanticTheme(
+        primary: theme.primary,
+        onPrimary: theme.onPrimary,
+        background: theme.background,
+        surface: theme.surface,
+        surfaceElevated: theme.surfaceElevated,
+        textPrimary: theme.textPrimary,
+        textSecondary: theme.textSecondary,
+        outline: theme.outline,
+        success: theme.success,
+        warning: theme.warning,
+        danger: theme.danger,
+        titleSurface: theme.titleSurface,
+        dialogueSurface: theme.dialogueSurface,
+        menuSurface: theme.menuSurface,
+        overworldHudSurface: theme.overworldHudSurface,
+        battleHudSurface: theme.battleHudSurface,
+      );
 
   static String _suggestedFileName(String title, String version) {
     var slug = title

@@ -91,6 +91,7 @@ class PlayerPauseMenu extends StatelessWidget {
                 ),
                 child: PlayerPanel(
                   elevated: true,
+                  role: PlayerPanelRole.menu,
                   child: FocusTraversalGroup(
                     policy: ReadingOrderTraversalPolicy(),
                     child: Column(

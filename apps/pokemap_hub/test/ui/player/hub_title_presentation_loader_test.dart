@@ -142,6 +142,26 @@ void main() {
     );
     expect(loaded.unavailableAssets, isEmpty);
   });
+
+  test('resolves the installed semantic theme through player tokens', () async {
+    final loaded = await HubTitlePresentationLoader(
+      manifest: _manifest(
+        const GamePackageBranding(),
+        theme: _theme,
+      ),
+      resolveFile: (_) async => throw const FileSystemException('unused'),
+    ).load();
+
+    expect(loaded.semanticTheme, isNotNull);
+    expect(
+      loaded.semanticTheme?.titleSurface,
+      const Color(0xFFD9F4F6),
+    );
+    expect(
+      loaded.semanticTheme?.battleHudSurface,
+      const Color(0xFFFFFFFF),
+    );
+  });
 }
 
 const _intro = GamePackageIntroVideo(
@@ -171,10 +191,30 @@ const _typography = GamePackageTypography(
   ),
 );
 
+const _theme = GamePackageSemanticTheme(
+  primary: '#003A44',
+  onPrimary: '#FFFFFF',
+  background: '#F4F7FB',
+  surface: '#FFFFFF',
+  surfaceElevated: '#EAF0F8',
+  textPrimary: '#101827',
+  textSecondary: '#526176',
+  outline: '#65758B',
+  success: '#16794B',
+  warning: '#8A5100',
+  danger: '#B4233C',
+  titleSurface: '#D9F4F6',
+  dialogueSurface: '#FFFFFF',
+  menuSurface: '#EAF0F8',
+  overworldHudSurface: '#FFFFFF',
+  battleHudSurface: '#FFFFFF',
+);
+
 GamePackageManifest _manifest(
   GamePackageBranding branding, {
   GamePackageIntroVideo? intro,
   GamePackageTypography? typography,
+  GamePackageSemanticTheme? theme,
 }) =>
     GamePackageManifest(
       packageFormat: 1,
@@ -195,13 +235,16 @@ GamePackageManifest _manifest(
         defaultLocale: 'fr',
         supported: const <String>['fr'],
       ),
-      branding: intro == null && typography == null ? branding : null,
-      presentation: intro == null && typography == null
+      branding: intro == null && typography == null && theme == null
+          ? branding
+          : null,
+      presentation: intro == null && typography == null && theme == null
           ? null
           : GamePackagePresentation(
               branding: branding,
               intro: intro,
               typography: typography,
+              theme: theme,
             ),
       content: GamePackageContent(
         fileCount: 0,

@@ -3,11 +3,13 @@ import 'dart:typed_data';
 
 import 'package:map_core/map_core.dart'
     show
+        ProjectSemanticThemeProfile,
         projectIntroVideoMaxBitrateKbps,
         projectIntroVideoMaxDurationMilliseconds,
         projectIntroVideoMaxHeight,
         projectIntroVideoMaxSizeBytes,
-        projectIntroVideoMaxWidth;
+        projectIntroVideoMaxWidth,
+        validateProjectSemanticTheme;
 import 'package:pub_semver/pub_semver.dart';
 
 import 'canonical_json.dart';
@@ -427,7 +429,7 @@ final class GamePackageManifestCodec {
       value,
       path,
       required: const <String>{'schemaVersion', 'branding'},
-      optional: const <String>{'intro', 'typography'},
+      optional: const <String>{'intro', 'typography', 'theme'},
     );
     final schemaVersion =
         _integer(json['schemaVersion'], '$path.schemaVersion');
@@ -449,6 +451,9 @@ final class GamePackageManifestCodec {
           : null,
       typography: json.containsKey('typography')
           ? _typography(json['typography'], path: '$path.typography')
+          : null,
+      theme: json.containsKey('theme')
+          ? _semanticTheme(json['theme'], path: '$path.theme')
           : null,
     );
   }
@@ -616,6 +621,82 @@ final class GamePackageManifestCodec {
       family: family,
       license: license,
       fallbackFamilies: fallbacks,
+    );
+  }
+
+  GamePackageSemanticTheme _semanticTheme(
+    Object? value, {
+    required String path,
+  }) {
+    const fields = <String>{
+      'primary',
+      'onPrimary',
+      'background',
+      'surface',
+      'surfaceElevated',
+      'textPrimary',
+      'textSecondary',
+      'outline',
+      'success',
+      'warning',
+      'danger',
+      'titleSurface',
+      'dialogueSurface',
+      'menuSurface',
+      'overworldHudSurface',
+      'battleHudSurface',
+    };
+    final json = _object(
+      value,
+      path,
+      required: fields,
+      optional: const <String>{},
+    );
+    String color(String field) =>
+        _boundedString(json[field], '$path.$field', 7, 7);
+
+    final projectTheme = ProjectSemanticThemeProfile(
+      primary: color('primary'),
+      onPrimary: color('onPrimary'),
+      background: color('background'),
+      surface: color('surface'),
+      surfaceElevated: color('surfaceElevated'),
+      textPrimary: color('textPrimary'),
+      textSecondary: color('textSecondary'),
+      outline: color('outline'),
+      success: color('success'),
+      warning: color('warning'),
+      danger: color('danger'),
+      titleSurface: color('titleSurface'),
+      dialogueSurface: color('dialogueSurface'),
+      menuSurface: color('menuSurface'),
+      overworldHudSurface: color('overworldHudSurface'),
+      battleHudSurface: color('battleHudSurface'),
+    );
+    if (validateProjectSemanticTheme(projectTheme).isNotEmpty) {
+      _fail(
+        'invalidSemanticTheme',
+        path,
+        'Semantic theme colors must be valid and meet contrast requirements.',
+      );
+    }
+    return GamePackageSemanticTheme(
+      primary: projectTheme.primary,
+      onPrimary: projectTheme.onPrimary,
+      background: projectTheme.background,
+      surface: projectTheme.surface,
+      surfaceElevated: projectTheme.surfaceElevated,
+      textPrimary: projectTheme.textPrimary,
+      textSecondary: projectTheme.textSecondary,
+      outline: projectTheme.outline,
+      success: projectTheme.success,
+      warning: projectTheme.warning,
+      danger: projectTheme.danger,
+      titleSurface: projectTheme.titleSurface,
+      dialogueSurface: projectTheme.dialogueSurface,
+      menuSurface: projectTheme.menuSurface,
+      overworldHudSurface: projectTheme.overworldHudSurface,
+      battleHudSurface: projectTheme.battleHudSurface,
     );
   }
 

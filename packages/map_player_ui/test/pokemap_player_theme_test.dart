@@ -22,6 +22,14 @@ void main() {
     );
     expect(light.colorScheme.brightness, Brightness.light);
     expect(dark.colorScheme.brightness, Brightness.dark);
+    expect(
+      light.extension<PokeMapPlayerSemanticTheme>()!.titleSurface,
+      light.extension<PokeMapPlayerColors>()!.surfaceElevated,
+    );
+    expect(
+      light.extension<PokeMapPlayerSemanticTheme>()!.dialogueSurface,
+      light.extension<PokeMapPlayerColors>()!.surfaceElevated,
+    );
   });
 
   test('player text scale composes with the platform accessibility scale', () {
@@ -62,6 +70,107 @@ void main() {
       typography.numbersStyle(const TextStyle()).fontFamily,
       'Aube Numbers',
     );
+  });
+
+  test('project semantic theme resolves centrally and updates player tokens',
+      () {
+    final semantic = PokeMapPlayerSemanticTheme.tryFromHex(
+      primary: '#003A44',
+      onPrimary: '#FFFFFF',
+      background: '#F4F7FB',
+      surface: '#FFFFFF',
+      surfaceElevated: '#EAF0F8',
+      textPrimary: '#101827',
+      textSecondary: '#526176',
+      outline: '#65758B',
+      success: '#16794B',
+      warning: '#8A5100',
+      danger: '#B4233C',
+      titleSurface: '#D9F4F6',
+      dialogueSurface: '#FFFFFF',
+      menuSurface: '#EAF0F8',
+      overworldHudSurface: '#FFFFFF',
+      battleHudSurface: '#FFFFFF',
+    );
+
+    expect(semantic, isNotNull);
+    final theme = PokeMapPlayerTheme.withSemanticTheme(
+      PokeMapPlayerTheme.light(),
+      semantic!,
+    );
+    expect(
+      theme.extension<PokeMapPlayerColors>()!.primary,
+      semantic.primary,
+    );
+    expect(
+      theme.extension<PokeMapPlayerSemanticTheme>()!.titleSurface,
+      semantic.titleSurface,
+    );
+    expect(
+      PokeMapPlayerSemanticTheme.tryFromHex(
+        primary: 'navy',
+        onPrimary: '#FFFFFF',
+        background: '#F4F7FB',
+        surface: '#FFFFFF',
+        surfaceElevated: '#EAF0F8',
+        textPrimary: '#101827',
+        textSecondary: '#526176',
+        outline: '#65758B',
+        success: '#16794B',
+        warning: '#8A5100',
+        danger: '#B4233C',
+        titleSurface: '#D9F4F6',
+        dialogueSurface: '#FFFFFF',
+        menuSurface: '#EAF0F8',
+        overworldHudSurface: '#FFFFFF',
+        battleHudSurface: '#FFFFFF',
+      ),
+      isNull,
+    );
+  });
+
+  testWidgets('player panels consume their explicit semantic surface role',
+      (tester) async {
+    final semantic = PokeMapPlayerSemanticTheme.tryFromHex(
+      primary: '#003A44',
+      onPrimary: '#FFFFFF',
+      background: '#F4F7FB',
+      surface: '#FFFFFF',
+      surfaceElevated: '#EAF0F8',
+      textPrimary: '#101827',
+      textSecondary: '#526176',
+      outline: '#65758B',
+      success: '#16794B',
+      warning: '#8A5100',
+      danger: '#B4233C',
+      titleSurface: '#D9F4F6',
+      dialogueSurface: '#FFFFFF',
+      menuSurface: '#EAF0F8',
+      overworldHudSurface: '#FFFFFF',
+      battleHudSurface: '#FFFFFF',
+    )!;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapPlayerTheme.withSemanticTheme(
+          PokeMapPlayerTheme.light(),
+          semantic,
+        ),
+        home: const Scaffold(
+          body: PlayerPanel(
+            role: PlayerPanelRole.battleHud,
+            child: Text('Combat'),
+          ),
+        ),
+      ),
+    );
+
+    final material = tester.widget<Material>(
+      find.descendant(
+        of: find.byType(PlayerPanel),
+        matching: find.byType(Material),
+      ),
+    );
+    expect(material.color, semantic.battleHudSurface);
   });
 
   testWidgets('player action has a 48px target and visible keyboard focus',

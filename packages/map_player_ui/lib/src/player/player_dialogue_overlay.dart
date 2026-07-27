@@ -33,6 +33,7 @@ class PlayerDialogueOverlay extends StatelessWidget {
               ),
               child: PlayerPanel(
                 elevated: true,
+                role: PlayerPanelRole.dialogue,
                 padding: const EdgeInsets.all(PlayerSpacing.md),
                 child: AnimatedSwitcher(
                   duration: context.playerMotion.fast,

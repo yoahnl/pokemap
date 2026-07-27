@@ -22,6 +22,7 @@ export 'pokemap_horizontal_resize_handle.dart';
 export 'pokemap_icon_button.dart';
 export 'pokemap_panel.dart';
 export 'pokemap_search_field.dart';
+export 'pokemap_semantic_color_preview.dart';
 export 'pokemap_section_header.dart';
 export 'pokemap_sidebar_item.dart';
 export 'pokemap_text_field.dart';

@@ -121,6 +121,48 @@ Map<String, dynamic> _$$ProjectTypographyProfileImplToJson(
       'numbers': instance.numbers.toJson(),
     };
 
+_$ProjectSemanticThemeProfileImpl _$$ProjectSemanticThemeProfileImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectSemanticThemeProfileImpl(
+      primary: json['primary'] as String,
+      onPrimary: json['onPrimary'] as String,
+      background: json['background'] as String,
+      surface: json['surface'] as String,
+      surfaceElevated: json['surfaceElevated'] as String,
+      textPrimary: json['textPrimary'] as String,
+      textSecondary: json['textSecondary'] as String,
+      outline: json['outline'] as String,
+      success: json['success'] as String,
+      warning: json['warning'] as String,
+      danger: json['danger'] as String,
+      titleSurface: json['titleSurface'] as String,
+      dialogueSurface: json['dialogueSurface'] as String,
+      menuSurface: json['menuSurface'] as String,
+      overworldHudSurface: json['overworldHudSurface'] as String,
+      battleHudSurface: json['battleHudSurface'] as String,
+    );
+
+Map<String, dynamic> _$$ProjectSemanticThemeProfileImplToJson(
+        _$ProjectSemanticThemeProfileImpl instance) =>
+    <String, dynamic>{
+      'primary': instance.primary,
+      'onPrimary': instance.onPrimary,
+      'background': instance.background,
+      'surface': instance.surface,
+      'surfaceElevated': instance.surfaceElevated,
+      'textPrimary': instance.textPrimary,
+      'textSecondary': instance.textSecondary,
+      'outline': instance.outline,
+      'success': instance.success,
+      'warning': instance.warning,
+      'danger': instance.danger,
+      'titleSurface': instance.titleSurface,
+      'dialogueSurface': instance.dialogueSurface,
+      'menuSurface': instance.menuSurface,
+      'overworldHudSurface': instance.overworldHudSurface,
+      'battleHudSurface': instance.battleHudSurface,
+    };
+
 _$ProjectPresentationProfileImpl _$$ProjectPresentationProfileImplFromJson(
         Map<String, dynamic> json) =>
     _$ProjectPresentationProfileImpl(
@@ -138,6 +180,10 @@ _$ProjectPresentationProfileImpl _$$ProjectPresentationProfileImplFromJson(
           ? null
           : ProjectTypographyProfile.fromJson(
               json['typography'] as Map<String, dynamic>),
+      theme: json['theme'] == null
+          ? null
+          : ProjectSemanticThemeProfile.fromJson(
+              json['theme'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$$ProjectPresentationProfileImplToJson(
@@ -147,4 +193,5 @@ Map<String, dynamic> _$$ProjectPresentationProfileImplToJson(
       'branding': instance.branding.toJson(),
       if (instance.intro?.toJson() case final value?) 'intro': value,
       if (instance.typography?.toJson() case final value?) 'typography': value,
+      if (instance.theme?.toJson() case final value?) 'theme': value,
     };

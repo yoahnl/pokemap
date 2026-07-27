@@ -93,18 +93,21 @@ final class GamePackagePresentation {
     this.branding = const GamePackageBranding(),
     this.intro,
     this.typography,
+    this.theme,
   });
 
   final int schemaVersion;
   final GamePackageBranding branding;
   final GamePackageIntroVideo? intro;
   final GamePackageTypography? typography;
+  final GamePackageSemanticTheme? theme;
 
   Map<String, Object?> toJson() => <String, Object?>{
         'schemaVersion': schemaVersion,
         'branding': branding.toJson(),
         if (intro != null) 'intro': intro!.toJson(),
         if (typography != null) 'typography': typography!.toJson(),
+        if (theme != null) 'theme': theme!.toJson(),
       };
 }
 
@@ -194,6 +197,63 @@ final class GamePackageFontRole {
         if (family != null) 'family': family,
         if (license != null) 'license': license,
         'fallbackFamilies': fallbackFamilies,
+      };
+}
+
+final class GamePackageSemanticTheme {
+  const GamePackageSemanticTheme({
+    required this.primary,
+    required this.onPrimary,
+    required this.background,
+    required this.surface,
+    required this.surfaceElevated,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.outline,
+    required this.success,
+    required this.warning,
+    required this.danger,
+    required this.titleSurface,
+    required this.dialogueSurface,
+    required this.menuSurface,
+    required this.overworldHudSurface,
+    required this.battleHudSurface,
+  });
+
+  final String primary;
+  final String onPrimary;
+  final String background;
+  final String surface;
+  final String surfaceElevated;
+  final String textPrimary;
+  final String textSecondary;
+  final String outline;
+  final String success;
+  final String warning;
+  final String danger;
+  final String titleSurface;
+  final String dialogueSurface;
+  final String menuSurface;
+  final String overworldHudSurface;
+  final String battleHudSurface;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'primary': primary,
+        'onPrimary': onPrimary,
+        'background': background,
+        'surface': surface,
+        'surfaceElevated': surfaceElevated,
+        'textPrimary': textPrimary,
+        'textSecondary': textSecondary,
+        'outline': outline,
+        'success': success,
+        'warning': warning,
+        'danger': danger,
+        'titleSurface': titleSurface,
+        'dialogueSurface': dialogueSurface,
+        'menuSurface': menuSurface,
+        'overworldHudSurface': overworldHudSurface,
+        'battleHudSurface': battleHudSurface,
       };
 }
 

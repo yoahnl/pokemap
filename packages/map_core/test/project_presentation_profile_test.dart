@@ -196,5 +196,67 @@ void main() {
         ]),
       );
     });
+
+    test('round-trips a semantic theme for every player surface', () {
+      const profile = ProjectPresentationProfile(
+        theme: ProjectSemanticThemeProfile(
+          primary: '#003A44',
+          onPrimary: '#FFFFFF',
+          background: '#F4F7FB',
+          surface: '#FFFFFF',
+          surfaceElevated: '#EAF0F8',
+          textPrimary: '#101827',
+          textSecondary: '#526176',
+          outline: '#65758B',
+          success: '#16794B',
+          warning: '#8A5100',
+          danger: '#B4233C',
+          titleSurface: '#D9F4F6',
+          dialogueSurface: '#FFFFFF',
+          menuSurface: '#EAF0F8',
+          overworldHudSurface: '#FFFFFF',
+          battleHudSurface: '#FFFFFF',
+        ),
+      );
+
+      expect(validateProjectPresentationProfile(profile), isEmpty);
+      expect(
+        profile.configuredCategories,
+        contains(ProjectPresentationCategory.theme),
+      );
+      expect(ProjectPresentationProfile.fromJson(profile.toJson()), profile);
+    });
+
+    test('semantic theme rejects malformed colors and unreadable text', () {
+      const profile = ProjectPresentationProfile(
+        theme: ProjectSemanticThemeProfile(
+          primary: '#EEEEEE',
+          onPrimary: '#FFFFFF',
+          background: '#FFFFFF',
+          surface: '#FFFFFF',
+          surfaceElevated: '#FFFFFF',
+          textPrimary: '#F8F8F8',
+          textSecondary: '#GGGGGG',
+          outline: '#FFFFFF',
+          success: '#FFFFFF',
+          warning: '#FFFFFF',
+          danger: '#FFFFFF',
+          titleSurface: '#FFFFFF',
+          dialogueSurface: '#FFFFFF',
+          menuSurface: '#FFFFFF',
+          overworldHudSurface: '#FFFFFF',
+          battleHudSurface: '#FFFFFF',
+        ),
+      );
+
+      expect(
+        validateProjectPresentationProfile(profile)
+            .map((diagnostic) => diagnostic.code),
+        containsAll(<String>[
+          'themeColorInvalid',
+          'themeContrastInsufficient',
+        ]),
+      );
+    });
   });
 }

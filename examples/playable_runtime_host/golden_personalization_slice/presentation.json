@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "branding": {
+    "iconPath": "assets/presentation/icon.png",
+    "coverPath": "assets/presentation/cover.png",
+    "heroPath": "assets/presentation/hero.png",
+    "accentColor": "#003A44",
+    "titleMusicPath": "assets/presentation/title.ogg",
+    "layoutVariant": "cinematic"
+  },
+  "intro": {
+    "videoPath": "assets/presentation/intro/intro.mp4",
+    "posterPath": "assets/presentation/intro/poster.png",
+    "captionsPath": "assets/presentation/intro/captions.vtt",
+    "durationMilliseconds": 1000,
+    "width": 1280,
+    "height": 720,
+    "bitrateKbps": 128,
+    "sizeBytes": 28,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "reducedMotionBehavior": "poster",
+    "allowReplay": true
+  },
+  "typography": {
+    "display": {
+      "fontPath": "assets/presentation/fonts/display.ttf",
+      "family": "Aube Display",
+      "licensePath": "assets/presentation/fonts/display-license.txt",
+      "redistributable": true,
+      "fallbackFamilies": [
+        "sans-serif"
+      ],
+      "glyphCoverage": [
+        "latin",
+        "latinExtended",
+        "digits",
+        "punctuation"
+      ]
+    },
+    "body": {
+      "fallbackFamilies": [
+        "sans-serif"
+      ]
+    },
+    "dialogue": {
+      "fallbackFamilies": [
+        "sans-serif"
+      ]
+    },
+    "numbers": {
+      "fallbackFamilies": [
+        "monospace"
+      ]
+    }
+  },
+  "theme": {
+    "primary": "#003A44",
+    "onPrimary": "#FFFFFF",
+    "background": "#F4F7FB",
+    "surface": "#FFFFFF",
+    "surfaceElevated": "#EAF0F8",
+    "textPrimary": "#101827",
+    "textSecondary": "#526176",
+    "outline": "#65758B",
+    "success": "#16794B",
+    "warning": "#8A5100",
+    "danger": "#B4233C",
+    "titleSurface": "#D9F4F6",
+    "dialogueSurface": "#FFFFFF",
+    "menuSurface": "#EAF0F8",
+    "overworldHudSurface": "#FFFFFF",
+    "battleHudSurface": "#FFFFFF"
+  }
+}

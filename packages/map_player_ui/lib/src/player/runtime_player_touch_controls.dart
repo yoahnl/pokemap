@@ -151,6 +151,7 @@ class _RuntimePlayerTouchControlsState
 
   Widget _joystick(BuildContext context, double size) {
     final colors = context.playerColors;
+    final semantic = context.playerSemanticTheme;
     return Semantics(
       label: 'Joystick',
       child: DecoratedBox(
@@ -170,7 +171,8 @@ class _RuntimePlayerTouchControlsState
             size: size,
             decoration: JoystickBaseDecoration(
               drawArrows: false,
-              outerCircleColor: colors.surface.withValues(alpha: .34),
+              outerCircleColor:
+                  semantic.overworldHudSurface.withValues(alpha: .34),
               middleCircleColor: colors.surfaceElevated.withValues(alpha: .42),
               innerCircleColor: colors.outline.withValues(alpha: .30),
             ),
@@ -274,7 +276,8 @@ class _RuntimePlayerTouchButtonState extends State<_RuntimePlayerTouchButton> {
   @override
   Widget build(BuildContext context) {
     final colors = context.playerColors;
-    final fill = widget.primary ? colors.primary : colors.surfaceElevated;
+    final semantic = context.playerSemanticTheme;
+    final fill = widget.primary ? colors.primary : semantic.overworldHudSurface;
     final foreground = widget.primary ? colors.onPrimary : colors.textPrimary;
     return Semantics(
       button: true,

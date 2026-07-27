@@ -116,6 +116,7 @@ void main() {
               'fallbackFamilies': <String>['monospace'],
             },
           },
+          'theme': _validSemanticThemeJson(),
         };
       final content = json['content']! as Map<String, Object?>;
       final projectFile =
@@ -146,8 +147,31 @@ void main() {
         manifest.presentation?.typography?.numbers.fallbackFamilies,
         <String>['monospace'],
       );
+      expect(
+        manifest.presentation?.theme?.battleHudSurface,
+        '#FFFFFF',
+      );
       expect(manifest.usesLegacyBranding, isFalse);
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
+    });
+
+    test('rejects packaged semantic themes with inaccessible contrast', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 1,
+          'branding': <String, Object?>{},
+          'theme': <String, Object?>{
+            ..._validSemanticThemeJson(),
+            'primary': '#EEEEEE',
+            'onPrimary': '#FFFFFF',
+          },
+        };
+
+      _expectCode(
+        () => codec.decodeJson(json),
+        'invalidSemanticTheme',
+        r'$.presentation.theme',
+      );
     });
 
     test('rejects unsafe or unsupported packaged intro video metadata', () {
@@ -557,6 +581,25 @@ Map<String, Object?> _minimalManifestJson() => <String, Object?>{
           },
         ],
       },
+    };
+
+Map<String, Object?> _validSemanticThemeJson() => <String, Object?>{
+      'primary': '#003A44',
+      'onPrimary': '#FFFFFF',
+      'background': '#F4F7FB',
+      'surface': '#FFFFFF',
+      'surfaceElevated': '#EAF0F8',
+      'textPrimary': '#101827',
+      'textSecondary': '#526176',
+      'outline': '#65758B',
+      'success': '#16794B',
+      'warning': '#8A5100',
+      'danger': '#B4233C',
+      'titleSurface': '#D9F4F6',
+      'dialogueSurface': '#FFFFFF',
+      'menuSurface': '#EAF0F8',
+      'overworldHudSurface': '#FFFFFF',
+      'battleHudSurface': '#FFFFFF',
     };
 
 Map<String, Object?> _emptyFile(String path) => <String, Object?>{

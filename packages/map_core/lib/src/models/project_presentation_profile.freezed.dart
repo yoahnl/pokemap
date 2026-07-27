@@ -1527,6 +1527,499 @@ abstract class _ProjectTypographyProfile implements ProjectTypographyProfile {
       get copyWith => throw _privateConstructorUsedError;
 }
 
+ProjectSemanticThemeProfile _$ProjectSemanticThemeProfileFromJson(
+    Map<String, dynamic> json) {
+  return _ProjectSemanticThemeProfile.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectSemanticThemeProfile {
+  String get primary => throw _privateConstructorUsedError;
+  String get onPrimary => throw _privateConstructorUsedError;
+  String get background => throw _privateConstructorUsedError;
+  String get surface => throw _privateConstructorUsedError;
+  String get surfaceElevated => throw _privateConstructorUsedError;
+  String get textPrimary => throw _privateConstructorUsedError;
+  String get textSecondary => throw _privateConstructorUsedError;
+  String get outline => throw _privateConstructorUsedError;
+  String get success => throw _privateConstructorUsedError;
+  String get warning => throw _privateConstructorUsedError;
+  String get danger => throw _privateConstructorUsedError;
+  String get titleSurface => throw _privateConstructorUsedError;
+  String get dialogueSurface => throw _privateConstructorUsedError;
+  String get menuSurface => throw _privateConstructorUsedError;
+  String get overworldHudSurface => throw _privateConstructorUsedError;
+  String get battleHudSurface => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectSemanticThemeProfile to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectSemanticThemeProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectSemanticThemeProfileCopyWith<ProjectSemanticThemeProfile>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectSemanticThemeProfileCopyWith<$Res> {
+  factory $ProjectSemanticThemeProfileCopyWith(
+          ProjectSemanticThemeProfile value,
+          $Res Function(ProjectSemanticThemeProfile) then) =
+      _$ProjectSemanticThemeProfileCopyWithImpl<$Res,
+          ProjectSemanticThemeProfile>;
+  @useResult
+  $Res call(
+      {String primary,
+      String onPrimary,
+      String background,
+      String surface,
+      String surfaceElevated,
+      String textPrimary,
+      String textSecondary,
+      String outline,
+      String success,
+      String warning,
+      String danger,
+      String titleSurface,
+      String dialogueSurface,
+      String menuSurface,
+      String overworldHudSurface,
+      String battleHudSurface});
+}
+
+/// @nodoc
+class _$ProjectSemanticThemeProfileCopyWithImpl<$Res,
+        $Val extends ProjectSemanticThemeProfile>
+    implements $ProjectSemanticThemeProfileCopyWith<$Res> {
+  _$ProjectSemanticThemeProfileCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectSemanticThemeProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? primary = null,
+    Object? onPrimary = null,
+    Object? background = null,
+    Object? surface = null,
+    Object? surfaceElevated = null,
+    Object? textPrimary = null,
+    Object? textSecondary = null,
+    Object? outline = null,
+    Object? success = null,
+    Object? warning = null,
+    Object? danger = null,
+    Object? titleSurface = null,
+    Object? dialogueSurface = null,
+    Object? menuSurface = null,
+    Object? overworldHudSurface = null,
+    Object? battleHudSurface = null,
+  }) {
+    return _then(_value.copyWith(
+      primary: null == primary
+          ? _value.primary
+          : primary // ignore: cast_nullable_to_non_nullable
+              as String,
+      onPrimary: null == onPrimary
+          ? _value.onPrimary
+          : onPrimary // ignore: cast_nullable_to_non_nullable
+              as String,
+      background: null == background
+          ? _value.background
+          : background // ignore: cast_nullable_to_non_nullable
+              as String,
+      surface: null == surface
+          ? _value.surface
+          : surface // ignore: cast_nullable_to_non_nullable
+              as String,
+      surfaceElevated: null == surfaceElevated
+          ? _value.surfaceElevated
+          : surfaceElevated // ignore: cast_nullable_to_non_nullable
+              as String,
+      textPrimary: null == textPrimary
+          ? _value.textPrimary
+          : textPrimary // ignore: cast_nullable_to_non_nullable
+              as String,
+      textSecondary: null == textSecondary
+          ? _value.textSecondary
+          : textSecondary // ignore: cast_nullable_to_non_nullable
+              as String,
+      outline: null == outline
+          ? _value.outline
+          : outline // ignore: cast_nullable_to_non_nullable
+              as String,
+      success: null == success
+          ? _value.success
+          : success // ignore: cast_nullable_to_non_nullable
+              as String,
+      warning: null == warning
+          ? _value.warning
+          : warning // ignore: cast_nullable_to_non_nullable
+              as String,
+      danger: null == danger
+          ? _value.danger
+          : danger // ignore: cast_nullable_to_non_nullable
+              as String,
+      titleSurface: null == titleSurface
+          ? _value.titleSurface
+          : titleSurface // ignore: cast_nullable_to_non_nullable
+              as String,
+      dialogueSurface: null == dialogueSurface
+          ? _value.dialogueSurface
+          : dialogueSurface // ignore: cast_nullable_to_non_nullable
+              as String,
+      menuSurface: null == menuSurface
+          ? _value.menuSurface
+          : menuSurface // ignore: cast_nullable_to_non_nullable
+              as String,
+      overworldHudSurface: null == overworldHudSurface
+          ? _value.overworldHudSurface
+          : overworldHudSurface // ignore: cast_nullable_to_non_nullable
+              as String,
+      battleHudSurface: null == battleHudSurface
+          ? _value.battleHudSurface
+          : battleHudSurface // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectSemanticThemeProfileImplCopyWith<$Res>
+    implements $ProjectSemanticThemeProfileCopyWith<$Res> {
+  factory _$$ProjectSemanticThemeProfileImplCopyWith(
+          _$ProjectSemanticThemeProfileImpl value,
+          $Res Function(_$ProjectSemanticThemeProfileImpl) then) =
+      __$$ProjectSemanticThemeProfileImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String primary,
+      String onPrimary,
+      String background,
+      String surface,
+      String surfaceElevated,
+      String textPrimary,
+      String textSecondary,
+      String outline,
+      String success,
+      String warning,
+      String danger,
+      String titleSurface,
+      String dialogueSurface,
+      String menuSurface,
+      String overworldHudSurface,
+      String battleHudSurface});
+}
+
+/// @nodoc
+class __$$ProjectSemanticThemeProfileImplCopyWithImpl<$Res>
+    extends _$ProjectSemanticThemeProfileCopyWithImpl<$Res,
+        _$ProjectSemanticThemeProfileImpl>
+    implements _$$ProjectSemanticThemeProfileImplCopyWith<$Res> {
+  __$$ProjectSemanticThemeProfileImplCopyWithImpl(
+      _$ProjectSemanticThemeProfileImpl _value,
+      $Res Function(_$ProjectSemanticThemeProfileImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectSemanticThemeProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? primary = null,
+    Object? onPrimary = null,
+    Object? background = null,
+    Object? surface = null,
+    Object? surfaceElevated = null,
+    Object? textPrimary = null,
+    Object? textSecondary = null,
+    Object? outline = null,
+    Object? success = null,
+    Object? warning = null,
+    Object? danger = null,
+    Object? titleSurface = null,
+    Object? dialogueSurface = null,
+    Object? menuSurface = null,
+    Object? overworldHudSurface = null,
+    Object? battleHudSurface = null,
+  }) {
+    return _then(_$ProjectSemanticThemeProfileImpl(
+      primary: null == primary
+          ? _value.primary
+          : primary // ignore: cast_nullable_to_non_nullable
+              as String,
+      onPrimary: null == onPrimary
+          ? _value.onPrimary
+          : onPrimary // ignore: cast_nullable_to_non_nullable
+              as String,
+      background: null == background
+          ? _value.background
+          : background // ignore: cast_nullable_to_non_nullable
+              as String,
+      surface: null == surface
+          ? _value.surface
+          : surface // ignore: cast_nullable_to_non_nullable
+              as String,
+      surfaceElevated: null == surfaceElevated
+          ? _value.surfaceElevated
+          : surfaceElevated // ignore: cast_nullable_to_non_nullable
+              as String,
+      textPrimary: null == textPrimary
+          ? _value.textPrimary
+          : textPrimary // ignore: cast_nullable_to_non_nullable
+              as String,
+      textSecondary: null == textSecondary
+          ? _value.textSecondary
+          : textSecondary // ignore: cast_nullable_to_non_nullable
+              as String,
+      outline: null == outline
+          ? _value.outline
+          : outline // ignore: cast_nullable_to_non_nullable
+              as String,
+      success: null == success
+          ? _value.success
+          : success // ignore: cast_nullable_to_non_nullable
+              as String,
+      warning: null == warning
+          ? _value.warning
+          : warning // ignore: cast_nullable_to_non_nullable
+              as String,
+      danger: null == danger
+          ? _value.danger
+          : danger // ignore: cast_nullable_to_non_nullable
+              as String,
+      titleSurface: null == titleSurface
+          ? _value.titleSurface
+          : titleSurface // ignore: cast_nullable_to_non_nullable
+              as String,
+      dialogueSurface: null == dialogueSurface
+          ? _value.dialogueSurface
+          : dialogueSurface // ignore: cast_nullable_to_non_nullable
+              as String,
+      menuSurface: null == menuSurface
+          ? _value.menuSurface
+          : menuSurface // ignore: cast_nullable_to_non_nullable
+              as String,
+      overworldHudSurface: null == overworldHudSurface
+          ? _value.overworldHudSurface
+          : overworldHudSurface // ignore: cast_nullable_to_non_nullable
+              as String,
+      battleHudSurface: null == battleHudSurface
+          ? _value.battleHudSurface
+          : battleHudSurface // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$ProjectSemanticThemeProfileImpl
+    implements _ProjectSemanticThemeProfile {
+  const _$ProjectSemanticThemeProfileImpl(
+      {required this.primary,
+      required this.onPrimary,
+      required this.background,
+      required this.surface,
+      required this.surfaceElevated,
+      required this.textPrimary,
+      required this.textSecondary,
+      required this.outline,
+      required this.success,
+      required this.warning,
+      required this.danger,
+      required this.titleSurface,
+      required this.dialogueSurface,
+      required this.menuSurface,
+      required this.overworldHudSurface,
+      required this.battleHudSurface});
+
+  factory _$ProjectSemanticThemeProfileImpl.fromJson(
+          Map<String, dynamic> json) =>
+      _$$ProjectSemanticThemeProfileImplFromJson(json);
+
+  @override
+  final String primary;
+  @override
+  final String onPrimary;
+  @override
+  final String background;
+  @override
+  final String surface;
+  @override
+  final String surfaceElevated;
+  @override
+  final String textPrimary;
+  @override
+  final String textSecondary;
+  @override
+  final String outline;
+  @override
+  final String success;
+  @override
+  final String warning;
+  @override
+  final String danger;
+  @override
+  final String titleSurface;
+  @override
+  final String dialogueSurface;
+  @override
+  final String menuSurface;
+  @override
+  final String overworldHudSurface;
+  @override
+  final String battleHudSurface;
+
+  @override
+  String toString() {
+    return 'ProjectSemanticThemeProfile(primary: $primary, onPrimary: $onPrimary, background: $background, surface: $surface, surfaceElevated: $surfaceElevated, textPrimary: $textPrimary, textSecondary: $textSecondary, outline: $outline, success: $success, warning: $warning, danger: $danger, titleSurface: $titleSurface, dialogueSurface: $dialogueSurface, menuSurface: $menuSurface, overworldHudSurface: $overworldHudSurface, battleHudSurface: $battleHudSurface)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectSemanticThemeProfileImpl &&
+            (identical(other.primary, primary) || other.primary == primary) &&
+            (identical(other.onPrimary, onPrimary) ||
+                other.onPrimary == onPrimary) &&
+            (identical(other.background, background) ||
+                other.background == background) &&
+            (identical(other.surface, surface) || other.surface == surface) &&
+            (identical(other.surfaceElevated, surfaceElevated) ||
+                other.surfaceElevated == surfaceElevated) &&
+            (identical(other.textPrimary, textPrimary) ||
+                other.textPrimary == textPrimary) &&
+            (identical(other.textSecondary, textSecondary) ||
+                other.textSecondary == textSecondary) &&
+            (identical(other.outline, outline) || other.outline == outline) &&
+            (identical(other.success, success) || other.success == success) &&
+            (identical(other.warning, warning) || other.warning == warning) &&
+            (identical(other.danger, danger) || other.danger == danger) &&
+            (identical(other.titleSurface, titleSurface) ||
+                other.titleSurface == titleSurface) &&
+            (identical(other.dialogueSurface, dialogueSurface) ||
+                other.dialogueSurface == dialogueSurface) &&
+            (identical(other.menuSurface, menuSurface) ||
+                other.menuSurface == menuSurface) &&
+            (identical(other.overworldHudSurface, overworldHudSurface) ||
+                other.overworldHudSurface == overworldHudSurface) &&
+            (identical(other.battleHudSurface, battleHudSurface) ||
+                other.battleHudSurface == battleHudSurface));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      primary,
+      onPrimary,
+      background,
+      surface,
+      surfaceElevated,
+      textPrimary,
+      textSecondary,
+      outline,
+      success,
+      warning,
+      danger,
+      titleSurface,
+      dialogueSurface,
+      menuSurface,
+      overworldHudSurface,
+      battleHudSurface);
+
+  /// Create a copy of ProjectSemanticThemeProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectSemanticThemeProfileImplCopyWith<_$ProjectSemanticThemeProfileImpl>
+      get copyWith => __$$ProjectSemanticThemeProfileImplCopyWithImpl<
+          _$ProjectSemanticThemeProfileImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectSemanticThemeProfileImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectSemanticThemeProfile
+    implements ProjectSemanticThemeProfile {
+  const factory _ProjectSemanticThemeProfile(
+          {required final String primary,
+          required final String onPrimary,
+          required final String background,
+          required final String surface,
+          required final String surfaceElevated,
+          required final String textPrimary,
+          required final String textSecondary,
+          required final String outline,
+          required final String success,
+          required final String warning,
+          required final String danger,
+          required final String titleSurface,
+          required final String dialogueSurface,
+          required final String menuSurface,
+          required final String overworldHudSurface,
+          required final String battleHudSurface}) =
+      _$ProjectSemanticThemeProfileImpl;
+
+  factory _ProjectSemanticThemeProfile.fromJson(Map<String, dynamic> json) =
+      _$ProjectSemanticThemeProfileImpl.fromJson;
+
+  @override
+  String get primary;
+  @override
+  String get onPrimary;
+  @override
+  String get background;
+  @override
+  String get surface;
+  @override
+  String get surfaceElevated;
+  @override
+  String get textPrimary;
+  @override
+  String get textSecondary;
+  @override
+  String get outline;
+  @override
+  String get success;
+  @override
+  String get warning;
+  @override
+  String get danger;
+  @override
+  String get titleSurface;
+  @override
+  String get dialogueSurface;
+  @override
+  String get menuSurface;
+  @override
+  String get overworldHudSurface;
+  @override
+  String get battleHudSurface;
+
+  /// Create a copy of ProjectSemanticThemeProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectSemanticThemeProfileImplCopyWith<_$ProjectSemanticThemeProfileImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 ProjectPresentationProfile _$ProjectPresentationProfileFromJson(
     Map<String, dynamic> json) {
   return _ProjectPresentationProfile.fromJson(json);
@@ -1541,6 +2034,8 @@ mixin _$ProjectPresentationProfile {
   @JsonKey(includeIfNull: false)
   ProjectTypographyProfile? get typography =>
       throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
+  ProjectSemanticThemeProfile? get theme => throw _privateConstructorUsedError;
 
   /// Serializes this ProjectPresentationProfile to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -1563,11 +2058,13 @@ abstract class $ProjectPresentationProfileCopyWith<$Res> {
       {int schemaVersion,
       ProjectBrandingProfile branding,
       @JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,
-      @JsonKey(includeIfNull: false) ProjectTypographyProfile? typography});
+      @JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,
+      @JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme});
 
   $ProjectBrandingProfileCopyWith<$Res> get branding;
   $ProjectIntroVideoProfileCopyWith<$Res>? get intro;
   $ProjectTypographyProfileCopyWith<$Res>? get typography;
+  $ProjectSemanticThemeProfileCopyWith<$Res>? get theme;
 }
 
 /// @nodoc
@@ -1590,6 +2087,7 @@ class _$ProjectPresentationProfileCopyWithImpl<$Res,
     Object? branding = null,
     Object? intro = freezed,
     Object? typography = freezed,
+    Object? theme = freezed,
   }) {
     return _then(_value.copyWith(
       schemaVersion: null == schemaVersion
@@ -1608,6 +2106,10 @@ class _$ProjectPresentationProfileCopyWithImpl<$Res,
           ? _value.typography
           : typography // ignore: cast_nullable_to_non_nullable
               as ProjectTypographyProfile?,
+      theme: freezed == theme
+          ? _value.theme
+          : theme // ignore: cast_nullable_to_non_nullable
+              as ProjectSemanticThemeProfile?,
     ) as $Val);
   }
 
@@ -1648,6 +2150,20 @@ class _$ProjectPresentationProfileCopyWithImpl<$Res,
       return _then(_value.copyWith(typography: value) as $Val);
     });
   }
+
+  /// Create a copy of ProjectPresentationProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ProjectSemanticThemeProfileCopyWith<$Res>? get theme {
+    if (_value.theme == null) {
+      return null;
+    }
+
+    return $ProjectSemanticThemeProfileCopyWith<$Res>(_value.theme!, (value) {
+      return _then(_value.copyWith(theme: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -1663,7 +2179,8 @@ abstract class _$$ProjectPresentationProfileImplCopyWith<$Res>
       {int schemaVersion,
       ProjectBrandingProfile branding,
       @JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,
-      @JsonKey(includeIfNull: false) ProjectTypographyProfile? typography});
+      @JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,
+      @JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme});
 
   @override
   $ProjectBrandingProfileCopyWith<$Res> get branding;
@@ -1671,6 +2188,8 @@ abstract class _$$ProjectPresentationProfileImplCopyWith<$Res>
   $ProjectIntroVideoProfileCopyWith<$Res>? get intro;
   @override
   $ProjectTypographyProfileCopyWith<$Res>? get typography;
+  @override
+  $ProjectSemanticThemeProfileCopyWith<$Res>? get theme;
 }
 
 /// @nodoc
@@ -1692,6 +2211,7 @@ class __$$ProjectPresentationProfileImplCopyWithImpl<$Res>
     Object? branding = null,
     Object? intro = freezed,
     Object? typography = freezed,
+    Object? theme = freezed,
   }) {
     return _then(_$ProjectPresentationProfileImpl(
       schemaVersion: null == schemaVersion
@@ -1710,6 +2230,10 @@ class __$$ProjectPresentationProfileImplCopyWithImpl<$Res>
           ? _value.typography
           : typography // ignore: cast_nullable_to_non_nullable
               as ProjectTypographyProfile?,
+      theme: freezed == theme
+          ? _value.theme
+          : theme // ignore: cast_nullable_to_non_nullable
+              as ProjectSemanticThemeProfile?,
     ));
   }
 }
@@ -1722,7 +2246,8 @@ class _$ProjectPresentationProfileImpl extends _ProjectPresentationProfile {
       {this.schemaVersion = ProjectPresentationProfile.supportedSchemaVersion,
       this.branding = const ProjectBrandingProfile(),
       @JsonKey(includeIfNull: false) this.intro,
-      @JsonKey(includeIfNull: false) this.typography})
+      @JsonKey(includeIfNull: false) this.typography,
+      @JsonKey(includeIfNull: false) this.theme})
       : super._();
 
   factory _$ProjectPresentationProfileImpl.fromJson(
@@ -1741,10 +2266,13 @@ class _$ProjectPresentationProfileImpl extends _ProjectPresentationProfile {
   @override
   @JsonKey(includeIfNull: false)
   final ProjectTypographyProfile? typography;
+  @override
+  @JsonKey(includeIfNull: false)
+  final ProjectSemanticThemeProfile? theme;
 
   @override
   String toString() {
-    return 'ProjectPresentationProfile(schemaVersion: $schemaVersion, branding: $branding, intro: $intro, typography: $typography)';
+    return 'ProjectPresentationProfile(schemaVersion: $schemaVersion, branding: $branding, intro: $intro, typography: $typography, theme: $theme)';
   }
 
   @override
@@ -1758,13 +2286,14 @@ class _$ProjectPresentationProfileImpl extends _ProjectPresentationProfile {
                 other.branding == branding) &&
             (identical(other.intro, intro) || other.intro == intro) &&
             (identical(other.typography, typography) ||
-                other.typography == typography));
+                other.typography == typography) &&
+            (identical(other.theme, theme) || other.theme == theme));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, schemaVersion, branding, intro, typography);
+  int get hashCode => Object.hash(
+      runtimeType, schemaVersion, branding, intro, typography, theme);
 
   /// Create a copy of ProjectPresentationProfile
   /// with the given fields replaced by the non-null parameter values.
@@ -1785,12 +2314,13 @@ class _$ProjectPresentationProfileImpl extends _ProjectPresentationProfile {
 
 abstract class _ProjectPresentationProfile extends ProjectPresentationProfile {
   const factory _ProjectPresentationProfile(
-          {final int schemaVersion,
-          final ProjectBrandingProfile branding,
-          @JsonKey(includeIfNull: false) final ProjectIntroVideoProfile? intro,
-          @JsonKey(includeIfNull: false)
-          final ProjectTypographyProfile? typography}) =
-      _$ProjectPresentationProfileImpl;
+      {final int schemaVersion,
+      final ProjectBrandingProfile branding,
+      @JsonKey(includeIfNull: false) final ProjectIntroVideoProfile? intro,
+      @JsonKey(includeIfNull: false) final ProjectTypographyProfile? typography,
+      @JsonKey(includeIfNull: false)
+      final ProjectSemanticThemeProfile?
+          theme}) = _$ProjectPresentationProfileImpl;
   const _ProjectPresentationProfile._() : super._();
 
   factory _ProjectPresentationProfile.fromJson(Map<String, dynamic> json) =
@@ -1806,6 +2336,9 @@ abstract class _ProjectPresentationProfile extends ProjectPresentationProfile {
   @override
   @JsonKey(includeIfNull: false)
   ProjectTypographyProfile? get typography;
+  @override
+  @JsonKey(includeIfNull: false)
+  ProjectSemanticThemeProfile? get theme;
 
   /// Create a copy of ProjectPresentationProfile
   /// with the given fields replaced by the non-null parameter values.

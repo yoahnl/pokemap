@@ -38,17 +38,29 @@ class PlayerPanel extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(PlayerSpacing.lg),
     this.elevated = false,
+    this.role = PlayerPanelRole.standard,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final bool elevated;
+  final PlayerPanelRole role;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.playerColors;
+    final semantic = context.playerSemanticTheme;
+    final surface = switch (role) {
+      PlayerPanelRole.standard =>
+        elevated ? colors.surfaceElevated : colors.surface,
+      PlayerPanelRole.title => semantic.titleSurface,
+      PlayerPanelRole.dialogue => semantic.dialogueSurface,
+      PlayerPanelRole.menu => semantic.menuSurface,
+      PlayerPanelRole.overworldHud => semantic.overworldHudSurface,
+      PlayerPanelRole.battleHud => semantic.battleHudSurface,
+    };
     return Material(
-      color: elevated ? colors.surfaceElevated : colors.surface,
+      color: surface,
       elevation: elevated ? 8 : 0,
       shadowColor: Theme.of(context).colorScheme.shadow,
       shape: RoundedRectangleBorder(
@@ -58,6 +70,15 @@ class PlayerPanel extends StatelessWidget {
       child: Padding(padding: padding, child: child),
     );
   }
+}
+
+enum PlayerPanelRole {
+  standard,
+  title,
+  dialogue,
+  menu,
+  overworldHud,
+  battleHud,
 }
 
 class PlayerActionButton extends StatefulWidget {

@@ -1,5 +1,7 @@
 // ignore_for_file: invalid_annotation_target
 
+import 'dart:math' as math;
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'project_presentation_profile.freezed.dart';
@@ -103,6 +105,32 @@ class ProjectTypographyProfile with _$ProjectTypographyProfile {
 }
 
 @Freezed(fromJson: true, toJson: true)
+class ProjectSemanticThemeProfile with _$ProjectSemanticThemeProfile {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectSemanticThemeProfile({
+    required String primary,
+    required String onPrimary,
+    required String background,
+    required String surface,
+    required String surfaceElevated,
+    required String textPrimary,
+    required String textSecondary,
+    required String outline,
+    required String success,
+    required String warning,
+    required String danger,
+    required String titleSurface,
+    required String dialogueSurface,
+    required String menuSurface,
+    required String overworldHudSurface,
+    required String battleHudSurface,
+  }) = _ProjectSemanticThemeProfile;
+
+  factory ProjectSemanticThemeProfile.fromJson(Map<String, dynamic> json) =>
+      _$ProjectSemanticThemeProfileFromJson(json);
+}
+
+@Freezed(fromJson: true, toJson: true)
 class ProjectPresentationProfile with _$ProjectPresentationProfile {
   const ProjectPresentationProfile._();
 
@@ -113,6 +141,7 @@ class ProjectPresentationProfile with _$ProjectPresentationProfile {
     @Default(ProjectBrandingProfile()) ProjectBrandingProfile branding,
     @JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,
     @JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,
+    @JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme,
   }) = _ProjectPresentationProfile;
 
   factory ProjectPresentationProfile.fromJson(Map<String, dynamic> json) =>
@@ -125,6 +154,7 @@ class ProjectPresentationProfile with _$ProjectPresentationProfile {
         if (_hasBranding(branding)) ProjectPresentationCategory.branding,
         if (intro != null) ProjectPresentationCategory.intro,
         if (typography != null) ProjectPresentationCategory.typography,
+        if (theme != null) ProjectPresentationCategory.theme,
       };
 }
 
@@ -146,6 +176,29 @@ const Set<String> requiredProjectFontGlyphCoverage = <String>{
   'digits',
   'punctuation',
 };
+
+const double projectSemanticTextContrastRatio = 4.5;
+const double projectSemanticNonTextContrastRatio = 3;
+
+const ProjectSemanticThemeProfile safeProjectSemanticTheme =
+    ProjectSemanticThemeProfile(
+  primary: '#003A44',
+  onPrimary: '#FFFFFF',
+  background: '#F4F7FB',
+  surface: '#FFFFFF',
+  surfaceElevated: '#EAF0F8',
+  textPrimary: '#101827',
+  textSecondary: '#526176',
+  outline: '#65758B',
+  success: '#16794B',
+  warning: '#8A5100',
+  danger: '#B4233C',
+  titleSurface: '#D9F4F6',
+  dialogueSurface: '#FFFFFF',
+  menuSurface: '#EAF0F8',
+  overworldHudSurface: '#FFFFFF',
+  battleHudSurface: '#FFFFFF',
+);
 
 List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
   ProjectPresentationProfile profile,
@@ -212,8 +265,150 @@ List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
   }
   _validateIntroVideo(profile.intro, diagnostics);
   _validateTypography(profile.typography, diagnostics);
+  if (profile.theme case final theme?) {
+    diagnostics.addAll(validateProjectSemanticTheme(theme));
+  }
   return List<ProjectPresentationDiagnostic>.unmodifiable(diagnostics);
 }
+
+List<ProjectPresentationDiagnostic> validateProjectSemanticTheme(
+  ProjectSemanticThemeProfile theme,
+) {
+  final diagnostics = <ProjectPresentationDiagnostic>[];
+  final colors = <String, String>{
+    'primary': theme.primary,
+    'onPrimary': theme.onPrimary,
+    'background': theme.background,
+    'surface': theme.surface,
+    'surfaceElevated': theme.surfaceElevated,
+    'textPrimary': theme.textPrimary,
+    'textSecondary': theme.textSecondary,
+    'outline': theme.outline,
+    'success': theme.success,
+    'warning': theme.warning,
+    'danger': theme.danger,
+    'titleSurface': theme.titleSurface,
+    'dialogueSurface': theme.dialogueSurface,
+    'menuSurface': theme.menuSurface,
+    'overworldHudSurface': theme.overworldHudSurface,
+    'battleHudSurface': theme.battleHudSurface,
+  };
+  final parsed = <String, ({double red, double green, double blue})>{};
+  for (final entry in colors.entries) {
+    final color = _parseOpaqueProjectColor(entry.value);
+    if (color == null) {
+      diagnostics.add(
+        ProjectPresentationDiagnostic(
+          code: 'themeColorInvalid',
+          category: ProjectPresentationCategory.theme,
+          severity: ProjectPresentationDiagnosticSeverity.error,
+          path: '\$.presentation.theme.${entry.key}',
+          message: 'Use an opaque hexadecimal color such as #086D7A.',
+        ),
+      );
+    } else {
+      parsed[entry.key] = color;
+    }
+  }
+
+  final contrastPairs = <({
+    String foreground,
+    String background,
+    double minimum,
+  })>[
+    (
+      foreground: 'onPrimary',
+      background: 'primary',
+      minimum: projectSemanticTextContrastRatio,
+    ),
+    for (final background in <String>[
+      'background',
+      'surface',
+      'surfaceElevated',
+      'titleSurface',
+      'dialogueSurface',
+      'menuSurface',
+      'overworldHudSurface',
+      'battleHudSurface',
+    ])
+      (
+        foreground: 'textPrimary',
+        background: background,
+        minimum: projectSemanticTextContrastRatio,
+      ),
+    for (final background in <String>[
+      'background',
+      'surface',
+      'surfaceElevated',
+    ])
+      (
+        foreground: 'textSecondary',
+        background: background,
+        minimum: projectSemanticTextContrastRatio,
+      ),
+    for (final foreground in <String>[
+      'outline',
+      'success',
+      'warning',
+      'danger',
+    ])
+      (
+        foreground: foreground,
+        background: 'surface',
+        minimum: projectSemanticNonTextContrastRatio,
+      ),
+  ];
+  for (final pair in contrastPairs) {
+    final foreground = parsed[pair.foreground];
+    final background = parsed[pair.background];
+    if (foreground == null || background == null) continue;
+    final ratio = _contrastRatio(foreground, background);
+    if (ratio >= pair.minimum) continue;
+    diagnostics.add(
+      ProjectPresentationDiagnostic(
+        code: 'themeContrastInsufficient',
+        category: ProjectPresentationCategory.theme,
+        severity: ProjectPresentationDiagnosticSeverity.error,
+        path: '\$.presentation.theme.${pair.foreground}On${pair.background}',
+        message:
+            'Contrast must be at least ${pair.minimum.toStringAsFixed(1)}:1 '
+            '(current ${ratio.toStringAsFixed(2)}:1).',
+      ),
+    );
+  }
+  return List<ProjectPresentationDiagnostic>.unmodifiable(diagnostics);
+}
+
+({double red, double green, double blue})? _parseOpaqueProjectColor(
+  String source,
+) {
+  if (!RegExp(r'^#[0-9A-Fa-f]{6}$').hasMatch(source)) return null;
+  return (
+    red: int.parse(source.substring(1, 3), radix: 16) / 255,
+    green: int.parse(source.substring(3, 5), radix: 16) / 255,
+    blue: int.parse(source.substring(5, 7), radix: 16) / 255,
+  );
+}
+
+double _contrastRatio(
+  ({double red, double green, double blue}) foreground,
+  ({double red, double green, double blue}) background,
+) {
+  final foregroundLuminance = _relativeLuminance(foreground);
+  final backgroundLuminance = _relativeLuminance(background);
+  final lighter = math.max(foregroundLuminance, backgroundLuminance);
+  final darker = math.min(foregroundLuminance, backgroundLuminance);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+double _relativeLuminance(({double red, double green, double blue}) color) =>
+    0.2126 * _linearColorComponent(color.red) +
+    0.7152 * _linearColorComponent(color.green) +
+    0.0722 * _linearColorComponent(color.blue);
+
+double _linearColorComponent(double component) => component <= 0.04045
+    ? component / 12.92
+    : math.pow((component + 0.055) / 1.055, 2.4).toDouble();
 
 void _validateIntroVideo(
   ProjectIntroVideoProfile? intro,

@@ -13,6 +13,7 @@ final class HubLoadedTitlePresentation {
     required this.titleMusicPath,
     required this.intro,
     required this.typography,
+    required this.semanticTheme,
     required List<String> unavailableAssets,
   }) : unavailableAssets = List<String>.unmodifiable(unavailableAssets);
 
@@ -20,6 +21,7 @@ final class HubLoadedTitlePresentation {
   final String? titleMusicPath;
   final HubLoadedIntroVideo? intro;
   final HubLoadedTypography? typography;
+  final PokeMapPlayerSemanticTheme? semanticTheme;
   final List<String> unavailableAssets;
 }
 
@@ -103,7 +105,9 @@ final class HubTitlePresentationLoader {
         description: manifest.description,
         background: background,
         logo: logo,
-        accentColor: _decodeAccentColor(branding?.accentColor),
+        accentColor: PokeMapPlayerProjectColorResolver.tryHex(
+          branding?.accentColor,
+        ),
         layoutVariant: PlayerTitleLayoutVariant.fromManifest(
           branding?.layoutVariant,
         ),
@@ -112,7 +116,32 @@ final class HubTitlePresentationLoader {
       titleMusicPath: titleMusicPath,
       intro: intro,
       typography: typography,
+      semanticTheme: _semanticTheme(manifest.presentation?.theme),
       unavailableAssets: unavailable,
+    );
+  }
+
+  PokeMapPlayerSemanticTheme? _semanticTheme(
+    GamePackageSemanticTheme? source,
+  ) {
+    if (source == null) return null;
+    return PokeMapPlayerSemanticTheme.tryFromHex(
+      primary: source.primary,
+      onPrimary: source.onPrimary,
+      background: source.background,
+      surface: source.surface,
+      surfaceElevated: source.surfaceElevated,
+      textPrimary: source.textPrimary,
+      textSecondary: source.textSecondary,
+      outline: source.outline,
+      success: source.success,
+      warning: source.warning,
+      danger: source.danger,
+      titleSurface: source.titleSurface,
+      dialogueSurface: source.dialogueSurface,
+      menuSurface: source.menuSurface,
+      overworldHudSurface: source.overworldHudSurface,
+      battleHudSurface: source.battleHudSurface,
     );
   }
 
@@ -194,24 +223,4 @@ final class HubTitlePresentationLoader {
       return null;
     }
   }
-}
-
-Color? _decodeAccentColor(String? source) {
-  if (source == null || !source.startsWith('#')) return null;
-  final hex = source.substring(1);
-  try {
-    if (hex.length == 6) {
-      return Color(int.parse('FF$hex', radix: 16));
-    }
-    if (hex.length == 8) {
-      final red = int.parse(hex.substring(0, 2), radix: 16);
-      final green = int.parse(hex.substring(2, 4), radix: 16);
-      final blue = int.parse(hex.substring(4, 6), radix: 16);
-      final alpha = int.parse(hex.substring(6, 8), radix: 16);
-      return Color.fromARGB(alpha, red, green, blue);
-    }
-  } on FormatException {
-    return null;
-  }
-  return null;
 }

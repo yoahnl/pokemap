@@ -1,5 +1,31 @@
 import 'package:flutter/material.dart';
 
+abstract final class PokeMapPlayerProjectColorResolver {
+  static Color? tryHex(String? source) {
+    if (source == null ||
+        !RegExp(r'^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$').hasMatch(source)) {
+      return null;
+    }
+    final hex = source.substring(1);
+    if (hex.length == 6) {
+      return Color(int.parse('FF$hex', radix: 16));
+    }
+    return Color.fromARGB(
+      int.parse(hex.substring(6, 8), radix: 16),
+      int.parse(hex.substring(0, 2), radix: 16),
+      int.parse(hex.substring(2, 4), radix: 16),
+      int.parse(hex.substring(4, 6), radix: 16),
+    );
+  }
+
+  static Color? tryOpaqueHex(String? source) {
+    if (source == null || !RegExp(r'^#[0-9A-Fa-f]{6}$').hasMatch(source)) {
+      return null;
+    }
+    return Color(int.parse('FF${source.substring(1)}', radix: 16));
+  }
+}
+
 @immutable
 final class PokeMapPlayerColors extends ThemeExtension<PokeMapPlayerColors> {
   const PokeMapPlayerColors({
@@ -89,6 +115,193 @@ final class PokeMapPlayerColors extends ThemeExtension<PokeMapPlayerColors> {
       focus: Color.lerp(focus, other.focus, t)!,
       scrim: Color.lerp(scrim, other.scrim, t)!,
       highContrast: t < 0.5 ? highContrast : other.highContrast,
+    );
+  }
+}
+
+@immutable
+final class PokeMapPlayerSemanticTheme
+    extends ThemeExtension<PokeMapPlayerSemanticTheme> {
+  const PokeMapPlayerSemanticTheme({
+    required this.primary,
+    required this.onPrimary,
+    required this.background,
+    required this.surface,
+    required this.surfaceElevated,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.outline,
+    required this.success,
+    required this.warning,
+    required this.danger,
+    required this.titleSurface,
+    required this.dialogueSurface,
+    required this.menuSurface,
+    required this.overworldHudSurface,
+    required this.battleHudSurface,
+  });
+
+  factory PokeMapPlayerSemanticTheme.fromPlayerColors(
+    PokeMapPlayerColors colors,
+  ) =>
+      PokeMapPlayerSemanticTheme(
+        primary: colors.primary,
+        onPrimary: colors.onPrimary,
+        background: colors.background,
+        surface: colors.surface,
+        surfaceElevated: colors.surfaceElevated,
+        textPrimary: colors.textPrimary,
+        textSecondary: colors.textSecondary,
+        outline: colors.outline,
+        success: colors.success,
+        warning: colors.warning,
+        danger: colors.danger,
+        titleSurface: colors.surfaceElevated,
+        dialogueSurface: colors.surfaceElevated,
+        menuSurface: colors.surfaceElevated,
+        overworldHudSurface: colors.surface,
+        battleHudSurface: colors.surfaceElevated,
+      );
+
+  static PokeMapPlayerSemanticTheme? tryFromHex({
+    required String primary,
+    required String onPrimary,
+    required String background,
+    required String surface,
+    required String surfaceElevated,
+    required String textPrimary,
+    required String textSecondary,
+    required String outline,
+    required String success,
+    required String warning,
+    required String danger,
+    required String titleSurface,
+    required String dialogueSurface,
+    required String menuSurface,
+    required String overworldHudSurface,
+    required String battleHudSurface,
+  }) {
+    final values = <String>[
+      primary,
+      onPrimary,
+      background,
+      surface,
+      surfaceElevated,
+      textPrimary,
+      textSecondary,
+      outline,
+      success,
+      warning,
+      danger,
+      titleSurface,
+      dialogueSurface,
+      menuSurface,
+      overworldHudSurface,
+      battleHudSurface,
+    ]
+        .map(PokeMapPlayerProjectColorResolver.tryOpaqueHex)
+        .toList(growable: false);
+    if (values.any((color) => color == null)) return null;
+    return PokeMapPlayerSemanticTheme(
+      primary: values[0]!,
+      onPrimary: values[1]!,
+      background: values[2]!,
+      surface: values[3]!,
+      surfaceElevated: values[4]!,
+      textPrimary: values[5]!,
+      textSecondary: values[6]!,
+      outline: values[7]!,
+      success: values[8]!,
+      warning: values[9]!,
+      danger: values[10]!,
+      titleSurface: values[11]!,
+      dialogueSurface: values[12]!,
+      menuSurface: values[13]!,
+      overworldHudSurface: values[14]!,
+      battleHudSurface: values[15]!,
+    );
+  }
+
+  final Color primary;
+  final Color onPrimary;
+  final Color background;
+  final Color surface;
+  final Color surfaceElevated;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color outline;
+  final Color success;
+  final Color warning;
+  final Color danger;
+  final Color titleSurface;
+  final Color dialogueSurface;
+  final Color menuSurface;
+  final Color overworldHudSurface;
+  final Color battleHudSurface;
+
+  @override
+  PokeMapPlayerSemanticTheme copyWith({
+    Color? primary,
+    Color? onPrimary,
+    Color? background,
+    Color? surface,
+    Color? surfaceElevated,
+    Color? textPrimary,
+    Color? textSecondary,
+    Color? outline,
+    Color? success,
+    Color? warning,
+    Color? danger,
+    Color? titleSurface,
+    Color? dialogueSurface,
+    Color? menuSurface,
+    Color? overworldHudSurface,
+    Color? battleHudSurface,
+  }) =>
+      PokeMapPlayerSemanticTheme(
+        primary: primary ?? this.primary,
+        onPrimary: onPrimary ?? this.onPrimary,
+        background: background ?? this.background,
+        surface: surface ?? this.surface,
+        surfaceElevated: surfaceElevated ?? this.surfaceElevated,
+        textPrimary: textPrimary ?? this.textPrimary,
+        textSecondary: textSecondary ?? this.textSecondary,
+        outline: outline ?? this.outline,
+        success: success ?? this.success,
+        warning: warning ?? this.warning,
+        danger: danger ?? this.danger,
+        titleSurface: titleSurface ?? this.titleSurface,
+        dialogueSurface: dialogueSurface ?? this.dialogueSurface,
+        menuSurface: menuSurface ?? this.menuSurface,
+        overworldHudSurface: overworldHudSurface ?? this.overworldHudSurface,
+        battleHudSurface: battleHudSurface ?? this.battleHudSurface,
+      );
+
+  @override
+  PokeMapPlayerSemanticTheme lerp(
+    covariant ThemeExtension<PokeMapPlayerSemanticTheme>? other,
+    double t,
+  ) {
+    if (other is! PokeMapPlayerSemanticTheme) return this;
+    return PokeMapPlayerSemanticTheme(
+      primary: Color.lerp(primary, other.primary, t)!,
+      onPrimary: Color.lerp(onPrimary, other.onPrimary, t)!,
+      background: Color.lerp(background, other.background, t)!,
+      surface: Color.lerp(surface, other.surface, t)!,
+      surfaceElevated: Color.lerp(surfaceElevated, other.surfaceElevated, t)!,
+      textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
+      textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
+      outline: Color.lerp(outline, other.outline, t)!,
+      success: Color.lerp(success, other.success, t)!,
+      warning: Color.lerp(warning, other.warning, t)!,
+      danger: Color.lerp(danger, other.danger, t)!,
+      titleSurface: Color.lerp(titleSurface, other.titleSurface, t)!,
+      dialogueSurface: Color.lerp(dialogueSurface, other.dialogueSurface, t)!,
+      menuSurface: Color.lerp(menuSurface, other.menuSurface, t)!,
+      overworldHudSurface:
+          Color.lerp(overworldHudSurface, other.overworldHudSurface, t)!,
+      battleHudSurface:
+          Color.lerp(battleHudSurface, other.battleHudSurface, t)!,
     );
   }
 }
@@ -254,6 +467,81 @@ abstract final class PokeMapPlayerTheme {
     return theme.copyWith(extensions: extensions);
   }
 
+  static ThemeData withSemanticTheme(
+    ThemeData theme,
+    PokeMapPlayerSemanticTheme semantic,
+  ) {
+    final baseColors = theme.extension<PokeMapPlayerColors>();
+    if (baseColors == null) return theme;
+    final colors = baseColors.copyWith(
+      background: semantic.background,
+      surface: semantic.surface,
+      surfaceElevated: semantic.surfaceElevated,
+      primary: semantic.primary,
+      onPrimary: semantic.onPrimary,
+      textPrimary: semantic.textPrimary,
+      textSecondary: semantic.textSecondary,
+      outline: semantic.outline,
+      success: semantic.success,
+      warning: semantic.warning,
+      danger: semantic.danger,
+    );
+    final extensions = theme.extensions.values
+        .where(
+          (extension) =>
+              extension is! PokeMapPlayerColors &&
+              extension is! PokeMapPlayerSemanticTheme,
+        )
+        .toList(growable: true)
+      ..add(colors)
+      ..add(semantic);
+    final colorScheme = theme.colorScheme.copyWith(
+      primary: colors.primary,
+      onPrimary: colors.onPrimary,
+      secondary: colors.success,
+      onSecondary: colors.background,
+      error: colors.danger,
+      onError: colors.background,
+      surface: colors.surface,
+      onSurface: colors.textPrimary,
+      outline: colors.outline,
+      inverseSurface: colors.textPrimary,
+      onInverseSurface: colors.background,
+      inversePrimary: colors.primary,
+      surfaceTint: colors.primary,
+    );
+    final textTheme = theme.textTheme.copyWith(
+      displaySmall:
+          theme.textTheme.displaySmall?.copyWith(color: colors.textPrimary),
+      headlineMedium:
+          theme.textTheme.headlineMedium?.copyWith(color: colors.textPrimary),
+      titleLarge:
+          theme.textTheme.titleLarge?.copyWith(color: colors.textPrimary),
+      bodyLarge: theme.textTheme.bodyLarge?.copyWith(color: colors.textPrimary),
+      bodyMedium:
+          theme.textTheme.bodyMedium?.copyWith(color: colors.textSecondary),
+    );
+    return theme.copyWith(
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: colors.background,
+      textTheme: textTheme,
+      extensions: extensions,
+      disabledColor: colors.textSecondary.withValues(alpha: 0.45),
+      cardTheme: theme.cardTheme.copyWith(color: colors.surface),
+      navigationRailTheme: theme.navigationRailTheme.copyWith(
+        backgroundColor: colors.surface,
+        indicatorColor: colors.primary.withValues(alpha: 0.18),
+        selectedIconTheme: IconThemeData(color: colors.primary),
+        selectedLabelTextStyle:
+            textTheme.labelLarge?.copyWith(color: colors.primary),
+      ),
+      navigationBarTheme: theme.navigationBarTheme.copyWith(
+        backgroundColor: colors.surface,
+        indicatorColor: colors.primary.withValues(alpha: 0.18),
+      ),
+    );
+  }
+
   static ThemeData _theme({
     required Brightness brightness,
     required bool highContrast,
@@ -344,6 +632,7 @@ abstract final class PokeMapPlayerTheme {
                 slow: Duration(milliseconds: 420),
               ),
         const PokeMapPlayerTypography(),
+        PokeMapPlayerSemanticTheme.fromPlayerColors(colors),
       ],
       focusColor: colors.focus,
       disabledColor: colors.textSecondary.withValues(alpha: 0.45),
@@ -407,4 +696,8 @@ extension PlayerThemeContext on BuildContext {
   PokeMapPlayerTypography get playerTypography =>
       Theme.of(this).extension<PokeMapPlayerTypography>() ??
       const PokeMapPlayerTypography();
+
+  PokeMapPlayerSemanticTheme get playerSemanticTheme =>
+      Theme.of(this).extension<PokeMapPlayerSemanticTheme>() ??
+      PokeMapPlayerSemanticTheme.fromPlayerColors(playerColors);
 }

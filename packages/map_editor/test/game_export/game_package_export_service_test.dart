@@ -85,8 +85,9 @@ void main() {
     );
   });
 
-  test('packages authored intro and typography contracts with their assets',
-      () async {
+  test(
+      'packages authored intro, typography and semantic theme contracts '
+      'with their assets', () async {
     final root = await createAuthorProject(withDialogue: false);
     addTearDown(() => root.delete(recursive: true));
     final video = <int>[
@@ -157,6 +158,24 @@ void main() {
           'fallbackFamilies': <String>['monospace'],
         },
       },
+      'theme': <String, Object?>{
+        'primary': '#003A44',
+        'onPrimary': '#FFFFFF',
+        'background': '#F4F7FB',
+        'surface': '#FFFFFF',
+        'surfaceElevated': '#EAF0F8',
+        'textPrimary': '#101827',
+        'textSecondary': '#526176',
+        'outline': '#65758B',
+        'success': '#16794B',
+        'warning': '#8A5100',
+        'danger': '#B4233C',
+        'titleSurface': '#D9F4F6',
+        'dialogueSurface': '#FFFFFF',
+        'menuSurface': '#EAF0F8',
+        'overworldHudSurface': '#FFFFFF',
+        'battleHudSurface': '#FFFFFF',
+      },
     };
     await projectFile.writeAsString(jsonEncode(project), flush: true);
 
@@ -187,6 +206,10 @@ void main() {
         'presentation/fonts/display.ttf',
         'presentation/fonts/display-license.txt',
       ]),
+    );
+    expect(
+      artifact.manifest.presentation?.theme?.titleSurface,
+      '#D9F4F6',
     );
   });
 
@@ -230,6 +253,52 @@ void main() {
       isA<GamePackageManifest>(),
     );
     expect(await File('${output.path}.backup').exists(), isFalse);
+  });
+
+  test('blocks publication when semantic theme contrast is inaccessible',
+      () async {
+    final root = await createAuthorProject(withDialogue: false);
+    addTearDown(() => root.delete(recursive: true));
+    final projectFile = File(p.join(root.path, 'project.json'));
+    final project =
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+    project['presentation'] = <String, Object?>{
+      'schemaVersion': 1,
+      'branding': <String, Object?>{},
+      'theme': <String, Object?>{
+        'primary': '#EEEEEE',
+        'onPrimary': '#FFFFFF',
+        'background': '#F4F7FB',
+        'surface': '#FFFFFF',
+        'surfaceElevated': '#EAF0F8',
+        'textPrimary': '#101827',
+        'textSecondary': '#526176',
+        'outline': '#65758B',
+        'success': '#16794B',
+        'warning': '#8A5100',
+        'danger': '#B4233C',
+        'titleSurface': '#D9F4F6',
+        'dialogueSurface': '#FFFFFF',
+        'menuSurface': '#EAF0F8',
+        'overworldHudSurface': '#FFFFFF',
+        'battleHudSurface': '#FFFFFF',
+      },
+    };
+    await projectFile.writeAsString(jsonEncode(project), flush: true);
+
+    await expectLater(
+      const GamePackageExportService().build(
+        projectRoot: root,
+        profile: neutralExportProfile(),
+      ),
+      throwsA(
+        isA<GamePackageExportException>().having(
+          (error) => error.code,
+          'code',
+          'themeContrastInsufficient',
+        ),
+      ),
+    );
   });
 
   test('refuses a required capability outside the Phase 0 host contract',

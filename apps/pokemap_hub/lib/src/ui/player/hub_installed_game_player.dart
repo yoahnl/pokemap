@@ -445,10 +445,16 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     }
     final profileManager = _profileManager;
     final saveSelection = _saveSelection;
-    final personalizedTheme = player_ui.PokeMapPlayerTheme.withTypography(
+    var personalizedTheme = player_ui.PokeMapPlayerTheme.withTypography(
       Theme.of(context),
       _playerTypography,
     );
+    if (titlePresentation.semanticTheme case final semanticTheme?) {
+      personalizedTheme = player_ui.PokeMapPlayerTheme.withSemanticTheme(
+        personalizedTheme,
+        semanticTheme,
+      );
+    }
     final intro = titlePresentation.intro;
     if (!_introComplete && intro != null) {
       return Theme(

@@ -133,6 +133,7 @@ class PlayerTitleScreen extends StatelessWidget {
                     ),
                     child: PlayerPanel(
                       elevated: true,
+                      role: PlayerPanelRole.title,
                       child: FocusTraversalGroup(
                         policy: OrderedTraversalPolicy(),
                         child: Column(
