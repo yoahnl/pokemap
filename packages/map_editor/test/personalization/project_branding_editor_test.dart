@@ -45,4 +45,58 @@ void main() {
     expect(imported, ProjectBrandingImageRole.values);
     expect(removed, ProjectBrandingImageRole.values);
   });
+
+  testWidgets('edits accent and title layout through guided controls',
+      (tester) async {
+    var editAccentCount = 0;
+    var resetAccentCount = 0;
+    String? selectedLayout;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.light(),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ProjectBrandingEditor(
+              profile: const ProjectBrandingProfile(
+                accentColor: '#123456',
+                layoutVariant: 'centered',
+              ),
+              onImportImage: (_) {},
+              onRemoveImage: (_) {},
+              onEditAccent: () => editAccentCount += 1,
+              onResetAccent: () => resetAccentCount += 1,
+              onLayoutVariantChanged: (value) => selectedLayout = value,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('#123456'), findsOneWidget);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('branding-edit-accent')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('branding-edit-accent')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('branding-reset-accent')),
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('branding-layout')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('branding-layout')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cinématique').last);
+    await tester.pumpAndSettle();
+
+    expect(editAccentCount, 1);
+    expect(resetAccentCount, 1);
+    expect(selectedLayout, 'cinematic');
+  });
 }

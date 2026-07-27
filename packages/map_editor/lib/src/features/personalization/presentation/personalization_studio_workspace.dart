@@ -243,6 +243,29 @@ class _PersonalizationStudioWorkspaceState
     );
   }
 
+  Future<void> _editBrandingAccent({
+    required BuildContext context,
+    required ProjectPresentationProfile profile,
+    required EditorNotifier notifier,
+  }) async {
+    final currentValue =
+        profile.branding.accentColor ?? safeProjectSemanticTheme.primary;
+    final value = await showProjectThemeTokenDialog(
+      context: context,
+      tokenLabel: 'Accent du titre',
+      currentValue: currentValue,
+    );
+    if (!mounted || value == null || value == profile.branding.accentColor) {
+      return;
+    }
+    await notifier.applyPersonalizationStudioProfile(
+      profile.copyWith(
+        branding: profile.branding.copyWith(accentColor: value),
+      ),
+      label: 'Modifier la couleur d’accent',
+    );
+  }
+
   Future<void> _importIntroVideo({
     required String projectRootPath,
     required ProjectPresentationProfile profile,
@@ -375,6 +398,37 @@ class _PersonalizationStudioWorkspaceState
                       ),
                     ),
                     label: 'Retirer ${_brandingImageRoleName(role)}',
+                  ),
+                );
+              },
+              onEditAccent: () {
+                unawaited(
+                  _editBrandingAccent(
+                    context: context,
+                    profile: profile,
+                    notifier: notifier,
+                  ),
+                );
+              },
+              onResetAccent: () {
+                unawaited(
+                  notifier.applyPersonalizationStudioProfile(
+                    profile.copyWith(
+                      branding: profile.branding.copyWith(accentColor: null),
+                    ),
+                    label: 'Réinitialiser la couleur d’accent',
+                  ),
+                );
+              },
+              onLayoutVariantChanged: (layoutVariant) {
+                unawaited(
+                  notifier.applyPersonalizationStudioProfile(
+                    profile.copyWith(
+                      branding: profile.branding.copyWith(
+                        layoutVariant: layoutVariant,
+                      ),
+                    ),
+                    label: 'Modifier la disposition du titre',
                   ),
                 );
               },

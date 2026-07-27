@@ -215,6 +215,99 @@ void main() {
     expect(reset.onPressed, isNull);
   });
 
+  testWidgets('branding accent and layout update only the studio draft',
+      (tester) async {
+    final root =
+        Directory.systemTemp.createTempSync('personalization-studio-branding-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final project = buildShellChromeProject(name: 'Branding Studio').copyWith(
+      presentation: const ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(
+          iconPath: 'assets/presentation/branding/icon.png',
+        ),
+      ),
+    );
+    final projectFile = File('${root.path}/project.json');
+    final durableJson =
+        const JsonEncoder.withIndent('  ').convert(project.toJson());
+    projectFile.writeAsStringSync(durableJson, flush: true);
+    final gateway = _MemoryProjectGateway(project);
+
+    final container = await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1200, 1000),
+      overrides: [
+        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
+          ({
+            required String projectPath,
+            required ProjectManifest initialDocument,
+          }) {
+            return PersonalizationStudioSessionController(
+              session: NarrativeDocumentSession<ProjectManifest>(
+                documentId: 'personalization-studio-branding',
+                initialDocument: initialDocument,
+                gateway: gateway,
+                recoveryStore: _MemoryProjectRecoveryStore(),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+    await container
+        .read(editorNotifierProvider.notifier)
+        .initializePersonalizationStudioSession();
+    await tester.pump();
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('branding-edit-accent')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('branding-edit-accent')),
+    );
+    await tester.pumpAndSettle();
+    final input = find.byKey(
+      const ValueKey<String>('personalization-theme-token-input'),
+    );
+    await tester.enterText(input, '#GG');
+    await tester.tap(find.text('Appliquer'));
+    await tester.pump();
+    expect(find.textContaining('six chiffres hexadécimaux'), findsOneWidget);
+    await tester.enterText(input, '#224466');
+    await tester.tap(find.text('Appliquer'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('branding-layout')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('branding-layout')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cinématique').last);
+    await tester.pumpAndSettle();
+
+    final branding = container
+        .read(editorNotifierProvider)
+        .project
+        ?.effectivePresentation
+        .branding;
+    expect(branding?.accentColor, '#224466');
+    expect(branding?.layoutVariant, 'cinematic');
+    expect(
+      branding?.iconPath,
+      'assets/presentation/branding/icon.png',
+    );
+    expect(projectFile.readAsStringSync(), durableJson);
+  });
+
   testWidgets(
       'intro category edits the studio draft without writing project.json',
       (tester) async {

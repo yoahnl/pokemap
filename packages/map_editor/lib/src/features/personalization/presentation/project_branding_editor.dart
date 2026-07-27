@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../ui/design_system/pokemap_button.dart';
 import '../../../ui/design_system/pokemap_card.dart';
+import '../../../ui/design_system/pokemap_dropdown_field.dart';
 import '../../../ui/design_system/pokemap_section_header.dart';
 import '../application/project_branding_image_import_service.dart';
 
@@ -12,11 +13,17 @@ class ProjectBrandingEditor extends StatelessWidget {
     required this.profile,
     required this.onImportImage,
     required this.onRemoveImage,
+    this.onEditAccent,
+    this.onResetAccent,
+    this.onLayoutVariantChanged,
   });
 
   final ProjectBrandingProfile profile;
   final ValueChanged<ProjectBrandingImageRole> onImportImage;
   final ValueChanged<ProjectBrandingImageRole> onRemoveImage;
+  final VoidCallback? onEditAccent;
+  final VoidCallback? onResetAccent;
+  final ValueChanged<String>? onLayoutVariantChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +50,70 @@ class ProjectBrandingEditor extends StatelessWidget {
           if (role != ProjectBrandingImageRole.values.last)
             const SizedBox(height: 10),
         ],
+        const SizedBox(height: 18),
+        const PokeMapSectionHeader(
+          title: 'Identité du titre',
+          description:
+              'Choisissez la couleur d’accent et la composition générale.',
+        ),
+        const SizedBox(height: 8),
+        PokeMapCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const Text(
+                'Couleur d’accent',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              Text(profile.accentColor ?? 'Thème par défaut'),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: <Widget>[
+                  PokeMapButton(
+                    key: const ValueKey<String>('branding-edit-accent'),
+                    size: PokeMapButtonSize.compact,
+                    leading: const Icon(Icons.colorize_outlined),
+                    onPressed: onEditAccent,
+                    child: const Text('Modifier'),
+                  ),
+                  PokeMapButton(
+                    key: const ValueKey<String>('branding-reset-accent'),
+                    variant: PokeMapButtonVariant.ghost,
+                    size: PokeMapButtonSize.compact,
+                    onPressed:
+                        profile.accentColor == null ? null : onResetAccent,
+                    child: const Text('Réinitialiser'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              PokeMapDropdownField<String>(
+                key: const ValueKey<String>('branding-layout'),
+                label: 'Disposition du titre',
+                value: profile.layoutVariant,
+                items: const <PokeMapDropdownItem<String>>[
+                  PokeMapDropdownItem<String>(
+                    value: 'standard',
+                    label: 'Standard',
+                  ),
+                  PokeMapDropdownItem<String>(
+                    value: 'centered',
+                    label: 'Centrée',
+                  ),
+                  PokeMapDropdownItem<String>(
+                    value: 'cinematic',
+                    label: 'Cinématique',
+                  ),
+                ],
+                enabled: onLayoutVariantChanged != null,
+                onChanged: onLayoutVariantChanged ?? (_) {},
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
