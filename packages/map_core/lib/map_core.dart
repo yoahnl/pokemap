@@ -22,6 +22,7 @@ export 'src/models/map_metadata.dart';
 export 'src/models/path_center_pattern.dart';
 export 'src/models/project_path_pattern_preset.dart';
 export 'src/models/project_manifest.dart';
+export 'src/models/project_presentation_profile.dart';
 export 'src/models/shop_definition.dart';
 export 'src/models/shop_state_definition.dart';
 export 'src/models/badge_definition.dart';

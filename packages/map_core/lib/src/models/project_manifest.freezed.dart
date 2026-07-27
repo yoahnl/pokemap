@@ -96,6 +96,9 @@ mixin _$ProjectManifest {
   ProjectSettings get settings => throw _privateConstructorUsedError;
   ProjectPokemonConfig get pokemon => throw _privateConstructorUsedError;
   ProjectNewGameConfig get newGame => throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
+  ProjectPresentationProfile? get presentation =>
+      throw _privateConstructorUsedError;
   Map<String, dynamic> get globalProperties =>
       throw _privateConstructorUsedError;
   @JsonKey(
@@ -174,10 +177,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<CinematicMediaAsset> cinematicMediaAssets,
       @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
       List<NarrativeFactDefinition> facts,
-      @JsonKey(
-          name: 'worldRules',
-          fromJson: _worldRulesFromJson,
-          toJson: _worldRulesToJson)
+      @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)
       List<WorldRuleDefinition> worldRules,
       List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,
       @JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,
@@ -195,6 +195,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
       ProjectSettings settings,
       ProjectPokemonConfig pokemon,
       ProjectNewGameConfig newGame,
+      @JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation,
       Map<String, dynamic> globalProperties,
       @JsonKey(
           name: 'surfaceCatalog',
@@ -218,6 +219,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
 
   $ProjectSettingsCopyWith<$Res> get settings;
   $ProjectPokemonConfigCopyWith<$Res> get pokemon;
+  $ProjectPresentationProfileCopyWith<$Res>? get presentation;
 }
 
 /// @nodoc
@@ -269,6 +271,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? settings = null,
     Object? pokemon = null,
     Object? newGame = null,
+    Object? presentation = freezed,
     Object? globalProperties = null,
     Object? surfaceCatalog = null,
     Object? borderCatalog = null,
@@ -412,6 +415,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.newGame
           : newGame // ignore: cast_nullable_to_non_nullable
               as ProjectNewGameConfig,
+      presentation: freezed == presentation
+          ? _value.presentation
+          : presentation // ignore: cast_nullable_to_non_nullable
+              as ProjectPresentationProfile?,
       globalProperties: null == globalProperties
           ? _value.globalProperties
           : globalProperties // ignore: cast_nullable_to_non_nullable
@@ -452,6 +459,21 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
   $ProjectPokemonConfigCopyWith<$Res> get pokemon {
     return $ProjectPokemonConfigCopyWith<$Res>(_value.pokemon, (value) {
       return _then(_value.copyWith(pokemon: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ProjectManifest
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ProjectPresentationProfileCopyWith<$Res>? get presentation {
+    if (_value.presentation == null) {
+      return null;
+    }
+
+    return $ProjectPresentationProfileCopyWith<$Res>(_value.presentation!,
+        (value) {
+      return _then(_value.copyWith(presentation: value) as $Val);
     });
   }
 }
@@ -501,10 +523,7 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<CinematicMediaAsset> cinematicMediaAssets,
       @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
       List<NarrativeFactDefinition> facts,
-      @JsonKey(
-          name: 'worldRules',
-          fromJson: _worldRulesFromJson,
-          toJson: _worldRulesToJson)
+      @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)
       List<WorldRuleDefinition> worldRules,
       List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,
       @JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,
@@ -522,6 +541,7 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       ProjectSettings settings,
       ProjectPokemonConfig pokemon,
       ProjectNewGameConfig newGame,
+      @JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation,
       Map<String, dynamic> globalProperties,
       @JsonKey(
           name: 'surfaceCatalog',
@@ -547,6 +567,8 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
   $ProjectSettingsCopyWith<$Res> get settings;
   @override
   $ProjectPokemonConfigCopyWith<$Res> get pokemon;
+  @override
+  $ProjectPresentationProfileCopyWith<$Res>? get presentation;
 }
 
 /// @nodoc
@@ -596,6 +618,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? settings = null,
     Object? pokemon = null,
     Object? newGame = null,
+    Object? presentation = freezed,
     Object? globalProperties = null,
     Object? surfaceCatalog = null,
     Object? borderCatalog = null,
@@ -739,6 +762,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value.newGame
           : newGame // ignore: cast_nullable_to_non_nullable
               as ProjectNewGameConfig,
+      presentation: freezed == presentation
+          ? _value.presentation
+          : presentation // ignore: cast_nullable_to_non_nullable
+              as ProjectPresentationProfile?,
       globalProperties: null == globalProperties
           ? _value._globalProperties
           : globalProperties // ignore: cast_nullable_to_non_nullable
@@ -811,6 +838,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       this.settings = const ProjectSettings(),
       this.pokemon = const ProjectPokemonConfig(),
       this.newGame = const ProjectNewGameConfig(),
+      @JsonKey(includeIfNull: false) this.presentation,
       final Map<String, dynamic> globalProperties = const {},
       @JsonKey(name: 'surfaceCatalog', fromJson: _projectSurfaceCatalogFromJson, toJson: _projectSurfaceCatalogToJson)
       this.surfaceCatalog = const ProjectSurfaceCatalog.empty(),
@@ -1149,6 +1177,9 @@ class _$ProjectManifestImpl implements _ProjectManifest {
   @override
   @JsonKey()
   final ProjectNewGameConfig newGame;
+  @override
+  @JsonKey(includeIfNull: false)
+  final ProjectPresentationProfile? presentation;
   final Map<String, dynamic> _globalProperties;
   @override
   @JsonKey()
@@ -1186,7 +1217,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, cinematicMediaAssets: $cinematicMediaAssets, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, shops: $shops, badges: $badges, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, cinematicMediaAssets: $cinematicMediaAssets, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, shops: $shops, badges: $badges, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, presentation: $presentation, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
   }
 
   @override
@@ -1249,6 +1280,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
                 other.settings == settings) &&
             (identical(other.pokemon, pokemon) || other.pokemon == pokemon) &&
             (identical(other.newGame, newGame) || other.newGame == newGame) &&
+            (identical(other.presentation, presentation) ||
+                other.presentation == presentation) &&
             const DeepCollectionEquality()
                 .equals(other._globalProperties, _globalProperties) &&
             (identical(other.surfaceCatalog, surfaceCatalog) ||
@@ -1301,6 +1334,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         settings,
         pokemon,
         newGame,
+        presentation,
         const DeepCollectionEquality().hash(_globalProperties),
         surfaceCatalog,
         borderCatalog,
@@ -1344,10 +1378,7 @@ abstract class _ProjectManifest implements ProjectManifest {
           fromJson: decodeProjectPathPatternPresets,
           toJson: encodeProjectPathPatternPresets)
       final List<ProjectPathPatternPreset> pathPatternPresets,
-      @JsonKey(
-          name: 'environmentPresets',
-          fromJson: decodeEnvironmentPresets,
-          toJson: encodeEnvironmentPresets)
+      @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)
       final List<EnvironmentPreset> environmentPresets,
       final List<ProjectEncounterTable> encounterTables,
       final List<ProjectDialogueFolder> dialogueFolders,
@@ -1380,6 +1411,8 @@ abstract class _ProjectManifest implements ProjectManifest {
       final ProjectSettings settings,
       final ProjectPokemonConfig pokemon,
       final ProjectNewGameConfig newGame,
+      @JsonKey(includeIfNull: false)
+      final ProjectPresentationProfile? presentation,
       final Map<String, dynamic> globalProperties,
       @JsonKey(
           name: 'surfaceCatalog',
@@ -1500,6 +1533,9 @@ abstract class _ProjectManifest implements ProjectManifest {
   ProjectPokemonConfig get pokemon;
   @override
   ProjectNewGameConfig get newGame;
+  @override
+  @JsonKey(includeIfNull: false)
+  ProjectPresentationProfile? get presentation;
   @override
   Map<String, dynamic> get globalProperties;
   @override

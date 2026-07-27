@@ -140,6 +140,10 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
           ? const ProjectNewGameConfig()
           : ProjectNewGameConfig.fromJson(
               json['newGame'] as Map<String, dynamic>),
+      presentation: json['presentation'] == null
+          ? null
+          : ProjectPresentationProfile.fromJson(
+              json['presentation'] as Map<String, dynamic>),
       globalProperties:
           json['globalProperties'] as Map<String, dynamic>? ?? const {},
       surfaceCatalog: json['surfaceCatalog'] == null
@@ -208,6 +212,8 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'settings': instance.settings.toJson(),
       'pokemon': instance.pokemon.toJson(),
       'newGame': instance.newGame.toJson(),
+      if (instance.presentation?.toJson() case final value?)
+        'presentation': value,
       'globalProperties': instance.globalProperties,
       'surfaceCatalog': _projectSurfaceCatalogToJson(instance.surfaceCatalog),
       if (_projectBorderCatalogToJson(instance.borderCatalog) case final value?)

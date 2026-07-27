@@ -10,6 +10,7 @@ import 'game_package_export_profile.dart';
 final class RuntimeProjectProjection {
   RuntimeProjectProjection({
     required this.project,
+    required this.presentation,
     required Map<String, List<int>> payloadFiles,
     required this.compiledDialogueCount,
     required this.scrubbedSecretFieldCount,
@@ -24,6 +25,7 @@ final class RuntimeProjectProjection {
         );
 
   final ProjectManifest project;
+  final ProjectPresentationProfile presentation;
   final Map<String, List<int>> payloadFiles;
   final int compiledDialogueCount;
   final int scrubbedSecretFieldCount;
@@ -77,6 +79,33 @@ final class RuntimeProjectProjectionBuilder {
     final authorProject = ProjectManifest.fromJson(
       (projectScrub.value as Map).cast<String, dynamic>(),
     );
+    final presentation = authorProject.presentation ??
+        ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(
+            iconPath: profile.iconPath,
+            coverPath: profile.coverPath,
+            heroPath: profile.heroPath,
+            accentColor: profile.accentColor,
+            titleMusicPath: profile.titleMusicPath,
+            layoutVariant: profile.layoutVariant ?? 'standard',
+          ),
+        );
+    final presentationDiagnostics =
+        validateProjectPresentationProfile(presentation);
+    final blockingPresentationDiagnostic = presentationDiagnostics
+        .where(
+          (diagnostic) =>
+              diagnostic.severity ==
+              ProjectPresentationDiagnosticSeverity.error,
+        )
+        .firstOrNull;
+    if (blockingPresentationDiagnostic != null) {
+      throw GamePackageExportException(
+        code: blockingPresentationDiagnostic.code,
+        path: blockingPresentationDiagnostic.path,
+        message: blockingPresentationDiagnostic.message,
+      );
+    }
 
     final payload = <String, List<int>>{};
     final dialogueSources = <String>{};
@@ -155,6 +184,7 @@ final class RuntimeProjectProjectionBuilder {
     final projectedProject = authorProject.copyWith(
       dialogues: compiledEntries,
       settings: authorProject.settings.copyWith(mistralApiKey: null),
+      presentation: presentation,
     );
 
     await for (final entity
@@ -212,21 +242,21 @@ final class RuntimeProjectProjectionBuilder {
     final iconPackagePath = await _addPresentationAsset(
       payload,
       projectRoot,
-      profile.iconPath,
+      presentation.branding.iconPath,
       'icon',
       budget,
     );
     final coverPackagePath = await _addPresentationAsset(
       payload,
       projectRoot,
-      profile.coverPath,
+      presentation.branding.coverPath,
       'cover',
       budget,
     );
     final heroPackagePath = await _addPresentationAsset(
       payload,
       projectRoot,
-      profile.heroPath,
+      presentation.branding.heroPath,
       'hero',
       budget,
     );
@@ -244,24 +274,26 @@ final class RuntimeProjectProjectionBuilder {
       'CREDITS.txt',
       budget,
     );
-    final titleMusicPackagePath = profile.titleMusicPath == null
+    final titleMusicPath = presentation.branding.titleMusicPath;
+    final titleMusicPackagePath = titleMusicPath == null
         ? null
-        : _normalizePackagePath('project/${profile.titleMusicPath}');
+        : _normalizePackagePath('project/$titleMusicPath');
     if (titleMusicPackagePath != null &&
         (!_audioExtensions.contains(
-              p.extension(profile.titleMusicPath!).toLowerCase(),
+              p.extension(titleMusicPath!).toLowerCase(),
             ) ||
             !titleMusicPackagePath.startsWith('project/assets/') ||
             !payload.containsKey(titleMusicPackagePath))) {
       throw GamePackageExportException(
         code: 'invalidTitleMusic',
-        path: profile.titleMusicPath,
+        path: titleMusicPath,
         message: 'Title music must reference an exported audio asset.',
       );
     }
 
     return RuntimeProjectProjection(
       project: projectedProject,
+      presentation: presentation,
       payloadFiles: payload,
       compiledDialogueCount: compiledEntries.length,
       scrubbedSecretFieldCount: scrubbedSecretFieldCount,

@@ -9,6 +9,7 @@ import 'enums.dart';
 import 'project_trainer.dart';
 import 'shop_definition.dart';
 import 'project_new_game_config.dart';
+import 'project_presentation_profile.dart';
 import 'cinematic_asset.dart';
 import 'cinematic_media_asset.dart';
 import 'narrative_event_registry.dart';
@@ -447,6 +448,8 @@ class ProjectManifest with _$ProjectManifest {
     @Default(ProjectSettings()) ProjectSettings settings,
     @Default(ProjectPokemonConfig()) ProjectPokemonConfig pokemon,
     @Default(ProjectNewGameConfig()) ProjectNewGameConfig newGame,
+    @JsonKey(includeIfNull: false)
+    ProjectPresentationProfile? presentation,
     @Default({}) Map<String, dynamic> globalProperties,
     @Default(ProjectSurfaceCatalog.empty())
     @JsonKey(
@@ -502,6 +505,11 @@ class ProjectManifest with _$ProjectManifest {
     }
     return manifest;
   }
+}
+
+extension ProjectManifestPresentation on ProjectManifest {
+  ProjectPresentationProfile get effectivePresentation =>
+      presentation ?? const ProjectPresentationProfile();
 }
 
 void _assertUniqueDefinitionIds({

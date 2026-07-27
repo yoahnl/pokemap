@@ -72,6 +72,7 @@ final class GamePackageManifestCodec {
         'description',
         'publisher',
         'branding',
+        'presentation',
         'signature',
       },
     );
@@ -98,8 +99,21 @@ final class GamePackageManifestCodec {
         : null;
     final compatibility = _compatibility(json['compatibility']);
     final locales = _locales(json['locales']);
-    final branding =
+    final legacyBranding =
         json.containsKey('branding') ? _branding(json['branding']) : null;
+    final presentation = json.containsKey('presentation')
+        ? _presentation(json['presentation'])
+        : null;
+    if (legacyBranding != null && presentation != null) {
+      _fail(
+        'conflictingPresentationContract',
+        r'$.presentation',
+        'Use either presentation or legacy branding, not both.',
+      );
+    }
+    final branding = presentation?.branding ?? legacyBranding;
+    final brandingPath =
+        presentation == null ? r'$.branding' : r'$.presentation.branding';
     final content = _content(json['content']);
     final signature =
         json.containsKey('signature') ? _signature(json['signature']) : null;
@@ -119,14 +133,14 @@ final class GamePackageManifestCodec {
       if (value != null && !value.startsWith(reference.prefix)) {
         _fail(
           'invalidBrandingReference',
-          '\$.branding.${reference.field}',
+          '$brandingPath.${reference.field}',
           'Branding reference has an invalid package root.',
         );
       }
       if (value != null && !contentPaths.contains(value)) {
         _fail(
           'brandingReferenceMissing',
-          '\$.branding.${reference.field}',
+          '$brandingPath.${reference.field}',
           'Branding reference is not present in content.files.',
         );
       }
@@ -142,7 +156,8 @@ final class GamePackageManifestCodec {
       publisher: publisher,
       compatibility: compatibility,
       locales: locales,
-      branding: branding,
+      branding: legacyBranding,
+      presentation: presentation,
       content: content,
       signature: signature,
     );
@@ -346,8 +361,36 @@ final class GamePackageManifestCodec {
     );
   }
 
-  GamePackageBranding _branding(Object? value) {
-    const path = r'$.branding';
+  GamePackagePresentation _presentation(Object? value) {
+    const path = r'$.presentation';
+    final json = _object(
+      value,
+      path,
+      required: const <String>{'schemaVersion', 'branding'},
+      optional: const <String>{},
+    );
+    final schemaVersion =
+        _integer(json['schemaVersion'], '$path.schemaVersion');
+    if (schemaVersion != 1) {
+      _fail(
+        'presentationVersionUnsupported',
+        '$path.schemaVersion',
+        'Only presentation schema version 1 is supported.',
+      );
+    }
+    return GamePackagePresentation(
+      schemaVersion: schemaVersion,
+      branding: _branding(
+        json['branding'],
+        path: '$path.branding',
+      ),
+    );
+  }
+
+  GamePackageBranding _branding(
+    Object? value, {
+    String path = r'$.branding',
+  }) {
     final json = _object(
       value,
       path,

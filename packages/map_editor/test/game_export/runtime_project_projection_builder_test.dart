@@ -87,6 +87,43 @@ void main() {
     );
   });
 
+  test('project presentation overrides legacy export-profile branding',
+      () async {
+    final root = await createAuthorProject(withDialogue: false);
+    addTearDown(() => root.delete(recursive: true));
+    final authoredIcon = File(p.join(root.path, 'assets', 'authored-icon.png'));
+    await authoredIcon.writeAsBytes(<int>[1, 2, 3, 4], flush: true);
+    final projectFile = File(p.join(root.path, 'project.json'));
+    final project =
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+    project['presentation'] = <String, Object?>{
+      'schemaVersion': 1,
+      'branding': <String, Object?>{
+        'iconPath': 'assets/authored-icon.png',
+        'accentColor': '#123456',
+        'layoutVariant': 'centered',
+      },
+    };
+    await projectFile.writeAsString(jsonEncode(project), flush: true);
+
+    final result = await const RuntimeProjectProjectionBuilder().build(
+      projectRoot: root,
+      profile: neutralExportProfile(),
+    );
+
+    expect(result.presentation.branding.iconPath, 'assets/authored-icon.png');
+    expect(result.presentation.branding.accentColor, '#123456');
+    expect(result.payloadFiles['presentation/icon.png'], <int>[1, 2, 3, 4]);
+    final projectedProject = jsonDecode(
+      utf8.decode(result.payloadFiles['project/project.json']!),
+    ) as Map<String, dynamic>;
+    expect(
+      ((projectedProject['presentation'] as Map)['branding']
+          as Map)['accentColor'],
+      '#123456',
+    );
+  });
+
   test('rejects symlinks and branding paths outside the project root',
       () async {
     final root = await createAuthorProject(withDialogue: false);

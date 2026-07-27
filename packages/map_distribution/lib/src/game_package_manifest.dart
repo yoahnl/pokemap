@@ -83,6 +83,25 @@ final class GamePackageBranding {
       };
 }
 
+/// Runtime-facing projection of the project-owned presentation contract.
+///
+/// Package paths replace authoring paths here; the project manifest remains
+/// the source of truth.
+final class GamePackagePresentation {
+  const GamePackagePresentation({
+    this.schemaVersion = 1,
+    this.branding = const GamePackageBranding(),
+  });
+
+  final int schemaVersion;
+  final GamePackageBranding branding;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'schemaVersion': schemaVersion,
+        'branding': branding.toJson(),
+      };
+}
+
 final class GamePackageFileEntry {
   const GamePackageFileEntry({
     required this.path,
@@ -154,10 +173,11 @@ final class GamePackageManifest {
     this.publisher,
     required this.compatibility,
     required this.locales,
-    this.branding,
+    GamePackageBranding? branding,
+    this.presentation,
     required this.content,
     this.signature,
-  });
+  }) : _legacyBranding = branding;
 
   final int packageFormat;
   final String gameId;
@@ -168,9 +188,17 @@ final class GamePackageManifest {
   final GamePackageParty? publisher;
   final GamePackageCompatibility compatibility;
   final GamePackageLocales locales;
-  final GamePackageBranding? branding;
+  final GamePackageBranding? _legacyBranding;
+  final GamePackagePresentation? presentation;
   final GamePackageContent content;
   final GamePackageSignature? signature;
+
+  /// Branding consumed by old and new clients during the manifest migration.
+  GamePackageBranding? get branding =>
+      presentation?.branding ?? _legacyBranding;
+
+  bool get usesLegacyBranding =>
+      presentation == null && _legacyBranding != null;
 
   GamePackageManifest copyWith({
     GamePackageContent? content,
@@ -187,7 +215,8 @@ final class GamePackageManifest {
         publisher: publisher,
         compatibility: compatibility,
         locales: locales,
-        branding: branding,
+        branding: _legacyBranding,
+        presentation: presentation,
         content: content ?? this.content,
         signature: clearSignature ? null : signature ?? this.signature,
       );
@@ -202,7 +231,8 @@ final class GamePackageManifest {
         if (publisher != null) 'publisher': publisher!.toJson(),
         'compatibility': compatibility.toJson(),
         'locales': locales.toJson(),
-        if (branding != null) 'branding': branding!.toJson(),
+        if (_legacyBranding != null) 'branding': _legacyBranding.toJson(),
+        if (presentation != null) 'presentation': presentation!.toJson(),
         'content': content.toJson(),
         if (signature != null) 'signature': signature!.toJson(),
       };

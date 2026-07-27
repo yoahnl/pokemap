@@ -50,6 +50,9 @@ void main() {
     expect(first.certification.isCertified, isTrue);
     expect(first.manifest.gameId, profile.gameId);
     expect(first.manifest.title, profile.title);
+    expect(first.manifest.presentation?.schemaVersion, 1);
+    expect(first.manifest.usesLegacyBranding, isFalse);
+    expect(first.manifest.branding?.icon, 'presentation/icon.png');
     expect(
       first.manifest.compatibility.requiredCapabilities,
       contains('map@1'),

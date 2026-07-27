@@ -76,6 +76,51 @@ void main() {
       expect(codec.decodeJson(manifest.toJson()).toJson(), manifest.toJson());
     });
 
+    test('round-trips the versioned presentation contract', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 1,
+          'branding': <String, Object?>{
+            'icon': 'presentation/icon.png',
+            'accentColor': '#6750A4',
+            'layoutVariant': 'centered',
+          },
+        };
+      final content = json['content']! as Map<String, Object?>;
+      final projectFile =
+          (content['files']! as List<Object?>).single as Map<String, Object?>;
+      content
+        ..['fileCount'] = 2
+        ..['files'] = <Object?>[
+          _emptyFile('presentation/icon.png'),
+          projectFile,
+        ];
+      content['treeSha256'] = _treeHashFromJson(content['files']!);
+
+      final manifest = codec.decodeJson(json);
+
+      expect(manifest.presentation?.schemaVersion, 1);
+      expect(manifest.branding?.icon, 'presentation/icon.png');
+      expect(manifest.usesLegacyBranding, isFalse);
+      expect(codec.decodeJson(manifest.toJson()).toJson(), json);
+    });
+
+    test('keeps legacy branding manifests readable through the effective API',
+        () {
+      final json = _minimalManifestJson()
+        ..['branding'] = <String, Object?>{
+          'accentColor': '#123456',
+          'layoutVariant': 'standard',
+        };
+
+      final manifest = codec.decodeJson(json);
+
+      expect(manifest.presentation, isNull);
+      expect(manifest.usesLegacyBranding, isTrue);
+      expect(manifest.branding?.accentColor, '#123456');
+      expect(manifest.toJson(), contains('branding'));
+    });
+
     test('signature preimage omits only the root signature', () {
       final json = _minimalManifestJson()
         ..['signature'] = <String, Object?>{

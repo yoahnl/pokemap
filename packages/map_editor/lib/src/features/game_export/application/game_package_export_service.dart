@@ -118,13 +118,16 @@ final class GamePackageExportService {
           defaultLocale: profile.defaultLocale,
           supported: profile.supportedLocales,
         ),
-        branding: GamePackageBranding(
-          icon: projection.iconPackagePath,
-          cover: projection.coverPackagePath,
-          hero: projection.heroPackagePath,
-          accentColor: profile.accentColor,
-          titleMusic: projection.titleMusicPackagePath,
-          layoutVariant: profile.layoutVariant,
+        presentation: GamePackagePresentation(
+          schemaVersion: projection.presentation.schemaVersion,
+          branding: GamePackageBranding(
+            icon: projection.iconPackagePath,
+            cover: projection.coverPackagePath,
+            hero: projection.heroPackagePath,
+            accentColor: projection.presentation.branding.accentColor,
+            titleMusic: projection.titleMusicPackagePath,
+            layoutVariant: projection.presentation.branding.layoutVariant,
+          ),
         ),
         content: emptyContent,
       );
