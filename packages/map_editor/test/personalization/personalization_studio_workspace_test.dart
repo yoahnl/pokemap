@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -304,6 +305,118 @@ void main() {
     expect(
       branding?.iconPath,
       'assets/presentation/branding/icon.png',
+    );
+    expect(projectFile.readAsStringSync(), durableJson);
+  });
+
+  testWidgets('title music import, preview, and removal stay in the draft',
+      (tester) async {
+    final root =
+        Directory.systemTemp.createTempSync('personalization-title-music-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final project =
+        buildShellChromeProject(name: 'Title Music Studio').copyWith(
+      presentation: const ProjectPresentationProfile(),
+    );
+    final projectFile = File('${root.path}/project.json');
+    final durableJson =
+        const JsonEncoder.withIndent('  ').convert(project.toJson());
+    projectFile.writeAsStringSync(durableJson, flush: true);
+    final gateway = _MemoryProjectGateway(project);
+    final picker = _FixedTitleMusicPicker('/source/title.ogg');
+    final importer = _FixedTitleMusicImporter();
+    final preview = _FixedTitleMusicPreviewController();
+
+    final container = await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1200, 1000),
+      overrides: [
+        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
+          ({
+            required String projectPath,
+            required ProjectManifest initialDocument,
+          }) {
+            return PersonalizationStudioSessionController(
+              session: NarrativeDocumentSession<ProjectManifest>(
+                documentId: 'personalization-studio-title-music',
+                initialDocument: initialDocument,
+                gateway: gateway,
+                recoveryStore: _MemoryProjectRecoveryStore(),
+              ),
+            );
+          },
+        ),
+        personalizationStudioTitleMusicPickerProvider.overrideWithValue(
+          picker,
+        ),
+        projectTitleMusicImportServiceProvider.overrideWithValue(importer),
+        projectTitleMusicPreviewControllerFactoryProvider.overrideWithValue(
+          () => preview,
+        ),
+      ],
+    );
+    await container
+        .read(editorNotifierProvider.notifier)
+        .initializePersonalizationStudioSession();
+    await tester.pump();
+
+    final importButton = find.byKey(
+      const ValueKey<String>('branding-import-title-music'),
+    );
+    await tester.ensureVisible(importButton);
+    await tester.pumpAndSettle();
+    await tester.tap(importButton);
+    await tester.pumpAndSettle();
+
+    expect(picker.calls, 1);
+    expect(importer.calls, 1);
+    expect(
+      container
+          .read(editorNotifierProvider)
+          .project
+          ?.effectivePresentation
+          .branding
+          .titleMusicPath,
+      'assets/presentation/branding/title-music-test.ogg',
+    );
+    expect(projectFile.readAsStringSync(), durableJson);
+
+    final previewButton = find.byKey(
+      const ValueKey<String>('branding-preview-title-music'),
+    );
+    await tester.ensureVisible(previewButton);
+    await tester.pumpAndSettle();
+    await tester.tap(previewButton);
+    await tester.pumpAndSettle();
+    expect(preview.toggleCalls, 1);
+    expect(
+      preview.lastFile?.path,
+      '${root.path}/assets/presentation/branding/title-music-test.ogg',
+    );
+    expect(find.text('Arrêter'), findsOneWidget);
+
+    final removeButton = find.byKey(
+      const ValueKey<String>('branding-remove-title-music'),
+    );
+    await tester.ensureVisible(removeButton);
+    await tester.pumpAndSettle();
+    await tester.tap(removeButton);
+    await tester.pumpAndSettle();
+
+    expect(preview.stopCalls, 1);
+    expect(
+      container
+          .read(editorNotifierProvider)
+          .project
+          ?.effectivePresentation
+          .branding
+          .titleMusicPath,
+      isNull,
     );
     expect(projectFile.readAsStringSync(), durableJson);
   });
@@ -1072,5 +1185,75 @@ final class _FixedFontPreviewRegistry implements ProjectFontPreviewRegistry {
   }) async {
     calls += 1;
     return 'PokeMapPreview-${role.name}';
+  }
+}
+
+final class _FixedTitleMusicPicker
+    implements PersonalizationStudioTitleMusicPicker {
+  _FixedTitleMusicPicker(this.path);
+
+  final String? path;
+  int calls = 0;
+
+  @override
+  Future<String?> pickTitleMusic() async {
+    calls += 1;
+    return path;
+  }
+}
+
+final class _FixedTitleMusicImporter implements ProjectTitleMusicImporter {
+  int calls = 0;
+
+  @override
+  Future<ProjectTitleMusicImportResult> importIntoProject({
+    required Directory projectRoot,
+    required File sourceFile,
+  }) async {
+    calls += 1;
+    return const ProjectTitleMusicImportResult(
+      relativePath: 'assets/presentation/branding/title-music-test.ogg',
+      sizeBytes: 1024,
+    );
+  }
+}
+
+final class _FixedTitleMusicPreviewController
+    implements ProjectTitleMusicPreviewController {
+  final StreamController<bool> _playing =
+      StreamController<bool>.broadcast(sync: true);
+  bool _isPlaying = false;
+  int toggleCalls = 0;
+  int stopCalls = 0;
+  int closeCalls = 0;
+  File? lastFile;
+
+  @override
+  bool get isPlaying => _isPlaying;
+
+  @override
+  Stream<bool> get playingChanges => _playing.stream;
+
+  @override
+  Future<bool> toggle(File file) async {
+    toggleCalls += 1;
+    lastFile = file;
+    _isPlaying = !_isPlaying;
+    _playing.add(_isPlaying);
+    return _isPlaying;
+  }
+
+  @override
+  Future<void> stop() async {
+    stopCalls += 1;
+    if (!_isPlaying) return;
+    _isPlaying = false;
+    _playing.add(false);
+  }
+
+  @override
+  Future<void> close() async {
+    closeCalls += 1;
+    await _playing.close();
   }
 }

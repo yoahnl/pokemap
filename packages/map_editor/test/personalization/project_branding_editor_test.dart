@@ -99,4 +99,48 @@ void main() {
     expect(resetAccentCount, 1);
     expect(selectedLayout, 'cinematic');
   });
+
+  testWidgets('imports, previews, and removes title music', (tester) async {
+    var importCount = 0;
+    var previewCount = 0;
+    var removeCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.light(),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ProjectBrandingEditor(
+              profile: const ProjectBrandingProfile(
+                titleMusicPath: 'assets/presentation/branding/title-music.ogg',
+              ),
+              onImportImage: (_) {},
+              onRemoveImage: (_) {},
+              onImportTitleMusic: () => importCount += 1,
+              onToggleTitleMusicPreview: () => previewCount += 1,
+              onRemoveTitleMusic: () => removeCount += 1,
+              isTitleMusicPreviewPlaying: true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Musique du titre'), findsOneWidget);
+    expect(find.text('Arrêter'), findsOneWidget);
+    for (final key in <String>[
+      'branding-import-title-music',
+      'branding-preview-title-music',
+      'branding-remove-title-music',
+    ]) {
+      final finder = find.byKey(ValueKey<String>(key));
+      await tester.ensureVisible(finder);
+      await tester.pumpAndSettle();
+      await tester.tap(finder);
+    }
+
+    expect(importCount, 1);
+    expect(previewCount, 1);
+    expect(removeCount, 1);
+  });
 }

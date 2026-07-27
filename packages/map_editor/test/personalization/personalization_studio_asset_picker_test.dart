@@ -96,6 +96,36 @@ void main() {
       ),
     );
   });
+
+  test('title music picker selects exactly one supported audio file', () async {
+    final backend = _Backend(<String>['/source/title.flac']);
+    final picker = FilePickerPersonalizationStudioTitleMusicPicker(
+      backend: backend,
+    );
+
+    expect(await picker.pickTitleMusic(), '/source/title.flac');
+    expect(
+      backend.lastRequest?.allowedExtensions,
+      <String>['ogg', 'wav', 'mp3', 'flac', 'm4a'],
+    );
+
+    final invalid = FilePickerPersonalizationStudioTitleMusicPicker(
+      backend: _Backend(<String>[
+        '/source/title.flac',
+        '/source/alternate.ogg',
+      ]),
+    );
+    await expectLater(
+      invalid.pickTitleMusic(),
+      throwsA(
+        isA<PersonalizationStudioAssetSelectionException>().having(
+          (error) => error.code,
+          'code',
+          'titleMusicSelectionInvalid',
+        ),
+      ),
+    );
+  });
 }
 
 final class _Backend implements PersonalizationStudioFilePickerBackend {

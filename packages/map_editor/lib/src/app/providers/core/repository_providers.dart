@@ -17,6 +17,8 @@ import '../../../features/personalization/application/personalization_studio_ass
 import '../../../features/personalization/application/project_branding_image_import_service.dart';
 import '../../../features/personalization/application/project_font_import_service.dart';
 import '../../../features/personalization/application/project_intro_video_import_service.dart';
+import '../../../features/personalization/application/project_title_music_import_service.dart';
+import '../../../features/personalization/application/project_title_music_preview_controller.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
 import '../../../infrastructure/repositories/file_repositories.dart';
 import '../../../infrastructure/repositories/file_narrative_document_recovery_store.dart';
@@ -42,9 +44,27 @@ final personalizationStudioBrandingImagePickerProvider =
   return const FilePickerPersonalizationStudioBrandingImagePicker();
 });
 
+final personalizationStudioTitleMusicPickerProvider =
+    Provider<PersonalizationStudioTitleMusicPicker>((ref) {
+  return const FilePickerPersonalizationStudioTitleMusicPicker();
+});
+
 final projectBrandingImageImportServiceProvider =
     Provider<ProjectBrandingImageImporter>((ref) {
   return const ProjectBrandingImageImportService();
+});
+
+final projectTitleMusicImportServiceProvider =
+    Provider<ProjectTitleMusicImporter>((ref) {
+  return const ProjectTitleMusicImportService();
+});
+
+typedef ProjectTitleMusicPreviewControllerFactory
+    = ProjectTitleMusicPreviewController Function();
+
+final projectTitleMusicPreviewControllerFactoryProvider =
+    Provider<ProjectTitleMusicPreviewControllerFactory>((ref) {
+  return DefaultProjectTitleMusicPreviewController.new;
 });
 
 final projectIntroVideoImportServiceProvider =

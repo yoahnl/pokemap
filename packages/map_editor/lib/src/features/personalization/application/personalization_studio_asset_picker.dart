@@ -90,6 +90,10 @@ abstract interface class PersonalizationStudioBrandingImagePicker {
   Future<String?> pickBrandingImage(ProjectBrandingImageRole role);
 }
 
+abstract interface class PersonalizationStudioTitleMusicPicker {
+  Future<String?> pickTitleMusic();
+}
+
 final class FilePickerPersonalizationStudioBrandingImagePicker
     implements PersonalizationStudioBrandingImagePicker {
   const FilePickerPersonalizationStudioBrandingImagePicker({
@@ -118,6 +122,38 @@ final class FilePickerPersonalizationStudioBrandingImagePicker
       );
     }
     return imagePath;
+  }
+}
+
+final class FilePickerPersonalizationStudioTitleMusicPicker
+    implements PersonalizationStudioTitleMusicPicker {
+  const FilePickerPersonalizationStudioTitleMusicPicker({
+    this.backend = const PlatformPersonalizationStudioFilePickerBackend(),
+  });
+
+  final PersonalizationStudioFilePickerBackend backend;
+
+  @override
+  Future<String?> pickTitleMusic() async {
+    final paths = await backend.pick(
+      const PersonalizationStudioFilePickerRequest(
+        dialogTitle: 'Choisir la musique du titre',
+        allowedExtensions: <String>['ogg', 'wav', 'mp3', 'flac', 'm4a'],
+      ),
+    );
+    if (paths == null) return null;
+    final musicPath = _singlePath(
+      paths,
+      const <String>['.ogg', '.wav', '.mp3', '.flac', '.m4a'],
+    );
+    if (musicPath == null) {
+      throw const PersonalizationStudioAssetSelectionException(
+        code: 'titleMusicSelectionInvalid',
+        message:
+            'Sélectionnez exactement un fichier OGG, WAV, MP3, FLAC ou M4A.',
+      );
+    }
+    return musicPath;
   }
 }
 

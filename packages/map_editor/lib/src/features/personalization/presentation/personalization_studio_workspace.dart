@@ -18,6 +18,8 @@ import '../application/personalization_studio_asset_picker.dart';
 import '../application/project_branding_image_import_service.dart';
 import '../application/project_font_import_service.dart';
 import '../application/project_intro_video_import_service.dart';
+import '../application/project_title_music_import_service.dart';
+import '../application/project_title_music_preview_controller.dart';
 import 'personalization_hub_shell.dart';
 import 'project_branding_editor.dart';
 import 'project_intro_video_editor.dart';
@@ -44,8 +46,24 @@ class _PersonalizationStudioWorkspaceState
   bool _isImportingAsset = false;
   String? _assetFeedback;
   bool _assetFeedbackIsError = false;
+  ProjectTitleMusicPreviewController? _titleMusicPreviewController;
+  StreamSubscription<bool>? _titleMusicPreviewSubscription;
+  bool _isTitleMusicPreviewPlaying = false;
   final Map<ProjectTypographyRole, String> _fontPreviewFamilies =
       <ProjectTypographyRole, String>{};
+
+  @override
+  void dispose() {
+    final subscription = _titleMusicPreviewSubscription;
+    final controller = _titleMusicPreviewController;
+    if (subscription != null) {
+      unawaited(subscription.cancel());
+    }
+    if (controller != null) {
+      unawaited(controller.close());
+    }
+    super.dispose();
+  }
 
   void _ensureSession(String projectRootPath) {
     if (_requestedProjectRootPath == projectRootPath) return;
@@ -128,6 +146,136 @@ class _PersonalizationStudioWorkspaceState
       if (mounted) {
         setState(() => _isImportingAsset = false);
       }
+    }
+  }
+
+  Future<void> _importTitleMusic({
+    required String projectRootPath,
+    required ProjectPresentationProfile profile,
+    required EditorNotifier notifier,
+  }) async {
+    if (_isImportingAsset) return;
+    setState(() {
+      _isImportingAsset = true;
+      _assetFeedback = null;
+    });
+    try {
+      final selectedPath = await ref
+          .read(personalizationStudioTitleMusicPickerProvider)
+          .pickTitleMusic();
+      if (!mounted) return;
+      if (selectedPath == null) {
+        setState(() {
+          _assetFeedbackIsError = false;
+          _assetFeedback = 'Import de musique annulé.';
+        });
+        return;
+      }
+      await _stopTitleMusicPreview();
+      final imported = await ref
+          .read(projectTitleMusicImportServiceProvider)
+          .importIntoProject(
+            projectRoot: Directory(projectRootPath),
+            sourceFile: File(selectedPath),
+          );
+      final applied = await notifier.applyPersonalizationStudioProfile(
+        profile.copyWith(
+          branding: profile.branding.copyWith(
+            titleMusicPath: imported.relativePath,
+          ),
+        ),
+        label: 'Importer la musique du titre',
+      );
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = !applied;
+        _assetFeedback = applied
+            ? 'Musique du titre importée dans le brouillon.'
+            : 'La musique a été validée, mais le brouillon n’a pas pu être modifié.';
+      });
+    } on PersonalizationStudioAssetSelectionException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = error.message;
+      });
+    } on ProjectTitleMusicImportException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = _localizedTitleMusicImportError(error);
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = 'L’import de la musique du titre a échoué.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isImportingAsset = false);
+      }
+    }
+  }
+
+  Future<void> _toggleTitleMusicPreview({
+    required String projectRootPath,
+    required String relativePath,
+  }) async {
+    try {
+      await _ensureTitleMusicPreviewController().toggle(
+        File('$projectRootPath/$relativePath'),
+      );
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback =
+            'La musique du titre ne peut pas être lue sur cette plateforme.';
+      });
+    }
+  }
+
+  Future<void> _removeTitleMusic({
+    required ProjectPresentationProfile profile,
+    required EditorNotifier notifier,
+  }) async {
+    await _stopTitleMusicPreview();
+    final applied = await notifier.applyPersonalizationStudioProfile(
+      profile.copyWith(
+        branding: profile.branding.copyWith(titleMusicPath: null),
+      ),
+      label: 'Retirer la musique du titre',
+    );
+    if (!mounted) return;
+    setState(() {
+      _assetFeedbackIsError = !applied;
+      _assetFeedback = applied
+          ? 'Musique du titre retirée du brouillon.'
+          : 'Le brouillon n’a pas pu être modifié.';
+    });
+  }
+
+  ProjectTitleMusicPreviewController _ensureTitleMusicPreviewController() {
+    final current = _titleMusicPreviewController;
+    if (current != null) return current;
+    final controller =
+        ref.read(projectTitleMusicPreviewControllerFactoryProvider)();
+    _titleMusicPreviewSubscription =
+        controller.playingChanges.listen((isPlaying) {
+      if (!mounted || _isTitleMusicPreviewPlaying == isPlaying) return;
+      setState(() => _isTitleMusicPreviewPlaying = isPlaying);
+    });
+    _titleMusicPreviewController = controller;
+    return controller;
+  }
+
+  Future<void> _stopTitleMusicPreview() async {
+    final controller = _titleMusicPreviewController;
+    if (controller == null) return;
+    await controller.stop();
+    if (mounted && _isTitleMusicPreviewPlaying) {
+      setState(() => _isTitleMusicPreviewPlaying = false);
     }
   }
 
@@ -432,6 +580,36 @@ class _PersonalizationStudioWorkspaceState
                   ),
                 );
               },
+              onImportTitleMusic: () {
+                unawaited(
+                  _importTitleMusic(
+                    projectRootPath: projectRootPath,
+                    profile: profile,
+                    notifier: notifier,
+                  ),
+                );
+              },
+              onToggleTitleMusicPreview: profile.branding.titleMusicPath == null
+                  ? null
+                  : () {
+                      unawaited(
+                        _toggleTitleMusicPreview(
+                          projectRootPath: projectRootPath,
+                          relativePath: profile.branding.titleMusicPath!,
+                        ),
+                      );
+                    },
+              onRemoveTitleMusic: profile.branding.titleMusicPath == null
+                  ? null
+                  : () {
+                      unawaited(
+                        _removeTitleMusic(
+                          profile: profile,
+                          notifier: notifier,
+                        ),
+                      );
+                    },
+              isTitleMusicPreviewPlaying: _isTitleMusicPreviewPlaying,
             ),
           ),
         ],
@@ -867,6 +1045,20 @@ String _localizedBrandingImageImportError(
         'L’image sélectionnée ne peut pas être décodée.',
       'brandingImageWriteFailed' =>
         'L’image validée n’a pas pu être copiée dans le projet.',
+      _ => error.message,
+    };
+
+String _localizedTitleMusicImportError(
+  ProjectTitleMusicImportException error,
+) =>
+    switch (error.code) {
+      'titleMusicMissing' => 'La musique sélectionnée est introuvable.',
+      'titleMusicFormatUnsupported' =>
+        'Choisissez un fichier OGG, WAV, MP3, FLAC ou M4A.',
+      'titleMusicSignatureInvalid' =>
+        'La signature audio ne correspond pas à l’extension du fichier.',
+      'titleMusicWriteFailed' =>
+        'La musique validée n’a pas pu être copiée dans le projet.',
       _ => error.message,
     };
 

@@ -16,6 +16,10 @@ class ProjectBrandingEditor extends StatelessWidget {
     this.onEditAccent,
     this.onResetAccent,
     this.onLayoutVariantChanged,
+    this.onImportTitleMusic,
+    this.onToggleTitleMusicPreview,
+    this.onRemoveTitleMusic,
+    this.isTitleMusicPreviewPlaying = false,
   });
 
   final ProjectBrandingProfile profile;
@@ -24,6 +28,10 @@ class ProjectBrandingEditor extends StatelessWidget {
   final VoidCallback? onEditAccent;
   final VoidCallback? onResetAccent;
   final ValueChanged<String>? onLayoutVariantChanged;
+  final VoidCallback? onImportTitleMusic;
+  final VoidCallback? onToggleTitleMusicPreview;
+  final VoidCallback? onRemoveTitleMusic;
+  final bool isTitleMusicPreviewPlaying;
 
   @override
   Widget build(BuildContext context) {
@@ -110,6 +118,70 @@ class ProjectBrandingEditor extends StatelessWidget {
                 ],
                 enabled: onLayoutVariantChanged != null,
                 onChanged: onLayoutVariantChanged ?? (_) {},
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        const PokeMapSectionHeader(
+          title: 'Musique du titre',
+          description:
+              'Importez un morceau appartenant au projet et écoutez-le avant '
+              'd’enregistrer le profil.',
+        ),
+        const SizedBox(height: 8),
+        PokeMapCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Text(profile.titleMusicPath ?? 'Aucun morceau importé'),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: <Widget>[
+                  PokeMapButton(
+                    key: const ValueKey<String>(
+                      'branding-import-title-music',
+                    ),
+                    size: PokeMapButtonSize.compact,
+                    leading: const Icon(Icons.library_music_outlined),
+                    onPressed: onImportTitleMusic,
+                    child: Text(
+                      profile.titleMusicPath == null ? 'Importer' : 'Remplacer',
+                    ),
+                  ),
+                  PokeMapButton(
+                    key: const ValueKey<String>(
+                      'branding-preview-title-music',
+                    ),
+                    variant: PokeMapButtonVariant.secondary,
+                    size: PokeMapButtonSize.compact,
+                    leading: Icon(
+                      isTitleMusicPreviewPlaying
+                          ? Icons.stop_rounded
+                          : Icons.play_arrow_rounded,
+                    ),
+                    onPressed: profile.titleMusicPath == null
+                        ? null
+                        : onToggleTitleMusicPreview,
+                    child: Text(
+                      isTitleMusicPreviewPlaying ? 'Arrêter' : 'Écouter',
+                    ),
+                  ),
+                  PokeMapButton(
+                    key: const ValueKey<String>(
+                      'branding-remove-title-music',
+                    ),
+                    variant: PokeMapButtonVariant.ghost,
+                    size: PokeMapButtonSize.compact,
+                    leading: const Icon(Icons.delete_outline_rounded),
+                    onPressed: profile.titleMusicPath == null
+                        ? null
+                        : onRemoveTitleMusic,
+                    child: const Text('Retirer'),
+                  ),
+                ],
               ),
             ],
           ),
