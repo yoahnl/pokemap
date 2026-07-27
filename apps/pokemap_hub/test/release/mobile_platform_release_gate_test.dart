@@ -44,6 +44,8 @@ void main() {
   });
 
   test('Android identity, branding, and signing belong to Avelune', () async {
+    final settings =
+        await File('android/settings.gradle.kts').readAsString();
     final gradle = await File('android/app/build.gradle.kts').readAsString();
     final manifest =
         await File('android/app/src/main/AndroidManifest.xml').readAsString();
@@ -56,6 +58,14 @@ void main() {
 
     expect(gradle, contains('namespace = "com.yoahnl.avelune.player"'));
     expect(gradle, contains('applicationId = "com.yoahnl.avelune.player"'));
+    expect(
+      settings,
+      contains('id("com.android.application") version "8.11.1"'),
+    );
+    expect(
+      settings,
+      contains('id("org.jetbrains.kotlin.android") version "2.2.20"'),
+    );
     expect(gradle, contains('AVELUNE_KEYSTORE_PATH'));
     expect(gradle, contains('AVELUNE_KEYSTORE_PASSWORD'));
     expect(gradle, contains('AVELUNE_KEY_ALIAS'));
