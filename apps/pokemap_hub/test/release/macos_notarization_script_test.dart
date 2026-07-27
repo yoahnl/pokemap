@@ -40,6 +40,17 @@ fi
 if [[ "\$1" == "create" ]]; then
   output="\${!#}"
   : > "\$output"
+elif [[ "\$1" == "verify" ]]; then
+  attempts="\$COMMAND_LOG.hdiutil-verify-attempts"
+  count=0
+  if [[ -f "\$attempts" ]]; then
+    count="\$(cat "\$attempts")"
+  fi
+  count="\$((count + 1))"
+  printf '%s' "\$count" > "\$attempts"
+  if [[ "\$count" == "1" ]]; then
+    exit 75
+  fi
 fi
 ''',
       );
@@ -88,6 +99,7 @@ fi
           'DITTO_BIN': ditto.path,
           'SPCTL_BIN': spctl.path,
           'CODESIGN_BIN': codesign.path,
+          'DMG_VERIFY_RETRY_DELAY_SECONDS': '0',
         },
       );
 

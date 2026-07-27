@@ -60,6 +60,7 @@ ditto_bin="${DITTO_BIN:-/usr/bin/ditto}"
 spctl_bin="${SPCTL_BIN:-/usr/sbin/spctl}"
 codesign_bin="${CODESIGN_BIN:-/usr/bin/codesign}"
 jq_bin="${JQ_BIN:-jq}"
+dmg_verify_retry_delay_seconds="${DMG_VERIFY_RETRY_DELAY_SECONDS:-2}"
 
 for required_tool in \
   "$xcrun_bin" \
@@ -81,6 +82,21 @@ fi
   "$(/usr/bin/dirname "$dmg_path")" \
   "$(/usr/bin/dirname "$result_json")" \
   "$log_directory"
+
+verify_dmg() {
+  local attempt
+  for attempt in 1 2 3; do
+    if "$hdiutil_bin" verify "$dmg_path"; then
+      return 0
+    fi
+    if ((attempt < 3)); then
+      echo "DMG verification attempt $attempt failed; retrying." >&2
+      /bin/sleep "$dmg_verify_retry_delay_seconds"
+    fi
+  done
+  echo 'DMG verification failed after three attempts.' >&2
+  return 74
+}
 
 temporary_root="$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/pokemap-notary.XXXXXX")"
 cleanup() {
@@ -137,7 +153,7 @@ fi
   --timestamp \
   "$dmg_path"
 "$codesign_bin" --verify --verbose=4 "$dmg_path"
-"$hdiutil_bin" verify "$dmg_path"
+verify_dmg
 
 "$xcrun_bin" notarytool submit "$dmg_path" \
   --keychain-profile "$notary_profile" \
@@ -154,7 +170,7 @@ fi
   "$dmg_log"
 "$xcrun_bin" stapler staple "$dmg_path"
 "$xcrun_bin" stapler validate "$dmg_path"
-"$hdiutil_bin" verify "$dmg_path"
+verify_dmg
 "$spctl_bin" --assess \
   --type open \
   --context context:primary-signature \
