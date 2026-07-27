@@ -452,6 +452,16 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           child: _buildEnvironmentStudioCard(context, snapshot, notifier),
         ),
         ProjectExplorerModuleCard(
+          key: const ValueKey<String>('personalization-studio-module-card'),
+          title: 'Personalization Studio',
+          description: 'Identité visuelle, introduction, polices et thème',
+          icon: CupertinoIcons.paintbrush,
+          accentColor: colors.reward,
+          selected: snapshot.workspaceMode ==
+              EditorWorkspaceMode.personalizationStudio,
+          onTap: notifier.selectPersonalizationStudioWorkspace,
+        ),
+        ProjectExplorerModuleCard(
           title: 'Trainer Studio',
           description:
               'Équipes et dresseurs de combat (ouvre l\'espace de travail central)',

@@ -3217,6 +3217,12 @@ class EditorNotifier extends _$EditorNotifier {
     state = _editorWorkspaceController.selectEnvironmentStudioWorkspace(state);
   }
 
+  /// Ouvre le Personalization Studio sans muter le profil du projet.
+  void selectPersonalizationStudioWorkspace() {
+    state =
+        _editorWorkspaceController.selectPersonalizationStudioWorkspace(state);
+  }
+
   /// Bascule vers Border Studio sans exiger de carte active.
   void selectBorderStudioWorkspace() {
     state = _editorWorkspaceController.selectBorderStudioWorkspace(state);
