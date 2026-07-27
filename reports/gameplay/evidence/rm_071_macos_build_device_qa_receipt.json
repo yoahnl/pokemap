@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "lot": "RM-071",
+  "capturedAtUtc": "2026-07-27T08:33:41Z",
+  "sourceState": {
+    "commit": "6053c43e97f3d22fb4b7ed14708f732716ba4680",
+    "workingTreeCleanBeforeBuild": true,
+    "platform": "macOS",
+    "otherPlatformBuildsApproved": false
+  },
+  "audit": {
+    "relevantLots": [
+      "RM-071",
+      "FG-185"
+    ],
+    "initialFinding": "The repository already contains a fail-closed Developer ID/notarization verifier, but no local signing identity, notarization receipt, approved additional platform list, or human walkthrough receipt is available.",
+    "scope": "Build and inspect only the roadmap-authorized macOS release target; do not weaken release entitlements or claim human QA."
+  },
+  "passes": [
+    {
+      "name": "Audit / Architecture",
+      "verdict": "The existing CI and verifier correctly separate a local Flutter release build from a signed and notarized distribution artifact."
+    },
+    {
+      "name": "Implementation",
+      "verdict": "No production change was required; evidence was collected from the current authorized commit."
+    },
+    {
+      "name": "Tests",
+      "verdict": "The three fail-closed macOS release contract tests passed."
+    },
+    {
+      "name": "Build / Validation",
+      "verdict": "The universal macOS release bundle built and verified on disk; local launch failed because hardened runtime library validation rejects independently ad-hoc-signed Flutter frameworks without a Developer ID team."
+    },
+    {
+      "name": "Final Critique",
+      "verdict": "A successful compile is not an installable release receipt. Developer ID signing, notarization, Gatekeeper, cold install/relaunch, and human walkthrough remain unproven."
+    }
+  ],
+  "files": {
+    "created": [
+      "reports/gameplay/evidence/rm_071_macos_build_device_qa_receipt.json"
+    ],
+    "modified": [],
+    "generatedIgnoredArtifacts": [
+      "apps/pokemap_hub/build/macos/Build/Products/Release/PokeMap Hub.app",
+      "build/phase-7a/rm-071/hub-macos-release-build.log",
+      "build/phase-7a/rm-071/hub-macos-release-launch.log",
+      "build/phase-7a/rm-071/hub-macos-release-resigned-launch.log"
+    ],
+    "temporaryCopy": {
+      "path": "/private/tmp/pokemap-phase7a-launch.76Drgn",
+      "cleanup": "moved to Trash after diagnostics"
+    }
+  },
+  "build": {
+    "command": "cd apps/pokemap_hub && flutter build macos --release",
+    "exitCode": 0,
+    "durationSeconds": 73,
+    "result": "Built build/macos/Build/Products/Release/PokeMap Hub.app (87.1MB)",
+    "log": "build/phase-7a/rm-071/hub-macos-release-build.log",
+    "logBytes": 15924,
+    "logSha256": "f69bf814b704e8b31f2dc3e51781bcab305208fd4e0c40648327b9193b12e4a1",
+    "warnings": "video_player_avfoundation emitted AVKeyValueStatus deprecation warnings; build remained successful."
+  },
+  "bundle": {
+    "path": "apps/pokemap_hub/build/macos/Build/Products/Release/PokeMap Hub.app",
+    "bundleIdentifier": "app.pokemap.hub",
+    "version": "0.1.0",
+    "buildNumber": "1",
+    "architectures": [
+      "x86_64",
+      "arm64"
+    ],
+    "bytes": 87601152,
+    "fileCount": 207,
+    "binarySha256": "8bb8fbf4a4ad6f5bbb522f18ffa3f810f01169c529121dea493dfda7f299dcb4",
+    "codesignVerify": "valid on disk; satisfies designated requirement",
+    "signature": "ad-hoc",
+    "hardenedRuntime": true,
+    "developerId": false,
+    "notarized": false,
+    "stapled": false,
+    "gatekeeperAccepted": false
+  },
+  "launchDiagnostics": [
+    {
+      "attempt": "temporary install copy, original local ad-hoc signature",
+      "exitCode": 134,
+      "aliveAfterSeconds": false,
+      "seconds": 8,
+      "log": "build/phase-7a/rm-071/hub-macos-release-launch.log",
+      "logBytes": 1551,
+      "logSha256": "0b24531dbd8b0525a2fc31972e41f1b933e149e841cf162b25b55d9d7d52d489",
+      "rootCause": "dyld rejected FlutterMacOS.framework because hardened runtime library validation found different ad-hoc signing identities."
+    },
+    {
+      "attempt": "temporary copy re-signed ad hoc with release entitlements",
+      "exitCode": 134,
+      "aliveAfterSeconds": false,
+      "seconds": 8,
+      "log": "build/phase-7a/rm-071/hub-macos-release-resigned-launch.log",
+      "logBytes": 1551,
+      "logSha256": "61a76d108cf3aee42e6be108ad20ee7f076a86be2940f9d3718a83c8b392372a",
+      "rootCause": "A deep ad-hoc re-sign still does not provide the coherent Developer ID team required by library validation."
+    }
+  ],
+  "tests": [
+    {
+      "command": "cd apps/pokemap_hub && flutter test test/release/macos_release_gate_test.dart",
+      "exitCode": 0,
+      "result": "00:00 +3: All tests passed!"
+    }
+  ],
+  "unavailableEvidence": [
+    "Developer ID Application signature",
+    "notarytool accepted submission",
+    "stapled ticket",
+    "Gatekeeper acceptance",
+    "cold install and relaunch on a clean device",
+    "human Hub-to-credits walkthrough",
+    "non-macOS platform builds, which were not approved"
+  ],
+  "decisionsAndNonGoals": [
+    "Release.entitlements was not weakened with disable-library-validation.",
+    "No certificate, credential, or notarization result was invented.",
+    "No additional platform was built.",
+    "The automated process-alive check is diagnostic and is not represented as human QA."
+  ],
+  "risks": [
+    "The local ad-hoc artifact cannot be promoted as a distributable release.",
+    "The AVFoundation deprecation warnings may become build failures under a future Apple SDK or stricter warning policy.",
+    "No player-facing visual, controller, audio, save, or end-to-end device behavior was observed by a human."
+  ],
+  "status": {
+    "lot": "PARTIAL_BLOCKED",
+    "fg185": "PARTIAL_NO_GO",
+    "blockingConditions": [
+      "Developer ID/notarization infrastructure unavailable locally",
+      "human walkthrough receipt absent"
+    ]
+  }
+}
