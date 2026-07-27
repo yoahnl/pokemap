@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/services/narrative_document_session.dart';
+import 'package:map_editor/src/features/personalization/application/project_presentation_asset_lifecycle.dart';
 import 'package:map_editor/src/infrastructure/repositories/atomic_project_manifest_persistence.dart';
 import 'package:map_editor/src/infrastructure/repositories/project_presentation_document_gateway.dart';
 
@@ -104,6 +105,91 @@ void main() {
         before.document,
       );
     });
+
+    test('cleans replaced presentation assets only after a durable save',
+        () async {
+      const oldProfile = ProjectPresentationProfile(
+        intro: ProjectIntroVideoProfile(
+          videoPath: 'assets/presentation/intro/old.mp4',
+          posterPath: 'assets/presentation/intro/old.png',
+          durationMilliseconds: 1,
+          width: 1,
+          height: 1,
+          bitrateKbps: 1,
+          sizeBytes: 1,
+          videoCodec: 'h264',
+        ),
+      );
+      const newProfile = ProjectPresentationProfile(
+        intro: ProjectIntroVideoProfile(
+          videoPath: 'assets/presentation/intro/new.mp4',
+          posterPath: 'assets/presentation/intro/new.png',
+          durationMilliseconds: 1,
+          width: 1,
+          height: 1,
+          bitrateKbps: 1,
+          sizeBytes: 1,
+          videoCodec: 'h264',
+        ),
+      );
+      final fixture = _GatewayFixture.create(presentation: oldProfile);
+      addTearDown(fixture.dispose);
+      final oldVideo = fixture.writeAsset('assets/presentation/intro/old.mp4');
+      final oldPoster = fixture.writeAsset('assets/presentation/intro/old.png');
+      final newVideo = fixture.writeAsset('assets/presentation/intro/new.mp4');
+      final newPoster = fixture.writeAsset('assets/presentation/intro/new.png');
+      final gateway = ProjectPresentationDocumentGateway(
+        projectPath: fixture.projectFile.path,
+        persistence: const AtomicProjectManifestPersistence(),
+      );
+      final before = await gateway.read();
+
+      final result = await gateway.save(
+        expectedRevision: before.revision,
+        before: before.document,
+        after: before.document.copyWith(presentation: newProfile),
+        operationId: 'replace-presentation-assets',
+      );
+
+      expect(result, isA<NarrativeDocumentSaved<ProjectManifest>>());
+      expect(oldVideo.existsSync(), isFalse);
+      expect(oldPoster.existsSync(), isFalse);
+      expect(newVideo.existsSync(), isTrue);
+      expect(newPoster.existsSync(), isTrue);
+      expect(
+        gateway.lastAssetCleanupResult?.deletedPaths,
+        <String>{
+          'assets/presentation/intro/old.mp4',
+          'assets/presentation/intro/old.png',
+        },
+      );
+    });
+
+    test('cleanup failure never turns a committed save into a failed save',
+        () async {
+      final fixture = _GatewayFixture.create();
+      addTearDown(fixture.dispose);
+      final gateway = ProjectPresentationDocumentGateway(
+        projectPath: fixture.projectFile.path,
+        persistence: const AtomicProjectManifestPersistence(),
+        assetCleaner: const _ThrowingAssetCleaner(),
+      );
+      final before = await gateway.read();
+
+      final result = await gateway.save(
+        expectedRevision: before.revision,
+        before: before.document,
+        after: before.document.copyWith(
+          presentation: const ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(accentColor: '#123456'),
+          ),
+        ),
+        operationId: 'save-despite-cleanup-error',
+      );
+
+      expect(result, isA<NarrativeDocumentSaved<ProjectManifest>>());
+      expect(gateway.lastAssetCleanupResult?.failures, isNotEmpty);
+    });
   });
 }
 
@@ -114,11 +200,14 @@ final class _GatewayFixture {
     required this.initialProject,
   });
 
-  factory _GatewayFixture.create() {
+  factory _GatewayFixture.create({
+    ProjectPresentationProfile? presentation,
+  }) {
     final root =
         Directory.systemTemp.createTempSync('presentation-gateway-test-');
     final projectFile = File('${root.path}/project.json');
-    final project = buildShellChromeProject(name: 'Presentation gateway');
+    final project = buildShellChromeProject(name: 'Presentation gateway')
+        .copyWith(presentation: presentation);
     final fixture = _GatewayFixture._(
       root: root,
       projectFile: projectFile,
@@ -143,9 +232,29 @@ final class _GatewayFixture {
     );
   }
 
+  File writeAsset(String relativePath) {
+    final file = File('${root.path}/$relativePath');
+    file.parent.createSync(recursive: true);
+    file.writeAsStringSync(relativePath);
+    return file;
+  }
+
   void dispose() {
     if (root.existsSync()) {
       root.deleteSync(recursive: true);
     }
+  }
+}
+
+final class _ThrowingAssetCleaner implements ProjectPresentationAssetCleaner {
+  const _ThrowingAssetCleaner();
+
+  @override
+  Future<ProjectPresentationAssetCleanupResult> cleanStaleAssets({
+    required Directory projectRoot,
+    required ProjectPresentationProfile previousProfile,
+    required ProjectPresentationProfile currentProfile,
+  }) {
+    throw StateError('cleanup failed');
   }
 }

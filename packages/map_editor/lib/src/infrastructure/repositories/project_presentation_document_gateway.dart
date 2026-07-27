@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import '../../application/models/narrative_event_authoring_session.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
 import '../../application/services/narrative_document_session.dart';
+import '../../features/personalization/application/project_presentation_asset_lifecycle.dart';
 import 'atomic_project_manifest_persistence.dart';
 
 /// Project-manifest document gateway dedicated to presentation-only sessions.
@@ -14,11 +15,17 @@ final class ProjectPresentationDocumentGateway
   ProjectPresentationDocumentGateway({
     required String projectPath,
     AtomicProjectManifestPersistence? persistence,
+    ProjectPresentationAssetCleaner? assetCleaner,
   })  : projectPath = _requiredPath(projectPath),
-        _persistence = persistence ?? const AtomicProjectManifestPersistence();
+        _persistence = persistence ?? const AtomicProjectManifestPersistence(),
+        _assetCleaner =
+            assetCleaner ?? const ProjectPresentationAssetLifecycle();
 
   final String projectPath;
   final AtomicProjectManifestPersistence _persistence;
+  final ProjectPresentationAssetCleaner _assetCleaner;
+
+  ProjectPresentationAssetCleanupResult? lastAssetCleanupResult;
 
   @override
   Future<NarrativeDocumentVersion<ProjectManifest>> read() async {
@@ -84,6 +91,16 @@ final class ProjectPresentationDocumentGateway
           message: 'Persistence completed but the durable document does not '
               'match the requested presentation update.',
         );
+      }
+      try {
+        lastAssetCleanupResult = await _assetCleaner.cleanStaleAssets(
+          projectRoot: File(projectPath).parent,
+          previousProfile: before.effectivePresentation,
+          currentProfile: after.effectivePresentation,
+        );
+      } on Object catch (error) {
+        lastAssetCleanupResult =
+            ProjectPresentationAssetCleanupResult.failed(error);
       }
       return NarrativeDocumentSaveResult<ProjectManifest>.saved(version);
     }
