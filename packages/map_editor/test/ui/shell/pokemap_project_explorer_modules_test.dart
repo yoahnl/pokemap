@@ -34,7 +34,8 @@ Future<void> _pumpInBridge(
 
 void main() {
   group('ProjectExplorerModuleCard Widget Tests', () {
-    testWidgets('renders basic properties (title, description, icon)', (tester) async {
+    testWidgets('renders basic properties (title, description, icon)',
+        (tester) async {
       await _pumpInBridge(
         tester,
         const ProjectExplorerModuleCard(
@@ -139,7 +140,8 @@ void main() {
     late Directory tempProjectRoot;
 
     setUp(() async {
-      tempProjectRoot = await Directory.systemTemp.createTemp('explorer_panel_tests_');
+      tempProjectRoot =
+          await Directory.systemTemp.createTemp('explorer_panel_tests_');
       final yarn = File('${tempProjectRoot.path}/dialogues/pnj/dlg_hi.yarn');
       await yarn.parent.create(recursive: true);
       await yarn.writeAsString('title: Salut\n---\n<<jump End>>\n===\n');
@@ -151,7 +153,8 @@ void main() {
       }
     });
 
-    testWidgets('ProjectExplorerPanel renders all module cards', (tester) async {
+    testWidgets('ProjectExplorerPanel renders all module cards',
+        (tester) async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
@@ -216,12 +219,13 @@ void main() {
       expect(find.text('Terrain Library'), findsOneWidget);
       expect(find.text('Path Library'), findsOneWidget);
       expect(find.text('Environment Studio'), findsAtLeastNWidgets(1));
+      expect(find.text('Personalization Studio'), findsOneWidget);
       expect(find.text('Trainer Studio'), findsAtLeastNWidgets(1));
       expect(find.text('Character Library'), findsAtLeastNWidgets(1));
       final moduleCards = tester.widgetList<ProjectExplorerModuleCard>(
         find.byType(ProjectExplorerModuleCard),
       );
-      expect(moduleCards, hasLength(10));
+      expect(moduleCards, hasLength(11));
       expect(moduleCards.every((card) => !card.expanded), isTrue);
       expect(tester.takeException(), isNull);
     });
