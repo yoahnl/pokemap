@@ -20,9 +20,16 @@ export 'src/pokemon_stat_calculator.dart'
         PokemonStatCalculator;
 export 'src/pokemon_evolution_service.dart'
     show
+        PokemonEvolutionTriggerKind,
+        PokemonEvolutionTrigger,
+        PokemonEvolutionConditionKind,
+        PokemonEvolutionCondition,
         PokemonEvolutionCandidate,
         PokemonEvolutionResult,
-        PokemonEvolutionService;
+        PokemonEvolutionService,
+        PokemonEvolutionItemUseFailure,
+        PokemonEvolutionItemUseResult,
+        PokemonEvolutionItemOperations;
 export 'src/battle_progression_result.dart'
     show
         PokemonMoveLearningCandidate,

@@ -155,6 +155,7 @@ String _formatEvolutionEntries(List<PokemonEvolutionEntry> entries) {
           entry.targetSpeciesId,
           entry.method,
           entry.minLevel?.toString() ?? '',
+          entry.minFriendship?.toString() ?? '',
           entry.itemId ?? '',
           entry.requiredMoveId ?? '',
           entry.conditionText['fr'] ?? '',
@@ -175,13 +176,17 @@ List<PokemonEvolutionEntry> _parseEvolutionEntries(String raw) {
     }
 
     final parts = line.split('|');
-    if (parts.length < 2 || parts.length > 7) {
+    if (parts.length < 2 || parts.length > 8) {
       throw EditorValidationException(
-        'Pokemon evolution line ${index + 1} must use targetSpeciesId|method|minLevel|itemId|requiredMoveId|conditionFr|conditionEn',
+        'Pokemon evolution line ${index + 1} must use targetSpeciesId|method|minLevel|minFriendship|itemId|requiredMoveId|conditionFr|conditionEn',
       );
     }
+    if (parts.length == 7) {
+      // Backward-compatible editor drafts from before minFriendship existed.
+      parts.insert(3, '');
+    }
 
-    while (parts.length < 7) {
+    while (parts.length < 8) {
       parts.add('');
     }
 
@@ -192,10 +197,18 @@ List<PokemonEvolutionEntry> _parseEvolutionEntries(String raw) {
         'Pokemon evolution line ${index + 1} minLevel must be an integer',
       );
     }
+    final rawFriendship = parts[3].trim();
+    final minFriendship =
+        rawFriendship.isEmpty ? null : int.tryParse(rawFriendship);
+    if (rawFriendship.isNotEmpty && minFriendship == null) {
+      throw EditorValidationException(
+        'Pokemon evolution line ${index + 1} minFriendship must be an integer',
+      );
+    }
 
     final conditionText = <String, String>{};
-    final fr = parts[5].trim();
-    final en = parts[6].trim();
+    final fr = parts[6].trim();
+    final en = parts[7].trim();
     if (fr.isNotEmpty) {
       conditionText['fr'] = fr;
     }
@@ -208,8 +221,9 @@ List<PokemonEvolutionEntry> _parseEvolutionEntries(String raw) {
         targetSpeciesId: parts[0].trim(),
         method: parts[1].trim(),
         minLevel: minLevel,
-        itemId: _trimmedOrNull(parts[3]),
-        requiredMoveId: _trimmedOrNull(parts[4]),
+        minFriendship: minFriendship,
+        itemId: _trimmedOrNull(parts[4]),
+        requiredMoveId: _trimmedOrNull(parts[5]),
         conditionText: conditionText,
       ),
     );
@@ -353,6 +367,11 @@ String _describeEvolution(PokemonEvolutionEntry entry) {
   final explicit = _localizedValue(entry.conditionText);
   if (explicit != 'Aucune valeur locale') {
     return explicit;
+  }
+  if (entry.minFriendship != null) {
+    final level =
+        entry.minLevel == null ? '' : ' dès le niveau ${entry.minLevel}';
+    return 'Évolue avec ${entry.minFriendship} points d’amitié$level';
   }
   if (entry.minLevel != null) {
     return 'Évolue au niveau ${entry.minLevel}';

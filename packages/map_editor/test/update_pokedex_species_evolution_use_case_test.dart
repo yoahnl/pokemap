@@ -124,6 +124,68 @@ void main() {
     );
     expect(await projectFile.readAsString(), beforeProjectJson);
   });
+
+  test('persists typed friendship and item conditions', () async {
+    await writeRepository.saveSpecies(workspace, _speciesWithCustomRefs);
+
+    await useCase.execute(
+      workspace,
+      const UpdatePokedexSpeciesEvolutionRequest(
+        speciesId: 'bulbasaur',
+        preEvolution: null,
+        evolutions: <PokemonEvolutionEntry>[
+          PokemonEvolutionEntry(
+            targetSpeciesId: 'ivysaur',
+            method: 'friendship',
+            minLevel: 12,
+            minFriendship: 220,
+          ),
+          PokemonEvolutionEntry(
+            targetSpeciesId: 'venustone',
+            method: 'use_item',
+            itemId: 'leaf-stone',
+          ),
+        ],
+      ),
+    );
+
+    final readBack =
+        await readRepository.readEvolutionById(workspace, 'bulbasaur-chain');
+    expect(readBack.evolutions.first.minFriendship, 220);
+    expect(readBack.evolutions.last.itemId, 'leaf-stone');
+  });
+
+  test('rejects incomplete supported typed conditions', () async {
+    await writeRepository.saveSpecies(workspace, _speciesWithCustomRefs);
+
+    for (final entry in const <PokemonEvolutionEntry>[
+      PokemonEvolutionEntry(
+        targetSpeciesId: 'ivysaur',
+        method: 'friendship',
+        minFriendship: 300,
+      ),
+      PokemonEvolutionEntry(
+        targetSpeciesId: 'ivysaur',
+        method: 'use_item',
+      ),
+      PokemonEvolutionEntry(
+        targetSpeciesId: 'ivysaur',
+        method: 'known_move',
+      ),
+    ]) {
+      await expectLater(
+        () => useCase.execute(
+          workspace,
+          UpdatePokedexSpeciesEvolutionRequest(
+            speciesId: 'bulbasaur',
+            preEvolution: null,
+            evolutions: <PokemonEvolutionEntry>[entry],
+          ),
+        ),
+        throwsA(isA<EditorValidationException>()),
+      );
+    }
+  });
 }
 
 const PokemonSpeciesFile _speciesWithCustomRefs = PokemonSpeciesFile(

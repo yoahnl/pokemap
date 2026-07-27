@@ -2,7 +2,165 @@ import 'package:map_core/map_core.dart';
 
 import 'pokemon_stat_calculator.dart';
 
-/// One catalogue-backed level evolution available to pure gameplay.
+enum PokemonEvolutionTriggerKind {
+  levelUp,
+  itemUse,
+}
+
+final class PokemonEvolutionTrigger {
+  const PokemonEvolutionTrigger.levelUp()
+      : kind = PokemonEvolutionTriggerKind.levelUp,
+        itemId = null;
+
+  const PokemonEvolutionTrigger.itemUse(this.itemId)
+      : kind = PokemonEvolutionTriggerKind.itemUse;
+
+  final PokemonEvolutionTriggerKind kind;
+  final String? itemId;
+
+  PokemonEvolutionTrigger validated() {
+    if (kind == PokemonEvolutionTriggerKind.levelUp) return this;
+    final normalizedItemId = itemId?.trim() ?? '';
+    if (normalizedItemId.isEmpty) {
+      throw ArgumentError.value(itemId, 'itemId', 'must not be empty');
+    }
+    return normalizedItemId == itemId
+        ? this
+        : PokemonEvolutionTrigger.itemUse(normalizedItemId);
+  }
+}
+
+enum PokemonEvolutionConditionKind {
+  level,
+  friendship,
+  item,
+  knownMove,
+}
+
+/// One supported, serializable evolution condition.
+///
+/// V1 intentionally supports only deterministic conditions owned by current
+/// player state. Runtime loaders reject malformed supported rules and ignore
+/// explicitly unsupported catalogue methods.
+final class PokemonEvolutionCondition {
+  const PokemonEvolutionCondition.level({
+    required this.minLevel,
+  })  : kind = PokemonEvolutionConditionKind.level,
+        minFriendship = null,
+        itemId = null,
+        moveId = null;
+
+  const PokemonEvolutionCondition.friendship({
+    required this.minFriendship,
+    this.minLevel = 2,
+  })  : kind = PokemonEvolutionConditionKind.friendship,
+        itemId = null,
+        moveId = null;
+
+  const PokemonEvolutionCondition.item({
+    required this.itemId,
+    this.minLevel = 1,
+  })  : kind = PokemonEvolutionConditionKind.item,
+        minFriendship = null,
+        moveId = null;
+
+  const PokemonEvolutionCondition.knownMove({
+    required this.moveId,
+    this.minLevel = 2,
+  })  : kind = PokemonEvolutionConditionKind.knownMove,
+        minFriendship = null,
+        itemId = null;
+
+  final PokemonEvolutionConditionKind kind;
+  final int minLevel;
+  final int? minFriendship;
+  final String? itemId;
+  final String? moveId;
+
+  PokemonEvolutionCondition validated() {
+    final minimumLevel = kind == PokemonEvolutionConditionKind.item ? 1 : 2;
+    RangeError.checkValueInInterval(
+      minLevel,
+      minimumLevel,
+      100,
+      'minLevel',
+    );
+    switch (kind) {
+      case PokemonEvolutionConditionKind.level:
+        return this;
+      case PokemonEvolutionConditionKind.friendship:
+        RangeError.checkValueInInterval(
+          minFriendship!,
+          1,
+          255,
+          'minFriendship',
+        );
+        return this;
+      case PokemonEvolutionConditionKind.item:
+        final normalizedItemId = itemId?.trim() ?? '';
+        if (normalizedItemId.isEmpty) {
+          throw ArgumentError.value(itemId, 'itemId', 'must not be empty');
+        }
+        return normalizedItemId == itemId
+            ? this
+            : PokemonEvolutionCondition.item(
+                itemId: normalizedItemId,
+                minLevel: minLevel,
+              );
+      case PokemonEvolutionConditionKind.knownMove:
+        final normalizedMoveId = moveId?.trim() ?? '';
+        if (normalizedMoveId.isEmpty) {
+          throw ArgumentError.value(moveId, 'moveId', 'must not be empty');
+        }
+        return normalizedMoveId == moveId
+            ? this
+            : PokemonEvolutionCondition.knownMove(
+                moveId: normalizedMoveId,
+                minLevel: minLevel,
+              );
+    }
+  }
+
+  bool isSatisfiedBy(
+    PlayerPokemon pokemon, {
+    required PokemonEvolutionTrigger trigger,
+  }) {
+    final condition = validated();
+    final event = trigger.validated();
+    if (pokemon.level < condition.minLevel) return false;
+    return switch (condition.kind) {
+      PokemonEvolutionConditionKind.level =>
+        event.kind == PokemonEvolutionTriggerKind.levelUp,
+      PokemonEvolutionConditionKind.friendship =>
+        event.kind == PokemonEvolutionTriggerKind.levelUp &&
+            pokemon.friendship >= condition.minFriendship!,
+      PokemonEvolutionConditionKind.item =>
+        event.kind == PokemonEvolutionTriggerKind.itemUse &&
+            event.itemId == condition.itemId,
+      PokemonEvolutionConditionKind.knownMove =>
+        event.kind == PokemonEvolutionTriggerKind.levelUp &&
+            pokemon.knownMoveIds.contains(condition.moveId),
+    };
+  }
+}
+
+PokemonEvolutionCondition _resolveEvolutionCondition(
+  int? minLevel,
+  PokemonEvolutionCondition? condition,
+) {
+  if (condition != null && minLevel != null) {
+    throw ArgumentError(
+      'Provide either minLevel or condition, not both.',
+    );
+  }
+  if (condition != null) return condition;
+  if (minLevel != null) {
+    return PokemonEvolutionCondition.level(minLevel: minLevel);
+  }
+  throw ArgumentError('An evolution condition is required.');
+}
+
+/// One catalogue-backed evolution available to pure gameplay.
 ///
 /// Runtime resolves JSON and target-species metadata. Gameplay receives no
 /// paths or untyped catalogue maps.
@@ -11,19 +169,31 @@ final class PokemonEvolutionCandidate {
     required this.opportunityId,
     required this.sourceSpeciesId,
     required this.targetSpeciesId,
-    required this.minLevel,
+    int? minLevel,
+    PokemonEvolutionCondition? condition,
     required this.targetBaseStats,
     required this.targetPrimaryAbilityId,
     required Iterable<String> targetAbilityIds,
-  }) : targetAbilityIds = List<String>.unmodifiable(targetAbilityIds);
+  })  : condition = _resolveEvolutionCondition(minLevel, condition),
+        targetAbilityIds = List<String>.unmodifiable(targetAbilityIds);
 
   final String opportunityId;
   final String sourceSpeciesId;
   final String targetSpeciesId;
-  final int minLevel;
+  final PokemonEvolutionCondition condition;
   final PokemonBaseStats targetBaseStats;
   final String targetPrimaryAbilityId;
   final List<String> targetAbilityIds;
+
+  int get minLevel => condition.minLevel;
+
+  bool isEligible(
+    PlayerPokemon pokemon, {
+    required PokemonEvolutionTrigger trigger,
+  }) {
+    return pokemon.speciesId == sourceSpeciesId &&
+        condition.isSatisfiedBy(pokemon, trigger: trigger);
+  }
 
   PokemonEvolutionCandidate validated() {
     final normalizedOpportunityId = opportunityId.trim();
@@ -52,7 +222,7 @@ final class PokemonEvolutionCandidate {
         'must be non-empty and different from sourceSpeciesId',
       );
     }
-    RangeError.checkValueInInterval(minLevel, 2, 100, 'minLevel');
+    final validatedCondition = condition.validated();
     targetBaseStats.validated();
     if (normalizedPrimaryAbilityId.isEmpty) {
       throw ArgumentError.value(
@@ -87,6 +257,7 @@ final class PokemonEvolutionCandidate {
         normalizedSourceSpeciesId == sourceSpeciesId &&
         normalizedTargetSpeciesId == targetSpeciesId &&
         normalizedPrimaryAbilityId == targetPrimaryAbilityId &&
+        identical(validatedCondition, condition) &&
         _sameStrings(normalizedAbilityIds, targetAbilityIds)) {
       return this;
     }
@@ -94,7 +265,7 @@ final class PokemonEvolutionCandidate {
       opportunityId: normalizedOpportunityId,
       sourceSpeciesId: normalizedSourceSpeciesId,
       targetSpeciesId: normalizedTargetSpeciesId,
-      minLevel: minLevel,
+      condition: validatedCondition,
       targetBaseStats: targetBaseStats,
       targetPrimaryAbilityId: normalizedPrimaryAbilityId,
       targetAbilityIds: normalizedAbilityIds,
@@ -127,6 +298,7 @@ final class PokemonEvolutionService {
     required PlayerPokemon pokemon,
     required PokemonEvolutionCandidate candidate,
     required int sourceMaxHp,
+    PokemonEvolutionTrigger trigger = const PokemonEvolutionTrigger.levelUp(),
   }) {
     final validatedCandidate = candidate.validated();
     RangeError.checkValueInInterval(sourceMaxHp, 1, 9999, 'sourceMaxHp');
@@ -135,8 +307,8 @@ final class PokemonEvolutionService {
         'Evolution source does not match the current Pokemon species.',
       );
     }
-    if (pokemon.level < validatedCandidate.minLevel) {
-      throw StateError('Pokemon has not reached the evolution level.');
+    if (!validatedCandidate.isEligible(pokemon, trigger: trigger)) {
+      throw StateError('Pokemon does not meet the evolution condition.');
     }
     if (pokemon.currentHp < 0 || pokemon.currentHp > sourceMaxHp) {
       throw StateError('Pokemon current HP is outside its source maximum.');
@@ -173,6 +345,125 @@ final class PokemonEvolutionService {
       calculatedStats: targetStats,
     );
   }
+}
+
+enum PokemonEvolutionItemUseFailure {
+  invalidRequest,
+  invalidTarget,
+  insufficientQuantity,
+  conditionNotMet,
+  ambiguousCandidate,
+}
+
+final class PokemonEvolutionItemUseResult {
+  const PokemonEvolutionItemUseResult._({
+    required this.state,
+    this.failure,
+    this.evolution,
+  });
+
+  const PokemonEvolutionItemUseResult.success(
+    GameState state,
+    PokemonEvolutionResult evolution,
+  ) : this._(state: state, evolution: evolution);
+
+  const PokemonEvolutionItemUseResult.failed(
+    GameState state,
+    PokemonEvolutionItemUseFailure failure,
+  ) : this._(state: state, failure: failure);
+
+  final GameState state;
+  final PokemonEvolutionItemUseFailure? failure;
+  final PokemonEvolutionResult? evolution;
+
+  bool get isSuccess => failure == null;
+}
+
+/// Atomically evolves one party member and consumes exactly one matching item.
+final class PokemonEvolutionItemOperations {
+  const PokemonEvolutionItemOperations({
+    this.evolutionService = const PokemonEvolutionService(),
+  });
+
+  final PokemonEvolutionService evolutionService;
+
+  PokemonEvolutionItemUseResult useItem(
+    GameState state, {
+    required String itemId,
+    required int partyIndex,
+    required PokemonEvolutionCandidate candidate,
+    required int sourceMaxHp,
+  }) {
+    final normalizedItemId = itemId.trim();
+    if (normalizedItemId.isEmpty || sourceMaxHp <= 0) {
+      return PokemonEvolutionItemUseResult.failed(
+        state,
+        PokemonEvolutionItemUseFailure.invalidRequest,
+      );
+    }
+    if (partyIndex < 0 || partyIndex >= state.party.members.length) {
+      return PokemonEvolutionItemUseResult.failed(
+        state,
+        PokemonEvolutionItemUseFailure.invalidTarget,
+      );
+    }
+    final hasItem = state.bag.normalized().entries.any(
+          (entry) => entry.itemId == normalizedItemId && entry.quantity > 0,
+        );
+    if (!hasItem) {
+      return PokemonEvolutionItemUseResult.failed(
+        state,
+        PokemonEvolutionItemUseFailure.insufficientQuantity,
+      );
+    }
+    final pokemon = state.party.members[partyIndex];
+    final trigger = PokemonEvolutionTrigger.itemUse(normalizedItemId);
+    if (!candidate.validated().isEligible(pokemon, trigger: trigger)) {
+      return PokemonEvolutionItemUseResult.failed(
+        state,
+        PokemonEvolutionItemUseFailure.conditionNotMet,
+      );
+    }
+
+    final evolution = evolutionService.evolve(
+      pokemon: pokemon,
+      candidate: candidate,
+      sourceMaxHp: sourceMaxHp,
+      trigger: trigger,
+    );
+    final nextBag = _consumeEvolutionItem(state.bag, normalizedItemId);
+    if (nextBag == null) {
+      return PokemonEvolutionItemUseResult.failed(
+        state,
+        PokemonEvolutionItemUseFailure.insufficientQuantity,
+      );
+    }
+    final nextMembers = [...state.party.members];
+    nextMembers[partyIndex] = evolution.pokemon;
+    return PokemonEvolutionItemUseResult.success(
+      state.copyWith(
+        party: PlayerParty(members: nextMembers).normalized(),
+        bag: nextBag,
+      ),
+      evolution,
+    );
+  }
+}
+
+Bag? _consumeEvolutionItem(Bag bag, String itemId) {
+  final nextEntries = <BagEntry>[];
+  var consumed = false;
+  for (final entry in bag.normalized().entries) {
+    if (!consumed && entry.itemId == itemId) {
+      consumed = true;
+      if (entry.quantity > 1) {
+        nextEntries.add(entry.copyWith(quantity: entry.quantity - 1));
+      }
+    } else {
+      nextEntries.add(entry);
+    }
+  }
+  return consumed ? Bag(entries: nextEntries).normalized() : null;
 }
 
 /// Preserves the exact HP ratio using nearest-integer, half-up rounding.

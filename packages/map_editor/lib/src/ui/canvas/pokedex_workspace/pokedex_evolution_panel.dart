@@ -147,14 +147,14 @@ class _PokedexEvolutionTabState extends State<_PokedexEvolutionTab> {
                   _PokedexEditorTextField(
                     label: 'Évolutions suivantes',
                     description:
-                        'Une entrée par ligne au format targetSpeciesId|method|minLevel|itemId|requiredMoveId|conditionFr|conditionEn.',
+                        'Une entrée par ligne au format targetSpeciesId|method|minLevel|minFriendship|itemId|requiredMoveId|conditionFr|conditionEn.',
                     fieldKey: const Key('pokedex-evolution-entries-field'),
                     controller: _entriesController,
                     enabled: !_isSaving,
                     minLines: 3,
                     maxLines: 8,
                     placeholder:
-                        'ivysaur|level_up|16|||Évolue au niveau 16|Evolves at level 16',
+                        'ivysaur|level_up|16||||Évolue au niveau 16|Evolves at level 16',
                   ),
                   const SizedBox(height: 14),
                   Row(

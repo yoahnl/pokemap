@@ -284,8 +284,13 @@ final class BattleProgressionService {
         }
         // A declined evolution is intentionally eligible again only after a
         // later battle produces another real level gain.
+        final progressedPokemon =
+            progressedState.party.members[change.partySlot];
         if (change.newLevel > change.oldLevel &&
-            change.newLevel >= candidate.minLevel) {
+            candidate.isEligible(
+              progressedPokemon,
+              trigger: const PokemonEvolutionTrigger.levelUp(),
+            )) {
           evolutionOpportunities.add(
             BattleEvolutionOpportunity(
               occurrenceId: _evolutionOccurrenceId(

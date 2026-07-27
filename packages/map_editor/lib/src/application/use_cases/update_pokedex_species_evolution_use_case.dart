@@ -29,6 +29,7 @@ typedef PokedexSpeciesEvolutionSaver = Future<PokemonEvolutionFile> Function(
 /// - `targetSpeciesId`
 /// - `method`
 /// - `minLevel`
+/// - `minFriendship`
 /// - `itemId`
 /// - `requiredMoveId`
 /// - `conditionText`
@@ -88,6 +89,7 @@ class UpdatePokedexSpeciesEvolutionUseCase {
             targetSpeciesId: entry.targetSpeciesId.trim(),
             method: entry.method.trim(),
             minLevel: entry.minLevel,
+            minFriendship: entry.minFriendship,
             itemId: _normalizeOptionalText(entry.itemId),
             requiredMoveId: _normalizeOptionalText(entry.requiredMoveId),
             conditionText: _normalizeLocalizedValues(entry.conditionText),
@@ -150,6 +152,28 @@ class UpdatePokedexSpeciesEvolutionUseCase {
           entry.minLevel! <= 0) {
         throw const EditorValidationException(
           'Pokemon evolution minLevel must be positive for level_up',
+        );
+      }
+      final method = entry.method.trim();
+      if ((method == 'friendship' || entry.minFriendship != null) &&
+          (entry.minFriendship == null ||
+              entry.minFriendship! < 1 ||
+              entry.minFriendship! > 255)) {
+        throw const EditorValidationException(
+          'Pokemon evolution minFriendship must be between 1 and 255',
+        );
+      }
+      if ((method == 'use_item' || method == 'item') &&
+          (entry.itemId == null || entry.itemId!.trim().isEmpty)) {
+        throw const EditorValidationException(
+          'Pokemon item evolution requires an item',
+        );
+      }
+      if (method == 'known_move' &&
+          (entry.requiredMoveId == null ||
+              entry.requiredMoveId!.trim().isEmpty)) {
+        throw const EditorValidationException(
+          'Pokemon known-move evolution requires a move',
         );
       }
     }

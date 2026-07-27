@@ -978,6 +978,7 @@ class PokemonEvolutionEntry {
     required this.targetSpeciesId,
     required this.method,
     this.minLevel,
+    this.minFriendship,
     this.itemId,
     this.requiredMoveId,
     this.conditionText = const <String, String>{},
@@ -986,6 +987,7 @@ class PokemonEvolutionEntry {
   final String targetSpeciesId;
   final String method;
   final int? minLevel;
+  final int? minFriendship;
   final String? itemId;
   final String? requiredMoveId;
   final Map<String, String> conditionText;
@@ -995,6 +997,7 @@ class PokemonEvolutionEntry {
       targetSpeciesId: (json['targetSpeciesId'] as String?)?.trim() ?? '',
       method: (json['method'] as String?)?.trim() ?? '',
       minLevel: (json['minLevel'] as num?)?.toInt(),
+      minFriendship: (json['minFriendship'] as num?)?.toInt(),
       itemId: _readOptionalTrimmedString(json['itemId']),
       requiredMoveId: _readOptionalTrimmedString(json['requiredMoveId']),
       conditionText: _readStringMap(json['conditionText']),
@@ -1006,6 +1009,7 @@ class PokemonEvolutionEntry {
       'targetSpeciesId': targetSpeciesId,
       'method': method,
       'minLevel': minLevel,
+      'minFriendship': minFriendship,
       'itemId': itemId,
       'requiredMoveId': requiredMoveId,
       'conditionText': Map<String, String>.from(conditionText),

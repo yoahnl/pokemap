@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_exception.dart';
 import 'package:map_runtime/src/application/runtime_pokemon_evolution_loader.dart';
 import 'package:path/path.dart' as p;
@@ -107,6 +108,109 @@ void main() {
       );
 
       expect(candidates, isEmpty);
+    });
+
+    test('loads friendship, known-move, and item conditions as typed rules',
+        () async {
+      await _writeEvolution(tempRoot, <String, dynamic>{
+        'speciesId': 'sproutle',
+        'evolutions': <Object?>[
+          <String, Object?>{
+            'targetSpeciesId': 'friendmon',
+            'method': 'friendship',
+            'minFriendship': 220,
+            'minLevel': 12,
+          },
+          <String, Object?>{
+            'targetSpeciesId': 'movemon',
+            'method': 'known_move',
+            'requiredMoveId': 'ancient-power',
+            'minLevel': 18,
+          },
+          <String, Object?>{
+            'targetSpeciesId': 'stonemon',
+            'method': 'use_item',
+            'itemId': 'leaf-stone',
+          },
+        ],
+      });
+      for (final id in <String>['friendmon', 'movemon', 'stonemon']) {
+        await _writeSpecies(
+          tempRoot,
+          id: id,
+          primaryAbilityId: 'overgrow',
+        );
+      }
+
+      final loader = RuntimePokemonEvolutionLoader();
+      final levelCandidates = await loader.loadLevelUpCandidates(
+        projectRootDirectory: tempRoot.path,
+        pokemonConfig: _config(),
+        sourceSpeciesId: 'sproutle',
+      );
+      final itemCandidates = await loader.loadItemUseCandidates(
+        projectRootDirectory: tempRoot.path,
+        pokemonConfig: _config(),
+        sourceSpeciesId: 'sproutle',
+        itemId: 'leaf-stone',
+      );
+
+      expect(
+        levelCandidates.map((candidate) => candidate.condition.kind),
+        <PokemonEvolutionConditionKind>[
+          PokemonEvolutionConditionKind.friendship,
+          PokemonEvolutionConditionKind.knownMove,
+        ],
+      );
+      expect(levelCandidates.first.condition.minFriendship, 220);
+      expect(levelCandidates.last.condition.moveId, 'ancient-power');
+      expect(itemCandidates, hasLength(1));
+      expect(
+        itemCandidates.single.condition.kind,
+        PokemonEvolutionConditionKind.item,
+      );
+      expect(itemCandidates.single.condition.itemId, 'leaf-stone');
+    });
+
+    test('fails closed on malformed supported friendship and item rules',
+        () async {
+      await _writeEvolution(tempRoot, <String, dynamic>{
+        'speciesId': 'sproutle',
+        'evolutions': <Object?>[
+          <String, Object?>{
+            'targetSpeciesId': 'friendmon',
+            'method': 'friendship',
+            'minFriendship': 300,
+          },
+        ],
+      });
+      await expectLater(
+        () => RuntimePokemonEvolutionLoader().loadLevelUpCandidates(
+          projectRootDirectory: tempRoot.path,
+          pokemonConfig: _config(),
+          sourceSpeciesId: 'sproutle',
+        ),
+        throwsA(isA<RuntimeBattleSetupException>()),
+      );
+
+      await _writeEvolution(tempRoot, <String, dynamic>{
+        'speciesId': 'sproutle',
+        'evolutions': <Object?>[
+          <String, Object?>{
+            'targetSpeciesId': 'stonemon',
+            'method': 'use_item',
+            'itemId': '',
+          },
+        ],
+      });
+      await expectLater(
+        () => RuntimePokemonEvolutionLoader().loadItemUseCandidates(
+          projectRootDirectory: tempRoot.path,
+          pokemonConfig: _config(),
+          sourceSpeciesId: 'sproutle',
+        ),
+        throwsA(isA<RuntimeBattleSetupException>()),
+      );
     });
 
     test('fails explicitly when the source evolution file is absent', () async {

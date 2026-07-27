@@ -6,6 +6,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_world_service_models.dart';
 import 'runtime_player_pokemon_progression_hydrator.dart';
+import 'runtime_pokemon_evolution_loader.dart';
 import 'runtime_pokemon_species_loader.dart';
 
 final class RuntimePlayerServiceRecoveryCaps {
@@ -147,13 +148,19 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     required PlayerServiceRecoveryCapsLoader loadRecoveryCaps,
     ScriptEvaluationContext conditionContext = const ScriptEvaluationContext(),
     Set<String> grantedCapabilities = const <String>{},
+    String? projectRootDirectory,
+    ProjectPokemonConfig? pokemonConfig,
+    RuntimePokemonEvolutionLoader? evolutionLoader,
   })  : _currentGameState = currentGameState,
         _host = host,
         _commitAndSave = commitAndSave,
         _setInputLocked = setInputLocked,
         _loadRecoveryCaps = loadRecoveryCaps,
         _conditionContext = conditionContext,
-        _grantedCapabilities = Set<String>.unmodifiable(grantedCapabilities);
+        _grantedCapabilities = Set<String>.unmodifiable(grantedCapabilities),
+        _projectRootDirectory = projectRootDirectory,
+        _pokemonConfig = pokemonConfig,
+        _evolutionLoader = evolutionLoader ?? RuntimePokemonEvolutionLoader();
 
   PlayerServiceRuntimeController.contextual({
     required PlayerServiceGameStateReader currentGameState,
@@ -162,13 +169,19 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     required PlayerServiceRecoveryCapsLoader loadRecoveryCaps,
     ScriptEvaluationContext conditionContext = const ScriptEvaluationContext(),
     Set<String> grantedCapabilities = const <String>{},
+    String? projectRootDirectory,
+    ProjectPokemonConfig? pokemonConfig,
+    RuntimePokemonEvolutionLoader? evolutionLoader,
   })  : _currentGameState = currentGameState,
         _host = null,
         _commitAndSave = commitAndSave,
         _setInputLocked = setInputLocked,
         _loadRecoveryCaps = loadRecoveryCaps,
         _conditionContext = conditionContext,
-        _grantedCapabilities = Set<String>.unmodifiable(grantedCapabilities);
+        _grantedCapabilities = Set<String>.unmodifiable(grantedCapabilities),
+        _projectRootDirectory = projectRootDirectory,
+        _pokemonConfig = pokemonConfig,
+        _evolutionLoader = evolutionLoader ?? RuntimePokemonEvolutionLoader();
 
   final PlayerServiceGameStateReader _currentGameState;
   final PlayerServiceOverlayHost? _host;
@@ -177,6 +190,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   final PlayerServiceRecoveryCapsLoader _loadRecoveryCaps;
   final ScriptEvaluationContext _conditionContext;
   final Set<String> _grantedCapabilities;
+  final String? _projectRootDirectory;
+  final ProjectPokemonConfig? _pokemonConfig;
+  final RuntimePokemonEvolutionLoader _evolutionLoader;
   final _worldServiceSnapshots =
       StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
   bool _active = false;
@@ -345,10 +361,17 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         safeMessage: 'Cette cible n’est plus disponible.',
       );
     }
+    final state = _currentGameState();
     final effect =
         const PlayerItemEffectRegistry.mvp().effectFor(command.itemTargetId);
-    if (effect == null ||
-        effect.kind == PlayerItemEffectKind.keyItem ||
+    if (effect == null) {
+      return _useEvolutionItemOutsideBattle(
+        state: state,
+        itemId: command.itemTargetId,
+        partyIndex: partyIndex,
+      );
+    }
+    if (effect.kind == PlayerItemEffectKind.keyItem ||
         effect.kind == PlayerItemEffectKind.ballMetadata) {
       return const RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
@@ -356,7 +379,6 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       );
     }
 
-    final state = _currentGameState();
     if (partyIndex >= state.party.members.length) {
       return const RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
@@ -396,6 +418,84 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       return const RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.failed,
         safeMessage: 'L’objet n’a pas pu être utilisé ni sauvegardé.',
+      );
+    }
+  }
+
+  Future<RuntimePlayerPauseCommandResult> _useEvolutionItemOutsideBattle({
+    required GameState state,
+    required String itemId,
+    required int partyIndex,
+  }) async {
+    final projectRootDirectory = _projectRootDirectory;
+    final pokemonConfig = _pokemonConfig;
+    if (projectRootDirectory == null ||
+        pokemonConfig == null ||
+        partyIndex >= state.party.members.length) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: 'Cet objet ne peut pas être utilisé ici.',
+      );
+    }
+    try {
+      final pokemon = state.party.members[partyIndex];
+      final candidates = await _evolutionLoader.loadItemUseCandidates(
+        projectRootDirectory: projectRootDirectory,
+        pokemonConfig: pokemonConfig,
+        sourceSpeciesId: pokemon.speciesId,
+        itemId: itemId,
+      );
+      final eligible = candidates
+          .where(
+            (candidate) => candidate.isEligible(
+              pokemon,
+              trigger: PokemonEvolutionTrigger.itemUse(itemId),
+            ),
+          )
+          .toList(growable: false);
+      if (eligible.isEmpty) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'Cet objet ne provoque aucune évolution ici.',
+        );
+      }
+      if (eligible.length > 1) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage:
+              'Plusieurs évolutions sont possibles pour cette combinaison.',
+        );
+      }
+      final caps = await _loadRecoveryCaps(state);
+      final maxHp = caps.maxHpByPartyIndex[partyIndex];
+      if (maxHp == null || maxHp <= 0) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'Les données de la cible sont incomplètes.',
+        );
+      }
+      final result = const PokemonEvolutionItemOperations().useItem(
+        state,
+        itemId: itemId,
+        partyIndex: partyIndex,
+        candidate: eligible.single,
+        sourceMaxHp: maxHp,
+      );
+      if (!result.isSuccess) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'Cet objet ne provoque aucune évolution ici.',
+        );
+      }
+      await _commitAndSave(result.state);
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.accepted,
+        safeMessage: 'Évolution réussie et progression sauvegardée.',
+      );
+    } catch (_) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.failed,
+        safeMessage: 'L’évolution n’a pas pu être appliquée ni sauvegardée.',
       );
     }
   }

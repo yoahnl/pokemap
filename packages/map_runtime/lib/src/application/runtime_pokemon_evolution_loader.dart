@@ -8,10 +8,10 @@ import 'package:path/path.dart' as p;
 import 'runtime_battle_setup_exception.dart';
 import 'runtime_pokemon_species_loader.dart';
 
-/// Strict project-data adapter for the FG-047 level-evolution MVP.
+/// Strict project-data adapter for the FG-055 typed evolution conditions.
 ///
-/// Unsupported methods are intentionally ignored. A rule explicitly marked
-/// `level_up`, however, is either complete and usable or fails closed.
+/// Unsupported methods are intentionally ignored. A supported rule is either
+/// complete and usable or fails closed.
 final class RuntimePokemonEvolutionLoader {
   RuntimePokemonEvolutionLoader({
     RuntimePokemonSpeciesLoader? speciesLoader,
@@ -23,6 +23,40 @@ final class RuntimePokemonEvolutionLoader {
     required String projectRootDirectory,
     required ProjectPokemonConfig pokemonConfig,
     required String sourceSpeciesId,
+  }) {
+    return _loadCandidates(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+      sourceSpeciesId: sourceSpeciesId,
+      acceptedTriggers: const <PokemonEvolutionTriggerKind>{
+        PokemonEvolutionTriggerKind.levelUp,
+      },
+    );
+  }
+
+  Future<List<PokemonEvolutionCandidate>> loadItemUseCandidates({
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+    required String sourceSpeciesId,
+    String? itemId,
+  }) {
+    return _loadCandidates(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+      sourceSpeciesId: sourceSpeciesId,
+      acceptedTriggers: const <PokemonEvolutionTriggerKind>{
+        PokemonEvolutionTriggerKind.itemUse,
+      },
+      itemId: itemId,
+    );
+  }
+
+  Future<List<PokemonEvolutionCandidate>> _loadCandidates({
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+    required String sourceSpeciesId,
+    required Set<PokemonEvolutionTriggerKind> acceptedTriggers,
+    String? itemId,
   }) async {
     final sourceId = _validatedSourceId(sourceSpeciesId);
     final file = _boundedEvolutionFile(
@@ -64,18 +98,37 @@ final class RuntimePokemonEvolutionLoader {
       if (method.isEmpty) {
         throw _invalidRule(sourceId, file.path, index);
       }
-      if (method != 'level_up') continue;
-
+      final declaredTrigger = switch (method) {
+        'level_up' ||
+        'friendship' ||
+        'known_move' =>
+          PokemonEvolutionTriggerKind.levelUp,
+        'use_item' || 'item' => PokemonEvolutionTriggerKind.itemUse,
+        _ => null,
+      };
+      if (declaredTrigger == null ||
+          !acceptedTriggers.contains(declaredTrigger)) {
+        continue;
+      }
       final rawTargetId = entry['targetSpeciesId'];
       final targetId = rawTargetId is String && _isSafeSpeciesId(rawTargetId)
           ? rawTargetId
           : '';
-      final rawMinLevel = entry['minLevel'];
-      if (targetId.isEmpty ||
-          targetId == sourceId ||
-          rawMinLevel is! int ||
-          rawMinLevel < 2 ||
-          rawMinLevel > 100) {
+      final condition = _conditionFor(
+        entry,
+        method: method,
+        sourceSpeciesId: sourceId,
+        filePath: file.path,
+        index: index,
+      );
+      if (condition == null) continue;
+      final normalizedItemFilter = itemId?.trim();
+      if (normalizedItemFilter != null &&
+          normalizedItemFilter.isNotEmpty &&
+          condition.itemId != normalizedItemFilter) {
+        continue;
+      }
+      if (targetId.isEmpty || targetId == sourceId) {
         throw _invalidRule(sourceId, file.path, index);
       }
 
@@ -87,10 +140,15 @@ final class RuntimePokemonEvolutionLoader {
       try {
         candidates.add(
           PokemonEvolutionCandidate(
-            opportunityId: '$sourceId:levelUp:$index:$rawMinLevel:$targetId',
+            opportunityId: _opportunityId(
+              sourceSpeciesId: sourceId,
+              targetSpeciesId: targetId,
+              index: index,
+              condition: condition,
+            ),
             sourceSpeciesId: sourceId,
             targetSpeciesId: targetId,
-            minLevel: rawMinLevel,
+            condition: condition,
             targetBaseStats: PokemonBaseStats(
               hp: target.baseHp,
               attack: target.baseAttack,
@@ -123,6 +181,80 @@ final class RuntimePokemonEvolutionLoader {
       }
     }
     return List<PokemonEvolutionCandidate>.unmodifiable(candidates);
+  }
+
+  PokemonEvolutionCondition? _conditionFor(
+    Map<String, dynamic> entry, {
+    required String method,
+    required String sourceSpeciesId,
+    required String filePath,
+    required int index,
+  }) {
+    final minLevel = entry['minLevel'];
+    final rawMinFriendship = entry['minFriendship'];
+    final rawItemId = entry['itemId'];
+    final itemId = rawItemId is String ? rawItemId.trim() : '';
+    final rawMoveId = entry['requiredMoveId'];
+    final moveId = rawMoveId is String ? rawMoveId.trim() : '';
+
+    try {
+      return switch (method) {
+        'level_up' when rawMinFriendship != null =>
+          PokemonEvolutionCondition.friendship(
+            minFriendship: rawMinFriendship as int,
+            minLevel: (minLevel as int?) ?? 2,
+          ).validated(),
+        'friendship' => PokemonEvolutionCondition.friendship(
+            minFriendship: rawMinFriendship as int,
+            minLevel: (minLevel as int?) ?? 2,
+          ).validated(),
+        'level_up' when moveId.isNotEmpty =>
+          PokemonEvolutionCondition.knownMove(
+            moveId: moveId,
+            minLevel: (minLevel as int?) ?? 2,
+          ).validated(),
+        'known_move' => PokemonEvolutionCondition.knownMove(
+            moveId: moveId,
+            minLevel: (minLevel as int?) ?? 2,
+          ).validated(),
+        'level_up' => PokemonEvolutionCondition.level(
+            minLevel: minLevel as int,
+          ).validated(),
+        'use_item' || 'item' => PokemonEvolutionCondition.item(
+            itemId: itemId,
+            minLevel: (minLevel as int?) ?? 1,
+          ).validated(),
+        _ => null,
+      };
+    } on Object {
+      throw _invalidRule(sourceSpeciesId, filePath, index);
+    }
+  }
+
+  String _conditionToken(PokemonEvolutionCondition condition) {
+    return switch (condition.kind) {
+      PokemonEvolutionConditionKind.level => '${condition.minLevel}',
+      PokemonEvolutionConditionKind.friendship =>
+        '${condition.minLevel}:${condition.minFriendship}',
+      PokemonEvolutionConditionKind.item =>
+        '${condition.minLevel}:${condition.itemId}',
+      PokemonEvolutionConditionKind.knownMove =>
+        '${condition.minLevel}:${condition.moveId}',
+    };
+  }
+
+  String _opportunityId({
+    required String sourceSpeciesId,
+    required String targetSpeciesId,
+    required int index,
+    required PokemonEvolutionCondition condition,
+  }) {
+    if (condition.kind == PokemonEvolutionConditionKind.level) {
+      return '$sourceSpeciesId:levelUp:$index:${condition.minLevel}:'
+          '$targetSpeciesId';
+    }
+    return '$sourceSpeciesId:${condition.kind.name}:$index:'
+        '${_conditionToken(condition)}:$targetSpeciesId';
   }
 
   String _validatedSourceId(String rawSourceSpeciesId) {
@@ -212,7 +344,7 @@ final class RuntimePokemonEvolutionLoader {
     return RuntimeBattleSetupException(
       'Les données d’évolution Pokémon locales sont invalides.',
       debugDetails:
-          'speciesId=$sourceSpeciesId, file=$filePath, evolutions[$index] requires a method; level_up requires a distinct targetSpeciesId and integer minLevel in 2..100',
+          'speciesId=$sourceSpeciesId, file=$filePath, evolutions[$index] requires a supported complete condition and a distinct targetSpeciesId',
     );
   }
 }

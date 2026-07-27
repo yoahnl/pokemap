@@ -103,6 +103,153 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test('evaluates typed friendship, item, and known-move conditions', () {
+      final friendly = _pokemon(currentHp: 20).copyWith(friendship: 220);
+      final friendshipCandidate = _candidate(
+        condition: const PokemonEvolutionCondition.friendship(
+          minFriendship: 220,
+          minLevel: 5,
+        ),
+      );
+      final itemCandidate = _candidate(
+        condition: const PokemonEvolutionCondition.item(
+          itemId: 'leaf-stone',
+        ),
+      );
+      final knownMoveCandidate = _candidate(
+        condition: const PokemonEvolutionCondition.knownMove(
+          moveId: 'growl',
+          minLevel: 5,
+        ),
+      );
+
+      expect(
+        friendshipCandidate.isEligible(
+          friendly,
+          trigger: const PokemonEvolutionTrigger.levelUp(),
+        ),
+        isTrue,
+      );
+      expect(
+        friendshipCandidate.isEligible(
+          friendly.copyWith(friendship: 219),
+          trigger: const PokemonEvolutionTrigger.levelUp(),
+        ),
+        isFalse,
+      );
+      expect(
+        itemCandidate.isEligible(
+          friendly,
+          trigger: const PokemonEvolutionTrigger.itemUse('leaf-stone'),
+        ),
+        isTrue,
+      );
+      expect(
+        itemCandidate.isEligible(
+          friendly,
+          trigger: const PokemonEvolutionTrigger.itemUse('fire-stone'),
+        ),
+        isFalse,
+      );
+      expect(
+        knownMoveCandidate.isEligible(
+          friendly,
+          trigger: const PokemonEvolutionTrigger.levelUp(),
+        ),
+        isTrue,
+      );
+    });
+
+    test('item evolution consumes one item and preserves ownership metadata',
+        () {
+      const operations = PokemonEvolutionItemOperations();
+      final source = _pokemon(currentHp: 20).copyWith(
+        nickname: 'Pousse',
+        friendship: 187,
+        provenance: const PlayerPokemonProvenance(
+          kind: PlayerPokemonOriginKind.captured,
+          mapId: 'forest',
+          sourceId: 'encounter-1',
+          ballItemId: 'poke-ball',
+          metLevel: 5,
+        ),
+      );
+      final state = GameState(
+        saveId: 'item-evolution',
+        party: PlayerParty(members: <PlayerPokemon>[source]),
+        bag: const Bag(
+          entries: <BagEntry>[
+            BagEntry(
+              itemId: 'leaf-stone',
+              categoryId: 'evolution-items',
+              quantity: 2,
+            ),
+          ],
+        ),
+      );
+
+      final result = operations.useItem(
+        state,
+        itemId: 'leaf-stone',
+        partyIndex: 0,
+        candidate: _candidate(
+          condition: const PokemonEvolutionCondition.item(
+            itemId: 'leaf-stone',
+          ),
+        ),
+        sourceMaxHp: 20,
+      );
+
+      expect(result.isSuccess, isTrue);
+      expect(result.state.party.members.single.speciesId, 'bloomon');
+      expect(result.state.party.members.single.nickname, 'Pousse');
+      expect(result.state.party.members.single.friendship, 187);
+      expect(result.state.party.members.single.provenance, source.provenance);
+      expect(result.state.bag.entries.single.quantity, 1);
+    });
+
+    test('item evolution failure never consumes the item', () {
+      const state = GameState(
+        saveId: 'item-evolution-failure',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'hardy',
+              abilityId: 'overgrow',
+              currentHp: 20,
+            ),
+          ],
+        ),
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(
+              itemId: 'fire-stone',
+              categoryId: 'evolution-items',
+              quantity: 1,
+            ),
+          ],
+        ),
+      );
+
+      final result = const PokemonEvolutionItemOperations().useItem(
+        state,
+        itemId: 'fire-stone',
+        partyIndex: 0,
+        candidate: _candidate(
+          condition: const PokemonEvolutionCondition.item(
+            itemId: 'leaf-stone',
+          ),
+        ),
+        sourceMaxHp: 20,
+      );
+
+      expect(result.isSuccess, isFalse);
+      expect(result.failure, PokemonEvolutionItemUseFailure.conditionNotMet);
+      expect(result.state, same(state));
+      expect(result.state.bag.entries.single.quantity, 1);
+    });
   });
 
   group('BattleProgressionService evolution flow', () {
@@ -152,6 +299,39 @@ void main() {
       expect(result.state.party.members.single.level, 6);
       expect(result.pendingEvolution, isNull);
       expect(result.remainingEvolutionCount, 0);
+    });
+
+    test('friendship and known-move rules are offered after a real level gain',
+        () {
+      final result = service.apply(
+        state: _state(<PlayerPokemon>[
+          _pokemon(currentHp: 19).copyWith(friendship: 220),
+        ]),
+        context: _context(
+          evolutionCandidatesBySlot: <int, List<PokemonEvolutionCandidate>>{
+            0: <PokemonEvolutionCandidate>[
+              _candidate(
+                condition: const PokemonEvolutionCondition.friendship(
+                  minFriendship: 220,
+                  minLevel: 6,
+                ),
+              ),
+              _candidate(
+                opportunityId: 'sproutle:knownMove:growl:branchmon',
+                targetSpeciesId: 'branchmon',
+                condition: const PokemonEvolutionCondition.knownMove(
+                  moveId: 'growl',
+                  minLevel: 6,
+                ),
+              ),
+            ],
+          },
+        ),
+        reward: BattleReward(sourceKind: BattleRewardSourceKind.wild),
+      );
+
+      expect(result.pendingEvolution, isNotNull);
+      expect(result.remainingEvolutionCount, 1);
     });
 
     test(
@@ -456,6 +636,7 @@ PokemonEvolutionCandidate _candidate({
   String sourceSpeciesId = 'sproutle',
   String targetSpeciesId = 'bloomon',
   int minLevel = 6,
+  PokemonEvolutionCondition? condition,
   int targetHp = 95,
   String targetPrimaryAbilityId = 'target_primary',
   List<String> targetAbilityIds = const <String>['target_primary'],
@@ -464,7 +645,8 @@ PokemonEvolutionCandidate _candidate({
     opportunityId: opportunityId,
     sourceSpeciesId: sourceSpeciesId,
     targetSpeciesId: targetSpeciesId,
-    minLevel: minLevel,
+    minLevel: condition == null ? minLevel : null,
+    condition: condition,
     targetBaseStats: PokemonBaseStats(
       hp: targetHp,
       attack: 80,

@@ -105,6 +105,7 @@ class PokeApiPokemonEvolutionConverter {
             targetSpeciesId: targetSpeciesId,
             method: _readMethod(detail),
             minLevel: (detail['min_level'] as num?)?.toInt(),
+            minFriendship: (detail['min_happiness'] as num?)?.toInt(),
             itemId: _readOptionalNamedResourceId(detail['item']),
             // Le modèle supporte déjà `requiredMoveId`, donc on n'abandonne pas
             // cette information dans `conditionText`.

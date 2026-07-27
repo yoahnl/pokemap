@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:path/path.dart' as p;
 
+import '../application/runtime_pokemon_evolution_loader.dart';
 import 'runtime_player_pause_data.dart';
 
 /// Builds player-facing pause data from the runtime's live state.
@@ -37,6 +38,11 @@ final class RuntimePlayerPauseDataBuilder {
       locale: locale,
       isFrench: isFrench,
     );
+    final evolutionItemIds = await _loadEvolutionItemIds(
+      gameState,
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+    );
 
     return immutableRuntimePlayerPauseDetails(
       <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{
@@ -50,6 +56,7 @@ final class RuntimePlayerPauseDataBuilder {
           gameState,
           isFrench: isFrench,
           targets: bagTargets,
+          evolutionItemIds: evolutionItemIds,
         ),
         if (pokemonConfig.enabled)
           RuntimePlayerPauseSection.pokedex: _buildPokedex(
@@ -192,6 +199,7 @@ final class RuntimePlayerPauseDataBuilder {
     GameState gameState, {
     required bool isFrench,
     required List<RuntimePlayerBagPartyTargetSnapshot> targets,
+    required Set<String> evolutionItemIds,
   }) {
     final entries =
         gameState.bag.entries.where((entry) => entry.quantity > 0).map((entry) {
@@ -199,6 +207,7 @@ final class RuntimePlayerPauseDataBuilder {
           const PlayerItemEffectRegistry.mvp().effectFor(entry.itemId);
       final isKeyItem = effect?.kind == PlayerItemEffectKind.keyItem ||
           _isKeyItemCategory(entry.categoryId);
+      final isEvolutionItem = evolutionItemIds.contains(entry.itemId);
       final targetKind = effect?.kind == PlayerItemEffectKind.restorePp
           ? RuntimePlayerBagUseTargetKind.partyMove
           : RuntimePlayerBagUseTargetKind.partyMember;
@@ -222,7 +231,7 @@ final class RuntimePlayerPauseDataBuilder {
               PlayerItemEffectKind.ballMetadata => isFrench
                   ? 'Cet objet s’utilise uniquement en combat.'
                   : 'This item can only be used in battle.',
-              null => isFrench
+              null when !isEvolutionItem => isFrench
                   ? 'Cet objet n’a pas d’effet utilisable ici.'
                   : 'This item has no usable effect here.',
               _ => null,
@@ -248,6 +257,41 @@ final class RuntimePlayerPauseDataBuilder {
       emptyMessage:
           isFrench ? 'Le sac est vide.' : 'There are no items in the bag.',
     );
+  }
+
+  Future<Set<String>> _loadEvolutionItemIds(
+    GameState gameState, {
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+  }) async {
+    final itemIds = <String>{};
+    final loadedSpeciesIds = <String>{};
+    final loader = RuntimePokemonEvolutionLoader();
+    for (final pokemon in gameState.party.members) {
+      if (!loadedSpeciesIds.add(pokemon.speciesId)) continue;
+      try {
+        final candidates = await loader.loadItemUseCandidates(
+          projectRootDirectory: projectRootDirectory,
+          pokemonConfig: pokemonConfig,
+          sourceSpeciesId: pokemon.speciesId,
+        );
+        itemIds.addAll(
+          candidates
+              .where(
+                (candidate) => candidate.isEligible(
+                  pokemon,
+                  trigger: PokemonEvolutionTrigger.itemUse(
+                    candidate.condition.itemId!,
+                  ),
+                ),
+              )
+              .map((candidate) => candidate.condition.itemId!),
+        );
+      } on Object {
+        // Pause data remains available when optional evolution data is absent.
+      }
+    }
+    return Set<String>.unmodifiable(itemIds);
   }
 
   List<RuntimePlayerBagPartyTargetSnapshot> _buildBagTargets(
