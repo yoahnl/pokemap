@@ -18,13 +18,18 @@ FG-185 reste ouvert après l'exécution Phase 7A. Les preuves fraîches sont :
   commandes à `exitCode=0`, commit `6053c43e9` ;
 - `RM-071` : build Hub macOS release réussi et bundle universel valide, mais
   launch local durci bloqué sans Developer ID, aucune notarisation ni
-  walkthrough humain, commit `fe4bf6ea9`.
+  walkthrough humain, commit `fe4bf6ea9` ;
+- `RM-072` : rapports autoritaires, archives et dashboard réconciliés ;
+- `RM-073` : candidat propre `79b1e8750`, projet et package liés par SHA-256,
+  package inspecté/installé, 19/19 sans raccourci et matrice 20/20 agrégés dans
+  `reports/gameplay/evidence/rm_073_mvp_release_gate_receipt.json`.
 
 Les receipts structurés correspondants vivent sous
 `reports/gameplay/evidence/`. Ils remplacent les assertions documentaires
-anciennes pour ces trois lots, mais ils ne satisfont pas la gate finale :
-`RM-073` n'est pas encore produit et le walkthrough humain manque. Verdict
-autoritaire : **PARTIAL / NO-GO**.
+anciennes. `RM-073` est produit et son verdict autoritaire est
+**PARTIAL / NO-GO** : le walkthrough humain lié au même candidat manque et la
+distribution macOS reste ad-hoc, non notarisée, non acceptée par Gatekeeper et
+non validée par cold install.
 
 Le contrat pur continue de séparer déclaration et exécution. Un
 `executedEvidence` ne peut être créé que depuis un
@@ -50,7 +55,8 @@ Le correctif ferme cette voie:
 - statut exécuté dérivé de `exitCode == 0`;
 - missing/duplicate classés `gateGeneratedBlocker`, jamais déclaration.
 
-La roadmap n'est pas modifiée: FG-185 reste `PARTIAL / NO-GO`.
+La roadmap reste honnêtement sur FG-185 `PARTIAL / NO-GO`. La case du receipt
+RM-073 est fermée, mais aucun `DONE / GO` n'est revendiqué.
 
 ## Lot et scope
 

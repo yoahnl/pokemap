@@ -14,7 +14,8 @@ Les livrables techniques FG-180 à FG-184 restent acquis. La Phase 7A ajoute
 une preuve installée des 19 critères (`RM-069`) et une matrice monorepo fraîche
 20/20 (`RM-070`). Le build Hub macOS release réussit, mais sa distribution
 Developer ID/notarisée, son cold install et le walkthrough humain ne sont pas
-prouvés (`RM-071`). `RM-073` reste à produire.
+prouvés (`RM-071`). `RM-073` est maintenant produit pour le candidat propre
+`79b1e8750` et rend donc le verdict attendu : `NO-GO`.
 
 FG-185 reste donc `PARTIAL / NO-GO`. Aucun snapshot historique `DONE / GO` ne
 remplace ces receipts courants.
@@ -32,7 +33,7 @@ signée. Aucun autre lot FG-180 à FG-184 n'est reclassé ici.
 | FG-182 | DONE inchangé | hors scope de cette correction |
 | FG-183 | DONE inchangé | hors scope de cette correction |
 | FG-184 | DONE inchangé | hors scope de cette correction |
-| FG-185 | PARTIAL / NO-GO | RM-069/RM-070 verts ; RM-071 partiel ; RM-073 et walkthrough humain manquants |
+| FG-185 | PARTIAL / NO-GO | RM-069/RM-070/RM-072 verts ; RM-073 produit ; RM-071 et walkthrough humain bloquants |
 
 ## Matrice FG-185 autoritaire
 
@@ -43,11 +44,12 @@ signée. Aucun autre lot FG-180 à FG-184 n'est reclassé ici.
 | Golden journey installé, 19 critères | oui, `RM-069` | PASSED |
 | Matrice monorepo 20/20 | oui, `RM-070` | PASSED |
 | Build/distribution/device QA | build seul, `RM-071` | PARTIAL / BLOCKER |
-| Receipt final `RM-073` | non | BLOCKER |
+| Receipt final `RM-073` | oui, candidat `79b1e8750` | NO-GO documenté |
 | Walkthrough humain | non | BLOCKER |
 
-Décision: **NO-GO** jusqu'à satisfaction de `RM-071` et production de
-`RM-073`.
+Décision: **NO-GO** jusqu'à satisfaction de `RM-071` et validation d'un
+walkthrough humain cohérent avec le candidat, l'arbre projet et le package
+signés par `RM-073`.
 
 ## Annexe historique superseded — non autoritaire
 

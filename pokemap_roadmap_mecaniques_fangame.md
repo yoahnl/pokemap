@@ -1763,7 +1763,7 @@ Objectif : prouver qu’un vrai mini-fangame peut être créé et terminé.
 | FG-182 | Golden Slice End-to-End Smoke V0 | `✅ DONE` | `reports/gameplay/fg_182_golden_slice_end_to_end_smoke_v0.md` |
 | FG-183 | Regression Matrix V0 | `✅ DONE` | `reports/gameplay/fg_183_regression_matrix_v0.md` |
 | FG-184 | Roadmap Status Dashboard Generator V0 | `✅ DONE` | `reports/gameplay/fg_184_roadmap_status_dashboard_generator_v0.md` |
-| FG-185 | MVP Release Gate V0 | `🟡 PARTIAL` | `reports/gameplay/fg_185_mvp_release_gate_v0.md` — RM-069/RM-070 verts ; RM-071 partiel ; RM-073 et walkthrough humain manquants |
+| FG-185 | MVP Release Gate V0 | `🟡 PARTIAL` | `reports/gameplay/fg_185_mvp_release_gate_v0.md` — RM-069/RM-070/RM-072 verts ; RM-073 produit avec verdict NO-GO ; RM-071 et walkthrough humain bloquants |
 
 ## FG-180 — Project Gameplay Readiness Report V0
 
@@ -1870,10 +1870,12 @@ Objectif : prouver qu’un vrai mini-fangame peut être créé et terminé.
 
 **But :** décider objectivement “PokeMap est un outil fangame MVP”.
 
-**État vérifié le 2026-07-27 : `PARTIAL / NO-GO`.** Le golden journey installé
-et la matrice monorepo sont verts (`RM-069`, `RM-070`). Le build macOS release
-est vert, mais Developer ID/notarisation/cold install/walkthrough humain ne
-sont pas prouvés (`RM-071`) et le receipt final `RM-073` manque.
+**État vérifié le 2026-07-27 : `PARTIAL / NO-GO`.** Le golden journey installé,
+la matrice monorepo et la réconciliation sont verts (`RM-069`, `RM-070`,
+`RM-072`). Le receipt final `RM-073` lie un candidat propre, le projet, le
+package inspecté/installé et ces preuves, puis conclut honnêtement `NO-GO` :
+Developer ID/notarisation/cold install et walkthrough humain ne sont pas
+prouvés (`RM-071`).
 Voir `reports/gameplay/fg_185_mvp_release_gate_v0.md`.
 
 ### DoD
@@ -1884,7 +1886,7 @@ Voir `reports/gameplay/fg_185_mvp_release_gate_v0.md`.
 - [x] Tests package critiques verts.
 - [x] Limitations post-MVP listées.
 - [x] Utilisateur valide le périmètre.
-- [ ] Receipt `RM-073` produit avec commit candidat, dirty-state, fingerprint projet, package installé, tests/analyzes/builds et walkthrough humain cohérents.
+- [x] Receipt `RM-073` produit avec commit candidat, dirty-state, fingerprint projet, package installé, tests/analyzes/builds et état du walkthrough humain cohérents ; verdict `NO-GO` tant que RM-071 et la recette humaine restent incomplets.
 ```
 
 ---
