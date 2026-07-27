@@ -27,6 +27,8 @@ void main() {
           Platform.environment['POKEMAP_PHASE7B_PACKAGE_OUTPUT'];
       final evidenceSupportRootPath =
           Platform.environment['POKEMAP_PHASE7B_SUPPORT_ROOT'];
+      final studioPackageInputPath =
+          Platform.environment['POKEMAP_PHASE6_PACKAGE_INPUT'];
       final evidenceMode = evidenceOutputPath != null ||
           evidencePackagePath != null ||
           evidenceSupportRootPath != null;
@@ -45,31 +47,39 @@ void main() {
         'phase-6-personalization-e2e-',
       );
       addTearDown(() => root.delete(recursive: true));
-      final profile = await _readGoldenPresentation();
-      final payload = <String, List<int>>{
-        ...runtimeOwnedPlayerFixturePayload(),
-        ..._presentationPayload(),
-      };
-      final built = const GamePackageBuilder().build(
-        manifest: _manifest(profile),
-        payloadFiles: payload,
-      );
       final compatibility = _hostCompatibility();
       final inspector = GamePackageInspector(
         hostCompatibility: compatibility,
       );
-      final inspection = inspector.inspect(built.packageBytes);
+      late final File packageFile;
+      if (studioPackageInputPath != null) {
+        packageFile = File(studioPackageInputPath);
+        if (!await packageFile.exists()) {
+          fail('POKEMAP_PHASE6_PACKAGE_INPUT does not exist.');
+        }
+      } else {
+        final profile = await _readGoldenPresentation();
+        final payload = <String, List<int>>{
+          ...runtimeOwnedPlayerFixturePayload(),
+          ..._presentationPayload(),
+        };
+        final built = const GamePackageBuilder().build(
+          manifest: _manifest(profile),
+          payloadFiles: payload,
+        );
+        packageFile = File(
+          evidencePackagePath ??
+              p.join(root.path, 'golden-personalization.pokemapgame'),
+        );
+        if (evidenceMode && await packageFile.exists()) {
+          fail('The Phase 7B package output must not already exist.');
+        }
+        await packageFile.parent.create(recursive: true);
+        await packageFile.writeAsBytes(built.packageBytes, flush: true);
+      }
+      final inspection = inspector.inspect(await packageFile.readAsBytes());
       final preflight =
           const GamePackagePersonalizationPreflight().certify(inspection);
-      final packageFile = File(
-        evidencePackagePath ??
-            p.join(root.path, 'golden-personalization.pokemapgame'),
-      );
-      if (evidenceMode && await packageFile.exists()) {
-        fail('The Phase 7B package output must not already exist.');
-      }
-      await packageFile.parent.create(recursive: true);
-      await packageFile.writeAsBytes(built.packageBytes, flush: true);
 
       var installSmokePassed = false;
       final supportRoot = Directory(
@@ -104,7 +114,17 @@ void main() {
 
       expect(installSmokePassed, isTrue);
       expect(preflight.packageSha256, inspection.receipt.packageSha256);
-      expect(preflight.assetSha256, hasLength(7));
+      expect(preflight.assetSha256.length, greaterThanOrEqualTo(7));
+      expect(
+        preflight.assetSha256.keys,
+        containsAll(<String>[
+          'presentation/icon.png',
+          'presentation/intro/video.mp4',
+          'presentation/intro/poster.png',
+          'presentation/fonts/display.ttf',
+          'presentation/fonts/display-license.txt',
+        ]),
+      );
       expect(
         presentation.title.layoutVariant,
         PlayerTitleLayoutVariant.cinematic,
@@ -332,8 +352,8 @@ GamePackageHostCompatibility _hostCompatibility() =>
       hubVersion: Version(1, 0, 0),
       runtimeApiVersion: Version(1, 0, 0),
       capabilities: const <String>{'map@1'},
-      supportedProjectFormats: const <String>{'v1'},
-      currentProjectFormat: 'v1',
+      supportedProjectFormats: const <String>{'v1', 'v2'},
+      currentProjectFormat: 'v2',
       supportedSaveFormats: const <int>{1},
     );
 
