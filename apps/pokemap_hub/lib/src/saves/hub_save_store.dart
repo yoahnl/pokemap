@@ -208,9 +208,17 @@ final class HubSaveStore {
         // Non-slot directories and hostile entries are ignored, never followed.
       }
     }
-    summaries.sort(
-      (left, right) => left.address.slotId.compareTo(right.address.slotId),
-    );
+    summaries.sort((left, right) {
+      final byRecency = switch ((left.updatedAt, right.updatedAt)) {
+        (final leftDate?, final rightDate?) => rightDate.compareTo(leftDate),
+        (null, DateTime()) => 1,
+        (DateTime(), null) => -1,
+        (null, null) => 0,
+      };
+      return byRecency != 0
+          ? byRecency
+          : left.address.slotId.compareTo(right.address.slotId);
+    });
     return List<SaveSlotSummary>.unmodifiable(summaries);
   }
 
@@ -256,10 +264,16 @@ final class HubSaveStore {
       }
     }
     if (candidates.isEmpty) return null;
-    candidates.sort(
-      (left, right) =>
-          right.envelope!.updatedAt.compareTo(left.envelope!.updatedAt),
-    );
+    candidates.sort((left, right) {
+      final byRecency =
+          right.envelope!.updatedAt.compareTo(left.envelope!.updatedAt);
+      if (byRecency != 0) return byRecency;
+      final byProfile =
+          left.address.profileId.compareTo(right.address.profileId);
+      return byProfile != 0
+          ? byProfile
+          : left.address.slotId.compareTo(right.address.slotId);
+    });
     return candidates.first;
   }
 

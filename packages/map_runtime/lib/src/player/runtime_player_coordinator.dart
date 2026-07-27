@@ -420,6 +420,12 @@ final class RuntimePlayerCoordinator {
             logicalSelectionId: logicalSelectionId,
             failure: saved ? null : _sessions.snapshot.failure,
             clearFailure: saved,
+            saveReceipt: saved
+                ? RuntimePlayerSaveReceipt(
+                    address: _activeSaveAddress!,
+                    trigger: GameSessionCheckpointTrigger.manual,
+                  )
+                : null,
           );
           boundary.complete(saved);
           return RuntimePlayerCommandResult(
@@ -848,6 +854,8 @@ final class RuntimePlayerCoordinator {
         clearCredits: true,
         clearLogicalSelection: true,
         clearWorldService: true,
+        clearActiveSaveAddress: true,
+        clearSaveReceipt: true,
         preferences: _preferences,
         actions: _titleActions,
       ),
@@ -855,6 +863,7 @@ final class RuntimePlayerCoordinator {
   }
 
   void _publishPlaying() {
+    final activeSaveAddress = _activeSaveAddress;
     _publish(
       _snapshot.next(
         phase: RuntimePlayerPhase.playing,
@@ -863,6 +872,8 @@ final class RuntimePlayerCoordinator {
         clearLoadingProgress: true,
         clearFailure: true,
         clearWorldService: true,
+        activeSaveAddress: activeSaveAddress,
+        clearSaveReceipt: true,
         actions: const <RuntimePlayerActionAvailability>[
           RuntimePlayerActionAvailability.enabled(
             RuntimePlayerAction.openMenu,
@@ -879,6 +890,7 @@ final class RuntimePlayerCoordinator {
     bool clearFailure = false,
     Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>?
         pauseDetails,
+    RuntimePlayerSaveReceipt? saveReceipt,
   }) {
     final effectivePauseDetails = pauseDetails ?? _snapshot.pauseDetails;
     _publish(
@@ -889,11 +901,22 @@ final class RuntimePlayerCoordinator {
         failure: failure,
         clearFailure: clearFailure,
         pauseDetails: effectivePauseDetails,
+        saveReceipt: saveReceipt,
         actions: _pauseActions(
           includeReturnToRoot: section != RuntimePlayerPauseSection.root,
           pauseDetails: effectivePauseDetails,
         ),
       ),
+    );
+  }
+
+  RuntimePlayerSaveAddress? get _activeSaveAddress {
+    final descriptor = _sessions.snapshot.descriptor;
+    if (descriptor == null) return null;
+    return RuntimePlayerSaveAddress(
+      gameId: descriptor.identity.gameId,
+      profileId: descriptor.profileId,
+      slotId: descriptor.slotId,
     );
   }
 

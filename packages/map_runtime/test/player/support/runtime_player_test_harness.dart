@@ -8,6 +8,7 @@ final class RuntimePlayerTestHarness {
     PlayerSaveSummary? latestSave,
     Future<void>? descriptorGate,
     Object? descriptorError,
+    GameSessionSavePolicy savePolicy = const GameSessionSavePolicy(),
   })  : source = MemoryRuntimeGameSource(
           descriptorGate: descriptorGate,
           descriptorError: descriptorError,
@@ -25,6 +26,7 @@ final class RuntimePlayerTestHarness {
         return adapter;
       },
       commitCheckpoint: saves.commit,
+      savePolicy: savePolicy,
     );
     coordinator = RuntimePlayerCoordinator(
       gameSource: source,

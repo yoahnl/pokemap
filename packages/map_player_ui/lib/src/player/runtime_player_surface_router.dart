@@ -6,6 +6,7 @@ import 'package:map_runtime/map_runtime.dart';
 import '../foundation/player_action_availability.dart';
 import '../localization/player_localizations.dart';
 import 'player_pause_menu.dart';
+import 'player_save_strings.dart';
 import 'player_session_surfaces.dart';
 import 'player_title_screen.dart';
 import 'runtime_player_actions.dart';
@@ -105,7 +106,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
             for (final action in PlayerPauseAction.values)
               action: _pauseAvailability(context, action),
           },
-          onSelected: (action) => _dispatch(_pauseAction(action)),
+          onSelected: (action) => _dispatchPauseAction(context, action),
           onBackToRoot: () => _dispatch(
             snapshot.pauseSection == null ||
                     snapshot.pauseSection == RuntimePlayerPauseSection.root
@@ -115,6 +116,9 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
           onTouchMenu: _callbackFor(RuntimePlayerAction.resume),
           activeInputSource: snapshot.activeInputSource,
           logicalSelectionId: snapshot.logicalSelectionId,
+          saveMessage: snapshot.saveReceipt == null
+              ? null
+              : PlayerSaveStrings.of(context).saved(snapshot.saveReceipt!),
           detail: RuntimePlayerDetailRouter(
             snapshot: snapshot,
             onPreferencesChanged: onPreferencesChanged,
@@ -198,6 +202,42 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
 
   void _dispatch(RuntimePlayerAction action) {
     unawaited(onAction(action));
+  }
+
+  void _dispatchPauseAction(
+    BuildContext context,
+    PlayerPauseAction action,
+  ) {
+    if (action != PlayerPauseAction.save) {
+      _dispatch(_pauseAction(action));
+      return;
+    }
+    final address = snapshot.activeSaveAddress;
+    if (address == null) return;
+    final strings = PlayerSaveStrings.of(context);
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(strings.title),
+        content: Text(strings.target(address)),
+        actions: <Widget>[
+          TextButton(
+            key: const ValueKey<String>('runtime-save-cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            key: const ValueKey<String>('runtime-save-confirm'),
+            autofocus: true,
+            onPressed: () {
+              Navigator.of(context).pop();
+              _dispatch(RuntimePlayerAction.save);
+            },
+            child: Text(strings.confirm),
+          ),
+        ],
+      ),
+    );
   }
 
   PlayerActionAvailability _titleAvailability(

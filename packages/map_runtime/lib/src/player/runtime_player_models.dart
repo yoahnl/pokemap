@@ -46,6 +46,39 @@ enum RuntimePlayerAction {
   cancel,
 }
 
+final class RuntimePlayerSaveAddress {
+  const RuntimePlayerSaveAddress({
+    required this.gameId,
+    required this.profileId,
+    required this.slotId,
+  });
+
+  final String gameId;
+  final String profileId;
+  final String slotId;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RuntimePlayerSaveAddress &&
+          gameId == other.gameId &&
+          profileId == other.profileId &&
+          slotId == other.slotId;
+
+  @override
+  int get hashCode => Object.hash(gameId, profileId, slotId);
+}
+
+final class RuntimePlayerSaveReceipt {
+  const RuntimePlayerSaveReceipt({
+    required this.address,
+    required this.trigger,
+  });
+
+  final RuntimePlayerSaveAddress address;
+  final GameSessionCheckpointTrigger trigger;
+}
+
 /// Explicit UI availability for one runtime-owned player action.
 final class RuntimePlayerActionAvailability {
   const RuntimePlayerActionAvailability.enabled(this.action)
@@ -140,6 +173,8 @@ final class RuntimePlayerSnapshot {
     this.activeInputSource,
     this.worldService,
     this.preferences,
+    this.activeSaveAddress,
+    this.saveReceipt,
     Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot> pauseDetails =
         const <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{},
   })  : actions = List<RuntimePlayerActionAvailability>.unmodifiable(actions),
@@ -193,6 +228,8 @@ final class RuntimePlayerSnapshot {
   final PlayerInputSource? activeInputSource;
   final RuntimeWorldServiceSnapshot? worldService;
   final PlayerPreferencesSnapshot? preferences;
+  final RuntimePlayerSaveAddress? activeSaveAddress;
+  final RuntimePlayerSaveReceipt? saveReceipt;
   final Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
       pauseDetails;
 
@@ -231,6 +268,10 @@ final class RuntimePlayerSnapshot {
     RuntimeWorldServiceSnapshot? worldService,
     bool clearWorldService = false,
     PlayerPreferencesSnapshot? preferences,
+    RuntimePlayerSaveAddress? activeSaveAddress,
+    bool clearActiveSaveAddress = false,
+    RuntimePlayerSaveReceipt? saveReceipt,
+    bool clearSaveReceipt = false,
     Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>?
         pauseDetails,
     bool clearPauseDetails = false,
@@ -256,6 +297,10 @@ final class RuntimePlayerSnapshot {
       worldService:
           clearWorldService ? null : worldService ?? this.worldService,
       preferences: preferences ?? this.preferences,
+      activeSaveAddress: clearActiveSaveAddress
+          ? null
+          : activeSaveAddress ?? this.activeSaveAddress,
+      saveReceipt: clearSaveReceipt ? null : saveReceipt ?? this.saveReceipt,
       pauseDetails: clearPauseDetails
           ? const <RuntimePlayerPauseSection,
               RuntimePlayerPauseDetailSnapshot>{}

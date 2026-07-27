@@ -228,13 +228,22 @@ void main() {
   testWidgets('Save dispatches only the runtime save command', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
     addTearDown(tester.view.reset);
+    addTearDown(
+      tester.platformDispatcher.clearTextScaleFactorTestValue,
+    );
     final actions = <RuntimePlayerAction>[];
     final snapshot = RuntimePlayerSnapshot(
       revision: 12,
       phase: RuntimePlayerPhase.paused,
       gameTitle: 'Aube',
       pauseSection: RuntimePlayerPauseSection.root,
+      activeSaveAddress: const RuntimePlayerSaveAddress(
+        gameId: 'com.example.aube',
+        profileId: 'karim',
+        slotId: 'slot-2',
+      ),
       actions: const <RuntimePlayerActionAvailability>[
         RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.resume),
         RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.save),
@@ -256,7 +265,67 @@ void main() {
     )));
 
     await tester.tap(find.text('Sauvegarder'));
+    await tester.pumpAndSettle();
+    expect(actions, isEmpty);
+    expect(
+      find.text('Profil « karim », slot « slot-2 ».'),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('runtime-save-confirm')),
+    );
+    await tester.pumpAndSettle();
     expect(actions, <RuntimePlayerAction>[RuntimePlayerAction.save]);
+  });
+
+  testWidgets('manual Save receipt names the persisted profile and slot',
+      (tester) async {
+    const address = RuntimePlayerSaveAddress(
+      gameId: 'com.example.aube',
+      profileId: 'karim',
+      slotId: 'slot-2',
+    );
+    final snapshot = RuntimePlayerSnapshot(
+      revision: 13,
+      phase: RuntimePlayerPhase.paused,
+      gameTitle: 'Aube',
+      pauseSection: RuntimePlayerPauseSection.root,
+      activeSaveAddress: address,
+      saveReceipt: const RuntimePlayerSaveReceipt(
+        address: address,
+        trigger: GameSessionCheckpointTrigger.manual,
+      ),
+      actions: const <RuntimePlayerActionAvailability>[
+        RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.resume),
+        RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.save),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerSurfaceRouter(
+          snapshot: snapshot,
+          titlePresentation: const RuntimePlayerTitlePresentation(
+            author: 'Studio Test',
+          ),
+          gameSceneBuilder: (_) => const SizedBox.expand(),
+          onAction: (_) async => const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.accepted,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('runtime-save-receipt')),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Partie sauvegardée — profil « karim », slot « slot-2 ».',
+      ),
+      findsOneWidget,
+    );
   });
 }
 

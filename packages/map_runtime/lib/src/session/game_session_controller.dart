@@ -21,6 +21,7 @@ final class GameSessionController
   GameSessionController({
     required GameSessionAdapterFactory adapterFactory,
     required GameSessionCheckpointCommitter commitCheckpoint,
+    this.savePolicy = const GameSessionSavePolicy(),
     this.prepareTimeout = const Duration(seconds: 30),
     this.startTimeout = const Duration(seconds: 30),
     this.stopTimeout = const Duration(seconds: 5),
@@ -35,6 +36,7 @@ final class GameSessionController
 
   final GameSessionAdapterFactory _adapterFactory;
   final GameSessionCheckpointCommitter _commitCheckpoint;
+  final GameSessionSavePolicy savePolicy;
   final Duration prepareTimeout;
   final Duration startTimeout;
   final Duration stopTimeout;
@@ -118,7 +120,11 @@ final class GameSessionController
       if (result.status != RuntimePlayerPauseCommandStatus.accepted) {
         return result;
       }
-      final saved = await _captureAndCommit(SaveStatus.active);
+      if (!savePolicy.autosaveAfterPauseMutation) return result;
+      final saved = await _captureAndCommit(
+        SaveStatus.active,
+        trigger: GameSessionCheckpointTrigger.pauseMutation,
+      );
       if (!saved) {
         return const RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.failed,
@@ -306,6 +312,14 @@ final class GameSessionController
         );
         rethrow;
       }
+      if (savePolicy.autosaveOnLifecyclePause &&
+          (resumeState == GameSessionState.running ||
+              resumeState == GameSessionState.paused)) {
+        await _captureAndCommit(
+          SaveStatus.active,
+          trigger: GameSessionCheckpointTrigger.lifecyclePause,
+        );
+      }
       _publish(
         _snapshot.copyWith(
           state: GameSessionState.lifecyclePaused,
@@ -348,7 +362,9 @@ final class GameSessionController
     });
   }
 
-  Future<bool> requestCheckpoint() {
+  Future<bool> requestCheckpoint({
+    GameSessionCheckpointTrigger trigger = GameSessionCheckpointTrigger.manual,
+  }) {
     return _serialize(() async {
       _requireState(
         const <GameSessionState>{
@@ -358,7 +374,7 @@ final class GameSessionController
         },
         'requestCheckpoint',
       );
-      return _captureAndCommit(SaveStatus.active);
+      return _captureAndCommit(SaveStatus.active, trigger: trigger);
     });
   }
 
@@ -605,6 +621,7 @@ final class GameSessionController
           descriptor: _snapshot.descriptor!,
           checkpoint: completion.finalCheckpoint,
           status: SaveStatus.completed,
+          trigger: GameSessionCheckpointTrigger.completion,
           completedAt: completion.completedAt,
         ),
       );
@@ -640,7 +657,10 @@ final class GameSessionController
     }
   }
 
-  Future<bool> _captureAndCommit(SaveStatus status) async {
+  Future<bool> _captureAndCommit(
+    SaveStatus status, {
+    required GameSessionCheckpointTrigger trigger,
+  }) async {
     final checkpoint = await _adapter!.captureCheckpoint();
     if (checkpoint == null) return true;
     try {
@@ -649,6 +669,7 @@ final class GameSessionController
           descriptor: _snapshot.descriptor!,
           checkpoint: checkpoint,
           status: status,
+          trigger: trigger,
         ),
       );
       return true;
@@ -690,9 +711,13 @@ final class GameSessionController
     };
     _requireState(stoppable, 'stop');
     if (checkpoint &&
+        savePolicy.autosaveOnSessionExit &&
         (_snapshot.state == GameSessionState.running ||
             _snapshot.state == GameSessionState.paused)) {
-      final saved = await _captureAndCommit(SaveStatus.active);
+      final saved = await _captureAndCommit(
+        SaveStatus.active,
+        trigger: GameSessionCheckpointTrigger.sessionExit,
+      );
       if (!saved && !abandonCheckpointFailure) {
         throw const GameSessionException(
           GameSessionErrorCode.checkpointRejected,

@@ -9,6 +9,7 @@ void main() {
     final harness = RuntimePlayerTestHarness();
     addTearDown(harness.dispose);
     await launchHarnessToPlaying(harness);
+    harness.adapter.checkpoint = testPlayerCheckpoint();
 
     await harness.coordinator.pauseForLifecycle();
     await harness.coordinator.pauseForLifecycle();
@@ -25,6 +26,12 @@ void main() {
       harness.adapter.calls.where((call) => call == 'pause'),
       hasLength(1),
     );
+    expect(harness.saves.commits, hasLength(1));
+    expect(
+      harness.saves.commits.single.trigger,
+      GameSessionCheckpointTrigger.lifecyclePause,
+    );
+    expect(harness.saves.commits.single.isAutosave, isTrue);
 
     await harness.coordinator.resumeFromLifecycle();
     await harness.coordinator.resumeFromLifecycle();
@@ -66,6 +73,25 @@ void main() {
     );
   });
 
+  test('lifecycle autosave follows the explicit session save policy', () async {
+    final harness = RuntimePlayerTestHarness(
+      savePolicy: const GameSessionSavePolicy(
+        autosaveOnLifecyclePause: false,
+      ),
+    );
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    harness.adapter.checkpoint = testPlayerCheckpoint();
+
+    await harness.coordinator.pauseForLifecycle();
+
+    expect(harness.saves.commits, isEmpty);
+    expect(
+      harness.sessions.snapshot.state,
+      GameSessionState.lifecyclePaused,
+    );
+  });
+
   test('return to title checkpoints and disposes before publishing title',
       () async {
     final harness = RuntimePlayerTestHarness();
@@ -91,6 +117,10 @@ void main() {
 
     expect(result.status, RuntimePlayerCommandStatus.accepted);
     expect(harness.saves.commits.single.status, SaveStatus.active);
+    expect(
+      harness.saves.commits.single.trigger,
+      GameSessionCheckpointTrigger.sessionExit,
+    );
     expect(harness.sessions.snapshot.state, GameSessionState.disposed);
     expect(harness.adapter.disposeCalls, 1);
     expect(disposeCallsWhenTitlePublished, 1);

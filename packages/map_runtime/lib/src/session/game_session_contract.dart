@@ -245,6 +245,32 @@ final class GameSessionCheckpoint {
   final Map<String, Object?> state;
 }
 
+enum GameSessionCheckpointTrigger {
+  manual,
+  pauseMutation,
+  lifecyclePause,
+  sessionExit,
+  completion,
+}
+
+extension GameSessionCheckpointTriggerPolicy on GameSessionCheckpointTrigger {
+  bool get isAutosave =>
+      this != GameSessionCheckpointTrigger.manual &&
+      this != GameSessionCheckpointTrigger.completion;
+}
+
+final class GameSessionSavePolicy {
+  const GameSessionSavePolicy({
+    this.autosaveAfterPauseMutation = true,
+    this.autosaveOnLifecyclePause = true,
+    this.autosaveOnSessionExit = true,
+  });
+
+  final bool autosaveAfterPauseMutation;
+  final bool autosaveOnLifecyclePause;
+  final bool autosaveOnSessionExit;
+}
+
 final class GameResultSnapshot {
   const GameResultSnapshot({
     required this.title,
@@ -347,13 +373,17 @@ final class GameSessionCheckpointCommit {
     required this.descriptor,
     required this.checkpoint,
     required this.status,
+    this.trigger = GameSessionCheckpointTrigger.manual,
     this.completedAt,
   });
 
   final GameSessionPublicContext descriptor;
   final GameSessionCheckpoint checkpoint;
   final SaveStatus status;
+  final GameSessionCheckpointTrigger trigger;
   final DateTime? completedAt;
+
+  bool get isAutosave => trigger.isAutosave;
 }
 
 typedef GameSessionCheckpointCommitter = Future<void> Function(

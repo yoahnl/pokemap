@@ -101,6 +101,23 @@ void main() {
       ),
     );
     expect(save.status, RuntimePlayerCommandStatus.accepted);
+    expect(
+      harness.saves.commits.single.trigger,
+      GameSessionCheckpointTrigger.manual,
+    );
+    expect(harness.saves.commits.single.isAutosave, isFalse);
+    expect(
+      harness.coordinator.snapshot.activeSaveAddress,
+      RuntimePlayerSaveAddress(
+        gameId: harness.source.identity.gameId,
+        profileId: 'player',
+        slotId: 'slot_1',
+      ),
+    );
+    expect(
+      harness.coordinator.snapshot.saveReceipt?.address.slotId,
+      'slot_1',
+    );
 
     final title = await harness.coordinator.dispatch(
       RuntimePlayerCommand(

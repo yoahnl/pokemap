@@ -144,6 +144,37 @@ void main() {
     );
   });
 
+  test('Load requires an explicit slot and keeps a distinct launch mode',
+      () async {
+    final seed = RuntimePlayerTestHarness();
+    final save = compatiblePlayerSave(seed.source.identity);
+    await seed.dispose();
+    final harness = RuntimePlayerTestHarness(latestSave: save);
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    final result = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.load,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'player',
+          slotId: 'slot_1',
+        ),
+      ),
+    );
+
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(
+      harness.source.requests.single.launchMode,
+      GameSessionLaunchMode.load,
+    );
+    expect(
+      harness.source.requests.single.saveReadHandle,
+      'save:player:slot_1',
+    );
+  });
+
   test('rejects stale and duplicate title commands without a second session',
       () async {
     final gate = Completer<void>();

@@ -24,6 +24,7 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.activeInputSource,
     this.logicalSelectionId,
     this.focusController,
+    this.saveMessage,
   });
 
   final String gameTitle;
@@ -36,6 +37,7 @@ class RuntimePlayerPauseShell extends StatefulWidget {
   final PlayerInputSource? activeInputSource;
   final String? logicalSelectionId;
   final RuntimePlayerFocusController? focusController;
+  final String? saveMessage;
 
   @override
   State<RuntimePlayerPauseShell> createState() =>
@@ -193,6 +195,35 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                                 height: 56,
                               ),
                               icon: const Icon(Icons.pause_rounded),
+                            ),
+                          ),
+                        ),
+                      if (widget.saveMessage case final message?
+                          when message.trim().isNotEmpty)
+                        Positioned(
+                          left: PlayerSpacing.md,
+                          right: PlayerSpacing.md,
+                          bottom: PlayerSpacing.md,
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 560),
+                              child: Semantics(
+                                liveRegion: true,
+                                child: PlayerPanel(
+                                  key: const ValueKey<String>(
+                                    'runtime-save-receipt',
+                                  ),
+                                  elevated: true,
+                                  padding: const EdgeInsets.all(
+                                    PlayerSpacing.sm,
+                                  ),
+                                  child: Text(
+                                    message,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),

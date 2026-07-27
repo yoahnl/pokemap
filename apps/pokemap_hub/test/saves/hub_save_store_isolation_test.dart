@@ -138,11 +138,9 @@ void main() {
 
     expect(latest!.address.slotId, 'slot-2');
     expect(
-        slots.map((slot) => slot.address.slotId),
-        containsAll(<String>[
-          'slot-1',
-          'slot-2',
-        ]));
+      slots.map((slot) => slot.address.slotId),
+      <String>['slot-2', 'slot-1'],
+    );
   });
 
   test('global Continue also discovers a valid profile missing UI metadata',
