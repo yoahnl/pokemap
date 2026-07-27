@@ -22,18 +22,24 @@ void main() {
     expect(Directory('android').existsSync(), isFalse);
   });
 
-  test('iOS identity and product branding belong to PokeMap Hub', () async {
+  test('iOS identity and public product branding belong to Avelune', () async {
     final project = await File(
       'ios/Runner.xcodeproj/project.pbxproj',
     ).readAsString();
     final info = await File('ios/Runner/Info.plist').readAsString();
 
-    expect(project, contains('PRODUCT_BUNDLE_IDENTIFIER = app.pokemap.hub;'));
-    expect(project,
-        contains('INFOPLIST_KEY_CFBundleDisplayName = "PokeMap Hub";'));
-    expect(project, isNot(contains('com.yoahnl.avelune')));
-    expect(info, contains('<string>PokeMap Hub</string>'));
-    expect(info, isNot(contains('Avelune')));
+    expect(
+      project,
+      contains(
+        'PRODUCT_BUNDLE_IDENTIFIER = com.yoahnl.avelune.player;',
+      ),
+    );
+    expect(project, contains('INFOPLIST_KEY_CFBundleDisplayName = Avelune;'));
+    expect(project, isNot(contains('PRODUCT_BUNDLE_IDENTIFIER = app.pokemap')));
+    expect(info, contains('<string>Avelune</string>'));
+    expect(info, contains('<string>Avelune Game Package</string>'));
+    expect(info, isNot(contains('PokeMap Hub')));
+    expect(info, isNot(contains('PokeMap Game Package')));
   });
 
   test('release workflow builds iOS and launches it on a simulator', () async {
@@ -44,6 +50,23 @@ void main() {
     expect(workflow, contains('ios-simulator-certification:'));
     expect(workflow, contains('flutter build ios --release --no-codesign'));
     expect(workflow, contains('flutter build ios --simulator --debug'));
-    expect(workflow, contains('xcrun simctl launch'));
+    expect(
+      workflow,
+      contains(
+        'xcrun simctl launch "\$SIMULATOR_ID" '
+        'com.yoahnl.avelune.player',
+      ),
+    );
+    expect(
+      workflow,
+      contains(
+        'xcrun simctl terminate "\$SIMULATOR_ID" '
+        'com.yoahnl.avelune.player',
+      ),
+    );
+    expect(
+      workflow,
+      isNot(contains('xcrun simctl launch "\$SIMULATOR_ID" app.pokemap')),
+    );
   });
 }

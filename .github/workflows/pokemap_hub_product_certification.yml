@@ -186,12 +186,12 @@ jobs:
           test -d "$IOS_APP"
           xcrun simctl install "$SIMULATOR_ID" "$IOS_APP"
           LAUNCH_OUTPUT="$(
-            xcrun simctl launch "$SIMULATOR_ID" app.pokemap.hub
+            xcrun simctl launch "$SIMULATOR_ID" com.yoahnl.avelune.player
           )"
           APP_PID="${LAUNCH_OUTPUT##*: }"
           sleep 8
           kill -0 "$APP_PID"
-          xcrun simctl terminate "$SIMULATOR_ID" app.pokemap.hub
+          xcrun simctl terminate "$SIMULATOR_ID" com.yoahnl.avelune.player
 
   notarized-release:
     if: >-

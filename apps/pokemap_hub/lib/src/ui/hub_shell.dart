@@ -11,6 +11,7 @@ import 'hub_install_progress.dart';
 class HubShell extends StatelessWidget {
   const HubShell({
     super.key,
+    this.productName = 'PokeMap Hub',
     required this.snapshot,
     required this.actions,
     required this.onSectionSelected,
@@ -22,6 +23,7 @@ class HubShell extends StatelessWidget {
     this.onCancelInstall,
   });
 
+  final String productName;
   final HubDashboardSnapshot snapshot;
   final HubUiActions actions;
   final ValueChanged<HubSection> onSectionSelected;
@@ -111,6 +113,7 @@ class HubShell extends StatelessWidget {
           )
         : switch (snapshot.section) {
             HubSection.home => _HubHome(
+                productName: productName,
                 snapshot: snapshot,
                 actions: actions,
                 onGameSelected: onGameSelected,
@@ -173,8 +176,8 @@ class HubShell extends StatelessWidget {
                   size: 34,
                 ),
                 const SizedBox(height: PlayerSpacing.xs),
-                const Text(
-                  'PokeMap',
+                Text(
+                  productName,
                   style: TextStyle(fontWeight: FontWeight.w800),
                 ),
               ],
@@ -294,11 +297,13 @@ class _HubStatusBanner extends StatelessWidget {
 
 class _HubHome extends StatelessWidget {
   const _HubHome({
+    required this.productName,
     required this.snapshot,
     required this.actions,
     required this.onGameSelected,
   });
 
+  final String productName;
   final HubDashboardSnapshot snapshot;
   final HubUiActions actions;
   final ValueChanged<String> onGameSelected;
@@ -314,7 +319,7 @@ class _HubHome extends StatelessWidget {
         slivers: <Widget>[
           SliverToBoxAdapter(
             child: _HubHeader(
-              title: 'PokeMap Hub',
+              title: productName,
               subtitle: context.playerL10n.hubSubtitle,
               action: PlayerActionButton(
                 label: context.playerL10n.importGame,
@@ -1255,7 +1260,7 @@ String _diagnosticRecommendation(
     'preferences.writeFailed' => 'Check storage and try again.',
     'game.activityUnavailable' => 'Verify or repair the installation.',
     'storage.measurementUnavailable' =>
-      'Check permissions for the PokeMap folder.',
+      'Check permissions for the application data folder.',
     'library.currentCorrupt' ||
     'library.backupCorrupt' =>
       'Verify installed games.',

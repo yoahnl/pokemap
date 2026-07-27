@@ -137,6 +137,7 @@ final class HubComposition implements HubAppComposition {
 
   @override
   Widget buildApp() => PokeMapHubApp(
+        productName: Platform.isIOS ? 'Avelune' : 'PokeMap Hub',
         controller: controller,
         actions: actions,
         displayPreferencesController: displayPreferencesController,
@@ -183,14 +184,16 @@ final class HubComposition implements HubAppComposition {
     File package, {
     bool reportInvalid = false,
   }) async {
-    final isPackage = p.extension(package.path).toLowerCase() == '.pokemapgame';
+    const supportedExtensions = <String>{'.avelunegame', '.pokemapgame'};
+    final isPackage = supportedExtensions.contains(
+      p.extension(package.path).toLowerCase(),
+    );
     if (!isPackage || !await package.exists()) {
       if (reportInvalid) {
         throw const HubPackagePickerFailure(
           code: 'importPicker.invalidSelection',
-          message: 'Le fichier sélectionné n’est pas un jeu PokeMap valide.',
-          recommendation:
-              'Choisissez un fichier portant l’extension .pokemapgame.',
+          message: 'Le fichier sélectionné n’est pas un package de jeu valide.',
+          recommendation: 'Choisissez un package de jeu compatible.',
         );
       }
       return;

@@ -20,6 +20,7 @@ class PokeMapHubApp extends StatefulWidget {
   const PokeMapHubApp({
     super.key,
     required this.controller,
+    this.productName = 'PokeMap Hub',
     this.actions = const HubUiActions(),
     this.playerBuilder,
     this.displayPreferencesController,
@@ -27,6 +28,7 @@ class PokeMapHubApp extends StatefulWidget {
   });
 
   final HubDashboardController controller;
+  final String productName;
   final HubUiActions actions;
   final HubPlayerBuilder? playerBuilder;
   final HubDisplayPreferencesController? displayPreferencesController;
@@ -133,7 +135,7 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
           final snapshot = widget.controller.snapshot;
           final preferences = snapshot.preferences;
           return MaterialApp(
-            title: 'PokeMap Hub',
+            title: widget.productName,
             debugShowCheckedModeBanner: false,
             themeMode: preferences.themeMode,
             theme: PokeMapPlayerTheme.light(
@@ -167,6 +169,7 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
               (final game?, final playerBuilder?) =>
                 playerBuilder(context, game, _returnToHub),
               _ => HubShell(
+                  productName: widget.productName,
                   snapshot: snapshot,
                   actions: _effectiveActions,
                   displayPreferencesController:

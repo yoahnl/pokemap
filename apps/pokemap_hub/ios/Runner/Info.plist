@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>PokeMap Hub</string>
+	<string>Avelune</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>PokeMap Hub</string>
+	<string>Avelune</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -27,11 +27,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>PokeMap Hub n’utilise pas votre appareil photo. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
+	<string>Avelune n’utilise pas votre appareil photo. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>PokeMap Hub n’accède pas à votre position. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
+	<string>Avelune n’accède pas à votre position. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>PokeMap Hub n’accède pas à votre photothèque. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
+	<string>Avelune n’accède pas à votre photothèque. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -66,17 +66,18 @@
 				<string>public.archive</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>PokeMap Game Package</string>
+			<string>Avelune Game Package</string>
 			<key>UTTypeIdentifier</key>
-			<string>app.pokemap.game-package</string>
+			<string>com.yoahnl.avelune.game-package</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
+					<string>avelunegame</string>
 					<string>pokemapgame</string>
 				</array>
 				<key>public.mime-type</key>
-				<string>application/x-pokemap-game</string>
+				<string>application/x-avelune-game</string>
 			</dict>
 		</dict>
 	</array>

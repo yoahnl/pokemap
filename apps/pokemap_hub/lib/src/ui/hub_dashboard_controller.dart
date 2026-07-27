@@ -662,7 +662,8 @@ final class HubDashboardController extends ChangeNotifier {
           code: 'storage.measurementUnavailable',
           severity: HubDiagnosticSeverity.warning,
           message: 'L’espace disque ne peut pas être mesuré.',
-          recommendation: 'Vérifiez les autorisations du dossier PokeMap.',
+          recommendation:
+              'Vérifiez les autorisations du dossier de données de l’application.',
         ),
       );
     }

@@ -9,7 +9,7 @@ import 'package:pokemap_hub/src/platform/ios_hub_platform_adapter.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const iosChannel = MethodChannel('app.pokemap.hub/ios');
+  const iosChannel = MethodChannel('com.yoahnl.avelune.player/ios');
 
   test('iOS adapter delegates package picking and disk capacity to native code',
       () async {

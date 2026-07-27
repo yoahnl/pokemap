@@ -19,7 +19,7 @@ import UniformTypeIdentifiers
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     let channel = FlutterMethodChannel(
-      name: "app.pokemap.hub/ios",
+      name: "com.yoahnl.avelune.player/ios",
       binaryMessenger: engineBridge.applicationRegistrar.messenger()
     )
     channel.setMethodCallHandler { [weak self] call, result in
@@ -27,7 +27,7 @@ import UniformTypeIdentifiers
         result(
           FlutterError(
             code: "hubUnavailable",
-            message: "PokeMap Hub is no longer available.",
+            message: "Avelune is no longer available.",
             details: nil
           )
         )
@@ -67,10 +67,11 @@ import UniformTypeIdentifiers
       return
     }
 
-    let packageType =
-      UTType(filenameExtension: "pokemapgame", conformingTo: .data) ?? .data
+    let packageTypes = ["avelunegame", "pokemapgame"].map {
+      UTType(filenameExtension: $0, conformingTo: .data) ?? .data
+    }
     let picker = UIDocumentPickerViewController(
-      forOpeningContentTypes: [packageType],
+      forOpeningContentTypes: packageTypes,
       asCopy: true
     )
     picker.delegate = self

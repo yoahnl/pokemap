@@ -6,7 +6,8 @@ import 'hub_platform_adapter.dart';
 
 /// iOS integration for document picking and storage capacity.
 final class IOSHubPlatformAdapter implements HubPlatformAdapter {
-  static const MethodChannel _channel = MethodChannel('app.pokemap.hub/ios');
+  static const MethodChannel _channel =
+      MethodChannel('com.yoahnl.avelune.player/ios');
 
   @override
   Future<void> attachPackageOpenHandler(HubPackageOpenHandler handler) async {

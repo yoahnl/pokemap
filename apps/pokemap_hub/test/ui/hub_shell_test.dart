@@ -6,11 +6,41 @@ import 'package:pokemap_hub/pokemap_hub_ui.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 void main() {
+  testWidgets('injected iOS product identity is displayed as Avelune',
+      (tester) async {
+    tester.view.physicalSize = const Size(1280, 820);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _app(
+        HubShell(
+          productName: 'Avelune',
+          snapshot: HubDashboardSnapshot.ready(
+            library: GameLibrary.empty(),
+            games: const <HubGameView>[],
+          ),
+          actions: const HubUiActions(),
+          onSectionSelected: (_) {},
+          onQueryChanged: (_) {},
+          onGameSelected: (_) {},
+          onGameDetailsClosed: () {},
+          onPreferencesChanged: (_) {},
+        ),
+      ),
+    );
+
+    expect(find.text('Avelune'), findsWidgets);
+    expect(find.text('PokeMap Hub'), findsNothing);
+    expect(find.text('PokeMap'), findsNothing);
+  });
+
   testWidgets('empty home guides the player to package import', (tester) async {
     var imports = 0;
     await tester.pumpWidget(
       _app(
         HubShell(
+          productName: 'Avelune',
           snapshot: HubDashboardSnapshot.ready(
             library: GameLibrary.empty(),
             games: const <HubGameView>[],
@@ -28,7 +58,14 @@ void main() {
     );
 
     expect(find.text('Votre bibliothèque vous attend'), findsOneWidget);
-    expect(find.textContaining('.pokemapgame'), findsOneWidget);
+    expect(
+      find.textContaining('package de jeu compatible'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(RegExp('poke', caseSensitive: false)),
+      findsNothing,
+    );
     await tester.tap(find.text('Importer un jeu').first);
     expect(imports, 1);
     expect(find.textContaining('workspace'), findsNothing);

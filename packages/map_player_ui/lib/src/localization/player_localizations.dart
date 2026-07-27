@@ -43,8 +43,8 @@ final class PokeMapPlayerLocalizations {
   String get emptyLibraryTitle =>
       _fr ? 'Votre bibliothèque vous attend' : 'Your library is ready';
   String get emptyLibraryMessage => _fr
-      ? 'Importez un package .pokemapgame pour commencer une aventure.'
-      : 'Import a .pokemapgame package to begin an adventure.';
+      ? 'Importez un package de jeu compatible pour commencer une aventure.'
+      : 'Import a compatible game package to begin an adventure.';
   String get searchGames => _fr ? 'Rechercher un jeu' : 'Search games';
   String get continueGame => _fr ? 'Continuer' : 'Continue';
   String get newGame => _fr ? 'Nouvelle partie' : 'New game';
@@ -97,7 +97,8 @@ final class PokeMapPlayerLocalizations {
   String get healthy => _fr ? 'Installation vérifiée' : 'Installation verified';
   String get needsRepair => _fr ? 'Réparation requise' : 'Repair required';
   String get storage => _fr ? 'Espace disque' : 'Storage';
-  String get usedStorage => _fr ? 'Utilisé par PokeMap' : 'Used by PokeMap';
+  String get usedStorage =>
+      _fr ? 'Utilisé par l’application' : 'Used by the application';
   String get availableStorage => _fr ? 'Disponible' : 'Available';
   String get noDiagnostics =>
       _fr ? 'Aucun problème détecté' : 'No issue detected';

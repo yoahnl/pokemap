@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:map_player_ui/map_player_ui.dart';
@@ -5,6 +7,8 @@ import 'package:map_player_ui/map_player_ui.dart';
 import '../platform/hub_composition.dart';
 
 typedef HubCompositionFactory = Future<HubAppComposition> Function();
+
+String get _publicProductName => Platform.isIOS ? 'Avelune' : 'PokeMap Hub';
 
 class PokeMapHubBootstrap extends StatefulWidget {
   const PokeMapHubBootstrap({
@@ -83,7 +87,7 @@ class _HubBootstrapLoadingApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: 'PokeMap Hub',
+        title: _publicProductName,
         debugShowCheckedModeBanner: false,
         theme: PokeMapPlayerTheme.light(),
         darkTheme: PokeMapPlayerTheme.dark(),
@@ -92,7 +96,7 @@ class _HubBootstrapLoadingApp extends StatelessWidget {
           body: Center(
             child: Semantics(
               liveRegion: true,
-              label: 'Ouverture de PokeMap Hub',
+              label: 'Ouverture de $_publicProductName',
               child: const CircularProgressIndicator(),
             ),
           ),
@@ -115,7 +119,7 @@ class _HubBootstrapFailureApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: 'PokeMap Hub',
+        title: _publicProductName,
         debugShowCheckedModeBanner: false,
         theme: PokeMapPlayerTheme.light(),
         darkTheme: PokeMapPlayerTheme.dark(),
@@ -148,7 +152,7 @@ class _HubBootstrapFailureApp extends StatelessWidget {
                                 ),
                                 const SizedBox(height: PlayerSpacing.md),
                                 Text(
-                                  'Impossible d’ouvrir PokeMap Hub',
+                                  'Impossible d’ouvrir $_publicProductName',
                                   textAlign: TextAlign.center,
                                   style:
                                       Theme.of(context).textTheme.headlineSmall,
