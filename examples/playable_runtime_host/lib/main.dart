@@ -642,6 +642,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         projectFilePath: projectFilePath,
         saveData: launchPlan.saveData,
         initialMapActivationReason: launchPlan.initialMapActivationReason,
+        enableActorContactShadows: false,
+        enableStaticPlacedElementShadows: false,
       );
       nextGame.setPlayerServiceRuntimeController(
         PlayerServiceRuntimeController(
