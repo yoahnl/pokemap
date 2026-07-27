@@ -7,9 +7,10 @@ dmg_path=''
 notary_profile=''
 result_json=''
 log_directory=''
+volume_name='PokeMap Hub'
 
 usage() {
-  echo 'Usage: notarize_macos_release.sh --app <bundle.app> --dmg <output.dmg> --notary-profile <profile> --result-json <file> [--log-directory <directory>]' >&2
+  echo 'Usage: notarize_macos_release.sh --app <bundle.app> --dmg <output.dmg> --notary-profile <profile> --result-json <file> [--log-directory <directory>] [--volume-name <name>]' >&2
 }
 
 while (($# > 0)); do
@@ -34,6 +35,10 @@ while (($# > 0)); do
       log_directory="${2:-}"
       shift 2
       ;;
+    --volume-name)
+      volume_name="${2:-}"
+      shift 2
+      ;;
     *)
       usage
       exit 64
@@ -41,7 +46,7 @@ while (($# > 0)); do
   esac
 done
 
-if [[ -z "$app_path" || -z "$dmg_path" || -z "$notary_profile" || -z "$result_json" ]]; then
+if [[ -z "$app_path" || -z "$dmg_path" || -z "$notary_profile" || -z "$result_json" || -z "$volume_name" ]]; then
   usage
   exit 64
 fi
@@ -143,7 +148,7 @@ if [[ -z "$dmg_signing_identity" ]]; then
 fi
 
 "$hdiutil_bin" create \
-  -volname 'PokeMap Hub' \
+  -volname "$volume_name" \
   -srcfolder "$app_path" \
   -ov \
   -format UDZO \

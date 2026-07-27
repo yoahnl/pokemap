@@ -1,0 +1,262 @@
+name: PokeMap desktop distribution
+
+on:
+  pull_request:
+    paths:
+      - "packages/map_core/**"
+      - "packages/map_distribution/**"
+      - "packages/map_editor/**"
+      - "packages/map_gameplay/**"
+      - "packages/map_runtime/**"
+      - "apps/pokemap_hub/tool/release/notarize_macos_release.sh"
+      - "apps/pokemap_hub/tool/release/sign_macos_app.sh"
+      - ".github/workflows/pokemap_desktop_release.yml"
+  push:
+    branches: [main]
+    tags: ["pokemap-v*"]
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: 3.46.0-0.3.pre
+  FLUTTER_REVISION: 677d472756f83c14371dd8cc624387065f3d32a7
+
+jobs:
+  macos-preview:
+    if: ${{ !startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Test and build macOS preview
+        working-directory: packages/map_editor
+        run: |
+          flutter pub get
+          flutter test test/release
+          flutter analyze
+          flutter build macos --release
+          tool/release/package_macos_preview.sh \
+            --app "build/macos/Build/Products/Release/PokeMap.app" \
+            --dmg build/release/PokeMap-macos-preview.dmg
+      - name: Preserve macOS preview
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pokemap-macos-preview-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 30
+          path: packages/map_editor/build/release/PokeMap-macos-preview.dmg
+
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        shell: pwsh
+        run: |
+          git init "$env:RUNNER_TEMP/flutter"
+          git -C "$env:RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$env:RUNNER_TEMP/flutter" fetch --depth 1 origin `
+            "refs/tags/$env:FLUTTER_VERSION`:refs/tags/$env:FLUTTER_VERSION"
+          git -C "$env:RUNNER_TEMP/flutter" checkout --detach "$env:FLUTTER_VERSION"
+          $revision = git -C "$env:RUNNER_TEMP/flutter" rev-parse HEAD
+          if ($revision -ne "$env:FLUTTER_REVISION") {
+            throw "Unexpected Flutter revision: $revision"
+          }
+          "$env:RUNNER_TEMP/flutter/bin" |
+            Out-File -FilePath "$env:GITHUB_PATH" -Encoding utf8 -Append
+      - name: Test, build and package Windows
+        working-directory: packages/map_editor
+        shell: pwsh
+        run: |
+          flutter pub get
+          flutter test test/release
+          flutter analyze
+          flutter build windows --release
+          $bundle = "build/windows/x64/runner/Release"
+          if (-not (Test-Path "$bundle/PokeMap.exe")) {
+            throw "PokeMap Windows executable is missing."
+          }
+          New-Item -ItemType Directory -Force -Path "build/release" | Out-Null
+          Compress-Archive -Path "$bundle/*" `
+            -DestinationPath "build/release/PokeMap-windows-x64.zip"
+      - name: Preserve Windows package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pokemap-windows-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 30
+          path: packages/map_editor/build/release/PokeMap-windows-x64.zip
+
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang \
+            cmake \
+            libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev \
+            libgtk-3-dev \
+            liblzma-dev \
+            ninja-build \
+            pkg-config
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Test, build and package Linux
+        working-directory: packages/map_editor
+        run: |
+          flutter pub get
+          flutter test test/release
+          flutter analyze
+          flutter build linux --release
+          test -x build/linux/x64/release/bundle/pokemap
+          mkdir -p build/release
+          tar -C build/linux/x64/release/bundle -czf \
+            build/release/PokeMap-linux-x64.tar.gz .
+      - name: Preserve Linux package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pokemap-linux-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 30
+          path: packages/map_editor/build/release/PokeMap-linux-x64.tar.gz
+
+  macos-release:
+    if: ${{ startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    needs:
+      - windows
+      - linux
+    runs-on: macos-15
+    timeout-minutes: 60
+    environment: pokemap-release
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Import ephemeral Developer ID identity
+        env:
+          DEVELOPER_ID_P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
+          DEVELOPER_ID_P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          test -n "$DEVELOPER_ID_P12_BASE64"
+          test -n "$DEVELOPER_ID_P12_PASSWORD"
+          test -n "$KEYCHAIN_PASSWORD"
+          CERTIFICATE_PATH="$RUNNER_TEMP/developer-id.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/pokemap-release.keychain-db"
+          printf '%s' "$DEVELOPER_ID_P12_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$DEVELOPER_ID_P12_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: \
+            -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+      - name: Build and sign PokeMap
+        working-directory: packages/map_editor
+        env:
+          DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
+        run: |
+          test -n "$DEVELOPER_ID_APPLICATION"
+          flutter pub get
+          flutter test test/release
+          flutter analyze
+          flutter build macos --release
+          ../../apps/pokemap_hub/tool/release/sign_macos_app.sh \
+            --app "build/macos/Build/Products/Release/PokeMap.app" \
+            --identity "$DEVELOPER_ID_APPLICATION" \
+            --entitlements macos/Runner/Release.entitlements
+      - name: Notarize, staple and assess PokeMap
+        working-directory: packages/map_editor
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+        run: |
+          test -n "$APPLE_ID"
+          test -n "$APPLE_TEAM_ID"
+          test -n "$APP_SPECIFIC_PASSWORD"
+          xcrun notarytool store-credentials pokemap-release \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APP_SPECIFIC_PASSWORD"
+          VERSION="${GITHUB_REF_NAME#pokemap-v}"
+          ../../apps/pokemap_hub/tool/release/notarize_macos_release.sh \
+            --app "build/macos/Build/Products/Release/PokeMap.app" \
+            --dmg "build/release/PokeMap-macos-$VERSION.dmg" \
+            --notary-profile pokemap-release \
+            --result-json "$RUNNER_TEMP/notary-result.json" \
+            --log-directory "$RUNNER_TEMP/notary-logs" \
+            --volume-name PokeMap
+      - name: Preserve notarized macOS package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pokemap-macos-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 90
+          path: packages/map_editor/build/release/PokeMap-macos-*.dmg
+
+  publish:
+    if: ${{ startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    needs:
+      - windows
+      - linux
+      - macos-release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download Windows package
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: pokemap-windows-${{ github.sha }}
+          path: dist
+      - name: Download Linux package
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: pokemap-linux-${{ github.sha }}
+          path: dist
+      - name: Download macOS package
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: pokemap-macos-${{ github.sha }}
+          path: dist
+      - name: Publish PokeMap GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            dist/PokeMap-* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "PokeMap ${GITHUB_REF_NAME#pokemap-v}" \
+            --generate-notes

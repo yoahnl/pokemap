@@ -149,50 +149,6 @@ jobs:
           kill "$APP_PID"
           wait "$APP_PID" || true
 
-  ios-simulator-certification:
-    runs-on: macos-15
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Install pinned Flutter SDK
-        run: |
-          git init "$RUNNER_TEMP/flutter"
-          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
-          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
-            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
-          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
-          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
-          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
-      - name: Build iOS and launch simulator app
-        working-directory: apps/pokemap_hub
-        run: |
-          flutter pub get
-          flutter test test/release/mobile_platform_release_gate_test.dart
-          flutter analyze
-          flutter build ios --release --no-codesign
-          SIMULATOR_ID="$(
-            xcrun simctl list devices available --json |
-              jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid'
-          )"
-          test -n "$SIMULATOR_ID"
-          test "$SIMULATOR_ID" != "null"
-          xcrun simctl boot "$SIMULATOR_ID" || true
-          xcrun simctl bootstatus "$SIMULATOR_ID" -b
-          flutter test \
-            integration_test/pst_074_native_codec_playback_test.dart \
-            -d "$SIMULATOR_ID"
-          flutter build ios --simulator --debug
-          IOS_APP="build/ios/iphonesimulator/Runner.app"
-          test -d "$IOS_APP"
-          xcrun simctl install "$SIMULATOR_ID" "$IOS_APP"
-          LAUNCH_OUTPUT="$(
-            xcrun simctl launch "$SIMULATOR_ID" com.yoahnl.avelune.player
-          )"
-          APP_PID="${LAUNCH_OUTPUT##*: }"
-          sleep 8
-          kill -0 "$APP_PID"
-          xcrun simctl terminate "$SIMULATOR_ID" com.yoahnl.avelune.player
-
   notarized-release:
     if: >-
       startsWith(github.ref, 'refs/tags/pokemap-hub-v') ||
@@ -201,7 +157,6 @@ jobs:
       - verify
       - windows-desktop-certification
       - linux-desktop-certification
-      - ios-simulator-certification
     runs-on: macos-15
     timeout-minutes: 60
     environment: pokemap-hub-release

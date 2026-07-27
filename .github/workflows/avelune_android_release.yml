@@ -1,0 +1,119 @@
+name: Avelune Android distribution
+
+on:
+  pull_request:
+    paths:
+      - "apps/pokemap_hub/**"
+      - "packages/map_core/**"
+      - "packages/map_distribution/**"
+      - "packages/map_editor/**"
+      - "packages/map_gameplay/**"
+      - "packages/map_player_ui/**"
+      - "packages/map_runtime/**"
+      - ".github/workflows/avelune_android_release.yml"
+  push:
+    branches: [main]
+    tags: ["avelune-v*"]
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: 3.46.0-0.3.pre
+  FLUTTER_REVISION: 677d472756f83c14371dd8cc624387065f3d32a7
+
+jobs:
+  preview:
+    if: ${{ !startsWith(github.ref, 'refs/tags/avelune-v') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Test and build Android preview
+        working-directory: apps/pokemap_hub
+        run: |
+          flutter pub get
+          flutter test test/release/mobile_platform_release_gate_test.dart
+          flutter analyze
+          flutter build apk --debug
+          test -f build/app/outputs/flutter-apk/app-debug.apk
+      - name: Preserve installable preview APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: avelune-android-preview-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 30
+          path: apps/pokemap_hub/build/app/outputs/flutter-apk/app-debug.apk
+
+  release:
+    if: ${{ startsWith(github.ref, 'refs/tags/avelune-v') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      AVELUNE_KEYSTORE_PATH: ${{ runner.temp }}/avelune-release.jks
+      AVELUNE_KEYSTORE_PASSWORD: ${{ secrets.AVELUNE_ANDROID_KEYSTORE_PASSWORD }}
+      AVELUNE_KEY_ALIAS: ${{ secrets.AVELUNE_ANDROID_KEY_ALIAS }}
+      AVELUNE_KEY_PASSWORD: ${{ secrets.AVELUNE_ANDROID_KEY_PASSWORD }}
+      AVELUNE_REQUIRE_RELEASE_SIGNING: "true"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Import stable Android signing key
+        env:
+          AVELUNE_ANDROID_KEYSTORE_BASE64: ${{ secrets.AVELUNE_ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$AVELUNE_ANDROID_KEYSTORE_BASE64"
+          test -n "$AVELUNE_KEYSTORE_PASSWORD"
+          test -n "$AVELUNE_KEY_ALIAS"
+          test -n "$AVELUNE_KEY_PASSWORD"
+          printf '%s' "$AVELUNE_ANDROID_KEYSTORE_BASE64" |
+            base64 --decode > "$AVELUNE_KEYSTORE_PATH"
+          test -s "$AVELUNE_KEYSTORE_PATH"
+      - name: Test and build signed release APK
+        working-directory: apps/pokemap_hub
+        run: |
+          flutter pub get
+          flutter test test/release/mobile_platform_release_gate_test.dart
+          flutter analyze
+          flutter build apk --release
+          VERSION="${GITHUB_REF_NAME#avelune-v}"
+          mkdir -p build/release
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            "build/release/Avelune-android-$VERSION.apk"
+          sha256sum "build/release/Avelune-android-$VERSION.apk"
+      - name: Preserve signed APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: avelune-android-${{ github.ref_name }}
+          if-no-files-found: error
+          retention-days: 90
+          path: apps/pokemap_hub/build/release/Avelune-android-*.apk
+      - name: Publish Avelune GitHub Release
+        working-directory: apps/pokemap_hub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            build/release/Avelune-android-*.apk \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Avelune ${GITHUB_REF_NAME#avelune-v}" \
+            --generate-notes

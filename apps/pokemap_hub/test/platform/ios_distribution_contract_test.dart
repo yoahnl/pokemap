@@ -15,13 +15,15 @@ void main() {
     expect(main, isNot(contains('MacOSHubComposition')));
     expect(composition, contains('HubPlatformAdapter'));
     expect(composition, contains('PokeMapHubApp'));
+    expect(bootstrap, contains('publicProductName'));
+    expect(composition, contains('publicProductName'));
     expect(
       bootstrap,
-      contains("Platform.isIOS ? 'Avelune' : 'PokeMap Hub'"),
+      contains("../platform/public_product_identity.dart"),
     );
     expect(
       composition,
-      contains("Platform.isIOS ? 'Avelune' : 'PokeMap Hub'"),
+      contains("'public_product_identity.dart'"),
     );
   });
 

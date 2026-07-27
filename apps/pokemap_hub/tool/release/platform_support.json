@@ -19,10 +19,10 @@
       "reason": "video_player 2.9.5 has no registered Linux backend."
     },
     "ios": {
-      "status": "build-and-simulator-target",
-      "releaseGate": "device-build-and-simulator-launch",
+      "status": "xcode-cloud-target",
+      "releaseGate": "xcode-cloud",
       "introVideoPlayback": "native",
-      "deviceDistribution": "not-certified"
+      "deviceDistribution": "xcode-cloud"
     },
     "android": {
       "status": "build-target",

@@ -13,9 +13,9 @@ void main() {
     final ios = platforms['ios'] as Map<String, Object?>;
     final android = platforms['android'] as Map<String, Object?>;
 
-    expect(ios['status'], 'build-and-simulator-target');
-    expect(ios['releaseGate'], 'device-build-and-simulator-launch');
-    expect(ios['deviceDistribution'], 'not-certified');
+    expect(ios['status'], 'xcode-cloud-target');
+    expect(ios['releaseGate'], 'xcode-cloud');
+    expect(ios['deviceDistribution'], 'xcode-cloud');
     expect(android['status'], 'build-target');
     expect(android['releaseGate'], 'release-apk-build');
     expect(android['deviceDistribution'], 'github-release');
@@ -67,31 +67,27 @@ void main() {
     expect(productIdentity, contains("'android' || 'ios' => 'Avelune'"));
   });
 
-  test('release workflow builds iOS and launches it on a simulator', () async {
-    final workflow = await File(
+  test('GitHub delegates iOS to Xcode Cloud and releases Android', () async {
+    final hubWorkflow = await File(
       '../../.github/workflows/pokemap_hub_product_certification.yml',
     ).readAsString();
+    final androidWorkflow = await File(
+      '../../.github/workflows/avelune_android_release.yml',
+    ).readAsString();
 
-    expect(workflow, contains('ios-simulator-certification:'));
-    expect(workflow, contains('flutter build ios --release --no-codesign'));
-    expect(workflow, contains('flutter build ios --simulator --debug'));
+    expect(hubWorkflow, isNot(contains('ios-simulator-certification:')));
+    expect(hubWorkflow, isNot(contains('flutter build ios')));
+    expect(hubWorkflow, isNot(contains('xcrun simctl')));
+    expect(androidWorkflow, contains('tags: ["avelune-v*"]'));
+    expect(androidWorkflow, contains('flutter build apk --debug'));
+    expect(androidWorkflow, contains('flutter build apk --release'));
+    expect(androidWorkflow, contains('AVELUNE_ANDROID_KEYSTORE_BASE64'));
+    expect(androidWorkflow, contains('AVELUNE_REQUIRE_RELEASE_SIGNING: "true"'));
+    expect(androidWorkflow, contains('Avelune-android-'));
     expect(
-      workflow,
-      contains(
-        'xcrun simctl launch "\$SIMULATOR_ID" '
-        'com.yoahnl.avelune.player',
-      ),
+      androidWorkflow,
+      contains(r'gh release create "$GITHUB_REF_NAME"'),
     );
-    expect(
-      workflow,
-      contains(
-        'xcrun simctl terminate "\$SIMULATOR_ID" '
-        'com.yoahnl.avelune.player',
-      ),
-    );
-    expect(
-      workflow,
-      isNot(contains('xcrun simctl launch "\$SIMULATOR_ID" app.pokemap')),
-    );
+    expect(androidWorkflow, isNot(contains('PokeMap-android')));
   });
 }

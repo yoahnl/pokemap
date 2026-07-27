@@ -90,6 +90,8 @@ fi
           result.path,
           '--log-directory',
           logs.path,
+          '--volume-name',
+          'Fixture Volume',
         ],
         environment: <String, String>{
           ...Platform.environment,
@@ -134,6 +136,7 @@ fi
       expect(appSubmit, greaterThanOrEqualTo(0));
       expect(appStaple, greaterThan(appSubmit));
       expect(dmgCreate, greaterThan(appStaple));
+      expect(commands[dmgCreate], contains('-volname Fixture\\ Volume'));
       expect(dmgSign, greaterThan(dmgCreate));
       expect(dmgSubmit, greaterThan(dmgSign));
       expect(dmgStaple, greaterThan(dmgSubmit));
