@@ -77,13 +77,26 @@ final class VideoPlayerIntroVideoProbe implements IntroVideoProbe {
   }
 }
 
-final class ProjectIntroVideoImportService {
+abstract interface class ProjectIntroVideoImporter {
+  Future<ProjectIntroVideoProfile> importIntoProject({
+    required Directory projectRoot,
+    required File videoFile,
+    required File posterFile,
+    File? captionsFile,
+    String reducedMotionBehavior = 'poster',
+    bool allowReplay = true,
+  });
+}
+
+final class ProjectIntroVideoImportService
+    implements ProjectIntroVideoImporter {
   const ProjectIntroVideoImportService({
     this.probe = const VideoPlayerIntroVideoProbe(),
   });
 
   final IntroVideoProbe probe;
 
+  @override
   Future<ProjectIntroVideoProfile> importIntoProject({
     required Directory projectRoot,
     required File videoFile,

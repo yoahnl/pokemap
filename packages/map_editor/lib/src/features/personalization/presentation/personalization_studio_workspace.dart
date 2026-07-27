@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../app/providers/core/repository_providers.dart';
 import '../../../ui/design_system/pokemap_badge.dart';
 import '../../../ui/design_system/pokemap_button.dart';
 import '../../../ui/design_system/pokemap_card.dart';
@@ -14,6 +14,7 @@ import '../../../ui/design_system/pokemap_dialog.dart';
 import '../../../ui/design_system/pokemap_empty_state.dart';
 import '../../../ui/design_system/pokemap_toggle_tile.dart';
 import '../../editor/state/editor_notifier.dart';
+import '../application/personalization_studio_asset_picker.dart';
 import '../application/project_font_import_service.dart';
 import '../application/project_intro_video_import_service.dart';
 import 'personalization_hub_shell.dart';
@@ -75,51 +76,39 @@ class _PersonalizationStudioWorkspaceState
       icon: Icons.verified_user_outlined,
     );
     if (!mounted || !confirmed) return;
-    final selection = await FilePicker.platform.pickFiles(
-      dialogTitle: 'Choisir une fonte et son fichier de licence',
-      type: FileType.custom,
-      allowedExtensions: const <String>['ttf', 'otf', 'txt'],
-      allowMultiple: true,
-      withData: false,
-      lockParentWindow: true,
-    );
-    if (!mounted || selection == null) return;
-    final paths = selection.files
-        .map((file) => file.path)
-        .whereType<String>()
-        .toList(growable: false);
-    final fontPath =
-        _singlePathWithExtensions(paths, const <String>['.ttf', '.otf']);
-    final licensePath =
-        _singlePathWithExtensions(paths, const <String>['.txt']);
-    if (fontPath == null || licensePath == null) {
-      setState(() {
-        _assetFeedbackIsError = true;
-        _assetFeedback =
-            'Sélectionnez exactement une fonte TTF/OTF et une licence TXT.';
-      });
-      return;
-    }
 
     setState(() {
       _isImportingAsset = true;
       _assetFeedback = null;
     });
     try {
+      final selection = await ref
+          .read(personalizationStudioAssetPickerProvider)
+          .pickFontAssets();
+      if (!mounted) return;
+      if (selection == null) {
+        setState(() {
+          _assetFeedbackIsError = false;
+          _assetFeedback = 'Import de fonte annulé.';
+        });
+        return;
+      }
       final typography = profile.typography ?? const ProjectTypographyProfile();
       final currentRole = _typographyRoleProfile(typography, role);
-      final imported = await const ProjectFontImportService().importIntoProject(
-        projectRoot: Directory(projectRootPath),
-        role: role,
-        fontFile: File(fontPath),
-        licenseFile: File(licensePath),
-        redistributionConfirmed: true,
-        fallbackFamilies: currentRole.fallbackFamilies,
-      );
-      final previewFamily = await const ProjectFontPreviewLoader().load(
-        fontFile: File('$projectRootPath/${imported.fontPath}'),
-        role: role,
-      );
+      final imported =
+          await ref.read(projectFontImportServiceProvider).importIntoProject(
+                projectRoot: Directory(projectRootPath),
+                role: role,
+                fontFile: File(selection.fontPath),
+                licenseFile: File(selection.licensePath),
+                redistributionConfirmed: true,
+                fallbackFamilies: currentRole.fallbackFamilies,
+              );
+      final previewFamily =
+          await ref.read(projectFontPreviewLoaderProvider).load(
+                fontFile: File('$projectRootPath/${imported.fontPath}'),
+                role: role,
+              );
       final updatedTypography =
           _replaceTypographyRole(typography, role, imported);
       final applied = await notifier.applyPersonalizationStudioProfile(
@@ -136,11 +125,17 @@ class _PersonalizationStudioWorkspaceState
             ? 'Fonte et licence importées dans le brouillon.'
             : 'La fonte a été validée, mais le brouillon n’a pas pu être modifié.';
       });
-    } on ProjectFontImportException catch (error) {
+    } on PersonalizationStudioAssetSelectionException catch (error) {
       if (!mounted) return;
       setState(() {
         _assetFeedbackIsError = true;
         _assetFeedback = error.message;
+      });
+    } on ProjectFontImportException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = _localizedFontImportError(error);
       });
     } on Object {
       if (!mounted) return;
@@ -181,56 +176,36 @@ class _PersonalizationStudioWorkspaceState
     required EditorNotifier notifier,
   }) async {
     if (_isImportingAsset) return;
-    final selection = await FilePicker.platform.pickFiles(
-      dialogTitle: 'Choisir la vidéo, le poster et les sous-titres optionnels',
-      type: FileType.custom,
-      allowedExtensions: const <String>[
-        'mp4',
-        'png',
-        'jpg',
-        'jpeg',
-        'webp',
-        'vtt',
-      ],
-      allowMultiple: true,
-      withData: false,
-      lockParentWindow: true,
-    );
-    if (!mounted || selection == null) return;
-    final paths = selection.files
-        .map((file) => file.path)
-        .whereType<String>()
-        .toList(growable: false);
-    final videoPath = _singlePathWithExtensions(paths, const <String>['.mp4']);
-    final posterPath = _singlePathWithExtensions(
-      paths,
-      const <String>['.png', '.jpg', '.jpeg', '.webp'],
-    );
-    final captionsPath =
-        _singlePathWithExtensions(paths, const <String>['.vtt']);
-    if (videoPath == null || posterPath == null) {
-      setState(() {
-        _assetFeedbackIsError = true;
-        _assetFeedback =
-            'Sélectionnez exactement une vidéo MP4 et un poster PNG, JPEG ou WebP.';
-      });
-      return;
-    }
 
     setState(() {
       _isImportingAsset = true;
       _assetFeedback = null;
     });
     try {
-      final imported =
-          await const ProjectIntroVideoImportService().importIntoProject(
-        projectRoot: Directory(projectRootPath),
-        videoFile: File(videoPath),
-        posterFile: File(posterPath),
-        captionsFile: captionsPath == null ? null : File(captionsPath),
-        reducedMotionBehavior: profile.intro?.reducedMotionBehavior ?? 'poster',
-        allowReplay: profile.intro?.allowReplay ?? true,
-      );
+      final selection = await ref
+          .read(personalizationStudioAssetPickerProvider)
+          .pickIntroAssets();
+      if (!mounted) return;
+      if (selection == null) {
+        setState(() {
+          _assetFeedbackIsError = false;
+          _assetFeedback = 'Import de vidéo annulé.';
+        });
+        return;
+      }
+      final imported = await ref
+          .read(projectIntroVideoImportServiceProvider)
+          .importIntoProject(
+            projectRoot: Directory(projectRootPath),
+            videoFile: File(selection.videoPath),
+            posterFile: File(selection.posterPath),
+            captionsFile: selection.captionsPath == null
+                ? null
+                : File(selection.captionsPath!),
+            reducedMotionBehavior:
+                profile.intro?.reducedMotionBehavior ?? 'poster',
+            allowReplay: profile.intro?.allowReplay ?? true,
+          );
       final applied = await notifier.applyPersonalizationStudioProfile(
         profile.copyWith(intro: imported),
         label: 'Importer la vidéo d’introduction',
@@ -242,11 +217,17 @@ class _PersonalizationStudioWorkspaceState
             ? 'Vidéo, poster et sous-titres importés dans le brouillon.'
             : 'La vidéo a été validée, mais le brouillon n’a pas pu être modifié.';
       });
-    } on ProjectIntroVideoImportException catch (error) {
+    } on PersonalizationStudioAssetSelectionException catch (error) {
       if (!mounted) return;
       setState(() {
         _assetFeedbackIsError = true;
         _assetFeedback = error.message;
+      });
+    } on ProjectIntroVideoImportException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = _localizedIntroImportError(error);
       });
     } on Object {
       if (!mounted) return;
@@ -270,6 +251,14 @@ class _PersonalizationStudioWorkspaceState
     required bool canEdit,
   }) {
     final feedback = <Widget>[
+      if (_isImportingAsset) ...<Widget>[
+        const PokeMapDiagnosticCallout(
+          key: ValueKey<String>('personalization-studio-asset-progress'),
+          severity: PokeMapDiagnosticSeverity.info,
+          message: 'Validation et copie sécurisée des assets en cours…',
+        ),
+        const SizedBox(height: 12),
+      ],
       if (_assetFeedback != null) ...<Widget>[
         PokeMapDiagnosticCallout(
           key: const ValueKey<String>(
@@ -581,17 +570,6 @@ class _PersonalizationStudioWorkspaceState
   }
 }
 
-String? _singlePathWithExtensions(
-  List<String> paths,
-  List<String> extensions,
-) {
-  final matches = paths.where((path) {
-    final lower = path.toLowerCase();
-    return extensions.any(lower.endsWith);
-  }).toList(growable: false);
-  return matches.length == 1 ? matches.single : null;
-}
-
 String _categoryName(ProjectPresentationCategory category) =>
     switch (category) {
       ProjectPresentationCategory.branding => 'branding',
@@ -694,4 +672,50 @@ String _themeTokenName(String token) => switch (token) {
       'overworldHudSurface' => 'Fond du HUD exploration',
       'battleHudSurface' => 'Fond du HUD combat',
       _ => token,
+    };
+
+String _localizedIntroImportError(ProjectIntroVideoImportException error) =>
+    switch (error.code) {
+      'introVideoMissing' => 'La vidéo sélectionnée est introuvable.',
+      'introPosterMissing' => 'Le poster sélectionné est introuvable.',
+      'introCaptionsMissing' =>
+        'Le fichier de sous-titres sélectionné est introuvable.',
+      'introSizeExceeded' => 'La vidéo dépasse la limite de 100 Mio.',
+      'introCodecUnsupported' => 'Choisissez une vidéo MP4 encodée en H.264.',
+      'introPosterInvalid' => 'Choisissez un poster PNG, JPEG ou WebP valide.',
+      'introCaptionsInvalid' =>
+        'Les sous-titres doivent être un fichier WebVTT UTF-8 valide.',
+      'introDecoderRejected' =>
+        'Le décodeur de cette plateforme ne peut pas lire cette vidéo.',
+      'introDurationExceeded' =>
+        'La vidéo dépasse la durée maximale de 2 minutes.',
+      'introResolutionExceeded' =>
+        'La vidéo dépasse la résolution maximale de 1920 × 1080.',
+      'introBitrateExceeded' => 'Le débit de la vidéo dépasse 12 000 kbit/s.',
+      'introImportWriteFailed' =>
+        'Les assets validés n’ont pas pu être copiés dans le projet.',
+      _ => error.message,
+    };
+
+String _localizedFontImportError(ProjectFontImportException error) =>
+    switch (error.code) {
+      'fontMissing' => 'La fonte sélectionnée est introuvable.',
+      'fontLicenseMissing' => 'La licence sélectionnée est introuvable.',
+      'fontRedistributionNotConfirmed' =>
+        'Confirmez le droit de redistribution de cette fonte.',
+      'fontFallbackMissing' =>
+        'Conservez au moins une fonte système de secours.',
+      'fontFormatUnsupported' => 'Choisissez une fonte TTF ou OTF.',
+      'fontSizeUnsupported' => 'La fonte dépasse la limite de 10 Mio.',
+      'fontSignatureInvalid' =>
+        'La signature du fichier ne correspond pas à son extension.',
+      'fontLicenseSizeUnsupported' =>
+        'La licence doit être un fichier texte inférieur à 1 Mio.',
+      'fontLicenseInvalid' => 'La licence doit contenir du texte UTF-8 valide.',
+      'fontFamilyMissing' => 'La fonte ne déclare aucun nom de famille.',
+      'fontGlyphCoverageIncomplete' =>
+        'La fonte ne couvre pas tous les glyphes requis par le player.',
+      'fontImportWriteFailed' =>
+        'La fonte validée n’a pas pu être copiée dans le projet.',
+      _ => error.message,
     };

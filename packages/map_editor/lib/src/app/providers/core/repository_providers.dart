@@ -13,6 +13,9 @@ import '../../../application/services/narrative_activity_journal.dart';
 import '../../../application/use_cases/execute_narrative_authoring_transaction.dart';
 import '../../../domain/repositories/repositories.dart';
 import '../../../features/personalization/application/personalization_studio_session_controller.dart';
+import '../../../features/personalization/application/personalization_studio_asset_picker.dart';
+import '../../../features/personalization/application/project_font_import_service.dart';
+import '../../../features/personalization/application/project_intro_video_import_service.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
 import '../../../infrastructure/repositories/file_repositories.dart';
 import '../../../infrastructure/repositories/file_narrative_document_recovery_store.dart';
@@ -26,6 +29,25 @@ part 'repository_providers.g.dart';
 
 final fileProjectRepositoryProvider = Provider<FileProjectRepository>((ref) {
   return FileProjectRepository();
+});
+
+final personalizationStudioAssetPickerProvider =
+    Provider<PersonalizationStudioAssetPicker>((ref) {
+  return const FilePickerPersonalizationStudioAssetPicker();
+});
+
+final projectIntroVideoImportServiceProvider =
+    Provider<ProjectIntroVideoImporter>((ref) {
+  return const ProjectIntroVideoImportService();
+});
+
+final projectFontImportServiceProvider = Provider<ProjectFontImporter>((ref) {
+  return const ProjectFontImportService();
+});
+
+final projectFontPreviewLoaderProvider =
+    Provider<ProjectFontPreviewRegistry>((ref) {
+  return const ProjectFontPreviewLoader();
 });
 
 final narrativeEventRegistryPersistenceGatewayProvider =

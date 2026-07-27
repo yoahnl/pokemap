@@ -58,13 +58,25 @@ final class SfntProjectFontProbe implements ProjectFontProbe {
   }
 }
 
-final class ProjectFontImportService {
+abstract interface class ProjectFontImporter {
+  Future<ProjectTypographyRoleProfile> importIntoProject({
+    required Directory projectRoot,
+    required ProjectTypographyRole role,
+    required File fontFile,
+    required File licenseFile,
+    required bool redistributionConfirmed,
+    required List<String> fallbackFamilies,
+  });
+}
+
+final class ProjectFontImportService implements ProjectFontImporter {
   const ProjectFontImportService({
     this.probe = const SfntProjectFontProbe(),
   });
 
   final ProjectFontProbe probe;
 
+  @override
   Future<ProjectTypographyRoleProfile> importIntoProject({
     required Directory projectRoot,
     required ProjectTypographyRole role,
@@ -242,10 +254,18 @@ final class ProjectFontImportService {
   }
 }
 
+abstract interface class ProjectFontPreviewRegistry {
+  Future<String> load({
+    required File fontFile,
+    required ProjectTypographyRole role,
+  });
+}
+
 /// Registers an imported font under an isolated family for live editor preview.
-final class ProjectFontPreviewLoader {
+final class ProjectFontPreviewLoader implements ProjectFontPreviewRegistry {
   const ProjectFontPreviewLoader();
 
+  @override
   Future<String> load({
     required File fontFile,
     required ProjectTypographyRole role,

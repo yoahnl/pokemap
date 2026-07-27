@@ -503,6 +503,276 @@ void main() {
     expect(projectFile.readAsStringSync(), durableJson);
   });
 
+  testWidgets('guided intro import reports success and updates only the draft',
+      (tester) async {
+    final root =
+        Directory.systemTemp.createTempSync('personalization-studio-import-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final project = buildShellChromeProject(name: 'Import Studio').copyWith(
+      presentation: const ProjectPresentationProfile(),
+    );
+    final projectFile = File('${root.path}/project.json');
+    final durableJson =
+        const JsonEncoder.withIndent('  ').convert(project.toJson());
+    projectFile.writeAsStringSync(durableJson, flush: true);
+    final gateway = _MemoryProjectGateway(project);
+    final assetPicker = _FixedAssetPicker(
+      intro: const PersonalizationStudioIntroAssetSelection(
+        videoPath: '/source/opening.mp4',
+        posterPath: '/source/poster.png',
+        captionsPath: '/source/captions.vtt',
+      ),
+    );
+    final introImporter = _FixedIntroImporter();
+
+    final container = await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1200, 800),
+      overrides: [
+        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
+          ({
+            required String projectPath,
+            required ProjectManifest initialDocument,
+          }) {
+            return PersonalizationStudioSessionController(
+              session: NarrativeDocumentSession<ProjectManifest>(
+                documentId: 'personalization-studio-import',
+                initialDocument: initialDocument,
+                gateway: gateway,
+                recoveryStore: _MemoryProjectRecoveryStore(),
+              ),
+            );
+          },
+        ),
+        personalizationStudioAssetPickerProvider.overrideWithValue(
+          assetPicker,
+        ),
+        projectIntroVideoImportServiceProvider.overrideWithValue(
+          introImporter,
+        ),
+      ],
+    );
+    await container
+        .read(editorNotifierProvider.notifier)
+        .initializePersonalizationStudioSession();
+    await tester.pump();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-category-intro'),
+      ),
+    );
+    await tester.pump();
+
+    final importButton = tester.widget<PokeMapButton>(
+      find.byKey(
+        const ValueKey<String>('personalization-intro-import'),
+      ),
+    );
+    expect(importButton.onPressed, isNotNull);
+    importButton.onPressed!.call();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+    await tester.pumpAndSettle();
+    expect(assetPicker.introCalls, 1);
+    expect(introImporter.calls, 1);
+
+    final intro = container
+        .read(editorNotifierProvider)
+        .project
+        ?.effectivePresentation
+        .intro;
+    expect(intro, isNotNull);
+    expect(intro?.captionsPath, endsWith('.vtt'));
+    expect(
+      find.text('Vidéo, poster et sous-titres importés dans le brouillon.'),
+      findsOneWidget,
+    );
+    expect(projectFile.readAsStringSync(), durableJson);
+  });
+
+  testWidgets('guided font import confirms rights and updates only one role',
+      (tester) async {
+    final root =
+        Directory.systemTemp.createTempSync('personalization-studio-font-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final project = buildShellChromeProject(name: 'Font Studio').copyWith(
+      presentation: const ProjectPresentationProfile(),
+    );
+    final projectFile = File('${root.path}/project.json');
+    final durableJson =
+        const JsonEncoder.withIndent('  ').convert(project.toJson());
+    projectFile.writeAsStringSync(durableJson, flush: true);
+    final gateway = _MemoryProjectGateway(project);
+    final assetPicker = _FixedAssetPicker(
+      font: const PersonalizationStudioFontAssetSelection(
+        fontPath: '/source/body.otf',
+        licensePath: '/source/OFL.txt',
+      ),
+    );
+    final fontImporter = _FixedFontImporter();
+    final previewRegistry = _FixedFontPreviewRegistry();
+
+    final container = await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1200, 1000),
+      overrides: [
+        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
+          ({
+            required String projectPath,
+            required ProjectManifest initialDocument,
+          }) {
+            return PersonalizationStudioSessionController(
+              session: NarrativeDocumentSession<ProjectManifest>(
+                documentId: 'personalization-studio-font-import',
+                initialDocument: initialDocument,
+                gateway: gateway,
+                recoveryStore: _MemoryProjectRecoveryStore(),
+              ),
+            );
+          },
+        ),
+        personalizationStudioAssetPickerProvider.overrideWithValue(
+          assetPicker,
+        ),
+        projectFontImportServiceProvider.overrideWithValue(fontImporter),
+        projectFontPreviewLoaderProvider.overrideWithValue(previewRegistry),
+      ],
+    );
+    await container
+        .read(editorNotifierProvider.notifier)
+        .initializePersonalizationStudioSession();
+    await tester.pump();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-category-typography'),
+      ),
+    );
+    await tester.pump();
+
+    final importBody = find.byKey(
+      const ValueKey<String>('typography-import-body'),
+    );
+    await tester.ensureVisible(importBody);
+    await tester.tap(importBody);
+    await tester.pumpAndSettle();
+    expect(find.text('Droit de redistribution'), findsOneWidget);
+    await tester.tap(find.text('Je confirme'));
+    await tester.pumpAndSettle();
+
+    expect(assetPicker.fontCalls, 1);
+    expect(fontImporter.calls, 1);
+    expect(fontImporter.lastRole, ProjectTypographyRole.body);
+    expect(previewRegistry.calls, 1);
+    final typography = container
+        .read(editorNotifierProvider)
+        .project
+        ?.effectivePresentation
+        .typography;
+    expect(
+      typography?.body.fontPath,
+      'assets/presentation/fonts/body-test.otf',
+    );
+    expect(typography?.display.fontPath, isNull);
+    expect(
+      find.text('Fonte et licence importées dans le brouillon.'),
+      findsOneWidget,
+    );
+    expect(projectFile.readAsStringSync(), durableJson);
+  });
+
+  testWidgets('guided import exposes selection errors without changing draft',
+      (tester) async {
+    final root =
+        Directory.systemTemp.createTempSync('personalization-studio-error-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final project =
+        buildShellChromeProject(name: 'Import Error Studio').copyWith(
+      presentation: const ProjectPresentationProfile(),
+    );
+    final gateway = _MemoryProjectGateway(project);
+    final assetPicker = _FixedAssetPicker(
+      introError: const PersonalizationStudioAssetSelectionException(
+        code: 'introSelectionIncomplete',
+        message:
+            'Sélectionnez exactement une vidéo MP4 et un poster PNG, JPEG ou WebP.',
+      ),
+    );
+
+    final container = await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1200, 800),
+      overrides: [
+        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
+          ({
+            required String projectPath,
+            required ProjectManifest initialDocument,
+          }) {
+            return PersonalizationStudioSessionController(
+              session: NarrativeDocumentSession<ProjectManifest>(
+                documentId: 'personalization-studio-import-error',
+                initialDocument: initialDocument,
+                gateway: gateway,
+                recoveryStore: _MemoryProjectRecoveryStore(),
+              ),
+            );
+          },
+        ),
+        personalizationStudioAssetPickerProvider.overrideWithValue(
+          assetPicker,
+        ),
+      ],
+    );
+    await container
+        .read(editorNotifierProvider.notifier)
+        .initializePersonalizationStudioSession();
+    await tester.pump();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-category-intro'),
+      ),
+    );
+    await tester.pump();
+
+    final importButton = tester.widget<PokeMapButton>(
+      find.byKey(
+        const ValueKey<String>('personalization-intro-import'),
+      ),
+    );
+    importButton.onPressed!.call();
+    await tester.pumpAndSettle();
+
+    expect(assetPicker.introCalls, 1);
+    expect(
+      find.text(
+        'Sélectionnez exactement une vidéo MP4 et un poster PNG, JPEG ou WebP.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      container
+          .read(editorNotifierProvider)
+          .project
+          ?.effectivePresentation
+          .intro,
+      isNull,
+    );
+  });
+
   testWidgets('shows a dedicated state when no project is open',
       (tester) async {
     await pumpEditorCanvasHostHarness(
@@ -611,5 +881,103 @@ final class _MemoryProjectRecoveryStore
     NarrativeDocumentRecoveryRecord<ProjectManifest> record,
   ) async {
     this.record = record;
+  }
+}
+
+final class _FixedAssetPicker implements PersonalizationStudioAssetPicker {
+  _FixedAssetPicker({
+    this.intro,
+    this.font,
+    this.introError,
+  });
+
+  final PersonalizationStudioIntroAssetSelection? intro;
+  final PersonalizationStudioFontAssetSelection? font;
+  final PersonalizationStudioAssetSelectionException? introError;
+  int introCalls = 0;
+  int fontCalls = 0;
+
+  @override
+  Future<PersonalizationStudioFontAssetSelection?> pickFontAssets() async {
+    fontCalls += 1;
+    return font;
+  }
+
+  @override
+  Future<PersonalizationStudioIntroAssetSelection?> pickIntroAssets() async {
+    introCalls += 1;
+    if (introError case final error?) throw error;
+    return intro;
+  }
+}
+
+final class _FixedIntroImporter implements ProjectIntroVideoImporter {
+  int calls = 0;
+
+  @override
+  Future<ProjectIntroVideoProfile> importIntoProject({
+    required Directory projectRoot,
+    required File videoFile,
+    required File posterFile,
+    File? captionsFile,
+    String reducedMotionBehavior = 'poster',
+    bool allowReplay = true,
+  }) async {
+    calls += 1;
+    return ProjectIntroVideoProfile(
+      videoPath: 'assets/presentation/intro/opening.mp4',
+      posterPath: 'assets/presentation/intro/poster.png',
+      captionsPath: captionsFile == null
+          ? null
+          : 'assets/presentation/intro/captions.vtt',
+      durationMilliseconds: 1000,
+      width: 1280,
+      height: 720,
+      bitrateKbps: 2400,
+      sizeBytes: 1000,
+      videoCodec: 'h264',
+      audioCodec: 'aac',
+      reducedMotionBehavior: reducedMotionBehavior,
+      allowReplay: allowReplay,
+    );
+  }
+}
+
+final class _FixedFontImporter implements ProjectFontImporter {
+  int calls = 0;
+  ProjectTypographyRole? lastRole;
+
+  @override
+  Future<ProjectTypographyRoleProfile> importIntoProject({
+    required Directory projectRoot,
+    required ProjectTypographyRole role,
+    required File fontFile,
+    required File licenseFile,
+    required bool redistributionConfirmed,
+    required List<String> fallbackFamilies,
+  }) async {
+    calls += 1;
+    lastRole = role;
+    return ProjectTypographyRoleProfile(
+      fontPath: 'assets/presentation/fonts/${role.name}-test.otf',
+      family: 'Studio Test',
+      licensePath: 'assets/presentation/fonts/${role.name}-test-license.txt',
+      redistributable: true,
+      fallbackFamilies: fallbackFamilies,
+      glyphCoverage: requiredProjectFontGlyphCoverage.toList(growable: false),
+    );
+  }
+}
+
+final class _FixedFontPreviewRegistry implements ProjectFontPreviewRegistry {
+  int calls = 0;
+
+  @override
+  Future<String> load({
+    required File fontFile,
+    required ProjectTypographyRole role,
+  }) async {
+    calls += 1;
+    return 'PokeMapPreview-${role.name}';
   }
 }

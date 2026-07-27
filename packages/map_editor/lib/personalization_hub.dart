@@ -4,6 +4,7 @@ export 'src/features/personalization/application/project_font_import_service.dar
 export 'src/features/personalization/application/project_intro_video_import_service.dart';
 export 'src/features/personalization/application/project_presentation_presets.dart';
 export 'src/features/personalization/application/personalization_preview_projection.dart';
+export 'src/features/personalization/application/personalization_studio_asset_picker.dart';
 export 'src/features/personalization/application/personalization_studio_session_controller.dart';
 export 'src/features/personalization/presentation/personalization_hub_shell.dart';
 export 'src/features/personalization/presentation/personalization_studio_workspace.dart';
