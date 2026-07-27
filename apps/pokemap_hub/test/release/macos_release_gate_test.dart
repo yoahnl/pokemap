@@ -129,9 +129,8 @@ void main() {
       isNot(contains(r'find "$APP_PATH/Contents/Frameworks"')),
     );
     expect(workflow, contains("startsWith(github.ref, 'refs/tags/"));
-    expect(workflow, contains('xcrun notarytool submit'));
-    expect(workflow, contains('xcrun stapler staple'));
-    expect(workflow, contains('spctl --assess'));
+    expect(workflow, contains('tool/release/notarize_macos_release.sh'));
+    expect(workflow, isNot(contains('hdiutil create -volname')));
     expect(
         workflow, contains('--entitlements macos/Runner/Release.entitlements'));
     expect(workflow, contains('build_neutral_package_artifact_test.dart'));

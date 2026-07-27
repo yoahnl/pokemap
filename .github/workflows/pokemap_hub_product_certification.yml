@@ -103,7 +103,6 @@ jobs:
           ! plutil -extract com.apple.security.cs.allow-jit raw -o - "$RUNNER_TEMP/release-entitlements.plist"
           ! plutil -extract com.apple.security.cs.disable-library-validation raw -o - "$RUNNER_TEMP/release-entitlements.plist"
           ! plutil -extract com.apple.security.network.client raw -o - "$RUNNER_TEMP/release-entitlements.plist"
-          hdiutil create -volname "PokeMap Hub" -srcfolder "$APP_PATH" -ov -format UDZO build/PokeMapHub.dmg
       - name: Build neutral certification package
         working-directory: tool/pokemap_product_certification
         run: |
@@ -121,14 +120,12 @@ jobs:
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
             --password "$APP_SPECIFIC_PASSWORD"
-          xcrun notarytool submit build/PokeMapHub.dmg \
-            --keychain-profile pokemap-release \
-            --wait \
-            --output-format json > "$RUNNER_TEMP/notary-result.json"
-          xcrun stapler staple build/PokeMapHub.dmg
-          xcrun stapler validate build/PokeMapHub.dmg
-          spctl --assess --type execute --verbose=4 "build/macos/Build/Products/Release/PokeMap Hub.app"
-          hdiutil verify build/PokeMapHub.dmg
+          tool/release/notarize_macos_release.sh \
+            --app "build/macos/Build/Products/Release/PokeMap Hub.app" \
+            --dmg build/PokeMapHub.dmg \
+            --notary-profile pokemap-release \
+            --result-json "$RUNNER_TEMP/notary-result.json" \
+            --log-directory "$RUNNER_TEMP/notary-logs"
       - name: Cold-install, relaunch and verify release gate
         working-directory: apps/pokemap_hub
         run: |
