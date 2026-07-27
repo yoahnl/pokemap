@@ -26,7 +26,8 @@ void main() {
     skip: !_ffprobeAvailable,
   );
 
-  test('certification workflow runs codec and native playback gates', () async {
+  test('certification workflow runs codec and iOS native playback gates',
+      () async {
     final workflow = await File(
       '../../.github/workflows/pokemap_hub_product_certification.yml',
     ).readAsString();
@@ -34,14 +35,11 @@ void main() {
     expect(workflow, contains('tool/release/verify_intro_codecs.sh'));
     expect(
       workflow,
-      contains(
-        'flutter test '
-        'integration_test/pst_074_native_codec_playback_test.dart -d macos',
-      ),
+      isNot(contains('pst_074_native_codec_playback_test.dart -d macos')),
     );
     expect(
       RegExp('pst_074_native_codec_playback_test\\.dart').allMatches(workflow),
-      hasLength(2),
+      hasLength(1),
     );
   });
 }
