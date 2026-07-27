@@ -30,6 +30,7 @@ final class HubComposition implements HubAppComposition {
     required this.controller,
     required this.actions,
     required this.launchResolver,
+    required this.displayPreferencesController,
     required HubPlatformAdapter platformAdapter,
   }) : _platformAdapter = platformAdapter;
 
@@ -37,6 +38,7 @@ final class HubComposition implements HubAppComposition {
   final HubDashboardController controller;
   final HubUiActions actions;
   final InstalledGameLaunchResolver launchResolver;
+  final HubDisplayPreferencesController displayPreferencesController;
   final HubPlatformAdapter _platformAdapter;
 
   static Future<HubComposition> create({
@@ -100,11 +102,17 @@ final class HubComposition implements HubAppComposition {
           unawaited(initializedComposition._pickAndImport());
         },
       );
+      final displayPreferencesController = HubDisplayPreferencesController(
+        store: HubDisplayPreferencesStore(supportRoot: root),
+        driver: WindowManagerHubDisplayDriver(),
+      );
+      await displayPreferencesController.initialize();
       initializedComposition = HubComposition._(
         supportRoot: root,
         controller: controller,
         actions: actions,
         launchResolver: launchResolver,
+        displayPreferencesController: displayPreferencesController,
         platformAdapter: adapter,
       );
       composition = initializedComposition;
@@ -131,6 +139,7 @@ final class HubComposition implements HubAppComposition {
   Widget buildApp() => PokeMapHubApp(
         controller: controller,
         actions: actions,
+        displayPreferencesController: displayPreferencesController,
         playerBuilder: (context, game, onHubRequested) =>
             HubInstalledGamePlayer(
           supportRoot: supportRoot,
@@ -192,6 +201,7 @@ final class HubComposition implements HubAppComposition {
   @override
   void dispose() {
     _platformAdapter.dispose();
+    displayPreferencesController.dispose();
     controller.dispose();
   }
 }

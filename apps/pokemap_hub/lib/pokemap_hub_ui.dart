@@ -5,6 +5,9 @@
 library;
 
 export 'pokemap_hub_player.dart';
+export 'src/display/hub_display_preferences.dart';
+export 'src/display/hub_display_preferences_controller.dart';
+export 'src/display/hub_display_preferences_store.dart';
 export 'src/ui/hub_app.dart';
 export 'src/ui/hub_dashboard_controller.dart';
 export 'src/ui/hub_game_views.dart';

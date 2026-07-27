@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
+import '../display/hub_display_preferences.dart';
+import '../display/hub_display_preferences_controller.dart';
 import 'hub_dashboard_controller.dart';
 import 'hub_game_views.dart';
 import 'hub_install_progress.dart';
@@ -16,6 +18,7 @@ class HubShell extends StatelessWidget {
     required this.onGameSelected,
     required this.onGameDetailsClosed,
     required this.onPreferencesChanged,
+    this.displayPreferencesController,
     this.onCancelInstall,
   });
 
@@ -26,6 +29,7 @@ class HubShell extends StatelessWidget {
   final ValueChanged<String> onGameSelected;
   final VoidCallback onGameDetailsClosed;
   final ValueChanged<PlayerPreferences> onPreferencesChanged;
+  final HubDisplayPreferencesController? displayPreferencesController;
   final VoidCallback? onCancelInstall;
 
   @override
@@ -117,10 +121,22 @@ class HubShell extends StatelessWidget {
                 onQueryChanged: onQueryChanged,
                 onGameSelected: onGameSelected,
               ),
-            HubSection.preferences => _HubPreferences(
-                preferences: snapshot.preferences,
-                onChanged: onPreferencesChanged,
-              ),
+            HubSection.preferences => switch (displayPreferencesController) {
+                final controller? => ListenableBuilder(
+                    listenable: controller,
+                    builder: (context, _) => _HubPreferences(
+                      preferences: snapshot.preferences,
+                      onChanged: onPreferencesChanged,
+                      displaySnapshot: controller.snapshot,
+                      onDisplayChanged: (preferences) =>
+                          controller.update(preferences),
+                    ),
+                  ),
+                null => _HubPreferences(
+                    preferences: snapshot.preferences,
+                    onChanged: onPreferencesChanged,
+                  ),
+              },
             HubSection.diagnostics => _HubDiagnostics(snapshot: snapshot),
           };
     final error = snapshot.status == HubDashboardStatus.error
@@ -530,10 +546,14 @@ class _HubPreferences extends StatelessWidget {
   const _HubPreferences({
     required this.preferences,
     required this.onChanged,
+    this.displaySnapshot,
+    this.onDisplayChanged,
   });
 
   final PlayerPreferences preferences;
   final ValueChanged<PlayerPreferences> onChanged;
+  final HubDisplayPreferencesSnapshot? displaySnapshot;
+  final ValueChanged<HubDisplayPreferences>? onDisplayChanged;
 
   @override
   Widget build(BuildContext context) => PlayerSurface(
@@ -555,6 +575,7 @@ class _HubPreferences extends StatelessWidget {
                   ),
                   const SizedBox(height: PlayerSpacing.md),
                   DropdownButtonFormField<PlayerLanguage>(
+                    isExpanded: true,
                     initialValue: preferences.language,
                     decoration: InputDecoration(
                       labelText: context.playerL10n.language,
@@ -581,6 +602,7 @@ class _HubPreferences extends StatelessWidget {
                   ),
                   const SizedBox(height: PlayerSpacing.md),
                   DropdownButtonFormField<PlayerThemePreference>(
+                    isExpanded: true,
                     initialValue: preferences.theme,
                     decoration: InputDecoration(
                       labelText: context.playerL10n.theme,
@@ -718,10 +740,122 @@ class _HubPreferences extends StatelessWidget {
                 ],
               ),
             ),
+            if (displaySnapshot case final display?) ...<Widget>[
+              const SizedBox(height: PlayerSpacing.md),
+              _HubDisplayPreferencesPanel(
+                snapshot: display,
+                onChanged: onDisplayChanged,
+              ),
+            ],
             const SizedBox(height: PlayerSpacing.xl),
           ],
         ),
       );
+}
+
+class _HubDisplayPreferencesPanel extends StatelessWidget {
+  const _HubDisplayPreferencesPanel({
+    required this.snapshot,
+    required this.onChanged,
+  });
+
+  final HubDisplayPreferencesSnapshot snapshot;
+  final ValueChanged<HubDisplayPreferences>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = PlayerDisplayStrings.of(context);
+    final supported =
+        snapshot.status != HubDisplayPreferencesStatus.unsupported;
+    final canUpdate = snapshot.canUpdate && onChanged != null;
+    return PlayerPanel(
+      key: const ValueKey<String>('hub-display-preferences'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(strings.title, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: PlayerSpacing.md),
+          if (!supported)
+            PlayerEmptyState(
+              icon: Icons.desktop_windows_outlined,
+              title: strings.title,
+              message: strings.unsupported,
+            )
+          else ...<Widget>[
+            DropdownButtonFormField<HubDisplayMode>(
+              key: const ValueKey<String>('hub-display-mode'),
+              isExpanded: true,
+              initialValue: snapshot.preferences.mode,
+              decoration: InputDecoration(labelText: strings.mode),
+              items: <DropdownMenuItem<HubDisplayMode>>[
+                DropdownMenuItem(
+                  value: HubDisplayMode.windowed,
+                  child: Text(strings.windowed),
+                ),
+                DropdownMenuItem(
+                  value: HubDisplayMode.fullscreen,
+                  child: Text(strings.fullscreen),
+                ),
+              ],
+              onChanged: canUpdate
+                  ? (value) {
+                      if (value != null) {
+                        onChanged!(snapshot.preferences.copyWith(mode: value));
+                      }
+                    }
+                  : null,
+            ),
+            const SizedBox(height: PlayerSpacing.md),
+            DropdownButtonFormField<HubWindowSizePreset>(
+              key: const ValueKey<String>('hub-window-size'),
+              isExpanded: true,
+              initialValue: snapshot.preferences.windowSize,
+              decoration: InputDecoration(labelText: strings.windowSize),
+              items: <DropdownMenuItem<HubWindowSizePreset>>[
+                for (final preset in HubWindowSizePreset.values)
+                  DropdownMenuItem(
+                    value: preset,
+                    child: Text(_presetLabel(strings, preset)),
+                  ),
+              ],
+              onChanged: canUpdate
+                  ? (value) {
+                      if (value != null) {
+                        onChanged!(
+                          snapshot.preferences.copyWith(windowSize: value),
+                        );
+                      }
+                    }
+                  : null,
+            ),
+            if (snapshot.status == HubDisplayPreferencesStatus.error) ...[
+              const SizedBox(height: PlayerSpacing.sm),
+              Text(
+                strings.applyFailed,
+                key: const ValueKey<String>('hub-display-error'),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: context.playerColors.danger,
+                    ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _presetLabel(
+    PlayerDisplayStrings strings,
+    HubWindowSizePreset preset,
+  ) {
+    final label = switch (preset) {
+      HubWindowSizePreset.compact => strings.compact,
+      HubWindowSizePreset.balanced => strings.balanced,
+      HubWindowSizePreset.spacious => strings.spacious,
+    };
+    final size = preset.logicalSize;
+    return '$label — ${size.width.round()} × ${size.height.round()}';
+  }
 }
 
 class _VolumeSlider extends StatelessWidget {

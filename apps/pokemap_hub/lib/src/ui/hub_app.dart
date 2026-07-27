@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
+import '../display/hub_display_preferences_controller.dart';
 import 'hub_dashboard_controller.dart';
 import 'hub_game_views.dart';
 import 'hub_shell.dart';
@@ -21,12 +22,14 @@ class PokeMapHubApp extends StatefulWidget {
     required this.controller,
     this.actions = const HubUiActions(),
     this.playerBuilder,
+    this.displayPreferencesController,
     this.initializeController = true,
   });
 
   final HubDashboardController controller;
   final HubUiActions actions;
   final HubPlayerBuilder? playerBuilder;
+  final HubDisplayPreferencesController? displayPreferencesController;
   final bool initializeController;
 
   @override
@@ -113,6 +116,8 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
               _ => HubShell(
                   snapshot: snapshot,
                   actions: _effectiveActions,
+                  displayPreferencesController:
+                      widget.displayPreferencesController,
                   onSectionSelected: widget.controller.selectSection,
                   onQueryChanged: widget.controller.setQuery,
                   onGameSelected: widget.controller.selectGame,
