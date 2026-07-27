@@ -1,0 +1,285 @@
+{
+  "schemaVersion": 1,
+  "lot": "RM-070",
+  "capturedAtUtc": "2026-07-27T08:26:55Z",
+  "sourceState": {
+    "baseCommit": "00e2869996cbe2bc08dcfd28b5274d359cd20982",
+    "dirtyPaths": [
+      "examples/playable_runtime_host/lib/src/mvp_release_command_matrix.dart",
+      "examples/playable_runtime_host/test/mvp_release_command_matrix_test.dart"
+    ],
+    "diffSha256": "eb27239211187c1026667b0ef011813c8d0f8b8d559a152957125207276b4905",
+    "note": "This is the RM-070 regression execution state, not the final MVP release candidate."
+  },
+  "audit": {
+    "initialFinding": "The full release matrix omitted map_player_ui, map_distribution, and pokemap_hub, and grouped analyzes after all tests instead of running package by package.",
+    "protectedOrUnrelatedChanges": [],
+    "relevantLots": [
+      "RM-070",
+      "FG-183"
+    ]
+  },
+  "passes": [
+    {
+      "name": "Audit / Architecture",
+      "verdict": "The missing gates belong in the host release harness; no package dependency boundary changes are required."
+    },
+    {
+      "name": "Implementation",
+      "verdict": "The full matrix now starts with the exact 9 package test/analyze pairs followed by the 2 runtime smokes."
+    },
+    {
+      "name": "Tests",
+      "verdict": "The matrix contract produced a focused RED before the ordered 20-command contract became GREEN."
+    },
+    {
+      "name": "Build / Validation",
+      "verdict": "All 20 selected commands ran sequentially with exit code 0 and raw logs hashed below."
+    },
+    {
+      "name": "Final Critique",
+      "verdict": "This receipt certifies regression health only; platform build and human walkthrough remain RM-071."
+    }
+  ],
+  "files": {
+    "created": [
+      "reports/gameplay/evidence/rm_070_regression_gate_receipt.json"
+    ],
+    "modified": [
+      "examples/playable_runtime_host/lib/src/mvp_release_command_matrix.dart",
+      "examples/playable_runtime_host/test/mvp_release_command_matrix_test.dart"
+    ],
+    "generatedUntrackedLogs": [
+      "build/phase-7a/rm-070/*.log",
+      "build/phase-7a/rm-070/summary.tsv"
+    ]
+  },
+  "diffZones": [
+    "MvpReleaseCommandMatrix.full: add player-ui, distribution, and Hub test/analyze commands and interleave each package pair.",
+    "mvp_release_command_matrix_test: require the exact first 20 Phase 7A command ids and working directories."
+  ],
+  "execution": {
+    "mode": "sequential-fail-fast",
+    "totalDurationSeconds": 1158,
+    "rawLogRoot": "build/phase-7a/rm-070",
+    "rawLogBytes": 5524427,
+    "allPassed": true
+  },
+  "commands": [
+    {
+      "id": "core-tests",
+      "workingDirectory": "packages/map_core",
+      "command": "dart test",
+      "exitCode": 0,
+      "durationSeconds": 126,
+      "outputSha256": "f8487dd8b491ed18748dc3c4948e9641033dd3a13261972ffa3ad1c9dd56238e",
+      "log": "build/phase-7a/rm-070/core-tests.log",
+      "result": "All tests passed."
+    },
+    {
+      "id": "core-analyze",
+      "workingDirectory": "packages/map_core",
+      "command": "dart analyze",
+      "exitCode": 0,
+      "durationSeconds": 1,
+      "outputSha256": "ed4967d34090c184f1feb85e6bcfbc4b7e3193e49ee31b53d2d5512952f47c74",
+      "log": "build/phase-7a/rm-070/core-analyze.log",
+      "result": "No issues found!"
+    },
+    {
+      "id": "gameplay-tests",
+      "workingDirectory": "packages/map_gameplay",
+      "command": "dart test",
+      "exitCode": 0,
+      "durationSeconds": 5,
+      "outputSha256": "089e9daa6a8c9ddd97f7470506bd93199e20e8de3016f3af7162633761e7724a",
+      "log": "build/phase-7a/rm-070/gameplay-tests.log",
+      "result": "00:03 +428: All tests passed!"
+    },
+    {
+      "id": "gameplay-analyze",
+      "workingDirectory": "packages/map_gameplay",
+      "command": "dart analyze",
+      "exitCode": 0,
+      "durationSeconds": 2,
+      "outputSha256": "c43553a2a191c6df1bf83a11ac573020b66d4f15c806919fa90276cfdcda7e84",
+      "log": "build/phase-7a/rm-070/gameplay-analyze.log",
+      "result": "No issues found!"
+    },
+    {
+      "id": "battle-tests",
+      "workingDirectory": "packages/map_battle",
+      "command": "dart test",
+      "exitCode": 0,
+      "durationSeconds": 21,
+      "outputSha256": "34f6633736fbdf96a90188158144c2b02bf5553856803c77f62dd3ec3e0885cf",
+      "log": "build/phase-7a/rm-070/battle-tests.log",
+      "result": "00:20 +1764: All tests passed!"
+    },
+    {
+      "id": "battle-analyze",
+      "workingDirectory": "packages/map_battle",
+      "command": "dart analyze",
+      "exitCode": 0,
+      "durationSeconds": 1,
+      "outputSha256": "f08bda8436a0c530451ba6b4bbff3b8f3f314cb283a7a7834f62b22ce7c39ef2",
+      "log": "build/phase-7a/rm-070/battle-analyze.log",
+      "result": "No issues found!"
+    },
+    {
+      "id": "runtime-tests",
+      "workingDirectory": "packages/map_runtime",
+      "command": "flutter test",
+      "exitCode": 0,
+      "durationSeconds": 193,
+      "outputSha256": "e11c8703b73792dc83b3938ce33ffb738007d17583162aa934f9fe02a6cd86e9",
+      "log": "build/phase-7a/rm-070/runtime-tests.log",
+      "result": "03:08 +2241 ~1: All tests passed!"
+    },
+    {
+      "id": "runtime-analyze",
+      "workingDirectory": "packages/map_runtime",
+      "command": "flutter analyze",
+      "exitCode": 0,
+      "durationSeconds": 7,
+      "outputSha256": "5ee48090adce8f19934da5c32adba0ce1aa5c5e5f20a44783afb252e308d1c3d",
+      "log": "build/phase-7a/rm-070/runtime-analyze.log",
+      "result": "No issues found! (ran in 5.4s)"
+    },
+    {
+      "id": "editor-tests",
+      "workingDirectory": "packages/map_editor",
+      "command": "flutter test",
+      "exitCode": 0,
+      "durationSeconds": 375,
+      "outputSha256": "9e19fded7b5233a2af1a6aa48d7c603a0f65c41878e2d2c05599bdab9d98fa5c",
+      "log": "build/phase-7a/rm-070/editor-tests.log",
+      "result": "06:09 +4180: All tests passed!"
+    },
+    {
+      "id": "editor-analyze",
+      "workingDirectory": "packages/map_editor",
+      "command": "flutter analyze",
+      "exitCode": 0,
+      "durationSeconds": 8,
+      "outputSha256": "425fca8e1926b9915ec5f19d9ba630853d708049cc99c487c481f583a5334c6e",
+      "log": "build/phase-7a/rm-070/editor-analyze.log",
+      "result": "No issues found! (ran in 6.4s)"
+    },
+    {
+      "id": "player-ui-tests",
+      "workingDirectory": "packages/map_player_ui",
+      "command": "flutter test",
+      "exitCode": 0,
+      "durationSeconds": 13,
+      "outputSha256": "d76925e43c28eaebbc38861cbe2b250de72de64e559a15938f5ddb9be7c9f136",
+      "log": "build/phase-7a/rm-070/player-ui-tests.log",
+      "result": "00:08 +102: All tests passed!"
+    },
+    {
+      "id": "player-ui-analyze",
+      "workingDirectory": "packages/map_player_ui",
+      "command": "flutter analyze",
+      "exitCode": 0,
+      "durationSeconds": 4,
+      "outputSha256": "67f889c02ed7b5d78a15cff26b1b1bbded17db6479c04f5c159d281eceec8bd8",
+      "log": "build/phase-7a/rm-070/player-ui-analyze.log",
+      "result": "No issues found! (ran in 3.8s)"
+    },
+    {
+      "id": "distribution-tests",
+      "workingDirectory": "packages/map_distribution",
+      "command": "dart test",
+      "exitCode": 0,
+      "durationSeconds": 8,
+      "outputSha256": "2225587a0652a1735bf22dd4a5f00a99c572f1a861ebd68dd771e8868de1b6f8",
+      "log": "build/phase-7a/rm-070/distribution-tests.log",
+      "result": "00:06 +75: All tests passed!"
+    },
+    {
+      "id": "distribution-analyze",
+      "workingDirectory": "packages/map_distribution",
+      "command": "dart analyze",
+      "exitCode": 0,
+      "durationSeconds": 1,
+      "outputSha256": "2b06b23da7b3a585a45f41bfe97f0f00afa829e705c5c94e040f56da817898d0",
+      "log": "build/phase-7a/rm-070/distribution-analyze.log",
+      "result": "No issues found!"
+    },
+    {
+      "id": "hub-tests",
+      "workingDirectory": "apps/pokemap_hub",
+      "command": "flutter test",
+      "exitCode": 0,
+      "durationSeconds": 44,
+      "outputSha256": "de8ee565a477ca0e1f7f29668424d0d99ba5bbd2d053caa64982b49c90a02407",
+      "log": "build/phase-7a/rm-070/hub-tests.log",
+      "result": "00:41 +169: All tests passed!"
+    },
+    {
+      "id": "hub-analyze",
+      "workingDirectory": "apps/pokemap_hub",
+      "command": "flutter analyze",
+      "exitCode": 0,
+      "durationSeconds": 4,
+      "outputSha256": "c683eae3215f7bc42977dc8527879dfc7f58d2c0a63386407fba85bd0c25d448",
+      "log": "build/phase-7a/rm-070/hub-analyze.log",
+      "result": "No issues found! (ran in 3.6s)"
+    },
+    {
+      "id": "host-tests",
+      "workingDirectory": "examples/playable_runtime_host",
+      "command": "flutter test",
+      "exitCode": 0,
+      "durationSeconds": 330,
+      "outputSha256": "dd752781b826b64381c1b02221e91bd0a1db793f69f2c05c7e00c71c9cde6165",
+      "log": "build/phase-7a/rm-070/host-tests.log",
+      "result": "05:23 +257 ~2: All tests passed!"
+    },
+    {
+      "id": "host-analyze",
+      "workingDirectory": "examples/playable_runtime_host",
+      "command": "flutter analyze",
+      "exitCode": 0,
+      "durationSeconds": 8,
+      "outputSha256": "eb186c254a8c458aee88b6905e2c3539623389be3226bd35a01c8bb1edb8f5eb",
+      "log": "build/phase-7a/rm-070/host-analyze.log",
+      "result": "No issues found! (ran in 6.2s)"
+    },
+    {
+      "id": "runtime-golden-battle-smoke",
+      "workingDirectory": "packages/map_runtime",
+      "command": "flutter test test/phase_a_golden_battle_slice_smoke_test.dart",
+      "exitCode": 0,
+      "durationSeconds": 4,
+      "outputSha256": "61eba2d068d04339067e3d43cfa9bbb87852b175776d59f41c2d49ce1b0ff4d9",
+      "log": "build/phase-7a/rm-070/runtime-golden-battle-smoke.log",
+      "result": "00:00 +3: All tests passed!"
+    },
+    {
+      "id": "host-golden-launch-smoke",
+      "workingDirectory": "examples/playable_runtime_host",
+      "command": "flutter test test/phase_a_golden_slice_launch_test.dart",
+      "exitCode": 0,
+      "durationSeconds": 3,
+      "outputSha256": "71b9b882c1540d874f7717765283d8eb6845e364de4af90ab67d43627678477b",
+      "log": "build/phase-7a/rm-070/host-golden-launch-smoke.log",
+      "result": "00:00 +1: All tests passed!"
+    }
+  ],
+  "decisionsAndNonGoals": [
+    "Raw logs remain ignored build artifacts because their combined size is 5,524,427 bytes; their exact SHA-256 values are tracked in this receipt.",
+    "The extra legacy full-matrix checks remain after the 20 Phase 7A commands and were not part of this selected execution.",
+    "No platform build or human walkthrough is claimed by RM-070."
+  ],
+  "risks": [
+    "The receipt was collected from a documented dirty RM-070 diff, so it is not a final release signature.",
+    "Raw build logs are local workspace artifacts and may be removed by build cleanup; the committed digests preserve tamper evidence but not their textual payload.",
+    "Skipped tests reported by Flutter remain visible as ~ counts and were accepted by their owning test suites."
+  ],
+  "status": {
+    "lot": "DONE_PROPOSED",
+    "fg183": "DONE_PROPOSED",
+    "fg185": "NO_VERDICT"
+  }
+}

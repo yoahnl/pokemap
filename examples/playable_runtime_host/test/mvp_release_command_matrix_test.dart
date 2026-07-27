@@ -28,6 +28,62 @@ void main() {
     );
   });
 
+  test('full matrix starts with every package gate and both runtime smokes',
+      () {
+    final commands = MvpReleaseCommandMatrix.full('/workspace').commands;
+
+    expect(
+      commands.take(20).map((command) => command.id),
+      const <String>[
+        'core-tests',
+        'core-analyze',
+        'gameplay-tests',
+        'gameplay-analyze',
+        'battle-tests',
+        'battle-analyze',
+        'runtime-tests',
+        'runtime-analyze',
+        'editor-tests',
+        'editor-analyze',
+        'player-ui-tests',
+        'player-ui-analyze',
+        'distribution-tests',
+        'distribution-analyze',
+        'hub-tests',
+        'hub-analyze',
+        'host-tests',
+        'host-analyze',
+        'runtime-golden-battle-smoke',
+        'host-golden-launch-smoke',
+      ],
+    );
+    expect(
+      commands.take(20).map((command) => command.workingDirectory),
+      const <String>[
+        '/workspace/packages/map_core',
+        '/workspace/packages/map_core',
+        '/workspace/packages/map_gameplay',
+        '/workspace/packages/map_gameplay',
+        '/workspace/packages/map_battle',
+        '/workspace/packages/map_battle',
+        '/workspace/packages/map_runtime',
+        '/workspace/packages/map_runtime',
+        '/workspace/packages/map_editor',
+        '/workspace/packages/map_editor',
+        '/workspace/packages/map_player_ui',
+        '/workspace/packages/map_player_ui',
+        '/workspace/packages/map_distribution',
+        '/workspace/packages/map_distribution',
+        '/workspace/apps/pokemap_hub',
+        '/workspace/apps/pokemap_hub',
+        '/workspace/examples/playable_runtime_host',
+        '/workspace/examples/playable_runtime_host',
+        '/workspace/packages/map_runtime',
+        '/workspace/examples/playable_runtime_host',
+      ],
+    );
+  });
+
   test('runner is sequential and stops at the first failed command', () async {
     final observed = <String>[];
     final matrix = MvpReleaseCommandMatrix(

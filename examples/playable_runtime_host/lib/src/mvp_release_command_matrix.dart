@@ -138,11 +138,21 @@ final class MvpReleaseCommandMatrix {
           packagePath: 'packages/map_core',
           criterion: MvpReleaseGateCriterion.projectGameplayReadiness,
         ),
+        _analyze(
+          root,
+          id: 'core-analyze',
+          packagePath: 'packages/map_core',
+        ),
         _dartTest(
           root,
           id: 'gameplay-tests',
           packagePath: 'packages/map_gameplay',
           criterion: MvpReleaseGateCriterion.criticalPackageTests,
+        ),
+        _analyze(
+          root,
+          id: 'gameplay-analyze',
+          packagePath: 'packages/map_gameplay',
         ),
         _dartTest(
           root,
@@ -150,11 +160,22 @@ final class MvpReleaseCommandMatrix {
           packagePath: 'packages/map_battle',
           criterion: MvpReleaseGateCriterion.criticalPackageTests,
         ),
+        _analyze(
+          root,
+          id: 'battle-analyze',
+          packagePath: 'packages/map_battle',
+        ),
         _flutterTest(
           root,
           id: 'runtime-tests',
           packagePath: 'packages/map_runtime',
           criterion: MvpReleaseGateCriterion.criticalPackageTests,
+        ),
+        _analyze(
+          root,
+          id: 'runtime-analyze',
+          packagePath: 'packages/map_runtime',
+          flutter: true,
         ),
         _flutterTest(
           root,
@@ -162,27 +183,59 @@ final class MvpReleaseCommandMatrix {
           packagePath: 'packages/map_editor',
           criterion: MvpReleaseGateCriterion.criticalPackageTests,
         ),
+        _analyze(
+          root,
+          id: 'editor-analyze',
+          packagePath: 'packages/map_editor',
+          flutter: true,
+        ),
+        _flutterTest(
+          root,
+          id: 'player-ui-tests',
+          packagePath: 'packages/map_player_ui',
+          criterion: MvpReleaseGateCriterion.criticalPackageTests,
+        ),
+        _analyze(
+          root,
+          id: 'player-ui-analyze',
+          packagePath: 'packages/map_player_ui',
+          flutter: true,
+        ),
+        _dartTest(
+          root,
+          id: 'distribution-tests',
+          packagePath: 'packages/map_distribution',
+          criterion: MvpReleaseGateCriterion.criticalPackageTests,
+        ),
+        _analyze(
+          root,
+          id: 'distribution-analyze',
+          packagePath: 'packages/map_distribution',
+        ),
+        _flutterTest(
+          root,
+          id: 'hub-tests',
+          packagePath: 'apps/pokemap_hub',
+          criterion: MvpReleaseGateCriterion.criticalPackageTests,
+        ),
+        _analyze(
+          root,
+          id: 'hub-analyze',
+          packagePath: 'apps/pokemap_hub',
+          flutter: true,
+        ),
         _flutterTest(
           root,
           id: 'host-tests',
           packagePath: 'examples/playable_runtime_host',
           criterion: MvpReleaseGateCriterion.goldenSlice,
         ),
-        for (final package in const [
-          ('core', 'packages/map_core', false),
-          ('gameplay', 'packages/map_gameplay', false),
-          ('battle', 'packages/map_battle', false),
-          ('runtime', 'packages/map_runtime', true),
-          ('editor', 'packages/map_editor', true),
-          ('host', 'examples/playable_runtime_host', true),
-        ])
-          MvpReleaseCommandSpec(
-            id: '${package.$1}-analyze',
-            criterion: MvpReleaseGateCriterion.criticalPackageTests,
-            executable: package.$3 ? 'flutter' : 'dart',
-            arguments: const ['analyze'],
-            workingDirectory: p.join(root, package.$2),
-          ),
+        _analyze(
+          root,
+          id: 'host-analyze',
+          packagePath: 'examples/playable_runtime_host',
+          flutter: true,
+        ),
         _flutterTest(
           root,
           id: 'runtime-golden-battle-smoke',
@@ -312,6 +365,20 @@ MvpReleaseCommandSpec _flutterTest(
       criterion: criterion,
       executable: 'flutter',
       arguments: ['test', ...tests, '-r', 'compact'],
+      workingDirectory: p.join(root, packagePath),
+    );
+
+MvpReleaseCommandSpec _analyze(
+  String root, {
+  required String id,
+  required String packagePath,
+  bool flutter = false,
+}) =>
+    MvpReleaseCommandSpec(
+      id: id,
+      criterion: MvpReleaseGateCriterion.criticalPackageTests,
+      executable: flutter ? 'flutter' : 'dart',
+      arguments: const ['analyze'],
       workingDirectory: p.join(root, packagePath),
     );
 
