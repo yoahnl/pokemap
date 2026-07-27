@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import 'save_profile.dart';
+import 'save_slot_metadata.dart';
 import 'save_storage_diagnostic.dart';
 
 enum SaveWriteStage {
@@ -175,6 +176,79 @@ final class HubSaveStore {
     }
     profiles.sort((left, right) => left.profileId.compareTo(right.profileId));
     return List<SaveProfile>.unmodifiable(profiles);
+  }
+
+  Future<void> deleteProfile(String profileId) async {
+    GameIdentity.validateLocalId(profileId, path: r'$.profileId');
+    final profile = await _safeProfileDirectory(profileId, create: false);
+    if (profile == null) return;
+    await _queueSlot<void>(
+      profile.path,
+      () => _withFileLock<void>(
+        profile,
+        () => profile.delete(recursive: true),
+      ),
+    );
+  }
+
+  Future<void> saveSlotMetadata({
+    required String profileId,
+    required SaveSlotMetadata metadata,
+  }) async {
+    GameIdentity.validateLocalId(profileId, path: r'$.profileId');
+    metadata.validate();
+    final slot = await _safeSlotDirectory(
+      SaveSlotAddress(
+        gameId: identity.gameId,
+        profileId: profileId,
+        slotId: metadata.slotId,
+      ),
+      create: true,
+    );
+    final target = File(p.join(slot!.path, 'slot.json'));
+    await _rejectLink(target.path);
+    final temporary = File('${target.path}.tmp.$pid.${_nonce++}');
+    try {
+      await temporary.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(metadata.toJson()),
+        flush: true,
+      );
+      if (await target.exists()) await target.delete();
+      await temporary.rename(target.path);
+    } catch (error) {
+      if (await temporary.exists()) await temporary.delete();
+      throw SaveStorageException(
+        SaveStorageErrorCode.ioFailure,
+        'Failed to persist slot metadata.',
+        cause: error,
+      );
+    }
+  }
+
+  Future<List<SaveSlotMetadata>> listSlotMetadata({
+    required String profileId,
+  }) async {
+    GameIdentity.validateLocalId(profileId, path: r'$.profileId');
+    final profile = await _safeProfileDirectory(profileId, create: false);
+    if (profile == null) return const <SaveSlotMetadata>[];
+    final result = <SaveSlotMetadata>[];
+    await for (final entity in profile.list(followLinks: false)) {
+      if (entity is! Directory) continue;
+      final file = File(p.join(entity.path, 'slot.json'));
+      try {
+        await _rejectLink(file.path);
+        if (!await file.exists()) continue;
+        final decoded = jsonDecode(await file.readAsString());
+        if (decoded is! Map<String, dynamic>) continue;
+        final metadata = SaveSlotMetadata.fromJson(decoded);
+        if (metadata.slotId != p.basename(entity.path)) continue;
+        result.add(metadata);
+      } catch (_) {
+        // Invalid metadata remains available for diagnostics and repair.
+      }
+    }
+    result.sort((left, right) => left.createdAt.compareTo(right.createdAt));
+    return List<SaveSlotMetadata>.unmodifiable(result);
   }
 
   Future<List<SaveSlotSummary>> listSlots({

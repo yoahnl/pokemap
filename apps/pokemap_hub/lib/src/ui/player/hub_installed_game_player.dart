@@ -15,9 +15,11 @@ import '../../player/hub_player_save_gateway.dart';
 import '../../player/hub_runtime_external_exit.dart';
 import '../../player/hub_runtime_game_source.dart';
 import '../../saves/hub_save_store.dart';
+import '../../saves/hub_save_profile_manager.dart';
 import '../../session/hub_in_process_session_factory.dart';
 import '../../session/installed_game_launch_resolver.dart';
 import '../preferences/hub_preferences_store.dart';
+import 'hub_save_profiles_screen.dart';
 
 typedef HubPlayerReturnRequest = Future<void> Function();
 
@@ -51,11 +53,13 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     with WidgetsBindingObserver {
   RuntimePlayerCoordinator? _coordinator;
   player_ui.RuntimePlayerCoordinatorViewController? _viewController;
-  PlayerSaveSummary? _latestSave;
   GameSessionController? _sessions;
   PlayableMapGame? _mountedGame;
   InstalledGameLaunchContext? _launch;
   _PlayerLaunchFailure? _failure;
+  HubSaveProfileManager? _profileManager;
+  HubSaveSelection? _saveSelection;
+  bool _managingSaves = false;
 
   @override
   void initState() {
@@ -77,6 +81,13 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         fallbackLocale: launch.manifest.locales.defaultLocale,
       );
       final saveGateway = HubPlayerSaveGateway(store: store);
+      final profileManager = HubSaveProfileManager(store: store);
+      final isFrench =
+          launch.manifest.locales.defaultLocale.toLowerCase().startsWith('fr');
+      final saveSelection = await profileManager.ensureDefaultSelection(
+        defaultProfileDisplayName: isFrench ? 'Joueur' : 'Player',
+        defaultSlotDisplayName: 'Slot 1',
+      );
       final gameSource = HubRuntimeGameSource(
         launch: launch,
         preferencesGateway: preferencesGateway,
@@ -99,16 +110,16 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         externalExit: HubRuntimeExternalExit(widget.onHubRequested),
       );
       await coordinator.initialize();
-      final latestSave = coordinator.latestSave;
       if (!mounted) {
         await coordinator.dispose();
         return;
       }
       setState(() {
         _launch = launch;
-        _latestSave = latestSave;
         _sessions = sessions;
         _coordinator = coordinator;
+        _profileManager = profileManager;
+        _saveSelection = saveSelection;
         _viewController =
             player_ui.RuntimePlayerCoordinatorViewController(coordinator!);
       });
@@ -139,17 +150,19 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
 
   Object? _payloadForAction(RuntimePlayerAction action) {
     if (action == RuntimePlayerAction.newGame) {
-      return const RuntimePlayerLoadSlot(
-        profileId: 'default',
-        slotId: 'slot-1',
+      final selection = _saveSelection;
+      if (selection == null) return null;
+      return RuntimePlayerLoadSlot(
+        profileId: selection.profileId,
+        slotId: selection.slotId,
       );
     }
     if (action == RuntimePlayerAction.load) {
-      final address = _latestSave?.address;
-      if (address != null) {
+      final selection = _saveSelection;
+      if (selection != null) {
         return RuntimePlayerLoadSlot(
-          profileId: address.profileId,
-          slotId: address.slotId,
+          profileId: selection.profileId,
+          slotId: selection.slotId,
         );
       }
     }
@@ -280,35 +293,75 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         ),
       );
     }
+    final profileManager = _profileManager;
+    final saveSelection = _saveSelection;
+    if (_managingSaves && profileManager != null && saveSelection != null) {
+      return HubSaveProfilesScreen(
+        manager: profileManager,
+        initialSelection: saveSelection,
+        onSelected: (selection) {
+          setState(() {
+            _saveSelection = selection;
+            _managingSaves = false;
+          });
+        },
+        onClose: () => setState(() => _managingSaves = false),
+      );
+    }
     return PopScope<Object?>(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) unawaited(_handleSystemBack());
       },
-      child: player_ui.PokeMapPlayerSessionView(
-        key: const ValueKey<String>('pokemap-runtime-player-view'),
-        controller: viewController,
-        titlePresentation: player_ui.RuntimePlayerTitlePresentation(
-          author: launch.manifest.author.name,
-          description: launch.manifest.description,
+      child: StreamBuilder<RuntimePlayerSnapshot>(
+        stream: coordinator.snapshots,
+        initialData: coordinator.snapshot,
+        builder: (context, asyncSnapshot) => Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            player_ui.PokeMapPlayerSessionView(
+              key: const ValueKey<String>('pokemap-runtime-player-view'),
+              controller: viewController,
+              titlePresentation: player_ui.RuntimePlayerTitlePresentation(
+                author: launch.manifest.author.name,
+                description: launch.manifest.description,
+              ),
+              payloadForAction: _payloadForAction,
+              gameplayInputRoute: _sessions?.handleInput,
+              gameplayInputAuthority: _mountedGame?.inputAuthorityListenable,
+              dialoguePresentation:
+                  _mountedGame?.dialoguePresentationListenable,
+              onDialogueCommand:
+                  _mountedGame?.dispatchDialoguePresentationCommand,
+              gameSceneBuilder: (_) {
+                final game = _mountedGame;
+                return game == null
+                    ? const SizedBox.expand(
+                        key: ValueKey<String>(
+                          'runtime-game-awaiting-mount',
+                        ),
+                      )
+                    : GameWidget(
+                        key: ObjectKey(game),
+                        game: game,
+                        autofocus: false,
+                      );
+              },
+            ),
+            if ((asyncSnapshot.data ?? coordinator.snapshot).phase ==
+                RuntimePlayerPhase.title)
+              Positioned(
+                top: 16,
+                right: 16,
+                child: FilledButton.icon(
+                  key: const ValueKey<String>('open-save-profiles'),
+                  onPressed: () => setState(() => _managingSaves = true),
+                  icon: const Icon(Icons.manage_accounts),
+                  label: Text(HubSaveProfilesStrings.of(context).open),
+                ),
+              ),
+          ],
         ),
-        payloadForAction: _payloadForAction,
-        gameplayInputRoute: _sessions?.handleInput,
-        gameplayInputAuthority: _mountedGame?.inputAuthorityListenable,
-        dialoguePresentation: _mountedGame?.dialoguePresentationListenable,
-        onDialogueCommand: _mountedGame?.dispatchDialoguePresentationCommand,
-        gameSceneBuilder: (_) {
-          final game = _mountedGame;
-          return game == null
-              ? const SizedBox.expand(
-                  key: ValueKey<String>('runtime-game-awaiting-mount'),
-                )
-              : GameWidget(
-                  key: ObjectKey(game),
-                  game: game,
-                  autofocus: false,
-                );
-        },
       ),
     );
   }
