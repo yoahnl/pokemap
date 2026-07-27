@@ -6,6 +6,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:path/path.dart' as p;
 
 import '../application/runtime_pokemon_evolution_loader.dart';
+import '../application/runtime_move_machine_loader.dart';
 import 'runtime_player_pause_data.dart';
 
 /// Builds player-facing pause data from the runtime's live state.
@@ -43,6 +44,12 @@ final class RuntimePlayerPauseDataBuilder {
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,
     );
+    final moveMachines = await _loadMoveMachineAvailability(
+      gameState,
+      speciesById,
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+    );
 
     return immutableRuntimePlayerPauseDetails(
       <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{
@@ -57,6 +64,7 @@ final class RuntimePlayerPauseDataBuilder {
           isFrench: isFrench,
           targets: bagTargets,
           evolutionItemIds: evolutionItemIds,
+          moveMachines: moveMachines,
         ),
         if (pokemonConfig.enabled)
           RuntimePlayerPauseSection.pokedex: _buildPokedex(
@@ -200,6 +208,7 @@ final class RuntimePlayerPauseDataBuilder {
     required bool isFrench,
     required List<RuntimePlayerBagPartyTargetSnapshot> targets,
     required Set<String> evolutionItemIds,
+    required _RuntimeMoveMachineAvailability moveMachines,
   }) {
     final entries =
         gameState.bag.entries.where((entry) => entry.quantity > 0).map((entry) {
@@ -208,9 +217,12 @@ final class RuntimePlayerPauseDataBuilder {
       final isKeyItem = effect?.kind == PlayerItemEffectKind.keyItem ||
           _isKeyItemCategory(entry.categoryId);
       final isEvolutionItem = evolutionItemIds.contains(entry.itemId);
-      final targetKind = effect?.kind == PlayerItemEffectKind.restorePp
-          ? RuntimePlayerBagUseTargetKind.partyMove
-          : RuntimePlayerBagUseTargetKind.partyMember;
+      final isMoveMachine = moveMachines.itemIds.contains(entry.itemId);
+      final targetKind = isMoveMachine
+          ? RuntimePlayerBagUseTargetKind.partyMoveReplacement
+          : effect?.kind == PlayerItemEffectKind.restorePp
+              ? RuntimePlayerBagUseTargetKind.partyMove
+              : RuntimePlayerBagUseTargetKind.partyMember;
       final unavailableReason = isKeyItem
           ? (isFrench
               ? 'Cet objet clé s’utilise automatiquement et '
@@ -231,7 +243,13 @@ final class RuntimePlayerPauseDataBuilder {
               PlayerItemEffectKind.ballMetadata => isFrench
                   ? 'Cet objet s’utilise uniquement en combat.'
                   : 'This item can only be used in battle.',
-              null when !isEvolutionItem => isFrench
+              null
+                  when isMoveMachine &&
+                      !moveMachines.compatibleItemIds.contains(entry.itemId) =>
+                isFrench
+                    ? 'Aucun Pokémon de l’équipe n’est compatible.'
+                    : 'No party Pokémon is compatible.',
+              null when !isEvolutionItem && !isMoveMachine => isFrench
                   ? 'Cet objet n’a pas d’effet utilisable ici.'
                   : 'This item has no usable effect here.',
               _ => null,
@@ -256,6 +274,50 @@ final class RuntimePlayerPauseDataBuilder {
       bagTargets: targets,
       emptyMessage:
           isFrench ? 'Le sac est vide.' : 'There are no items in the bag.',
+    );
+  }
+
+  Future<_RuntimeMoveMachineAvailability> _loadMoveMachineAvailability(
+    GameState gameState,
+    Map<String, _RuntimeSpeciesPresentation> speciesById, {
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+  }) async {
+    final loader = RuntimeMoveMachineLoader();
+    final itemIds = <String>{};
+    final compatibleItemIds = <String>{};
+    for (final entry
+        in gameState.bag.entries.where((entry) => entry.quantity > 0)) {
+      try {
+        final definition = await loader.loadDefinition(
+          projectRootDirectory: projectRootDirectory,
+          pokemonConfig: pokemonConfig,
+          itemId: entry.itemId,
+        );
+        if (definition == null) continue;
+        itemIds.add(entry.itemId);
+        for (final pokemon in gameState.party.members) {
+          final candidate = await loader.loadCandidate(
+            projectRootDirectory: projectRootDirectory,
+            pokemonConfig: pokemonConfig,
+            itemId: entry.itemId,
+            speciesRef: speciesById[pokemon.speciesId]?.learnsetRef ??
+                pokemon.speciesId,
+            fallbackSpeciesId: pokemon.speciesId,
+          );
+          if (candidate != null &&
+              !pokemon.knownMoveIds.contains(candidate.moveId)) {
+            compatibleItemIds.add(entry.itemId);
+            break;
+          }
+        }
+      } on Object {
+        // One malformed optional machine stays disabled without hiding the bag.
+      }
+    }
+    return _RuntimeMoveMachineAvailability(
+      itemIds: itemIds,
+      compatibleItemIds: compatibleItemIds,
     );
   }
 
@@ -469,6 +531,7 @@ final class RuntimePlayerPauseDataBuilder {
         types: types,
         enabled: enabled,
         baseStats: baseStats,
+        learnsetRef: _readNestedString(json, 'refs', 'learnset'),
       );
     } on FormatException {
       return null;
@@ -486,6 +549,7 @@ final class _RuntimeSpeciesPresentation {
     required this.types,
     required this.enabled,
     required this.baseStats,
+    required this.learnsetRef,
   });
 
   final String id;
@@ -494,6 +558,7 @@ final class _RuntimeSpeciesPresentation {
   final List<String> types;
   final bool enabled;
   final Map<String, dynamic>? baseStats;
+  final String? learnsetRef;
 
   String nameFor(String locale) {
     final normalized = locale.toLowerCase().split(RegExp('[-_]')).first;
@@ -542,6 +607,29 @@ final class _RuntimeSpeciesPresentation {
       return null;
     }
   }
+}
+
+final class _RuntimeMoveMachineAvailability {
+  _RuntimeMoveMachineAvailability({
+    required Set<String> itemIds,
+    required Set<String> compatibleItemIds,
+  })  : itemIds = Set<String>.unmodifiable(itemIds),
+        compatibleItemIds = Set<String>.unmodifiable(compatibleItemIds);
+
+  final Set<String> itemIds;
+  final Set<String> compatibleItemIds;
+}
+
+String? _readNestedString(
+  Map<String, dynamic> json,
+  String objectKey,
+  String valueKey,
+) {
+  final rawObject = json[objectKey];
+  if (rawObject is! Map) return null;
+  final rawValue = rawObject[valueKey];
+  if (rawValue is! String || rawValue.trim().isEmpty) return null;
+  return rawValue.trim();
 }
 
 Directory? _resolveProjectDirectory(String projectRoot, String relativePath) {

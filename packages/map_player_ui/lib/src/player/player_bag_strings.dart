@@ -20,4 +20,11 @@ final class PlayerBagStrings {
 
   String useOnMove(String pokemon, String move) =>
       _isFrench ? 'Utiliser sur $pokemon — $move' : 'Use on $pokemon — $move';
+
+  String teachTo(String pokemon) =>
+      _isFrench ? 'Apprendre à $pokemon' : 'Teach to $pokemon';
+
+  String teachReplacing(String pokemon, String move) => _isFrench
+      ? 'Apprendre à $pokemon en oubliant $move'
+      : 'Teach to $pokemon and forget $move';
 }

@@ -61,6 +61,71 @@ void main() {
       );
     });
 
+    test('resolves TM and HM compatibility against the canonical move catalog',
+        () async {
+      await _writeLearnsetFile(
+        tempProjectRoot,
+        relativePath: 'custom/pokemon/learnsets/sproutle.json',
+        json: <String, dynamic>{
+          'speciesId': 'sproutle',
+          'startingMoves': <String>['tackle'],
+          'relearnMoves': <String>[],
+          'levelUp': <Object>[],
+          'tm': <Object>[
+            <String, Object>{'moveId': 'protect'},
+          ],
+          'hm': <Object>[
+            <String, Object>{'moveId': 'surf'},
+          ],
+        },
+      );
+      await _writeMovesCatalog(
+        tempProjectRoot,
+        moves: const <(String, int)>[
+          ('protect', 10),
+          ('surf', 15),
+        ],
+      );
+
+      final tm = await loader.loadMoveMachineCandidate(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        speciesRef: 'sproutle',
+        fallbackSpeciesId: 'sproutle',
+        itemId: 'tm-protect',
+        moveId: 'protect',
+        machineKind: 'tm',
+        consumable: true,
+      );
+      final hm = await loader.loadMoveMachineCandidate(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        speciesRef: 'sproutle',
+        fallbackSpeciesId: 'sproutle',
+        itemId: 'hm-surf',
+        moveId: 'surf',
+        machineKind: 'hm',
+        consumable: false,
+      );
+      final incompatible = await loader.loadMoveMachineCandidate(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        speciesRef: 'sproutle',
+        fallbackSpeciesId: 'sproutle',
+        itemId: 'tm-surf',
+        moveId: 'surf',
+        machineKind: 'tm',
+        consumable: true,
+      );
+
+      expect(tm?.moveId, 'protect');
+      expect(tm?.maxPp, 10);
+      expect(tm?.consumable, isTrue);
+      expect(hm?.moveId, 'surf');
+      expect(hm?.consumable, isFalse);
+      expect(incompatible, isNull);
+    });
+
     test('falls back to fallbackSpeciesId when the learnset ref is empty',
         () async {
       await _writeLearnsetFile(

@@ -908,6 +908,7 @@ class PokemonLearnsetFile {
     this.relearnMoves = const <String>[],
     this.levelUp = const <PokemonLearnsetLevelUpEntry>[],
     this.tm = const <PokemonLearnsetMoveEntry>[],
+    this.hm = const <PokemonLearnsetMoveEntry>[],
     this.tutor = const <PokemonLearnsetMoveEntry>[],
     this.egg = const <PokemonLearnsetMoveEntry>[],
     this.event = const <PokemonLearnsetMoveEntry>[],
@@ -919,6 +920,7 @@ class PokemonLearnsetFile {
   final List<String> relearnMoves;
   final List<PokemonLearnsetLevelUpEntry> levelUp;
   final List<PokemonLearnsetMoveEntry> tm;
+  final List<PokemonLearnsetMoveEntry> hm;
   final List<PokemonLearnsetMoveEntry> tutor;
   final List<PokemonLearnsetMoveEntry> egg;
   final List<PokemonLearnsetMoveEntry> event;
@@ -950,6 +952,7 @@ class PokemonLearnsetFile {
           )
           .toList(growable: false),
       tm: readMoveEntries('tm'),
+      hm: readMoveEntries('hm'),
       tutor: readMoveEntries('tutor'),
       egg: readMoveEntries('egg'),
       event: readMoveEntries('event'),
@@ -964,6 +967,7 @@ class PokemonLearnsetFile {
       'relearnMoves': List<String>.from(relearnMoves),
       'levelUp': levelUp.map((entry) => entry.toJson()).toList(growable: false),
       'tm': tm.map((entry) => entry.toJson()).toList(growable: false),
+      'hm': hm.map((entry) => entry.toJson()).toList(growable: false),
       'tutor': tutor.map((entry) => entry.toJson()).toList(growable: false),
       'egg': egg.map((entry) => entry.toJson()).toList(growable: false),
       'event': event.map((entry) => entry.toJson()).toList(growable: false),

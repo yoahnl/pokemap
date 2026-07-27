@@ -29,6 +29,15 @@ void main() {
                   'id': 'choice_scarf',
                   'names': <String, dynamic>{'en': 'Choice Scarf'},
                 },
+                <String, dynamic>{
+                  'id': 'tm-protect',
+                  'name': 'TM Protect',
+                  'machine': <String, dynamic>{
+                    'kind': 'tm',
+                    'moveId': 'protect',
+                    'consumable': true,
+                  },
+                },
               ],
             ),
           },
@@ -39,9 +48,12 @@ void main() {
 
       expect(result.isAvailable, isTrue);
       expect(result.entries.map((entry) => entry.id).toList(growable: false),
-          <String>['choice_scarf', 'oran_berry']);
+          <String>['choice_scarf', 'oran_berry', 'tm-protect']);
       expect(result.entries.first.name, 'Choice Scarf');
-      expect(result.entries.last.aliases, contains('oran'));
+      expect(result.entries[1].aliases, contains('oran'));
+      expect(result.entries.last.machineKind, 'tm');
+      expect(result.entries.last.machineMoveId, 'protect');
+      expect(result.entries.last.machineConsumable, isTrue);
     });
 
     test('falls back honestly when the local items catalog is missing',

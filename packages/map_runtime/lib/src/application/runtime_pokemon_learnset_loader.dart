@@ -32,6 +32,54 @@ class RuntimePokemonLearnsetLoader {
 
   int get debugActualReadCount => _actualReadCount;
 
+  Future<PokemonMoveMachineCandidate?> loadMoveMachineCandidate({
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+    required String speciesRef,
+    required String fallbackSpeciesId,
+    required String itemId,
+    required String moveId,
+    required String machineKind,
+    required bool consumable,
+  }) async {
+    final normalizedKind = machineKind.trim();
+    if (normalizedKind != 'tm' && normalizedKind != 'hm') {
+      throw ArgumentError.value(
+        machineKind,
+        'machineKind',
+        'must be tm or hm',
+      );
+    }
+    final learnset = await loadByRef(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+      speciesRef: speciesRef,
+      fallbackSpeciesId: fallbackSpeciesId,
+    );
+    final compatibleMoves = normalizedKind == 'tm' ? learnset.tm : learnset.hm;
+    final normalizedMoveId = moveId.trim();
+    if (!compatibleMoves.contains(normalizedMoveId)) return null;
+
+    final moveCatalog = await moveCatalogLoader.load(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+    );
+    final move = moveCatalog.lookup(normalizedMoveId);
+    if (move == null || move.pp <= 0) {
+      throw RuntimeBattleSetupException(
+        'La machine référence une attaque absente ou inutilisable.',
+        debugDetails:
+            'itemId=${itemId.trim()}, moveId=$normalizedMoveId, pp=${move?.pp}',
+      );
+    }
+    return PokemonMoveMachineCandidate(
+      itemId: itemId,
+      moveId: move.id,
+      maxPp: move.pp,
+      consumable: consumable,
+    ).validated();
+  }
+
   /// Loads every canonical level-up move crossed in `(oldLevel, newLevel]`.
   ///
   /// Ordering is deterministic: ascending learned level, then the stable
@@ -158,6 +206,16 @@ class RuntimePokemonLearnsetLoader {
           json['levelUp'],
           learnsetId: learnsetId,
         ),
+        tm: _parseMachineEntries(
+          json['tm'],
+          learnsetId: learnsetId,
+          field: 'tm',
+        ),
+        hm: _parseMachineEntries(
+          json['hm'],
+          learnsetId: learnsetId,
+          field: 'hm',
+        ),
       );
     }
 
@@ -240,6 +298,37 @@ class RuntimePokemonLearnsetLoader {
     return List<RuntimePokemonLevelUpMove>.unmodifiable(entries);
   }
 
+  List<String> _parseMachineEntries(
+    Object? rawEntries, {
+    required String learnsetId,
+    required String field,
+  }) {
+    if (rawEntries == null) return const <String>[];
+    if (rawEntries is! List) {
+      throw RuntimeBattleSetupException(
+        'Le learnset Pokémon contient des compatibilités machine invalides.',
+        debugDetails:
+            'Pokemon learnset "$learnsetId" $field must be a JSON list',
+      );
+    }
+    final moveIds = <String>[];
+    final seen = <String>{};
+    for (var index = 0; index < rawEntries.length; index++) {
+      final rawEntry = rawEntries[index];
+      final rawMoveId = rawEntry is Map ? rawEntry['moveId'] : rawEntry;
+      final moveId = rawMoveId is String ? rawMoveId.trim() : '';
+      if (moveId.isEmpty || !seen.add(moveId)) {
+        throw RuntimeBattleSetupException(
+          'Le learnset Pokémon contient une compatibilité machine invalide.',
+          debugDetails:
+              'Pokemon learnset "$learnsetId" $field[$index] requires a unique non-empty moveId',
+        );
+      }
+      moveIds.add(moveId);
+    }
+    return List<String>.unmodifiable(moveIds);
+  }
+
   Future<Map<String, dynamic>> _readJsonAtProjectRelativePath(
     String projectRootDirectory,
     String relativePath, {
@@ -303,11 +392,15 @@ class RuntimePokemonLearnset {
     required this.startingMoves,
     required this.relearnMoves,
     required this.levelUp,
+    this.tm = const <String>[],
+    this.hm = const <String>[],
   });
 
   final List<String> startingMoves;
   final List<String> relearnMoves;
   final List<RuntimePokemonLevelUpMove> levelUp;
+  final List<String> tm;
+  final List<String> hm;
 }
 
 /// Entrée level-up minimale conservée par le runtime.

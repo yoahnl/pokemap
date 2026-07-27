@@ -9,7 +9,11 @@ enum RuntimePlayerPauseSection {
   options,
 }
 
-enum RuntimePlayerBagUseTargetKind { partyMember, partyMove }
+enum RuntimePlayerBagUseTargetKind {
+  partyMember,
+  partyMove,
+  partyMoveReplacement,
+}
 
 final class RuntimePlayerBagItemActionSnapshot {
   RuntimePlayerBagItemActionSnapshot({

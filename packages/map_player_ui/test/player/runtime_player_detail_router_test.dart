@@ -174,6 +174,92 @@ void main() {
     expect(keyItemButton.disabledReason, contains('pas consommé'));
   });
 
+  testWidgets('TM target picker teaches directly or chooses a move to forget',
+      (tester) async {
+    RuntimePlayerPauseCommand? command;
+    final detail = RuntimePlayerPauseDetailSnapshot(
+      section: RuntimePlayerPauseSection.bag,
+      title: 'Sac',
+      entries: <RuntimePlayerDetailEntrySnapshot>[
+        RuntimePlayerDetailEntrySnapshot(
+          id: 'bag.machines.tm-protect',
+          title: 'TM Protect',
+          bagAction: RuntimePlayerBagItemActionSnapshot(
+            itemTargetId: 'tm-protect',
+            targetKind: RuntimePlayerBagUseTargetKind.partyMoveReplacement,
+            isEnabled: true,
+          ),
+        ),
+      ],
+      bagTargets: <RuntimePlayerBagPartyTargetSnapshot>[
+        RuntimePlayerBagPartyTargetSnapshot(
+          targetId: 'party.0',
+          label: 'Bulbizarre',
+          moves: const <RuntimePlayerBagMoveTargetSnapshot>[
+            RuntimePlayerBagMoveTargetSnapshot(
+              targetId: 'tackle',
+              label: 'Charge',
+            ),
+            RuntimePlayerBagMoveTargetSnapshot(
+              targetId: 'growl',
+              label: 'Rugissement',
+            ),
+            RuntimePlayerBagMoveTargetSnapshot(
+              targetId: 'vine-whip',
+              label: 'Fouet Lianes',
+            ),
+            RuntimePlayerBagMoveTargetSnapshot(
+              targetId: 'sleep-powder',
+              label: 'Poudre Dodo',
+            ),
+          ],
+        ),
+        RuntimePlayerBagPartyTargetSnapshot(
+          targetId: 'party.1',
+          label: 'Carapuce',
+          moves: const <RuntimePlayerBagMoveTargetSnapshot>[
+            RuntimePlayerBagMoveTargetSnapshot(
+              targetId: 'tackle',
+              label: 'Charge',
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerDetailRouter(
+          snapshot: _detailSnapshot(
+            RuntimePlayerPauseSection.bag,
+            detail: detail,
+          ),
+          onPauseCommand: (value) => command = value,
+        ),
+      ),
+    );
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('runtime-player-bag-use-tm-protect'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Apprendre à Carapuce'), findsOneWidget);
+    expect(
+      find.text('Apprendre à Bulbizarre en oubliant Rugissement'),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.text('Apprendre à Bulbizarre en oubliant Rugissement'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(command?.itemTargetId, 'tm-protect');
+    expect(command?.partyTargetId, 'party.0');
+    expect(command?.moveTargetId, 'growl');
+  });
+
   testWidgets('map identifies the current area and explains travel limits',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);

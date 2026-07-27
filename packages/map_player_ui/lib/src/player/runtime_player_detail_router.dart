@@ -221,14 +221,22 @@ class _RuntimePlayerBag extends StatelessWidget {
         final availableHeight = MediaQuery.sizeOf(context).height - 32;
         final buttons = <Widget>[];
         for (final target in detail.bagTargets) {
-          if (action.targetKind == RuntimePlayerBagUseTargetKind.partyMember) {
+          if (action.targetKind == RuntimePlayerBagUseTargetKind.partyMember ||
+              (action.targetKind ==
+                      RuntimePlayerBagUseTargetKind.partyMoveReplacement &&
+                  target.moves.length < 4)) {
+            final teachesMove = action.targetKind ==
+                RuntimePlayerBagUseTargetKind.partyMoveReplacement;
             buttons.add(
               PlayerActionButton(
                 key: ValueKey<String>(
                   'runtime-player-bag-target-${target.targetId}',
                 ),
-                label: strings.useOn(target.label),
-                icon: Icons.catching_pokemon,
+                label: teachesMove
+                    ? strings.teachTo(target.label)
+                    : strings.useOn(target.label),
+                icon:
+                    teachesMove ? Icons.school_rounded : Icons.catching_pokemon,
                 onPressed: () {
                   Navigator.of(context).pop();
                   onCommand!(
@@ -241,6 +249,8 @@ class _RuntimePlayerBag extends StatelessWidget {
               ),
             );
           } else {
+            final teachesMove = action.targetKind ==
+                RuntimePlayerBagUseTargetKind.partyMoveReplacement;
             for (final move in target.moves) {
               buttons.add(
                 PlayerActionButton(
@@ -248,7 +258,9 @@ class _RuntimePlayerBag extends StatelessWidget {
                     'runtime-player-bag-target-'
                     '${target.targetId}-${move.targetId}',
                   ),
-                  label: strings.useOnMove(target.label, move.label),
+                  label: teachesMove
+                      ? strings.teachReplacing(target.label, move.label)
+                      : strings.useOnMove(target.label, move.label),
                   icon: Icons.flash_on_rounded,
                   onPressed: () {
                     Navigator.of(context).pop();

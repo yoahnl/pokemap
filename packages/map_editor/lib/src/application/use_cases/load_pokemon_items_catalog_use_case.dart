@@ -24,6 +24,9 @@ class PokemonItemCatalogEntryView {
     this.flavorText,
     this.spriteUrl,
     this.localSpritePath,
+    this.machineKind,
+    this.machineMoveId,
+    this.machineConsumable,
   });
 
   final String id;
@@ -40,6 +43,11 @@ class PokemonItemCatalogEntryView {
   final String? flavorText;
   final String? spriteUrl;
   final String? localSpritePath;
+  final String? machineKind;
+  final String? machineMoveId;
+  final bool? machineConsumable;
+
+  bool get isMoveMachine => machineKind != null;
 
   bool get hasSpriteMetadata {
     return (spriteUrl?.trim().isNotEmpty ?? false) ||
@@ -326,6 +334,31 @@ class LoadPokemonItemsCatalogUseCase {
           id: id,
         );
 
+    String? machineKind;
+    String? machineMoveId;
+    bool? machineConsumable;
+    final rawMachine = entry['machine'];
+    if (rawMachine != null) {
+      if (rawMachine is! Map) {
+        throw EditorPersistenceException(
+          'Items catalog entry "$id" machine must be an object.',
+        );
+      }
+      final machine = rawMachine.cast<String, dynamic>();
+      machineKind = _readOptionalString(machine, 'kind');
+      machineMoveId = _readOptionalString(machine, 'moveId');
+      final rawConsumable = machine['consumable'];
+      machineConsumable = rawConsumable is bool ? rawConsumable : null;
+      if ((machineKind != 'tm' && machineKind != 'hm') ||
+          machineMoveId == null ||
+          machineConsumable == null ||
+          (machineKind == 'hm' && machineConsumable)) {
+        throw EditorPersistenceException(
+          'Items catalog entry "$id" has invalid move-machine metadata.',
+        );
+      }
+    }
+
     return PokemonItemCatalogEntryView(
       id: id,
       name: name,
@@ -344,8 +377,12 @@ class LoadPokemonItemsCatalogUseCase {
       effectText: effectText,
       flavorText: flavorText,
       spriteUrl: _readOptionalString(entry, 'spriteUrl') ??
-          _readOptionalNamedMapValue(entry, 'sprites', id: id, nameKey: 'default'),
+          _readOptionalNamedMapValue(entry, 'sprites',
+              id: id, nameKey: 'default'),
       localSpritePath: _readOptionalString(entry, 'localSpritePath'),
+      machineKind: machineKind,
+      machineMoveId: machineMoveId,
+      machineConsumable: machineConsumable,
     );
   }
 }

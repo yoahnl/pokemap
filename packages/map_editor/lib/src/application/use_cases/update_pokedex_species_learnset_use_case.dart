@@ -15,6 +15,7 @@ class UpdatePokedexSpeciesLearnsetRequest {
     required this.relearnMoves,
     required this.levelUp,
     required this.tm,
+    this.hm = const <PokemonLearnsetMoveEntry>[],
     required this.tutor,
     required this.egg,
     required this.event,
@@ -26,6 +27,7 @@ class UpdatePokedexSpeciesLearnsetRequest {
   final List<String> relearnMoves;
   final List<PokemonLearnsetLevelUpEntry> levelUp;
   final List<PokemonLearnsetMoveEntry> tm;
+  final List<PokemonLearnsetMoveEntry> hm;
   final List<PokemonLearnsetMoveEntry> tutor;
   final List<PokemonLearnsetMoveEntry> egg;
   final List<PokemonLearnsetMoveEntry> event;
@@ -82,6 +84,7 @@ class UpdatePokedexSpeciesLearnsetUseCase {
       relearnMoves: _normalizeMoveIds(request.relearnMoves),
       levelUp: _normalizeLevelUpEntries(request.levelUp),
       tm: _normalizeMoveEntries(request.tm),
+      hm: _normalizeMoveEntries(request.hm),
       tutor: _normalizeMoveEntries(request.tutor),
       egg: _normalizeMoveEntries(request.egg),
       event: _normalizeMoveEntries(request.event),
@@ -152,6 +155,7 @@ class UpdatePokedexSpeciesLearnsetUseCase {
       ...learnset.relearnMoves,
       ...learnset.levelUp.map((entry) => entry.moveId),
       ...learnset.tm.map((entry) => entry.moveId),
+      ...learnset.hm.map((entry) => entry.moveId),
       ...learnset.tutor.map((entry) => entry.moveId),
       ...learnset.egg.map((entry) => entry.moveId),
       ...learnset.event.map((entry) => entry.moveId),
@@ -211,6 +215,7 @@ class UpdatePokedexSpeciesLearnsetUseCase {
         learnset.relearnMoves.isNotEmpty ||
         learnset.levelUp.isNotEmpty ||
         learnset.tm.isNotEmpty ||
+        learnset.hm.isNotEmpty ||
         learnset.tutor.isNotEmpty ||
         learnset.egg.isNotEmpty ||
         learnset.event.isNotEmpty ||
@@ -279,6 +284,7 @@ class UpdatePokedexSpeciesLearnsetUseCase {
     }
 
     validateMoveEntries(learnset.tm, 'tm');
+    validateMoveEntries(learnset.hm, 'hm');
     validateMoveEntries(learnset.tutor, 'tutor');
     validateMoveEntries(learnset.egg, 'egg');
     validateMoveEntries(learnset.event, 'event');

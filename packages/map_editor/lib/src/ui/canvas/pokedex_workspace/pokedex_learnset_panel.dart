@@ -32,6 +32,7 @@ class _PokedexLearnsetTabState extends State<_PokedexLearnsetTab> {
   late final TextEditingController _relearnMovesController;
   late final TextEditingController _levelUpController;
   late final TextEditingController _tmController;
+  late final TextEditingController _hmController;
   late final TextEditingController _tutorController;
   late final TextEditingController _eggController;
   late final TextEditingController _eventController;
@@ -48,6 +49,7 @@ class _PokedexLearnsetTabState extends State<_PokedexLearnsetTab> {
     _relearnMovesController = TextEditingController();
     _levelUpController = TextEditingController();
     _tmController = TextEditingController();
+    _hmController = TextEditingController();
     _tutorController = TextEditingController();
     _eggController = TextEditingController();
     _eventController = TextEditingController();
@@ -76,6 +78,7 @@ class _PokedexLearnsetTabState extends State<_PokedexLearnsetTab> {
     _relearnMovesController.dispose();
     _levelUpController.dispose();
     _tmController.dispose();
+    _hmController.dispose();
     _tutorController.dispose();
     _eggController.dispose();
     _eventController.dispose();
@@ -93,6 +96,8 @@ class _PokedexLearnsetTabState extends State<_PokedexLearnsetTab> {
         learnset == null ? '' : _formatLearnsetLevelUpEntries(learnset.levelUp);
     _tmController.text =
         learnset == null ? '' : _formatLearnsetMoveEntries(learnset.tm);
+    _hmController.text =
+        learnset == null ? '' : _formatLearnsetMoveEntries(learnset.hm);
     _tutorController.text =
         learnset == null ? '' : _formatLearnsetMoveEntries(learnset.tutor);
     _eggController.text =
@@ -121,6 +126,7 @@ class _PokedexLearnsetTabState extends State<_PokedexLearnsetTab> {
           relearnMoves: _splitNonEmptyLines(_relearnMovesController.text),
           levelUp: _parseLearnsetLevelUpEntries(_levelUpController.text),
           tm: _parseLearnsetMoveEntries(_tmController.text, label: 'tm'),
+          hm: _parseLearnsetMoveEntries(_hmController.text, label: 'hm'),
           tutor: _parseLearnsetMoveEntries(
             _tutorController.text,
             label: 'tutor',
@@ -205,6 +211,7 @@ class _PokedexLearnsetTabState extends State<_PokedexLearnsetTab> {
               relearnMovesController: _relearnMovesController,
               levelUpController: _levelUpController,
               tmController: _tmController,
+              hmController: _hmController,
               tutorController: _tutorController,
               eggController: _eggController,
               eventController: _eventController,

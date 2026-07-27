@@ -379,6 +379,7 @@ class _FakePokedexWorkspaceStore {
       relearnMoves: request.relearnMoves,
       levelUp: request.levelUp,
       tm: request.tm,
+      hm: request.hm,
       tutor: request.tutor,
       egg: request.egg,
       event: request.event,

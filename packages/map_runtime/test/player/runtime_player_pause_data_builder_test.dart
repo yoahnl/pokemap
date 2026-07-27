@@ -167,6 +167,114 @@ void main() {
     expect(map.entries.last.subtitle, 'Zone non découverte');
     expect(map.message, contains('voyage rapide'));
   });
+
+  test('marks compatible move machines with the replacement target flow',
+      () async {
+    final projectRoot = await Directory.systemTemp.createTemp(
+      'pokemap-runtime-machine-pause-',
+    );
+    addTearDown(() => projectRoot.delete(recursive: true));
+    final speciesDirectory =
+        Directory('${projectRoot.path}/data/pokemon/species');
+    await speciesDirectory.create(recursive: true);
+    await _writeSpecies(
+      speciesDirectory,
+      fileName: '004-charmander.json',
+      id: 'charmander',
+      nationalDex: 4,
+      names: const <String, String>{'fr': 'Salamèche'},
+      types: const <String>['fire'],
+      baseHp: 39,
+    );
+    await _writeJson(
+      projectRoot,
+      'data/pokemon/catalogs/items.json',
+      <String, Object?>{
+        'catalog': 'items',
+        'entries': <Object?>[
+          <String, Object?>{
+            'id': 'tm-protect',
+            'machine': <String, Object?>{
+              'kind': 'tm',
+              'moveId': 'protect',
+              'consumable': true,
+            },
+          },
+        ],
+      },
+    );
+    await _writeJson(
+      projectRoot,
+      'data/pokemon/catalogs/moves.json',
+      <String, Object?>{
+        'catalog': 'moves',
+        'entries': <Object?>[
+          const PokemonMove(
+            id: 'protect',
+            name: 'Protect',
+            source: 'pause-test',
+            type: 'normal',
+            category: PokemonMoveCategory.status,
+            basePower: 0,
+            accuracy: PokemonMoveAccuracy.alwaysHits(),
+            pp: 10,
+            engineSupportLevel:
+                PokemonMoveEngineSupportLevel.structuredSupported,
+          ).toJson(),
+        ],
+      },
+    );
+    await _writeJson(
+      projectRoot,
+      'data/pokemon/learnsets/charmander.json',
+      <String, Object?>{
+        'speciesId': 'charmander',
+        'startingMoves': <String>[],
+        'relearnMoves': <String>[],
+        'levelUp': <Object?>[],
+        'tm': <Object?>[
+          <String, String>{'moveId': 'protect'},
+        ],
+      },
+    );
+
+    final details = await const RuntimePlayerPauseDataBuilder().build(
+      gameState: const GameState(
+        saveId: 'machine-pause',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'charmander',
+              natureId: 'hardy',
+              abilityId: 'blaze',
+              currentHp: 20,
+              knownMoveIds: <String>['scratch'],
+            ),
+          ],
+        ),
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(
+              itemId: 'tm-protect',
+              categoryId: 'machines',
+              quantity: 1,
+            ),
+          ],
+        ),
+      ),
+      projectRootDirectory: projectRoot.path,
+      pokemonConfig: const ProjectPokemonConfig(),
+      locale: 'fr',
+    );
+
+    final action =
+        details[RuntimePlayerPauseSection.bag]!.entries.single.bagAction!;
+    expect(action.isEnabled, isTrue);
+    expect(
+      action.targetKind,
+      RuntimePlayerBagUseTargetKind.partyMoveReplacement,
+    );
+  });
 }
 
 Future<void> _writeSpecies(
@@ -197,4 +305,14 @@ Future<void> _writeSpecies(
       },
     ),
   );
+}
+
+Future<void> _writeJson(
+  Directory root,
+  String relativePath,
+  Map<String, Object?> json,
+) async {
+  final file = File('${root.path}/$relativePath');
+  await file.parent.create(recursive: true);
+  await file.writeAsString(jsonEncode(json));
 }

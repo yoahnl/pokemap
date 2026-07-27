@@ -30,6 +30,17 @@ export 'src/pokemon_evolution_service.dart'
         PokemonEvolutionItemUseFailure,
         PokemonEvolutionItemUseResult,
         PokemonEvolutionItemOperations;
+export 'src/pokemon_move_machine_service.dart'
+    show
+        PokemonMoveMachineCandidate,
+        PokemonMoveMachineDecision,
+        LearnPokemonMoveMachineDecision,
+        ReplacePokemonMoveMachineDecision,
+        DeclinePokemonMoveMachineDecision,
+        PokemonMoveMachineUseStatus,
+        PokemonMoveMachineUseFailure,
+        PokemonMoveMachineUseResult,
+        PokemonMoveMachineService;
 export 'src/battle_progression_result.dart'
     show
         PokemonMoveLearningCandidate,

@@ -78,6 +78,12 @@ void main() {
             versionGroup: 'scarlet-violet',
           ),
         ],
+        hm: <PokemonLearnsetMoveEntry>[
+          PokemonLearnsetMoveEntry(
+            moveId: 'surf',
+            versionGroup: 'red-blue',
+          ),
+        ],
         tutor: <PokemonLearnsetMoveEntry>[],
         egg: <PokemonLearnsetMoveEntry>[],
         event: <PokemonLearnsetMoveEntry>[],
@@ -92,6 +98,7 @@ void main() {
     expect(readBack.relearnMoves, <String>['vine_whip']);
     expect(readBack.levelUp.single.moveId, 'vine_whip');
     expect(readBack.tm.single.moveId, 'protect');
+    expect(readBack.hm.single.moveId, 'surf');
     expect(
       await File(
         workspace.resolveProjectRelativePath(
@@ -304,5 +311,6 @@ const PokemonCatalogFile _movesCatalogForValidation = PokemonCatalogFile(
     <String, dynamic>{'id': 'growl', 'name': 'Growl'},
     <String, dynamic>{'id': 'vine_whip', 'name': 'Vine Whip'},
     <String, dynamic>{'id': 'protect', 'name': 'Protect'},
+    <String, dynamic>{'id': 'surf', 'name': 'Surf'},
   ],
 );

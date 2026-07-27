@@ -178,7 +178,8 @@ class _PokemonItemsCatalogWorkspaceState
   Widget _buildPageHeader(BuildContext context, String? projectRootPath) {
     final label = EditorChrome.primaryLabel(context);
     final subtle = EditorChrome.subtleLabel(context);
-    final hasProject = projectRootPath != null && projectRootPath.trim().isNotEmpty;
+    final hasProject =
+        projectRootPath != null && projectRootPath.trim().isNotEmpty;
     final statusText = _buildSyncStatusText();
 
     return Column(
@@ -383,8 +384,10 @@ class _PokemonItemsCatalogWorkspaceState
           (entry.pocketId?.toLowerCase().contains(normalizedQuery) ?? false) ||
           (entry.shortEffectText?.toLowerCase().contains(normalizedQuery) ??
               false) ||
-          (entry.effectText?.toLowerCase().contains(normalizedQuery) ?? false) ||
-          (entry.flavorText?.toLowerCase().contains(normalizedQuery) ?? false) ||
+          (entry.effectText?.toLowerCase().contains(normalizedQuery) ??
+              false) ||
+          (entry.flavorText?.toLowerCase().contains(normalizedQuery) ??
+              false) ||
           (entry.shortDesc?.toLowerCase().contains(normalizedQuery) ?? false) ||
           entry.aliases.any(
             (alias) => alias.toLowerCase().contains(normalizedQuery),
@@ -787,7 +790,8 @@ class _ItemsSpriteStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = hasSprite ? EditorChrome.accentJade : EditorChrome.accentWarm;
+    final accent =
+        hasSprite ? EditorChrome.accentJade : EditorChrome.accentWarm;
     final text = EditorChrome.primaryLabel(context);
 
     return DecoratedBox(
@@ -888,9 +892,24 @@ class _ItemsCatalogDetailPanel extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               _ItemsDetailField(label: 'ID', value: entry!.id),
-              _ItemsDetailField(label: 'Category', value: _labelOrDash(entry!.categoryId)),
-              _ItemsDetailField(label: 'Pocket', value: _labelOrDash(entry!.pocketId)),
-              _ItemsDetailField(label: 'Cost', value: _labelOrDash(entry!.cost)),
+              _ItemsDetailField(
+                  label: 'Category', value: _labelOrDash(entry!.categoryId)),
+              _ItemsDetailField(
+                  label: 'Pocket', value: _labelOrDash(entry!.pocketId)),
+              _ItemsDetailField(
+                  label: 'Cost', value: _labelOrDash(entry!.cost)),
+              _ItemsDetailField(
+                label: 'Machine',
+                value: entry!.isMoveMachine
+                    ? '${entry!.machineKind!.toUpperCase()} → '
+                        '${entry!.machineMoveId}'
+                    : '—',
+              ),
+              if (entry!.isMoveMachine)
+                _ItemsDetailField(
+                  label: 'Consumable',
+                  value: entry!.machineConsumable == true ? 'Yes' : 'No',
+                ),
               _ItemsDetailField(
                 label: 'Fling power',
                 value: _labelOrDash(entry!.flingPower),
@@ -1017,7 +1036,8 @@ class PokemonItemsCatalogSpritePreview extends StatelessWidget {
       );
     }
 
-    final hasLocalPath = localSpritePath != null && localSpritePath!.trim().isNotEmpty;
+    final hasLocalPath =
+        localSpritePath != null && localSpritePath!.trim().isNotEmpty;
     final hasRemoteMetadata = spriteUrl != null && spriteUrl!.trim().isNotEmpty;
     final message = hasLocalPath
         ? 'Le sprite local indiqué est introuvable pour le moment.'

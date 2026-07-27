@@ -5,6 +5,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_world_service_models.dart';
+import 'runtime_move_machine_loader.dart';
 import 'runtime_player_pokemon_progression_hydrator.dart';
 import 'runtime_pokemon_evolution_loader.dart';
 import 'runtime_pokemon_species_loader.dart';
@@ -151,6 +152,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     String? projectRootDirectory,
     ProjectPokemonConfig? pokemonConfig,
     RuntimePokemonEvolutionLoader? evolutionLoader,
+    RuntimeMoveMachineLoader? moveMachineLoader,
+    RuntimePokemonSpeciesLoader? pokemonSpeciesLoader,
   })  : _currentGameState = currentGameState,
         _host = host,
         _commitAndSave = commitAndSave,
@@ -160,7 +163,10 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         _grantedCapabilities = Set<String>.unmodifiable(grantedCapabilities),
         _projectRootDirectory = projectRootDirectory,
         _pokemonConfig = pokemonConfig,
-        _evolutionLoader = evolutionLoader ?? RuntimePokemonEvolutionLoader();
+        _evolutionLoader = evolutionLoader ?? RuntimePokemonEvolutionLoader(),
+        _moveMachineLoader = moveMachineLoader ?? RuntimeMoveMachineLoader(),
+        _pokemonSpeciesLoader =
+            pokemonSpeciesLoader ?? RuntimePokemonSpeciesLoader();
 
   PlayerServiceRuntimeController.contextual({
     required PlayerServiceGameStateReader currentGameState,
@@ -172,6 +178,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     String? projectRootDirectory,
     ProjectPokemonConfig? pokemonConfig,
     RuntimePokemonEvolutionLoader? evolutionLoader,
+    RuntimeMoveMachineLoader? moveMachineLoader,
+    RuntimePokemonSpeciesLoader? pokemonSpeciesLoader,
   })  : _currentGameState = currentGameState,
         _host = null,
         _commitAndSave = commitAndSave,
@@ -181,7 +189,10 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         _grantedCapabilities = Set<String>.unmodifiable(grantedCapabilities),
         _projectRootDirectory = projectRootDirectory,
         _pokemonConfig = pokemonConfig,
-        _evolutionLoader = evolutionLoader ?? RuntimePokemonEvolutionLoader();
+        _evolutionLoader = evolutionLoader ?? RuntimePokemonEvolutionLoader(),
+        _moveMachineLoader = moveMachineLoader ?? RuntimeMoveMachineLoader(),
+        _pokemonSpeciesLoader =
+            pokemonSpeciesLoader ?? RuntimePokemonSpeciesLoader();
 
   final PlayerServiceGameStateReader _currentGameState;
   final PlayerServiceOverlayHost? _host;
@@ -193,6 +204,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   final String? _projectRootDirectory;
   final ProjectPokemonConfig? _pokemonConfig;
   final RuntimePokemonEvolutionLoader _evolutionLoader;
+  final RuntimeMoveMachineLoader _moveMachineLoader;
+  final RuntimePokemonSpeciesLoader _pokemonSpeciesLoader;
   final _worldServiceSnapshots =
       StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
   bool _active = false;
@@ -365,6 +378,13 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     final effect =
         const PlayerItemEffectRegistry.mvp().effectFor(command.itemTargetId);
     if (effect == null) {
+      final moveMachineResult = await _useMoveMachineOutsideBattle(
+        state: state,
+        itemId: command.itemTargetId,
+        partyIndex: partyIndex,
+        replacementMoveId: command.moveTargetId,
+      );
+      if (moveMachineResult != null) return moveMachineResult;
       return _useEvolutionItemOutsideBattle(
         state: state,
         itemId: command.itemTargetId,
@@ -418,6 +438,92 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       return const RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.failed,
         safeMessage: 'L’objet n’a pas pu être utilisé ni sauvegardé.',
+      );
+    }
+  }
+
+  Future<RuntimePlayerPauseCommandResult?> _useMoveMachineOutsideBattle({
+    required GameState state,
+    required String itemId,
+    required int partyIndex,
+    required String? replacementMoveId,
+  }) async {
+    final projectRootDirectory = _projectRootDirectory;
+    final pokemonConfig = _pokemonConfig;
+    if (projectRootDirectory == null || pokemonConfig == null) return null;
+    try {
+      final definition = await _moveMachineLoader.loadDefinition(
+        projectRootDirectory: projectRootDirectory,
+        pokemonConfig: pokemonConfig,
+        itemId: itemId,
+      );
+      if (definition == null) return null;
+      if (partyIndex >= state.party.members.length) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'Cette cible n’est plus disponible.',
+        );
+      }
+      final pokemon = state.party.members[partyIndex];
+      final species = await _pokemonSpeciesLoader.loadById(
+        projectRootDirectory: projectRootDirectory,
+        pokemonConfig: pokemonConfig,
+        speciesId: pokemon.speciesId,
+      );
+      final candidate = await _moveMachineLoader.loadCandidate(
+        projectRootDirectory: projectRootDirectory,
+        pokemonConfig: pokemonConfig,
+        itemId: itemId,
+        speciesRef: species.learnsetRef,
+        fallbackSpeciesId: pokemon.speciesId,
+      );
+      if (candidate == null) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'Ce Pokémon n’est pas compatible avec cette machine.',
+        );
+      }
+      final decision = replacementMoveId == null
+          ? const PokemonMoveMachineDecision.learn()
+          : PokemonMoveMachineDecision.replace(
+              expectedMoveId: replacementMoveId,
+            );
+      final result = const PokemonMoveMachineService().apply(
+        state,
+        partyIndex: partyIndex,
+        candidate: candidate,
+        decision: decision,
+      );
+      switch (result.status) {
+        case PokemonMoveMachineUseStatus.learned:
+        case PokemonMoveMachineUseStatus.replaced:
+          await _commitAndSave(result.state);
+          return RuntimePlayerPauseCommandResult(
+            status: RuntimePlayerPauseCommandStatus.accepted,
+            safeMessage: result.status == PokemonMoveMachineUseStatus.replaced
+                ? 'Capacité remplacée et progression sauvegardée.'
+                : 'Capacité apprise et progression sauvegardée.',
+          );
+        case PokemonMoveMachineUseStatus.replacementRequired:
+          return const RuntimePlayerPauseCommandResult(
+            status: RuntimePlayerPauseCommandStatus.unavailable,
+            safeMessage: 'Choisissez une capacité à oublier.',
+          );
+        case PokemonMoveMachineUseStatus.declined:
+          return const RuntimePlayerPauseCommandResult(
+            status: RuntimePlayerPauseCommandStatus.unavailable,
+            safeMessage: 'Apprentissage annulé.',
+          );
+        case PokemonMoveMachineUseStatus.failed:
+          return const RuntimePlayerPauseCommandResult(
+            status: RuntimePlayerPauseCommandStatus.unavailable,
+            safeMessage: 'Cette machine ne peut pas être utilisée ici.',
+          );
+      }
+    } catch (_) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.failed,
+        safeMessage: 'La capacité n’a pas pu être apprise ni sauvegardée.',
       );
     }
   }

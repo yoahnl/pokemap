@@ -16,6 +16,7 @@ class _PokedexLearnsetEditSection extends StatelessWidget {
     required this.relearnMovesController,
     required this.levelUpController,
     required this.tmController,
+    required this.hmController,
     required this.tutorController,
     required this.eggController,
     required this.eventController,
@@ -32,6 +33,7 @@ class _PokedexLearnsetEditSection extends StatelessWidget {
   final TextEditingController relearnMovesController;
   final TextEditingController levelUpController;
   final TextEditingController tmController;
+  final TextEditingController hmController;
   final TextEditingController tutorController;
   final TextEditingController eggController;
   final TextEditingController eventController;
@@ -117,6 +119,19 @@ class _PokedexLearnsetEditSection extends StatelessWidget {
                 enabled: !isSaving,
                 placeholder: 'protect|scarlet-violet',
                 sectionKeyPrefix: 'pokedex-learnset-tm',
+                catalogView: catalogView,
+                isCatalogLoading: isCatalogLoading,
+              ),
+              const SizedBox(height: 10),
+              _PokedexMoveEntryAssistEditor(
+                title: 'HM',
+                description:
+                    'Machines réutilisables, au format moveId|versionGroup.',
+                fieldKey: const Key('pokedex-learnset-hm-field'),
+                controller: hmController,
+                enabled: !isSaving,
+                placeholder: 'surf|red-blue',
+                sectionKeyPrefix: 'pokedex-learnset-hm',
                 catalogView: catalogView,
                 isCatalogLoading: isCatalogLoading,
               ),
@@ -273,6 +288,8 @@ class _PokedexLearnsetReadOnlySection extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _LearnsetMoveSection(title: 'TM', entries: learnset!.tm),
+          const SizedBox(height: 12),
+          _LearnsetMoveSection(title: 'HM', entries: learnset!.hm),
           const SizedBox(height: 12),
           _LearnsetMoveSection(title: 'Tutor', entries: learnset!.tutor),
           const SizedBox(height: 12),
