@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "releaseCandidateCommit": "28f78b38b48bb4207f0689e0e4283cf65db5d94e",
+  "capturedAtUtc": "2026-07-27T09:37:42Z",
+  "contentTreeHashSha256": "cfe59da5b859802930c7b49899ee9b5cb9867e9a6d850a45413dcd52ba60ebea",
+  "packageSha256": "8be0b8e834d3f4ff06f76b73bc0a66a513f3bc7eff4ca7f9096a67b717761a04",
+  "presentationSha256": "48788a804864359e585b3a8e0ff03322ba5486de43ccb89107bb2f97f3d04da8",
+  "criteria": [
+    {
+      "criterion": "installedGoldenFlow",
+      "status": "passed",
+      "summary": "The clean candidate exported, inspected, installed, resolved intro and custom title presentation, completed the intro sequence, mounted gameplay, and rejected corrupted installed media.",
+      "source": "build/phase-7b/28f78b38b/golden-flow.json"
+    },
+    {
+      "criterion": "safeFallbacks",
+      "status": "passed",
+      "summary": "Missing or corrupt video, font, title audio, branding, and semantic theme paths retained a non-blocking route to the title or safe defaults.",
+      "source": "build/phase-7b/28f78b38b/map-runtime-behavioral.log; build/phase-7b/28f78b38b/map-player-ui-behavioral.log; build/phase-7b/28f78b38b/pokemap-hub-behavioral.log"
+    },
+    {
+      "criterion": "previewRuntimeParity",
+      "status": "passed",
+      "summary": "The editor preview and exported runtime presentation matched for title layout, all five semantic surfaces, and display, dialogue, and battle-number font roles.",
+      "source": "build/phase-7b/28f78b38b/map-editor-behavioral.log"
+    },
+    {
+      "criterion": "packagePreflight",
+      "status": "passed",
+      "summary": "Package, tree, presentation, and seven asset hashes agreed; H.264/AAC, embedded font redistribution license, and all four configured presentation categories passed preflight.",
+      "source": "build/phase-7b/28f78b38b/golden-flow.json; build/phase-7b/28f78b38b/map-distribution-behavioral.log"
+    }
+  ],
+  "platforms": [
+    {
+      "platform": "macos",
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "buildExitCode": 0,
+      "launchExitCode": 134,
+      "source": "build/phase-7b/28f78b38b/macos-build.log; build/phase-7b/28f78b38b/macos-launch.log"
+    },
+    {
+      "platform": "windows",
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "source": "Not evaluated: no Windows build host or approved device was available."
+    },
+    {
+      "platform": "linux",
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "source": "Not evaluated: no Linux build host or approved device was available."
+    },
+    {
+      "platform": "ios",
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "source": "Not evaluated: no iOS target or approved device was supplied."
+    },
+    {
+      "platform": "android",
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "source": "Not evaluated: no Android target or approved device was supplied."
+    }
+  ],
+  "platformMatrixStatus": "notEvaluated",
+  "decision": "NO_GO"
+}
