@@ -271,6 +271,102 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('PST-045 compares baseline and draft with identical simulation',
+      (tester) async {
+    await tester.pumpWidget(
+      _app(
+        const PersonalizationRuntimePreview(
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          baselineProfile: ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(layoutVariant: 'standard'),
+            theme: safeProjectSemanticTheme,
+          ),
+          profile: ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(layoutVariant: 'centered'),
+            theme: safeProjectSemanticTheme,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-compare'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>(
+          'personalization-preview-viewport-portrait',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-text-scale-150'),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-compare'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('personalization-preview-before')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('personalization-preview-after')),
+      findsOneWidget,
+    );
+    expect(find.text('Avant'), findsOneWidget);
+    expect(find.text('Maintenant'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('branding-title-preview-layout-standard'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('branding-title-preview-layout-centered'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Texte 150 %'), findsOneWidget);
+  });
+
+  testWidgets('PST-045 hides comparison when the draft is unchanged',
+      (tester) async {
+    await tester.pumpWidget(
+      _app(
+        const PersonalizationRuntimePreview(
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          baselineProfile: ProjectPresentationProfile(
+            theme: safeProjectSemanticTheme,
+          ),
+          profile: ProjectPresentationProfile(
+            theme: safeProjectSemanticTheme,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-compare'),
+      ),
+      findsNothing,
+    );
+  });
 }
 
 Widget _app(Widget child) => MaterialApp(

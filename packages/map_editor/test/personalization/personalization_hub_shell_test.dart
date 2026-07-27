@@ -142,5 +142,32 @@ void main() {
     );
     expect(changed?.branding, const ProjectBrandingProfile());
     expect(changed?.theme, safeProjectSemanticTheme);
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-compare'),
+      ),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-compare'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-compare'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('personalization-preview-before')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('personalization-preview-after')),
+      findsOneWidget,
+    );
   });
 }

@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../application/personalization_preview_projection.dart';
+import '../application/project_presentation_presets.dart';
 import 'project_branding_title_preview.dart';
 
 /// Runtime-shaped preview surface driven by the current presentation draft.
@@ -39,11 +40,16 @@ class _PersonalizationRuntimePreviewState
   PersonalizationPreviewSurface _surface = PersonalizationPreviewSurface.title;
   PersonalizationPreviewSimulation _simulation =
       const PersonalizationPreviewSimulation();
+  bool _comparisonEnabled = false;
 
   @override
   Widget build(BuildContext context) {
     final projection = PersonalizationPreviewProjection(widget.profile);
     final surfaceProjection = projection.surface(_surface);
+    final baseline = widget.baselineProfile;
+    final canCompare = baseline != null &&
+        !compareProjectPresentation(baseline, widget.profile).isIdentical;
+    final showComparison = canCompare && _comparisonEnabled;
     return PokeMapPanel(
       key: const ValueKey<String>('personalization-runtime-preview'),
       header: Padding(
@@ -99,6 +105,11 @@ class _PersonalizationRuntimePreviewState
           _PreviewSimulationControls(
             simulation: _simulation,
             onChanged: (value) => setState(() => _simulation = value),
+            canCompare: canCompare,
+            comparisonEnabled: showComparison,
+            onComparisonChanged: (value) {
+              setState(() => _comparisonEnabled = value);
+            },
           ),
           const SizedBox(height: 12),
           LayoutBuilder(
@@ -125,10 +136,31 @@ class _PersonalizationRuntimePreviewState
                       ),
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 160),
-                        child: _buildSurfacePreview(
-                          surface: _surface,
-                          projection: surfaceProjection,
-                        ),
+                        child: showComparison
+                            ? _ComparisonPreview(
+                                key: ValueKey<String>(
+                                  'personalization-comparison-'
+                                  '${_surface.name}-'
+                                  '${_simulation.viewport.name}',
+                                ),
+                                before: _buildSurfacePreview(
+                                  profile: baseline,
+                                  surface: _surface,
+                                  projection: PersonalizationPreviewProjection(
+                                    baseline,
+                                  ).surface(_surface),
+                                ),
+                                after: _buildSurfacePreview(
+                                  profile: widget.profile,
+                                  surface: _surface,
+                                  projection: surfaceProjection,
+                                ),
+                              )
+                            : _buildSurfacePreview(
+                                profile: widget.profile,
+                                surface: _surface,
+                                projection: surfaceProjection,
+                              ),
                       ),
                     ),
                   ),
@@ -142,14 +174,15 @@ class _PersonalizationRuntimePreviewState
   }
 
   Widget _buildSurfacePreview({
+    required ProjectPresentationProfile profile,
     required PersonalizationPreviewSurface surface,
     required PersonalizationPreviewSurfaceProjection projection,
   }) {
-    final theme = widget.profile.theme ?? safeProjectSemanticTheme;
+    final theme = profile.theme ?? safeProjectSemanticTheme;
     final aspectRatio = _simulation.viewport.aspectRatio;
     return switch (surface) {
       PersonalizationPreviewSurface.intro => _IntroRuntimePreview(
-          profile: widget.profile.intro,
+          profile: profile.intro,
           projectRootPath: widget.projectRootPath,
           theme: theme,
           aspectRatio: aspectRatio,
@@ -159,9 +192,9 @@ class _PersonalizationRuntimePreviewState
           key: const ValueKey<String>('personalization-title-composition'),
           projectName: widget.projectName,
           projectRootPath: widget.projectRootPath,
-          branding: widget.profile.branding,
+          branding: profile.branding,
           theme: theme,
-          typography: widget.profile.typography,
+          typography: profile.typography,
           aspectRatio: aspectRatio,
         ),
       PersonalizationPreviewSurface.dialogue => _DialogueRuntimePreview(
@@ -192,10 +225,16 @@ class _PreviewSimulationControls extends StatelessWidget {
   const _PreviewSimulationControls({
     required this.simulation,
     required this.onChanged,
+    required this.canCompare,
+    required this.comparisonEnabled,
+    required this.onComparisonChanged,
   });
 
   final PersonalizationPreviewSimulation simulation;
   final ValueChanged<PersonalizationPreviewSimulation> onChanged;
+  final bool canCompare;
+  final bool comparisonEnabled;
+  final ValueChanged<bool> onComparisonChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -260,10 +299,102 @@ class _PreviewSimulationControls extends StatelessWidget {
                 leading: const Icon(Icons.motion_photos_off_outlined),
                 child: const Text('Mouvement réduit'),
               ),
+              if (canCompare)
+                PokeMapButton(
+                  key: const ValueKey<String>(
+                    'personalization-preview-compare',
+                  ),
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  isSelected: comparisonEnabled,
+                  onPressed: () => onComparisonChanged(!comparisonEnabled),
+                  leading: const Icon(Icons.compare_outlined),
+                  child: Text(
+                    comparisonEnabled
+                        ? 'Fermer la comparaison'
+                        : 'Comparer avant/après',
+                  ),
+                ),
             ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ComparisonPreview extends StatelessWidget {
+  const _ComparisonPreview({
+    super.key,
+    required this.before,
+    required this.after,
+  });
+
+  final Widget before;
+  final Widget after;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final beforePreview = _LabeledPreview(
+          key: const ValueKey<String>('personalization-preview-before'),
+          label: 'Avant',
+          child: before,
+        );
+        final afterPreview = _LabeledPreview(
+          key: const ValueKey<String>('personalization-preview-after'),
+          label: 'Maintenant',
+          child: after,
+        );
+        if (constraints.maxWidth >= 720) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(child: beforePreview),
+              const SizedBox(width: 12),
+              Expanded(child: afterPreview),
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            beforePreview,
+            const SizedBox(height: 12),
+            afterPreview,
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _LabeledPreview extends StatelessWidget {
+  const _LabeledPreview({
+    super.key,
+    required this.label,
+    required this.child,
+  });
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Align(
+          alignment: Alignment.centerLeft,
+          child: PokeMapBadge(
+            label: label,
+            variant: PokeMapBadgeVariant.info,
+          ),
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
     );
   }
 }
