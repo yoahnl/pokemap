@@ -208,8 +208,13 @@ final class RuntimePlayerCoordinator {
 
     switch (command.action) {
       case RuntimePlayerAction.newGame:
-        final slot = command.payload;
-        if (slot is! RuntimePlayerLoadSlot) {
+        final payload = command.payload;
+        final slot = switch (payload) {
+          RuntimePlayerNewGameSetup() => payload.slot,
+          RuntimePlayerLoadSlot() => payload,
+          _ => null,
+        };
+        if (slot == null) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
             safeMessage: 'A profile and slot are required for a new game.',
@@ -220,6 +225,10 @@ final class RuntimePlayerCoordinator {
             launchMode: GameSessionLaunchMode.newGame,
             profileId: slot.profileId,
             slotId: slot.slotId,
+            initialPlayerIdentity: switch (payload) {
+              RuntimePlayerNewGameSetup() => payload.identity,
+              _ => null,
+            },
           ),
         );
       case RuntimePlayerAction.continueGame:
@@ -624,6 +633,7 @@ final class RuntimePlayerCoordinator {
         profileId: request.profileId,
         slotId: request.slotId,
         saveReadHandle: request.saveReadHandle,
+        initialPlayerIdentity: request.initialPlayerIdentity,
       );
       if (generation != _launchGeneration) {
         return const RuntimePlayerCommandResult(
@@ -1139,10 +1149,12 @@ final class _RuntimeLaunchRequest {
     required this.profileId,
     required this.slotId,
     this.saveReadHandle,
+    this.initialPlayerIdentity,
   });
 
   final GameSessionLaunchMode launchMode;
   final String profileId;
   final String slotId;
   final String? saveReadHandle;
+  final GameSessionPlayerIdentity? initialPlayerIdentity;
 }

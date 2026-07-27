@@ -4,6 +4,7 @@ import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import 'player_new_game_identity.dart';
 
 enum PlayerTitleMenuAction {
   continueGame,
@@ -22,6 +23,7 @@ final class RuntimePlayerTitlePresentation {
     this.background,
     this.logo,
     this.accentColor,
+    this.newGameIdentity,
   });
 
   final String author;
@@ -29,6 +31,7 @@ final class RuntimePlayerTitlePresentation {
   final ImageProvider? background;
   final ImageProvider? logo;
   final Color? accentColor;
+  final PlayerNewGameIdentityPresentation? newGameIdentity;
 }
 
 @immutable

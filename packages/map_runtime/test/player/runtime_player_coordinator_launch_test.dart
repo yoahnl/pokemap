@@ -118,6 +118,40 @@ void main() {
     expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.playing);
   });
 
+  test('forwards guided identity only to a new game descriptor', () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    final result = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: RuntimePlayerNewGameSetup(
+          slot: const RuntimePlayerLoadSlot(
+            profileId: 'player',
+            slotId: 'slot_1',
+          ),
+          identity: GameSessionPlayerIdentity(
+            name: 'Camille',
+            avatarCharacterId: 'hero_b',
+            pronounSet: PlayerPronounSet.feminine,
+          ),
+        ),
+      ),
+    );
+
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(
+      harness.source.requests.single.initialPlayerIdentity,
+      GameSessionPlayerIdentity(
+        name: 'Camille',
+        avatarCharacterId: 'hero_b',
+        pronounSet: PlayerPronounSet.feminine,
+      ),
+    );
+  });
+
   test('Continue resolves an opaque save handle before launch', () async {
     final seed = RuntimePlayerTestHarness();
     final save = compatiblePlayerSave(seed.source.identity);

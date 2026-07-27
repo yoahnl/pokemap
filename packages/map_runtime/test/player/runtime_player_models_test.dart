@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
@@ -165,6 +166,53 @@ void main() {
         profileId: 'player',
         slotId: 'slot_2',
       ),
+    );
+  });
+
+  test('guided New Game payload retains slot and semantic identity', () {
+    final payload = RuntimePlayerNewGameSetup(
+      slot: const RuntimePlayerLoadSlot(
+        profileId: 'player',
+        slotId: 'slot_2',
+      ),
+      identity: GameSessionPlayerIdentity(
+        name: '  Camille  ',
+        avatarCharacterId: '  hero_b  ',
+        pronounSet: PlayerPronounSet.feminine,
+      ),
+    );
+
+    expect(payload.identity.name, 'Camille');
+    expect(payload.identity.avatarCharacterId, 'hero_b');
+    expect(payload.identity.pronounSet, PlayerPronounSet.feminine);
+  });
+
+  test('session identity is valid only for New Game descriptors', () {
+    final identity = GameIdentity(
+      gameId: 'com.pokemap.identity-test',
+      gameVersion: '1.0.0',
+      projectFormat: ProjectFormat.v2,
+      saveFormat: 1,
+      compatibilityId: 'identity-test-v1',
+    );
+
+    expect(
+      () => GameSessionDescriptor(
+        sessionId: 'session',
+        sessionToken: 'token',
+        identity: identity,
+        profileId: 'player',
+        slotId: 'slot_1',
+        launchMode: GameSessionLaunchMode.load,
+        installedVersionHandle: 'installed',
+        saveReadHandle: 'save',
+        runtimeApiVersion: '1.0.0',
+        grantedCapabilities: const <String>{},
+        locale: 'fr',
+        accessibility: const GameSessionAccessibilityOptions(),
+        initialPlayerIdentity: GameSessionPlayerIdentity(name: 'Camille'),
+      ),
+      throwsA(isA<GameSessionException>()),
     );
   });
 

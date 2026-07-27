@@ -119,6 +119,23 @@ class ProjectValidator {
         'newGame playerName must not be blank',
       );
     }
+    final characterIds = manifest.characters.map((entry) => entry.id).toSet();
+    final avatarIds = <String>{};
+    for (final rawAvatarId in config.playerAvatarCharacterIds) {
+      final avatarId = rawAvatarId.trim();
+      if (avatarId.isEmpty || !avatarIds.add(avatarId)) {
+        throw ValidationException(
+          'newGame playerAvatarCharacterIds contains an empty or duplicate id: '
+          '$rawAvatarId',
+        );
+      }
+      if (!characterIds.contains(avatarId)) {
+        throw ValidationException(
+          'newGame playerAvatarCharacterIds references an unknown character: '
+          '$avatarId',
+        );
+      }
+    }
     if (config.startingMoney < 0) {
       throw const ValidationException(
         'newGame startingMoney must be non-negative',

@@ -57,12 +57,14 @@ final class SessionDescriptorRequest {
     required this.profileId,
     required this.slotId,
     required this.saveReadHandle,
+    required this.initialPlayerIdentity,
   });
 
   final GameSessionLaunchMode launchMode;
   final String profileId;
   final String slotId;
   final String? saveReadHandle;
+  final GameSessionPlayerIdentity? initialPlayerIdentity;
 }
 
 final class MemoryRuntimeGameSource implements RuntimeGameSource {
@@ -94,6 +96,7 @@ final class MemoryRuntimeGameSource implements RuntimeGameSource {
     required String profileId,
     required String slotId,
     String? saveReadHandle,
+    GameSessionPlayerIdentity? initialPlayerIdentity,
   }) async {
     requests.add(
       SessionDescriptorRequest(
@@ -101,6 +104,7 @@ final class MemoryRuntimeGameSource implements RuntimeGameSource {
         profileId: profileId,
         slotId: slotId,
         saveReadHandle: saveReadHandle,
+        initialPlayerIdentity: initialPlayerIdentity,
       ),
     );
     await descriptorGate;
@@ -119,6 +123,7 @@ final class MemoryRuntimeGameSource implements RuntimeGameSource {
       grantedCapabilities: const <String>{'battle.v1'},
       locale: 'fr',
       accessibility: const GameSessionAccessibilityOptions(),
+      initialPlayerIdentity: initialPlayerIdentity,
     );
   }
 }

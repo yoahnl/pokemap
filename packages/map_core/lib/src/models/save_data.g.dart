@@ -167,6 +167,10 @@ const _$FieldAbilityEnumMap = {
 _$TrainerProfileImpl _$$TrainerProfileImplFromJson(Map<String, dynamic> json) =>
     _$TrainerProfileImpl(
       name: json['name'] as String,
+      avatarCharacterId: json['avatarCharacterId'] as String?,
+      pronounSet:
+          $enumDecodeNullable(_$PlayerPronounSetEnumMap, json['pronounSet']) ??
+              PlayerPronounSet.neutral,
       badgeIds: (json['badgeIds'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
@@ -179,10 +183,18 @@ Map<String, dynamic> _$$TrainerProfileImplToJson(
         _$TrainerProfileImpl instance) =>
     <String, dynamic>{
       'name': instance.name,
+      'avatarCharacterId': instance.avatarCharacterId,
+      'pronounSet': _$PlayerPronounSetEnumMap[instance.pronounSet]!,
       'badgeIds': instance.badgeIds,
       'money': instance.money,
       'playtimeSeconds': instance.playtimeSeconds,
     };
+
+const _$PlayerPronounSetEnumMap = {
+  PlayerPronounSet.neutral: 'neutral',
+  PlayerPronounSet.feminine: 'feminine',
+  PlayerPronounSet.masculine: 'masculine',
+};
 
 _$BagEntryImpl _$$BagEntryImplFromJson(Map<String, dynamic> json) =>
     _$BagEntryImpl(

@@ -125,6 +125,27 @@ final class RuntimePlayerLoadSlot {
   int get hashCode => Object.hash(profileId, slotId);
 }
 
+/// Guided New Game payload combining the selected save boundary and identity.
+final class RuntimePlayerNewGameSetup {
+  const RuntimePlayerNewGameSetup({
+    required this.slot,
+    required this.identity,
+  });
+
+  final RuntimePlayerLoadSlot slot;
+  final GameSessionPlayerIdentity identity;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RuntimePlayerNewGameSetup &&
+          other.slot == slot &&
+          other.identity == identity;
+
+  @override
+  int get hashCode => Object.hash(slot, identity);
+}
+
 /// Command emitted by a player surface from one exact snapshot revision.
 final class RuntimePlayerCommand {
   const RuntimePlayerCommand({

@@ -70,6 +70,38 @@ final class GameSessionAccessibilityOptions {
   final bool hapticsEnabled;
 }
 
+/// Player identity selected by the guided New Game flow.
+///
+/// Pronouns remain semantic so the runtime can project dialogue variables in
+/// the descriptor locale. This data is accepted only for a new game.
+final class GameSessionPlayerIdentity {
+  GameSessionPlayerIdentity({
+    required String name,
+    String? avatarCharacterId,
+    this.pronounSet = PlayerPronounSet.neutral,
+  })  : name = name.trim(),
+        avatarCharacterId = _normalizeOptional(avatarCharacterId) {
+    if (this.name.isEmpty) {
+      throw ArgumentError.value(name, 'name', 'must not be empty');
+    }
+  }
+
+  final String name;
+  final String? avatarCharacterId;
+  final PlayerPronounSet pronounSet;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GameSessionPlayerIdentity &&
+          other.name == name &&
+          other.avatarCharacterId == avatarCharacterId &&
+          other.pronounSet == pronounSet;
+
+  @override
+  int get hashCode => Object.hash(name, avatarCharacterId, pronounSet);
+}
+
 /// Immutable launch authority created by the embedding host.
 ///
 /// The installed version and save are opaque handles. Filesystem paths and
@@ -89,6 +121,7 @@ final class GameSessionDescriptor {
     required Set<String> grantedCapabilities,
     required this.locale,
     required this.accessibility,
+    this.initialPlayerIdentity,
   }) : grantedCapabilities = Set<String>.unmodifiable(grantedCapabilities) {
     if (protocolVersion != gameSessionProtocolVersion) {
       throw const GameSessionException(
@@ -116,6 +149,13 @@ final class GameSessionDescriptor {
         'Continue and Load descriptors require an opaque save read handle.',
       );
     }
+    if (launchMode != GameSessionLaunchMode.newGame &&
+        initialPlayerIdentity != null) {
+      throw const GameSessionException(
+        GameSessionErrorCode.invalidDescriptor,
+        'Only a new game descriptor can provide an initial player identity.',
+      );
+    }
   }
 
   final int protocolVersion;
@@ -135,6 +175,7 @@ final class GameSessionDescriptor {
   final Set<String> grantedCapabilities;
   final String locale;
   final GameSessionAccessibilityOptions accessibility;
+  final GameSessionPlayerIdentity? initialPlayerIdentity;
 
   GameSessionPublicContext get publicContext => GameSessionPublicContext(
         protocolVersion: protocolVersion,
@@ -160,6 +201,11 @@ final class GameSessionDescriptor {
         'slotId: $slotId, '
         'launchMode: ${launchMode.name})';
   }
+}
+
+String? _normalizeOptional(String? value) {
+  final normalized = value?.trim();
+  return normalized == null || normalized.isEmpty ? null : normalized;
 }
 
 /// Player-safe projection of a session descriptor.

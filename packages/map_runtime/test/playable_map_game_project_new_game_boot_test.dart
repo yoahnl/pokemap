@@ -50,6 +50,35 @@ void main() {
     expect(game.gameStateSnapshot.saveId, 'existing_save');
     expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 2, y: 3));
     expect(game.gameStateSnapshot.trainerProfile.money, 999);
+    expect(
+      game.gameStateSnapshot.scriptVariables.values['player_name'],
+      const ScriptVariableValue.string('Sauvegarde'),
+    );
+  });
+
+  test('guided identity overrides authored defaults only for a new game', () {
+    final game = PlayableMapGame(
+      bundle: _bundle(),
+      projectFilePath: '/tmp/project_new_game/project.json',
+      runtimeLocale: 'fr-FR',
+      initialPlayerName: 'Camille',
+      initialPlayerAvatarCharacterId: 'hero_b',
+      initialPlayerPronounSet: PlayerPronounSet.feminine,
+    );
+
+    expect(game.gameStateSnapshot.trainerProfile.name, 'Camille');
+    expect(
+      game.gameStateSnapshot.trainerProfile.avatarCharacterId,
+      'hero_b',
+    );
+    expect(
+      game.gameStateSnapshot.trainerProfile.pronounSet,
+      PlayerPronounSet.feminine,
+    );
+    expect(
+      game.gameStateSnapshot.scriptVariables.values['player_pronoun_subject'],
+      const ScriptVariableValue.string('elle'),
+    );
   });
 }
 
@@ -64,7 +93,26 @@ RuntimeMapBundle _bundle() {
           relativePath: 'maps/new_game_map.json',
         ),
       ],
-      tilesets: const <ProjectTilesetEntry>[],
+      tilesets: const <ProjectTilesetEntry>[
+        ProjectTilesetEntry(
+          id: 'characters',
+          name: 'Personnages',
+          relativePath: 'assets/characters.png',
+        ),
+      ],
+      characters: const <ProjectCharacterEntry>[
+        ProjectCharacterEntry(
+          id: 'hero_a',
+          name: 'Héroïne A',
+          tilesetId: 'characters',
+        ),
+        ProjectCharacterEntry(
+          id: 'hero_b',
+          name: 'Héros B',
+          tilesetId: 'characters',
+        ),
+      ],
+      settings: const ProjectSettings(defaultPlayerCharacterId: 'hero_a'),
       facts: <NarrativeFactDefinition>[
         NarrativeFactDefinition(
           id: 'fact_existing_party',
@@ -76,6 +124,7 @@ RuntimeMapBundle _bundle() {
         startMapId: 'new_game_map',
         startSpawnId: 'spawn_new_game',
         playerName: 'Joueur',
+        playerAvatarCharacterIds: <String>['hero_a', 'hero_b'],
         startingMoney: 420,
         initialBag: <BagEntry>[
           BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),

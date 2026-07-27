@@ -1987,6 +1987,8 @@ ProjectManifest _replaceSceneConsumers(
     startMapId: newGame.startMapId,
     startSpawnId: newGame.startSpawnId,
     playerName: newGame.playerName,
+    playerAvatarCharacterIds: newGame.playerAvatarCharacterIds,
+    playerPronounSet: newGame.playerPronounSet,
     startingMoney: newGame.startingMoney,
     initialBag: newGame.initialBag,
     initialParty: newGame.initialParty,

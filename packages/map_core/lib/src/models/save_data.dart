@@ -8,6 +8,16 @@ import 'narrative_fact_runtime_state.dart';
 part 'save_data.freezed.dart';
 part 'save_data.g.dart';
 
+/// Semantic pronoun choice persisted independently from the active locale.
+///
+/// Runtime dialogue projections translate the set when a session starts,
+/// keeping save data stable when the player changes language.
+enum PlayerPronounSet {
+  neutral,
+  feminine,
+  masculine,
+}
+
 List<String> _normalizeUniqueStringsPreserveOrder(List<String> values) {
   final normalized = <String>[];
   final seen = <String>{};
@@ -497,6 +507,8 @@ class TrainerProfile with _$TrainerProfile {
   @JsonSerializable(explicitToJson: true)
   const factory TrainerProfile({
     required String name,
+    String? avatarCharacterId,
+    @Default(PlayerPronounSet.neutral) PlayerPronounSet pronounSet,
     @Default([]) List<String> badgeIds,
     @Default(0) int money,
     @Default(0) int playtimeSeconds,
@@ -507,6 +519,7 @@ class TrainerProfile with _$TrainerProfile {
 
   TrainerProfile normalized() {
     final normalizedName = name.trim();
+    final normalizedAvatarCharacterId = avatarCharacterId?.trim();
     if (badgeIds.any((badgeId) => badgeId.trim().isEmpty)) {
       throw StateError('TrainerProfile badgeIds must not contain empty values');
     }
@@ -524,6 +537,10 @@ class TrainerProfile with _$TrainerProfile {
 
     return copyWith(
       name: normalizedName,
+      avatarCharacterId: normalizedAvatarCharacterId == null ||
+              normalizedAvatarCharacterId.isEmpty
+          ? null
+          : normalizedAvatarCharacterId,
       badgeIds: normalizedBadgeIds,
     );
   }

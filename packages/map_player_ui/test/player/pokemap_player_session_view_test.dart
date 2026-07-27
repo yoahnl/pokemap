@@ -83,6 +83,97 @@ void main() {
     expect(controller.commands, hasLength(1));
   });
 
+  testWidgets(
+    'guides identity selection before dispatching New Game at 200% text scale',
+    (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(
+        _snapshot(
+          revision: 9,
+          phase: RuntimePlayerPhase.title,
+          actions: const <RuntimePlayerActionAvailability>[
+            RuntimePlayerActionAvailability.enabled(
+              RuntimePlayerAction.newGame,
+            ),
+          ],
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        _app(
+          MediaQuery(
+            data: const MediaQueryData(
+              textScaler: TextScaler.linear(2),
+            ),
+            child: _view(
+              controller,
+              titlePresentation: PlayerNewGameIdentityPresentation(
+                defaultName: 'Alex',
+                defaultAvatarCharacterId: 'hero_a',
+                avatarOptions: const <PlayerNewGameAvatarOption>[
+                  PlayerNewGameAvatarOption(
+                    characterId: 'hero_a',
+                    label: 'Héroïne A',
+                  ),
+                  PlayerNewGameAvatarOption(
+                    characterId: 'hero_b',
+                    label: 'Héros B',
+                  ),
+                ],
+              ),
+              payloadForAction: (_) => const RuntimePlayerLoadSlot(
+                profileId: 'player',
+                slotId: 'slot_1',
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Nouvelle partie'));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(
+          const ValueKey<String>('player-new-game-identity-dialog'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('player-identity-name')),
+        'Camille',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('player-identity-avatar')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Héros B').last);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('player-identity-pronouns')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Féminins — elle').last);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('player-identity-confirm')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(controller.commands, hasLength(1));
+      final command = controller.commands.single;
+      expect(command.action, RuntimePlayerAction.newGame);
+      expect(command.snapshotRevision, 9);
+      final setup = command.payload! as RuntimePlayerNewGameSetup;
+      expect(setup.slot.profileId, 'player');
+      expect(setup.slot.slotId, 'slot_1');
+      expect(setup.identity.name, 'Camille');
+      expect(setup.identity.avatarCharacterId, 'hero_b');
+      expect(setup.identity.pronounSet, PlayerPronounSet.feminine);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('shows runtime loading progress and dispatches cancellation',
       (tester) async {
     final controller = _FakeRuntimePlayerCoordinator(_snapshot(
@@ -936,13 +1027,17 @@ PokeMapPlayerSessionView _view(
   ValueListenable<DialoguePresentationSnapshot?>? dialoguePresentation,
   ValueChanged<DialoguePresentationCommand>? onDialogueCommand,
   bool? controllerInputEnabled,
+  PlayerNewGameIdentityPresentation? titlePresentation,
+  RuntimePlayerActionPayloadBuilder? payloadForAction,
 }) {
   return PokeMapPlayerSessionView(
     controller: controller,
-    titlePresentation: const RuntimePlayerTitlePresentation(
+    titlePresentation: RuntimePlayerTitlePresentation(
       author: 'Studio Test',
       description: 'Une aventure de test.',
+      newGameIdentity: titlePresentation,
     ),
+    payloadForAction: payloadForAction,
     gameSceneBuilder: (_) => _SceneProbe(
       key: const ValueKey<String>('test-game-scene'),
       lifecycle: lifecycle ?? _SceneLifecycle(),

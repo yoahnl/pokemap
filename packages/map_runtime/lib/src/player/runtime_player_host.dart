@@ -17,6 +17,7 @@ abstract interface class RuntimeGameSource {
     required String profileId,
     required String slotId,
     String? saveReadHandle,
+    GameSessionPlayerIdentity? initialPlayerIdentity,
   });
 }
 

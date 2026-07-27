@@ -22,6 +22,8 @@ void main() {
         startMapId: 'map_start',
         startSpawnId: 'spawn_home',
         playerName: 'Maël',
+        playerAvatarCharacterIds: ['hero_a', 'hero_b'],
+        playerPronounSet: PlayerPronounSet.feminine,
         startingMoney: 500,
         initialBag: [
           BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
@@ -58,6 +60,14 @@ void main() {
 
       expect(decoded.newGame, config);
       expect(decoded.newGame.starterOptions.single.id, 'starter_bulbasaur');
+      expect(
+        decoded.newGame.playerAvatarCharacterIds,
+        const ['hero_a', 'hero_b'],
+      );
+      expect(
+        decoded.newGame.playerPronounSet,
+        PlayerPronounSet.feminine,
+      );
     });
 
     test('round-trips versioned typed initial Fact values', () {
@@ -147,6 +157,16 @@ void main() {
           startMapId: 'map_start',
           starterSelectionSceneId: 'missing_scene',
         ),
+        const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_start',
+          playerAvatarCharacterIds: ['missing_character'],
+        ),
+        const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_start',
+          playerAvatarCharacterIds: ['hero_a', 'hero_a'],
+        ),
       ];
 
       for (final config in invalidConfigs) {
@@ -214,7 +234,25 @@ ProjectManifest _manifest(
         relativePath: 'maps/map_start.json',
       ),
     ],
-    tilesets: const [],
+    tilesets: const [
+      ProjectTilesetEntry(
+        id: 'characters',
+        name: 'Personnages',
+        relativePath: 'assets/characters.png',
+      ),
+    ],
+    characters: const [
+      ProjectCharacterEntry(
+        id: 'hero_a',
+        name: 'Héroïne A',
+        tilesetId: 'characters',
+      ),
+      ProjectCharacterEntry(
+        id: 'hero_b',
+        name: 'Héros B',
+        tilesetId: 'characters',
+      ),
+    ],
     facts: [
       NarrativeFactDefinition(
         id: 'fact_intro_active',

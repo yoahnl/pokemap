@@ -53,6 +53,8 @@ final class ProjectNewGameConfig {
     this.startMapId = '',
     this.startSpawnId,
     this.playerName = 'Player',
+    this.playerAvatarCharacterIds = const <String>[],
+    this.playerPronounSet = PlayerPronounSet.neutral,
     this.startingMoney = 0,
     this.initialBag = const <BagEntry>[],
     this.initialParty = const <PlayerPokemon>[],
@@ -69,6 +71,9 @@ final class ProjectNewGameConfig {
       startMapId: _readString(json, 'startMapId') ?? '',
       startSpawnId: _readString(json, 'startSpawnId'),
       playerName: _readString(json, 'playerName') ?? 'Player',
+      playerAvatarCharacterIds:
+          _readStringList(json, 'playerAvatarCharacterIds'),
+      playerPronounSet: _readPlayerPronounSet(json, 'playerPronounSet'),
       startingMoney: _readInt(json, 'startingMoney', fallback: 0),
       initialBag: _readObjectList(json, 'initialBag')
           .map(BagEntry.fromJson)
@@ -94,6 +99,8 @@ final class ProjectNewGameConfig {
   final String startMapId;
   final String? startSpawnId;
   final String playerName;
+  final List<String> playerAvatarCharacterIds;
+  final PlayerPronounSet playerPronounSet;
   final int startingMoney;
   final List<BagEntry> initialBag;
   final List<PlayerPokemon> initialParty;
@@ -115,6 +122,8 @@ final class ProjectNewGameConfig {
         'startMapId': startMapId,
         if (startSpawnId != null) 'startSpawnId': startSpawnId,
         'playerName': playerName,
+        'playerAvatarCharacterIds': playerAvatarCharacterIds,
+        'playerPronounSet': playerPronounSet.name,
         'startingMoney': startingMoney,
         'initialBag': initialBag.map((entry) => entry.toJson()).toList(),
         'initialParty': initialParty.map((member) => member.toJson()).toList(),
@@ -143,6 +152,11 @@ final class ProjectNewGameConfig {
           other.startMapId == startMapId &&
           other.startSpawnId == startSpawnId &&
           other.playerName == playerName &&
+          _listEquals(
+            other.playerAvatarCharacterIds,
+            playerAvatarCharacterIds,
+          ) &&
+          other.playerPronounSet == playerPronounSet &&
           other.startingMoney == startingMoney &&
           _listEquals(other.initialBag, initialBag) &&
           _listEquals(other.initialParty, initialParty) &&
@@ -158,6 +172,8 @@ final class ProjectNewGameConfig {
         startMapId,
         startSpawnId,
         playerName,
+        Object.hashAll(playerAvatarCharacterIds),
+        playerPronounSet,
         startingMoney,
         Object.hashAll(initialBag),
         Object.hashAll(initialParty),
@@ -184,6 +200,34 @@ String? _readString(Map<String, dynamic> json, String key) {
     throw FormatException('ProjectNewGameConfig.$key must be a string.');
   }
   return value;
+}
+
+List<String> _readStringList(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value == null) return const <String>[];
+  if (value is! List || value.any((entry) => entry is! String)) {
+    throw FormatException(
+      'ProjectNewGameConfig.$key must be a list of strings.',
+    );
+  }
+  return List<String>.unmodifiable(value.cast<String>());
+}
+
+PlayerPronounSet _readPlayerPronounSet(
+  Map<String, dynamic> json,
+  String key,
+) {
+  final value = json[key];
+  if (value == null) return PlayerPronounSet.neutral;
+  if (value is! String) {
+    throw FormatException('ProjectNewGameConfig.$key must be a string.');
+  }
+  return PlayerPronounSet.values
+          .where((entry) => entry.name == value)
+          .firstOrNull ??
+      (throw FormatException(
+        'ProjectNewGameConfig.$key contains an unknown value: $value.',
+      ));
 }
 
 bool _readBool(

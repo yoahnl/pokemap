@@ -1,5 +1,7 @@
 library map_runtime;
 
+export 'package:map_core/map_core.dart' show PlayerPronounSet;
+
 export 'src/application/scene_runtime/narrative_command_runtime_capability_evidence.dart'
     show buildMapRuntimeNarrativeCommandConsumerAttestation;
 export 'src/presentation/flame/narrative_command_player_surface_capability_evidence.dart'
@@ -281,9 +283,7 @@ export 'src/application/scene_runtime/scene_game_completion_metadata.dart'
         sceneGameCompletionEndingMetadataKey,
         sceneGameCompletionPostGamePolicyMetadataKey;
 export 'src/application/scene_runtime/scene_npc_state_metadata.dart'
-    show
-        sceneNpcPresenceMetadataKey,
-        sceneNpcPresenceOverride;
+    show sceneNpcPresenceMetadataKey, sceneNpcPresenceOverride;
 export 'src/application/scene_runtime/scene_interactive_command_runtime_executor.dart'
     show SceneInteractiveCommandHandler, SceneInteractiveCommandRuntimeExecutor;
 export 'src/application/scene_runtime/scene_consequence_runtime_write_result.dart'

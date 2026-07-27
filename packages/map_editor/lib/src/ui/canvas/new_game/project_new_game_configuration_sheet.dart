@@ -112,6 +112,8 @@ class _ProjectNewGameConfigurationFormState
   late String _startSpawnId;
   late String _existingPartyFactId;
   late String _starterSelectionSceneId;
+  late Set<String> _playerAvatarCharacterIds;
+  late PlayerPronounSet _playerPronounSet;
   late List<BagEntry> _initialBag;
   late Map<String, NarrativeValue> _initialFacts;
   late List<ProjectStarterOption> _starterOptions;
@@ -133,6 +135,8 @@ class _ProjectNewGameConfigurationFormState
     _startSpawnId = config.startSpawnId ?? '';
     _existingPartyFactId = config.existingPartyFactId ?? '';
     _starterSelectionSceneId = config.starterSelectionSceneId ?? '';
+    _playerAvatarCharacterIds = config.playerAvatarCharacterIds.toSet();
+    _playerPronounSet = config.playerPronounSet;
     _initialBag = config.initialBag.toList(growable: true);
     _initialFacts = Map<String, NarrativeValue>.from(
       config.resolvedInitialFactValues,
@@ -282,6 +286,72 @@ class _ProjectNewGameConfigurationFormState
                 enabled: _enabled,
                 onChanged: (_) => setState(_clearSaveStatus),
               ),
+              const SizedBox(height: 10),
+              PokeMapDropdownField<PlayerPronounSet>(
+                key: const ValueKey('new-game-player-pronouns-picker'),
+                label: 'Pronoms par défaut',
+                value: _playerPronounSet,
+                enabled: _enabled,
+                items: const <PokeMapDropdownItem<PlayerPronounSet>>[
+                  PokeMapDropdownItem(
+                    value: PlayerPronounSet.neutral,
+                    label: 'Neutres — iel / ellui',
+                  ),
+                  PokeMapDropdownItem(
+                    value: PlayerPronounSet.feminine,
+                    label: 'Féminins — elle',
+                  ),
+                  PokeMapDropdownItem(
+                    value: PlayerPronounSet.masculine,
+                    label: 'Masculins — il / lui',
+                  ),
+                ],
+                onChanged: (value) => setState(() {
+                  _playerPronounSet = value;
+                  _clearSaveStatus();
+                }),
+              ),
+              const SizedBox(height: 10),
+              const PokeMapSectionHeader(
+                title: 'Variantes d’avatar proposées',
+                description:
+                    'Le joueur choisira parmi ces personnages au lancement. '
+                    'Sans sélection, seul le personnage par défaut du projet '
+                    'sera utilisé.',
+              ),
+              const SizedBox(height: 8),
+              if (widget.project.characters.isEmpty)
+                const PokeMapDiagnosticCallout(
+                  severity: PokeMapDiagnosticSeverity.warning,
+                  message:
+                      'Créez au moins un personnage avant de proposer des variantes.',
+                )
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final character in widget.project.characters)
+                      PokeMapButton(
+                        key: ValueKey(
+                          'new-game-player-avatar-${character.id}',
+                        ),
+                        onPressed: _enabled
+                            ? () => _togglePlayerAvatar(character.id)
+                            : null,
+                        variant: PokeMapButtonVariant.secondary,
+                        size: PokeMapButtonSize.small,
+                        isSelected:
+                            _playerAvatarCharacterIds.contains(character.id),
+                        leading: Icon(
+                          _playerAvatarCharacterIds.contains(character.id)
+                              ? Icons.check_circle_rounded
+                              : Icons.person_outline_rounded,
+                        ),
+                        child: Text(character.name),
+                      ),
+                  ],
+                ),
               const SizedBox(height: 10),
               PokeMapTextField(
                 key: const ValueKey('new-game-starting-money-field'),
@@ -675,6 +745,12 @@ class _ProjectNewGameConfigurationFormState
       startMapId: _startMapId.trim(),
       startSpawnId: _startSpawnId.trim().isEmpty ? null : _startSpawnId.trim(),
       playerName: _playerNameController.text.trim(),
+      playerAvatarCharacterIds: List<String>.unmodifiable(
+        widget.project.characters
+            .map((character) => character.id)
+            .where(_playerAvatarCharacterIds.contains),
+      ),
+      playerPronounSet: _playerPronounSet,
       startingMoney: int.tryParse(_startingMoneyController.text.trim()) ?? -1,
       initialBag: List<BagEntry>.unmodifiable(_initialBag),
       initialParty: previous.initialParty,
@@ -715,6 +791,15 @@ class _ProjectNewGameConfigurationFormState
         );
       }
       _selectedBagItemId = '';
+      _clearSaveStatus();
+    });
+  }
+
+  void _togglePlayerAvatar(String characterId) {
+    setState(() {
+      if (!_playerAvatarCharacterIds.remove(characterId)) {
+        _playerAvatarCharacterIds.add(characterId);
+      }
       _clearSaveStatus();
     });
   }

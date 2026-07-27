@@ -1555,6 +1555,8 @@ TrainerProfile _$TrainerProfileFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$TrainerProfile {
   String get name => throw _privateConstructorUsedError;
+  String? get avatarCharacterId => throw _privateConstructorUsedError;
+  PlayerPronounSet get pronounSet => throw _privateConstructorUsedError;
   List<String> get badgeIds => throw _privateConstructorUsedError;
   int get money => throw _privateConstructorUsedError;
   int get playtimeSeconds => throw _privateConstructorUsedError;
@@ -1576,7 +1578,12 @@ abstract class $TrainerProfileCopyWith<$Res> {
       _$TrainerProfileCopyWithImpl<$Res, TrainerProfile>;
   @useResult
   $Res call(
-      {String name, List<String> badgeIds, int money, int playtimeSeconds});
+      {String name,
+      String? avatarCharacterId,
+      PlayerPronounSet pronounSet,
+      List<String> badgeIds,
+      int money,
+      int playtimeSeconds});
 }
 
 /// @nodoc
@@ -1595,6 +1602,8 @@ class _$TrainerProfileCopyWithImpl<$Res, $Val extends TrainerProfile>
   @override
   $Res call({
     Object? name = null,
+    Object? avatarCharacterId = freezed,
+    Object? pronounSet = null,
     Object? badgeIds = null,
     Object? money = null,
     Object? playtimeSeconds = null,
@@ -1604,6 +1613,14 @@ class _$TrainerProfileCopyWithImpl<$Res, $Val extends TrainerProfile>
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
               as String,
+      avatarCharacterId: freezed == avatarCharacterId
+          ? _value.avatarCharacterId
+          : avatarCharacterId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      pronounSet: null == pronounSet
+          ? _value.pronounSet
+          : pronounSet // ignore: cast_nullable_to_non_nullable
+              as PlayerPronounSet,
       badgeIds: null == badgeIds
           ? _value.badgeIds
           : badgeIds // ignore: cast_nullable_to_non_nullable
@@ -1629,7 +1646,12 @@ abstract class _$$TrainerProfileImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {String name, List<String> badgeIds, int money, int playtimeSeconds});
+      {String name,
+      String? avatarCharacterId,
+      PlayerPronounSet pronounSet,
+      List<String> badgeIds,
+      int money,
+      int playtimeSeconds});
 }
 
 /// @nodoc
@@ -1646,6 +1668,8 @@ class __$$TrainerProfileImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? name = null,
+    Object? avatarCharacterId = freezed,
+    Object? pronounSet = null,
     Object? badgeIds = null,
     Object? money = null,
     Object? playtimeSeconds = null,
@@ -1655,6 +1679,14 @@ class __$$TrainerProfileImplCopyWithImpl<$Res>
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
               as String,
+      avatarCharacterId: freezed == avatarCharacterId
+          ? _value.avatarCharacterId
+          : avatarCharacterId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      pronounSet: null == pronounSet
+          ? _value.pronounSet
+          : pronounSet // ignore: cast_nullable_to_non_nullable
+              as PlayerPronounSet,
       badgeIds: null == badgeIds
           ? _value._badgeIds
           : badgeIds // ignore: cast_nullable_to_non_nullable
@@ -1677,6 +1709,8 @@ class __$$TrainerProfileImplCopyWithImpl<$Res>
 class _$TrainerProfileImpl extends _TrainerProfile {
   const _$TrainerProfileImpl(
       {required this.name,
+      this.avatarCharacterId,
+      this.pronounSet = PlayerPronounSet.neutral,
       final List<String> badgeIds = const [],
       this.money = 0,
       this.playtimeSeconds = 0})
@@ -1688,6 +1722,11 @@ class _$TrainerProfileImpl extends _TrainerProfile {
 
   @override
   final String name;
+  @override
+  final String? avatarCharacterId;
+  @override
+  @JsonKey()
+  final PlayerPronounSet pronounSet;
   final List<String> _badgeIds;
   @override
   @JsonKey()
@@ -1706,7 +1745,7 @@ class _$TrainerProfileImpl extends _TrainerProfile {
 
   @override
   String toString() {
-    return 'TrainerProfile(name: $name, badgeIds: $badgeIds, money: $money, playtimeSeconds: $playtimeSeconds)';
+    return 'TrainerProfile(name: $name, avatarCharacterId: $avatarCharacterId, pronounSet: $pronounSet, badgeIds: $badgeIds, money: $money, playtimeSeconds: $playtimeSeconds)';
   }
 
   @override
@@ -1715,6 +1754,10 @@ class _$TrainerProfileImpl extends _TrainerProfile {
         (other.runtimeType == runtimeType &&
             other is _$TrainerProfileImpl &&
             (identical(other.name, name) || other.name == name) &&
+            (identical(other.avatarCharacterId, avatarCharacterId) ||
+                other.avatarCharacterId == avatarCharacterId) &&
+            (identical(other.pronounSet, pronounSet) ||
+                other.pronounSet == pronounSet) &&
             const DeepCollectionEquality().equals(other._badgeIds, _badgeIds) &&
             (identical(other.money, money) || other.money == money) &&
             (identical(other.playtimeSeconds, playtimeSeconds) ||
@@ -1723,8 +1766,14 @@ class _$TrainerProfileImpl extends _TrainerProfile {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, name,
-      const DeepCollectionEquality().hash(_badgeIds), money, playtimeSeconds);
+  int get hashCode => Object.hash(
+      runtimeType,
+      name,
+      avatarCharacterId,
+      pronounSet,
+      const DeepCollectionEquality().hash(_badgeIds),
+      money,
+      playtimeSeconds);
 
   /// Create a copy of TrainerProfile
   /// with the given fields replaced by the non-null parameter values.
@@ -1746,6 +1795,8 @@ class _$TrainerProfileImpl extends _TrainerProfile {
 abstract class _TrainerProfile extends TrainerProfile {
   const factory _TrainerProfile(
       {required final String name,
+      final String? avatarCharacterId,
+      final PlayerPronounSet pronounSet,
       final List<String> badgeIds,
       final int money,
       final int playtimeSeconds}) = _$TrainerProfileImpl;
@@ -1756,6 +1807,10 @@ abstract class _TrainerProfile extends TrainerProfile {
 
   @override
   String get name;
+  @override
+  String? get avatarCharacterId;
+  @override
+  PlayerPronounSet get pronounSet;
   @override
   List<String> get badgeIds;
   @override

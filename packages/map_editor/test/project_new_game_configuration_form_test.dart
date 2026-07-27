@@ -129,6 +129,20 @@ void main() {
         ),
         '750',
       );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('new-game-player-avatar-hero_b')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('new-game-player-avatar-hero_b')),
+      );
+      tester
+          .widget<PokeMapDropdownField<PlayerPronounSet>>(
+            find.byKey(
+              const ValueKey('new-game-player-pronouns-picker'),
+            ),
+          )
+          .onChanged(PlayerPronounSet.feminine);
+      await tester.pump();
 
       await tester.tap(find.byKey(const ValueKey('new-game-bag-add')));
       await tester.tap(find.byKey(const ValueKey('new-game-initial-fact-add')));
@@ -156,6 +170,8 @@ void main() {
       expect(saved!.startMapId, 'map_start');
       expect(saved!.startSpawnId, 'spawn_home');
       expect(saved!.playerName, 'Brume');
+      expect(saved!.playerAvatarCharacterIds, const ['hero_b']);
+      expect(saved!.playerPronounSet, PlayerPronounSet.feminine);
       expect(saved!.startingMoney, 750);
       expect(saved!.existingPartyFactId, 'fact_existing_party');
       expect(saved!.starterSelectionSceneId, 'scene_starter_choice');
@@ -255,7 +271,25 @@ ProjectManifest _project() {
         relativePath: 'maps/map_start.json',
       ),
     ],
-    tilesets: const [],
+    tilesets: const <ProjectTilesetEntry>[
+      ProjectTilesetEntry(
+        id: 'characters',
+        name: 'Personnages',
+        relativePath: 'assets/characters.png',
+      ),
+    ],
+    characters: const <ProjectCharacterEntry>[
+      ProjectCharacterEntry(
+        id: 'hero_a',
+        name: 'Héroïne A',
+        tilesetId: 'characters',
+      ),
+      ProjectCharacterEntry(
+        id: 'hero_b',
+        name: 'Héros B',
+        tilesetId: 'characters',
+      ),
+    ],
     facts: <NarrativeFactDefinition>[
       NarrativeFactDefinition(
         id: 'fact_intro_active',

@@ -136,7 +136,15 @@ export 'src/new_game_state_builder.dart'
     show
         createNewGameState,
         createNewGameStateFromMap,
-        createNewGameStateFromProject;
+        createNewGameStateFromProject,
+        applyPlayerIdentityDialogueVariables,
+        playerNameScriptVariable,
+        playerAvatarScriptVariable,
+        playerPronounSetScriptVariable,
+        playerSubjectPronounScriptVariable,
+        playerObjectPronounScriptVariable,
+        playerPossessivePronounScriptVariable,
+        playerReflexivePronounScriptVariable;
 export 'src/narrative_event_dispatch_planner.dart'
     show NarrativeEventDispatchPlanner;
 export 'src/narrative_trigger_enter_fronts.dart'

@@ -113,6 +113,62 @@ void main() {
       );
     });
 
+    test('applies guided identity and dialogue variables through save', () {
+      final state = createNewGameStateFromProject(
+        project: _project(initialParty: const <PlayerPokemon>[]),
+        startMap: _startMap(),
+        playerName: '  Camille  ',
+        playerAvatarCharacterId: 'hero_b',
+        playerPronounSet: PlayerPronounSet.feminine,
+        locale: 'fr-FR',
+      );
+
+      expect(state.trainerProfile.name, 'Camille');
+      expect(state.trainerProfile.avatarCharacterId, 'hero_b');
+      expect(
+        state.trainerProfile.pronounSet,
+        PlayerPronounSet.feminine,
+      );
+      expect(
+        state.scriptVariables.values[playerNameScriptVariable],
+        const ScriptVariableValue.string('Camille'),
+      );
+      expect(
+        state.scriptVariables.values[playerSubjectPronounScriptVariable],
+        const ScriptVariableValue.string('elle'),
+      );
+      expect(
+        state.scriptVariables.values[playerObjectPronounScriptVariable],
+        const ScriptVariableValue.string('elle'),
+      );
+
+      final restored = gameStateFromSaveData(saveDataFromGameState(state));
+      expect(restored.trainerProfile, state.trainerProfile);
+      final resumed = applyPlayerIdentityDialogueVariables(
+        restored,
+        locale: 'fr-FR',
+      );
+      expect(
+        resumed.scriptVariables.values[playerNameScriptVariable],
+        const ScriptVariableValue.string('Camille'),
+      );
+      expect(
+        resumed.scriptVariables.values[playerSubjectPronounScriptVariable],
+        const ScriptVariableValue.string('elle'),
+      );
+    });
+
+    test('rejects a guided avatar outside the authored choices', () {
+      expect(
+        () => createNewGameStateFromProject(
+          project: _project(initialParty: const <PlayerPokemon>[]),
+          startMap: _startMap(),
+          playerAvatarCharacterId: 'npc',
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('rejects a map or configured spawn outside the authored contract', () {
       expect(
         () => createNewGameStateFromProject(
@@ -162,7 +218,26 @@ ProjectManifest _project({
         relativePath: 'maps/map_start.json',
       ),
     ],
-    tilesets: const <ProjectTilesetEntry>[],
+    tilesets: const <ProjectTilesetEntry>[
+      ProjectTilesetEntry(
+        id: 'characters',
+        name: 'Personnages',
+        relativePath: 'assets/characters.png',
+      ),
+    ],
+    characters: const <ProjectCharacterEntry>[
+      ProjectCharacterEntry(
+        id: 'hero_a',
+        name: 'Héroïne A',
+        tilesetId: 'characters',
+      ),
+      ProjectCharacterEntry(
+        id: 'hero_b',
+        name: 'Héros B',
+        tilesetId: 'characters',
+      ),
+    ],
+    settings: const ProjectSettings(defaultPlayerCharacterId: 'hero_a'),
     facts: <NarrativeFactDefinition>[
       NarrativeFactDefinition(
         id: 'fact_intro_active',
@@ -178,6 +253,7 @@ ProjectManifest _project({
       startMapId: 'map_start',
       startSpawnId: startSpawnId,
       playerName: 'Joueur',
+      playerAvatarCharacterIds: const ['hero_a', 'hero_b'],
       startingMoney: 350,
       initialBag: const <BagEntry>[
         BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),

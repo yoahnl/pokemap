@@ -175,6 +175,10 @@ final class PlayableMapGameSessionRuntime
       saveRepository: memorySaves,
       gameCompletionEmitter: emitCompletion,
       runtimeLocale: descriptor.locale,
+      initialPlayerName: descriptor.initialPlayerIdentity?.name,
+      initialPlayerAvatarCharacterId:
+          descriptor.initialPlayerIdentity?.avatarCharacterId,
+      initialPlayerPronounSet: descriptor.initialPlayerIdentity?.pronounSet,
       initialMapActivationReason:
           descriptor.launchMode == GameSessionLaunchMode.newGame
               ? MapActivationReason.initialBoot

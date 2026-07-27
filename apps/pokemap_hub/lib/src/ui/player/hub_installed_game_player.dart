@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart' as player_ui;
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
@@ -59,6 +60,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   _PlayerLaunchFailure? _failure;
   HubSaveProfileManager? _profileManager;
   HubSaveSelection? _saveSelection;
+  player_ui.PlayerNewGameIdentityPresentation? _newGameIdentityPresentation;
   bool _managingSaves = false;
 
   @override
@@ -88,6 +90,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         defaultProfileDisplayName: isFrench ? 'Joueur' : 'Player',
         defaultSlotDisplayName: 'Slot 1',
       );
+      final newGameIdentityPresentation =
+          await _loadNewGameIdentityPresentation(launch);
       final gameSource = HubRuntimeGameSource(
         launch: launch,
         preferencesGateway: preferencesGateway,
@@ -120,6 +124,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         _coordinator = coordinator;
         _profileManager = profileManager;
         _saveSelection = saveSelection;
+        _newGameIdentityPresentation = newGameIdentityPresentation;
         _viewController =
             player_ui.RuntimePlayerCoordinatorViewController(coordinator!);
       });
@@ -133,6 +138,46 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       if (!mounted) return;
       setState(() => _failure = failure);
     }
+  }
+
+  Future<player_ui.PlayerNewGameIdentityPresentation>
+      _loadNewGameIdentityPresentation(
+    InstalledGameLaunchContext launch,
+  ) async {
+    final projectFile = await launch.assets.resolveReference(launch.project);
+    final decoded = jsonDecode(await projectFile.readAsString());
+    if (decoded is! Map) {
+      throw const FormatException(
+        'The installed project manifest must be a JSON object.',
+      );
+    }
+    final project = ProjectManifest.fromJson(
+      Map<String, dynamic>.from(decoded),
+    );
+    final config = project.newGame;
+    final charactersById = <String, ProjectCharacterEntry>{
+      for (final character in project.characters) character.id: character,
+    };
+    final authoredIds = config.playerAvatarCharacterIds;
+    final fallbackId = project.settings.defaultPlayerCharacterId?.trim();
+    final avatarIds = authoredIds.isNotEmpty
+        ? authoredIds
+        : fallbackId == null || fallbackId.isEmpty
+            ? const <String>[]
+            : <String>[fallbackId];
+    return player_ui.PlayerNewGameIdentityPresentation(
+      defaultName: config.playerName,
+      defaultPronounSet: config.playerPronounSet,
+      defaultAvatarCharacterId: fallbackId,
+      avatarOptions: <player_ui.PlayerNewGameAvatarOption>[
+        for (final id in avatarIds)
+          if (charactersById[id] case final character?)
+            player_ui.PlayerNewGameAvatarOption(
+              characterId: character.id,
+              label: character.name,
+            ),
+      ],
+    );
   }
 
   Future<void> _mountGame(PlayableMapGame game) async {
@@ -325,6 +370,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
               titlePresentation: player_ui.RuntimePlayerTitlePresentation(
                 author: launch.manifest.author.name,
                 description: launch.manifest.description,
+                newGameIdentity: _newGameIdentityPresentation,
               ),
               payloadForAction: _payloadForAction,
               gameplayInputRoute: _sessions?.handleInput,

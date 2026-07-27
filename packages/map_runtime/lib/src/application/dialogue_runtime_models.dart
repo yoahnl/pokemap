@@ -65,6 +65,42 @@ class DialogueSession {
   String? get currentNodeTitle => _currentNodeTitle;
   String? get selectedOutcomeId => _selectedOutcomeId;
 
+  /// Returns an equivalent session whose visible lines and choices have been
+  /// transformed without changing navigation or outcome IDs.
+  DialogueSession mapText(String Function(String text) transform) {
+    final mappedNodes = nodes.map(
+      (node) => YarnNode(
+        title: node.title,
+        steps: _mapSteps(node.steps, transform),
+      ),
+    );
+    final mappedCurrentSteps = _mapSteps(_currentSteps, transform);
+    return DialogueSession._(
+      nodes: mappedNodes.toList(growable: false),
+      state: switch (state) {
+        DialogueShowingLine(:final text) =>
+          DialogueShowingLine(text: transform(text)),
+        DialogueWaitingForChoice(:final choices, :final selectedIndex) =>
+          DialogueWaitingForChoice(
+            choices: choices
+                .map(
+                  (choice) => YarnChoice(
+                    text: transform(choice.text),
+                    steps: _mapSteps(choice.steps, transform),
+                    outcomeId: choice.outcomeId,
+                  ),
+                )
+                .toList(growable: false),
+            selectedIndex: selectedIndex,
+          ),
+      },
+      currentNodeTitle: _currentNodeTitle,
+      currentSteps: mappedCurrentSteps,
+      stepIndex: _stepIndex,
+      selectedOutcomeId: _selectedOutcomeId,
+    );
+  }
+
   bool get isLastContent {
     if (state is! DialogueShowingLine) return false;
     return _resolveStep(_currentSteps, _stepIndex + 1, nodes) == null;
@@ -123,6 +159,30 @@ class DialogueSession {
     );
   }
 }
+
+List<YarnStep> _mapSteps(
+  List<YarnStep> steps,
+  String Function(String text) transform,
+) =>
+    steps
+        .map(
+          (step) => switch (step) {
+            YarnStepLine(:final text) => YarnStepLine(transform(text)),
+            YarnStepJump(:final targetNode) => YarnStepJump(targetNode),
+            YarnStepChoiceBlock(:final choices) => YarnStepChoiceBlock(
+                choices
+                    .map(
+                      (choice) => YarnChoice(
+                        text: transform(choice.text),
+                        steps: _mapSteps(choice.steps, transform),
+                        outcomeId: choice.outcomeId,
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+          },
+        )
+        .toList(growable: false);
 
 DialogueSession? _resolveStep(
   List<YarnStep> steps,

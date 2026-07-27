@@ -117,6 +117,7 @@ final class _MemoryGameSource implements RuntimeGameSource {
     required String profileId,
     required String slotId,
     String? saveReadHandle,
+    GameSessionPlayerIdentity? initialPlayerIdentity,
   }) async {
     return GameSessionDescriptor(
       sessionId: 'session-1',
@@ -131,6 +132,7 @@ final class _MemoryGameSource implements RuntimeGameSource {
       grantedCapabilities: const <String>{},
       locale: 'fr',
       accessibility: const GameSessionAccessibilityOptions(),
+      initialPlayerIdentity: initialPlayerIdentity,
     );
   }
 }

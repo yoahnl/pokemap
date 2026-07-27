@@ -325,6 +325,28 @@ void main() {
   });
 
   group('TrainerProfile', () {
+    test('round-trips persisted avatar and semantic pronouns', () {
+      const profile = TrainerProfile(
+        name: '  Alex  ',
+        avatarCharacterId: '  hero_b  ',
+        pronounSet: PlayerPronounSet.neutral,
+      );
+
+      final normalized = profile.normalized();
+      final restored = TrainerProfile.fromJson(normalized.toJson());
+
+      expect(restored.name, 'Alex');
+      expect(restored.avatarCharacterId, 'hero_b');
+      expect(restored.pronounSet, PlayerPronounSet.neutral);
+    });
+
+    test('legacy JSON defaults to neutral pronouns and no avatar', () {
+      final restored = TrainerProfile.fromJson({'name': 'Leaf'});
+
+      expect(restored.avatarCharacterId, isNull);
+      expect(restored.pronounSet, PlayerPronounSet.neutral);
+    });
+
     test('serialization round-trip', () {
       const profile = TrainerProfile(
         name: 'Red',

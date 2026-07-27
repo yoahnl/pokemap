@@ -41,6 +41,7 @@ final class HubRuntimeGameSource implements RuntimeGameSource {
     required String profileId,
     required String slotId,
     String? saveReadHandle,
+    GameSessionPlayerIdentity? initialPlayerIdentity,
   }) async {
     final preferences = await preferencesGateway.load();
     return GameSessionDescriptor(
@@ -56,6 +57,7 @@ final class HubRuntimeGameSource implements RuntimeGameSource {
       grantedCapabilities: _launch.grantedCapabilities,
       locale: _installedLocaleFor(preferences.locale),
       accessibility: preferences.accessibility,
+      initialPlayerIdentity: initialPlayerIdentity,
     );
   }
 

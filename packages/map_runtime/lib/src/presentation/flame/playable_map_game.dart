@@ -24,6 +24,7 @@ import '../../application/battle_start_request.dart';
 import '../../application/cutscene_runtime_models.dart';
 import '../../application/cutscene_runtime_runner.dart';
 import '../../application/dialogue_runtime_models.dart';
+import '../../application/dialogue_variable_interpolation.dart';
 import '../../application/encounter_to_battle_request.dart';
 import '../../application/field_move_dialogue.dart';
 import '../../application/global_story_chapter_runtime.dart';
@@ -225,6 +226,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     @visibleForTesting this.beforeLoadCommitCompletion,
     GameCompletionRequestEmitter? gameCompletionEmitter,
     this.runtimeLocale = 'fr-FR',
+    String? initialPlayerName,
+    String? initialPlayerAvatarCharacterId,
+    PlayerPronounSet? initialPlayerPronounSet,
     this.shadowCollectionProvider,
     this.enableActorContactShadows = true,
     this.enableStaticPlacedElementShadows = true,
@@ -260,10 +264,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         project: _bundle.manifest,
         startMap: _bundle.map,
         saveId: 'new_game',
+        playerName: initialPlayerName,
+        playerAvatarCharacterId: initialPlayerAvatarCharacterId,
+        playerPronounSet: initialPlayerPronounSet,
+        locale: runtimeLocale,
         tileWidthPx: _bundle.manifest.settings.tileWidth,
         tileHeightPx: _bundle.manifest.settings.tileHeight,
       );
     }
+    _gameState = applyPlayerIdentityDialogueVariables(
+      _gameState,
+      locale: runtimeLocale,
+    );
     _narrativeActivityGate =
         narrativeRuntimeActivityGate ?? NarrativeRuntimeActivityGate();
     _saveRepo = saveRepository ??
@@ -10094,6 +10106,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     DialogueSession session, {
     void Function(String? outcomeId)? onDialogueFinished,
   }) {
+    session = interpolateDialogueVariables(
+      session,
+      _gameState.scriptVariables,
+    );
     _notification?.removeFromParent();
     _notification = null;
     _setRuntimeNotificationSnapshot(null);
@@ -12416,6 +12432,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   ProjectCharacterEntry? _resolvePlayerCharacter(RuntimeMapBundle bundle) {
+    final selectedCharacterId =
+        _gameState.trainerProfile.avatarCharacterId?.trim();
+    if (selectedCharacterId != null && selectedCharacterId.isNotEmpty) {
+      final selected = bundle.manifest.characters
+          .where((character) => character.id == selectedCharacterId)
+          .firstOrNull;
+      if (selected != null) return selected;
+    }
     return resolveDefaultPlayerCharacter(bundle.manifest);
   }
 
