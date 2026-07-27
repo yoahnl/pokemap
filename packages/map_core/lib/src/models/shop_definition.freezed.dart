@@ -24,6 +24,8 @@ mixin _$ShopEntryDefinition {
   @JsonKey(fromJson: _shopIntegerFromJson)
   int get price => throw _privateConstructorUsedError;
   @JsonKey(fromJson: _shopNullableIntegerFromJson)
+  int? get sellPrice => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _shopNullableIntegerFromJson)
   int? get stock => throw _privateConstructorUsedError;
 
   /// Serializes this ShopEntryDefinition to a JSON map.
@@ -45,6 +47,7 @@ abstract class $ShopEntryDefinitionCopyWith<$Res> {
   $Res call(
       {String itemId,
       @JsonKey(fromJson: _shopIntegerFromJson) int price,
+      @JsonKey(fromJson: _shopNullableIntegerFromJson) int? sellPrice,
       @JsonKey(fromJson: _shopNullableIntegerFromJson) int? stock});
 }
 
@@ -65,6 +68,7 @@ class _$ShopEntryDefinitionCopyWithImpl<$Res, $Val extends ShopEntryDefinition>
   $Res call({
     Object? itemId = null,
     Object? price = null,
+    Object? sellPrice = freezed,
     Object? stock = freezed,
   }) {
     return _then(_value.copyWith(
@@ -76,6 +80,10 @@ class _$ShopEntryDefinitionCopyWithImpl<$Res, $Val extends ShopEntryDefinition>
           ? _value.price
           : price // ignore: cast_nullable_to_non_nullable
               as int,
+      sellPrice: freezed == sellPrice
+          ? _value.sellPrice
+          : sellPrice // ignore: cast_nullable_to_non_nullable
+              as int?,
       stock: freezed == stock
           ? _value.stock
           : stock // ignore: cast_nullable_to_non_nullable
@@ -95,6 +103,7 @@ abstract class _$$ShopEntryDefinitionImplCopyWith<$Res>
   $Res call(
       {String itemId,
       @JsonKey(fromJson: _shopIntegerFromJson) int price,
+      @JsonKey(fromJson: _shopNullableIntegerFromJson) int? sellPrice,
       @JsonKey(fromJson: _shopNullableIntegerFromJson) int? stock});
 }
 
@@ -113,6 +122,7 @@ class __$$ShopEntryDefinitionImplCopyWithImpl<$Res>
   $Res call({
     Object? itemId = null,
     Object? price = null,
+    Object? sellPrice = freezed,
     Object? stock = freezed,
   }) {
     return _then(_$ShopEntryDefinitionImpl(
@@ -124,6 +134,10 @@ class __$$ShopEntryDefinitionImplCopyWithImpl<$Res>
           ? _value.price
           : price // ignore: cast_nullable_to_non_nullable
               as int,
+      sellPrice: freezed == sellPrice
+          ? _value.sellPrice
+          : sellPrice // ignore: cast_nullable_to_non_nullable
+              as int?,
       stock: freezed == stock
           ? _value.stock
           : stock // ignore: cast_nullable_to_non_nullable
@@ -138,6 +152,7 @@ class _$ShopEntryDefinitionImpl extends _ShopEntryDefinition {
   const _$ShopEntryDefinitionImpl(
       {required this.itemId,
       @JsonKey(fromJson: _shopIntegerFromJson) required this.price,
+      @JsonKey(fromJson: _shopNullableIntegerFromJson) this.sellPrice,
       @JsonKey(fromJson: _shopNullableIntegerFromJson) this.stock})
       : super._();
 
@@ -151,11 +166,14 @@ class _$ShopEntryDefinitionImpl extends _ShopEntryDefinition {
   final int price;
   @override
   @JsonKey(fromJson: _shopNullableIntegerFromJson)
+  final int? sellPrice;
+  @override
+  @JsonKey(fromJson: _shopNullableIntegerFromJson)
   final int? stock;
 
   @override
   String toString() {
-    return 'ShopEntryDefinition(itemId: $itemId, price: $price, stock: $stock)';
+    return 'ShopEntryDefinition(itemId: $itemId, price: $price, sellPrice: $sellPrice, stock: $stock)';
   }
 
   @override
@@ -165,12 +183,14 @@ class _$ShopEntryDefinitionImpl extends _ShopEntryDefinition {
             other is _$ShopEntryDefinitionImpl &&
             (identical(other.itemId, itemId) || other.itemId == itemId) &&
             (identical(other.price, price) || other.price == price) &&
+            (identical(other.sellPrice, sellPrice) ||
+                other.sellPrice == sellPrice) &&
             (identical(other.stock, stock) || other.stock == stock));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, itemId, price, stock);
+  int get hashCode => Object.hash(runtimeType, itemId, price, sellPrice, stock);
 
   /// Create a copy of ShopEntryDefinition
   /// with the given fields replaced by the non-null parameter values.
@@ -193,6 +213,7 @@ abstract class _ShopEntryDefinition extends ShopEntryDefinition {
   const factory _ShopEntryDefinition(
           {required final String itemId,
           @JsonKey(fromJson: _shopIntegerFromJson) required final int price,
+          @JsonKey(fromJson: _shopNullableIntegerFromJson) final int? sellPrice,
           @JsonKey(fromJson: _shopNullableIntegerFromJson) final int? stock}) =
       _$ShopEntryDefinitionImpl;
   const _ShopEntryDefinition._() : super._();
@@ -205,6 +226,9 @@ abstract class _ShopEntryDefinition extends ShopEntryDefinition {
   @override
   @JsonKey(fromJson: _shopIntegerFromJson)
   int get price;
+  @override
+  @JsonKey(fromJson: _shopNullableIntegerFromJson)
+  int? get sellPrice;
   @override
   @JsonKey(fromJson: _shopNullableIntegerFromJson)
   int? get stock;

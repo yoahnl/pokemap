@@ -637,6 +637,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           PlayerServiceRuntimeResult.completed(session.gameState),
         );
       case RuntimeWorldServiceAction.confirm:
+      case RuntimeWorldServiceAction.showPurchases:
+      case RuntimeWorldServiceAction.showSales:
       case RuntimeWorldServiceAction.decreaseQuantity:
       case RuntimeWorldServiceAction.increaseQuantity:
         return const RuntimeWorldServiceCommandResult(
@@ -949,6 +951,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           );
         }
       case RuntimeWorldServiceAction.select:
+      case RuntimeWorldServiceAction.showPurchases:
+      case RuntimeWorldServiceAction.showSales:
       case RuntimeWorldServiceAction.decreaseQuantity:
       case RuntimeWorldServiceAction.increaseQuantity:
       case RuntimeWorldServiceAction.deposit:
@@ -1071,8 +1075,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       case RuntimeWorldServiceAction.select:
         final targetId = command.targetId;
         if (targetId == null ||
-            !session.resolved.entries
-                .any((entry) => entry.itemId == targetId)) {
+            !_shopEntries(session).any((entry) => entry.itemId == targetId)) {
           return const RuntimeWorldServiceCommandResult(
             status: RuntimeWorldServiceCommandStatus.unavailable,
             safeMessage: 'Cet objet n’est plus disponible.',
@@ -1080,6 +1083,18 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         }
         session
           ..selectedItemId = targetId
+          ..quantity = 1;
+        _publishWorldService(_buildShopSnapshot(session));
+      case RuntimeWorldServiceAction.showPurchases:
+        session
+          ..mode = RuntimeShopMode.buy
+          ..selectedItemId = null
+          ..quantity = 1;
+        _publishWorldService(_buildShopSnapshot(session));
+      case RuntimeWorldServiceAction.showSales:
+        session
+          ..mode = RuntimeShopMode.sell
+          ..selectedItemId = null
           ..quantity = 1;
         _publishWorldService(_buildShopSnapshot(session));
       case RuntimeWorldServiceAction.decreaseQuantity:
@@ -1090,7 +1105,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         session.quantity = (session.quantity + 1).clamp(1, maximum);
         _publishWorldService(_buildShopSnapshot(session));
       case RuntimeWorldServiceAction.confirm:
-        return _purchaseFromShop(session, command);
+        return session.mode == RuntimeShopMode.buy
+            ? _purchaseFromShop(session, command)
+            : _sellToShop(session, command);
       case RuntimeWorldServiceAction.close:
         session.result.complete(
           PlayerServiceHostResult.completed(session.gameState),
@@ -1161,43 +1178,97 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     );
   }
 
+  RuntimeWorldServiceCommandResult _sellToShop(
+    _ContextualShopSession session,
+    RuntimeWorldServiceCommand command,
+  ) {
+    final itemId = command.targetId ?? session.selectedItemId;
+    final quantity = command.quantity ?? session.quantity;
+    if (itemId == null) {
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.unavailable,
+        safeMessage: 'Sélectionnez un objet.',
+      );
+    }
+    final result = const GameStateMutations().sellToResolvedShop(
+      session.gameState,
+      shop: session.request.shop,
+      expectedStateId: session.resolved.stateId,
+      itemId: itemId,
+      quantity: quantity,
+      conditionContext: session.request.conditionContext,
+    );
+    if (!result.isSuccess) {
+      final message = _shopSaleFailureMessage(result.failure!);
+      _publishWorldService(
+        _buildShopSnapshot(session, safeMessage: message),
+      );
+      return RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.unavailable,
+        safeMessage: message,
+      );
+    }
+    session
+      ..gameState = result.state
+      ..resolved = const ShopStateResolver().resolve(
+        shop: session.request.shop,
+        gameState: result.state,
+        conditionContext: session.request.conditionContext,
+      )
+      ..selectedItemId = itemId
+      ..quantity = 1;
+    _publishWorldService(
+      _buildShopSnapshot(
+        session,
+        safeMessage: 'Vente effectuée.',
+      ),
+    );
+    return const RuntimeWorldServiceCommandResult(
+      status: RuntimeWorldServiceCommandStatus.accepted,
+    );
+  }
+
   RuntimeWorldServiceSnapshot _buildShopSnapshot(
     _ContextualShopSession session, {
     String? safeMessage,
   }) {
-    final entries = session.resolved.entries
-        .map(
-          (entry) => RuntimeShopEntrySnapshot(
-            itemId: entry.itemId,
-            label: _shopItemLabel(entry.itemId),
-            unitPrice: entry.price,
-            remainingStock: _remainingShopStock(
-              session,
-              entry,
-            ),
-          ),
-        )
-        .toList(growable: false);
-    session.selectedItemId ??= entries.firstOrNull?.itemId;
+    final entries = _shopEntries(session);
+    if (!entries.any((entry) => entry.itemId == session.selectedItemId)) {
+      session.selectedItemId =
+          entries.where((entry) => entry.canTransact).firstOrNull?.itemId ??
+              entries.firstOrNull?.itemId;
+      session.quantity = 1;
+    }
     final selected = entries
         .where((entry) => entry.itemId == session.selectedItemId)
         .firstOrNull;
     final totalPrice = (selected?.unitPrice ?? 0) * session.quantity;
-    final canPurchase = session.resolved.isOpen &&
+    final canTransact = session.resolved.isOpen &&
         selected != null &&
-        (selected.remainingStock == null ||
-            selected.remainingStock! >= session.quantity) &&
-        totalPrice <= session.gameState.trainerProfile.money;
+        selected.canTransact &&
+        (session.mode == RuntimeShopMode.sell
+            ? selected.ownedQuantity >= session.quantity
+            : (selected.remainingStock == null ||
+                    selected.remainingStock! >= session.quantity) &&
+                totalPrice <= session.gameState.trainerProfile.money);
     final confirmReason = !session.resolved.isOpen
         ? 'Cette boutique est fermée.'
         : selected == null
-            ? 'Cette boutique est vide.'
-            : selected.remainingStock != null &&
-                    selected.remainingStock! < session.quantity
-                ? 'Stock insuffisant.'
-                : totalPrice > session.gameState.trainerProfile.money
-                    ? 'Fonds insuffisants.'
-                    : null;
+            ? session.mode == RuntimeShopMode.sell
+                ? 'Le sac est vide.'
+                : 'Cette boutique est vide.'
+            : !selected.canTransact
+                ? selected.unavailableReason
+                : session.mode == RuntimeShopMode.sell
+                    ? selected.ownedQuantity < session.quantity
+                        ? 'Quantité possédée insuffisante.'
+                        : null
+                    : selected.remainingStock != null &&
+                            selected.remainingStock! < session.quantity
+                        ? 'Stock insuffisant.'
+                        : totalPrice > session.gameState.trainerProfile.money
+                            ? 'Fonds insuffisants.'
+                            : null;
     return RuntimeWorldServiceSnapshot(
       revision: (_worldServiceSnapshot?.revision ?? -1) + 1,
       request: session.request.worldRequest!,
@@ -1207,6 +1278,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         message: session.resolved.message,
         money: session.gameState.trainerProfile.money,
         entries: entries,
+        mode: session.mode,
         selectedItemId: session.selectedItemId,
         quantity: session.quantity,
         totalPrice: totalPrice,
@@ -1214,10 +1286,18 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       safeMessage: safeMessage,
       logicalSelectionId: session.selectedItemId,
       actions: <RuntimeWorldServiceActionAvailability>[
+        const RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.showPurchases,
+        ),
+        const RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.showSales,
+        ),
         if (entries.isEmpty)
           RuntimeWorldServiceActionAvailability.disabled(
             RuntimeWorldServiceAction.select,
-            reason: 'Cette boutique est vide.',
+            reason: session.mode == RuntimeShopMode.sell
+                ? 'Le sac est vide.'
+                : 'Cette boutique est vide.',
           )
         else
           const RuntimeWorldServiceActionAvailability.enabled(
@@ -1242,14 +1322,17 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
             RuntimeWorldServiceAction.increaseQuantity,
             reason: 'Quantité maximale atteinte.',
           ),
-        if (canPurchase)
+        if (canTransact)
           const RuntimeWorldServiceActionAvailability.enabled(
             RuntimeWorldServiceAction.confirm,
           )
         else
           RuntimeWorldServiceActionAvailability.disabled(
             RuntimeWorldServiceAction.confirm,
-            reason: confirmReason ?? 'Achat indisponible.',
+            reason: confirmReason ??
+                (session.mode == RuntimeShopMode.sell
+                    ? 'Vente indisponible.'
+                    : 'Achat indisponible.'),
           ),
         const RuntimeWorldServiceActionAvailability.enabled(
           RuntimeWorldServiceAction.close,
@@ -1258,11 +1341,54 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     );
   }
 
+  List<RuntimeShopEntrySnapshot> _shopEntries(
+    _ContextualShopSession session,
+  ) {
+    if (session.mode == RuntimeShopMode.buy) {
+      return session.resolved.entries
+          .map(
+            (entry) => RuntimeShopEntrySnapshot(
+              itemId: entry.itemId,
+              label: _shopItemLabel(entry.itemId),
+              unitPrice: entry.price,
+              remainingStock: _remainingShopStock(session, entry),
+            ),
+          )
+          .toList(growable: false);
+    }
+
+    return session.gameState.bag.normalized().entries.map((bagEntry) {
+      final shopEntry = session.resolved.entries
+          .where((entry) => entry.itemId == bagEntry.itemId)
+          .firstOrNull;
+      final unavailableReason = _shopSaleUnavailableReason(
+        bagEntry: bagEntry,
+        shopEntry: shopEntry,
+      );
+      return RuntimeShopEntrySnapshot(
+        itemId: bagEntry.itemId,
+        label: _shopItemLabel(bagEntry.itemId),
+        unitPrice: shopEntry?.sellPrice ?? 0,
+        ownedQuantity: bagEntry.quantity,
+        canTransact: unavailableReason == null,
+        unavailableReason: unavailableReason,
+      );
+    }).toList(growable: false);
+  }
+
   int _maximumShopQuantity(_ContextualShopSession session) {
     final itemId = session.selectedItemId;
     if (itemId == null) return 1;
-    final entry =
-        session.resolved.entries.where((entry) => entry.itemId == itemId).first;
+    if (session.mode == RuntimeShopMode.sell) {
+      final entry = _shopEntries(session)
+          .where((candidate) => candidate.itemId == itemId)
+          .firstOrNull;
+      return (entry?.ownedQuantity ?? 1).clamp(1, 10);
+    }
+    final entry = session.resolved.entries
+        .where((candidate) => candidate.itemId == itemId)
+        .firstOrNull;
+    if (entry == null) return 1;
     final remaining = _remainingShopStock(session, entry);
     return remaining == null ? 10 : remaining.clamp(1, 10);
   }
@@ -1323,6 +1449,7 @@ final class _ContextualShopSession {
   final result = Completer<PlayerServiceHostResult>();
   GameState gameState;
   ResolvedShopState resolved;
+  RuntimeShopMode mode = RuntimeShopMode.buy;
   String? selectedItemId;
   int quantity = 1;
 }
@@ -1391,6 +1518,37 @@ String _shopFailureMessage(ShopPurchaseFailure failure) => switch (failure) {
       ShopPurchaseFailure.shopStateChanged =>
         'La boutique a changé. Le catalogue a été actualisé.',
     };
+
+String _shopSaleFailureMessage(ShopSaleFailure failure) => switch (failure) {
+      ShopSaleFailure.invalidRequest => 'Vente invalide.',
+      ShopSaleFailure.unknownItem => 'Objet inconnu.',
+      ShopSaleFailure.insufficientQuantity => 'Quantité possédée insuffisante.',
+      ShopSaleFailure.unsellable => 'Cet objet ne peut pas être vendu.',
+      ShopSaleFailure.keyItem => 'Les objets importants sont invendables.',
+      ShopSaleFailure.shopClosed => 'Cette boutique est fermée.',
+      ShopSaleFailure.shopStateChanged =>
+        'La boutique a changé. Le catalogue a été actualisé.',
+    };
+
+String? _shopSaleUnavailableReason({
+  required BagEntry bagEntry,
+  required ShopEntryDefinition? shopEntry,
+}) {
+  if (_isShopKeyItemCategory(bagEntry.categoryId)) {
+    return 'Les objets importants sont invendables.';
+  }
+  if (shopEntry?.sellPrice == null) {
+    return 'Cette boutique ne reprend pas cet objet.';
+  }
+  return null;
+}
+
+bool _isShopKeyItemCategory(String categoryId) {
+  final normalized = categoryId.trim().toLowerCase().replaceAll('_', '-');
+  return normalized == 'key-item' ||
+      normalized == 'key-items' ||
+      normalized == 'important-items';
+}
 
 String _shopItemLabel(String itemId) => itemId
     .replaceAll('_', '-')

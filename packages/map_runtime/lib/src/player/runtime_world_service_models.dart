@@ -78,6 +78,8 @@ enum RuntimeWorldServiceStage {
 
 enum RuntimeWorldServiceAction {
   select,
+  showPurchases,
+  showSales,
   decreaseQuantity,
   increaseQuantity,
   confirm,
@@ -88,21 +90,33 @@ enum RuntimeWorldServiceAction {
   swap,
 }
 
+enum RuntimeShopMode {
+  buy,
+  sell,
+}
+
 final class RuntimeShopEntrySnapshot {
   const RuntimeShopEntrySnapshot({
     required this.itemId,
     required this.label,
     required this.unitPrice,
     this.remainingStock,
+    this.ownedQuantity = 0,
+    this.canTransact = true,
+    this.unavailableReason,
   })  : assert(itemId != ''),
         assert(label != ''),
         assert(unitPrice >= 0),
-        assert(remainingStock == null || remainingStock >= 0);
+        assert(remainingStock == null || remainingStock >= 0),
+        assert(ownedQuantity >= 0);
 
   final String itemId;
   final String label;
   final int unitPrice;
   final int? remainingStock;
+  final int ownedQuantity;
+  final bool canTransact;
+  final String? unavailableReason;
 }
 
 /// Runtime-owned Shop projection. Prices and availability are already resolved.
@@ -112,6 +126,7 @@ final class RuntimeShopServiceContent {
     required this.message,
     required this.money,
     List<RuntimeShopEntrySnapshot> entries = const <RuntimeShopEntrySnapshot>[],
+    this.mode = RuntimeShopMode.buy,
     this.selectedItemId,
     this.quantity = 1,
     this.totalPrice = 0,
@@ -125,6 +140,7 @@ final class RuntimeShopServiceContent {
   final String message;
   final int money;
   final List<RuntimeShopEntrySnapshot> entries;
+  final RuntimeShopMode mode;
   final String? selectedItemId;
   final int quantity;
   final int totalPrice;

@@ -129,6 +129,7 @@ final class ShopEditorController {
     required String shopId,
     required String itemId,
     required int price,
+    int? sellPrice,
     int? stock,
   }) {
     final shop = shopById(shopId);
@@ -148,6 +149,11 @@ final class ShopEditorController {
         'Le stock ne peut pas être négatif.',
       );
     }
+    if (sellPrice != null && sellPrice <= 0) {
+      throw const ShopEditorValidationException(
+        'Le prix de revente doit être strictement positif.',
+      );
+    }
     if (shop.entries.any((entry) => entry.itemId == itemId)) {
       throw const ShopEditorValidationException(
         'Cet objet est déjà présent dans la boutique.',
@@ -156,6 +162,7 @@ final class ShopEditorController {
     final entry = ShopEntryDefinition(
       itemId: option.id,
       price: price,
+      sellPrice: sellPrice,
       stock: stock,
     ).normalized(knownItemIds: _knownItemIds);
     _replaceShop(
@@ -168,6 +175,7 @@ final class ShopEditorController {
     required String shopId,
     required String itemId,
     required int price,
+    int? sellPrice,
     int? stock,
   }) {
     final shop = shopById(shopId);
@@ -178,6 +186,7 @@ final class ShopEditorController {
     final updated = ShopEntryDefinition(
       itemId: itemId,
       price: price,
+      sellPrice: sellPrice,
       stock: stock,
     ).normalized(knownItemIds: _knownItemIds);
     final entries = <ShopEntryDefinition>[...shop.entries];
@@ -303,6 +312,7 @@ final class ShopEditorController {
     required String stateId,
     required String itemId,
     required int price,
+    int? sellPrice,
     int? stock,
   }) {
     final state = stateById(shopId, stateId);
@@ -311,7 +321,12 @@ final class ShopEditorController {
         'Cet objet est déjà présent dans cet état.',
       );
     }
-    final entry = _validatedEntry(itemId: itemId, price: price, stock: stock);
+    final entry = _validatedEntry(
+      itemId: itemId,
+      price: price,
+      sellPrice: sellPrice,
+      stock: stock,
+    );
     _replaceState(
       shopId,
       stateId,
@@ -326,6 +341,7 @@ final class ShopEditorController {
     required String stateId,
     required String itemId,
     required int price,
+    int? sellPrice,
     int? stock,
   }) {
     final state = stateById(shopId, stateId);
@@ -337,6 +353,7 @@ final class ShopEditorController {
     entries[index] = _validatedEntry(
       itemId: itemId,
       price: price,
+      sellPrice: sellPrice,
       stock: stock,
     );
     _replaceState(shopId, stateId, state.copyWith(entries: entries));
@@ -483,6 +500,7 @@ final class ShopEditorController {
   ShopEntryDefinition _validatedEntry({
     required String itemId,
     required int price,
+    required int? sellPrice,
     required int? stock,
   }) {
     if (!itemOptions.any((item) => item.id == itemId)) {
@@ -500,9 +518,15 @@ final class ShopEditorController {
         'Le stock ne peut pas être négatif.',
       );
     }
+    if (sellPrice != null && sellPrice <= 0) {
+      throw const ShopEditorValidationException(
+        'Le prix de revente doit être strictement positif.',
+      );
+    }
     return ShopEntryDefinition(
       itemId: itemId,
       price: price,
+      sellPrice: sellPrice,
       stock: stock,
     ).normalized(knownItemIds: _knownItemIds);
   }

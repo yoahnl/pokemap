@@ -470,6 +470,7 @@ class _ShopEditorPanelState extends State<ShopEditorPanel> {
             shopId: shopId,
             itemId: draft.itemId,
             price: draft.price,
+            sellPrice: draft.sellPrice,
             stock: draft.stock,
           );
         } else {
@@ -477,6 +478,7 @@ class _ShopEditorPanelState extends State<ShopEditorPanel> {
             shopId: shopId,
             itemId: editing,
             price: draft.price,
+            sellPrice: draft.sellPrice,
             stock: draft.stock,
           );
         }
@@ -486,6 +488,7 @@ class _ShopEditorPanelState extends State<ShopEditorPanel> {
           stateId: _selectedStateId,
           itemId: draft.itemId,
           price: draft.price,
+          sellPrice: draft.sellPrice,
           stock: draft.stock,
         );
       } else {
@@ -494,6 +497,7 @@ class _ShopEditorPanelState extends State<ShopEditorPanel> {
           stateId: _selectedStateId,
           itemId: editing,
           price: draft.price,
+          sellPrice: draft.sellPrice,
           stock: draft.stock,
         );
       }

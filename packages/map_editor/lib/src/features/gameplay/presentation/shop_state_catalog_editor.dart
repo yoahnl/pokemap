@@ -9,12 +9,14 @@ final class ShopCatalogEntryDraft {
   const ShopCatalogEntryDraft({
     required this.itemId,
     required this.price,
+    this.sellPrice,
     this.stock,
     this.editingItemId,
   });
 
   final String itemId;
   final int price;
+  final int? sellPrice;
   final int? stock;
   final String? editingItemId;
 }
@@ -45,6 +47,7 @@ class ShopStateCatalogEditor extends StatefulWidget {
 
 class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
   final _priceController = TextEditingController();
+  final _sellPriceController = TextEditingController();
   final _stockController = TextEditingController();
   String? _selectedItemId;
   String? _editingItemId;
@@ -71,6 +74,7 @@ class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
   @override
   void dispose() {
     _priceController.dispose();
+    _sellPriceController.dispose();
     _stockController.dispose();
     super.dispose();
   }
@@ -121,6 +125,7 @@ class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
                           ),
                           Text(
                             '${entry.price} ₽ · '
+                            '${entry.sellPrice == null ? 'Invendable' : 'Revente : ${entry.sellPrice} ₽'} · '
                             '${entry.stock == null ? 'Stock illimité' : 'Stock : ${entry.stock}'}',
                             style: TextStyle(
                               color: context.pokeMapColors.textMuted,
@@ -197,6 +202,15 @@ class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: PokeMapTextField(
+                          label: 'Revente (vide = invendable)',
+                          fieldKey: const Key('shop-sell-price-field'),
+                          controller: _sellPriceController,
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: PokeMapTextField(
                           label: 'Stock (facultatif)',
                           fieldKey: const Key('shop-stock-field'),
                           controller: _stockController,
@@ -266,6 +280,7 @@ class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
       _editingItemId = entry.itemId;
       _selectedItemId = entry.itemId;
       _priceController.text = '${entry.price}';
+      _sellPriceController.text = entry.sellPrice?.toString() ?? '';
       _stockController.text = entry.stock?.toString() ?? '';
       _localError = null;
     });
@@ -273,11 +288,17 @@ class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
 
   void _save() {
     final price = int.tryParse(_priceController.text.trim());
+    final sellPriceText = _sellPriceController.text.trim();
+    final sellPrice =
+        sellPriceText.isEmpty ? null : int.tryParse(sellPriceText);
     final stockText = _stockController.text.trim();
     final stock = stockText.isEmpty ? null : int.tryParse(stockText);
-    if (price == null || (stockText.isNotEmpty && stock == null)) {
+    if (price == null ||
+        (sellPriceText.isNotEmpty && sellPrice == null) ||
+        (stockText.isNotEmpty && stock == null)) {
       setState(() {
-        _localError = 'Prix et stock doivent être des nombres entiers.';
+        _localError =
+            'Prix, revente et stock doivent être des nombres entiers.';
       });
       return;
     }
@@ -285,6 +306,7 @@ class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
       ShopCatalogEntryDraft(
         itemId: _selectedItemId!,
         price: price,
+        sellPrice: sellPrice,
         stock: stock,
         editingItemId: _editingItemId,
       ),
@@ -296,6 +318,7 @@ class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
     void reset() {
       _editingItemId = null;
       _priceController.clear();
+      _sellPriceController.clear();
       _stockController.clear();
       _localError = null;
     }

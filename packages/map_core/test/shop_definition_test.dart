@@ -8,7 +8,12 @@ void main() {
         id: ' selbrume-mart ',
         label: ' Boutique de Selbrume ',
         entries: <ShopEntryDefinition>[
-          ShopEntryDefinition(itemId: ' potion ', price: 300, stock: 5),
+          ShopEntryDefinition(
+            itemId: ' potion ',
+            price: 300,
+            sellPrice: 150,
+            stock: 5,
+          ),
         ],
       ).normalized(knownItemIds: const <String>{'potion'});
 
@@ -18,6 +23,7 @@ void main() {
       expect(restored.label, 'Boutique de Selbrume');
       expect(restored.entries.single.itemId, 'potion');
       expect(restored.entries.single.price, 300);
+      expect(restored.entries.single.sellPrice, 150);
       expect(restored.entries.single.stock, 5);
     });
 
@@ -33,6 +39,7 @@ void main() {
       expect(shop.states, isEmpty);
       expect(shop.entries.single.itemId, 'potion');
       expect(shop.entries.single.price, 300);
+      expect(shop.entries.single.sellPrice, isNull);
     });
 
     test('normalizes states and rejects duplicate conditional state ids', () {
@@ -82,6 +89,7 @@ void main() {
       );
       for (final entry in <ShopEntryDefinition>[
         const ShopEntryDefinition(itemId: 'potion', price: 0),
+        const ShopEntryDefinition(itemId: 'potion', price: 1, sellPrice: 0),
         const ShopEntryDefinition(itemId: 'potion', price: 1, stock: -1),
       ]) {
         expect(entry.normalized, throwsStateError);

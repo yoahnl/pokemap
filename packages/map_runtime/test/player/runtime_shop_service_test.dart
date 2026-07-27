@@ -135,4 +135,121 @@ void main() {
     expect(result.status, RuntimeWorldServiceCommandStatus.stale);
     expect(controller.worldServiceSnapshot?.revision, 0);
   });
+
+  test('contextual shop sells guided quantities and protects key items',
+      () async {
+    var state = const GameState(
+      saveId: 'shop-sale',
+      trainerProfile: TrainerProfile(name: 'Leaf', money: 100),
+      bag: Bag(
+        entries: <BagEntry>[
+          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+          BagEntry(itemId: 'bike-pass', categoryId: 'key-items', quantity: 1),
+          BagEntry(itemId: 'nugget', categoryId: 'items', quantity: 1),
+        ],
+      ),
+    );
+    final commits = <GameState>[];
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (next) async {
+        state = next;
+        commits.add(next);
+      },
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{},
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    final open = controller.openShop(
+      const ShopDefinition(
+        id: 'mart',
+        label: 'Boutique',
+        entries: <ShopEntryDefinition>[
+          ShopEntryDefinition(itemId: 'potion', price: 60, sellPrice: 30),
+          ShopEntryDefinition(
+            itemId: 'bike-pass',
+            price: 1000,
+            sellPrice: 500,
+          ),
+        ],
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    var snapshot = controller.worldServiceSnapshot!;
+    await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.showSales,
+        snapshotRevision: snapshot.revision,
+      ),
+    );
+    snapshot = controller.worldServiceSnapshot!;
+    var content = snapshot.content! as RuntimeShopServiceContent;
+    expect(content.mode, RuntimeShopMode.sell);
+    expect(content.entries, hasLength(3));
+    expect(
+      content.entries.singleWhere((entry) => entry.itemId == 'potion'),
+      isA<RuntimeShopEntrySnapshot>()
+          .having((entry) => entry.unitPrice, 'unitPrice', 30)
+          .having((entry) => entry.ownedQuantity, 'ownedQuantity', 3)
+          .having((entry) => entry.canTransact, 'canTransact', isTrue),
+    );
+    expect(
+      content.entries.singleWhere((entry) => entry.itemId == 'bike-pass'),
+      isA<RuntimeShopEntrySnapshot>()
+          .having((entry) => entry.canTransact, 'canTransact', isFalse)
+          .having(
+            (entry) => entry.unavailableReason,
+            'unavailableReason',
+            'Les objets importants sont invendables.',
+          ),
+    );
+
+    await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.select,
+        snapshotRevision: snapshot.revision,
+        targetId: 'potion',
+      ),
+    );
+    snapshot = controller.worldServiceSnapshot!;
+    final sold = await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.confirm,
+        snapshotRevision: snapshot.revision,
+        targetId: 'potion',
+        quantity: 2,
+      ),
+    );
+    expect(sold.status, RuntimeWorldServiceCommandStatus.accepted);
+    content =
+        controller.worldServiceSnapshot!.content! as RuntimeShopServiceContent;
+    expect(content.money, 160);
+    expect(
+      content.entries
+          .singleWhere((entry) => entry.itemId == 'potion')
+          .ownedQuantity,
+      1,
+    );
+
+    snapshot = controller.worldServiceSnapshot!;
+    await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.close,
+        snapshotRevision: snapshot.revision,
+      ),
+    );
+    expect((await open).status, PlayerServiceRuntimeStatus.completed);
+    expect(commits, hasLength(1));
+    expect(state.trainerProfile.money, 160);
+    expect(
+      state.bag.entries
+          .singleWhere((entry) => entry.itemId == 'potion')
+          .quantity,
+      1,
+    );
+  });
 }

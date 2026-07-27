@@ -19,12 +19,14 @@ void main() {
         shopId: first.id,
         itemId: 'potion',
         price: 300,
+        sellPrice: 150,
         stock: 5,
       );
 
       expect(first.id, 'boutique-du-port');
       expect(second.id, 'boutique-du-port-2');
       expect(controller.shopById(first.id).entries.single.price, 300);
+      expect(controller.shopById(first.id).entries.single.sellPrice, 150);
       expect(
         () => controller.addEntry(
           shopId: first.id,
@@ -38,6 +40,15 @@ void main() {
           shopId: first.id,
           itemId: 'potion',
           price: -1,
+        ),
+        throwsA(isA<ShopEditorValidationException>()),
+      );
+      expect(
+        () => controller.addEntry(
+          shopId: first.id,
+          itemId: 'antidote',
+          price: 100,
+          sellPrice: 0,
         ),
         throwsA(isA<ShopEditorValidationException>()),
       );
@@ -93,6 +104,7 @@ void main() {
         shopId: shop.id,
         itemId: 'potion',
         price: 450,
+        sellPrice: 225,
         stock: 3,
       );
       controller.renameShop(shop.id, 'Herboriste du Marais');
@@ -100,6 +112,7 @@ void main() {
       final reloaded = ProjectManifest.fromJson(controller.manifest.toJson());
       expect(reloaded.shops.single.label, 'Herboriste du Marais');
       expect(reloaded.shops.single.entries.single.price, 450);
+      expect(reloaded.shops.single.entries.single.sellPrice, 225);
       expect(reloaded.shops.single.entries.single.stock, 3);
     });
 
@@ -174,6 +187,7 @@ void main() {
         stateId: copied.id,
         itemId: 'potion',
         price: 450,
+        sellPrice: 225,
         stock: 2,
       );
       controller.addStateEntry(
@@ -193,6 +207,7 @@ void main() {
       expect(updated.activation.type, ScriptConditionType.badgeOwned);
       expect(updated.entries, hasLength(2));
       expect(updated.entries.first.price, 450);
+      expect(updated.entries.first.sellPrice, 225);
       expect(controller.shopById('port').entries.single.price, 300);
 
       controller.removeStateEntry(

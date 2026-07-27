@@ -115,6 +115,55 @@ final class ShopPurchaseResult {
   bool get isSuccess => failure == null;
 }
 
+enum ShopSaleFailure {
+  invalidRequest,
+  unknownItem,
+  insufficientQuantity,
+  unsellable,
+  keyItem,
+  shopClosed,
+  shopStateChanged,
+}
+
+/// Result of one atomic shop sale against [GameState].
+final class ShopSaleResult {
+  const ShopSaleResult._({
+    required this.state,
+    required this.totalRevenue,
+    this.failure,
+    this.remainingQuantity,
+  });
+
+  const ShopSaleResult.success({
+    required GameState state,
+    required int totalRevenue,
+    required int remainingQuantity,
+  }) : this._(
+          state: state,
+          totalRevenue: totalRevenue,
+          remainingQuantity: remainingQuantity,
+        );
+
+  const ShopSaleResult.failed({
+    required GameState state,
+    required int totalRevenue,
+    required ShopSaleFailure failure,
+    int? remainingQuantity,
+  }) : this._(
+          state: state,
+          totalRevenue: totalRevenue,
+          failure: failure,
+          remainingQuantity: remainingQuantity,
+        );
+
+  final GameState state;
+  final int totalRevenue;
+  final ShopSaleFailure? failure;
+  final int? remainingQuantity;
+
+  bool get isSuccess => failure == null;
+}
+
 /// Mutations pures de l'état de partie.
 ///
 /// Chaque fonction prend un [GameState] et retourne un nouveau [GameState]
@@ -505,6 +554,149 @@ class GameStateMutations {
     );
   }
 
+  /// Atomically removes one sellable bag item and credits its authored value.
+  ///
+  /// The bag entry remains the authority for key-item protection and available
+  /// quantity. Invalid requests preserve the original [GameState].
+  ShopSaleResult sellItem(
+    GameState state, {
+    required String itemId,
+    required int quantity,
+    required int unitPrice,
+  }) {
+    final normalizedItemId = itemId.trim();
+    const maxSafeTotal = 0x7fffffffffffffff;
+    if (normalizedItemId.isEmpty ||
+        quantity <= 0 ||
+        unitPrice <= 0 ||
+        unitPrice > maxSafeTotal ~/ quantity) {
+      return ShopSaleResult.failed(
+        state: state,
+        totalRevenue: 0,
+        failure: ShopSaleFailure.invalidRequest,
+      );
+    }
+
+    final entry = state.bag
+        .normalized()
+        .entries
+        .where((candidate) => candidate.itemId == normalizedItemId)
+        .firstOrNull;
+    if (entry == null) {
+      return ShopSaleResult.failed(
+        state: state,
+        totalRevenue: 0,
+        failure: ShopSaleFailure.unknownItem,
+      );
+    }
+    if (_isKeyItemCategory(entry.categoryId)) {
+      return ShopSaleResult.failed(
+        state: state,
+        totalRevenue: 0,
+        failure: ShopSaleFailure.keyItem,
+        remainingQuantity: entry.quantity,
+      );
+    }
+    if (quantity > entry.quantity) {
+      return ShopSaleResult.failed(
+        state: state,
+        totalRevenue: unitPrice * quantity,
+        failure: ShopSaleFailure.insufficientQuantity,
+        remainingQuantity: entry.quantity,
+      );
+    }
+
+    final totalRevenue = unitPrice * quantity;
+    if (state.trainerProfile.money > maxSafeTotal - totalRevenue) {
+      return ShopSaleResult.failed(
+        state: state,
+        totalRevenue: totalRevenue,
+        failure: ShopSaleFailure.invalidRequest,
+        remainingQuantity: entry.quantity,
+      );
+    }
+    final withoutItems = consumeItem(state, normalizedItemId, quantity);
+    final nextState = withoutItems.copyWith(
+      trainerProfile: withoutItems.trainerProfile.copyWith(
+        money: withoutItems.trainerProfile.money + totalRevenue,
+      ),
+    );
+    return ShopSaleResult.success(
+      state: nextState,
+      totalRevenue: totalRevenue,
+      remainingQuantity: entry.quantity - quantity,
+    );
+  }
+
+  /// Sells to the shop profile that is still active at transaction time.
+  ///
+  /// A null authored [ShopEntryDefinition.sellPrice] makes the item explicitly
+  /// unsellable. Key items remain protected even if a project mistakenly
+  /// assigns them a sale price.
+  ShopSaleResult sellToResolvedShop(
+    GameState state, {
+    required ShopDefinition shop,
+    required String expectedStateId,
+    required String itemId,
+    required int quantity,
+    ScriptEvaluationContext? conditionContext,
+  }) {
+    final normalizedExpectedStateId = expectedStateId.trim();
+    final normalizedItemId = itemId.trim();
+    if (normalizedExpectedStateId.isEmpty ||
+        normalizedItemId.isEmpty ||
+        quantity <= 0) {
+      return ShopSaleResult.failed(
+        state: state,
+        totalRevenue: 0,
+        failure: ShopSaleFailure.invalidRequest,
+      );
+    }
+    final resolved = const ShopStateResolver().resolve(
+      shop: shop,
+      gameState: state,
+      conditionContext: conditionContext,
+    );
+    if (resolved.stateId != normalizedExpectedStateId) {
+      return ShopSaleResult.failed(
+        state: state,
+        totalRevenue: 0,
+        failure: ShopSaleFailure.shopStateChanged,
+      );
+    }
+    if (!resolved.isOpen) {
+      return ShopSaleResult.failed(
+        state: state,
+        totalRevenue: 0,
+        failure: ShopSaleFailure.shopClosed,
+      );
+    }
+    final entry = resolved.entries
+        .where((candidate) => candidate.itemId == normalizedItemId)
+        .firstOrNull;
+    if (entry == null) {
+      return ShopSaleResult.failed(
+        state: state,
+        totalRevenue: 0,
+        failure: ShopSaleFailure.unknownItem,
+      );
+    }
+    final sellPrice = entry.sellPrice;
+    if (sellPrice == null) {
+      return ShopSaleResult.failed(
+        state: state,
+        totalRevenue: 0,
+        failure: ShopSaleFailure.unsellable,
+      );
+    }
+    return sellItem(
+      state,
+      itemId: normalizedItemId,
+      quantity: quantity,
+      unitPrice: sellPrice,
+    );
+  }
+
   /// Consomme une quantité d'item depuis le sac.
   ///
   /// No-op sûr si l'id est vide, la quantité invalide, l'item absent ou la
@@ -865,4 +1057,11 @@ class GameStateMutations {
     }
     return result;
   }
+}
+
+bool _isKeyItemCategory(String categoryId) {
+  final normalized = categoryId.trim().toLowerCase().replaceAll('_', '-');
+  return normalized == 'key-item' ||
+      normalized == 'key-items' ||
+      normalized == 'important-items';
 }

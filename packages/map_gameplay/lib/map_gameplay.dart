@@ -124,6 +124,8 @@ export 'src/game_state_mutations.dart'
         CaptureDestinationResult,
         ShopPurchaseFailure,
         ShopPurchaseResult,
+        ShopSaleFailure,
+        ShopSaleResult,
         GameStateMutations;
 export 'src/player_storage_operations.dart';
 export 'src/player_item_effects.dart';

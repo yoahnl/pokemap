@@ -24,6 +24,7 @@ class ShopEntryDefinition with _$ShopEntryDefinition {
   const factory ShopEntryDefinition({
     required String itemId,
     @JsonKey(fromJson: _shopIntegerFromJson) required int price,
+    @JsonKey(fromJson: _shopNullableIntegerFromJson) int? sellPrice,
     @JsonKey(fromJson: _shopNullableIntegerFromJson) int? stock,
   }) = _ShopEntryDefinition;
 
@@ -37,6 +38,9 @@ class ShopEntryDefinition with _$ShopEntryDefinition {
     }
     if (price <= 0) {
       throw StateError('ShopEntryDefinition price must be positive');
+    }
+    if (sellPrice != null && sellPrice! <= 0) {
+      throw StateError('ShopEntryDefinition sellPrice must be positive');
     }
     if (stock != null && stock! < 0) {
       throw StateError('ShopEntryDefinition stock must be non-negative');

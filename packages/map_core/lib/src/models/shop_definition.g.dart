@@ -11,6 +11,7 @@ _$ShopEntryDefinitionImpl _$$ShopEntryDefinitionImplFromJson(
     _$ShopEntryDefinitionImpl(
       itemId: json['itemId'] as String,
       price: _shopIntegerFromJson(json['price']),
+      sellPrice: _shopNullableIntegerFromJson(json['sellPrice']),
       stock: _shopNullableIntegerFromJson(json['stock']),
     );
 
@@ -19,6 +20,7 @@ Map<String, dynamic> _$$ShopEntryDefinitionImplToJson(
     <String, dynamic>{
       'itemId': instance.itemId,
       'price': instance.price,
+      'sellPrice': instance.sellPrice,
       'stock': instance.stock,
     };
 

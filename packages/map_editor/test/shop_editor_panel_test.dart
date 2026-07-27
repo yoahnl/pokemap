@@ -51,6 +51,10 @@ void main() {
       '300',
     );
     await tester.enterText(
+      find.byKey(const Key('shop-sell-price-field')),
+      '150',
+    );
+    await tester.enterText(
       find.byKey(const Key('shop-stock-field')),
       '4',
     );
@@ -59,7 +63,9 @@ void main() {
 
     expect(controller.shops.single.id, 'boutique-du-port');
     expect(controller.shops.single.entries.single.itemId, 'potion');
+    expect(controller.shops.single.entries.single.sellPrice, 150);
     expect(find.textContaining('300'), findsWidgets);
+    expect(find.textContaining('Revente : 150'), findsOneWidget);
     expect(find.textContaining('Stock : 4'), findsOneWidget);
     expect(changed, 2);
   });

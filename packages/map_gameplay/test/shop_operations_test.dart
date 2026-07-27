@@ -8,8 +8,14 @@ void main() {
     id: 'selbrume-mart',
     label: 'Boutique de Selbrume',
     entries: <ShopEntryDefinition>[
-      ShopEntryDefinition(itemId: 'potion', price: 300, stock: 3),
+      ShopEntryDefinition(
+        itemId: 'potion',
+        price: 300,
+        sellPrice: 150,
+        stock: 3,
+      ),
       ShopEntryDefinition(itemId: 'poke-ball', price: 200),
+      ShopEntryDefinition(itemId: 'bike-pass', price: 100, sellPrice: 50),
     ],
   );
 
@@ -22,7 +28,12 @@ void main() {
         id: 'selbrume-mart',
         label: 'Boutique de Selbrume',
         entries: const <ShopEntryDefinition>[
-          ShopEntryDefinition(itemId: 'potion', price: 300, stock: 3),
+          ShopEntryDefinition(
+            itemId: 'potion',
+            price: 300,
+            sellPrice: 150,
+            stock: 3,
+          ),
           ShopEntryDefinition(itemId: 'poke-ball', price: 200),
         ],
         states: <ShopStateDefinition>[
@@ -32,7 +43,12 @@ void main() {
             priority: 10,
             activation: ScriptConditionFactory.flagIsSet('lysa_defeated'),
             entries: const <ShopEntryDefinition>[
-              ShopEntryDefinition(itemId: 'potion', price: 250, stock: 2),
+              ShopEntryDefinition(
+                itemId: 'potion',
+                price: 250,
+                sellPrice: 125,
+                stock: 2,
+              ),
               ShopEntryDefinition(itemId: 'antidote', price: 100),
             ],
           ),
@@ -42,7 +58,12 @@ void main() {
             priority: 30,
             activation: ScriptConditionFactory.flagIsSet('story_finished'),
             entries: const <ShopEntryDefinition>[
-              ShopEntryDefinition(itemId: 'potion', price: 200, stock: 1),
+              ShopEntryDefinition(
+                itemId: 'potion',
+                price: 200,
+                sellPrice: 100,
+                stock: 1,
+              ),
             ],
           ),
           ShopStateDefinition(
@@ -284,6 +305,108 @@ void main() {
           'selbrume-mart::story-finished::potion': 1,
         },
       );
+    });
+  });
+
+  group('GameStateMutations.sellToResolvedShop', () {
+    GameState bagState({
+      String categoryId = 'medicine',
+      int quantity = 3,
+    }) =>
+        state(money: 100).copyWith(
+          bag: Bag(
+            entries: <BagEntry>[
+              BagEntry(
+                itemId: categoryId == 'key-items' ? 'bike-pass' : 'potion',
+                categoryId: categoryId,
+                quantity: quantity,
+              ),
+            ],
+          ),
+        );
+
+    test('removes the requested quantity and credits the authored sale price',
+        () {
+      final result = mutations.sellToResolvedShop(
+        bagState(),
+        shop: shop,
+        expectedStateId: ShopStateResolver.defaultStateId,
+        itemId: 'potion',
+        quantity: 2,
+      );
+
+      expect(result.isSuccess, isTrue);
+      expect(result.totalRevenue, 300);
+      expect(result.remainingQuantity, 1);
+      expect(result.state.trainerProfile.money, 400);
+      expect(result.state.bag.entries.single.quantity, 1);
+    });
+
+    test('rejects items without an authored sale price', () {
+      final initial = bagState().copyWith(
+        bag: const Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+          ],
+        ),
+      );
+
+      final result = mutations.sellToResolvedShop(
+        initial,
+        shop: shop,
+        expectedStateId: ShopStateResolver.defaultStateId,
+        itemId: 'poke-ball',
+        quantity: 1,
+      );
+
+      expect(result.failure, ShopSaleFailure.unsellable);
+      expect(result.state, same(initial));
+    });
+
+    test('protects key items even when a sale price was authored', () {
+      final initial = bagState(categoryId: 'key-items');
+
+      final result = mutations.sellToResolvedShop(
+        initial,
+        shop: shop,
+        expectedStateId: ShopStateResolver.defaultStateId,
+        itemId: 'bike-pass',
+        quantity: 1,
+      );
+
+      expect(result.failure, ShopSaleFailure.keyItem);
+      expect(result.state, same(initial));
+    });
+
+    test('rejects excessive quantities without partial mutation', () {
+      final initial = bagState(quantity: 1);
+
+      final result = mutations.sellToResolvedShop(
+        initial,
+        shop: shop,
+        expectedStateId: ShopStateResolver.defaultStateId,
+        itemId: 'potion',
+        quantity: 2,
+      );
+
+      expect(result.failure, ShopSaleFailure.insufficientQuantity);
+      expect(result.remainingQuantity, 1);
+      expect(result.state, same(initial));
+    });
+
+    test('rejects a state changed since rendering', () {
+      final initial = mutations.setFlag(bagState(), 'lysa_defeated');
+
+      final result = mutations.sellToResolvedShop(
+        initial,
+        shop: dynamicShop(),
+        expectedStateId: ShopStateResolver.defaultStateId,
+        itemId: 'potion',
+        quantity: 1,
+      );
+
+      expect(result.failure, ShopSaleFailure.shopStateChanged);
+      expect(result.state, same(initial));
     });
   });
 }

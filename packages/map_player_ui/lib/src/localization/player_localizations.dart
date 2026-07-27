@@ -261,6 +261,32 @@ final class PokeMapPlayerLocalizations {
   String get battleResult => _fr ? 'Résultat du combat' : 'Battle result';
   String get reward => _fr ? 'Récompense' : 'Reward';
   String get decision => _fr ? 'Décision' : 'Decision';
+  String get shopItems => _fr ? 'Objets' : 'Items';
+  String get shopBuy => _fr ? 'Acheter' : 'Buy';
+  String get shopSell => _fr ? 'Vendre' : 'Sell';
+  String get shopQuantity => _fr ? 'Quantité' : 'Quantity';
+  String get shopDecreaseQuantity =>
+      _fr ? 'Diminuer la quantité' : 'Decrease quantity';
+  String get shopIncreaseQuantity =>
+      _fr ? 'Augmenter la quantité' : 'Increase quantity';
+  String get shopUnsellable => _fr ? 'Invendable' : 'Cannot be sold';
+  String get shopEmpty =>
+      _fr ? 'Cette boutique est vide.' : 'This shop is empty.';
+  String get shopBagEmpty => _fr ? 'Le sac est vide.' : 'The bag is empty.';
+  String get shopNoItems =>
+      _fr ? 'Aucun objet disponible' : 'No items available';
+  String get shopCannotDisplay => _fr
+      ? 'La boutique ne peut pas être affichée.'
+      : 'The shop cannot be displayed.';
+
+  String shopStock(int quantity) =>
+      _fr ? 'Stock : $quantity' : 'Stock: $quantity';
+
+  String shopOwned(int quantity) =>
+      _fr ? 'Possédé : $quantity' : 'Owned: $quantity';
+
+  String shopTotal(int amount) =>
+      _fr ? 'Total : $amount ₽' : 'Total: $amount ₽';
 
   String installedGameCount(int count) => _fr
       ? '$count jeu${count > 1 ? 'x' : ''} '
