@@ -6,7 +6,7 @@ import '../../features/editor/state/editor_state.dart';
 import '../../features/environment_studio/environment_studio_workspace.dart';
 import '../../features/path_studio/path_studio_panel.dart';
 import '../../features/border_studio/border_studio_workspace.dart';
-import '../design_system/pokemap_empty_state.dart';
+import '../../features/personalization/presentation/personalization_studio_workspace.dart';
 import 'map_canvas.dart';
 import 'narrative_workspace_canvas.dart';
 import 'pokemon_catalogs_workspace.dart';
@@ -41,12 +41,8 @@ class EditorCanvasHost extends ConsumerWidget {
       EditorWorkspaceMode.pathStudio => const PathStudioWorkspace(),
       EditorWorkspaceMode.environmentStudio =>
         const EnvironmentStudioWorkspace(),
-      EditorWorkspaceMode.personalizationStudio => const PokeMapEmptyState(
-          key: ValueKey<String>('personalization-studio-placeholder'),
-          title: 'Personalization Studio',
-          description:
-              'Le hub de personnalisation sera affiché dans cet espace.',
-        ),
+      EditorWorkspaceMode.personalizationStudio =>
+        const PersonalizationStudioWorkspace(),
       EditorWorkspaceMode.borderStudio => const BorderStudioWorkspace(),
     };
   }
