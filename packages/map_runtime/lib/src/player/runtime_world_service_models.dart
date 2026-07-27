@@ -85,6 +85,7 @@ enum RuntimeWorldServiceAction {
   close,
   deposit,
   withdraw,
+  swap,
 }
 
 final class RuntimeShopEntrySnapshot {
@@ -187,23 +188,46 @@ final class RuntimePcBoxSnapshot {
 }
 
 final class RuntimePcPokemonSnapshot {
-  const RuntimePcPokemonSnapshot({
+  RuntimePcPokemonSnapshot({
     required this.targetId,
     required this.label,
+    required this.speciesId,
     required this.level,
+    required this.natureId,
+    required this.abilityId,
+    required this.currentHp,
+    this.gender,
+    this.statusId = '',
+    this.isShiny = false,
+    this.heldItemId = '',
+    List<String> knownMoveIds = const <String>[],
     required this.canTransfer,
     this.unavailableReason,
   })  : assert(targetId != ''),
         assert(label != ''),
+        assert(speciesId != ''),
         assert(level > 0),
+        assert(natureId != ''),
+        assert(abilityId != ''),
+        assert(currentHp >= 0),
         assert(
           canTransfer || (unavailableReason != null && unavailableReason != ''),
-        );
+        ),
+        knownMoveIds = List<String>.unmodifiable(knownMoveIds);
 
   /// Opaque target echoed by the player UI. Only the runtime interprets it.
   final String targetId;
   final String label;
+  final String speciesId;
   final int level;
+  final String natureId;
+  final String abilityId;
+  final int currentHp;
+  final String? gender;
+  final String statusId;
+  final bool isShiny;
+  final String heldItemId;
+  final List<String> knownMoveIds;
   final bool canTransfer;
   final String? unavailableReason;
 }
@@ -336,6 +360,7 @@ final class RuntimeWorldServiceCommand {
     required this.action,
     required this.snapshotRevision,
     this.targetId,
+    this.secondaryTargetId,
     this.quantity,
   })  : assert(snapshotRevision >= 0),
         assert(quantity == null || quantity > 0);
@@ -343,6 +368,7 @@ final class RuntimeWorldServiceCommand {
   final RuntimeWorldServiceAction action;
   final int snapshotRevision;
   final String? targetId;
+  final String? secondaryTargetId;
   final int? quantity;
 }
 

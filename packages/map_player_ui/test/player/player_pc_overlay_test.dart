@@ -25,11 +25,31 @@ void main() {
     expect(find.text('Stored'), findsOneWidget);
 
     await tester.tap(
+      find.byKey(const ValueKey<String>('pc-summary-party-slot-0')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Résumé de Lead'), findsOneWidget);
+    expect(find.text('Nature : Hardy'), findsOneWidget);
+    expect(find.text('Talent : Steadfast'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('pc-summary-close')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
       find.byKey(const ValueKey<String>('pc-deposit-party-slot-0')),
     );
     await tester.tap(
       find.byKey(const ValueKey<String>('pc-withdraw-box-slot-0')),
     );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('pc-swap-box-slot-0')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('pc-swap-with-party-slot-0')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey<String>('pc-close')));
 
     expect(
@@ -37,11 +57,14 @@ void main() {
       <RuntimeWorldServiceAction>[
         RuntimeWorldServiceAction.deposit,
         RuntimeWorldServiceAction.withdraw,
+        RuntimeWorldServiceAction.swap,
         RuntimeWorldServiceAction.close,
       ],
     );
     expect(commands[0].targetId, 'party-slot-0');
     expect(commands[1].targetId, 'box-slot-0');
+    expect(commands[2].targetId, 'box-slot-0');
+    expect(commands[2].secondaryTargetId, 'party-slot-0');
     expect(commands.every((command) => command.snapshotRevision == 7), isTrue);
   });
 
@@ -49,7 +72,11 @@ void main() {
       (tester) async {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(
+      tester.platformDispatcher.clearTextScaleFactorTestValue,
+    );
     tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
 
     for (final size in <Size>[
       const Size(390, 844),
@@ -67,7 +94,44 @@ void main() {
       await tester.pump();
       expect(tester.takeException(), isNull, reason: '$size');
       expect(find.byKey(const ValueKey<String>('pc-close')), findsOneWidget);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('pc-summary-party-slot-0')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('pc-summary-party-slot-0')),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'summary at $size');
+      await tester.tap(
+        find.byKey(const ValueKey<String>('pc-summary-close')),
+      );
+      await tester.pumpAndSettle();
     }
+  });
+
+  testWidgets('PC summary localizes its new labels in English', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+        localizationsDelegates:
+            PokeMapPlayerLocalizations.localizationsDelegates,
+        theme: PokeMapPlayerTheme.dark(),
+        home: PlayerPcOverlay(
+          snapshot: _snapshot(),
+          onCommand: (_) {},
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('pc-summary-party-slot-0')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Lead summary'), findsOneWidget);
+    expect(find.text('Ability : Steadfast'), findsOneWidget);
+    expect(find.text('Held item : None'), findsOneWidget);
   });
 }
 
@@ -90,19 +154,27 @@ RuntimeWorldServiceSnapshot _snapshot() => RuntimeWorldServiceSnapshot(
             capacity: 30,
           ),
         ],
-        party: const <RuntimePcPokemonSnapshot>[
+        party: <RuntimePcPokemonSnapshot>[
           RuntimePcPokemonSnapshot(
             targetId: 'party-slot-0',
             label: 'Lead',
+            speciesId: 'lead',
             level: 5,
+            natureId: 'hardy',
+            abilityId: 'steadfast',
+            currentHp: 12,
             canTransfer: true,
           ),
         ],
-        stored: const <RuntimePcPokemonSnapshot>[
+        stored: <RuntimePcPokemonSnapshot>[
           RuntimePcPokemonSnapshot(
             targetId: 'box-slot-0',
             label: 'Stored',
+            speciesId: 'stored',
             level: 5,
+            natureId: 'bold',
+            abilityId: 'torrent',
+            currentHp: 10,
             canTransfer: true,
           ),
         ],
@@ -116,6 +188,9 @@ RuntimeWorldServiceSnapshot _snapshot() => RuntimeWorldServiceSnapshot(
         ),
         RuntimeWorldServiceActionAvailability.enabled(
           RuntimeWorldServiceAction.withdraw,
+        ),
+        RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.swap,
         ),
         RuntimeWorldServiceActionAvailability.enabled(
           RuntimeWorldServiceAction.close,

@@ -529,7 +529,33 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
             safeMessage: 'Ce Pokémon n’est plus disponible.',
           );
         }
-        return _applyPcTransfer(session, target);
+        return _applyPcTransfer(
+          session,
+          action: command.action,
+          target: target,
+        );
+      case RuntimeWorldServiceAction.swap:
+        final boxTargetId = command.targetId;
+        final partyTargetId = command.secondaryTargetId;
+        final boxTarget =
+            boxTargetId == null ? null : session.targets[boxTargetId];
+        final partyTarget =
+            partyTargetId == null ? null : session.targets[partyTargetId];
+        if (boxTarget == null ||
+            boxTarget.action != RuntimeWorldServiceAction.withdraw ||
+            partyTarget == null ||
+            partyTarget.action != RuntimeWorldServiceAction.deposit) {
+          return const RuntimeWorldServiceCommandResult(
+            status: RuntimeWorldServiceCommandStatus.unavailable,
+            safeMessage: 'Cet échange n’est plus disponible.',
+          );
+        }
+        return _applyPcTransfer(
+          session,
+          action: RuntimeWorldServiceAction.swap,
+          target: boxTarget,
+          secondaryTarget: partyTarget,
+        );
       case RuntimeWorldServiceAction.close:
         session.result.complete(
           PlayerServiceRuntimeResult.completed(session.gameState),
@@ -552,11 +578,13 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   }
 
   Future<RuntimeWorldServiceCommandResult> _applyPcTransfer(
-    _ContextualPcSession session,
-    _PcTransferTarget target,
-  ) async {
+    _ContextualPcSession session, {
+    required RuntimeWorldServiceAction action,
+    required _PcTransferTarget target,
+    _PcTransferTarget? secondaryTarget,
+  }) async {
     const operations = PlayerStorageOperations();
-    final result = switch (target.action) {
+    final result = switch (action) {
       RuntimeWorldServiceAction.deposit => operations.deposit(
           state: session.gameState,
           partyIndex: target.index,
@@ -564,6 +592,12 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         ),
       RuntimeWorldServiceAction.withdraw => operations.withdraw(
           state: session.gameState,
+          boxId: target.boxId!,
+          boxIndex: target.index,
+        ),
+      RuntimeWorldServiceAction.swap => operations.swapPartyWithBox(
+          state: session.gameState,
+          partyIndex: secondaryTarget!.index,
           boxId: target.boxId!,
           boxIndex: target.index,
         ),
@@ -595,9 +629,12 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       _publishWorldService(
         _buildPcSnapshot(
           session,
-          safeMessage: target.action == RuntimeWorldServiceAction.deposit
-              ? 'Pokémon déposé dans la box.'
-              : 'Pokémon ajouté à l’équipe.',
+          safeMessage: switch (action) {
+            RuntimeWorldServiceAction.deposit => 'Pokémon déposé dans la box.',
+            RuntimeWorldServiceAction.withdraw => 'Pokémon ajouté à l’équipe.',
+            RuntimeWorldServiceAction.swap => 'Échange effectué.',
+            _ => throw StateError('Unsupported PC transfer action.'),
+          },
         ),
       );
       return const RuntimeWorldServiceCommandResult(
@@ -647,7 +684,16 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         RuntimePcPokemonSnapshot(
           targetId: targetId,
           label: _shopItemLabel(pokemon.speciesId),
+          speciesId: pokemon.speciesId,
           level: pokemon.level,
+          natureId: pokemon.natureId,
+          abilityId: pokemon.abilityId,
+          currentHp: pokemon.currentHp,
+          gender: pokemon.gender,
+          statusId: pokemon.statusId,
+          isShiny: pokemon.isShiny,
+          heldItemId: pokemon.heldItemId,
+          knownMoveIds: pokemon.knownMoveIds,
           canTransfer: result.isSuccess,
           unavailableReason:
               result.isSuccess ? null : _pcFailureMessage(result.failure!),
@@ -672,7 +718,16 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         RuntimePcPokemonSnapshot(
           targetId: targetId,
           label: _shopItemLabel(pokemon.speciesId),
+          speciesId: pokemon.speciesId,
           level: pokemon.level,
+          natureId: pokemon.natureId,
+          abilityId: pokemon.abilityId,
+          currentHp: pokemon.currentHp,
+          gender: pokemon.gender,
+          statusId: pokemon.statusId,
+          isShiny: pokemon.isShiny,
+          heldItemId: pokemon.heldItemId,
+          knownMoveIds: pokemon.knownMoveIds,
           canTransfer: result.isSuccess,
           unavailableReason:
               result.isSuccess ? null : _pcFailureMessage(result.failure!),
@@ -682,6 +737,18 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     session.targets = targets;
     final canDeposit = party.any((pokemon) => pokemon.canTransfer);
     final canWithdraw = stored.any((pokemon) => pokemon.canTransfer);
+    final canSwap = selectedBox.pokemon.asMap().entries.any(
+          (boxEntry) => session.gameState.party.members.asMap().entries.any(
+                (partyEntry) => operations
+                    .swapPartyWithBox(
+                      state: session.gameState,
+                      partyIndex: partyEntry.key,
+                      boxId: selectedBox.id,
+                      boxIndex: boxEntry.key,
+                    )
+                    .isSuccess,
+              ),
+        );
     return RuntimeWorldServiceSnapshot(
       revision: (_worldServiceSnapshot?.revision ?? -1) + 1,
       request: session.request,
@@ -730,6 +797,15 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
                   RuntimeWorldServiceAction.withdraw,
                   reason: stored.firstOrNull?.unavailableReason ??
                       'Aucun Pokémon ne peut être retiré.',
+                ),
+              if (canSwap)
+                const RuntimeWorldServiceActionAvailability.enabled(
+                  RuntimeWorldServiceAction.swap,
+                )
+              else
+                RuntimeWorldServiceActionAvailability.disabled(
+                  RuntimeWorldServiceAction.swap,
+                  reason: 'Aucun échange valide n’est disponible.',
                 ),
               const RuntimeWorldServiceActionAvailability.enabled(
                 RuntimeWorldServiceAction.close,
@@ -805,6 +881,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       case RuntimeWorldServiceAction.increaseQuantity:
       case RuntimeWorldServiceAction.deposit:
       case RuntimeWorldServiceAction.withdraw:
+      case RuntimeWorldServiceAction.swap:
         return const RuntimeWorldServiceCommandResult(
           status: RuntimeWorldServiceCommandStatus.unavailable,
           safeMessage: 'Cette commande ne concerne pas le soin.',
@@ -947,6 +1024,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         session.result.complete(const PlayerServiceHostResult.cancelled());
       case RuntimeWorldServiceAction.deposit:
       case RuntimeWorldServiceAction.withdraw:
+      case RuntimeWorldServiceAction.swap:
         return const RuntimeWorldServiceCommandResult(
           status: RuntimeWorldServiceCommandStatus.unavailable,
           safeMessage: 'Cette commande ne concerne pas la Boutique.',

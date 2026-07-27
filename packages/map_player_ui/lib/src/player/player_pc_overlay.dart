@@ -3,6 +3,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
 import '../theme/pokemap_player_theme.dart';
+import 'player_pc_strings.dart';
 
 /// Responsive PC surface driven by runtime-owned boxes and transfer targets.
 class PlayerPcOverlay extends StatelessWidget {
@@ -78,6 +79,7 @@ class PlayerPcOverlay extends StatelessWidget {
                         const SizedBox(height: PlayerSpacing.md),
                         DropdownButtonFormField<String>(
                           key: const ValueKey<String>('pc-box-picker'),
+                          isExpanded: true,
                           initialValue: content.selectedBoxId,
                           decoration: const InputDecoration(labelText: 'Box'),
                           items: content.boxes
@@ -131,6 +133,7 @@ class PlayerPcOverlay extends StatelessWidget {
                                 actionIcon: Icons.person_add_alt_1_outlined,
                                 snapshot: snapshot,
                                 onCommand: onCommand,
+                                swapCandidates: content.party,
                               ),
                             ],
                           )
@@ -161,6 +164,7 @@ class PlayerPcOverlay extends StatelessWidget {
                                   actionIcon: Icons.person_add_alt_1_outlined,
                                   snapshot: snapshot,
                                   onCommand: onCommand,
+                                  swapCandidates: content.party,
                                 ),
                               ),
                             ],
@@ -214,6 +218,7 @@ class _PcRoster extends StatelessWidget {
     required this.actionIcon,
     required this.snapshot,
     required this.onCommand,
+    this.swapCandidates = const <RuntimePcPokemonSnapshot>[],
   });
 
   final String title;
@@ -224,6 +229,7 @@ class _PcRoster extends StatelessWidget {
   final IconData actionIcon;
   final RuntimeWorldServiceSnapshot snapshot;
   final ValueChanged<RuntimeWorldServiceCommand> onCommand;
+  final List<RuntimePcPokemonSnapshot> swapCandidates;
 
   @override
   Widget build(BuildContext context) => PlayerPanel(
@@ -245,47 +251,226 @@ class _PcRoster extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: PlayerSpacing.xs),
                   child: PlayerPanel(
                     padding: const EdgeInsets.all(PlayerSpacing.sm),
-                    child: Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                entry.label,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              Text('Niv. ${entry.level}'),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: PlayerSpacing.xs),
-                        IconButton.filledTonal(
-                          key: ValueKey<String>(
-                            'pc-${action.name}-${entry.targetId}',
-                          ),
-                          tooltip: entry.canTransfer
-                              ? actionLabel
-                              : entry.unavailableReason,
-                          onPressed: entry.canTransfer &&
-                                  snapshot.isActionEnabled(action)
-                              ? () => onCommand(
-                                    RuntimeWorldServiceCommand(
-                                      action: action,
-                                      snapshotRevision: snapshot.revision,
-                                      targetId: entry.targetId,
-                                    ),
-                                  )
-                              : null,
-                          icon: Icon(actionIcon),
-                        ),
-                      ],
-                    ),
+                    child: _buildEntry(context, entry),
                   ),
                 ),
           ],
         ),
+      );
+
+  Widget _buildEntry(
+    BuildContext context,
+    RuntimePcPokemonSnapshot entry,
+  ) {
+    final details = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          entry.label,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        Text('Niv. ${entry.level}'),
+      ],
+    );
+    final actions = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        IconButton(
+          key: ValueKey<String>('pc-summary-${entry.targetId}'),
+          tooltip: PlayerPcStrings.of(context).summaryTooltip,
+          onPressed: () => _showSummary(context, entry),
+          icon: const Icon(Icons.info_outline),
+        ),
+        if (swapCandidates.isNotEmpty)
+          PopupMenuButton<String>(
+            key: ValueKey<String>('pc-swap-${entry.targetId}'),
+            tooltip: PlayerPcStrings.of(context).swapTooltip,
+            enabled: snapshot.isActionEnabled(
+              RuntimeWorldServiceAction.swap,
+            ),
+            onSelected: (partyTargetId) => onCommand(
+              RuntimeWorldServiceCommand(
+                action: RuntimeWorldServiceAction.swap,
+                snapshotRevision: snapshot.revision,
+                targetId: entry.targetId,
+                secondaryTargetId: partyTargetId,
+              ),
+            ),
+            itemBuilder: (context) => swapCandidates
+                .map(
+                  (candidate) => PopupMenuItem<String>(
+                    key: ValueKey<String>(
+                      'pc-swap-with-${candidate.targetId}',
+                    ),
+                    value: candidate.targetId,
+                    child: Text(
+                      PlayerPcStrings.of(context).swapWith(candidate.label),
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+            icon: const Icon(Icons.swap_horiz),
+          ),
+        IconButton.filledTonal(
+          key: ValueKey<String>('pc-${action.name}-${entry.targetId}'),
+          tooltip: entry.canTransfer ? actionLabel : entry.unavailableReason,
+          onPressed: entry.canTransfer && snapshot.isActionEnabled(action)
+              ? () => onCommand(
+                    RuntimeWorldServiceCommand(
+                      action: action,
+                      snapshotRevision: snapshot.revision,
+                      targetId: entry.targetId,
+                    ),
+                  )
+              : null,
+          icon: Icon(actionIcon),
+        ),
+      ],
+    );
+    final useVerticalLayout = MediaQuery.textScalerOf(context).scale(16) > 22;
+    if (useVerticalLayout) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          details,
+          const SizedBox(height: PlayerSpacing.xs),
+          Align(alignment: Alignment.centerRight, child: actions),
+        ],
+      );
+    }
+    return Row(
+      children: <Widget>[
+        Expanded(child: details),
+        const SizedBox(width: PlayerSpacing.xs),
+        actions,
+      ],
+    );
+  }
+
+  void _showSummary(
+    BuildContext context,
+    RuntimePcPokemonSnapshot entry,
+  ) {
+    final strings = PlayerPcStrings.of(context);
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        final availableHeight = MediaQuery.sizeOf(context).height - 32;
+        return Dialog(
+          insetPadding: const EdgeInsets.all(PlayerSpacing.md),
+          child: SizedBox(
+            width: 520,
+            height: availableHeight.clamp(240, 640).toDouble(),
+            child: PlayerPanel(
+              elevated: true,
+              padding: const EdgeInsets.all(PlayerSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          Text(
+                            strings.summaryTitle(entry.label),
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          const SizedBox(height: PlayerSpacing.md),
+                          _SummaryLine(
+                            label: strings.species,
+                            value: _humanize(entry.speciesId),
+                          ),
+                          _SummaryLine(
+                            label: strings.level,
+                            value: '${entry.level}',
+                          ),
+                          _SummaryLine(
+                            label: strings.currentHp,
+                            value: '${entry.currentHp}',
+                          ),
+                          _SummaryLine(
+                            label: strings.nature,
+                            value: _humanize(entry.natureId),
+                          ),
+                          _SummaryLine(
+                            label: strings.ability,
+                            value: _humanize(entry.abilityId),
+                          ),
+                          if (entry.gender case final gender?)
+                            _SummaryLine(
+                              label: strings.gender,
+                              value: _humanize(gender),
+                            ),
+                          _SummaryLine(
+                            label: strings.status,
+                            value: entry.statusId.isEmpty
+                                ? strings.none
+                                : _humanize(entry.statusId),
+                          ),
+                          _SummaryLine(
+                            label: strings.shiny,
+                            value: entry.isShiny ? strings.yes : strings.no,
+                          ),
+                          _SummaryLine(
+                            label: strings.heldItem,
+                            value: entry.heldItemId.isEmpty
+                                ? strings.none
+                                : _humanize(entry.heldItemId),
+                          ),
+                          _SummaryLine(
+                            label: strings.moves,
+                            value: entry.knownMoveIds.isEmpty
+                                ? strings.none
+                                : entry.knownMoveIds.map(_humanize).join(', '),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: PlayerSpacing.md),
+                  PlayerActionButton(
+                    key: const ValueKey<String>('pc-summary-close'),
+                    label: strings.close,
+                    icon: Icons.close,
+                    autofocus: true,
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _humanize(String identifier) {
+    final words = identifier
+        .trim()
+        .replaceAll(RegExp('[-_]'), ' ')
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty);
+    return words
+        .map(
+          (word) => '${word.substring(0, 1).toUpperCase()}'
+              '${word.substring(1).toLowerCase()}',
+        )
+        .join(' ');
+  }
+}
+
+class _SummaryLine extends StatelessWidget {
+  const _SummaryLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: PlayerSpacing.xs),
+        child: Text('$label : $value'),
       );
 }
 

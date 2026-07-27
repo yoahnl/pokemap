@@ -34,6 +34,9 @@ void main() {
     expect(initialContent.party.map((entry) => entry.label),
         <String>['Lead', 'Reserve']);
     expect(initialContent.stored.single.label, 'Stored');
+    expect(initialContent.stored.single.speciesId, 'stored');
+    expect(initialContent.stored.single.natureId, 'hardy');
+    expect(initialContent.stored.single.abilityId, 'steadfast');
 
     final reserve = initialContent.party.last;
     final deposited = await controller.dispatchWorldService(
@@ -67,6 +70,34 @@ void main() {
     expect(
       state.party.members.map((pokemon) => pokemon.speciesId),
       ['lead', 'stored'],
+    );
+
+    final beforeSwap = controller.worldServiceSnapshot!;
+    final beforeSwapContent = beforeSwap.content! as RuntimePcServiceContent;
+    final partyLead = beforeSwapContent.party.first;
+    final boxedReserve = beforeSwapContent.stored.first;
+    final swapped = await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.swap,
+        snapshotRevision: beforeSwap.revision,
+        targetId: boxedReserve.targetId,
+        secondaryTargetId: partyLead.targetId,
+      ),
+    );
+    expect(swapped.status, RuntimeWorldServiceCommandStatus.accepted);
+    expect(commits, hasLength(3));
+    expect(
+      state.party.members.map((pokemon) => pokemon.speciesId),
+      ['reserve', 'stored'],
+    );
+    expect(
+      state.pokemonStorage.boxes.single.pokemon
+          .map((pokemon) => pokemon.speciesId),
+      ['lead'],
+    );
+    expect(
+      controller.worldServiceSnapshot?.safeMessage,
+      'Échange effectué.',
     );
 
     final beforeClose = controller.worldServiceSnapshot!;
