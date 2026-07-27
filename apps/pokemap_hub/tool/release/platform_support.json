@@ -25,9 +25,10 @@
       "deviceDistribution": "not-certified"
     },
     "android": {
-      "status": "not-claimed",
-      "releaseGate": "none",
-      "reason": "No Android runner or Android release pipeline is committed."
+      "status": "build-target",
+      "releaseGate": "release-apk-build",
+      "introVideoPlayback": "native",
+      "deviceDistribution": "github-release"
     }
   }
 }

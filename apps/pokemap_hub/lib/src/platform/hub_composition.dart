@@ -13,6 +13,7 @@ import 'package:pub_semver/pub_semver.dart';
 import '../../pokemap_hub_ui.dart';
 import 'hub_platform_adapter.dart';
 import 'hub_platform_adapter_factory.dart';
+import 'public_product_identity.dart';
 
 abstract interface class HubAppComposition {
   Widget buildApp();
@@ -137,7 +138,7 @@ final class HubComposition implements HubAppComposition {
 
   @override
   Widget buildApp() => PokeMapHubApp(
-        productName: Platform.isIOS ? 'Avelune' : 'PokeMap Hub',
+        productName: publicProductName,
         controller: controller,
         actions: actions,
         displayPreferencesController: displayPreferencesController,
