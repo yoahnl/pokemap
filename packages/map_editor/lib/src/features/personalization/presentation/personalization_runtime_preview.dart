@@ -101,14 +101,15 @@ class _PersonalizationRuntimePreviewState
                   projection: surfaceProjection,
                   theme: widget.profile.theme ?? safeProjectSemanticTheme,
                 ),
-              _ => PokeMapSemanticColorPreview(
-                  key: ValueKey<String>(
-                    'personalization-preview-placeholder-${_surface.name}',
-                  ),
-                  label: _surfaceLabel(_surface),
-                  backgroundHex: surfaceProjection.backgroundHex,
-                  foregroundHex: surfaceProjection.textHex,
-                  sample: surfaceProjection.fontFamily,
+              PersonalizationPreviewSurface.overworldHud =>
+                _OverworldHudRuntimePreview(
+                  projection: surfaceProjection,
+                  theme: widget.profile.theme ?? safeProjectSemanticTheme,
+                ),
+              PersonalizationPreviewSurface.battleHud =>
+                _BattleHudRuntimePreview(
+                  projection: surfaceProjection,
+                  theme: widget.profile.theme ?? safeProjectSemanticTheme,
                 ),
             },
           ),
@@ -345,6 +346,313 @@ class _MenuRuntimePreview extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _OverworldHudRuntimePreview extends StatelessWidget {
+  const _OverworldHudRuntimePreview({
+    required this.projection,
+    required this.theme,
+  });
+
+  final PersonalizationPreviewSurfaceProjection projection;
+  final ProjectSemanticThemeProfile theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final world = _previewColor(theme.background, colors.surfaceSubtle);
+    final surface = _previewColor(
+      projection.backgroundHex,
+      colors.surfaceBase,
+    );
+    final foreground = _previewColor(
+      projection.textHex,
+      colors.textPrimary,
+    );
+    final secondary = _previewColor(theme.textSecondary, colors.textSecondary);
+    final primary = _previewColor(theme.primary, colors.brandPrimary);
+    final outline = _previewColor(theme.outline, colors.borderStrong);
+
+    return _RuntimeFrame(
+      key: const ValueKey<String>(
+        'personalization-overworld-hud-composition',
+      ),
+      background: world,
+      child: Stack(
+        children: <Widget>[
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.42,
+              child: Wrap(
+                spacing: 24,
+                runSpacing: 20,
+                children: <Widget>[
+                  for (var index = 0; index < 28; index++)
+                    Icon(
+                      index.isEven
+                          ? Icons.grass_outlined
+                          : Icons.circle_outlined,
+                      size: 18,
+                      color: secondary,
+                    ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 12,
+            top: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: outline),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(Icons.explore_outlined, size: 18, color: primary),
+                  const SizedBox(width: 7),
+                  Text(
+                    'Route des Brumes',
+                    style: TextStyle(
+                      color: foreground,
+                      fontFamily: projection.fontFamily,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            right: 12,
+            top: 12,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 220),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: primary, width: 2),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Icon(Icons.flag_outlined, size: 18, color: primary),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        'Rejoins le laboratoire de la Professeure Saule.',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: foreground,
+                          fontFamily: projection.fontFamily,
+                          fontSize: 12,
+                          height: 1.25,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Center(
+            child: Icon(
+              Icons.directions_walk_outlined,
+              color: primary,
+              size: 42,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BattleHudRuntimePreview extends StatelessWidget {
+  const _BattleHudRuntimePreview({
+    required this.projection,
+    required this.theme,
+  });
+
+  final PersonalizationPreviewSurfaceProjection projection;
+  final ProjectSemanticThemeProfile theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final arena = _previewColor(theme.background, colors.surfaceSubtle);
+    final surface = _previewColor(
+      projection.backgroundHex,
+      colors.surfaceBase,
+    );
+    final foreground = _previewColor(
+      projection.textHex,
+      colors.textPrimary,
+    );
+    final secondary = _previewColor(theme.textSecondary, colors.textSecondary);
+    final outline = _previewColor(theme.outline, colors.borderStrong);
+    final success = _previewColor(theme.success, colors.success);
+    final danger = _previewColor(theme.danger, colors.error);
+
+    return _RuntimeFrame(
+      key: const ValueKey<String>('personalization-battle-hud-composition'),
+      background: arena,
+      child: Stack(
+        children: <Widget>[
+          Positioned(
+            right: 34,
+            top: 62,
+            child: Icon(
+              Icons.catching_pokemon_outlined,
+              size: 76,
+              color: danger,
+            ),
+          ),
+          Positioned(
+            left: 44,
+            bottom: 28,
+            child: Icon(
+              Icons.catching_pokemon_rounded,
+              size: 86,
+              color: success,
+            ),
+          ),
+          Positioned(
+            left: 12,
+            top: 12,
+            child: _BattleStatusCard(
+              name: 'ROUCOOL',
+              level: 'N. 8',
+              hpLabel: 'PV',
+              hpFraction: 0.72,
+              projection: projection,
+              surface: surface,
+              foreground: foreground,
+              secondary: secondary,
+              outline: outline,
+              hpColor: success,
+            ),
+          ),
+          Positioned(
+            right: 12,
+            bottom: 12,
+            child: _BattleStatusCard(
+              name: 'BRINDIBOU',
+              level: 'N. 12',
+              hpLabel: 'PV 42 / 55',
+              hpFraction: 42 / 55,
+              projection: projection,
+              surface: surface,
+              foreground: foreground,
+              secondary: secondary,
+              outline: outline,
+              hpColor: success,
+              numbersKey: const ValueKey<String>(
+                'personalization-battle-numbers-sample',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BattleStatusCard extends StatelessWidget {
+  const _BattleStatusCard({
+    required this.name,
+    required this.level,
+    required this.hpLabel,
+    required this.hpFraction,
+    required this.projection,
+    required this.surface,
+    required this.foreground,
+    required this.secondary,
+    required this.outline,
+    required this.hpColor,
+    this.numbersKey,
+  });
+
+  final String name;
+  final String level;
+  final String hpLabel;
+  final double hpFraction;
+  final PersonalizationPreviewSurfaceProjection projection;
+  final Color surface;
+  final Color foreground;
+  final Color secondary;
+  final Color outline;
+  final Color hpColor;
+  final Key? numbersKey;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 190,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  name,
+                  style: TextStyle(
+                    color: foreground,
+                    fontFamily: projection.fontFamily,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              Text(
+                level,
+                style: TextStyle(
+                  color: secondary,
+                  fontFamily: projection.fontFamily,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              minHeight: 6,
+              value: hpFraction,
+              color: hpColor,
+              backgroundColor: outline,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            hpLabel,
+            key: numbersKey,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              color: foreground,
+              fontFamily: projection.fontFamily,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }

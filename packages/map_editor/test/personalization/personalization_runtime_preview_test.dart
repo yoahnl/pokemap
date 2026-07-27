@@ -103,6 +103,63 @@ void main() {
     );
     expect(menuText.style?.fontFamily, 'Aurore Body');
   });
+
+  testWidgets('PST-042 composes overworld and battle HUD surfaces',
+      (tester) async {
+    await tester.pumpWidget(
+      _app(
+        const PersonalizationRuntimePreview(
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          profile: ProjectPresentationProfile(
+            typography: ProjectTypographyProfile(
+              body: ProjectTypographyRoleProfile(family: 'Aurore Body'),
+              numbers: ProjectTypographyRoleProfile(
+                family: 'Aurore Numbers',
+              ),
+            ),
+            theme: safeProjectSemanticTheme,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-overworldHud'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-overworld-hud-composition'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Route des Brumes'), findsOneWidget);
+    expect(find.textContaining('Rejoins le laboratoire'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-battleHud'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-battle-hud-composition'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('BRINDIBOU'), findsOneWidget);
+    expect(find.text('PV 42 / 55'), findsOneWidget);
+    final battleNumbers = tester.widget<Text>(
+      find.byKey(
+        const ValueKey<String>('personalization-battle-numbers-sample'),
+      ),
+    );
+    expect(battleNumbers.style?.fontFamily, 'Aurore Numbers');
+  });
 }
 
 Widget _app(Widget child) => MaterialApp(
