@@ -92,6 +92,69 @@ void main() {
     expect(projectFile.readAsStringSync(), durableJson);
     expect(gateway.saveCount, 0);
 
+    final undoButton = tester.widget<PokeMapButton>(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-undo'),
+      ),
+    );
+    final redoButtonBeforeUndo = tester.widget<PokeMapButton>(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-redo'),
+      ),
+    );
+    expect(undoButton.onPressed, isNotNull);
+    expect(redoButtonBeforeUndo.onPressed, isNull);
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-undo'),
+      ),
+    );
+    await tester.pump();
+    expect(
+      container
+          .read(editorNotifierProvider)
+          .project
+          ?.effectivePresentation
+          .branding
+          .layoutVariant,
+      'standard',
+    );
+    final redoButtonAfterUndo = tester.widget<PokeMapButton>(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-redo'),
+      ),
+    );
+    expect(redoButtonAfterUndo.onPressed, isNotNull);
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-redo'),
+      ),
+    );
+    await tester.pump();
+    expect(
+      container
+          .read(editorNotifierProvider)
+          .project
+          ?.effectivePresentation
+          .branding
+          .layoutVariant,
+      'cinematic',
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-autosave'),
+      ),
+    );
+    await tester.pump();
+    expect(
+      container
+          .read(editorNotifierProvider.notifier)
+          .personalizationStudioSessionState
+          ?.autosaveEnabled,
+      isTrue,
+    );
+
     final saveButton = tester.widget<PokeMapButton>(
       find.byKey(
         const ValueKey<String>('personalization-studio-save'),

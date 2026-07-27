@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -667,11 +668,44 @@ class EditorNotifier extends _$EditorNotifier {
     final saved = await session.save(
       operationId: 'personalization_save_$sequence',
     );
-    if (saved && _narrativeDocumentSession != null) {
-      _disposeNarrativeDocumentSession();
-      await initializeNarrativeDocumentSession();
-    }
     return saved;
+  }
+
+  Future<bool> undoPersonalizationStudio() async {
+    if (!await initializePersonalizationStudioSession()) {
+      return false;
+    }
+    final session = _personalizationStudioSession!;
+    if (state.project != session.state.document) {
+      state = state.copyWith(
+        errorMessage: 'Undo bloqué : le projet a changé en dehors du '
+            'Personalization Studio.',
+      );
+      return false;
+    }
+    return session.undo();
+  }
+
+  Future<bool> redoPersonalizationStudio() async {
+    if (!await initializePersonalizationStudioSession()) {
+      return false;
+    }
+    final session = _personalizationStudioSession!;
+    if (state.project != session.state.document) {
+      state = state.copyWith(
+        errorMessage: 'Redo bloqué : le projet a changé en dehors du '
+            'Personalization Studio.',
+      );
+      return false;
+    }
+    return session.redo();
+  }
+
+  Future<void> setPersonalizationStudioAutosaveEnabled(bool enabled) async {
+    if (!await initializePersonalizationStudioSession()) {
+      return;
+    }
+    _personalizationStudioSession!.setAutosaveEnabled(enabled);
   }
 
   void _onPersonalizationStudioSessionChanged() {
@@ -708,6 +742,9 @@ class EditorNotifier extends _$EditorNotifier {
         'Personnalisation enregistrée.',
       _ => state.statusMessage,
     };
+    final didFinishSaving =
+        sessionState.status == NarrativeDocumentSessionStatus.saved &&
+            previousStatus == NarrativeDocumentSessionStatus.saving;
     state = state.copyWith(
       project: sessionState.document,
       isProjectDirty: sessionState.isDirty,
@@ -715,6 +752,10 @@ class EditorNotifier extends _$EditorNotifier {
       statusMessage: statusMessage,
       errorMessage: errorMessage,
     );
+    if (didFinishSaving && _narrativeDocumentSession != null) {
+      _disposeNarrativeDocumentSession();
+      unawaited(initializeNarrativeDocumentSession());
+    }
   }
 
   void _disposePersonalizationStudioSession() {

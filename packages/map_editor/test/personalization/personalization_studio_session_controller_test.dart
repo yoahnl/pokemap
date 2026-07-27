@@ -107,6 +107,70 @@ void main() {
       expect(controller.state.draftProfile, profile);
       expect(controller.state.isDirty, isFalse);
     });
+
+    test('undo and redo move the presentation draft through its history',
+        () async {
+      final project = buildShellChromeProject(name: 'History profile');
+      final controller = PersonalizationStudioSessionController(
+        session: NarrativeDocumentSession<ProjectManifest>(
+          documentId: 'personalization-studio',
+          initialDocument: project,
+          gateway: _MemoryProjectGateway(project),
+          recoveryStore: _MemoryProjectRecoveryStore(),
+        ),
+      );
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      const profile = ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
+      );
+      await controller.applyProfile(
+        profile,
+        operationId: 'history-profile',
+        label: 'Appliquer le profil',
+      );
+
+      expect(await controller.undo(), isTrue);
+      expect(controller.state.draftProfile, project.effectivePresentation);
+      expect(controller.state.canRedo, isTrue);
+      expect(await controller.redo(), isTrue);
+      expect(controller.state.draftProfile, profile);
+      expect(controller.state.canUndo, isTrue);
+    });
+
+    test('autosave persists the latest scheduled presentation draft', () async {
+      final project = buildShellChromeProject(name: 'Autosave profile');
+      final gateway = _MemoryProjectGateway(project);
+      final scheduler = _ManualAutosaveScheduler();
+      final controller = PersonalizationStudioSessionController(
+        session: NarrativeDocumentSession<ProjectManifest>(
+          documentId: 'personalization-studio',
+          initialDocument: project,
+          gateway: gateway,
+          recoveryStore: _MemoryProjectRecoveryStore(),
+          autosaveScheduler: scheduler.schedule,
+        ),
+      );
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      const profile = ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(accentColor: '#456789'),
+      );
+      await controller.applyProfile(
+        profile,
+        operationId: 'autosave-profile',
+        label: 'Modifier le profil',
+      );
+
+      controller.setAutosaveEnabled(true);
+      expect(controller.state.autosaveEnabled, isTrue);
+      expect(scheduler.activeTasks, hasLength(1));
+      await scheduler.runLatest();
+
+      expect(gateway.saveCount, 1);
+      expect(gateway.durableDocument.presentation, profile);
+      expect(controller.state.isDirty, isFalse);
+    });
   });
 }
 
@@ -166,5 +230,41 @@ final class _MemoryProjectRecoveryStore
   ) async {
     writeCount += 1;
     this.record = record;
+  }
+}
+
+final class _ManualAutosaveScheduler {
+  final List<_ManualAutosaveTask> _tasks = <_ManualAutosaveTask>[];
+
+  List<_ManualAutosaveTask> get activeTasks =>
+      _tasks.where((task) => !task.cancelled).toList(growable: false);
+
+  NarrativeDocumentAutosaveHandle schedule(
+    Duration delay,
+    Future<void> Function() callback,
+  ) {
+    final task = _ManualAutosaveTask(callback);
+    _tasks.add(task);
+    return task;
+  }
+
+  Future<void> runLatest() => activeTasks.last.run();
+}
+
+final class _ManualAutosaveTask implements NarrativeDocumentAutosaveHandle {
+  _ManualAutosaveTask(this._callback);
+
+  final Future<void> Function() _callback;
+  bool cancelled = false;
+
+  Future<void> run() async {
+    if (!cancelled) {
+      await _callback();
+    }
+  }
+
+  @override
+  void cancel() {
+    cancelled = true;
   }
 }

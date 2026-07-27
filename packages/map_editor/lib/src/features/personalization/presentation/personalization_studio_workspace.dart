@@ -8,6 +8,7 @@ import '../../../ui/design_system/pokemap_badge.dart';
 import '../../../ui/design_system/pokemap_button.dart';
 import '../../../ui/design_system/pokemap_card.dart';
 import '../../../ui/design_system/pokemap_empty_state.dart';
+import '../../../ui/design_system/pokemap_toggle_tile.dart';
 import '../../editor/state/editor_notifier.dart';
 import 'personalization_hub_shell.dart';
 
@@ -96,9 +97,14 @@ class _PersonalizationStudioWorkspaceState
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: PokeMapCard(
-              child: Row(
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                alignment: WrapAlignment.end,
                 children: <Widget>[
-                  Expanded(
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 320),
                     child: Text(
                       studioSession?.isDirty == true
                           ? 'Le brouillon diffère de project.json.'
@@ -117,7 +123,55 @@ class _PersonalizationStudioWorkspaceState
                       label: 'Enregistré',
                       variant: PokeMapBadgeVariant.success,
                     ),
-                  const SizedBox(width: 12),
+                  PokeMapButton(
+                    key: const ValueKey<String>(
+                      'personalization-studio-undo',
+                    ),
+                    variant: PokeMapButtonVariant.ghost,
+                    size: PokeMapButtonSize.compact,
+                    leading: const Icon(Icons.undo_rounded),
+                    onPressed: studioSession?.canUndo == true && canEdit
+                        ? () {
+                            unawaited(
+                              notifier.undoPersonalizationStudio(),
+                            );
+                          }
+                        : null,
+                    child: const Text('Annuler'),
+                  ),
+                  PokeMapButton(
+                    key: const ValueKey<String>(
+                      'personalization-studio-redo',
+                    ),
+                    variant: PokeMapButtonVariant.ghost,
+                    size: PokeMapButtonSize.compact,
+                    leading: const Icon(Icons.redo_rounded),
+                    onPressed: studioSession?.canRedo == true && canEdit
+                        ? () {
+                            unawaited(
+                              notifier.redoPersonalizationStudio(),
+                            );
+                          }
+                        : null,
+                    child: const Text('Rétablir'),
+                  ),
+                  SizedBox(
+                    width: 230,
+                    child: PokeMapToggleTile(
+                      key: const ValueKey<String>(
+                        'personalization-studio-autosave',
+                      ),
+                      label: 'Sauvegarde automatique',
+                      value: studioSession?.autosaveEnabled == true,
+                      onChanged: (enabled) {
+                        unawaited(
+                          notifier.setPersonalizationStudioAutosaveEnabled(
+                            enabled,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                   PokeMapButton(
                     key: const ValueKey<String>(
                       'personalization-studio-save',
