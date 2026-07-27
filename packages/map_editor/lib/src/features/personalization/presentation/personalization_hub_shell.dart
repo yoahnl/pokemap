@@ -6,7 +6,9 @@ import '../../../ui/design_system/pokemap_button.dart';
 import '../../../ui/design_system/pokemap_card.dart';
 import '../../../ui/design_system/pokemap_panel.dart';
 import '../../../ui/design_system/pokemap_search_field.dart';
+import '../application/personalization_publish_readiness.dart';
 import '../application/project_presentation_presets.dart';
+import 'personalization_readiness_panel.dart';
 import 'personalization_runtime_preview.dart';
 
 typedef PersonalizationCategoryBuilder = Widget Function(
@@ -40,6 +42,7 @@ class PersonalizationHubShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final diagnostics = validateProjectPresentationProfile(profile);
+    final readiness = PersonalizationPublishReadiness.fromProfile(profile);
     return LayoutBuilder(
       builder: (context, constraints) {
         final navigation = _CategoryNavigation(
@@ -51,6 +54,7 @@ class PersonalizationHubShell extends StatelessWidget {
           profile: profile,
           category: selectedCategory,
           diagnostics: diagnostics,
+          readiness: readiness,
           categoryBuilder: categoryBuilder,
           baselineProfile: baselineProfile,
           onProfileChanged: onProfileChanged,
@@ -197,6 +201,7 @@ class _CategoryDetail extends StatelessWidget {
     required this.profile,
     required this.category,
     required this.diagnostics,
+    required this.readiness,
     required this.categoryBuilder,
     required this.baselineProfile,
     required this.onProfileChanged,
@@ -208,6 +213,7 @@ class _CategoryDetail extends StatelessWidget {
   final ProjectPresentationProfile profile;
   final ProjectPresentationCategory category;
   final List<ProjectPresentationDiagnostic> diagnostics;
+  final PersonalizationPublishReadiness readiness;
   final PersonalizationCategoryBuilder? categoryBuilder;
   final ProjectPresentationProfile? baselineProfile;
   final ValueChanged<ProjectPresentationProfile>? onProfileChanged;
@@ -262,6 +268,8 @@ class _CategoryDetail extends StatelessWidget {
         projectName: projectName,
         projectRootPath: projectRootPath,
       ),
+      const SizedBox(height: 16),
+      PersonalizationReadinessPanel(report: readiness),
     ];
     return PokeMapPanel(
       header: Padding(

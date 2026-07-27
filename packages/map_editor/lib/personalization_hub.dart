@@ -6,11 +6,13 @@ export 'src/features/personalization/application/project_title_music_import_serv
 export 'src/features/personalization/application/project_title_music_preview_controller.dart';
 export 'src/features/personalization/application/project_presentation_asset_lifecycle.dart';
 export 'src/features/personalization/application/project_presentation_presets.dart';
+export 'src/features/personalization/application/personalization_publish_readiness.dart';
 export 'src/features/personalization/application/personalization_preview_projection.dart';
 export 'src/features/personalization/application/personalization_studio_asset_picker.dart';
 export 'src/features/personalization/application/personalization_studio_session_controller.dart';
 export 'src/features/personalization/application/project_branding_image_import_service.dart';
 export 'src/features/personalization/presentation/personalization_hub_shell.dart';
+export 'src/features/personalization/presentation/personalization_readiness_panel.dart';
 export 'src/features/personalization/presentation/personalization_runtime_preview.dart';
 export 'src/features/personalization/presentation/personalization_studio_workspace.dart';
 export 'src/features/personalization/presentation/project_branding_editor.dart';
