@@ -1,6 +1,6 @@
 # Phase 10 — Playable Game Validation — authoritative correction
 
-Date: 2026-07-22
+Date: 2026-07-27
 
 Périmètre: `FG-180` à `FG-185`
 
@@ -10,11 +10,14 @@ Verdict release MVP FG-185: **PARTIAL / NO-GO**
 
 ## Résumé exécutif autoritaire
 
-Les livrables techniques FG-180 à FG-184 restent inchangés par cette
-correction. FG-185 ne peut toutefois pas déduire un GO de cinq déclarations
-textuelles `passed`, même avec source et résumé. Le contrat exige désormais
-cinq `executedEvidence` valides. Le receipt d'exécution de la Phase 6 est
-manquant: FG-185 reste donc `PARTIAL / NO-GO`.
+Les livrables techniques FG-180 à FG-184 restent acquis. La Phase 7A ajoute
+une preuve installée des 19 critères (`RM-069`) et une matrice monorepo fraîche
+20/20 (`RM-070`). Le build Hub macOS release réussit, mais sa distribution
+Developer ID/notarisée, son cold install et le walkthrough humain ne sont pas
+prouvés (`RM-071`). `RM-073` reste à produire.
+
+FG-185 reste donc `PARTIAL / NO-GO`. Aucun snapshot historique `DONE / GO` ne
+remplace ces receipts courants.
 
 `c1bc49b21` est le commit technique historique de la gate. `d95498768` est la
 clôture/approbation documentaire historique et ne prouve aucune exécution
@@ -29,7 +32,7 @@ signée. Aucun autre lot FG-180 à FG-184 n'est reclassé ici.
 | FG-182 | DONE inchangé | hors scope de cette correction |
 | FG-183 | DONE inchangé | hors scope de cette correction |
 | FG-184 | DONE inchangé | hors scope de cette correction |
-| FG-185 | PARTIAL / NO-GO | receipt Phase 6 avec cinq preuves exécutées manquant |
+| FG-185 | PARTIAL / NO-GO | RM-069/RM-070 verts ; RM-071 partiel ; RM-073 et walkthrough humain manquants |
 
 ## Matrice FG-185 autoritaire
 
@@ -37,10 +40,14 @@ signée. Aucun autre lot FG-180 à FG-184 n'est reclassé ici.
 |---|---|---:|
 | Cinq déclarations `passed`, sources et résumés | oui, historiquement | insuffisant |
 | Approbation documentaire `d95498768` | oui | insuffisant |
-| Cinq preuves `executedEvidence` valides | non | BLOCKER |
-| Receipt d'exécution Phase 6 | non | BLOCKER |
+| Golden journey installé, 19 critères | oui, `RM-069` | PASSED |
+| Matrice monorepo 20/20 | oui, `RM-070` | PASSED |
+| Build/distribution/device QA | build seul, `RM-071` | PARTIAL / BLOCKER |
+| Receipt final `RM-073` | non | BLOCKER |
+| Walkthrough humain | non | BLOCKER |
 
-Décision: **NO-GO** jusqu'à exécution de la gate et production de son receipt.
+Décision: **NO-GO** jusqu'à satisfaction de `RM-071` et production de
+`RM-073`.
 
 ## Annexe historique superseded — non autoritaire
 

@@ -1,4 +1,10 @@
 {
+  "archiveMetadata": {
+    "archivedAtUtc": "2026-07-27T08:40:00Z",
+    "authoritative": false,
+    "reason": "Historical generated counters measure engine convergence and contradict the current player-parity policy when read as 100% parity.",
+    "canonicalReport": "reports/gameplay/fg_053_battle_parity_target_v1.md"
+  },
   "sourceDescription": "moves=../../pokémon_sdk_test_project/Data/Studio/moves; effects=../../pokemonsdk-development/scripts/5 Battle",
   "attacks": {
     "totalAttacks": 728,

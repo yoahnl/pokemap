@@ -1,4 +1,11 @@
-# PSDK Fight Parity Audit
+# PSDK Fight Parity Audit — archived snapshot
+
+> **ARCHIVED / NON AUTORITAIRE — 2026-07-27.** Cette photographie générée le
+> 2026-05-25 est conservée pour traçabilité. Ses compteurs `728 fait`,
+> `330 ported` et `482 ported` ne prouvent pas une parité joueur complète.
+> La cible canonique actuelle est
+> `reports/gameplay/fg_053_battle_parity_target_v1.md`; la gate MVP actuelle
+> est documentée par les receipts Phase 7A.
 
 Source: `moves=../../pokémon_sdk_test_project/Data/Studio/moves; effects=../../pokemonsdk-development/scripts/5 Battle`
 

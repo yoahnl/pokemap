@@ -1,4 +1,9 @@
-# PSDK Fight Engine Parity Status
+# PSDK Fight Engine Parity Status — archived snapshot
+
+> **ARCHIVED / NON AUTORITAIRE — 2026-07-27.** Ce statut du 2026-04-29 et les
+> matrices liées restent des données historiques de migration. Ils ne sont
+> plus une source de vérité pour `FG-053` ou `FG-185`. Voir
+> `reports/gameplay/fg_053_battle_parity_target_v1.md`.
 
 Date: 2026-04-29
 
@@ -18,8 +23,7 @@ Date: 2026-04-29
 | Studio attacks pas_fait | 0 |
 | Studio attacks unknown_methods | 0 |
 
-This status file is intentionally small. The source of truth for detailed rows
-is still:
+This status file is intentionally small. Its historical detailed rows are:
 
 - `reports/previous/psdk-move-porting-matrix.md`
 - `reports/previous/psdk-effect-porting-matrix.md`

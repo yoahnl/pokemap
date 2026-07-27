@@ -1,5 +1,10 @@
 # PSDK Fight Parity Gate Policy
 
+> **Autorité limitée — actualisé le 2026-07-27.** Cette policy reste la gate
+> de non-régression de ses compteurs minimums ; elle ne prouve pas une parité
+> Pokémon complète ni un GO release. La cible produit actuelle est
+> `reports/gameplay/fg_053_battle_parity_target_v1.md`.
+
 ## Purpose
 
 This policy documents the Lot 02 non-regression gate for Pokemon SDK fight parity. The gate does not claim 100% parity. It prevents accidental loss of the measured baseline while later lots promote partial behavior to strict parity.

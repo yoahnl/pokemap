@@ -1,6 +1,6 @@
 # FG-185 — MVP Release Gate V0 — authoritative correction
 
-Date: 2026-07-22
+Date: 2026-07-27
 
 Proposed status: **PARTIAL**
 
@@ -10,14 +10,26 @@ Verdict release MVP: **PARTIAL / NO-GO**
 
 ## Résumé exécutif autoritaire
 
-FG-185 reste ouvert. Le contrat pur sépare les déclarations d'un receipt
-d'exécution structuré et opaque. Un `executedEvidence` ne peut être créé que
-depuis un `MvpReleaseGateExecutionReceipt.validated`; son statut dérive de
-`exitCode`, jamais d'un label fourni par l'appelant. Le receipt exige critère,
-source/résumé non vides, commit candidat complet, commande, code de sortie et
-digest SHA-256 complet. Les cinq éléments historiques restent des déclarations
-documentaires; aucune exécution de la gate n'a produit le receipt requis. La
-Phase 6 devra exécuter les cinq contrôles avant toute promotion.
+FG-185 reste ouvert après l'exécution Phase 7A. Les preuves fraîches sont :
+
+- `RM-069` : package Selbrume exporté, installé par le Hub, puis golden journey
+  `MVP-01` à `MVP-19` réussi sans raccourci, commit `00e286999` ;
+- `RM-070` : neuf packages testés et analysés, deux smokes ciblés, 20/20
+  commandes à `exitCode=0`, commit `6053c43e9` ;
+- `RM-071` : build Hub macOS release réussi et bundle universel valide, mais
+  launch local durci bloqué sans Developer ID, aucune notarisation ni
+  walkthrough humain, commit `fe4bf6ea9`.
+
+Les receipts structurés correspondants vivent sous
+`reports/gameplay/evidence/`. Ils remplacent les assertions documentaires
+anciennes pour ces trois lots, mais ils ne satisfont pas la gate finale :
+`RM-073` n'est pas encore produit et le walkthrough humain manque. Verdict
+autoritaire : **PARTIAL / NO-GO**.
+
+Le contrat pur continue de séparer déclaration et exécution. Un
+`executedEvidence` ne peut être créé que depuis un
+`MvpReleaseGateExecutionReceipt.validated`; son statut dérive de `exitCode`,
+jamais d'un label fourni par l'appelant.
 
 Le commit `c1bc49b21` est le commit technique historique de l'agrégateur.
 Le commit `d95498768` est une clôture/approbation documentaire historique; il
