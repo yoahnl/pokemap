@@ -62,6 +62,11 @@ void main() {
             categoryId: 'medicine',
             quantity: 3,
           ),
+          BagEntry(
+            itemId: 'harbor-pass',
+            categoryId: 'key-items',
+            quantity: 1,
+          ),
         ],
       ),
       progression: PlayerProgression(
@@ -84,9 +89,24 @@ void main() {
     expect(party.entries.single.progress, 1);
 
     final bag = details[RuntimePlayerPauseSection.bag]!;
-    expect(bag.entries, hasLength(1));
-    expect(bag.entries.single.title, 'Potion');
-    expect(bag.entries.single.trailingLabel, '×3');
+    expect(bag.entries, hasLength(2));
+    final potion = bag.entries.firstWhere((entry) => entry.title == 'Potion');
+    expect(potion.trailingLabel, '×3');
+    expect(potion.bagAction?.isEnabled, isTrue);
+    expect(
+      potion.bagAction?.targetKind,
+      RuntimePlayerBagUseTargetKind.partyMember,
+    );
+    expect(bag.bagTargets.single.targetId, 'party.0');
+    expect(bag.bagTargets.single.label, 'Salamèche');
+    expect(
+      bag.bagTargets.single.moves.map((move) => move.targetId),
+      <String>['scratch', 'ember'],
+    );
+    final keyItem =
+        bag.entries.firstWhere((entry) => entry.title == 'Harbor Pass');
+    expect(keyItem.bagAction?.isEnabled, isFalse);
+    expect(keyItem.bagAction?.unavailableReason, contains('pas consommé'));
 
     final pokedex = details[RuntimePlayerPauseSection.pokedex]!;
     expect(pokedex.entries, hasLength(2));

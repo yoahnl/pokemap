@@ -14,7 +14,10 @@ import 'game_session_contract.dart';
 /// Both authorities are injected by the Hub, which keeps this facade usable by
 /// the developer host without creating a dependency on the Hub application.
 final class GameSessionController
-    implements RuntimePlayerPauseDataPort, RuntimeWorldServicePort {
+    implements
+        RuntimePlayerPauseDataPort,
+        RuntimePlayerPauseCommandPort,
+        RuntimeWorldServicePort {
   GameSessionController({
     required GameSessionAdapterFactory adapterFactory,
     required GameSessionCheckpointCommitter commitCheckpoint,
@@ -47,6 +50,7 @@ final class GameSessionController
   StreamSubscription<RuntimeWorldServiceSnapshot?>? _adapterWorldServices;
   RuntimeWorldServicePort? _worldServicePort;
   RuntimePlayerPauseDataPort? _pauseDataPort;
+  RuntimePlayerPauseCommandPort? _pauseCommandPort;
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   bool _controllerDisposed = false;
   final Set<String> _completionKeys = <String>{};
@@ -93,6 +97,36 @@ final class GameSessionController
       );
     }
     return port.loadPauseDetails();
+  }
+
+  @override
+  Future<RuntimePlayerPauseCommandResult> dispatchPauseCommand(
+    RuntimePlayerPauseCommand command,
+  ) {
+    final port = _pauseCommandPort;
+    if (port == null ||
+        _controllerDisposed ||
+        _snapshot.state != GameSessionState.paused) {
+      return Future.value(
+        const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'Bag actions are unavailable outside the pause menu.',
+        ),
+      );
+    }
+    return port.dispatchPauseCommand(command).then((result) async {
+      if (result.status != RuntimePlayerPauseCommandStatus.accepted) {
+        return result;
+      }
+      final saved = await _captureAndCommit(SaveStatus.active);
+      if (!saved) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.failed,
+          safeMessage: 'The item was applied but the checkpoint failed.',
+        );
+      }
+      return result;
+    });
   }
 
   Future<void> prepare(GameSessionDescriptor descriptor) {
@@ -142,6 +176,9 @@ final class GameSessionController
         await adapter.prepare(descriptor).timeout(prepareTimeout);
         if (adapter case final RuntimePlayerPauseDataPort port) {
           _pauseDataPort = port;
+        }
+        if (adapter case final RuntimePlayerPauseCommandPort port) {
+          _pauseCommandPort = port;
         }
         if (adapter case final RuntimeWorldServicePort port) {
           _worldServicePort = port;
@@ -739,6 +776,7 @@ final class GameSessionController
     _adapterWorldServices = null;
     _worldServicePort = null;
     _pauseDataPort = null;
+    _pauseCommandPort = null;
     try {
       await worldServices?.cancel();
     } on Object catch (error) {

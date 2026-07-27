@@ -106,6 +106,7 @@ final class RuntimePlayerCoordinator {
         case RuntimePlayerAction.resume:
         case RuntimePlayerAction.openParty:
         case RuntimePlayerAction.openBag:
+        case RuntimePlayerAction.useBagItem:
         case RuntimePlayerAction.openPokedex:
         case RuntimePlayerAction.openMap:
         case RuntimePlayerAction.openOptions:
@@ -275,7 +276,10 @@ final class RuntimePlayerCoordinator {
         return _launch(retry);
       case RuntimePlayerAction.openMenu:
         await _sessions.pause();
-        final pauseDetails = await _sessions.loadPauseDetails();
+        final pauseDetails = Map<RuntimePlayerPauseSection,
+            RuntimePlayerPauseDetailSnapshot>.from(
+          await _sessions.loadPauseDetails(),
+        );
         _publishPause(
           RuntimePlayerPauseSection.root,
           pauseDetails: pauseDetails,
@@ -306,6 +310,41 @@ final class RuntimePlayerCoordinator {
         );
         return const RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.accepted,
+        );
+      case RuntimePlayerAction.useBagItem:
+        final pauseCommand = command.payload;
+        if (pauseCommand is! RuntimePlayerPauseCommand ||
+            _snapshot.pauseSection != RuntimePlayerPauseSection.bag) {
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.unavailable,
+            safeMessage: 'A valid bag item and target are required.',
+          );
+        }
+        final result = await _sessions.dispatchPauseCommand(pauseCommand);
+        final pauseDetails = Map<RuntimePlayerPauseSection,
+            RuntimePlayerPauseDetailSnapshot>.from(
+          await _sessions.loadPauseDetails(),
+        );
+        final bag = pauseDetails[RuntimePlayerPauseSection.bag];
+        if (bag != null) {
+          pauseDetails[RuntimePlayerPauseSection.bag] =
+              bag.withMessage(result.safeMessage);
+        }
+        _publishPause(
+          RuntimePlayerPauseSection.bag,
+          logicalSelectionId: _snapshot.logicalSelectionId,
+          pauseDetails: pauseDetails,
+        );
+        return RuntimePlayerCommandResult(
+          status: switch (result.status) {
+            RuntimePlayerPauseCommandStatus.accepted =>
+              RuntimePlayerCommandStatus.accepted,
+            RuntimePlayerPauseCommandStatus.unavailable =>
+              RuntimePlayerCommandStatus.unavailable,
+            RuntimePlayerPauseCommandStatus.failed =>
+              RuntimePlayerCommandStatus.failed,
+          },
+          safeMessage: result.safeMessage,
         );
       case RuntimePlayerAction.openPokedex:
         _publishPause(
@@ -946,6 +985,9 @@ final class RuntimePlayerCoordinator {
       ),
       const RuntimePlayerActionAvailability.enabled(
         RuntimePlayerAction.openBag,
+      ),
+      const RuntimePlayerActionAvailability.enabled(
+        RuntimePlayerAction.useBagItem,
       ),
       if (pauseDetails.containsKey(RuntimePlayerPauseSection.pokedex))
         const RuntimePlayerActionAvailability.enabled(

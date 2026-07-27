@@ -9,6 +9,66 @@ enum RuntimePlayerPauseSection {
   options,
 }
 
+enum RuntimePlayerBagUseTargetKind { partyMember, partyMove }
+
+final class RuntimePlayerBagItemActionSnapshot {
+  RuntimePlayerBagItemActionSnapshot({
+    required this.itemTargetId,
+    required this.targetKind,
+    required this.isEnabled,
+    this.unavailableReason,
+  }) {
+    if (itemTargetId.trim().isEmpty) {
+      throw ArgumentError.value(
+        itemTargetId,
+        'itemTargetId',
+        'must not be empty',
+      );
+    }
+    if (!isEnabled &&
+        (unavailableReason == null || unavailableReason!.trim().isEmpty)) {
+      throw ArgumentError(
+        'A disabled bag action requires a player-safe explanation.',
+      );
+    }
+  }
+
+  final String itemTargetId;
+  final RuntimePlayerBagUseTargetKind targetKind;
+  final bool isEnabled;
+  final String? unavailableReason;
+}
+
+final class RuntimePlayerBagMoveTargetSnapshot {
+  const RuntimePlayerBagMoveTargetSnapshot({
+    required this.targetId,
+    required this.label,
+    this.subtitle,
+  })  : assert(targetId != ''),
+        assert(label != '');
+
+  final String targetId;
+  final String label;
+  final String? subtitle;
+}
+
+final class RuntimePlayerBagPartyTargetSnapshot {
+  RuntimePlayerBagPartyTargetSnapshot({
+    required this.targetId,
+    required this.label,
+    this.subtitle,
+    List<RuntimePlayerBagMoveTargetSnapshot> moves =
+        const <RuntimePlayerBagMoveTargetSnapshot>[],
+  })  : assert(targetId != ''),
+        assert(label != ''),
+        moves = List<RuntimePlayerBagMoveTargetSnapshot>.unmodifiable(moves);
+
+  final String targetId;
+  final String label;
+  final String? subtitle;
+  final List<RuntimePlayerBagMoveTargetSnapshot> moves;
+}
+
 /// Generic data-only row rendered by a runtime-owned pause detail surface.
 final class RuntimePlayerDetailEntrySnapshot {
   RuntimePlayerDetailEntrySnapshot({
@@ -17,6 +77,7 @@ final class RuntimePlayerDetailEntrySnapshot {
     this.subtitle,
     this.trailingLabel,
     this.progress,
+    this.bagAction,
   }) {
     if (id.trim().isEmpty || title.trim().isEmpty) {
       throw ArgumentError('Detail entry id and title must not be empty.');
@@ -35,6 +96,7 @@ final class RuntimePlayerDetailEntrySnapshot {
   final String? subtitle;
   final String? trailingLabel;
   final double? progress;
+  final RuntimePlayerBagItemActionSnapshot? bagAction;
 }
 
 /// Data-only presentation for one non-root pause section.
@@ -45,7 +107,12 @@ final class RuntimePlayerPauseDetailSnapshot {
     List<RuntimePlayerDetailEntrySnapshot> entries =
         const <RuntimePlayerDetailEntrySnapshot>[],
     this.emptyMessage,
-  }) : entries = List<RuntimePlayerDetailEntrySnapshot>.unmodifiable(entries) {
+    this.message,
+    List<RuntimePlayerBagPartyTargetSnapshot> bagTargets =
+        const <RuntimePlayerBagPartyTargetSnapshot>[],
+  })  : entries = List<RuntimePlayerDetailEntrySnapshot>.unmodifiable(entries),
+        bagTargets =
+            List<RuntimePlayerBagPartyTargetSnapshot>.unmodifiable(bagTargets) {
     if (section == RuntimePlayerPauseSection.root) {
       throw ArgumentError.value(
         section,
@@ -62,6 +129,48 @@ final class RuntimePlayerPauseDetailSnapshot {
   final String title;
   final List<RuntimePlayerDetailEntrySnapshot> entries;
   final String? emptyMessage;
+  final String? message;
+  final List<RuntimePlayerBagPartyTargetSnapshot> bagTargets;
+
+  RuntimePlayerPauseDetailSnapshot withMessage(String? message) =>
+      RuntimePlayerPauseDetailSnapshot(
+        section: section,
+        title: title,
+        entries: entries,
+        emptyMessage: emptyMessage,
+        message: message,
+        bagTargets: bagTargets,
+      );
+}
+
+final class RuntimePlayerPauseCommand {
+  const RuntimePlayerPauseCommand.useBagItem({
+    required this.itemTargetId,
+    required this.partyTargetId,
+    this.moveTargetId,
+  });
+
+  final String itemTargetId;
+  final String partyTargetId;
+  final String? moveTargetId;
+}
+
+enum RuntimePlayerPauseCommandStatus { accepted, unavailable, failed }
+
+final class RuntimePlayerPauseCommandResult {
+  const RuntimePlayerPauseCommandResult({
+    required this.status,
+    required this.safeMessage,
+  });
+
+  final RuntimePlayerPauseCommandStatus status;
+  final String safeMessage;
+}
+
+abstract interface class RuntimePlayerPauseCommandPort {
+  Future<RuntimePlayerPauseCommandResult> dispatchPauseCommand(
+    RuntimePlayerPauseCommand command,
+  );
 }
 
 /// Optional runtime-owned projection queried only while gameplay is paused.

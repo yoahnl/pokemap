@@ -346,8 +346,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
 
   Future<RuntimePlayerCommandResult> _dispatchCommand(
     RuntimePlayerAction action,
-    RuntimePlayerSnapshot snapshot,
-  ) async {
+    RuntimePlayerSnapshot snapshot, {
+    Object? payload,
+  }) async {
     final isMenuTransition = action == RuntimePlayerAction.openMenu ||
         action == RuntimePlayerAction.resume;
     if (isMenuTransition && _menuTransitionPending) {
@@ -362,7 +363,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
         RuntimePlayerCommand(
           action: action,
           snapshotRevision: snapshot.revision,
-          payload: widget.payloadForAction?.call(action),
+          payload: payload ?? widget.payloadForAction?.call(action),
         ),
       );
     } finally {
@@ -430,6 +431,13 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
               action: RuntimePlayerAction.updatePreferences,
               snapshotRevision: snapshot.revision,
               payload: preferences,
+            ),
+          ),
+          onPauseCommand: (command) => unawaited(
+            _dispatchCommand(
+              RuntimePlayerAction.useBagItem,
+              snapshot,
+              payload: command,
             ),
           ),
           onAction: (action) => _dispatchCommand(action, snapshot),

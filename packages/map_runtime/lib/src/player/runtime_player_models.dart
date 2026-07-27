@@ -31,6 +31,7 @@ enum RuntimePlayerAction {
   resume,
   openParty,
   openBag,
+  useBagItem,
   openPokedex,
   openMap,
   save,

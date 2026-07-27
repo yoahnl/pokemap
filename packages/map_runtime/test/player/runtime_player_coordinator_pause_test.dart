@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'support/runtime_player_test_harness.dart';
@@ -50,6 +51,7 @@ void main() {
         RuntimePlayerAction.resume,
         RuntimePlayerAction.openParty,
         RuntimePlayerAction.openBag,
+        RuntimePlayerAction.useBagItem,
         RuntimePlayerAction.openPokedex,
         RuntimePlayerAction.openMap,
         RuntimePlayerAction.save,
@@ -215,6 +217,67 @@ void main() {
     expect(
       harness.coordinator.snapshot.logicalSelectionId,
       'pause.party',
+    );
+  });
+
+  test('uses a bag item through the runtime and refreshes pause feedback',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    harness.adapter.pauseDetails =
+        <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{
+      RuntimePlayerPauseSection.party: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.party,
+        title: 'Équipe',
+      ),
+      RuntimePlayerPauseSection.bag: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.bag,
+        title: 'Sac',
+        entries: <RuntimePlayerDetailEntrySnapshot>[
+          RuntimePlayerDetailEntrySnapshot(
+            id: 'bag.medicine.potion',
+            title: 'Potion',
+          ),
+        ],
+      ),
+    };
+    await _openMenu(harness);
+    await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.openBag,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+    final checkpointTime = DateTime.utc(2026, 7, 27, 12);
+    harness.adapter.checkpoint = GameSessionCheckpoint(
+      saveId: 'bag-checkpoint',
+      createdAt: checkpointTime,
+      updatedAt: checkpointTime,
+      playTimeSeconds: 42,
+      state: const GameState(saveId: 'bag-checkpoint').toJson(),
+    );
+
+    const command = RuntimePlayerPauseCommand.useBagItem(
+      itemTargetId: 'potion',
+      partyTargetId: 'party.0',
+    );
+    final result = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.useBagItem,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: command,
+      ),
+    );
+
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.adapter.pauseCommands, <RuntimePlayerPauseCommand>[command]);
+    expect(harness.saves.commits, hasLength(1));
+    expect(
+      harness.coordinator.snapshot
+          .pauseDetailFor(RuntimePlayerPauseSection.bag)
+          ?.message,
+      'Objet utilisé.',
     );
   });
 

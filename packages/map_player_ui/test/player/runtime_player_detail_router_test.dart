@@ -85,6 +85,95 @@ void main() {
     expect(changed!.touchControlsOpacity, lessThan(0.82));
   });
 
+  testWidgets('bag selects a party target and keeps key items unavailable',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.view.reset);
+    addTearDown(
+      tester.platformDispatcher.clearTextScaleFactorTestValue,
+    );
+    RuntimePlayerPauseCommand? command;
+    final detail = RuntimePlayerPauseDetailSnapshot(
+      section: RuntimePlayerPauseSection.bag,
+      title: 'Sac',
+      entries: <RuntimePlayerDetailEntrySnapshot>[
+        RuntimePlayerDetailEntrySnapshot(
+          id: 'bag.medicine.potion',
+          title: 'Potion',
+          trailingLabel: '×2',
+          bagAction: RuntimePlayerBagItemActionSnapshot(
+            itemTargetId: 'potion',
+            targetKind: RuntimePlayerBagUseTargetKind.partyMember,
+            isEnabled: true,
+          ),
+        ),
+        RuntimePlayerDetailEntrySnapshot(
+          id: 'bag.key-items.harbor-pass',
+          title: 'Passe du port',
+          trailingLabel: '×1',
+          bagAction: RuntimePlayerBagItemActionSnapshot(
+            itemTargetId: 'harbor-pass',
+            targetKind: RuntimePlayerBagUseTargetKind.partyMember,
+            isEnabled: false,
+            unavailableReason:
+                'Cet objet clé s’utilise automatiquement et n’est pas consommé.',
+          ),
+        ),
+      ],
+      bagTargets: <RuntimePlayerBagPartyTargetSnapshot>[
+        RuntimePlayerBagPartyTargetSnapshot(
+          targetId: 'party.0',
+          label: 'Salamèche',
+          subtitle: 'PV 12/39',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerDetailRouter(
+          snapshot: _detailSnapshot(
+            RuntimePlayerPauseSection.bag,
+            detail: detail,
+          ),
+          onPauseCommand: (value) => command = value,
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    await tester.ensureVisible(
+      find.byKey(
+        const ValueKey<String>('runtime-player-bag-use-potion'),
+      ),
+    );
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('runtime-player-bag-use-potion'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('runtime-player-bag-target-party.0'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(command?.itemTargetId, 'potion');
+    expect(command?.partyTargetId, 'party.0');
+    final keyItemButton = tester.widget<PlayerActionButton>(
+      find.byKey(
+        const ValueKey<String>('runtime-player-bag-use-harbor-pass'),
+      ),
+    );
+    expect(keyItemButton.onPressed, isNull);
+    expect(keyItemButton.disabledReason, contains('pas consommé'));
+  });
+
   testWidgets('missing or empty detail gives a guided empty state',
       (tester) async {
     final snapshot = _detailSnapshot(

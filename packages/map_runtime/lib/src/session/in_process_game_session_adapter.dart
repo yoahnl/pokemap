@@ -41,6 +41,7 @@ final class InProcessGameSessionAdapter
         GameSessionAdapter,
         GameSessionInputLockPort,
         RuntimePlayerPauseDataPort,
+        RuntimePlayerPauseCommandPort,
         RuntimeWorldServicePort {
   InProcessGameSessionAdapter({
     required InProcessGameSessionRuntimeFactory runtimeFactory,
@@ -55,6 +56,7 @@ final class InProcessGameSessionAdapter
   StreamSubscription<RuntimeWorldServiceSnapshot?>? _runtimeWorldServices;
   RuntimeWorldServicePort? _worldServicePort;
   RuntimePlayerPauseDataPort? _pauseDataPort;
+  RuntimePlayerPauseCommandPort? _pauseCommandPort;
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   GameSessionDescriptor? _descriptor;
   bool _disposed = false;
@@ -95,6 +97,9 @@ final class InProcessGameSessionAdapter
     if (runtime case final RuntimePlayerPauseDataPort port) {
       _pauseDataPort = port;
     }
+    if (runtime case final RuntimePlayerPauseCommandPort port) {
+      _pauseCommandPort = port;
+    }
   }
 
   @override
@@ -131,6 +136,22 @@ final class InProcessGameSessionAdapter
       );
     }
     return port.loadPauseDetails();
+  }
+
+  @override
+  Future<RuntimePlayerPauseCommandResult> dispatchPauseCommand(
+    RuntimePlayerPauseCommand command,
+  ) {
+    final port = _pauseCommandPort;
+    if (port == null || _disposed) {
+      return Future.value(
+        const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'The active runtime exposes no bag actions.',
+        ),
+      );
+    }
+    return port.dispatchPauseCommand(command);
   }
 
   @override
@@ -209,6 +230,7 @@ final class InProcessGameSessionAdapter
     _runtimeWorldServices = null;
     _worldServicePort = null;
     _pauseDataPort = null;
+    _pauseCommandPort = null;
     _publishWorldService(null);
     final runtime = _runtime;
     _runtime = null;

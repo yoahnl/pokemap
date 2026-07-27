@@ -33,6 +33,7 @@ final class PlayableMapGameSessionRuntime
         InProcessGameSessionRuntime,
         GameSessionInputLockPort,
         RuntimePlayerPauseDataPort,
+        RuntimePlayerPauseCommandPort,
         RuntimeWorldServicePort {
   PlayableMapGameSessionRuntime({
     required this.descriptor,
@@ -246,6 +247,22 @@ final class PlayableMapGameSessionRuntime
       pokemonConfig: pokemonConfig,
       locale: descriptor.locale,
     );
+  }
+
+  @override
+  Future<RuntimePlayerPauseCommandResult> dispatchPauseCommand(
+    RuntimePlayerPauseCommand command,
+  ) {
+    final services = _playerServices;
+    if (services == null || _disposed) {
+      return Future.value(
+        const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'Le sac n’est pas disponible.',
+        ),
+      );
+    }
+    return services.useBagItemOutsideBattle(command);
   }
 
   @override

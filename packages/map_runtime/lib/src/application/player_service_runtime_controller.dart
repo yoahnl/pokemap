@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_world_service_models.dart';
 import 'runtime_player_pokemon_progression_hydrator.dart';
 import 'runtime_pokemon_species_loader.dart';
@@ -326,6 +327,77 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         );
       },
     );
+  }
+
+  Future<RuntimePlayerPauseCommandResult> useBagItemOutsideBattle(
+    RuntimePlayerPauseCommand command,
+  ) async {
+    if (_disposed || _active) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: 'Le sac est occupé pour le moment.',
+      );
+    }
+    final partyIndex = _partyIndexFromTarget(command.partyTargetId);
+    if (partyIndex == null) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: 'Cette cible n’est plus disponible.',
+      );
+    }
+    final effect =
+        const PlayerItemEffectRegistry.mvp().effectFor(command.itemTargetId);
+    if (effect == null ||
+        effect.kind == PlayerItemEffectKind.keyItem ||
+        effect.kind == PlayerItemEffectKind.ballMetadata) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: 'Cet objet ne peut pas être utilisé ici.',
+      );
+    }
+
+    final state = _currentGameState();
+    if (partyIndex >= state.party.members.length) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: 'Cette cible n’est plus disponible.',
+      );
+    }
+    try {
+      final caps = await _loadRecoveryCaps(state);
+      final maxHp = caps.maxHpByPartyIndex[partyIndex];
+      if (maxHp == null || maxHp <= 0) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'Les données de la cible sont incomplètes.',
+        );
+      }
+      final result = const PlayerItemOperations().useOnPartyMember(
+        state,
+        itemId: command.itemTargetId,
+        partyIndex: partyIndex,
+        maxHp: maxHp,
+        moveId: command.moveTargetId,
+        maxPpByMoveId:
+            caps.maxPpByPartyIndex[partyIndex] ?? const <String, int>{},
+      );
+      if (!result.isSuccess) {
+        return RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: _bagItemFailureMessage(result.failure!),
+        );
+      }
+      await _commitAndSave(result.state);
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.accepted,
+        safeMessage: 'Objet utilisé et progression sauvegardée.',
+      );
+    } catch (_) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.failed,
+        safeMessage: 'L’objet n’a pas pu être utilisé ni sauvegardé.',
+      );
+    }
   }
 
   Future<PlayerServiceRuntimeResult> _run(
@@ -1336,6 +1408,25 @@ String _pcFailureMessage(PlayerStorageFailure failure) => switch (failure) {
       PlayerStorageFailure.storageFull => 'Le PC est plein.',
       PlayerStorageFailure.lastUsablePokemon =>
         'Impossible de déposer le dernier Pokémon utilisable.',
+    };
+
+int? _partyIndexFromTarget(String targetId) {
+  const prefix = 'party.';
+  if (!targetId.startsWith(prefix)) return null;
+  return int.tryParse(targetId.substring(prefix.length));
+}
+
+String _bagItemFailureMessage(PlayerItemUseFailure failure) =>
+    switch (failure) {
+      PlayerItemUseFailure.invalidRequest ||
+      PlayerItemUseFailure.invalidTarget =>
+        'Cette cible n’est plus disponible.',
+      PlayerItemUseFailure.unknownItem => 'Cet objet n’est pas pris en charge.',
+      PlayerItemUseFailure.insufficientQuantity =>
+        'Vous ne possédez plus cet objet.',
+      PlayerItemUseFailure.wrongTarget =>
+        'Cet objet ne convient pas à cette cible.',
+      PlayerItemUseFailure.noEffect => 'Cet objet n’aurait aucun effet.',
     };
 
 /// Resolves the real HP and PP caps needed by Bag and healing screens.

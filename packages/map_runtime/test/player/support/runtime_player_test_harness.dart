@@ -239,6 +239,7 @@ final class FakeRuntimeSessionAdapter
     implements
         GameSessionAdapter,
         RuntimePlayerPauseDataPort,
+        RuntimePlayerPauseCommandPort,
         RuntimeWorldServicePort {
   FakeRuntimeSessionAdapter(this.sessionId);
 
@@ -252,6 +253,12 @@ final class FakeRuntimeSessionAdapter
       pauseDetails =
       const <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{};
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
+  final pauseCommands = <RuntimePlayerPauseCommand>[];
+  RuntimePlayerPauseCommandResult pauseCommandResult =
+      const RuntimePlayerPauseCommandResult(
+    status: RuntimePlayerPauseCommandStatus.accepted,
+    safeMessage: 'Objet utilisé.',
+  );
   GameSessionCheckpoint? checkpoint;
   int disposeCalls = 0;
   bool gameplayLocked = false;
@@ -275,6 +282,15 @@ final class FakeRuntimeSessionAdapter
       loadPauseDetails() async {
     calls.add('pause-details');
     return pauseDetails;
+  }
+
+  @override
+  Future<RuntimePlayerPauseCommandResult> dispatchPauseCommand(
+    RuntimePlayerPauseCommand command,
+  ) async {
+    calls.add('pause-command:${command.itemTargetId}');
+    pauseCommands.add(command);
+    return pauseCommandResult;
   }
 
   void emit(GameSessionAdapterEvent event) => _events.add(event);

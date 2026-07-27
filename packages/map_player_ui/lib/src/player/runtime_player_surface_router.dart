@@ -27,6 +27,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
     this.gameplayTouchMenuEnabled = true,
     this.touchControlsOpacity = 0.82,
     this.onPreferencesChanged,
+    this.onPauseCommand,
   });
 
   final RuntimePlayerSnapshot snapshot;
@@ -37,6 +38,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
   final bool gameplayTouchMenuEnabled;
   final double touchControlsOpacity;
   final ValueChanged<PlayerPreferencesSnapshot>? onPreferencesChanged;
+  final ValueChanged<RuntimePlayerPauseCommand>? onPauseCommand;
 
   @override
   Widget build(BuildContext context) {
@@ -116,6 +118,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
           detail: RuntimePlayerDetailRouter(
             snapshot: snapshot,
             onPreferencesChanged: onPreferencesChanged,
+            onPauseCommand: onPauseCommand,
           ),
         ),
       RuntimePlayerPhase.saving => PlayerLoadingSurface(

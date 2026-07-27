@@ -29,6 +29,12 @@ final class RuntimePlayerPauseDataBuilder {
       for (final entry in species) entry.id: entry,
     };
     final isFrench = locale.toLowerCase().startsWith('fr');
+    final bagTargets = _buildBagTargets(
+      gameState,
+      speciesById,
+      locale: locale,
+      isFrench: isFrench,
+    );
 
     return immutableRuntimePlayerPauseDetails(
       <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{
@@ -41,6 +47,7 @@ final class RuntimePlayerPauseDataBuilder {
         RuntimePlayerPauseSection.bag: _buildBag(
           gameState,
           isFrench: isFrench,
+          targets: bagTargets,
         ),
         if (pokemonConfig.enabled)
           RuntimePlayerPauseSection.pokedex: _buildPokedex(
@@ -109,25 +116,109 @@ final class RuntimePlayerPauseDataBuilder {
   RuntimePlayerPauseDetailSnapshot _buildBag(
     GameState gameState, {
     required bool isFrench,
+    required List<RuntimePlayerBagPartyTargetSnapshot> targets,
   }) {
-    final entries = gameState.bag.entries
-        .where((entry) => entry.quantity > 0)
-        .map(
-          (entry) => RuntimePlayerDetailEntrySnapshot(
-            id: 'bag.${entry.categoryId}.${entry.itemId}',
-            title: _humanize(entry.itemId),
-            subtitle: _humanize(entry.categoryId),
-            trailingLabel: '×${entry.quantity}',
-          ),
-        )
-        .toList(growable: false);
+    final entries =
+        gameState.bag.entries.where((entry) => entry.quantity > 0).map((entry) {
+      final effect =
+          const PlayerItemEffectRegistry.mvp().effectFor(entry.itemId);
+      final isKeyItem = effect?.kind == PlayerItemEffectKind.keyItem ||
+          _isKeyItemCategory(entry.categoryId);
+      final targetKind = effect?.kind == PlayerItemEffectKind.restorePp
+          ? RuntimePlayerBagUseTargetKind.partyMove
+          : RuntimePlayerBagUseTargetKind.partyMember;
+      final unavailableReason = isKeyItem
+          ? (isFrench
+              ? 'Cet objet clé s’utilise automatiquement et '
+                  'n’est pas consommé.'
+              : 'This key item is used automatically and is not consumed.')
+          : switch (effect?.kind) {
+              PlayerItemEffectKind.healHp ||
+              PlayerItemEffectKind.cureStatus ||
+              PlayerItemEffectKind.revive when targets.isEmpty =>
+                isFrench
+                    ? 'Aucun Pokémon ne peut être ciblé.'
+                    : 'No Pokémon can be targeted.',
+              PlayerItemEffectKind.restorePp
+                  when !targets.any((target) => target.moves.isNotEmpty) =>
+                isFrench
+                    ? 'Aucune capacité ne peut être ciblée.'
+                    : 'No move can be targeted.',
+              PlayerItemEffectKind.ballMetadata => isFrench
+                  ? 'Cet objet s’utilise uniquement en combat.'
+                  : 'This item can only be used in battle.',
+              null => isFrench
+                  ? 'Cet objet n’a pas d’effet utilisable ici.'
+                  : 'This item has no usable effect here.',
+              _ => null,
+            };
+      return RuntimePlayerDetailEntrySnapshot(
+        id: 'bag.${entry.categoryId}.${entry.itemId}',
+        title: _humanize(entry.itemId),
+        subtitle: _humanize(entry.categoryId),
+        trailingLabel: '×${entry.quantity}',
+        bagAction: RuntimePlayerBagItemActionSnapshot(
+          itemTargetId: entry.itemId,
+          targetKind: targetKind,
+          isEnabled: unavailableReason == null,
+          unavailableReason: unavailableReason,
+        ),
+      );
+    }).toList(growable: false);
     return RuntimePlayerPauseDetailSnapshot(
       section: RuntimePlayerPauseSection.bag,
       title: isFrench ? 'Sac' : 'Bag',
       entries: entries,
+      bagTargets: targets,
       emptyMessage:
           isFrench ? 'Le sac est vide.' : 'There are no items in the bag.',
     );
+  }
+
+  List<RuntimePlayerBagPartyTargetSnapshot> _buildBagTargets(
+    GameState gameState,
+    Map<String, _RuntimeSpeciesPresentation> speciesById, {
+    required String locale,
+    required bool isFrench,
+  }) {
+    return gameState.party.members.asMap().entries.map((entry) {
+      final index = entry.key;
+      final pokemon = entry.value;
+      final species = speciesById[pokemon.speciesId];
+      final persistedHpFloor = pokemon.currentHp > 0 ? pokemon.currentHp : 1;
+      final calculatedMaxHp = species?.maxHpFor(pokemon);
+      final maxHp =
+          calculatedMaxHp == null || calculatedMaxHp < persistedHpFloor
+              ? persistedHpFloor
+              : calculatedMaxHp;
+      final currentHp = pokemon.currentHp.clamp(0, maxHp);
+      return RuntimePlayerBagPartyTargetSnapshot(
+        targetId: 'party.$index',
+        label: species?.nameFor(locale) ?? _humanize(pokemon.speciesId),
+        subtitle: isFrench
+            ? 'Niv. ${pokemon.level} · PV $currentHp/$maxHp'
+            : 'Lv. ${pokemon.level} · HP $currentHp/$maxHp',
+        moves: pokemon.knownMoveIds.map((moveId) {
+          final currentPp = pokemon.currentPpByMoveId?[moveId];
+          return RuntimePlayerBagMoveTargetSnapshot(
+            targetId: moveId,
+            label: _humanize(moveId),
+            subtitle: currentPp == null
+                ? null
+                : (isFrench
+                    ? 'PP actuels : $currentPp'
+                    : 'Current PP: $currentPp'),
+          );
+        }).toList(growable: false),
+      );
+    }).toList(growable: false);
+  }
+
+  bool _isKeyItemCategory(String categoryId) {
+    final normalized = categoryId.trim().toLowerCase().replaceAll('_', '-');
+    return normalized == 'key-item' ||
+        normalized == 'key-items' ||
+        normalized == 'important-items';
   }
 
   RuntimePlayerPauseDetailSnapshot _buildPokedex(
