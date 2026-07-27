@@ -1,6 +1,13 @@
 name: PokeMap Hub product certification
 
 on:
+  workflow_dispatch:
+    inputs:
+      notarize:
+        description: Run the protected macOS notarization release gate
+        required: true
+        default: false
+        type: boolean
   pull_request:
     paths:
       - "apps/pokemap_hub/**"
@@ -186,7 +193,9 @@ jobs:
           xcrun simctl terminate "$SIMULATOR_ID" app.pokemap.hub
 
   notarized-release:
-    if: startsWith(github.ref, 'refs/tags/pokemap-hub-v')
+    if: >-
+      startsWith(github.ref, 'refs/tags/pokemap-hub-v') ||
+      (github.event_name == 'workflow_dispatch' && inputs.notarize)
     needs:
       - verify
       - windows-desktop-certification
@@ -329,3 +338,16 @@ jobs:
             --neutral-package build/neutral-certification.pokemapgame \
             --receipt build/macos-certification-receipt.json \
             --notary-profile pokemap-release
+      - name: Preserve macOS certification artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pokemap-hub-macos-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            apps/pokemap_hub/build/PokeMapHub.dmg
+            apps/pokemap_hub/build/macos-certification-receipt.json
+            ${{ runner.temp }}/notary-result.json
+            ${{ runner.temp }}/notary-logs
+            ${{ runner.temp }}/cold-launch-*.log

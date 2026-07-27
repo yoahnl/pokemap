@@ -100,8 +100,7 @@ void main() {
     skip: !Platform.isMacOS,
   );
 
-  test('release signing script enforces Developer ID team coherence',
-      () async {
+  test('release signing script enforces Developer ID team coherence', () async {
     final signing = await File(
       'tool/release/sign_macos_app.sh',
     ).readAsString();
@@ -118,6 +117,9 @@ void main() {
     ).readAsString();
 
     expect(workflow, isNot(contains('pull_request_target')));
+    expect(workflow, contains('workflow_dispatch:'));
+    expect(workflow, contains("github.event_name == 'workflow_dispatch'"));
+    expect(workflow, contains('inputs.notarize'));
     expect(workflow, contains('flutter test'));
     expect(workflow, contains('flutter analyze'));
     expect(workflow, contains('flutter build macos --release'));
@@ -136,6 +138,16 @@ void main() {
     expect(workflow, contains('build_neutral_package_artifact_test.dart'));
     expect(workflow, contains('verify_macos_distribution.dart'));
     expect(workflow, contains('(deny network*)'));
+    expect(
+      workflow,
+      contains(
+        'actions/upload-artifact@'
+        'ea165f8d65b6e75b540449e92b4886f43607fa02',
+      ),
+    );
+    expect(workflow, contains('build/PokeMapHub.dmg'));
+    expect(workflow, contains('build/macos-certification-receipt.json'));
+    expect(workflow, contains(r'$RUNNER_TEMP/notary-logs'));
     expect(workflow, contains('"packages/map_editor/**"'));
     expect(workflow, contains('"packages/map_player_ui/**"'));
   });

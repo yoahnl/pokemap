@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +9,20 @@ void main() {
     expect(File('windows/runner/Runner.rc').existsSync(), isTrue);
     expect(File('linux/runner/main.cc').existsSync(), isTrue);
     expect(File('linux/CMakeLists.txt').existsSync(), isTrue);
+  });
+
+  test('desktop support claims preserve the intro-video limitation', () async {
+    final support = jsonDecode(
+      await File('tool/release/platform_support.json').readAsString(),
+    ) as Map<String, Object?>;
+    final platforms = support['platforms'] as Map<String, Object?>;
+
+    for (final platformName in <String>['windows', 'linux']) {
+      final platform = platforms[platformName] as Map<String, Object?>;
+      expect(platform['status'], 'build-and-launch-target');
+      expect(platform['releaseGate'], 'release-build-and-launch');
+      expect(platform['introVideoPlayback'], 'fallback-only');
+    }
   });
 
   test('release workflow builds and launches Windows and Linux artifacts',

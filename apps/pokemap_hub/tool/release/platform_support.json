@@ -3,19 +3,26 @@
   "platforms": {
     "macos": {
       "status": "supported",
-      "releaseGate": "developer-id-notarized-dmg"
+      "releaseGate": "developer-id-notarized-dmg",
+      "introVideoPlayback": "native"
     },
     "windows": {
-      "status": "supported",
-      "releaseGate": "release-build-and-launch"
+      "status": "build-and-launch-target",
+      "releaseGate": "release-build-and-launch",
+      "introVideoPlayback": "fallback-only",
+      "reason": "video_player 2.9.5 has no registered Windows backend."
     },
     "linux": {
-      "status": "supported",
-      "releaseGate": "release-build-and-launch"
+      "status": "build-and-launch-target",
+      "releaseGate": "release-build-and-launch",
+      "introVideoPlayback": "fallback-only",
+      "reason": "video_player 2.9.5 has no registered Linux backend."
     },
     "ios": {
-      "status": "supported",
-      "releaseGate": "device-build-and-simulator-launch"
+      "status": "build-and-simulator-target",
+      "releaseGate": "device-build-and-simulator-launch",
+      "introVideoPlayback": "native",
+      "deviceDistribution": "not-certified"
     },
     "android": {
       "status": "not-claimed",

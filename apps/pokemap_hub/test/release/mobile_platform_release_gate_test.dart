@@ -13,8 +13,9 @@ void main() {
     final ios = platforms['ios'] as Map<String, Object?>;
     final android = platforms['android'] as Map<String, Object?>;
 
-    expect(ios['status'], 'supported');
+    expect(ios['status'], 'build-and-simulator-target');
     expect(ios['releaseGate'], 'device-build-and-simulator-launch');
+    expect(ios['deviceDistribution'], 'not-certified');
     expect(android['status'], 'not-claimed');
     expect(android['releaseGate'], 'none');
     expect(Directory('ios').existsSync(), isTrue);
@@ -28,7 +29,8 @@ void main() {
     final info = await File('ios/Runner/Info.plist').readAsString();
 
     expect(project, contains('PRODUCT_BUNDLE_IDENTIFIER = app.pokemap.hub;'));
-    expect(project, contains('INFOPLIST_KEY_CFBundleDisplayName = "PokeMap Hub";'));
+    expect(project,
+        contains('INFOPLIST_KEY_CFBundleDisplayName = "PokeMap Hub";'));
     expect(project, isNot(contains('com.yoahnl.avelune')));
     expect(info, contains('<string>PokeMap Hub</string>'));
     expect(info, isNot(contains('Avelune')));
