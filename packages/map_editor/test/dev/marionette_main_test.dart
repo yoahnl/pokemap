@@ -9,6 +9,36 @@ import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import '../../dev/marionette_main.dart' as marionette;
 
 void main() {
+  test('opens Personalization Studio through the deterministic QA extension',
+      () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/qa/personalization',
+      project: ProjectManifest(
+        name: 'Personalization QA',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+      ),
+      workspaceMode: EditorWorkspaceMode.map,
+    );
+
+    final result = marionette.openPersonalizationStudioForMarionette(
+      container: container,
+    );
+
+    expect(result, <String, Object?>{
+      'opened': true,
+      'workspaceMode': 'personalizationStudio',
+      'projectRootPath': '/qa/personalization',
+      'projectName': 'Personalization QA',
+    });
+    expect(
+      container.read(editorNotifierProvider).workspaceMode,
+      EditorWorkspaceMode.personalizationStudio,
+    );
+  });
+
   test('selectEditorTool selects borderPaint without touching map or history',
       () {
     final map = _mapWithBorderFeature();

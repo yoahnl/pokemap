@@ -22,6 +22,21 @@ import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
+Map<String, Object?> openPersonalizationStudioForMarionette({
+  required ProviderContainer container,
+}) {
+  container
+      .read(editorNotifierProvider.notifier)
+      .selectPersonalizationStudioWorkspace();
+  final editor = container.read(editorNotifierProvider);
+  return <String, Object?>{
+    'opened': editor.workspaceMode == EditorWorkspaceMode.personalizationStudio,
+    'workspaceMode': editor.workspaceMode.name,
+    'projectRootPath': editor.projectRootPath,
+    'projectName': editor.project?.name,
+  };
+}
+
 /// Debug-only entrypoint for deterministic, observable macOS QA.
 void main() {
   // Marionette must be the sole binding initializer in this process.
@@ -53,6 +68,16 @@ void main() {
         'expectedProjectPath': bootstrap.projectRootPath,
         'matches': activePath == bootstrap.projectRootPath,
       });
+    },
+  );
+  registerMarionetteExtension(
+    name: 'pokemap.openPersonalizationStudio',
+    description:
+        'Opens Personalization Studio through the real editor controller.',
+    callback: (_) async {
+      return MarionetteExtensionResult.success(
+        openPersonalizationStudioForMarionette(container: container),
+      );
     },
   );
   developer.registerExtension(
