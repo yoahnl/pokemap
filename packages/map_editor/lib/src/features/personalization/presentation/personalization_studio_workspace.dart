@@ -13,6 +13,7 @@ import '../../../ui/design_system/pokemap_diagnostic_callout.dart';
 import '../../../ui/design_system/pokemap_dialog.dart';
 import '../../../ui/design_system/pokemap_empty_state.dart';
 import '../../../ui/design_system/pokemap_toggle_tile.dart';
+import '../../../ui/shared/top_toolbar/dialogs/top_toolbar_dialogs.dart';
 import '../../editor/state/editor_notifier.dart';
 import '../application/personalization_studio_asset_picker.dart';
 import '../application/project_branding_image_import_service.dart';
@@ -27,6 +28,17 @@ import 'project_intro_video_editor.dart';
 import 'project_semantic_theme_editor.dart';
 import 'project_theme_token_dialog.dart';
 import 'project_typography_editor.dart';
+
+typedef PersonalizationStudioExportLauncher = Future<void> Function(
+  BuildContext context, {
+  required String projectRootPath,
+  required String projectName,
+});
+
+final personalizationStudioExportLauncherProvider =
+    Provider<PersonalizationStudioExportLauncher>((ref) {
+  return showTopToolbarGameExportDialog;
+});
 
 /// Adapts the current editor project to the reusable Personalization Hub.
 ///
@@ -957,6 +969,28 @@ class _PersonalizationStudioWorkspaceState
               onSaveDraft: studioSession?.isDirty == true && canEdit
                   ? () {
                       unawaited(notifier.savePersonalizationStudio());
+                    }
+                  : null,
+              canContinueToExport: activePreflightResult != null &&
+                  activePreflightResult.report.isReadyToExport &&
+                  studioSession?.isDirty != true &&
+                  !_isPreflightRunning &&
+                  _preflightError == null &&
+                  canEdit,
+              onContinueToExport: activePreflightResult != null &&
+                      activePreflightResult.report.isReadyToExport &&
+                      studioSession?.isDirty != true &&
+                      !_isPreflightRunning &&
+                      _preflightError == null &&
+                      canEdit
+                  ? () {
+                      unawaited(
+                        ref.read(personalizationStudioExportLauncherProvider)(
+                          context,
+                          projectRootPath: projectRootPath,
+                          projectName: project.name,
+                        ),
+                      );
                     }
                   : null,
               selectedCategory: _selectedCategory,

@@ -37,6 +37,8 @@ class PersonalizationHubShell extends StatelessWidget {
     this.preflightError,
     this.onRunPreflight,
     this.onSaveDraft,
+    this.canContinueToExport = false,
+    this.onContinueToExport,
   });
 
   final ProjectPresentationProfile profile;
@@ -56,6 +58,8 @@ class PersonalizationHubShell extends StatelessWidget {
   final String? preflightError;
   final VoidCallback? onRunPreflight;
   final VoidCallback? onSaveDraft;
+  final bool canContinueToExport;
+  final VoidCallback? onContinueToExport;
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +93,8 @@ class PersonalizationHubShell extends StatelessWidget {
           preflightError: preflightError,
           onRunPreflight: onRunPreflight,
           onSaveDraft: onSaveDraft,
+          canContinueToExport: canContinueToExport,
+          onContinueToExport: onContinueToExport,
         );
         return Padding(
           padding: const EdgeInsets.all(16),
@@ -245,6 +251,8 @@ class _CategoryDetail extends StatelessWidget {
     required this.preflightError,
     required this.onRunPreflight,
     required this.onSaveDraft,
+    required this.canContinueToExport,
+    required this.onContinueToExport,
   });
 
   final ProjectPresentationProfile profile;
@@ -266,6 +274,8 @@ class _CategoryDetail extends StatelessWidget {
   final String? preflightError;
   final VoidCallback? onRunPreflight;
   final VoidCallback? onSaveDraft;
+  final bool canContinueToExport;
+  final VoidCallback? onContinueToExport;
 
   @override
   Widget build(BuildContext context) {
@@ -335,6 +345,8 @@ class _CategoryDetail extends StatelessWidget {
         preflightError: preflightError,
         onRunPreflight: onRunPreflight,
         onSaveDraft: onSaveDraft,
+        canContinueToExport: canContinueToExport,
+        onContinueToExport: onContinueToExport,
       ),
     ];
     return PokeMapPanel(

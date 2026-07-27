@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/personalization_hub.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
 
 void main() {
   testWidgets('renders a quick readiness table for every category',
@@ -136,5 +137,55 @@ void main() {
       ),
     );
     expect(saveCount, 1);
+  });
+
+  testWidgets('gates the guided export transition on a certified clean report',
+      (tester) async {
+    var exportCount = 0;
+    final report = PersonalizationPublishReadiness.fromProfile(
+      const ProjectPresentationProfile(),
+    );
+
+    Future<void> pumpPanel({
+      required bool completed,
+      required bool canContinue,
+    }) =>
+        tester.pumpWidget(
+          MaterialApp(
+            theme: PokeMapTheme.light(),
+            home: Scaffold(
+              body: PersonalizationReadinessPanel(
+                report: report,
+                requiresPreflight: true,
+                hasCompletedPreflight: completed,
+                canContinueToExport: canContinue,
+                onRunPreflight: () {},
+                onContinueToExport: () => exportCount += 1,
+              ),
+            ),
+          ),
+        );
+
+    await pumpPanel(completed: false, canContinue: false);
+    var exportButton = tester.widget<PokeMapButton>(
+      find.byKey(
+        const ValueKey<String>('personalization-readiness-export'),
+      ),
+    );
+    expect(exportButton.onPressed, isNull);
+
+    await pumpPanel(completed: true, canContinue: true);
+    exportButton = tester.widget<PokeMapButton>(
+      find.byKey(
+        const ValueKey<String>('personalization-readiness-export'),
+      ),
+    );
+    expect(exportButton.onPressed, isNotNull);
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-readiness-export'),
+      ),
+    );
+    expect(exportCount, 1);
   });
 }

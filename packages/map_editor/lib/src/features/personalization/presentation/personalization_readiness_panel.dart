@@ -21,6 +21,8 @@ class PersonalizationReadinessPanel extends StatelessWidget {
     this.preflightError,
     this.onRunPreflight,
     this.onSaveDraft,
+    this.canContinueToExport = false,
+    this.onContinueToExport,
   });
 
   final PersonalizationPublishReadiness report;
@@ -33,6 +35,8 @@ class PersonalizationReadinessPanel extends StatelessWidget {
   final String? preflightError;
   final VoidCallback? onRunPreflight;
   final VoidCallback? onSaveDraft;
+  final bool canContinueToExport;
+  final VoidCallback? onContinueToExport;
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +116,7 @@ class PersonalizationReadinessPanel extends StatelessWidget {
           const spacing = 10.0;
           final width = (constraints.maxWidth - spacing * (columnCount - 1)) /
               columnCount;
-          return Column(
+          final content = Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               if (preflightError case final error?) ...<Widget>[
@@ -188,8 +192,48 @@ class PersonalizationReadinessPanel extends StatelessWidget {
                     const SizedBox(height: 8),
                 ],
               ],
+              if (requiresPreflight) ...<Widget>[
+                const SizedBox(height: 12),
+                PokeMapCard(
+                  key: const ValueKey<String>(
+                    'personalization-readiness-export-guide',
+                  ),
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    alignment: WrapAlignment.spaceBetween,
+                    children: <Widget>[
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 620),
+                        child: Text(
+                          canContinueToExport
+                              ? 'Toutes les vérifications sont terminées. '
+                                  'Poursuivez dans le flux de publication.'
+                              : 'Le passage vers l’export sera disponible '
+                                  'après un preflight valide et '
+                                  'l’enregistrement du brouillon.',
+                        ),
+                      ),
+                      PokeMapButton(
+                        key: const ValueKey<String>(
+                          'personalization-readiness-export',
+                        ),
+                        variant: PokeMapButtonVariant.success,
+                        size: PokeMapButtonSize.medium,
+                        leading: const Icon(Icons.rocket_launch_outlined),
+                        onPressed:
+                            canContinueToExport ? onContinueToExport : null,
+                        child: const Text('Continuer vers l’export'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           );
+          if (!constraints.hasBoundedHeight) return content;
+          return SingleChildScrollView(child: content);
         },
       ),
     );

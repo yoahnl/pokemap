@@ -28,6 +28,7 @@ void main() {
     );
     final preflight = _FixedPresentationPreflight();
     final gateway = _MemoryProjectGateway(project);
+    var exportCalls = 0;
 
     final container = await pumpEditorCanvasHostHarness(
       tester,
@@ -39,6 +40,17 @@ void main() {
       surfaceSize: const Size(1200, 900),
       overrides: [
         projectPresentationPreflightProvider.overrideWithValue(preflight),
+        personalizationStudioExportLauncherProvider.overrideWithValue(
+          (
+            context, {
+            required projectRootPath,
+            required projectName,
+          }) async {
+            exportCalls += 1;
+            expect(projectRootPath, root.path);
+            expect(projectName, 'Preflight Studio');
+          },
+        ),
         personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
           ({
             required String projectPath,
@@ -84,6 +96,19 @@ void main() {
 
     expect(preflight.calls, 1);
     expect(find.text('Prêt à exporter'), findsOneWidget);
+    await tester.ensureVisible(
+      find.byKey(
+        const ValueKey<String>('personalization-readiness-export'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-readiness-export'),
+      ),
+    );
+    await tester.pump();
+    expect(exportCalls, 1);
 
     await tester.scrollUntilVisible(
       find.byKey(
