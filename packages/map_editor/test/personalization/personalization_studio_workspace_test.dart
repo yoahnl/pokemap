@@ -297,6 +297,107 @@ void main() {
     expect(projectFile.readAsStringSync(), durableJson);
   });
 
+  testWidgets('typography category edits one role without changing the others',
+      (tester) async {
+    final root = Directory.systemTemp
+        .createTempSync('personalization-studio-typography-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    const display = ProjectTypographyRoleProfile(
+      fontPath: 'assets/presentation/fonts/display.ttf',
+      family: 'Display Custom',
+      licensePath: 'assets/presentation/fonts/display-license.txt',
+      redistributable: true,
+      fallbackFamilies: <String>['sans-serif'],
+      glyphCoverage: <String>[
+        'digits',
+        'latin',
+        'latinExtended',
+        'punctuation',
+      ],
+    );
+    const body = ProjectTypographyRoleProfile(
+      fallbackFamilies: <String>['serif'],
+    );
+    const typography = ProjectTypographyProfile(
+      display: display,
+      body: body,
+    );
+    final project = buildShellChromeProject(name: 'Typography Studio').copyWith(
+      presentation: const ProjectPresentationProfile(
+        typography: typography,
+      ),
+    );
+    final projectFile = File('${root.path}/project.json');
+    final durableJson =
+        const JsonEncoder.withIndent('  ').convert(project.toJson());
+    projectFile.writeAsStringSync(durableJson, flush: true);
+    final gateway = _MemoryProjectGateway(project);
+
+    final container = await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1200, 800),
+      overrides: [
+        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
+          ({
+            required String projectPath,
+            required ProjectManifest initialDocument,
+          }) {
+            return PersonalizationStudioSessionController(
+              session: NarrativeDocumentSession<ProjectManifest>(
+                documentId: 'personalization-studio-typography',
+                initialDocument: initialDocument,
+                gateway: gateway,
+                recoveryStore: _MemoryProjectRecoveryStore(),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+    await container
+        .read(editorNotifierProvider.notifier)
+        .initializePersonalizationStudioSession();
+    await tester.pump();
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-category-typography'),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(ProjectTypographyEditor), findsOneWidget);
+    for (final role in ProjectTypographyRole.values) {
+      expect(
+        find.byKey(ValueKey<String>('typography-import-${role.name}')),
+        findsOneWidget,
+      );
+    }
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('typography-system-display'),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+
+    final draft = container
+        .read(editorNotifierProvider)
+        .project
+        ?.effectivePresentation
+        .typography;
+    expect(draft?.display.fontPath, isNull);
+    expect(draft?.display.fallbackFamilies, <String>['sans-serif']);
+    expect(draft?.body, body);
+    expect(projectFile.readAsStringSync(), durableJson);
+  });
+
   testWidgets('shows a dedicated state when no project is open',
       (tester) async {
     await pumpEditorCanvasHostHarness(

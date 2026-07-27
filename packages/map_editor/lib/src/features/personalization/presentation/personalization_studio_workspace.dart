@@ -10,12 +10,15 @@ import '../../../ui/design_system/pokemap_badge.dart';
 import '../../../ui/design_system/pokemap_button.dart';
 import '../../../ui/design_system/pokemap_card.dart';
 import '../../../ui/design_system/pokemap_diagnostic_callout.dart';
+import '../../../ui/design_system/pokemap_dialog.dart';
 import '../../../ui/design_system/pokemap_empty_state.dart';
 import '../../../ui/design_system/pokemap_toggle_tile.dart';
 import '../../editor/state/editor_notifier.dart';
+import '../application/project_font_import_service.dart';
 import '../application/project_intro_video_import_service.dart';
 import 'personalization_hub_shell.dart';
 import 'project_intro_video_editor.dart';
+import 'project_typography_editor.dart';
 
 /// Adapts the current editor project to the reusable Personalization Hub.
 ///
@@ -36,6 +39,8 @@ class _PersonalizationStudioWorkspaceState
   bool _isImportingAsset = false;
   String? _assetFeedback;
   bool _assetFeedbackIsError = false;
+  final Map<ProjectTypographyRole, String> _fontPreviewFamilies =
+      <ProjectTypographyRole, String>{};
 
   void _ensureSession(String projectRootPath) {
     if (_requestedProjectRootPath == projectRootPath) return;
@@ -48,6 +53,104 @@ class _PersonalizationStudioWorkspaceState
             .initializePersonalizationStudioSession(),
       );
     });
+  }
+
+  Future<void> _importFont({
+    required BuildContext context,
+    required String projectRootPath,
+    required ProjectPresentationProfile profile,
+    required ProjectTypographyRole role,
+    required EditorNotifier notifier,
+  }) async {
+    if (_isImportingAsset) return;
+    final confirmed = await showPokeMapBinaryConfirmationDialog(
+      context,
+      title: 'Droit de redistribution',
+      message: 'Confirmez que la licence choisie autorise l’intégration et la '
+          'redistribution de cette fonte avec le jeu exporté.',
+      secondaryLabel: 'Annuler',
+      primaryLabel: 'Je confirme',
+      icon: Icons.verified_user_outlined,
+    );
+    if (!mounted || !confirmed) return;
+    final selection = await FilePicker.platform.pickFiles(
+      dialogTitle: 'Choisir une fonte et son fichier de licence',
+      type: FileType.custom,
+      allowedExtensions: const <String>['ttf', 'otf', 'txt'],
+      allowMultiple: true,
+      withData: false,
+      lockParentWindow: true,
+    );
+    if (!mounted || selection == null) return;
+    final paths = selection.files
+        .map((file) => file.path)
+        .whereType<String>()
+        .toList(growable: false);
+    final fontPath =
+        _singlePathWithExtensions(paths, const <String>['.ttf', '.otf']);
+    final licensePath =
+        _singlePathWithExtensions(paths, const <String>['.txt']);
+    if (fontPath == null || licensePath == null) {
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback =
+            'Sélectionnez exactement une fonte TTF/OTF et une licence TXT.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isImportingAsset = true;
+      _assetFeedback = null;
+    });
+    try {
+      final typography = profile.typography ?? const ProjectTypographyProfile();
+      final currentRole = _typographyRoleProfile(typography, role);
+      final imported = await const ProjectFontImportService().importIntoProject(
+        projectRoot: Directory(projectRootPath),
+        role: role,
+        fontFile: File(fontPath),
+        licenseFile: File(licensePath),
+        redistributionConfirmed: true,
+        fallbackFamilies: currentRole.fallbackFamilies,
+      );
+      final previewFamily = await const ProjectFontPreviewLoader().load(
+        fontFile: File('$projectRootPath/${imported.fontPath}'),
+        role: role,
+      );
+      final updatedTypography =
+          _replaceTypographyRole(typography, role, imported);
+      final applied = await notifier.applyPersonalizationStudioProfile(
+        profile.copyWith(typography: updatedTypography),
+        label: 'Importer la fonte ${_typographyRoleName(role)}',
+      );
+      if (!mounted) return;
+      setState(() {
+        if (applied) {
+          _fontPreviewFamilies[role] = previewFamily;
+        }
+        _assetFeedbackIsError = !applied;
+        _assetFeedback = applied
+            ? 'Fonte et licence importées dans le brouillon.'
+            : 'La fonte a été validée, mais le brouillon n’a pas pu être modifié.';
+      });
+    } on ProjectFontImportException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = 'L’import de la fonte a échoué.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isImportingAsset = false);
+      }
+    }
   }
 
   Future<void> _importIntroVideo({
@@ -137,66 +240,113 @@ class _PersonalizationStudioWorkspaceState
   }
 
   Widget _buildCategoryEditor({
+    required BuildContext context,
     required ProjectPresentationCategory category,
     required ProjectPresentationProfile profile,
     required String projectRootPath,
     required EditorNotifier notifier,
     required bool canEdit,
   }) {
-    if (category != ProjectPresentationCategory.intro) {
-      return Text(
-        'Les réglages ${_categoryName(category)} apparaîtront ici.',
+    final feedback = <Widget>[
+      if (_assetFeedback != null) ...<Widget>[
+        PokeMapDiagnosticCallout(
+          key: const ValueKey<String>(
+            'personalization-studio-asset-feedback',
+          ),
+          severity: _assetFeedbackIsError
+              ? PokeMapDiagnosticSeverity.error
+              : PokeMapDiagnosticSeverity.info,
+          message: _assetFeedback!,
+        ),
+        const SizedBox(height: 12),
+      ],
+    ];
+    if (category == ProjectPresentationCategory.intro) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          ...feedback,
+          IgnorePointer(
+            ignoring: !canEdit || _isImportingAsset,
+            child: ProjectIntroVideoEditor(
+              profile: profile.intro,
+              onImportPressed: () {
+                unawaited(
+                  _importIntroVideo(
+                    projectRootPath: projectRootPath,
+                    profile: profile,
+                    notifier: notifier,
+                  ),
+                );
+              },
+              onChanged: (intro) {
+                unawaited(
+                  notifier.applyPersonalizationStudioProfile(
+                    profile.copyWith(intro: intro),
+                    label: 'Modifier les préférences de l’intro',
+                  ),
+                );
+              },
+              onRemove: profile.intro == null
+                  ? null
+                  : () {
+                      unawaited(
+                        notifier.applyPersonalizationStudioProfile(
+                          profile.copyWith(intro: null),
+                          label: 'Retirer la vidéo d’introduction',
+                        ),
+                      );
+                    },
+            ),
+          ),
+        ],
       );
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        if (_assetFeedback != null) ...<Widget>[
-          PokeMapDiagnosticCallout(
-            key: const ValueKey<String>(
-              'personalization-studio-asset-feedback',
+    if (category == ProjectPresentationCategory.typography) {
+      final typography = profile.typography ?? const ProjectTypographyProfile();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          ...feedback,
+          IgnorePointer(
+            ignoring: !canEdit || _isImportingAsset,
+            child: ProjectTypographyEditor(
+              profile: typography,
+              previewFamilies: _fontPreviewFamilies,
+              onImportRole: (role) {
+                unawaited(
+                  _importFont(
+                    context: context,
+                    projectRootPath: projectRootPath,
+                    profile: profile,
+                    role: role,
+                    notifier: notifier,
+                  ),
+                );
+              },
+              onUseSystemFont: (role) {
+                final current = _typographyRoleProfile(typography, role);
+                final systemRole = ProjectTypographyRoleProfile(
+                  fallbackFamilies: current.fallbackFamilies,
+                );
+                unawaited(
+                  notifier.applyPersonalizationStudioProfile(
+                    profile.copyWith(
+                      typography:
+                          _replaceTypographyRole(typography, role, systemRole),
+                    ),
+                    label: 'Utiliser le fallback ${_typographyRoleName(role)}',
+                  ),
+                );
+                setState(() => _fontPreviewFamilies.remove(role));
+              },
             ),
-            severity: _assetFeedbackIsError
-                ? PokeMapDiagnosticSeverity.error
-                : PokeMapDiagnosticSeverity.info,
-            message: _assetFeedback!,
           ),
-          const SizedBox(height: 12),
         ],
-        IgnorePointer(
-          ignoring: !canEdit || _isImportingAsset,
-          child: ProjectIntroVideoEditor(
-            profile: profile.intro,
-            onImportPressed: () {
-              unawaited(
-                _importIntroVideo(
-                  projectRootPath: projectRootPath,
-                  profile: profile,
-                  notifier: notifier,
-                ),
-              );
-            },
-            onChanged: (intro) {
-              unawaited(
-                notifier.applyPersonalizationStudioProfile(
-                  profile.copyWith(intro: intro),
-                  label: 'Modifier les préférences de l’intro',
-                ),
-              );
-            },
-            onRemove: profile.intro == null
-                ? null
-                : () {
-                    unawaited(
-                      notifier.applyPersonalizationStudioProfile(
-                        profile.copyWith(intro: null),
-                        label: 'Retirer la vidéo d’introduction',
-                      ),
-                    );
-                  },
-          ),
-        ),
-      ],
+      );
+    }
+    return Text(
+      'Les réglages ${_categoryName(category)} apparaîtront ici.',
     );
   }
 
@@ -360,6 +510,7 @@ class _PersonalizationStudioWorkspaceState
                 setState(() => _selectedCategory = category);
               },
               categoryBuilder: (context, category) => _buildCategoryEditor(
+                context: context,
                 category: category,
                 profile: profile,
                 projectRootPath: projectRootPath,
@@ -398,4 +549,34 @@ String _categoryName(ProjectPresentationCategory category) =>
       ProjectPresentationCategory.intro => 'intro vidéo',
       ProjectPresentationCategory.typography => 'typographie',
       ProjectPresentationCategory.theme => 'thème et HUD',
+    };
+
+ProjectTypographyRoleProfile _typographyRoleProfile(
+  ProjectTypographyProfile profile,
+  ProjectTypographyRole role,
+) =>
+    switch (role) {
+      ProjectTypographyRole.display => profile.display,
+      ProjectTypographyRole.body => profile.body,
+      ProjectTypographyRole.dialogue => profile.dialogue,
+      ProjectTypographyRole.numbers => profile.numbers,
+    };
+
+ProjectTypographyProfile _replaceTypographyRole(
+  ProjectTypographyProfile profile,
+  ProjectTypographyRole role,
+  ProjectTypographyRoleProfile replacement,
+) =>
+    switch (role) {
+      ProjectTypographyRole.display => profile.copyWith(display: replacement),
+      ProjectTypographyRole.body => profile.copyWith(body: replacement),
+      ProjectTypographyRole.dialogue => profile.copyWith(dialogue: replacement),
+      ProjectTypographyRole.numbers => profile.copyWith(numbers: replacement),
+    };
+
+String _typographyRoleName(ProjectTypographyRole role) => switch (role) {
+      ProjectTypographyRole.display => 'Titres & affichage',
+      ProjectTypographyRole.body => 'Texte courant',
+      ProjectTypographyRole.dialogue => 'Dialogues',
+      ProjectTypographyRole.numbers => 'Nombres',
     };

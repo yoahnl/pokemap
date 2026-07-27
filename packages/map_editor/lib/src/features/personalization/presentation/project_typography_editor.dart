@@ -137,6 +137,7 @@ class _RoleEditor extends StatelessWidget {
               ),
               if (custom)
                 PokeMapButton(
+                  key: ValueKey<String>('typography-system-${role.name}'),
                   onPressed: onUseSystem,
                   variant: PokeMapButtonVariant.secondary,
                   leading: const Icon(Icons.settings_backup_restore_outlined),
