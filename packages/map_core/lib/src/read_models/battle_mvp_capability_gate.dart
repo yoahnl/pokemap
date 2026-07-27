@@ -2,6 +2,7 @@ import 'project_capability_truth.dart';
 
 /// Stable identity consumed by generated audit artifacts and release tooling.
 const battleMvpCapabilityGateId = 'battle.mvp.v0';
+const battleFullCapabilityGateId = 'battle.full.v0';
 
 const battleTrainerDifficultyCapabilityId = 'battle.ai.trainer-difficulty';
 const battleMoveDecisionCapabilityId = 'battle.decision.move';
@@ -17,7 +18,8 @@ const battleHeldItemCapabilityId = 'battle.item.held';
 const battleNatureIvEvCapabilityId = 'battle.stats.nature-iv-ev';
 const battleStruggleCapabilityId = 'battle.decision.struggle';
 
-const requiredBattleMvpCapabilityIds = <String>{
+/// Exact RM-026 cutline that remains blocking for the MVP release.
+const battleMvpCutlineCapabilityIds = <String>{
   battleTrainerDifficultyCapabilityId,
   battleMoveDecisionCapabilityId,
   battleSwitchDecisionCapabilityId,
@@ -28,15 +30,36 @@ const requiredBattleMvpCapabilityIds = <String>{
   battleReviveItemCapabilityId,
   battleTrainerRewardCapabilityId,
   battleTrainerLifecycleCapabilityId,
+};
+
+const battleFullExtensionCapabilityIds = <String>{
   battleHeldItemCapabilityId,
   battleNatureIvEvCapabilityId,
   battleStruggleCapabilityId,
+};
+
+/// Exact catalogue declared by the MVP gate, including deferred extensions.
+///
+/// The historical name is preserved because RM-026 already published it.
+const requiredBattleMvpCapabilityIds = <String>{
+  ...battleMvpCutlineCapabilityIds,
+  ...battleFullExtensionCapabilityIds,
+};
+
+/// Exact set promoted by the independent, non-MVP-blocking RM-053 gate.
+const requiredBattleFullCapabilityIds = <String>{
+  ...battleMvpCutlineCapabilityIds,
+  ...battleFullExtensionCapabilityIds,
 };
 
 const battleMvpCapabilityJsonRelativePath =
     'reports/gameplay/generated/battle_mvp_capability_gate_v0.json';
 const battleMvpCapabilityMarkdownRelativePath =
     'reports/gameplay/generated/battle_mvp_capability_gate_v0.md';
+const battleFullCapabilityJsonRelativePath =
+    'reports/gameplay/generated/battle_full_capability_gate_v0.json';
+const battleFullCapabilityMarkdownRelativePath =
+    'reports/gameplay/generated/battle_full_capability_gate_v0.md';
 
 final class BattleMvpCapabilityDefinition {
   const BattleMvpCapabilityDefinition({
@@ -176,6 +199,116 @@ final class BattleMvpCapabilityGate {
     )) {
       buffer.writeln(
         '- `${definition.capabilityId}` · ${definition.record.reason}',
+      );
+    }
+    if (report.issues.isNotEmpty) {
+      buffer
+        ..writeln()
+        ..writeln('## Blocking issues');
+      for (final issue in report.issues) {
+        buffer.writeln(
+          '- `${issue.code.name}` · `${issue.capabilityId}` · '
+          '${issue.message}',
+        );
+      }
+    }
+    return buffer.toString().trimRight();
+  }
+}
+
+/// RM-053 proof gate for the complete battle capability catalogue.
+///
+/// This gate is intentionally separate from [BattleMvpCapabilityGate]:
+/// promoting a full extension here must never expand the FG-185 cutline.
+final class BattleFullCapabilityGate {
+  BattleFullCapabilityGate._({
+    required List<BattleMvpCapabilityDefinition> definitions,
+    required this.report,
+  }) : definitions = List.unmodifiable(definitions);
+
+  factory BattleFullCapabilityGate.canonical() {
+    final definitions = _canonicalBattleFullCapabilities();
+    return BattleFullCapabilityGate._(
+      definitions: definitions,
+      report: ProjectCapabilityTruthReport.evaluate(
+        definitions.map((definition) => definition.record),
+        requiredCapabilityIds: requiredBattleFullCapabilityIds,
+      ),
+    );
+  }
+
+  final List<BattleMvpCapabilityDefinition> definitions;
+  final ProjectCapabilityTruthReport report;
+
+  /// RM-053 is additional release evidence, not an FG-185 prerequisite.
+  bool get isMvpReleaseBlocking => false;
+
+  Map<String, Object?> toJson() => {
+        'schemaVersion': 1,
+        'gateId': battleFullCapabilityGateId,
+        'status': report.isPassing ? 'pass' : 'fail',
+        'mvpReleaseBlocking': isMvpReleaseBlocking,
+        'mvpCutlineGateId': battleMvpCapabilityGateId,
+        'mvpCutlineCapabilityIds': [
+          for (final definition
+              in definitions.where((definition) => definition.isMvpCutline))
+            definition.capabilityId,
+        ],
+        'fullExtensionCapabilityIds': [
+          for (final definition
+              in definitions.where((definition) => !definition.isMvpCutline))
+            definition.capabilityId,
+        ],
+        'capabilities': [
+          for (final definition in definitions) definition.toJson(),
+        ],
+        'issues': [for (final issue in report.issues) issue.toJson()],
+      };
+
+  String get agentMarkdown {
+    final buffer = StringBuffer()
+      ..writeln('# Battle Full Capability Gate V0')
+      ..writeln()
+      ..writeln(
+        'Gate: `$battleFullCapabilityGateId` · '
+        'Status: `${report.isPassing ? 'pass' : 'fail'}` · '
+        'MVP release: `non-blocking`',
+      )
+      ..writeln()
+      ..writeln(
+        'This RM-053 gate promotes the complete battle catalogue while '
+        'leaving the independent `$battleMvpCapabilityGateId` cutline '
+        'unchanged for FG-185.',
+      )
+      ..writeln()
+      ..writeln('| Capability | Origin | Status | Scope |')
+      ..writeln('|---|---|---|---|');
+    for (final definition in definitions) {
+      buffer.writeln(
+        '| `${definition.capabilityId}` | '
+        '`${definition.isMvpCutline ? 'mvp-cutline' : 'full-extension'}` | '
+        '`${definition.record.status.name}` | '
+        '${_battleMarkdownCell(definition.scopeNote)} |',
+      );
+    }
+    buffer
+      ..writeln()
+      ..writeln('## Promoted evidence')
+      ..writeln()
+      ..writeln(
+        '| Capability | Control | Contract | Runtime | Player | Positive | Negative |',
+      )
+      ..writeln('|---|---|---|---|---|---|---|');
+    for (final definition in definitions) {
+      final record = definition.record;
+      buffer.writeln(
+        '| `${record.capabilityId}` | '
+        '${_battleMarkdownCell(record.authoringControl)} | '
+        '${_battleMarkdownCell(record.contractField)} | '
+        '${_battleMarkdownCell(record.runtimeConsumer)} | '
+        '${_battleMarkdownCell(record.playerSurface)} | '
+        '${_battleMarkdownCell(record.positiveTest)} | '
+        '${_battleMarkdownCell(record.negativeTest)} |',
       );
     }
     if (report.issues.isNotEmpty) {
@@ -424,6 +557,89 @@ const _canonicalBattleMvpCapabilities = <BattleMvpCapabilityDefinition>[
     ),
   ),
 ];
+
+const _canonicalBattleFullExtensions = <BattleMvpCapabilityDefinition>[
+  BattleMvpCapabilityDefinition(
+    isMvpCutline: false,
+    scopeNote:
+        'Authored held items activate in battle and reconcile explicitly after battle.',
+    record: ProjectCapabilityTruthRecord.promoted(
+      capabilityId: battleHeldItemCapabilityId,
+      authoringControl:
+          'packages/map_editor/lib/src/ui/panels/trainer_library_panel_pokemon_widgets.dart#trainer-library-pokemon-item',
+      contractField:
+          'packages/map_core/lib/src/models/project_trainer.dart#ProjectTrainerPokemonEntry,heldItemId',
+      runtimeConsumer:
+          'packages/map_runtime/lib/src/application/runtime_battle_combatant_seed_builder.dart#_resolvePsdkHeldItemId',
+      playerSurface:
+          'packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart#writePlayerPsdkHeldItemsBackToPartySlots',
+      positiveTest:
+          'packages/map_runtime/test/runtime_held_item_bridge_v0_test.dart#a-runtime-seed-hydrates-and-executes-its-held-item-effect,writes-unchanged-consumed-removed-and-received-items-explicitly',
+      negativeTest:
+          'packages/map_runtime/test/runtime_battle_combatant_seed_builder_test.dart#rejects-a-held-item-whose-PSDK-effect-is-not-ported',
+    ),
+  ),
+  BattleMvpCapabilityDefinition(
+    isMvpCutline: false,
+    scopeNote:
+        'Persisted nature, IV, and EV values deterministically alter runtime battle stats.',
+    record: ProjectCapabilityTruthRecord.promoted(
+      capabilityId: battleNatureIvEvCapabilityId,
+      // RM-028 deliberately deferred advanced editor controls to FG-206.
+      // The persisted PlayerPokemon state is therefore the concrete producer
+      // and control for this full-gate runtime-fidelity capability.
+      authoringControl:
+          'packages/map_core/lib/src/models/save_data.dart#PlayerPokemon',
+      contractField:
+          'packages/map_core/lib/src/models/save_data.dart#natureId,ivs,evs',
+      runtimeConsumer:
+          'packages/map_runtime/lib/src/application/runtime_battle_combatant_seed_builder.dart#RuntimeBattleCombatantSeedBuilder',
+      playerSurface:
+          'packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart#PlayableMapGame',
+      positiveTest:
+          'packages/map_runtime/test/runtime_battle_combatant_seed_builder_test.dart#builds-a-player-combatant-seed-from-explicit-knownMoveIds',
+      negativeTest:
+          'packages/map_runtime/test/runtime_battle_combatant_seed_builder_test.dart#rejects-an-unknown-saved-nature-instead-of-neutralizing-it',
+    ),
+  ),
+  BattleMvpCapabilityDefinition(
+    isMvpCutline: false,
+    scopeNote:
+        'Exhausted or fully prevented moves expose canonical Struggle without PP write-back.',
+    record: ProjectCapabilityTruthRecord.promoted(
+      capabilityId: battleStruggleCapabilityId,
+      // Struggle is a live player decision rather than project-authored data,
+      // so its concrete runtime control satisfies the generic control slot.
+      authoringControl:
+          'packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart#BattleOverlayComponent',
+      contractField:
+          'packages/map_battle/lib/src/domain/decision/battle_decision.dart#BattleDecision.struggle,canStruggle',
+      runtimeConsumer:
+          'packages/map_runtime/lib/src/application/runtime_psdk_battle_session_adapter.dart#RuntimePsdkBattleSessionAdapter',
+      playerSurface:
+          'packages/map_runtime/lib/src/presentation/flame/battle_command_menu_model.dart#BattleCommandMenuModel',
+      positiveTest:
+          'packages/map_runtime/test/runtime_psdk_battle_decision_contract_test.dart#exhausted-PP-exposes-and-executes-Struggle-through-the-player-menu',
+      negativeTest:
+          'packages/map_battle/test/struggle_policy_v0_test.dart#a-usable-move-keeps-Struggle-unavailable-and-rejection-atomic',
+    ),
+  ),
+];
+
+List<BattleMvpCapabilityDefinition> _canonicalBattleFullCapabilities() {
+  // Concatenation, instead of keyed replacement, is intentional: the generic
+  // truth report can then expose a missing, duplicate, or unexpected extension
+  // as a structured fail-closed issue instead of a null-check construction
+  // crash or a silently overwritten map entry.
+  final definitions = <BattleMvpCapabilityDefinition>[
+    for (final definition in _canonicalBattleMvpCapabilities)
+      if (definition.isMvpCutline) definition,
+    ..._canonicalBattleFullExtensions,
+  ]..sort(
+      (left, right) => left.capabilityId.compareTo(right.capabilityId),
+    );
+  return definitions;
+}
 
 String _battleMarkdownCell(String? value) =>
     (value == null || value.trim().isEmpty ? '—' : value)
