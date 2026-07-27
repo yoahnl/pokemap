@@ -305,8 +305,7 @@ void main() {
           isTrue);
     });
 
-    test(
-        'load migrates legacy party members and save rewrites normalized phase 9 data',
+    test('load migrates legacy party members and preserves supported metadata',
         () async {
       const originalState = GameState(
         saveId: 'legacy_phase_9',
@@ -381,6 +380,9 @@ void main() {
       expect(loadedState.party.members.single.natureId, 'hardy');
       expect(loadedState.party.members.single.abilityId, 'unknown');
       expect(loadedState.party.members.single.currentHp, 1);
+      expect(loadedState.party.members.single.nickname, 'Ferry');
+      expect(loadedState.party.members.single.friendship, 0);
+      expect(loadedState.party.members.single.provenance, isNull);
       expect(loadedState.progression.caughtSpeciesIds, contains('lapras'));
       expect(loadedState.progression.seenSpeciesIds, contains('lapras'));
       expect(
@@ -410,7 +412,9 @@ void main() {
       expect(normalizedMember['abilityId'], 'unknown');
       expect(normalizedMember['currentHp'], 1);
       expect(normalizedMember.containsKey('id'), isFalse);
-      expect(normalizedMember.containsKey('nickname'), isFalse);
+      expect(normalizedMember['nickname'], 'Ferry');
+      expect(normalizedMember['friendship'], 0);
+      expect(normalizedMember['provenance'], isNull);
       expect(normalizedMember.containsKey('isFainted'), isFalse);
       expect(await projectFile.readAsString(), '{"name":"test"}');
     });

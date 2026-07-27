@@ -83,8 +83,10 @@ void main() {
     expect(game.debugFlowPhaseName, 'overworld');
   });
 
-  test('trainer defeat opens only the authored defeat dialogue', () async {
+  test('trainer defeat opens authored dialogue before whiteout recovery',
+      () async {
     String? loadedDialogueId;
+    var checkpointRequests = 0;
     final game = _TestPlayableMapGame(
       bundle: _bundleWithTrainerLifecycle(),
       projectFilePath: '/tmp/post-battle/project.json',
@@ -94,6 +96,21 @@ void main() {
       dialogueSessionLoader: (resolved) async {
         loadedDialogueId = resolved.dialogueId;
         return _singleLineDialogueSession('On se retrouvera.');
+      },
+      defeatRecoveryCapsLoader: (_) async =>
+          const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{0: 19},
+        maxPpByPartyIndex: <int, Map<String, int>>{
+          0: <String, int>{
+            'tackle': 35,
+            'growl': 40,
+            'tail_whip': 30,
+            'focus_energy': 30,
+          },
+        },
+      ),
+      defeatRecoveryCheckpointEmitter: () async {
+        checkpointRequests += 1;
       },
     );
     game.onGameResize(Vector2(640, 480));
@@ -112,6 +129,18 @@ void main() {
       game.gameStateSnapshot.storyFlags.activeFlags,
       isNot(contains('trainer_defeated:trainer_iris')),
     );
+    expect(checkpointRequests, 0);
+
+    expect(
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      ),
+      isTrue,
+    );
+    await game.debugWaitForDefeatRecovery();
+
+    expect(checkpointRequests, 1);
+    expect(game.debugFlowPhaseName, 'overworld');
   });
 
   test('PlayableMapGame keeps battle locked and commits one win decision flow',
@@ -429,6 +458,8 @@ final class _TestPlayableMapGame extends PlayableMapGame {
     super.dialogueSessionLoader,
     super.postBattleOverlayMounter,
     super.beforePostBattleStateCommit,
+    super.defeatRecoveryCapsLoader,
+    super.defeatRecoveryCheckpointEmitter,
   });
 
   @override

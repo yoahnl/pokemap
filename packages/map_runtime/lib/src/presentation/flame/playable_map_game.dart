@@ -8213,16 +8213,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (postBattleCompleter != null && !postBattleCompleter.isCompleted) {
       postBattleCompleter.complete();
     }
-    if (!postBattleFailed &&
-        outcome.isDefeat &&
-        !hostedByNarrativeScene &&
-        activeBattleContext != null) {
-      _startDefeatRecovery(
-        activeBattleContext,
-        activePlayerLineupIndex: outcome.finalState.player.lineupIndex,
-      );
-    }
-
     // NOTE: NE PAS clear _triggeredTrainerBattles ici!
     // Le lock doit rester actif tant que le joueur est dans la LoS du trainer.
     // Si on clear le lock ici, le trainer sera re-déclenché immédiatement
@@ -8245,7 +8235,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     MapEntity? directPostBattleDialogueNpc;
     DialogueRef? directPostBattleDialogueRef;
     if (!postBattleFailed &&
-        !outcome.isDefeat &&
         scenarioOwner == null &&
         sceneBattleOutcomeResult == null &&
         activeBattleContext?.request is TrainerBattleStartRequest) {
@@ -8336,12 +8325,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (sceneBattleOutcomeResult != null) {
       _completePendingSceneBattleOutcome(sceneBattleOutcomeResult);
     }
-    var standaloneOutcomePublicationScheduled = false;
-    void publishStandaloneOutcomeOnce() {
-      if (standaloneOutcomePublicationScheduled) {
+    var standaloneFlowCompletionScheduled = false;
+    void completeStandaloneFlowOnce() {
+      if (standaloneFlowCompletionScheduled) {
         return;
       }
-      standaloneOutcomePublicationScheduled = true;
+      standaloneFlowCompletionScheduled = true;
+      if (outcome.isDefeat &&
+          !hostedByNarrativeScene &&
+          activeBattleContext != null) {
+        _startDefeatRecovery(
+          activeBattleContext,
+          activePlayerLineupIndex: outcome.finalState.player.lineupIndex,
+        );
+      }
       _scheduleRootNarrativeOutcomePublication(qualifiedStandaloneOutcome);
     }
 
@@ -8349,15 +8346,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final postBattleDialogue = directPostBattleDialogueRef;
     if (postBattleNpc != null && postBattleDialogue != null) {
       // Le loader peut échouer de façon synchrone ou asynchrone. Le guard
-      // local garantit que l'outcome trainer n'est publié qu'une fois dans
-      // les deux cas, même si `_tryOpenDialogue` retourne `false`.
-      _pendingPostDialogueAction = publishStandaloneOutcomeOnce;
+      // local garantit que la suite du flow (éventuel whiteout puis outcome)
+      // n'est lancée qu'une fois, même si `_tryOpenDialogue` retourne `false`.
+      _pendingPostDialogueAction = completeStandaloneFlowOnce;
       final dialogueStarted = _tryOpenDialogue(
         postBattleNpc.id,
         postBattleDialogue,
         postBattleNpc.inspectorHeadline,
         allowAbsentEntity: true,
-        onLoadFailed: publishStandaloneOutcomeOnce,
+        onLoadFailed: completeStandaloneFlowOnce,
       );
       if (dialogueStarted) {
         debugPrint(
@@ -8367,7 +8364,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
       _pendingPostDialogueAction = null;
     }
-    publishStandaloneOutcomeOnce();
+    completeStandaloneFlowOnce();
     debugPrint('[battle] overworld resumed');
   }
 
