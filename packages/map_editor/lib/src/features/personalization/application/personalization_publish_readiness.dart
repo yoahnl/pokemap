@@ -70,6 +70,17 @@ final class PersonalizationReadinessIssue {
           'Couverture de caractères incomplète',
         'themeColorInvalid' => 'Couleur de thème invalide',
         'themeContrastInsufficient' => 'Contraste insuffisant',
+        'presentationAssetMissing' => 'Fichier introuvable',
+        'presentationAssetNotRegular' => 'Fichier non autorisé',
+        'presentationAssetUnreadable' => 'Fichier illisible',
+        'brandingImageCorrupt' => 'Image de branding invalide',
+        'titleMusicSignatureInvalid' => 'Musique du titre invalide',
+        'introCodecSignatureInvalid' => 'Vidéo d’intro invalide',
+        'introAudioSignatureMismatch' => 'Piste audio incohérente',
+        'introPosterInvalid' => 'Poster de l’intro invalide',
+        'introCaptionsInvalid' => 'Sous-titres invalides',
+        'fontSignatureInvalid' => 'Fichier de police invalide',
+        'fontLicenseInvalid' => 'Licence de police invalide',
         _ => 'Vérification requise',
       };
 
@@ -96,6 +107,30 @@ final class PersonalizationReadinessIssue {
         'themeColorInvalid' =>
           'Utilisez une couleur hexadécimale opaque ou appliquez la palette '
               'sûre.',
+        'presentationAssetMissing' =>
+          'Le fichier référencé est introuvable dans le projet.',
+        'presentationAssetNotRegular' =>
+          'Choisissez un fichier ordinaire situé dans le projet, sans lien '
+              'symbolique.',
+        'presentationAssetUnreadable' =>
+          'Vérifiez les autorisations de lecture du fichier.',
+        'brandingImageCorrupt' =>
+          'Réimportez une image PNG, JPEG ou WebP valide.',
+        'titleMusicSignatureInvalid' =>
+          'Réimportez une piste audio dont le contenu correspond à son format.',
+        'introCodecSignatureInvalid' =>
+          'Réimportez une vidéo MP4 encodée en H.264.',
+        'introAudioSignatureMismatch' =>
+          'Réimportez la vidéo afin de mettre à jour les informations de sa '
+              'piste audio.',
+        'introPosterInvalid' =>
+          'Réimportez un poster PNG, JPEG ou WebP valide.',
+        'introCaptionsInvalid' =>
+          'Réimportez des sous-titres WebVTT encodés en UTF-8.',
+        'fontSignatureInvalid' =>
+          'Réimportez un fichier de police TTF ou OTF valide.',
+        'fontLicenseInvalid' =>
+          'Joignez un fichier de licence texte UTF-8 non vide.',
         _ => message,
       };
 
