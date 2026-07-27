@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -19,6 +20,27 @@ void main() {
   test(
     'Phase 6 golden package exports, installs, presents, and starts gameplay',
     () async {
+      final repositoryRoot = _findRepositoryRoot();
+      final evidenceOutputPath =
+          Platform.environment['POKEMAP_PHASE7B_EVIDENCE_OUTPUT'];
+      final evidencePackagePath =
+          Platform.environment['POKEMAP_PHASE7B_PACKAGE_OUTPUT'];
+      final evidenceSupportRootPath =
+          Platform.environment['POKEMAP_PHASE7B_SUPPORT_ROOT'];
+      final evidenceMode = evidenceOutputPath != null ||
+          evidencePackagePath != null ||
+          evidenceSupportRootPath != null;
+      if (evidenceMode &&
+          (evidenceOutputPath == null ||
+              evidencePackagePath == null ||
+              evidenceSupportRootPath == null)) {
+        fail(
+          'All three POKEMAP_PHASE7B evidence paths must be provided.',
+        );
+      }
+      final releaseCandidateCommit = evidenceMode
+          ? await _requireCleanReleaseCandidate(repositoryRoot)
+          : null;
       final root = await Directory.systemTemp.createTemp(
         'phase-6-personalization-e2e-',
       );
@@ -40,12 +62,22 @@ void main() {
       final preflight =
           const GamePackagePersonalizationPreflight().certify(inspection);
       final packageFile = File(
-        p.join(root.path, 'golden-personalization.pokemapgame'),
+        evidencePackagePath ??
+            p.join(root.path, 'golden-personalization.pokemapgame'),
       );
+      if (evidenceMode && await packageFile.exists()) {
+        fail('The Phase 7B package output must not already exist.');
+      }
+      await packageFile.parent.create(recursive: true);
       await packageFile.writeAsBytes(built.packageBytes, flush: true);
 
       var installSmokePassed = false;
-      final supportRoot = Directory(p.join(root.path, 'PokeMap'));
+      final supportRoot = Directory(
+        evidenceSupportRootPath ?? p.join(root.path, 'PokeMap'),
+      );
+      if (evidenceMode && await supportRoot.exists()) {
+        fail('The Phase 7B support root must not already exist.');
+      }
       final installed = await GamePackageInstaller(
         supportRoot: supportRoot,
         inspector: inspector,
@@ -84,6 +116,20 @@ void main() {
       );
       expect(presentation.semanticTheme, isNotNull);
       expect(presentation.unavailableAssets, isEmpty);
+
+      final introSequence = RuntimeIntroSequenceController()
+        ..start(
+          hasVideo: true,
+          hasPoster: presentation.intro!.poster != null,
+          reducedMotion: false,
+          reducedMotionBehavior: RuntimeIntroReducedMotionBehavior.poster,
+          allowReplay: presentation.intro!.allowReplay,
+        );
+      expect(introSequence.phase, RuntimeIntroPhase.playing);
+      introSequence.playbackCompleted();
+      expect(introSequence.phase, RuntimeIntroPhase.completed);
+      final introFinishedCount =
+          introSequence.phase == RuntimeIntroPhase.completed ? 1 : 0;
 
       final preferences = HubPlayerPreferencesGateway(
         store: HubPreferencesStore(supportRoot: supportRoot),
@@ -128,42 +174,157 @@ void main() {
         launch.assets.reference('presentation/intro/video.mp4'),
       );
       await installedVideo.writeAsBytes(<int>[0, 1, 2, 3], flush: true);
-      await expectLater(
-        InstalledGameLaunchResolver(
+      var corruptionRejected = false;
+      try {
+        await InstalledGameLaunchResolver(
           supportRoot: supportRoot,
           hostCompatibility: compatibility,
-        ).resolve(installed.game),
-        throwsA(
-          isA<InstalledGameLaunchException>().having(
-            (error) => error.code,
-            'code',
-            InstalledGameLaunchErrorCode.installationUnhealthy,
-          ),
-        ),
-      );
+        ).resolve(installed.game);
+        fail('Corrupt installed media must invalidate the installation.');
+      } on InstalledGameLaunchException catch (error) {
+        expect(
+          error.code,
+          InstalledGameLaunchErrorCode.installationUnhealthy,
+        );
+        corruptionRejected = true;
+      }
+
+      if (evidenceMode) {
+        final presentationFixtureSha256 =
+            await sha256.bind(_goldenPresentationFile().openRead()).first;
+        final evidence = <String, Object?>{
+          'schemaVersion': 1,
+          'capturedAtUtc': DateTime.now().toUtc().toIso8601String(),
+          'releaseCandidateCommit': releaseCandidateCommit,
+          'workingTreeClean': true,
+          'dirtyPaths': const <String>[],
+          'presentationFixture': <String, Object?>{
+            'relativePath':
+                'examples/playable_runtime_host/golden_personalization_slice/'
+                    'presentation.json',
+            'sha256': presentationFixtureSha256.toString(),
+          },
+          'package': <String, Object?>{
+            'relativePath': p
+                .relative(packageFile.path, from: repositoryRoot.path)
+                .replaceAll(r'\', '/'),
+            'bytes': await packageFile.length(),
+            'inspection': inspection.receipt.toJson(),
+            'preflight': preflight.toJson(),
+          },
+          'installation': <String, Object?>{
+            ...installed.receipt.toJson(),
+            'alreadyInstalled': installed.alreadyInstalled,
+            'loadSmokePassed': installSmokePassed,
+            'supportRootRelativePath': p
+                .relative(supportRoot.path, from: repositoryRoot.path)
+                .replaceAll(r'\', '/'),
+            'launchHandle': launch.installedVersionHandle,
+          },
+          'resolvedPresentation': <String, Object?>{
+            'titleLayoutVariant': presentation.title.layoutVariant.name,
+            'introAvailable': presentation.intro != null,
+            'displayFontFamily': presentation
+                .typography?.roles[ProjectTypographyRole.display]?.family,
+            'semanticThemeAvailable': presentation.semanticTheme != null,
+            'unavailableAssets': presentation.unavailableAssets,
+          },
+          'flow': <String, Object?>{
+            'introFinishedCount': introFinishedCount,
+            'titlePersonalized': presentation.title.layoutVariant ==
+                PlayerTitleLayoutVariant.cinematic,
+            'gameMounted': mounted,
+            'gameUnmounted': unmounted,
+          },
+          'checks': <String, Object?>{
+            'preflightPackageHashMatchesInspection':
+                preflight.packageSha256 == inspection.receipt.packageSha256,
+            'preflightTreeHashMatchesInspection':
+                preflight.treeSha256 == inspection.receipt.treeSha256,
+            'allFourCategoriesConfigured':
+                preflight.configuredCategories.length == 4,
+            'installSmokePassed': installSmokePassed,
+            'introCompleted': introFinishedCount == 1,
+            'titlePersonalized': presentation.title.layoutVariant ==
+                PlayerTitleLayoutVariant.cinematic,
+            'gameStarted': mounted,
+            'gameStopped': unmounted,
+            'corruptionRejected': corruptionRejected,
+          },
+          'status': 'passed',
+        };
+        final evidenceFile = File(evidenceOutputPath!);
+        await evidenceFile.parent.create(recursive: true);
+        await evidenceFile.writeAsString(
+          '${const JsonEncoder.withIndent('  ').convert(evidence)}\n',
+          flush: true,
+        );
+      }
     },
   );
 }
 
 Future<ProjectPresentationProfile> _readGoldenPresentation() async {
-  final file = File(
-    p.join(
-      Directory.current.path,
-      '..',
-      '..',
-      'examples',
-      'playable_runtime_host',
-      'golden_personalization_slice',
-      'presentation.json',
-    ),
-  );
   final profile = ProjectPresentationProfile.fromJson(
-    jsonDecode(await file.readAsString()) as Map<String, dynamic>,
+    jsonDecode(await _goldenPresentationFile().readAsString())
+        as Map<String, dynamic>,
   );
   if (validateProjectPresentationProfile(profile).isNotEmpty) {
     throw StateError('The Phase 6 golden presentation must remain valid.');
   }
   return profile;
+}
+
+File _goldenPresentationFile() => File(
+      p.join(
+        Directory.current.path,
+        '..',
+        '..',
+        'examples',
+        'playable_runtime_host',
+        'golden_personalization_slice',
+        'presentation.json',
+      ),
+    );
+
+Directory _findRepositoryRoot() {
+  var current = Directory.current.absolute;
+  while (true) {
+    if (File(
+      p.join(current.path, 'pokemap_roadmap_mecaniques_fangame.md'),
+    ).existsSync()) {
+      return current;
+    }
+    final parent = current.parent;
+    if (parent.path == current.path) {
+      throw StateError('Unable to locate the PokeMap repository root.');
+    }
+    current = parent;
+  }
+}
+
+Future<String> _requireCleanReleaseCandidate(
+  Directory repositoryRoot,
+) async {
+  final status = await Process.run(
+    'git',
+    const <String>['status', '--porcelain', '--untracked-files=all'],
+    workingDirectory: repositoryRoot.path,
+  );
+  if (status.exitCode != 0 || (status.stdout as String).trim().isNotEmpty) {
+    throw StateError(
+      'Phase 7B evidence requires a clean candidate worktree.',
+    );
+  }
+  final head = await Process.run(
+    'git',
+    const <String>['rev-parse', 'HEAD'],
+    workingDirectory: repositoryRoot.path,
+  );
+  if (head.exitCode != 0) {
+    throw StateError('Unable to resolve the Phase 7B candidate commit.');
+  }
+  return (head.stdout as String).trim();
 }
 
 GamePackageHostCompatibility _hostCompatibility() =>

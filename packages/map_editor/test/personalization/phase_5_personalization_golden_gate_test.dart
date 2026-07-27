@@ -39,6 +39,9 @@ void main() {
 
   test('Phase 5 golden fixture packages every presentation category', () async {
     final presentationJson = await _readGoldenPresentation();
+    final presentation = ProjectPresentationProfile.fromJson(
+      presentationJson,
+    );
     final root = await createAuthorProject(withDialogue: false);
     addTearDown(() => root.delete(recursive: true));
     final assets = Directory(p.join(root.path, 'assets', 'presentation'));
@@ -129,6 +132,44 @@ void main() {
         'presentation/fonts/display-license.txt',
         isA<String>(),
       ),
+    );
+
+    final preview = PersonalizationPreviewProjection(presentation);
+    final packaged = built.manifest.presentation!;
+    final packagedTheme = packaged.theme!;
+    final packagedTypography = packaged.typography!;
+    expect(preview.titleLayoutVariant, packaged.branding.layoutVariant);
+    expect(
+      preview.surface(PersonalizationPreviewSurface.title).backgroundHex,
+      packagedTheme.titleSurface,
+    );
+    expect(
+      preview.surface(PersonalizationPreviewSurface.dialogue).backgroundHex,
+      packagedTheme.dialogueSurface,
+    );
+    expect(
+      preview.surface(PersonalizationPreviewSurface.menu).backgroundHex,
+      packagedTheme.menuSurface,
+    );
+    expect(
+      preview.surface(PersonalizationPreviewSurface.overworldHud).backgroundHex,
+      packagedTheme.overworldHudSurface,
+    );
+    expect(
+      preview.surface(PersonalizationPreviewSurface.battleHud).backgroundHex,
+      packagedTheme.battleHudSurface,
+    );
+    expect(
+      preview.surface(PersonalizationPreviewSurface.title).fontFamily,
+      packagedTypography.display.family,
+    );
+    expect(
+      preview.surface(PersonalizationPreviewSurface.dialogue).fontFamily,
+      packagedTypography.dialogue.fallbackFamilies.single,
+    );
+    expect(
+      preview.surface(PersonalizationPreviewSurface.battleHud).fontFamily,
+      packagedTypography.numbers.fallbackFamilies.single,
     );
   });
 }
