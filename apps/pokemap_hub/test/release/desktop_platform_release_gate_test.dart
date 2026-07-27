@@ -37,6 +37,8 @@ void main() {
     expect(workflow, contains('Start-Process'));
     expect(workflow, contains('linux-desktop-certification:'));
     expect(workflow, contains('runs-on: ubuntu-24.04'));
+    expect(workflow, contains('libgstreamer1.0-dev'));
+    expect(workflow, contains('libgstreamer-plugins-base1.0-dev'));
     expect(workflow, contains('flutter build linux --release'));
     expect(workflow, contains('xvfb-run'));
   });
