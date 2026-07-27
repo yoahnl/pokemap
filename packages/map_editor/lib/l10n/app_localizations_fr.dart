@@ -332,4 +332,137 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get commandPaletteTooltip => 'Recherche globale (⌘K)';
+
+  @override
+  String get personalizationReadinessSemantics =>
+      'Préparation à l’export du Personalization Studio';
+
+  @override
+  String get personalizationReadinessTitle => 'Préparation à l’export';
+
+  @override
+  String get personalizationReadinessDescription =>
+      'Vérifiez chaque catégorie avant de publier votre jeu.';
+
+  @override
+  String get personalizationExportBlocked => 'Export bloqué';
+
+  @override
+  String get personalizationReadyWithWarnings => 'Prêt avec avertissements';
+
+  @override
+  String get personalizationReadyToExport => 'Prêt à exporter';
+
+  @override
+  String get personalizationChecking => 'Vérification en cours…';
+
+  @override
+  String get personalizationPreflightInterrupted => 'Preflight interrompu';
+
+  @override
+  String get personalizationPreflightStale => 'Preflight à relancer';
+
+  @override
+  String get personalizationPreflightRequired => 'Preflight requis';
+
+  @override
+  String get personalizationDraftMustBeSaved => 'Brouillon à enregistrer';
+
+  @override
+  String get personalizationRunPreflight => 'Lancer le preflight';
+
+  @override
+  String get personalizationRerunPreflight => 'Relancer le preflight';
+
+  @override
+  String get personalizationSaveGuidance =>
+      'Enregistrez le brouillon avant de poursuivre vers l’export.';
+
+  @override
+  String get personalizationSaveDraft => 'Enregistrer le brouillon';
+
+  @override
+  String get personalizationCorrectionsRecommended =>
+      'Corrections recommandées';
+
+  @override
+  String get personalizationExportReadyGuidance =>
+      'Toutes les vérifications sont terminées. Poursuivez dans le flux de publication.';
+
+  @override
+  String get personalizationExportLockedGuidance =>
+      'Le passage vers l’export sera disponible après un preflight valide et l’enregistrement du brouillon.';
+
+  @override
+  String get personalizationContinueToExport => 'Continuer vers l’export';
+
+  @override
+  String get personalizationCategoryBranding => 'Branding';
+
+  @override
+  String get personalizationCategoryIntro => 'Intro vidéo';
+
+  @override
+  String get personalizationCategoryTypography => 'Typographie';
+
+  @override
+  String get personalizationCategoryTheme => 'Thème & HUD';
+
+  @override
+  String get personalizationCategoryValid => 'Configuration valide.';
+
+  @override
+  String get personalizationCategoryDefaultValid =>
+      'Optionnel · réglages par défaut valides.';
+
+  @override
+  String get personalizationCategoryNeedsCorrection => 'À corriger';
+
+  @override
+  String get personalizationCategoryNeedsReview => 'À vérifier';
+
+  @override
+  String get personalizationCategoryReady => 'Prêt';
+
+  @override
+  String personalizationBlockerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count blocages',
+      one: '1 blocage',
+      zero: 'aucun blocage',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String personalizationWarningCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count avertissements',
+      one: '1 avertissement',
+      zero: 'aucun avertissement',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String personalizationCorrectInCategory(String category) {
+    return 'Corriger dans $category';
+  }
+
+  @override
+  String get personalizationUseSafeTheme => 'Appliquer la palette sûre';
+
+  @override
+  String get personalizationSeverityBlocker => 'Blocage';
+
+  @override
+  String get personalizationSeverityWarning => 'Avertissement';
+
+  @override
+  String get personalizationPreflightReadError =>
+      'Le preflight n’a pas pu lire tous les fichiers. Vérifiez les autorisations du projet puis réessayez.';
 }

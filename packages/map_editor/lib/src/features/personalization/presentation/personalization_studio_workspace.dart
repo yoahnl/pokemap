@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/l10n/l10n.dart';
 
 import '../../../app/providers/core/repository_providers.dart';
 import '../../../ui/design_system/pokemap_badge.dart';
@@ -123,9 +124,7 @@ class _PersonalizationStudioWorkspaceState
       if (!mounted || requestId != _preflightRequestId) return;
       setState(() {
         _isPreflightRunning = false;
-        _preflightError =
-            'Le preflight n’a pas pu lire tous les fichiers. Vérifiez les '
-            'autorisations du projet puis réessayez.';
+        _preflightError = context.pokeMapL10n.personalizationPreflightReadError;
       });
     }
   }

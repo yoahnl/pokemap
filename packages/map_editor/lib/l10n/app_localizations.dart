@@ -680,6 +680,216 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Recherche globale (⌘K)'**
   String get commandPaletteTooltip;
+
+  /// Accessible label for the Personalization Studio export readiness region.
+  ///
+  /// In fr, this message translates to:
+  /// **'Préparation à l’export du Personalization Studio'**
+  String get personalizationReadinessSemantics;
+
+  /// Personalization publication readiness title.
+  ///
+  /// In fr, this message translates to:
+  /// **'Préparation à l’export'**
+  String get personalizationReadinessTitle;
+
+  /// Personalization publication readiness description.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérifiez chaque catégorie avant de publier votre jeu.'**
+  String get personalizationReadinessDescription;
+
+  /// No description provided for @personalizationExportBlocked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Export bloqué'**
+  String get personalizationExportBlocked;
+
+  /// No description provided for @personalizationReadyWithWarnings.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prêt avec avertissements'**
+  String get personalizationReadyWithWarnings;
+
+  /// No description provided for @personalizationReadyToExport.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prêt à exporter'**
+  String get personalizationReadyToExport;
+
+  /// No description provided for @personalizationChecking.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérification en cours…'**
+  String get personalizationChecking;
+
+  /// No description provided for @personalizationPreflightInterrupted.
+  ///
+  /// In fr, this message translates to:
+  /// **'Preflight interrompu'**
+  String get personalizationPreflightInterrupted;
+
+  /// No description provided for @personalizationPreflightStale.
+  ///
+  /// In fr, this message translates to:
+  /// **'Preflight à relancer'**
+  String get personalizationPreflightStale;
+
+  /// No description provided for @personalizationPreflightRequired.
+  ///
+  /// In fr, this message translates to:
+  /// **'Preflight requis'**
+  String get personalizationPreflightRequired;
+
+  /// No description provided for @personalizationDraftMustBeSaved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Brouillon à enregistrer'**
+  String get personalizationDraftMustBeSaved;
+
+  /// No description provided for @personalizationRunPreflight.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lancer le preflight'**
+  String get personalizationRunPreflight;
+
+  /// No description provided for @personalizationRerunPreflight.
+  ///
+  /// In fr, this message translates to:
+  /// **'Relancer le preflight'**
+  String get personalizationRerunPreflight;
+
+  /// No description provided for @personalizationSaveGuidance.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrez le brouillon avant de poursuivre vers l’export.'**
+  String get personalizationSaveGuidance;
+
+  /// No description provided for @personalizationSaveDraft.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer le brouillon'**
+  String get personalizationSaveDraft;
+
+  /// No description provided for @personalizationCorrectionsRecommended.
+  ///
+  /// In fr, this message translates to:
+  /// **'Corrections recommandées'**
+  String get personalizationCorrectionsRecommended;
+
+  /// No description provided for @personalizationExportReadyGuidance.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes les vérifications sont terminées. Poursuivez dans le flux de publication.'**
+  String get personalizationExportReadyGuidance;
+
+  /// No description provided for @personalizationExportLockedGuidance.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le passage vers l’export sera disponible après un preflight valide et l’enregistrement du brouillon.'**
+  String get personalizationExportLockedGuidance;
+
+  /// No description provided for @personalizationContinueToExport.
+  ///
+  /// In fr, this message translates to:
+  /// **'Continuer vers l’export'**
+  String get personalizationContinueToExport;
+
+  /// No description provided for @personalizationCategoryBranding.
+  ///
+  /// In fr, this message translates to:
+  /// **'Branding'**
+  String get personalizationCategoryBranding;
+
+  /// No description provided for @personalizationCategoryIntro.
+  ///
+  /// In fr, this message translates to:
+  /// **'Intro vidéo'**
+  String get personalizationCategoryIntro;
+
+  /// No description provided for @personalizationCategoryTypography.
+  ///
+  /// In fr, this message translates to:
+  /// **'Typographie'**
+  String get personalizationCategoryTypography;
+
+  /// No description provided for @personalizationCategoryTheme.
+  ///
+  /// In fr, this message translates to:
+  /// **'Thème & HUD'**
+  String get personalizationCategoryTheme;
+
+  /// No description provided for @personalizationCategoryValid.
+  ///
+  /// In fr, this message translates to:
+  /// **'Configuration valide.'**
+  String get personalizationCategoryValid;
+
+  /// No description provided for @personalizationCategoryDefaultValid.
+  ///
+  /// In fr, this message translates to:
+  /// **'Optionnel · réglages par défaut valides.'**
+  String get personalizationCategoryDefaultValid;
+
+  /// No description provided for @personalizationCategoryNeedsCorrection.
+  ///
+  /// In fr, this message translates to:
+  /// **'À corriger'**
+  String get personalizationCategoryNeedsCorrection;
+
+  /// No description provided for @personalizationCategoryNeedsReview.
+  ///
+  /// In fr, this message translates to:
+  /// **'À vérifier'**
+  String get personalizationCategoryNeedsReview;
+
+  /// No description provided for @personalizationCategoryReady.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prêt'**
+  String get personalizationCategoryReady;
+
+  /// Personalization blocker count.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{aucun blocage} =1{1 blocage} other{{count} blocages}}'**
+  String personalizationBlockerCount(int count);
+
+  /// Personalization warning count.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{aucun avertissement} =1{1 avertissement} other{{count} avertissements}}'**
+  String personalizationWarningCount(int count);
+
+  /// Open the category that can fix a readiness issue.
+  ///
+  /// In fr, this message translates to:
+  /// **'Corriger dans {category}'**
+  String personalizationCorrectInCategory(String category);
+
+  /// No description provided for @personalizationUseSafeTheme.
+  ///
+  /// In fr, this message translates to:
+  /// **'Appliquer la palette sûre'**
+  String get personalizationUseSafeTheme;
+
+  /// No description provided for @personalizationSeverityBlocker.
+  ///
+  /// In fr, this message translates to:
+  /// **'Blocage'**
+  String get personalizationSeverityBlocker;
+
+  /// No description provided for @personalizationSeverityWarning.
+  ///
+  /// In fr, this message translates to:
+  /// **'Avertissement'**
+  String get personalizationSeverityWarning;
+
+  /// No description provided for @personalizationPreflightReadError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le preflight n’a pas pu lire tous les fichiers. Vérifiez les autorisations du projet puis réessayez.'**
+  String get personalizationPreflightReadError;
 }
 
 class _AppLocalizationsDelegate
