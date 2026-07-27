@@ -36,6 +36,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/certification/intro_landscape_h264_aac.mp4
+    - assets/certification/intro_portrait_h264_aac.mp4
 
 dependency_overrides:
   gamepads_darwin:

@@ -45,6 +45,14 @@ jobs:
           flutter test --timeout 2m
           flutter analyze
           flutter build macos --release
+      - name: Verify intro codecs and native playback
+        working-directory: apps/pokemap_hub
+        run: |
+          if ! command -v ffprobe >/dev/null 2>&1; then
+            brew install ffmpeg
+          fi
+          tool/release/verify_intro_codecs.sh
+          flutter test integration_test/pst_074_native_codec_playback_test.dart -d macos
       - name: Product certification contracts
         working-directory: tool/pokemap_product_certification
         run: |
@@ -162,6 +170,9 @@ jobs:
           test "$SIMULATOR_ID" != "null"
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
+          flutter test \
+            integration_test/pst_074_native_codec_playback_test.dart \
+            -d "$SIMULATOR_ID"
           flutter build ios --simulator --debug
           IOS_APP="build/ios/iphonesimulator/Runner.app"
           test -d "$IOS_APP"
