@@ -191,6 +191,8 @@ final class PlayableMapGameSessionRuntime
           descriptor.launchMode == GameSessionLaunchMode.newGame
               ? MapActivationReason.initialBoot
               : MapActivationReason.saveRestore,
+      enableActorContactShadows: false,
+      enableStaticPlacedElementShadows: false,
       audioMixer: audioMixer,
     );
     _game = game;

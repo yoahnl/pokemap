@@ -142,6 +142,8 @@ void main() {
 
     await runtime.load(progress.add);
     expect(mounted, isNotNull);
+    expect(mounted!.enableActorContactShadows, isFalse);
+    expect(mounted!.enableStaticPlacedElementShadows, isFalse);
     expect(progress.last.stage, 'ready');
     await runtime.pause();
     final pauseDetails = await runtime.loadPauseDetails();
