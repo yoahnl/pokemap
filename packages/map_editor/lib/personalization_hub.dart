@@ -13,6 +13,7 @@ export 'src/features/personalization/application/project_branding_image_import_s
 export 'src/features/personalization/presentation/personalization_hub_shell.dart';
 export 'src/features/personalization/presentation/personalization_studio_workspace.dart';
 export 'src/features/personalization/presentation/project_branding_editor.dart';
+export 'src/features/personalization/presentation/project_branding_title_preview.dart';
 export 'src/features/personalization/presentation/project_intro_video_editor.dart';
 export 'src/features/personalization/presentation/project_semantic_theme_editor.dart';
 export 'src/features/personalization/presentation/project_typography_editor.dart';

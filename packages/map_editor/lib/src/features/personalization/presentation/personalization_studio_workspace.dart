@@ -490,6 +490,7 @@ class _PersonalizationStudioWorkspaceState
     required BuildContext context,
     required ProjectPresentationCategory category,
     required ProjectPresentationProfile profile,
+    required String projectName,
     required String projectRootPath,
     required EditorNotifier notifier,
     required bool canEdit,
@@ -525,6 +526,10 @@ class _PersonalizationStudioWorkspaceState
             ignoring: !canEdit || _isImportingAsset,
             child: ProjectBrandingEditor(
               profile: profile.branding,
+              projectName: projectName,
+              projectRootPath: projectRootPath,
+              theme: profile.theme ?? safeProjectSemanticTheme,
+              typography: profile.typography,
               onImportImage: (role) {
                 unawaited(
                   _importBrandingImage(
@@ -894,6 +899,7 @@ class _PersonalizationStudioWorkspaceState
                 context: context,
                 category: category,
                 profile: profile,
+                projectName: project.name,
                 projectRootPath: projectRootPath,
                 notifier: notifier,
                 canEdit: canEdit,

@@ -34,6 +34,10 @@ void main() {
     expect(find.text('Cover de bibliothèque'), findsOneWidget);
     expect(find.text('Logo / hero du titre'), findsOneWidget);
     for (final role in ProjectBrandingImageRole.values) {
+      await tester.ensureVisible(
+        find.byKey(ValueKey<String>('branding-import-${role.name}')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(ValueKey<String>('branding-import-${role.name}')),
       );

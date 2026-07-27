@@ -6,6 +6,7 @@ import '../../../ui/design_system/pokemap_card.dart';
 import '../../../ui/design_system/pokemap_dropdown_field.dart';
 import '../../../ui/design_system/pokemap_section_header.dart';
 import '../application/project_branding_image_import_service.dart';
+import 'project_branding_title_preview.dart';
 
 class ProjectBrandingEditor extends StatelessWidget {
   const ProjectBrandingEditor({
@@ -13,6 +14,10 @@ class ProjectBrandingEditor extends StatelessWidget {
     required this.profile,
     required this.onImportImage,
     required this.onRemoveImage,
+    this.projectName = 'Projet',
+    this.projectRootPath = '',
+    this.theme = safeProjectSemanticTheme,
+    this.typography,
     this.onEditAccent,
     this.onResetAccent,
     this.onLayoutVariantChanged,
@@ -25,6 +30,10 @@ class ProjectBrandingEditor extends StatelessWidget {
   final ProjectBrandingProfile profile;
   final ValueChanged<ProjectBrandingImageRole> onImportImage;
   final ValueChanged<ProjectBrandingImageRole> onRemoveImage;
+  final String projectName;
+  final String projectRootPath;
+  final ProjectSemanticThemeProfile theme;
+  final ProjectTypographyProfile? typography;
   final VoidCallback? onEditAccent;
   final VoidCallback? onResetAccent;
   final ValueChanged<String>? onLayoutVariantChanged;
@@ -39,6 +48,14 @@ class ProjectBrandingEditor extends StatelessWidget {
       key: const ValueKey<String>('project-branding-editor'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        ProjectBrandingTitlePreview(
+          projectName: projectName,
+          projectRootPath: projectRootPath,
+          branding: profile,
+          theme: theme,
+          typography: typography,
+        ),
+        const SizedBox(height: 18),
         const PokeMapSectionHeader(
           title: 'Images de marque',
           description:
