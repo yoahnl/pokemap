@@ -8,6 +8,7 @@ import '../localization/player_localizations.dart';
 import 'player_pause_menu.dart';
 import 'player_save_strings.dart';
 import 'player_session_surfaces.dart';
+import 'player_title_options_surface.dart';
 import 'player_title_screen.dart';
 import 'runtime_player_actions.dart';
 import 'runtime_player_detail_router.dart';
@@ -67,6 +68,13 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
     return switch (snapshot.phase) {
       RuntimePlayerPhase.boot => PlayerLoadingSurface(
           stage: l10n.preparing,
+        ),
+      RuntimePlayerPhase.title
+          when snapshot.pauseSection == RuntimePlayerPauseSection.options =>
+        PlayerTitleOptionsSurface(
+          snapshot: snapshot,
+          onReturnToTitle: _callbackFor(RuntimePlayerAction.returnToTitle),
+          onPreferencesChanged: onPreferencesChanged,
         ),
       RuntimePlayerPhase.title => PlayerTitleScreen(
           data: PlayerTitleViewData(
@@ -145,7 +153,8 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
       RuntimePlayerPhase.credits => PlayerCreditsSurface(
           title: snapshot.credits?.title ?? snapshot.gameTitle,
           author: snapshot.credits?.author ?? titlePresentation.author,
-          endingLabel: snapshot.credits?.endingLabel,
+          endingLabel:
+              snapshot.credits?.endingLabel ?? titlePresentation.description,
           onReturnToTitle: _callbackFor(RuntimePlayerAction.returnToTitle),
           onReturnToHub: _callbackFor(RuntimePlayerAction.returnToHost),
         ),

@@ -58,6 +58,7 @@ final class RuntimePlayerCoordinator {
   RuntimePlayerSnapshot? _lifecycleResumeSnapshot;
   Future<bool>? _activeSaveBoundary;
   int _launchGeneration = 0;
+  bool _creditsOpenedFromTitle = false;
   bool _disposed = false;
 
   RuntimePlayerSnapshot get snapshot => _snapshot;
@@ -372,6 +373,19 @@ final class RuntimePlayerCoordinator {
           status: RuntimePlayerCommandStatus.accepted,
         );
       case RuntimePlayerAction.openOptions:
+        if (_snapshot.phase == RuntimePlayerPhase.title) {
+          _publish(
+            _snapshot.next(
+              pauseSection: RuntimePlayerPauseSection.options,
+              logicalSelectionId: 'title.options',
+              clearFailure: true,
+              actions: _titleOptionsActions,
+            ),
+          );
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.accepted,
+          );
+        }
         _publishPause(
           RuntimePlayerPauseSection.options,
           logicalSelectionId: 'pause.options',
@@ -456,31 +470,51 @@ final class RuntimePlayerCoordinator {
         }
       case RuntimePlayerAction.showCredits:
         final completion = _sessions.committedCompletion;
-        if (completion == null) {
+        final openedFromTitle = _snapshot.phase == RuntimePlayerPhase.title;
+        if (completion == null && !openedFromTitle) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
             safeMessage: 'No completed game credits are available.',
           );
         }
+        _creditsOpenedFromTitle = openedFromTitle;
         _publish(
           _snapshot.next(
             phase: RuntimePlayerPhase.credits,
-            result: completion.result,
-            credits: completion.credits,
+            result: completion?.result,
+            credits: completion?.credits,
+            clearResult: completion == null,
+            clearCredits: completion == null,
             clearFailure: true,
-            actions: _creditsActions(completion),
+            actions: openedFromTitle
+                ? _titleCreditsActions
+                : _creditsActions(completion!),
           ),
         );
         return const RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.accepted,
         );
       case RuntimePlayerAction.finishCredits:
+        if (_creditsOpenedFromTitle) {
+          _publishTitle();
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.accepted,
+          );
+        }
         if (_sessions.committedCompletion?.destination ==
             GameCompletionDestination.hub) {
           return _returnToHost();
         }
         return _returnToTitle(checkpoint: false);
       case RuntimePlayerAction.returnToTitle:
+        if (_snapshot.phase == RuntimePlayerPhase.title ||
+            (!_hasLiveSession &&
+                _snapshot.phase == RuntimePlayerPhase.credits)) {
+          _publishTitle();
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.accepted,
+          );
+        }
         return _returnToTitle(
           checkpoint: _snapshot.phase == RuntimePlayerPhase.paused,
         );
@@ -853,6 +887,7 @@ final class RuntimePlayerCoordinator {
   }
 
   void _publishTitle({GameSessionFailure? failure}) {
+    _creditsOpenedFromTitle = false;
     _publish(
       _snapshot.next(
         phase: RuntimePlayerPhase.title,
@@ -980,6 +1015,12 @@ final class RuntimePlayerCoordinator {
       const RuntimePlayerActionAvailability.enabled(
         RuntimePlayerAction.newGame,
       ),
+      const RuntimePlayerActionAvailability.enabled(
+        RuntimePlayerAction.openOptions,
+      ),
+      const RuntimePlayerActionAvailability.enabled(
+        RuntimePlayerAction.showCredits,
+      ),
       if (continueEnabled)
         const RuntimePlayerActionAvailability.enabled(
           RuntimePlayerAction.continueGame,
@@ -1003,6 +1044,27 @@ final class RuntimePlayerCoordinator {
       ),
     ];
   }
+
+  static const _titleOptionsActions = <RuntimePlayerActionAvailability>[
+    RuntimePlayerActionAvailability.enabled(
+      RuntimePlayerAction.openOptions,
+    ),
+    RuntimePlayerActionAvailability.enabled(
+      RuntimePlayerAction.updatePreferences,
+    ),
+    RuntimePlayerActionAvailability.enabled(
+      RuntimePlayerAction.returnToTitle,
+    ),
+  ];
+
+  static const _titleCreditsActions = <RuntimePlayerActionAvailability>[
+    RuntimePlayerActionAvailability.enabled(
+      RuntimePlayerAction.finishCredits,
+    ),
+    RuntimePlayerActionAvailability.enabled(
+      RuntimePlayerAction.returnToTitle,
+    ),
+  ];
 
   List<RuntimePlayerActionAvailability> _pauseActions({
     required bool includeReturnToRoot,

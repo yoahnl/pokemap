@@ -167,6 +167,28 @@ void main() {
       harness.adapter.calls,
       containsAllInOrder(<String>['stop:title', 'dispose']),
     );
+
+    final reopened = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.showCredits,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+    expect(reopened.status, RuntimePlayerCommandStatus.accepted);
+    expect(
+      harness.coordinator.snapshot.credits?.endingLabel,
+      'Fin principale',
+    );
+
+    final closedAgain = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.finishCredits,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+    expect(closedAgain.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.title);
+    expect(harness.adapter.disposeCalls, 1);
   });
 
   test('Hub completion exits to the host after credits', () async {

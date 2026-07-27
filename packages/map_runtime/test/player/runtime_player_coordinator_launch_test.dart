@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'support/runtime_player_test_harness.dart';
@@ -20,11 +21,95 @@ void main() {
     expect(snapshot.isActionEnabled(RuntimePlayerAction.newGame), isTrue);
     expect(snapshot.isActionEnabled(RuntimePlayerAction.continueGame), isFalse);
     expect(snapshot.isActionEnabled(RuntimePlayerAction.load), isFalse);
+    expect(snapshot.isActionEnabled(RuntimePlayerAction.openOptions), isTrue);
+    expect(snapshot.isActionEnabled(RuntimePlayerAction.showCredits), isTrue);
     expect(
       snapshot.unavailableReasonFor(RuntimePlayerAction.continueGame),
       isNotEmpty,
     );
     expect(harness.preferences.loads, 1);
+  });
+
+  test('opens persisted options from title and returns without a session',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    final opened = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.openOptions,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+
+    expect(opened.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.title);
+    expect(
+      harness.coordinator.snapshot.pauseSection,
+      RuntimePlayerPauseSection.options,
+    );
+    expect(
+      harness.coordinator.snapshot
+          .isActionEnabled(RuntimePlayerAction.updatePreferences),
+      isTrue,
+    );
+
+    final updated = harness.preferences.current.copyWith(
+      touchControlsOpacity: 0.6,
+    );
+    final saved = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.updatePreferences,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: updated,
+      ),
+    );
+    expect(saved.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.preferences.current.touchControlsOpacity, 0.6);
+
+    final returned = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.returnToTitle,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+    expect(returned.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.title);
+    expect(harness.coordinator.snapshot.pauseSection, isNull);
+    expect(harness.adapters, isEmpty);
+  });
+
+  test('opens title credits before completion and returns to title', () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    final opened = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.showCredits,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+
+    expect(opened.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.credits);
+    expect(harness.coordinator.snapshot.credits, isNull);
+    expect(
+      harness.coordinator.snapshot
+          .isActionEnabled(RuntimePlayerAction.finishCredits),
+      isTrue,
+    );
+
+    final returned = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.finishCredits,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+    expect(returned.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.title);
+    expect(harness.adapters, isEmpty);
   });
 
   test('initializes Continue and Load from a compatible scoped save', () async {
@@ -43,6 +128,42 @@ void main() {
     );
     expect(
       harness.coordinator.snapshot.isActionEnabled(RuntimePlayerAction.load),
+      isTrue,
+    );
+  });
+
+  test('keeps Options and Credits available for a completed save', () async {
+    final seed = RuntimePlayerTestHarness();
+    final completedSave = PlayerSaveSummary(
+      address: SaveSlotAddress(
+        gameId: seed.source.identity.gameId,
+        profileId: 'player',
+        slotId: 'slot_1',
+      ),
+      updatedAt: DateTime.utc(2026, 7, 27),
+      playTimeSeconds: 3600,
+      status: SaveStatus.completed,
+      canContinue: false,
+    );
+    await seed.dispose();
+    final harness = RuntimePlayerTestHarness(latestSave: completedSave);
+    addTearDown(harness.dispose);
+
+    await harness.coordinator.initialize();
+
+    expect(
+      harness.coordinator.snapshot
+          .isActionEnabled(RuntimePlayerAction.continueGame),
+      isFalse,
+    );
+    expect(
+      harness.coordinator.snapshot
+          .isActionEnabled(RuntimePlayerAction.openOptions),
+      isTrue,
+    );
+    expect(
+      harness.coordinator.snapshot
+          .isActionEnabled(RuntimePlayerAction.showCredits),
       isTrue,
     );
   });

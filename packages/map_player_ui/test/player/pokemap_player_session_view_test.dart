@@ -84,6 +84,102 @@ void main() {
   });
 
   testWidgets(
+    'renders title options without a game scene and returns on Escape',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 640);
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.view.reset);
+      addTearDown(
+        tester.platformDispatcher.clearTextScaleFactorTestValue,
+      );
+      final controller = _FakeRuntimePlayerCoordinator(
+        RuntimePlayerSnapshot(
+          revision: 8,
+          phase: RuntimePlayerPhase.title,
+          gameTitle: 'Aube',
+          pauseSection: RuntimePlayerPauseSection.options,
+          preferences: const PlayerPreferencesSnapshot(
+            locale: 'fr',
+            accessibility: GameSessionAccessibilityOptions(),
+          ),
+          actions: const <RuntimePlayerActionAvailability>[
+            RuntimePlayerActionAvailability.enabled(
+              RuntimePlayerAction.openOptions,
+            ),
+            RuntimePlayerActionAvailability.enabled(
+              RuntimePlayerAction.updatePreferences,
+            ),
+            RuntimePlayerActionAvailability.enabled(
+              RuntimePlayerAction.returnToTitle,
+            ),
+          ],
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(_app(_view(controller)));
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('runtime-player-title-options'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('touch-controls-opacity-slider'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+          find.byKey(const ValueKey<String>('test-game-scene')), findsNothing);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+
+      expect(controller.commands, hasLength(1));
+      expect(
+        controller.commands.single.action,
+        RuntimePlayerAction.returnToTitle,
+      );
+      expect(controller.commands.single.snapshotRevision, 8);
+    },
+  );
+
+  testWidgets('shows localized title credits before game completion',
+      (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(
+      RuntimePlayerSnapshot(
+        revision: 10,
+        phase: RuntimePlayerPhase.credits,
+        gameTitle: 'Aube',
+        actions: const <RuntimePlayerActionAvailability>[
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.finishCredits,
+          ),
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.returnToTitle,
+          ),
+        ],
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(_app(_view(controller)));
+
+    expect(find.text('Studio Test'), findsOneWidget);
+    expect(find.text('Une aventure de test.'), findsOneWidget);
+    await tester.tap(find.text('Retour au titre'));
+
+    expect(controller.commands, hasLength(1));
+    expect(
+      controller.commands.single.action,
+      RuntimePlayerAction.returnToTitle,
+    );
+  });
+
+  testWidgets(
     'guides identity selection before dispatching New Game at 200% text scale',
     (tester) async {
       final controller = _FakeRuntimePlayerCoordinator(

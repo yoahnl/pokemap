@@ -219,6 +219,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     if (coordinator == null) return;
     final snapshot = coordinator.snapshot;
     final action = switch (snapshot.phase) {
+      RuntimePlayerPhase.title
+          when snapshot.pauseSection == RuntimePlayerPauseSection.options =>
+        RuntimePlayerAction.returnToTitle,
       RuntimePlayerPhase.title => RuntimePlayerAction.returnToHost,
       RuntimePlayerPhase.playing => RuntimePlayerAction.openMenu,
       RuntimePlayerPhase.paused => RuntimePlayerAction.returnToTitle,
@@ -395,7 +398,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
               },
             ),
             if ((asyncSnapshot.data ?? coordinator.snapshot).phase ==
-                RuntimePlayerPhase.title)
+                    RuntimePlayerPhase.title &&
+                (asyncSnapshot.data ?? coordinator.snapshot).pauseSection ==
+                    null)
               Positioned(
                 top: 16,
                 right: 16,

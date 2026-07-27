@@ -323,6 +323,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
       return;
     }
     final action = switch (snapshot.phase) {
+      RuntimePlayerPhase.title
+          when snapshot.pauseSection == RuntimePlayerPauseSection.options =>
+        RuntimePlayerAction.returnToTitle,
       RuntimePlayerPhase.title => RuntimePlayerAction.returnToHost,
       RuntimePlayerPhase.paused
           when snapshot.pauseSection != null &&
