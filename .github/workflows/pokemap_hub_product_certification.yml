@@ -42,7 +42,7 @@ jobs:
         working-directory: apps/pokemap_hub
         run: |
           flutter pub get
-          flutter test
+          flutter test --timeout 2m
           flutter analyze
           flutter build macos --release
       - name: Product certification contracts
@@ -52,9 +52,93 @@ jobs:
           flutter test
           flutter analyze
 
+  windows-desktop-certification:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        shell: pwsh
+        run: |
+          git init "$env:RUNNER_TEMP/flutter"
+          git -C "$env:RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$env:RUNNER_TEMP/flutter" fetch --depth 1 origin `
+            "refs/tags/$env:FLUTTER_VERSION`:refs/tags/$env:FLUTTER_VERSION"
+          git -C "$env:RUNNER_TEMP/flutter" checkout --detach "$env:FLUTTER_VERSION"
+          $revision = git -C "$env:RUNNER_TEMP/flutter" rev-parse HEAD
+          if ($revision -ne "$env:FLUTTER_REVISION") {
+            throw "Unexpected Flutter revision: $revision"
+          }
+          "$env:RUNNER_TEMP/flutter/bin" |
+            Out-File -FilePath "$env:GITHUB_PATH" -Encoding utf8 -Append
+      - name: Build and launch Windows release
+        working-directory: apps/pokemap_hub
+        shell: pwsh
+        run: |
+          flutter pub get
+          flutter test test/release/desktop_platform_release_gate_test.dart
+          flutter analyze
+          flutter build windows --release
+          $executable = "build/windows/x64/runner/Release/pokemap_hub.exe"
+          if (-not (Test-Path $executable)) {
+            throw "Windows release executable is missing: $executable"
+          }
+          $process = Start-Process -FilePath $executable -PassThru
+          Start-Sleep -Seconds 8
+          if ($process.HasExited) {
+            throw "PokeMap Hub exited during the Windows launch smoke test."
+          }
+          Stop-Process -Id $process.Id
+          $process.WaitForExit()
+
+  linux-desktop-certification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang \
+            cmake \
+            libgtk-3-dev \
+            liblzma-dev \
+            ninja-build \
+            pkg-config \
+            xvfb
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Build and launch Linux release
+        working-directory: apps/pokemap_hub
+        run: |
+          flutter pub get
+          flutter test test/release/desktop_platform_release_gate_test.dart
+          flutter analyze
+          flutter build linux --release
+          EXECUTABLE="build/linux/x64/release/bundle/pokemap_hub"
+          test -x "$EXECUTABLE"
+          xvfb-run --auto-servernum "$EXECUTABLE" \
+            > "$RUNNER_TEMP/linux-launch.log" 2>&1 &
+          APP_PID=$!
+          sleep 8
+          kill -0 "$APP_PID"
+          kill "$APP_PID"
+          wait "$APP_PID" || true
+
   notarized-release:
     if: startsWith(github.ref, 'refs/tags/pokemap-hub-v')
-    needs: verify
+    needs:
+      - verify
+      - windows-desktop-certification
+      - linux-desktop-certification
     runs-on: macos-15
     timeout-minutes: 60
     environment: pokemap-hub-release
