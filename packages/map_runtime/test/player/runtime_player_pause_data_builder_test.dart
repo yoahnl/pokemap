@@ -41,9 +41,10 @@ void main() {
       baseHp: 39,
     );
 
-    const state = GameState(
+    final state = GameState(
       saveId: 'save-1',
-      party: PlayerParty(
+      currentMapId: 'route',
+      party: const PlayerParty(
         members: <PlayerPokemon>[
           PlayerPokemon(
             speciesId: 'charmander',
@@ -55,7 +56,7 @@ void main() {
           ),
         ],
       ),
-      bag: Bag(
+      bag: const Bag(
         entries: <BagEntry>[
           BagEntry(
             itemId: 'potion',
@@ -69,8 +70,11 @@ void main() {
           ),
         ],
       ),
-      progression: PlayerProgression(
+      progression: const PlayerProgression(
         seenSpeciesIds: <String>['bulbasaur'],
+      ),
+      narrativeEventProgress: NarrativeEventProgress(
+        visitedNarrativeMapIds: const <String>['town'],
       ),
     );
 
@@ -79,6 +83,27 @@ void main() {
       projectRootDirectory: projectRoot.path,
       pokemonConfig: const ProjectPokemonConfig(),
       locale: 'fr',
+      mapEnabled: true,
+      projectMaps: const <ProjectMapEntry>[
+        ProjectMapEntry(
+          id: 'town',
+          name: 'Bourg Selbrume',
+          relativePath: 'maps/town.json',
+          sortOrder: 10,
+        ),
+        ProjectMapEntry(
+          id: 'route',
+          name: 'Route des Brumes',
+          relativePath: 'maps/route.json',
+          sortOrder: 20,
+        ),
+        ProjectMapEntry(
+          id: 'cave',
+          name: 'Grotte du Phare',
+          relativePath: 'maps/cave.json',
+          sortOrder: 30,
+        ),
+      ],
     );
 
     final party = details[RuntimePlayerPauseSection.party]!;
@@ -118,6 +143,17 @@ void main() {
       pokedex.entries.firstWhere((entry) => entry.id == 'charmander').subtitle,
       contains('Capturé'),
     );
+
+    final map = details[RuntimePlayerPauseSection.map]!;
+    expect(map.title, 'Carte');
+    expect(map.entries.map((entry) => entry.title), <String>[
+      'Route des Brumes',
+      'Bourg Selbrume',
+      '???',
+    ]);
+    expect(map.entries.first.trailingLabel, 'Ici');
+    expect(map.entries.last.subtitle, 'Zone non découverte');
+    expect(map.message, contains('voyage rapide'));
   });
 }
 

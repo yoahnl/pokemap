@@ -24,7 +24,7 @@ void main() {
       installedVersionHandle: 'verified-fixture',
       saveReadHandle: 'opaque-save',
       runtimeApiVersion: '1.0.0',
-      grantedCapabilities: const <String>{},
+      grantedCapabilities: const <String>{'map.v1'},
       locale: 'fr-FR',
       accessibility: const GameSessionAccessibilityOptions(),
     );
@@ -99,6 +99,14 @@ void main() {
     expect(
       pauseDetails,
       contains(RuntimePlayerPauseSection.pokedex),
+    );
+    expect(
+      pauseDetails[RuntimePlayerPauseSection.map]!.entries.single.title,
+      'P3 Test Map',
+    );
+    expect(
+      pauseDetails[RuntimePlayerPauseSection.map]!.entries.single.trailingLabel,
+      'Ici',
     );
     await runtime.resume();
     final checkpoint = await runtime.captureCheckpoint();

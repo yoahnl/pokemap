@@ -127,6 +127,11 @@ export 'src/game_state_mutations.dart'
         GameStateMutations;
 export 'src/player_storage_operations.dart';
 export 'src/player_item_effects.dart';
+export 'src/runtime_map_projection.dart'
+    show
+        RuntimeMapLocation,
+        RuntimeMapLocationStatus,
+        projectRuntimeMapLocations;
 export 'src/new_game_state_builder.dart'
     show
         createNewGameState,

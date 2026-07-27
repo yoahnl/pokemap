@@ -33,7 +33,10 @@ void main() {
 
   test('resolves a healthy installed game into an opaque launch context',
       () async {
-    final package = await writeTestPackage(Directory(p.join(root.path, 'pkg')));
+    final package = await writeTestPackage(
+      Directory(p.join(root.path, 'pkg')),
+      requiredCapabilities: const <String>['map@1'],
+    );
     final service = installer();
     final installed = await service.install(
       package,
@@ -48,6 +51,8 @@ void main() {
     expect(context.identity.gameId, installed.game.gameId);
     expect(context.project.packagePath, 'project/project.json');
     expect(context.installedVersionHandle, isNot(contains(supportRoot.path)));
+    expect(
+        context.grantedCapabilities, containsAll(<String>['map@1', 'map.v1']));
     expect(
       await context.assets.resolveReference(context.project),
       isA<File>(),

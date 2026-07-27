@@ -202,6 +202,7 @@ GamePackageHostCompatibility _hostCompatibility() =>
       runtimeApiVersion: Version.parse('1.4.0'),
       capabilities: const <String>{
         'dialogue.choices@1',
+        'map@1',
         'overworld.menu@1',
         'world.shop@1',
       },

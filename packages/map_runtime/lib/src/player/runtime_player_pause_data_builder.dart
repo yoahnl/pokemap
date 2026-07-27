@@ -20,6 +20,8 @@ final class RuntimePlayerPauseDataBuilder {
     required String projectRootDirectory,
     required ProjectPokemonConfig pokemonConfig,
     required String locale,
+    bool mapEnabled = false,
+    List<ProjectMapEntry> projectMaps = const <ProjectMapEntry>[],
   }) async {
     final species = await _loadSpeciesCatalog(
       projectRootDirectory: projectRootDirectory,
@@ -56,7 +58,65 @@ final class RuntimePlayerPauseDataBuilder {
             locale: locale,
             isFrench: isFrench,
           ),
+        if (mapEnabled)
+          RuntimePlayerPauseSection.map: _buildMap(
+            gameState,
+            projectMaps,
+            isFrench: isFrench,
+          ),
       },
+    );
+  }
+
+  RuntimePlayerPauseDetailSnapshot _buildMap(
+    GameState gameState,
+    List<ProjectMapEntry> projectMaps, {
+    required bool isFrench,
+  }) {
+    final locations = projectRuntimeMapLocations(
+      maps: projectMaps,
+      gameState: gameState,
+    );
+    return RuntimePlayerPauseDetailSnapshot(
+      section: RuntimePlayerPauseSection.map,
+      title: isFrench ? 'Carte' : 'Map',
+      message: isFrench
+          ? 'Carte consultable uniquement : le voyage rapide sera ajouté '
+              'avec la mécanique Vol.'
+          : 'View-only map: fast travel will be added with the Fly mechanic.',
+      entries: locations.map((location) {
+        final isCurrent = location.status == RuntimeMapLocationStatus.current;
+        final isDiscovered =
+            location.status == RuntimeMapLocationStatus.discovered;
+        return RuntimePlayerDetailEntrySnapshot(
+          id: 'map.${location.mapId}',
+          title: location.displayName.isEmpty
+              ? switch (location.status) {
+                  RuntimeMapLocationStatus.current =>
+                    isFrench ? 'Zone actuelle' : 'Current area',
+                  RuntimeMapLocationStatus.discovered =>
+                    isFrench ? 'Zone découverte' : 'Discovered area',
+                  RuntimeMapLocationStatus.unknown => '???',
+                }
+              : location.displayName,
+          subtitle: switch (location.status) {
+            RuntimeMapLocationStatus.current =>
+              isFrench ? 'Position actuelle' : 'Current location',
+            RuntimeMapLocationStatus.discovered =>
+              isFrench ? 'Zone découverte' : 'Discovered area',
+            RuntimeMapLocationStatus.unknown =>
+              isFrench ? 'Zone non découverte' : 'Undiscovered area',
+          },
+          trailingLabel: isCurrent
+              ? (isFrench ? 'Ici' : 'Here')
+              : isDiscovered
+                  ? (isFrench ? 'Connue' : 'Known')
+                  : (isFrench ? 'Inconnue' : 'Unknown'),
+        );
+      }).toList(growable: false),
+      emptyMessage: isFrench
+          ? 'Aucune zone n’est disponible sur cette carte.'
+          : 'No area is available on this map.',
     );
   }
 

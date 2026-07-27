@@ -79,6 +79,11 @@ final class GamePackageExportService {
         projectRoot: projectRoot,
         profile: profile,
       );
+      final requiredCapabilities = <String>{
+        ...profile.requiredCapabilities,
+        if (projection.project.maps.isNotEmpty) 'map@1',
+      }.toList(growable: false)
+        ..sort();
       final emptyContent = GamePackageContent(
         fileCount: 0,
         totalBytes: 0,
@@ -107,7 +112,7 @@ final class GamePackageExportService {
           projectFormat: projection.project.version.name,
           saveFormat: 1,
           compatibilityId: 'main',
-          requiredCapabilities: profile.requiredCapabilities,
+          requiredCapabilities: requiredCapabilities,
         ),
         locales: GamePackageLocales(
           defaultLocale: profile.defaultLocale,
@@ -133,6 +138,7 @@ final class GamePackageExportService {
           runtimeApiVersion: Version.parse('1.4.0'),
           capabilities: const <String>{
             'dialogue.choices@1',
+            'map@1',
             'overworld.menu@1',
             'world.shop@1',
           },

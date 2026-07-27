@@ -50,6 +50,10 @@ void main() {
     expect(first.certification.isCertified, isTrue);
     expect(first.manifest.gameId, profile.gameId);
     expect(first.manifest.title, profile.title);
+    expect(
+      first.manifest.compatibility.requiredCapabilities,
+      contains('map@1'),
+    );
     expect(first.inspection.manifest.content.treeSha256,
         first.manifest.content.treeSha256);
     expect(

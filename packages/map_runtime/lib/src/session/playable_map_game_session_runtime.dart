@@ -68,6 +68,7 @@ final class PlayableMapGameSessionRuntime
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   String? _projectRootDirectory;
   ProjectPokemonConfig? _pokemonConfig;
+  List<ProjectMapEntry> _projectMaps = const <ProjectMapEntry>[];
   DateTime? _createdAt;
   String? _saveId;
   int _basePlayTimeSeconds = 0;
@@ -165,6 +166,7 @@ final class PlayableMapGameSessionRuntime
     );
     _projectRootDirectory = bundle.projectRootDirectory;
     _pokemonConfig = bundle.manifest.pokemon;
+    _projectMaps = List<ProjectMapEntry>.unmodifiable(bundle.manifest.maps);
     final memorySaves = _SessionMemoryGameSaveRepository(initialState);
     final game = PlayableMapGame(
       bundle: bundle,
@@ -246,6 +248,8 @@ final class PlayableMapGameSessionRuntime
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,
       locale: descriptor.locale,
+      mapEnabled: descriptor.grantedCapabilities.contains('map.v1'),
+      projectMaps: _projectMaps,
     );
   }
 

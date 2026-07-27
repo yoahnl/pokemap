@@ -72,6 +72,10 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
       );
     }
 
+    if (section == RuntimePlayerPauseSection.map) {
+      return _RuntimePlayerMap(detail: detail);
+    }
+
     return Column(
       key: ValueKey<String>('runtime-player-detail-${section.name}'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -120,6 +124,37 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         RuntimePlayerPauseSection.map => Icons.map_rounded,
         RuntimePlayerPauseSection.options => Icons.tune_rounded,
       };
+}
+
+class _RuntimePlayerMap extends StatelessWidget {
+  const _RuntimePlayerMap({required this.detail});
+
+  final RuntimePlayerPauseDetailSnapshot detail;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        key: const ValueKey<String>('runtime-player-detail-map'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          if (detail.message case final message?
+              when message.trim().isNotEmpty) ...<Widget>[
+            PlayerPanel(
+              child: Text(
+                message,
+                key: const ValueKey<String>('runtime-player-map-message'),
+              ),
+            ),
+            const SizedBox(height: PlayerSpacing.sm),
+          ],
+          for (var index = 0;
+              index < detail.entries.length;
+              index++) ...<Widget>[
+            PlayerDetailEntryCard(entry: detail.entries[index]),
+            if (index != detail.entries.length - 1)
+              const SizedBox(height: PlayerSpacing.sm),
+          ],
+        ],
+      );
 }
 
 class _RuntimePlayerBag extends StatelessWidget {

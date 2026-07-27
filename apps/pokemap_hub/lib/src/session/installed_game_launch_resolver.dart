@@ -143,7 +143,11 @@ final class InstalledGameLaunchResolver {
           '${manifest.content.treeSha256}',
       runtimeApiVersion: hostCompatibility.runtimeApiVersion.toString(),
       grantedCapabilities: Set<String>.unmodifiable(
-        manifest.compatibility.requiredCapabilities,
+        <String>{
+          ...manifest.compatibility.requiredCapabilities,
+          if (manifest.compatibility.requiredCapabilities.contains('map@1'))
+            'map.v1',
+        },
       ),
     );
   }

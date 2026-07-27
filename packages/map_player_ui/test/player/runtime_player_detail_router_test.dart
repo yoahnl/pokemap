@@ -174,6 +174,59 @@ void main() {
     expect(keyItemButton.disabledReason, contains('pas consommé'));
   });
 
+  testWidgets('map identifies the current area and explains travel limits',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.view.reset);
+    addTearDown(
+      tester.platformDispatcher.clearTextScaleFactorTestValue,
+    );
+    final detail = RuntimePlayerPauseDetailSnapshot(
+      section: RuntimePlayerPauseSection.map,
+      title: 'Carte',
+      message:
+          'Carte consultable uniquement : le voyage rapide sera ajouté plus tard.',
+      entries: <RuntimePlayerDetailEntrySnapshot>[
+        RuntimePlayerDetailEntrySnapshot(
+          id: 'map.route',
+          title: 'Route des Brumes',
+          subtitle: 'Position actuelle',
+          trailingLabel: 'Ici',
+        ),
+        RuntimePlayerDetailEntrySnapshot(
+          id: 'map.cave',
+          title: '???',
+          subtitle: 'Zone non découverte',
+          trailingLabel: 'Inconnue',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        SingleChildScrollView(
+          child: RuntimePlayerDetailRouter(
+            snapshot: _detailSnapshot(
+              RuntimePlayerPauseSection.map,
+              detail: detail,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(
+      find.byKey(const ValueKey<String>('runtime-player-map-message')),
+      findsOneWidget,
+    );
+    expect(find.text('Position actuelle'), findsOneWidget);
+    expect(find.text('Ici'), findsOneWidget);
+    expect(find.text('???'), findsOneWidget);
+  });
+
   testWidgets('missing or empty detail gives a guided empty state',
       (tester) async {
     final snapshot = _detailSnapshot(

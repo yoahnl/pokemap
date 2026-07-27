@@ -1,4 +1,5 @@
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 enum RuntimeMapDestinationStatus {
   current,
@@ -30,46 +31,30 @@ List<RuntimeMapDestination> resolveRuntimeMapDestinations({
   required List<ProjectMapEntry> maps,
   required GameState gameState,
 }) {
-  final currentMapId = gameState.currentMapId.trim();
-  final knownMapIds = <String>{
-    currentMapId,
-    ...gameState.narrativeEventProgress.visitedNarrativeMapIds.map(
-      (id) => id.trim(),
-    ),
-  }..remove('');
-  final normalizedMaps = <String, ProjectMapEntry>{};
+  final authoredNames = <String, String>{};
   for (final map in maps) {
     final mapId = map.id.trim();
-    if (mapId.isEmpty) {
-      continue;
-    }
-    normalizedMaps.putIfAbsent(mapId, () => map);
+    if (mapId.isEmpty) continue;
+    authoredNames.putIfAbsent(
+      mapId,
+      () => map.name.trim().isEmpty ? mapId : map.name.trim(),
+    );
   }
-  final sortedMaps = normalizedMaps.entries.toList(growable: false)
-    ..sort((left, right) {
-      final sortOrder = left.value.sortOrder.compareTo(right.value.sortOrder);
-      if (sortOrder != 0) {
-        return sortOrder;
-      }
-      final name = left.value.name.compareTo(right.value.name);
-      return name != 0 ? name : left.key.compareTo(right.key);
-    });
-
   return List<RuntimeMapDestination>.unmodifiable(
-    sortedMaps.map((entry) {
-      final mapId = entry.key;
-      final authoredName =
-          entry.value.name.trim().isEmpty ? mapId : entry.value.name.trim();
-      final status = mapId == currentMapId
-          ? RuntimeMapDestinationStatus.current
-          : knownMapIds.contains(mapId)
-              ? RuntimeMapDestinationStatus.known
-              : RuntimeMapDestinationStatus.locked;
+    projectRuntimeMapLocations(maps: maps, gameState: gameState)
+        .map((location) {
+      final authoredName = authoredNames[location.mapId] ?? location.mapId;
+      final status = switch (location.status) {
+        RuntimeMapLocationStatus.current => RuntimeMapDestinationStatus.current,
+        RuntimeMapLocationStatus.discovered =>
+          RuntimeMapDestinationStatus.known,
+        RuntimeMapLocationStatus.unknown => RuntimeMapDestinationStatus.locked,
+      };
       return RuntimeMapDestination(
-        mapId: mapId,
+        mapId: location.mapId,
         authoredName: authoredName,
         displayName:
-            status == RuntimeMapDestinationStatus.locked ? '???' : authoredName,
+            location.displayName.isEmpty ? authoredName : location.displayName,
         status: status,
       );
     }),

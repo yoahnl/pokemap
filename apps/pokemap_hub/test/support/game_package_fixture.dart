@@ -8,7 +8,7 @@ GamePackageHostCompatibility testHostCompatibility() =>
     GamePackageHostCompatibility(
       hubVersion: Version.parse('1.0.0'),
       runtimeApiVersion: Version.parse('1.0.0'),
-      capabilities: const <String>{'overworld.menu@1'},
+      capabilities: const <String>{'map@1', 'overworld.menu@1'},
       supportedProjectFormats: const <String>{'v2'},
       currentProjectFormat: 'v2',
       supportedSaveFormats: const <int>{1},
@@ -22,6 +22,7 @@ Future<File> writeTestPackage(
   String projectName = 'Adventure',
   int extraFiles = 0,
   String minHubVersion = '1.0.0',
+  List<String> requiredCapabilities = const <String>[],
 }) async {
   final manifest = GamePackageManifest(
     packageFormat: 1,
@@ -36,7 +37,7 @@ Future<File> writeTestPackage(
       projectFormat: 'v2',
       saveFormat: 1,
       compatibilityId: 'main',
-      requiredCapabilities: <String>[],
+      requiredCapabilities: requiredCapabilities,
     ),
     locales: GamePackageLocales(
       defaultLocale: 'fr',
