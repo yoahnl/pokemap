@@ -14,6 +14,7 @@ import '../../../application/use_cases/execute_narrative_authoring_transaction.d
 import '../../../domain/repositories/repositories.dart';
 import '../../../features/personalization/application/personalization_studio_session_controller.dart';
 import '../../../features/personalization/application/personalization_studio_asset_picker.dart';
+import '../../../features/personalization/application/project_branding_image_import_service.dart';
 import '../../../features/personalization/application/project_font_import_service.dart';
 import '../../../features/personalization/application/project_intro_video_import_service.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
@@ -34,6 +35,16 @@ final fileProjectRepositoryProvider = Provider<FileProjectRepository>((ref) {
 final personalizationStudioAssetPickerProvider =
     Provider<PersonalizationStudioAssetPicker>((ref) {
   return const FilePickerPersonalizationStudioAssetPicker();
+});
+
+final personalizationStudioBrandingImagePickerProvider =
+    Provider<PersonalizationStudioBrandingImagePicker>((ref) {
+  return const FilePickerPersonalizationStudioBrandingImagePicker();
+});
+
+final projectBrandingImageImportServiceProvider =
+    Provider<ProjectBrandingImageImporter>((ref) {
+  return const ProjectBrandingImageImportService();
 });
 
 final projectIntroVideoImportServiceProvider =

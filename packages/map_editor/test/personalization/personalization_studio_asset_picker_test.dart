@@ -64,6 +64,38 @@ void main() {
       ),
     );
   });
+
+  test('branding picker selects exactly one supported image', () async {
+    final backend = _Backend(<String>['/source/cover.webp']);
+    final picker = FilePickerPersonalizationStudioBrandingImagePicker(
+      backend: backend,
+    );
+
+    final selection =
+        await picker.pickBrandingImage(ProjectBrandingImageRole.cover);
+
+    expect(selection, '/source/cover.webp');
+    expect(
+      backend.lastRequest?.allowedExtensions,
+      <String>['png', 'jpg', 'jpeg', 'webp'],
+    );
+    final invalid = FilePickerPersonalizationStudioBrandingImagePicker(
+      backend: _Backend(<String>[
+        '/source/cover.webp',
+        '/source/other.png',
+      ]),
+    );
+    await expectLater(
+      invalid.pickBrandingImage(ProjectBrandingImageRole.cover),
+      throwsA(
+        isA<PersonalizationStudioAssetSelectionException>().having(
+          (error) => error.code,
+          'code',
+          'brandingImageSelectionInvalid',
+        ),
+      ),
+    );
+  });
 }
 
 final class _Backend implements PersonalizationStudioFilePickerBackend {

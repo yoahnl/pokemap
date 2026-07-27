@@ -95,6 +95,15 @@ final class ProjectPresentationAssetLifecycle
 }
 
 Iterable<String> _ownedAssetPaths(ProjectPresentationProfile profile) sync* {
+  final branding = profile.branding;
+  for (final path in <String?>[
+    branding.iconPath,
+    branding.coverPath,
+    branding.heroPath,
+    branding.titleMusicPath,
+  ]) {
+    if (path != null) yield path;
+  }
   final intro = profile.intro;
   if (intro != null) {
     yield intro.videoPath;
@@ -117,15 +126,6 @@ Iterable<String> _ownedAssetPaths(ProjectPresentationProfile profile) sync* {
 Iterable<String> _allPresentationPaths(
   ProjectPresentationProfile profile,
 ) sync* {
-  final branding = profile.branding;
-  for (final path in <String?>[
-    branding.iconPath,
-    branding.coverPath,
-    branding.heroPath,
-    branding.titleMusicPath,
-  ]) {
-    if (path != null) yield path;
-  }
   yield* _ownedAssetPaths(profile);
 }
 
@@ -133,7 +133,8 @@ bool _isManagedRelativePath(String path) {
   if (path.isEmpty || p.posix.isAbsolute(path)) return false;
   if (p.posix.normalize(path) != path) return false;
   return path.startsWith('assets/presentation/intro/') ||
-      path.startsWith('assets/presentation/fonts/');
+      path.startsWith('assets/presentation/fonts/') ||
+      path.startsWith('assets/presentation/branding/');
 }
 
 Future<bool> _hasSafeDirectoryChain(

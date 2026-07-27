@@ -1,6 +1,8 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 
+import 'project_branding_image_import_service.dart';
+
 @immutable
 final class PersonalizationStudioIntroAssetSelection {
   const PersonalizationStudioIntroAssetSelection({
@@ -84,6 +86,41 @@ abstract interface class PersonalizationStudioAssetPicker {
   Future<PersonalizationStudioFontAssetSelection?> pickFontAssets();
 }
 
+abstract interface class PersonalizationStudioBrandingImagePicker {
+  Future<String?> pickBrandingImage(ProjectBrandingImageRole role);
+}
+
+final class FilePickerPersonalizationStudioBrandingImagePicker
+    implements PersonalizationStudioBrandingImagePicker {
+  const FilePickerPersonalizationStudioBrandingImagePicker({
+    this.backend = const PlatformPersonalizationStudioFilePickerBackend(),
+  });
+
+  final PersonalizationStudioFilePickerBackend backend;
+
+  @override
+  Future<String?> pickBrandingImage(ProjectBrandingImageRole role) async {
+    final paths = await backend.pick(
+      PersonalizationStudioFilePickerRequest(
+        dialogTitle: 'Choisir ${_brandingImagePickerLabel(role)}',
+        allowedExtensions: const <String>['png', 'jpg', 'jpeg', 'webp'],
+      ),
+    );
+    if (paths == null) return null;
+    final imagePath = _singlePath(
+      paths,
+      const <String>['.png', '.jpg', '.jpeg', '.webp'],
+    );
+    if (imagePath == null) {
+      throw const PersonalizationStudioAssetSelectionException(
+        code: 'brandingImageSelectionInvalid',
+        message: 'Sélectionnez exactement une image PNG, JPEG ou WebP.',
+      );
+    }
+    return imagePath;
+  }
+}
+
 /// Typed selection boundary used by the Personalization Studio.
 ///
 /// The picker only selects paths. Validation, probing and project-owned copies
@@ -165,3 +202,10 @@ String? _singlePath(List<String> paths, List<String> extensions) {
   }).toList(growable: false);
   return matches.length == 1 ? matches.single : null;
 }
+
+String _brandingImagePickerLabel(ProjectBrandingImageRole role) =>
+    switch (role) {
+      ProjectBrandingImageRole.icon => 'une icône de jeu',
+      ProjectBrandingImageRole.cover => 'une cover de bibliothèque',
+      ProjectBrandingImageRole.hero => 'un logo ou hero de titre',
+    };

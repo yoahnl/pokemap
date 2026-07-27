@@ -141,6 +141,51 @@ void main() {
       );
       expect(unknown.existsSync(), isTrue);
     });
+
+    test('cleans stale branding copies while preserving current branding',
+        () async {
+      final root =
+          Directory.systemTemp.createTempSync('presentation-branding-cleanup-');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final oldIcon = _write(root, 'assets/presentation/branding/icon-old.png');
+      final oldHero =
+          _write(root, 'assets/presentation/branding/hero-old.webp');
+      final sharedCover =
+          _write(root, 'assets/presentation/branding/cover-shared.jpg');
+      final unknown =
+          _write(root, 'assets/presentation/branding/do-not-touch.png');
+      const previous = ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(
+          iconPath: 'assets/presentation/branding/icon-old.png',
+          coverPath: 'assets/presentation/branding/cover-shared.jpg',
+          heroPath: 'assets/presentation/branding/hero-old.webp',
+        ),
+      );
+      const current = ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(
+          coverPath: 'assets/presentation/branding/cover-shared.jpg',
+        ),
+      );
+
+      final result =
+          await const ProjectPresentationAssetLifecycle().cleanStaleAssets(
+        projectRoot: root,
+        previousProfile: previous,
+        currentProfile: current,
+      );
+
+      expect(
+        result.deletedPaths,
+        <String>{
+          'assets/presentation/branding/icon-old.png',
+          'assets/presentation/branding/hero-old.webp',
+        },
+      );
+      expect(oldIcon.existsSync(), isFalse);
+      expect(oldHero.existsSync(), isFalse);
+      expect(sharedCover.existsSync(), isTrue);
+      expect(unknown.existsSync(), isTrue);
+    });
   });
 }
 

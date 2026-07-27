@@ -15,9 +15,11 @@ import '../../../ui/design_system/pokemap_empty_state.dart';
 import '../../../ui/design_system/pokemap_toggle_tile.dart';
 import '../../editor/state/editor_notifier.dart';
 import '../application/personalization_studio_asset_picker.dart';
+import '../application/project_branding_image_import_service.dart';
 import '../application/project_font_import_service.dart';
 import '../application/project_intro_video_import_service.dart';
 import 'personalization_hub_shell.dart';
+import 'project_branding_editor.dart';
 import 'project_intro_video_editor.dart';
 import 'project_semantic_theme_editor.dart';
 import 'project_theme_token_dialog.dart';
@@ -56,6 +58,77 @@ class _PersonalizationStudioWorkspaceState
             .initializePersonalizationStudioSession(),
       );
     });
+  }
+
+  Future<void> _importBrandingImage({
+    required String projectRootPath,
+    required ProjectPresentationProfile profile,
+    required ProjectBrandingImageRole role,
+    required EditorNotifier notifier,
+  }) async {
+    if (_isImportingAsset) return;
+    setState(() {
+      _isImportingAsset = true;
+      _assetFeedback = null;
+    });
+    try {
+      final selectedPath = await ref
+          .read(personalizationStudioBrandingImagePickerProvider)
+          .pickBrandingImage(role);
+      if (!mounted) return;
+      if (selectedPath == null) {
+        setState(() {
+          _assetFeedbackIsError = false;
+          _assetFeedback = 'Import d’image annulé.';
+        });
+        return;
+      }
+      final imported = await ref
+          .read(projectBrandingImageImportServiceProvider)
+          .importIntoProject(
+            projectRoot: Directory(projectRootPath),
+            role: role,
+            sourceFile: File(selectedPath),
+          );
+      final branding = _replaceBrandingImagePath(
+        profile.branding,
+        role,
+        imported.relativePath,
+      );
+      final applied = await notifier.applyPersonalizationStudioProfile(
+        profile.copyWith(branding: branding),
+        label: 'Importer ${_brandingImageRoleName(role)}',
+      );
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = !applied;
+        _assetFeedback = applied
+            ? 'Image de branding importée dans le brouillon.'
+            : 'L’image a été validée, mais le brouillon n’a pas pu être modifié.';
+      });
+    } on PersonalizationStudioAssetSelectionException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = error.message;
+      });
+    } on ProjectBrandingImageImportException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = _localizedBrandingImageImportError(error);
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = 'L’import de l’image de branding a échoué.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isImportingAsset = false);
+      }
+    }
   }
 
   Future<void> _importFont({
@@ -272,6 +345,44 @@ class _PersonalizationStudioWorkspaceState
         const SizedBox(height: 12),
       ],
     ];
+    if (category == ProjectPresentationCategory.branding) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          ...feedback,
+          IgnorePointer(
+            ignoring: !canEdit || _isImportingAsset,
+            child: ProjectBrandingEditor(
+              profile: profile.branding,
+              onImportImage: (role) {
+                unawaited(
+                  _importBrandingImage(
+                    projectRootPath: projectRootPath,
+                    profile: profile,
+                    role: role,
+                    notifier: notifier,
+                  ),
+                );
+              },
+              onRemoveImage: (role) {
+                unawaited(
+                  notifier.applyPersonalizationStudioProfile(
+                    profile.copyWith(
+                      branding: _replaceBrandingImagePath(
+                        profile.branding,
+                        role,
+                        null,
+                      ),
+                    ),
+                    label: 'Retirer ${_brandingImageRoleName(role)}',
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      );
+    }
     if (category == ProjectPresentationCategory.intro) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -672,6 +783,37 @@ String _themeTokenName(String token) => switch (token) {
       'overworldHudSurface' => 'Fond du HUD exploration',
       'battleHudSurface' => 'Fond du HUD combat',
       _ => token,
+    };
+
+ProjectBrandingProfile _replaceBrandingImagePath(
+  ProjectBrandingProfile profile,
+  ProjectBrandingImageRole role,
+  String? path,
+) =>
+    switch (role) {
+      ProjectBrandingImageRole.icon => profile.copyWith(iconPath: path),
+      ProjectBrandingImageRole.cover => profile.copyWith(coverPath: path),
+      ProjectBrandingImageRole.hero => profile.copyWith(heroPath: path),
+    };
+
+String _brandingImageRoleName(ProjectBrandingImageRole role) => switch (role) {
+      ProjectBrandingImageRole.icon => 'l’icône du jeu',
+      ProjectBrandingImageRole.cover => 'la cover de bibliothèque',
+      ProjectBrandingImageRole.hero => 'le logo / hero du titre',
+    };
+
+String _localizedBrandingImageImportError(
+  ProjectBrandingImageImportException error,
+) =>
+    switch (error.code) {
+      'brandingImageMissing' => 'L’image sélectionnée est introuvable.',
+      'brandingImageFormatUnsupported' =>
+        'Choisissez une image PNG, JPEG ou WebP.',
+      'brandingImageCorrupt' =>
+        'L’image sélectionnée ne peut pas être décodée.',
+      'brandingImageWriteFailed' =>
+        'L’image validée n’a pas pu être copiée dans le projet.',
+      _ => error.message,
     };
 
 String _localizedIntroImportError(ProjectIntroVideoImportException error) =>
