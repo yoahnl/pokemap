@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../ui/design_system/pokemap_badge.dart';
+import '../../../ui/design_system/pokemap_button.dart';
 import '../../../ui/design_system/pokemap_card.dart';
 import '../../../ui/design_system/pokemap_panel.dart';
 import '../application/personalization_publish_readiness.dart';
@@ -11,9 +12,11 @@ class PersonalizationReadinessPanel extends StatelessWidget {
   const PersonalizationReadinessPanel({
     super.key,
     required this.report,
+    this.onCorrectIssue,
   });
 
   final PersonalizationPublishReadiness report;
+  final ValueChanged<PersonalizationReadinessIssue>? onCorrectIssue;
 
   @override
   Widget build(BuildContext context) {
@@ -59,18 +62,113 @@ class PersonalizationReadinessPanel extends StatelessWidget {
           final spacing = 10.0;
           final width = (constraints.maxWidth - spacing * (columnCount - 1)) /
               columnCount;
-          return Wrap(
-            spacing: spacing,
-            runSpacing: spacing,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              for (final category in report.categories)
-                SizedBox(
-                  width: width,
-                  child: _ReadinessCategoryCard(readiness: category),
+              Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: <Widget>[
+                  for (final category in report.categories)
+                    SizedBox(
+                      width: width,
+                      child: _ReadinessCategoryCard(readiness: category),
+                    ),
+                ],
+              ),
+              if (report.issues.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 16),
+                const Text(
+                  'Corrections recommandées',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
+                const SizedBox(height: 8),
+                for (final (index, issue) in report.issues.indexed) ...<Widget>[
+                  _ReadinessIssueCard(
+                    key: ValueKey<String>(
+                      'personalization-readiness-issue-$index',
+                    ),
+                    issue: issue,
+                    correctionKey: ValueKey<String>(
+                      'personalization-readiness-correction-$index',
+                    ),
+                    onCorrect: onCorrectIssue == null
+                        ? null
+                        : () => onCorrectIssue!(issue),
+                  ),
+                  if (index < report.issues.length - 1)
+                    const SizedBox(height: 8),
+                ],
+              ],
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _ReadinessIssueCard extends StatelessWidget {
+  const _ReadinessIssueCard({
+    super.key,
+    required this.issue,
+    required this.correctionKey,
+    required this.onCorrect,
+  });
+
+  final PersonalizationReadinessIssue issue;
+  final Key correctionKey;
+  final VoidCallback? onCorrect;
+
+  @override
+  Widget build(BuildContext context) {
+    return PokeMapCard(
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 10,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        alignment: WrapAlignment.spaceBetween,
+        children: <Widget>[
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 620),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(
+                      issue.isBlocker
+                          ? Icons.error_outline_rounded
+                          : Icons.warning_amber_rounded,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        issue.title,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(issue.explanation),
+              ],
+            ),
+          ),
+          PokeMapButton(
+            key: correctionKey,
+            variant: issue.correctionKind ==
+                    PersonalizationCorrectionKind.useSafeTheme
+                ? PokeMapButtonVariant.successOutline
+                : PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.small,
+            leading: const Icon(Icons.build_outlined),
+            onPressed: onCorrect,
+            child: Text(issue.correctionLabel),
+          ),
+        ],
       ),
     );
   }

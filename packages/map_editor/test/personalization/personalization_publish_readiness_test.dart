@@ -68,4 +68,22 @@ void main() {
     expect(report.warningCount, 1);
     expect(report.isReadyToExport, isTrue);
   });
+
+  test('turns technical diagnostics into no-code correction guidance', () {
+    const profile = ProjectPresentationProfile(
+      branding: ProjectBrandingProfile(accentColor: 'purple'),
+    );
+
+    final issue =
+        PersonalizationPublishReadiness.fromProfile(profile).issues.single;
+
+    expect(issue.title, 'Couleur d’accent invalide');
+    expect(
+      issue.explanation,
+      'La couleur d’accent doit utiliser une valeur hexadécimale, '
+      'par exemple #6750A4.',
+    );
+    expect(issue.correctionKind, PersonalizationCorrectionKind.openCategory);
+    expect(issue.correctionLabel, 'Corriger dans Branding');
+  });
 }

@@ -42,4 +42,42 @@ void main() {
     expect(find.text('À corriger'), findsOneWidget);
     expect(find.text('Prêt'), findsNWidgets(3));
   });
+
+  testWidgets('explains blockers and exposes a direct correction action',
+      (tester) async {
+    PersonalizationReadinessIssue? correctedIssue;
+    const profile = ProjectPresentationProfile(
+      branding: ProjectBrandingProfile(accentColor: 'purple'),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.light(),
+        home: Scaffold(
+          body: PersonalizationReadinessPanel(
+            report: PersonalizationPublishReadiness.fromProfile(profile),
+            onCorrectIssue: (issue) => correctedIssue = issue,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Corrections recommandées'), findsOneWidget);
+    expect(find.text('Couleur d’accent invalide'), findsOneWidget);
+    expect(
+      find.text(
+        'La couleur d’accent doit utiliser une valeur hexadécimale, '
+        'par exemple #6750A4.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-readiness-correction-0'),
+      ),
+    );
+
+    expect(correctedIssue?.category, ProjectPresentationCategory.branding);
+  });
 }

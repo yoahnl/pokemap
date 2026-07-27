@@ -55,6 +55,7 @@ class PersonalizationHubShell extends StatelessWidget {
           category: selectedCategory,
           diagnostics: diagnostics,
           readiness: readiness,
+          onCategorySelected: onCategorySelected,
           categoryBuilder: categoryBuilder,
           baselineProfile: baselineProfile,
           onProfileChanged: onProfileChanged,
@@ -202,6 +203,7 @@ class _CategoryDetail extends StatelessWidget {
     required this.category,
     required this.diagnostics,
     required this.readiness,
+    required this.onCategorySelected,
     required this.categoryBuilder,
     required this.baselineProfile,
     required this.onProfileChanged,
@@ -214,6 +216,7 @@ class _CategoryDetail extends StatelessWidget {
   final ProjectPresentationCategory category;
   final List<ProjectPresentationDiagnostic> diagnostics;
   final PersonalizationPublishReadiness readiness;
+  final ValueChanged<ProjectPresentationCategory> onCategorySelected;
   final PersonalizationCategoryBuilder? categoryBuilder;
   final ProjectPresentationProfile? baselineProfile;
   final ValueChanged<ProjectPresentationProfile>? onProfileChanged;
@@ -269,7 +272,19 @@ class _CategoryDetail extends StatelessWidget {
         projectRootPath: projectRootPath,
       ),
       const SizedBox(height: 16),
-      PersonalizationReadinessPanel(report: readiness),
+      PersonalizationReadinessPanel(
+        report: readiness,
+        onCorrectIssue: (issue) {
+          onCategorySelected(issue.category);
+          if (issue.correctionKind ==
+                  PersonalizationCorrectionKind.useSafeTheme &&
+              onProfileChanged != null) {
+            onProfileChanged!(
+              profile.copyWith(theme: safeProjectSemanticTheme),
+            );
+          }
+        },
+      ),
     ];
     return PokeMapPanel(
       header: Padding(

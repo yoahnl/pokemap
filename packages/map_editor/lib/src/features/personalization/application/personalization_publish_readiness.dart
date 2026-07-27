@@ -7,6 +7,11 @@ enum PersonalizationReadinessStatus {
   blocked,
 }
 
+enum PersonalizationCorrectionKind {
+  openCategory,
+  useSafeTheme,
+}
+
 /// A normalized publication issue, independent from its future presentation.
 final class PersonalizationReadinessIssue {
   const PersonalizationReadinessIssue({
@@ -35,6 +40,80 @@ final class PersonalizationReadinessIssue {
   final String message;
 
   bool get isBlocker => severity == ProjectPresentationDiagnosticSeverity.error;
+
+  String get title => switch (code) {
+        'presentationVersionUnsupported' => 'Version non prise en charge',
+        'presentationAssetPathUnsafe' => 'Fichier hors du projet',
+        'presentationAccentColorInvalid' => 'Couleur d’accent invalide',
+        'presentationLayoutUnsupported' => 'Disposition non prise en charge',
+        'introPosterRequired' => 'Poster de secours manquant',
+        'introContainerUnsupported' => 'Conteneur vidéo non pris en charge',
+        'introPosterFormatUnsupported' => 'Format du poster non pris en charge',
+        'introCaptionsFormatUnsupported' =>
+          'Format des sous-titres non pris en charge',
+        'introDurationExceeded' => 'Durée de l’intro non prise en charge',
+        'introResolutionExceeded' => 'Résolution de l’intro trop élevée',
+        'introBitrateExceeded' => 'Débit de l’intro trop élevé',
+        'introSizeExceeded' => 'Vidéo d’intro trop volumineuse',
+        'introVideoCodecUnsupported' => 'Codec vidéo non pris en charge',
+        'introAudioCodecUnsupported' => 'Codec audio non pris en charge',
+        'introReducedMotionBehaviorUnsupported' =>
+          'Alternative sans animation invalide',
+        'introCaptionsRecommended' => 'Sous-titres recommandés',
+        'typographyFallbackRequired' => 'Police de secours manquante',
+        'typographyFormatUnsupported' => 'Format de police non pris en charge',
+        'typographyFamilyRequired' => 'Famille de police manquante',
+        'typographyLicenseRequired' => 'Licence de police manquante',
+        'typographyRedistributionRequired' =>
+          'Redistribution de la police non confirmée',
+        'typographyGlyphCoverageIncomplete' =>
+          'Couverture de caractères incomplète',
+        'themeColorInvalid' => 'Couleur de thème invalide',
+        'themeContrastInsufficient' => 'Contraste insuffisant',
+        _ => 'Vérification requise',
+      };
+
+  String get explanation => switch (code) {
+        'presentationAccentColorInvalid' =>
+          'La couleur d’accent doit utiliser une valeur hexadécimale, '
+              'par exemple #6750A4.',
+        'presentationAssetPathUnsafe' =>
+          'Choisissez un fichier situé dans le dossier du projet.',
+        'introPosterRequired' =>
+          'Ajoutez un poster afin de garantir un affichage de secours.',
+        'introCaptionsRecommended' =>
+          'Ajoutez des sous-titres WebVTT lorsque l’audio contient une voix '
+              'ou une information importante.',
+        'typographyLicenseRequired' =>
+          'Joignez le texte de licence autorisant la redistribution de cette '
+              'police avec le jeu.',
+        'typographyRedistributionRequired' =>
+          'Confirmez que la licence autorise la redistribution de cette '
+              'police avec le jeu.',
+        'themeContrastInsufficient' =>
+          'Ajustez les couleurs concernées ou appliquez la palette sûre pour '
+              'rétablir les contrastes requis.',
+        'themeColorInvalid' =>
+          'Utilisez une couleur hexadécimale opaque ou appliquez la palette '
+              'sûre.',
+        _ => message,
+      };
+
+  PersonalizationCorrectionKind get correctionKind =>
+      category == ProjectPresentationCategory.theme &&
+              const <String>{
+                'themeColorInvalid',
+                'themeContrastInsufficient',
+              }.contains(code)
+          ? PersonalizationCorrectionKind.useSafeTheme
+          : PersonalizationCorrectionKind.openCategory;
+
+  String get correctionLabel => switch (correctionKind) {
+        PersonalizationCorrectionKind.useSafeTheme =>
+          'Appliquer la palette sûre',
+        PersonalizationCorrectionKind.openCategory =>
+          'Corriger dans ${_categoryLabel(category)}',
+      };
 }
 
 /// Readiness of one stable Personalization Studio category.
@@ -115,3 +194,11 @@ final class PersonalizationPublishReadiness {
   ) =>
       categories.firstWhere((item) => item.category == category);
 }
+
+String _categoryLabel(ProjectPresentationCategory category) =>
+    switch (category) {
+      ProjectPresentationCategory.branding => 'Branding',
+      ProjectPresentationCategory.intro => 'Intro vidéo',
+      ProjectPresentationCategory.typography => 'Typographie',
+      ProjectPresentationCategory.theme => 'Thème & HUD',
+    };

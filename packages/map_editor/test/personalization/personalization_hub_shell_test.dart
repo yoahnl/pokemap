@@ -170,4 +170,43 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('applies the safe theme from an actionable contrast diagnostic',
+      (tester) async {
+    ProjectPresentationProfile? changed;
+    final unsafeTheme = safeProjectSemanticTheme.copyWith(
+      textPrimary: safeProjectSemanticTheme.background,
+    );
+    final profile = ProjectPresentationProfile(theme: unsafeTheme);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.light(),
+        home: Scaffold(
+          body: PersonalizationHubShell(
+            profile: profile,
+            selectedCategory: ProjectPresentationCategory.theme,
+            onCategorySelected: (_) {},
+            onProfileChanged: (profile) => changed = profile,
+          ),
+        ),
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(
+        const ValueKey<String>('personalization-readiness-correction-0'),
+      ),
+      400,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-readiness-correction-0'),
+      ),
+    );
+
+    expect(changed?.theme, safeProjectSemanticTheme);
+  });
 }
