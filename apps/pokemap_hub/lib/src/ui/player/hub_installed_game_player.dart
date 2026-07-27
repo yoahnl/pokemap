@@ -21,6 +21,7 @@ import '../../session/hub_in_process_session_factory.dart';
 import '../../session/installed_game_launch_resolver.dart';
 import '../preferences/hub_preferences_store.dart';
 import 'hub_save_profiles_screen.dart';
+import 'hub_title_presentation_loader.dart';
 
 typedef HubPlayerReturnRequest = Future<void> Function();
 
@@ -60,7 +61,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   _PlayerLaunchFailure? _failure;
   HubSaveProfileManager? _profileManager;
   HubSaveSelection? _saveSelection;
-  player_ui.PlayerNewGameIdentityPresentation? _newGameIdentityPresentation;
+  HubLoadedTitlePresentation? _titlePresentation;
+  RuntimeTitleMusicController? _titleMusicController;
+  StreamSubscription<RuntimePlayerSnapshot>? _titleMusicSubscription;
   bool _managingSaves = false;
 
   @override
@@ -72,6 +75,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
 
   Future<void> _initialize() async {
     RuntimePlayerCoordinator? coordinator;
+    RuntimeTitleMusicController? titleMusicController;
+    StreamSubscription<RuntimePlayerSnapshot>? titleMusicSubscription;
     try {
       final launch = await widget.launchResolver.resolve(widget.game);
       final store = HubSaveStore(
@@ -92,6 +97,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       );
       final newGameIdentityPresentation =
           await _loadNewGameIdentityPresentation(launch);
+      final titlePresentation = await HubTitlePresentationLoader(
+        manifest: launch.manifest,
+        resolveFile: launch.assets.resolveFile,
+      ).load(newGameIdentity: newGameIdentityPresentation);
       final gameSource = HubRuntimeGameSource(
         launch: launch,
         preferencesGateway: preferencesGateway,
@@ -114,7 +123,22 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         externalExit: HubRuntimeExternalExit(widget.onHubRequested),
       );
       await coordinator.initialize();
+      titleMusicController = RuntimeTitleMusicController();
+      titleMusicSubscription = coordinator.snapshots.listen(
+        (snapshot) => unawaited(
+          titleMusicController!.update(
+            path: titlePresentation.titleMusicPath,
+            titleVisible: snapshot.phase == RuntimePlayerPhase.title,
+          ),
+        ),
+      );
+      await titleMusicController.update(
+        path: titlePresentation.titleMusicPath,
+        titleVisible: coordinator.snapshot.phase == RuntimePlayerPhase.title,
+      );
       if (!mounted) {
+        await titleMusicSubscription.cancel();
+        await titleMusicController.dispose();
         await coordinator.dispose();
         return;
       }
@@ -124,11 +148,15 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         _coordinator = coordinator;
         _profileManager = profileManager;
         _saveSelection = saveSelection;
-        _newGameIdentityPresentation = newGameIdentityPresentation;
+        _titlePresentation = titlePresentation;
+        _titleMusicController = titleMusicController;
+        _titleMusicSubscription = titleMusicSubscription;
         _viewController =
             player_ui.RuntimePlayerCoordinatorViewController(coordinator!);
       });
     } on Object catch (error, stackTrace) {
+      await titleMusicSubscription?.cancel();
+      await titleMusicController?.dispose();
       await coordinator?.dispose();
       final failure = await _recordFailure(
         error,
@@ -244,6 +272,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     final coordinator = _coordinator;
     if (coordinator == null) return;
     if (state == AppLifecycleState.resumed) {
+      unawaited(_titleMusicController?.resumeFromLifecycle());
       unawaited(coordinator.resumeFromLifecycle());
       return;
     }
@@ -251,6 +280,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {
+      unawaited(_titleMusicController?.pauseForLifecycle());
       unawaited(coordinator.pauseForLifecycle());
     }
   }
@@ -334,7 +364,11 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     final coordinator = _coordinator;
     final viewController = _viewController;
     final launch = _launch;
-    if (coordinator == null || viewController == null || launch == null) {
+    final titlePresentation = _titlePresentation;
+    if (coordinator == null ||
+        viewController == null ||
+        launch == null ||
+        titlePresentation == null) {
       return const Scaffold(
         body: player_ui.PlayerLoadingSurface(
           stage: 'Vérification du jeu installé…',
@@ -370,11 +404,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             player_ui.PokeMapPlayerSessionView(
               key: const ValueKey<String>('pokemap-runtime-player-view'),
               controller: viewController,
-              titlePresentation: player_ui.RuntimePlayerTitlePresentation(
-                author: launch.manifest.author.name,
-                description: launch.manifest.description,
-                newGameIdentity: _newGameIdentityPresentation,
-              ),
+              titlePresentation: titlePresentation.title,
               payloadForAction: _payloadForAction,
               gameplayInputRoute: _sessions?.handleInput,
               gameplayInputAuthority: _mountedGame?.inputAuthorityListenable,
@@ -424,6 +454,16 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     _coordinator = null;
     _viewController = null;
     _sessions = null;
+    final titleMusicSubscription = _titleMusicSubscription;
+    _titleMusicSubscription = null;
+    final titleMusicController = _titleMusicController;
+    _titleMusicController = null;
+    if (titleMusicSubscription != null) {
+      unawaited(titleMusicSubscription.cancel());
+    }
+    if (titleMusicController != null) {
+      unawaited(titleMusicController.dispose());
+    }
     if (coordinator != null) unawaited(coordinator.dispose());
     super.dispose();
   }

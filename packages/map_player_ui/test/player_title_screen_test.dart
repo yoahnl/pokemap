@@ -79,6 +79,37 @@ void main() {
     expect(find.byKey(const ValueKey<String>('player-title-scroll')),
         findsOneWidget);
   });
+
+  testWidgets('cinematic branding selects the authored title layout',
+      (tester) async {
+    await tester.pumpWidget(
+      _app(
+        PlayerTitleScreen(
+          data: PlayerTitleViewData(
+            gameTitle: 'Aube',
+            author: 'Studio Brume',
+            layoutVariant: PlayerTitleLayoutVariant.cinematic,
+            actions: <PlayerTitleMenuAction, PlayerActionAvailability>{
+              for (final action in PlayerTitleMenuAction.values)
+                action: PlayerActionAvailability.enabled,
+            },
+          ),
+          onSelected: (_) {},
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('player-title-layout-cinematic'),
+      ),
+      findsOneWidget,
+    );
+    final alignment = tester.widget<Align>(
+      find.byKey(const ValueKey<String>('player-title-content-alignment')),
+    );
+    expect(alignment.alignment, Alignment.bottomLeft);
+  });
 }
 
 Widget _app(Widget child) => MaterialApp(

@@ -1,6 +1,8 @@
 library map_runtime;
 
 export 'package:map_core/map_core.dart' show PlayerPronounSet;
+export 'src/player/runtime_title_music_controller.dart'
+    show RuntimeTitleMusicController;
 
 export 'src/application/scene_runtime/narrative_command_runtime_capability_evidence.dart'
     show buildMapRuntimeNarrativeCommandConsumerAttestation;

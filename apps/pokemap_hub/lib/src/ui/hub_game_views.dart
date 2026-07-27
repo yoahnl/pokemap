@@ -109,8 +109,12 @@ class _HubGameCard extends StatelessWidget {
                       top: Radius.circular(PlayerRadii.md - 1),
                     ),
                     child: HubArtwork(
-                      path: activity.coverPath ?? activity.heroPath,
+                      path: activity.coverPath ??
+                          activity.heroPath ??
+                          activity.iconPath,
                       icon: Icons.landscape_rounded,
+                      accentColor:
+                          _decodeAccentColor(game.branding?.accentColor),
                     ),
                   ),
                 ),
@@ -217,8 +221,13 @@ class HubGameDetailView extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(PlayerRadii.lg),
                     child: HubArtwork(
-                      path: activity.heroPath ?? activity.coverPath,
+                      path: activity.heroPath ??
+                          activity.coverPath ??
+                          activity.iconPath,
                       icon: Icons.explore_rounded,
+                      accentColor: _decodeAccentColor(
+                        installation.branding?.accentColor,
+                      ),
                     ),
                   ),
                 );
@@ -372,6 +381,9 @@ class _HubGameInformation extends StatelessWidget {
                   child: HubArtwork(
                     path: activity.iconPath,
                     icon: Icons.catching_pokemon_rounded,
+                    accentColor: _decodeAccentColor(
+                      installation.branding?.accentColor,
+                    ),
                   ),
                 ),
               ),
@@ -462,26 +474,29 @@ class HubArtwork extends StatelessWidget {
     super.key,
     required this.path,
     required this.icon,
+    this.accentColor,
   });
 
   final String? path;
   final IconData icon;
+  final Color? accentColor;
 
   @override
   Widget build(BuildContext context) {
+    final accent = accentColor ?? context.playerColors.primary;
     final fallback = DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: <Color>[
-            context.playerColors.primary.withValues(alpha: 0.32),
+            accent.withValues(alpha: 0.32),
             context.playerColors.surfaceElevated,
           ],
         ),
       ),
       child: Center(
-        child: Icon(icon, size: 64, color: context.playerColors.primary),
+        child: Icon(icon, size: 64, color: accent),
       ),
     );
     final assetPath = path;
@@ -493,6 +508,27 @@ class HubArtwork extends StatelessWidget {
       errorBuilder: (_, __, ___) => fallback,
     );
   }
+}
+
+Color? _decodeAccentColor(String? source) {
+  if (source == null || !source.startsWith('#')) return null;
+  final hex = source.substring(1);
+  try {
+    if (hex.length == 6) {
+      return Color(int.parse('FF$hex', radix: 16));
+    }
+    if (hex.length == 8) {
+      return Color.fromARGB(
+        int.parse(hex.substring(6, 8), radix: 16),
+        int.parse(hex.substring(0, 2), radix: 16),
+        int.parse(hex.substring(2, 4), radix: 16),
+        int.parse(hex.substring(4, 6), radix: 16),
+      );
+    }
+  } on FormatException {
+    return null;
+  }
+  return null;
 }
 
 String _formatPlayTime(int seconds) {

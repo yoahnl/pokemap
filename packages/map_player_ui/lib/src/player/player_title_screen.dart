@@ -15,6 +15,19 @@ enum PlayerTitleMenuAction {
   returnToHub,
 }
 
+enum PlayerTitleLayoutVariant {
+  standard,
+  centered,
+  cinematic;
+
+  static PlayerTitleLayoutVariant fromManifest(String? value) =>
+      switch (value) {
+        'centered' => PlayerTitleLayoutVariant.centered,
+        'cinematic' => PlayerTitleLayoutVariant.cinematic,
+        _ => PlayerTitleLayoutVariant.standard,
+      };
+}
+
 @immutable
 final class RuntimePlayerTitlePresentation {
   const RuntimePlayerTitlePresentation({
@@ -23,6 +36,7 @@ final class RuntimePlayerTitlePresentation {
     this.background,
     this.logo,
     this.accentColor,
+    this.layoutVariant = PlayerTitleLayoutVariant.standard,
     this.newGameIdentity,
   });
 
@@ -31,6 +45,7 @@ final class RuntimePlayerTitlePresentation {
   final ImageProvider? background;
   final ImageProvider? logo;
   final Color? accentColor;
+  final PlayerTitleLayoutVariant layoutVariant;
   final PlayerNewGameIdentityPresentation? newGameIdentity;
 }
 
@@ -43,6 +58,7 @@ final class PlayerTitleViewData {
     this.background,
     this.logo,
     this.accentColor,
+    this.layoutVariant = PlayerTitleLayoutVariant.standard,
     required Map<PlayerTitleMenuAction, PlayerActionAvailability> actions,
   }) : actions = Map.unmodifiable(actions);
 
@@ -52,6 +68,7 @@ final class PlayerTitleViewData {
   final ImageProvider? background;
   final ImageProvider? logo;
   final Color? accentColor;
+  final PlayerTitleLayoutVariant layoutVariant;
   final Map<PlayerTitleMenuAction, PlayerActionAvailability> actions;
 }
 
@@ -72,6 +89,10 @@ class PlayerTitleScreen extends StatelessWidget {
     final firstEnabledAction = PlayerTitleMenuAction.values
         .where((action) => _availability(context, action).isEnabled)
         .firstOrNull;
+    final cinematic = data.layoutVariant == PlayerTitleLayoutVariant.cinematic;
+    final contentAlignment =
+        cinematic ? Alignment.bottomLeft : Alignment.center;
+    final textAlignment = cinematic ? TextAlign.start : TextAlign.center;
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
@@ -98,15 +119,27 @@ class PlayerTitleScreen extends StatelessWidget {
                       ? constraints.maxHeight - PlayerSpacing.xxl
                       : 0,
                 ),
-                child: Center(
+                child: Align(
+                  key: const ValueKey<String>(
+                    'player-title-content-alignment',
+                  ),
+                  alignment: contentAlignment,
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 560),
+                    key: ValueKey<String>(
+                      'player-title-layout-${data.layoutVariant.name}',
+                    ),
+                    constraints: BoxConstraints(
+                      maxWidth: cinematic ? 680 : 560,
+                    ),
                     child: PlayerPanel(
                       elevated: true,
                       child: FocusTraversalGroup(
                         policy: OrderedTraversalPolicy(),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: cinematic
+                              ? CrossAxisAlignment.stretch
+                              : CrossAxisAlignment.center,
                           children: <Widget>[
                             if (data.logo != null)
                               ConstrainedBox(
@@ -127,20 +160,20 @@ class PlayerTitleScreen extends StatelessWidget {
                             const SizedBox(height: PlayerSpacing.md),
                             Text(
                               data.gameTitle,
-                              textAlign: TextAlign.center,
+                              textAlign: textAlignment,
                               style: Theme.of(context).textTheme.displaySmall,
                             ),
                             const SizedBox(height: PlayerSpacing.xs),
                             Text(
                               data.author,
-                              textAlign: TextAlign.center,
+                              textAlign: textAlignment,
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             if (data.description case final description?) ...[
                               const SizedBox(height: PlayerSpacing.md),
                               Text(
                                 description,
-                                textAlign: TextAlign.center,
+                                textAlign: textAlignment,
                                 style: Theme.of(context).textTheme.bodyLarge,
                               ),
                             ],
