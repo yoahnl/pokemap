@@ -1,4 +1,5 @@
 import '../presentation/flame/flame_cinematic_media_playback_adapter.dart';
+import 'runtime_audio_mixer.dart';
 
 /// Keeps optional installed title music aligned with runtime player state.
 ///
@@ -7,9 +8,12 @@ import '../presentation/flame/flame_cinematic_media_playback_adapter.dart';
 final class RuntimeTitleMusicController {
   RuntimeTitleMusicController({
     FlameCinematicAudioDriver? driver,
-  }) : _driver = driver ?? FlameAudioCinematicRuntimeDriver();
+    RuntimeAudioMixer? mixer,
+  })  : _driver = driver ?? FlameAudioCinematicRuntimeDriver(),
+        _mixer = mixer ?? RuntimeAudioMixer();
 
   final FlameCinematicAudioDriver _driver;
+  final RuntimeAudioMixer _mixer;
 
   Future<void> _pending = Future<void>.value();
   Object? _handle;
@@ -65,7 +69,7 @@ final class RuntimeTitleMusicController {
     }
     if (_handle != null && _playingPath == path) {
       try {
-        await _driver.setVolume(_handle!, _desiredVolume);
+        await _mixer.updateSourceVolume(_handle!, _desiredVolume);
         lastFailure = null;
       } on Object catch (error) {
         lastFailure = error;
@@ -75,12 +79,23 @@ final class RuntimeTitleMusicController {
     }
     await _stop();
     try {
-      _handle = await _driver.play(
+      final handle = await _driver.play(
         path,
-        volume: _desiredVolume,
+        volume: _mixer.mix.volumeFor(
+          RuntimeAudioRoute.title,
+          sourceVolume: _desiredVolume,
+        ),
         loop: true,
       );
+      _handle = handle;
       _playingPath = path;
+      await _mixer.register(
+        channel: handle,
+        route: RuntimeAudioRoute.title,
+        sourceVolume: _desiredVolume,
+        setVolume: (volume) => _driver.setVolume(handle, volume),
+        applyImmediately: false,
+      );
       lastFailure = null;
     } on Object catch (error) {
       _handle = null;
@@ -94,6 +109,7 @@ final class RuntimeTitleMusicController {
     _handle = null;
     _playingPath = null;
     if (handle == null) return;
+    _mixer.unregister(handle);
     try {
       await _driver.stop(handle);
     } on Object catch (error) {

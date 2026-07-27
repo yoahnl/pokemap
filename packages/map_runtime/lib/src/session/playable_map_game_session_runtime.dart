@@ -9,6 +9,7 @@ import '../application/map_activation.dart';
 import '../application/player_service_runtime_controller.dart';
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_player_pause_data_builder.dart';
+import '../player/runtime_audio_mixer.dart';
 import '../player/runtime_world_service_models.dart';
 import '../presentation/flame/playable_map_game.dart';
 import '../presentation/flame/runtime_input_authority.dart';
@@ -41,6 +42,7 @@ final class PlayableMapGameSessionRuntime
     required SessionInitialSaveLoader initialSave,
     required PlayableMapGameMount mountGame,
     required PlayableMapGameUnmount unmountGame,
+    this.audioMixer,
     SessionSaveIdFactory? saveIdFactory,
     DateTime Function()? now,
   })  : _projectFilePath = projectFilePath,
@@ -55,6 +57,7 @@ final class PlayableMapGameSessionRuntime
   final SessionInitialSaveLoader _initialSave;
   final PlayableMapGameMount _mountGame;
   final PlayableMapGameUnmount _unmountGame;
+  final RuntimeAudioMixer? audioMixer;
   final SessionSaveIdFactory _saveIdFactory;
   final DateTime Function() _now;
   final _events = StreamController<GameSessionAdapterEvent>.broadcast();
@@ -184,6 +187,7 @@ final class PlayableMapGameSessionRuntime
           descriptor.launchMode == GameSessionLaunchMode.newGame
               ? MapActivationReason.initialBoot
               : MapActivationReason.saveRestore,
+      audioMixer: audioMixer,
     );
     _game = game;
     final playerServices = PlayerServiceRuntimeController.contextual(

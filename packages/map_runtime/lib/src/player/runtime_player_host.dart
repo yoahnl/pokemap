@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import '../session/game_session_contract.dart';
+import 'runtime_audio_mixer.dart';
 
 /// Host-provided source for one game selected by the player.
 ///
@@ -69,6 +70,7 @@ final class PlayerPreferencesSnapshot {
     required this.locale,
     required this.accessibility,
     this.touchControlsOpacity = 0.82,
+    this.audioMix = const RuntimeAudioMix(),
   })  : assert(locale != ''),
         assert(
           touchControlsOpacity >= 0.3 && touchControlsOpacity <= 1,
@@ -78,16 +80,19 @@ final class PlayerPreferencesSnapshot {
   final String locale;
   final GameSessionAccessibilityOptions accessibility;
   final double touchControlsOpacity;
+  final RuntimeAudioMix audioMix;
 
   PlayerPreferencesSnapshot copyWith({
     String? locale,
     GameSessionAccessibilityOptions? accessibility,
     double? touchControlsOpacity,
+    RuntimeAudioMix? audioMix,
   }) =>
       PlayerPreferencesSnapshot(
         locale: locale ?? this.locale,
         accessibility: accessibility ?? this.accessibility,
         touchControlsOpacity: touchControlsOpacity ?? this.touchControlsOpacity,
+        audioMix: audioMix ?? this.audioMix,
       );
 }
 

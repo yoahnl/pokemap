@@ -32,10 +32,12 @@ void main() {
     expect(snapshot.accessibility.textScale, 1);
     expect(snapshot.accessibility.hapticsEnabled, isTrue);
     expect(snapshot.touchControlsOpacity, 0.82);
+    expect(snapshot.audioMix.masterVolume, 1);
+    expect(snapshot.audioMix.musicVolume, 0.8);
+    expect(snapshot.audioMix.effectsVolume, 0.8);
   });
 
-  test('persists runtime accessibility without losing global audio settings',
-      () async {
+  test('persists runtime accessibility and every audio bus', () async {
     await store.save(
       const PlayerPreferences(
         language: PlayerLanguage.en,
@@ -55,6 +57,11 @@ void main() {
           hapticsEnabled: false,
         ),
         touchControlsOpacity: 0.45,
+        audioMix: RuntimeAudioMix(
+          masterVolume: 0.9,
+          musicVolume: 0.7,
+          effectsVolume: 0.5,
+        ),
       ),
     );
 
@@ -63,9 +70,47 @@ void main() {
     expect(persisted.reducedMotion, isTrue);
     expect(persisted.textScale, 1.4);
     expect(persisted.hapticsEnabled, isFalse);
-    expect(persisted.masterVolume, 0.4);
-    expect(persisted.musicVolume, 0.3);
-    expect(persisted.effectsVolume, 0.2);
+    expect(persisted.masterVolume, 0.9);
+    expect(persisted.musicVolume, 0.7);
+    expect(persisted.effectsVolume, 0.5);
     expect(persisted.touchControlsOpacity, 0.45);
+  });
+
+  test('projects persisted bus transitions into active runtime channels',
+      () async {
+    final mixer = RuntimeAudioMixer();
+    final volumes = <double>[];
+    await mixer.register(
+      channel: 'title',
+      route: RuntimeAudioRoute.title,
+      setVolume: (volume) async => volumes.add(volume),
+    );
+    final liveGateway = HubPlayerPreferencesGateway(
+      store: store,
+      fallbackLocale: 'fr-FR',
+      audioMixer: mixer,
+    );
+    await store.save(
+      const PlayerPreferences(
+        masterVolume: 0.5,
+        musicVolume: 0.4,
+        effectsVolume: 0.2,
+      ),
+    );
+
+    final loaded = await liveGateway.load();
+    expect(loaded.audioMix.musicVolume, 0.4);
+    expect(volumes.last, 0.2);
+
+    await liveGateway.save(
+      loaded.copyWith(
+        audioMix: const RuntimeAudioMix(
+          masterVolume: 0.8,
+          musicVolume: 0.5,
+          effectsVolume: 0.25,
+        ),
+      ),
+    );
+    expect(volumes.last, 0.4);
   });
 }

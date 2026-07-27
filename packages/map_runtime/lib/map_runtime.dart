@@ -12,6 +12,14 @@ export 'src/player/runtime_project_typography_loader.dart'
         RuntimeProjectTypographyLoader;
 export 'src/player/runtime_title_music_controller.dart'
     show RuntimeTitleMusicController;
+export 'src/player/runtime_audio_mixer.dart'
+    show
+        RuntimeAudioBus,
+        RuntimeAudioMix,
+        RuntimeAudioMixer,
+        RuntimeAudioRoute,
+        RuntimeAudioRouteBus,
+        RuntimeAudioVolumeSetter;
 export 'src/player/runtime_intro_sequence_controller.dart'
     show
         RuntimeIntroPhase,

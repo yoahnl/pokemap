@@ -66,10 +66,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   player_ui.PokeMapPlayerTypography _playerTypography =
       const player_ui.PokeMapPlayerTypography();
   RuntimeTitleMusicController? _titleMusicController;
+  RuntimeAudioMixer? _audioMixer;
   StreamSubscription<RuntimePlayerSnapshot>? _titleMusicSubscription;
   bool _introComplete = true;
   bool _reducedMotion = false;
-  double _presentationVolume = 1;
   bool _managingSaves = false;
 
   @override
@@ -92,9 +92,17 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       final preferencesStore =
           HubPreferencesStore(supportRoot: widget.supportRoot);
       final preferences = (await preferencesStore.load()).preferences;
+      final audioMixer = RuntimeAudioMixer(
+        mix: RuntimeAudioMix(
+          masterVolume: preferences.masterVolume,
+          musicVolume: preferences.musicVolume,
+          effectsVolume: preferences.effectsVolume,
+        ),
+      );
       final preferencesGateway = HubPlayerPreferencesGateway(
         store: preferencesStore,
         fallbackLocale: launch.manifest.locales.defaultLocale,
+        audioMixer: audioMixer,
       );
       final saveGateway = HubPlayerSaveGateway(store: store);
       final profileManager = HubSaveProfileManager(store: store);
@@ -113,8 +121,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       final loadedTypography = await _loadTypography(titlePresentation);
       final intro = titlePresentation.intro;
       _reducedMotion = preferences.reducedMotion;
-      _presentationVolume =
-          (preferences.masterVolume * preferences.musicVolume).clamp(0.0, 1.0);
       _introComplete = intro == null ||
           (_reducedMotion &&
               (intro.reducedMotionBehavior == 'skip' || intro.poster == null));
@@ -127,6 +133,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         saves: store,
         mountGame: _mountGame,
         unmountGame: _unmountGame,
+        audioMixer: audioMixer,
       );
       final sessions = GameSessionController(
         adapterFactory: sessionFactory.call,
@@ -140,14 +147,14 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         externalExit: HubRuntimeExternalExit(widget.onHubRequested),
       );
       await coordinator.initialize();
-      titleMusicController = RuntimeTitleMusicController();
+      titleMusicController = RuntimeTitleMusicController(mixer: audioMixer);
       titleMusicSubscription = coordinator.snapshots.listen(
         (snapshot) => unawaited(
           titleMusicController!.update(
             path: titlePresentation.titleMusicPath,
             titleVisible:
                 _introComplete && snapshot.phase == RuntimePlayerPhase.title,
-            volume: _presentationVolume,
+            volume: 1,
           ),
         ),
       );
@@ -155,7 +162,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         path: titlePresentation.titleMusicPath,
         titleVisible: _introComplete &&
             coordinator.snapshot.phase == RuntimePlayerPhase.title,
-        volume: _presentationVolume,
+        volume: 1,
       );
       if (!mounted) {
         await titleMusicSubscription.cancel();
@@ -172,6 +179,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         _titlePresentation = titlePresentation;
         _playerTypography = loadedTypography;
         _titleMusicController = titleMusicController;
+        _audioMixer = audioMixer;
         _titleMusicSubscription = titleMusicSubscription;
         _viewController =
             player_ui.RuntimePlayerCoordinatorViewController(coordinator!);
@@ -463,7 +471,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
           body: HubIntroVideoPlayer(
             intro: intro,
             reducedMotion: _reducedMotion,
-            volume: _presentationVolume,
+            volume: _audioMixer?.mix.volumeFor(
+                  RuntimeAudioRoute.cinematicMusic,
+                ) ??
+                1,
             onFinished: _finishIntro,
           ),
         ),
@@ -555,7 +566,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       _titleMusicController?.update(
         path: presentation.titleMusicPath,
         titleVisible: coordinator.snapshot.phase == RuntimePlayerPhase.title,
-        volume: _presentationVolume,
+        volume: 1,
       ),
     );
   }
@@ -567,6 +578,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     _coordinator = null;
     _viewController = null;
     _sessions = null;
+    _audioMixer = null;
     final titleMusicSubscription = _titleMusicSubscription;
     _titleMusicSubscription = null;
     final titleMusicController = _titleMusicController;

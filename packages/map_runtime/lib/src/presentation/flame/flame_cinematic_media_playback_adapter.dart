@@ -1,6 +1,7 @@
 import 'package:flame_audio/flame_audio.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../player/runtime_audio_mixer.dart';
 import 'flame_cinematic_fx_playback_adapter.dart';
 
 typedef FlameCinematicMediaPathResolver = String Function(
@@ -50,13 +51,16 @@ final class FlameCinematicMediaPlaybackAdapter
     required this.resolvePath,
     required this.fx,
     FlameCinematicAudioDriver? audioDriver,
+    RuntimeAudioMixer? audioMixer,
   })  : _mediaById = {for (final asset in mediaAssets) asset.id: asset},
-        _audioDriver = audioDriver ?? FlameAudioCinematicRuntimeDriver();
+        _audioDriver = audioDriver ?? FlameAudioCinematicRuntimeDriver(),
+        _audioMixer = audioMixer ?? RuntimeAudioMixer();
 
   final Map<String, CinematicMediaAsset> _mediaById;
   final FlameCinematicMediaPathResolver resolvePath;
   final FlameCinematicFxPlaybackAdapter fx;
   final FlameCinematicAudioDriver _audioDriver;
+  final RuntimeAudioMixer _audioMixer;
   final Map<String, _RuntimeAudioChannel> _channels = {};
 
   @override
@@ -98,6 +102,7 @@ final class FlameCinematicMediaPlaybackAdapter
     final errors = <Object>[];
     for (final channel in _channels.values.toList(growable: false)) {
       try {
+        _audioMixer.unregister(channel.handle);
         await _audioDriver.stop(channel.handle);
       } catch (error) {
         errors.add(error);
@@ -110,10 +115,21 @@ final class FlameCinematicMediaPlaybackAdapter
       try {
         final volume = checkpoint.channelVolumes[entry.key] ?? 1;
         final loop = checkpoint.loopingChannels.contains(entry.key);
+        final route = _routeFor(asset);
         final handle = await _audioDriver.play(
           resolvePath(asset),
-          volume: volume,
+          volume: _audioMixer.mix.volumeFor(
+            route,
+            sourceVolume: volume,
+          ),
           loop: loop,
+        );
+        await _audioMixer.register(
+          channel: handle,
+          route: route,
+          sourceVolume: volume,
+          setVolume: (nextVolume) => _audioDriver.setVolume(handle, nextVolume),
+          applyImmediately: false,
         );
         _channels[entry.key] = _RuntimeAudioChannel(
           asset: asset,
@@ -143,10 +159,22 @@ final class FlameCinematicMediaPlaybackAdapter
     await _stopChannel(channel);
     final volume = command.volume ?? 1;
     final fadeMs = command.durationMs ?? 0;
+    final route = _routeFor(asset);
+    final initialVolume = fadeMs > 0 ? 0.0 : volume;
     final handle = await _audioDriver.play(
       resolvePath(asset),
-      volume: fadeMs > 0 ? 0 : volume,
+      volume: _audioMixer.mix.volumeFor(
+        route,
+        sourceVolume: initialVolume,
+      ),
       loop: command.loop,
+    );
+    await _audioMixer.register(
+      channel: handle,
+      route: route,
+      sourceVolume: initialVolume,
+      setVolume: (nextVolume) => _audioDriver.setVolume(handle, nextVolume),
+      applyImmediately: false,
     );
     _channels[channel] = _RuntimeAudioChannel(
       asset: asset,
@@ -154,7 +182,9 @@ final class FlameCinematicMediaPlaybackAdapter
       volume: volume,
       loop: command.loop,
     );
-    if (fadeMs > 0) await _audioDriver.setVolume(handle, volume);
+    if (fadeMs > 0) {
+      await _audioMixer.updateSourceVolume(handle, volume);
+    }
   }
 
   Future<void> _fade(CinematicMediaPlaybackCommand command) async {
@@ -163,15 +193,23 @@ final class FlameCinematicMediaPlaybackAdapter
     final active = _channels[channel];
     if (active == null) return;
     final volume = command.volume ?? active.volume;
-    await _audioDriver.setVolume(active.handle, volume);
+    await _audioMixer.updateSourceVolume(active.handle, volume);
     _channels[channel] = active.copyWith(volume: volume);
   }
 
   Future<void> _stopChannel(String? channel) async {
     if (channel == null) return;
     final active = _channels.remove(channel);
-    if (active != null) await _audioDriver.stop(active.handle);
+    if (active != null) {
+      _audioMixer.unregister(active.handle);
+      await _audioDriver.stop(active.handle);
+    }
   }
+
+  RuntimeAudioRoute _routeFor(CinematicMediaAsset asset) =>
+      asset.kind == CinematicMediaAssetKind.sound
+          ? RuntimeAudioRoute.cinematicEffects
+          : RuntimeAudioRoute.cinematicMusic;
 
   CinematicMediaAsset _requireAsset(String id) {
     final asset = _mediaById[id];

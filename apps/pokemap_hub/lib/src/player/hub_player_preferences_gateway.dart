@@ -8,6 +8,7 @@ final class HubPlayerPreferencesGateway implements PlayerPreferencesGateway {
   HubPlayerPreferencesGateway({
     required this.store,
     required String fallbackLocale,
+    this.audioMixer,
   }) : fallbackLocale = fallbackLocale.trim() {
     if (this.fallbackLocale.isEmpty) {
       throw ArgumentError.value(
@@ -20,10 +21,17 @@ final class HubPlayerPreferencesGateway implements PlayerPreferencesGateway {
 
   final HubPreferencesStore store;
   final String fallbackLocale;
+  final RuntimeAudioMixer? audioMixer;
 
   @override
   Future<PlayerPreferencesSnapshot> load() async {
     final preferences = (await store.load()).preferences;
+    final audioMix = RuntimeAudioMix(
+      masterVolume: preferences.masterVolume,
+      musicVolume: preferences.musicVolume,
+      effectsVolume: preferences.effectsVolume,
+    );
+    await audioMixer?.transitionTo(audioMix);
     return PlayerPreferencesSnapshot(
       locale: _runtimeLocale(preferences.language),
       accessibility: GameSessionAccessibilityOptions(
@@ -32,12 +40,14 @@ final class HubPlayerPreferencesGateway implements PlayerPreferencesGateway {
         hapticsEnabled: preferences.hapticsEnabled,
       ),
       touchControlsOpacity: preferences.touchControlsOpacity,
+      audioMix: audioMix,
     );
   }
 
   @override
   Future<void> save(PlayerPreferencesSnapshot preferences) async {
     final current = (await store.load()).preferences;
+    await audioMixer?.transitionTo(preferences.audioMix);
     await store.save(
       current.copyWith(
         language: _playerLanguage(preferences.locale),
@@ -45,6 +55,9 @@ final class HubPlayerPreferencesGateway implements PlayerPreferencesGateway {
         textScale: preferences.accessibility.textScale,
         hapticsEnabled: preferences.accessibility.hapticsEnabled,
         touchControlsOpacity: preferences.touchControlsOpacity,
+        masterVolume: preferences.audioMix.masterVolume,
+        musicVolume: preferences.audioMix.musicVolume,
+        effectsVolume: preferences.audioMix.effectsVolume,
       ),
     );
   }

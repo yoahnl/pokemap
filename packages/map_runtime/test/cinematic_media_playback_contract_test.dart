@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart'
+    show RuntimeAudioMix, RuntimeAudioMixer;
 import 'package:map_runtime/src/application/scene_runtime/cinematic_media_playback_port.dart';
 import 'package:map_runtime/src/presentation/flame/flame_cinematic_fx_playback_adapter.dart';
 import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playback_adapter.dart';
@@ -70,6 +72,52 @@ void main() {
     expect(command.assetId, 'sound.bell');
     expect(command.channel, 'effects');
     expect(cinematicMediaCommandForStep(marker, mediaAssets: _assets), isNull);
+  });
+
+  test('cinematic music and sound follow their live mixer buses', () async {
+    final driver = _RecordingAudioDriver();
+    final mixer = RuntimeAudioMixer(
+      mix: const RuntimeAudioMix(
+        masterVolume: 0.5,
+        musicVolume: 0.4,
+        effectsVolume: 0.2,
+      ),
+    );
+    final adapter = FlameCinematicMediaPlaybackAdapter(
+      mediaAssets: _assets,
+      resolvePath: (asset) => '/project/${asset.relativePath}',
+      fx: FlameCinematicFxPlaybackAdapter(host: _RecordingFxHost()),
+      audioDriver: driver,
+      audioMixer: mixer,
+    );
+
+    await adapter.execute(
+      CinematicMediaPlaybackCommand.play(
+        commandId: 'music',
+        assetId: 'music.mist',
+        channel: 'music',
+        volume: 0.5,
+        loop: true,
+      ),
+    );
+    await adapter.execute(
+      CinematicMediaPlaybackCommand.play(
+        commandId: 'sound',
+        assetId: 'sound.bell',
+        channel: 'effects',
+        volume: 0.5,
+      ),
+    );
+    expect(driver.volumes, [0.1, 0.05]);
+
+    await mixer.transitionTo(
+      const RuntimeAudioMix(
+        masterVolume: 0.8,
+        musicVolume: 0.5,
+        effectsVolume: 0.25,
+      ),
+    );
+    expect(driver.volumes, [0.1, 0.05, 0.2, 0.1]);
   });
 }
 

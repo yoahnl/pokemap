@@ -41,6 +41,39 @@ void main() {
     expect(controller.lastFailure, isA<StateError>());
     expect(controller.isPlaying, isFalse);
   });
+
+  test('title music follows live master and music bus transitions', () async {
+    final driver = _FakeAudioDriver();
+    final mixer = RuntimeAudioMixer(
+      mix: const RuntimeAudioMix(
+        masterVolume: 0.5,
+        musicVolume: 0.4,
+        effectsVolume: 0.2,
+      ),
+    );
+    final controller = RuntimeTitleMusicController(
+      driver: driver,
+      mixer: mixer,
+    );
+
+    await controller.update(
+      path: '/installed/project/assets/title.ogg',
+      titleVisible: true,
+      volume: 0.5,
+    );
+    expect(driver.playVolumes, [0.1]);
+
+    await mixer.transitionTo(
+      const RuntimeAudioMix(
+        masterVolume: 0.8,
+        musicVolume: 0.5,
+        effectsVolume: 0.1,
+      ),
+    );
+    expect(driver.updatedVolumes.last, 0.2);
+
+    await controller.dispose();
+  });
 }
 
 final class _FakeAudioDriver implements FlameCinematicAudioDriver {
@@ -48,6 +81,8 @@ final class _FakeAudioDriver implements FlameCinematicAudioDriver {
 
   final bool failPlayback;
   final List<String> played = <String>[];
+  final List<double> playVolumes = <double>[];
+  final List<double> updatedVolumes = <double>[];
   var stopCount = 0;
   var looping = false;
 
@@ -58,13 +93,16 @@ final class _FakeAudioDriver implements FlameCinematicAudioDriver {
     required bool loop,
   }) async {
     played.add(path);
+    playVolumes.add(volume);
     looping = loop;
     if (failPlayback) throw StateError('decoder unavailable');
     return Object();
   }
 
   @override
-  Future<void> setVolume(Object handle, double volume) async {}
+  Future<void> setVolume(Object handle, double volume) async {
+    updatedVolumes.add(volume);
+  }
 
   @override
   Future<void> stop(Object handle) async {

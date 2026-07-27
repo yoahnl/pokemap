@@ -44,6 +44,7 @@ import '../../application/npc_runtime_presence.dart';
 import '../../application/placed_behavior_runtime_cooldown.dart';
 import '../../application/player_service_runtime_controller.dart';
 import '../../player/runtime_input_lock_manager.dart';
+import '../../player/runtime_audio_mixer.dart';
 import '../../player/runtime_world_service_models.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_battle_setup_mapper.dart';
@@ -235,6 +236,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     this.shadowCollectionProvider,
     this.enableActorContactShadows = true,
     this.enableStaticPlacedElementShadows = true,
+    RuntimeAudioMixer? audioMixer,
   })  : _bundle = bundle,
         _gameState = normalizeLoadedGameState(
           saveData == null
@@ -352,6 +354,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         p.join(_bundle.projectRootDirectory, asset.relativePath),
       ),
       fx: cinematicFxPlayback,
+      audioMixer: audioMixer,
     );
     _cinematicRuntimeSink = FlameCinematicRuntimePlaybackSink(
       host: _cinematicRuntimeHost,

@@ -15,6 +15,7 @@ final class HubInProcessSessionFactory {
     required this.saves,
     required this.mountGame,
     required this.unmountGame,
+    this.audioMixer,
     this.saveIdFactory,
     this.now,
   });
@@ -23,6 +24,7 @@ final class HubInProcessSessionFactory {
   final HubSaveStore saves;
   final PlayableMapGameMount mountGame;
   final PlayableMapGameUnmount unmountGame;
+  final RuntimeAudioMixer? audioMixer;
   final SessionSaveIdFactory? saveIdFactory;
   final DateTime Function()? now;
 
@@ -67,6 +69,7 @@ final class HubInProcessSessionFactory {
         },
         mountGame: mountGame,
         unmountGame: unmountGame,
+        audioMixer: audioMixer,
         saveIdFactory: saveIdFactory,
         now: now,
       ),
