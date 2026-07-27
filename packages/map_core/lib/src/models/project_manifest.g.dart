@@ -893,6 +893,12 @@ _$ProjectEncounterTableImpl _$$ProjectEncounterTableImplFromJson(
       id: json['id'] as String,
       name: json['name'] as String,
       encounterKind: $enumDecode(_$EncounterKindEnumMap, json['encounterKind']),
+      chancePerStep: (json['chancePerStep'] as num?)?.toDouble() ??
+          defaultEncounterChancePerStep,
+      conditions: (json['conditions'] as List<dynamic>?)
+              ?.map((e) => ScriptCondition.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       entries: (json['entries'] as List<dynamic>?)
               ?.map((e) =>
                   ProjectEncounterEntry.fromJson(e as Map<String, dynamic>))
@@ -909,6 +915,8 @@ Map<String, dynamic> _$$ProjectEncounterTableImplToJson(
       'id': instance.id,
       'name': instance.name,
       'encounterKind': _$EncounterKindEnumMap[instance.encounterKind]!,
+      'chancePerStep': instance.chancePerStep,
+      'conditions': instance.conditions.map((e) => e.toJson()).toList(),
       'entries': instance.entries.map((e) => e.toJson()).toList(),
       'tags': instance.tags,
     };

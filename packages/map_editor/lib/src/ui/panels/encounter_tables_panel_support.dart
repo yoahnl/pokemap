@@ -72,6 +72,67 @@ String? _validateEncounterTableName(String rawName) {
   return null;
 }
 
+String? _validateEncounterChancePercent(String rawPercent) {
+  final percent = double.tryParse(rawPercent.trim().replaceAll(',', '.'));
+  if (percent == null || percent < 0 || percent > 100) {
+    return 'Le taux par pas doit être compris entre 0 et 100 %.';
+  }
+  return null;
+}
+
+double _parseEncounterChancePercent(String rawPercent) {
+  return double.parse(rawPercent.trim().replaceAll(',', '.')) / 100;
+}
+
+String _formatEncounterChancePercent(double chancePerStep) {
+  final percent = chancePerStep * 100;
+  if (percent == percent.roundToDouble()) {
+    return percent.toInt().toString();
+  }
+  return percent.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '');
+}
+
+String _requiredEncounterFlagsText(List<ScriptCondition> conditions) {
+  return conditions
+      .where((condition) => condition.type == ScriptConditionType.flagIsSet)
+      .map((condition) => condition.params[ScriptConditionParams.flagName])
+      .whereType<String>()
+      .map((flag) => flag.trim())
+      .where((flag) => flag.isNotEmpty)
+      .join(', ');
+}
+
+List<ScriptCondition> _buildAuthoredEncounterConditions({
+  required List<ScriptCondition> existing,
+  required String requiredFlagsText,
+  required EncounterKind encounterKind,
+}) {
+  final preserved = existing.where((condition) {
+    if (condition.type == ScriptConditionType.flagIsSet) {
+      return false;
+    }
+    if (condition.type == ScriptConditionType.fieldAbilityUnlocked &&
+        condition.params[ScriptConditionParams.ability] ==
+            FieldAbility.surf.name) {
+      return false;
+    }
+    return true;
+  }).toList();
+  final flags = requiredFlagsText
+      .split(',')
+      .map((flag) => flag.trim())
+      .where((flag) => flag.isNotEmpty)
+      .toSet()
+      .toList()
+    ..sort();
+  return <ScriptCondition>[
+    ...preserved,
+    for (final flag in flags) ScriptConditionFactory.flagIsSet(flag),
+    if (encounterKind == EncounterKind.surf)
+      ScriptConditionFactory.fieldAbilityUnlocked(FieldAbility.surf),
+  ];
+}
+
 PokemonDatabaseIndexEntry? _resolveEncounterSpecies(
   _EncounterReferenceData references,
   String rawSpeciesId,
@@ -207,7 +268,8 @@ extension _EncounterTablesPanelSupport on _EncounterTablesPanelState {
     if (maxLevel == null || maxLevel <= 0) {
       maxLevelMessage = 'Le niveau max doit être un entier positif.';
     } else if (minLevel != null && minLevel > 0 && minLevel > maxLevel) {
-      maxLevelMessage = 'Le niveau max doit être supérieur ou égal au niveau min.';
+      maxLevelMessage =
+          'Le niveau max doit être supérieur ou égal au niveau min.';
     }
 
     String? weightMessage;

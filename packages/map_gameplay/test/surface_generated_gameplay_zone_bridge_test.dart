@@ -150,6 +150,107 @@ void main() {
       expect(result.encounter?.playerPos, const GridPos(x: 0, y: 1));
     });
 
+    test('authored encounter rate is used when no test override is provided',
+        () {
+      final map = _baseSurfaceMap();
+      final plan = _tallGrassGenerationPlan(map);
+      final project = _project().copyWith(
+        encounterTables: <ProjectEncounterTable>[
+          _project().encounterTables.single.copyWith(chancePerStep: 0),
+        ],
+      );
+      final world = GameplayWorldState.initial(
+        map: map.copyWith(gameplayZones: plan.generatedZones),
+        playerPos: const GridPos(x: 0, y: 1),
+        project: project,
+      );
+
+      final result = checkEncounterAtPlayerPosition(
+        world: world,
+        project: project,
+        encounterKind: EncounterKind.walk,
+        random: Random(1),
+      );
+
+      expect(result.status, GameplayEncounterCheckStatus.rollFailed);
+    });
+
+    test('authored conditions fail closed and unlock from real game state', () {
+      final map = _baseSurfaceMap();
+      final plan = _tallGrassGenerationPlan(map);
+      final project = _project().copyWith(
+        encounterTables: <ProjectEncounterTable>[
+          _project().encounterTables.single.copyWith(
+            chancePerStep: 1,
+            conditions: <ScriptCondition>[
+              ScriptConditionFactory.flagIsSet('route_1_open'),
+            ],
+          ),
+        ],
+      );
+      final world = GameplayWorldState.initial(
+        map: map.copyWith(gameplayZones: plan.generatedZones),
+        playerPos: const GridPos(x: 0, y: 1),
+        project: project,
+      );
+
+      final withoutContext = checkEncounterAtPlayerPosition(
+        world: world,
+        project: project,
+        encounterKind: EncounterKind.walk,
+        random: Random(1),
+      );
+      final locked = checkEncounterAtPlayerPosition(
+        world: world,
+        project: project,
+        encounterKind: EncounterKind.walk,
+        gameState: const GameState(saveId: 'save'),
+        random: Random(1),
+      );
+      final unlocked = checkEncounterAtPlayerPosition(
+        world: world,
+        project: project,
+        encounterKind: EncounterKind.walk,
+        gameState: const GameState(
+          saveId: 'save',
+          storyFlags: StoryFlags(activeFlags: <String>{'route_1_open'}),
+        ),
+        random: Random(1),
+      );
+
+      expect(
+        withoutContext.status,
+        GameplayEncounterCheckStatus.conditionContextUnavailable,
+      );
+      expect(locked.status, GameplayEncounterCheckStatus.conditionsNotMet);
+      expect(unlocked.status, GameplayEncounterCheckStatus.triggered);
+    });
+
+    test('surf checks do not reuse walk zones outside authored water', () {
+      final map = _baseSurfaceMap();
+      final plan = _tallGrassGenerationPlan(map);
+      final project = _project();
+      final world = GameplayWorldState.initial(
+        map: map.copyWith(gameplayZones: plan.generatedZones),
+        playerPos: const GridPos(x: 0, y: 1),
+        playerMovementMode: MovementMode.surf,
+        project: project,
+      );
+
+      final result = checkEncounterAtPlayerPosition(
+        world: world,
+        project: project,
+        encounterKind: EncounterKind.surf,
+        gameState: const GameState(
+          saveId: 'save',
+          playerMovementMode: MovementMode.surf,
+        ),
+        random: Random(1),
+      );
+
+      expect(result.status, GameplayEncounterCheckStatus.noZone);
+    });
+
     test('generated lava hazard zones are consumed by hazard effects', () {
       final map = _baseSurfaceMap();
       final project = _project();

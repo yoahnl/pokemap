@@ -134,9 +134,6 @@ const double _kViewportTilesX = 15.0;
 const double _kViewportTilesY = 11.0;
 const double _kWaterRequiresSurfMessageCooldownMs = 900;
 const bool _kVerboseEncounterLogs = false;
-const GameplayEncounterPolicy _kEncounterPolicy = GameplayEncounterPolicy(
-  chancePerStep: 0.12,
-);
 
 enum _RuntimeFlowPhase {
   overworld,
@@ -4378,8 +4375,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       world: _world,
       project: _bundle.manifest,
       encounterKind: encounterKind,
+      gameState: _gameState,
       random: _encounterRandom,
-      policy: _kEncounterPolicy,
     );
     _logEncounterCheck(check);
     if (!check.triggered) {
@@ -7182,6 +7179,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       case GameplayEncounterCheckStatus.encounterKindMismatch:
         debugPrint(
           '[encounter] zone=${check.zoneId ?? 'unknown'} table=${check.tableId ?? 'unknown'} kind mismatch (expected=$kind)',
+        );
+        return;
+      case GameplayEncounterCheckStatus.conditionContextUnavailable:
+        debugPrint(
+          '[encounter] table=${check.tableId ?? 'unknown'} requires game-state conditions but no context was provided',
+        );
+        return;
+      case GameplayEncounterCheckStatus.conditionsNotMet:
+        debugPrint(
+          '[encounter] table=${check.tableId ?? 'unknown'} conditions are not met',
+        );
+        return;
+      case GameplayEncounterCheckStatus.invalidEncounterRate:
+        debugPrint(
+          '[encounter] table=${check.tableId ?? 'unknown'} has an invalid authored rate',
         );
         return;
       case GameplayEncounterCheckStatus.emptyEncounterTable:

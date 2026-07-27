@@ -179,7 +179,10 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
     Color accent,
   ) {
     final inlineValidation =
-        _validateEncounterTableName(_newTableNameController.text);
+        _validateEncounterTableName(_newTableNameController.text) ??
+            _validateEncounterChancePercent(
+              _newTableChancePercentController.text,
+            );
     final message = _createTableValidationMessage ?? inlineValidation;
 
     return Padding(
@@ -221,6 +224,35 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
                   _createTableValidationMessage = null;
                 }),
                 validationMessage: inlineValidation,
+              ),
+              const SizedBox(height: 8),
+              _labeledField(
+                context,
+                fieldKey:
+                    const Key('encounter-tables-create-rate-percent-field'),
+                label: 'Taux par pas (%)',
+                placeholder: '12',
+                controller: _newTableChancePercentController,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: <TextInputFormatter>[
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
+                ],
+                onChanged: (_) => _runLocalStateMutation(() {
+                  _createTableValidationMessage = null;
+                }),
+                validationMessage: _validateEncounterChancePercent(
+                  _newTableChancePercentController.text,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _labeledField(
+                context,
+                fieldKey:
+                    const Key('encounter-tables-create-required-flags-field'),
+                label: 'Flags requis (optionnel)',
+                placeholder: 'route_1_open, chapter_2',
+                controller: _newTableRequiredFlagsController,
               ),
               const SizedBox(height: 8),
               if (widget.embedded)
@@ -336,6 +368,10 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
                   } else {
                     _editingTableId = table.id;
                     _editTableNameController.text = table.name;
+                    _editTableChancePercentController.text =
+                        _formatEncounterChancePercent(table.chancePerStep);
+                    _editTableRequiredFlagsController.text =
+                        _requiredEncounterFlagsText(table.conditions);
                     _editTableKind = table.encounterKind;
                     _editTableValidationMessage = null;
                     _showCreateForm = false;
@@ -367,7 +403,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${_kindLabel(table.encounterKind)} · ${table.entries.length} entrée${table.entries.length == 1 ? '' : 's'} · poids total $totalWeight · ${table.id}',
+                          '${_kindLabel(table.encounterKind)} · ${_formatEncounterChancePercent(table.chancePerStep)} %/pas · ${table.entries.length} entrée${table.entries.length == 1 ? '' : 's'} · poids total $totalWeight · ${table.id}',
                           style: TextStyle(fontSize: 11, color: subtle),
                         ),
                       ],
@@ -415,7 +451,10 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
     final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
     final isEditingEntry = _editingEntryTableId == table.id;
     final inlineValidation =
-        _validateEncounterTableName(_editTableNameController.text);
+        _validateEncounterTableName(_editTableNameController.text) ??
+            _validateEncounterChancePercent(
+              _editTableChancePercentController.text,
+            );
     final totalWeight = _tableTotalWeight(table);
 
     return Column(
@@ -431,6 +470,33 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
             _editTableValidationMessage = null;
           }),
           validationMessage: inlineValidation,
+        ),
+        const SizedBox(height: 8),
+        _labeledField(
+          context,
+          fieldKey: Key('encounter-tables-edit-rate-percent-field-${table.id}'),
+          label: 'Taux par pas (%)',
+          placeholder: '12',
+          controller: _editTableChancePercentController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: <TextInputFormatter>[
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
+          ],
+          onChanged: (_) => _runLocalStateMutation(() {
+            _editTableValidationMessage = null;
+          }),
+          validationMessage: _validateEncounterChancePercent(
+            _editTableChancePercentController.text,
+          ),
+        ),
+        const SizedBox(height: 8),
+        _labeledField(
+          context,
+          fieldKey:
+              Key('encounter-tables-edit-required-flags-field-${table.id}'),
+          label: 'Flags requis (optionnel)',
+          placeholder: 'route_1_open, chapter_2',
+          controller: _editTableRequiredFlagsController,
         ),
         const SizedBox(height: 8),
         if (widget.embedded)
@@ -484,7 +550,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
                 key: Key('encounter-tables-save-table-button-${table.id}'),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 onPressed: inlineValidation == null
-                    ? () => _updateTable(notifier, table.id)
+                    ? () => _updateTable(notifier, table)
                     : null,
                 child: const Text('Enregistrer la table'),
               ),

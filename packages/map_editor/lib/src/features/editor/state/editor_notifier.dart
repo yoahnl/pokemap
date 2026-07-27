@@ -10144,6 +10144,8 @@ class EditorNotifier extends _$EditorNotifier {
   Future<void> createEncounterTable({
     required String name,
     required EncounterKind encounterKind,
+    double chancePerStep = defaultEncounterChancePerStep,
+    List<ScriptCondition> conditions = const <ScriptCondition>[],
     List<String> tags = const [],
   }) async {
     final fs = _projectWorkspace;
@@ -10156,6 +10158,8 @@ class EditorNotifier extends _$EditorNotifier {
         project,
         name: name,
         encounterKind: encounterKind,
+        chancePerStep: chancePerStep,
+        conditions: conditions,
         tags: tags,
       );
       state = state.copyWith(
@@ -10173,6 +10177,8 @@ class EditorNotifier extends _$EditorNotifier {
     required String tableId,
     String? name,
     EncounterKind? encounterKind,
+    double? chancePerStep,
+    List<ScriptCondition>? conditions,
     List<String>? tags,
   }) async {
     final fs = _projectWorkspace;
@@ -10186,6 +10192,8 @@ class EditorNotifier extends _$EditorNotifier {
         tableId: tableId,
         name: name,
         encounterKind: encounterKind,
+        chancePerStep: chancePerStep,
+        conditions: conditions,
         tags: tags,
       );
       state = state.copyWith(

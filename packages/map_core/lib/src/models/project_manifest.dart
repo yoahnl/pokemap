@@ -19,6 +19,7 @@ import 'projected_building_shadow.dart';
 import 'scenario_asset.dart';
 import 'scene_asset.dart';
 import 'script_asset.dart';
+import 'script_conditions.dart';
 import 'shadow.dart';
 import 'shadow_catalog.dart';
 import 'storyline_asset.dart';
@@ -886,6 +887,10 @@ class ProjectPresetCategory with _$ProjectPresetCategory {
 // ProjectEncounterEntry / ProjectEncounterTable
 // ---------------------------------------------------------------------------
 
+/// Historical encounter chance kept as the backward-compatible authored
+/// default when older project files omit `chancePerStep`.
+const double defaultEncounterChancePerStep = 0.12;
+
 /// Entrée pondérée dans une table de rencontres.
 @freezed
 class ProjectEncounterEntry with _$ProjectEncounterEntry {
@@ -914,6 +919,17 @@ class ProjectEncounterTable with _$ProjectEncounterTable {
     required String id,
     required String name,
     required EncounterKind encounterKind,
+
+    /// Probability of attempting this table after one eligible movement step.
+    ///
+    /// The runtime consumes this authored value. Tests may still provide an
+    /// explicit policy override, but production must not replace it with a
+    /// hard-coded rate.
+    @Default(defaultEncounterChancePerStep) double chancePerStep,
+
+    /// All conditions must evaluate against the current persisted [GameState]
+    /// before a roll can occur.
+    @Default([]) List<ScriptCondition> conditions,
     @Default([]) List<ProjectEncounterEntry> entries,
     @Default([]) List<String> tags,
   }) = _ProjectEncounterTable;

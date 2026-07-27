@@ -25,10 +25,16 @@ void main() {
         _project(),
         name: '  Grass Patch  ',
         encounterKind: EncounterKind.walk,
+        chancePerStep: 0.2,
+        conditions: <ScriptCondition>[
+          ScriptConditionFactory.flagIsSet('route_1_open'),
+        ],
       );
 
       expect(created.encounterTables.single.id, 'grass_patch');
       expect(created.encounterTables.single.name, 'Grass Patch');
+      expect(created.encounterTables.single.chancePerStep, 0.2);
+      expect(created.encounterTables.single.conditions, hasLength(1));
 
       final updated = await updateUseCase.execute(
         workspace,
@@ -36,10 +42,19 @@ void main() {
         tableId: 'grass_patch',
         name: ' Tall Grass ',
         encounterKind: EncounterKind.surf,
+        chancePerStep: 0.35,
+        conditions: <ScriptCondition>[
+          ScriptConditionFactory.fieldAbilityUnlocked(FieldAbility.surf),
+        ],
       );
 
       expect(updated.encounterTables.single.name, 'Tall Grass');
       expect(updated.encounterTables.single.encounterKind, EncounterKind.surf);
+      expect(updated.encounterTables.single.chancePerStep, 0.35);
+      expect(
+        updated.encounterTables.single.conditions.single.type,
+        ScriptConditionType.fieldAbilityUnlocked,
+      );
 
       final deleted = await deleteUseCase.execute(
         workspace,
@@ -166,7 +181,8 @@ void main() {
 ProjectManifest _project({
   List<ProjectEncounterTable> encounterTables = const <ProjectEncounterTable>[],
 }) {
-  return ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+  return ProjectManifest(
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: 'encounter_table_use_case_test',
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],

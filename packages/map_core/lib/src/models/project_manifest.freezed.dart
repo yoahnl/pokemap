@@ -7468,6 +7468,17 @@ mixin _$ProjectEncounterTable {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   EncounterKind get encounterKind => throw _privateConstructorUsedError;
+
+  /// Probability of attempting this table after one eligible movement step.
+  ///
+  /// The runtime consumes this authored value. Tests may still provide an
+  /// explicit policy override, but production must not replace it with a
+  /// hard-coded rate.
+  double get chancePerStep => throw _privateConstructorUsedError;
+
+  /// All conditions must evaluate against the current persisted [GameState]
+  /// before a roll can occur.
+  List<ScriptCondition> get conditions => throw _privateConstructorUsedError;
   List<ProjectEncounterEntry> get entries => throw _privateConstructorUsedError;
   List<String> get tags => throw _privateConstructorUsedError;
 
@@ -7491,6 +7502,8 @@ abstract class $ProjectEncounterTableCopyWith<$Res> {
       {String id,
       String name,
       EncounterKind encounterKind,
+      double chancePerStep,
+      List<ScriptCondition> conditions,
       List<ProjectEncounterEntry> entries,
       List<String> tags});
 }
@@ -7514,6 +7527,8 @@ class _$ProjectEncounterTableCopyWithImpl<$Res,
     Object? id = null,
     Object? name = null,
     Object? encounterKind = null,
+    Object? chancePerStep = null,
+    Object? conditions = null,
     Object? entries = null,
     Object? tags = null,
   }) {
@@ -7530,6 +7545,14 @@ class _$ProjectEncounterTableCopyWithImpl<$Res,
           ? _value.encounterKind
           : encounterKind // ignore: cast_nullable_to_non_nullable
               as EncounterKind,
+      chancePerStep: null == chancePerStep
+          ? _value.chancePerStep
+          : chancePerStep // ignore: cast_nullable_to_non_nullable
+              as double,
+      conditions: null == conditions
+          ? _value.conditions
+          : conditions // ignore: cast_nullable_to_non_nullable
+              as List<ScriptCondition>,
       entries: null == entries
           ? _value.entries
           : entries // ignore: cast_nullable_to_non_nullable
@@ -7555,6 +7578,8 @@ abstract class _$$ProjectEncounterTableImplCopyWith<$Res>
       {String id,
       String name,
       EncounterKind encounterKind,
+      double chancePerStep,
+      List<ScriptCondition> conditions,
       List<ProjectEncounterEntry> entries,
       List<String> tags});
 }
@@ -7576,6 +7601,8 @@ class __$$ProjectEncounterTableImplCopyWithImpl<$Res>
     Object? id = null,
     Object? name = null,
     Object? encounterKind = null,
+    Object? chancePerStep = null,
+    Object? conditions = null,
     Object? entries = null,
     Object? tags = null,
   }) {
@@ -7592,6 +7619,14 @@ class __$$ProjectEncounterTableImplCopyWithImpl<$Res>
           ? _value.encounterKind
           : encounterKind // ignore: cast_nullable_to_non_nullable
               as EncounterKind,
+      chancePerStep: null == chancePerStep
+          ? _value.chancePerStep
+          : chancePerStep // ignore: cast_nullable_to_non_nullable
+              as double,
+      conditions: null == conditions
+          ? _value._conditions
+          : conditions // ignore: cast_nullable_to_non_nullable
+              as List<ScriptCondition>,
       entries: null == entries
           ? _value._entries
           : entries // ignore: cast_nullable_to_non_nullable
@@ -7612,9 +7647,12 @@ class _$ProjectEncounterTableImpl implements _ProjectEncounterTable {
       {required this.id,
       required this.name,
       required this.encounterKind,
+      this.chancePerStep = defaultEncounterChancePerStep,
+      final List<ScriptCondition> conditions = const [],
       final List<ProjectEncounterEntry> entries = const [],
       final List<String> tags = const []})
-      : _entries = entries,
+      : _conditions = conditions,
+        _entries = entries,
         _tags = tags;
 
   factory _$ProjectEncounterTableImpl.fromJson(Map<String, dynamic> json) =>
@@ -7626,6 +7664,30 @@ class _$ProjectEncounterTableImpl implements _ProjectEncounterTable {
   final String name;
   @override
   final EncounterKind encounterKind;
+
+  /// Probability of attempting this table after one eligible movement step.
+  ///
+  /// The runtime consumes this authored value. Tests may still provide an
+  /// explicit policy override, but production must not replace it with a
+  /// hard-coded rate.
+  @override
+  @JsonKey()
+  final double chancePerStep;
+
+  /// All conditions must evaluate against the current persisted [GameState]
+  /// before a roll can occur.
+  final List<ScriptCondition> _conditions;
+
+  /// All conditions must evaluate against the current persisted [GameState]
+  /// before a roll can occur.
+  @override
+  @JsonKey()
+  List<ScriptCondition> get conditions {
+    if (_conditions is EqualUnmodifiableListView) return _conditions;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_conditions);
+  }
+
   final List<ProjectEncounterEntry> _entries;
   @override
   @JsonKey()
@@ -7646,7 +7708,7 @@ class _$ProjectEncounterTableImpl implements _ProjectEncounterTable {
 
   @override
   String toString() {
-    return 'ProjectEncounterTable(id: $id, name: $name, encounterKind: $encounterKind, entries: $entries, tags: $tags)';
+    return 'ProjectEncounterTable(id: $id, name: $name, encounterKind: $encounterKind, chancePerStep: $chancePerStep, conditions: $conditions, entries: $entries, tags: $tags)';
   }
 
   @override
@@ -7658,6 +7720,10 @@ class _$ProjectEncounterTableImpl implements _ProjectEncounterTable {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.encounterKind, encounterKind) ||
                 other.encounterKind == encounterKind) &&
+            (identical(other.chancePerStep, chancePerStep) ||
+                other.chancePerStep == chancePerStep) &&
+            const DeepCollectionEquality()
+                .equals(other._conditions, _conditions) &&
             const DeepCollectionEquality().equals(other._entries, _entries) &&
             const DeepCollectionEquality().equals(other._tags, _tags));
   }
@@ -7669,6 +7735,8 @@ class _$ProjectEncounterTableImpl implements _ProjectEncounterTable {
       id,
       name,
       encounterKind,
+      chancePerStep,
+      const DeepCollectionEquality().hash(_conditions),
       const DeepCollectionEquality().hash(_entries),
       const DeepCollectionEquality().hash(_tags));
 
@@ -7694,6 +7762,8 @@ abstract class _ProjectEncounterTable implements ProjectEncounterTable {
       {required final String id,
       required final String name,
       required final EncounterKind encounterKind,
+      final double chancePerStep,
+      final List<ScriptCondition> conditions,
       final List<ProjectEncounterEntry> entries,
       final List<String> tags}) = _$ProjectEncounterTableImpl;
 
@@ -7706,6 +7776,19 @@ abstract class _ProjectEncounterTable implements ProjectEncounterTable {
   String get name;
   @override
   EncounterKind get encounterKind;
+
+  /// Probability of attempting this table after one eligible movement step.
+  ///
+  /// The runtime consumes this authored value. Tests may still provide an
+  /// explicit policy override, but production must not replace it with a
+  /// hard-coded rate.
+  @override
+  double get chancePerStep;
+
+  /// All conditions must evaluate against the current persisted [GameState]
+  /// before a roll can occur.
+  @override
+  List<ScriptCondition> get conditions;
   @override
   List<ProjectEncounterEntry> get entries;
   @override

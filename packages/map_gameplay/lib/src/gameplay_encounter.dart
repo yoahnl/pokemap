@@ -1,17 +1,26 @@
 import 'dart:math';
 
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core.dart' hide defaultEncounterChancePerStep;
+import 'package:map_core/map_core.dart' as core
+    show defaultEncounterChancePerStep;
 
 import 'gameplay_world_state.dart';
+import 'script_condition_evaluator.dart';
 
-const double defaultEncounterChancePerStep = 0.12;
+/// Backward-compatible gameplay export for the authored model default.
+const double defaultEncounterChancePerStep = core.defaultEncounterChancePerStep;
 
 class GameplayEncounterPolicy {
   const GameplayEncounterPolicy({
-    this.chancePerStep = defaultEncounterChancePerStep,
-  }) : assert(chancePerStep >= 0 && chancePerStep <= 1);
+    this.chancePerStep,
+  }) : assert(
+          chancePerStep == null || (chancePerStep >= 0 && chancePerStep <= 1),
+        );
 
-  final double chancePerStep;
+  /// Explicit override reserved for deterministic tests and host tooling.
+  ///
+  /// Production callers leave this null so the authored table rate is used.
+  final double? chancePerStep;
 }
 
 enum GameplayEncounterCheckStatus {
@@ -19,6 +28,9 @@ enum GameplayEncounterCheckStatus {
   noEncounterTableId,
   encounterTableNotFound,
   encounterKindMismatch,
+  conditionContextUnavailable,
+  conditionsNotMet,
+  invalidEncounterRate,
   emptyEncounterTable,
   rollFailed,
   triggered,
@@ -110,6 +122,8 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
   required GameplayWorldState world,
   required ProjectManifest project,
   required EncounterKind encounterKind,
+  GameState? gameState,
+  ScriptEvaluationContext? conditionContext,
   Random? random,
   GameplayEncounterPolicy policy = const GameplayEncounterPolicy(),
 }) {
@@ -162,6 +176,32 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
     );
   }
 
+  if (table.conditions.isNotEmpty && gameState == null) {
+    return GameplayEncounterCheckResult(
+      status: GameplayEncounterCheckStatus.conditionContextUnavailable,
+      zoneId: zone.id,
+      tableId: table.id,
+      encounterKind: encounterKind,
+    );
+  }
+  if (gameState != null) {
+    const evaluator = ScriptConditionEvaluator();
+    for (final condition in table.conditions) {
+      if (!evaluator.evaluate(
+        condition,
+        gameState,
+        context: conditionContext,
+      )) {
+        return GameplayEncounterCheckResult(
+          status: GameplayEncounterCheckStatus.conditionsNotMet,
+          zoneId: zone.id,
+          tableId: table.id,
+          encounterKind: encounterKind,
+        );
+      }
+    }
+  }
+
   final entries = _validEncounterEntries(table.entries);
   if (entries.isEmpty) {
     return GameplayEncounterCheckResult(
@@ -173,8 +213,17 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
   }
 
   final rng = random ?? Random();
+  final chancePerStep = policy.chancePerStep ?? table.chancePerStep;
+  if (chancePerStep < 0 || chancePerStep > 1) {
+    return GameplayEncounterCheckResult(
+      status: GameplayEncounterCheckStatus.invalidEncounterRate,
+      zoneId: zone.id,
+      tableId: table.id,
+      encounterKind: encounterKind,
+    );
+  }
   final roll = rng.nextDouble();
-  if (roll >= policy.chancePerStep) {
+  if (roll >= chancePerStep) {
     return GameplayEncounterCheckResult(
       status: GameplayEncounterCheckStatus.rollFailed,
       zoneId: zone.id,

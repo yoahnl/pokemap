@@ -42,6 +42,8 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
   // -------------------------------------------------------------------------
 
   final _newTableNameController = TextEditingController();
+  final _newTableChancePercentController = TextEditingController(text: '12');
+  final _newTableRequiredFlagsController = TextEditingController();
   EncounterKind _newTableKind = EncounterKind.walk;
   bool _showCreateForm = false;
   String? _createTableValidationMessage;
@@ -52,6 +54,8 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
 
   String? _editingTableId;
   final _editTableNameController = TextEditingController();
+  final _editTableChancePercentController = TextEditingController();
+  final _editTableRequiredFlagsController = TextEditingController();
   EncounterKind _editTableKind = EncounterKind.walk;
   String? _editTableValidationMessage;
 
@@ -82,7 +86,11 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
   @override
   void dispose() {
     _newTableNameController.dispose();
+    _newTableChancePercentController.dispose();
+    _newTableRequiredFlagsController.dispose();
     _editTableNameController.dispose();
+    _editTableChancePercentController.dispose();
+    _editTableRequiredFlagsController.dispose();
     _entrySpeciesController.dispose();
     _entryMinLevelController.dispose();
     _entryMaxLevelController.dispose();
@@ -332,7 +340,10 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
 
   Future<void> _createTable(EditorNotifier notifier) async {
     final inlineValidation =
-        _validateEncounterTableName(_newTableNameController.text);
+        _validateEncounterTableName(_newTableNameController.text) ??
+            _validateEncounterChancePercent(
+              _newTableChancePercentController.text,
+            );
     setState(() {
       _createTableValidationMessage = inlineValidation;
     });
@@ -344,6 +355,14 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
     await notifier.createEncounterTable(
       name: _newTableNameController.text,
       encounterKind: _newTableKind,
+      chancePerStep: _parseEncounterChancePercent(
+        _newTableChancePercentController.text,
+      ),
+      conditions: _buildAuthoredEncounterConditions(
+        existing: const <ScriptCondition>[],
+        requiredFlagsText: _newTableRequiredFlagsController.text,
+        encounterKind: _newTableKind,
+      ),
     );
     if (!mounted) {
       return;
@@ -367,10 +386,13 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
 
   Future<void> _updateTable(
     EditorNotifier notifier,
-    String tableId,
+    ProjectEncounterTable table,
   ) async {
     final inlineValidation =
-        _validateEncounterTableName(_editTableNameController.text);
+        _validateEncounterTableName(_editTableNameController.text) ??
+            _validateEncounterChancePercent(
+              _editTableChancePercentController.text,
+            );
     setState(() {
       _editTableValidationMessage = inlineValidation;
     });
@@ -380,9 +402,17 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
 
     final beforeState = ref.read(editorNotifierProvider);
     await notifier.updateEncounterTable(
-      tableId: tableId,
+      tableId: table.id,
       name: _editTableNameController.text,
       encounterKind: _editTableKind,
+      chancePerStep: _parseEncounterChancePercent(
+        _editTableChancePercentController.text,
+      ),
+      conditions: _buildAuthoredEncounterConditions(
+        existing: table.conditions,
+        requiredFlagsText: _editTableRequiredFlagsController.text,
+        encounterKind: _editTableKind,
+      ),
     );
     if (!mounted) {
       return;
@@ -555,6 +585,8 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
     _showCreateForm = false;
     _createTableValidationMessage = null;
     _newTableNameController.clear();
+    _newTableChancePercentController.text = '12';
+    _newTableRequiredFlagsController.clear();
     _newTableKind = EncounterKind.walk;
   }
 

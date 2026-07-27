@@ -85,6 +85,14 @@ void main() {
       find.byKey(const Key('encounter-tables-create-name-field')),
       'Grass Patch',
     );
+    await tester.enterText(
+      find.byKey(const Key('encounter-tables-create-rate-percent-field')),
+      '25',
+    );
+    await tester.enterText(
+      find.byKey(const Key('encounter-tables-create-required-flags-field')),
+      'route_1_open',
+    );
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const Key('encounter-tables-create-submit-button')),
@@ -95,6 +103,11 @@ void main() {
         container.read(editorNotifierProvider).project!.encounterTables.single;
     expect(table.id, 'grass_patch');
     expect(table.name, 'Grass Patch');
+    expect(table.chancePerStep, 0.25);
+    expect(
+      table.conditions.single.params[ScriptConditionParams.flagName],
+      'route_1_open',
+    );
 
     await tester.tap(
         find.byKey(const Key('encounter-tables-table-toggle-grass_patch')));

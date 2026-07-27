@@ -1293,6 +1293,20 @@ class ProjectValidator {
       if (table.name.trim().isEmpty) {
         throw ValidationException('Encounter table $id name cannot be empty');
       }
+      if (!table.chancePerStep.isFinite ||
+          table.chancePerStep < 0 ||
+          table.chancePerStep > 1) {
+        throw ValidationException(
+          'Encounter table $id chancePerStep must be between 0 and 1 '
+          '(got ${table.chancePerStep})',
+        );
+      }
+      for (var i = 0; i < table.conditions.length; i++) {
+        _validateScriptCondition(
+          table.conditions[i],
+          contextLabel: 'Encounter table $id conditions[$i]',
+        );
+      }
       for (var i = 0; i < table.entries.length; i++) {
         final entry = table.entries[i];
         if (entry.speciesId.trim().isEmpty) {
