@@ -5,6 +5,63 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('localizes unavailable runtime services from the session locale',
+      () async {
+    Future<PlayableMapGameSessionRuntime> runtimeFor(String locale) async {
+      final runtime = PlayableMapGameSessionRuntime(
+        descriptor: GameSessionDescriptor(
+          sessionId: 'session-$locale',
+          sessionToken: 'secret',
+          identity: GameIdentity(
+            gameId: 'org.example.runtime-fixture',
+            gameVersion: '1.0.0',
+            projectFormat: ProjectFormat.v1,
+            saveFormat: 1,
+            compatibilityId: 'fixture-v1',
+          ),
+          profileId: 'player-1',
+          slotId: 'slot-1',
+          launchMode: GameSessionLaunchMode.newGame,
+          installedVersionHandle: 'verified-fixture',
+          runtimeApiVersion: '1.0.0',
+          grantedCapabilities: const <String>{},
+          locale: locale,
+          accessibility: const GameSessionAccessibilityOptions(),
+        ),
+        projectFilePath: () async => '',
+        initialSave: () async => null,
+        mountGame: (_) async {},
+        unmountGame: (_) async {},
+      );
+      addTearDown(runtime.dispose);
+      return runtime;
+    }
+
+    final english = await runtimeFor('en-US');
+    expect(
+      (await english.dispatchPauseCommand(
+        const RuntimePlayerPauseCommand.useBagItem(
+          itemTargetId: 'bag:potion',
+          partyTargetId: 'party:0',
+        ),
+      ))
+          .safeMessage,
+      'The bag is unavailable.',
+    );
+
+    final french = await runtimeFor('fr-FR');
+    expect(
+      (await french.dispatchWorldService(
+        const RuntimeWorldServiceCommand(
+          action: RuntimeWorldServiceAction.close,
+          snapshotRevision: 1,
+        ),
+      ))
+          .safeMessage,
+      'Aucun service contextuel n’est actif.',
+    );
+  });
+
   test('loads a scoped save without filesystem persistence and completes once',
       () async {
     final identity = GameIdentity(

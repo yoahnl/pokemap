@@ -17,6 +17,7 @@ import '../presentation/flame/runtime_input_event.dart';
 import '../../domain/repositories/game_save_repository.dart';
 import 'game_session_contract.dart';
 import 'in_process_game_session_adapter.dart';
+import 'runtime_session_strings.dart';
 
 typedef PlayableMapGameMount = Future<void> Function(PlayableMapGame game);
 typedef PlayableMapGameUnmount = Future<void> Function(PlayableMapGame game);
@@ -82,6 +83,9 @@ final class PlayableMapGameSessionRuntime
 
   PlayableMapGame? get game => _game;
 
+  RuntimeSessionStrings get _strings =>
+      RuntimeSessionStrings.forLocale(descriptor.locale.toLowerCase());
+
   @override
   Stream<GameSessionAdapterEvent> get events => _events.stream;
 
@@ -100,9 +104,9 @@ final class PlayableMapGameSessionRuntime
     final services = _playerServices;
     if (services == null || _disposed) {
       return Future<RuntimeWorldServiceCommandResult>.value(
-        const RuntimeWorldServiceCommandResult(
+        RuntimeWorldServiceCommandResult(
           status: RuntimeWorldServiceCommandStatus.unavailable,
-          safeMessage: 'No contextual world service is active.',
+          safeMessage: _strings.noWorldService,
         ),
       );
     }
@@ -271,9 +275,9 @@ final class PlayableMapGameSessionRuntime
     final services = _playerServices;
     if (services == null || _disposed) {
       return Future.value(
-        const RuntimePlayerPauseCommandResult(
+        RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'Le sac n’est pas disponible.',
+          safeMessage: _strings.bagUnavailable,
         ),
       );
     }

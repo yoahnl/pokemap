@@ -78,9 +78,37 @@ void main() {
     expect(find.text('La vidéo ne peut pas être lue.'), findsOneWidget);
     expect(find.text('Continuer'), findsOneWidget);
   });
+
+  testWidgets('default presentation copy follows the player locale',
+      (tester) async {
+    await tester.pumpWidget(
+      _app(
+        PlayerIntroVideoSurface(
+          media: null,
+          isPoster: true,
+          onSkip: () {},
+          onContinue: () {},
+          onReplay: () {},
+        ),
+        locale: const Locale('en'),
+      ),
+    );
+
+    expect(find.text('Video playback is unavailable.'), findsOneWidget);
+    expect(find.text('Replay'), findsOneWidget);
+    expect(find.text('Continue'), findsOneWidget);
+    expect(find.text('Continuer'), findsNothing);
+  });
 }
 
-Widget _app(Widget child) => MaterialApp(
+Widget _app(
+  Widget child, {
+  Locale locale = const Locale('fr'),
+}) =>
+    MaterialApp(
+      locale: locale,
+      supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+      localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: PokeMapPlayerTheme.dark(),
       home: Scaffold(body: child),
     );

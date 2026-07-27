@@ -3,6 +3,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
 import '../theme/pokemap_player_theme.dart';
+import 'player_heal_strings.dart';
 
 /// Responsive healing confirmation driven entirely by a runtime snapshot.
 class PlayerHealConfirmation extends StatelessWidget {
@@ -17,9 +18,11 @@ class PlayerHealConfirmation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = PlayerHealStrings.of(context);
     final content = snapshot.content;
     if (content is! RuntimeHealServiceContent) {
       return _HealFailureFallback(
+        strings: strings,
         onClose: () => _emit(RuntimeWorldServiceAction.close),
       );
     }
@@ -88,10 +91,10 @@ class PlayerHealConfirmation extends StatelessWidget {
                       ],
                       if (!completed && content.members.isEmpty) ...<Widget>[
                         const SizedBox(height: PlayerSpacing.md),
-                        const PlayerEmptyState(
+                        PlayerEmptyState(
                           icon: Icons.catching_pokemon,
-                          title: 'Aucun Pokémon',
-                          message: 'Votre équipe est vide.',
+                          title: strings.emptyTitle,
+                          message: strings.emptyParty,
                         ),
                       ],
                       if (snapshot.safeMessage case final message?
@@ -107,7 +110,7 @@ class PlayerHealConfirmation extends StatelessWidget {
                       if (completed)
                         PlayerActionButton(
                           key: const ValueKey<String>('heal-close'),
-                          label: 'Retour au jeu',
+                          label: strings.returnToGame,
                           icon: Icons.check,
                           autofocus: true,
                           onPressed: () =>
@@ -116,7 +119,7 @@ class PlayerHealConfirmation extends StatelessWidget {
                       else if (!applying) ...<Widget>[
                         PlayerActionButton(
                           key: const ValueKey<String>('heal-confirm'),
-                          label: failed ? 'Réessayer' : 'Soigner l’équipe',
+                          label: failed ? strings.retry : strings.healParty,
                           icon: Icons.healing,
                           autofocus: true,
                           disabledReason: confirmReason,
@@ -129,7 +132,7 @@ class PlayerHealConfirmation extends StatelessWidget {
                         const SizedBox(height: PlayerSpacing.xs),
                         PlayerActionButton(
                           key: const ValueKey<String>('heal-cancel'),
-                          label: 'Annuler',
+                          label: strings.cancel,
                           icon: Icons.close,
                           secondary: true,
                           onPressed: snapshot.isActionEnabled(
@@ -175,6 +178,7 @@ class _HealPartyMember extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = PlayerHealStrings.of(context);
     final hpRatio = (member.currentHp / member.maxHp).clamp(0.0, 1.0);
     return PlayerPanel(
       padding: const EdgeInsets.all(PlayerSpacing.sm),
@@ -185,17 +189,13 @@ class _HealPartyMember extends StatelessWidget {
           const SizedBox(height: PlayerSpacing.xs),
           LinearProgressIndicator(value: hpRatio),
           const SizedBox(height: PlayerSpacing.xxs),
-          Text('PV ${member.currentHp} / ${member.maxHp}'),
+          Text(strings.hp(member.currentHp, member.maxHp)),
           Wrap(
             spacing: PlayerSpacing.sm,
             runSpacing: PlayerSpacing.xxs,
             children: <Widget>[
-              Text(member.hasStatus ? 'Statut à soigner' : 'Statut normal'),
-              Text(
-                member.depletedMoveCount > 0
-                    ? 'PP à restaurer : ${member.depletedMoveCount}'
-                    : 'PP complets',
-              ),
+              Text(strings.status(member.hasStatus)),
+              Text(strings.pp(member.depletedMoveCount)),
             ],
           ),
         ],
@@ -205,8 +205,12 @@ class _HealPartyMember extends StatelessWidget {
 }
 
 class _HealFailureFallback extends StatelessWidget {
-  const _HealFailureFallback({required this.onClose});
+  const _HealFailureFallback({
+    required this.strings,
+    required this.onClose,
+  });
 
+  final PlayerHealStrings strings;
   final VoidCallback onClose;
 
   @override
@@ -218,10 +222,10 @@ class _HealFailureFallback extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                const Text('Le service de soin ne peut pas être affiché.'),
+                Text(strings.unavailable),
                 const SizedBox(height: PlayerSpacing.md),
                 PlayerActionButton(
-                  label: 'Fermer',
+                  label: strings.close,
                   icon: Icons.close,
                   onPressed: onClose,
                 ),

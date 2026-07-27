@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../foundation/player_components.dart';
 import '../theme/pokemap_player_theme.dart';
+import 'player_intro_video_strings.dart';
 
 /// Player-safe presentation surface for intro video, poster, and fallbacks.
 class PlayerIntroVideoSurface extends StatelessWidget {
@@ -15,9 +16,9 @@ class PlayerIntroVideoSurface extends StatelessWidget {
     this.failureMessage,
     this.onReplay,
     this.onContinue,
-    this.skipLabel = 'Passer',
-    this.replayLabel = 'Rejouer',
-    this.continueLabel = 'Continuer',
+    this.skipLabel,
+    this.replayLabel,
+    this.continueLabel,
   });
 
   final Widget? media;
@@ -28,13 +29,14 @@ class PlayerIntroVideoSurface extends StatelessWidget {
   final String? failureMessage;
   final VoidCallback? onReplay;
   final VoidCallback? onContinue;
-  final String skipLabel;
-  final String replayLabel;
-  final String continueLabel;
+  final String? skipLabel;
+  final String? replayLabel;
+  final String? continueLabel;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.playerColors;
+    final strings = PlayerIntroVideoStrings.of(context);
     return PlayerSurface(
       maxWidth: 1120,
       child: SafeArea(
@@ -57,8 +59,7 @@ class PlayerIntroVideoSurface extends StatelessWidget {
                           color: colors.background,
                           child: media ??
                               _UnavailableMedia(
-                                message: failureMessage ??
-                                    'La vidéo ne peut pas être lue.',
+                                message: failureMessage ?? strings.unavailable,
                               ),
                         ),
                         if (isBuffering)
@@ -108,20 +109,20 @@ class PlayerIntroVideoSurface extends StatelessWidget {
                 children: <Widget>[
                   if (onReplay != null)
                     PlayerActionButton(
-                      label: replayLabel,
+                      label: replayLabel ?? strings.replay,
                       icon: Icons.replay_outlined,
                       secondary: true,
                       onPressed: onReplay,
                     ),
                   if (isPoster && onContinue != null)
                     PlayerActionButton(
-                      label: continueLabel,
+                      label: continueLabel ?? strings.continueAction,
                       icon: Icons.play_arrow_rounded,
                       onPressed: onContinue,
                     )
                   else
                     PlayerActionButton(
-                      label: skipLabel,
+                      label: skipLabel ?? strings.skip,
                       icon: Icons.skip_next_outlined,
                       secondary: true,
                       onPressed: onSkip,

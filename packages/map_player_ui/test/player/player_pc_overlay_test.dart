@@ -124,6 +124,11 @@ void main() {
       ),
     );
 
+    expect(find.text('Party'), findsOneWidget);
+    expect(find.byTooltip('Deposit'), findsOneWidget);
+    expect(find.byTooltip('Withdraw'), findsOneWidget);
+    expect(find.byTooltip('Close'), findsOneWidget);
+
     await tester.tap(
       find.byKey(const ValueKey<String>('pc-summary-party-slot-0')),
     );

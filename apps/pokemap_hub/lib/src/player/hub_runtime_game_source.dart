@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../session/installed_game_launch_resolver.dart';
@@ -55,25 +56,16 @@ final class HubRuntimeGameSource implements RuntimeGameSource {
       saveReadHandle: saveReadHandle,
       runtimeApiVersion: _launch.runtimeApiVersion,
       grantedCapabilities: _launch.grantedCapabilities,
-      locale: _installedLocaleFor(preferences.locale),
+      locale: ProjectLocaleResolver.resolve(
+        preferredLocale: preferences.locale,
+        supportedLocales: _launch.manifest.locales.supported,
+        fallbackLocale: _launch.manifest.locales.defaultLocale,
+      ),
       accessibility: preferences.accessibility,
       initialPlayerIdentity: initialPlayerIdentity,
     );
   }
-
-  String _installedLocaleFor(String preferredLocale) {
-    final locales = _launch.manifest.locales;
-    if (locales.supported.contains(preferredLocale)) return preferredLocale;
-    final preferredLanguage = _languageCode(preferredLocale);
-    for (final supported in locales.supported) {
-      if (_languageCode(supported) == preferredLanguage) return supported;
-    }
-    return locales.defaultLocale;
-  }
 }
-
-String _languageCode(String locale) =>
-    locale.split(RegExp('[-_]')).first.toLowerCase();
 
 String _secureOpaqueId(String prefix) {
   final random = Random.secure();

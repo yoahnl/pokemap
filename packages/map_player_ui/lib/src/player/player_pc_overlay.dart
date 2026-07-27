@@ -18,9 +18,11 @@ class PlayerPcOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = PlayerPcStrings.of(context);
     final content = snapshot.content;
     if (content is! RuntimePcServiceContent) {
       return _InvalidPcOverlay(
+        strings: strings,
         onClose: () => _emit(RuntimeWorldServiceAction.close),
       );
     }
@@ -64,7 +66,7 @@ class PlayerPcOverlay extends StatelessWidget {
                             ),
                             IconButton(
                               key: const ValueKey<String>('pc-close'),
-                              tooltip: 'Fermer',
+                              tooltip: strings.close,
                               onPressed: canClose
                                   ? () => _emit(
                                         RuntimeWorldServiceAction.close,
@@ -114,11 +116,12 @@ class PlayerPcOverlay extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: <Widget>[
                               _PcRoster(
-                                title: 'Équipe',
-                                emptyMessage: 'Votre équipe est vide.',
+                                title: strings.party,
+                                emptyMessage: strings.emptyParty,
+                                emptyTitle: strings.emptyPokemon,
                                 entries: content.party,
                                 action: RuntimeWorldServiceAction.deposit,
-                                actionLabel: 'Déposer',
+                                actionLabel: strings.deposit,
                                 actionIcon: Icons.move_to_inbox_outlined,
                                 snapshot: snapshot,
                                 onCommand: onCommand,
@@ -126,10 +129,11 @@ class PlayerPcOverlay extends StatelessWidget {
                               const SizedBox(height: PlayerSpacing.md),
                               _PcRoster(
                                 title: _selectedBoxLabel(content),
-                                emptyMessage: 'Cette box est vide.',
+                                emptyMessage: strings.emptyBox,
+                                emptyTitle: strings.emptyPokemon,
                                 entries: content.stored,
                                 action: RuntimeWorldServiceAction.withdraw,
-                                actionLabel: 'Retirer',
+                                actionLabel: strings.withdraw,
                                 actionIcon: Icons.person_add_alt_1_outlined,
                                 snapshot: snapshot,
                                 onCommand: onCommand,
@@ -143,11 +147,12 @@ class PlayerPcOverlay extends StatelessWidget {
                             children: <Widget>[
                               Expanded(
                                 child: _PcRoster(
-                                  title: 'Équipe',
-                                  emptyMessage: 'Votre équipe est vide.',
+                                  title: strings.party,
+                                  emptyMessage: strings.emptyParty,
+                                  emptyTitle: strings.emptyPokemon,
                                   entries: content.party,
                                   action: RuntimeWorldServiceAction.deposit,
-                                  actionLabel: 'Déposer',
+                                  actionLabel: strings.deposit,
                                   actionIcon: Icons.move_to_inbox_outlined,
                                   snapshot: snapshot,
                                   onCommand: onCommand,
@@ -157,10 +162,11 @@ class PlayerPcOverlay extends StatelessWidget {
                               Expanded(
                                 child: _PcRoster(
                                   title: _selectedBoxLabel(content),
-                                  emptyMessage: 'Cette box est vide.',
+                                  emptyMessage: strings.emptyBox,
+                                  emptyTitle: strings.emptyPokemon,
                                   entries: content.stored,
                                   action: RuntimeWorldServiceAction.withdraw,
-                                  actionLabel: 'Retirer',
+                                  actionLabel: strings.withdraw,
                                   actionIcon: Icons.person_add_alt_1_outlined,
                                   snapshot: snapshot,
                                   onCommand: onCommand,
@@ -212,6 +218,7 @@ class _PcRoster extends StatelessWidget {
   const _PcRoster({
     required this.title,
     required this.emptyMessage,
+    required this.emptyTitle,
     required this.entries,
     required this.action,
     required this.actionLabel,
@@ -223,6 +230,7 @@ class _PcRoster extends StatelessWidget {
 
   final String title;
   final String emptyMessage;
+  final String emptyTitle;
   final List<RuntimePcPokemonSnapshot> entries;
   final RuntimeWorldServiceAction action;
   final String actionLabel;
@@ -242,7 +250,7 @@ class _PcRoster extends StatelessWidget {
             if (entries.isEmpty)
               PlayerEmptyState(
                 icon: Icons.catching_pokemon,
-                title: 'Aucun Pokémon',
+                title: emptyTitle,
                 message: emptyMessage,
               )
             else
@@ -270,7 +278,7 @@ class _PcRoster extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.titleMedium,
         ),
-        Text('Niv. ${entry.level}'),
+        Text(PlayerPcStrings.of(context).levelValue(entry.level)),
       ],
     );
     final actions = Row(
@@ -508,8 +516,12 @@ class _SummaryLine extends StatelessWidget {
 }
 
 class _InvalidPcOverlay extends StatelessWidget {
-  const _InvalidPcOverlay({required this.onClose});
+  const _InvalidPcOverlay({
+    required this.strings,
+    required this.onClose,
+  });
 
+  final PlayerPcStrings strings;
   final VoidCallback onClose;
 
   @override
@@ -521,10 +533,10 @@ class _InvalidPcOverlay extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                const Text('Le PC ne peut pas être affiché.'),
+                Text(strings.unavailable),
                 const SizedBox(height: PlayerSpacing.md),
                 PlayerActionButton(
-                  label: 'Fermer',
+                  label: strings.close,
                   icon: Icons.close,
                   onPressed: onClose,
                 ),

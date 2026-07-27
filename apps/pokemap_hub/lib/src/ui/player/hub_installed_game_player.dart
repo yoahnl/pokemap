@@ -21,6 +21,7 @@ import '../../session/hub_in_process_session_factory.dart';
 import '../../session/installed_game_launch_resolver.dart';
 import '../preferences/hub_preferences_store.dart';
 import 'hub_intro_video_player.dart';
+import 'hub_installed_player_strings.dart';
 import 'hub_save_profiles_screen.dart';
 import 'hub_title_presentation_loader.dart';
 
@@ -106,10 +107,15 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       );
       final saveGateway = HubPlayerSaveGateway(store: store);
       final profileManager = HubSaveProfileManager(store: store);
-      final isFrench =
-          launch.manifest.locales.defaultLocale.toLowerCase().startsWith('fr');
+      final playerLocale = ProjectLocaleResolver.resolve(
+        preferredLocale: preferences.locale?.toLanguageTag() ??
+            launch.manifest.locales.defaultLocale,
+        supportedLocales: launch.manifest.locales.supported,
+        fallbackLocale: launch.manifest.locales.defaultLocale,
+      );
+      final strings = HubInstalledPlayerStrings.forLocale(playerLocale);
       final saveSelection = await profileManager.ensureDefaultSelection(
-        defaultProfileDisplayName: isFrench ? 'Joueur' : 'Player',
+        defaultProfileDisplayName: strings.defaultProfile,
         defaultSlotDisplayName: 'Slot 1',
       );
       final newGameIdentityPresentation =
@@ -416,14 +422,14 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
 
   @override
   Widget build(BuildContext context) {
+    final strings = HubInstalledPlayerStrings.of(context);
     final failure = _failure;
     if (failure != null) {
       return Scaffold(
         body: player_ui.PlayerErrorSurface(
-          title: 'Impossible d’ouvrir ce jeu',
-          message: 'La session joueur n’a pas pu être validée.',
-          recommendation:
-              'Le jeu installé et ses sauvegardes n’ont pas été modifiés.',
+          title: strings.launchFailureTitle,
+          message: strings.launchFailureMessage,
+          recommendation: strings.launchFailureRecommendation,
           code: 'hub.player.${failure.code}',
           onReturnToHub: () => unawaited(widget.onHubRequested()),
           onShowDiagnostics: () => Clipboard.setData(
@@ -445,9 +451,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         viewController == null ||
         launch == null ||
         titlePresentation == null) {
-      return const Scaffold(
+      return Scaffold(
         body: player_ui.PlayerLoadingSurface(
-          stage: 'Vérification du jeu installé…',
+          stage: strings.verifyingGame,
         ),
       );
     }

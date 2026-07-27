@@ -20,6 +20,18 @@ final class PlayerPcStrings {
   String get summaryTooltip => _isFrench ? 'Voir le résumé' : 'View summary';
   String get swapTooltip => _isFrench ? 'Échanger' : 'Swap';
   String get close => _isFrench ? 'Fermer' : 'Close';
+  String get party => _isFrench ? 'Équipe' : 'Party';
+  String get emptyParty =>
+      _isFrench ? 'Votre équipe est vide.' : 'Your party is empty.';
+  String get emptyBox =>
+      _isFrench ? 'Cette box est vide.' : 'This Box is empty.';
+  String get emptyPokemon => _isFrench ? 'Aucun Pokémon' : 'No Pokémon';
+  String get deposit => _isFrench ? 'Déposer' : 'Deposit';
+  String get withdraw => _isFrench ? 'Retirer' : 'Withdraw';
+  String get unavailable => _isFrench
+      ? 'Le PC ne peut pas être affiché.'
+      : 'The PC cannot be displayed.';
+  String levelValue(int value) => _isFrench ? 'Niv. $value' : 'Lv. $value';
   String get species => _isFrench ? 'Espèce' : 'Species';
   String get level => _isFrench ? 'Niveau' : 'Level';
   String get currentHp => _isFrench ? 'PV actuels' : 'Current HP';

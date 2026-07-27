@@ -1,5 +1,6 @@
 library map_core;
 
+export 'src/localization/project_locale_resolver.dart';
 export 'src/models/narrative_validation_report.dart';
 export 'src/models/narrative_diagnostic_suppression.dart';
 export 'src/models/narrative_runtime_smoke_receipt.dart';

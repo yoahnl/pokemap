@@ -94,10 +94,58 @@ void main() {
     expect(commands.single.action, RuntimeWorldServiceAction.close);
     expect(commands.single.snapshotRevision, 9);
   });
+
+  testWidgets('healing controls and member state localize in English',
+      (tester) async {
+    final snapshot = RuntimeWorldServiceSnapshot(
+      revision: 10,
+      request: const OpenHealService(interactionId: 'npc.nurse'),
+      stage: RuntimeWorldServiceStage.active,
+      content: RuntimeHealServiceContent(
+        title: 'Pokémon Center',
+        message: 'Heal the party?',
+        members: const <RuntimeHealPartyMemberSnapshot>[
+          RuntimeHealPartyMemberSnapshot(
+            partyIndex: 0,
+            label: 'Sproutle',
+            currentHp: 3,
+            maxHp: 24,
+            hasStatus: true,
+            depletedMoveCount: 1,
+          ),
+        ],
+      ),
+      actions: const <RuntimeWorldServiceActionAvailability>[
+        RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.confirm,
+        ),
+        RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.cancel,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        PlayerHealConfirmation(snapshot: snapshot, onCommand: (_) {}),
+        locale: const Locale('en'),
+      ),
+    );
+
+    expect(find.text('HP 3 / 24'), findsOneWidget);
+    expect(find.text('Status needs healing'), findsOneWidget);
+    expect(find.text('PP to restore: 1'), findsOneWidget);
+    expect(find.text('Heal party'), findsOneWidget);
+    expect(find.text('Cancel'), findsOneWidget);
+  });
 }
 
-Widget _app(Widget child) => MaterialApp(
-      locale: const Locale('fr'),
+Widget _app(
+  Widget child, {
+  Locale locale = const Locale('fr'),
+}) =>
+    MaterialApp(
+      locale: locale,
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: PokeMapPlayerTheme.dark(),
