@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../ui/design_system/pokemap_badge.dart';
+import '../../../ui/design_system/pokemap_button.dart';
+import '../../../ui/design_system/pokemap_card.dart';
 import '../../../ui/design_system/pokemap_empty_state.dart';
 import '../../editor/state/editor_notifier.dart';
 import 'personalization_hub_shell.dart';
@@ -91,18 +93,49 @@ class _PersonalizationStudioWorkspaceState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          if (studioSession?.isDirty == true)
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: PokeMapBadge(
-                  key: ValueKey<String>('personalization-studio-dirty'),
-                  label: 'Modifications non enregistrées',
-                  variant: PokeMapBadgeVariant.info,
-                ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: PokeMapCard(
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      studioSession?.isDirty == true
+                          ? 'Le brouillon diffère de project.json.'
+                          : 'La personnalisation correspond à project.json.',
+                    ),
+                  ),
+                  if (studioSession?.isDirty == true)
+                    const PokeMapBadge(
+                      key: ValueKey<String>('personalization-studio-dirty'),
+                      label: 'Modifications non enregistrées',
+                      variant: PokeMapBadgeVariant.info,
+                    )
+                  else
+                    const PokeMapBadge(
+                      key: ValueKey<String>('personalization-studio-clean'),
+                      label: 'Enregistré',
+                      variant: PokeMapBadgeVariant.success,
+                    ),
+                  const SizedBox(width: 12),
+                  PokeMapButton(
+                    key: const ValueKey<String>(
+                      'personalization-studio-save',
+                    ),
+                    size: PokeMapButtonSize.compact,
+                    leading: const Icon(Icons.save_outlined),
+                    isLoading: studioSession?.isSaving == true,
+                    onPressed: studioSession?.isDirty == true && canEdit
+                        ? () {
+                            unawaited(notifier.savePersonalizationStudio());
+                          }
+                        : null,
+                    child: const Text('Enregistrer'),
+                  ),
+                ],
               ),
             ),
+          ),
           Expanded(
             child: PersonalizationHubShell(
               key: const ValueKey<String>(

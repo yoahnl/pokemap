@@ -651,6 +651,29 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  Future<bool> savePersonalizationStudio() async {
+    if (!await initializePersonalizationStudioSession()) {
+      return false;
+    }
+    final session = _personalizationStudioSession!;
+    if (state.project != session.state.document) {
+      state = state.copyWith(
+        errorMessage: 'Sauvegarde bloquée : le projet contient des '
+            'modifications extérieures au Personalization Studio.',
+      );
+      return false;
+    }
+    final sequence = ++_personalizationStudioOperationSequence;
+    final saved = await session.save(
+      operationId: 'personalization_save_$sequence',
+    );
+    if (saved && _narrativeDocumentSession != null) {
+      _disposeNarrativeDocumentSession();
+      await initializeNarrativeDocumentSession();
+    }
+    return saved;
+  }
+
   void _onPersonalizationStudioSessionChanged() {
     final session = _personalizationStudioSession;
     if (session == null) return;
@@ -1185,6 +1208,21 @@ class EditorNotifier extends _$EditorNotifier {
         errorMessage: 'No project open to save.',
       );
       return false;
+    }
+    final personalizationSession = _personalizationStudioSession;
+    if (personalizationSession != null &&
+        personalizationSession.state.status !=
+            NarrativeDocumentSessionStatus.saved) {
+      if (project != personalizationSession.state.document) {
+        state = state.copyWith(
+          errorMessage: 'Sauvegarde bloquée : le projet contient à la fois '
+              'un brouillon de personnalisation et des modifications '
+              'extérieures. Résolvez ou annulez le brouillon avant de '
+              'continuer.',
+        );
+        return false;
+      }
+      return savePersonalizationStudio();
     }
     final narrativeSession = _narrativeDocumentSession;
     if (narrativeSession != null &&

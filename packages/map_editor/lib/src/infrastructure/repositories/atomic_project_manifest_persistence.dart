@@ -65,8 +65,27 @@ final class AtomicProjectManifestPersistence
         'Only an applicable narrative mutation can be persisted.',
       );
     }
+    return persistProjectDocument(
+      projectPath: transaction.projectPath,
+      operationId: transaction.operationId,
+      before: transaction.before,
+      after: transaction.after,
+    );
+  }
+
+  /// Persists an exact project snapshot through the same validated, atomic
+  /// compare-and-swap boundary used by Narrative Studio.
+  ///
+  /// Feature-specific gateways must validate their allowed mutation before
+  /// calling this method.
+  Future<NarrativeAuthoringPersistenceResult> persistProjectDocument({
+    required String projectPath,
+    required String operationId,
+    required ProjectManifest before,
+    required ProjectManifest after,
+  }) async {
     try {
-      ProjectValidator.validate(transaction.after);
+      ProjectValidator.validate(after);
     } on Object catch (error) {
       return _failed(
         'invalidTargetProject',
@@ -76,7 +95,7 @@ final class AtomicProjectManifestPersistence
 
     late final String canonicalProjectPath;
     try {
-      final requestedProject = File(transaction.projectPath);
+      final requestedProject = File(projectPath);
       if (!await requestedProject.exists()) {
         return _failed(
           'projectManifestMissing',
@@ -100,8 +119,10 @@ final class AtomicProjectManifestPersistence
       return await withProjectManifestWriteLock(
         canonicalProjectPath,
         () => _persistLocked(
-          transaction,
           canonicalProjectPath: canonicalProjectPath,
+          operationId: operationId,
+          before: before,
+          after: after,
         ),
       );
     } on Object catch (error) {
@@ -112,9 +133,11 @@ final class AtomicProjectManifestPersistence
     }
   }
 
-  Future<NarrativeAuthoringPersistenceResult> _persistLocked(
-    NarrativeAuthoringTransaction transaction, {
+  Future<NarrativeAuthoringPersistenceResult> _persistLocked({
     required String canonicalProjectPath,
+    required String operationId,
+    required ProjectManifest before,
+    required ProjectManifest after,
   }) async {
     final recoveryInspection =
         await (eventRegistryPersistence ?? NarrativeEventRegistryPersistence())
@@ -165,10 +188,7 @@ final class AtomicProjectManifestPersistence
       );
     }
 
-    final tempPath = _tempPath(
-      canonicalProjectPath,
-      transaction.operationId,
-    );
+    final tempPath = _tempPath(canonicalProjectPath, operationId);
     final placeholderContext = AtomicProjectManifestWriteContext(
       projectPath: projectFile.path,
       tempPath: tempPath,
@@ -179,7 +199,7 @@ final class AtomicProjectManifestPersistence
       AtomicProjectManifestWriteCheckpoint.afterInitialRead,
       placeholderContext,
     );
-    if (current.manifest != transaction.before) {
+    if (current.manifest != before) {
       return _failed(
         'staleProjectRevision',
         'The project changed since this narrative edit started.',
@@ -187,7 +207,7 @@ final class AtomicProjectManifestPersistence
     }
     if (!_sameRegistry(
       current.registryState.registryOrNull,
-      transaction.after.eventRegistry,
+      after.eventRegistry,
     )) {
       return _failed(
         'eventRegistryMismatch',
@@ -198,7 +218,7 @@ final class AtomicProjectManifestPersistence
     late final List<int> afterBytes;
     try {
       final serializedAfter = _strictObject(
-        jsonDecode(jsonEncode(transaction.after.toJson())),
+        jsonDecode(jsonEncode(after.toJson())),
       );
       final nextRoot = Map<String, Object?>.from(currentRoot)
         ..addAll(serializedAfter);
@@ -214,7 +234,7 @@ final class AtomicProjectManifestPersistence
       final projected = decodeValidatedNarrativeEventAuthoringProject(
         afterBytes,
       );
-      if (projected.manifest != transaction.after) {
+      if (projected.manifest != after) {
         return _failed(
           'projectedManifestMismatch',
           'The persisted projection does not match the validated mutation.',

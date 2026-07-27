@@ -59,6 +59,8 @@ typedef PersonalizationStudioSessionControllerFactory
 
 final personalizationStudioSessionControllerFactoryProvider =
     Provider<PersonalizationStudioSessionControllerFactory>((ref) {
+  final persistence =
+      ref.watch(fileProjectRepositoryProvider).narrativeAuthoringPersistence;
   return ({
     required String projectPath,
     required ProjectManifest initialDocument,
@@ -75,6 +77,7 @@ final personalizationStudioSessionControllerFactoryProvider =
         initialDocument: initialDocument,
         gateway: ProjectPresentationDocumentGateway(
           projectPath: projectPath,
+          persistence: persistence,
         ),
         recoveryStore: FileNarrativeDocumentRecoveryStore<ProjectManifest>(
           journalPath: journalPath,

@@ -91,6 +91,28 @@ void main() {
     );
     expect(projectFile.readAsStringSync(), durableJson);
     expect(gateway.saveCount, 0);
+
+    final saveButton = tester.widget<PokeMapButton>(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-save'),
+      ),
+    );
+    expect(saveButton.onPressed, isNotNull);
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-save'),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+
+    expect(gateway.saveCount, 1);
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-dirty'),
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets('canvas displays the current project profile in read-only mode',

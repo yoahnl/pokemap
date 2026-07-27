@@ -3,18 +3,22 @@ import 'dart:io';
 import 'package:map_core/map_core.dart';
 
 import '../../application/models/narrative_event_authoring_session.dart';
+import '../../application/models/narrative_authoring_transaction.dart';
 import '../../application/services/narrative_document_session.dart';
+import 'atomic_project_manifest_persistence.dart';
 
 /// Project-manifest document gateway dedicated to presentation-only sessions.
 ///
-/// PST-011 uses the read boundary to establish a trustworthy saved baseline.
-/// The compare-and-swap save implementation is activated by PST-012.
 final class ProjectPresentationDocumentGateway
     implements NarrativeDocumentGateway<ProjectManifest> {
-  ProjectPresentationDocumentGateway({required String projectPath})
-      : projectPath = _requiredPath(projectPath);
+  ProjectPresentationDocumentGateway({
+    required String projectPath,
+    AtomicProjectManifestPersistence? persistence,
+  })  : projectPath = _requiredPath(projectPath),
+        _persistence = persistence ?? const AtomicProjectManifestPersistence();
 
   final String projectPath;
+  final AtomicProjectManifestPersistence _persistence;
 
   @override
   Future<NarrativeDocumentVersion<ProjectManifest>> read() async {
@@ -32,11 +36,89 @@ final class ProjectPresentationDocumentGateway
     required ProjectManifest after,
     required String operationId,
   }) async {
-    return const NarrativeDocumentSaveResult<ProjectManifest>.failed(
-      code: 'personalizationSaveUnavailable',
-      message: 'Personalization saving is not available in this Studio lot.',
+    if (before.copyWith(presentation: after.presentation) != after) {
+      return const NarrativeDocumentSaveResult<ProjectManifest>.failed(
+        code: 'unsupportedDocumentMutation',
+        message: 'This document session can persist presentation changes only.',
+      );
+    }
+
+    final current = await _readOrFailure();
+    if (current case NarrativeDocumentSaveFailed<ProjectManifest>()) {
+      return current;
+    }
+    final live = current as NarrativeDocumentVersion<ProjectManifest>;
+    if (live.revision != expectedRevision || live.document != before) {
+      return NarrativeDocumentSaveResult<ProjectManifest>.conflicted(
+        code: 'staleProjectRevision',
+        message: 'The project changed since the Personalization Studio opened.',
+        external: live,
+      );
+    }
+
+    late final NarrativeAuthoringPersistenceResult persistenceResult;
+    try {
+      persistenceResult = await _persistence.persistProjectDocument(
+        projectPath: projectPath,
+        operationId: operationId,
+        before: before,
+        after: after,
+      );
+    } on Object catch (error) {
+      return NarrativeDocumentSaveResult<ProjectManifest>.failed(
+        code: 'projectManifestWriteFailed',
+        message: 'The project manifest could not be persisted: $error',
+      );
+    }
+
+    if (persistenceResult.status ==
+        NarrativeAuthoringPersistenceStatus.committed) {
+      final durable = await _readOrFailure();
+      if (durable case NarrativeDocumentSaveFailed<ProjectManifest>()) {
+        return durable;
+      }
+      final version = durable as NarrativeDocumentVersion<ProjectManifest>;
+      if (version.document != after) {
+        return const NarrativeDocumentSaveResult<ProjectManifest>.failed(
+          code: 'durableDocumentMismatch',
+          message: 'Persistence completed but the durable document does not '
+              'match the requested presentation update.',
+        );
+      }
+      return NarrativeDocumentSaveResult<ProjectManifest>.saved(version);
+    }
+
+    if (_isConflictCode(persistenceResult.code)) {
+      final external = await _readOrFailure();
+      if (external case NarrativeDocumentSaveFailed<ProjectManifest>()) {
+        return external;
+      }
+      return NarrativeDocumentSaveResult<ProjectManifest>.conflicted(
+        code: persistenceResult.code,
+        message: persistenceResult.message,
+        external: external as NarrativeDocumentVersion<ProjectManifest>,
+      );
+    }
+    return NarrativeDocumentSaveResult<ProjectManifest>.failed(
+      code: persistenceResult.code,
+      message: persistenceResult.message,
     );
   }
+
+  Future<Object> _readOrFailure() async {
+    try {
+      return await read();
+    } on Object catch (error) {
+      return NarrativeDocumentSaveResult<ProjectManifest>.failed(
+        code: 'projectManifestReadFailed',
+        message: 'The project manifest cannot be read safely: $error',
+      );
+    }
+  }
+}
+
+bool _isConflictCode(String code) {
+  return code == 'staleProjectRevision' || code == 'projectChangedBeforeCommit';
 }
 
 String _requiredPath(String value) {

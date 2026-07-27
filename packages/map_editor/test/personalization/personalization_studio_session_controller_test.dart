@@ -75,6 +75,38 @@ void main() {
       expect(recovery.writeCount, 0);
       expect(gateway.saveCount, 0);
     });
+
+    test('saves the exact draft and adopts it as the new baseline', () async {
+      final project = buildShellChromeProject(name: 'Saved profile');
+      final gateway = _MemoryProjectGateway(project);
+      final controller = PersonalizationStudioSessionController(
+        session: NarrativeDocumentSession<ProjectManifest>(
+          documentId: 'personalization-studio',
+          initialDocument: project,
+          gateway: gateway,
+          recoveryStore: _MemoryProjectRecoveryStore(),
+        ),
+      );
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      const profile = ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(accentColor: '#345678'),
+      );
+      await controller.applyProfile(
+        profile,
+        operationId: 'accent-before-save',
+        label: 'Changer la couleur',
+      );
+
+      final saved = await controller.save(operationId: 'save-profile');
+
+      expect(saved, isTrue);
+      expect(gateway.saveCount, 1);
+      expect(gateway.durableDocument.presentation, profile);
+      expect(controller.state.savedProfile, profile);
+      expect(controller.state.draftProfile, profile);
+      expect(controller.state.isDirty, isFalse);
+    });
   });
 }
 

@@ -91,6 +91,10 @@ final class PersonalizationStudioSessionController extends ChangeNotifier {
     );
   }
 
+  Future<bool> save({required String operationId}) {
+    return _session.save(operationId: operationId);
+  }
+
   void _onSessionChanged() {
     if (!_disposed) notifyListeners();
   }
