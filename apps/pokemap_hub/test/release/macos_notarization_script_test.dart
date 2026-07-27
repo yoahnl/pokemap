@@ -52,7 +52,15 @@ output="\${!#}"
 ''',
       );
       final spctl = await _fakeTool(tools, 'spctl', '');
-      final codesign = await _fakeTool(tools, 'codesign', '');
+      final codesign = await _fakeTool(
+        tools,
+        'codesign',
+        '''
+if [[ "\$1" == "-d" ]]; then
+  printf 'Authority=Developer ID Application: Fixture (FIXTURETEAM)\\n' >&2
+fi
+''',
+      );
       final dmg = File('${root.path}/PokeMapHub.dmg');
       final result = File('${root.path}/notary-result.json');
       final logs = Directory('${root.path}/logs');
@@ -103,13 +111,19 @@ output="\${!#}"
       final dmgSubmit = commands.indexWhere(
         (line) => line.contains('notarytool submit') && line.contains('.dmg'),
       );
+      final dmgSign = commands.indexWhere(
+        (line) =>
+            line.startsWith('codesign --force --sign ') &&
+            line.contains('.dmg'),
+      );
       final dmgStaple = commands.indexWhere(
         (line) => line.contains('stapler staple') && line.contains('.dmg'),
       );
       expect(appSubmit, greaterThanOrEqualTo(0));
       expect(appStaple, greaterThan(appSubmit));
       expect(dmgCreate, greaterThan(appStaple));
-      expect(dmgSubmit, greaterThan(dmgCreate));
+      expect(dmgSign, greaterThan(dmgCreate));
+      expect(dmgSubmit, greaterThan(dmgSign));
       expect(dmgStaple, greaterThan(dmgSubmit));
     },
     skip: Platform.isWindows,

@@ -116,12 +116,27 @@ fi
 "$codesign_bin" --verify --deep --strict --verbose=4 "$app_path"
 "$spctl_bin" --assess --type execute --verbose=4 "$app_path"
 
+dmg_signing_identity="$(
+  "$codesign_bin" -d --verbose=4 "$app_path" 2>&1 |
+    /usr/bin/sed -n 's/^Authority=\(Developer ID Application:.*\)$/\1/p' |
+    /usr/bin/head -n 1
+)"
+if [[ -z "$dmg_signing_identity" ]]; then
+  echo 'The app is not signed with a Developer ID Application identity.' >&2
+  exit 65
+fi
+
 "$hdiutil_bin" create \
   -volname 'PokeMap Hub' \
   -srcfolder "$app_path" \
   -ov \
   -format UDZO \
   "$dmg_path"
+"$codesign_bin" --force \
+  --sign "$dmg_signing_identity" \
+  --timestamp \
+  "$dmg_path"
+"$codesign_bin" --verify --verbose=4 "$dmg_path"
 "$hdiutil_bin" verify "$dmg_path"
 
 "$xcrun_bin" notarytool submit "$dmg_path" \
