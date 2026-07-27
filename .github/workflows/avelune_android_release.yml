@@ -61,7 +61,6 @@ jobs:
     permissions:
       contents: write
     env:
-      AVELUNE_KEYSTORE_PATH: ${{ runner.temp }}/avelune-release.jks
       AVELUNE_KEYSTORE_PASSWORD: ${{ secrets.AVELUNE_ANDROID_KEYSTORE_PASSWORD }}
       AVELUNE_KEY_ALIAS: ${{ secrets.AVELUNE_ANDROID_KEY_ALIAS }}
       AVELUNE_KEY_PASSWORD: ${{ secrets.AVELUNE_ANDROID_KEY_PASSWORD }}
@@ -81,6 +80,7 @@ jobs:
         env:
           AVELUNE_ANDROID_KEYSTORE_BASE64: ${{ secrets.AVELUNE_ANDROID_KEYSTORE_BASE64 }}
         run: |
+          AVELUNE_KEYSTORE_PATH="$RUNNER_TEMP/avelune-release.jks"
           test -n "$AVELUNE_ANDROID_KEYSTORE_BASE64"
           test -n "$AVELUNE_KEYSTORE_PASSWORD"
           test -n "$AVELUNE_KEY_ALIAS"
@@ -88,6 +88,7 @@ jobs:
           printf '%s' "$AVELUNE_ANDROID_KEYSTORE_BASE64" |
             base64 --decode > "$AVELUNE_KEYSTORE_PATH"
           test -s "$AVELUNE_KEYSTORE_PATH"
+          echo "AVELUNE_KEYSTORE_PATH=$AVELUNE_KEYSTORE_PATH" >> "$GITHUB_ENV"
       - name: Test and build signed release APK
         working-directory: apps/pokemap_hub
         run: |
