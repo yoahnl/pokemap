@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
@@ -7,14 +9,17 @@ import 'package:map_core/map_core.dart';
 import '../../../ui/design_system/pokemap_badge.dart';
 import '../../../ui/design_system/pokemap_button.dart';
 import '../../../ui/design_system/pokemap_card.dart';
+import '../../../ui/design_system/pokemap_diagnostic_callout.dart';
 import '../../../ui/design_system/pokemap_empty_state.dart';
 import '../../../ui/design_system/pokemap_toggle_tile.dart';
 import '../../editor/state/editor_notifier.dart';
+import '../application/project_intro_video_import_service.dart';
 import 'personalization_hub_shell.dart';
+import 'project_intro_video_editor.dart';
 
 /// Adapts the current editor project to the reusable Personalization Hub.
 ///
-/// Phase 1 binds the shell to a crash-safe project presentation draft.
+/// Phase 2 binds the crash-safe draft to the guided category editors.
 class PersonalizationStudioWorkspace extends ConsumerStatefulWidget {
   const PersonalizationStudioWorkspace({super.key});
 
@@ -28,6 +33,9 @@ class _PersonalizationStudioWorkspaceState
   ProjectPresentationCategory _selectedCategory =
       ProjectPresentationCategory.branding;
   String? _requestedProjectRootPath;
+  bool _isImportingAsset = false;
+  String? _assetFeedback;
+  bool _assetFeedbackIsError = false;
 
   void _ensureSession(String projectRootPath) {
     if (_requestedProjectRootPath == projectRootPath) return;
@@ -40,6 +48,156 @@ class _PersonalizationStudioWorkspaceState
             .initializePersonalizationStudioSession(),
       );
     });
+  }
+
+  Future<void> _importIntroVideo({
+    required String projectRootPath,
+    required ProjectPresentationProfile profile,
+    required EditorNotifier notifier,
+  }) async {
+    if (_isImportingAsset) return;
+    final selection = await FilePicker.platform.pickFiles(
+      dialogTitle: 'Choisir la vidéo, le poster et les sous-titres optionnels',
+      type: FileType.custom,
+      allowedExtensions: const <String>[
+        'mp4',
+        'png',
+        'jpg',
+        'jpeg',
+        'webp',
+        'vtt',
+      ],
+      allowMultiple: true,
+      withData: false,
+      lockParentWindow: true,
+    );
+    if (!mounted || selection == null) return;
+    final paths = selection.files
+        .map((file) => file.path)
+        .whereType<String>()
+        .toList(growable: false);
+    final videoPath = _singlePathWithExtensions(paths, const <String>['.mp4']);
+    final posterPath = _singlePathWithExtensions(
+      paths,
+      const <String>['.png', '.jpg', '.jpeg', '.webp'],
+    );
+    final captionsPath =
+        _singlePathWithExtensions(paths, const <String>['.vtt']);
+    if (videoPath == null || posterPath == null) {
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback =
+            'Sélectionnez exactement une vidéo MP4 et un poster PNG, JPEG ou WebP.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isImportingAsset = true;
+      _assetFeedback = null;
+    });
+    try {
+      final imported =
+          await const ProjectIntroVideoImportService().importIntoProject(
+        projectRoot: Directory(projectRootPath),
+        videoFile: File(videoPath),
+        posterFile: File(posterPath),
+        captionsFile: captionsPath == null ? null : File(captionsPath),
+        reducedMotionBehavior: profile.intro?.reducedMotionBehavior ?? 'poster',
+        allowReplay: profile.intro?.allowReplay ?? true,
+      );
+      final applied = await notifier.applyPersonalizationStudioProfile(
+        profile.copyWith(intro: imported),
+        label: 'Importer la vidéo d’introduction',
+      );
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = !applied;
+        _assetFeedback = applied
+            ? 'Vidéo, poster et sous-titres importés dans le brouillon.'
+            : 'La vidéo a été validée, mais le brouillon n’a pas pu être modifié.';
+      });
+    } on ProjectIntroVideoImportException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = error.message;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = 'L’import de la vidéo a échoué.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isImportingAsset = false);
+      }
+    }
+  }
+
+  Widget _buildCategoryEditor({
+    required ProjectPresentationCategory category,
+    required ProjectPresentationProfile profile,
+    required String projectRootPath,
+    required EditorNotifier notifier,
+    required bool canEdit,
+  }) {
+    if (category != ProjectPresentationCategory.intro) {
+      return Text(
+        'Les réglages ${_categoryName(category)} apparaîtront ici.',
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        if (_assetFeedback != null) ...<Widget>[
+          PokeMapDiagnosticCallout(
+            key: const ValueKey<String>(
+              'personalization-studio-asset-feedback',
+            ),
+            severity: _assetFeedbackIsError
+                ? PokeMapDiagnosticSeverity.error
+                : PokeMapDiagnosticSeverity.info,
+            message: _assetFeedback!,
+          ),
+          const SizedBox(height: 12),
+        ],
+        IgnorePointer(
+          ignoring: !canEdit || _isImportingAsset,
+          child: ProjectIntroVideoEditor(
+            profile: profile.intro,
+            onImportPressed: () {
+              unawaited(
+                _importIntroVideo(
+                  projectRootPath: projectRootPath,
+                  profile: profile,
+                  notifier: notifier,
+                ),
+              );
+            },
+            onChanged: (intro) {
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(intro: intro),
+                  label: 'Modifier les préférences de l’intro',
+                ),
+              );
+            },
+            onRemove: profile.intro == null
+                ? null
+                : () {
+                    unawaited(
+                      notifier.applyPersonalizationStudioProfile(
+                        profile.copyWith(intro: null),
+                        label: 'Retirer la vidéo d’introduction',
+                      ),
+                    );
+                  },
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -201,6 +359,13 @@ class _PersonalizationStudioWorkspaceState
               onCategorySelected: (category) {
                 setState(() => _selectedCategory = category);
               },
+              categoryBuilder: (context, category) => _buildCategoryEditor(
+                category: category,
+                profile: profile,
+                projectRootPath: projectRootPath,
+                notifier: notifier,
+                canEdit: canEdit,
+              ),
               onProfileChanged: canEdit
                   ? (profile) {
                       unawaited(
@@ -215,3 +380,22 @@ class _PersonalizationStudioWorkspaceState
     );
   }
 }
+
+String? _singlePathWithExtensions(
+  List<String> paths,
+  List<String> extensions,
+) {
+  final matches = paths.where((path) {
+    final lower = path.toLowerCase();
+    return extensions.any(lower.endsWith);
+  }).toList(growable: false);
+  return matches.length == 1 ? matches.single : null;
+}
+
+String _categoryName(ProjectPresentationCategory category) =>
+    switch (category) {
+      ProjectPresentationCategory.branding => 'branding',
+      ProjectPresentationCategory.intro => 'intro vidéo',
+      ProjectPresentationCategory.typography => 'typographie',
+      ProjectPresentationCategory.theme => 'thème et HUD',
+    };

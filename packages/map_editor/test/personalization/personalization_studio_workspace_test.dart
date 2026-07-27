@@ -215,6 +215,88 @@ void main() {
     expect(reset.onPressed, isNull);
   });
 
+  testWidgets(
+      'intro category edits the studio draft without writing project.json',
+      (tester) async {
+    final root =
+        Directory.systemTemp.createTempSync('personalization-studio-intro-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    const intro = ProjectIntroVideoProfile(
+      videoPath: 'assets/presentation/intro/intro.mp4',
+      posterPath: 'assets/presentation/intro/poster.png',
+      captionsPath: 'assets/presentation/intro/captions.vtt',
+      durationMilliseconds: 12000,
+      width: 1280,
+      height: 720,
+      bitrateKbps: 2400,
+      sizeBytes: 5000000,
+      videoCodec: 'h264',
+      audioCodec: 'aac',
+    );
+    final project = buildShellChromeProject(name: 'Intro Studio').copyWith(
+      presentation: const ProjectPresentationProfile(intro: intro),
+    );
+    final projectFile = File('${root.path}/project.json');
+    final durableJson =
+        const JsonEncoder.withIndent('  ').convert(project.toJson());
+    projectFile.writeAsStringSync(durableJson, flush: true);
+    final gateway = _MemoryProjectGateway(project);
+
+    final container = await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1200, 800),
+      overrides: [
+        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
+          ({
+            required String projectPath,
+            required ProjectManifest initialDocument,
+          }) {
+            return PersonalizationStudioSessionController(
+              session: NarrativeDocumentSession<ProjectManifest>(
+                documentId: 'personalization-studio-intro',
+                initialDocument: initialDocument,
+                gateway: gateway,
+                recoveryStore: _MemoryProjectRecoveryStore(),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+    await container
+        .read(editorNotifierProvider.notifier)
+        .initializePersonalizationStudioSession();
+    await tester.pump();
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-category-intro'),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(ProjectIntroVideoEditor), findsOneWidget);
+    await tester.tap(find.text('Autoriser “Rejouer”'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+
+    expect(
+      container
+          .read(editorNotifierProvider)
+          .project
+          ?.effectivePresentation
+          .intro
+          ?.allowReplay,
+      isFalse,
+    );
+    expect(projectFile.readAsStringSync(), durableJson);
+  });
+
   testWidgets('shows a dedicated state when no project is open',
       (tester) async {
     await pumpEditorCanvasHostHarness(

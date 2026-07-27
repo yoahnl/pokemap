@@ -37,6 +37,7 @@ class ProjectIntroVideoEditor extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             PokeMapButton(
+              key: const ValueKey<String>('personalization-intro-import'),
               onPressed: onImportPressed,
               leading: const Icon(Icons.video_file_outlined),
               child: const Text('Importer une vidéo'),
@@ -91,6 +92,9 @@ class ProjectIntroVideoEditor extends StatelessWidget {
                 runSpacing: 8,
                 children: <Widget>[
                   PokeMapButton(
+                    key: const ValueKey<String>(
+                      'personalization-intro-replace',
+                    ),
                     onPressed: onImportPressed,
                     variant: PokeMapButtonVariant.secondary,
                     leading: const Icon(Icons.sync_outlined),
@@ -98,6 +102,9 @@ class ProjectIntroVideoEditor extends StatelessWidget {
                   ),
                   if (onRemove != null)
                     PokeMapButton(
+                      key: const ValueKey<String>(
+                        'personalization-intro-remove',
+                      ),
                       onPressed: onRemove,
                       variant: PokeMapButtonVariant.danger,
                       leading: const Icon(Icons.delete_outline),
