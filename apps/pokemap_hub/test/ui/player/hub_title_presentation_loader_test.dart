@@ -162,6 +162,21 @@ void main() {
       const Color(0xFFFFFFFF),
     );
   });
+
+  test('invalid semantic theme falls back without blocking the title',
+      () async {
+    final loaded = await HubTitlePresentationLoader(
+      manifest: _manifest(
+        const GamePackageBranding(),
+        theme: _invalidTheme,
+      ),
+      resolveFile: (_) async => throw const FileSystemException('unused'),
+    ).load();
+
+    expect(loaded.semanticTheme, isNull);
+    expect(loaded.title.author, 'Studio Brume');
+    expect(loaded.unavailableAssets, isEmpty);
+  });
 }
 
 const _intro = GamePackageIntroVideo(
@@ -193,6 +208,25 @@ const _typography = GamePackageTypography(
 
 const _theme = GamePackageSemanticTheme(
   primary: '#003A44',
+  onPrimary: '#FFFFFF',
+  background: '#F4F7FB',
+  surface: '#FFFFFF',
+  surfaceElevated: '#EAF0F8',
+  textPrimary: '#101827',
+  textSecondary: '#526176',
+  outline: '#65758B',
+  success: '#16794B',
+  warning: '#8A5100',
+  danger: '#B4233C',
+  titleSurface: '#D9F4F6',
+  dialogueSurface: '#FFFFFF',
+  menuSurface: '#EAF0F8',
+  overworldHudSurface: '#FFFFFF',
+  battleHudSurface: '#FFFFFF',
+);
+
+const _invalidTheme = GamePackageSemanticTheme(
+  primary: 'not-a-color',
   onPrimary: '#FFFFFF',
   background: '#F4F7FB',
   surface: '#FFFFFF',
