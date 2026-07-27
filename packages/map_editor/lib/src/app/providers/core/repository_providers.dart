@@ -12,12 +12,14 @@ import '../../../application/services/narrative_document_session.dart';
 import '../../../application/services/narrative_activity_journal.dart';
 import '../../../application/use_cases/execute_narrative_authoring_transaction.dart';
 import '../../../domain/repositories/repositories.dart';
+import '../../../features/personalization/application/personalization_studio_session_controller.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
 import '../../../infrastructure/repositories/file_repositories.dart';
 import '../../../infrastructure/repositories/file_narrative_document_recovery_store.dart';
 import '../../../infrastructure/repositories/narrative_event_spatial_link_journal_repository.dart';
 import '../../../infrastructure/repositories/narrative_activity_journal_repository.dart';
 import '../../../infrastructure/repositories/narrative_event_migration_persistence_repository.dart';
+import '../../../infrastructure/repositories/project_presentation_document_gateway.dart';
 import '../../../infrastructure/repositories/project_manifest_narrative_document_gateway.dart';
 
 part 'repository_providers.g.dart';
@@ -47,6 +49,41 @@ typedef NarrativeProjectDocumentSessionFactory
     = NarrativeDocumentSession<ProjectManifest> Function({
   required String projectPath,
   required ProjectManifest initialDocument,
+});
+
+typedef PersonalizationStudioSessionControllerFactory
+    = PersonalizationStudioSessionController Function({
+  required String projectPath,
+  required ProjectManifest initialDocument,
+});
+
+final personalizationStudioSessionControllerFactoryProvider =
+    Provider<PersonalizationStudioSessionControllerFactory>((ref) {
+  return ({
+    required String projectPath,
+    required ProjectManifest initialDocument,
+  }) {
+    final journalPath = p.join(
+      p.dirname(projectPath),
+      '.pokemap',
+      'recovery',
+      'personalization-studio.json',
+    );
+    return PersonalizationStudioSessionController(
+      session: NarrativeDocumentSession<ProjectManifest>(
+        documentId: 'personalization-studio',
+        initialDocument: initialDocument,
+        gateway: ProjectPresentationDocumentGateway(
+          projectPath: projectPath,
+        ),
+        recoveryStore: FileNarrativeDocumentRecoveryStore<ProjectManifest>(
+          journalPath: journalPath,
+          encodeDocument: (document) => document.toJson(),
+          decodeDocument: _decodeRecoveryProjectManifest,
+        ),
+      ),
+    );
+  };
 });
 
 /// Creates the crash-safe document session used by the Cinematics pilot.

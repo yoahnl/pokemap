@@ -1,13 +1,98 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/personalization_hub.dart';
+import 'package:map_editor/src/app/providers/core_providers.dart';
+import 'package:map_editor/src/application/services/narrative_document_session.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
 
 import '../shell_chrome_test_harness.dart';
 
 void main() {
+  testWidgets('applies a preset to a dirty draft without writing project.json',
+      (tester) async {
+    final root =
+        Directory.systemTemp.createTempSync('personalization-studio-draft-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final project = buildShellChromeProject(name: 'Editable presentation')
+        .copyWith(presentation: const ProjectPresentationProfile());
+    final projectFile = File('${root.path}/project.json');
+    final durableJson =
+        const JsonEncoder.withIndent('  ').convert(project.toJson());
+    projectFile.writeAsStringSync(durableJson, flush: true);
+    final gateway = _MemoryProjectGateway(project);
+    final recoveryStore = _MemoryProjectRecoveryStore();
+
+    final container = await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1200, 800),
+      overrides: [
+        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
+          ({
+            required String projectPath,
+            required ProjectManifest initialDocument,
+          }) {
+            return PersonalizationStudioSessionController(
+              session: NarrativeDocumentSession<ProjectManifest>(
+                documentId: 'personalization-studio',
+                initialDocument: initialDocument,
+                gateway: gateway,
+                recoveryStore: recoveryStore,
+              ),
+            );
+          },
+        ),
+      ],
+    );
+    await container
+        .read(editorNotifierProvider.notifier)
+        .initializePersonalizationStudioSession();
+    await tester.pump();
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preset-cinematic'),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+
+    expect(
+      container
+          .read(editorNotifierProvider)
+          .project
+          ?.effectivePresentation
+          .branding
+          .layoutVariant,
+      'cinematic',
+    );
+    expect(container.read(editorNotifierProvider).isProjectDirty, isTrue);
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-dirty'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-comparison-paths'),
+      ),
+      findsOneWidget,
+    );
+    expect(projectFile.readAsStringSync(), durableJson);
+    expect(gateway.saveCount, 0);
+  });
+
   testWidgets('canvas displays the current project profile in read-only mode',
       (tester) async {
     const profile = ProjectPresentationProfile(
@@ -97,4 +182,61 @@ void main() {
     expect(find.text('Manifest illisible'), findsOneWidget);
     expect(find.byType(PersonalizationHubShell), findsNothing);
   });
+}
+
+final class _MemoryProjectGateway
+    implements NarrativeDocumentGateway<ProjectManifest> {
+  _MemoryProjectGateway(this.durableDocument);
+
+  ProjectManifest durableDocument;
+  var revision = 'revision-1';
+  var saveCount = 0;
+
+  @override
+  Future<NarrativeDocumentVersion<ProjectManifest>> read() async {
+    return NarrativeDocumentVersion<ProjectManifest>(
+      revision: revision,
+      document: durableDocument,
+    );
+  }
+
+  @override
+  Future<NarrativeDocumentSaveResult<ProjectManifest>> save({
+    required String expectedRevision,
+    required ProjectManifest before,
+    required ProjectManifest after,
+    required String operationId,
+  }) async {
+    saveCount += 1;
+    durableDocument = after;
+    revision = 'revision-${saveCount + 1}';
+    return NarrativeDocumentSaveResult<ProjectManifest>.saved(
+      NarrativeDocumentVersion<ProjectManifest>(
+        revision: revision,
+        document: durableDocument,
+      ),
+    );
+  }
+}
+
+final class _MemoryProjectRecoveryStore
+    implements NarrativeDocumentRecoveryStore<ProjectManifest> {
+  NarrativeDocumentRecoveryRecord<ProjectManifest>? record;
+
+  @override
+  Future<void> clear() async {
+    record = null;
+  }
+
+  @override
+  Future<NarrativeDocumentRecoveryRecord<ProjectManifest>?> read() async {
+    return record;
+  }
+
+  @override
+  Future<void> write(
+    NarrativeDocumentRecoveryRecord<ProjectManifest> record,
+  ) async {
+    this.record = record;
+  }
 }

@@ -52,6 +52,7 @@ import '../../../application/services/terrain_preset_resolver.dart';
 import '../../../application/services/terrain_preset_selection_coordinator.dart';
 import '../../../application/services/trigger_editing_service.dart';
 import '../../../application/services/warp_editing_service.dart';
+import '../../personalization/application/personalization_studio_session_controller.dart';
 import '../application/editor_workspace_controller.dart';
 import '../application/map_editing_controller.dart';
 import '../application/map_selection_controller.dart';
@@ -133,6 +134,11 @@ class EditorNotifier extends _$EditorNotifier {
   ProjectManifest? _lastNarrativeDocument;
   NarrativeDocumentSessionStatus? _lastNarrativeDocumentStatus;
   String? _narrativeDocumentProjectPath;
+  PersonalizationStudioSessionController? _personalizationStudioSession;
+  ProjectManifest? _lastPersonalizationStudioDocument;
+  NarrativeDocumentSessionStatus? _lastPersonalizationStudioStatus;
+  String? _personalizationStudioProjectPath;
+  int _personalizationStudioOperationSequence = 0;
   bool _registeredNarrativeDocumentDisposal = false;
 
   int get projectSessionRevision => _projectSessionRevision;
@@ -229,7 +235,10 @@ class EditorNotifier extends _$EditorNotifier {
   EditorState build() {
     if (!_registeredNarrativeDocumentDisposal) {
       _registeredNarrativeDocumentDisposal = true;
-      ref.onDispose(_disposeNarrativeDocumentSession);
+      ref.onDispose(() {
+        _disposeNarrativeDocumentSession();
+        _disposePersonalizationStudioSession();
+      });
     }
     final activeBorderFeatureController =
         ref.read(activeBorderFeatureControllerProvider.notifier);
@@ -575,6 +584,126 @@ class EditorNotifier extends _$EditorNotifier {
             errorMessage: null,
             statusMessage: statusMessage,
           );
+  }
+
+  PersonalizationStudioSessionState? get personalizationStudioSessionState =>
+      _personalizationStudioSession?.state;
+
+  Future<bool> initializePersonalizationStudioSession() async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) {
+      _disposePersonalizationStudioSession();
+      return false;
+    }
+    final projectPath = workspace.projectManifestPath;
+    final existing = _personalizationStudioSession;
+    if (existing != null && _personalizationStudioProjectPath == projectPath) {
+      await existing.initialize();
+      return existing.state.isInitialized && !existing.state.hasFailed;
+    }
+    if (state.isProjectDirty) {
+      state = state.copyWith(
+        errorMessage: 'Enregistrez les autres modifications du projet avant '
+            'de démarrer une session de personnalisation.',
+      );
+      return false;
+    }
+
+    _disposePersonalizationStudioSession();
+    final factory =
+        ref.read(personalizationStudioSessionControllerFactoryProvider);
+    final session = factory(
+      projectPath: projectPath,
+      initialDocument: project,
+    );
+    _personalizationStudioSession = session;
+    _personalizationStudioProjectPath = projectPath;
+    _lastPersonalizationStudioDocument = project;
+    _lastPersonalizationStudioStatus = null;
+    session.addListener(_onPersonalizationStudioSessionChanged);
+    await session.initialize();
+    return identical(_personalizationStudioSession, session) &&
+        session.state.isInitialized &&
+        !session.state.hasFailed;
+  }
+
+  Future<bool> applyPersonalizationStudioProfile(
+    ProjectPresentationProfile profile, {
+    String label = 'Modifier la personnalisation',
+  }) async {
+    if (!await initializePersonalizationStudioSession()) {
+      return false;
+    }
+    final session = _personalizationStudioSession!;
+    if (state.project != session.state.document) {
+      state = state.copyWith(
+        errorMessage: 'Le projet contient des modifications extérieures au '
+            'Personalization Studio. Enregistrez-les avant de continuer.',
+      );
+      return false;
+    }
+    final sequence = ++_personalizationStudioOperationSequence;
+    return session.applyProfile(
+      profile,
+      operationId: 'personalization_edit_$sequence',
+      label: label,
+    );
+  }
+
+  void _onPersonalizationStudioSessionChanged() {
+    final session = _personalizationStudioSession;
+    if (session == null) return;
+    final sessionState = session.state;
+    final previousDocument = _lastPersonalizationStudioDocument;
+    final previousStatus = _lastPersonalizationStudioStatus;
+    final visibleProject = state.project;
+
+    _lastPersonalizationStudioDocument = sessionState.document;
+    _lastPersonalizationStudioStatus = sessionState.status;
+    if (visibleProject != previousDocument &&
+        visibleProject != sessionState.document) {
+      return;
+    }
+
+    final errorMessage = switch (sessionState.status) {
+      NarrativeDocumentSessionStatus.failed =>
+        'Brouillon de personnalisation conservé : '
+            '${sessionState.message ?? sessionState.code ?? 'échec inconnu'}',
+      NarrativeDocumentSessionStatus.conflicted =>
+        'Conflit de personnalisation détecté : '
+            '${sessionState.message ?? 'une version externe existe.'}',
+      _ => null,
+    };
+    final statusMessage = switch (sessionState.status) {
+      NarrativeDocumentSessionStatus.dirty =>
+        sessionState.message ?? 'Modifications de personnalisation en attente.',
+      NarrativeDocumentSessionStatus.recovered =>
+        'Brouillon de personnalisation non enregistré récupéré.',
+      NarrativeDocumentSessionStatus.saved
+          when previousStatus == NarrativeDocumentSessionStatus.saving =>
+        'Personnalisation enregistrée.',
+      _ => state.statusMessage,
+    };
+    state = state.copyWith(
+      project: sessionState.document,
+      isProjectDirty: sessionState.isDirty,
+      isSaving: sessionState.isSaving,
+      statusMessage: statusMessage,
+      errorMessage: errorMessage,
+    );
+  }
+
+  void _disposePersonalizationStudioSession() {
+    final session = _personalizationStudioSession;
+    if (session != null) {
+      session.removeListener(_onPersonalizationStudioSessionChanged);
+      session.dispose();
+    }
+    _personalizationStudioSession = null;
+    _personalizationStudioProjectPath = null;
+    _lastPersonalizationStudioDocument = null;
+    _lastPersonalizationStudioStatus = null;
   }
 
   NarrativeDocumentSessionStatus? get narrativeDocumentStatus =>

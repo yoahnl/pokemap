@@ -183,9 +183,10 @@ Future<ProviderContainer> pumpEditorCanvasHostHarness(
   WidgetTester tester, {
   required EditorState initialState,
   Size surfaceSize = const Size(960, 640),
+  List<Override> overrides = const <Override>[],
 }) async {
   _installMacosAccentColorMock();
-  final container = ProviderContainer();
+  final container = ProviderContainer(overrides: overrides);
   final editorStateSubscription = container.listen<EditorState>(
     editorNotifierProvider,
     (_, __) {},

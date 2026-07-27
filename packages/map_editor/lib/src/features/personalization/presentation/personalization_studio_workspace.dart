@@ -1,15 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../ui/design_system/pokemap_badge.dart';
 import '../../../ui/design_system/pokemap_empty_state.dart';
 import '../../editor/state/editor_notifier.dart';
 import 'personalization_hub_shell.dart';
 
 /// Adapts the current editor project to the reusable Personalization Hub.
 ///
-/// Phase 0 intentionally keeps the profile read-only: category selection is
-/// local UI state and no profile mutation callback is exposed.
+/// Phase 1 binds the shell to a crash-safe project presentation draft.
 class PersonalizationStudioWorkspace extends ConsumerStatefulWidget {
   const PersonalizationStudioWorkspace({super.key});
 
@@ -22,21 +24,27 @@ class _PersonalizationStudioWorkspaceState
     extends ConsumerState<PersonalizationStudioWorkspace> {
   ProjectPresentationCategory _selectedCategory =
       ProjectPresentationCategory.branding;
+  String? _requestedProjectRootPath;
+
+  void _ensureSession(String projectRootPath) {
+    if (_requestedProjectRootPath == projectRootPath) return;
+    _requestedProjectRootPath = projectRootPath;
+    scheduleMicrotask(() {
+      if (!mounted) return;
+      unawaited(
+        ref
+            .read(editorNotifierProvider.notifier)
+            .initializePersonalizationStudioSession(),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(
-      editorNotifierProvider.select(
-        (state) => (
-          project: state.project,
-          projectRootPath: state.projectRootPath,
-          errorMessage: state.errorMessage,
-        ),
-      ),
-    );
-    final project = session.project;
+    final editorState = ref.watch(editorNotifierProvider);
+    final project = editorState.project;
     if (project == null) {
-      final errorMessage = session.errorMessage?.trim();
+      final errorMessage = editorState.errorMessage?.trim();
       if (errorMessage != null && errorMessage.isNotEmpty) {
         return PokeMapEmptyState(
           key: const ValueKey<String>('personalization-studio-error'),
@@ -46,7 +54,7 @@ class _PersonalizationStudioWorkspaceState
         );
       }
 
-      final projectRootPath = session.projectRootPath?.trim();
+      final projectRootPath = editorState.projectRootPath?.trim();
       if (projectRootPath != null && projectRootPath.isNotEmpty) {
         return const PokeMapEmptyState(
           key: ValueKey<String>('personalization-studio-loading'),
@@ -66,15 +74,56 @@ class _PersonalizationStudioWorkspaceState
       );
     }
 
+    final projectRootPath = editorState.projectRootPath!;
+    _ensureSession(projectRootPath);
+    final notifier = ref.read(editorNotifierProvider.notifier);
+    final studioSession = notifier.personalizationStudioSessionState;
+    final canEdit = studioSession?.isInitialized == true &&
+        studioSession?.hasFailed == false &&
+        studioSession?.isConflicted == false &&
+        studioSession?.isSaving == false;
+    final profile =
+        studioSession?.draftProfile ?? project.effectivePresentation;
+    final baselineProfile = studioSession?.savedProfile;
+
     return Material(
       type: MaterialType.transparency,
-      child: PersonalizationHubShell(
-        key: const ValueKey<String>('personalization-studio-workspace'),
-        profile: project.effectivePresentation,
-        selectedCategory: _selectedCategory,
-        onCategorySelected: (category) {
-          setState(() => _selectedCategory = category);
-        },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          if (studioSession?.isDirty == true)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: PokeMapBadge(
+                  key: ValueKey<String>('personalization-studio-dirty'),
+                  label: 'Modifications non enregistrées',
+                  variant: PokeMapBadgeVariant.info,
+                ),
+              ),
+            ),
+          Expanded(
+            child: PersonalizationHubShell(
+              key: const ValueKey<String>(
+                'personalization-studio-workspace',
+              ),
+              profile: profile,
+              baselineProfile: baselineProfile,
+              selectedCategory: _selectedCategory,
+              onCategorySelected: (category) {
+                setState(() => _selectedCategory = category);
+              },
+              onProfileChanged: canEdit
+                  ? (profile) {
+                      unawaited(
+                        notifier.applyPersonalizationStudioProfile(profile),
+                      );
+                    }
+                  : null,
+            ),
+          ),
+        ],
       ),
     );
   }
