@@ -176,6 +176,8 @@ void main() {
         speciesId: 'species_sproutle',
         level: 7,
         currentHp: 24,
+        nickname: 'Mousse',
+        friendship: 80,
       );
 
       final json =
@@ -189,6 +191,8 @@ void main() {
         'currentHp': 24,
         'natureId': 'hardy',
         'abilityId': 'unknown',
+        'nickname': 'Mousse',
+        'friendship': 80,
       });
       expect(decoded, equals(consequence));
       expect(decoded, isA<SceneGivePokemonConsequence>());
@@ -206,6 +210,8 @@ void main() {
 
       expect(decoded.currentHp, 9);
       expect(decoded.currentHpIsLegacyFallback, isTrue);
+      expect(decoded.nickname, isEmpty);
+      expect(decoded.friendship, 0);
       expect(decoded.toJson(), isNot(contains('currentHp')));
     });
 

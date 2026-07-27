@@ -30,9 +30,25 @@ final class PlayerPcStrings {
   String get shiny => _isFrench ? 'Chromatique' : 'Shiny';
   String get heldItem => _isFrench ? 'Objet tenu' : 'Held item';
   String get moves => _isFrench ? 'Capacités' : 'Moves';
+  String get nickname => _isFrench ? 'Surnom' : 'Nickname';
+  String get friendship => _isFrench ? 'Amitié' : 'Friendship';
+  String get origin => _isFrench ? 'Origine' : 'Origin';
+  String get metLocation => _isFrench ? 'Lieu de rencontre' : 'Met location';
+  String get metSource => _isFrench ? 'Source' : 'Source';
+  String get metLevel => _isFrench ? 'Niveau rencontré' : 'Met level';
+  String get captureBall => _isFrench ? 'Ball de capture' : 'Capture Ball';
   String get none => _isFrench ? 'Aucun' : 'None';
   String get yes => _isFrench ? 'Oui' : 'Yes';
   String get no => _isFrench ? 'Non' : 'No';
+
+  String originLabel(String origin) => switch (origin) {
+        'captured' => _isFrench ? 'Capturé' : 'Captured',
+        'gift' => _isFrench ? 'Cadeau' : 'Gift',
+        'starter' => _isFrench ? 'Starter' : 'Starter',
+        'trade' => _isFrench ? 'Échange' : 'Trade',
+        'scripted' => _isFrench ? 'Événement' : 'Event',
+        _ => _isFrench ? 'Inconnue' : 'Unknown',
+      };
 
   String swapWith(String pokemon) =>
       _isFrench ? 'Échanger avec $pokemon' : 'Swap with $pokemon';

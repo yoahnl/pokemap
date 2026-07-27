@@ -50,6 +50,15 @@ void main() {
         statusId: 'poison',
         isShiny: true,
         heldItemId: 'mystic-water',
+        nickname: 'Ferry',
+        friendship: 96,
+        provenance: PlayerPokemonProvenance(
+          kind: PlayerPokemonOriginKind.captured,
+          mapId: 'sea-route',
+          sourceId: 'deep-water',
+          ballItemId: 'great-ball',
+          metLevel: 28,
+        ),
       );
       final json = pokemon.toJson();
       final restored = PlayerPokemon.fromJson(json);
@@ -66,6 +75,9 @@ void main() {
       expect(pokemon.knownMoveIds, isEmpty);
       expect(pokemon.currentHp, 1);
       expect(pokemon.isFainted, false);
+      expect(pokemon.nickname, isEmpty);
+      expect(pokemon.friendship, 0);
+      expect(pokemon.provenance, isNull);
     });
 
     test('JSON keys match expected structure', () {
@@ -122,6 +134,9 @@ void main() {
       expect(restored.abilityId, 'unknown');
       expect(restored.currentHp, 0);
       expect(restored.knownMoveIds, ['surf', 'ice_beam']);
+      expect(restored.nickname, 'Ferry');
+      expect(restored.friendship, 0);
+      expect(restored.provenance, isNull);
     });
 
     test('legacy JSON preserves missing progression fields as null sentinels',
@@ -168,6 +183,41 @@ void main() {
       });
 
       expect(() => pokemon.normalized(), throwsStateError);
+    });
+
+    test('normalizes nickname and provenance and validates friendship', () {
+      const pokemon = PlayerPokemon(
+        speciesId: 'eevee',
+        natureId: 'hardy',
+        abilityId: 'run-away',
+        nickname: '  Nova  ',
+        friendship: 120,
+        provenance: PlayerPokemonProvenance(
+          kind: PlayerPokemonOriginKind.gift,
+          mapId: '  port  ',
+          sourceId: '  sailor  ',
+          metLevel: 5,
+        ),
+      );
+
+      final normalized = pokemon.normalized();
+
+      expect(normalized.nickname, 'Nova');
+      expect(normalized.friendship, 120);
+      expect(normalized.provenance?.mapId, 'port');
+      expect(normalized.provenance?.sourceId, 'sailor');
+      expect(
+        () => pokemon.copyWith(friendship: 256).normalized(),
+        throwsStateError,
+      );
+      expect(
+        () => pokemon
+            .copyWith(
+              provenance: const PlayerPokemonProvenance(metLevel: 0),
+            )
+            .normalized(),
+        throwsStateError,
+      );
     });
 
     test('normalized rejects negative current PP', () {

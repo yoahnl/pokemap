@@ -75,7 +75,8 @@ void main() {
     test('setNpcPresence validates the map NPC and persists its override', () {
       final project = _project(
         maps: const [
-          ProjectMapEntry(id: 'map_test', name: 'Map', relativePath: 'map.json'),
+          ProjectMapEntry(
+              id: 'map_test', name: 'Map', relativePath: 'map.json'),
         ],
       );
       final writer = SceneConsequenceRuntimeWriter(
@@ -587,6 +588,7 @@ void main() {
     test('applies item money and Pokemon consequences through gameplay', () {
       const state = GameState(
         saveId: 'save_gameplay_consequences',
+        currentMapId: 'port',
         trainerProfile: TrainerProfile(name: 'Player', money: 100),
         bag: Bag(
           entries: [
@@ -610,6 +612,9 @@ void main() {
             speciesId: 'species_sproutle',
             level: 7,
             currentHp: 23,
+            nickname: 'Mousse',
+            friendship: 80,
+            label: 'Capitaine',
           ),
         ],
       );
@@ -633,6 +638,17 @@ void main() {
           result.gameState.party.members.single.speciesId, 'species_sproutle');
       expect(result.gameState.party.members.single.level, 7);
       expect(result.gameState.party.members.single.currentHp, 23);
+      expect(result.gameState.party.members.single.nickname, 'Mousse');
+      expect(result.gameState.party.members.single.friendship, 80);
+      expect(
+        result.gameState.party.members.single.provenance,
+        const PlayerPokemonProvenance(
+          kind: PlayerPokemonOriginKind.gift,
+          mapId: 'port',
+          sourceId: 'Capitaine',
+          metLevel: 7,
+        ),
+      );
       expect(state.trainerProfile.money, 100);
       expect(state.party.members, isEmpty);
 
@@ -792,6 +808,15 @@ void main() {
           ),
           SceneConsequenceRuntimeWriteErrorCode.invalidPokemonCurrentHp,
         ),
+        (
+          SceneConsequence.givePokemon(
+            speciesId: 'species_test',
+            level: 5,
+            currentHp: 10,
+            friendship: 256,
+          ),
+          SceneConsequenceRuntimeWriteErrorCode.invalidPokemonDefinition,
+        ),
       ];
       const state = GameState(saveId: 'save_invalid_consequences');
       final writer = SceneConsequenceRuntimeWriter(project: _project());
@@ -814,6 +839,8 @@ void main() {
         currentHp: 40,
         knownMoveIds: <String>['tackle', 'growl', 'vine_whip'],
         heldItemId: 'miracle_seed',
+        nickname: 'Bulbi',
+        friendship: 90,
       );
       final writer = SceneConsequenceRuntimeWriter(
         project: _project(
@@ -830,7 +857,10 @@ void main() {
       );
 
       final result = writer.applyAll(
-        const GameState(saveId: 'save_configured_starter'),
+        const GameState(
+          saveId: 'save_configured_starter',
+          currentMapId: 'lab',
+        ),
         <SceneConsequence>[
           SceneConsequence.giveConfiguredStarter(
             starterOptionId: 'starter_bulbasaur',
@@ -839,7 +869,17 @@ void main() {
       );
 
       expect(result.status, SceneConsequenceRuntimeWriteStatus.applied);
-      expect(result.gameState.party.members, const <PlayerPokemon>[authored]);
+      expect(
+        result.gameState.party.members.single,
+        authored.copyWith(
+          provenance: const PlayerPokemonProvenance(
+            kind: PlayerPokemonOriginKind.starter,
+            mapId: 'lab',
+            sourceId: 'starter_bulbasaur',
+            metLevel: 16,
+          ),
+        ),
+      );
     });
 
     test('giveConfiguredStarter rejects an option absent from New Game', () {

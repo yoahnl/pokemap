@@ -216,6 +216,13 @@ final class RuntimePcPokemonSnapshot {
     this.statusId = '',
     this.isShiny = false,
     this.heldItemId = '',
+    this.nickname = '',
+    this.friendship = 0,
+    this.originKind = 'unknown',
+    this.metMapId = '',
+    this.metSourceId = '',
+    this.ballItemId = '',
+    this.metLevel,
     List<String> knownMoveIds = const <String>[],
     required this.canTransfer,
     this.unavailableReason,
@@ -226,6 +233,8 @@ final class RuntimePcPokemonSnapshot {
         assert(natureId != ''),
         assert(abilityId != ''),
         assert(currentHp >= 0),
+        assert(friendship >= 0 && friendship <= 255),
+        assert(metLevel == null || (metLevel >= 1 && metLevel <= 100)),
         assert(
           canTransfer || (unavailableReason != null && unavailableReason != ''),
         ),
@@ -243,6 +252,13 @@ final class RuntimePcPokemonSnapshot {
   final String statusId;
   final bool isShiny;
   final String heldItemId;
+  final String nickname;
+  final int friendship;
+  final String originKind;
+  final String metMapId;
+  final String metSourceId;
+  final String ballItemId;
+  final int? metLevel;
   final List<String> knownMoveIds;
   final bool canTransfer;
   final String? unavailableReason;

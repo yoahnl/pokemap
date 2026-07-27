@@ -2310,6 +2310,10 @@ class _SceneConsequencePickerDialogState
       TextEditingController(text: '5');
   final TextEditingController _pokemonCurrentHpController =
       TextEditingController(text: '20');
+  final TextEditingController _pokemonNicknameController =
+      TextEditingController();
+  final TextEditingController _pokemonFriendshipController =
+      TextEditingController(text: '0');
 
   @override
   void initState() {
@@ -2344,6 +2348,8 @@ class _SceneConsequencePickerDialogState
     _moneyAmountController.dispose();
     _pokemonLevelController.dispose();
     _pokemonCurrentHpController.dispose();
+    _pokemonNicknameController.dispose();
+    _pokemonFriendshipController.dispose();
     super.dispose();
   }
 
@@ -2685,6 +2691,7 @@ class _SceneConsequencePickerDialogState
   List<Widget> _givePokemonControls() {
     final level = int.tryParse(_pokemonLevelController.text.trim());
     final currentHp = int.tryParse(_pokemonCurrentHpController.text.trim());
+    final friendship = int.tryParse(_pokemonFriendshipController.text.trim());
     return [
       for (final species in widget.catalogs.species.options)
         _ConsequencePickerCard(
@@ -2716,6 +2723,24 @@ class _SceneConsequencePickerDialogState
         keyboardType: TextInputType.number,
         errorText: currentHp == null || currentHp <= 0
             ? 'Saisissez des PV courants supérieurs à zéro.'
+            : null,
+        onChanged: (_) => setState(() {}),
+      ),
+      const SizedBox(height: 12),
+      PokeMapTextField(
+        key: const ValueKey('scene-consequence-pokemon-nickname-field'),
+        label: 'Surnom (facultatif)',
+        controller: _pokemonNicknameController,
+        onChanged: (_) => setState(() {}),
+      ),
+      const SizedBox(height: 12),
+      PokeMapTextField(
+        key: const ValueKey('scene-consequence-pokemon-friendship-field'),
+        label: 'Amitié initiale',
+        controller: _pokemonFriendshipController,
+        keyboardType: TextInputType.number,
+        errorText: friendship == null || friendship < 0 || friendship > 255
+            ? 'Choisissez une amitié entre 0 et 255.'
             : null,
         onChanged: (_) => setState(() {}),
       ),
@@ -2785,12 +2810,19 @@ class _SceneConsequencePickerDialogState
               (int.tryParse(_pokemonLevelController.text.trim()) ?? 0) < 1 ||
               (int.tryParse(_pokemonLevelController.text.trim()) ?? 101) >
                   100 ||
-              (int.tryParse(_pokemonCurrentHpController.text.trim()) ?? 0) <= 0
+              (int.tryParse(_pokemonCurrentHpController.text.trim()) ?? 0) <=
+                  0 ||
+              (int.tryParse(_pokemonFriendshipController.text.trim()) ?? -1) <
+                  0 ||
+              (int.tryParse(_pokemonFriendshipController.text.trim()) ?? 256) >
+                  255
           ? null
           : SceneConsequence.givePokemon(
               speciesId: _selectedSpecies!.id,
               level: int.parse(_pokemonLevelController.text.trim()),
               currentHp: int.parse(_pokemonCurrentHpController.text.trim()),
+              nickname: _pokemonNicknameController.text,
+              friendship: int.parse(_pokemonFriendshipController.text.trim()),
             ),
       _SceneConsequencePickerMode.giveConfiguredStarter =>
         _selectedConfiguredStarter == null

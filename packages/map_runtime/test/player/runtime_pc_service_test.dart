@@ -33,10 +33,17 @@ void main() {
     expect(initialContent.selectedBoxId, 'box-a');
     expect(initialContent.party.map((entry) => entry.label),
         <String>['Lead', 'Reserve']);
-    expect(initialContent.stored.single.label, 'Stored');
+    expect(initialContent.stored.single.label, 'Coffre');
     expect(initialContent.stored.single.speciesId, 'stored');
     expect(initialContent.stored.single.natureId, 'hardy');
     expect(initialContent.stored.single.abilityId, 'steadfast');
+    expect(initialContent.stored.single.nickname, 'Coffre');
+    expect(initialContent.stored.single.friendship, 75);
+    expect(initialContent.stored.single.originKind, 'captured');
+    expect(initialContent.stored.single.metMapId, 'route-1');
+    expect(initialContent.stored.single.metSourceId, 'grass');
+    expect(initialContent.stored.single.ballItemId, 'poke-ball');
+    expect(initialContent.stored.single.metLevel, 4);
 
     final reserve = initialContent.party.last;
     final deposited = await controller.dispatchWorldService(
@@ -70,6 +77,12 @@ void main() {
     expect(
       state.party.members.map((pokemon) => pokemon.speciesId),
       ['lead', 'stored'],
+    );
+    expect(state.party.members.last.nickname, 'Coffre');
+    expect(state.party.members.last.friendship, 75);
+    expect(
+      state.party.members.last.provenance?.kind,
+      PlayerPokemonOriginKind.captured,
     );
 
     final beforeSwap = controller.worldServiceSnapshot!;
@@ -235,4 +248,15 @@ PlayerPokemon _pokemon(String speciesId) => PlayerPokemon(
       abilityId: 'steadfast',
       currentHp: 10,
       level: 5,
+      nickname: speciesId == 'stored' ? 'Coffre' : '',
+      friendship: speciesId == 'stored' ? 75 : 0,
+      provenance: speciesId == 'stored'
+          ? const PlayerPokemonProvenance(
+              kind: PlayerPokemonOriginKind.captured,
+              mapId: 'route-1',
+              sourceId: 'grass',
+              ballItemId: 'poke-ball',
+              metLevel: 4,
+            )
+          : null,
     );

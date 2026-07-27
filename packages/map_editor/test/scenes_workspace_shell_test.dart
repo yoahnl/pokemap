@@ -1008,6 +1008,38 @@ void main() {
         ),
         '23',
       );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('scene-consequence-pokemon-nickname-field'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        'Mousse',
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('scene-consequence-pokemon-friendship-field'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        '300',
+      );
+      await tester.pump();
+      expect(
+        find.text('Choisissez une amitié entre 0 et 255.'),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('scene-consequence-pokemon-friendship-field'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        '80',
+      );
       await tester.pump();
       await tester.tap(
         find.byKey(const ValueKey('scene-consequence-create-action')),
@@ -1027,6 +1059,8 @@ void main() {
       expect(consequence.speciesId, 'species_sproutle');
       expect(consequence.level, 7);
       expect(consequence.currentHp, 23);
+      expect(consequence.nickname, 'Mousse');
+      expect(consequence.friendship, 80);
       expect(node.title, 'Donner un Pokémon');
     });
 

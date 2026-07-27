@@ -106,6 +106,44 @@ class PokemonStatSpread with _$PokemonStatSpread {
   }
 }
 
+enum PlayerPokemonOriginKind {
+  unknown,
+  captured,
+  gift,
+  starter,
+  trade,
+  scripted,
+}
+
+@freezed
+class PlayerPokemonProvenance with _$PlayerPokemonProvenance {
+  const PlayerPokemonProvenance._();
+
+  const factory PlayerPokemonProvenance({
+    @Default(PlayerPokemonOriginKind.unknown) PlayerPokemonOriginKind kind,
+    @Default('') String mapId,
+    @Default('') String sourceId,
+    @Default('') String ballItemId,
+    int? metLevel,
+  }) = _PlayerPokemonProvenance;
+
+  factory PlayerPokemonProvenance.fromJson(Map<String, dynamic> json) =>
+      _$PlayerPokemonProvenanceFromJson(json);
+
+  PlayerPokemonProvenance normalized() {
+    if (metLevel != null && (metLevel! < 1 || metLevel! > 100)) {
+      throw StateError(
+        'PlayerPokemonProvenance metLevel must be between 1 and 100',
+      );
+    }
+    return copyWith(
+      mapId: mapId.trim(),
+      sourceId: sourceId.trim(),
+      ballItemId: ballItemId.trim(),
+    );
+  }
+}
+
 @freezed
 class PlayerPokemon with _$PlayerPokemon {
   const PlayerPokemon._();
@@ -138,6 +176,9 @@ class PlayerPokemon with _$PlayerPokemon {
     @Default('') String statusId,
     @Default(false) bool isShiny,
     @Default('') String heldItemId,
+    @Default('') String nickname,
+    @Default(0) int friendship,
+    PlayerPokemonProvenance? provenance,
   }) = _PlayerPokemon;
 
   factory PlayerPokemon.fromJson(Map<String, dynamic> json) =>
@@ -190,6 +231,7 @@ class PlayerPokemon with _$PlayerPokemon {
     }
     final normalizedStatusId = statusId.trim();
     final normalizedHeldItemId = heldItemId.trim();
+    final normalizedNickname = nickname.trim();
 
     if (normalizedSpeciesId.isEmpty) {
       throw StateError('PlayerPokemon speciesId must not be empty');
@@ -206,6 +248,9 @@ class PlayerPokemon with _$PlayerPokemon {
     if (currentHp < 0) {
       throw StateError('PlayerPokemon currentHp must be non-negative');
     }
+    if (friendship < 0 || friendship > 255) {
+      throw StateError('PlayerPokemon friendship must be between 0 and 255');
+    }
     if (normalizedMoveIds.length > 4) {
       throw StateError(
           'PlayerPokemon knownMoveIds must contain at most 4 moves');
@@ -213,6 +258,7 @@ class PlayerPokemon with _$PlayerPokemon {
 
     ivs.normalized();
     evs.normalized();
+    final normalizedProvenance = provenance?.normalized();
 
     return copyWith(
       speciesId: normalizedSpeciesId,
@@ -227,6 +273,8 @@ class PlayerPokemon with _$PlayerPokemon {
       currentPpByMoveId: normalizedCurrentPpByMoveId,
       statusId: normalizedStatusId,
       heldItemId: normalizedHeldItemId,
+      nickname: normalizedNickname,
+      provenance: normalizedProvenance,
     );
   }
 }

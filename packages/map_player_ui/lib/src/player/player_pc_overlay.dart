@@ -382,6 +382,11 @@ class _PcRoster extends StatelessWidget {
                             label: strings.species,
                             value: _humanize(entry.speciesId),
                           ),
+                          if (entry.nickname.isNotEmpty)
+                            _SummaryLine(
+                              label: strings.nickname,
+                              value: entry.nickname,
+                            ),
                           _SummaryLine(
                             label: strings.level,
                             value: '${entry.level}',
@@ -425,6 +430,34 @@ class _PcRoster extends StatelessWidget {
                                 ? strings.none
                                 : entry.knownMoveIds.map(_humanize).join(', '),
                           ),
+                          _SummaryLine(
+                            label: strings.friendship,
+                            value: '${entry.friendship} / 255',
+                          ),
+                          _SummaryLine(
+                            label: strings.origin,
+                            value: strings.originLabel(entry.originKind),
+                          ),
+                          if (entry.metMapId.isNotEmpty)
+                            _SummaryLine(
+                              label: strings.metLocation,
+                              value: _humanize(entry.metMapId),
+                            ),
+                          if (entry.metSourceId.isNotEmpty)
+                            _SummaryLine(
+                              label: strings.metSource,
+                              value: _humanize(entry.metSourceId),
+                            ),
+                          if (entry.metLevel case final metLevel?)
+                            _SummaryLine(
+                              label: strings.metLevel,
+                              value: '$metLevel',
+                            ),
+                          if (entry.ballItemId.isNotEmpty)
+                            _SummaryLine(
+                              label: strings.captureBall,
+                              value: _humanize(entry.ballItemId),
+                            ),
                         ],
                       ),
                     ),

@@ -77,6 +77,8 @@ abstract base class SceneConsequence {
     required int currentHp,
     String natureId,
     String abilityId,
+    String nickname,
+    int friendship,
     String? label,
     String? notes,
   }) = SceneGivePokemonConsequence;
@@ -487,11 +489,14 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
     this.currentHpIsLegacyFallback = false,
     String natureId = 'hardy',
     String abilityId = 'unknown',
+    String nickname = '',
+    this.friendship = 0,
     String? label,
     String? notes,
   })  : speciesId = speciesId.trim(),
         natureId = natureId.trim(),
         abilityId = abilityId.trim(),
+        nickname = nickname.trim(),
         label = _trimOptional(label),
         notes = _trimOptional(notes);
 
@@ -506,6 +511,10 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
       currentHpIsLegacyFallback: !hasAuthoredCurrentHp,
       natureId: _readOptionalString(json, 'natureId') ?? 'hardy',
       abilityId: _readOptionalString(json, 'abilityId') ?? 'unknown',
+      nickname: _readOptionalString(json, 'nickname') ?? '',
+      friendship: json.containsKey('friendship')
+          ? _readRequiredInt(json, 'friendship')
+          : 0,
       label: _readOptionalString(json, 'label'),
       notes: _readOptionalString(json, 'notes'),
     );
@@ -520,6 +529,8 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
   final bool currentHpIsLegacyFallback;
   final String natureId;
   final String abilityId;
+  final String nickname;
+  final int friendship;
   final String? label;
   final String? notes;
 
@@ -531,6 +542,8 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
         if (!currentHpIsLegacyFallback) 'currentHp': currentHp,
         'natureId': natureId,
         'abilityId': abilityId,
+        if (nickname.isNotEmpty) 'nickname': nickname,
+        if (friendship != 0) 'friendship': friendship,
         'label': label,
         'notes': notes,
       });
@@ -545,6 +558,8 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
           other.currentHpIsLegacyFallback == currentHpIsLegacyFallback &&
           other.natureId == natureId &&
           other.abilityId == abilityId &&
+          other.nickname == nickname &&
+          other.friendship == friendship &&
           other.label == label &&
           other.notes == notes;
 
@@ -556,6 +571,8 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
         currentHpIsLegacyFallback,
         natureId,
         abilityId,
+        nickname,
+        friendship,
         label,
         notes,
       );

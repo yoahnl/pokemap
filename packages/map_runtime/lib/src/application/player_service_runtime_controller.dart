@@ -757,7 +757,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       party.add(
         RuntimePcPokemonSnapshot(
           targetId: targetId,
-          label: _shopItemLabel(pokemon.speciesId),
+          label: _pokemonDisplayLabel(pokemon),
           speciesId: pokemon.speciesId,
           level: pokemon.level,
           natureId: pokemon.natureId,
@@ -767,6 +767,14 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           statusId: pokemon.statusId,
           isShiny: pokemon.isShiny,
           heldItemId: pokemon.heldItemId,
+          nickname: pokemon.nickname,
+          friendship: pokemon.friendship,
+          originKind: pokemon.provenance?.kind.name ??
+              PlayerPokemonOriginKind.unknown.name,
+          metMapId: pokemon.provenance?.mapId ?? '',
+          metSourceId: pokemon.provenance?.sourceId ?? '',
+          ballItemId: pokemon.provenance?.ballItemId ?? '',
+          metLevel: pokemon.provenance?.metLevel,
           knownMoveIds: pokemon.knownMoveIds,
           canTransfer: result.isSuccess,
           unavailableReason:
@@ -791,7 +799,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       stored.add(
         RuntimePcPokemonSnapshot(
           targetId: targetId,
-          label: _shopItemLabel(pokemon.speciesId),
+          label: _pokemonDisplayLabel(pokemon),
           speciesId: pokemon.speciesId,
           level: pokemon.level,
           natureId: pokemon.natureId,
@@ -801,6 +809,14 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           statusId: pokemon.statusId,
           isShiny: pokemon.isShiny,
           heldItemId: pokemon.heldItemId,
+          nickname: pokemon.nickname,
+          friendship: pokemon.friendship,
+          originKind: pokemon.provenance?.kind.name ??
+              PlayerPokemonOriginKind.unknown.name,
+          metMapId: pokemon.provenance?.mapId ?? '',
+          metSourceId: pokemon.provenance?.sourceId ?? '',
+          ballItemId: pokemon.provenance?.ballItemId ?? '',
+          metLevel: pokemon.provenance?.metLevel,
           knownMoveIds: pokemon.knownMoveIds,
           canTransfer: result.isSuccess,
           unavailableReason:
@@ -1558,6 +1574,11 @@ String _shopItemLabel(String itemId) => itemId
       (part) => '${part.substring(0, 1).toUpperCase()}${part.substring(1)}',
     )
     .join(' ');
+
+String _pokemonDisplayLabel(PlayerPokemon pokemon) {
+  final nickname = pokemon.nickname.trim();
+  return nickname.isEmpty ? _shopItemLabel(pokemon.speciesId) : nickname;
+}
 
 String _pcFailureMessage(PlayerStorageFailure failure) => switch (failure) {
       PlayerStorageFailure.invalidRequest => 'Opération PC invalide.',

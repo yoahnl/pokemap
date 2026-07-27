@@ -377,13 +377,15 @@ RuntimeBattleOutcomeTransactionBase applyRuntimeBattleOutcomeTransactionBase({
       captureDestination: null,
     );
   }
-  _validatedCaptureReceipt(
+  final captureReceipt = _validatedCaptureReceipt(
     context: context,
     outcome: outcome,
     receipt: captureAttemptReceipt,
   );
   final capturedPokemon = _buildCapturedWildPlayerPokemon(
     enemy: outcome.finalState.enemy,
+    request: context.request as WildBattleStartRequest,
+    ballItemId: captureReceipt.itemId,
   );
   final captureResult = const GameStateMutations().applyCapturedPokemon(
     stateWithPlayerHp,
@@ -487,6 +489,8 @@ const _capturedPokemonFallbackAbilityId = 'unknown';
 ///   on clamp donc les PV du Pokémon capturé à 1 minimum.
 PlayerPokemon _buildCapturedWildPlayerPokemon({
   required BattleCombatant enemy,
+  required WildBattleStartRequest request,
+  required String ballItemId,
 }) {
   final normalizedAbilityId = enemy.writeBackAbilityId.trim().isEmpty
       ? _capturedPokemonFallbackAbilityId
@@ -518,6 +522,13 @@ PlayerPokemon _buildCapturedWildPlayerPokemon({
       BattleMajorStatusId.frz => 'frz',
       null => '',
     },
+    provenance: PlayerPokemonProvenance(
+      kind: PlayerPokemonOriginKind.captured,
+      mapId: request.mapId,
+      sourceId: request.tableId,
+      ballItemId: ballItemId,
+      metLevel: enemy.level,
+    ),
   );
 }
 

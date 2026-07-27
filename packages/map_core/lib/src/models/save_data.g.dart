@@ -28,6 +28,37 @@ Map<String, dynamic> _$$PokemonStatSpreadImplToJson(
       'speed': instance.speed,
     };
 
+_$PlayerPokemonProvenanceImpl _$$PlayerPokemonProvenanceImplFromJson(
+        Map<String, dynamic> json) =>
+    _$PlayerPokemonProvenanceImpl(
+      kind:
+          $enumDecodeNullable(_$PlayerPokemonOriginKindEnumMap, json['kind']) ??
+              PlayerPokemonOriginKind.unknown,
+      mapId: json['mapId'] as String? ?? '',
+      sourceId: json['sourceId'] as String? ?? '',
+      ballItemId: json['ballItemId'] as String? ?? '',
+      metLevel: (json['metLevel'] as num?)?.toInt(),
+    );
+
+Map<String, dynamic> _$$PlayerPokemonProvenanceImplToJson(
+        _$PlayerPokemonProvenanceImpl instance) =>
+    <String, dynamic>{
+      'kind': _$PlayerPokemonOriginKindEnumMap[instance.kind]!,
+      'mapId': instance.mapId,
+      'sourceId': instance.sourceId,
+      'ballItemId': instance.ballItemId,
+      'metLevel': instance.metLevel,
+    };
+
+const _$PlayerPokemonOriginKindEnumMap = {
+  PlayerPokemonOriginKind.unknown: 'unknown',
+  PlayerPokemonOriginKind.captured: 'captured',
+  PlayerPokemonOriginKind.gift: 'gift',
+  PlayerPokemonOriginKind.starter: 'starter',
+  PlayerPokemonOriginKind.trade: 'trade',
+  PlayerPokemonOriginKind.scripted: 'scripted',
+};
+
 _$PlayerPokemonImpl _$$PlayerPokemonImplFromJson(Map<String, dynamic> json) =>
     _$PlayerPokemonImpl(
       speciesId: json['speciesId'] as String,
@@ -54,6 +85,12 @@ _$PlayerPokemonImpl _$$PlayerPokemonImplFromJson(Map<String, dynamic> json) =>
       statusId: json['statusId'] as String? ?? '',
       isShiny: json['isShiny'] as bool? ?? false,
       heldItemId: json['heldItemId'] as String? ?? '',
+      nickname: json['nickname'] as String? ?? '',
+      friendship: (json['friendship'] as num?)?.toInt() ?? 0,
+      provenance: json['provenance'] == null
+          ? null
+          : PlayerPokemonProvenance.fromJson(
+              json['provenance'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$$PlayerPokemonImplToJson(_$PlayerPokemonImpl instance) =>
@@ -72,6 +109,9 @@ Map<String, dynamic> _$$PlayerPokemonImplToJson(_$PlayerPokemonImpl instance) =>
       'statusId': instance.statusId,
       'isShiny': instance.isShiny,
       'heldItemId': instance.heldItemId,
+      'nickname': instance.nickname,
+      'friendship': instance.friendship,
+      'provenance': instance.provenance?.toJson(),
     };
 
 _$PlayerPartyImpl _$$PlayerPartyImplFromJson(Map<String, dynamic> json) =>

@@ -1877,6 +1877,8 @@ class _GameplayConsequenceEditSheetState
       SceneGivePokemonConsequence(
         :final natureId,
         :final abilityId,
+        :final nickname,
+        :final friendship,
         :final label,
         :final notes,
       ) =>
@@ -1893,6 +1895,8 @@ class _GameplayConsequenceEditSheetState
                 currentHp: currentHp,
                 natureId: natureId,
                 abilityId: abilityId,
+                nickname: nickname,
+                friendship: friendship,
                 label: label,
                 notes: notes,
               ),

@@ -139,23 +139,38 @@ final class RuntimePlayerPauseDataBuilder {
       final currentHp = pokemon.currentHp.clamp(0, maxHp);
       final moveCount = pokemon.knownMoveIds.length;
       final status = pokemon.statusId.trim();
+      final speciesLabel =
+          species?.nameFor(locale) ?? _humanize(pokemon.speciesId);
+      final nickname = pokemon.nickname.trim();
+      final origin = pokemon.provenance?.kind;
+      final provenanceMap = pokemon.provenance?.mapId.trim() ?? '';
       final subtitle = isFrench
           ? <String>[
+              if (nickname.isNotEmpty) speciesLabel,
               'Niv. ${pokemon.level}',
               'PV $currentHp/$maxHp',
               if (status.isNotEmpty) _humanize(status),
               '$moveCount capacité${moveCount > 1 ? 's' : ''}',
+              'Amitié ${pokemon.friendship}/255',
+              if (origin != null && origin != PlayerPokemonOriginKind.unknown)
+                _playerPokemonOriginLabel(origin, isFrench: true),
+              if (provenanceMap.isNotEmpty) _humanize(provenanceMap),
             ].join(' · ')
           : <String>[
+              if (nickname.isNotEmpty) speciesLabel,
               'Lv. ${pokemon.level}',
               'HP $currentHp/$maxHp',
               if (status.isNotEmpty) _humanize(status),
               '$moveCount move${moveCount == 1 ? '' : 's'}',
+              'Friendship ${pokemon.friendship}/255',
+              if (origin != null && origin != PlayerPokemonOriginKind.unknown)
+                _playerPokemonOriginLabel(origin, isFrench: false),
+              if (provenanceMap.isNotEmpty) _humanize(provenanceMap),
             ].join(' · ');
       entries.add(
         RuntimePlayerDetailEntrySnapshot(
           id: 'party.$index',
-          title: species?.nameFor(locale) ?? _humanize(pokemon.speciesId),
+          title: nickname.isEmpty ? speciesLabel : nickname,
           subtitle: subtitle,
           trailingLabel:
               index == 0 ? (isFrench ? 'En tête' : 'Lead') : '#${index + 1}',
@@ -516,3 +531,16 @@ String _humanize(String value) {
       )
       .join(' ');
 }
+
+String _playerPokemonOriginLabel(
+  PlayerPokemonOriginKind kind, {
+  required bool isFrench,
+}) =>
+    switch (kind) {
+      PlayerPokemonOriginKind.captured => isFrench ? 'Capturé' : 'Captured',
+      PlayerPokemonOriginKind.gift => isFrench ? 'Cadeau' : 'Gift',
+      PlayerPokemonOriginKind.starter => 'Starter',
+      PlayerPokemonOriginKind.trade => isFrench ? 'Échange' : 'Trade',
+      PlayerPokemonOriginKind.scripted => isFrench ? 'Événement' : 'Event',
+      PlayerPokemonOriginKind.unknown => isFrench ? 'Inconnue' : 'Unknown',
+    };

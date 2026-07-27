@@ -53,6 +53,14 @@ void main() {
             level: 16,
             currentHp: 38,
             knownMoveIds: <String>['scratch', 'ember'],
+            nickname: 'Flamme',
+            friendship: 92,
+            provenance: PlayerPokemonProvenance(
+              kind: PlayerPokemonOriginKind.gift,
+              mapId: 'town',
+              sourceId: 'professor',
+              metLevel: 5,
+            ),
           ),
         ],
       ),
@@ -108,9 +116,13 @@ void main() {
 
     final party = details[RuntimePlayerPauseSection.party]!;
     expect(party.entries, hasLength(1));
-    expect(party.entries.single.title, 'Salamèche');
+    expect(party.entries.single.title, 'Flamme');
+    expect(party.entries.single.subtitle, contains('Salamèche'));
     expect(party.entries.single.subtitle, contains('Niv. 16'));
     expect(party.entries.single.subtitle, contains('PV 38/38'));
+    expect(party.entries.single.subtitle, contains('Amitié 92/255'));
+    expect(party.entries.single.subtitle, contains('Cadeau'));
+    expect(party.entries.single.subtitle, contains('Town'));
     expect(party.entries.single.progress, 1);
 
     final bag = details[RuntimePlayerPauseSection.bag]!;

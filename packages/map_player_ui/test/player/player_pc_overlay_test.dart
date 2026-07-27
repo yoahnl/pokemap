@@ -132,6 +132,12 @@ void main() {
     expect(find.text('Lead summary'), findsOneWidget);
     expect(find.text('Ability : Steadfast'), findsOneWidget);
     expect(find.text('Held item : None'), findsOneWidget);
+    expect(find.text('Nickname : Flamme'), findsOneWidget);
+    expect(find.text('Friendship : 92 / 255'), findsOneWidget);
+    expect(find.text('Origin : Gift'), findsOneWidget);
+    expect(find.text('Met location : Town'), findsOneWidget);
+    expect(find.text('Source : Professor'), findsOneWidget);
+    expect(find.text('Met level : 5'), findsOneWidget);
   });
 }
 
@@ -163,6 +169,12 @@ RuntimeWorldServiceSnapshot _snapshot() => RuntimeWorldServiceSnapshot(
             natureId: 'hardy',
             abilityId: 'steadfast',
             currentHp: 12,
+            nickname: 'Flamme',
+            friendship: 92,
+            originKind: 'gift',
+            metMapId: 'town',
+            metSourceId: 'professor',
+            metLevel: 5,
             canTransfer: true,
           ),
         ],

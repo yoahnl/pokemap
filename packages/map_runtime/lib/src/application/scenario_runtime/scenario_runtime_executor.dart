@@ -1093,6 +1093,12 @@ class ScenarioRuntimeExecutor {
               );
               final currentHp =
                   (parsedHp != null && parsedHp >= 1) ? parsedHp : clampedLevel;
+              final nickname = node.payload.params['nickname']?.trim() ?? '';
+              final friendship = (int.tryParse(
+                        node.payload.params['friendship']?.trim() ?? '',
+                      ) ??
+                      0)
+                  .clamp(0, 255);
 
               final pokemon = PlayerPokemon(
                 speciesId: speciesId,
@@ -1101,6 +1107,14 @@ class ScenarioRuntimeExecutor {
                 abilityId: abilityId,
                 knownMoveIds: knownMoveIds,
                 currentHp: currentHp,
+                nickname: nickname,
+                friendship: friendship,
+                provenance: PlayerPokemonProvenance(
+                  kind: PlayerPokemonOriginKind.scripted,
+                  mapId: context.gameState.currentMapId,
+                  sourceId: node.id,
+                  metLevel: clampedLevel,
+                ),
               );
               const mutations = GameStateMutations();
               final nextGiveState = mutations.givePokemon(

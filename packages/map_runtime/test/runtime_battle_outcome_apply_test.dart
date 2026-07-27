@@ -57,6 +57,14 @@ void main() {
               level: 20,
               knownMoveIds: <String>['b'],
               currentHp: 35,
+              nickname: 'Bud',
+              friendship: 144,
+              provenance: PlayerPokemonProvenance(
+                kind: PlayerPokemonOriginKind.gift,
+                mapId: 'lab',
+                sourceId: 'professor',
+                metLevel: 5,
+              ),
             ),
             PlayerPokemon(
               speciesId: 'slot_two_stays_alive',
@@ -84,6 +92,12 @@ void main() {
 
       expect(updatedState.party.members[0].currentHp, equals(91));
       expect(updatedState.party.members[1].currentHp, equals(0));
+      expect(updatedState.party.members[1].nickname, 'Bud');
+      expect(updatedState.party.members[1].friendship, 144);
+      expect(
+        updatedState.party.members[1].provenance,
+        initialState.party.members[1].provenance,
+      );
       expect(updatedState.party.members[2].currentHp, equals(18));
     });
 
@@ -651,6 +665,13 @@ void main() {
       );
       expect(captured.currentHp, equals(7));
       expect(captured.statusId, equals('slp'));
+      expect(captured.nickname, isEmpty);
+      expect(captured.friendship, 0);
+      expect(captured.provenance?.kind, PlayerPokemonOriginKind.captured);
+      expect(captured.provenance?.mapId, 'field_map');
+      expect(captured.provenance?.sourceId, 'field_grass');
+      expect(captured.provenance?.ballItemId, 'poke-ball');
+      expect(captured.provenance?.metLevel, 12);
       expect(
         updatedState.bag.entries,
         equals(

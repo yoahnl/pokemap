@@ -280,6 +280,255 @@ abstract class _PokemonStatSpread extends PokemonStatSpread {
       throw _privateConstructorUsedError;
 }
 
+PlayerPokemonProvenance _$PlayerPokemonProvenanceFromJson(
+    Map<String, dynamic> json) {
+  return _PlayerPokemonProvenance.fromJson(json);
+}
+
+/// @nodoc
+mixin _$PlayerPokemonProvenance {
+  PlayerPokemonOriginKind get kind => throw _privateConstructorUsedError;
+  String get mapId => throw _privateConstructorUsedError;
+  String get sourceId => throw _privateConstructorUsedError;
+  String get ballItemId => throw _privateConstructorUsedError;
+  int? get metLevel => throw _privateConstructorUsedError;
+
+  /// Serializes this PlayerPokemonProvenance to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of PlayerPokemonProvenance
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $PlayerPokemonProvenanceCopyWith<PlayerPokemonProvenance> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $PlayerPokemonProvenanceCopyWith<$Res> {
+  factory $PlayerPokemonProvenanceCopyWith(PlayerPokemonProvenance value,
+          $Res Function(PlayerPokemonProvenance) then) =
+      _$PlayerPokemonProvenanceCopyWithImpl<$Res, PlayerPokemonProvenance>;
+  @useResult
+  $Res call(
+      {PlayerPokemonOriginKind kind,
+      String mapId,
+      String sourceId,
+      String ballItemId,
+      int? metLevel});
+}
+
+/// @nodoc
+class _$PlayerPokemonProvenanceCopyWithImpl<$Res,
+        $Val extends PlayerPokemonProvenance>
+    implements $PlayerPokemonProvenanceCopyWith<$Res> {
+  _$PlayerPokemonProvenanceCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of PlayerPokemonProvenance
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? kind = null,
+    Object? mapId = null,
+    Object? sourceId = null,
+    Object? ballItemId = null,
+    Object? metLevel = freezed,
+  }) {
+    return _then(_value.copyWith(
+      kind: null == kind
+          ? _value.kind
+          : kind // ignore: cast_nullable_to_non_nullable
+              as PlayerPokemonOriginKind,
+      mapId: null == mapId
+          ? _value.mapId
+          : mapId // ignore: cast_nullable_to_non_nullable
+              as String,
+      sourceId: null == sourceId
+          ? _value.sourceId
+          : sourceId // ignore: cast_nullable_to_non_nullable
+              as String,
+      ballItemId: null == ballItemId
+          ? _value.ballItemId
+          : ballItemId // ignore: cast_nullable_to_non_nullable
+              as String,
+      metLevel: freezed == metLevel
+          ? _value.metLevel
+          : metLevel // ignore: cast_nullable_to_non_nullable
+              as int?,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$PlayerPokemonProvenanceImplCopyWith<$Res>
+    implements $PlayerPokemonProvenanceCopyWith<$Res> {
+  factory _$$PlayerPokemonProvenanceImplCopyWith(
+          _$PlayerPokemonProvenanceImpl value,
+          $Res Function(_$PlayerPokemonProvenanceImpl) then) =
+      __$$PlayerPokemonProvenanceImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {PlayerPokemonOriginKind kind,
+      String mapId,
+      String sourceId,
+      String ballItemId,
+      int? metLevel});
+}
+
+/// @nodoc
+class __$$PlayerPokemonProvenanceImplCopyWithImpl<$Res>
+    extends _$PlayerPokemonProvenanceCopyWithImpl<$Res,
+        _$PlayerPokemonProvenanceImpl>
+    implements _$$PlayerPokemonProvenanceImplCopyWith<$Res> {
+  __$$PlayerPokemonProvenanceImplCopyWithImpl(
+      _$PlayerPokemonProvenanceImpl _value,
+      $Res Function(_$PlayerPokemonProvenanceImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of PlayerPokemonProvenance
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? kind = null,
+    Object? mapId = null,
+    Object? sourceId = null,
+    Object? ballItemId = null,
+    Object? metLevel = freezed,
+  }) {
+    return _then(_$PlayerPokemonProvenanceImpl(
+      kind: null == kind
+          ? _value.kind
+          : kind // ignore: cast_nullable_to_non_nullable
+              as PlayerPokemonOriginKind,
+      mapId: null == mapId
+          ? _value.mapId
+          : mapId // ignore: cast_nullable_to_non_nullable
+              as String,
+      sourceId: null == sourceId
+          ? _value.sourceId
+          : sourceId // ignore: cast_nullable_to_non_nullable
+              as String,
+      ballItemId: null == ballItemId
+          ? _value.ballItemId
+          : ballItemId // ignore: cast_nullable_to_non_nullable
+              as String,
+      metLevel: freezed == metLevel
+          ? _value.metLevel
+          : metLevel // ignore: cast_nullable_to_non_nullable
+              as int?,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$PlayerPokemonProvenanceImpl extends _PlayerPokemonProvenance {
+  const _$PlayerPokemonProvenanceImpl(
+      {this.kind = PlayerPokemonOriginKind.unknown,
+      this.mapId = '',
+      this.sourceId = '',
+      this.ballItemId = '',
+      this.metLevel})
+      : super._();
+
+  factory _$PlayerPokemonProvenanceImpl.fromJson(Map<String, dynamic> json) =>
+      _$$PlayerPokemonProvenanceImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final PlayerPokemonOriginKind kind;
+  @override
+  @JsonKey()
+  final String mapId;
+  @override
+  @JsonKey()
+  final String sourceId;
+  @override
+  @JsonKey()
+  final String ballItemId;
+  @override
+  final int? metLevel;
+
+  @override
+  String toString() {
+    return 'PlayerPokemonProvenance(kind: $kind, mapId: $mapId, sourceId: $sourceId, ballItemId: $ballItemId, metLevel: $metLevel)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PlayerPokemonProvenanceImpl &&
+            (identical(other.kind, kind) || other.kind == kind) &&
+            (identical(other.mapId, mapId) || other.mapId == mapId) &&
+            (identical(other.sourceId, sourceId) ||
+                other.sourceId == sourceId) &&
+            (identical(other.ballItemId, ballItemId) ||
+                other.ballItemId == ballItemId) &&
+            (identical(other.metLevel, metLevel) ||
+                other.metLevel == metLevel));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, kind, mapId, sourceId, ballItemId, metLevel);
+
+  /// Create a copy of PlayerPokemonProvenance
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PlayerPokemonProvenanceImplCopyWith<_$PlayerPokemonProvenanceImpl>
+      get copyWith => __$$PlayerPokemonProvenanceImplCopyWithImpl<
+          _$PlayerPokemonProvenanceImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$PlayerPokemonProvenanceImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _PlayerPokemonProvenance extends PlayerPokemonProvenance {
+  const factory _PlayerPokemonProvenance(
+      {final PlayerPokemonOriginKind kind,
+      final String mapId,
+      final String sourceId,
+      final String ballItemId,
+      final int? metLevel}) = _$PlayerPokemonProvenanceImpl;
+  const _PlayerPokemonProvenance._() : super._();
+
+  factory _PlayerPokemonProvenance.fromJson(Map<String, dynamic> json) =
+      _$PlayerPokemonProvenanceImpl.fromJson;
+
+  @override
+  PlayerPokemonOriginKind get kind;
+  @override
+  String get mapId;
+  @override
+  String get sourceId;
+  @override
+  String get ballItemId;
+  @override
+  int? get metLevel;
+
+  /// Create a copy of PlayerPokemonProvenance
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$PlayerPokemonProvenanceImplCopyWith<_$PlayerPokemonProvenanceImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 PlayerPokemon _$PlayerPokemonFromJson(Map<String, dynamic> json) {
   return _PlayerPokemon.fromJson(json);
 }
@@ -312,6 +561,9 @@ mixin _$PlayerPokemon {
   String get statusId => throw _privateConstructorUsedError;
   bool get isShiny => throw _privateConstructorUsedError;
   String get heldItemId => throw _privateConstructorUsedError;
+  String get nickname => throw _privateConstructorUsedError;
+  int get friendship => throw _privateConstructorUsedError;
+  PlayerPokemonProvenance? get provenance => throw _privateConstructorUsedError;
 
   /// Serializes this PlayerPokemon to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -343,10 +595,14 @@ abstract class $PlayerPokemonCopyWith<$Res> {
       int currentHp,
       String statusId,
       bool isShiny,
-      String heldItemId});
+      String heldItemId,
+      String nickname,
+      int friendship,
+      PlayerPokemonProvenance? provenance});
 
   $PokemonStatSpreadCopyWith<$Res> get ivs;
   $PokemonStatSpreadCopyWith<$Res> get evs;
+  $PlayerPokemonProvenanceCopyWith<$Res>? get provenance;
 }
 
 /// @nodoc
@@ -378,6 +634,9 @@ class _$PlayerPokemonCopyWithImpl<$Res, $Val extends PlayerPokemon>
     Object? statusId = null,
     Object? isShiny = null,
     Object? heldItemId = null,
+    Object? nickname = null,
+    Object? friendship = null,
+    Object? provenance = freezed,
   }) {
     return _then(_value.copyWith(
       speciesId: null == speciesId
@@ -436,6 +695,18 @@ class _$PlayerPokemonCopyWithImpl<$Res, $Val extends PlayerPokemon>
           ? _value.heldItemId
           : heldItemId // ignore: cast_nullable_to_non_nullable
               as String,
+      nickname: null == nickname
+          ? _value.nickname
+          : nickname // ignore: cast_nullable_to_non_nullable
+              as String,
+      friendship: null == friendship
+          ? _value.friendship
+          : friendship // ignore: cast_nullable_to_non_nullable
+              as int,
+      provenance: freezed == provenance
+          ? _value.provenance
+          : provenance // ignore: cast_nullable_to_non_nullable
+              as PlayerPokemonProvenance?,
     ) as $Val);
   }
 
@@ -456,6 +727,20 @@ class _$PlayerPokemonCopyWithImpl<$Res, $Val extends PlayerPokemon>
   $PokemonStatSpreadCopyWith<$Res> get evs {
     return $PokemonStatSpreadCopyWith<$Res>(_value.evs, (value) {
       return _then(_value.copyWith(evs: value) as $Val);
+    });
+  }
+
+  /// Create a copy of PlayerPokemon
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PlayerPokemonProvenanceCopyWith<$Res>? get provenance {
+    if (_value.provenance == null) {
+      return null;
+    }
+
+    return $PlayerPokemonProvenanceCopyWith<$Res>(_value.provenance!, (value) {
+      return _then(_value.copyWith(provenance: value) as $Val);
     });
   }
 }
@@ -482,12 +767,17 @@ abstract class _$$PlayerPokemonImplCopyWith<$Res>
       int currentHp,
       String statusId,
       bool isShiny,
-      String heldItemId});
+      String heldItemId,
+      String nickname,
+      int friendship,
+      PlayerPokemonProvenance? provenance});
 
   @override
   $PokemonStatSpreadCopyWith<$Res> get ivs;
   @override
   $PokemonStatSpreadCopyWith<$Res> get evs;
+  @override
+  $PlayerPokemonProvenanceCopyWith<$Res>? get provenance;
 }
 
 /// @nodoc
@@ -517,6 +807,9 @@ class __$$PlayerPokemonImplCopyWithImpl<$Res>
     Object? statusId = null,
     Object? isShiny = null,
     Object? heldItemId = null,
+    Object? nickname = null,
+    Object? friendship = null,
+    Object? provenance = freezed,
   }) {
     return _then(_$PlayerPokemonImpl(
       speciesId: null == speciesId
@@ -575,6 +868,18 @@ class __$$PlayerPokemonImplCopyWithImpl<$Res>
           ? _value.heldItemId
           : heldItemId // ignore: cast_nullable_to_non_nullable
               as String,
+      nickname: null == nickname
+          ? _value.nickname
+          : nickname // ignore: cast_nullable_to_non_nullable
+              as String,
+      friendship: null == friendship
+          ? _value.friendship
+          : friendship // ignore: cast_nullable_to_non_nullable
+              as int,
+      provenance: freezed == provenance
+          ? _value.provenance
+          : provenance // ignore: cast_nullable_to_non_nullable
+              as PlayerPokemonProvenance?,
     ));
   }
 }
@@ -597,7 +902,10 @@ class _$PlayerPokemonImpl extends _PlayerPokemon {
       this.currentHp = 1,
       this.statusId = '',
       this.isShiny = false,
-      this.heldItemId = ''})
+      this.heldItemId = '',
+      this.nickname = '',
+      this.friendship = 0,
+      this.provenance})
       : _knownMoveIds = knownMoveIds,
         _currentPpByMoveId = currentPpByMoveId,
         super._();
@@ -673,10 +981,18 @@ class _$PlayerPokemonImpl extends _PlayerPokemon {
   @override
   @JsonKey()
   final String heldItemId;
+  @override
+  @JsonKey()
+  final String nickname;
+  @override
+  @JsonKey()
+  final int friendship;
+  @override
+  final PlayerPokemonProvenance? provenance;
 
   @override
   String toString() {
-    return 'PlayerPokemon(speciesId: $speciesId, natureId: $natureId, abilityId: $abilityId, gender: $gender, level: $level, ivs: $ivs, evs: $evs, knownMoveIds: $knownMoveIds, experience: $experience, currentPpByMoveId: $currentPpByMoveId, currentHp: $currentHp, statusId: $statusId, isShiny: $isShiny, heldItemId: $heldItemId)';
+    return 'PlayerPokemon(speciesId: $speciesId, natureId: $natureId, abilityId: $abilityId, gender: $gender, level: $level, ivs: $ivs, evs: $evs, knownMoveIds: $knownMoveIds, experience: $experience, currentPpByMoveId: $currentPpByMoveId, currentHp: $currentHp, statusId: $statusId, isShiny: $isShiny, heldItemId: $heldItemId, nickname: $nickname, friendship: $friendship, provenance: $provenance)';
   }
 
   @override
@@ -706,7 +1022,13 @@ class _$PlayerPokemonImpl extends _PlayerPokemon {
                 other.statusId == statusId) &&
             (identical(other.isShiny, isShiny) || other.isShiny == isShiny) &&
             (identical(other.heldItemId, heldItemId) ||
-                other.heldItemId == heldItemId));
+                other.heldItemId == heldItemId) &&
+            (identical(other.nickname, nickname) ||
+                other.nickname == nickname) &&
+            (identical(other.friendship, friendship) ||
+                other.friendship == friendship) &&
+            (identical(other.provenance, provenance) ||
+                other.provenance == provenance));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -726,7 +1048,10 @@ class _$PlayerPokemonImpl extends _PlayerPokemon {
       currentHp,
       statusId,
       isShiny,
-      heldItemId);
+      heldItemId,
+      nickname,
+      friendship,
+      provenance);
 
   /// Create a copy of PlayerPokemon
   /// with the given fields replaced by the non-null parameter values.
@@ -759,7 +1084,10 @@ abstract class _PlayerPokemon extends PlayerPokemon {
       final int currentHp,
       final String statusId,
       final bool isShiny,
-      final String heldItemId}) = _$PlayerPokemonImpl;
+      final String heldItemId,
+      final String nickname,
+      final int friendship,
+      final PlayerPokemonProvenance? provenance}) = _$PlayerPokemonImpl;
   const _PlayerPokemon._() : super._();
 
   factory _PlayerPokemon.fromJson(Map<String, dynamic> json) =
@@ -805,6 +1133,12 @@ abstract class _PlayerPokemon extends PlayerPokemon {
   bool get isShiny;
   @override
   String get heldItemId;
+  @override
+  String get nickname;
+  @override
+  int get friendship;
+  @override
+  PlayerPokemonProvenance? get provenance;
 
   /// Create a copy of PlayerPokemon
   /// with the given fields replaced by the non-null parameter values.

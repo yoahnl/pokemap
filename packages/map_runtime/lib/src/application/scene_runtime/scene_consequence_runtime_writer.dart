@@ -324,6 +324,12 @@ final class SceneConsequenceRuntimeWriter {
         'references.',
       );
     }
+    if (consequence.friendship < 0 || consequence.friendship > 255) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.invalidPokemonDefinition,
+        'Scene consequence givePokemon friendship must be between 0 and 255.',
+      );
+    }
     if (gameState.party.members.length >= _maxPartySize) {
       return _SceneConsequenceRuntimeWriteStep.failed(
         SceneConsequenceRuntimeWriteErrorCode.partyFull,
@@ -338,6 +344,14 @@ final class SceneConsequenceRuntimeWriter {
       abilityId: consequence.abilityId,
       level: consequence.level,
       currentHp: consequence.currentHp,
+      nickname: consequence.nickname,
+      friendship: consequence.friendship,
+      provenance: PlayerPokemonProvenance(
+        kind: PlayerPokemonOriginKind.gift,
+        mapId: gameState.currentMapId,
+        sourceId: consequence.label ?? '',
+        metLevel: consequence.level,
+      ),
     );
     return _SceneConsequenceRuntimeWriteStep.applied(
       mutations.givePokemon(gameState, pokemon: pokemon),
@@ -377,8 +391,19 @@ final class SceneConsequenceRuntimeWriter {
       );
     }
 
+    final authoredPokemon = matches.single.pokemon;
+    final starter = authoredPokemon.provenance == null
+        ? authoredPokemon.copyWith(
+            provenance: PlayerPokemonProvenance(
+              kind: PlayerPokemonOriginKind.starter,
+              mapId: gameState.currentMapId,
+              sourceId: optionId,
+              metLevel: authoredPokemon.level,
+            ),
+          )
+        : authoredPokemon;
     return _SceneConsequenceRuntimeWriteStep.applied(
-      mutations.givePokemon(gameState, pokemon: matches.single.pokemon),
+      mutations.givePokemon(gameState, pokemon: starter),
     );
   }
 
@@ -508,7 +533,7 @@ final class SceneConsequenceRuntimeWriter {
       return _SceneConsequenceRuntimeWriteStep.failed(
         SceneConsequenceRuntimeWriteErrorCode.unknownNpc,
         'Scene consequence setNpcPresence references unknown NPC '
-            '"${consequence.mapId}:${consequence.entityId}".',
+        '"${consequence.mapId}:${consequence.entityId}".',
       );
     }
     return _SceneConsequenceRuntimeWriteStep.applied(
