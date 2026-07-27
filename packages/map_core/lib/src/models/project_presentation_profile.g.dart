@@ -63,6 +63,64 @@ Map<String, dynamic> _$$ProjectIntroVideoProfileImplToJson(
       'allowReplay': instance.allowReplay,
     };
 
+_$ProjectTypographyRoleProfileImpl _$$ProjectTypographyRoleProfileImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectTypographyRoleProfileImpl(
+      fontPath: json['fontPath'] as String?,
+      family: json['family'] as String?,
+      licensePath: json['licensePath'] as String?,
+      redistributable: json['redistributable'] as bool? ?? false,
+      fallbackFamilies: (json['fallbackFamilies'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>['sans-serif'],
+      glyphCoverage: (json['glyphCoverage'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[],
+    );
+
+Map<String, dynamic> _$$ProjectTypographyRoleProfileImplToJson(
+        _$ProjectTypographyRoleProfileImpl instance) =>
+    <String, dynamic>{
+      if (instance.fontPath case final value?) 'fontPath': value,
+      if (instance.family case final value?) 'family': value,
+      if (instance.licensePath case final value?) 'licensePath': value,
+      'redistributable': instance.redistributable,
+      'fallbackFamilies': instance.fallbackFamilies,
+      'glyphCoverage': instance.glyphCoverage,
+    };
+
+_$ProjectTypographyProfileImpl _$$ProjectTypographyProfileImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectTypographyProfileImpl(
+      display: json['display'] == null
+          ? const ProjectTypographyRoleProfile()
+          : ProjectTypographyRoleProfile.fromJson(
+              json['display'] as Map<String, dynamic>),
+      body: json['body'] == null
+          ? const ProjectTypographyRoleProfile()
+          : ProjectTypographyRoleProfile.fromJson(
+              json['body'] as Map<String, dynamic>),
+      dialogue: json['dialogue'] == null
+          ? const ProjectTypographyRoleProfile()
+          : ProjectTypographyRoleProfile.fromJson(
+              json['dialogue'] as Map<String, dynamic>),
+      numbers: json['numbers'] == null
+          ? const ProjectTypographyRoleProfile()
+          : ProjectTypographyRoleProfile.fromJson(
+              json['numbers'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$$ProjectTypographyProfileImplToJson(
+        _$ProjectTypographyProfileImpl instance) =>
+    <String, dynamic>{
+      'display': instance.display.toJson(),
+      'body': instance.body.toJson(),
+      'dialogue': instance.dialogue.toJson(),
+      'numbers': instance.numbers.toJson(),
+    };
+
 _$ProjectPresentationProfileImpl _$$ProjectPresentationProfileImplFromJson(
         Map<String, dynamic> json) =>
     _$ProjectPresentationProfileImpl(
@@ -76,6 +134,10 @@ _$ProjectPresentationProfileImpl _$$ProjectPresentationProfileImplFromJson(
           ? null
           : ProjectIntroVideoProfile.fromJson(
               json['intro'] as Map<String, dynamic>),
+      typography: json['typography'] == null
+          ? null
+          : ProjectTypographyProfile.fromJson(
+              json['typography'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$$ProjectPresentationProfileImplToJson(
@@ -84,4 +146,5 @@ Map<String, dynamic> _$$ProjectPresentationProfileImplToJson(
       'schemaVersion': instance.schemaVersion,
       'branding': instance.branding.toJson(),
       if (instance.intro?.toJson() case final value?) 'intro': value,
+      if (instance.typography?.toJson() case final value?) 'typography': value,
     };

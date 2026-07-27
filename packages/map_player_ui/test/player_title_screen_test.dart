@@ -110,12 +110,46 @@ void main() {
     );
     expect(alignment.alignment, Alignment.bottomLeft);
   });
+
+  testWidgets('title and menu consume their semantic typography roles',
+      (tester) async {
+    final theme = PokeMapPlayerTheme.withTypography(
+      PokeMapPlayerTheme.light(),
+      const PokeMapPlayerTypography(
+        displayFamily: 'Aube Display',
+        bodyFamily: 'Aube Body',
+      ),
+    );
+    await tester.pumpWidget(
+      _app(
+        PlayerTitleScreen(
+          data: PlayerTitleViewData(
+            gameTitle: 'Aube',
+            author: 'Studio',
+            actions: <PlayerTitleMenuAction, PlayerActionAvailability>{
+              for (final action in PlayerTitleMenuAction.values)
+                action: PlayerActionAvailability.enabled,
+            },
+          ),
+          onSelected: (_) {},
+        ),
+        theme: theme,
+      ),
+    );
+
+    expect(tester.widget<Text>(find.text('Aube')).style?.fontFamily,
+        'Aube Display');
+    expect(
+      tester.widget<Text>(find.text('Nouvelle partie')).style?.fontFamily,
+      'Aube Body',
+    );
+  });
 }
 
-Widget _app(Widget child) => MaterialApp(
+Widget _app(Widget child, {ThemeData? theme}) => MaterialApp(
       locale: const Locale('fr'),
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-      theme: PokeMapPlayerTheme.light(),
+      theme: theme ?? PokeMapPlayerTheme.light(),
       home: child,
     );

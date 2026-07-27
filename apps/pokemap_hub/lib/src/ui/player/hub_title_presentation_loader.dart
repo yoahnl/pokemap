@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
@@ -11,13 +12,35 @@ final class HubLoadedTitlePresentation {
     required this.title,
     required this.titleMusicPath,
     required this.intro,
+    required this.typography,
     required List<String> unavailableAssets,
   }) : unavailableAssets = List<String>.unmodifiable(unavailableAssets);
 
   final RuntimePlayerTitlePresentation title;
   final String? titleMusicPath;
   final HubLoadedIntroVideo? intro;
+  final HubLoadedTypography? typography;
   final List<String> unavailableAssets;
+}
+
+final class HubLoadedTypography {
+  HubLoadedTypography({
+    required Map<ProjectTypographyRole, HubLoadedFontRole> roles,
+  }) : roles = Map.unmodifiable(roles);
+
+  final Map<ProjectTypographyRole, HubLoadedFontRole> roles;
+}
+
+final class HubLoadedFontRole {
+  HubLoadedFontRole({
+    required this.file,
+    required this.family,
+    required List<String> fallbackFamilies,
+  }) : fallbackFamilies = List.unmodifiable(fallbackFamilies);
+
+  final File? file;
+  final String? family;
+  final List<String> fallbackFamilies;
 }
 
 final class HubLoadedIntroVideo {
@@ -70,6 +93,10 @@ final class HubTitlePresentationLoader {
       manifest.presentation?.intro,
       unavailable: unavailable,
     );
+    final typography = await _typography(
+      manifest.presentation?.typography,
+      unavailable: unavailable,
+    );
     return HubLoadedTitlePresentation(
       title: RuntimePlayerTitlePresentation(
         author: manifest.author.name,
@@ -84,8 +111,36 @@ final class HubTitlePresentationLoader {
       ),
       titleMusicPath: titleMusicPath,
       intro: intro,
+      typography: typography,
       unavailableAssets: unavailable,
     );
+  }
+
+  Future<HubLoadedTypography?> _typography(
+    GamePackageTypography? source, {
+    required List<String> unavailable,
+  }) async {
+    if (source == null) return null;
+    final sources = <ProjectTypographyRole, GamePackageFontRole>{
+      ProjectTypographyRole.display: source.display,
+      ProjectTypographyRole.body: source.body,
+      ProjectTypographyRole.dialogue: source.dialogue,
+      ProjectTypographyRole.numbers: source.numbers,
+    };
+    final roles = <ProjectTypographyRole, HubLoadedFontRole>{};
+    for (final entry in sources.entries) {
+      final fontPath = entry.value.font;
+      final resolvedPath = await _path(
+        fontPath,
+        unavailable: unavailable,
+      );
+      roles[entry.key] = HubLoadedFontRole(
+        file: resolvedPath == null ? null : File(resolvedPath),
+        family: entry.value.family,
+        fallbackFamilies: entry.value.fallbackFamilies,
+      );
+    }
+    return HubLoadedTypography(roles: roles);
   }
 
   Future<HubLoadedIntroVideo?> _intro(

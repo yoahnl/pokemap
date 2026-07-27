@@ -102,10 +102,12 @@ class _DialogueLineContent extends StatelessWidget {
                 Expanded(
                   child: Text(
                     speaker,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(color: context.playerColors.primary),
+                    style: context.playerTypography
+                        .dialogueStyle(
+                          Theme.of(context).textTheme.titleLarge ??
+                              const TextStyle(),
+                        )
+                        .copyWith(color: context.playerColors.primary),
                   ),
                 ),
               ],
@@ -114,7 +116,9 @@ class _DialogueLineContent extends StatelessWidget {
           ],
           Text(
             snapshot.text,
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: context.playerTypography.dialogueStyle(
+              Theme.of(context).textTheme.bodyLarge ?? const TextStyle(),
+            ),
           ),
           const SizedBox(height: PlayerSpacing.md),
           Row(

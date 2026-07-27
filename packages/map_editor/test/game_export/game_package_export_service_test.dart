@@ -85,7 +85,8 @@ void main() {
     );
   });
 
-  test('packages the authored intro video contract and assets', () async {
+  test('packages authored intro and typography contracts with their assets',
+      () async {
     final root = await createAuthorProject(withDialogue: false);
     addTearDown(() => root.delete(recursive: true));
     final video = <int>[
@@ -108,6 +109,10 @@ void main() {
       'WEBVTT\n\n00:00.000 --> 00:01.000\nBienvenue\n',
       flush: true,
     );
+    await File(p.join(root.path, 'assets', 'display.ttf'))
+        .writeAsBytes(<int>[0, 1, 0, 0, 0, 0, 0, 0], flush: true);
+    await File(p.join(root.path, 'assets', 'display-license.txt'))
+        .writeAsString('Redistribution permitted.', flush: true);
     final projectFile = File(p.join(root.path, 'project.json'));
     final project =
         jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
@@ -128,6 +133,30 @@ void main() {
         'reducedMotionBehavior': 'poster',
         'allowReplay': true,
       },
+      'typography': <String, Object?>{
+        'display': <String, Object?>{
+          'fontPath': 'assets/display.ttf',
+          'family': 'Aube Display',
+          'licensePath': 'assets/display-license.txt',
+          'redistributable': true,
+          'fallbackFamilies': <String>['sans-serif'],
+          'glyphCoverage': <String>[
+            'latin',
+            'latinExtended',
+            'digits',
+            'punctuation',
+          ],
+        },
+        'body': <String, Object?>{
+          'fallbackFamilies': <String>['sans-serif'],
+        },
+        'dialogue': <String, Object?>{
+          'fallbackFamilies': <String>['sans-serif'],
+        },
+        'numbers': <String, Object?>{
+          'fallbackFamilies': <String>['monospace'],
+        },
+      },
     };
     await projectFile.writeAsString(jsonEncode(project), flush: true);
 
@@ -146,6 +175,17 @@ void main() {
         'presentation/intro/video.mp4',
         'presentation/intro/poster.png',
         'presentation/intro/captions.vtt',
+      ]),
+    );
+    expect(
+      artifact.manifest.presentation?.typography?.display.family,
+      'Aube Display',
+    );
+    expect(
+      artifact.inspection.payloadPaths,
+      containsAll(<String>[
+        'presentation/fonts/display.ttf',
+        'presentation/fonts/display-license.txt',
       ]),
     );
   });

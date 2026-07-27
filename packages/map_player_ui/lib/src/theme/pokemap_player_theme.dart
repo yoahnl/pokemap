@@ -131,6 +131,80 @@ final class PokeMapPlayerMotion extends ThemeExtension<PokeMapPlayerMotion> {
       t < 0.5 || other is! PokeMapPlayerMotion ? this : other;
 }
 
+@immutable
+final class PokeMapPlayerTypography
+    extends ThemeExtension<PokeMapPlayerTypography> {
+  const PokeMapPlayerTypography({
+    this.displayFamily,
+    this.displayFallback = const <String>['sans-serif'],
+    this.bodyFamily,
+    this.bodyFallback = const <String>['sans-serif'],
+    this.dialogueFamily,
+    this.dialogueFallback = const <String>['sans-serif'],
+    this.numbersFamily,
+    this.numbersFallback = const <String>['monospace'],
+  });
+
+  final String? displayFamily;
+  final List<String> displayFallback;
+  final String? bodyFamily;
+  final List<String> bodyFallback;
+  final String? dialogueFamily;
+  final List<String> dialogueFallback;
+  final String? numbersFamily;
+  final List<String> numbersFallback;
+
+  TextStyle displayStyle(TextStyle base) => base.copyWith(
+        fontFamily: displayFamily,
+        fontFamilyFallback: displayFallback,
+      );
+
+  TextStyle bodyStyle(TextStyle base) => base.copyWith(
+        fontFamily: bodyFamily,
+        fontFamilyFallback: bodyFallback,
+      );
+
+  TextStyle dialogueStyle(TextStyle base) => base.copyWith(
+        fontFamily: dialogueFamily,
+        fontFamilyFallback: dialogueFallback,
+      );
+
+  TextStyle numbersStyle(TextStyle base) => base.copyWith(
+        fontFamily: numbersFamily,
+        fontFamilyFallback: numbersFallback,
+        fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+      );
+
+  @override
+  PokeMapPlayerTypography copyWith({
+    String? displayFamily,
+    List<String>? displayFallback,
+    String? bodyFamily,
+    List<String>? bodyFallback,
+    String? dialogueFamily,
+    List<String>? dialogueFallback,
+    String? numbersFamily,
+    List<String>? numbersFallback,
+  }) =>
+      PokeMapPlayerTypography(
+        displayFamily: displayFamily ?? this.displayFamily,
+        displayFallback: displayFallback ?? this.displayFallback,
+        bodyFamily: bodyFamily ?? this.bodyFamily,
+        bodyFallback: bodyFallback ?? this.bodyFallback,
+        dialogueFamily: dialogueFamily ?? this.dialogueFamily,
+        dialogueFallback: dialogueFallback ?? this.dialogueFallback,
+        numbersFamily: numbersFamily ?? this.numbersFamily,
+        numbersFallback: numbersFallback ?? this.numbersFallback,
+      );
+
+  @override
+  PokeMapPlayerTypography lerp(
+    covariant ThemeExtension<PokeMapPlayerTypography>? other,
+    double t,
+  ) =>
+      t < 0.5 || other is! PokeMapPlayerTypography ? this : other;
+}
+
 abstract final class PlayerSpacing {
   static const double xxs = 4;
   static const double xs = 8;
@@ -168,6 +242,17 @@ abstract final class PokeMapPlayerTheme {
         highContrast: highContrast,
         reducedMotion: reducedMotion,
       );
+
+  static ThemeData withTypography(
+    ThemeData theme,
+    PokeMapPlayerTypography typography,
+  ) {
+    final extensions = theme.extensions.values
+        .where((extension) => extension is! PokeMapPlayerTypography)
+        .toList(growable: true)
+      ..add(typography);
+    return theme.copyWith(extensions: extensions);
+  }
 
   static ThemeData _theme({
     required Brightness brightness,
@@ -258,6 +343,7 @@ abstract final class PokeMapPlayerTheme {
                 standard: Duration(milliseconds: 220),
                 slow: Duration(milliseconds: 420),
               ),
+        const PokeMapPlayerTypography(),
       ],
       focusColor: colors.focus,
       disabledColor: colors.textSecondary.withValues(alpha: 0.45),
@@ -317,4 +403,8 @@ extension PlayerThemeContext on BuildContext {
 
   PokeMapPlayerMotion get playerMotion =>
       Theme.of(this).extension<PokeMapPlayerMotion>()!;
+
+  PokeMapPlayerTypography get playerTypography =>
+      Theme.of(this).extension<PokeMapPlayerTypography>() ??
+      const PokeMapPlayerTypography();
 }

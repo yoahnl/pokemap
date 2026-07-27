@@ -102,6 +102,11 @@ void main() {
       'WEBVTT\n\n00:00.000 --> 00:01.000\nBienvenue\n',
       flush: true,
     );
+    final displayFont = File(p.join(root.path, 'assets', 'display.ttf'));
+    await displayFont.writeAsBytes(<int>[0, 1, 0, 0, 0, 0, 0, 0]);
+    final displayLicense =
+        File(p.join(root.path, 'assets', 'display-license.txt'));
+    await displayLicense.writeAsString('Redistribution permitted.');
     final projectFile = File(p.join(root.path, 'project.json'));
     final project =
         jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
@@ -125,6 +130,30 @@ void main() {
         'audioCodec': 'aac',
         'reducedMotionBehavior': 'poster',
         'allowReplay': true,
+      },
+      'typography': <String, Object?>{
+        'display': <String, Object?>{
+          'fontPath': 'assets/display.ttf',
+          'family': 'Aube Display',
+          'licensePath': 'assets/display-license.txt',
+          'redistributable': true,
+          'fallbackFamilies': <String>['sans-serif'],
+          'glyphCoverage': <String>[
+            'latin',
+            'latinExtended',
+            'digits',
+            'punctuation',
+          ],
+        },
+        'body': <String, Object?>{
+          'fallbackFamilies': <String>['sans-serif'],
+        },
+        'dialogue': <String, Object?>{
+          'fallbackFamilies': <String>['sans-serif'],
+        },
+        'numbers': <String, Object?>{
+          'fallbackFamilies': <String>['monospace'],
+        },
       },
     };
     await projectFile.writeAsString(jsonEncode(project), flush: true);
@@ -152,6 +181,14 @@ void main() {
     expect(
       result.introCaptionsPackagePath,
       'presentation/intro/captions.vtt',
+    );
+    expect(
+      result.payloadFiles,
+      contains('presentation/fonts/display.ttf'),
+    );
+    expect(
+      result.payloadFiles,
+      contains('presentation/fonts/display-license.txt'),
     );
     final projectedProject = jsonDecode(
       utf8.decode(result.payloadFiles['project/project.json']!),

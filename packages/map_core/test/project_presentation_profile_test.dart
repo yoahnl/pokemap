@@ -140,5 +140,61 @@ void main() {
         ]),
       );
     });
+
+    test('round-trips explicit typography roles and redistribution evidence',
+        () {
+      const profile = ProjectPresentationProfile(
+        typography: ProjectTypographyProfile(
+          display: ProjectTypographyRoleProfile(
+            fontPath: 'assets/presentation/fonts/display.ttf',
+            family: 'Aube Display',
+            licensePath: 'assets/presentation/fonts/display-license.txt',
+            redistributable: true,
+            fallbackFamilies: <String>['sans-serif'],
+            glyphCoverage: <String>[
+              'latin',
+              'latinExtended',
+              'digits',
+              'punctuation',
+            ],
+          ),
+        ),
+      );
+
+      expect(validateProjectPresentationProfile(profile), isEmpty);
+      expect(
+        profile.configuredCategories,
+        contains(ProjectPresentationCategory.typography),
+      );
+      expect(ProjectPresentationProfile.fromJson(profile.toJson()), profile);
+    });
+
+    test('custom fonts require license, redistribution, fallback and glyphs',
+        () {
+      const profile = ProjectPresentationProfile(
+        typography: ProjectTypographyProfile(
+          display: ProjectTypographyRoleProfile(
+            fontPath: '../display.woff',
+            family: '',
+            fallbackFamilies: <String>[],
+            glyphCoverage: <String>['latin'],
+          ),
+        ),
+      );
+
+      expect(
+        validateProjectPresentationProfile(profile)
+            .map((diagnostic) => diagnostic.code),
+        containsAll(<String>[
+          'presentationAssetPathUnsafe',
+          'typographyFormatUnsupported',
+          'typographyFamilyRequired',
+          'typographyLicenseRequired',
+          'typographyRedistributionRequired',
+          'typographyFallbackRequired',
+          'typographyGlyphCoverageIncomplete',
+        ]),
+      );
+    });
   });
 }

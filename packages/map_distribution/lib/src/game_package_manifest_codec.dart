@@ -175,6 +175,36 @@ final class GamePackageManifestCodec {
         );
       }
     }
+    final typography = presentation?.typography;
+    final fontRoles = <String, GamePackageFontRole?>{
+      'display': typography?.display,
+      'body': typography?.body,
+      'dialogue': typography?.dialogue,
+      'numbers': typography?.numbers,
+    };
+    for (final role in fontRoles.entries) {
+      for (final reference in <({String field, String? value})>[
+        (field: 'font', value: role.value?.font),
+        (field: 'license', value: role.value?.license),
+      ]) {
+        final value = reference.value;
+        if (value == null) continue;
+        if (!value.startsWith('presentation/fonts/')) {
+          _fail(
+            'invalidTypographyReference',
+            '\$.presentation.typography.${role.key}.${reference.field}',
+            'Typography assets must use the presentation/fonts package root.',
+          );
+        }
+        if (!contentPaths.contains(value)) {
+          _fail(
+            'typographyReferenceMissing',
+            '\$.presentation.typography.${role.key}.${reference.field}',
+            'Typography reference is not present in content.files.',
+          );
+        }
+      }
+    }
 
     return GamePackageManifest(
       packageFormat: packageFormat,
@@ -397,7 +427,7 @@ final class GamePackageManifestCodec {
       value,
       path,
       required: const <String>{'schemaVersion', 'branding'},
-      optional: const <String>{'intro'},
+      optional: const <String>{'intro', 'typography'},
     );
     final schemaVersion =
         _integer(json['schemaVersion'], '$path.schemaVersion');
@@ -416,6 +446,9 @@ final class GamePackageManifestCodec {
       ),
       intro: json.containsKey('intro')
           ? _intro(json['intro'], path: '$path.intro')
+          : null,
+      typography: json.containsKey('typography')
+          ? _typography(json['typography'], path: '$path.typography')
           : null,
     );
   }
@@ -499,6 +532,90 @@ final class GamePackageManifestCodec {
       audioCodec: audioCodec,
       reducedMotionBehavior: reducedMotion,
       allowReplay: allowReplay,
+    );
+  }
+
+  GamePackageTypography _typography(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{'display', 'body', 'dialogue', 'numbers'},
+      optional: const <String>{},
+    );
+    return GamePackageTypography(
+      display: _fontRole(json['display'], path: '$path.display'),
+      body: _fontRole(json['body'], path: '$path.body'),
+      dialogue: _fontRole(json['dialogue'], path: '$path.dialogue'),
+      numbers: _fontRole(json['numbers'], path: '$path.numbers'),
+    );
+  }
+
+  GamePackageFontRole _fontRole(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{'fallbackFamilies'},
+      optional: const <String>{'font', 'family', 'license'},
+    );
+    final rawFallbacks =
+        _list(json['fallbackFamilies'], '$path.fallbackFamilies');
+    final fallbacks = <String>[
+      for (var index = 0; index < rawFallbacks.length; index++)
+        _boundedString(
+          rawFallbacks[index],
+          '$path.fallbackFamilies[$index]',
+          1,
+          128,
+        ),
+    ];
+    if (fallbacks.isEmpty || fallbacks.toSet().length != fallbacks.length) {
+      _fail(
+        'invalidTypographyFallback',
+        '$path.fallbackFamilies',
+        'Typography requires unique explicit system fallbacks.',
+      );
+    }
+    final font = json.containsKey('font')
+        ? _boundedString(json['font'], '$path.font', 1, 512)
+        : null;
+    final family = json.containsKey('family')
+        ? _boundedString(json['family'], '$path.family', 1, 128)
+        : null;
+    final license = json.containsKey('license')
+        ? _boundedString(json['license'], '$path.license', 1, 512)
+        : null;
+    final customFieldCount =
+        <Object?>[font, family, license].where((value) => value != null).length;
+    if (customFieldCount != 0 && customFieldCount != 3) {
+      _fail(
+        'incompleteTypographyRole',
+        path,
+        'Embedded typography requires font, family, and license.',
+      );
+    }
+    if (font != null) {
+      PackagePathPolicy.validate(font, errorPath: '$path.font');
+      PackagePathPolicy.validate(license!, errorPath: '$path.license');
+      if (!const <String>['.ttf', '.otf'].any(font.toLowerCase().endsWith) ||
+          !const <String>['.txt', '.md'].any(license.toLowerCase().endsWith)) {
+        _fail(
+          'invalidTypographyAsset',
+          path,
+          'Typography must package a TTF/OTF font and text license.',
+        );
+      }
+    }
+    return GamePackageFontRole(
+      font: font,
+      family: family,
+      license: license,
+      fallbackFamilies: fallbacks,
     );
   }
 

@@ -937,6 +937,596 @@ abstract class _ProjectIntroVideoProfile implements ProjectIntroVideoProfile {
       get copyWith => throw _privateConstructorUsedError;
 }
 
+ProjectTypographyRoleProfile _$ProjectTypographyRoleProfileFromJson(
+    Map<String, dynamic> json) {
+  return _ProjectTypographyRoleProfile.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectTypographyRoleProfile {
+  @JsonKey(includeIfNull: false)
+  String? get fontPath => throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
+  String? get family => throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
+  String? get licensePath => throw _privateConstructorUsedError;
+  bool get redistributable => throw _privateConstructorUsedError;
+  List<String> get fallbackFamilies => throw _privateConstructorUsedError;
+  List<String> get glyphCoverage => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectTypographyRoleProfile to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectTypographyRoleProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectTypographyRoleProfileCopyWith<ProjectTypographyRoleProfile>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectTypographyRoleProfileCopyWith<$Res> {
+  factory $ProjectTypographyRoleProfileCopyWith(
+          ProjectTypographyRoleProfile value,
+          $Res Function(ProjectTypographyRoleProfile) then) =
+      _$ProjectTypographyRoleProfileCopyWithImpl<$Res,
+          ProjectTypographyRoleProfile>;
+  @useResult
+  $Res call(
+      {@JsonKey(includeIfNull: false) String? fontPath,
+      @JsonKey(includeIfNull: false) String? family,
+      @JsonKey(includeIfNull: false) String? licensePath,
+      bool redistributable,
+      List<String> fallbackFamilies,
+      List<String> glyphCoverage});
+}
+
+/// @nodoc
+class _$ProjectTypographyRoleProfileCopyWithImpl<$Res,
+        $Val extends ProjectTypographyRoleProfile>
+    implements $ProjectTypographyRoleProfileCopyWith<$Res> {
+  _$ProjectTypographyRoleProfileCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectTypographyRoleProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? fontPath = freezed,
+    Object? family = freezed,
+    Object? licensePath = freezed,
+    Object? redistributable = null,
+    Object? fallbackFamilies = null,
+    Object? glyphCoverage = null,
+  }) {
+    return _then(_value.copyWith(
+      fontPath: freezed == fontPath
+          ? _value.fontPath
+          : fontPath // ignore: cast_nullable_to_non_nullable
+              as String?,
+      family: freezed == family
+          ? _value.family
+          : family // ignore: cast_nullable_to_non_nullable
+              as String?,
+      licensePath: freezed == licensePath
+          ? _value.licensePath
+          : licensePath // ignore: cast_nullable_to_non_nullable
+              as String?,
+      redistributable: null == redistributable
+          ? _value.redistributable
+          : redistributable // ignore: cast_nullable_to_non_nullable
+              as bool,
+      fallbackFamilies: null == fallbackFamilies
+          ? _value.fallbackFamilies
+          : fallbackFamilies // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      glyphCoverage: null == glyphCoverage
+          ? _value.glyphCoverage
+          : glyphCoverage // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectTypographyRoleProfileImplCopyWith<$Res>
+    implements $ProjectTypographyRoleProfileCopyWith<$Res> {
+  factory _$$ProjectTypographyRoleProfileImplCopyWith(
+          _$ProjectTypographyRoleProfileImpl value,
+          $Res Function(_$ProjectTypographyRoleProfileImpl) then) =
+      __$$ProjectTypographyRoleProfileImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {@JsonKey(includeIfNull: false) String? fontPath,
+      @JsonKey(includeIfNull: false) String? family,
+      @JsonKey(includeIfNull: false) String? licensePath,
+      bool redistributable,
+      List<String> fallbackFamilies,
+      List<String> glyphCoverage});
+}
+
+/// @nodoc
+class __$$ProjectTypographyRoleProfileImplCopyWithImpl<$Res>
+    extends _$ProjectTypographyRoleProfileCopyWithImpl<$Res,
+        _$ProjectTypographyRoleProfileImpl>
+    implements _$$ProjectTypographyRoleProfileImplCopyWith<$Res> {
+  __$$ProjectTypographyRoleProfileImplCopyWithImpl(
+      _$ProjectTypographyRoleProfileImpl _value,
+      $Res Function(_$ProjectTypographyRoleProfileImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectTypographyRoleProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? fontPath = freezed,
+    Object? family = freezed,
+    Object? licensePath = freezed,
+    Object? redistributable = null,
+    Object? fallbackFamilies = null,
+    Object? glyphCoverage = null,
+  }) {
+    return _then(_$ProjectTypographyRoleProfileImpl(
+      fontPath: freezed == fontPath
+          ? _value.fontPath
+          : fontPath // ignore: cast_nullable_to_non_nullable
+              as String?,
+      family: freezed == family
+          ? _value.family
+          : family // ignore: cast_nullable_to_non_nullable
+              as String?,
+      licensePath: freezed == licensePath
+          ? _value.licensePath
+          : licensePath // ignore: cast_nullable_to_non_nullable
+              as String?,
+      redistributable: null == redistributable
+          ? _value.redistributable
+          : redistributable // ignore: cast_nullable_to_non_nullable
+              as bool,
+      fallbackFamilies: null == fallbackFamilies
+          ? _value._fallbackFamilies
+          : fallbackFamilies // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      glyphCoverage: null == glyphCoverage
+          ? _value._glyphCoverage
+          : glyphCoverage // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$ProjectTypographyRoleProfileImpl
+    implements _ProjectTypographyRoleProfile {
+  const _$ProjectTypographyRoleProfileImpl(
+      {@JsonKey(includeIfNull: false) this.fontPath,
+      @JsonKey(includeIfNull: false) this.family,
+      @JsonKey(includeIfNull: false) this.licensePath,
+      this.redistributable = false,
+      final List<String> fallbackFamilies = const <String>['sans-serif'],
+      final List<String> glyphCoverage = const <String>[]})
+      : _fallbackFamilies = fallbackFamilies,
+        _glyphCoverage = glyphCoverage;
+
+  factory _$ProjectTypographyRoleProfileImpl.fromJson(
+          Map<String, dynamic> json) =>
+      _$$ProjectTypographyRoleProfileImplFromJson(json);
+
+  @override
+  @JsonKey(includeIfNull: false)
+  final String? fontPath;
+  @override
+  @JsonKey(includeIfNull: false)
+  final String? family;
+  @override
+  @JsonKey(includeIfNull: false)
+  final String? licensePath;
+  @override
+  @JsonKey()
+  final bool redistributable;
+  final List<String> _fallbackFamilies;
+  @override
+  @JsonKey()
+  List<String> get fallbackFamilies {
+    if (_fallbackFamilies is EqualUnmodifiableListView)
+      return _fallbackFamilies;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_fallbackFamilies);
+  }
+
+  final List<String> _glyphCoverage;
+  @override
+  @JsonKey()
+  List<String> get glyphCoverage {
+    if (_glyphCoverage is EqualUnmodifiableListView) return _glyphCoverage;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_glyphCoverage);
+  }
+
+  @override
+  String toString() {
+    return 'ProjectTypographyRoleProfile(fontPath: $fontPath, family: $family, licensePath: $licensePath, redistributable: $redistributable, fallbackFamilies: $fallbackFamilies, glyphCoverage: $glyphCoverage)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectTypographyRoleProfileImpl &&
+            (identical(other.fontPath, fontPath) ||
+                other.fontPath == fontPath) &&
+            (identical(other.family, family) || other.family == family) &&
+            (identical(other.licensePath, licensePath) ||
+                other.licensePath == licensePath) &&
+            (identical(other.redistributable, redistributable) ||
+                other.redistributable == redistributable) &&
+            const DeepCollectionEquality()
+                .equals(other._fallbackFamilies, _fallbackFamilies) &&
+            const DeepCollectionEquality()
+                .equals(other._glyphCoverage, _glyphCoverage));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      fontPath,
+      family,
+      licensePath,
+      redistributable,
+      const DeepCollectionEquality().hash(_fallbackFamilies),
+      const DeepCollectionEquality().hash(_glyphCoverage));
+
+  /// Create a copy of ProjectTypographyRoleProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectTypographyRoleProfileImplCopyWith<
+          _$ProjectTypographyRoleProfileImpl>
+      get copyWith => __$$ProjectTypographyRoleProfileImplCopyWithImpl<
+          _$ProjectTypographyRoleProfileImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectTypographyRoleProfileImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectTypographyRoleProfile
+    implements ProjectTypographyRoleProfile {
+  const factory _ProjectTypographyRoleProfile(
+      {@JsonKey(includeIfNull: false) final String? fontPath,
+      @JsonKey(includeIfNull: false) final String? family,
+      @JsonKey(includeIfNull: false) final String? licensePath,
+      final bool redistributable,
+      final List<String> fallbackFamilies,
+      final List<String> glyphCoverage}) = _$ProjectTypographyRoleProfileImpl;
+
+  factory _ProjectTypographyRoleProfile.fromJson(Map<String, dynamic> json) =
+      _$ProjectTypographyRoleProfileImpl.fromJson;
+
+  @override
+  @JsonKey(includeIfNull: false)
+  String? get fontPath;
+  @override
+  @JsonKey(includeIfNull: false)
+  String? get family;
+  @override
+  @JsonKey(includeIfNull: false)
+  String? get licensePath;
+  @override
+  bool get redistributable;
+  @override
+  List<String> get fallbackFamilies;
+  @override
+  List<String> get glyphCoverage;
+
+  /// Create a copy of ProjectTypographyRoleProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectTypographyRoleProfileImplCopyWith<
+          _$ProjectTypographyRoleProfileImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+ProjectTypographyProfile _$ProjectTypographyProfileFromJson(
+    Map<String, dynamic> json) {
+  return _ProjectTypographyProfile.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectTypographyProfile {
+  ProjectTypographyRoleProfile get display =>
+      throw _privateConstructorUsedError;
+  ProjectTypographyRoleProfile get body => throw _privateConstructorUsedError;
+  ProjectTypographyRoleProfile get dialogue =>
+      throw _privateConstructorUsedError;
+  ProjectTypographyRoleProfile get numbers =>
+      throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectTypographyProfile to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectTypographyProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectTypographyProfileCopyWith<ProjectTypographyProfile> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectTypographyProfileCopyWith<$Res> {
+  factory $ProjectTypographyProfileCopyWith(ProjectTypographyProfile value,
+          $Res Function(ProjectTypographyProfile) then) =
+      _$ProjectTypographyProfileCopyWithImpl<$Res, ProjectTypographyProfile>;
+  @useResult
+  $Res call(
+      {ProjectTypographyRoleProfile display,
+      ProjectTypographyRoleProfile body,
+      ProjectTypographyRoleProfile dialogue,
+      ProjectTypographyRoleProfile numbers});
+
+  $ProjectTypographyRoleProfileCopyWith<$Res> get display;
+  $ProjectTypographyRoleProfileCopyWith<$Res> get body;
+  $ProjectTypographyRoleProfileCopyWith<$Res> get dialogue;
+  $ProjectTypographyRoleProfileCopyWith<$Res> get numbers;
+}
+
+/// @nodoc
+class _$ProjectTypographyProfileCopyWithImpl<$Res,
+        $Val extends ProjectTypographyProfile>
+    implements $ProjectTypographyProfileCopyWith<$Res> {
+  _$ProjectTypographyProfileCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectTypographyProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? display = null,
+    Object? body = null,
+    Object? dialogue = null,
+    Object? numbers = null,
+  }) {
+    return _then(_value.copyWith(
+      display: null == display
+          ? _value.display
+          : display // ignore: cast_nullable_to_non_nullable
+              as ProjectTypographyRoleProfile,
+      body: null == body
+          ? _value.body
+          : body // ignore: cast_nullable_to_non_nullable
+              as ProjectTypographyRoleProfile,
+      dialogue: null == dialogue
+          ? _value.dialogue
+          : dialogue // ignore: cast_nullable_to_non_nullable
+              as ProjectTypographyRoleProfile,
+      numbers: null == numbers
+          ? _value.numbers
+          : numbers // ignore: cast_nullable_to_non_nullable
+              as ProjectTypographyRoleProfile,
+    ) as $Val);
+  }
+
+  /// Create a copy of ProjectTypographyProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ProjectTypographyRoleProfileCopyWith<$Res> get display {
+    return $ProjectTypographyRoleProfileCopyWith<$Res>(_value.display, (value) {
+      return _then(_value.copyWith(display: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ProjectTypographyProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ProjectTypographyRoleProfileCopyWith<$Res> get body {
+    return $ProjectTypographyRoleProfileCopyWith<$Res>(_value.body, (value) {
+      return _then(_value.copyWith(body: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ProjectTypographyProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ProjectTypographyRoleProfileCopyWith<$Res> get dialogue {
+    return $ProjectTypographyRoleProfileCopyWith<$Res>(_value.dialogue,
+        (value) {
+      return _then(_value.copyWith(dialogue: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ProjectTypographyProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ProjectTypographyRoleProfileCopyWith<$Res> get numbers {
+    return $ProjectTypographyRoleProfileCopyWith<$Res>(_value.numbers, (value) {
+      return _then(_value.copyWith(numbers: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectTypographyProfileImplCopyWith<$Res>
+    implements $ProjectTypographyProfileCopyWith<$Res> {
+  factory _$$ProjectTypographyProfileImplCopyWith(
+          _$ProjectTypographyProfileImpl value,
+          $Res Function(_$ProjectTypographyProfileImpl) then) =
+      __$$ProjectTypographyProfileImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {ProjectTypographyRoleProfile display,
+      ProjectTypographyRoleProfile body,
+      ProjectTypographyRoleProfile dialogue,
+      ProjectTypographyRoleProfile numbers});
+
+  @override
+  $ProjectTypographyRoleProfileCopyWith<$Res> get display;
+  @override
+  $ProjectTypographyRoleProfileCopyWith<$Res> get body;
+  @override
+  $ProjectTypographyRoleProfileCopyWith<$Res> get dialogue;
+  @override
+  $ProjectTypographyRoleProfileCopyWith<$Res> get numbers;
+}
+
+/// @nodoc
+class __$$ProjectTypographyProfileImplCopyWithImpl<$Res>
+    extends _$ProjectTypographyProfileCopyWithImpl<$Res,
+        _$ProjectTypographyProfileImpl>
+    implements _$$ProjectTypographyProfileImplCopyWith<$Res> {
+  __$$ProjectTypographyProfileImplCopyWithImpl(
+      _$ProjectTypographyProfileImpl _value,
+      $Res Function(_$ProjectTypographyProfileImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectTypographyProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? display = null,
+    Object? body = null,
+    Object? dialogue = null,
+    Object? numbers = null,
+  }) {
+    return _then(_$ProjectTypographyProfileImpl(
+      display: null == display
+          ? _value.display
+          : display // ignore: cast_nullable_to_non_nullable
+              as ProjectTypographyRoleProfile,
+      body: null == body
+          ? _value.body
+          : body // ignore: cast_nullable_to_non_nullable
+              as ProjectTypographyRoleProfile,
+      dialogue: null == dialogue
+          ? _value.dialogue
+          : dialogue // ignore: cast_nullable_to_non_nullable
+              as ProjectTypographyRoleProfile,
+      numbers: null == numbers
+          ? _value.numbers
+          : numbers // ignore: cast_nullable_to_non_nullable
+              as ProjectTypographyRoleProfile,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$ProjectTypographyProfileImpl implements _ProjectTypographyProfile {
+  const _$ProjectTypographyProfileImpl(
+      {this.display = const ProjectTypographyRoleProfile(),
+      this.body = const ProjectTypographyRoleProfile(),
+      this.dialogue = const ProjectTypographyRoleProfile(),
+      this.numbers = const ProjectTypographyRoleProfile()});
+
+  factory _$ProjectTypographyProfileImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectTypographyProfileImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final ProjectTypographyRoleProfile display;
+  @override
+  @JsonKey()
+  final ProjectTypographyRoleProfile body;
+  @override
+  @JsonKey()
+  final ProjectTypographyRoleProfile dialogue;
+  @override
+  @JsonKey()
+  final ProjectTypographyRoleProfile numbers;
+
+  @override
+  String toString() {
+    return 'ProjectTypographyProfile(display: $display, body: $body, dialogue: $dialogue, numbers: $numbers)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectTypographyProfileImpl &&
+            (identical(other.display, display) || other.display == display) &&
+            (identical(other.body, body) || other.body == body) &&
+            (identical(other.dialogue, dialogue) ||
+                other.dialogue == dialogue) &&
+            (identical(other.numbers, numbers) || other.numbers == numbers));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, display, body, dialogue, numbers);
+
+  /// Create a copy of ProjectTypographyProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectTypographyProfileImplCopyWith<_$ProjectTypographyProfileImpl>
+      get copyWith => __$$ProjectTypographyProfileImplCopyWithImpl<
+          _$ProjectTypographyProfileImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectTypographyProfileImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectTypographyProfile implements ProjectTypographyProfile {
+  const factory _ProjectTypographyProfile(
+          {final ProjectTypographyRoleProfile display,
+          final ProjectTypographyRoleProfile body,
+          final ProjectTypographyRoleProfile dialogue,
+          final ProjectTypographyRoleProfile numbers}) =
+      _$ProjectTypographyProfileImpl;
+
+  factory _ProjectTypographyProfile.fromJson(Map<String, dynamic> json) =
+      _$ProjectTypographyProfileImpl.fromJson;
+
+  @override
+  ProjectTypographyRoleProfile get display;
+  @override
+  ProjectTypographyRoleProfile get body;
+  @override
+  ProjectTypographyRoleProfile get dialogue;
+  @override
+  ProjectTypographyRoleProfile get numbers;
+
+  /// Create a copy of ProjectTypographyProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectTypographyProfileImplCopyWith<_$ProjectTypographyProfileImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 ProjectPresentationProfile _$ProjectPresentationProfileFromJson(
     Map<String, dynamic> json) {
   return _ProjectPresentationProfile.fromJson(json);
@@ -948,6 +1538,9 @@ mixin _$ProjectPresentationProfile {
   ProjectBrandingProfile get branding => throw _privateConstructorUsedError;
   @JsonKey(includeIfNull: false)
   ProjectIntroVideoProfile? get intro => throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
+  ProjectTypographyProfile? get typography =>
+      throw _privateConstructorUsedError;
 
   /// Serializes this ProjectPresentationProfile to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -969,10 +1562,12 @@ abstract class $ProjectPresentationProfileCopyWith<$Res> {
   $Res call(
       {int schemaVersion,
       ProjectBrandingProfile branding,
-      @JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro});
+      @JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,
+      @JsonKey(includeIfNull: false) ProjectTypographyProfile? typography});
 
   $ProjectBrandingProfileCopyWith<$Res> get branding;
   $ProjectIntroVideoProfileCopyWith<$Res>? get intro;
+  $ProjectTypographyProfileCopyWith<$Res>? get typography;
 }
 
 /// @nodoc
@@ -994,6 +1589,7 @@ class _$ProjectPresentationProfileCopyWithImpl<$Res,
     Object? schemaVersion = null,
     Object? branding = null,
     Object? intro = freezed,
+    Object? typography = freezed,
   }) {
     return _then(_value.copyWith(
       schemaVersion: null == schemaVersion
@@ -1008,6 +1604,10 @@ class _$ProjectPresentationProfileCopyWithImpl<$Res,
           ? _value.intro
           : intro // ignore: cast_nullable_to_non_nullable
               as ProjectIntroVideoProfile?,
+      typography: freezed == typography
+          ? _value.typography
+          : typography // ignore: cast_nullable_to_non_nullable
+              as ProjectTypographyProfile?,
     ) as $Val);
   }
 
@@ -1034,6 +1634,20 @@ class _$ProjectPresentationProfileCopyWithImpl<$Res,
       return _then(_value.copyWith(intro: value) as $Val);
     });
   }
+
+  /// Create a copy of ProjectPresentationProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ProjectTypographyProfileCopyWith<$Res>? get typography {
+    if (_value.typography == null) {
+      return null;
+    }
+
+    return $ProjectTypographyProfileCopyWith<$Res>(_value.typography!, (value) {
+      return _then(_value.copyWith(typography: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -1048,12 +1662,15 @@ abstract class _$$ProjectPresentationProfileImplCopyWith<$Res>
   $Res call(
       {int schemaVersion,
       ProjectBrandingProfile branding,
-      @JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro});
+      @JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,
+      @JsonKey(includeIfNull: false) ProjectTypographyProfile? typography});
 
   @override
   $ProjectBrandingProfileCopyWith<$Res> get branding;
   @override
   $ProjectIntroVideoProfileCopyWith<$Res>? get intro;
+  @override
+  $ProjectTypographyProfileCopyWith<$Res>? get typography;
 }
 
 /// @nodoc
@@ -1074,6 +1691,7 @@ class __$$ProjectPresentationProfileImplCopyWithImpl<$Res>
     Object? schemaVersion = null,
     Object? branding = null,
     Object? intro = freezed,
+    Object? typography = freezed,
   }) {
     return _then(_$ProjectPresentationProfileImpl(
       schemaVersion: null == schemaVersion
@@ -1088,6 +1706,10 @@ class __$$ProjectPresentationProfileImplCopyWithImpl<$Res>
           ? _value.intro
           : intro // ignore: cast_nullable_to_non_nullable
               as ProjectIntroVideoProfile?,
+      typography: freezed == typography
+          ? _value.typography
+          : typography // ignore: cast_nullable_to_non_nullable
+              as ProjectTypographyProfile?,
     ));
   }
 }
@@ -1099,7 +1721,8 @@ class _$ProjectPresentationProfileImpl extends _ProjectPresentationProfile {
   const _$ProjectPresentationProfileImpl(
       {this.schemaVersion = ProjectPresentationProfile.supportedSchemaVersion,
       this.branding = const ProjectBrandingProfile(),
-      @JsonKey(includeIfNull: false) this.intro})
+      @JsonKey(includeIfNull: false) this.intro,
+      @JsonKey(includeIfNull: false) this.typography})
       : super._();
 
   factory _$ProjectPresentationProfileImpl.fromJson(
@@ -1115,10 +1738,13 @@ class _$ProjectPresentationProfileImpl extends _ProjectPresentationProfile {
   @override
   @JsonKey(includeIfNull: false)
   final ProjectIntroVideoProfile? intro;
+  @override
+  @JsonKey(includeIfNull: false)
+  final ProjectTypographyProfile? typography;
 
   @override
   String toString() {
-    return 'ProjectPresentationProfile(schemaVersion: $schemaVersion, branding: $branding, intro: $intro)';
+    return 'ProjectPresentationProfile(schemaVersion: $schemaVersion, branding: $branding, intro: $intro, typography: $typography)';
   }
 
   @override
@@ -1130,12 +1756,15 @@ class _$ProjectPresentationProfileImpl extends _ProjectPresentationProfile {
                 other.schemaVersion == schemaVersion) &&
             (identical(other.branding, branding) ||
                 other.branding == branding) &&
-            (identical(other.intro, intro) || other.intro == intro));
+            (identical(other.intro, intro) || other.intro == intro) &&
+            (identical(other.typography, typography) ||
+                other.typography == typography));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, schemaVersion, branding, intro);
+  int get hashCode =>
+      Object.hash(runtimeType, schemaVersion, branding, intro, typography);
 
   /// Create a copy of ProjectPresentationProfile
   /// with the given fields replaced by the non-null parameter values.
@@ -1158,8 +1787,9 @@ abstract class _ProjectPresentationProfile extends ProjectPresentationProfile {
   const factory _ProjectPresentationProfile(
           {final int schemaVersion,
           final ProjectBrandingProfile branding,
+          @JsonKey(includeIfNull: false) final ProjectIntroVideoProfile? intro,
           @JsonKey(includeIfNull: false)
-          final ProjectIntroVideoProfile? intro}) =
+          final ProjectTypographyProfile? typography}) =
       _$ProjectPresentationProfileImpl;
   const _ProjectPresentationProfile._() : super._();
 
@@ -1173,6 +1803,9 @@ abstract class _ProjectPresentationProfile extends ProjectPresentationProfile {
   @override
   @JsonKey(includeIfNull: false)
   ProjectIntroVideoProfile? get intro;
+  @override
+  @JsonKey(includeIfNull: false)
+  ProjectTypographyProfile? get typography;
 
   /// Create a copy of ProjectPresentationProfile
   /// with the given fields replaced by the non-null parameter values.

@@ -92,16 +92,19 @@ final class GamePackagePresentation {
     this.schemaVersion = 1,
     this.branding = const GamePackageBranding(),
     this.intro,
+    this.typography,
   });
 
   final int schemaVersion;
   final GamePackageBranding branding;
   final GamePackageIntroVideo? intro;
+  final GamePackageTypography? typography;
 
   Map<String, Object?> toJson() => <String, Object?>{
         'schemaVersion': schemaVersion,
         'branding': branding.toJson(),
         if (intro != null) 'intro': intro!.toJson(),
+        if (typography != null) 'typography': typography!.toJson(),
       };
 }
 
@@ -147,6 +150,50 @@ final class GamePackageIntroVideo {
         'audioCodec': audioCodec,
         'reducedMotionBehavior': reducedMotionBehavior,
         'allowReplay': allowReplay,
+      };
+}
+
+final class GamePackageTypography {
+  const GamePackageTypography({
+    this.display = const GamePackageFontRole(),
+    this.body = const GamePackageFontRole(),
+    this.dialogue = const GamePackageFontRole(),
+    this.numbers = const GamePackageFontRole(
+      fallbackFamilies: <String>['monospace'],
+    ),
+  });
+
+  final GamePackageFontRole display;
+  final GamePackageFontRole body;
+  final GamePackageFontRole dialogue;
+  final GamePackageFontRole numbers;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'display': display.toJson(),
+        'body': body.toJson(),
+        'dialogue': dialogue.toJson(),
+        'numbers': numbers.toJson(),
+      };
+}
+
+final class GamePackageFontRole {
+  const GamePackageFontRole({
+    this.font,
+    this.family,
+    this.license,
+    this.fallbackFamilies = const <String>['sans-serif'],
+  });
+
+  final String? font;
+  final String? family;
+  final String? license;
+  final List<String> fallbackFamilies;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        if (font != null) 'font': font,
+        if (family != null) 'family': family,
+        if (license != null) 'license': license,
+        'fallbackFamilies': fallbackFamilies,
       };
 }
 

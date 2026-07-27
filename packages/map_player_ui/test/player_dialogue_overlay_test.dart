@@ -47,6 +47,23 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('dialogue text consumes the semantic dialogue role',
+      (tester) async {
+    await _pump(
+      tester,
+      snapshot: _lineSnapshot(),
+      typography: const PokeMapPlayerTypography(
+        dialogueFamily: 'Aube Dialogue',
+      ),
+      onCommand: (_) {},
+    );
+
+    expect(
+      tester.widget<Text>(find.text('Bienvenue à PokeMap.')).style?.fontFamily,
+      'Aube Dialogue',
+    );
+  });
 }
 
 Future<void> _pump(
@@ -54,10 +71,17 @@ Future<void> _pump(
   required DialoguePresentationSnapshot snapshot,
   required ValueChanged<DialoguePresentationCommand> onCommand,
   TextScaler textScaler = TextScaler.noScaling,
+  PokeMapPlayerTypography? typography,
 }) {
+  final theme = typography == null
+      ? PokeMapPlayerTheme.dark()
+      : PokeMapPlayerTheme.withTypography(
+          PokeMapPlayerTheme.dark(),
+          typography,
+        );
   return tester.pumpWidget(
     MaterialApp(
-      theme: PokeMapPlayerTheme.dark(),
+      theme: theme,
       home: MediaQuery(
         data: MediaQueryData(textScaler: textScaler),
         child: Scaffold(

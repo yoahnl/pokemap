@@ -201,6 +201,10 @@ final class GamePackageContentValidator {
       return extension == '.txt' || extension == '.md';
     }
     if (path.startsWith('presentation/')) {
+      if (path.startsWith('presentation/fonts/') &&
+          (extension == '.txt' || extension == '.md')) {
+        return true;
+      }
       return _imageExtensions.contains(extension) ||
           _audioExtensions.contains(extension) ||
           _fontExtensions.contains(extension) ||

@@ -119,7 +119,13 @@ class _BattleHud extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: PlayerSpacing.xs),
-                  Text(context.playerL10n.levelLabel(snapshot.level)),
+                  Text(
+                    context.playerL10n.levelLabel(snapshot.level),
+                    style: context.playerTypography.numbersStyle(
+                      Theme.of(context).textTheme.labelMedium ??
+                          const TextStyle(),
+                    ),
+                  ),
                 ],
               ),
               if (snapshot.statusLabel case final status?) ...<Widget>[
@@ -159,7 +165,9 @@ class _BattleHud extends StatelessWidget {
                   snapshot.currentHp,
                   snapshot.maxHp,
                 ),
-                style: Theme.of(context).textTheme.labelMedium,
+                style: context.playerTypography.numbersStyle(
+                  Theme.of(context).textTheme.labelMedium ?? const TextStyle(),
+                ),
               ),
             ],
           ),

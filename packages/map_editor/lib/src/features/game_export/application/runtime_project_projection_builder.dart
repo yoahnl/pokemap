@@ -21,11 +21,14 @@ final class RuntimeProjectProjection {
     this.introVideoPackagePath,
     this.introPosterPackagePath,
     this.introCaptionsPackagePath,
-  }) : payloadFiles = Map.unmodifiable(
+    Map<ProjectTypographyRole, RuntimeProjectedFontRole> typographyRoles =
+        const <ProjectTypographyRole, RuntimeProjectedFontRole>{},
+  })  : payloadFiles = Map.unmodifiable(
           payloadFiles.map(
             (path, bytes) => MapEntry(path, List<int>.unmodifiable(bytes)),
           ),
-        );
+        ),
+        typographyRoles = Map.unmodifiable(typographyRoles);
 
   final ProjectManifest project;
   final ProjectPresentationProfile presentation;
@@ -39,6 +42,19 @@ final class RuntimeProjectProjection {
   final String? introVideoPackagePath;
   final String? introPosterPackagePath;
   final String? introCaptionsPackagePath;
+  final Map<ProjectTypographyRole, RuntimeProjectedFontRole> typographyRoles;
+}
+
+final class RuntimeProjectedFontRole {
+  const RuntimeProjectedFontRole({
+    required this.profile,
+    required this.fontPackagePath,
+    required this.licensePackagePath,
+  });
+
+  final ProjectTypographyRoleProfile profile;
+  final String? fontPackagePath;
+  final String? licensePackagePath;
 }
 
 final class RuntimeProjectProjectionBuilder {
@@ -322,6 +338,25 @@ final class RuntimeProjectProjectionBuilder {
             intro!.captionsPath!,
             budget,
           );
+    final typographyRoles = <ProjectTypographyRole, RuntimeProjectedFontRole>{};
+    final typography = presentation.typography;
+    if (typography != null) {
+      for (final role in ProjectTypographyRole.values) {
+        final roleProfile = switch (role) {
+          ProjectTypographyRole.display => typography.display,
+          ProjectTypographyRole.body => typography.body,
+          ProjectTypographyRole.dialogue => typography.dialogue,
+          ProjectTypographyRole.numbers => typography.numbers,
+        };
+        typographyRoles[role] = await _addTypographyRole(
+          payload,
+          projectRoot,
+          role,
+          roleProfile,
+          budget,
+        );
+      }
+    }
 
     return RuntimeProjectProjection(
       project: projectedProject,
@@ -336,6 +371,7 @@ final class RuntimeProjectProjectionBuilder {
       introVideoPackagePath: introVideoPackagePath,
       introPosterPackagePath: introPosterPackagePath,
       introCaptionsPackagePath: introCaptionsPackagePath,
+      typographyRoles: typographyRoles,
     );
   }
 
@@ -402,6 +438,73 @@ final class RuntimeProjectProjectionBuilder {
     const packagePath = 'presentation/intro/captions.vtt';
     budget.addPayload(payload, packagePath, bytes);
     return packagePath;
+  }
+
+  Future<RuntimeProjectedFontRole> _addTypographyRole(
+    Map<String, List<int>> payload,
+    Directory root,
+    ProjectTypographyRole role,
+    ProjectTypographyRoleProfile profile,
+    _ProjectionBudget budget,
+  ) async {
+    final fontPath = profile.fontPath;
+    if (fontPath == null) {
+      return RuntimeProjectedFontRole(
+        profile: profile,
+        fontPackagePath: null,
+        licensePackagePath: null,
+      );
+    }
+    final licensePath = profile.licensePath!;
+    final fontFile = await _resolveAuthorFile(root, fontPath);
+    final fontBytes = await budget.readFile(fontFile, logicalPath: fontPath);
+    final extension = p.extension(fontPath).toLowerCase();
+    final isTtf = extension == '.ttf' &&
+        fontBytes.length >= 4 &&
+        (fontBytes[0] == 0 &&
+                fontBytes[1] == 1 &&
+                fontBytes[2] == 0 &&
+                fontBytes[3] == 0 ||
+            ascii.decode(fontBytes.sublist(0, 4), allowInvalid: true) ==
+                'true');
+    final isOtf = extension == '.otf' &&
+        fontBytes.length >= 4 &&
+        ascii.decode(fontBytes.sublist(0, 4), allowInvalid: true) == 'OTTO';
+    if (!isTtf && !isOtf) {
+      throw GamePackageExportException(
+        code: 'invalidTypographyFont',
+        path: fontPath,
+        message: 'Typography font bytes do not match TTF or OTF.',
+      );
+    }
+    final licenseFile = await _resolveAuthorFile(root, licensePath);
+    final licenseBytes = await budget.readFile(
+      licenseFile,
+      logicalPath: licensePath,
+      jsonLike: true,
+    );
+    try {
+      if (utf8.decode(licenseBytes, allowMalformed: false).trim().isEmpty) {
+        throw const FormatException();
+      }
+    } on FormatException {
+      throw GamePackageExportException(
+        code: 'invalidTypographyLicense',
+        path: licensePath,
+        message: 'Typography license must contain strict UTF-8 text.',
+      );
+    }
+    final roleName = role.name;
+    final fontPackagePath = 'presentation/fonts/$roleName$extension';
+    final licensePackagePath = 'presentation/fonts/$roleName-license.txt';
+    budget
+      ..addPayload(payload, fontPackagePath, fontBytes)
+      ..addPayload(payload, licensePackagePath, licenseBytes);
+    return RuntimeProjectedFontRole(
+      profile: profile,
+      fontPackagePath: fontPackagePath,
+      licensePackagePath: licensePackagePath,
+    );
   }
 
   Future<void> _requireDirectory(Directory directory) async {

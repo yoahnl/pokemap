@@ -63,6 +63,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   HubSaveProfileManager? _profileManager;
   HubSaveSelection? _saveSelection;
   HubLoadedTitlePresentation? _titlePresentation;
+  player_ui.PokeMapPlayerTypography _playerTypography =
+      const player_ui.PokeMapPlayerTypography();
   RuntimeTitleMusicController? _titleMusicController;
   StreamSubscription<RuntimePlayerSnapshot>? _titleMusicSubscription;
   bool _introComplete = true;
@@ -108,6 +110,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         manifest: launch.manifest,
         resolveFile: launch.assets.resolveFile,
       ).load(newGameIdentity: newGameIdentityPresentation);
+      final loadedTypography = await _loadTypography(titlePresentation);
       final intro = titlePresentation.intro;
       _reducedMotion = preferences.reducedMotion;
       _presentationVolume =
@@ -167,6 +170,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         _profileManager = profileManager;
         _saveSelection = saveSelection;
         _titlePresentation = titlePresentation;
+        _playerTypography = loadedTypography;
         _titleMusicController = titleMusicController;
         _titleMusicSubscription = titleMusicSubscription;
         _viewController =
@@ -184,6 +188,52 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       if (!mounted) return;
       setState(() => _failure = failure);
     }
+  }
+
+  Future<player_ui.PokeMapPlayerTypography> _loadTypography(
+    HubLoadedTitlePresentation presentation,
+  ) async {
+    final typography = presentation.typography;
+    if (typography == null) {
+      return const player_ui.PokeMapPlayerTypography();
+    }
+    final loaded = await const RuntimeProjectTypographyLoader().load(
+      <ProjectTypographyRole, RuntimeProjectFontRequest>{
+        for (final entry in typography.roles.entries)
+          entry.key: RuntimeProjectFontRequest(
+            file: entry.value.file,
+            family: entry.value.family,
+            fallbackFamilies: entry.value.fallbackFamilies,
+          ),
+      },
+    );
+    RuntimeLoadedFontRole role(
+      ProjectTypographyRole role,
+      List<String> fallback,
+    ) =>
+        loaded.roles[role] ??
+        RuntimeLoadedFontRole(
+          registeredFamily: null,
+          fallbackFamilies: fallback,
+        );
+
+    final display =
+        role(ProjectTypographyRole.display, const <String>['sans-serif']);
+    final body = role(ProjectTypographyRole.body, const <String>['sans-serif']);
+    final dialogue =
+        role(ProjectTypographyRole.dialogue, const <String>['sans-serif']);
+    final numbers =
+        role(ProjectTypographyRole.numbers, const <String>['monospace']);
+    return player_ui.PokeMapPlayerTypography(
+      displayFamily: display.registeredFamily,
+      displayFallback: display.fallbackFamilies,
+      bodyFamily: body.registeredFamily,
+      bodyFallback: body.fallbackFamilies,
+      dialogueFamily: dialogue.registeredFamily,
+      dialogueFallback: dialogue.fallbackFamilies,
+      numbersFamily: numbers.registeredFamily,
+      numbersFallback: numbers.fallbackFamilies,
+    );
   }
 
   Future<player_ui.PlayerNewGameIdentityPresentation>
@@ -395,82 +445,95 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     }
     final profileManager = _profileManager;
     final saveSelection = _saveSelection;
+    final personalizedTheme = player_ui.PokeMapPlayerTheme.withTypography(
+      Theme.of(context),
+      _playerTypography,
+    );
     final intro = titlePresentation.intro;
     if (!_introComplete && intro != null) {
-      return Scaffold(
-        body: HubIntroVideoPlayer(
-          intro: intro,
-          reducedMotion: _reducedMotion,
-          volume: _presentationVolume,
-          onFinished: _finishIntro,
+      return Theme(
+        data: personalizedTheme,
+        child: Scaffold(
+          body: HubIntroVideoPlayer(
+            intro: intro,
+            reducedMotion: _reducedMotion,
+            volume: _presentationVolume,
+            onFinished: _finishIntro,
+          ),
         ),
       );
     }
     if (_managingSaves && profileManager != null && saveSelection != null) {
-      return HubSaveProfilesScreen(
-        manager: profileManager,
-        initialSelection: saveSelection,
-        onSelected: (selection) {
-          setState(() {
-            _saveSelection = selection;
-            _managingSaves = false;
-          });
-        },
-        onClose: () => setState(() => _managingSaves = false),
+      return Theme(
+        data: personalizedTheme,
+        child: HubSaveProfilesScreen(
+          manager: profileManager,
+          initialSelection: saveSelection,
+          onSelected: (selection) {
+            setState(() {
+              _saveSelection = selection;
+              _managingSaves = false;
+            });
+          },
+          onClose: () => setState(() => _managingSaves = false),
+        ),
       );
     }
-    return PopScope<Object?>(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) unawaited(_handleSystemBack());
-      },
-      child: StreamBuilder<RuntimePlayerSnapshot>(
-        stream: coordinator.snapshots,
-        initialData: coordinator.snapshot,
-        builder: (context, asyncSnapshot) => Stack(
-          fit: StackFit.expand,
-          children: <Widget>[
-            player_ui.PokeMapPlayerSessionView(
-              key: const ValueKey<String>('pokemap-runtime-player-view'),
-              controller: viewController,
-              titlePresentation: titlePresentation.title,
-              payloadForAction: _payloadForAction,
-              gameplayInputRoute: _sessions?.handleInput,
-              gameplayInputAuthority: _mountedGame?.inputAuthorityListenable,
-              dialoguePresentation:
-                  _mountedGame?.dialoguePresentationListenable,
-              onDialogueCommand:
-                  _mountedGame?.dispatchDialoguePresentationCommand,
-              gameSceneBuilder: (_) {
-                final game = _mountedGame;
-                return game == null
-                    ? const SizedBox.expand(
-                        key: ValueKey<String>(
-                          'runtime-game-awaiting-mount',
-                        ),
-                      )
-                    : GameWidget(
-                        key: ObjectKey(game),
-                        game: game,
-                        autofocus: false,
-                      );
-              },
-            ),
-            if ((asyncSnapshot.data ?? coordinator.snapshot).phase ==
-                    RuntimePlayerPhase.title &&
-                (asyncSnapshot.data ?? coordinator.snapshot).pauseSection ==
-                    null)
-              Positioned(
-                top: 16,
-                right: 16,
-                child: FilledButton.icon(
-                  key: const ValueKey<String>('open-save-profiles'),
-                  onPressed: () => setState(() => _managingSaves = true),
-                  icon: const Icon(Icons.manage_accounts),
-                  label: Text(HubSaveProfilesStrings.of(context).open),
-                ),
+    return Theme(
+      data: personalizedTheme,
+      child: PopScope<Object?>(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) unawaited(_handleSystemBack());
+        },
+        child: StreamBuilder<RuntimePlayerSnapshot>(
+          stream: coordinator.snapshots,
+          initialData: coordinator.snapshot,
+          builder: (context, asyncSnapshot) => Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              player_ui.PokeMapPlayerSessionView(
+                key: const ValueKey<String>('pokemap-runtime-player-view'),
+                controller: viewController,
+                titlePresentation: titlePresentation.title,
+                payloadForAction: _payloadForAction,
+                gameplayInputRoute: _sessions?.handleInput,
+                gameplayInputAuthority: _mountedGame?.inputAuthorityListenable,
+                dialoguePresentation:
+                    _mountedGame?.dialoguePresentationListenable,
+                onDialogueCommand:
+                    _mountedGame?.dispatchDialoguePresentationCommand,
+                gameSceneBuilder: (_) {
+                  final game = _mountedGame;
+                  return game == null
+                      ? const SizedBox.expand(
+                          key: ValueKey<String>(
+                            'runtime-game-awaiting-mount',
+                          ),
+                        )
+                      : GameWidget(
+                          key: ObjectKey(game),
+                          game: game,
+                          autofocus: false,
+                        );
+                },
               ),
-          ],
+              if ((asyncSnapshot.data ?? coordinator.snapshot).phase ==
+                      RuntimePlayerPhase.title &&
+                  (asyncSnapshot.data ?? coordinator.snapshot).pauseSection ==
+                      null)
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: FilledButton.icon(
+                    key: const ValueKey<String>('open-save-profiles'),
+                    onPressed: () => setState(() => _managingSaves = true),
+                    icon: const Icon(Icons.manage_accounts),
+                    label: Text(HubSaveProfilesStrings.of(context).open),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

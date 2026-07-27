@@ -99,13 +99,32 @@ void main() {
             'reducedMotionBehavior': 'poster',
             'allowReplay': true,
           },
+          'typography': <String, Object?>{
+            'display': <String, Object?>{
+              'font': 'presentation/fonts/display.ttf',
+              'family': 'Aube Display',
+              'license': 'presentation/fonts/display-license.txt',
+              'fallbackFamilies': <String>['sans-serif'],
+            },
+            'body': <String, Object?>{
+              'fallbackFamilies': <String>['sans-serif'],
+            },
+            'dialogue': <String, Object?>{
+              'fallbackFamilies': <String>['sans-serif'],
+            },
+            'numbers': <String, Object?>{
+              'fallbackFamilies': <String>['monospace'],
+            },
+          },
         };
       final content = json['content']! as Map<String, Object?>;
       final projectFile =
           (content['files']! as List<Object?>).single as Map<String, Object?>;
       content
-        ..['fileCount'] = 5
+        ..['fileCount'] = 7
         ..['files'] = <Object?>[
+          _emptyFile('presentation/fonts/display-license.txt'),
+          _emptyFile('presentation/fonts/display.ttf'),
           _emptyFile('presentation/icon.png'),
           _emptyFile('presentation/intro/captions.vtt'),
           _emptyFile('presentation/intro/poster.png'),
@@ -119,6 +138,14 @@ void main() {
       expect(manifest.presentation?.schemaVersion, 1);
       expect(manifest.branding?.icon, 'presentation/icon.png');
       expect(manifest.presentation?.intro?.videoCodec, 'h264');
+      expect(
+        manifest.presentation?.typography?.display.family,
+        'Aube Display',
+      );
+      expect(
+        manifest.presentation?.typography?.numbers.fallbackFamilies,
+        <String>['monospace'],
+      );
       expect(manifest.usesLegacyBranding, isFalse);
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
     });

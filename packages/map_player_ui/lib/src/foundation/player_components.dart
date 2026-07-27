@@ -127,7 +127,16 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
       children: <Widget>[
         Icon(widget.icon),
         const SizedBox(width: PlayerSpacing.sm),
-        Flexible(child: Text(widget.label, overflow: TextOverflow.ellipsis)),
+        Flexible(
+          child: Text(
+            widget.label,
+            overflow: TextOverflow.ellipsis,
+            style: context.playerTypography.bodyStyle(
+              Theme.of(context).textTheme.labelLarge ??
+                  DefaultTextStyle.of(context).style,
+            ),
+          ),
+        ),
         if (widget.trailing != null) ...<Widget>[
           const SizedBox(width: PlayerSpacing.sm),
           widget.trailing!,

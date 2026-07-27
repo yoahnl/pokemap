@@ -1,6 +1,15 @@
 library map_runtime;
 
-export 'package:map_core/map_core.dart' show PlayerPronounSet;
+export 'package:map_core/map_core.dart'
+    show PlayerPronounSet, ProjectTypographyRole;
+export 'src/player/runtime_project_typography_loader.dart'
+    show
+        FlutterRuntimeFontRegistrar,
+        RuntimeFontRegistrar,
+        RuntimeLoadedFontRole,
+        RuntimeLoadedTypography,
+        RuntimeProjectFontRequest,
+        RuntimeProjectTypographyLoader;
 export 'src/player/runtime_title_music_controller.dart'
     show RuntimeTitleMusicController;
 export 'src/player/runtime_intro_sequence_controller.dart'

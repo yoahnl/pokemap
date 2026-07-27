@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:pub_semver/pub_semver.dart';
 
@@ -145,6 +146,26 @@ final class GamePackageExportService {
                   reducedMotionBehavior:
                       projection.presentation.intro!.reducedMotionBehavior,
                   allowReplay: projection.presentation.intro!.allowReplay,
+                ),
+          typography: projection.presentation.typography == null
+              ? null
+              : GamePackageTypography(
+                  display: _packageFontRole(
+                    projection,
+                    ProjectTypographyRole.display,
+                  ),
+                  body: _packageFontRole(
+                    projection,
+                    ProjectTypographyRole.body,
+                  ),
+                  dialogue: _packageFontRole(
+                    projection,
+                    ProjectTypographyRole.dialogue,
+                  ),
+                  numbers: _packageFontRole(
+                    projection,
+                    ProjectTypographyRole.numbers,
+                  ),
                 ),
         ),
         content: emptyContent,
@@ -366,6 +387,19 @@ final class GamePackageExportService {
   static Uri? _uri(String? source) {
     if (source == null || source.trim().isEmpty) return null;
     return Uri.parse(source.trim());
+  }
+
+  static GamePackageFontRole _packageFontRole(
+    RuntimeProjectProjection projection,
+    ProjectTypographyRole role,
+  ) {
+    final projected = projection.typographyRoles[role]!;
+    return GamePackageFontRole(
+      font: projected.fontPackagePath,
+      family: projected.profile.family,
+      license: projected.licensePackagePath,
+      fallbackFamilies: projected.profile.fallbackFamilies,
+    );
   }
 
   static String _suggestedFileName(String title, String version) {

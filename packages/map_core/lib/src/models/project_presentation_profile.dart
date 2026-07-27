@@ -18,6 +18,8 @@ enum ProjectPresentationDiagnosticSeverity {
   error,
 }
 
+enum ProjectTypographyRole { display, body, dialogue, numbers }
+
 @freezed
 class ProjectPresentationDiagnostic with _$ProjectPresentationDiagnostic {
   const factory ProjectPresentationDiagnostic({
@@ -68,6 +70,39 @@ class ProjectIntroVideoProfile with _$ProjectIntroVideoProfile {
 }
 
 @Freezed(fromJson: true, toJson: true)
+class ProjectTypographyRoleProfile with _$ProjectTypographyRoleProfile {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectTypographyRoleProfile({
+    @JsonKey(includeIfNull: false) String? fontPath,
+    @JsonKey(includeIfNull: false) String? family,
+    @JsonKey(includeIfNull: false) String? licensePath,
+    @Default(false) bool redistributable,
+    @Default(<String>['sans-serif']) List<String> fallbackFamilies,
+    @Default(<String>[]) List<String> glyphCoverage,
+  }) = _ProjectTypographyRoleProfile;
+
+  factory ProjectTypographyRoleProfile.fromJson(Map<String, dynamic> json) =>
+      _$ProjectTypographyRoleProfileFromJson(json);
+}
+
+@Freezed(fromJson: true, toJson: true)
+class ProjectTypographyProfile with _$ProjectTypographyProfile {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectTypographyProfile({
+    @Default(ProjectTypographyRoleProfile())
+    ProjectTypographyRoleProfile display,
+    @Default(ProjectTypographyRoleProfile()) ProjectTypographyRoleProfile body,
+    @Default(ProjectTypographyRoleProfile())
+    ProjectTypographyRoleProfile dialogue,
+    @Default(ProjectTypographyRoleProfile())
+    ProjectTypographyRoleProfile numbers,
+  }) = _ProjectTypographyProfile;
+
+  factory ProjectTypographyProfile.fromJson(Map<String, dynamic> json) =>
+      _$ProjectTypographyProfileFromJson(json);
+}
+
+@Freezed(fromJson: true, toJson: true)
 class ProjectPresentationProfile with _$ProjectPresentationProfile {
   const ProjectPresentationProfile._();
 
@@ -77,6 +112,7 @@ class ProjectPresentationProfile with _$ProjectPresentationProfile {
     int schemaVersion,
     @Default(ProjectBrandingProfile()) ProjectBrandingProfile branding,
     @JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,
+    @JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,
   }) = _ProjectPresentationProfile;
 
   factory ProjectPresentationProfile.fromJson(Map<String, dynamic> json) =>
@@ -88,6 +124,7 @@ class ProjectPresentationProfile with _$ProjectPresentationProfile {
       <ProjectPresentationCategory>{
         if (_hasBranding(branding)) ProjectPresentationCategory.branding,
         if (intro != null) ProjectPresentationCategory.intro,
+        if (typography != null) ProjectPresentationCategory.typography,
       };
 }
 
@@ -101,6 +138,13 @@ const Set<String> supportedProjectTitleLayoutVariants = <String>{
   'standard',
   'centered',
   'cinematic',
+};
+
+const Set<String> requiredProjectFontGlyphCoverage = <String>{
+  'latin',
+  'latinExtended',
+  'digits',
+  'punctuation',
 };
 
 List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
@@ -167,6 +211,7 @@ List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
     );
   }
   _validateIntroVideo(profile.intro, diagnostics);
+  _validateTypography(profile.typography, diagnostics);
   return List<ProjectPresentationDiagnostic>.unmodifiable(diagnostics);
 }
 
@@ -297,6 +342,96 @@ void _validateIntroVideo(
         message: 'Add WebVTT captions for spoken or meaningful audio.',
       ),
     );
+  }
+}
+
+void _validateTypography(
+  ProjectTypographyProfile? typography,
+  List<ProjectPresentationDiagnostic> diagnostics,
+) {
+  if (typography == null) return;
+  final roles = <String, ProjectTypographyRoleProfile>{
+    'display': typography.display,
+    'body': typography.body,
+    'dialogue': typography.dialogue,
+    'numbers': typography.numbers,
+  };
+  for (final entry in roles.entries) {
+    final roleName = entry.key;
+    final role = entry.value;
+    void error(String code, String field, String message) {
+      diagnostics.add(
+        ProjectPresentationDiagnostic(
+          code: code,
+          category: ProjectPresentationCategory.typography,
+          severity: ProjectPresentationDiagnosticSeverity.error,
+          path: '\$.presentation.typography.$roleName.$field',
+          message: message,
+        ),
+      );
+    }
+
+    if (role.fallbackFamilies.isEmpty ||
+        role.fallbackFamilies.any((family) => family.trim().isEmpty)) {
+      error(
+        'typographyFallbackRequired',
+        'fallbackFamilies',
+        'Choose at least one explicit system fallback.',
+      );
+    }
+    final fontPath = role.fontPath;
+    if (fontPath == null) continue;
+    if (!_isSafeProjectRelativePath(fontPath)) {
+      error(
+        'presentationAssetPathUnsafe',
+        'fontPath',
+        'Choose a font located inside the project.',
+      );
+    }
+    if (!const <String>['.ttf', '.otf'].any(fontPath.toLowerCase().endsWith)) {
+      error(
+        'typographyFormatUnsupported',
+        'fontPath',
+        'Embedded fonts must use TTF or OTF.',
+      );
+    }
+    if (role.family == null || role.family!.trim().isEmpty) {
+      error(
+        'typographyFamilyRequired',
+        'family',
+        'The embedded font family name is required.',
+      );
+    }
+    final licensePath = role.licensePath;
+    if (licensePath == null || licensePath.trim().isEmpty) {
+      error(
+        'typographyLicenseRequired',
+        'licensePath',
+        'Attach the redistribution license before export.',
+      );
+    } else if (!_isSafeProjectRelativePath(licensePath)) {
+      error(
+        'presentationAssetPathUnsafe',
+        'licensePath',
+        'Choose a license located inside the project.',
+      );
+    }
+    if (!role.redistributable) {
+      error(
+        'typographyRedistributionRequired',
+        'redistributable',
+        'Confirm that this font may be redistributed with the game.',
+      );
+    }
+    if (!role.glyphCoverage.toSet().containsAll(
+          requiredProjectFontGlyphCoverage,
+        )) {
+      error(
+        'typographyGlyphCoverageIncomplete',
+        'glyphCoverage',
+        'The font must cover Latin, extended Latin, digits, and punctuation.',
+      );
+    }
   }
 }
 

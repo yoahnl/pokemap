@@ -161,7 +161,10 @@ class PlayerTitleScreen extends StatelessWidget {
                             Text(
                               data.gameTitle,
                               textAlign: textAlignment,
-                              style: Theme.of(context).textTheme.displaySmall,
+                              style: context.playerTypography.displayStyle(
+                                Theme.of(context).textTheme.displaySmall ??
+                                    const TextStyle(),
+                              ),
                             ),
                             const SizedBox(height: PlayerSpacing.xs),
                             Text(
@@ -174,7 +177,10 @@ class PlayerTitleScreen extends StatelessWidget {
                               Text(
                                 description,
                                 textAlign: textAlignment,
-                                style: Theme.of(context).textTheme.bodyLarge,
+                                style: context.playerTypography.bodyStyle(
+                                  Theme.of(context).textTheme.bodyLarge ??
+                                      const TextStyle(),
+                                ),
                               ),
                             ],
                             const SizedBox(height: PlayerSpacing.xl),

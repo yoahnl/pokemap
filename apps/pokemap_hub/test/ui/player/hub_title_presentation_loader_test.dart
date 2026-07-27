@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:pokemap_hub/src/ui/player/hub_title_presentation_loader.dart';
@@ -111,6 +112,36 @@ void main() {
     expect(loaded.title.logo, isNull);
     expect(loaded.unavailableAssets, contains('presentation/intro/video.mp4'));
   });
+
+  test('resolves installed typography per role without blocking fallbacks',
+      () async {
+    final root = await Directory.systemTemp.createTemp('hub-typography-');
+    addTearDown(() => root.delete(recursive: true));
+    final display =
+        await File('${root.path}/display.ttf').writeAsBytes(<int>[0, 1, 0, 0]);
+
+    final loaded = await HubTitlePresentationLoader(
+      manifest: _manifest(
+        const GamePackageBranding(),
+        typography: _typography,
+      ),
+      resolveFile: (path) async {
+        if (path == 'presentation/fonts/display.ttf') return display;
+        throw const FileSystemException('missing');
+      },
+    ).load();
+
+    expect(
+      loaded.typography?.roles[ProjectTypographyRole.display]?.file?.path,
+      display.path,
+    );
+    expect(
+      loaded
+          .typography?.roles[ProjectTypographyRole.dialogue]?.fallbackFamilies,
+      <String>['serif'],
+    );
+    expect(loaded.unavailableAssets, isEmpty);
+  });
 }
 
 const _intro = GamePackageIntroVideo(
@@ -128,9 +159,22 @@ const _intro = GamePackageIntroVideo(
   allowReplay: true,
 );
 
+const _typography = GamePackageTypography(
+  display: GamePackageFontRole(
+    font: 'presentation/fonts/display.ttf',
+    family: 'Aube Display',
+    license: 'presentation/fonts/display-license.txt',
+    fallbackFamilies: <String>['sans-serif'],
+  ),
+  dialogue: GamePackageFontRole(
+    fallbackFamilies: <String>['serif'],
+  ),
+);
+
 GamePackageManifest _manifest(
   GamePackageBranding branding, {
   GamePackageIntroVideo? intro,
+  GamePackageTypography? typography,
 }) =>
     GamePackageManifest(
       packageFormat: 1,
@@ -151,12 +195,13 @@ GamePackageManifest _manifest(
         defaultLocale: 'fr',
         supported: const <String>['fr'],
       ),
-      branding: intro == null ? branding : null,
-      presentation: intro == null
+      branding: intro == null && typography == null ? branding : null,
+      presentation: intro == null && typography == null
           ? null
           : GamePackagePresentation(
               branding: branding,
               intro: intro,
+              typography: typography,
             ),
       content: GamePackageContent(
         fileCount: 0,

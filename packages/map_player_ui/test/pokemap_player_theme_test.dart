@@ -33,6 +33,37 @@ void main() {
     expect(scaler.scale(20), 35);
   });
 
+  test('semantic typography keeps role-specific families and fallbacks', () {
+    const typography = PokeMapPlayerTypography(
+      displayFamily: 'Aube Display',
+      displayFallback: <String>['sans-serif'],
+      bodyFamily: 'Aube Body',
+      bodyFallback: <String>['serif'],
+      dialogueFamily: 'Aube Dialogue',
+      dialogueFallback: <String>['sans-serif'],
+      numbersFamily: 'Aube Numbers',
+      numbersFallback: <String>['monospace'],
+    );
+    final theme = PokeMapPlayerTheme.withTypography(
+      PokeMapPlayerTheme.light(),
+      typography,
+    );
+
+    expect(theme.extension<PokeMapPlayerTypography>(), typography);
+    expect(
+      typography.displayStyle(const TextStyle()).fontFamily,
+      'Aube Display',
+    );
+    expect(
+      typography.dialogueStyle(const TextStyle()).fontFamilyFallback,
+      <String>['sans-serif'],
+    );
+    expect(
+      typography.numbersStyle(const TextStyle()).fontFamily,
+      'Aube Numbers',
+    );
+  });
+
   testWidgets('player action has a 48px target and visible keyboard focus',
       (tester) async {
     await tester.pumpWidget(
