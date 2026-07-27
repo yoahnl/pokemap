@@ -6,9 +6,8 @@ import '../../../ui/design_system/pokemap_button.dart';
 import '../../../ui/design_system/pokemap_card.dart';
 import '../../../ui/design_system/pokemap_panel.dart';
 import '../../../ui/design_system/pokemap_search_field.dart';
-import '../../../ui/design_system/pokemap_semantic_color_preview.dart';
-import '../application/personalization_preview_projection.dart';
 import '../application/project_presentation_presets.dart';
+import 'personalization_runtime_preview.dart';
 
 typedef PersonalizationCategoryBuilder = Widget Function(
   BuildContext context,
@@ -25,6 +24,8 @@ class PersonalizationHubShell extends StatelessWidget {
     this.categoryBuilder,
     this.baselineProfile,
     this.onProfileChanged,
+    this.projectName = 'Votre jeu',
+    this.projectRootPath = '',
   });
 
   final ProjectPresentationProfile profile;
@@ -33,6 +34,8 @@ class PersonalizationHubShell extends StatelessWidget {
   final PersonalizationCategoryBuilder? categoryBuilder;
   final ProjectPresentationProfile? baselineProfile;
   final ValueChanged<ProjectPresentationProfile>? onProfileChanged;
+  final String projectName;
+  final String projectRootPath;
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +55,8 @@ class PersonalizationHubShell extends StatelessWidget {
           baselineProfile: baselineProfile,
           onProfileChanged: onProfileChanged,
           fillAvailableHeight: constraints.maxWidth >= 760,
+          projectName: projectName,
+          projectRootPath: projectRootPath,
         );
         return Padding(
           padding: const EdgeInsets.all(16),
@@ -196,6 +201,8 @@ class _CategoryDetail extends StatelessWidget {
     required this.baselineProfile,
     required this.onProfileChanged,
     required this.fillAvailableHeight,
+    required this.projectName,
+    required this.projectRootPath,
   });
 
   final ProjectPresentationProfile profile;
@@ -205,6 +212,8 @@ class _CategoryDetail extends StatelessWidget {
   final ProjectPresentationProfile? baselineProfile;
   final ValueChanged<ProjectPresentationProfile>? onProfileChanged;
   final bool fillAvailableHeight;
+  final String projectName;
+  final String projectRootPath;
 
   @override
   Widget build(BuildContext context) {
@@ -247,7 +256,12 @@ class _CategoryDetail extends StatelessWidget {
       categoryBuilder?.call(context, category) ??
           Text(_emptyCategoryMessage(category)),
       const SizedBox(height: 16),
-      _MultiSurfacePreview(profile: profile),
+      PersonalizationRuntimePreview(
+        profile: profile,
+        baselineProfile: baselineProfile,
+        projectName: projectName,
+        projectRootPath: projectRootPath,
+      ),
     ];
     return PokeMapPanel(
       header: Padding(
@@ -374,66 +388,6 @@ class _PersonalizationActions extends StatelessWidget {
     );
   }
 }
-
-class _MultiSurfacePreview extends StatelessWidget {
-  const _MultiSurfacePreview({required this.profile});
-
-  final ProjectPresentationProfile profile;
-
-  @override
-  Widget build(BuildContext context) {
-    final projection = PersonalizationPreviewProjection(profile);
-    return PokeMapPanel(
-      header: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: <Widget>[
-            const Expanded(
-              child: Text(
-                'Preview multi-écrans',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-            PokeMapBadge(
-              label: projection.titleLayoutVariant,
-              variant: PokeMapBadgeVariant.info,
-            ),
-          ],
-        ),
-      ),
-      child: Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        children: <Widget>[
-          for (final surface in PersonalizationPreviewSurface.values)
-            Builder(
-              builder: (context) {
-                final preview = projection.surface(surface);
-                return PokeMapSemanticColorPreview(
-                  key: ValueKey<String>(
-                    'personalization-preview-${surface.name}',
-                  ),
-                  label: _previewLabel(surface),
-                  backgroundHex: preview.backgroundHex,
-                  foregroundHex: preview.textHex,
-                  sample: preview.fontFamily,
-                );
-              },
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-String _previewLabel(PersonalizationPreviewSurface surface) =>
-    switch (surface) {
-      PersonalizationPreviewSurface.title => 'Titre',
-      PersonalizationPreviewSurface.dialogue => 'Dialogue',
-      PersonalizationPreviewSurface.menu => 'Menu',
-      PersonalizationPreviewSurface.overworldHud => 'HUD exploration',
-      PersonalizationPreviewSurface.battleHud => 'HUD combat',
-    };
 
 String _categoryLabel(ProjectPresentationCategory category) =>
     switch (category) {

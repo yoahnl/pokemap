@@ -891,6 +891,8 @@ class _PersonalizationStudioWorkspaceState
               ),
               profile: profile,
               baselineProfile: baselineProfile,
+              projectName: project.name,
+              projectRootPath: projectRootPath,
               selectedCategory: _selectedCategory,
               onCategorySelected: (category) {
                 setState(() => _selectedCategory = category);
