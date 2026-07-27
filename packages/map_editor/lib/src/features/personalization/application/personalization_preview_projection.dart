@@ -9,6 +9,41 @@ enum PersonalizationPreviewSurface {
   battleHud,
 }
 
+enum PersonalizationPreviewViewport {
+  landscape,
+  portrait,
+  square;
+
+  double get aspectRatio => switch (this) {
+        PersonalizationPreviewViewport.landscape => 16 / 9,
+        PersonalizationPreviewViewport.portrait => 9 / 16,
+        PersonalizationPreviewViewport.square => 1,
+      };
+}
+
+final class PersonalizationPreviewSimulation {
+  const PersonalizationPreviewSimulation({
+    this.viewport = PersonalizationPreviewViewport.landscape,
+    this.textScale = 1,
+    this.reducedMotion = false,
+  });
+
+  final PersonalizationPreviewViewport viewport;
+  final double textScale;
+  final bool reducedMotion;
+
+  PersonalizationPreviewSimulation copyWith({
+    PersonalizationPreviewViewport? viewport,
+    double? textScale,
+    bool? reducedMotion,
+  }) =>
+      PersonalizationPreviewSimulation(
+        viewport: viewport ?? this.viewport,
+        textScale: textScale ?? this.textScale,
+        reducedMotion: reducedMotion ?? this.reducedMotion,
+      );
+}
+
 final class PersonalizationPreviewSurfaceProjection {
   const PersonalizationPreviewSurfaceProjection({
     required this.surface,

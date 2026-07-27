@@ -205,6 +205,72 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('PST-044 simulates viewport text scale and reduced motion',
+      (tester) async {
+    await tester.pumpWidget(
+      _app(
+        const PersonalizationRuntimePreview(
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          profile: ProjectPresentationProfile(
+            intro: ProjectIntroVideoProfile(
+              videoPath: 'assets/presentation/intro/intro.mp4',
+              posterPath: 'assets/presentation/intro/poster.png',
+              durationMilliseconds: 12500,
+              width: 1920,
+              height: 1080,
+              bitrateKbps: 2400,
+              sizeBytes: 5000000,
+              videoCodec: 'h264',
+              reducedMotionBehavior: 'skip',
+            ),
+            theme: safeProjectSemanticTheme,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>(
+          'personalization-preview-viewport-portrait',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'personalization-preview-viewport-frame-portrait',
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-text-scale-150'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Texte 150 %'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-reduced-motion'),
+      ),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('personalization-preview-intro')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Mouvement réduit actif'), findsOneWidget);
+    expect(
+      find.text('Intro ignorée avec les animations réduites'),
+      findsOneWidget,
+    );
+  });
 }
 
 Widget _app(Widget child) => MaterialApp(

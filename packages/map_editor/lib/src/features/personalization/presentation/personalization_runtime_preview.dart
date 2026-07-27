@@ -37,6 +37,8 @@ class PersonalizationRuntimePreview extends StatefulWidget {
 class _PersonalizationRuntimePreviewState
     extends State<PersonalizationRuntimePreview> {
   PersonalizationPreviewSurface _surface = PersonalizationPreviewSurface.title;
+  PersonalizationPreviewSimulation _simulation =
+      const PersonalizationPreviewSimulation();
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +60,18 @@ class _PersonalizationRuntimePreviewState
               label: surfaceProjection.fontFamily,
               variant: PokeMapBadgeVariant.info,
             ),
+            const SizedBox(width: 8),
+            PokeMapBadge(
+              label: 'Texte ${(_simulation.textScale * 100).round()} %',
+              variant: PokeMapBadgeVariant.info,
+            ),
+            if (_simulation.reducedMotion) ...<Widget>[
+              const SizedBox(width: 8),
+              const PokeMapBadge(
+                label: 'Mouvement réduit actif',
+                variant: PokeMapBadgeVariant.warning,
+              ),
+            ],
           ],
         ),
       ),
@@ -82,44 +96,171 @@ class _PersonalizationRuntimePreviewState
             ],
           ),
           const SizedBox(height: 12),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 160),
-            child: switch (_surface) {
-              PersonalizationPreviewSurface.intro => _IntroRuntimePreview(
-                  profile: widget.profile.intro,
-                  projectRootPath: widget.projectRootPath,
-                  theme: widget.profile.theme ?? safeProjectSemanticTheme,
-                ),
-              PersonalizationPreviewSurface.title =>
-                ProjectBrandingTitlePreview(
-                  key: const ValueKey<String>(
-                    'personalization-title-composition',
+          _PreviewSimulationControls(
+            simulation: _simulation,
+            onChanged: (value) => setState(() => _simulation = value),
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final maxWidth = switch (_simulation.viewport) {
+                PersonalizationPreviewViewport.landscape =>
+                  constraints.maxWidth,
+                PersonalizationPreviewViewport.portrait =>
+                  constraints.maxWidth.clamp(0, 320).toDouble(),
+                PersonalizationPreviewViewport.square =>
+                  constraints.maxWidth.clamp(0, 480).toDouble(),
+              };
+              return Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxWidth),
+                  child: MediaQuery(
+                    data: MediaQuery.of(context).copyWith(
+                      textScaler: TextScaler.linear(_simulation.textScale),
+                    ),
+                    child: KeyedSubtree(
+                      key: ValueKey<String>(
+                        'personalization-preview-viewport-frame-'
+                        '${_simulation.viewport.name}',
+                      ),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 160),
+                        child: _buildSurfacePreview(
+                          surface: _surface,
+                          projection: surfaceProjection,
+                        ),
+                      ),
+                    ),
                   ),
-                  projectName: widget.projectName,
-                  projectRootPath: widget.projectRootPath,
-                  branding: widget.profile.branding,
-                  theme: widget.profile.theme ?? safeProjectSemanticTheme,
-                  typography: widget.profile.typography,
                 ),
-              PersonalizationPreviewSurface.dialogue => _DialogueRuntimePreview(
-                  projection: surfaceProjection,
-                  theme: widget.profile.theme ?? safeProjectSemanticTheme,
-                ),
-              PersonalizationPreviewSurface.menu => _MenuRuntimePreview(
-                  projection: surfaceProjection,
-                  theme: widget.profile.theme ?? safeProjectSemanticTheme,
-                ),
-              PersonalizationPreviewSurface.overworldHud =>
-                _OverworldHudRuntimePreview(
-                  projection: surfaceProjection,
-                  theme: widget.profile.theme ?? safeProjectSemanticTheme,
-                ),
-              PersonalizationPreviewSurface.battleHud =>
-                _BattleHudRuntimePreview(
-                  projection: surfaceProjection,
-                  theme: widget.profile.theme ?? safeProjectSemanticTheme,
-                ),
+              );
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSurfacePreview({
+    required PersonalizationPreviewSurface surface,
+    required PersonalizationPreviewSurfaceProjection projection,
+  }) {
+    final theme = widget.profile.theme ?? safeProjectSemanticTheme;
+    final aspectRatio = _simulation.viewport.aspectRatio;
+    return switch (surface) {
+      PersonalizationPreviewSurface.intro => _IntroRuntimePreview(
+          profile: widget.profile.intro,
+          projectRootPath: widget.projectRootPath,
+          theme: theme,
+          aspectRatio: aspectRatio,
+          simulateReducedMotion: _simulation.reducedMotion,
+        ),
+      PersonalizationPreviewSurface.title => ProjectBrandingTitlePreview(
+          key: const ValueKey<String>('personalization-title-composition'),
+          projectName: widget.projectName,
+          projectRootPath: widget.projectRootPath,
+          branding: widget.profile.branding,
+          theme: theme,
+          typography: widget.profile.typography,
+          aspectRatio: aspectRatio,
+        ),
+      PersonalizationPreviewSurface.dialogue => _DialogueRuntimePreview(
+          projection: projection,
+          theme: theme,
+          aspectRatio: aspectRatio,
+        ),
+      PersonalizationPreviewSurface.menu => _MenuRuntimePreview(
+          projection: projection,
+          theme: theme,
+          aspectRatio: aspectRatio,
+        ),
+      PersonalizationPreviewSurface.overworldHud => _OverworldHudRuntimePreview(
+          projection: projection,
+          theme: theme,
+          aspectRatio: aspectRatio,
+        ),
+      PersonalizationPreviewSurface.battleHud => _BattleHudRuntimePreview(
+          projection: projection,
+          theme: theme,
+          aspectRatio: aspectRatio,
+        ),
+    };
+  }
+}
+
+class _PreviewSimulationControls extends StatelessWidget {
+  const _PreviewSimulationControls({
+    required this.simulation,
+    required this.onChanged,
+  });
+
+  final PersonalizationPreviewSimulation simulation;
+  final ValueChanged<PersonalizationPreviewSimulation> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    const textScales = <(String, double)>[
+      ('100', 1),
+      ('125', 1.25),
+      ('150', 1.5),
+      ('200', 2),
+    ];
+    return PokeMapCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          const Text(
+            'Simulation locale',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: <Widget>[
+              for (final viewport in PersonalizationPreviewViewport.values)
+                PokeMapButton(
+                  key: ValueKey<String>(
+                    'personalization-preview-viewport-${viewport.name}',
+                  ),
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  isSelected: simulation.viewport == viewport,
+                  onPressed: () => onChanged(
+                    simulation.copyWith(viewport: viewport),
+                  ),
+                  leading: Icon(_viewportIcon(viewport)),
+                  child: Text(_viewportLabel(viewport)),
+                ),
+              for (final entry in textScales)
+                PokeMapButton(
+                  key: ValueKey<String>(
+                    'personalization-preview-text-scale-${entry.$1}',
+                  ),
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  isSelected: simulation.textScale == entry.$2,
+                  onPressed: () => onChanged(
+                    simulation.copyWith(textScale: entry.$2),
+                  ),
+                  child: Text('${entry.$1} %'),
+                ),
+              PokeMapButton(
+                key: const ValueKey<String>(
+                  'personalization-preview-reduced-motion',
+                ),
+                size: PokeMapButtonSize.small,
+                variant: PokeMapButtonVariant.secondary,
+                isSelected: simulation.reducedMotion,
+                onPressed: () => onChanged(
+                  simulation.copyWith(
+                    reducedMotion: !simulation.reducedMotion,
+                  ),
+                ),
+                leading: const Icon(Icons.motion_photos_off_outlined),
+                child: const Text('Mouvement réduit'),
+              ),
+            ],
           ),
         ],
       ),
@@ -131,10 +272,12 @@ class _DialogueRuntimePreview extends StatelessWidget {
   const _DialogueRuntimePreview({
     required this.projection,
     required this.theme,
+    required this.aspectRatio,
   });
 
   final PersonalizationPreviewSurfaceProjection projection;
   final ProjectSemanticThemeProfile theme;
+  final double aspectRatio;
 
   @override
   Widget build(BuildContext context) {
@@ -155,6 +298,7 @@ class _DialogueRuntimePreview extends StatelessWidget {
     return _RuntimeFrame(
       key: const ValueKey<String>('personalization-dialogue-composition'),
       background: background,
+      aspectRatio: aspectRatio,
       child: Stack(
         children: <Widget>[
           Positioned(
@@ -243,10 +387,12 @@ class _MenuRuntimePreview extends StatelessWidget {
   const _MenuRuntimePreview({
     required this.projection,
     required this.theme,
+    required this.aspectRatio,
   });
 
   final PersonalizationPreviewSurfaceProjection projection;
   final ProjectSemanticThemeProfile theme;
+  final double aspectRatio;
 
   @override
   Widget build(BuildContext context) {
@@ -276,6 +422,7 @@ class _MenuRuntimePreview extends StatelessWidget {
     return _RuntimeFrame(
       key: const ValueKey<String>('personalization-menu-composition'),
       background: background,
+      aspectRatio: aspectRatio,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -363,10 +510,12 @@ class _OverworldHudRuntimePreview extends StatelessWidget {
   const _OverworldHudRuntimePreview({
     required this.projection,
     required this.theme,
+    required this.aspectRatio,
   });
 
   final PersonalizationPreviewSurfaceProjection projection;
   final ProjectSemanticThemeProfile theme;
+  final double aspectRatio;
 
   @override
   Widget build(BuildContext context) {
@@ -389,6 +538,7 @@ class _OverworldHudRuntimePreview extends StatelessWidget {
         'personalization-overworld-hud-composition',
       ),
       background: world,
+      aspectRatio: aspectRatio,
       child: Stack(
         children: <Widget>[
           Positioned.fill(
@@ -489,10 +639,12 @@ class _BattleHudRuntimePreview extends StatelessWidget {
   const _BattleHudRuntimePreview({
     required this.projection,
     required this.theme,
+    required this.aspectRatio,
   });
 
   final PersonalizationPreviewSurfaceProjection projection;
   final ProjectSemanticThemeProfile theme;
+  final double aspectRatio;
 
   @override
   Widget build(BuildContext context) {
@@ -514,6 +666,7 @@ class _BattleHudRuntimePreview extends StatelessWidget {
     return _RuntimeFrame(
       key: const ValueKey<String>('personalization-battle-hud-composition'),
       background: arena,
+      aspectRatio: aspectRatio,
       child: Stack(
         children: <Widget>[
           Positioned(
@@ -671,11 +824,15 @@ class _IntroRuntimePreview extends StatelessWidget {
     required this.profile,
     required this.projectRootPath,
     required this.theme,
+    required this.aspectRatio,
+    required this.simulateReducedMotion,
   });
 
   final ProjectIntroVideoProfile? profile;
   final String projectRootPath;
   final ProjectSemanticThemeProfile theme;
+  final double aspectRatio;
+  final bool simulateReducedMotion;
 
   @override
   Widget build(BuildContext context) {
@@ -688,6 +845,7 @@ class _IntroRuntimePreview extends StatelessWidget {
       return _RuntimeFrame(
         key: const ValueKey<String>('personalization-intro-composition'),
         background: background,
+        aspectRatio: aspectRatio,
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -707,10 +865,12 @@ class _IntroRuntimePreview extends StatelessWidget {
       );
     }
 
-    final isSkipped = intro.reducedMotionBehavior == 'skip';
+    final isSkipped =
+        simulateReducedMotion && intro.reducedMotionBehavior == 'skip';
     return _RuntimeFrame(
       key: const ValueKey<String>('personalization-intro-composition'),
       background: background,
+      aspectRatio: aspectRatio,
       child: Stack(
         fit: StackFit.expand,
         children: <Widget>[
@@ -834,16 +994,18 @@ class _RuntimeFrame extends StatelessWidget {
   const _RuntimeFrame({
     super.key,
     required this.background,
+    required this.aspectRatio,
     required this.child,
   });
 
   final Color background;
+  final double aspectRatio;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: 16 / 9,
+      aspectRatio: aspectRatio,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: DecoratedBox(
@@ -865,6 +1027,22 @@ Color _previewColor(String value, Color fallback) {
     0xff000000 | int.parse(normalized.substring(1), radix: 16),
   );
 }
+
+String _viewportLabel(PersonalizationPreviewViewport viewport) =>
+    switch (viewport) {
+      PersonalizationPreviewViewport.landscape => 'Paysage',
+      PersonalizationPreviewViewport.portrait => 'Portrait',
+      PersonalizationPreviewViewport.square => 'Carré',
+    };
+
+IconData _viewportIcon(PersonalizationPreviewViewport viewport) =>
+    switch (viewport) {
+      PersonalizationPreviewViewport.landscape =>
+        Icons.stay_current_landscape_outlined,
+      PersonalizationPreviewViewport.portrait =>
+        Icons.stay_current_portrait_outlined,
+      PersonalizationPreviewViewport.square => Icons.crop_square_outlined,
+    };
 
 String _surfaceLabel(PersonalizationPreviewSurface surface) =>
     switch (surface) {

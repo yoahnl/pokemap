@@ -18,6 +18,7 @@ class ProjectBrandingTitlePreview extends StatelessWidget {
     required this.branding,
     required this.theme,
     this.typography,
+    this.aspectRatio = 16 / 9,
   });
 
   final String projectName;
@@ -25,6 +26,7 @@ class ProjectBrandingTitlePreview extends StatelessWidget {
   final ProjectBrandingProfile branding;
   final ProjectSemanticThemeProfile theme;
   final ProjectTypographyProfile? typography;
+  final double aspectRatio;
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +60,7 @@ class ProjectBrandingTitlePreview extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           AspectRatio(
-            aspectRatio: 16 / 9,
+            aspectRatio: aspectRatio,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: DecoratedBox(
