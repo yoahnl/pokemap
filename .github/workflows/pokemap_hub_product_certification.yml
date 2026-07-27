@@ -20,6 +20,7 @@ permissions:
   contents: read
 
 env:
+  FLUTTER_VERSION: 3.46.0-0.3.pre
   FLUTTER_REVISION: 677d472756f83c14371dd8cc624387065f3d32a7
 
 jobs:
@@ -32,8 +33,10 @@ jobs:
         run: |
           git init "$RUNNER_TEMP/flutter"
           git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
-          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin "$FLUTTER_REVISION"
-          git -C "$RUNNER_TEMP/flutter" checkout --detach FETCH_HEAD
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
       - name: Hub tests and analysis
         working-directory: apps/pokemap_hub
@@ -61,8 +64,10 @@ jobs:
         run: |
           git init "$RUNNER_TEMP/flutter"
           git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
-          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin "$FLUTTER_REVISION"
-          git -C "$RUNNER_TEMP/flutter" checkout --detach FETCH_HEAD
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
       - name: Import ephemeral Developer ID identity
         env:
@@ -87,21 +92,10 @@ jobs:
           flutter pub get
           flutter build macos --release
           APP_PATH="build/macos/Build/Products/Release/PokeMap Hub.app"
-          find "$APP_PATH/Contents/Frameworks" -type f \
-            \( -name '*.dylib' -o -perm -111 \) -print0 |
-            while IFS= read -r -d '' BINARY; do
-              codesign --force --options runtime --timestamp \
-                --sign "$DEVELOPER_ID_APPLICATION" "$BINARY"
-            done
-          find "$APP_PATH/Contents/Frameworks" -type d -name '*.framework' -print0 |
-            while IFS= read -r -d '' FRAMEWORK; do
-              codesign --force --options runtime --timestamp \
-                --sign "$DEVELOPER_ID_APPLICATION" "$FRAMEWORK"
-            done
-          codesign --force --options runtime --timestamp \
-            --entitlements macos/Runner/Release.entitlements \
-            --sign "$DEVELOPER_ID_APPLICATION" "$APP_PATH"
-          codesign --verify --deep --strict --verbose=4 "$APP_PATH"
+          tool/release/sign_macos_app.sh \
+            --app "$APP_PATH" \
+            --identity "$DEVELOPER_ID_APPLICATION" \
+            --entitlements macos/Runner/Release.entitlements
           codesign -d --entitlements :- "$APP_PATH" > "$RUNNER_TEMP/release-entitlements.plist"
           test "$(plutil -extract com.apple.security.app-sandbox raw -o - "$RUNNER_TEMP/release-entitlements.plist")" = "true"
           test "$(plutil -extract com.apple.security.files.user-selected.read-only raw -o - "$RUNNER_TEMP/release-entitlements.plist")" = "true"
