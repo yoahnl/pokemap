@@ -398,6 +398,111 @@ void main() {
     expect(projectFile.readAsStringSync(), durableJson);
   });
 
+  testWidgets('theme category edits a semantic token through a guided dialog',
+      (tester) async {
+    final root =
+        Directory.systemTemp.createTempSync('personalization-studio-theme-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final project = buildShellChromeProject(name: 'Theme Studio').copyWith(
+      presentation: const ProjectPresentationProfile(
+        theme: safeProjectSemanticTheme,
+      ),
+    );
+    final projectFile = File('${root.path}/project.json');
+    final durableJson =
+        const JsonEncoder.withIndent('  ').convert(project.toJson());
+    projectFile.writeAsStringSync(durableJson, flush: true);
+    final gateway = _MemoryProjectGateway(project);
+
+    final container = await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1200, 1400),
+      overrides: [
+        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
+          ({
+            required String projectPath,
+            required ProjectManifest initialDocument,
+          }) {
+            return PersonalizationStudioSessionController(
+              session: NarrativeDocumentSession<ProjectManifest>(
+                documentId: 'personalization-studio-theme',
+                initialDocument: initialDocument,
+                gateway: gateway,
+                recoveryStore: _MemoryProjectRecoveryStore(),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+    await container
+        .read(editorNotifierProvider.notifier)
+        .initializePersonalizationStudioSession();
+    await tester.pump();
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-category-theme'),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(ProjectSemanticThemeEditor), findsOneWidget);
+    final editPrimary =
+        find.byKey(const ValueKey<String>('theme-edit-primary'));
+    await tester.ensureVisible(editPrimary);
+    await tester.tap(editPrimary);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-theme-token-dialog'),
+      ),
+      findsOneWidget,
+    );
+    final tokenInput = find.byKey(
+      const ValueKey<String>('personalization-theme-token-input'),
+    );
+    await tester.enterText(tokenInput, '#GG');
+    await tester.tap(find.text('Appliquer'));
+    await tester.pump();
+
+    expect(
+      find.textContaining('six chiffres hexadécimaux'),
+      findsOneWidget,
+    );
+    expect(
+      container
+          .read(editorNotifierProvider)
+          .project
+          ?.effectivePresentation
+          .theme
+          ?.primary,
+      safeProjectSemanticTheme.primary,
+    );
+
+    await tester.enterText(tokenInput, '#123456');
+    await tester.tap(find.text('Appliquer'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 20));
+
+    expect(
+      container
+          .read(editorNotifierProvider)
+          .project
+          ?.effectivePresentation
+          .theme
+          ?.primary,
+      '#123456',
+    );
+    expect(projectFile.readAsStringSync(), durableJson);
+  });
+
   testWidgets('shows a dedicated state when no project is open',
       (tester) async {
     await pumpEditorCanvasHostHarness(

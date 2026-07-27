@@ -18,6 +18,8 @@ import '../application/project_font_import_service.dart';
 import '../application/project_intro_video_import_service.dart';
 import 'personalization_hub_shell.dart';
 import 'project_intro_video_editor.dart';
+import 'project_semantic_theme_editor.dart';
+import 'project_theme_token_dialog.dart';
 import 'project_typography_editor.dart';
 
 /// Adapts the current editor project to the reusable Personalization Hub.
@@ -151,6 +153,26 @@ class _PersonalizationStudioWorkspaceState
         setState(() => _isImportingAsset = false);
       }
     }
+  }
+
+  Future<void> _editThemeToken({
+    required BuildContext context,
+    required String token,
+    required ProjectPresentationProfile profile,
+    required EditorNotifier notifier,
+  }) async {
+    final theme = profile.theme ?? safeProjectSemanticTheme;
+    final currentValue = _themeTokenValue(theme, token);
+    final value = await showProjectThemeTokenDialog(
+      context: context,
+      tokenLabel: _themeTokenName(token),
+      currentValue: currentValue,
+    );
+    if (!mounted || value == null || value == currentValue) return;
+    await notifier.applyPersonalizationStudioProfile(
+      profile.copyWith(theme: _replaceThemeToken(theme, token, value)),
+      label: 'Modifier la couleur ${_themeTokenName(token)}',
+    );
   }
 
   Future<void> _importIntroVideo({
@@ -343,6 +365,33 @@ class _PersonalizationStudioWorkspaceState
             ),
           ),
         ],
+      );
+    }
+    if (category == ProjectPresentationCategory.theme) {
+      final theme = profile.theme ?? safeProjectSemanticTheme;
+      return IgnorePointer(
+        ignoring: !canEdit,
+        child: ProjectSemanticThemeEditor(
+          profile: theme,
+          onEditToken: (token) {
+            unawaited(
+              _editThemeToken(
+                context: context,
+                token: token,
+                profile: profile,
+                notifier: notifier,
+              ),
+            );
+          },
+          onUseSafeFallback: () {
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(theme: safeProjectSemanticTheme),
+                label: 'Appliquer la palette sûre',
+              ),
+            );
+          },
+        ),
       );
     }
     return Text(
@@ -579,4 +628,70 @@ String _typographyRoleName(ProjectTypographyRole role) => switch (role) {
       ProjectTypographyRole.body => 'Texte courant',
       ProjectTypographyRole.dialogue => 'Dialogues',
       ProjectTypographyRole.numbers => 'Nombres',
+    };
+
+String _themeTokenValue(ProjectSemanticThemeProfile profile, String token) =>
+    switch (token) {
+      'primary' => profile.primary,
+      'onPrimary' => profile.onPrimary,
+      'background' => profile.background,
+      'surface' => profile.surface,
+      'surfaceElevated' => profile.surfaceElevated,
+      'textPrimary' => profile.textPrimary,
+      'textSecondary' => profile.textSecondary,
+      'outline' => profile.outline,
+      'success' => profile.success,
+      'warning' => profile.warning,
+      'danger' => profile.danger,
+      'titleSurface' => profile.titleSurface,
+      'dialogueSurface' => profile.dialogueSurface,
+      'menuSurface' => profile.menuSurface,
+      'overworldHudSurface' => profile.overworldHudSurface,
+      'battleHudSurface' => profile.battleHudSurface,
+      _ => throw ArgumentError.value(token, 'token', 'Unknown theme token'),
+    };
+
+ProjectSemanticThemeProfile _replaceThemeToken(
+  ProjectSemanticThemeProfile profile,
+  String token,
+  String value,
+) =>
+    switch (token) {
+      'primary' => profile.copyWith(primary: value),
+      'onPrimary' => profile.copyWith(onPrimary: value),
+      'background' => profile.copyWith(background: value),
+      'surface' => profile.copyWith(surface: value),
+      'surfaceElevated' => profile.copyWith(surfaceElevated: value),
+      'textPrimary' => profile.copyWith(textPrimary: value),
+      'textSecondary' => profile.copyWith(textSecondary: value),
+      'outline' => profile.copyWith(outline: value),
+      'success' => profile.copyWith(success: value),
+      'warning' => profile.copyWith(warning: value),
+      'danger' => profile.copyWith(danger: value),
+      'titleSurface' => profile.copyWith(titleSurface: value),
+      'dialogueSurface' => profile.copyWith(dialogueSurface: value),
+      'menuSurface' => profile.copyWith(menuSurface: value),
+      'overworldHudSurface' => profile.copyWith(overworldHudSurface: value),
+      'battleHudSurface' => profile.copyWith(battleHudSurface: value),
+      _ => throw ArgumentError.value(token, 'token', 'Unknown theme token'),
+    };
+
+String _themeTokenName(String token) => switch (token) {
+      'primary' => 'Action principale',
+      'onPrimary' => 'Texte sur action',
+      'background' => 'Fond global',
+      'surface' => 'Surface',
+      'surfaceElevated' => 'Surface élevée',
+      'textPrimary' => 'Texte principal',
+      'textSecondary' => 'Texte secondaire',
+      'outline' => 'Contours',
+      'success' => 'Succès',
+      'warning' => 'Avertissement',
+      'danger' => 'Danger',
+      'titleSurface' => 'Fond du titre',
+      'dialogueSurface' => 'Fond des dialogues',
+      'menuSurface' => 'Fond des menus',
+      'overworldHudSurface' => 'Fond du HUD exploration',
+      'battleHudSurface' => 'Fond du HUD combat',
+      _ => token,
     };
