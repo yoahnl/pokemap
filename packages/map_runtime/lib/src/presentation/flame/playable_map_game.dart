@@ -200,6 +200,7 @@ typedef RuntimeDialogueSessionLoader = Future<DialogueSession?> Function(
 typedef RuntimePostBattleOverlayMounter = Future<void> Function(
   PostBattleProgressionOverlayComponent overlay,
 );
+typedef DefeatRecoveryCheckpointEmitter = Future<void> Function();
 
 class PlayableMapGame extends FlameGame with KeyboardEvents {
   PlayableMapGame({
@@ -225,6 +226,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     @visibleForTesting this.beforeBattleHandoffPreparation,
     @visibleForTesting this.beforeLoadCommitCompletion,
     GameCompletionRequestEmitter? gameCompletionEmitter,
+    this.defeatRecoveryCheckpointEmitter,
+    @visibleForTesting this.defeatRecoveryCapsLoader,
     this.runtimeLocale = 'fr-FR',
     String? initialPlayerName,
     String? initialPlayerAvatarCharacterId,
@@ -388,6 +391,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final RuntimePostBattleOverlayMounter? postBattleOverlayMounter;
   @visibleForTesting
   final VoidCallback? beforePostBattleStateCommit;
+  final DefeatRecoveryCheckpointEmitter? defeatRecoveryCheckpointEmitter;
+  @visibleForTesting
+  final PlayerServiceRecoveryCapsLoader? defeatRecoveryCapsLoader;
   final ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider;
   final bool enableActorContactShadows;
   final bool enableStaticPlacedElementShadows;
@@ -1535,6 +1541,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       false; // Lock pour empêcher spam clavier pendant résolution
   bool _isPostBattleFlowRunning = false;
   bool _isPostBattleCommitCompleted = false;
+  Future<void> _defeatRecoveryFuture = Future<void>.value();
   int _postBattleFlowGeneration = 0;
   Completer<void>? _postBattleFlowCompleter;
   Future<void> _postBattleCompletionFuture = Future<void>.value();
@@ -2561,6 +2568,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @visibleForTesting
   Future<void> debugWaitForPostBattleCompletion() =>
       _postBattleCompletionFuture;
+
+  @visibleForTesting
+  Future<void> debugWaitForDefeatRecovery() => _defeatRecoveryFuture;
 
   @visibleForTesting
   void debugApplyBattleOutcomeForTest({
@@ -8158,11 +8168,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
                   activeBattleContext.playerPartySlotIndicesByLineupIndex,
             ),
           );
-        } else {
-          _applyWhiteoutLiteAfterPlayerDefeat(
-            activeBattleContext,
-            activePlayerLineupIndex: outcome.finalState.player.lineupIndex,
-          );
         }
       }
 
@@ -8208,6 +8213,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (postBattleCompleter != null && !postBattleCompleter.isCompleted) {
       postBattleCompleter.complete();
     }
+    if (!postBattleFailed &&
+        outcome.isDefeat &&
+        !hostedByNarrativeScene &&
+        activeBattleContext != null) {
+      _startDefeatRecovery(
+        activeBattleContext,
+        activePlayerLineupIndex: outcome.finalState.player.lineupIndex,
+      );
+    }
 
     // NOTE: NE PAS clear _triggeredTrainerBattles ici!
     // Le lock doit rester actif tant que le joueur est dans la LoS du trainer.
@@ -8231,6 +8245,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     MapEntity? directPostBattleDialogueNpc;
     DialogueRef? directPostBattleDialogueRef;
     if (!postBattleFailed &&
+        !outcome.isDefeat &&
         scenarioOwner == null &&
         sceneBattleOutcomeResult == null &&
         activeBattleContext?.request is TrainerBattleStartRequest) {
@@ -8432,54 +8447,165 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  void _applyWhiteoutLiteAfterPlayerDefeat(
-    RuntimeActiveBattleContext activeBattleContext, {
+  void _startDefeatRecovery(
+    RuntimeActiveBattleContext battleContext, {
     required int activePlayerLineupIndex,
   }) {
-    // Le whiteout-lite reste volontairement plus petit que BE10 :
-    // - le moteur battle sait maintenant switcher et porter une vraie réserve ;
-    // - mais cette reprise overworld ne cherche toujours pas à ouvrir un vrai
-    //   centre Pokémon, ni une politique riche de défaite ;
-    // - on garde donc un simple filet de sécurité post-combat.
-    //
-    // Le lot 15 reste donc volontairement borné :
-    // 1. on garde le write-back lot 10 fidèle aux PV réellement sortis du combat ;
-    // 2. puis on évite seulement le softlock total avec une reprise minimale ;
-    // 3. on n'ouvre ni centre Pokémon, ni économie, ni pénalité complexe.
-    _gameState = applyRuntimeDefeatRecoveryToGameState(
-      gameState: _gameState,
-      playerPartyIndex: activeBattleContext.playerPartyIndex,
+    _clearPressedMovementControls();
+    _defeatRecoveryFuture = _applyDefeatRecovery(
+      battleContext,
       activePlayerLineupIndex: activePlayerLineupIndex,
-      playerPartySlotIndicesByLineupIndex:
-          activeBattleContext.playerPartySlotIndicesByLineupIndex,
     );
-
-    final respawn = _resolveWhiteoutLiteRespawn(activeBattleContext);
-    _world = _buildSafeWorldState(
-      map: _bundle.map,
-      project: _bundle.manifest,
-      preferredPos: respawn.pos,
-      fallbackFacing: respawn.facing,
-      tileWidth: _bundle.manifest.settings.tileWidth,
-      tileHeight: _bundle.manifest.settings.tileHeight,
-    );
-
-    // On reste volontairement sur la carte courante :
-    // - aucun "last heal center" persistant n'existe encore dans l'architecture ;
-    // - aucun warp multi-map spécial whiteout n'est authoré ;
-    // - réutiliser le spawn joueur déjà défini sur la map courante est donc le
-    //   point de reprise le plus honnête disponible aujourd'hui.
-    _player.syncState(_world.player, snapToGrid: true);
-    _syncGameStateFromWorld(mapIdOverride: _activeMapId);
-    _configureCameraViewport();
-    _syncCameraToPlayer();
-    _preloadActiveMapConnections();
-    _prewarmActiveMapBattleData();
-    _pruneLoadedMapsToActiveNeighborhood();
-    _resetTriggerEnterOccupancy();
-    _refreshWorldNpcPresence();
-    _showNotification('Défaite... retour au point de reprise');
+    unawaited(_defeatRecoveryFuture);
   }
+
+  Future<void> _applyDefeatRecovery(
+    RuntimeActiveBattleContext battleContext, {
+    required int activePlayerLineupIndex,
+  }) async {
+    final recoveryLock = _inputLocks.acquire(
+      owner: RuntimeInputLockOwner.checkpoint,
+      surface: RuntimeInputSurface.transition,
+    );
+    try {
+      final fallbackPoint = await _resolveDefeatFallbackPoint(battleContext);
+      final capsLoader = defeatRecoveryCapsLoader;
+      final caps = capsLoader == null
+          ? await loadRuntimePlayerServiceRecoveryCaps(
+              gameState: _gameState,
+              projectRootDirectory: _bundle.projectRootDirectory,
+              pokemonConfig: _bundle.manifest.pokemon,
+            )
+          : await capsLoader(_gameState);
+      final recovery = applyPlayerDefeatRecovery(
+        state: _gameState,
+        fallbackPoint: fallbackPoint,
+        maxHpByPartyIndex: caps.maxHpByPartyIndex,
+        maxPpByPartyIndex: caps.maxPpByPartyIndex,
+      );
+      final sourceMapId = _activeMapId;
+      if (recovery.recoveryPoint.mapId == sourceMapId) {
+        _gameState = recovery.state;
+        _world = _buildSafeWorldState(
+          map: _bundle.map,
+          project: _bundle.manifest,
+          preferredPos: recovery.recoveryPoint.position,
+          fallbackFacing: recovery.recoveryPoint.facing.asDirection,
+          tileWidth: _bundle.manifest.settings.tileWidth,
+          tileHeight: _bundle.manifest.settings.tileHeight,
+        );
+        _player.syncState(_world.player, snapToGrid: true);
+        _syncGameStateFromWorld(mapIdOverride: _activeMapId);
+        _configureCameraViewport();
+        _syncCameraToPlayer();
+        _preloadActiveMapConnections();
+        _prewarmActiveMapBattleData();
+        _pruneLoadedMapsToActiveNeighborhood();
+        _resetTriggerEnterOccupancy();
+        _refreshWorldNpcPresence();
+        _setFlowPhase(_RuntimeFlowPhase.overworld);
+      } else {
+        _gameState = recovery.state.copyWith(
+          currentMapId: sourceMapId,
+          playerPosition: _world.player.pos,
+          playerFacing: _world.player.facing.asFacing,
+        );
+        _setFlowPhase(_RuntimeFlowPhase.overworld);
+        await _handleWarp(
+          TriggeredWarp(
+            warpId: 'runtime:whiteout-recovery',
+            targetMapId: recovery.recoveryPoint.mapId,
+            targetPos: recovery.recoveryPoint.position,
+            triggerMode: MapWarpTriggerMode.onEnter,
+          ),
+        );
+        _world = _world.withPlayer(
+          _gridAlignedPlayerState(
+            position: _world.player.pos,
+            facing: recovery.recoveryPoint.facing.asDirection,
+            movementMode: MovementMode.walk,
+          ),
+        );
+        _player.syncState(_world.player, snapToGrid: true);
+        _syncGameStateFromWorld(mapIdOverride: _activeMapId);
+      }
+      _showNotification(_defeatRecoveryMessage(recovery.moneyLost));
+      await defeatRecoveryCheckpointEmitter?.call();
+    } catch (error, stackTrace) {
+      debugPrint('[whiteout] recovery failed: $error\n$stackTrace');
+      _gameState = applyRuntimeDefeatRecoveryToGameState(
+        gameState: _gameState,
+        playerPartyIndex: battleContext.playerPartyIndex,
+        activePlayerLineupIndex: activePlayerLineupIndex,
+        playerPartySlotIndicesByLineupIndex:
+            battleContext.playerPartySlotIndicesByLineupIndex,
+      );
+      final respawn = _resolveWhiteoutLiteRespawn(battleContext);
+      _world = _buildSafeWorldState(
+        map: _bundle.map,
+        project: _bundle.manifest,
+        preferredPos: respawn.pos,
+        fallbackFacing: respawn.facing,
+        tileWidth: _bundle.manifest.settings.tileWidth,
+        tileHeight: _bundle.manifest.settings.tileHeight,
+      );
+      _player.syncState(_world.player, snapToGrid: true);
+      _syncGameStateFromWorld(mapIdOverride: _activeMapId);
+      _setFlowPhase(_RuntimeFlowPhase.overworld);
+      _showNotification(_defeatRecoveryFailureMessage);
+      await defeatRecoveryCheckpointEmitter?.call();
+    } finally {
+      _inputLocks.release(
+        owner: RuntimeInputLockOwner.checkpoint,
+        token: recoveryLock,
+      );
+      _syncDerivedInputLocks();
+    }
+  }
+
+  Future<PlayerRecoveryPoint> _resolveDefeatFallbackPoint(
+    RuntimeActiveBattleContext battleContext,
+  ) async {
+    final recorded = PlayerRecoveryPoint.tryRead(_gameState);
+    if (recorded != null) return recorded;
+    try {
+      final configuredMapId = _bundle.manifest.newGame.startMapId.trim();
+      final fallbackBundle =
+          configuredMapId.isEmpty || configuredMapId == _activeMapId
+              ? _bundle
+              : await _loadRuntimeMapBundleCached(configuredMapId);
+      final spawn = resolveInitialPlayerSpawn(fallbackBundle.map);
+      return PlayerRecoveryPoint(
+        mapId: fallbackBundle.map.id,
+        position: spawn.pos,
+        facing: spawn.facing.asFacing,
+      );
+    } catch (_) {
+      final respawn = _resolveWhiteoutLiteRespawn(battleContext);
+      return PlayerRecoveryPoint(
+        mapId: _activeMapId,
+        position: respawn.pos,
+        facing: respawn.facing.asFacing,
+      );
+    }
+  }
+
+  String _defeatRecoveryMessage(int moneyLost) {
+    final french = runtimeLocale.toLowerCase().startsWith('fr');
+    if (moneyLost <= 0) {
+      return french
+          ? 'Défaite… retour au Centre Pokémon.'
+          : 'Defeat… returning to the Pokémon Center.';
+    }
+    return french
+        ? 'Défaite… retour au Centre Pokémon. $moneyLost ₽ perdus.'
+        : 'Defeat… returning to the Pokémon Center. Lost $moneyLost ₽.';
+  }
+
+  String get _defeatRecoveryFailureMessage =>
+      runtimeLocale.toLowerCase().startsWith('fr')
+          ? 'Défaite… reprise de secours appliquée.'
+          : 'Defeat… emergency recovery applied.';
 
   GameplayPlayerState _resolveWhiteoutLiteRespawn(
     RuntimeActiveBattleContext activeBattleContext,

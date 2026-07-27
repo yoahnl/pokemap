@@ -91,10 +91,20 @@ void main() {
       expect(state.storyFlags.activeFlags, isEmpty);
     });
 
-    test('initializes scriptVariables as empty', () {
+    test('initializes the default player identity script variables', () {
       final state = createNewGameState(startMapId: 'test_map');
 
-      expect(state.scriptVariables.values, isEmpty);
+      expect(
+        state.scriptVariables.values.keys,
+        unorderedEquals(<String>[
+          'player_name',
+          'player_pronoun_set',
+          'player_pronoun_subject',
+          'player_pronoun_object',
+          'player_pronoun_possessive',
+          'player_pronoun_reflexive',
+        ]),
+      );
     });
 
     test('initializes completedStepIds as empty', () {

@@ -546,6 +546,25 @@ final class GameSessionController
         if (_snapshot.state == GameSessionState.running) {
           _publish(_snapshot.copyWith(state: GameSessionState.paused));
         }
+      case GameSessionCheckpointRequested():
+        if (event.trigger == GameSessionCheckpointTrigger.manual ||
+            event.trigger == GameSessionCheckpointTrigger.completion ||
+            (_snapshot.state != GameSessionState.running &&
+                _snapshot.state != GameSessionState.paused)) {
+          _publish(
+            _snapshot.copyWith(
+              lastDiagnostic: const GameSessionDiagnosticData(
+                code: 'session.checkpoint_request.invalid',
+                severity: GameSessionDiagnosticSeverity.warning,
+              ),
+            ),
+          );
+          return;
+        }
+        await _captureAndCommit(
+          SaveStatus.active,
+          trigger: event.trigger,
+        );
       case GameSessionCompleted():
         await _receiveCompletion(event.completion);
       case GameSessionReturnRequested():

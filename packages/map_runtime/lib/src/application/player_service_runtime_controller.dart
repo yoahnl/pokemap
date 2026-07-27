@@ -1053,11 +1053,14 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   }
 
   GameState _recoverHealSession(_ContextualHealSession session) {
-    return const GameStateMutations().recoverParty(
+    final recovered = const GameStateMutations().recoverParty(
       session.initialGameState,
       maxHpByPartyIndex: session.recoveryCaps.maxHpByPartyIndex,
       maxPpByPartyIndex: session.recoveryCaps.maxPpByPartyIndex,
     );
+    return recovered.currentMapId.trim().isEmpty
+        ? recovered
+        : recordPlayerRecoveryPoint(recovered);
   }
 
   RuntimeWorldServiceCommandResult _dispatchShop(

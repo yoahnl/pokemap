@@ -294,6 +294,7 @@ final class GameSessionCheckpoint {
 enum GameSessionCheckpointTrigger {
   manual,
   pauseMutation,
+  defeatRecovery,
   lifecyclePause,
   sessionExit,
   completion,
@@ -544,6 +545,12 @@ final class GameSessionRunning extends GameSessionAdapterEvent {
 
 final class GameSessionPaused extends GameSessionAdapterEvent {
   const GameSessionPaused(super.sessionId);
+}
+
+final class GameSessionCheckpointRequested extends GameSessionAdapterEvent {
+  const GameSessionCheckpointRequested(super.sessionId, this.trigger);
+
+  final GameSessionCheckpointTrigger trigger;
 }
 
 final class GameSessionCompleted extends GameSessionAdapterEvent {

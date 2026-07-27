@@ -174,6 +174,7 @@ final class PlayableMapGameSessionRuntime
       saveData: saveData,
       saveRepository: memorySaves,
       gameCompletionEmitter: emitCompletion,
+      defeatRecoveryCheckpointEmitter: emitDefeatRecoveryCheckpointRequest,
       runtimeLocale: descriptor.locale,
       initialPlayerName: descriptor.initialPlayerIdentity?.name,
       initialPlayerAvatarCharacterId:
@@ -303,6 +304,16 @@ final class PlayableMapGameSessionRuntime
       updatedAt: updatedAt,
       playTimeSeconds: _basePlayTimeSeconds + _playWatch.elapsed.inSeconds,
       state: state.toJson(),
+    );
+  }
+
+  Future<void> emitDefeatRecoveryCheckpointRequest() async {
+    if (_events.isClosed) return;
+    _events.add(
+      GameSessionCheckpointRequested(
+        descriptor.sessionId,
+        GameSessionCheckpointTrigger.defeatRecovery,
+      ),
     );
   }
 

@@ -1,10 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   const damagedState = GameState(
     saveId: 'heal-service',
+    currentMapId: 'clinic',
+    playerPosition: GridPos(x: 4, y: 6),
+    playerFacing: EntityFacing.west,
     party: PlayerParty(
       members: <PlayerPokemon>[
         PlayerPokemon(
@@ -74,6 +78,12 @@ void main() {
       'tackle': 35,
     });
     expect(state.party.members.single.statusId, isEmpty);
+    expect(PlayerRecoveryPoint.tryRead(state)?.mapId, 'clinic');
+    expect(
+      PlayerRecoveryPoint.tryRead(state)?.position,
+      const GridPos(x: 4, y: 6),
+    );
+    expect(PlayerRecoveryPoint.tryRead(state)?.facing, EntityFacing.west);
 
     final resultSnapshot = controller.worldServiceSnapshot!;
     await controller.dispatchWorldService(

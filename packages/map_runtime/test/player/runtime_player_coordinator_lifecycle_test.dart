@@ -44,6 +44,29 @@ void main() {
     );
   });
 
+  test('runtime defeat recovery requests an immediate safe autosave', () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    harness.adapter.checkpoint = testPlayerCheckpoint();
+
+    harness.adapter.emit(
+      const GameSessionCheckpointRequested(
+        'runtime-player-session-1',
+        GameSessionCheckpointTrigger.defeatRecovery,
+      ),
+    );
+    await harness.coordinator.settle();
+
+    expect(harness.saves.commits, hasLength(1));
+    expect(
+      harness.saves.commits.single.trigger,
+      GameSessionCheckpointTrigger.defeatRecovery,
+    );
+    expect(harness.saves.commits.single.isAutosave, isTrue);
+    expect(harness.saves.commits.single.status, SaveStatus.active);
+  });
+
   test('lifecycle restores the exact paused detail without resuming gameplay',
       () async {
     final harness = RuntimePlayerTestHarness();

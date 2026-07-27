@@ -16,16 +16,18 @@ const _whiteoutTestStats = BattleStatsSnapshot(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('PlayableMapGame whiteout-lite lot 15', () {
+  group('PlayableMapGame whiteout recovery', () {
     test(
-        'defeat recovery returns to the current map spawn, revives one pokemon when needed, and restores overworld flow',
+        'defeat recovery returns to the center, fully heals, penalizes money and requests a safe checkpoint',
         () async {
+      var checkpointRequests = 0;
       final game = PlayableMapGame(
         bundle: _bundle(),
         projectFilePath: '/tmp/project.json',
         saveData: saveDataFromGameState(
           const GameState(
             saveId: 'whiteout-save',
+            trainerProfile: TrainerProfile(name: 'Leaf', money: 999),
             party: PlayerParty(
               members: <PlayerPokemon>[
                 PlayerPokemon(
@@ -34,7 +36,9 @@ void main() {
                   abilityId: 'overgrow',
                   level: 10,
                   knownMoveIds: <String>['tackle'],
+                  currentPpByMoveId: <String, int>{'tackle': 0},
                   currentHp: 12,
+                  statusId: 'poison',
                 ),
               ],
             ),
@@ -42,6 +46,16 @@ void main() {
         ),
         runtimePlayerPokemonProgressionCatalogLoader:
             _loadWhiteoutProgressionCatalogs,
+        defeatRecoveryCapsLoader: (_) async =>
+            const RuntimePlayerServiceRecoveryCaps(
+          maxHpByPartyIndex: <int, int>{0: 24},
+          maxPpByPartyIndex: <int, Map<String, int>>{
+            0: <String, int>{'tackle': 35},
+          },
+        ),
+        defeatRecoveryCheckpointEmitter: () async {
+          checkpointRequests += 1;
+        },
       );
 
       game.onGameResize(Vector2(640, 480));
@@ -59,13 +73,22 @@ void main() {
         context: _wildContext(),
         outcome: _defeatOutcome(playerCurrentHp: 0),
       );
+      await game.debugWaitForDefeatRecovery();
 
       final snapshot = game.gameStateSnapshot;
       expect(snapshot.currentMapId, equals('test_field'));
       expect(snapshot.playerPosition, equals(const GridPos(x: 0, y: 0)));
       expect(snapshot.playerFacing, equals(EntityFacing.east));
       expect(snapshot.playerMovementMode, equals(MovementMode.walk));
-      expect(snapshot.party.members.single.currentHp, equals(1));
+      expect(snapshot.party.members.single.currentHp, equals(24));
+      expect(
+        snapshot.party.members.single.currentPpByMoveId,
+        const <String, int>{'tackle': 35},
+      );
+      expect(snapshot.party.members.single.statusId, isEmpty);
+      expect(snapshot.trainerProfile.money, 900);
+      expect(snapshot.metadata[playerDefeatCountMetadataKey], '1');
+      expect(checkpointRequests, 1);
       expect(game.debugFlowPhaseName, equals('overworld'));
       expect(
         game.debugCompletedMapActivationDispatchCount,
