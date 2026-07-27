@@ -44,4 +44,57 @@ void main() {
     );
     expect(reset.onPressed, isNull);
   });
+
+  testWidgets('shows a dedicated state when no project is open',
+      (tester) async {
+    await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: const EditorState(
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+    );
+
+    expect(
+      find.byKey(const Key('personalization-studio-no-project')),
+      findsOneWidget,
+    );
+    expect(find.text('Aucun projet ouvert'), findsOneWidget);
+    expect(find.byType(PersonalizationHubShell), findsNothing);
+  });
+
+  testWidgets('shows a loading state while a project path is being restored',
+      (tester) async {
+    await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: const EditorState(
+        projectRootPath: '/tmp/project-being-restored',
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+    );
+
+    expect(
+      find.byKey(const Key('personalization-studio-loading')),
+      findsOneWidget,
+    );
+    expect(find.text('Chargement du projet…'), findsOneWidget);
+    expect(find.byType(PersonalizationHubShell), findsNothing);
+  });
+
+  testWidgets('shows the project loading error instead of an empty hub',
+      (tester) async {
+    await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: const EditorState(
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+        errorMessage: 'Manifest illisible',
+      ),
+    );
+
+    expect(
+      find.byKey(const Key('personalization-studio-error')),
+      findsOneWidget,
+    );
+    expect(find.text('Manifest illisible'), findsOneWidget);
+    expect(find.byType(PersonalizationHubShell), findsNothing);
+  });
 }
