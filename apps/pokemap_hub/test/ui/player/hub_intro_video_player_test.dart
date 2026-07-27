@@ -132,6 +132,9 @@ void main() {
 }
 
 Widget _app(Widget child) => MaterialApp(
+      locale: const Locale('fr'),
+      supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+      localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: PokeMapPlayerTheme.dark(),
       home: Scaffold(body: child),
     );

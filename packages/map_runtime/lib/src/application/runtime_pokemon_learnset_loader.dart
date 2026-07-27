@@ -317,14 +317,16 @@ class RuntimePokemonLearnsetLoader {
       final rawEntry = rawEntries[index];
       final rawMoveId = rawEntry is Map ? rawEntry['moveId'] : rawEntry;
       final moveId = rawMoveId is String ? rawMoveId.trim() : '';
-      if (moveId.isEmpty || !seen.add(moveId)) {
+      if (moveId.isEmpty) {
         throw RuntimeBattleSetupException(
           'Le learnset Pokémon contient une compatibilité machine invalide.',
           debugDetails:
-              'Pokemon learnset "$learnsetId" $field[$index] requires a unique non-empty moveId',
+              'Pokemon learnset "$learnsetId" $field[$index] requires a non-empty moveId',
         );
       }
-      moveIds.add(moveId);
+      if (seen.add(moveId)) {
+        moveIds.add(moveId);
+      }
     }
     return List<String>.unmodifiable(moveIds);
   }

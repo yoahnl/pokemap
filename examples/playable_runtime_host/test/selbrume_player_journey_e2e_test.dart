@@ -847,12 +847,19 @@ final class _SelbrumeJourney {
         .singleWhere((option) => option.id == optionId)
         .pokemon;
     final hydratedStarter = state.party.members.single;
+    final expectedProvenance = PlayerPokemonProvenance(
+      kind: PlayerPokemonOriginKind.starter,
+      mapId: state.currentMapId,
+      sourceId: optionId,
+      metLevel: authoredStarter.level,
+    );
+    expect(hydratedStarter.provenance, expectedProvenance);
     expect(
       hydratedStarter.copyWith(
         experience: authoredStarter.experience,
         currentPpByMoveId: authoredStarter.currentPpByMoveId,
       ),
-      authoredStarter,
+      authoredStarter.copyWith(provenance: expectedProvenance),
       reason: 'The Scene starter grant must consume the complete project-owned '
           'New Game option (HP, moves, nature, ability and level), not rebuild '
           'a partial Pokemon from the Scene consequence.',

@@ -126,6 +126,43 @@ void main() {
       expect(incompatible, isNull);
     });
 
+    test('deduplicates machine compatibility imported across version groups',
+        () async {
+      await _writeLearnsetFile(
+        tempProjectRoot,
+        relativePath: 'custom/pokemon/learnsets/sproutle.json',
+        json: <String, dynamic>{
+          'speciesId': 'sproutle',
+          'startingMoves': <String>['tackle'],
+          'relearnMoves': <String>[],
+          'levelUp': <Object>[],
+          'tm': <Object>[
+            <String, Object>{
+              'moveId': 'protect',
+              'versionGroup': 'red-blue',
+            },
+            <String, Object>{
+              'moveId': 'protect',
+              'versionGroup': 'scarlet-violet',
+            },
+            <String, Object>{
+              'moveId': 'sunny_day',
+              'versionGroup': 'scarlet-violet',
+            },
+          ],
+        },
+      );
+
+      final learnset = await loader.loadByRef(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        speciesRef: 'sproutle',
+        fallbackSpeciesId: 'sproutle',
+      );
+
+      expect(learnset.tm, <String>['protect', 'sunny_day']);
+    });
+
     test('falls back to fallbackSpeciesId when the learnset ref is empty',
         () async {
       await _writeLearnsetFile(

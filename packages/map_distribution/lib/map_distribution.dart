@@ -14,6 +14,7 @@ export 'src/game_package_install_request.dart';
 export 'src/game_package_inventory_builder.dart';
 export 'src/game_package_manifest.dart';
 export 'src/game_package_manifest_codec.dart';
+export 'src/game_package_personalization_preflight.dart';
 export 'src/game_package_project_validator.dart';
 export 'src/game_package_security_policy.dart';
 export 'src/game_package_release_policy.dart';

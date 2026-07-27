@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart';
 import 'package:map_editor/game_export.dart';
 import 'package:map_editor/personalization_hub.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
@@ -108,6 +109,26 @@ void main() {
         'presentation/fonts/display.ttf',
         'presentation/fonts/display-license.txt',
       ]),
+    );
+    expect(
+      built.personalizationPreflight.configuredCategories,
+      <GamePackagePersonalizationCategory>[
+        GamePackagePersonalizationCategory.branding,
+        GamePackagePersonalizationCategory.intro,
+        GamePackagePersonalizationCategory.typography,
+        GamePackagePersonalizationCategory.theme,
+      ],
+    );
+    expect(
+      built.personalizationPreflight.packageSha256,
+      built.packageSha256,
+    );
+    expect(
+      built.personalizationPreflight.assetSha256,
+      containsPair(
+        'presentation/fonts/display-license.txt',
+        isA<String>(),
+      ),
     );
   });
 }

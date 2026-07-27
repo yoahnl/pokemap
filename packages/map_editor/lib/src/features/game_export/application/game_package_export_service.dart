@@ -43,6 +43,7 @@ final class GamePackageExportArtifact {
     required List<int> packageBytes,
     required this.manifest,
     required this.inspection,
+    required this.personalizationPreflight,
     required this.certification,
     required this.suggestedFileName,
     required this.compiledDialogueCount,
@@ -52,6 +53,7 @@ final class GamePackageExportArtifact {
   final List<int> packageBytes;
   final GamePackageManifest manifest;
   final GamePackageInspectionResult inspection;
+  final GamePackagePersonalizationPreflightReceipt personalizationPreflight;
   final GamePackageExportCertification certification;
   final String suggestedFileName;
   final int compiledDialogueCount;
@@ -195,6 +197,8 @@ final class GamePackageExportService {
         ),
       );
       final inspection = inspector.inspect(built.packageBytes);
+      final personalizationPreflight =
+          const GamePackagePersonalizationPreflight().certify(inspection);
       final diagnostics = <String>[
         if (inspection.manifest.gameId != profile.gameId)
           'Exported game identity changed during packaging.',
@@ -219,6 +223,7 @@ final class GamePackageExportService {
         packageBytes: built.packageBytes,
         manifest: built.manifest,
         inspection: inspection,
+        personalizationPreflight: personalizationPreflight,
         certification: certification,
         suggestedFileName: _suggestedFileName(
           profile.title,
