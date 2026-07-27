@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "platforms": {
+    "macos": {
+      "status": "supported",
+      "releaseGate": "developer-id-notarized-dmg"
+    },
+    "windows": {
+      "status": "supported",
+      "releaseGate": "release-build-and-launch"
+    },
+    "linux": {
+      "status": "supported",
+      "releaseGate": "release-build-and-launch"
+    },
+    "ios": {
+      "status": "supported",
+      "releaseGate": "device-build-and-simulator-launch"
+    },
+    "android": {
+      "status": "not-claimed",
+      "releaseGate": "none",
+      "reason": "No Android runner or Android release pipeline is committed."
+    }
+  }
+}

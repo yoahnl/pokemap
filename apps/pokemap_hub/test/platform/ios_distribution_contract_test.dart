@@ -49,16 +49,17 @@ void main() {
     expect(info, contains('<string>pokemapgame</string>'));
     expect(
       RegExp(
-        r'PRODUCT_BUNDLE_IDENTIFIER = com\.yoahnl\.avelune\.player;',
+        r'PRODUCT_BUNDLE_IDENTIFIER = app\.pokemap\.hub;',
       ).allMatches(project),
       hasLength(3),
     );
     expect(
       RegExp(
-        r'INFOPLIST_KEY_CFBundleDisplayName = Avelune;',
+        r'INFOPLIST_KEY_CFBundleDisplayName = "PokeMap Hub";',
       ).allMatches(project),
       hasLength(3),
     );
-    expect(info, contains('<string>Avelune</string>'));
+    expect(info, contains('<string>PokeMap Hub</string>'));
+    expect(info, isNot(contains('Avelune')));
   });
 }
