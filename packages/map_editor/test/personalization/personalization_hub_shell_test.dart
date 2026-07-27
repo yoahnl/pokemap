@@ -57,4 +57,90 @@ void main() {
     expect(find.text('Editor for intro'), findsOneWidget);
     expect(find.text('Prêt à configurer'), findsOneWidget);
   });
+
+  testWidgets('searches categories and renders canonical multi-screen previews',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.light(),
+        home: Scaffold(
+          body: PersonalizationHubShell(
+            profile: const ProjectPresentationProfile(
+              theme: safeProjectSemanticTheme,
+            ),
+            selectedCategory: ProjectPresentationCategory.theme,
+            onCategorySelected: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('personalization-preview-title')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('personalization-preview-battleHud')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('personalization-category-search')),
+      'typo',
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-category-typography'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-category-branding'),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('applies presets, compares and resets the active section',
+      (tester) async {
+    ProjectPresentationProfile? changed;
+    const profile = ProjectPresentationProfile(
+      branding: ProjectBrandingProfile(layoutVariant: 'centered'),
+      theme: safeProjectSemanticTheme,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.light(),
+        home: Scaffold(
+          body: PersonalizationHubShell(
+            profile: profile,
+            baselineProfile: const ProjectPresentationProfile(),
+            selectedCategory: ProjectPresentationCategory.branding,
+            onCategorySelected: (_) {},
+            onProfileChanged: (profile) => changed = profile,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.textContaining('changements'), findsOneWidget);
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preset-cinematic'),
+      ),
+    );
+    expect(changed?.branding.layoutVariant, 'cinematic');
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-reset-branding'),
+      ),
+    );
+    expect(changed?.branding, const ProjectBrandingProfile());
+    expect(changed?.theme, safeProjectSemanticTheme);
+  });
 }

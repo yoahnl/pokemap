@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../ui/design_system/pokemap_badge.dart';
+import '../../../ui/design_system/pokemap_button.dart';
 import '../../../ui/design_system/pokemap_card.dart';
 import '../../../ui/design_system/pokemap_panel.dart';
+import '../../../ui/design_system/pokemap_search_field.dart';
+import '../../../ui/design_system/pokemap_semantic_color_preview.dart';
+import '../application/personalization_preview_projection.dart';
+import '../application/project_presentation_presets.dart';
 
 typedef PersonalizationCategoryBuilder = Widget Function(
   BuildContext context,
@@ -18,12 +23,16 @@ class PersonalizationHubShell extends StatelessWidget {
     required this.selectedCategory,
     required this.onCategorySelected,
     this.categoryBuilder,
+    this.baselineProfile,
+    this.onProfileChanged,
   });
 
   final ProjectPresentationProfile profile;
   final ProjectPresentationCategory selectedCategory;
   final ValueChanged<ProjectPresentationCategory> onCategorySelected;
   final PersonalizationCategoryBuilder? categoryBuilder;
+  final ProjectPresentationProfile? baselineProfile;
+  final ValueChanged<ProjectPresentationProfile>? onProfileChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +49,9 @@ class PersonalizationHubShell extends StatelessWidget {
           category: selectedCategory,
           diagnostics: diagnostics,
           categoryBuilder: categoryBuilder,
+          baselineProfile: baselineProfile,
+          onProfileChanged: onProfileChanged,
+          fillAvailableHeight: constraints.maxWidth >= 760,
         );
         return Padding(
           padding: const EdgeInsets.all(16),
@@ -65,7 +77,7 @@ class PersonalizationHubShell extends StatelessWidget {
   }
 }
 
-class _CategoryNavigation extends StatelessWidget {
+class _CategoryNavigation extends StatefulWidget {
   const _CategoryNavigation({
     required this.selectedCategory,
     required this.onCategorySelected,
@@ -77,8 +89,23 @@ class _CategoryNavigation extends StatelessWidget {
   final bool fillAvailableHeight;
 
   @override
+  State<_CategoryNavigation> createState() => _CategoryNavigationState();
+}
+
+class _CategoryNavigationState extends State<_CategoryNavigation> {
+  String _query = '';
+
+  @override
   Widget build(BuildContext context) {
     final categoryCards = ProjectPresentationCategory.values
+        .where((category) {
+          final query = _query.trim().toLowerCase();
+          if (query.isEmpty) return true;
+          return '${_categoryLabel(category)} '
+                  '${_categoryDescription(category)}'
+              .toLowerCase()
+              .contains(query);
+        })
         .map(
           (category) => Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -86,8 +113,8 @@ class _CategoryNavigation extends StatelessWidget {
               key: ValueKey<String>(
                 'personalization-category-${category.name}',
               ),
-              selected: category == selectedCategory,
-              onTap: () => onCategorySelected(category),
+              selected: category == widget.selectedCategory,
+              onTap: () => widget.onCategorySelected(category),
               child: Row(
                 children: <Widget>[
                   Icon(_categoryIcon(category), size: 20),
@@ -133,10 +160,29 @@ class _CategoryNavigation extends StatelessWidget {
         ),
       ),
       padding: const EdgeInsets.all(10),
-      expandChild: fillAvailableHeight,
-      child: fillAvailableHeight
-          ? ListView(children: categoryCards)
-          : Column(children: categoryCards),
+      expandChild: widget.fillAvailableHeight,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          PokeMapSearchField(
+            key: const ValueKey<String>('personalization-category-search'),
+            hintText: 'Rechercher une catégorie…',
+            onChanged: (value) => setState(() => _query = value),
+          ),
+          const SizedBox(height: 10),
+          if (widget.fillAvailableHeight)
+            Expanded(
+              child: ListView(children: categoryCards),
+            )
+          else
+            ...categoryCards,
+          if (categoryCards.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text('Aucune catégorie ne correspond.'),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -147,12 +193,18 @@ class _CategoryDetail extends StatelessWidget {
     required this.category,
     required this.diagnostics,
     required this.categoryBuilder,
+    required this.baselineProfile,
+    required this.onProfileChanged,
+    required this.fillAvailableHeight,
   });
 
   final ProjectPresentationProfile profile;
   final ProjectPresentationCategory category;
   final List<ProjectPresentationDiagnostic> diagnostics;
   final PersonalizationCategoryBuilder? categoryBuilder;
+  final ProjectPresentationProfile? baselineProfile;
+  final ValueChanged<ProjectPresentationProfile>? onProfileChanged;
+  final bool fillAvailableHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -167,6 +219,36 @@ class _CategoryDetail extends StatelessWidget {
         )
         .length;
     final isConfigured = profile.configuredCategories.contains(category);
+    final content = <Widget>[
+      if (categoryDiagnostics.isNotEmpty) ...<Widget>[
+        for (final diagnostic in categoryDiagnostics)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: PokeMapCard(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  const Icon(Icons.error_outline, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(diagnostic.message)),
+                ],
+              ),
+            ),
+          ),
+        const SizedBox(height: 8),
+      ],
+      _PersonalizationActions(
+        profile: profile,
+        category: category,
+        baselineProfile: baselineProfile,
+        onProfileChanged: onProfileChanged,
+      ),
+      const SizedBox(height: 16),
+      categoryBuilder?.call(context, category) ??
+          Text(_emptyCategoryMessage(category)),
+      const SizedBox(height: 16),
+      _MultiSurfacePreview(profile: profile),
+    ];
     return PokeMapPanel(
       header: Padding(
         padding: const EdgeInsets.all(16),
@@ -196,33 +278,162 @@ class _CategoryDetail extends StatelessWidget {
           ],
         ),
       ),
+      expandChild: fillAvailableHeight,
+      child: fillAvailableHeight
+          ? ListView(children: content)
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: content,
+            ),
+    );
+  }
+}
+
+class _PersonalizationActions extends StatelessWidget {
+  const _PersonalizationActions({
+    required this.profile,
+    required this.category,
+    required this.baselineProfile,
+    required this.onProfileChanged,
+  });
+
+  final ProjectPresentationProfile profile;
+  final ProjectPresentationCategory category;
+  final ProjectPresentationProfile? baselineProfile;
+  final ValueChanged<ProjectPresentationProfile>? onProfileChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final comparison = baselineProfile == null
+        ? null
+        : compareProjectPresentation(baselineProfile!, profile);
+    final presets = projectPresentationPresets
+        .where((preset) => preset.supports(category))
+        .toList(growable: false);
+    return PokeMapCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          if (categoryDiagnostics.isNotEmpty) ...<Widget>[
-            for (final diagnostic in categoryDiagnostics)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: PokeMapCard(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      const Icon(Icons.error_outline, size: 20),
-                      const SizedBox(width: 10),
-                      Expanded(child: Text(diagnostic.message)),
-                    ],
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              for (final preset in presets)
+                PokeMapButton(
+                  key: ValueKey<String>(
+                    'personalization-preset-${preset.id}',
                   ),
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  leading: const Icon(Icons.auto_awesome_outlined),
+                  onPressed: onProfileChanged == null
+                      ? null
+                      : () => onProfileChanged!(
+                            preset.apply(profile, category),
+                          ),
+                  child: Text(preset.label),
                 ),
+              PokeMapButton(
+                key: ValueKey<String>(
+                  'personalization-reset-${category.name}',
+                ),
+                variant: PokeMapButtonVariant.ghost,
+                size: PokeMapButtonSize.small,
+                leading: const Icon(Icons.restart_alt),
+                onPressed: onProfileChanged == null
+                    ? null
+                    : () => onProfileChanged!(
+                          resetProjectPresentationCategory(
+                            profile,
+                            category,
+                          ),
+                        ),
+                child: const Text('Réinitialiser cette section'),
               ),
-            const SizedBox(height: 8),
+              if (comparison != null)
+                PokeMapBadge(
+                  label: comparison.isIdentical
+                      ? 'Aucun changement'
+                      : '${comparison.changedPaths.length} changements',
+                  variant: comparison.isIdentical
+                      ? PokeMapBadgeVariant.success
+                      : PokeMapBadgeVariant.info,
+                ),
+            ],
+          ),
+          if (comparison != null && !comparison.isIdentical) ...<Widget>[
+            const SizedBox(height: 10),
+            Text(
+              comparison.changedPaths.join('  •  '),
+              key: const ValueKey<String>('personalization-comparison-paths'),
+            ),
           ],
-          categoryBuilder?.call(context, category) ??
-              Text(_emptyCategoryMessage(category)),
         ],
       ),
     );
   }
 }
+
+class _MultiSurfacePreview extends StatelessWidget {
+  const _MultiSurfacePreview({required this.profile});
+
+  final ProjectPresentationProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final projection = PersonalizationPreviewProjection(profile);
+    return PokeMapPanel(
+      header: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: <Widget>[
+            const Expanded(
+              child: Text(
+                'Preview multi-écrans',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            PokeMapBadge(
+              label: projection.titleLayoutVariant,
+              variant: PokeMapBadgeVariant.info,
+            ),
+          ],
+        ),
+      ),
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: <Widget>[
+          for (final surface in PersonalizationPreviewSurface.values)
+            Builder(
+              builder: (context) {
+                final preview = projection.surface(surface);
+                return PokeMapSemanticColorPreview(
+                  key: ValueKey<String>(
+                    'personalization-preview-${surface.name}',
+                  ),
+                  label: _previewLabel(surface),
+                  backgroundHex: preview.backgroundHex,
+                  foregroundHex: preview.textHex,
+                  sample: preview.fontFamily,
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+String _previewLabel(PersonalizationPreviewSurface surface) =>
+    switch (surface) {
+      PersonalizationPreviewSurface.title => 'Titre',
+      PersonalizationPreviewSurface.dialogue => 'Dialogue',
+      PersonalizationPreviewSurface.menu => 'Menu',
+      PersonalizationPreviewSurface.overworldHud => 'HUD exploration',
+      PersonalizationPreviewSurface.battleHud => 'HUD combat',
+    };
 
 String _categoryLabel(ProjectPresentationCategory category) =>
     switch (category) {
