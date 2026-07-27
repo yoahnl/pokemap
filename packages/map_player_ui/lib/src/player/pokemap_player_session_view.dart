@@ -3,9 +3,14 @@ import 'dart:ui' as ui show KeyEventDeviceType;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gamepads/gamepads.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import '../foundation/player_components.dart';
+import '../foundation/player_text_scaler.dart';
+import '../localization/player_localizations.dart';
+import '../theme/pokemap_player_theme.dart';
 import 'player_title_screen.dart';
 import 'player_dialogue_overlay.dart';
 import 'player_heal_confirmation.dart';
@@ -82,6 +87,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     this.gameplayInputAuthority,
     this.dialoguePresentation,
     this.onDialogueCommand,
+    this.hapticFeedback,
   });
 
   final RuntimePlayerViewController controller;
@@ -113,6 +119,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
   /// Optional Flutter dialogue projection published by the mounted runtime.
   final ValueListenable<DialoguePresentationSnapshot?>? dialoguePresentation;
   final ValueChanged<DialoguePresentationCommand>? onDialogueCommand;
+  final Future<void> Function()? hapticFeedback;
 
   @override
   State<PokeMapPlayerSessionView> createState() =>
@@ -212,9 +219,20 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
       toggleMenu: _toggleMenu,
       releaseGameplayDirections: _releaseGameplayDirections,
     );
-    await router.route(
-      playerInputCommandFromRuntimeEvent(event, source: source),
-    );
+    final command = playerInputCommandFromRuntimeEvent(event, source: source);
+    final surface = _inputSurface();
+    final handled = await router.route(command);
+    final directional = command.action == PlayerInputAction.up ||
+        command.action == PlayerInputAction.down ||
+        command.action == PlayerInputAction.left ||
+        command.action == PlayerInputAction.right;
+    if (handled &&
+        command.isPress &&
+        !command.isRepeat &&
+        command.action != PlayerInputAction.menu &&
+        (surface == PlayerInputSurface.gameplay || directional)) {
+      await _performHaptic();
+    }
   }
 
   KeyEventResult _routeHardwareKeyEvent(FocusNode node, KeyEvent event) {
@@ -397,13 +415,17 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     }
     if (isMenuTransition) _menuTransitionPending = true;
     try {
-      return await widget.controller.dispatch(
+      final result = await widget.controller.dispatch(
         RuntimePlayerCommand(
           action: action,
           snapshotRevision: snapshot.revision,
           payload: payload ?? widget.payloadForAction?.call(action),
         ),
       );
+      if (result.status == RuntimePlayerCommandStatus.accepted) {
+        await _performHaptic();
+      }
+      return result;
     } finally {
       if (isMenuTransition) _menuTransitionPending = false;
     }
@@ -454,7 +476,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
         acceptsOverworldTouch;
     final touchControlsOpacity =
         snapshot.preferences?.touchControlsOpacity ?? 0.82;
-    return Stack(
+    final stack = Stack(
       fit: StackFit.expand,
       children: <Widget>[
         RuntimePlayerSurfaceRouter(
@@ -511,8 +533,50 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
             snapshot: service,
             onCommand: widget.controller.dispatchWorldService,
           ),
+        if (!showTouchControls &&
+            (snapshot.preferences?.showInputHints ?? false) &&
+            snapshot.activeInputSource != PlayerInputSource.touch)
+          const Positioned(
+            left: PlayerSpacing.sm,
+            right: PlayerSpacing.sm,
+            bottom: PlayerSpacing.sm,
+            child: _RuntimePlayerInputHints(),
+          ),
       ],
     );
+    final preferences = snapshot.preferences;
+    if (preferences == null) return stack;
+    final media = MediaQuery.of(context);
+    return Theme(
+      data: PokeMapPlayerTheme.withAccessibility(
+        Theme.of(context),
+        highContrast: preferences.highContrast,
+        reducedMotion: preferences.accessibility.reducedMotion,
+      ),
+      child: MediaQuery(
+        key: const ValueKey<String>('runtime-player-session-accessibility'),
+        data: media.copyWith(
+          textScaler: PlayerTextScaler(
+            systemScaler: media.textScaler,
+            preferenceScale: preferences.accessibility.textScale,
+          ),
+          disableAnimations: media.disableAnimations ||
+              preferences.accessibility.reducedMotion,
+        ),
+        child: stack,
+      ),
+    );
+  }
+
+  Future<void> _performHaptic() async {
+    if (!(_latestSnapshot.preferences?.accessibility.hapticsEnabled ?? true)) {
+      return;
+    }
+    try {
+      await (widget.hapticFeedback ?? HapticFeedback.selectionClick)();
+    } catch (_) {
+      // Missing platform haptics must never interrupt player input.
+    }
   }
 
   @override
@@ -520,6 +584,30 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     unawaited(_controllerSubscription?.cancel());
     _releaseGameplayDirections();
     super.dispose();
+  }
+}
+
+class _RuntimePlayerInputHints extends StatelessWidget {
+  const _RuntimePlayerInputHints();
+
+  @override
+  Widget build(BuildContext context) {
+    final label =
+        '${context.playerL10n.confirmShortcut}. ${context.playerL10n.pause}';
+    return Semantics(
+      key: const ValueKey<String>('runtime-player-input-hints'),
+      container: true,
+      label: label,
+      child: ExcludeSemantics(
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: PlayerBadge(
+            label: label,
+            icon: Icons.gamepad_rounded,
+          ),
+        ),
+      ),
+    );
   }
 }
 

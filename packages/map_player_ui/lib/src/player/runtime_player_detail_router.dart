@@ -335,6 +335,7 @@ class _RuntimePlayerOptions extends StatefulWidget {
 
 class _RuntimePlayerOptionsState extends State<_RuntimePlayerOptions> {
   late double _touchControlsOpacity = widget.preferences.touchControlsOpacity;
+  late double _textScale = widget.preferences.accessibility.textScale;
 
   @override
   void didUpdateWidget(covariant _RuntimePlayerOptions oldWidget) {
@@ -342,6 +343,10 @@ class _RuntimePlayerOptionsState extends State<_RuntimePlayerOptions> {
     if (oldWidget.preferences.touchControlsOpacity !=
         widget.preferences.touchControlsOpacity) {
       _touchControlsOpacity = widget.preferences.touchControlsOpacity;
+    }
+    if (oldWidget.preferences.accessibility.textScale !=
+        widget.preferences.accessibility.textScale) {
+      _textScale = widget.preferences.accessibility.textScale;
     }
   }
 
@@ -353,6 +358,93 @@ class _RuntimePlayerOptionsState extends State<_RuntimePlayerOptions> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
+          Text(
+            context.playerL10n.accessibility,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: PlayerSpacing.xs),
+          SwitchListTile.adaptive(
+            key: const ValueKey<String>(
+              'runtime-player-reduced-motion-toggle',
+            ),
+            contentPadding: EdgeInsets.zero,
+            title: Text(context.playerL10n.reducedMotion),
+            value: widget.preferences.accessibility.reducedMotion,
+            onChanged: widget.onChanged == null
+                ? null
+                : (value) => widget.onChanged!(
+                      widget.preferences.copyWith(
+                        accessibility:
+                            widget.preferences.accessibility.copyWith(
+                          reducedMotion: value,
+                        ),
+                      ),
+                    ),
+          ),
+          SwitchListTile.adaptive(
+            key: const ValueKey<String>(
+              'runtime-player-high-contrast-toggle',
+            ),
+            contentPadding: EdgeInsets.zero,
+            title: Text(context.playerL10n.highContrast),
+            value: widget.preferences.highContrast,
+            onChanged: widget.onChanged == null
+                ? null
+                : (value) => widget.onChanged!(
+                      widget.preferences.copyWith(highContrast: value),
+                    ),
+          ),
+          SwitchListTile.adaptive(
+            key: const ValueKey<String>('runtime-player-haptics-toggle'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(context.playerL10n.haptics),
+            value: widget.preferences.accessibility.hapticsEnabled,
+            onChanged: widget.onChanged == null
+                ? null
+                : (value) => widget.onChanged!(
+                      widget.preferences.copyWith(
+                        accessibility:
+                            widget.preferences.accessibility.copyWith(
+                          hapticsEnabled: value,
+                        ),
+                      ),
+                    ),
+          ),
+          SwitchListTile.adaptive(
+            key: const ValueKey<String>('runtime-player-input-hints-toggle'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(context.playerL10n.inputHints),
+            value: widget.preferences.showInputHints,
+            onChanged: widget.onChanged == null
+                ? null
+                : (value) => widget.onChanged!(
+                      widget.preferences.copyWith(showInputHints: value),
+                    ),
+          ),
+          Text(context.playerL10n.textSize),
+          Text('${(_textScale * 100).round()} %'),
+          Slider(
+            key: const ValueKey<String>('runtime-player-text-scale-slider'),
+            value: _textScale,
+            min: 0.8,
+            max: 1.6,
+            divisions: 8,
+            label: '${(_textScale * 100).round()} %',
+            onChanged: widget.onChanged == null
+                ? null
+                : (value) => setState(() => _textScale = value),
+            onChangeEnd: widget.onChanged == null
+                ? null
+                : (value) => widget.onChanged!(
+                      widget.preferences.copyWith(
+                        accessibility:
+                            widget.preferences.accessibility.copyWith(
+                          textScale: value,
+                        ),
+                      ),
+                    ),
+          ),
+          const Divider(),
           Text(
             context.playerL10n.touchControlsOpacity,
             style: Theme.of(context).textTheme.titleMedium,

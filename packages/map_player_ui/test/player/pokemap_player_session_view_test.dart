@@ -147,6 +147,201 @@ void main() {
     },
   );
 
+  testWidgets('projects readability preferences and accessible input hints',
+      (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(
+      RuntimePlayerSnapshot(
+        revision: 81,
+        phase: RuntimePlayerPhase.title,
+        gameTitle: 'Aube',
+        preferences: const PlayerPreferencesSnapshot(
+          locale: 'fr',
+          accessibility: GameSessionAccessibilityOptions(
+            reducedMotion: true,
+            textScale: 1.4,
+            hapticsEnabled: false,
+          ),
+          highContrast: true,
+          showInputHints: false,
+        ),
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      _app(
+        MediaQuery(
+          data: const MediaQueryData(
+            textScaler: TextScaler.linear(1.25),
+          ),
+          child: _view(controller),
+        ),
+      ),
+    );
+
+    final accessibilityContext = tester.element(
+      find.byKey(
+        const ValueKey<String>('runtime-player-session-accessibility'),
+      ),
+    );
+    expect(
+      MediaQuery.of(accessibilityContext).textScaler.scale(10),
+      closeTo(17.5, 0.001),
+    );
+    expect(MediaQuery.of(accessibilityContext).disableAnimations, isTrue);
+    expect(
+      Theme.of(accessibilityContext)
+          .extension<PokeMapPlayerColors>()
+          ?.highContrast,
+      isTrue,
+    );
+    expect(
+      Theme.of(accessibilityContext).extension<PokeMapPlayerMotion>()?.fast,
+      Duration.zero,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('runtime-player-input-hints')),
+      findsNothing,
+    );
+
+    controller.publish(
+      RuntimePlayerSnapshot(
+        revision: 82,
+        phase: RuntimePlayerPhase.title,
+        gameTitle: 'Aube',
+        preferences: const PlayerPreferencesSnapshot(
+          locale: 'fr',
+          accessibility: GameSessionAccessibilityOptions(
+            reducedMotion: true,
+            textScale: 1.4,
+            hapticsEnabled: false,
+          ),
+          highContrast: true,
+          showInputHints: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final hints = find.byKey(
+      const ValueKey<String>('runtime-player-input-hints'),
+    );
+    expect(hints, findsOneWidget);
+    expect(tester.getSemantics(hints).label, contains('Entrée'));
+  });
+
+  testWidgets('runtime haptics follow the projected preference',
+      (tester) async {
+    var hapticCalls = 0;
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(
+        revision: 83,
+        phase: RuntimePlayerPhase.playing,
+        preferences: const PlayerPreferencesSnapshot(
+          locale: 'fr',
+          accessibility: GameSessionAccessibilityOptions(
+            hapticsEnabled: false,
+          ),
+        ),
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      _app(
+        _view(
+          controller,
+          gameplayInputRoute: (_) => true,
+          touchControlsAvailable: true,
+          hapticFeedback: () async => hapticCalls++,
+        ),
+      ),
+    );
+    final primary = find.byKey(
+      const ValueKey<String>('runtime-player-touch-primary-button'),
+    );
+    await tester.tap(primary);
+    expect(hapticCalls, 0);
+
+    controller.publish(
+      _snapshot(
+        revision: 84,
+        phase: RuntimePlayerPhase.playing,
+        preferences: const PlayerPreferencesSnapshot(
+          locale: 'fr',
+          accessibility: GameSessionAccessibilityOptions(
+            hapticsEnabled: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(primary);
+    expect(hapticCalls, 1);
+  });
+
+  testWidgets('title options expose every runtime accessibility preference',
+      (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(
+      RuntimePlayerSnapshot(
+        revision: 85,
+        phase: RuntimePlayerPhase.title,
+        gameTitle: 'Aube',
+        pauseSection: RuntimePlayerPauseSection.options,
+        preferences: const PlayerPreferencesSnapshot(
+          locale: 'fr',
+          accessibility: GameSessionAccessibilityOptions(),
+        ),
+        actions: const <RuntimePlayerActionAvailability>[
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.updatePreferences,
+          ),
+        ],
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(_app(_view(controller)));
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('runtime-player-reduced-motion-toggle'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('runtime-player-high-contrast-toggle'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('runtime-player-haptics-toggle')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('runtime-player-input-hints-toggle')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('runtime-player-text-scale-slider')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('runtime-player-high-contrast-toggle'),
+      ),
+    );
+    await tester.pump();
+    final command = controller.commands.single;
+    expect(command.action, RuntimePlayerAction.updatePreferences);
+    expect(
+      (command.payload! as PlayerPreferencesSnapshot).highContrast,
+      isTrue,
+    );
+  });
+
   testWidgets('shows localized title credits before game completion',
       (tester) async {
     final controller = _FakeRuntimePlayerCoordinator(
@@ -1125,6 +1320,7 @@ PokeMapPlayerSessionView _view(
   bool? controllerInputEnabled,
   PlayerNewGameIdentityPresentation? titlePresentation,
   RuntimePlayerActionPayloadBuilder? payloadForAction,
+  Future<void> Function()? hapticFeedback,
 }) {
   return PokeMapPlayerSessionView(
     controller: controller,
@@ -1147,6 +1343,7 @@ PokeMapPlayerSessionView _view(
     controllerInputEnabled:
         controllerInputEnabled ?? controllerInputEvents != null,
     onShowDiagnostics: onShowDiagnostics,
+    hapticFeedback: hapticFeedback,
   );
 }
 

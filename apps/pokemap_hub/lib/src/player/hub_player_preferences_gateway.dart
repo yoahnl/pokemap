@@ -41,6 +41,8 @@ final class HubPlayerPreferencesGateway implements PlayerPreferencesGateway {
       ),
       touchControlsOpacity: preferences.touchControlsOpacity,
       audioMix: audioMix,
+      highContrast: preferences.highContrast,
+      showInputHints: preferences.showInputHints,
     );
   }
 
@@ -58,6 +60,8 @@ final class HubPlayerPreferencesGateway implements PlayerPreferencesGateway {
         masterVolume: preferences.audioMix.masterVolume,
         musicVolume: preferences.audioMix.musicVolume,
         effectsVolume: preferences.audioMix.effectsVolume,
+        highContrast: preferences.highContrast,
+        showInputHints: preferences.showInputHints,
       ),
     );
   }

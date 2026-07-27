@@ -68,6 +68,17 @@ final class GameSessionAccessibilityOptions {
   final bool reducedMotion;
   final double textScale;
   final bool hapticsEnabled;
+
+  GameSessionAccessibilityOptions copyWith({
+    bool? reducedMotion,
+    double? textScale,
+    bool? hapticsEnabled,
+  }) =>
+      GameSessionAccessibilityOptions(
+        reducedMotion: reducedMotion ?? this.reducedMotion,
+        textScale: textScale ?? this.textScale,
+        hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
+      );
 }
 
 /// Player identity selected by the guided New Game flow.

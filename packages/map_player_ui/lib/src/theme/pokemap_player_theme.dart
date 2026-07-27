@@ -456,6 +456,51 @@ abstract final class PokeMapPlayerTheme {
         reducedMotion: reducedMotion,
       );
 
+  /// Projects runtime accessibility preferences without discarding authored
+  /// project colors or typography.
+  static ThemeData withAccessibility(
+    ThemeData theme, {
+    required bool highContrast,
+    required bool reducedMotion,
+  }) {
+    final baseColors = theme.extension<PokeMapPlayerColors>();
+    if (baseColors == null) return theme;
+    final contrastOutline = theme.brightness == Brightness.dark
+        ? const Color(0xFFFFFFFF)
+        : const Color(0xFF000000);
+    final colors = baseColors.copyWith(
+      outline: highContrast ? contrastOutline : baseColors.outline,
+      highContrast: highContrast,
+    );
+    final baseSemantic = theme.extension<PokeMapPlayerSemanticTheme>();
+    final semantic = baseSemantic?.copyWith(outline: colors.outline);
+    final extensions = theme.extensions.values
+        .where(
+          (extension) =>
+              extension is! PokeMapPlayerColors &&
+              extension is! PokeMapPlayerMotion &&
+              extension is! PokeMapPlayerSemanticTheme,
+        )
+        .toList(growable: true)
+      ..add(colors)
+      ..add(
+        reducedMotion
+            ? PokeMapPlayerMotion.reduced
+            : theme.extension<PokeMapPlayerMotion>() ??
+                const PokeMapPlayerMotion(
+                  fast: Duration(milliseconds: 120),
+                  standard: Duration(milliseconds: 220),
+                  slow: Duration(milliseconds: 420),
+                ),
+      );
+    if (semantic != null) extensions.add(semantic);
+    return theme.copyWith(
+      colorScheme: theme.colorScheme.copyWith(outline: colors.outline),
+      extensions: extensions,
+      focusColor: colors.focus,
+    );
+  }
+
   static ThemeData withTypography(
     ThemeData theme,
     PokeMapPlayerTypography typography,

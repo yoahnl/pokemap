@@ -31,6 +31,8 @@ void main() {
     expect(snapshot.accessibility.reducedMotion, isFalse);
     expect(snapshot.accessibility.textScale, 1);
     expect(snapshot.accessibility.hapticsEnabled, isTrue);
+    expect(snapshot.highContrast, isFalse);
+    expect(snapshot.showInputHints, isTrue);
     expect(snapshot.touchControlsOpacity, 0.82);
     expect(snapshot.audioMix.masterVolume, 1);
     expect(snapshot.audioMix.musicVolume, 0.8);
@@ -57,6 +59,8 @@ void main() {
           hapticsEnabled: false,
         ),
         touchControlsOpacity: 0.45,
+        highContrast: true,
+        showInputHints: false,
         audioMix: RuntimeAudioMix(
           masterVolume: 0.9,
           musicVolume: 0.7,
@@ -70,6 +74,8 @@ void main() {
     expect(persisted.reducedMotion, isTrue);
     expect(persisted.textScale, 1.4);
     expect(persisted.hapticsEnabled, isFalse);
+    expect(persisted.highContrast, isTrue);
+    expect(persisted.showInputHints, isFalse);
     expect(persisted.masterVolume, 0.9);
     expect(persisted.musicVolume, 0.7);
     expect(persisted.effectsVolume, 0.5);

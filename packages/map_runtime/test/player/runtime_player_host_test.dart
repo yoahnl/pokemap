@@ -63,6 +63,8 @@ void main() {
           textScale: 1.25,
           hapticsEnabled: false,
         ),
+        highContrast: true,
+        showInputHints: false,
       ),
     );
     final exit = _MemoryExternalExit();
@@ -78,6 +80,8 @@ void main() {
 
     expect(loaded.locale, 'fr');
     expect(loaded.accessibility.reducedMotion, isTrue);
+    expect(loaded.highContrast, isTrue);
+    expect(loaded.showInputHints, isFalse);
     expect(gateway.current.locale, 'en');
     expect(exit.calls, 1);
   });
