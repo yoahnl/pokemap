@@ -1328,3 +1328,306 @@ git commit -m "docs(personalization): record phase 7b release verdict"
 Expected: final worktree clean. Report `PH-007 DONE/GO` only if every gate is
 green; otherwise report `PH-007 PARTIAL/NO-GO` with exact blockers.
 ````
+
+---
+
+# Recertification PST-064 — Phase 6
+
+- Date : 2026-07-27
+- Candidat propre : `0f821bc31519602a80a2dfb74dadcb31f384d439`
+- Verdict fonctionnel : **PASS**
+- Verdict release : **NO_GO**
+- Statut proposé : **PH-007 PARTIAL**
+
+Cette section remplace les mesures candidat-bound de la première certification
+pour toute décision portant sur le candidat Phase 6. Le verdict global ne
+change pas : le Studio et le parcours packagé sont verts, mais la distribution
+macOS n'est pas lançable et quatre plateformes restent non évaluées.
+
+## Audit initial de recertification
+
+```text
+git status --short --untracked-files=all
+<aucune sortie>
+
+git rev-parse HEAD
+0f821bc31519602a80a2dfb74dadcb31f384d439
+```
+
+Le candidat contient les quatre commits de lots Phase 6 précédents :
+
+```text
+b81f48212 test(personalization): certify studio restart journey
+cb569f29f test(personalization): certify studio distribution journey
+00b94727d test(personalization): certify negative publish gates
+0f821bc31 test(personalization): certify desktop studio QA
+```
+
+Deux commits apparus en parallèle pendant la phase sont également dans son
+ascendance et ont été préservés sans réécriture :
+
+```text
+7bc947809 feat(personalization): disable actor and static shadows
+25ba900ab feat(personalization): disable actor and static shadows in game session runtime
+```
+
+Périmètre de la recertification :
+
+1. parcours Studio réel, persistance, export et installation ;
+2. intro, titre personnalisé et démarrage du jeu installé ;
+3. fallbacks vidéo, fonte, audio et thème ;
+4. parité aperçu/runtime ;
+5. hashes, codecs, licence et preflight ;
+6. build, signature, Gatekeeper et lancement macOS ;
+7. réception structurée candidat-bound.
+
+## Matrice fonctionnelle fraîche
+
+| Cible | Commande | Résultat exact |
+|---|---|---|
+| Studio→export→installation | `tool/certify_personalization_studio_phase_6.sh` | éditeur `+1`, Hub `+1`, tous les tests passent |
+| Hub golden installé | `flutter test test/ui/player/phase_6_personalization_packaging_e2e_test.dart --reporter expanded` avec sorties candidat-bound | `+1: All tests passed!` |
+| map_core | `dart test test/project_presentation_profile_test.dart --reporter expanded` | `+11: All tests passed!` |
+| map_editor | `flutter test test/personalization --reporter expanded` | `+98: All tests passed!` |
+| map_distribution | `dart test test/game_package_personalization_preflight_test.dart test/personalization_release_gate_receipt_test.dart --reporter expanded` | `+12: All tests passed!` |
+| map_runtime | `flutter test test/runtime_project_typography_loader_test.dart test/player/runtime_title_music_controller_test.dart test/runtime_intro_sequence_controller_test.dart --reporter expanded` | `+8: All tests passed!` |
+| map_player_ui | `flutter test test/player/player_intro_video_surface_test.dart test/player_title_screen_test.dart test/pokemap_player_theme_test.dart --reporter expanded` | `+15: All tests passed!` |
+| pokemap_hub fallbacks | `flutter test test/ui/player/hub_title_presentation_loader_test.dart test/ui/player/hub_intro_video_player_test.dart test/ui/player/phase_5_personalization_golden_gate_test.dart test/ui/hub_runtime_presentation_test.dart --reporter expanded` | `+13: All tests passed!` |
+| reçu externe | `POKEMAP_PHASE7B_RELEASE_RECEIPT=... dart test test/personalization_release_gate_receipt_test.dart --reporter expanded` | `+7: All tests passed!` |
+
+Le golden flow a confirmé :
+
+```text
+workingTreeClean=true
+releaseCandidateCommit=0f821bc31519602a80a2dfb74dadcb31f384d439
+packageInspection=passed
+projectValidation=passed
+loadSmoke=passed
+introAvailable=true
+titleLayoutVariant=cinematic
+displayFontFamily=Aube Display
+semanticThemeAvailable=true
+```
+
+## Analyses statiques fraîches
+
+| Package | Résultat |
+|---|---|
+| map_core | `No issues found!` |
+| map_distribution | `No issues found!` |
+| map_editor | `No issues found! (ran in 5.9s)` |
+| map_runtime | `No issues found! (ran in 5.6s)` |
+| map_player_ui | `No issues found! (ran in 4.8s)` |
+| pokemap_hub | `No issues found! (ran in 4.0s)` |
+
+## Identité du package recertifié
+
+```text
+fixture SHA-256
+6210d2858f3ee23993b848cfb701aa3e011c748706e0fd33cb57931431ab3ca2
+
+package SHA-256
+8be0b8e834d3f4ff06f76b73bc0a66a513f3bc7eff4ca7f9096a67b717761a04
+
+tree SHA-256
+cfe59da5b859802930c7b49899ee9b5cb9867e9a6d850a45413dcd52ba60ebea
+
+presentation SHA-256
+48788a804864359e585b3a8e0ff03322ba5486de43ccb89107bb2f97f3d04da8
+
+taille=16786 octets
+fichiers=9
+assets de présentation hashés=7
+videoCodec=h264
+audioCodec=aac
+catégories=branding,intro,typography,theme
+licence de fonte=présente
+signature package=notPresent
+```
+
+## Build, signature et lancement macOS
+
+Commande :
+
+```text
+cd apps/pokemap_hub
+flutter build macos --release
+```
+
+Résultat :
+
+```text
+✓ Built build/macos/Build/Products/Release/PokeMap Hub.app (87.0MB)
+```
+
+Identité :
+
+```text
+bundle ID=app.pokemap.hub
+architectures=x86_64 arm64
+executable SHA-256=8bb8fbf4a4ad6f5bbb522f18ffa3f810f01169c529121dea493dfda7f299dcb4
+signature=adhoc
+hardened runtime=présent
+TeamIdentifier=absent
+```
+
+La vérification de signature échoue aussi bien sur le bundle de build que sur
+sa copie installée :
+
+```text
+codesign --verify --deep --strict
+exit_code=1
+nested code is modified or invalid
+file modified: .../Contents/Frameworks/App.framework
+```
+
+Le test installé, sans re-signature ni affaiblissement de la library
+validation, donne :
+
+```text
+codesign_exit_code=1
+gatekeeper_exit_code=1
+launch_exit_code=134
+alive_after_8_seconds=false
+```
+
+Cause exacte utile :
+
+```text
+FlutterMacOS.framework ... not valid for use in process:
+mapping process and mapped file (non-platform) have different Team IDs
+```
+
+Cette fois, la preuve montre deux défauts de packaging liés : le sceau du
+bundle est invalide sur `App.framework`, puis le runtime durci refuse le
+chargement de `FlutterMacOS.framework`.
+
+## Matrice plateformes
+
+| Plateforme | Build | Lancement | Codec vidéo/audio | Verdict |
+|---|---:|---:|---|---|
+| macOS | 0 | 134 | H.264 / AAC | FAIL |
+| Windows | non évalué | non évalué | H.264 / AAC attendu | NOT_EVALUATED |
+| Linux | non évalué | non évalué | H.264 / AAC attendu | NOT_EVALUATED |
+| iOS | non évalué | non évalué | H.264 / AAC attendu | NOT_EVALUATED |
+| Android | non évalué | non évalué | H.264 / AAC attendu | NOT_EVALUATED |
+
+## Reçu complet recertifié
+
+```json
+{
+  "schemaVersion": 1,
+  "releaseCandidateCommit": "0f821bc31519602a80a2dfb74dadcb31f384d439",
+  "capturedAtUtc": "2026-07-27T14:59:55.183956Z",
+  "contentTreeHashSha256": "cfe59da5b859802930c7b49899ee9b5cb9867e9a6d850a45413dcd52ba60ebea",
+  "packageSha256": "8be0b8e834d3f4ff06f76b73bc0a66a513f3bc7eff4ca7f9096a67b717761a04",
+  "presentationSha256": "48788a804864359e585b3a8e0ff03322ba5486de43ccb89107bb2f97f3d04da8",
+  "criteria": [
+    {
+      "criterion": "installedGoldenFlow",
+      "status": "passed",
+      "summary": "The clean candidate exported, inspected, installed, resolved intro and custom title presentation, completed the intro sequence, mounted gameplay, and rejected corrupted installed media.",
+      "source": "build/phase-6/0f821bc31/golden-flow.json; build/phase-6/0f821bc31/studio-export-install-flow.log"
+    },
+    {
+      "criterion": "safeFallbacks",
+      "status": "passed",
+      "summary": "Missing or corrupt video, font, title audio, branding, and semantic theme paths retained a non-blocking route to the title or safe defaults.",
+      "source": "build/phase-6/0f821bc31/map-runtime-behavioral.log; build/phase-6/0f821bc31/map-player-ui-behavioral.log; build/phase-6/0f821bc31/pokemap-hub-behavioral.log"
+    },
+    {
+      "criterion": "previewRuntimeParity",
+      "status": "passed",
+      "summary": "The editor preview and exported runtime presentation matched for title layout, all five semantic surfaces, and display, dialogue, and battle-number font roles.",
+      "source": "build/phase-6/0f821bc31/map-editor-behavioral.log; reports/gameplay/pst_063_personalization_studio_desktop_qa.md"
+    },
+    {
+      "criterion": "packagePreflight",
+      "status": "passed",
+      "summary": "Package, tree, presentation, and seven asset hashes agreed; H.264/AAC, embedded font redistribution license, and all four configured presentation categories passed preflight.",
+      "source": "build/phase-6/0f821bc31/golden-flow.json; build/phase-6/0f821bc31/map-distribution-behavioral.log"
+    }
+  ],
+  "platforms": [
+    {
+      "platform": "macos",
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "buildExitCode": 0,
+      "launchExitCode": 134,
+      "source": "build/phase-6/0f821bc31/macos-build.log; build/phase-6/0f821bc31/macos-codesign-verify.log; build/phase-6/0f821bc31/macos-gatekeeper.log; build/phase-6/0f821bc31/macos-launch.log"
+    },
+    {
+      "platform": "windows",
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "source": "Not evaluated: no Windows build host or approved device was available."
+    },
+    {
+      "platform": "linux",
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "source": "Not evaluated: no Linux build host or approved device was available."
+    },
+    {
+      "platform": "ios",
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "source": "Not evaluated: no iOS target or approved device was supplied."
+    },
+    {
+      "platform": "android",
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "source": "Not evaluated: no Android target or approved device was supplied."
+    }
+  ],
+  "platformMatrixStatus": "notEvaluated",
+  "decision": "NO_GO"
+}
+```
+
+## Fichiers et zones modifiés par PST-064
+
+- `reports/gameplay/evidence/ph_007_personalization_release_gate_receipt.json`
+  - candidat, date et chemins de preuves renouvelés ;
+  - décision conservée à `NO_GO` ;
+  - contenu complet reproduit ci-dessus.
+- `reports/gameplay/ph_007_personalization_release_gate.md`
+  - ajout de la présente recertification ;
+  - le rapport n'est pas reproduit récursivement en entier.
+
+Les logs sous `build/phase-6/0f821bc31/` sont des preuves locales ignorées par
+Git. Le reçu versionné contient leurs chemins et les résultats dérivés.
+
+## Passes de revue et auto-critique
+
+La règle de session interdit les sub-agents sans demande explicite de
+l'utilisateur. Les verdicts ci-dessous proviennent donc de passes séparées de
+l'agent principal :
+
+| Passe | Verdict |
+|---|---|
+| Architecture | PASS — aucune frontière de package modifiée |
+| Parcours fonctionnel | PASS — Studio, package, intro, titre et jeu verts |
+| Validation négative | PASS — fallbacks et préflight fail-closed verts |
+| Packaging macOS | FAIL — signature, Gatekeeper et lancement installés |
+| Critique finale | NO_GO justifié et reproductible |
+
+Risques conservés :
+
+- aucune preuve réelle Windows, Linux, iOS ou Android ;
+- le paquet jeu n'est pas signé, même si son intégrité est vérifiée par hashes ;
+- les logs candidat-bound sont locaux et ignorés, tandis que le reçu et les
+  hashes sont versionnés ;
+- `PH-007` ne peut pas devenir `DONE` tant que chaque plateforme approuvée ne
+  possède pas un build et un lancement réussis.
+
+## Décision PST-064
+
+Les quatre critères comportementaux de `PH-007` sont **PASS**. Le
+Personalization Studio satisfait donc la gate fonctionnelle de la Phase 6.
+
+La gate release complète reste **NO_GO** à cause du bundle macOS non lançable
+et de la matrice multi-plateforme incomplète. Statut proposé :
+`PH-007 = PARTIAL`.

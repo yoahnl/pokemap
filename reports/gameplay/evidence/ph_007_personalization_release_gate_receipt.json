@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "releaseCandidateCommit": "28f78b38b48bb4207f0689e0e4283cf65db5d94e",
-  "capturedAtUtc": "2026-07-27T09:37:42Z",
+  "releaseCandidateCommit": "0f821bc31519602a80a2dfb74dadcb31f384d439",
+  "capturedAtUtc": "2026-07-27T14:59:55.183956Z",
   "contentTreeHashSha256": "cfe59da5b859802930c7b49899ee9b5cb9867e9a6d850a45413dcd52ba60ebea",
   "packageSha256": "8be0b8e834d3f4ff06f76b73bc0a66a513f3bc7eff4ca7f9096a67b717761a04",
   "presentationSha256": "48788a804864359e585b3a8e0ff03322ba5486de43ccb89107bb2f97f3d04da8",
@@ -10,25 +10,25 @@
       "criterion": "installedGoldenFlow",
       "status": "passed",
       "summary": "The clean candidate exported, inspected, installed, resolved intro and custom title presentation, completed the intro sequence, mounted gameplay, and rejected corrupted installed media.",
-      "source": "build/phase-7b/28f78b38b/golden-flow.json"
+      "source": "build/phase-6/0f821bc31/golden-flow.json; build/phase-6/0f821bc31/studio-export-install-flow.log"
     },
     {
       "criterion": "safeFallbacks",
       "status": "passed",
       "summary": "Missing or corrupt video, font, title audio, branding, and semantic theme paths retained a non-blocking route to the title or safe defaults.",
-      "source": "build/phase-7b/28f78b38b/map-runtime-behavioral.log; build/phase-7b/28f78b38b/map-player-ui-behavioral.log; build/phase-7b/28f78b38b/pokemap-hub-behavioral.log"
+      "source": "build/phase-6/0f821bc31/map-runtime-behavioral.log; build/phase-6/0f821bc31/map-player-ui-behavioral.log; build/phase-6/0f821bc31/pokemap-hub-behavioral.log"
     },
     {
       "criterion": "previewRuntimeParity",
       "status": "passed",
       "summary": "The editor preview and exported runtime presentation matched for title layout, all five semantic surfaces, and display, dialogue, and battle-number font roles.",
-      "source": "build/phase-7b/28f78b38b/map-editor-behavioral.log"
+      "source": "build/phase-6/0f821bc31/map-editor-behavioral.log; reports/gameplay/pst_063_personalization_studio_desktop_qa.md"
     },
     {
       "criterion": "packagePreflight",
       "status": "passed",
       "summary": "Package, tree, presentation, and seven asset hashes agreed; H.264/AAC, embedded font redistribution license, and all four configured presentation categories passed preflight.",
-      "source": "build/phase-7b/28f78b38b/golden-flow.json; build/phase-7b/28f78b38b/map-distribution-behavioral.log"
+      "source": "build/phase-6/0f821bc31/golden-flow.json; build/phase-6/0f821bc31/map-distribution-behavioral.log"
     }
   ],
   "platforms": [
@@ -38,7 +38,7 @@
       "audioCodec": "aac",
       "buildExitCode": 0,
       "launchExitCode": 134,
-      "source": "build/phase-7b/28f78b38b/macos-build.log; build/phase-7b/28f78b38b/macos-launch.log"
+      "source": "build/phase-6/0f821bc31/macos-build.log; build/phase-6/0f821bc31/macos-codesign-verify.log; build/phase-6/0f821bc31/macos-gatekeeper.log; build/phase-6/0f821bc31/macos-launch.log"
     },
     {
       "platform": "windows",
