@@ -1049,6 +1049,16 @@ String _localizedBrandingImageImportError(
         'Choisissez une image PNG, JPEG ou WebP.',
       'brandingImageCorrupt' =>
         'L’image sélectionnée ne peut pas être décodée.',
+      'brandingImageSizeExceeded' => 'L’image dépasse la limite de 10 Mio.',
+      'brandingImageDimensionsExceeded' =>
+        'L’image dépasse 4096 pixels sur au moins un côté.',
+      'brandingIconMustBeSquare' => 'L’icône du jeu doit être carrée.',
+      'brandingIconDimensionsUnsupported' =>
+        'L’icône doit mesurer entre 64 × 64 et 1024 × 1024 pixels.',
+      'brandingCoverDimensionsUnsupported' =>
+        'La cover doit mesurer au minimum 640 × 360 pixels.',
+      'brandingHeroDimensionsUnsupported' =>
+        'Le logo / hero doit mesurer au minimum 256 × 128 pixels.',
       'brandingImageWriteFailed' =>
         'L’image validée n’a pas pu être copiée dans le projet.',
       _ => error.message,
@@ -1063,6 +1073,8 @@ String _localizedTitleMusicImportError(
         'Choisissez un fichier OGG, WAV, MP3, FLAC ou M4A.',
       'titleMusicSignatureInvalid' =>
         'La signature audio ne correspond pas à l’extension du fichier.',
+      'titleMusicSizeExceeded' =>
+        'La musique du titre dépasse la limite de 30 Mio.',
       'titleMusicWriteFailed' =>
         'La musique validée n’a pas pu être copiée dans le projet.',
       _ => error.message,

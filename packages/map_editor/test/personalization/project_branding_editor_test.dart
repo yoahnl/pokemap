@@ -33,6 +33,9 @@ void main() {
     expect(find.text('Icône du jeu'), findsOneWidget);
     expect(find.text('Cover de bibliothèque'), findsOneWidget);
     expect(find.text('Logo / hero du titre'), findsOneWidget);
+    expect(find.textContaining('carrée, de 64 × 64'), findsOneWidget);
+    expect(find.textContaining('minimum 640 × 360'), findsOneWidget);
+    expect(find.textContaining('minimum 256 × 128'), findsOneWidget);
     for (final role in ProjectBrandingImageRole.values) {
       await tester.ensureVisible(
         find.byKey(ValueKey<String>('branding-import-${role.name}')),
@@ -132,6 +135,7 @@ void main() {
 
     expect(find.text('Musique du titre'), findsOneWidget);
     expect(find.text('Arrêter'), findsOneWidget);
+    expect(find.textContaining('30 Mio maximum'), findsOneWidget);
     for (final key in <String>[
       'branding-import-title-music',
       'branding-preview-title-music',

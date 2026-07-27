@@ -123,5 +123,28 @@ void main() {
         isFalse,
       );
     });
+
+    test('rejects audio above the configured size limit', () async {
+      final root = Directory.systemTemp.createTempSync('title-music-size-');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final source = File('${root.path}/theme.ogg')
+        ..writeAsBytesSync(<int>[0x4f, 0x67, 0x67, 0x53, 0, 0, 0, 0]);
+
+      await expectLater(
+        const ProjectTitleMusicImportService(
+          maxSizeBytes: 7,
+        ).importIntoProject(
+          projectRoot: root,
+          sourceFile: source,
+        ),
+        throwsA(
+          isA<ProjectTitleMusicImportException>().having(
+            (error) => error.code,
+            'code',
+            'titleMusicSizeExceeded',
+          ),
+        ),
+      );
+    });
   });
 }

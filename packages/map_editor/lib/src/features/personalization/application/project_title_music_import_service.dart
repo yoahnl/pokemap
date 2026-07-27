@@ -40,7 +40,9 @@ abstract interface class ProjectTitleMusicImporter {
 /// Validates and copies one project-owned title music file.
 final class ProjectTitleMusicImportService
     implements ProjectTitleMusicImporter {
-  const ProjectTitleMusicImportService();
+  const ProjectTitleMusicImportService({
+    this.maxSizeBytes = 30 * 1024 * 1024,
+  });
 
   static const Set<String> supportedExtensions = <String>{
     '.ogg',
@@ -49,6 +51,8 @@ final class ProjectTitleMusicImportService
     '.flac',
     '.m4a',
   };
+
+  final int maxSizeBytes;
 
   @override
   Future<ProjectTitleMusicImportResult> importIntoProject({
@@ -74,6 +78,14 @@ final class ProjectTitleMusicImportService
         message: 'Title music must use OGG, WAV, MP3, FLAC, or M4A.',
       );
     }
+    final sizeBytes = await sourceFile.length();
+    if (sizeBytes > maxSizeBytes) {
+      throw ProjectTitleMusicImportException(
+        code: 'titleMusicSizeExceeded',
+        path: sourceFile.path,
+        message: 'Title music must not exceed 30 MiB.',
+      );
+    }
     final bytes = await sourceFile.readAsBytes();
     if (!_matchesSignature(extension, bytes)) {
       throw ProjectTitleMusicImportException(
@@ -94,7 +106,7 @@ final class ProjectTitleMusicImportService
     );
     return ProjectTitleMusicImportResult(
       relativePath: relativePath,
-      sizeBytes: bytes.length,
+      sizeBytes: sizeBytes,
     );
   }
 

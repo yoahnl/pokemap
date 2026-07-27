@@ -50,7 +50,9 @@ abstract interface class ProjectBrandingImageImporter {
 /// Validates and copies one project-owned branding image.
 final class ProjectBrandingImageImportService
     implements ProjectBrandingImageImporter {
-  const ProjectBrandingImageImportService();
+  const ProjectBrandingImageImportService({
+    this.maxSizeBytes = 10 * 1024 * 1024,
+  });
 
   static const Set<String> supportedExtensions = <String>{
     '.png',
@@ -58,6 +60,15 @@ final class ProjectBrandingImageImportService
     '.jpeg',
     '.webp',
   };
+  static const int maxDimension = 4096;
+  static const int minimumIconDimension = 64;
+  static const int maximumIconDimension = 1024;
+  static const int minimumCoverWidth = 640;
+  static const int minimumCoverHeight = 360;
+  static const int minimumHeroWidth = 256;
+  static const int minimumHeroHeight = 128;
+
+  final int maxSizeBytes;
 
   @override
   Future<ProjectBrandingImageImportResult> importIntoProject({
@@ -84,6 +95,14 @@ final class ProjectBrandingImageImportService
         message: 'Branding images must use PNG, JPEG, or WebP.',
       );
     }
+    final sizeBytes = await sourceFile.length();
+    if (sizeBytes > maxSizeBytes) {
+      throw ProjectBrandingImageImportException(
+        code: 'brandingImageSizeExceeded',
+        path: sourceFile.path,
+        message: 'Branding images must not exceed 10 MiB.',
+      );
+    }
     final bytes = await sourceFile.readAsBytes();
     final decoded = image.decodeImage(bytes);
     if (decoded == null) {
@@ -93,6 +112,19 @@ final class ProjectBrandingImageImportService
         message: 'The selected branding image could not be decoded.',
       );
     }
+    if (decoded.width > maxDimension || decoded.height > maxDimension) {
+      throw ProjectBrandingImageImportException(
+        code: 'brandingImageDimensionsExceeded',
+        path: sourceFile.path,
+        message: 'Branding images must not exceed 4096 pixels per side.',
+      );
+    }
+    _validateRoleDimensions(
+      role: role,
+      width: decoded.width,
+      height: decoded.height,
+      path: sourceFile.path,
+    );
 
     final digest = sha256.convert(bytes).toString().substring(0, 16);
     final relativePath =
@@ -108,8 +140,52 @@ final class ProjectBrandingImageImportService
       relativePath: relativePath,
       width: decoded.width,
       height: decoded.height,
-      sizeBytes: bytes.length,
+      sizeBytes: sizeBytes,
     );
+  }
+
+  void _validateRoleDimensions({
+    required ProjectBrandingImageRole role,
+    required int width,
+    required int height,
+    required String path,
+  }) {
+    switch (role) {
+      case ProjectBrandingImageRole.icon:
+        if (width != height) {
+          throw ProjectBrandingImageImportException(
+            code: 'brandingIconMustBeSquare',
+            path: path,
+            message: 'The game icon must be square.',
+          );
+        }
+        if (width < minimumIconDimension || width > maximumIconDimension) {
+          throw ProjectBrandingImageImportException(
+            code: 'brandingIconDimensionsUnsupported',
+            path: path,
+            message: 'The game icon must be between 64 and 1024 pixels.',
+          );
+        }
+        break;
+      case ProjectBrandingImageRole.cover:
+        if (width < minimumCoverWidth || height < minimumCoverHeight) {
+          throw ProjectBrandingImageImportException(
+            code: 'brandingCoverDimensionsUnsupported',
+            path: path,
+            message: 'The library cover must be at least 640 × 360 pixels.',
+          );
+        }
+        break;
+      case ProjectBrandingImageRole.hero:
+        if (width < minimumHeroWidth || height < minimumHeroHeight) {
+          throw ProjectBrandingImageImportException(
+            code: 'brandingHeroDimensionsUnsupported',
+            path: path,
+            message: 'The title hero must be at least 256 × 128 pixels.',
+          );
+        }
+        break;
+    }
   }
 
   Future<void> _persistAtomically({

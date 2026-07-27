@@ -152,6 +152,10 @@ class ProjectBrandingEditor extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               Text(profile.titleMusicPath ?? 'Aucun morceau importé'),
+              const SizedBox(height: 4),
+              const Text(
+                'OGG, WAV, MP3, FLAC ou M4A • 30 Mio maximum',
+              ),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
@@ -233,6 +237,8 @@ class _BrandingImageRoleCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(path ?? 'Aucun fichier importé'),
+          const SizedBox(height: 4),
+          Text(_roleRequirements(role)),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -275,4 +281,13 @@ String _roleLabel(ProjectBrandingImageRole role) => switch (role) {
       ProjectBrandingImageRole.icon => 'Icône du jeu',
       ProjectBrandingImageRole.cover => 'Cover de bibliothèque',
       ProjectBrandingImageRole.hero => 'Logo / hero du titre',
+    };
+
+String _roleRequirements(ProjectBrandingImageRole role) => switch (role) {
+      ProjectBrandingImageRole.icon =>
+        'PNG, JPEG ou WebP • image carrée, de 64 × 64 à 1024 × 1024 px • 10 Mio maximum',
+      ProjectBrandingImageRole.cover =>
+        'PNG, JPEG ou WebP • minimum 640 × 360 px • 4096 px par côté • 10 Mio maximum',
+      ProjectBrandingImageRole.hero =>
+        'PNG, JPEG ou WebP • minimum 256 × 128 px • 4096 px par côté • 10 Mio maximum',
     };
