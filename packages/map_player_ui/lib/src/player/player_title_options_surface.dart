@@ -5,6 +5,8 @@ import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'runtime_player_detail_router.dart';
+import 'player_control_profile.dart';
+import 'player_control_remapping_panel.dart';
 
 /// Standalone options surface opened from the title screen.
 ///
@@ -16,11 +18,15 @@ class PlayerTitleOptionsSurface extends StatelessWidget {
     required this.snapshot,
     required this.onReturnToTitle,
     this.onPreferencesChanged,
+    this.controlProfile,
+    this.onControlProfileChanged,
   });
 
   final RuntimePlayerSnapshot snapshot;
   final VoidCallback? onReturnToTitle;
   final ValueChanged<PlayerPreferencesSnapshot>? onPreferencesChanged;
+  final PlayerControlProfile? controlProfile;
+  final ValueChanged<PlayerControlProfile>? onControlProfileChanged;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -56,6 +62,13 @@ class PlayerTitleOptionsSurface extends StatelessWidget {
                       snapshot: snapshot,
                       onPreferencesChanged: onPreferencesChanged,
                     ),
+                    if (controlProfile case final profile?) ...<Widget>[
+                      const SizedBox(height: PlayerSpacing.lg),
+                      PlayerControlRemappingPanel(
+                        profile: profile,
+                        onChanged: onControlProfileChanged ?? (_) {},
+                      ),
+                    ],
                     const SizedBox(height: PlayerSpacing.lg),
                     PlayerActionButton(
                       key: const ValueKey<String>(

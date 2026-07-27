@@ -5,6 +5,7 @@ import 'package:flutter_joystick/flutter_joystick.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../theme/pokemap_player_theme.dart';
+import 'player_control_profile.dart';
 
 const double kRuntimePlayerTouchDeadZone = 0.35;
 
@@ -54,10 +55,12 @@ class RuntimePlayerTouchControls extends StatefulWidget {
     super.key,
     required this.dispatch,
     this.opacity = 0.82,
+    this.controlProfile,
   }) : assert(opacity >= 0.3 && opacity <= 1);
 
   final ValueChanged<RuntimeInputEvent> dispatch;
   final double opacity;
+  final PlayerControlProfile? controlProfile;
 
   @override
   State<RuntimePlayerTouchControls> createState() =>
@@ -74,7 +77,10 @@ class _RuntimePlayerTouchControlsState
     }
   }
 
-  void _dispatchButton(RuntimeInputControl control, bool pressed) {
+  void _dispatchButton(String inputId, bool pressed) {
+    final control = (widget.controlProfile ?? PlayerControlProfile.standard)
+        .controlForTouchInput(inputId);
+    if (control == null) return;
     widget.dispatch(
       pressed
           ? RuntimeInputEvent.press(control)
@@ -133,11 +139,11 @@ class _RuntimePlayerTouchControlsState
                   portrait: portrait,
                   buttonSize: actionSize,
                   onPrimaryChanged: (pressed) => _dispatchButton(
-                    RuntimeInputControl.primary,
+                    'primaryButton',
                     pressed,
                   ),
                   onSecondaryChanged: (pressed) => _dispatchButton(
-                    RuntimeInputControl.secondary,
+                    'secondaryButton',
                     pressed,
                   ),
                 ),

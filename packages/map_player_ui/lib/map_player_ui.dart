@@ -8,6 +8,8 @@ export 'src/foundation/player_feedback.dart';
 export 'src/foundation/player_text_scaler.dart';
 export 'src/localization/player_localizations.dart';
 export 'src/player/player_battle_overlay.dart';
+export 'src/player/player_control_profile.dart';
+export 'src/player/player_control_remapping_panel.dart';
 export 'src/player/player_dialogue_overlay.dart';
 export 'src/player/player_display_strings.dart';
 export 'src/player/player_heal_confirmation.dart';

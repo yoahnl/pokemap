@@ -1108,6 +1108,47 @@ void main() {
     expect(controller.commands.single.snapshotRevision, 31);
   });
 
+  testWidgets('routes a remapped keyboard profile through the canonical seam',
+      (tester) async {
+    final gameplayEvents = <RuntimeInputEvent>[];
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(revision: 32, phase: RuntimePlayerPhase.playing),
+    );
+    addTearDown(controller.dispose);
+    final profile = PlayerControlProfile.standard
+        .rebind(
+          device: PlayerControlDevice.keyboard,
+          control: RuntimeInputControl.primary,
+          inputId: 'keyZ',
+        )
+        .profile;
+
+    await tester.pumpWidget(
+      _app(
+        _view(
+          controller,
+          controlProfile: profile,
+          gameplayInputRoute: (event) {
+            gameplayEvents.add(event);
+            return true;
+          },
+        ),
+      ),
+    );
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyZ);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyZ);
+    await tester.pump();
+
+    expect(
+      gameplayEvents,
+      const <RuntimeInputEvent>[
+        RuntimeInputEvent.press(RuntimeInputControl.primary),
+        RuntimeInputEvent.release(RuntimeInputControl.primary),
+      ],
+    );
+  });
+
   testWidgets('consumes repeated Menu and plugin-owned hardware gamepad keys',
       (tester) async {
     final gameplayEvents = <RuntimeInputEvent>[];
@@ -1321,6 +1362,7 @@ PokeMapPlayerSessionView _view(
   PlayerNewGameIdentityPresentation? titlePresentation,
   RuntimePlayerActionPayloadBuilder? payloadForAction,
   Future<void> Function()? hapticFeedback,
+  PlayerControlProfile? controlProfile,
 }) {
   return PokeMapPlayerSessionView(
     controller: controller,
@@ -1344,6 +1386,7 @@ PokeMapPlayerSessionView _view(
         controllerInputEnabled ?? controllerInputEvents != null,
     onShowDiagnostics: onShowDiagnostics,
     hapticFeedback: hapticFeedback,
+    controlProfile: controlProfile,
   );
 }
 

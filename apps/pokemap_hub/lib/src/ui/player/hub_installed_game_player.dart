@@ -12,6 +12,7 @@ import 'package:path/path.dart' as p;
 
 import '../../library/game_library.dart';
 import '../../player/hub_player_preferences_gateway.dart';
+import '../../player/hub_control_profile_store.dart';
 import '../../player/hub_player_save_gateway.dart';
 import '../../player/hub_runtime_external_exit.dart';
 import '../../player/hub_runtime_game_source.dart';
@@ -68,6 +69,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       const player_ui.PokeMapPlayerTypography();
   RuntimeTitleMusicController? _titleMusicController;
   RuntimeAudioMixer? _audioMixer;
+  HubControlProfileStore? _controlProfileStore;
+  player_ui.PlayerControlProfile _controlProfile =
+      player_ui.PlayerControlProfile.standard;
   StreamSubscription<RuntimePlayerSnapshot>? _titleMusicSubscription;
   bool _introComplete = true;
   bool _reducedMotion = false;
@@ -93,6 +97,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       final preferencesStore =
           HubPreferencesStore(supportRoot: widget.supportRoot);
       final preferences = (await preferencesStore.load()).preferences;
+      final controlProfileStore = HubControlProfileStore(
+        supportRoot: widget.supportRoot,
+      );
+      final controlProfile = await controlProfileStore.load();
       final audioMixer = RuntimeAudioMixer(
         mix: RuntimeAudioMix(
           masterVolume: preferences.masterVolume,
@@ -186,6 +194,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         _playerTypography = loadedTypography;
         _titleMusicController = titleMusicController;
         _audioMixer = audioMixer;
+        _controlProfileStore = controlProfileStore;
+        _controlProfile = controlProfile;
         _titleMusicSubscription = titleMusicSubscription;
         _viewController =
             player_ui.RuntimePlayerCoordinatorViewController(coordinator!);
@@ -526,6 +536,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                     _mountedGame?.dialoguePresentationListenable,
                 onDialogueCommand:
                     _mountedGame?.dispatchDialoguePresentationCommand,
+                controlProfile: _controlProfile,
+                onControlProfileChanged: _updateControlProfile,
                 gameSceneBuilder: (_) {
                   final game = _mountedGame;
                   return game == null
@@ -575,6 +587,13 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         volume: 1,
       ),
     );
+  }
+
+  void _updateControlProfile(player_ui.PlayerControlProfile profile) {
+    if (profile == _controlProfile) return;
+    setState(() => _controlProfile = profile);
+    final store = _controlProfileStore;
+    if (store != null) unawaited(store.save(profile));
   }
 
   @override

@@ -4,6 +4,7 @@ import 'package:gamepads/gamepads.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'runtime_player_touch_controls.dart';
+import 'player_control_profile.dart';
 
 const double kRuntimePlayerGamepadPressedThreshold = .5;
 
@@ -14,9 +15,12 @@ const double kRuntimePlayerGamepadPressedThreshold = .5;
 final class RuntimePlayerGamepadBridge {
   RuntimePlayerGamepadBridge({
     double stickDeadZone = kRuntimePlayerTouchDeadZone,
-  }) : _stickDeadZone = stickDeadZone;
+    PlayerControlProfile? controlProfile,
+  })  : _stickDeadZone = stickDeadZone,
+        _controlProfile = controlProfile ?? PlayerControlProfile.standard;
 
   final double _stickDeadZone;
+  final PlayerControlProfile _controlProfile;
   final Map<String, _RuntimePlayerGamepadStickState> _sticks =
       <String, _RuntimePlayerGamepadStickState>{};
   final Map<String, bool> _buttonStates = <String, bool>{};
@@ -41,16 +45,7 @@ final class RuntimePlayerGamepadBridge {
     required GamepadButton button,
     required double value,
   }) {
-    final control = switch (button) {
-      GamepadButton.a => RuntimeInputControl.primary,
-      GamepadButton.b || GamepadButton.back => RuntimeInputControl.secondary,
-      GamepadButton.start => RuntimeInputControl.menu,
-      GamepadButton.dpadUp => RuntimeInputControl.up,
-      GamepadButton.dpadDown => RuntimeInputControl.down,
-      GamepadButton.dpadLeft => RuntimeInputControl.left,
-      GamepadButton.dpadRight => RuntimeInputControl.right,
-      _ => null,
-    };
+    final control = _controlProfile.controlForGamepadButton(button);
     if (control == null) return const <RuntimeInputEvent>[];
     final pressed = value >= kRuntimePlayerGamepadPressedThreshold;
     final stateKey = '$gamepadId:${button.name}';

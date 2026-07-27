@@ -13,6 +13,7 @@ import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_title_screen.dart';
 import 'player_dialogue_overlay.dart';
+import 'player_control_profile.dart';
 import 'player_heal_confirmation.dart';
 import 'player_new_game_identity.dart';
 import 'player_pc_overlay.dart';
@@ -88,6 +89,8 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     this.dialoguePresentation,
     this.onDialogueCommand,
     this.hapticFeedback,
+    this.controlProfile,
+    this.onControlProfileChanged,
   });
 
   final RuntimePlayerViewController controller;
@@ -120,6 +123,8 @@ class PokeMapPlayerSessionView extends StatefulWidget {
   final ValueListenable<DialoguePresentationSnapshot?>? dialoguePresentation;
   final ValueChanged<DialoguePresentationCommand>? onDialogueCommand;
   final Future<void> Function()? hapticFeedback;
+  final PlayerControlProfile? controlProfile;
+  final ValueChanged<PlayerControlProfile>? onControlProfileChanged;
 
   @override
   State<PokeMapPlayerSessionView> createState() =>
@@ -137,6 +142,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
           (defaultTargetPlatform == TargetPlatform.iOS ||
               defaultTargetPlatform == TargetPlatform.android));
 
+  PlayerControlProfile get _controlProfile =>
+      widget.controlProfile ?? PlayerControlProfile.standard;
+
   @override
   void initState() {
     super.initState();
@@ -151,7 +159,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
       _latestSnapshot = widget.controller.snapshot;
     }
     if (oldWidget.controllerInputEnabled != widget.controllerInputEnabled ||
-        oldWidget.controllerInputEvents != widget.controllerInputEvents) {
+        oldWidget.controllerInputEvents != widget.controllerInputEvents ||
+        oldWidget.controlProfile != widget.controlProfile) {
       _bindControllerInputs();
     }
   }
@@ -174,7 +183,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   }
 
   Stream<RuntimeInputEvent> _normalizedControllerInputEvents() async* {
-    final bridge = RuntimePlayerGamepadBridge();
+    final bridge = RuntimePlayerGamepadBridge(
+      controlProfile: _controlProfile,
+    );
     await for (final event in Gamepads.normalizedEvents) {
       for (final runtimeEvent in bridge.handle(event)) {
         yield runtimeEvent;
@@ -236,7 +247,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   }
 
   KeyEventResult _routeHardwareKeyEvent(FocusNode node, KeyEvent event) {
-    final runtimeEvent = runtimeInputEventFromKeyEvent(event);
+    final runtimeEvent = _controlProfile.runtimeEventFromKeyEvent(event);
     if (runtimeEvent == null) return KeyEventResult.ignored;
     final isHardwareGamepad = event.deviceType == ui.KeyEventDeviceType.gamepad;
     if (isHardwareGamepad && widget.controllerInputEnabled) {
@@ -500,12 +511,16 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
               payload: command,
             ),
           ),
+          controlProfile:
+              widget.onControlProfileChanged == null ? null : _controlProfile,
+          onControlProfileChanged: widget.onControlProfileChanged,
           onAction: (action) => _dispatchSurfaceAction(action, snapshot),
         ),
         if (showTouchControls)
           Positioned.fill(
             child: RuntimePlayerTouchControls(
               opacity: touchControlsOpacity,
+              controlProfile: _controlProfile,
               dispatch: (event) => unawaited(
                 _routeRuntimeInput(
                   event,

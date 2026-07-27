@@ -6,6 +6,7 @@ import 'package:map_runtime/map_runtime.dart';
 import '../foundation/player_action_availability.dart';
 import '../localization/player_localizations.dart';
 import 'player_pause_menu.dart';
+import 'player_control_profile.dart';
 import 'player_save_strings.dart';
 import 'player_session_surfaces.dart';
 import 'player_title_options_surface.dart';
@@ -30,6 +31,8 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
     this.touchControlsOpacity = 0.82,
     this.onPreferencesChanged,
     this.onPauseCommand,
+    this.controlProfile,
+    this.onControlProfileChanged,
   });
 
   final RuntimePlayerSnapshot snapshot;
@@ -41,6 +44,8 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
   final double touchControlsOpacity;
   final ValueChanged<PlayerPreferencesSnapshot>? onPreferencesChanged;
   final ValueChanged<RuntimePlayerPauseCommand>? onPauseCommand;
+  final PlayerControlProfile? controlProfile;
+  final ValueChanged<PlayerControlProfile>? onControlProfileChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +80,8 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
           snapshot: snapshot,
           onReturnToTitle: _callbackFor(RuntimePlayerAction.returnToTitle),
           onPreferencesChanged: onPreferencesChanged,
+          controlProfile: controlProfile,
+          onControlProfileChanged: onControlProfileChanged,
         ),
       RuntimePlayerPhase.title => PlayerTitleScreen(
           data: PlayerTitleViewData(

@@ -49,6 +49,35 @@ void main() {
       );
     });
 
+    test('uses a remapped gamepad profile and exposes its glyph', () {
+      final profile = PlayerControlProfile.standard
+          .rebind(
+            device: PlayerControlDevice.gamepad,
+            control: RuntimeInputControl.primary,
+            inputId: GamepadButton.x.name,
+          )
+          .profile;
+      final bridge = RuntimePlayerGamepadBridge(controlProfile: profile);
+
+      expect(
+        bridge.handleButton(
+          gamepadId: 'pad-remapped',
+          button: GamepadButton.x,
+          value: 1,
+        ),
+        const <RuntimeInputEvent>[
+          RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ],
+      );
+      expect(
+        profile.glyphFor(
+          PlayerControlDevice.gamepad,
+          RuntimeInputControl.primary,
+        ),
+        'X',
+      );
+    });
+
     test('maps the normalized left stick through a digital dead zone', () {
       final bridge = RuntimePlayerGamepadBridge();
 
