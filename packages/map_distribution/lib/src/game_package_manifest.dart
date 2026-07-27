@@ -91,14 +91,62 @@ final class GamePackagePresentation {
   const GamePackagePresentation({
     this.schemaVersion = 1,
     this.branding = const GamePackageBranding(),
+    this.intro,
   });
 
   final int schemaVersion;
   final GamePackageBranding branding;
+  final GamePackageIntroVideo? intro;
 
   Map<String, Object?> toJson() => <String, Object?>{
         'schemaVersion': schemaVersion,
         'branding': branding.toJson(),
+        if (intro != null) 'intro': intro!.toJson(),
+      };
+}
+
+final class GamePackageIntroVideo {
+  const GamePackageIntroVideo({
+    required this.video,
+    required this.poster,
+    this.captions,
+    required this.durationMilliseconds,
+    required this.width,
+    required this.height,
+    required this.bitrateKbps,
+    required this.sizeBytes,
+    required this.videoCodec,
+    required this.audioCodec,
+    required this.reducedMotionBehavior,
+    required this.allowReplay,
+  });
+
+  final String video;
+  final String poster;
+  final String? captions;
+  final int durationMilliseconds;
+  final int width;
+  final int height;
+  final int bitrateKbps;
+  final int sizeBytes;
+  final String videoCodec;
+  final String audioCodec;
+  final String reducedMotionBehavior;
+  final bool allowReplay;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'video': video,
+        'poster': poster,
+        if (captions != null) 'captions': captions,
+        'durationMilliseconds': durationMilliseconds,
+        'width': width,
+        'height': height,
+        'bitrateKbps': bitrateKbps,
+        'sizeBytes': sizeBytes,
+        'videoCodec': videoCodec,
+        'audioCodec': audioCodec,
+        'reducedMotionBehavior': reducedMotionBehavior,
+        'allowReplay': allowReplay,
       };
 }
 

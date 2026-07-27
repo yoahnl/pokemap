@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -81,6 +82,71 @@ void main() {
     expect(
       const GamePackageInspector().inspect(await output.readAsBytes()).manifest,
       isA<GamePackageManifest>(),
+    );
+  });
+
+  test('packages the authored intro video contract and assets', () async {
+    final root = await createAuthorProject(withDialogue: false);
+    addTearDown(() => root.delete(recursive: true));
+    final video = <int>[
+      0,
+      0,
+      0,
+      24,
+      ...utf8.encode('ftypisom'),
+      0,
+      0,
+      0,
+      0,
+      ...utf8.encode('isomavc1mp4a'),
+    ];
+    await File(p.join(root.path, 'assets', 'intro.mp4'))
+        .writeAsBytes(video, flush: true);
+    await File(p.join(root.path, 'assets', 'poster.png'))
+        .writeAsBytes(onePixelPng, flush: true);
+    await File(p.join(root.path, 'assets', 'captions.vtt')).writeAsString(
+      'WEBVTT\n\n00:00.000 --> 00:01.000\nBienvenue\n',
+      flush: true,
+    );
+    final projectFile = File(p.join(root.path, 'project.json'));
+    final project =
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+    project['presentation'] = <String, Object?>{
+      'schemaVersion': 1,
+      'branding': <String, Object?>{},
+      'intro': <String, Object?>{
+        'videoPath': 'assets/intro.mp4',
+        'posterPath': 'assets/poster.png',
+        'captionsPath': 'assets/captions.vtt',
+        'durationMilliseconds': 1000,
+        'width': 1280,
+        'height': 720,
+        'bitrateKbps': 128,
+        'sizeBytes': video.length,
+        'videoCodec': 'h264',
+        'audioCodec': 'aac',
+        'reducedMotionBehavior': 'poster',
+        'allowReplay': true,
+      },
+    };
+    await projectFile.writeAsString(jsonEncode(project), flush: true);
+
+    final artifact = await const GamePackageExportService().build(
+      projectRoot: root,
+      profile: neutralExportProfile(),
+    );
+
+    expect(
+      artifact.manifest.presentation?.intro?.video,
+      'presentation/intro/video.mp4',
+    );
+    expect(
+      artifact.inspection.payloadPaths,
+      containsAll(<String>[
+        'presentation/intro/video.mp4',
+        'presentation/intro/poster.png',
+        'presentation/intro/captions.vtt',
+      ]),
     );
   });
 

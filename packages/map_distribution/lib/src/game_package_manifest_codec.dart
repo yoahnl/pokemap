@@ -1,6 +1,13 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:map_core/map_core.dart'
+    show
+        projectIntroVideoMaxBitrateKbps,
+        projectIntroVideoMaxDurationMilliseconds,
+        projectIntroVideoMaxHeight,
+        projectIntroVideoMaxSizeBytes,
+        projectIntroVideoMaxWidth;
 import 'package:pub_semver/pub_semver.dart';
 
 import 'canonical_json.dart';
@@ -142,6 +149,29 @@ final class GamePackageManifestCodec {
           'brandingReferenceMissing',
           '$brandingPath.${reference.field}',
           'Branding reference is not present in content.files.',
+        );
+      }
+    }
+    final intro = presentation?.intro;
+    for (final reference in <({String field, String? value})>[
+      (field: 'video', value: intro?.video),
+      (field: 'poster', value: intro?.poster),
+      (field: 'captions', value: intro?.captions),
+    ]) {
+      final value = reference.value;
+      if (value == null) continue;
+      if (!value.startsWith('presentation/intro/')) {
+        _fail(
+          'invalidIntroVideoReference',
+          '\$.presentation.intro.${reference.field}',
+          'Intro assets must use the presentation/intro package root.',
+        );
+      }
+      if (!contentPaths.contains(value)) {
+        _fail(
+          'introVideoReferenceMissing',
+          '\$.presentation.intro.${reference.field}',
+          'Intro reference is not present in content.files.',
         );
       }
     }
@@ -367,7 +397,7 @@ final class GamePackageManifestCodec {
       value,
       path,
       required: const <String>{'schemaVersion', 'branding'},
-      optional: const <String>{},
+      optional: const <String>{'intro'},
     );
     final schemaVersion =
         _integer(json['schemaVersion'], '$path.schemaVersion');
@@ -384,6 +414,91 @@ final class GamePackageManifestCodec {
         json['branding'],
         path: '$path.branding',
       ),
+      intro: json.containsKey('intro')
+          ? _intro(json['intro'], path: '$path.intro')
+          : null,
+    );
+  }
+
+  GamePackageIntroVideo _intro(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{
+        'video',
+        'poster',
+        'durationMilliseconds',
+        'width',
+        'height',
+        'bitrateKbps',
+        'sizeBytes',
+        'videoCodec',
+        'audioCodec',
+        'reducedMotionBehavior',
+        'allowReplay',
+      },
+      optional: const <String>{'captions'},
+    );
+    String packagePath(String field) {
+      final result = _boundedString(json[field], '$path.$field', 1, 512);
+      PackagePathPolicy.validate(result, errorPath: '$path.$field');
+      return result;
+    }
+
+    final video = packagePath('video');
+    final poster = packagePath('poster');
+    final captions =
+        json.containsKey('captions') ? packagePath('captions') : null;
+    final duration =
+        _integer(json['durationMilliseconds'], '$path.durationMilliseconds');
+    final width = _integer(json['width'], '$path.width');
+    final height = _integer(json['height'], '$path.height');
+    final bitrate = _integer(json['bitrateKbps'], '$path.bitrateKbps');
+    final size = _integer(json['sizeBytes'], '$path.sizeBytes');
+    final videoCodec = _string(json['videoCodec'], '$path.videoCodec');
+    final audioCodec = _string(json['audioCodec'], '$path.audioCodec');
+    final reducedMotion =
+        _string(json['reducedMotionBehavior'], '$path.reducedMotionBehavior');
+    final allowReplay = _boolean(json['allowReplay'], '$path.allowReplay');
+    if (!video.toLowerCase().endsWith('.mp4') ||
+        !const <String>['.png', '.jpg', '.jpeg', '.webp']
+            .any(poster.toLowerCase().endsWith) ||
+        (captions != null && !captions.toLowerCase().endsWith('.vtt')) ||
+        duration <= 0 ||
+        duration > projectIntroVideoMaxDurationMilliseconds ||
+        width <= 0 ||
+        width > projectIntroVideoMaxWidth ||
+        height <= 0 ||
+        height > projectIntroVideoMaxHeight ||
+        bitrate <= 0 ||
+        bitrate > projectIntroVideoMaxBitrateKbps ||
+        size <= 0 ||
+        size > projectIntroVideoMaxSizeBytes ||
+        videoCodec != 'h264' ||
+        !const <String>{'aac', 'none'}.contains(audioCodec) ||
+        !const <String>{'poster', 'skip'}.contains(reducedMotion)) {
+      _fail(
+        'invalidIntroVideoMetadata',
+        path,
+        'Intro video metadata exceeds the supported playback contract.',
+      );
+    }
+    return GamePackageIntroVideo(
+      video: video,
+      poster: poster,
+      captions: captions,
+      durationMilliseconds: duration,
+      width: width,
+      height: height,
+      bitrateKbps: bitrate,
+      sizeBytes: size,
+      videoCodec: videoCodec,
+      audioCodec: audioCodec,
+      reducedMotionBehavior: reducedMotion,
+      allowReplay: allowReplay,
     );
   }
 
@@ -676,6 +791,13 @@ final class GamePackageManifestCodec {
   int _integer(Object? value, String path) {
     if (value is! int) {
       _fail('invalidType', path, 'Expected an integer.');
+    }
+    return value;
+  }
+
+  bool _boolean(Object? value, String path) {
+    if (value is! bool) {
+      _fail('invalidType', path, 'Expected a boolean.');
     }
     return value;
   }

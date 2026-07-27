@@ -477,7 +477,7 @@ final class GamePackageInspector {
 
   bool _isStreamValidatedText(String path) {
     final extension = p.extension(path).toLowerCase();
-    return extension == '.txt' || extension == '.md';
+    return extension == '.txt' || extension == '.md' || extension == '.vtt';
   }
 
   Uint8List _readAt(

@@ -57,10 +57,23 @@ final class GamePackageContentValidator {
       _validateJson(path, bytes);
       return;
     }
-    if (extension == '.txt' || extension == '.md') {
+    if (extension == '.txt' || extension == '.md' || extension == '.vtt') {
       if (!streamedTextValidated) {
         final text = _decodeText(path, bytes);
         _scanText(path, text);
+        if (extension == '.vtt' && !text.startsWith('WEBVTT')) {
+          _fail(
+            'executableContent',
+            path,
+            'Caption files must use WebVTT.',
+          );
+        }
+      } else if (extension == '.vtt' && !_asciiAt(bytes, 0, 'WEBVTT')) {
+        _fail(
+          'executableContent',
+          path,
+          'Caption files must use WebVTT.',
+        );
       }
       return;
     }
@@ -190,7 +203,9 @@ final class GamePackageContentValidator {
     if (path.startsWith('presentation/')) {
       return _imageExtensions.contains(extension) ||
           _audioExtensions.contains(extension) ||
-          _fontExtensions.contains(extension);
+          _fontExtensions.contains(extension) ||
+          _videoExtensions.contains(extension) ||
+          _captionExtensions.contains(extension);
     }
     if (path.startsWith('project/assets/') ||
         path.startsWith('project/data/')) {
@@ -248,6 +263,7 @@ final class GamePackageContentValidator {
       '.mp3' => _asciiAt(bytes, 0, 'ID3') ||
           (bytes.length >= 2 && bytes[0] == 0xff && (bytes[1] & 0xe0) == 0xe0),
       '.m4a' => _asciiAt(bytes, 4, 'ftyp'),
+      '.mp4' => _asciiAt(bytes, 4, 'ftyp'),
       '.ttf' =>
         _startsWith(bytes, <int>[0, 1, 0, 0]) || _asciiAt(bytes, 0, 'true'),
       '.otf' => _asciiAt(bytes, 0, 'OTTO'),
@@ -407,6 +423,8 @@ final class GamePackageContentValidator {
     '.otf',
     '.woff2',
   };
+  static const Set<String> _videoExtensions = <String>{'.mp4'};
+  static const Set<String> _captionExtensions = <String>{'.vtt'};
   static const Set<String> _forbiddenExtensions = <String>{
     '.dart',
     '.js',
@@ -493,6 +511,8 @@ final class GamePackageContentValidator {
     '.mp3': 'audio/mpeg',
     '.flac': 'audio/flac',
     '.m4a': 'audio/mp4',
+    '.mp4': 'video/mp4',
+    '.vtt': 'text/vtt',
     '.ttf': 'font/ttf',
     '.otf': 'font/otf',
     '.woff2': 'font/woff2',

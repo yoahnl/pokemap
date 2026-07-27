@@ -85,14 +85,31 @@ void main() {
             'accentColor': '#6750A4',
             'layoutVariant': 'centered',
           },
+          'intro': <String, Object?>{
+            'video': 'presentation/intro/video.mp4',
+            'poster': 'presentation/intro/poster.png',
+            'captions': 'presentation/intro/captions.vtt',
+            'durationMilliseconds': 32000,
+            'width': 1920,
+            'height': 1080,
+            'bitrateKbps': 8000,
+            'sizeBytes': 32000000,
+            'videoCodec': 'h264',
+            'audioCodec': 'aac',
+            'reducedMotionBehavior': 'poster',
+            'allowReplay': true,
+          },
         };
       final content = json['content']! as Map<String, Object?>;
       final projectFile =
           (content['files']! as List<Object?>).single as Map<String, Object?>;
       content
-        ..['fileCount'] = 2
+        ..['fileCount'] = 5
         ..['files'] = <Object?>[
           _emptyFile('presentation/icon.png'),
+          _emptyFile('presentation/intro/captions.vtt'),
+          _emptyFile('presentation/intro/poster.png'),
+          _emptyFile('presentation/intro/video.mp4'),
           projectFile,
         ];
       content['treeSha256'] = _treeHashFromJson(content['files']!);
@@ -101,8 +118,36 @@ void main() {
 
       expect(manifest.presentation?.schemaVersion, 1);
       expect(manifest.branding?.icon, 'presentation/icon.png');
+      expect(manifest.presentation?.intro?.videoCodec, 'h264');
       expect(manifest.usesLegacyBranding, isFalse);
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
+    });
+
+    test('rejects unsafe or unsupported packaged intro video metadata', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 1,
+          'branding': <String, Object?>{},
+          'intro': <String, Object?>{
+            'video': 'project/assets/intro.mp4',
+            'poster': 'presentation/intro/poster.png',
+            'durationMilliseconds': 32000,
+            'width': 1920,
+            'height': 1080,
+            'bitrateKbps': 8000,
+            'sizeBytes': 32000000,
+            'videoCodec': 'h264',
+            'audioCodec': 'aac',
+            'reducedMotionBehavior': 'poster',
+            'allowReplay': true,
+          },
+        };
+
+      _expectCode(
+        () => codec.decodeJson(json),
+        'invalidIntroVideoReference',
+        r'$.presentation.intro.video',
+      );
     });
 
     test('keeps legacy branding manifests readable through the effective API',

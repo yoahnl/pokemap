@@ -84,5 +84,61 @@ void main() {
       );
       expect(json['presentation'], presentation.toJson());
     });
+
+    test('valid intro video metadata joins the semantic contract', () {
+      const profile = ProjectPresentationProfile(
+        intro: ProjectIntroVideoProfile(
+          videoPath: 'assets/presentation/intro/intro.mp4',
+          posterPath: 'assets/presentation/intro/poster.png',
+          captionsPath: 'assets/presentation/intro/captions.vtt',
+          durationMilliseconds: 32000,
+          width: 1920,
+          height: 1080,
+          bitrateKbps: 8000,
+          sizeBytes: 32000000,
+          videoCodec: 'h264',
+          audioCodec: 'aac',
+        ),
+      );
+
+      expect(validateProjectPresentationProfile(profile), isEmpty);
+      expect(
+        profile.configuredCategories,
+        contains(ProjectPresentationCategory.intro),
+      );
+      expect(
+        ProjectPresentationProfile.fromJson(profile.toJson()),
+        profile,
+      );
+    });
+
+    test('intro video limits and fallback poster fail closed', () {
+      const profile = ProjectPresentationProfile(
+        intro: ProjectIntroVideoProfile(
+          videoPath: 'assets/presentation/intro/intro.mov',
+          durationMilliseconds: 130000,
+          width: 3840,
+          height: 2160,
+          bitrateKbps: 24000,
+          sizeBytes: 150000000,
+          videoCodec: 'hevc',
+          audioCodec: 'aac',
+        ),
+      );
+
+      expect(
+        validateProjectPresentationProfile(profile)
+            .map((diagnostic) => diagnostic.code),
+        containsAll(<String>[
+          'introPosterRequired',
+          'introContainerUnsupported',
+          'introDurationExceeded',
+          'introResolutionExceeded',
+          'introBitrateExceeded',
+          'introSizeExceeded',
+          'introVideoCodecUnsupported',
+        ]),
+      );
+    });
   });
 }

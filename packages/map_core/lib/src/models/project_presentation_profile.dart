@@ -46,6 +46,28 @@ class ProjectBrandingProfile with _$ProjectBrandingProfile {
 }
 
 @Freezed(fromJson: true, toJson: true)
+class ProjectIntroVideoProfile with _$ProjectIntroVideoProfile {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectIntroVideoProfile({
+    required String videoPath,
+    @JsonKey(includeIfNull: false) String? posterPath,
+    @JsonKey(includeIfNull: false) String? captionsPath,
+    required int durationMilliseconds,
+    required int width,
+    required int height,
+    required int bitrateKbps,
+    required int sizeBytes,
+    required String videoCodec,
+    @Default('none') String audioCodec,
+    @Default('poster') String reducedMotionBehavior,
+    @Default(true) bool allowReplay,
+  }) = _ProjectIntroVideoProfile;
+
+  factory ProjectIntroVideoProfile.fromJson(Map<String, dynamic> json) =>
+      _$ProjectIntroVideoProfileFromJson(json);
+}
+
+@Freezed(fromJson: true, toJson: true)
 class ProjectPresentationProfile with _$ProjectPresentationProfile {
   const ProjectPresentationProfile._();
 
@@ -54,6 +76,7 @@ class ProjectPresentationProfile with _$ProjectPresentationProfile {
     @Default(ProjectPresentationProfile.supportedSchemaVersion)
     int schemaVersion,
     @Default(ProjectBrandingProfile()) ProjectBrandingProfile branding,
+    @JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,
   }) = _ProjectPresentationProfile;
 
   factory ProjectPresentationProfile.fromJson(Map<String, dynamic> json) =>
@@ -64,8 +87,15 @@ class ProjectPresentationProfile with _$ProjectPresentationProfile {
   Set<ProjectPresentationCategory> get configuredCategories =>
       <ProjectPresentationCategory>{
         if (_hasBranding(branding)) ProjectPresentationCategory.branding,
+        if (intro != null) ProjectPresentationCategory.intro,
       };
 }
+
+const int projectIntroVideoMaxDurationMilliseconds = 120000;
+const int projectIntroVideoMaxWidth = 1920;
+const int projectIntroVideoMaxHeight = 1080;
+const int projectIntroVideoMaxBitrateKbps = 12000;
+const int projectIntroVideoMaxSizeBytes = 100 * 1024 * 1024;
 
 const Set<String> supportedProjectTitleLayoutVariants = <String>{
   'standard',
@@ -125,8 +155,7 @@ List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
     );
   }
 
-  if (!supportedProjectTitleLayoutVariants
-      .contains(branding.layoutVariant)) {
+  if (!supportedProjectTitleLayoutVariants.contains(branding.layoutVariant)) {
     diagnostics.add(
       const ProjectPresentationDiagnostic(
         code: 'presentationLayoutUnsupported',
@@ -137,7 +166,138 @@ List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
       ),
     );
   }
+  _validateIntroVideo(profile.intro, diagnostics);
   return List<ProjectPresentationDiagnostic>.unmodifiable(diagnostics);
+}
+
+void _validateIntroVideo(
+  ProjectIntroVideoProfile? intro,
+  List<ProjectPresentationDiagnostic> diagnostics,
+) {
+  if (intro == null) return;
+  void error(String code, String field, String message) {
+    diagnostics.add(
+      ProjectPresentationDiagnostic(
+        code: code,
+        category: ProjectPresentationCategory.intro,
+        severity: ProjectPresentationDiagnosticSeverity.error,
+        path: r'$.presentation.intro.' + field,
+        message: message,
+      ),
+    );
+  }
+
+  for (final asset in <({String field, String? value})>[
+    (field: 'videoPath', value: intro.videoPath),
+    (field: 'posterPath', value: intro.posterPath),
+    (field: 'captionsPath', value: intro.captionsPath),
+  ]) {
+    final value = asset.value;
+    if (value != null && !_isSafeProjectRelativePath(value)) {
+      error(
+        'presentationAssetPathUnsafe',
+        asset.field,
+        'Choose a file located inside the project.',
+      );
+    }
+  }
+  if (intro.posterPath == null) {
+    error(
+      'introPosterRequired',
+      'posterPath',
+      'Choose a poster image so the intro always has a safe fallback.',
+    );
+  }
+  if (!intro.videoPath.toLowerCase().endsWith('.mp4')) {
+    error(
+      'introContainerUnsupported',
+      'videoPath',
+      'Intro videos must use the cross-platform MP4 container.',
+    );
+  }
+  final posterPath = intro.posterPath?.toLowerCase();
+  if (posterPath != null &&
+      !const <String>['.png', '.jpg', '.jpeg', '.webp']
+          .any(posterPath.endsWith)) {
+    error(
+      'introPosterFormatUnsupported',
+      'posterPath',
+      'Poster images must use PNG, JPEG, or WebP.',
+    );
+  }
+  final captionsPath = intro.captionsPath?.toLowerCase();
+  if (captionsPath != null && !captionsPath.endsWith('.vtt')) {
+    error(
+      'introCaptionsFormatUnsupported',
+      'captionsPath',
+      'Captions must use WebVTT.',
+    );
+  }
+  if (intro.durationMilliseconds <= 0 ||
+      intro.durationMilliseconds > projectIntroVideoMaxDurationMilliseconds) {
+    error(
+      'introDurationExceeded',
+      'durationMilliseconds',
+      'Intro duration must be between 1 ms and 120 seconds.',
+    );
+  }
+  if (intro.width <= 0 ||
+      intro.height <= 0 ||
+      intro.width > projectIntroVideoMaxWidth ||
+      intro.height > projectIntroVideoMaxHeight) {
+    error(
+      'introResolutionExceeded',
+      'width',
+      'Intro resolution must not exceed 1920 × 1080.',
+    );
+  }
+  if (intro.bitrateKbps <= 0 ||
+      intro.bitrateKbps > projectIntroVideoMaxBitrateKbps) {
+    error(
+      'introBitrateExceeded',
+      'bitrateKbps',
+      'Intro bitrate must not exceed 12,000 kbps.',
+    );
+  }
+  if (intro.sizeBytes <= 0 || intro.sizeBytes > projectIntroVideoMaxSizeBytes) {
+    error(
+      'introSizeExceeded',
+      'sizeBytes',
+      'Intro video must not exceed 100 MiB.',
+    );
+  }
+  if (intro.videoCodec != 'h264') {
+    error(
+      'introVideoCodecUnsupported',
+      'videoCodec',
+      'Intro video must use H.264.',
+    );
+  }
+  if (!const <String>{'aac', 'none'}.contains(intro.audioCodec)) {
+    error(
+      'introAudioCodecUnsupported',
+      'audioCodec',
+      'Intro audio must use AAC or be omitted.',
+    );
+  }
+  if (!const <String>{'poster', 'skip'}.contains(intro.reducedMotionBehavior)) {
+    error(
+      'introReducedMotionBehaviorUnsupported',
+      'reducedMotionBehavior',
+      'Reduced motion must show the poster or skip the intro.',
+    );
+  }
+  if (intro.audioCodec != 'none' && intro.captionsPath == null) {
+    diagnostics.add(
+      const ProjectPresentationDiagnostic(
+        code: 'introCaptionsRecommended',
+        category: ProjectPresentationCategory.intro,
+        severity: ProjectPresentationDiagnosticSeverity.warning,
+        path: r'$.presentation.intro.captionsPath',
+        message: 'Add WebVTT captions for spoken or meaningful audio.',
+      ),
+    );
+  }
 }
 
 bool _hasBranding(ProjectBrandingProfile branding) =>

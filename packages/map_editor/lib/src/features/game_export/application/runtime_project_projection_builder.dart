@@ -18,6 +18,9 @@ final class RuntimeProjectProjection {
     this.coverPackagePath,
     this.heroPackagePath,
     this.titleMusicPackagePath,
+    this.introVideoPackagePath,
+    this.introPosterPackagePath,
+    this.introCaptionsPackagePath,
   }) : payloadFiles = Map.unmodifiable(
           payloadFiles.map(
             (path, bytes) => MapEntry(path, List<int>.unmodifiable(bytes)),
@@ -33,6 +36,9 @@ final class RuntimeProjectProjection {
   final String? coverPackagePath;
   final String? heroPackagePath;
   final String? titleMusicPackagePath;
+  final String? introVideoPackagePath;
+  final String? introPosterPackagePath;
+  final String? introCaptionsPackagePath;
 }
 
 final class RuntimeProjectProjectionBuilder {
@@ -290,6 +296,32 @@ final class RuntimeProjectProjectionBuilder {
         message: 'Title music must reference an exported audio asset.',
       );
     }
+    final intro = presentation.intro;
+    final introVideoPackagePath = intro == null
+        ? null
+        : await _addIntroVideo(
+            payload,
+            projectRoot,
+            intro,
+            budget,
+          );
+    final introPosterPackagePath = intro == null
+        ? null
+        : await _addPresentationAsset(
+            payload,
+            projectRoot,
+            intro.posterPath,
+            'intro/poster',
+            budget,
+          );
+    final introCaptionsPackagePath = intro?.captionsPath == null
+        ? null
+        : await _addIntroCaptions(
+            payload,
+            projectRoot,
+            intro!.captionsPath!,
+            budget,
+          );
 
     return RuntimeProjectProjection(
       project: projectedProject,
@@ -301,7 +333,75 @@ final class RuntimeProjectProjectionBuilder {
       coverPackagePath: coverPackagePath,
       heroPackagePath: heroPackagePath,
       titleMusicPackagePath: titleMusicPackagePath,
+      introVideoPackagePath: introVideoPackagePath,
+      introPosterPackagePath: introPosterPackagePath,
+      introCaptionsPackagePath: introCaptionsPackagePath,
     );
+  }
+
+  Future<String> _addIntroVideo(
+    Map<String, List<int>> payload,
+    Directory root,
+    ProjectIntroVideoProfile intro,
+    _ProjectionBudget budget,
+  ) async {
+    final file = await _resolveAuthorFile(root, intro.videoPath);
+    final bytes = await budget.readFile(
+      file,
+      logicalPath: intro.videoPath,
+    );
+    final signature = latin1.decode(bytes, allowInvalid: true);
+    if (!intro.videoPath.toLowerCase().endsWith('.mp4') ||
+        bytes.length != intro.sizeBytes ||
+        !signature.contains('ftyp') ||
+        !(signature.contains('avc1') || signature.contains('avc3')) ||
+        (intro.audioCodec == 'aac' && !signature.contains('mp4a'))) {
+      throw GamePackageExportException(
+        code: 'invalidIntroVideo',
+        path: intro.videoPath,
+        message:
+            'Intro video bytes do not match the declared MP4/H.264 metadata.',
+      );
+    }
+    const packagePath = 'presentation/intro/video.mp4';
+    budget.addPayload(payload, packagePath, bytes);
+    return packagePath;
+  }
+
+  Future<String> _addIntroCaptions(
+    Map<String, List<int>> payload,
+    Directory root,
+    String relativePath,
+    _ProjectionBudget budget,
+  ) async {
+    final file = await _resolveAuthorFile(root, relativePath);
+    final bytes = await budget.readFile(
+      file,
+      logicalPath: relativePath,
+      jsonLike: true,
+    );
+    late final String source;
+    try {
+      source = utf8.decode(bytes, allowMalformed: false);
+    } on FormatException catch (error) {
+      throw GamePackageExportException(
+        code: 'invalidIntroCaptions',
+        path: relativePath,
+        message: 'Intro captions must be valid UTF-8 WebVTT.',
+        cause: error,
+      );
+    }
+    if (!relativePath.toLowerCase().endsWith('.vtt') ||
+        !source.startsWith('WEBVTT')) {
+      throw GamePackageExportException(
+        code: 'invalidIntroCaptions',
+        path: relativePath,
+        message: 'Intro captions must be valid WebVTT.',
+      );
+    }
+    const packagePath = 'presentation/intro/captions.vtt';
+    budget.addPayload(payload, packagePath, bytes);
+    return packagePath;
   }
 
   Future<void> _requireDirectory(Directory directory) async {

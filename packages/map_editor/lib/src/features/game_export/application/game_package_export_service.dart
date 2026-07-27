@@ -128,6 +128,24 @@ final class GamePackageExportService {
             titleMusic: projection.titleMusicPackagePath,
             layoutVariant: projection.presentation.branding.layoutVariant,
           ),
+          intro: projection.presentation.intro == null
+              ? null
+              : GamePackageIntroVideo(
+                  video: projection.introVideoPackagePath!,
+                  poster: projection.introPosterPackagePath!,
+                  captions: projection.introCaptionsPackagePath,
+                  durationMilliseconds:
+                      projection.presentation.intro!.durationMilliseconds,
+                  width: projection.presentation.intro!.width,
+                  height: projection.presentation.intro!.height,
+                  bitrateKbps: projection.presentation.intro!.bitrateKbps,
+                  sizeBytes: projection.presentation.intro!.sizeBytes,
+                  videoCodec: projection.presentation.intro!.videoCodec,
+                  audioCodec: projection.presentation.intro!.audioCodec,
+                  reducedMotionBehavior:
+                      projection.presentation.intro!.reducedMotionBehavior,
+                  allowReplay: projection.presentation.intro!.allowReplay,
+                ),
         ),
         content: emptyContent,
       );

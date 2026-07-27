@@ -93,6 +93,15 @@ void main() {
     addTearDown(() => root.delete(recursive: true));
     final authoredIcon = File(p.join(root.path, 'assets', 'authored-icon.png'));
     await authoredIcon.writeAsBytes(<int>[1, 2, 3, 4], flush: true);
+    final introVideo = File(p.join(root.path, 'assets', 'intro.mp4'));
+    await introVideo.writeAsBytes(_h264Mp4Fixture, flush: true);
+    final introPoster = File(p.join(root.path, 'assets', 'intro-poster.png'));
+    await introPoster.writeAsBytes(onePixelPng, flush: true);
+    final introCaptions = File(p.join(root.path, 'assets', 'intro.vtt'));
+    await introCaptions.writeAsString(
+      'WEBVTT\n\n00:00.000 --> 00:01.000\nBienvenue\n',
+      flush: true,
+    );
     final projectFile = File(p.join(root.path, 'project.json'));
     final project =
         jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
@@ -102,6 +111,20 @@ void main() {
         'iconPath': 'assets/authored-icon.png',
         'accentColor': '#123456',
         'layoutVariant': 'centered',
+      },
+      'intro': <String, Object?>{
+        'videoPath': 'assets/intro.mp4',
+        'posterPath': 'assets/intro-poster.png',
+        'captionsPath': 'assets/intro.vtt',
+        'durationMilliseconds': 1000,
+        'width': 1280,
+        'height': 720,
+        'bitrateKbps': 128,
+        'sizeBytes': _h264Mp4Fixture.length,
+        'videoCodec': 'h264',
+        'audioCodec': 'aac',
+        'reducedMotionBehavior': 'poster',
+        'allowReplay': true,
       },
     };
     await projectFile.writeAsString(jsonEncode(project), flush: true);
@@ -114,6 +137,22 @@ void main() {
     expect(result.presentation.branding.iconPath, 'assets/authored-icon.png');
     expect(result.presentation.branding.accentColor, '#123456');
     expect(result.payloadFiles['presentation/icon.png'], <int>[1, 2, 3, 4]);
+    expect(
+      result.payloadFiles['presentation/intro/video.mp4'],
+      _h264Mp4Fixture,
+    );
+    expect(
+      result.introVideoPackagePath,
+      'presentation/intro/video.mp4',
+    );
+    expect(
+      result.introPosterPackagePath,
+      'presentation/intro/poster.png',
+    );
+    expect(
+      result.introCaptionsPackagePath,
+      'presentation/intro/captions.vtt',
+    );
     final projectedProject = jsonDecode(
       utf8.decode(result.payloadFiles['project/project.json']!),
     ) as Map<String, dynamic>;
@@ -294,3 +333,16 @@ void main() {
     expect(item['localSpritePath'], 'assets/icon.png');
   });
 }
+
+final List<int> _h264Mp4Fixture = <int>[
+  0,
+  0,
+  0,
+  24,
+  ...utf8.encode('ftypisom'),
+  0,
+  0,
+  0,
+  0,
+  ...utf8.encode('isomavc1mp4a'),
+];

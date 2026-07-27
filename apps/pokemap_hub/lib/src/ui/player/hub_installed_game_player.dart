@@ -20,6 +20,7 @@ import '../../saves/hub_save_profile_manager.dart';
 import '../../session/hub_in_process_session_factory.dart';
 import '../../session/installed_game_launch_resolver.dart';
 import '../preferences/hub_preferences_store.dart';
+import 'hub_intro_video_player.dart';
 import 'hub_save_profiles_screen.dart';
 import 'hub_title_presentation_loader.dart';
 
@@ -64,6 +65,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   HubLoadedTitlePresentation? _titlePresentation;
   RuntimeTitleMusicController? _titleMusicController;
   StreamSubscription<RuntimePlayerSnapshot>? _titleMusicSubscription;
+  bool _introComplete = true;
+  bool _reducedMotion = false;
+  double _presentationVolume = 1;
   bool _managingSaves = false;
 
   @override
@@ -83,8 +87,11 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         supportRoot: widget.supportRoot,
         identity: launch.identity,
       );
+      final preferencesStore =
+          HubPreferencesStore(supportRoot: widget.supportRoot);
+      final preferences = (await preferencesStore.load()).preferences;
       final preferencesGateway = HubPlayerPreferencesGateway(
-        store: HubPreferencesStore(supportRoot: widget.supportRoot),
+        store: preferencesStore,
         fallbackLocale: launch.manifest.locales.defaultLocale,
       );
       final saveGateway = HubPlayerSaveGateway(store: store);
@@ -101,6 +108,13 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         manifest: launch.manifest,
         resolveFile: launch.assets.resolveFile,
       ).load(newGameIdentity: newGameIdentityPresentation);
+      final intro = titlePresentation.intro;
+      _reducedMotion = preferences.reducedMotion;
+      _presentationVolume =
+          (preferences.masterVolume * preferences.musicVolume).clamp(0.0, 1.0);
+      _introComplete = intro == null ||
+          (_reducedMotion &&
+              (intro.reducedMotionBehavior == 'skip' || intro.poster == null));
       final gameSource = HubRuntimeGameSource(
         launch: launch,
         preferencesGateway: preferencesGateway,
@@ -128,13 +142,17 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         (snapshot) => unawaited(
           titleMusicController!.update(
             path: titlePresentation.titleMusicPath,
-            titleVisible: snapshot.phase == RuntimePlayerPhase.title,
+            titleVisible:
+                _introComplete && snapshot.phase == RuntimePlayerPhase.title,
+            volume: _presentationVolume,
           ),
         ),
       );
       await titleMusicController.update(
         path: titlePresentation.titleMusicPath,
-        titleVisible: coordinator.snapshot.phase == RuntimePlayerPhase.title,
+        titleVisible: _introComplete &&
+            coordinator.snapshot.phase == RuntimePlayerPhase.title,
+        volume: _presentationVolume,
       );
       if (!mounted) {
         await titleMusicSubscription.cancel();
@@ -377,6 +395,17 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     }
     final profileManager = _profileManager;
     final saveSelection = _saveSelection;
+    final intro = titlePresentation.intro;
+    if (!_introComplete && intro != null) {
+      return Scaffold(
+        body: HubIntroVideoPlayer(
+          intro: intro,
+          reducedMotion: _reducedMotion,
+          volume: _presentationVolume,
+          onFinished: _finishIntro,
+        ),
+      );
+    }
     if (_managingSaves && profileManager != null && saveSelection != null) {
       return HubSaveProfilesScreen(
         manager: profileManager,
@@ -443,6 +472,21 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _finishIntro() {
+    if (_introComplete || !mounted) return;
+    setState(() => _introComplete = true);
+    final coordinator = _coordinator;
+    final presentation = _titlePresentation;
+    if (coordinator == null || presentation == null) return;
+    unawaited(
+      _titleMusicController?.update(
+        path: presentation.titleMusicPath,
+        titleVisible: coordinator.snapshot.phase == RuntimePlayerPhase.title,
+        volume: _presentationVolume,
       ),
     );
   }

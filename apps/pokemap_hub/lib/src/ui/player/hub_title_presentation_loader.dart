@@ -10,12 +10,30 @@ final class HubLoadedTitlePresentation {
   HubLoadedTitlePresentation({
     required this.title,
     required this.titleMusicPath,
+    required this.intro,
     required List<String> unavailableAssets,
   }) : unavailableAssets = List<String>.unmodifiable(unavailableAssets);
 
   final RuntimePlayerTitlePresentation title;
   final String? titleMusicPath;
+  final HubLoadedIntroVideo? intro;
   final List<String> unavailableAssets;
+}
+
+final class HubLoadedIntroVideo {
+  const HubLoadedIntroVideo({
+    required this.videoPath,
+    required this.poster,
+    required this.captionsPath,
+    required this.reducedMotionBehavior,
+    required this.allowReplay,
+  });
+
+  final String videoPath;
+  final ImageProvider? poster;
+  final String? captionsPath;
+  final String reducedMotionBehavior;
+  final bool allowReplay;
 }
 
 /// Resolves optional installed presentation assets independently.
@@ -48,6 +66,10 @@ final class HubTitlePresentationLoader {
       branding?.titleMusic,
       unavailable: unavailable,
     );
+    final intro = await _intro(
+      manifest.presentation?.intro,
+      unavailable: unavailable,
+    );
     return HubLoadedTitlePresentation(
       title: RuntimePlayerTitlePresentation(
         author: manifest.author.name,
@@ -61,7 +83,24 @@ final class HubTitlePresentationLoader {
         newGameIdentity: newGameIdentity,
       ),
       titleMusicPath: titleMusicPath,
+      intro: intro,
       unavailableAssets: unavailable,
+    );
+  }
+
+  Future<HubLoadedIntroVideo?> _intro(
+    GamePackageIntroVideo? source, {
+    required List<String> unavailable,
+  }) async {
+    if (source == null) return null;
+    final videoPath = await _path(source.video, unavailable: unavailable);
+    if (videoPath == null) return null;
+    return HubLoadedIntroVideo(
+      videoPath: videoPath,
+      poster: await _image(source.poster, unavailable: unavailable),
+      captionsPath: await _path(source.captions, unavailable: unavailable),
+      reducedMotionBehavior: source.reducedMotionBehavior,
+      allowReplay: source.allowReplay,
     );
   }
 

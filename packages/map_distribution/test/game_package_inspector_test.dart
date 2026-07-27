@@ -104,6 +104,24 @@ void main() {
       );
     });
 
+    test('streams strict WebVTT validation beyond the retained header', () {
+      const chunkSize = 1024 * 1024;
+      final invalidWebVtt = <int>[
+        ...ascii.encode('WEBVTT\n\n'),
+        ...List<int>.filled(chunkSize, 0x61),
+        0xc3,
+      ];
+      final hostile = _rawPackage(<String, List<int>>{
+        'presentation/intro/captions.vtt': invalidWebVtt,
+        'project/project.json': _validProjectBytes(),
+      });
+
+      _expectCode(
+        () => inspector.inspectSourceSync(_MemoryPackageSource(hostile)),
+        'executableContent',
+      );
+    });
+
     test('rejects missing, duplicate, and unlisted entries before install', () {
       final manifest = _build(<String, List<int>>{
         'project/project.json': _validProjectBytes(),
