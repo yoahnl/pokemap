@@ -13,10 +13,26 @@ class PersonalizationReadinessPanel extends StatelessWidget {
     super.key,
     required this.report,
     this.onCorrectIssue,
+    this.requiresPreflight = false,
+    this.hasCompletedPreflight = true,
+    this.isPreflightRunning = false,
+    this.isPreflightStale = false,
+    this.hasUnsavedChanges = false,
+    this.preflightError,
+    this.onRunPreflight,
+    this.onSaveDraft,
   });
 
   final PersonalizationPublishReadiness report;
   final ValueChanged<PersonalizationReadinessIssue>? onCorrectIssue;
+  final bool requiresPreflight;
+  final bool hasCompletedPreflight;
+  final bool isPreflightRunning;
+  final bool isPreflightStale;
+  final bool hasUnsavedChanges;
+  final String? preflightError;
+  final VoidCallback? onRunPreflight;
+  final VoidCallback? onSaveDraft;
 
   @override
   Widget build(BuildContext context) {
@@ -45,9 +61,43 @@ class PersonalizationReadinessPanel extends StatelessWidget {
               key: const ValueKey<String>(
                 'personalization-readiness-overall',
               ),
-              label: _overallLabel(report),
-              variant: _badgeVariant(report.status),
+              label: _overallLabel(
+                report,
+                requiresPreflight: requiresPreflight,
+                hasCompletedPreflight: hasCompletedPreflight,
+                isPreflightRunning: isPreflightRunning,
+                isPreflightStale: isPreflightStale,
+                hasUnsavedChanges: hasUnsavedChanges,
+                hasPreflightError: preflightError != null,
+              ),
+              variant: _overallBadgeVariant(
+                report,
+                requiresPreflight: requiresPreflight,
+                hasCompletedPreflight: hasCompletedPreflight,
+                isPreflightRunning: isPreflightRunning,
+                isPreflightStale: isPreflightStale,
+                hasUnsavedChanges: hasUnsavedChanges,
+                hasPreflightError: preflightError != null,
+              ),
             ),
+            if (requiresPreflight)
+              PokeMapButton(
+                key: const ValueKey<String>(
+                  'personalization-readiness-run-preflight',
+                ),
+                variant: PokeMapButtonVariant.secondary,
+                size: PokeMapButtonSize.small,
+                leading: const Icon(Icons.fact_check_outlined),
+                isLoading: isPreflightRunning,
+                onPressed: isPreflightRunning ? null : onRunPreflight,
+                child: Text(
+                  isPreflightRunning
+                      ? 'Vérification en cours…'
+                      : hasCompletedPreflight
+                          ? 'Relancer le preflight'
+                          : 'Lancer le preflight',
+                ),
+              ),
           ],
         ),
       ),
@@ -59,12 +109,50 @@ class PersonalizationReadinessPanel extends StatelessWidget {
               : constraints.maxWidth >= 480
                   ? 2
                   : 1;
-          final spacing = 10.0;
+          const spacing = 10.0;
           final width = (constraints.maxWidth - spacing * (columnCount - 1)) /
               columnCount;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
+              if (preflightError case final error?) ...<Widget>[
+                PokeMapCard(
+                  key: const ValueKey<String>(
+                    'personalization-readiness-preflight-error',
+                  ),
+                  child: Text(error),
+                ),
+                const SizedBox(height: 10),
+              ],
+              if (hasUnsavedChanges) ...<Widget>[
+                PokeMapCard(
+                  key: const ValueKey<String>(
+                    'personalization-readiness-unsaved',
+                  ),
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    alignment: WrapAlignment.spaceBetween,
+                    children: <Widget>[
+                      const Text(
+                        'Enregistrez le brouillon avant de poursuivre vers '
+                        'l’export.',
+                      ),
+                      PokeMapButton(
+                        key: const ValueKey<String>(
+                          'personalization-readiness-save-draft',
+                        ),
+                        size: PokeMapButtonSize.small,
+                        leading: const Icon(Icons.save_outlined),
+                        onPressed: onSaveDraft,
+                        child: const Text('Enregistrer le brouillon'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
               Wrap(
                 spacing: spacing,
                 runSpacing: spacing,
@@ -219,12 +307,45 @@ class _ReadinessCategoryCard extends StatelessWidget {
   }
 }
 
-String _overallLabel(PersonalizationPublishReadiness report) =>
-    switch (report.status) {
-      PersonalizationReadinessStatus.blocked => 'Export bloqué',
-      PersonalizationReadinessStatus.attention => 'Prêt avec avertissements',
-      PersonalizationReadinessStatus.ready => 'Prêt à exporter',
-    };
+String _overallLabel(
+  PersonalizationPublishReadiness report, {
+  required bool requiresPreflight,
+  required bool hasCompletedPreflight,
+  required bool isPreflightRunning,
+  required bool isPreflightStale,
+  required bool hasUnsavedChanges,
+  required bool hasPreflightError,
+}) {
+  if (isPreflightRunning) return 'Vérification en cours…';
+  if (hasPreflightError) return 'Preflight interrompu';
+  if (isPreflightStale) return 'Preflight à relancer';
+  if (requiresPreflight && !hasCompletedPreflight) return 'Preflight requis';
+  if (hasUnsavedChanges) return 'Brouillon à enregistrer';
+  return switch (report.status) {
+    PersonalizationReadinessStatus.blocked => 'Export bloqué',
+    PersonalizationReadinessStatus.attention => 'Prêt avec avertissements',
+    PersonalizationReadinessStatus.ready => 'Prêt à exporter',
+  };
+}
+
+PokeMapBadgeVariant _overallBadgeVariant(
+  PersonalizationPublishReadiness report, {
+  required bool requiresPreflight,
+  required bool hasCompletedPreflight,
+  required bool isPreflightRunning,
+  required bool isPreflightStale,
+  required bool hasUnsavedChanges,
+  required bool hasPreflightError,
+}) {
+  if (hasPreflightError) return PokeMapBadgeVariant.error;
+  if (isPreflightStale || hasUnsavedChanges) {
+    return PokeMapBadgeVariant.warning;
+  }
+  if (isPreflightRunning || (requiresPreflight && !hasCompletedPreflight)) {
+    return PokeMapBadgeVariant.info;
+  }
+  return _badgeVariant(report.status);
+}
 
 String _categoryStatusLabel(PersonalizationCategoryReadiness readiness) =>
     switch (readiness.status) {

@@ -80,4 +80,61 @@ void main() {
 
     expect(correctedIssue?.category, ProjectPresentationCategory.branding);
   });
+
+  testWidgets('runs preflight and distinguishes stale or unsaved results',
+      (tester) async {
+    var runCount = 0;
+    var saveCount = 0;
+    final report = PersonalizationPublishReadiness.fromProfile(
+      const ProjectPresentationProfile(),
+    );
+
+    Future<void> pumpPanel({
+      required bool completed,
+      bool running = false,
+      bool stale = false,
+      bool dirty = false,
+    }) =>
+        tester.pumpWidget(
+          MaterialApp(
+            theme: PokeMapTheme.light(),
+            home: Scaffold(
+              body: PersonalizationReadinessPanel(
+                report: report,
+                requiresPreflight: true,
+                hasCompletedPreflight: completed,
+                isPreflightRunning: running,
+                isPreflightStale: stale,
+                hasUnsavedChanges: dirty,
+                onRunPreflight: () => runCount += 1,
+                onSaveDraft: () => saveCount += 1,
+              ),
+            ),
+          ),
+        );
+
+    await pumpPanel(completed: false);
+    expect(find.text('Preflight requis'), findsOneWidget);
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-readiness-run-preflight'),
+      ),
+    );
+    expect(runCount, 1);
+
+    await pumpPanel(completed: false, running: true);
+    expect(find.text('Vérification en cours…'), findsWidgets);
+
+    await pumpPanel(completed: true, stale: true);
+    expect(find.text('Preflight à relancer'), findsOneWidget);
+
+    await pumpPanel(completed: true, dirty: true);
+    expect(find.text('Brouillon à enregistrer'), findsOneWidget);
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-readiness-save-draft'),
+      ),
+    );
+    expect(saveCount, 1);
+  });
 }

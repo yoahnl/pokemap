@@ -28,6 +28,15 @@ class PersonalizationHubShell extends StatelessWidget {
     this.onProfileChanged,
     this.projectName = 'Votre jeu',
     this.projectRootPath = '',
+    this.readinessReport,
+    this.requiresPreflight = false,
+    this.hasCompletedPreflight = true,
+    this.isPreflightRunning = false,
+    this.isPreflightStale = false,
+    this.hasUnsavedChanges = false,
+    this.preflightError,
+    this.onRunPreflight,
+    this.onSaveDraft,
   });
 
   final ProjectPresentationProfile profile;
@@ -38,11 +47,21 @@ class PersonalizationHubShell extends StatelessWidget {
   final ValueChanged<ProjectPresentationProfile>? onProfileChanged;
   final String projectName;
   final String projectRootPath;
+  final PersonalizationPublishReadiness? readinessReport;
+  final bool requiresPreflight;
+  final bool hasCompletedPreflight;
+  final bool isPreflightRunning;
+  final bool isPreflightStale;
+  final bool hasUnsavedChanges;
+  final String? preflightError;
+  final VoidCallback? onRunPreflight;
+  final VoidCallback? onSaveDraft;
 
   @override
   Widget build(BuildContext context) {
     final diagnostics = validateProjectPresentationProfile(profile);
-    final readiness = PersonalizationPublishReadiness.fromProfile(profile);
+    final readiness =
+        readinessReport ?? PersonalizationPublishReadiness.fromProfile(profile);
     return LayoutBuilder(
       builder: (context, constraints) {
         final navigation = _CategoryNavigation(
@@ -62,6 +81,14 @@ class PersonalizationHubShell extends StatelessWidget {
           fillAvailableHeight: constraints.maxWidth >= 760,
           projectName: projectName,
           projectRootPath: projectRootPath,
+          requiresPreflight: requiresPreflight,
+          hasCompletedPreflight: hasCompletedPreflight,
+          isPreflightRunning: isPreflightRunning,
+          isPreflightStale: isPreflightStale,
+          hasUnsavedChanges: hasUnsavedChanges,
+          preflightError: preflightError,
+          onRunPreflight: onRunPreflight,
+          onSaveDraft: onSaveDraft,
         );
         return Padding(
           padding: const EdgeInsets.all(16),
@@ -210,6 +237,14 @@ class _CategoryDetail extends StatelessWidget {
     required this.fillAvailableHeight,
     required this.projectName,
     required this.projectRootPath,
+    required this.requiresPreflight,
+    required this.hasCompletedPreflight,
+    required this.isPreflightRunning,
+    required this.isPreflightStale,
+    required this.hasUnsavedChanges,
+    required this.preflightError,
+    required this.onRunPreflight,
+    required this.onSaveDraft,
   });
 
   final ProjectPresentationProfile profile;
@@ -223,6 +258,14 @@ class _CategoryDetail extends StatelessWidget {
   final bool fillAvailableHeight;
   final String projectName;
   final String projectRootPath;
+  final bool requiresPreflight;
+  final bool hasCompletedPreflight;
+  final bool isPreflightRunning;
+  final bool isPreflightStale;
+  final bool hasUnsavedChanges;
+  final String? preflightError;
+  final VoidCallback? onRunPreflight;
+  final VoidCallback? onSaveDraft;
 
   @override
   Widget build(BuildContext context) {
@@ -284,6 +327,14 @@ class _CategoryDetail extends StatelessWidget {
             );
           }
         },
+        requiresPreflight: requiresPreflight,
+        hasCompletedPreflight: hasCompletedPreflight,
+        isPreflightRunning: isPreflightRunning,
+        isPreflightStale: isPreflightStale,
+        hasUnsavedChanges: hasUnsavedChanges,
+        preflightError: preflightError,
+        onRunPreflight: onRunPreflight,
+        onSaveDraft: onSaveDraft,
       ),
     ];
     return PokeMapPanel(

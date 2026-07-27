@@ -15,6 +15,101 @@ import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
 import '../shell_chrome_test_harness.dart';
 
 void main() {
+  testWidgets('runs preflight in Studio and invalidates it after a draft edit',
+      (tester) async {
+    final root =
+        Directory.systemTemp.createTempSync('personalization-preflight-ui-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final project = buildShellChromeProject(name: 'Preflight Studio')
+        .copyWith(presentation: const ProjectPresentationProfile());
+    File('${root.path}/project.json').writeAsStringSync(
+      const JsonEncoder.withIndent('  ').convert(project.toJson()),
+      flush: true,
+    );
+    final preflight = _FixedPresentationPreflight();
+    final gateway = _MemoryProjectGateway(project);
+
+    final container = await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1200, 900),
+      overrides: [
+        projectPresentationPreflightProvider.overrideWithValue(preflight),
+        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
+          ({
+            required String projectPath,
+            required ProjectManifest initialDocument,
+          }) {
+            return PersonalizationStudioSessionController(
+              session: NarrativeDocumentSession<ProjectManifest>(
+                documentId: 'personalization-preflight-ui',
+                initialDocument: initialDocument,
+                gateway: gateway,
+                recoveryStore: _MemoryProjectRecoveryStore(),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+    await container
+        .read(editorNotifierProvider.notifier)
+        .initializePersonalizationStudioSession();
+    await tester.pump();
+
+    await tester.scrollUntilVisible(
+      find.byKey(
+        const ValueKey<String>('personalization-readiness-run-preflight'),
+      ),
+      500,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.ensureVisible(
+      find.byKey(
+        const ValueKey<String>('personalization-readiness-run-preflight'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-readiness-run-preflight'),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(preflight.calls, 1);
+    expect(find.text('Prêt à exporter'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byKey(
+        const ValueKey<String>('personalization-preset-cinematic'),
+      ),
+      -500,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preset-cinematic'),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+    await tester.scrollUntilVisible(
+      find.byKey(
+        const ValueKey<String>('personalization-readiness-run-preflight'),
+      ),
+      500,
+      scrollable: find.byType(Scrollable).last,
+    );
+
+    expect(find.text('Preflight à relancer'), findsOneWidget);
+  });
+
   testWidgets('applies a preset to a dirty draft without writing project.json',
       (tester) async {
     final root =
@@ -1064,6 +1159,23 @@ final class _MemoryProjectGateway
         revision: revision,
         document: durableDocument,
       ),
+    );
+  }
+}
+
+final class _FixedPresentationPreflight
+    implements ProjectPresentationPreflight {
+  int calls = 0;
+
+  @override
+  Future<ProjectPresentationPreflightResult> inspect({
+    required Directory projectRoot,
+    required ProjectPresentationProfile profile,
+  }) async {
+    calls += 1;
+    return ProjectPresentationPreflightResult(
+      report: PersonalizationPublishReadiness.fromProfile(profile),
+      checkedAssetCount: 0,
     );
   }
 }

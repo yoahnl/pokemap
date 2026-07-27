@@ -18,6 +18,7 @@ import '../application/personalization_studio_asset_picker.dart';
 import '../application/project_branding_image_import_service.dart';
 import '../application/project_font_import_service.dart';
 import '../application/project_intro_video_import_service.dart';
+import '../application/project_presentation_preflight.dart';
 import '../application/project_title_music_import_service.dart';
 import '../application/project_title_music_preview_controller.dart';
 import 'personalization_hub_shell.dart';
@@ -51,6 +52,12 @@ class _PersonalizationStudioWorkspaceState
   bool _isTitleMusicPreviewPlaying = false;
   final Map<ProjectTypographyRole, String> _fontPreviewFamilies =
       <ProjectTypographyRole, String>{};
+  ProjectPresentationPreflightResult? _preflightResult;
+  ProjectPresentationProfile? _preflightProfile;
+  String? _preflightProjectRootPath;
+  String? _preflightError;
+  bool _isPreflightRunning = false;
+  int _preflightRequestId = 0;
 
   @override
   void dispose() {
@@ -76,6 +83,39 @@ class _PersonalizationStudioWorkspaceState
             .initializePersonalizationStudioSession(),
       );
     });
+  }
+
+  Future<void> _runPreflight({
+    required String projectRootPath,
+    required ProjectPresentationProfile profile,
+  }) async {
+    final requestId = ++_preflightRequestId;
+    setState(() {
+      _isPreflightRunning = true;
+      _preflightError = null;
+    });
+    try {
+      final result =
+          await ref.read(projectPresentationPreflightProvider).inspect(
+                projectRoot: Directory(projectRootPath),
+                profile: profile,
+              );
+      if (!mounted || requestId != _preflightRequestId) return;
+      setState(() {
+        _preflightResult = result;
+        _preflightProfile = profile;
+        _preflightProjectRootPath = projectRootPath;
+        _isPreflightRunning = false;
+      });
+    } on Object {
+      if (!mounted || requestId != _preflightRequestId) return;
+      setState(() {
+        _isPreflightRunning = false;
+        _preflightError =
+            'Le preflight n’a pas pu lire tous les fichiers. Vérifiez les '
+            'autorisations du projet puis réessayez.';
+      });
+    }
   }
 
   Future<void> _importBrandingImage({
@@ -782,6 +822,10 @@ class _PersonalizationStudioWorkspaceState
     final profile =
         studioSession?.draftProfile ?? project.effectivePresentation;
     final baselineProfile = studioSession?.savedProfile;
+    final isPreflightStale = _preflightResult != null &&
+        (_preflightProjectRootPath != projectRootPath ||
+            _preflightProfile != profile);
+    final activePreflightResult = isPreflightStale ? null : _preflightResult;
 
     return Material(
       type: MaterialType.transparency,
@@ -893,6 +937,28 @@ class _PersonalizationStudioWorkspaceState
               baselineProfile: baselineProfile,
               projectName: project.name,
               projectRootPath: projectRootPath,
+              readinessReport: activePreflightResult?.report,
+              requiresPreflight: true,
+              hasCompletedPreflight: _preflightResult != null,
+              isPreflightRunning: _isPreflightRunning,
+              isPreflightStale: isPreflightStale,
+              hasUnsavedChanges: studioSession?.isDirty == true,
+              preflightError: _preflightError,
+              onRunPreflight: canEdit && !_isPreflightRunning
+                  ? () {
+                      unawaited(
+                        _runPreflight(
+                          projectRootPath: projectRootPath,
+                          profile: profile,
+                        ),
+                      );
+                    }
+                  : null,
+              onSaveDraft: studioSession?.isDirty == true && canEdit
+                  ? () {
+                      unawaited(notifier.savePersonalizationStudio());
+                    }
+                  : null,
               selectedCategory: _selectedCategory,
               onCategorySelected: (category) {
                 setState(() => _selectedCategory = category);
