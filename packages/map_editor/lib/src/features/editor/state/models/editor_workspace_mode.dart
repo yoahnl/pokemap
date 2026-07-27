@@ -65,6 +65,12 @@ enum EditorWorkspaceMode {
   /// diagnostics agrégés (`map_core`), sans édition ni génération.
   environmentStudio,
 
+  /// Point d'entrée central du Personalization Studio.
+  ///
+  /// La Phase 0 expose le profil de présentation du projet en lecture seule.
+  /// Les éditeurs et le save flow restent hors de ce contrat initial.
+  personalizationStudio,
+
   /// Studio no-code des blueprints de bordure réutilisables.
   ///
   /// Ce workspace ne dessine pas sur une carte : il assemble des assets,

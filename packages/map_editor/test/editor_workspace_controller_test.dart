@@ -79,6 +79,24 @@ void main() {
     });
 
     test(
+        'selectPersonalizationStudioWorkspace keeps project context and clears stale errors',
+        () {
+      const current = EditorState(
+        projectRootPath: '/tmp/personalized-project',
+        workspaceMode: EditorWorkspaceMode.map,
+        activeMap: null,
+        errorMessage: 'Old failure',
+      );
+
+      final next = controller.selectPersonalizationStudioWorkspace(current);
+
+      expect(next.workspaceMode, EditorWorkspaceMode.personalizationStudio);
+      expect(next.projectRootPath, '/tmp/personalized-project');
+      expect(next.activeMap, isNull);
+      expect(next.errorMessage, isNull);
+    });
+
+    test(
         'selectPokemonCatalogSection opens the parent workspace and stores the section',
         () {
       const current = EditorState(

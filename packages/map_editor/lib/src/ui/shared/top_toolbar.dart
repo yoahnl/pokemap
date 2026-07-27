@@ -622,6 +622,8 @@ class TopToolbar extends ConsumerWidget {
                 EditorWorkspaceMode.narrativeValidator => 'Narrative Validator',
                 EditorWorkspaceMode.pathStudio => 'Path Studio',
                 EditorWorkspaceMode.environmentStudio => 'Environment Studio',
+                EditorWorkspaceMode.personalizationStudio =>
+                  'Personalization Studio',
                 EditorWorkspaceMode.borderStudio => 'Border Studio',
               },
             ),

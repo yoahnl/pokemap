@@ -464,6 +464,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       EditorWorkspaceMode.pokedex => false,
       EditorWorkspaceMode.pathStudio => false,
       EditorWorkspaceMode.environmentStudio => false,
+      EditorWorkspaceMode.personalizationStudio => false,
       EditorWorkspaceMode.borderStudio => false,
       _ => true,
     };
@@ -1197,6 +1198,10 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                               EditorChrome
                                                                   .islandWarmTint,
                                                             EditorWorkspaceMode
+                                                                  .personalizationStudio =>
+                                                              EditorChrome
+                                                                  .islandWarmTint,
+                                                            EditorWorkspaceMode
                                                                   .borderStudio =>
                                                               EditorChrome
                                                                   .islandCoolTint,
@@ -1241,6 +1246,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
                                                                   .environmentStudio =>
+                                                              const _EmptyWorkspaceInspector(),
+                                                            EditorWorkspaceMode
+                                                                  .personalizationStudio =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
                                                                   .borderStudio =>
@@ -1621,6 +1629,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
         colors.narrative,
       EditorWorkspaceMode.pathStudio => colors.brandPrimary,
       EditorWorkspaceMode.environmentStudio => colors.mapAccent,
+      EditorWorkspaceMode.personalizationStudio => colors.reward,
       EditorWorkspaceMode.borderStudio => colors.brandCyan,
     };
 
@@ -1662,6 +1671,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.narrativeValidator => 'Validateur',
       EditorWorkspaceMode.pathStudio => 'Chemins',
       EditorWorkspaceMode.environmentStudio => 'Envs',
+      EditorWorkspaceMode.personalizationStudio => 'Style',
       EditorWorkspaceMode.borderStudio => 'Bordures',
     };
 
@@ -1825,6 +1835,8 @@ class _WorkspaceStageHeader extends ConsumerWidget {
                 CupertinoIcons.checkmark_shield,
               EditorWorkspaceMode.pathStudio => CupertinoIcons.arrow_branch,
               EditorWorkspaceMode.environmentStudio => CupertinoIcons.tree,
+              EditorWorkspaceMode.personalizationStudio =>
+                CupertinoIcons.paintbrush,
               EditorWorkspaceMode.borderStudio =>
                 CupertinoIcons.square_on_square,
             },
@@ -1841,11 +1853,14 @@ class _WorkspaceStageHeader extends ConsumerWidget {
                 title,
                 key: workspaceMode == EditorWorkspaceMode.environmentStudio
                     ? const Key('environment-studio-title')
-                    : (workspaceMode == EditorWorkspaceMode.borderStudio
-                        ? const Key('border-studio-title')
-                        : (workspaceMode == EditorWorkspaceMode.trainer
-                            ? const Key('trainer-studio-title')
-                            : null)),
+                    : (workspaceMode ==
+                            EditorWorkspaceMode.personalizationStudio
+                        ? const Key('personalization-studio-title')
+                        : (workspaceMode == EditorWorkspaceMode.borderStudio
+                            ? const Key('border-studio-title')
+                            : (workspaceMode == EditorWorkspaceMode.trainer
+                                ? const Key('trainer-studio-title')
+                                : null))),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(

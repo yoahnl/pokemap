@@ -94,6 +94,10 @@ class EditorWorkspaceController {
     return _openWorkspace(current, EditorWorkspaceMode.environmentStudio);
   }
 
+  EditorState selectPersonalizationStudioWorkspace(EditorState current) {
+    return _openWorkspace(current, EditorWorkspaceMode.personalizationStudio);
+  }
+
   EditorState selectBorderStudioWorkspace(EditorState current) {
     return _openWorkspace(current, EditorWorkspaceMode.borderStudio);
   }

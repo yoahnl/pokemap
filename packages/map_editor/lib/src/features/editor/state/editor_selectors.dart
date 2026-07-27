@@ -160,6 +160,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.narrativeValidator => 'Narrative Validator',
     EditorWorkspaceMode.pathStudio => 'Path Studio',
     EditorWorkspaceMode.environmentStudio => 'Environment Studio',
+    EditorWorkspaceMode.personalizationStudio => 'Personalization Studio',
     EditorWorkspaceMode.borderStudio => 'Border Studio',
   };
 
@@ -200,6 +201,8 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
       'Créer des motifs de chemin à partir des presets PathPattern du projet.',
     EditorWorkspaceMode.environmentStudio =>
       'Presets d’environnements réutilisables',
+    EditorWorkspaceMode.personalizationStudio =>
+      'Personnalisez la présentation visuelle et l’introduction de votre jeu.',
     EditorWorkspaceMode.borderStudio =>
       'Créez des blueprints de côtes, murets et clôtures à partir de vos assets.',
   };
