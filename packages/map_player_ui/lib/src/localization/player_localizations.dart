@@ -86,6 +86,14 @@ final class PokeMapPlayerLocalizations {
   String get inputHints => _fr ? 'Afficher les commandes' : 'Show controls';
   String get touchControlsOpacity =>
       _fr ? 'Opacité des commandes tactiles' : 'Touch controls opacity';
+  String get launchMostRecentGameOnStartup => _fr
+      ? 'Lancer directement le dernier jeu'
+      : 'Launch the latest game directly';
+  String get launchMostRecentGameOnStartupDescription => _fr
+      ? 'Au démarrage, ouvre le jeu jouable le plus récent sans afficher '
+          'l’accueil du Hub.'
+      : 'At startup, open the most recent playable game without showing the '
+          'Hub home screen.';
   String get healthy => _fr ? 'Installation vérifiée' : 'Installation verified';
   String get needsRepair => _fr ? 'Réparation requise' : 'Repair required';
   String get storage => _fr ? 'Espace disque' : 'Storage';

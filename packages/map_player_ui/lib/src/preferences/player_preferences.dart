@@ -19,6 +19,7 @@ final class PlayerPreferences {
     this.hapticsEnabled = true,
     this.showInputHints = true,
     this.touchControlsOpacity = 0.82,
+    this.launchMostRecentGameOnStartup = false,
   });
 
   factory PlayerPreferences.fromJson(Map<String, Object?> json) {
@@ -35,6 +36,7 @@ final class PlayerPreferences {
       'hapticsEnabled',
       'showInputHints',
       'touchControlsOpacity',
+      'launchMostRecentGameOnStartup',
     };
     if (json.keys.toSet().difference(keys).isNotEmpty ||
         json['schemaVersion'] != 1) {
@@ -67,6 +69,14 @@ final class PlayerPreferences {
     }
     final touchControlsOpacity =
         (rawTouchControlsOpacity as num?)?.toDouble() ?? 0.82;
+    final rawLaunchMostRecentGameOnStartup =
+        json['launchMostRecentGameOnStartup'];
+    if (rawLaunchMostRecentGameOnStartup != null &&
+        rawLaunchMostRecentGameOnStartup is! bool) {
+      throw const FormatException(
+        'Invalid preference: launchMostRecentGameOnStartup.',
+      );
+    }
     if (<double>[masterVolume, musicVolume, effectsVolume]
             .any((value) => !value.isFinite || value < 0 || value > 1) ||
         !textScale.isFinite ||
@@ -89,6 +99,8 @@ final class PlayerPreferences {
       hapticsEnabled: read<bool>('hapticsEnabled'),
       showInputHints: read<bool>('showInputHints'),
       touchControlsOpacity: touchControlsOpacity,
+      launchMostRecentGameOnStartup:
+          rawLaunchMostRecentGameOnStartup as bool? ?? false,
     );
   }
 
@@ -104,6 +116,7 @@ final class PlayerPreferences {
   final bool hapticsEnabled;
   final bool showInputHints;
   final double touchControlsOpacity;
+  final bool launchMostRecentGameOnStartup;
 
   Locale? get locale => switch (language) {
         PlayerLanguage.system => null,
@@ -129,6 +142,7 @@ final class PlayerPreferences {
     bool? hapticsEnabled,
     bool? showInputHints,
     double? touchControlsOpacity,
+    bool? launchMostRecentGameOnStartup,
   }) =>
       PlayerPreferences(
         language: language ?? this.language,
@@ -142,6 +156,8 @@ final class PlayerPreferences {
         hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
         showInputHints: showInputHints ?? this.showInputHints,
         touchControlsOpacity: touchControlsOpacity ?? this.touchControlsOpacity,
+        launchMostRecentGameOnStartup:
+            launchMostRecentGameOnStartup ?? this.launchMostRecentGameOnStartup,
       );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -157,6 +173,7 @@ final class PlayerPreferences {
         'hapticsEnabled': hapticsEnabled,
         'showInputHints': showInputHints,
         'touchControlsOpacity': touchControlsOpacity,
+        'launchMostRecentGameOnStartup': launchMostRecentGameOnStartup,
       };
 
   @override
@@ -173,7 +190,8 @@ final class PlayerPreferences {
       highContrast == other.highContrast &&
       hapticsEnabled == other.hapticsEnabled &&
       showInputHints == other.showInputHints &&
-      touchControlsOpacity == other.touchControlsOpacity;
+      touchControlsOpacity == other.touchControlsOpacity &&
+      launchMostRecentGameOnStartup == other.launchMostRecentGameOnStartup;
 
   @override
   int get hashCode => Object.hash(
@@ -189,5 +207,6 @@ final class PlayerPreferences {
         hapticsEnabled,
         showInputHints,
         touchControlsOpacity,
+        launchMostRecentGameOnStartup,
       );
 }

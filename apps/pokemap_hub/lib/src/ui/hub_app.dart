@@ -38,12 +38,59 @@ class PokeMapHubApp extends StatefulWidget {
 
 class _PokeMapHubAppState extends State<PokeMapHubApp> {
   HubGameView? _activeGame;
+  bool _startupLaunchEvaluated = false;
 
   @override
   void initState() {
     super.initState();
+    widget.controller.addListener(_handleControllerChanged);
     if (widget.initializeController) {
       unawaited(widget.controller.initialize());
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeLaunchMostRecentGame();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant PokeMapHubApp oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) return;
+    oldWidget.controller.removeListener(_handleControllerChanged);
+    widget.controller.addListener(_handleControllerChanged);
+    _activeGame = null;
+    _startupLaunchEvaluated = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeLaunchMostRecentGame();
+    });
+  }
+
+  void _handleControllerChanged() {
+    _maybeLaunchMostRecentGame();
+  }
+
+  void _maybeLaunchMostRecentGame() {
+    if (!mounted || _startupLaunchEvaluated) return;
+    final snapshot = widget.controller.snapshot;
+    if (snapshot.status != HubDashboardStatus.ready &&
+        snapshot.status != HubDashboardStatus.error) {
+      return;
+    }
+    _startupLaunchEvaluated = true;
+    if (snapshot.status != HubDashboardStatus.ready ||
+        !snapshot.preferences.launchMostRecentGameOnStartup ||
+        widget.playerBuilder == null) {
+      return;
+    }
+    HubGameView? target;
+    for (final game in snapshot.games) {
+      if (game.activity.installationHealthy) {
+        target = game;
+        break;
+      }
+    }
+    if (target != null) {
+      setState(() => _activeGame = target);
     }
   }
 
@@ -71,6 +118,12 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
     if (_activeGame == null) return;
     setState(() => _activeGame = null);
     await widget.controller.refresh();
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_handleControllerChanged);
+    super.dispose();
   }
 
   @override

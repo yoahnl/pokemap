@@ -25,6 +25,7 @@ void main() {
       textScale: 1.25,
       reducedMotion: true,
       highContrast: true,
+      launchMostRecentGameOnStartup: true,
     );
 
     await store.save(expected);

@@ -632,6 +632,27 @@ class _HubPreferences extends StatelessWidget {
             ),
             const SizedBox(height: PlayerSpacing.md),
             PlayerPanel(
+              child: SwitchListTile.adaptive(
+                key: const ValueKey<String>(
+                  'hub-launch-most-recent-on-startup-toggle',
+                ),
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  context.playerL10n.launchMostRecentGameOnStartup,
+                ),
+                subtitle: Text(
+                  context.playerL10n.launchMostRecentGameOnStartupDescription,
+                ),
+                value: preferences.launchMostRecentGameOnStartup,
+                onChanged: (value) => onChanged(
+                  preferences.copyWith(
+                    launchMostRecentGameOnStartup: value,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: PlayerSpacing.md),
+            PlayerPanel(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[

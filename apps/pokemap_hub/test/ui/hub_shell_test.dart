@@ -193,6 +193,36 @@ void main() {
     expect(find.text('Réglages globaux du Hub et des jeux.'), findsNothing);
   });
 
+  testWidgets('preferences expose direct startup as an explicit toggle',
+      (tester) async {
+    PlayerPreferences? changed;
+    await tester.pumpWidget(
+      _app(
+        HubShell(
+          snapshot: HubDashboardSnapshot.ready(
+            library: GameLibrary.empty(),
+            games: const <HubGameView>[],
+            section: HubSection.preferences,
+          ),
+          actions: const HubUiActions(),
+          onSectionSelected: (_) {},
+          onQueryChanged: (_) {},
+          onGameSelected: (_) {},
+          onGameDetailsClosed: () {},
+          onPreferencesChanged: (preferences) => changed = preferences,
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('hub-launch-most-recent-on-startup-toggle'),
+      ),
+    );
+
+    expect(changed?.launchMostRecentGameOnStartup, isTrue);
+  });
+
   testWidgets('installation errors stay visible without hiding installed games',
       (tester) async {
     final game = _view();
