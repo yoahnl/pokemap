@@ -1,6 +1,7 @@
 import '../action/battle_action.dart';
 import '../battle/battle_context.dart';
 import '../move/battle_move_data.dart';
+import '../move/battle_struggle.dart';
 import '../move/behaviors/z_move_behavior.dart';
 import '../../capture_formula.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
@@ -18,6 +19,8 @@ sealed class BattleDecision {
     required int moveSlot,
     PsdkBattleSlotRef? target,
   }) = BattleFightDecision;
+
+  const factory BattleDecision.struggle() = BattleFightDecision.struggle;
 
   const factory BattleDecision.switchPokemon({
     required int partyIndex,
@@ -54,8 +57,14 @@ final class BattleFightDecision extends BattleDecision {
     this.target,
   });
 
+  const BattleFightDecision.struggle()
+      : moveSlot = canonicalStruggleMoveSlot,
+        target = null;
+
   final int moveSlot;
   final PsdkBattleSlotRef? target;
+
+  bool get isStruggle => moveSlot == canonicalStruggleMoveSlot;
 }
 
 final class BattleSwitchDecision extends BattleDecision {
@@ -183,6 +192,7 @@ final class BattleEngineDecisionRequest {
     required this.partySize,
     required this.canCapture,
     required this.canFlee,
+    required this.canStruggle,
   })  : fightChoices =
             List<BattleMoveDecisionOption>.unmodifiable(fightChoices),
         switchChoices =
@@ -198,6 +208,7 @@ final class BattleEngineDecisionRequest {
         partySize: context.state.partyForBank(psdkPlayerSlot.bank).length,
         canCapture: false,
         canFlee: false,
+        canStruggle: false,
       );
     }
 
@@ -214,6 +225,7 @@ final class BattleEngineDecisionRequest {
         partySize: context.state.partyForBank(psdkPlayerSlot.bank).length,
         canCapture: false,
         canFlee: false,
+        canStruggle: false,
       );
     }
 
@@ -235,10 +247,12 @@ final class BattleEngineDecisionRequest {
     ];
     final canCapture = context.setup.canCapture;
     final canFlee = context.setup.canFlee;
+    final canStruggle = battler.moves.isNotEmpty && fightChoices.isEmpty;
     final hasLegalChoice = fightChoices.isNotEmpty ||
         switchChoices.isNotEmpty ||
         canCapture ||
-        canFlee;
+        canFlee ||
+        canStruggle;
 
     return BattleEngineDecisionRequest._(
       kind: !hasLegalChoice
@@ -250,6 +264,7 @@ final class BattleEngineDecisionRequest {
       partySize: context.state.partyForBank(psdkPlayerSlot.bank).length,
       canCapture: canCapture,
       canFlee: canFlee,
+      canStruggle: canStruggle,
     );
   }
 
@@ -260,12 +275,14 @@ final class BattleEngineDecisionRequest {
   final int partySize;
   final bool canCapture;
   final bool canFlee;
+  final bool canStruggle;
 
   List<BattleDecision> get allowedDecisions {
     return List<BattleDecision>.unmodifiable(
       <BattleDecision>[
         for (final choice in fightChoices)
           BattleDecision.fight(moveSlot: choice.moveSlot),
+        if (canStruggle) const BattleDecision.struggle(),
         for (final choice in switchChoices)
           BattleDecision.switchPokemon(partyIndex: choice.partyIndex),
         if (canCapture)
@@ -278,7 +295,9 @@ final class BattleEngineDecisionRequest {
   bool allows(BattleDecision decision) {
     return switch (decision) {
       BattleFightDecision(:final moveSlot) =>
-        fightChoices.any((choice) => choice.moveSlot == moveSlot),
+        moveSlot == canonicalStruggleMoveSlot
+            ? canStruggle
+            : fightChoices.any((choice) => choice.moveSlot == moveSlot),
       BattleSwitchDecision(:final partyIndex) =>
         switchChoices.any((choice) => choice.partyIndex == partyIndex),
       BattleItemDecision(:final target, :final targetPartyIndex) =>

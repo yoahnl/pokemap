@@ -99,7 +99,7 @@ void main() {
       );
     });
 
-    test('exhausted PP stays an explicit noLegalChoice until RM-029', () {
+    test('exhausted PP exposes the RM-029 Struggle fallback', () {
       final session = BattleSessionFacade.fromSetup(
         setup: _setup(
           playerMoves: <PsdkBattleMoveData>[
@@ -110,13 +110,12 @@ void main() {
 
       final request = session.decisionRequest;
 
-      expect(request.kind, BattleEngineDecisionRequestKind.noLegalChoice);
-      expect(request.allowedDecisions, isEmpty);
+      expect(request.kind, BattleEngineDecisionRequestKind.turnChoice);
+      expect(request.canStruggle, isTrue);
       expect(
-        () => session.submit(const BattleDecision.fight(moveSlot: 0)),
-        throwsA(isA<BattleDecisionRejectedError>()),
+        request.allowedDecisions,
+        contains(const BattleDecision.struggle()),
       );
-      expect(session.state.turnNumber, 0);
     });
   });
 }

@@ -29,6 +29,7 @@ import '../domain/move/battle_move_behavior.dart';
 import '../domain/move/battle_move_data.dart';
 import '../domain/move/battle_move_history_recorder.dart';
 import '../domain/move/battle_move_prevention.dart';
+import '../domain/move/battle_struggle.dart';
 import '../domain/timeline/battle_timeline.dart';
 import '../domain/timeline/battle_timeline_builder.dart';
 import '../domain/timeline/battle_timeline_event.dart';
@@ -286,7 +287,11 @@ final class BattleTurnRunner {
 
         final user = _context.state.battlerAt(action.user);
         final target = _context.state.battlerAt(action.target);
-        final moveBeforePp = user.moves[action.moveSlot];
+        final usesSyntheticStruggle =
+            action.moveSlot == canonicalStruggleMoveSlot &&
+                action.move.id == canonicalStruggleMoveId;
+        final moveBeforePp =
+            usesSyntheticStruggle ? action.move : user.moves[action.moveSlot];
         final moveAllowsFaintedOriginalTarget =
             moveBeforePp.battleEngineMethod == 's_dragon_darts';
         if (user.isFainted ||
@@ -456,11 +461,12 @@ final class BattleTurnRunner {
           continue;
         }
 
-        final skipsForcedMovePp = _skipsForcedMovePp(
-          state: _context.state,
-          user: action.user,
-          move: cleanMoveBeforePp,
-        );
+        final skipsForcedMovePp = usesSyntheticStruggle ||
+            _skipsForcedMovePp(
+              state: _context.state,
+              user: action.user,
+              move: cleanMoveBeforePp,
+            );
         if (!skipsForcedMovePp && !moveBeforePp.hasUsablePp) {
           _recordMoveAttempt(
             user: action.user,
@@ -644,7 +650,15 @@ final class BattleTurnRunner {
   BattleDecision _opponentDecision() {
     final ai = _opponentAi;
     if (ai == null) {
-      return const BattleDecision.fight(moveSlot: 0);
+      final moves = _context.state.battlerAt(psdkOpponentSlot).moves;
+      for (var moveSlot = 0; moveSlot < moves.length; moveSlot += 1) {
+        if (moves[moveSlot].hasUsablePp) {
+          return BattleDecision.fight(moveSlot: moveSlot);
+        }
+      }
+      return moves.isEmpty
+          ? const BattleDecision.noAction()
+          : const BattleDecision.struggle();
     }
     return ai.chooseDecision(
       state: _context.state,

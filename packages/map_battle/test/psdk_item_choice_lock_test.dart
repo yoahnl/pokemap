@@ -125,7 +125,7 @@ void main() {
       );
     });
 
-    test('Disable can leave a Choice-locked battler with no legal move', () {
+    test('Disable makes a Choice-locked battler fall back to Struggle', () {
       final engine = BattleEngine(
         setup: _setup(
           playerHeldItemId: 'choice_band',
@@ -145,9 +145,14 @@ void main() {
 
       expect(
         engine.currentRequest.kind,
-        BattleEngineDecisionRequestKind.noLegalChoice,
+        BattleEngineDecisionRequestKind.turnChoice,
       );
       expect(engine.currentRequest.fightChoices, isEmpty);
+      expect(engine.currentRequest.canStruggle, isTrue);
+      expect(
+        engine.currentRequest.allows(const BattleDecision.struggle()),
+        isTrue,
+      );
     });
   });
 }

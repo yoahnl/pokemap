@@ -146,6 +146,7 @@ export 'src/domain/handler/battle_weather_change_handler.dart'
     show BattleWeatherChangeHandler;
 export 'src/domain/move/battle_move_data.dart'
     show BattleMoveDefinition, BattleMoveFlags, BattleStageMod;
+export 'src/domain/move/battle_struggle.dart';
 export 'src/domain/move/battle_move_instance.dart' show BattleMoveInstance;
 export 'src/domain/move/battle_move_behavior.dart'
     show

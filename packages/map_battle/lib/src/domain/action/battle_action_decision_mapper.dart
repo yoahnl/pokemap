@@ -10,6 +10,7 @@ import '../effect/battle_effect_scope.dart';
 import '../effect/item/item_effect.dart';
 import '../effect/move/bide_effect.dart';
 import '../effect/move/two_turn_charge_effect.dart';
+import '../move/battle_struggle.dart';
 import 'battle_action.dart';
 
 final class PsdkBattleActionDecisionMapper {
@@ -77,7 +78,9 @@ final class PsdkBattleActionDecisionMapper {
     final bideMoveSlot = _bideMoveSlot(battler: battler, bide: bide);
     final forcedTarget = twoTurnCharge?.chargedTarget ?? bide?.chargedTarget;
     final effectiveMoveSlot = chargedMoveSlot ?? bideMoveSlot ?? moveSlot;
-    if (effectiveMoveSlot < 0 || effectiveMoveSlot >= battler.moves.length) {
+    final usesStruggle = effectiveMoveSlot == canonicalStruggleMoveSlot;
+    if (!usesStruggle &&
+        (effectiveMoveSlot < 0 || effectiveMoveSlot >= battler.moves.length)) {
       throw RangeError.range(
         effectiveMoveSlot,
         0,
@@ -85,12 +88,14 @@ final class PsdkBattleActionDecisionMapper {
         'moveSlot',
       );
     }
-    final move = _effectiveActionMove(
-      state: state,
-      user: user,
-      battler: battler,
-      move: battler.moves[effectiveMoveSlot],
-    );
+    final move = usesStruggle
+        ? createCanonicalPsdkStruggleMove()
+        : _effectiveActionMove(
+            state: state,
+            user: user,
+            battler: battler,
+            move: battler.moves[effectiveMoveSlot],
+          );
     return PsdkBattleFightAction(
       user: user,
       target:

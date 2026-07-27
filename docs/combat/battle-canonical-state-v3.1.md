@@ -206,10 +206,16 @@ Fichier pivot:
 
 ### Ce qui est fragile
 
-- `Struggle` reste absent et volontairement hors scope R1
-- côté joueur, `BattleWaitReason.noLegalChoice` est un dead-end explicite et unsupported ; ce n'est ni un flow gameplay acceptable, ni un support implicite de `Struggle`
-- côté ennemi, l'absence totale d'action légale reste un `StateError` explicite ; cette asymétrie est assumée en R1 et ne vaut pas support complet du cas “no move left”
-- l'ennemi sans action légale échoue désormais explicitement au lieu de produire un faux `Run`
+- RM-029 ajoute `Struggle` au moteur PSDK canonique et au bridge runtime :
+  puissance 50, typeless, always-hit, recul de 1/4 des PV max et aucun PP
+  persisté ;
+- côté joueur, une request PSDK sans move sélectionnable expose le fallback
+  synthétique au lieu de `noLegalChoice` ; le moteur legacy direct conserve
+  son ancien dead-end et ne constitue pas la preuve runtime RM-029 ;
+- côté ennemi PSDK, l'IA utilise le même fallback si elle ne peut choisir ni
+  move, ni switch, ni item, ni fuite ;
+- `noLegalChoice` reste fail-closed pour un combattant malformé sans aucun move
+  configuré et pour les anciens appels legacy directs ;
 - tie-break vitesse égale déterministe joueur d'abord
 - priorité de switch localement hardcodée
 - politique de double KO locale, maintenue explicitement en R1

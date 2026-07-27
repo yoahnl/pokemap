@@ -120,7 +120,9 @@ final class PsdkBattleAi {
     }
 
     if (activeChoice == null) {
-      return const BattleDecision.noAction();
+      return state.battlerAt(user).moves.isEmpty
+          ? const BattleDecision.noAction()
+          : const BattleDecision.struggle();
     }
     return BattleDecision.fight(moveSlot: activeChoice.moveSlot);
   }
@@ -259,7 +261,9 @@ final class PsdkBattleAi {
   }) {
     final choice = chooseMoveOrNull(state: state, user: user, target: target);
     if (choice == null) {
-      return const BattleDecision.noAction();
+      return state.battlerAt(user).moves.isEmpty
+          ? const BattleDecision.noAction()
+          : const BattleDecision.struggle();
     }
     return BattleDecision.fight(moveSlot: choice.moveSlot);
   }

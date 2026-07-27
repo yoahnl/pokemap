@@ -122,7 +122,7 @@ final class RuntimePsdkBattleSessionAdapter {
   BattleDecision decisionForPlayerChoice(PlayerBattleChoice choice) {
     return switch (choice) {
       PlayerBattleChoiceFight(:final moveIndex) =>
-        BattleDecision.fight(moveSlot: moveIndex),
+        _decisionForFightChoice(moveIndex),
       PlayerBattleChoiceSwitch(:final reserveIndex) =>
         BattleDecision.switchPokemon(
           partyIndex: _partyIndexForReserveChoice(reserveIndex),
@@ -262,6 +262,12 @@ final class RuntimePsdkBattleSessionAdapter {
     BattleDecision decision,
     BattleEngineTurnResult result,
   ) {
+    if (decision case BattleFightDecision(isStruggle: true)) {
+      return BattleActionFight(
+        canonicalLegacyStruggleMove,
+        moveIndex: state.psdkState.battlerAt(psdkPlayerSlot).moves.length,
+      );
+    }
     return switch (decision) {
       BattleFightDecision(:final moveSlot) => BattleActionFight(
           _toLegacyMove(
@@ -433,6 +439,15 @@ final class RuntimePsdkBattleSessionAdapter {
     return switchChoices[reserveIndex].partyIndex;
   }
 
+  BattleDecision _decisionForFightChoice(int moveIndex) {
+    final realMoveCount =
+        state.psdkState.battlerAt(psdkPlayerSlot).moves.length;
+    if (decisionRequest.canStruggle && moveIndex == realMoveCount) {
+      return const BattleDecision.struggle();
+    }
+    return BattleDecision.fight(moveSlot: moveIndex);
+  }
+
   BattleSetup _toLegacyDisplaySetup({
     required bool isTrainerBattle,
     required String? trainerId,
@@ -443,6 +458,7 @@ final class RuntimePsdkBattleSessionAdapter {
     return BattleSetup(
       playerPokemon: _toLegacyCombatantData(
         psdkState.battlerAt(psdkPlayerSlot),
+        includeStruggle: decisionRequest.canStruggle,
       ),
       playerReservePokemon: _legacyReserveForBank(
         bank: psdkPlayerSlot.bank,
@@ -504,7 +520,10 @@ final class RuntimePsdkBattleSessionAdapter {
     ];
   }
 
-  BattleCombatantData _toLegacyCombatantData(PsdkBattleCombatant combatant) {
+  BattleCombatantData _toLegacyCombatantData(
+    PsdkBattleCombatant combatant, {
+    bool includeStruggle = false,
+  }) {
     return BattleCombatantData(
       speciesId: combatant.speciesId,
       level: combatant.level,
@@ -517,7 +536,10 @@ final class RuntimePsdkBattleSessionAdapter {
           _statusBridge.legacyFromPsdkBattleStatus(combatant.majorStatus),
       abilityId: combatant.abilityId ?? 'unknown',
       catchRate: combatant.catchRate,
-      moves: combatant.moves.map(_toLegacyMoveData).toList(growable: false),
+      moves: <BattleMoveData>[
+        ...combatant.moves.map(_toLegacyMoveData),
+        if (includeStruggle) canonicalLegacyStruggleMoveData,
+      ],
     );
   }
 

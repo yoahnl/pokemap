@@ -48,6 +48,14 @@ final class BattleEngine {
 
   BattleEngineTurnResult submit(BattleDecision decision) {
     final request = currentRequest;
+    if (decision is BattleFightDecision &&
+        decision.isStruggle &&
+        !request.canStruggle) {
+      throw BattleDecisionRejectedError(
+        requestKind: request.kind,
+        decision: decision,
+      );
+    }
     final runner = BattleTurnRunner(
       _context,
       moveBehaviorRegistry: _moveBehaviorRegistry,

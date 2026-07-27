@@ -16,8 +16,11 @@ void main() {
       expect(player.moves.single.currentPp, 0);
       expect(player.moveHistory.lastMoveId, 'ember');
       expect(player.moveHistory.lastSuccessfulMoveId, 'ember');
-      expect(engine.currentRequest.kind,
-          BattleEngineDecisionRequestKind.noLegalChoice);
+      expect(
+        engine.currentRequest.kind,
+        BattleEngineDecisionRequestKind.turnChoice,
+      );
+      expect(engine.currentRequest.canStruggle, isTrue);
       expect(
         result.timeline.events.map((event) => event.kind),
         containsAllInOrder(<String>[

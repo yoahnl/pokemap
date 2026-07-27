@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
+import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
 
 void main() {
   group('runtime PSDK canonical battle decision contract', () {
@@ -15,8 +16,7 @@ void main() {
         isTrue,
       );
 
-      final result =
-          adapter.submitPlayerChoice(const PlayerBattleChoiceRun());
+      final result = adapter.submitPlayerChoice(const PlayerBattleChoiceRun());
 
       expect(result.outcome?.kind, BattleEngineOutcomeKind.fled);
       expect(adapter.state.isFinished, isTrue);
@@ -25,9 +25,7 @@ void main() {
         isEmpty,
       );
       expect(
-        adapter
-            .createLegacyOutcome(isTrainerBattle: false)
-            .isRunaway,
+        adapter.createLegacyOutcome(isTrainerBattle: false).isRunaway,
         isTrue,
       );
     });
@@ -78,7 +76,8 @@ void main() {
       );
     });
 
-    test('typed noLegalChoice reaches the runtime adapter unchanged', () {
+    test('exhausted PP exposes and executes Struggle through the player menu',
+        () {
       final adapter = RuntimePsdkBattleSessionAdapter.fromSetup(
         _setup(
           playerMoves: <PsdkBattleMoveData>[
@@ -87,11 +86,51 @@ void main() {
         ),
       );
 
+      final displaySession = adapter.createLegacyDisplaySession(
+        isTrainerBattle: true,
+      );
+      final struggleChoice = displaySession.decisionRequest.allowedChoices
+          .whereType<PlayerBattleChoiceFight>()
+          .single;
+      final menu = buildBattleCommandMenuModel(
+        session: displaySession,
+        mode: BattleCommandMenuMode.fight,
+        selectedRootIndex: 0,
+        selectedChoiceIndex: 0,
+      );
+
       expect(
         adapter.decisionRequest.kind,
-        BattleEngineDecisionRequestKind.noLegalChoice,
+        BattleEngineDecisionRequestKind.turnChoice,
       );
-      expect(adapter.decisionRequest.allowedDecisions, isEmpty);
+      expect(adapter.decisionRequest.canStruggle, isTrue);
+      expect(
+          displaySession.state.player.moves.last.id, canonicalStruggleMoveId);
+      expect(menu.choiceEntries.single.title, 'Struggle');
+      expect(menu.choiceEntries.single.subtitle, contains('Power 50'));
+      expect(adapter.allowsPlayerChoice(struggleChoice), isTrue);
+
+      final result = adapter.submitPlayerChoice(struggleChoice);
+      final updatedPlayer = result.state.battlerAt(psdkPlayerSlot);
+      final updatedDisplay = adapter.createLegacyDisplaySession(
+        isTrainerBattle: true,
+      );
+
+      expect(updatedPlayer.moves, hasLength(1));
+      expect(updatedPlayer.moves.single.id, 'empty');
+      expect(updatedPlayer.moves.single.currentPp, 0);
+      expect(
+        updatedPlayer.writeBackMoves.map((move) => move.id),
+        isNot(contains(canonicalStruggleMoveId)),
+      );
+      expect(
+        updatedDisplay.state.currentTurn!.playerAction,
+        isA<BattleActionFight>().having(
+          (action) => action.move.id,
+          'move.id',
+          canonicalStruggleMoveId,
+        ),
+      );
     });
   });
 }
