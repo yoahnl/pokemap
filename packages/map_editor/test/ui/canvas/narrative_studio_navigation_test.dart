@@ -349,6 +349,26 @@ void main() {
       expect(resolution.reason, isNotEmpty);
     });
 
+    test('routes the project new-game owner to its authoring overview', () {
+      const intent = NarrativeDependencyNavigationIntent(
+        kind: NarrativeDependencyTargetKind.sourceMap,
+        assetId: 'newGame',
+        scope: 'project',
+        sourceKind: 'newGame',
+      );
+
+      final resolution = resolveNarrativeDependencyNavigationIntent(intent);
+
+      expect(
+        resolution.kind,
+        NarrativeStudioNavigationResolutionKind.internal,
+      );
+      expect(
+        resolution.location,
+        NarrativeStudioRouteLocation.overview(),
+      );
+    });
+
     test('maps a diagnostic to the exact asset instead of only its workspace',
         () {
       const diagnostic = NarrativeProjectDiagnostic(

@@ -237,7 +237,15 @@ void main() {
       if (await root.exists()) await root.delete(recursive: true);
     });
     final mapPath = p.join(root.path, 'maps', 'coast.json');
-    final project = _project();
+    final project = _project().copyWith(
+      maps: const <ProjectMapEntry>[
+        ProjectMapEntry(
+          id: 'map',
+          name: 'Côte',
+          relativePath: 'maps/coast.json',
+        ),
+      ],
+    );
     final baseMap = _baseMap();
     final candidate = _richCandidateMap();
     final preview = _previewFor(
@@ -260,27 +268,30 @@ void main() {
     );
     addTearDown(container.dispose);
     final notifier = container.read(editorNotifierProvider.notifier);
+    await repository.saveMap(baseMap, mapPath);
     notifier.state = EditorState(
       projectRootPath: root.path,
       project: project,
+    );
+    await notifier.loadMap('maps/coast.json');
+    final loadedBaseMap = notifier.state.activeMap!;
+    notifier.state = notifier.state.copyWith(
       workspaceMode: EditorWorkspaceMode.map,
-      activeMap: baseMap,
-      activeMapPath: mapPath,
       activeLayerId: 'borders',
-      savedMapSnapshot: baseMap,
+      savedMapSnapshot: loadedBaseMap,
       isDirty: true,
     );
     container
         .read(activeBorderFeatureControllerProvider.notifier)
         .selectFeature(
-          map: baseMap,
+          map: loadedBaseMap,
           layerId: 'borders',
           featureId: 'coast',
         );
     _resolvePreview(
       preview,
       project: project,
-      map: baseMap,
+      map: loadedBaseMap,
       projectRootPath: root.path,
       activeMapPath: mapPath,
     );

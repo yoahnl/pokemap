@@ -4,6 +4,8 @@ import 'package:map_core/map_core.dart';
 
 import '../../design_system/design_system.dart';
 import '../../../application/models/narrative_event_map_bridge_models.dart';
+import '../../../features/editor/application/map_activation_coordinator.dart';
+import '../../../features/editor/presentation/map_activation_guard.dart';
 import '../../../features/editor/state/editor_notifier.dart';
 import '../../../features/narrative/state/narrative_event_map_bridge_state.dart';
 import '../../../theme/theme.dart';
@@ -36,6 +38,29 @@ class NarrativeEventMapReturnPanel extends ConsumerWidget {
     final colors = context.pokeMapColors;
     final name = record.draftOrNull?.name ?? record.definitionOrNull!.name;
 
+    Future<bool> activateMapSnapshot(
+      ProjectManifest currentProject,
+      EditorNotifier notifier,
+      MapData map,
+    ) async {
+      if (!context.mounted) return false;
+      ProjectMapEntry? entry;
+      for (final candidate in currentProject.maps) {
+        if (candidate.id == map.id) {
+          entry = candidate;
+          break;
+        }
+      }
+      if (entry == null) return false;
+      final outcome = await requestEditorMapActivation(
+        context: context,
+        notifier: notifier,
+        relativePath: entry.relativePath,
+      );
+      return outcome == MapActivationOutcome.activated &&
+          ref.read(editorNotifierProvider).activeMap?.id == map.id;
+    }
+
     Future<void> open(NarrativeEventMapNavigationMode mode) async {
       if (!spatial) return;
       final current = ref.read(editorNotifierProvider);
@@ -51,9 +76,13 @@ class NarrativeEventMapReturnPanel extends ConsumerWidget {
             mode: mode,
             project: currentProject,
             activeMap: current.activeMap,
-            mapDirty: current.isDirty,
+            mapDirty: false,
             loadMapSnapshot: notifier.loadMapSnapshotById,
-            activateMapSnapshot: notifier.activateNarrativeEventMapSnapshot,
+            activateMapSnapshot: (map) => activateMapSnapshot(
+              currentProject,
+              notifier,
+              map,
+            ),
             applyFocus: notifier.focusNarrativeEventMapSource,
           );
       if (!result.succeeded) return;
@@ -82,9 +111,13 @@ class NarrativeEventMapReturnPanel extends ConsumerWidget {
         groupContext: selectedGroup!,
         project: currentProject,
         activeMap: current.activeMap,
-        mapDirty: current.isDirty,
+        mapDirty: false,
         loadMapSnapshot: notifier.loadMapSnapshotById,
-        activateMapSnapshot: notifier.activateNarrativeEventMapSnapshot,
+        activateMapSnapshot: (map) => activateMapSnapshot(
+          currentProject,
+          notifier,
+          map,
+        ),
       );
       if (!result.succeeded) return;
       await controller.inspectPendingSourceCreation(

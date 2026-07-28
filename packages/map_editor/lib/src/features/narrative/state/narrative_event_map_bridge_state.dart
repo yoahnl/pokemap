@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
@@ -19,7 +21,9 @@ typedef ApplyPersistedNarrativeEventRegistry = bool Function({
   required NarrativeEventRegistry nextRegistry,
 });
 typedef LoadNarrativeEventMapSnapshot = Future<MapData?> Function(String mapId);
-typedef ActivateNarrativeEventMapSnapshot = bool Function(MapData map);
+typedef ActivateNarrativeEventMapSnapshot = FutureOr<bool> Function(
+  MapData map,
+);
 typedef ApplyNarrativeEventMapFocus = bool Function(
   NarrativeEditorFocusTarget focus,
 );
@@ -354,11 +358,26 @@ final class NarrativeEventMapBridgeController
         navigation: navigation,
       );
     }
-    if (!sameMap && !activateMapSnapshot(targetMap)) {
-      return _navigationFailure(
-        NarrativeEventMapNavigationStatus.activationFailed,
-        'La map source n’a pas pu être activée.',
-      );
+    if (!sameMap) {
+      final didActivate = await activateMapSnapshot(targetMap);
+      // Activation may wait on the shared unsaved-map dialog. Revalidate the
+      // async owner afterwards so an answer from an old project session cannot
+      // publish focus or return navigation into the replacement project.
+      if (!_isCurrentNavigationOperation(
+        operationEpoch: operationEpoch,
+        projectSessionToken: projectSessionToken,
+      )) {
+        return const NarrativeEventMapNavigationResult(
+          status: NarrativeEventMapNavigationStatus.unavailable,
+          message: 'Le projet a changé pendant la navigation.',
+        );
+      }
+      if (!didActivate) {
+        return _navigationFailure(
+          NarrativeEventMapNavigationStatus.activationFailed,
+          'La map source n’a pas pu être activée.',
+        );
+      }
     }
     if (!applyFocus(focus)) {
       return _navigationFailure(
@@ -450,11 +469,23 @@ final class NarrativeEventMapBridgeController
         'Les données de la map du groupe sont indisponibles.',
       );
     }
-    if (!sameMap && !activateMapSnapshot(targetMap)) {
-      return _navigationFailure(
-        NarrativeEventMapNavigationStatus.activationFailed,
-        'La map du groupe n’a pas pu être activée.',
-      );
+    if (!sameMap) {
+      final didActivate = await activateMapSnapshot(targetMap);
+      if (!_isCurrentNavigationOperation(
+        operationEpoch: operationEpoch,
+        projectSessionToken: projectSessionToken,
+      )) {
+        return const NarrativeEventMapNavigationResult(
+          status: NarrativeEventMapNavigationStatus.unavailable,
+          message: 'Le projet a changé pendant la navigation.',
+        );
+      }
+      if (!didActivate) {
+        return _navigationFailure(
+          NarrativeEventMapNavigationStatus.activationFailed,
+          'La map du groupe n’a pas pu être activée.',
+        );
+      }
     }
 
     final requestId = _requestIdFactory();

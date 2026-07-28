@@ -23,9 +23,11 @@ class ProjectExplorerPanel extends ConsumerStatefulWidget {
   const ProjectExplorerPanel({
     super.key,
     this.onCollapse,
+    this.onOpenDependency,
   });
 
   final VoidCallback? onCollapse;
+  final ValueChanged<NarrativeDependencyNavigationIntent>? onOpenDependency;
 
   @override
   ConsumerState<ProjectExplorerPanel> createState() =>
@@ -272,6 +274,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           snapshot: snapshot,
           notifier: notifier,
           depth: 0,
+          onOpenDependency: widget.onOpenDependency,
         ),
       ),
       if (rootMaps.isNotEmpty) ...[
@@ -282,6 +285,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
             snapshot: snapshot,
             notifier: notifier,
             depth: 0,
+            onOpenDependency: widget.onOpenDependency,
           ),
         ),
       ],

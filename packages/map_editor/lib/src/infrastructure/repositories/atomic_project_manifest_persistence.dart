@@ -83,6 +83,7 @@ final class AtomicProjectManifestPersistence
     required String operationId,
     required ProjectManifest before,
     required ProjectManifest after,
+    String? expectedRevision,
   }) async {
     try {
       ProjectValidator.validate(after);
@@ -123,6 +124,7 @@ final class AtomicProjectManifestPersistence
           operationId: operationId,
           before: before,
           after: after,
+          expectedRevision: expectedRevision,
         ),
       );
     } on Object catch (error) {
@@ -138,6 +140,7 @@ final class AtomicProjectManifestPersistence
     required String operationId,
     required ProjectManifest before,
     required ProjectManifest after,
+    required String? expectedRevision,
   }) async {
     final recoveryInspection =
         await (eventRegistryPersistence ?? NarrativeEventRegistryPersistence())
@@ -185,6 +188,16 @@ final class AtomicProjectManifestPersistence
       return _failed(
         'invalidCurrentProject',
         'The current project manifest cannot be updated safely: $error',
+      );
+    }
+    // DS-05 records the exact project bytes before writing its lifecycle
+    // intent. Semantic equality alone would miss an independently changed
+    // unknown root member, so lifecycle callers may require that exact SHA-256
+    // revision in addition to the existing manifest-model comparison.
+    if (expectedRevision != null && beforeRevision != expectedRevision) {
+      return _failed(
+        'staleProjectRevision',
+        'The project byte revision changed since this transaction started.',
       );
     }
 

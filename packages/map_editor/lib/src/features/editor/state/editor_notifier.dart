@@ -14,6 +14,7 @@ import '../../../app/providers/core_providers.dart';
 import '../../../app/providers/editor_workspace_providers.dart';
 import '../../../app/providers/use_case_providers.dart';
 import '../../../application/errors/application_errors.dart';
+import '../../../application/services/map_dependency_preflight_service.dart';
 import '../../../application/use_cases/apply_element_auto_shadow_suggestions_use_case.dart';
 import '../../../application/use_cases/environment_generator_apply_use_cases.dart';
 import '../../../application/use_cases/environment_generator_clear_use_cases.dart';
@@ -21,6 +22,7 @@ import '../../../application/use_cases/environment_generator_regenerate_use_case
 import '../../../application/use_cases/environment_generator_use_cases.dart';
 import '../../../application/use_cases/environment_mask_use_cases.dart';
 import '../../../application/use_cases/layer_use_cases.dart';
+import '../../../application/use_cases/map_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_area_management_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_area_settings_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_attachment_use_cases.dart';
@@ -48,6 +50,8 @@ import '../../../application/services/narrative_document_session.dart';
 import '../../../application/services/path_autotile_resolver.dart';
 import '../../../application/services/path_layer_editing_coordinator.dart';
 import '../../../application/services/placed_element_instance_indexer.dart';
+import '../../../application/services/project_map_id_policy.dart';
+import '../../../application/services/project_map_manifest_integrity_policy.dart';
 import '../../../application/services/terrain_painting_coordinator.dart';
 import '../../../application/services/terrain_preset_resolver.dart';
 import '../../../application/services/terrain_preset_selection_coordinator.dart';
@@ -55,6 +59,7 @@ import '../../../application/services/trigger_editing_service.dart';
 import '../../../application/services/warp_editing_service.dart';
 import '../../personalization/application/personalization_studio_session_controller.dart';
 import '../application/editor_workspace_controller.dart';
+import '../application/map_activation_coordinator.dart';
 import '../application/map_editing_controller.dart';
 import '../application/map_selection_controller.dart';
 import '../application/project_content_controller.dart';
@@ -97,6 +102,35 @@ typedef _MapDiskMutationLease = ({
   MapData? activeMap,
   String? activeMapPath,
 });
+typedef _PendingMapActivation = ({
+  String targetPath,
+  Object? projectIdentity,
+  MapData? sourceMapIdentity,
+  String? sourcePath,
+});
+typedef _PendingProjectReplacement = ({
+  String targetKey,
+  Object? projectIdentity,
+  MapData? sourceMapIdentity,
+  String? sourcePath,
+});
+typedef _ProjectReplacementAuthorizationBaseline = ({
+  String? projectRootPath,
+  ProjectManifest? projectIdentity,
+  MapData? sourceMapIdentity,
+  String? sourcePath,
+  bool isDirty,
+  bool isProjectDirty,
+  bool hasPendingPreview,
+});
+typedef _ProjectReplacementAuthorization = ({
+  MapActivationOutcome outcome,
+  _ProjectReplacementAuthorizationBaseline? baseline,
+});
+typedef _MapDocumentRevisionAttestation = ({
+  String revision,
+  MapData sourceDocument,
+});
 
 BorderPreviewContext? _borderPreviewContext(EditorState state) {
   final projectRootPath = state.projectRootPath;
@@ -119,13 +153,45 @@ BorderPreviewContext? _borderPreviewContext(EditorState state) {
   );
 }
 
+ProjectMapEntry? _findMapEntryForPath(
+  ProjectManifest? project,
+  ProjectWorkspace workspace,
+  String targetPath,
+) {
+  if (project == null) return null;
+  final normalizedTargetPath = p.normalize(targetPath);
+  for (final entry in project.maps) {
+    try {
+      if (p.normalize(workspace.resolveMapPath(entry.relativePath)) ==
+          normalizedTargetPath) {
+        return entry;
+      }
+    } on Object {
+      // An unrelated malformed legacy entry must not prevent a valid target
+      // from being selected; the target itself still has to resolve safely.
+    }
+  }
+  return null;
+}
+
 @riverpod
 class EditorNotifier extends _$EditorNotifier {
+  static const ProjectMapIdPolicy _projectMapIdPolicy = ProjectMapIdPolicy();
+  static const ProjectMapManifestIntegrityPolicy
+      _projectMapManifestIntegrityPolicy = ProjectMapManifestIntegrityPolicy();
+
+  EditorState get currentState => state;
+
   MapData? _confirmedBulkPlacementLossBaseline;
   _NarrativeEventSourceCleanupInterlock? _narrativeEventSourceCleanupInterlock;
   ProjectManifest? _narrativeEventSourceCleanupProjectIdentity;
   MapData? _narrativeEventSourceCleanupBaselineIdentity;
   _MapDiskMutationLease? _mapDiskMutationLease;
+  _PendingMapActivation? _pendingMapActivation;
+  _PendingProjectReplacement? _pendingProjectReplacement;
+  ProjectManifest? _mapManifestIntegrityProjectIdentity;
+  String? _mapManifestIntegrityRootPath;
+  List<String> _mapManifestIntegrityDiagnostics = const <String>[];
   Object? _narrativeEventSourceMapWriteLeaseToken;
   Object? _narrativeAuthoringLeaseToken;
   Object _projectSessionIdentity = Object();
@@ -141,6 +207,12 @@ class EditorNotifier extends _$EditorNotifier {
   String? _personalizationStudioProjectPath;
   int _personalizationStudioOperationSequence = 0;
   bool _registeredNarrativeDocumentDisposal = false;
+  // An attestation binds the revision to the exact object returned by a load.
+  // Path-only lookups are used only after that object has become the active
+  // document; snapshot activation additionally checks object identity.
+  final Map<String, _MapDocumentRevisionAttestation>
+      _mapDocumentRevisionAttestations =
+      <String, _MapDocumentRevisionAttestation>{};
 
   int get projectSessionRevision => _projectSessionRevision;
 
@@ -342,10 +414,42 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> createProject(String name, String directory) async {
+    final outcome = await createAndActivateProject(name, directory);
+    if (outcome == MapActivationOutcome.requiresDecision) {
+      await createAndActivateProject(
+        name,
+        directory,
+        dirtyDecision: DirtyMapActivationDecision.cancel,
+      );
+    }
+  }
+
+  Future<MapActivationOutcome> createAndActivateProject(
+    String name,
+    String directory, {
+    DirtyMapActivationDecision? dirtyDecision,
+  }) async {
+    final targetKey = 'create:${p.normalize(directory)}:$name';
+    final authorization = await _authorizeProjectReplacement(
+      targetKey,
+      dirtyDecision: dirtyDecision,
+    );
+    if (authorization.outcome != MapActivationOutcome.activated) {
+      return authorization.outcome;
+    }
+    if (!_projectReplacementAuthorizationIsCurrent(authorization)) {
+      return MapActivationOutcome.unavailable;
+    }
+
     debugPrint('EditorNotifier: createProject($name, $directory)');
+    final lease = _beginMapDiskMutationLease();
+    if (lease == null) return MapActivationOutcome.busy;
     try {
       final useCase = ref.read(createProjectUseCaseProvider);
       final manifest = await useCase.execute(name, directory);
+      if (!_canAdoptMapDiskMutation(lease)) {
+        return MapActivationOutcome.unavailable;
+      }
       state = _projectSessionController.openProjectSession(
         current: state,
         session: ProjectSessionLoadResult(
@@ -361,10 +465,14 @@ class EditorNotifier extends _$EditorNotifier {
       await _rememberLastOpenedProjectManifest(
         p.join(directory, 'project.json'),
       );
+      return MapActivationOutcome.activated;
     } catch (e) {
       debugPrint('EditorNotifier: Error creating project: $e');
       state =
           state.copyWith(errorMessage: 'Impossible de créer le projet : $e');
+      return MapActivationOutcome.failed;
+    } finally {
+      _endMapDiskMutationLease(lease);
     }
   }
 
@@ -374,19 +482,61 @@ class EditorNotifier extends _$EditorNotifier {
     bool rememberAsRecent = true,
     Object? mapWriteLeaseToken,
   }) async {
+    final outcome = await activateProject(
+      manifestPath,
+      silentOnError: silentOnError,
+      rememberAsRecent: rememberAsRecent,
+      mapWriteLeaseToken: mapWriteLeaseToken,
+    );
+    if (mapWriteLeaseToken == null &&
+        outcome == MapActivationOutcome.requiresDecision) {
+      await activateProject(
+        manifestPath,
+        dirtyDecision: DirtyMapActivationDecision.cancel,
+        silentOnError: silentOnError,
+        rememberAsRecent: rememberAsRecent,
+      );
+    }
+  }
+
+  Future<MapActivationOutcome> activateProject(
+    String manifestPath, {
+    DirtyMapActivationDecision? dirtyDecision,
+    bool silentOnError = false,
+    bool rememberAsRecent = true,
+    Object? mapWriteLeaseToken,
+  }) async {
     final ownsLease = mapWriteLeaseToken == null;
+    if (ownsLease) {
+      final authorization = await _authorizeProjectReplacement(
+        'open:${p.normalize(manifestPath)}',
+        dirtyDecision: dirtyDecision,
+      );
+      if (authorization.outcome != MapActivationOutcome.activated) {
+        return authorization.outcome;
+      }
+      if (!_projectReplacementAuthorizationIsCurrent(authorization)) {
+        return MapActivationOutcome.unavailable;
+      }
+    } else {
+      // Recovery workflows already own the serialized disk transaction and
+      // deliberately replace the session with freshly persisted state.
+      _pendingProjectReplacement = null;
+      _pendingMapActivation = null;
+    }
+
     final _MapDiskMutationLease? operationLease;
     if (ownsLease) {
       operationLease = _beginMapDiskMutationLease();
-      if (operationLease == null) return;
+      if (operationLease == null) return MapActivationOutcome.busy;
     } else {
       if (_rejectMapDiskMutationLease(
         allowedLeaseToken: mapWriteLeaseToken,
       )) {
-        return;
+        return MapActivationOutcome.busy;
       }
       operationLease = _mapDiskMutationLease;
-      if (operationLease == null) return;
+      if (operationLease == null) return MapActivationOutcome.unavailable;
     }
     final effectiveLeaseToken = operationLease.token;
     // Keep this trace for explicit user actions, but avoid noisy startup logs
@@ -398,8 +548,24 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final useCase = ref.read(loadProjectUseCaseProvider);
       final manifest = await useCase.execute(manifestPath);
-      if (!_canAdoptMapDiskMutation(operationLease)) return;
+      if (!_canAdoptMapDiskMutation(operationLease)) {
+        return MapActivationOutcome.unavailable;
+      }
       final projectDir = p.dirname(manifestPath);
+      final nonCanonicalMapIds = _projectMapIdPolicy.nonCanonicalIds(
+        manifest.maps.map((entry) => entry.id),
+      );
+      final manifestDiagnostics =
+          _projectMapManifestIntegrityPolicy.diagnostics(
+        _projectWorkspaceFactory.create(projectDir),
+        manifest,
+      );
+      final projectStatusMessage =
+          nonCanonicalMapIds.isEmpty && manifestDiagnostics.isEmpty
+              ? 'Projet « ${manifest.name} » chargé'
+              : 'Projet « ${manifest.name} » chargé en mode protégé : '
+                  '${nonCanonicalMapIds.length} identifiant(s) legacy, '
+                  '${manifestDiagnostics.length} problème(s) de manifeste map.';
       state = _projectSessionController.openProjectSession(
         current: state,
         session: ProjectSessionLoadResult(
@@ -407,7 +573,7 @@ class EditorNotifier extends _$EditorNotifier {
           project: manifest,
           presetSelection: _terrainPresetSelectionCoordinator.initial(manifest),
         ),
-        statusMessage: 'Projet « ${manifest.name} » chargé',
+        statusMessage: projectStatusMessage,
       );
       _renewProjectSessionIdentity();
       _narrativeAuthoringSaveInterlock = null;
@@ -418,11 +584,12 @@ class EditorNotifier extends _$EditorNotifier {
       if (rememberAsRecent) {
         await _rememberLastOpenedProjectManifest(manifestPath);
       }
+      return MapActivationOutcome.activated;
     } catch (e) {
       final canReportFailure = didAdoptProject
           ? _ownsMapDiskMutationLease(effectiveLeaseToken)
           : _canAdoptMapDiskMutation(operationLease);
-      if (!canReportFailure) return;
+      if (!canReportFailure) return MapActivationOutcome.unavailable;
       if (!silentOnError) {
         debugPrint('EditorNotifier: Error loading project: $e');
       }
@@ -438,6 +605,7 @@ class EditorNotifier extends _$EditorNotifier {
         state = state.copyWith(
             errorMessage: 'Impossible de charger le projet : $e');
       }
+      return MapActivationOutcome.failed;
     } finally {
       _republishNarrativeEventSourceMapWriteLease(effectiveLeaseToken);
       if (ownsLease) _endMapDiskMutationLease(operationLease);
@@ -964,8 +1132,272 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void _renewProjectSessionIdentity() {
+    _pendingMapActivation = null;
+    _pendingProjectReplacement = null;
+    _mapDocumentRevisionAttestations.clear();
     _projectSessionIdentity = Object();
     _projectSessionRevision += 1;
+  }
+
+  String _mapDocumentRevisionKey(String path) => p.normalize(p.absolute(path));
+
+  String? _mapDocumentRevisionFor(
+    String path, {
+    MapData? sourceDocument,
+  }) {
+    final attestation =
+        _mapDocumentRevisionAttestations[_mapDocumentRevisionKey(path)];
+    if (attestation == null) return null;
+    if (sourceDocument != null &&
+        !identical(attestation.sourceDocument, sourceDocument)) {
+      return null;
+    }
+    return attestation.revision;
+  }
+
+  void _rememberMapDocumentRevision(
+    String path, {
+    required String? revision,
+    required MapData sourceDocument,
+  }) {
+    final key = _mapDocumentRevisionKey(path);
+    if (revision == null) {
+      _mapDocumentRevisionAttestations.remove(key);
+      return;
+    }
+    _mapDocumentRevisionAttestations[key] = (
+      revision: revision,
+      sourceDocument: sourceDocument,
+    );
+  }
+
+  void _forgetMapDocumentRevision(String path) {
+    _mapDocumentRevisionAttestations.remove(_mapDocumentRevisionKey(path));
+  }
+
+  bool _hasPendingBorderPreview() {
+    return ref.read(borderPreviewControllerProvider).hasPendingPreview;
+  }
+
+  bool get hasPendingBorderPreview => _hasPendingBorderPreview();
+
+  bool _rejectPendingBorderPreviewMapLifecycleMutation() {
+    if (!_hasPendingBorderPreview()) return false;
+    state = state.copyWith(
+      errorMessage: 'Appliquez, ignorez ou annulez l’aperçu de bordure avant '
+          'de modifier la liste des cartes.',
+    );
+    return true;
+  }
+
+  bool _rejectPendingBorderPreviewDirectMapWrite() {
+    if (!_hasPendingBorderPreview()) return false;
+    state = state.copyWith(
+      errorMessage: 'Appliquez, ignorez ou annulez l’aperçu de bordure avant '
+          'toute autre écriture de la carte.',
+    );
+    return true;
+  }
+
+  bool _rejectNonCanonicalActiveMapAuthoring({
+    bool revalidateManifest = false,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return false;
+    try {
+      _projectMapIdPolicy.requireValid(map.id);
+      final workspace = _projectWorkspace;
+      final project = state.project;
+      if (workspace != null && project != null) {
+        final rootPath = state.projectRootPath;
+        final cacheMiss = !identical(
+              _mapManifestIntegrityProjectIdentity,
+              project,
+            ) ||
+            !_sameNullableNormalizedPath(
+              _mapManifestIntegrityRootPath,
+              rootPath,
+            );
+        if (revalidateManifest || cacheMiss) {
+          _mapManifestIntegrityDiagnostics =
+              _projectMapManifestIntegrityPolicy.diagnostics(
+            workspace,
+            project,
+          );
+          _mapManifestIntegrityProjectIdentity = project;
+          _mapManifestIntegrityRootPath = rootPath;
+        }
+        if (_mapManifestIntegrityDiagnostics.isNotEmpty) {
+          throw EditorValidationException(
+            _mapManifestIntegrityDiagnostics.first,
+          );
+        }
+      }
+      return false;
+    } on EditorValidationException {
+      state = state.copyWith(
+        errorMessage: 'La carte ou son manifeste est ouvert en lecture seule. '
+            'Corrigez les identifiants et chemins de map avant de la modifier.',
+      );
+      return true;
+    }
+  }
+
+  Future<_ProjectReplacementAuthorization> _authorizeProjectReplacement(
+    String targetKey, {
+    DirtyMapActivationDecision? dirtyDecision,
+  }) async {
+    if (_mapDiskMutationLease != null || state.isSaving) {
+      return _projectReplacementAuthorization(
+        dirtyDecision == null
+            ? MapActivationOutcome.busy
+            : MapActivationOutcome.unavailable,
+      );
+    }
+
+    // Map navigation and project replacement share one authoring document.
+    // Never allow two independent dialogs to own competing stale answers.
+    if (_pendingMapActivation != null) {
+      return _projectReplacementAuthorization(
+        dirtyDecision == null
+            ? MapActivationOutcome.busy
+            : MapActivationOutcome.unavailable,
+      );
+    }
+
+    final pending = _pendingProjectReplacement;
+    if (dirtyDecision == null && pending != null) {
+      return _projectReplacementAuthorization(MapActivationOutcome.busy);
+    }
+    if (dirtyDecision != null) {
+      if (pending == null) {
+        return _projectReplacementAuthorization(
+          MapActivationOutcome.unavailable,
+        );
+      }
+      final sourceMapMatches =
+          identical(pending.sourceMapIdentity, state.activeMap);
+      final savedDocumentMayAdvanceIdentity =
+          dirtyDecision == DirtyMapActivationDecision.save &&
+              !state.isDirty &&
+              !state.isProjectDirty &&
+              !_hasPendingBorderPreview();
+      final matchesPending = pending.targetKey == targetKey &&
+          identical(pending.projectIdentity, state.project) &&
+          (sourceMapMatches || savedDocumentMayAdvanceIdentity) &&
+          _sameNullableNormalizedPath(
+            pending.sourcePath,
+            state.activeMapPath,
+          );
+      if (!matchesPending) {
+        _pendingProjectReplacement = null;
+        return _projectReplacementAuthorization(
+          MapActivationOutcome.unavailable,
+        );
+      }
+      _pendingProjectReplacement = null;
+      if (dirtyDecision == DirtyMapActivationDecision.cancel) {
+        return _projectReplacementAuthorization(
+          MapActivationOutcome.cancelled,
+        );
+      }
+    }
+
+    final plan = const MapActivationCoordinator().plan(
+      isDirty: state.isDirty || state.isProjectDirty,
+      hasPendingPreview: state.activeMap != null && _hasPendingBorderPreview(),
+      decision: dirtyDecision,
+    );
+    switch (plan) {
+      case MapActivationPlan.requiresDecision:
+        _pendingProjectReplacement = (
+          targetKey: targetKey,
+          projectIdentity: state.project,
+          sourceMapIdentity: state.activeMap,
+          sourcePath: state.activeMapPath,
+        );
+        return _projectReplacementAuthorization(
+          MapActivationOutcome.requiresDecision,
+        );
+      case MapActivationPlan.stay:
+        return _projectReplacementAuthorization(
+          MapActivationOutcome.cancelled,
+        );
+      case MapActivationPlan.saveThenActivate:
+        if (state.activeMap != null &&
+            (state.isDirty || _hasPendingBorderPreview())) {
+          final saveOutcome = await saveActiveMap();
+          if (saveOutcome != ActiveMapSaveOutcome.saved) {
+            return _projectReplacementAuthorization(
+              MapActivationOutcome.saveBlocked,
+            );
+          }
+        }
+        if (state.isProjectDirty && !await saveProjectManifest()) {
+          return _projectReplacementAuthorization(
+            MapActivationOutcome.saveBlocked,
+          );
+        }
+        if (state.isDirty ||
+            state.isProjectDirty ||
+            (state.activeMap != null && _hasPendingBorderPreview())) {
+          return _projectReplacementAuthorization(
+            MapActivationOutcome.saveBlocked,
+          );
+        }
+        return _projectReplacementAuthorization(
+          MapActivationOutcome.activated,
+        );
+      case MapActivationPlan.activate:
+        return _projectReplacementAuthorization(
+          MapActivationOutcome.activated,
+        );
+    }
+  }
+
+  _ProjectReplacementAuthorization _projectReplacementAuthorization(
+    MapActivationOutcome outcome,
+  ) {
+    if (outcome != MapActivationOutcome.activated) {
+      return (outcome: outcome, baseline: null);
+    }
+    return (
+      outcome: outcome,
+      baseline: (
+        projectRootPath: state.projectRootPath,
+        projectIdentity: state.project,
+        sourceMapIdentity: state.activeMap,
+        sourcePath: state.activeMapPath,
+        isDirty: state.isDirty,
+        isProjectDirty: state.isProjectDirty,
+        hasPendingPreview:
+            state.activeMap != null && _hasPendingBorderPreview(),
+      ),
+    );
+  }
+
+  bool _projectReplacementAuthorizationIsCurrent(
+    _ProjectReplacementAuthorization authorization,
+  ) {
+    final baseline = authorization.baseline;
+    if (authorization.outcome != MapActivationOutcome.activated ||
+        baseline == null) {
+      return false;
+    }
+    return _sameNullableNormalizedPath(
+          baseline.projectRootPath,
+          state.projectRootPath,
+        ) &&
+        identical(baseline.projectIdentity, state.project) &&
+        identical(baseline.sourceMapIdentity, state.activeMap) &&
+        _sameNullableNormalizedPath(
+          baseline.sourcePath,
+          state.activeMapPath,
+        ) &&
+        baseline.isDirty == state.isDirty &&
+        baseline.isProjectDirty == state.isProjectDirty &&
+        baseline.hasPendingPreview ==
+            (state.activeMap != null && _hasPendingBorderPreview());
   }
 
   /// Executes one validated Narrative Studio mutation through the shared
@@ -1331,6 +1763,9 @@ class EditorNotifier extends _$EditorNotifier {
     if (map == null || path == null) {
       return ActiveMapSaveOutcome.unavailable;
     }
+    if (_rejectNonCanonicalActiveMapAuthoring(revalidateManifest: true)) {
+      return ActiveMapSaveOutcome.unavailable;
+    }
     if (_rejectNarrativeEventSourceCleanupMapMutation()) {
       return ActiveMapSaveOutcome.unavailable;
     }
@@ -1390,15 +1825,21 @@ class EditorNotifier extends _$EditorNotifier {
 
     try {
       final useCase = ref.read(saveMapUseCaseProvider);
-      await useCase.execute(
+      final savedRevision = await useCase.executeRevisioned(
         candidateMap,
         path,
+        expectedRevision: _mapDocumentRevisionFor(path),
         projectDialogueContext: state.project,
       );
 
       if (!_canAdoptMapDiskMutation(lease)) {
         return ActiveMapSaveOutcome.unavailable;
       }
+      _rememberMapDocumentRevision(
+        path,
+        revision: savedRevision,
+        sourceDocument: candidateMap,
+      );
       endMapStroke();
       switch (ready.postSaveAction) {
         case PendingBorderPostSaveAction.none:
@@ -1424,6 +1865,18 @@ class EditorNotifier extends _$EditorNotifier {
       }
       _confirmedBulkPlacementLossBaseline = null;
       return ActiveMapSaveOutcome.saved;
+    } on EditorConflictException catch (e) {
+      debugPrint('EditorNotifier: Map revision conflict while saving: $e');
+      if (_canAdoptMapDiskMutation(lease)) {
+        state = _projectSessionController.markMapSaveFailed(
+          current: state,
+          errorMessage: 'La carte a été modifiée en dehors de cet éditeur, '
+              'ou sa révision locale n’est pas attestée. Vos modifications '
+              'locales sont conservées : il faut recharger la carte avant de '
+              'réessayer. $e',
+        );
+      }
+      return ActiveMapSaveOutcome.conflict;
     } catch (e) {
       debugPrint('EditorNotifier: Error saving map: $e');
       if (_canAdoptMapDiskMutation(lease)) {
@@ -1445,6 +1898,14 @@ class EditorNotifier extends _$EditorNotifier {
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
+    if (_rejectPendingBorderPreviewMapLifecycleMutation()) return;
+    if (state.isDirty) {
+      state = state.copyWith(
+        errorMessage: 'Enregistrez ou abandonnez les modifications de la '
+            'carte active avant d’en créer une autre.',
+      );
+      return;
+    }
     if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
     if (project.maps.any((entry) => entry.id == id)) {
       state = state.copyWith(
@@ -1457,9 +1918,18 @@ class EditorNotifier extends _$EditorNotifier {
 
     try {
       final useCase = ref.read(createMapUseCaseProvider);
-      final map = await useCase.execute(fs, project, id, width, height,
+      await useCase.execute(fs, project, id, width, height,
           groupId: groupId, role: role);
       if (!_canAdoptMapDiskMutation(lease)) return;
+      final relativePath = fs.getMapRelativePath(id);
+      final persistedDocument =
+          await ref.read(loadMapUseCaseProvider).executeDocument(
+                fs,
+                relativePath,
+              );
+      if (!_canAdoptMapDiskMutation(lease)) return;
+      final map = persistedDocument.map;
+      final mapPath = fs.resolveMapPath(relativePath);
       final presetSelection = _terrainPresetSelectionCoordinator.normalize(
         project: project,
         current: _currentTerrainPresetSelection(),
@@ -1478,7 +1948,7 @@ class EditorNotifier extends _$EditorNotifier {
         current: state.copyWith(project: updatedProject),
         document: MapDocumentLoadResult(
           map: map,
-          activeMapPath: fs.getMapPath(id),
+          activeMapPath: mapPath,
           presetSelection: presetSelection,
           selectedTilesetEditorId:
               _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(
@@ -1486,6 +1956,11 @@ class EditorNotifier extends _$EditorNotifier {
           ),
         ),
         statusMessage: 'Carte « $id » créée avec succès',
+      );
+      _rememberMapDocumentRevision(
+        mapPath,
+        revision: persistedDocument.revision,
+        sourceDocument: map,
       );
       _coerceActiveToolIfIncompatibleWithLayer();
     } catch (e) {
@@ -1499,37 +1974,189 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  /// Backward-compatible low-level reload command.
+  ///
+  /// It intentionally preserves the historical same-map reload behavior used
+  /// by recovery workflows. User-facing navigation must call [activateMap].
   Future<void> loadMap(
     String relativePath, {
     Object? mapWriteLeaseToken,
+    bool forceReload = true,
+  }) async {
+    await activateMap(
+      relativePath,
+      mapWriteLeaseToken: mapWriteLeaseToken,
+      forceReload: forceReload,
+    );
+  }
+
+  /// Canonical gateway for replacing the active map document.
+  ///
+  /// It resolves the dirty-document decision before acquiring a disk lease,
+  /// loads the target into a temporary value, and adopts it only after every
+  /// validation succeeds. Internal recovery reloads retain their existing
+  /// lease-token path and deliberately bypass the authoring prompt.
+  Future<MapActivationOutcome> activateMap(
+    String relativePath, {
+    DirtyMapActivationDecision? dirtyDecision,
+    Object? mapWriteLeaseToken,
+    bool forceReload = false,
   }) async {
     final fs = _projectWorkspace;
-    if (fs == null) return;
+    if (fs == null) return MapActivationOutcome.unavailable;
+    final isInternalReload = mapWriteLeaseToken != null;
+    final bypassAuthoringGuard = isInternalReload || forceReload;
+    late final String targetPath;
+    try {
+      targetPath = fs.resolveMapPath(relativePath);
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de charger la carte : $e',
+      );
+      return MapActivationOutcome.failed;
+    }
+
+    if (!bypassAuthoringGuard && _pendingProjectReplacement != null) {
+      return dirtyDecision == null
+          ? MapActivationOutcome.busy
+          : MapActivationOutcome.unavailable;
+    }
+
+    if (!isInternalReload &&
+        !forceReload &&
+        dirtyDecision == null &&
+        _sameNullableNormalizedPath(state.activeMapPath, targetPath)) {
+      return MapActivationOutcome.activated;
+    }
+
+    if (bypassAuthoringGuard) {
+      _pendingMapActivation = null;
+      _pendingProjectReplacement = null;
+    } else {
+      if (_mapDiskMutationLease != null || state.isSaving) {
+        return dirtyDecision == null
+            ? MapActivationOutcome.busy
+            : MapActivationOutcome.unavailable;
+      }
+      final pending = _pendingMapActivation;
+      if (dirtyDecision == null && pending != null) {
+        return MapActivationOutcome.busy;
+      }
+      if (dirtyDecision != null && pending == null) {
+        // A Save / Discard / Cancel answer is valid only for the exact
+        // decision request that produced it. Accepting an answer after Cancel
+        // or a project switch would let stale UI replace the current document.
+        return MapActivationOutcome.unavailable;
+      }
+      if (dirtyDecision != null && pending != null) {
+        final sourceMapMatches =
+            identical(pending.sourceMapIdentity, state.activeMap);
+        final savedMapMayAdvanceIdentity =
+            dirtyDecision == DirtyMapActivationDecision.save &&
+                !state.isDirty &&
+                !_hasPendingBorderPreview();
+        final matchesPending =
+            p.normalize(pending.targetPath) == p.normalize(targetPath) &&
+                identical(pending.projectIdentity, state.project) &&
+                (sourceMapMatches || savedMapMayAdvanceIdentity) &&
+                _sameNullableNormalizedPath(
+                  pending.sourcePath,
+                  state.activeMapPath,
+                );
+        if (!matchesPending) {
+          _pendingMapActivation = null;
+          return MapActivationOutcome.unavailable;
+        }
+        _pendingMapActivation = null;
+      }
+      if (dirtyDecision == DirtyMapActivationDecision.cancel) {
+        return MapActivationOutcome.cancelled;
+      }
+    }
+
+    final targetEntry = isInternalReload
+        ? null
+        : _findMapEntryForPath(
+            state.project,
+            fs,
+            targetPath,
+          );
+    if (!isInternalReload && targetEntry == null) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de charger une carte absente du projet.',
+      );
+      return MapActivationOutcome.failed;
+    }
+
+    if (!bypassAuthoringGuard) {
+      final activationPlan = const MapActivationCoordinator().plan(
+        isDirty: state.isDirty,
+        hasPendingPreview: _hasPendingBorderPreview(),
+        decision: dirtyDecision,
+      );
+      switch (activationPlan) {
+        case MapActivationPlan.requiresDecision:
+          _pendingMapActivation = (
+            targetPath: targetPath,
+            projectIdentity: state.project,
+            sourceMapIdentity: state.activeMap,
+            sourcePath: state.activeMapPath,
+          );
+          return MapActivationOutcome.requiresDecision;
+        case MapActivationPlan.stay:
+          return MapActivationOutcome.cancelled;
+        case MapActivationPlan.saveThenActivate:
+          final saveOutcome = await saveActiveMap();
+          if (saveOutcome != ActiveMapSaveOutcome.saved) {
+            return MapActivationOutcome.saveBlocked;
+          }
+          if (state.isDirty || _hasPendingBorderPreview()) {
+            return MapActivationOutcome.saveBlocked;
+          }
+          break;
+        case MapActivationPlan.activate:
+          break;
+      }
+    }
+
     final ownsLease = mapWriteLeaseToken == null;
     final _MapDiskMutationLease? operationLease;
     if (ownsLease) {
       operationLease = _beginMapDiskMutationLease(
         allowCleanupInterlock: true,
       );
-      if (operationLease == null) return;
+      if (operationLease == null) {
+        return (_mapDiskMutationLease != null || state.isSaving)
+            ? MapActivationOutcome.busy
+            : MapActivationOutcome.unavailable;
+      }
     } else {
       if (_rejectMapDiskMutationLease(
         allowedLeaseToken: mapWriteLeaseToken,
       )) {
-        return;
+        return MapActivationOutcome.busy;
       }
       operationLease = _mapDiskMutationLease;
-      if (operationLease == null) return;
+      if (operationLease == null) return MapActivationOutcome.unavailable;
     }
     final effectiveLeaseToken = operationLease.token;
-    debugPrint('EditorNotifier: loadMap($relativePath)');
+    debugPrint('EditorNotifier: activateMap($relativePath)');
 
     var didAdoptMap = false;
     try {
       final useCase = ref.read(loadMapUseCaseProvider);
       final project = state.project;
-      final loadedMap = await useCase.execute(fs, relativePath);
-      if (!_canAdoptMapDiskMutation(operationLease)) return;
+      final loadedDocument = await useCase.executeDocument(fs, relativePath);
+      final loadedMap = loadedDocument.map;
+      if (!_canAdoptMapDiskMutation(operationLease)) {
+        return MapActivationOutcome.unavailable;
+      }
+      if (targetEntry != null && loadedMap.id != targetEntry.id) {
+        throw EditorValidationException(
+          'La carte « ${targetEntry.name} » déclare l’identifiant '
+          '« ${loadedMap.id} » au lieu de « ${targetEntry.id} ».',
+        );
+      }
       // Loading is a byte-faithful document operation, not an implicit
       // migration/reindex command. Derived tile instances are synchronized by
       // explicit authoring mutations; persisted authored placements must never
@@ -1557,28 +2184,35 @@ class EditorNotifier extends _$EditorNotifier {
         current: state,
         document: MapDocumentLoadResult(
           map: map,
-          activeMapPath: fs.resolveMapPath(relativePath),
+          activeMapPath: targetPath,
           presetSelection: presetSelection,
           selectedTilesetEditorId: nextSelectedTilesetEditorId,
         ),
         statusMessage: 'Carte « ${map.id} » chargée',
       );
+      _rememberMapDocumentRevision(
+        targetPath,
+        revision: loadedDocument.revision,
+        sourceDocument: map,
+      );
       didAdoptMap = true;
       _clearNarrativeEventSourceCleanupInterlockAfterReload(
         map: map,
-        mapPath: fs.resolveMapPath(relativePath),
+        mapPath: targetPath,
       );
       _refreshMapDiskMutationLeaseBaseline(effectiveLeaseToken);
       _republishNarrativeEventSourceMapWriteLease(effectiveLeaseToken);
       _coerceActiveToolIfIncompatibleWithLayer();
+      return MapActivationOutcome.activated;
     } catch (e) {
       final canReportFailure = didAdoptMap
           ? _ownsMapDiskMutationLease(effectiveLeaseToken)
           : _canAdoptMapDiskMutation(operationLease);
-      if (!canReportFailure) return;
+      if (!canReportFailure) return MapActivationOutcome.unavailable;
       debugPrint('EditorNotifier: Error loading map: $e');
       state =
           state.copyWith(errorMessage: 'Impossible de charger la carte : $e');
+      return MapActivationOutcome.failed;
     } finally {
       _republishNarrativeEventSourceMapWriteLease(effectiveLeaseToken);
       if (ownsLease) _endMapDiskMutationLease(operationLease);
@@ -1628,8 +2262,16 @@ class EditorNotifier extends _$EditorNotifier {
 
     try {
       final mapPath = workspace.resolveMapPath(entry.relativePath);
-      final repo = ref.read(mapRepositoryProvider);
-      return await repo.loadMap(mapPath);
+      final document = await ref.read(loadMapUseCaseProvider).executeDocument(
+            workspace,
+            entry.relativePath,
+          );
+      _rememberMapDocumentRevision(
+        mapPath,
+        revision: document.revision,
+        sourceDocument: document.map,
+      );
+      return document.map;
     } catch (error) {
       debugPrint(
         'EditorNotifier: loadMapSnapshotById($normalizedMapId) failed: $error',
@@ -1662,6 +2304,14 @@ class EditorNotifier extends _$EditorNotifier {
       }
     }
     if (entry == null) return false;
+    final mapPath = workspace.resolveMapPath(entry.relativePath);
+    if (_mapDocumentRevisionFor(
+          mapPath,
+          sourceDocument: map,
+        ) ==
+        null) {
+      _forgetMapDocumentRevision(mapPath);
+    }
     final presetSelection = _terrainPresetSelectionCoordinator.normalize(
       project: project,
       current: _currentTerrainPresetSelection(),
@@ -1670,7 +2320,7 @@ class EditorNotifier extends _$EditorNotifier {
       current: state,
       document: MapDocumentLoadResult(
         map: map,
-        activeMapPath: workspace.resolveMapPath(entry.relativePath),
+        activeMapPath: mapPath,
         presetSelection: presetSelection,
         selectedTilesetEditorId:
             _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(map),
@@ -1746,6 +2396,13 @@ class EditorNotifier extends _$EditorNotifier {
     required GridPos position,
     required NarrativeEventPhysicalSourceKind kind,
   }) {
+    // Event V2 eventually persists this proposal through a direct map writer.
+    // Refuse it at proposal time so the UI cannot offer a confirmation that
+    // would bypass legacy read-only or silently discard a Border preview.
+    if (_rejectNonCanonicalActiveMapAuthoring() ||
+        _rejectPendingBorderPreviewDirectMapWrite()) {
+      return null;
+    }
     final beforeMap = state.activeMap;
     if (beforeMap == null) return null;
 
@@ -1916,6 +2573,12 @@ class EditorNotifier extends _$EditorNotifier {
 
   /// Publishes the Event V2 map writer through the same lease as normal saves.
   Object? beginNarrativeEventSourceMapWriteLease() {
+    // Defense in depth: a proposal may have been prepared before the document
+    // became read-only or before a Border preview started.
+    if (_rejectNonCanonicalActiveMapAuthoring(revalidateManifest: true) ||
+        _rejectPendingBorderPreviewDirectMapWrite()) {
+      return null;
+    }
     final lease = _beginMapDiskMutationLease();
     if (lease == null) return null;
     _narrativeEventSourceMapWriteLeaseToken = lease.token;
@@ -2003,6 +2666,12 @@ class EditorNotifier extends _$EditorNotifier {
     required MapData expectedActiveMap,
     required NarrativeEventSpatialLinkJournal journal,
   }) {
+    // Cleanup is a durable map writer. It must not bypass the same legacy and
+    // transient-preview boundary enforced for source creation and tilesets.
+    if (_rejectNonCanonicalActiveMapAuthoring(revalidateManifest: true) ||
+        _rejectPendingBorderPreviewDirectMapWrite()) {
+      return false;
+    }
     final expectedRoot = p.normalize(expectedProjectRootPath);
     final expectedMapPath = p.normalize(journal.mapPath);
     final activeMapPath = state.activeMapPath;
@@ -2105,12 +2774,15 @@ class EditorNotifier extends _$EditorNotifier {
     );
     if (expectedCleaned == null) return false;
 
-    late final MapData diskMap;
+    late final LoadedMapDocumentResult diskDocument;
     try {
-      diskMap = await ref.read(mapRepositoryProvider).loadMap(expectedMapPath);
+      diskDocument = await ref
+          .read(loadMapUseCaseProvider)
+          .executeAbsolutePath(expectedMapPath);
     } on Object {
       return false;
     }
+    final diskMap = diskDocument.map;
     if (!_sameNarrativeEventMap(diskMap, expectedCleaned)) {
       return false;
     }
@@ -2132,6 +2804,11 @@ class EditorNotifier extends _$EditorNotifier {
         savedMap: diskMap,
         journal: journal,
         isDirty: false,
+      );
+      _rememberMapDocumentRevision(
+        expectedMapPath,
+        revision: diskDocument.revision,
+        sourceDocument: diskMap,
       );
       _clearNarrativeEventSourceCleanupInterlock(cleanupInterlock);
       return true;
@@ -2159,6 +2836,11 @@ class EditorNotifier extends _$EditorNotifier {
           savedMap: diskMap,
           journal: journal,
           isDirty: remainsDirty,
+        );
+        _rememberMapDocumentRevision(
+          expectedMapPath,
+          revision: diskDocument.revision,
+          sourceDocument: diskMap,
         );
         _clearNarrativeEventSourceCleanupInterlock(cleanupInterlock);
         return true;
@@ -2559,38 +3241,56 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
-  Future<void> renameMap(String oldId, String newId) async {
+  Future<MapDependencyPreflightResult?> renameMap(
+    String oldId,
+    String newId,
+  ) async {
     debugPrint('EditorNotifier: renameMap($oldId -> $newId)');
     final fs = _projectWorkspace;
     final project = state.project;
-    if (fs == null || project == null) return;
-    if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
-
-    final dependencyDecision =
-        _narrativeEventSourceDependencyGuard.inspectMapRename(
-      registry: project.eventRegistry,
-      mapId: oldId,
-      newMapId: newId,
-    );
-    if (!dependencyDecision.isAllowed) {
-      state = state.copyWith(errorMessage: dependencyDecision.message);
-      return;
+    if (fs == null || project == null) return null;
+    if (_rejectPendingBorderPreviewMapLifecycleMutation()) return null;
+    if (state.isDirty && state.activeMap?.id == oldId) {
+      state = state.copyWith(
+        errorMessage: 'Enregistrez ou abandonnez les modifications de cette '
+            'carte avant de la renommer.',
+      );
+      return null;
     }
+    if (_rejectNarrativeEventSourceCleanupMapMutation()) return null;
     final lease = _beginMapDiskMutationLease();
-    if (lease == null) return;
+    if (lease == null) return null;
 
     try {
       final useCase = ref.read(renameMapUseCaseProvider);
-      final updatedProject = await useCase.execute(fs, project, oldId, newId);
-      if (!_canAdoptMapDiskMutation(lease)) return;
+      final sourceEntry = project.maps.firstWhere((entry) => entry.id == oldId);
+      final oldPath = fs.resolveMapPath(sourceEntry.relativePath);
+      final result = await useCase.executeRevisioned(fs, project, oldId, newId);
+      if (!_canAdoptMapDiskMutation(lease)) return null;
+      final newPath = fs.getMapPath(newId);
       state = _projectSessionController.afterMapRenamed(
         current: state,
-        updatedProject: updatedProject,
+        updatedProject: result.project,
         oldId: oldId,
         newId: newId,
-        newPath: fs.getMapPath(newId),
+        newPath: newPath,
         statusMessage: 'Carte renommée en « $newId »',
       );
+      final renamedMap = result.map;
+      if (renamedMap != null) {
+        _forgetMapDocumentRevision(oldPath);
+        _rememberMapDocumentRevision(
+          newPath,
+          revision: result.revision,
+          sourceDocument: renamedMap,
+        );
+      }
+    } on MapDependencyPreflightBlockedException catch (error) {
+      debugPrint('EditorNotifier: Map rename preflight blocked: $error');
+      if (_canAdoptMapDiskMutation(lease)) {
+        state = state.copyWith(errorMessage: error.result.blockingMessage);
+      }
+      return error.result;
     } catch (e) {
       debugPrint('EditorNotifier: Error renaming map: $e');
       if (_canAdoptMapDiskMutation(lease)) {
@@ -2601,37 +3301,45 @@ class EditorNotifier extends _$EditorNotifier {
     } finally {
       _endMapDiskMutationLease(lease);
     }
+    return null;
   }
 
-  Future<void> deleteMap(String mapId) async {
+  Future<MapDependencyPreflightResult?> deleteMap(String mapId) async {
     debugPrint('EditorNotifier: deleteMap($mapId)');
     final fs = _projectWorkspace;
     final project = state.project;
-    if (fs == null || project == null) return;
-    if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
-
-    final dependencyDecision =
-        _narrativeEventSourceDependencyGuard.inspectMapDelete(
-      registry: project.eventRegistry,
-      mapId: mapId,
-    );
-    if (!dependencyDecision.isAllowed) {
-      state = state.copyWith(errorMessage: dependencyDecision.message);
-      return;
+    if (fs == null || project == null) return null;
+    if (_rejectPendingBorderPreviewMapLifecycleMutation()) return null;
+    if (state.isDirty && state.activeMap?.id == mapId) {
+      state = state.copyWith(
+        errorMessage: 'Enregistrez ou abandonnez les modifications de cette '
+            'carte avant de la supprimer.',
+      );
+      return null;
     }
+    if (_rejectNarrativeEventSourceCleanupMapMutation()) return null;
     final lease = _beginMapDiskMutationLease();
-    if (lease == null) return;
+    if (lease == null) return null;
 
     try {
       final useCase = ref.read(deleteMapUseCaseProvider);
+      final sourceEntry = project.maps.firstWhere((entry) => entry.id == mapId);
+      final mapPath = fs.resolveMapPath(sourceEntry.relativePath);
       final updatedProject = await useCase.execute(fs, project, mapId);
-      if (!_canAdoptMapDiskMutation(lease)) return;
+      if (!_canAdoptMapDiskMutation(lease)) return null;
       state = _projectSessionController.afterMapDeleted(
         current: state,
         updatedProject: updatedProject,
         deletedMapId: mapId,
         statusMessage: 'Carte « $mapId » supprimée',
       );
+      _forgetMapDocumentRevision(mapPath);
+    } on MapDependencyPreflightBlockedException catch (error) {
+      debugPrint('EditorNotifier: Map delete preflight blocked: $error');
+      if (_canAdoptMapDiskMutation(lease)) {
+        state = state.copyWith(errorMessage: error.result.blockingMessage);
+      }
+      return error.result;
     } catch (e) {
       debugPrint('EditorNotifier: Error deleting map: $e');
       if (_canAdoptMapDiskMutation(lease)) {
@@ -2642,6 +3350,7 @@ class EditorNotifier extends _$EditorNotifier {
     } finally {
       _endMapDiskMutationLease(lease);
     }
+    return null;
   }
 
   Future<void> duplicateMap(String sourceId) async {
@@ -2649,6 +3358,7 @@ class EditorNotifier extends _$EditorNotifier {
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
+    if (_rejectPendingBorderPreviewMapLifecycleMutation()) return;
     if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
     final lease = _beginMapDiskMutationLease();
     if (lease == null) return;
@@ -3095,6 +3805,12 @@ class EditorNotifier extends _$EditorNotifier {
     if (project == null || map == null || mapPath == null || layerId == null) {
       return;
     }
+    // This use case writes the map before returning the updated value, so the
+    // authoring guards must run before its lease and before any repository I/O.
+    if (_rejectNonCanonicalActiveMapAuthoring(revalidateManifest: true) ||
+        _rejectPendingBorderPreviewDirectMapWrite()) {
+      return;
+    }
     if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
     final layer = _findLayerById(map, layerId);
     if (layer is! TileLayer) {
@@ -3108,14 +3824,21 @@ class EditorNotifier extends _$EditorNotifier {
 
     try {
       final useCase = ref.read(assignTilesetToMapUseCaseProvider);
-      final updatedMap = await useCase.execute(
+      final result = await useCase.executeRevisioned(
         project,
         map,
         mapPath,
         layerId,
         tilesetId,
+        expectedRevision: _mapDocumentRevisionFor(mapPath),
       );
       if (!_canAdoptMapDiskMutation(lease)) return;
+      final updatedMap = result.map;
+      _rememberMapDocumentRevision(
+        mapPath,
+        revision: result.revision,
+        sourceDocument: updatedMap,
+      );
       _applyMapMutation(
         previousMap: map,
         updatedMap: updatedMap,
@@ -6166,11 +6889,29 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(errorMessage: 'Aucun warp sélectionné');
       return;
     }
+    // The reciprocal workflow can write another map directly or replace this
+    // map in memory. Both paths must honor the same read-only/preview boundary
+    // as every other authoring writer.
+    if (_rejectNonCanonicalActiveMapAuthoring(revalidateManifest: true) ||
+        _rejectPendingBorderPreviewDirectMapWrite()) {
+      return;
+    }
     if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
     _MapDiskMutationLease? lease;
     try {
       final selectedWarp =
           _warpEditingService.requireSelectedWarp(sourceMap, selectedWarpId);
+      try {
+        _projectMapIdPolicy.requireValid(selectedWarp.targetMapId);
+      } on EditorValidationException {
+        state = state.copyWith(
+          errorMessage: 'La carte cible legacy '
+              '« ${selectedWarp.targetMapId} » est en lecture seule. '
+              'Migrez-la vers un identifiant canonique avant de créer le '
+              'warp retour.',
+        );
+        return;
+      }
       if (selectedWarp.targetMapId.trim() != sourceMap.id) {
         lease = _beginMapDiskMutationLease();
         if (lease == null) return;
@@ -6334,25 +7075,35 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> openConnectedMap(MapConnectionDirection direction) async {
+    await activateConnectedMap(direction);
+  }
+
+  Future<MapActivationOutcome> activateConnectedMap(
+    MapConnectionDirection direction, {
+    DirtyMapActivationDecision? dirtyDecision,
+  }) async {
     final project = state.project;
     final connection = getMapConnection(direction);
     if (project == null || connection == null) {
       state = state.copyWith(
         errorMessage: 'No ${direction.name} connection available',
       );
-      return;
+      return MapActivationOutcome.unavailable;
     }
     try {
-      endMapStroke();
       final targetEntry = _mapConnectionEditingService.resolveTargetMapEntry(
         project,
         connection.targetMapId,
       );
-      await loadMap(targetEntry.relativePath);
+      return await activateMap(
+        targetEntry.relativePath,
+        dirtyDecision: dirtyDecision,
+      );
     } catch (e) {
       state = state.copyWith(
         errorMessage: 'Failed to open connected map: $e',
       );
+      return MapActivationOutcome.failed;
     }
   }
 
@@ -6475,7 +7226,8 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void beginMapStroke() {
-    if (_rejectNarrativeEventSourceCleanupMapMutation() ||
+    if (_rejectNonCanonicalActiveMapAuthoring() ||
+        _rejectNarrativeEventSourceCleanupMapMutation() ||
         _rejectMapDiskMutationLease()) {
       return;
     }
@@ -11854,7 +12606,8 @@ class EditorNotifier extends _$EditorNotifier {
     String? statusMessage,
     Object? mapWriteLeaseToken,
   }) {
-    if (_rejectNarrativeEventSourceCleanupMapMutation() ||
+    if (_rejectNonCanonicalActiveMapAuthoring() ||
+        _rejectNarrativeEventSourceCleanupMapMutation() ||
         _rejectMapDiskMutationLease(
           allowedLeaseToken: mapWriteLeaseToken,
         )) {

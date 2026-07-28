@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../features/editor/presentation/map_activation_guard.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
@@ -100,7 +101,8 @@ class _MapConnectionsPanelState extends ConsumerState<MapConnectionsPanel> {
                   child: Text(
                     'Create another map before adding world connections.',
                     style: TextStyle(
-                      color: CupertinoColors.placeholderText.resolveFrom(context),
+                      color:
+                          CupertinoColors.placeholderText.resolveFrom(context),
                       fontSize: 12,
                     ),
                   ),
@@ -122,7 +124,11 @@ class _MapConnectionsPanelState extends ConsumerState<MapConnectionsPanel> {
                       });
                     },
                     onSave: () => _saveDirection(context, notifier, direction),
-                    onOpen: () => notifier.openConnectedMap(direction),
+                    onOpen: () => requestEditorConnectedMapActivation(
+                      context: context,
+                      notifier: notifier,
+                      direction: direction,
+                    ),
                     onClear: () => _clearDirection(notifier, direction),
                   ),
                 ),
@@ -150,7 +156,8 @@ class _MapConnectionsPanelState extends ConsumerState<MapConnectionsPanel> {
                       fontSize: 11,
                       letterSpacing: 1.0,
                       fontWeight: FontWeight.bold,
-                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                      color:
+                          CupertinoColors.secondaryLabel.resolveFrom(context),
                     ),
                   ),
                 ),
@@ -411,8 +418,7 @@ class _DirectionConnectionCard extends StatelessWidget {
             CupertinoButton(
               padding: EdgeInsets.zero,
               alignment: Alignment.centerLeft,
-              onPressed:
-                  projectMaps.isEmpty ? null : () => _pickMap(context),
+              onPressed: projectMaps.isEmpty ? null : () => _pickMap(context),
               child: Text(
                 displayName,
                 style: TextStyle(
@@ -435,7 +441,8 @@ class _DirectionConnectionCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               'Selected target is missing from project: $selectedTargetMapId',
-              style: const TextStyle(fontSize: 11, color: EditorPaintColors.amber),
+              style:
+                  const TextStyle(fontSize: 11, color: EditorPaintColors.amber),
             ),
           ],
           const SizedBox(height: 8),
@@ -459,7 +466,9 @@ class _DirectionConnectionCard extends StatelessWidget {
           CupertinoTextField(
             controller: offsetController,
             keyboardType: const TextInputType.numberWithOptions(signed: true),
-            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^-?\d*'))],
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^-?\d*'))
+            ],
           ),
           const SizedBox(height: 8),
           if (useInspectorEmbedded) ...[

@@ -9,6 +9,8 @@ import '../../application/services/narrative_project_snapshot_loader.dart';
 import '../../application/services/narrative_template_catalog.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
 import '../../domain/repositories/repositories.dart';
+import '../../features/editor/application/map_activation_coordinator.dart';
+import '../../features/editor/presentation/map_activation_guard.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/gameplay/application/shop_editor_controller.dart';
@@ -139,7 +141,6 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         if (source == null || !row.option.selectable) return;
         final current = ref.read(editorNotifierProvider);
         final sameMap = current.activeMap?.id == row.option.mapId;
-        if (!sameMap && current.isDirty) return;
         final targetMap = sameMap
             ? current.activeMap
             : await editorNotifier.loadMapSnapshotById(row.option.mapId);
@@ -150,8 +151,23 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         ).mapNavigationForSource(source);
         final focus = navigation.focusTarget;
         if (!navigation.available || focus == null) return;
-        if (!sameMap &&
-            !editorNotifier.activateNarrativeEventMapSnapshot(targetMap)) {
+        if (!context.mounted) return;
+        ProjectMapEntry? targetEntry;
+        for (final entry in project.maps) {
+          if (entry.id == row.option.mapId) {
+            targetEntry = entry;
+            break;
+          }
+        }
+        if (targetEntry == null) return;
+        final activationOutcome = sameMap
+            ? MapActivationOutcome.activated
+            : await requestEditorMapActivation(
+                context: context,
+                notifier: editorNotifier,
+                relativePath: targetEntry.relativePath,
+              );
+        if (activationOutcome != MapActivationOutcome.activated) {
           return;
         }
         if (!editorNotifier.focusNarrativeEventMapSource(focus)) return;
@@ -391,7 +407,11 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       Future<bool> loadMapForNavigation(String mapId) async {
         final entry = _findProjectMapById(project, mapId);
         if (entry == null) return false;
-        await editorNotifier.loadMap(entry.relativePath);
+        await requestEditorMapActivation(
+          context: context,
+          notifier: editorNotifier,
+          relativePath: entry.relativePath,
+        );
         if (!context.mounted) return false;
         final currentEditor = ref.read(editorNotifierProvider);
         return currentEditor.projectRootPath == projectRootPath &&
@@ -414,7 +434,11 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         if (mapId == null) return false;
         final entry = _findProjectMapById(project, mapId);
         if (entry == null) return false;
-        await editorNotifier.loadMap(entry.relativePath);
+        await requestEditorMapActivation(
+          context: context,
+          notifier: editorNotifier,
+          relativePath: entry.relativePath,
+        );
         if (!context.mounted) return false;
         final loadedMap = ref.read(editorNotifierProvider).activeMap;
         if (loadedMap?.id != mapId ||
@@ -1669,7 +1693,14 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                       if (entry == null) {
                         return;
                       }
-                      await editorNotifier.loadMap(entry.relativePath);
+                      final outcome = await requestEditorMapActivation(
+                        context: context,
+                        notifier: editorNotifier,
+                        relativePath: entry.relativePath,
+                      );
+                      if (outcome != MapActivationOutcome.activated) {
+                        return;
+                      }
                       editorNotifier.selectEventsWorkspace();
                     },
                     onSelectEvent: editorNotifier.selectMapEvent,

@@ -641,6 +641,116 @@ void main() {
       expect(controller.state.focusRequest, isNull);
     });
 
+    test(
+        'same-root project replacement invalidates a delayed cross-map activation',
+        () async {
+      final project = _project(
+        source: NarrativeEventSourceRef.triggerEnter('map_b', 'trigger_b'),
+        maps: const [
+          ProjectMapEntry(
+            id: 'map_a',
+            name: 'Map A',
+            relativePath: 'maps/map_a.json',
+          ),
+          ProjectMapEntry(
+            id: 'map_b',
+            name: 'Map B',
+            relativePath: 'maps/map_b.json',
+          ),
+        ],
+      );
+      final controller = _controller();
+      controller.bindProjectSession(
+        projectRootPath: '/project',
+        project: project,
+      );
+      final activationStarted = Completer<void>();
+      final releaseActivation = Completer<bool>();
+      var focusCalls = 0;
+      final navigation = controller.openMapForEvent(
+        eventId: _eventId,
+        groupContext: const NarrativeEventGroupContext.map('map_b'),
+        mode: NarrativeEventMapNavigationMode.view,
+        project: project,
+        activeMap: _mapA(),
+        mapDirty: false,
+        loadMapSnapshot: (_) async => _mapB(),
+        activateMapSnapshot: (_) {
+          activationStarted.complete();
+          return releaseActivation.future;
+        },
+        applyFocus: (_) {
+          focusCalls++;
+          return true;
+        },
+      );
+      await activationStarted.future;
+
+      controller.bindProjectSession(
+        projectRootPath: '/project',
+        project: project.copyWith(name: 'Reloaded during activation'),
+      );
+      releaseActivation.complete(true);
+      final result = await navigation;
+
+      expect(result.status, NarrativeEventMapNavigationStatus.unavailable);
+      expect(focusCalls, 0);
+      expect(controller.state.pendingReturn, isNull);
+      expect(controller.state.focusRequest, isNull);
+    });
+
+    test('same-root project replacement wins over a stale failed activation',
+        () async {
+      final project = _project(
+        source: NarrativeEventSourceRef.triggerEnter('map_b', 'trigger_b'),
+        maps: const [
+          ProjectMapEntry(
+            id: 'map_a',
+            name: 'Map A',
+            relativePath: 'maps/map_a.json',
+          ),
+          ProjectMapEntry(
+            id: 'map_b',
+            name: 'Map B',
+            relativePath: 'maps/map_b.json',
+          ),
+        ],
+      );
+      final controller = _controller();
+      controller.bindProjectSession(
+        projectRootPath: '/project',
+        project: project,
+      );
+      final activationStarted = Completer<void>();
+      final releaseActivation = Completer<bool>();
+      final navigation = controller.openMapForEvent(
+        eventId: _eventId,
+        groupContext: const NarrativeEventGroupContext.map('map_b'),
+        mode: NarrativeEventMapNavigationMode.view,
+        project: project,
+        activeMap: _mapA(),
+        mapDirty: false,
+        loadMapSnapshot: (_) async => _mapB(),
+        activateMapSnapshot: (_) {
+          activationStarted.complete();
+          return releaseActivation.future;
+        },
+        applyFocus: (_) => true,
+      );
+      await activationStarted.future;
+
+      controller.bindProjectSession(
+        projectRootPath: '/project',
+        project: project.copyWith(name: 'Reloaded during failed activation'),
+      );
+      releaseActivation.complete(false);
+      final result = await navigation;
+
+      expect(result.status, NarrativeEventMapNavigationStatus.unavailable);
+      expect(controller.state.pendingReturn, isNull);
+      expect(controller.state.focusRequest, isNull);
+    });
+
     test('committed stale link remains explicit and is never silently dropped',
         () async {
       final project = _project(

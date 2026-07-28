@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/editor/application/map_activation_coordinator.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 
 void main() {
@@ -74,8 +75,15 @@ void main() {
       final notifier = container.read(editorNotifierProvider.notifier);
       notifier.state = notifier.state.copyWith(isProjectDirty: true);
 
-      await notifier.loadProject(manifestPath);
+      final pending = await notifier.activateProject(manifestPath);
+      expect(pending, MapActivationOutcome.requiresDecision);
 
+      final activated = await notifier.activateProject(
+        manifestPath,
+        dirtyDecision: DirtyMapActivationDecision.discard,
+      );
+
+      expect(activated, MapActivationOutcome.activated);
       expect(notifier.state.isProjectDirty, isFalse);
     });
 

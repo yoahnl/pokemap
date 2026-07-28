@@ -12,6 +12,9 @@ import '../../../application/use_cases/narrative_event_migration_preview_use_cas
 import '../../../application/use_cases/narrative_event_v2_mode_activation_use_case.dart';
 import '../../../application/use_cases/narrative_event_builder_v2_use_case.dart';
 import '../../../app/providers/core/repository_providers.dart';
+import '../../../features/border_map_editing/state/border_preview_providers.dart';
+import '../../../features/editor/application/map_activation_coordinator.dart';
+import '../../../features/editor/presentation/map_activation_guard.dart';
 import '../../../features/editor/state/editor_notifier.dart';
 import '../../../features/editor/state/editor_state.dart';
 import '../../../features/narrative/state/narrative_event_builder_v2_providers.dart';
@@ -904,6 +907,29 @@ class _EventBuilderV2ProductRouteState
         source.kind != NarrativeEventSourceKind.outcomeReceived;
   }
 
+  Future<bool> _activateMapSnapshotThroughGuard({
+    required ProjectManifest project,
+    required EditorNotifier notifier,
+    required MapData map,
+  }) async {
+    if (!mounted) return false;
+    ProjectMapEntry? entry;
+    for (final candidate in project.maps) {
+      if (candidate.id == map.id) {
+        entry = candidate;
+        break;
+      }
+    }
+    if (entry == null) return false;
+    final outcome = await requestEditorMapActivation(
+      context: context,
+      notifier: notifier,
+      relativePath: entry.relativePath,
+    );
+    return outcome == MapActivationOutcome.activated &&
+        ref.read(editorNotifierProvider).activeMap?.id == map.id;
+  }
+
   Future<void> _openMapForEvent(
     NarrativeEventProjectSummary event,
     NarrativeEventMapNavigationMode mode,
@@ -922,9 +948,16 @@ class _EventBuilderV2ProductRouteState
       mode: mode,
       project: project,
       activeMap: editor.activeMap,
-      mapDirty: editor.isDirty,
+      // The shared activation gateway owns the Save / Discard / Cancel
+      // decision. The bridge still validates the loaded snapshot before this
+      // callback can replace the document.
+      mapDirty: false,
       loadMapSnapshot: notifier.loadMapSnapshotById,
-      activateMapSnapshot: notifier.activateNarrativeEventMapSnapshot,
+      activateMapSnapshot: (map) => _activateMapSnapshotThroughGuard(
+        project: project,
+        notifier: notifier,
+        map: map,
+      ),
       applyFocus: notifier.focusNarrativeEventMapSource,
     );
     if (!result.succeeded || !mounted) return;
@@ -958,9 +991,13 @@ class _EventBuilderV2ProductRouteState
       groupContext: groupContext!,
       project: project,
       activeMap: editor.activeMap,
-      mapDirty: editor.isDirty,
+      mapDirty: false,
       loadMapSnapshot: notifier.loadMapSnapshotById,
-      activateMapSnapshot: notifier.activateNarrativeEventMapSnapshot,
+      activateMapSnapshot: (map) => _activateMapSnapshotThroughGuard(
+        project: project,
+        notifier: notifier,
+        map: map,
+      ),
     );
     if (!result.succeeded || !mounted) return;
     _rememberEventReturn(event);
@@ -1174,11 +1211,17 @@ class _EventBuilderV2ProductRouteState
     final projectPath = _projectFilePath();
     final editor = ref.read(editorNotifierProvider);
     if (projectPath == null || editor.project == null) return;
-    if (editor.isDirty || editor.isProjectDirty || editor.isSaving) {
+    final hasPendingBorderPreview =
+        ref.read(borderPreviewControllerProvider).hasPendingPreview;
+    if (editor.isDirty ||
+        editor.isProjectDirty ||
+        editor.isSaving ||
+        hasPendingBorderPreview) {
       setState(() {
         _authoringStatus = NarrativeEventBuilderV2WriteStatus.blocked;
         _authoringMessage =
-            'Enregistrez les changements en cours avant de créer un gabarit.';
+            'Enregistrez ou annulez les changements et aperçus en cours '
+            'avant de créer un gabarit.';
       });
       return;
     }
@@ -1250,6 +1293,14 @@ class _EventBuilderV2ProductRouteState
   Future<String?> _applyTemplate(NarrativeTemplatePreview preview) async {
     final projectPath = _projectFilePath();
     if (projectPath == null) return 'Le projet enregistré est indisponible.';
+    final editor = ref.read(editorNotifierProvider);
+    if (editor.isDirty ||
+        editor.isProjectDirty ||
+        editor.isSaving ||
+        ref.read(borderPreviewControllerProvider).hasPendingPreview) {
+      return 'Enregistrez ou annulez les changements et aperçus en cours '
+          'avant d’appliquer ce gabarit.';
+    }
     setState(() {
       _isAuthoring = true;
       _authoringMessage = null;
@@ -1295,6 +1346,19 @@ class _EventBuilderV2ProductRouteState
     final preview = _lastTemplatePreview;
     final projectPath = _projectFilePath();
     if (preview == null || projectPath == null) return;
+    final editor = ref.read(editorNotifierProvider);
+    if (editor.isDirty ||
+        editor.isProjectDirty ||
+        editor.isSaving ||
+        ref.read(borderPreviewControllerProvider).hasPendingPreview) {
+      setState(() {
+        _authoringStatus = NarrativeEventBuilderV2WriteStatus.blocked;
+        _authoringMessage =
+            'Enregistrez ou annulez les changements et aperçus en cours '
+            'avant d’annuler ce gabarit.';
+      });
+      return;
+    }
     setState(() => _isAuthoring = true);
     try {
       final coordinator = NarrativeTemplateTransactionCoordinator(

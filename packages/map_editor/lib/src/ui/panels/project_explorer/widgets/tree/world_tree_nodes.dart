@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../../../features/editor/presentation/map_activation_guard.dart';
 import '../../../../../features/editor/state/editor_notifier.dart';
 import '../../../../../features/editor/state/editor_selectors.dart';
 import '../../../../shared/cupertino_editor_widgets.dart';
@@ -16,6 +17,7 @@ class GroupNode extends StatelessWidget {
     required this.snapshot,
     required this.notifier,
     required this.depth,
+    this.onOpenDependency,
   });
 
   final ProjectMapGroup group;
@@ -23,6 +25,7 @@ class GroupNode extends StatelessWidget {
   final EditorProjectExplorerSnapshot snapshot;
   final EditorNotifier notifier;
   final int depth;
+  final ValueChanged<NarrativeDependencyNavigationIntent>? onOpenDependency;
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +90,7 @@ class GroupNode extends StatelessWidget {
             snapshot: snapshot,
             notifier: notifier,
             depth: depth + 1,
+            onOpenDependency: onOpenDependency,
           ),
         ),
         ...childrenMaps.map(
@@ -95,6 +99,7 @@ class GroupNode extends StatelessWidget {
             snapshot: snapshot,
             notifier: notifier,
             depth: depth + 1,
+            onOpenDependency: onOpenDependency,
           ),
         ),
       ],
@@ -141,7 +146,8 @@ class GroupNode extends StatelessWidget {
       globalPosition: anchorGlobal,
       actions: const [
         MacosEditorSheetAction(label: 'Ajouter une carte', value: 'add_map'),
-        MacosEditorSheetAction(label: 'Ajouter un sous-groupe', value: 'add_subgroup'),
+        MacosEditorSheetAction(
+            label: 'Ajouter un sous-groupe', value: 'add_subgroup'),
         MacosEditorSheetAction(label: 'Renommer le groupe', value: 'rename'),
         MacosEditorSheetAction(
           label: 'Supprimer le groupe',
@@ -171,12 +177,14 @@ class MapNode extends StatelessWidget {
     required this.snapshot,
     required this.notifier,
     required this.depth,
+    this.onOpenDependency,
   });
 
   final ProjectMapEntry map;
   final EditorProjectExplorerSnapshot snapshot;
   final EditorNotifier notifier;
   final int depth;
+  final ValueChanged<NarrativeDependencyNavigationIntent>? onOpenDependency;
 
   @override
   Widget build(BuildContext context) {
@@ -184,12 +192,17 @@ class MapNode extends StatelessWidget {
 
     return EditorSidebarListRow(
       selected: isSelected,
-      onTap: () => notifier.loadMap(map.relativePath),
+      onTap: () => requestEditorMapActivation(
+        context: context,
+        notifier: notifier,
+        relativePath: map.relativePath,
+      ),
       onSecondaryTapDown: (details) => _showMapContextMenu(
         context,
         details.globalPosition,
         map,
         notifier,
+        onOpenDependency: onOpenDependency,
       ),
       leftIndent: 14 + 16.0 * depth,
       leading: MacosIcon(_roleIcon(map.role), size: 16),
@@ -222,8 +235,9 @@ class MapNode extends StatelessWidget {
     BuildContext context,
     Offset position,
     ProjectMapEntry mapEntry,
-    EditorNotifier notifier,
-  ) async {
+    EditorNotifier notifier, {
+    ValueChanged<NarrativeDependencyNavigationIntent>? onOpenDependency,
+  }) async {
     final action = await showMacosEditorContextMenu<String>(
       context: context,
       globalPosition: position,
@@ -240,11 +254,21 @@ class MapNode extends StatelessWidget {
     if (!context.mounted || action == null) return;
     switch (action) {
       case 'rename':
-        await showRenameMapDialog(context, mapEntry, notifier);
+        await showRenameMapDialog(
+          context,
+          mapEntry,
+          notifier,
+          onOpenDependency: onOpenDependency,
+        );
       case 'duplicate':
         notifier.duplicateMap(mapEntry.id);
       case 'delete':
-        notifier.deleteMap(mapEntry.id);
+        await deleteMapWithDependencyPreflight(
+          context,
+          mapEntry.id,
+          notifier,
+          onOpenDependency: onOpenDependency,
+        );
     }
   }
 }

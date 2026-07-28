@@ -4,6 +4,7 @@ import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
+import '../../domain/models/map_document_persistence.dart';
 import '../../domain/repositories/repositories.dart';
 import '../errors/application_errors.dart';
 import '../ports/project_workspace.dart';
@@ -403,6 +404,54 @@ class AssignTilesetToMapUseCase {
     String layerId,
     String tilesetId,
   ) async {
+    final updatedMap = _prepareUpdatedMap(
+      project,
+      map,
+      layerId,
+      tilesetId,
+    );
+    await _mapRepo.saveMap(updatedMap, mapPath);
+    return updatedMap;
+  }
+
+  Future<AssignedTilesetMapResult> executeRevisioned(
+    ProjectManifest project,
+    MapData map,
+    String mapPath,
+    String layerId,
+    String tilesetId, {
+    required String? expectedRevision,
+  }) async {
+    final updatedMap = _prepareUpdatedMap(
+      project,
+      map,
+      layerId,
+      tilesetId,
+    );
+    if (_mapRepo case RevisionedMapRepository revisioned) {
+      if (expectedRevision == null) {
+        throw const EditorConflictException(
+          'This map has no attested disk revision. Reload it before assigning '
+          'a tileset.',
+        );
+      }
+      final saved = await revisioned.saveMapDocument(
+        updatedMap,
+        mapPath,
+        precondition: MapDocumentWritePrecondition.revision(expectedRevision),
+      );
+      return (map: updatedMap, revision: saved.revision);
+    }
+    await _mapRepo.saveMap(updatedMap, mapPath);
+    return (map: updatedMap, revision: null);
+  }
+
+  MapData _prepareUpdatedMap(
+    ProjectManifest project,
+    MapData map,
+    String layerId,
+    String tilesetId,
+  ) {
     final assignable = _resolver.execute(project, map.id);
     final isAllowed = assignable.any((tileset) => tileset.id == tilesetId);
     if (!isAllowed) {
@@ -429,10 +478,11 @@ class AssignTilesetToMapUseCase {
       tilesetId: map.tilesetId.trim().isEmpty ? tilesetId : map.tilesetId,
     );
     MapValidator.validate(updatedMap);
-    await _mapRepo.saveMap(updatedMap, mapPath);
     return updatedMap;
   }
 }
+
+typedef AssignedTilesetMapResult = ({MapData map, String? revision});
 
 class UpsertTilesetPaletteEntryUseCase {
   UpsertTilesetPaletteEntryUseCase(this._repo);

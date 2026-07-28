@@ -2,9 +2,13 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import '../../application/errors/application_errors.dart';
 import '../../application/ports/project_workspace.dart';
+import '../../application/services/project_map_id_policy.dart';
 
 class ProjectFileSystem implements ProjectWorkspace {
+  static const ProjectMapIdPolicy _mapIdPolicy = ProjectMapIdPolicy();
+
   final String _projectRoot;
 
   ProjectFileSystem(this._projectRoot);
@@ -19,17 +23,88 @@ class ProjectFileSystem implements ProjectWorkspace {
 
   @override
   String resolveMapPath(String relativePath) {
-    return p.normalize(p.join(_projectRoot, relativePath));
+    if (relativePath.isEmpty || relativePath.trim() != relativePath) {
+      throw const EditorValidationException(
+        'Map path must be a non-empty project-relative path',
+      );
+    }
+    if (relativePath.contains(r'\') ||
+        p.posix.isAbsolute(relativePath) ||
+        p.windows.isAbsolute(relativePath)) {
+      throw EditorValidationException(
+        'Map path must stay inside the project maps directory: $relativePath',
+      );
+    }
+
+    final normalizedRelativePath = p.posix.normalize(relativePath);
+    if (normalizedRelativePath != relativePath) {
+      throw EditorValidationException(
+        'Map path must already be canonical: $relativePath',
+      );
+    }
+    final segments = p.posix.split(normalizedRelativePath);
+    if (segments.length < 2 ||
+        segments.first != 'maps' ||
+        p.posix.extension(normalizedRelativePath).toLowerCase() != '.json') {
+      throw EditorValidationException(
+        'Map path must target a JSON file inside maps/: $relativePath',
+      );
+    }
+
+    final lexicalCandidate = p.normalize(
+      p.joinAll(<String>[_projectRoot, ...segments]),
+    );
+    final lexicalMapsRoot = p.normalize(p.join(_projectRoot, 'maps'));
+    _rejectMapSymlinkAliases(
+      mapsRoot: lexicalMapsRoot,
+      candidate: lexicalCandidate,
+    );
+    final canonicalProjectRoot = _resolveWithExistingAncestor(_projectRoot);
+    final canonicalMapsRoot = p.normalize(
+      p.join(canonicalProjectRoot, 'maps'),
+    );
+    final canonicalCandidate = _resolveWithExistingAncestor(lexicalCandidate);
+
+    // Lexical `..` checks do not cover a pre-existing `maps` or nested
+    // directory symlink. Resolve every existing ancestor before allowing a
+    // repository read/write/delete to consume the candidate.
+    if (!p.isWithin(canonicalMapsRoot, canonicalCandidate)) {
+      throw EditorValidationException(
+        'Map path resolves outside the project maps directory: $relativePath',
+      );
+    }
+    return lexicalCandidate;
+  }
+
+  void _rejectMapSymlinkAliases({
+    required String mapsRoot,
+    required String candidate,
+  }) {
+    // Even an in-bounds link gives one file several manifest spellings
+    // (`maps/town.json` and `maps/alias/town.json`). Reject every link below
+    // maps/ so lifecycle collision checks operate on one lexical identity.
+    var cursor = mapsRoot;
+    final relative = p.relative(candidate, from: mapsRoot);
+    for (final segment in <String>['', ...p.split(relative)]) {
+      if (segment.isNotEmpty) cursor = p.join(cursor, segment);
+      if (FileSystemEntity.typeSync(cursor, followLinks: false) ==
+          FileSystemEntityType.link) {
+        throw EditorValidationException(
+          'Map path cannot traverse a symbolic-link alias: $candidate',
+        );
+      }
+    }
   }
 
   @override
   String getMapPath(String mapId) {
-    return p.normalize(p.join(_projectRoot, 'maps', '$mapId.json'));
+    return resolveMapPath(getMapRelativePath(mapId));
   }
 
   @override
   String getMapRelativePath(String mapId) {
-    return 'maps/$mapId.json';
+    final canonicalId = _mapIdPolicy.requireValid(mapId);
+    return 'maps/$canonicalId.json';
   }
 
   @override
@@ -201,6 +276,47 @@ class ProjectFileSystem implements ProjectWorkspace {
     final normalized = value.trim().toLowerCase();
     final safe = normalized.replaceAll(RegExp(r'[^a-z0-9_-]+'), '_');
     return safe.replaceAll(RegExp(r'_+'), '_').replaceAll(RegExp(r'^_|_$'), '');
+  }
+
+  String _resolveWithExistingAncestor(String path) {
+    var cursor = p.normalize(p.absolute(path));
+    final missingSegments = <String>[];
+
+    while (true) {
+      final type = FileSystemEntity.typeSync(cursor, followLinks: false);
+      if (type != FileSystemEntityType.notFound) {
+        try {
+          final resolvedAncestor = switch (type) {
+            FileSystemEntityType.directory =>
+              Directory(cursor).resolveSymbolicLinksSync(),
+            FileSystemEntityType.file =>
+              File(cursor).resolveSymbolicLinksSync(),
+            FileSystemEntityType.link =>
+              Link(cursor).resolveSymbolicLinksSync(),
+            _ => throw FileSystemException(
+                'Unsupported map path entity',
+                cursor,
+              ),
+          };
+          return p.normalize(
+            p.joinAll(<String>[resolvedAncestor, ...missingSegments]),
+          );
+        } on FileSystemException catch (error) {
+          throw EditorValidationException(
+            'Map path cannot be resolved safely: ${error.message}',
+          );
+        }
+      }
+
+      final parent = p.dirname(cursor);
+      if (parent == cursor) {
+        throw EditorValidationException(
+          'Map path has no resolvable project ancestor: $path',
+        );
+      }
+      missingSegments.insert(0, p.basename(cursor));
+      cursor = parent;
+    }
   }
 
   Future<void> _copyDirectoryRecursive(Directory from, Directory to) async {

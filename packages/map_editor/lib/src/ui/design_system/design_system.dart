@@ -12,6 +12,7 @@ export 'pokemap_card.dart';
 export 'pokemap_confirmation_dialog.dart';
 export 'pokemap_dashboard_primitives.dart';
 export 'pokemap_desktop_side_sheet.dart';
+export 'pokemap_dependency_preflight_dialog.dart';
 export 'pokemap_diagnostic_callout.dart';
 export 'pokemap_dialog.dart';
 export 'pokemap_dropdown_field.dart';

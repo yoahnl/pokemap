@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/core_providers.dart';
 import 'package:map_editor/src/application/models/map_history_snapshot.dart';
 import 'package:map_editor/src/application/services/narrative_event_source_dependency_guard.dart';
+import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 
@@ -428,7 +430,12 @@ void main() {
 
     test('blocks linked map rename/delete before repository operations',
         () async {
-      final container = ProviderContainer();
+      final repository = _GuardMapRepository(_map());
+      final container = ProviderContainer(
+        overrides: <Override>[
+          mapRepositoryProvider.overrideWith((ref) => repository),
+        ],
+      );
       addTearDown(container.dispose);
       final notifier = container.read(editorNotifierProvider.notifier);
       final project = _project(registry: _registry());
@@ -438,12 +445,24 @@ void main() {
         activeMap: _map(),
       );
 
-      await notifier.renameMap('map_a', 'map_b');
+      final rename = await notifier.renameMap('map_a', 'map_b');
       expect(notifier.state.project, project);
-      expect(notifier.state.errorMessage, contains(_mapEvent));
+      expect(rename, isNotNull);
+      expect(
+        rename!.inspection.usages.map((usage) => usage.owner.id),
+        containsAll(<String>[_mapEvent, _entityEvent, _triggerEvent]),
+      );
+      expect(notifier.state.errorMessage, rename.blockingMessage);
+      expect(repository.renameCalls, 0);
 
-      await notifier.deleteMap('map_a');
+      final delete = await notifier.deleteMap('map_a');
       expect(notifier.state.project, project);
+      expect(delete, isNotNull);
+      expect(
+        delete!.inspection.usages.map((usage) => usage.owner.id),
+        containsAll(<String>[_mapEvent, _entityEvent, _triggerEvent]),
+      );
+      expect(repository.deleteCalls, 0);
     });
 
     test('undo keeps map and history unchanged when an entity would disappear',
@@ -665,3 +684,31 @@ ProjectManifest _project({NarrativeEventRegistry? registry}) => ProjectManifest(
       tilesets: const [],
       eventRegistry: registry,
     );
+
+final class _GuardMapRepository implements MapRepository {
+  _GuardMapRepository(this.map);
+
+  final MapData map;
+  int renameCalls = 0;
+  int deleteCalls = 0;
+
+  @override
+  Future<MapData> loadMap(String path) async => map;
+
+  @override
+  Future<void> saveMap(
+    MapData map,
+    String path, {
+    ProjectManifest? projectDialogueContext,
+  }) async {}
+
+  @override
+  Future<void> renameMap(String oldPath, String newPath) async {
+    renameCalls += 1;
+  }
+
+  @override
+  Future<void> deleteMap(String path) async {
+    deleteCalls += 1;
+  }
+}

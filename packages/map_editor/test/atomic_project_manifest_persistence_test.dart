@@ -79,6 +79,40 @@ void main() {
       expect(await fixture.tempFiles(), isEmpty);
     });
 
+    test('rejects a stale exact revision even when the model is unchanged',
+        () async {
+      final fixture = await _Fixture.create();
+      addTearDown(fixture.dispose);
+      final expectedRevision = narrativeEventBytesFingerprint(
+        await fixture.file.readAsBytes(),
+      );
+      final externallyChangedRoot =
+          Map<String, Object?>.from(fixture.initialRoot)
+            ..['futureRoot'] = <String, Object?>{
+              'nested': <Object?>['preserve', 7, true],
+              'externalUnknownField': true,
+            };
+      await fixture.writeRoot(externallyChangedRoot);
+      final externalBytes = await fixture.file.readAsBytes();
+
+      final result =
+          await const AtomicProjectManifestPersistence().persistProjectDocument(
+        projectPath: fixture.file.path,
+        operationId: 'ds05_exact_revision',
+        before: fixture.transaction.before,
+        after: fixture.transaction.after,
+        expectedRevision: expectedRevision,
+      );
+
+      expect(
+        result.status,
+        NarrativeAuthoringPersistenceStatus.persistenceFailed,
+      );
+      expect(result.code, 'staleProjectRevision');
+      expect(await fixture.file.readAsBytes(), externalBytes);
+      expect(await fixture.tempFiles(), isEmpty);
+    });
+
     test('refuses to write while Event recovery is required', () async {
       final fixture = await createPersistenceFixture();
       addTearDown(fixture.dispose);

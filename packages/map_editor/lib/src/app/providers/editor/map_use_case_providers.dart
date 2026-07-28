@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart' show Ref;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../application/services/map_dependency_preflight_service.dart';
 import '../../../application/use_cases/collision_use_cases.dart';
 import '../../../application/use_cases/entity_use_cases.dart';
 import '../../../application/use_cases/gameplay_zone_use_cases.dart';
@@ -28,20 +29,17 @@ AddEntityToMapUseCase addEntityToMapUseCase(Ref ref) {
 }
 
 @riverpod
-UpdateEntityOnMapUseCase updateEntityOnMapUseCase(
-    Ref ref) {
+UpdateEntityOnMapUseCase updateEntityOnMapUseCase(Ref ref) {
   return UpdateEntityOnMapUseCase();
 }
 
 @riverpod
-DeleteEntityFromMapUseCase deleteEntityFromMapUseCase(
-    Ref ref) {
+DeleteEntityFromMapUseCase deleteEntityFromMapUseCase(Ref ref) {
   return DeleteEntityFromMapUseCase();
 }
 
 @riverpod
-AssignTilesetToMapUseCase assignTilesetToMapUseCase(
-    Ref ref) {
+AssignTilesetToMapUseCase assignTilesetToMapUseCase(Ref ref) {
   return AssignTilesetToMapUseCase(
     ref.watch(mapRepositoryProvider),
     ref.watch(resolveAssignableTilesetsForMapUseCaseProvider),
@@ -54,8 +52,7 @@ PaintTileOnMapUseCase paintTileOnMapUseCase(Ref ref) {
 }
 
 @riverpod
-PaintTilePatternOnMapUseCase paintTilePatternOnMapUseCase(
-    Ref ref) {
+PaintTilePatternOnMapUseCase paintTilePatternOnMapUseCase(Ref ref) {
   return PaintTilePatternOnMapUseCase();
 }
 
@@ -65,38 +62,32 @@ EraseTileOnMapUseCase eraseTileOnMapUseCase(Ref ref) {
 }
 
 @riverpod
-EraseTilePatternOnMapUseCase eraseTilePatternOnMapUseCase(
-    Ref ref) {
+EraseTilePatternOnMapUseCase eraseTilePatternOnMapUseCase(Ref ref) {
   return EraseTilePatternOnMapUseCase();
 }
 
 @riverpod
-PaintCollisionOnMapUseCase paintCollisionOnMapUseCase(
-    Ref ref) {
+PaintCollisionOnMapUseCase paintCollisionOnMapUseCase(Ref ref) {
   return PaintCollisionOnMapUseCase();
 }
 
 @riverpod
-PaintCollisionPatternOnMapUseCase paintCollisionPatternOnMapUseCase(
-    Ref ref) {
+PaintCollisionPatternOnMapUseCase paintCollisionPatternOnMapUseCase(Ref ref) {
   return PaintCollisionPatternOnMapUseCase();
 }
 
 @riverpod
-EraseCollisionOnMapUseCase eraseCollisionOnMapUseCase(
-    Ref ref) {
+EraseCollisionOnMapUseCase eraseCollisionOnMapUseCase(Ref ref) {
   return EraseCollisionOnMapUseCase();
 }
 
 @riverpod
-EraseCollisionPatternOnMapUseCase eraseCollisionPatternOnMapUseCase(
-    Ref ref) {
+EraseCollisionPatternOnMapUseCase eraseCollisionPatternOnMapUseCase(Ref ref) {
   return EraseCollisionPatternOnMapUseCase();
 }
 
 @riverpod
-PaintTerrainOnMapUseCase paintTerrainOnMapUseCase(
-    Ref ref) {
+PaintTerrainOnMapUseCase paintTerrainOnMapUseCase(Ref ref) {
   return PaintTerrainOnMapUseCase();
 }
 
@@ -106,8 +97,7 @@ PaintPathOnMapUseCase paintPathOnMapUseCase(Ref ref) {
 }
 
 @riverpod
-PaintPathPatternOnMapUseCase paintPathPatternOnMapUseCase(
-    Ref ref) {
+PaintPathPatternOnMapUseCase paintPathPatternOnMapUseCase(Ref ref) {
   return PaintPathPatternOnMapUseCase();
 }
 
@@ -117,38 +107,32 @@ ErasePathOnMapUseCase erasePathOnMapUseCase(Ref ref) {
 }
 
 @riverpod
-ErasePathPatternOnMapUseCase erasePathPatternOnMapUseCase(
-    Ref ref) {
+ErasePathPatternOnMapUseCase erasePathPatternOnMapUseCase(Ref ref) {
   return ErasePathPatternOnMapUseCase();
 }
 
 @riverpod
-AssignPathPresetToLayerUseCase assignPathPresetToLayerUseCase(
-    Ref ref) {
+AssignPathPresetToLayerUseCase assignPathPresetToLayerUseCase(Ref ref) {
   return AssignPathPresetToLayerUseCase();
 }
 
 @riverpod
-SetPathLayerPropertiesUseCase setPathLayerPropertiesUseCase(
-    Ref ref) {
+SetPathLayerPropertiesUseCase setPathLayerPropertiesUseCase(Ref ref) {
   return SetPathLayerPropertiesUseCase();
 }
 
 @riverpod
-PaintTerrainPatternOnMapUseCase paintTerrainPatternOnMapUseCase(
-    Ref ref) {
+PaintTerrainPatternOnMapUseCase paintTerrainPatternOnMapUseCase(Ref ref) {
   return PaintTerrainPatternOnMapUseCase();
 }
 
 @riverpod
-EraseTerrainOnMapUseCase eraseTerrainOnMapUseCase(
-    Ref ref) {
+EraseTerrainOnMapUseCase eraseTerrainOnMapUseCase(Ref ref) {
   return EraseTerrainOnMapUseCase();
 }
 
 @riverpod
-EraseTerrainPatternOnMapUseCase eraseTerrainPatternOnMapUseCase(
-    Ref ref) {
+EraseTerrainPatternOnMapUseCase eraseTerrainPatternOnMapUseCase(Ref ref) {
   return EraseTerrainPatternOnMapUseCase();
 }
 
@@ -163,26 +147,22 @@ AddTriggerToMapUseCase addTriggerToMapUseCase(Ref ref) {
 }
 
 @riverpod
-UpdateTriggerOnMapUseCase updateTriggerOnMapUseCase(
-    Ref ref) {
+UpdateTriggerOnMapUseCase updateTriggerOnMapUseCase(Ref ref) {
   return UpdateTriggerOnMapUseCase();
 }
 
 @riverpod
-DeleteTriggerFromMapUseCase deleteTriggerFromMapUseCase(
-    Ref ref) {
+DeleteTriggerFromMapUseCase deleteTriggerFromMapUseCase(Ref ref) {
   return DeleteTriggerFromMapUseCase();
 }
 
 @riverpod
-ResolveMapConnectionTargetUseCase resolveMapConnectionTargetUseCase(
-    Ref ref) {
+ResolveMapConnectionTargetUseCase resolveMapConnectionTargetUseCase(Ref ref) {
   return ResolveMapConnectionTargetUseCase();
 }
 
 @riverpod
-UpsertMapConnectionUseCase upsertMapConnectionUseCase(
-    Ref ref) {
+UpsertMapConnectionUseCase upsertMapConnectionUseCase(Ref ref) {
   return UpsertMapConnectionUseCase(
     ref.watch(mapRepositoryProvider),
     ref.watch(resolveMapConnectionTargetUseCaseProvider),
@@ -190,8 +170,7 @@ UpsertMapConnectionUseCase upsertMapConnectionUseCase(
 }
 
 @riverpod
-DeleteMapConnectionUseCase deleteMapConnectionUseCase(
-    Ref ref) {
+DeleteMapConnectionUseCase deleteMapConnectionUseCase(Ref ref) {
   return DeleteMapConnectionUseCase();
 }
 
@@ -201,20 +180,17 @@ UpdateWarpOnMapUseCase updateWarpOnMapUseCase(Ref ref) {
 }
 
 @riverpod
-DeleteWarpFromMapUseCase deleteWarpFromMapUseCase(
-    Ref ref) {
+DeleteWarpFromMapUseCase deleteWarpFromMapUseCase(Ref ref) {
   return DeleteWarpFromMapUseCase();
 }
 
 @riverpod
-ValidateWarpTargetMapUseCase validateWarpTargetMapUseCase(
-    Ref ref) {
+ValidateWarpTargetMapUseCase validateWarpTargetMapUseCase(Ref ref) {
   return ValidateWarpTargetMapUseCase();
 }
 
 @riverpod
-CreateReciprocalWarpUseCase createReciprocalWarpUseCase(
-    Ref ref) {
+CreateReciprocalWarpUseCase createReciprocalWarpUseCase(Ref ref) {
   return CreateReciprocalWarpUseCase(ref.watch(mapRepositoryProvider));
 }
 
@@ -234,8 +210,7 @@ DeleteMapLayerUseCase deleteMapLayerUseCase(Ref ref) {
 }
 
 @riverpod
-DeleteAllMapLayersUseCase deleteAllMapLayersUseCase(
-    Ref ref) {
+DeleteAllMapLayersUseCase deleteAllMapLayersUseCase(Ref ref) {
   return DeleteAllMapLayersUseCase();
 }
 
@@ -245,20 +220,17 @@ MoveMapLayerUseCase moveMapLayerUseCase(Ref ref) {
 }
 
 @riverpod
-ReorderMapLayersUseCase reorderMapLayersUseCase(
-    Ref ref) {
+ReorderMapLayersUseCase reorderMapLayersUseCase(Ref ref) {
   return ReorderMapLayersUseCase();
 }
 
 @riverpod
-SetMapLayerVisibilityUseCase setMapLayerVisibilityUseCase(
-    Ref ref) {
+SetMapLayerVisibilityUseCase setMapLayerVisibilityUseCase(Ref ref) {
   return SetMapLayerVisibilityUseCase();
 }
 
 @riverpod
-SetMapLayerOpacityUseCase setMapLayerOpacityUseCase(
-    Ref ref) {
+SetMapLayerOpacityUseCase setMapLayerOpacityUseCase(Ref ref) {
   return SetMapLayerOpacityUseCase();
 }
 
@@ -272,6 +244,8 @@ CreateMapUseCase createMapUseCase(Ref ref) {
   return CreateMapUseCase(
     ref.watch(mapRepositoryProvider),
     ref.watch(projectRepositoryProvider),
+    lifecycleTransactions:
+        ref.watch(mapLifecycleTransactionCoordinatorProvider),
   );
 }
 
@@ -286,24 +260,31 @@ ResizeMapUseCase resizeMapUseCase(Ref ref) {
 }
 
 @riverpod
-UpdateMapMetadataUseCase updateMapMetadataUseCase(
-    Ref ref) {
+UpdateMapMetadataUseCase updateMapMetadataUseCase(Ref ref) {
   return UpdateMapMetadataUseCase();
 }
 
 @riverpod
 RenameMapUseCase renameMapUseCase(Ref ref) {
+  final mapRepository = ref.watch(mapRepositoryProvider);
   return RenameMapUseCase(
-    ref.watch(mapRepositoryProvider),
+    mapRepository,
     ref.watch(projectRepositoryProvider),
+    MapDependencyPreflightService(mapRepository: mapRepository),
+    lifecycleTransactions:
+        ref.watch(mapLifecycleTransactionCoordinatorProvider),
   );
 }
 
 @riverpod
 DeleteMapUseCase deleteMapUseCase(Ref ref) {
+  final mapRepository = ref.watch(mapRepositoryProvider);
   return DeleteMapUseCase(
-    ref.watch(mapRepositoryProvider),
+    mapRepository,
     ref.watch(projectRepositoryProvider),
+    MapDependencyPreflightService(mapRepository: mapRepository),
+    lifecycleTransactions:
+        ref.watch(mapLifecycleTransactionCoordinatorProvider),
   );
 }
 
@@ -312,23 +293,22 @@ DuplicateMapUseCase duplicateMapUseCase(Ref ref) {
   return DuplicateMapUseCase(
     ref.watch(mapRepositoryProvider),
     ref.watch(projectRepositoryProvider),
+    lifecycleTransactions:
+        ref.watch(mapLifecycleTransactionCoordinatorProvider),
   );
 }
 
 @riverpod
-AddGameplayZoneToMapUseCase addGameplayZoneToMapUseCase(
-    Ref ref) {
+AddGameplayZoneToMapUseCase addGameplayZoneToMapUseCase(Ref ref) {
   return AddGameplayZoneToMapUseCase();
 }
 
 @riverpod
-UpdateGameplayZoneOnMapUseCase updateGameplayZoneOnMapUseCase(
-    Ref ref) {
+UpdateGameplayZoneOnMapUseCase updateGameplayZoneOnMapUseCase(Ref ref) {
   return UpdateGameplayZoneOnMapUseCase();
 }
 
 @riverpod
-DeleteGameplayZoneFromMapUseCase deleteGameplayZoneFromMapUseCase(
-    Ref ref) {
+DeleteGameplayZoneFromMapUseCase deleteGameplayZoneFromMapUseCase(Ref ref) {
   return DeleteGameplayZoneFromMapUseCase();
 }

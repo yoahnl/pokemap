@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/core_providers.dart'
+    as editor_core;
 import 'package:map_editor/src/app/providers/core/repository_providers.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/models/narrative_event_authoring_session.dart';
@@ -19,6 +21,9 @@ import 'package:map_editor/src/application/ports/narrative_event_spatial_source_
 import 'package:map_editor/src/application/use_cases/narrative_event_explicit_source_creation_use_case.dart';
 import 'package:map_editor/src/application/use_cases/map_use_cases.dart';
 import 'package:map_editor/src/domain/repositories/repositories.dart';
+import 'package:map_editor/src/features/border_map_editing/application/border_preview_transaction.dart';
+import 'package:map_editor/src/features/border_map_editing/state/border_preview_providers.dart';
+import 'package:map_editor/src/features/editor/application/map_activation_coordinator.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_event_map_bridge_state.dart';
@@ -605,15 +610,13 @@ void main() {
         savedMapSnapshot: map,
       );
 
-      late final Future<void> normalReload;
+      late final Future<MapActivationOutcome> normalReload;
       await tester.runAsync(() async {
-        normalReload = notifier.loadProject(
+        normalReload = notifier.activateProject(
           fixture.projectPath,
           rememberAsRecent: false,
         );
-        await projectRepository.loadStarted.future.timeout(
-          const Duration(seconds: 2),
-        );
+        await _waitForProjectLoadStarted(projectRepository);
       });
       expect(notifier.state.isSaving, isTrue);
       expect(
@@ -624,7 +627,10 @@ void main() {
 
       await tester.runAsync(() async {
         projectRepository.releaseLoad.complete();
-        await normalReload.timeout(const Duration(seconds: 2));
+        expect(
+          await normalReload.timeout(const Duration(seconds: 2)),
+          MapActivationOutcome.activated,
+        );
       });
       expect(notifier.state.isSaving, isFalse);
 
@@ -653,8 +659,8 @@ void main() {
     testWidgets(
         'failed memory adoption keeps the durable journal and gates false recovery exits',
         (tester) async {
-      final map = _map();
-      final project = _project();
+      final map = _mapWithBorderPreviewTarget();
+      final project = _project().copyWith(version: ProjectVersion.v2);
       final fixture = (await tester.runAsync(
         () => createPersistenceFixture(
           registry: project.eventRegistry,
@@ -786,15 +792,63 @@ void main() {
       expect(openedDuringRecovery, isFalse);
       expect(controller.state.pendingReturn, same(recoveryToken));
 
+      final staleReloadCallback = tester
+          .widget<PokeMapButton>(
+            find.byKey(const ValueKey('narrative-event-create-reload')),
+          )
+          .onPressed!;
+      final previewController =
+          container.read(borderPreviewControllerProvider.notifier);
+      final previewMap = notifier.state.activeMap!;
+      previewController.begin(
+        map: previewMap,
+        layerId: 'borders',
+        featureId: 'coast',
+        context: createEditorBorderPreviewContext(
+          projectRootPath: notifier.state.projectRootPath!,
+          activeMapPath: notifier.state.activeMapPath!,
+          project: notifier.state.project!,
+          map: previewMap,
+        ),
+      );
+      await tester.pump();
+
+      expect(previewController.current.hasPendingPreview, isTrue);
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(const ValueKey('narrative-event-create-reload')),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(
+        notifier.beginNarrativeEventSourceCleanupInterlock(
+          expectedProjectRootPath: notifier.state.projectRootPath!,
+          expectedActiveMap: previewMap,
+          journal: result!.journal!,
+        ),
+        isFalse,
+      );
+      staleReloadCallback();
+      await tester.pump();
+      expect(
+        projectRepository.loadStarted.isCompleted,
+        isFalse,
+        reason: 'The reload callback must recheck a newly pending preview.',
+      );
+
+      previewController.cancel();
+      await tester.pump();
+      expect(previewController.current.hasPendingPreview, isFalse);
+
       await tester.runAsync(() async {
         tester
             .widget<PokeMapButton>(
               find.byKey(const ValueKey('narrative-event-create-reload')),
             )
             .onPressed!();
-        await projectRepository.loadStarted.future.timeout(
-          const Duration(seconds: 2),
-        );
+        await _waitForProjectLoadStarted(projectRepository);
       });
       expect(
         notifier.state.isSaving,
@@ -822,12 +876,12 @@ void main() {
       expect(sourceGateway.acknowledgeCalls, 1);
       expect(
           await tester
-              .runAsync(() => File(result!.journal!.journalPath).exists()),
+              .runAsync(() => File(result.journal!.journalPath).exists()),
           isFalse);
       expect(
         notifier
             .state.project!.eventRegistry!.records.single.draftOrNull!.source,
-        result!.journal!.source,
+        result.journal!.source,
       );
       expect(
         notifier.state.activeMap!.entities.single.id,
@@ -2341,7 +2395,8 @@ ProviderContainer _container({
       if (mapRepository != null)
         mapRepositoryProvider.overrideWithValue(mapRepository),
       if (projectRepository != null)
-        projectRepositoryProvider.overrideWithValue(projectRepository),
+        editor_core.projectRepositoryProvider
+            .overrideWith((ref) => projectRepository),
     ],
   );
   final editor = container.listen<EditorState>(
@@ -2472,6 +2527,40 @@ MapData _map() => const MapData(
       size: GridSize(width: 20, height: 15),
       layers: [ObjectLayer(id: 'objects', name: 'Objects')],
     );
+
+MapData _mapWithBorderPreviewTarget() {
+  final base = _map();
+  return base.copyWith(
+    version: ProjectVersion.v2,
+    layers: <MapLayer>[
+      ...base.layers,
+      MapLayer.border(
+        id: 'borders',
+        name: 'Borders',
+        content: BorderLayerContent(
+          features: <BorderFeature>[
+            BorderFeature(
+              id: 'coast',
+              name: 'Coast',
+              blueprintId: 'coast-blueprint',
+              seed: BorderSignedInt64.fromInt(7),
+              geometry: BorderRegionGeometry(
+                width: base.size.width,
+                height: base.size.height,
+                cells: List<bool>.filled(
+                  base.size.width * base.size.height,
+                  false,
+                )..[0] = true,
+              ),
+              overrides: const <BorderSlotOverride>[],
+              keepOutRegions: const <BorderKeepOutRegion>[],
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
 
 ProjectManifest _projectWithTilesets() => _project().copyWith(
       tilesets: const [
@@ -2729,15 +2818,27 @@ final class _SuspendingMapRepository implements MapRepository {
   }
 }
 
+Future<void> _waitForProjectLoadStarted(
+  _SuspendingProjectRepository repository,
+) async {
+  for (var attempt = 0; attempt < 200; attempt++) {
+    if (repository.loadCalls > 0) return;
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+  }
+  fail('Project activation did not enter the overridden repository.');
+}
+
 final class _SuspendingProjectRepository implements ProjectRepository {
   _SuspendingProjectRepository(this._delegate);
 
   final ProjectRepository _delegate;
   final Completer<void> loadStarted = Completer<void>();
   final Completer<void> releaseLoad = Completer<void>();
+  var loadCalls = 0;
 
   @override
   Future<ProjectManifest> loadProject(String path) async {
+    loadCalls += 1;
     if (!loadStarted.isCompleted) loadStarted.complete();
     await releaseLoad.future;
     return _delegate.loadProject(path);

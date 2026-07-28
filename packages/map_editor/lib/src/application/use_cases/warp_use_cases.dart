@@ -1,8 +1,10 @@
 import 'package:map_core/map_core.dart';
 
 import '../../domain/repositories/repositories.dart';
+import '../../domain/models/map_document_persistence.dart';
 import '../errors/application_errors.dart';
 import '../ports/project_workspace.dart';
+import '../services/project_map_id_policy.dart';
 
 class AddWarpToMapUseCase {
   MapData execute(
@@ -94,6 +96,8 @@ class CreateReciprocalWarpResult {
 class CreateReciprocalWarpUseCase {
   CreateReciprocalWarpUseCase(this._mapRepo);
 
+  static const ProjectMapIdPolicy _mapIdPolicy = ProjectMapIdPolicy();
+
   final MapRepository _mapRepo;
 
   Future<CreateReciprocalWarpResult> execute(
@@ -102,10 +106,11 @@ class CreateReciprocalWarpUseCase {
     required MapData sourceMap,
     required MapWarp sourceWarp,
   }) async {
-    final targetMapId = sourceWarp.targetMapId.trim();
-    if (targetMapId.isEmpty) {
-      throw const EditorValidationException('Warp target map cannot be empty');
-    }
+    // This workflow can write a map other than the active document. Validate
+    // both ends before resolving or loading either file so legacy read-only
+    // maps cannot be modified through a reciprocal-warp side door.
+    _mapIdPolicy.requireValid(sourceMap.id);
+    final targetMapId = _mapIdPolicy.requireValid(sourceWarp.targetMapId);
     final targetMapEntry = project.maps.firstWhere(
       (entry) => entry.id == targetMapId,
       orElse: () => throw EditorNotFoundException(
@@ -113,10 +118,27 @@ class CreateReciprocalWarpUseCase {
     );
 
     final targetIsSourceMap = targetMapEntry.id == sourceMap.id;
-    final targetMap = targetIsSourceMap
-        ? sourceMap
-        : await _mapRepo
-            .loadMap(fs.resolveMapPath(targetMapEntry.relativePath));
+    String? targetRevision;
+    final MapData targetMap;
+    if (targetIsSourceMap) {
+      targetMap = sourceMap;
+    } else {
+      final targetMapPath = fs.resolveMapPath(targetMapEntry.relativePath);
+      if (_mapRepo case RevisionedMapRepository revisioned) {
+        final document = await revisioned.loadMapDocument(targetMapPath);
+        targetMap = document.map;
+        targetRevision = document.revision;
+      } else {
+        targetMap = await _mapRepo.loadMap(targetMapPath);
+      }
+    }
+    _mapIdPolicy.requireValid(targetMap.id);
+    if (targetMap.id != targetMapEntry.id) {
+      throw EditorValidationException(
+        'Loaded map ID "${targetMap.id}" does not match manifest entry '
+        '"${targetMapEntry.id}"',
+      );
+    }
 
     final destinationPos = sourceWarp.targetPos;
     if (destinationPos.x < 0 ||
@@ -150,7 +172,21 @@ class CreateReciprocalWarpUseCase {
 
     if (!targetIsSourceMap) {
       final targetMapPath = fs.resolveMapPath(targetMapEntry.relativePath);
-      await _mapRepo.saveMap(updatedTargetMap, targetMapPath);
+      if (_mapRepo case RevisionedMapRepository revisioned) {
+        final expectedRevision = targetRevision;
+        if (expectedRevision == null) {
+          throw const EditorConflictException(
+            'The reciprocal-warp target has no durable map revision.',
+          );
+        }
+        await revisioned.saveMapDocument(
+          updatedTargetMap,
+          targetMapPath,
+          precondition: MapDocumentWritePrecondition.revision(expectedRevision),
+        );
+      } else {
+        await _mapRepo.saveMap(updatedTargetMap, targetMapPath);
+      }
     }
 
     return CreateReciprocalWarpResult(

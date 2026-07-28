@@ -28,6 +28,8 @@ import 'design_system/design_system.dart';
 import '../theme/theme.dart';
 
 import '../features/border_map_editing/presentation/pending_border_save_dialog.dart';
+import '../features/editor/application/map_activation_coordinator.dart';
+import '../features/editor/presentation/map_activation_guard.dart';
 import '../features/editor/state/editor_notifier.dart';
 import '../features/editor/state/editor_selectors.dart';
 import '../features/editor/state/editor_state.dart';
@@ -312,19 +314,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       openNarrativeWorkspaceForLocation(location);
     }
 
-    Future<void> openNarrativeSearchEntry(
-      NarrativeGlobalSearchEntry entry,
+    Future<void> openNarrativeResolution(
+      NarrativeStudioNavigationResolution resolution,
     ) async {
-      final diagnostic = entry.diagnostic;
-      final resolution = diagnostic == null
-          ? entry.navigationIntent == null
-              ? const NarrativeStudioNavigationResolution.unavailable(
-                  'Cet élément ne possède pas encore de destination ouvrable.',
-                )
-              : resolveNarrativeDependencyNavigationIntent(
-                  entry.navigationIntent!,
-                )
-          : resolveNarrativeProjectDiagnostic(diagnostic);
       final location = resolution.location;
       if (resolution.kind == NarrativeStudioNavigationResolutionKind.internal &&
           location != null) {
@@ -342,29 +334,47 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         return;
       }
       if (!await guardNarrativeNavigation()) return;
+      if (!context.mounted) return;
       final currentEditor = ref.read(editorNotifierProvider);
-      if (currentEditor.activeMap?.id != mapTarget.mapId &&
-          currentEditor.isDirty) {
+      final project = currentEditor.project;
+      ProjectMapEntry? targetEntry;
+      for (final entry in project?.maps ?? const <ProjectMapEntry>[]) {
+        if (entry.id == mapTarget.mapId) {
+          targetEntry = entry;
+          break;
+        }
+      }
+      if (targetEntry == null) {
         _flashToast(
-          'Enregistrez la map active avant d’ouvrir ${mapTarget.mapId}.',
+          'Impossible de trouver la map ${mapTarget.mapId} dans le projet.',
           isError: true,
         );
         return;
       }
-      final map = currentEditor.activeMap?.id == mapTarget.mapId
-          ? currentEditor.activeMap
-          : await notifier.loadMapSnapshotById(mapTarget.mapId);
-      if (map == null || !notifier.activateNarrativeEventMapSnapshot(map)) {
+      final activationOutcome = await requestEditorMapActivation(
+        context: context,
+        notifier: notifier,
+        relativePath: targetEntry.relativePath,
+      );
+      if (activationOutcome != MapActivationOutcome.activated) {
         _flashToast(
           'Impossible d’ouvrir la map ${mapTarget.mapId}.',
           isError: true,
         );
         return;
       }
-      if (mapTarget.sourceKind == 'map') {
-        notifier.focusNarrativeEventMapSource(
-          NarrativeEditorFocusTarget.map(mapTarget.mapId),
-        );
+      notifier.focusNarrativeEventMapSource(
+        NarrativeEditorFocusTarget.map(mapTarget.mapId),
+      );
+      switch (mapTarget.sourceKind) {
+        case 'entity':
+          notifier.selectEntity(mapTarget.sourceId);
+        case 'trigger':
+          notifier.selectTrigger(mapTarget.sourceId);
+        case 'event':
+          notifier.selectMapEvent(mapTarget.sourceId);
+        case 'warp':
+          notifier.selectWarp(mapTarget.sourceId);
       }
       ref
           .read(narrativeStudioNavigationControllerProvider.notifier)
@@ -373,6 +383,30 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
               location: selectedNarrativeLocation,
             ),
           );
+    }
+
+    Future<void> openNarrativeDependencyIntent(
+      NarrativeDependencyNavigationIntent intent,
+    ) {
+      return openNarrativeResolution(
+        resolveNarrativeDependencyNavigationIntent(intent),
+      );
+    }
+
+    Future<void> openNarrativeSearchEntry(
+      NarrativeGlobalSearchEntry entry,
+    ) {
+      final diagnostic = entry.diagnostic;
+      final resolution = diagnostic == null
+          ? entry.navigationIntent == null
+              ? const NarrativeStudioNavigationResolution.unavailable(
+                  'Cet élément ne possède pas encore de destination ouvrable.',
+                )
+              : resolveNarrativeDependencyNavigationIntent(
+                  entry.navigationIntent!,
+                )
+          : resolveNarrativeProjectDiagnostic(diagnostic);
+      return openNarrativeResolution(resolution);
     }
 
     Future<void> restoreNarrativeLocation() async {
@@ -884,6 +918,12 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                                         ),
                                                                         child:
                                                                             ProjectExplorerPanel(
+                                                                          onOpenDependency: (intent) =>
+                                                                              unawaited(
+                                                                            openNarrativeDependencyIntent(
+                                                                              intent,
+                                                                            ),
+                                                                          ),
                                                                           onCollapse:
                                                                               () {
                                                                             setState(() {

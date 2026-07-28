@@ -508,6 +508,11 @@ NarrativeStudioNavigationResolution _resolveExternalMap(
   NarrativeDependencyNavigationIntent intent,
   String sourceId,
 ) {
+  if (intent.scope == 'project' && intent.sourceKind == 'newGame') {
+    return NarrativeStudioNavigationResolution.internal(
+      NarrativeStudioRouteLocation.overview(),
+    );
+  }
   if (intent.scope != 'map') {
     return const NarrativeStudioNavigationResolution.unavailable(
       'La référence ne désigne pas une source physique ouvrable dans une map.',

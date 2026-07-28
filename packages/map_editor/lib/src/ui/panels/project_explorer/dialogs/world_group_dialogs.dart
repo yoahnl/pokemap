@@ -4,6 +4,8 @@ import 'package:map_core/map_core.dart';
 
 import '../../../../features/editor/state/editor_notifier.dart';
 import '../../../../features/editor/state/editor_selectors.dart';
+import '../../../../application/services/map_dependency_preflight_service.dart';
+import '../../../design_system/design_system.dart';
 import '../../../shared/cupertino_editor_widgets.dart';
 
 String mapGroupTypeDisplayLabel(MapGroupType type) {
@@ -262,8 +264,9 @@ Future<void> showRenameGroupDialog(
 Future<void> showRenameMapDialog(
   BuildContext context,
   ProjectMapEntry mapEntry,
-  EditorNotifier notifier,
-) async {
+  EditorNotifier notifier, {
+  ValueChanged<NarrativeDependencyNavigationIntent>? onOpenDependency,
+}) async {
   final controller = TextEditingController(text: mapEntry.id);
   final ok = await showMacosEditorPromptSheet(
     context,
@@ -272,5 +275,46 @@ Future<void> showRenameMapDialog(
     confirmLabel: 'Renommer',
   );
   if (!ok || !context.mounted) return;
-  notifier.renameMap(mapEntry.id, controller.text.trim());
+  final result = await notifier.renameMap(
+    mapEntry.id,
+    controller.text.trim(),
+  );
+  if (result == null || !context.mounted) return;
+  await _showMapDependencyPreflightResult(
+    context,
+    result,
+    onOpenDependency: onOpenDependency,
+  );
+}
+
+Future<void> deleteMapWithDependencyPreflight(
+  BuildContext context,
+  String mapId,
+  EditorNotifier notifier, {
+  ValueChanged<NarrativeDependencyNavigationIntent>? onOpenDependency,
+}) async {
+  final result = await notifier.deleteMap(mapId);
+  if (result == null || !context.mounted) return;
+  await _showMapDependencyPreflightResult(
+    context,
+    result,
+    onOpenDependency: onOpenDependency,
+  );
+}
+
+Future<void> _showMapDependencyPreflightResult(
+  BuildContext context,
+  MapDependencyPreflightResult result, {
+  ValueChanged<NarrativeDependencyNavigationIntent>? onOpenDependency,
+}) {
+  return showPokeMapDependencyPreflightDialog(
+    context,
+    title: result.dialogTitle,
+    message: result.blockingMessage,
+    inspection: result.inspection,
+    indexDiagnostics: result.indexIssues
+        .map((issue) => issue.message)
+        .toList(growable: false),
+    onOpen: onOpenDependency,
+  );
 }

@@ -11,6 +11,7 @@ import '../../../application/models/narrative_event_spatial_link_journal_models.
 import '../../../application/models/narrative_event_spatial_source_creation_models.dart';
 import '../../../application/use_cases/narrative_event_explicit_source_creation_use_case.dart';
 import '../../../application/use_cases/narrative_event_spatial_source_link_use_case.dart';
+import '../../../features/border_map_editing/state/border_preview_providers.dart';
 import '../../../features/editor/state/editor_notifier.dart';
 import '../../../features/narrative/state/narrative_event_map_bridge_state.dart';
 import '../../../theme/theme.dart';
@@ -52,8 +53,11 @@ class NarrativeEventMapBanner extends ConsumerWidget {
         (bridge.lastSourceCreationResult?.journal?.state ==
                 NarrativeEventSpatialLinkJournalState.eventCommitted ||
             cleanupRequiresReload);
+    final hasPendingBorderPreview =
+        ref.watch(borderPreviewControllerProvider).hasPendingPreview;
     final reloadIsBlocked = editor.isSaving ||
         bridge.isSourceCreationBusy ||
+        hasPendingBorderPreview ||
         (!cleanupRequiresReload && (editor.isDirty || editor.isProjectDirty));
     final candidate =
         bridge.navigationMode == NarrativeEventMapNavigationMode.choose
@@ -236,6 +240,7 @@ class NarrativeEventMapBanner extends ConsumerWidget {
                   NarrativeEventSpatialLinkJournalState.eventCommitted) ||
           root == null ||
           current.isSaving ||
+          ref.read(borderPreviewControllerProvider).hasPendingPreview ||
           (!cleanupReload && (current.isDirty || current.isProjectDirty))) {
         return;
       }
@@ -254,7 +259,10 @@ class NarrativeEventMapBanner extends ConsumerWidget {
           }
         }
         if (mapEntry == null) return;
-        await notifier.loadMap(mapEntry.relativePath);
+        await notifier.loadMap(
+          mapEntry.relativePath,
+          forceReload: true,
+        );
         final reloaded = ref.read(editorNotifierProvider);
         final reloadedMap = reloaded.activeMap;
         if (reloadedMap == null || reloadedMap.id != journal.mapId) return;

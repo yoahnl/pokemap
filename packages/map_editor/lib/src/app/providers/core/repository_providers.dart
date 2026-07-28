@@ -10,6 +10,7 @@ import '../../../application/ports/narrative_authoring_persistence_gateway.dart'
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/narrative_document_session.dart';
 import '../../../application/services/narrative_activity_journal.dart';
+import '../../../application/services/map_lifecycle_transaction_service.dart';
 import '../../../application/use_cases/execute_narrative_authoring_transaction.dart';
 import '../../../domain/repositories/repositories.dart';
 import '../../../features/personalization/application/personalization_studio_session_controller.dart';
@@ -23,6 +24,7 @@ import '../../../features/personalization/application/project_title_music_previe
 import '../../../infrastructure/filesystem/project_filesystem.dart';
 import '../../../infrastructure/repositories/file_repositories.dart';
 import '../../../infrastructure/repositories/file_narrative_document_recovery_store.dart';
+import '../../../infrastructure/repositories/map_lifecycle_transaction_file_gateway.dart';
 import '../../../infrastructure/repositories/narrative_event_spatial_link_journal_repository.dart';
 import '../../../infrastructure/repositories/narrative_activity_journal_repository.dart';
 import '../../../infrastructure/repositories/narrative_event_migration_persistence_repository.dart';
@@ -31,8 +33,20 @@ import '../../../infrastructure/repositories/project_manifest_narrative_document
 
 part 'repository_providers.g.dart';
 
+final mapLifecycleTransactionCoordinatorProvider =
+    Provider<MapLifecycleTransactionCoordinator?>((ref) {
+  final mapRepository = ref.watch(mapRepositoryProvider);
+  if (mapRepository is! RevisionedMapRepository) return null;
+  return MapLifecycleTransactionCoordinator(
+    MapLifecycleTransactionFileGateway(mapRepository: mapRepository),
+  );
+});
+
 final fileProjectRepositoryProvider = Provider<FileProjectRepository>((ref) {
-  return FileProjectRepository();
+  return FileProjectRepository(
+    mapLifecycleTransactions:
+        ref.watch(mapLifecycleTransactionCoordinatorProvider),
+  );
 });
 
 final personalizationStudioAssetPickerProvider =

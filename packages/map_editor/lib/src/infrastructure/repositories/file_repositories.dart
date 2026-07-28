@@ -14,19 +14,26 @@ import '../../application/ports/narrative_event_registry_persistence_gateway.dar
 import '../../application/ports/pokemon_read_repository.dart';
 import '../../application/ports/pokemon_write_repository.dart';
 import '../../application/ports/project_workspace.dart';
+import '../../application/services/map_lifecycle_transaction_service.dart';
 import '../../application/services/pokemon_project_data_reader.dart';
+import '../../domain/models/map_document_persistence.dart';
 import '../../domain/repositories/repositories.dart';
+import 'atomic_map_document_persistence.dart';
 import 'atomic_project_manifest_persistence.dart';
 import 'narrative_event_registry_persistence.dart';
 import 'project_manifest_write_lock.dart';
+
+typedef _ProjectFileState = ({bool exists, String? revision});
 
 class FileProjectRepository
     implements ProjectRepository, NarrativeEventRegistryPersistenceGateway {
   FileProjectRepository({
     NarrativeEventRegistryPersistence? eventRegistryPersistence,
     AtomicProjectManifestPersistence? narrativeAuthoringPersistence,
-  }) : _eventRegistryPersistence =
-            eventRegistryPersistence ?? NarrativeEventRegistryPersistence() {
+    MapLifecycleTransactionCoordinator? mapLifecycleTransactions,
+  })  : _eventRegistryPersistence =
+            eventRegistryPersistence ?? NarrativeEventRegistryPersistence(),
+        _mapLifecycleTransactions = mapLifecycleTransactions {
     _narrativeAuthoringPersistence = narrativeAuthoringPersistence ??
         AtomicProjectManifestPersistence(
           eventRegistryPersistence: _eventRegistryPersistence,
@@ -34,6 +41,7 @@ class FileProjectRepository
   }
 
   final NarrativeEventRegistryPersistence _eventRegistryPersistence;
+  final MapLifecycleTransactionCoordinator? _mapLifecycleTransactions;
   late final AtomicProjectManifestPersistence _narrativeAuthoringPersistence;
 
   AtomicProjectManifestPersistence get narrativeAuthoringPersistence =>
@@ -94,13 +102,57 @@ class FileProjectRepository
   Future<void> saveProject(ProjectManifest project, String path) async {
     debugPrint('FileProjectRepository: Validating and saving project to $path');
     ProjectValidator.validate(project);
-    await withProjectManifestWriteLock(
+    final lifecycle = _mapLifecycleTransactions;
+    if (lifecycle == null) {
+      return _saveProjectWithLock(project, path);
+    }
+    final expectedProjectState = await _captureProjectFileState(path);
+    return lifecycle.runAfterRecovery(
       path,
-      () async {
-        await _ensureRecoveryGateClear(path);
-        return _saveProjectLocked(project, path);
-      },
+      (canonicalProjectPath) => _saveProjectWithLock(
+        project,
+        canonicalProjectPath,
+        expectedProjectState: expectedProjectState,
+      ),
     );
+  }
+
+  Future<void> _saveProjectWithLock(
+    ProjectManifest project,
+    String path, {
+    _ProjectFileState? expectedProjectState,
+  }) {
+    return withProjectManifestWriteLock(path, () async {
+      await _ensureRecoveryGateClear(path);
+      if (expectedProjectState != null) {
+        await _requireProjectFileState(path, expectedProjectState);
+      }
+      return _saveProjectLocked(project, path);
+    });
+  }
+
+  Future<_ProjectFileState> _captureProjectFileState(String path) async {
+    final file = File(path);
+    if (!await file.exists()) {
+      return (exists: false, revision: null);
+    }
+    return (
+      exists: true,
+      revision: narrativeEventBytesFingerprint(await file.readAsBytes()),
+    );
+  }
+
+  Future<void> _requireProjectFileState(
+    String path,
+    _ProjectFileState expected,
+  ) async {
+    final current = await _captureProjectFileState(path);
+    if (current != expected) {
+      throw const EditorConflictException(
+        'The project changed while the generic save waited for map lifecycle '
+        'recovery.',
+      );
+    }
   }
 
   Future<void> _saveProjectLocked(ProjectManifest project, String path) async {
@@ -183,6 +235,12 @@ class FileProjectRepository
   @override
   Future<ProjectManifest> loadProject(String path) async {
     debugPrint('FileProjectRepository: Loading project from $path');
+    final lifecycle = _mapLifecycleTransactions;
+    if (lifecycle == null) return _loadProjectWithLock(path);
+    return lifecycle.runAfterRecovery(path, _loadProjectWithLock);
+  }
+
+  Future<ProjectManifest> _loadProjectWithLock(String path) async {
     final file = File(path);
     if (!await file.exists()) {
       throw const ProjectLoadException('Project file not found');
@@ -261,7 +319,13 @@ bool _sameEventRegistry(
       canonicalizeNarrativeEventJson(right?.toJson());
 }
 
-class FileMapRepository implements MapRepository {
+class FileMapRepository implements RevisionedMapRepository {
+  FileMapRepository({
+    AtomicMapDocumentPersistence? mapPersistence,
+  }) : _mapPersistence = mapPersistence ?? const AtomicMapDocumentPersistence();
+
+  final AtomicMapDocumentPersistence _mapPersistence;
+
   @override
   Future<void> saveMap(
     MapData map,
@@ -273,23 +337,56 @@ class FileMapRepository implements MapRepository {
       map,
       projectDialogueContext: projectDialogueContext,
     );
-    final file = File(path);
-    if (!await file.parent.exists()) await file.parent.create(recursive: true);
-    final json = map.toJson();
-    await file.writeAsString(const JsonEncoder.withIndent('  ').convert(json));
+    await _mapPersistence.replaceLatest(path, encodeMapDocumentBytes(map));
+  }
+
+  @override
+  Future<RevisionedMapDocument> saveMapDocument(
+    MapData map,
+    String path, {
+    required MapDocumentWritePrecondition precondition,
+    ProjectManifest? projectDialogueContext,
+  }) async {
+    debugPrint('FileMapRepository: CAS saving map to $path');
+    MapValidator.validate(
+      map,
+      projectDialogueContext: projectDialogueContext,
+    );
+    final revision = await _mapPersistence.write(
+      path,
+      encodeMapDocumentBytes(map),
+      precondition: precondition,
+    );
+    final durable = await loadMapDocument(path);
+    if (durable.revision != revision || durable.map != map) {
+      throw const EditorPersistenceException(
+        'The durable map does not match the requested document.',
+      );
+    }
+    return durable;
   }
 
   @override
   Future<MapData> loadMap(String path) async {
+    return (await loadMapDocument(path)).map;
+  }
+
+  @override
+  Future<RevisionedMapDocument> loadMapDocument(String path) async {
     debugPrint('FileMapRepository: Loading map from $path');
-    final file = File(path);
-    if (!await file.exists()) {
-      throw MapLoadException('Map file not found: $path');
+    late final AtomicMapDocumentBytes snapshot;
+    try {
+      snapshot = await _mapPersistence.read(path);
+    } on EditorNotFoundException catch (error) {
+      throw MapLoadException(error.message);
     }
     try {
-      return decodeValidatedNarrativeEventAuthoringMap(
-        await file.readAsBytes(),
-        path,
+      return RevisionedMapDocument(
+        map: decodeValidatedNarrativeEventAuthoringMap(
+          snapshot.bytes,
+          path,
+        ),
+        revision: snapshot.revision,
       );
     } catch (e) {
       throw MapLoadException('Failed to load map: $e');
@@ -299,10 +396,24 @@ class FileMapRepository implements MapRepository {
   @override
   Future<void> deleteMap(String path) async {
     debugPrint('FileMapRepository: Deleting map at $path');
-    final file = File(path);
-    if (await file.exists()) {
-      await file.delete();
-    }
+    await _mapPersistence.deleteLatest(path);
+  }
+
+  @override
+  Future<void> deleteMapDocument(
+    String path, {
+    required String expectedRevision,
+  }) {
+    debugPrint('FileMapRepository: CAS deleting map at $path');
+    return _mapPersistence.delete(
+      path,
+      expectedRevision: expectedRevision,
+    );
+  }
+
+  @override
+  Future<MapDocumentRecoveryResult> recoverMapDocument(String path) {
+    return _mapPersistence.recover(path);
   }
 
   @override

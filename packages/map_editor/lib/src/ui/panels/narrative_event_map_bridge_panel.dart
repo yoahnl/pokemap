@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 
 import '../../application/models/narrative_event_map_bridge_models.dart';
 import '../../application/use_cases/narrative_event_spatial_source_link_use_case.dart';
+import '../../features/border_map_editing/state/border_preview_providers.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/narrative/state/narrative_event_map_bridge_state.dart';
 import '../../theme/theme.dart';
@@ -17,6 +18,8 @@ class NarrativeEventMapBridgePanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final editorState = ref.watch(editorNotifierProvider);
     final bridgeState = ref.watch(narrativeEventMapBridgeControllerProvider);
+    final hasPendingBorderPreview =
+        ref.watch(borderPreviewControllerProvider).hasPendingPreview;
     final map = editorState.activeMap;
     if (map == null) return const SizedBox.shrink();
 
@@ -115,13 +118,15 @@ class NarrativeEventMapBridgePanel extends ConsumerWidget {
                     recovery: bridgeState.recovery!,
                     reloadBlocked: editorState.isDirty ||
                         editorState.isProjectDirty ||
-                        editorState.isSaving,
+                        editorState.isSaving ||
+                        hasPendingBorderPreview,
                     onCancel: () => controller.dismissRecovery(
                       projectRootPath: editorState.projectRootPath,
                     ),
                     onReload: editorState.isDirty ||
                             editorState.isProjectDirty ||
-                            editorState.isSaving
+                            editorState.isSaving ||
+                            hasPendingBorderPreview
                         ? null
                         : () async {
                             final recovery = bridgeState.recovery!;
@@ -130,6 +135,9 @@ class NarrativeEventMapBridgePanel extends ConsumerWidget {
                             if (current.isDirty ||
                                 current.isProjectDirty ||
                                 current.isSaving ||
+                                ref
+                                    .read(borderPreviewControllerProvider)
+                                    .hasPendingPreview ||
                                 currentRoot == null ||
                                 p.normalize(currentRoot) !=
                                     recovery.projectRootPath) {

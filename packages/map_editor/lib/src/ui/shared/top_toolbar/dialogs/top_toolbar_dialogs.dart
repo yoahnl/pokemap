@@ -10,6 +10,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../../../../features/editor/presentation/map_activation_guard.dart';
 import '../../../../features/editor/state/editor_notifier.dart';
 import '../../cupertino_editor_widgets.dart';
 
@@ -35,9 +36,15 @@ Future<void> showTopToolbarNewProjectDialog(
   final name = controller.text.trim();
   if (name.isEmpty) return;
   final baseDir = await FilePicker.platform.getDirectoryPath();
+  if (!context.mounted) return;
   if (baseDir != null) {
     final projectDir = p.join(baseDir, name.replaceAll(' ', '_').toLowerCase());
-    await notifier.createProject(name, projectDir);
+    await requestEditorProjectCreation(
+      context: context,
+      notifier: notifier,
+      name: name,
+      directory: projectDir,
+    );
   }
 }
 
@@ -57,7 +64,11 @@ Future<void> showTopToolbarOpenProjectDialog(
       ? await _promptForProjectManifestPath(context)
       : resolveProjectManifestPathFromUserSelection(selectedDirectory);
   if (!context.mounted || manifestPath == null) return;
-  await notifier.loadProject(manifestPath);
+  await requestEditorProjectActivation(
+    context: context,
+    notifier: notifier,
+    manifestPath: manifestPath,
+  );
 }
 
 String resolveProjectManifestPathFromUserSelection(String value) {
