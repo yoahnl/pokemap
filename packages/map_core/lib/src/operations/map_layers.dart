@@ -73,7 +73,9 @@ MapData addMapLayer(
   final updatedLayers = List<MapLayer>.from(map.layers, growable: true);
   updatedLayers.insert(targetIndex, newLayer);
   return map.copyWith(
-    version: kind == MapLayerKind.border ? ProjectVersion.v2 : map.version,
+    version: kind == MapLayerKind.border && map.version == ProjectVersion.v1
+        ? ProjectVersion.v2
+        : map.version,
     layers: updatedLayers,
   );
 }

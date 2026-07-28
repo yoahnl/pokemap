@@ -13,6 +13,10 @@ _$MapDataImpl _$$MapDataImplFromJson(Map<String, dynamic> json) =>
       size: GridSize.fromJson(json['size'] as Map<String, dynamic>),
       version: $enumDecodeNullable(_$ProjectVersionEnumMap, json['version']) ??
           ProjectVersion.v1,
+      visualStack: json['visualStack'] == null
+          ? null
+          : MapVisualStackConfig.fromJson(
+              json['visualStack'] as Map<String, dynamic>),
       tilesetId: json['tilesetId'] as String? ?? '',
       layers: (json['layers'] as List<dynamic>?)
               ?.map((e) => MapLayer.fromJson(e as Map<String, dynamic>))
@@ -59,6 +63,8 @@ Map<String, dynamic> _$$MapDataImplToJson(_$MapDataImpl instance) =>
       'name': instance.name,
       'size': instance.size.toJson(),
       'version': _$ProjectVersionEnumMap[instance.version]!,
+      if (instance.visualStack?.toJson() case final value?)
+        'visualStack': value,
       'tilesetId': instance.tilesetId,
       'layers': instance.layers.map((e) => e.toJson()).toList(),
       'placedElements': instance.placedElements.map((e) => e.toJson()).toList(),
@@ -75,6 +81,7 @@ Map<String, dynamic> _$$MapDataImplToJson(_$MapDataImpl instance) =>
 const _$ProjectVersionEnumMap = {
   ProjectVersion.v1: 'v1',
   ProjectVersion.v2: 'v2',
+  ProjectVersion.v3: 'v3',
 };
 
 _$MapGameplayZoneImpl _$$MapGameplayZoneImplFromJson(

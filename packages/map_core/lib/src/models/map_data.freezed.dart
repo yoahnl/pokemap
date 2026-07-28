@@ -24,6 +24,8 @@ mixin _$MapData {
   String get name => throw _privateConstructorUsedError;
   GridSize get size => throw _privateConstructorUsedError;
   ProjectVersion get version => throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
+  MapVisualStackConfig? get visualStack => throw _privateConstructorUsedError;
   String get tilesetId => throw _privateConstructorUsedError;
   List<MapLayer> get layers => throw _privateConstructorUsedError;
   List<MapPlacedElement> get placedElements =>
@@ -59,6 +61,7 @@ abstract class $MapDataCopyWith<$Res> {
       String name,
       GridSize size,
       ProjectVersion version,
+      @JsonKey(includeIfNull: false) MapVisualStackConfig? visualStack,
       String tilesetId,
       List<MapLayer> layers,
       List<MapPlacedElement> placedElements,
@@ -94,6 +97,7 @@ class _$MapDataCopyWithImpl<$Res, $Val extends MapData>
     Object? name = null,
     Object? size = null,
     Object? version = null,
+    Object? visualStack = freezed,
     Object? tilesetId = null,
     Object? layers = null,
     Object? placedElements = null,
@@ -123,6 +127,10 @@ class _$MapDataCopyWithImpl<$Res, $Val extends MapData>
           ? _value.version
           : version // ignore: cast_nullable_to_non_nullable
               as ProjectVersion,
+      visualStack: freezed == visualStack
+          ? _value.visualStack
+          : visualStack // ignore: cast_nullable_to_non_nullable
+              as MapVisualStackConfig?,
       tilesetId: null == tilesetId
           ? _value.tilesetId
           : tilesetId // ignore: cast_nullable_to_non_nullable
@@ -203,6 +211,7 @@ abstract class _$$MapDataImplCopyWith<$Res> implements $MapDataCopyWith<$Res> {
       String name,
       GridSize size,
       ProjectVersion version,
+      @JsonKey(includeIfNull: false) MapVisualStackConfig? visualStack,
       String tilesetId,
       List<MapLayer> layers,
       List<MapPlacedElement> placedElements,
@@ -238,6 +247,7 @@ class __$$MapDataImplCopyWithImpl<$Res>
     Object? name = null,
     Object? size = null,
     Object? version = null,
+    Object? visualStack = freezed,
     Object? tilesetId = null,
     Object? layers = null,
     Object? placedElements = null,
@@ -267,6 +277,10 @@ class __$$MapDataImplCopyWithImpl<$Res>
           ? _value.version
           : version // ignore: cast_nullable_to_non_nullable
               as ProjectVersion,
+      visualStack: freezed == visualStack
+          ? _value.visualStack
+          : visualStack // ignore: cast_nullable_to_non_nullable
+              as MapVisualStackConfig?,
       tilesetId: null == tilesetId
           ? _value.tilesetId
           : tilesetId // ignore: cast_nullable_to_non_nullable
@@ -324,6 +338,7 @@ class _$MapDataImpl implements _MapData {
       required this.name,
       required this.size,
       this.version = ProjectVersion.v1,
+      @JsonKey(includeIfNull: false) this.visualStack,
       this.tilesetId = '',
       final List<MapLayer> layers = const [],
       final List<MapPlacedElement> placedElements = const [],
@@ -357,6 +372,9 @@ class _$MapDataImpl implements _MapData {
   @override
   @JsonKey()
   final ProjectVersion version;
+  @override
+  @JsonKey(includeIfNull: false)
+  final MapVisualStackConfig? visualStack;
   @override
   @JsonKey()
   final String tilesetId;
@@ -451,7 +469,7 @@ class _$MapDataImpl implements _MapData {
 
   @override
   String toString() {
-    return 'MapData(id: $id, name: $name, size: $size, version: $version, tilesetId: $tilesetId, layers: $layers, placedElements: $placedElements, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, gameplayZones: $gameplayZones, mapMetadata: $mapMetadata, properties: $properties, events: $events)';
+    return 'MapData(id: $id, name: $name, size: $size, version: $version, visualStack: $visualStack, tilesetId: $tilesetId, layers: $layers, placedElements: $placedElements, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, gameplayZones: $gameplayZones, mapMetadata: $mapMetadata, properties: $properties, events: $events)';
   }
 
   @override
@@ -463,6 +481,8 @@ class _$MapDataImpl implements _MapData {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.size, size) || other.size == size) &&
             (identical(other.version, version) || other.version == version) &&
+            (identical(other.visualStack, visualStack) ||
+                other.visualStack == visualStack) &&
             (identical(other.tilesetId, tilesetId) ||
                 other.tilesetId == tilesetId) &&
             const DeepCollectionEquality().equals(other._layers, _layers) &&
@@ -490,6 +510,7 @@ class _$MapDataImpl implements _MapData {
       name,
       size,
       version,
+      visualStack,
       tilesetId,
       const DeepCollectionEquality().hash(_layers),
       const DeepCollectionEquality().hash(_placedElements),
@@ -524,6 +545,7 @@ abstract class _MapData implements MapData {
       required final String name,
       required final GridSize size,
       final ProjectVersion version,
+      @JsonKey(includeIfNull: false) final MapVisualStackConfig? visualStack,
       final String tilesetId,
       final List<MapLayer> layers,
       final List<MapPlacedElement> placedElements,
@@ -546,6 +568,9 @@ abstract class _MapData implements MapData {
   GridSize get size;
   @override
   ProjectVersion get version;
+  @override
+  @JsonKey(includeIfNull: false)
+  MapVisualStackConfig? get visualStack;
   @override
   String get tilesetId;
   @override

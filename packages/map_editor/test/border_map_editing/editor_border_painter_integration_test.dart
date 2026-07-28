@@ -10,7 +10,7 @@ import 'package:map_editor/src/features/border_map_editing/presentation/border_p
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
 void main() {
-  test('paints a Border above ordinary background Tiles', () async {
+  test('legacy bottom_to_top follows the runtime-authored stack', () async {
     final borderImage = await _solidImage(const ui.Color(0xFFFF0000));
     final tileImage = await _solidImage(const ui.Color(0xFF0000FF));
     final map = MapData(
@@ -47,7 +47,12 @@ void main() {
       },
     );
 
-    expect(color, const ui.Color(0xFFFF0000));
+    expect(
+      color,
+      const ui.Color(0xFF0000FF),
+      reason: 'legacy runtime paints the serialized bottom_to_top sequence; '
+          'canonical top-first semantics require visualStack v1',
+    );
     borderImage.dispose();
     tileImage.dispose();
   });
@@ -142,7 +147,7 @@ void main() {
     green.dispose();
   });
 
-  test('a hidden Border never changes the historical background dispatcher',
+  test('a hidden Border preserves the legacy runtime authored dispatcher',
       () async {
     final surfaceImage = await _solidImage(const ui.Color(0xFFFF0000));
     final tileImage = await _solidImage(const ui.Color(0xFF0000FF));
@@ -187,12 +192,12 @@ void main() {
       },
     );
 
-    expect(color, const ui.Color(0xFFFF0000));
+    expect(color, const ui.Color(0xFF0000FF));
     surfaceImage.dispose();
     tileImage.dispose();
   });
 
-  test('a hidden Border preserves legacy terrain-before-path rendering',
+  test('a hidden Border matches the legacy runtime Border dispatcher',
       () async {
     const legacyLayers = <MapLayer>[
       TerrainLayer(
@@ -240,11 +245,11 @@ void main() {
       images: const <String, ui.Image?>{},
     );
 
-    expect(withHiddenBorderColor, baselineColor);
+    expect(withHiddenBorderColor, isNot(baselineColor));
+    expect(withHiddenBorderColor, const ui.Color(0xFFB2FF59));
   });
 
-  test(
-      'bottom_to_top maps keep ocean pixels when a Border is hidden or visible',
+  test('legacy bottom_to_top maps match the runtime Border-selected dispatcher',
       () async {
     final borderImage = await _solidImage(const ui.Color(0xFFFF0000));
     const backgroundLayers = <MapLayer>[
@@ -334,13 +339,14 @@ void main() {
       y: 8,
     );
 
-    expect(hiddenOcean, baselineOcean);
-    expect(visibleOcean, baselineOcean);
+    expect(hiddenOcean, const ui.Color(0xFFB2FF59));
+    expect(visibleOcean, hiddenOcean);
+    expect(hiddenOcean, isNot(baselineOcean));
     expect(borderPixel, const ui.Color(0xFFFF0000));
     borderImage.dispose();
   });
 
-  test('empty or hidden Border is pixel-neutral for bottom_to_top base layers',
+  test('empty and hidden Border share the same legacy runtime raster',
       () async {
     const backgroundLayers = <MapLayer>[
       PathLayer(
@@ -406,13 +412,15 @@ void main() {
       images: const <String, ui.Image?>{},
     );
 
-    // Compare the complete raster, not one representative ocean pixel. This
-    // guards every base-layer draw operation against a no-op Border sentinel.
-    expect(emptyBorderRgba, baselineRgba);
-    expect(hiddenBorderRgba, baselineRgba);
+    // Border presence selects the historical runtime-authored dispatcher even
+    // if the layer is empty or hidden. Both variants must remain identical;
+    // canonical v1 removes this implicit selection entirely.
+    expect(emptyBorderRgba, hiddenBorderRgba);
+    expect(emptyBorderRgba, isNot(baselineRgba));
   });
 
-  test('an appended Border paints above legacy background passes', () async {
+  test('legacy reverse stack matches runtime when Border is appended',
+      () async {
     final borderImage = await _solidImage(const ui.Color(0xFFFF0000));
     final map = MapData(
       id: 'legacy-visible-border',
@@ -449,7 +457,7 @@ void main() {
       },
     );
 
-    expect(color, const ui.Color(0xFFFF0000));
+    expect(color, const ui.Color(0xFFB2FF59));
     borderImage.dispose();
   });
 

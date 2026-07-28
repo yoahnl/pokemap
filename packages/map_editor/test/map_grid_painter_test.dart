@@ -639,17 +639,21 @@ void main() {
       final source = File(
         'lib/src/ui/canvas/map_canvas/map_grid_painter.dart',
       ).readAsStringSync();
-      final projectedPaintIndex = source.indexOf(
-        'paintEditorStaticShadowPreviewInstructions(\n'
-        '      canvas,\n'
-        '      projectedBuildingShadowPreviewInstructions,\n'
-        '    );',
+      final shadowStepStart = source.indexOf(
+        'case MapVisualCompositionStepKind.shadows:',
       );
-      final staticPaintIndex = source.indexOf(
-        'paintEditorStaticShadowPreviewInstructions(\n'
-        '      canvas,\n'
-        '      staticShadowPreviewInstructions,\n'
-        '    );',
+      final nextStepStart = source.indexOf(
+        'case MapVisualCompositionStepKind.placedElements:',
+        shadowStepStart,
+      );
+      expect(shadowStepStart, isNonNegative);
+      expect(nextStepStart, isNonNegative);
+      final shadowStepSource = source.substring(shadowStepStart, nextStepStart);
+      final projectedPaintIndex = shadowStepSource.indexOf(
+        'projectedBuildingShadowPreviewInstructions',
+      );
+      final staticPaintIndex = shadowStepSource.indexOf(
+        'staticShadowPreviewInstructions',
       );
 
       expect(projectedPaintIndex, isNonNegative);

@@ -49,7 +49,8 @@ class MapLayersComponent extends PositionComponent {
     this.shadowRenderer = const ShadowRuntimeRenderer(),
     this.borderAssets,
     this.borderRenderer = const BorderRuntimeRenderer(),
-  })  : _terrainPresetsByType = runtimeTerrainPresetsByType(bundle.manifest),
+  })  : _runtimeLayerPaintOrder = buildRuntimeMapLayerPaintOrder(bundle.map),
+        _terrainPresetsByType = runtimeTerrainPresetsByType(bundle.manifest),
         _pathAutotileByPresetId = {
           for (final p in bundle.manifest.pathPresets)
             p.id: RuntimePathAutotileSet.fromPreset(p),
@@ -120,17 +121,7 @@ class MapLayersComponent extends PositionComponent {
   /// le viewport culling. Si `null`, toute la carte est peinte (fallback).
   Rect? _visibleLocalRect;
 
-  /// Cache de la liste des layers visibles — invalidé quand le bundle change.
-  List<MapLayer>? _cachedVisibleLayers;
-
-  /// Les projets historiques stockent les couches visuelles de haut en bas et
-  /// restent donc peints en ordre inverse. Les maps qui déclarent explicitement
-  /// `tileLayerOrder: bottom_to_top` suivent le contrat cartographique moderne
-  /// et sont peintes dans l'ordre sérialisé, sans modifier le rendu legacy.
-  List<TileLayer>? _cachedVisibleTileLayersInPaintOrder;
-
-  late final RuntimeMapLayerPaintOrder _runtimeLayerPaintOrder =
-      buildRuntimeMapLayerPaintOrder(bundle.map);
+  final MapVisualCompositionPlan _runtimeLayerPaintOrder;
 
   /// Met à jour le rectangle visible **en coordonnées locales** du composant.
   ///
@@ -318,146 +309,24 @@ class MapLayersComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    final visible = _cachedVisibleLayers ??=
-        bundle.map.layers.where((l) => l.isVisible).toList(growable: false);
-    final visibleTileLayers = _cachedVisibleTileLayersInPaintOrder ??=
-        _visibleTileLayersInPaintOrder(visible);
-    if (renderPass == MapLayerRenderPass.foreground) {
-      for (final layer in visibleTileLayers) {
-        _paintTileLayerAndElements(canvas, layer);
-      }
-      _paintEntities(canvas);
-      return;
-    }
-    final paintOrder = _runtimeLayerPaintOrder;
-    if (paintOrder.usesAuthoredVisualLayerOrder) {
-      _renderAuthoredBackground(
-        canvas,
-        paintOrder: paintOrder,
-        visible: visible,
-      );
-      return;
-    }
-    _renderLegacyBackground(
-      canvas,
-      visible: visible,
-      visibleTileLayers: visibleTileLayers,
-    );
-  }
-
-  void _renderLegacyBackground(
-    Canvas canvas, {
-    required List<MapLayer> visible,
-    required List<TileLayer> visibleTileLayers,
-  }) {
-    TileLayer? deferredPathGroundLayer;
-    final deferredPathLayers = <PathLayer>[];
-    // This opt-in is deliberately limited to the first background tile layer.
-    // It lets an editable path sit over a ground texture while preserving the
-    // historic order for shadows, placed elements and every later tile layer.
-    if (visibleTileLayers.isNotEmpty) {
-      final candidate = visibleTileLayers.first;
-      final isForeground = _isExplicitForegroundTileLayer(
-        layerId: candidate.id,
-        layerName: candidate.name,
-      );
-      if (!isForeground) {
-        for (var index = visible.length - 1; index >= 0; index -= 1) {
-          final layer = visible[index];
-          if (layer is! PathLayer) continue;
-          final targetId =
-              layer.properties['paintAfterTileLayerId']?.trim() ?? '';
-          if (targetId == candidate.id) {
-            deferredPathLayers.add(layer);
-          }
-        }
-        if (deferredPathLayers.isNotEmpty) {
-          deferredPathGroundLayer = candidate;
-        }
-      }
-    }
-    final deferredPathLayerIds = <String>{
-      for (final layer in deferredPathLayers) layer.id,
-    };
-    for (var i = visible.length - 1; i >= 0; i--) {
-      visible[i].whenOrNull(
-        terrain: (id, name, v, o, terrains) =>
-            _paintTerrainLayer(canvas, terrains, o),
-      );
-    }
-    for (var i = visible.length - 1; i >= 0; i--) {
-      if (deferredPathLayerIds.contains(visible[i].id)) {
-        continue;
-      }
-      visible[i].whenOrNull(
-        path: (id, name, v, o, presetId, cells, properties, animationMode,
-                animationTriggers) =>
-            _paintPathLayer(canvas, id, presetId, cells, o),
-      );
-    }
-    for (var i = visible.length - 1; i >= 0; i--) {
-      final layer = visible[i];
-      if (layer is SurfaceLayer) {
-        _paintSurfaceLayer(canvas, layer);
-      }
-    }
-    if (deferredPathGroundLayer != null) {
-      final groundLayer = deferredPathGroundLayer;
-      _paintTileLayer(
-        canvas,
-        layerId: groundLayer.id,
-        layerName: groundLayer.name,
-        tilesetId: groundLayer.tilesetId,
-        tiles: groundLayer.tiles,
-        opacity: groundLayer.opacity,
-      );
-      for (final pathLayer in deferredPathLayers) {
-        _paintPathLayer(
-          canvas,
-          pathLayer.id,
-          pathLayer.presetId,
-          pathLayer.cells,
-          pathLayer.opacity,
-        );
-      }
-      _paintShadows(canvas);
-      _paintPlacedElementsForLayer(
-        canvas,
-        layerId: groundLayer.id,
-        layerName: groundLayer.name,
-        opacity: groundLayer.opacity,
-      );
-      for (var index = 1; index < visibleTileLayers.length; index += 1) {
-        _paintTileLayerAndElements(canvas, visibleTileLayers[index]);
-      }
-      _paintEntities(canvas);
-      if (showCollisionOverlay) {
-        _paintCollisionOverlays(canvas, visible);
-      }
-      return;
-    }
-    _paintShadows(canvas);
-    for (final layer in visibleTileLayers) {
-      _paintTileLayerAndElements(canvas, layer);
-    }
-    _paintEntities(canvas);
-    if (showCollisionOverlay) {
-      _paintCollisionOverlays(canvas, visible);
+    for (final step in _runtimeLayerPaintOrder.steps) {
+      _renderVisualCompositionStep(canvas, step);
     }
   }
 
-  void _renderAuthoredBackground(
-    Canvas canvas, {
-    required RuntimeMapLayerPaintOrder paintOrder,
-    required List<MapLayer> visible,
-  }) {
-    for (final entry in paintOrder.authoredLayers) {
-      switch (entry.kind) {
-        case RuntimeMapAuthoredLayerPaintKind.terrain:
-          final layer = entry.layer as TerrainLayer;
+  void _renderVisualCompositionStep(
+    Canvas canvas,
+    MapVisualCompositionStep step,
+  ) {
+    switch (step.kind) {
+      case MapVisualCompositionStepKind.terrainLayer:
+        if (renderPass == MapLayerRenderPass.background) {
+          final layer = step.layer! as TerrainLayer;
           _paintTerrainLayer(canvas, layer.terrains, layer.opacity);
-        case RuntimeMapAuthoredLayerPaintKind.path:
-          final layer = entry.layer as PathLayer;
+        }
+      case MapVisualCompositionStepKind.pathLayer:
+        if (renderPass == MapLayerRenderPass.background) {
+          final layer = step.layer! as PathLayer;
           _paintPathLayer(
             canvas,
             layer.id,
@@ -465,10 +334,14 @@ class MapLayersComponent extends PositionComponent {
             layer.cells,
             layer.opacity,
           );
-        case RuntimeMapAuthoredLayerPaintKind.surface:
-          _paintSurfaceLayer(canvas, entry.layer as SurfaceLayer);
-        case RuntimeMapAuthoredLayerPaintKind.tileBackground:
-          final layer = entry.layer as TileLayer;
+        }
+      case MapVisualCompositionStepKind.surfaceLayer:
+        if (renderPass == MapLayerRenderPass.background) {
+          _paintSurfaceLayer(canvas, step.layer! as SurfaceLayer);
+        }
+      case MapVisualCompositionStepKind.tileBackgroundLayer:
+        if (renderPass == MapLayerRenderPass.background) {
+          final layer = step.layer! as TileLayer;
           _paintTileLayer(
             canvas,
             layerId: layer.id,
@@ -477,26 +350,51 @@ class MapLayersComponent extends PositionComponent {
             tiles: layer.tiles,
             opacity: layer.opacity,
           );
-        case RuntimeMapAuthoredLayerPaintKind.border:
-          _paintBorderLayer(canvas, entry.layer as BorderLayer);
-        case RuntimeMapAuthoredLayerPaintKind.objectNoop:
-        case RuntimeMapAuthoredLayerPaintKind.environmentNoop:
-          break;
-      }
-    }
-
-    _paintShadows(canvas);
-    for (final layer in paintOrder.visibleTileLayersInPaintOrder) {
-      _paintPlacedElementsForLayer(
-        canvas,
-        layerId: layer.id,
-        layerName: layer.name,
-        opacity: layer.opacity,
-      );
-    }
-    _paintEntities(canvas);
-    if (showCollisionOverlay) {
-      _paintCollisionOverlays(canvas, visible);
+        }
+      case MapVisualCompositionStepKind.borderLayer:
+        if (renderPass == MapLayerRenderPass.background) {
+          _paintBorderLayer(canvas, step.layer! as BorderLayer);
+        }
+      case MapVisualCompositionStepKind.objectNoop:
+      case MapVisualCompositionStepKind.environmentNoop:
+        break;
+      case MapVisualCompositionStepKind.shadows:
+        if (renderPass == MapLayerRenderPass.background) {
+          _paintShadows(canvas);
+        }
+      case MapVisualCompositionStepKind.placedElements:
+        if (renderPass == MapLayerRenderPass.background) {
+          final layer = step.layer! as TileLayer;
+          _paintPlacedElementsForLayer(
+            canvas,
+            layerId: layer.id,
+            layerName: layer.name,
+            opacity: layer.opacity,
+          );
+        }
+      case MapVisualCompositionStepKind.backgroundEntities:
+        if (renderPass == MapLayerRenderPass.background) {
+          _paintEntities(canvas);
+        }
+      case MapVisualCompositionStepKind.foregroundTilesAndPlacedElements:
+        if (renderPass == MapLayerRenderPass.foreground) {
+          for (final layer
+              in _runtimeLayerPaintOrder.visibleTileLayersInPaintOrder) {
+            _paintTileLayerAndElements(canvas, layer);
+          }
+        }
+      case MapVisualCompositionStepKind.foregroundEntities:
+        if (renderPass == MapLayerRenderPass.foreground) {
+          _paintEntities(canvas);
+        }
+      case MapVisualCompositionStepKind.collisionOverlay:
+        if (renderPass == MapLayerRenderPass.background &&
+            showCollisionOverlay) {
+          _paintCollisionOverlays(
+            canvas,
+            _runtimeLayerPaintOrder.visibleCollisionLayersInPaintOrder,
+          );
+        }
     }
   }
 
@@ -543,22 +441,14 @@ class MapLayersComponent extends PositionComponent {
     );
   }
 
-  void _paintCollisionOverlays(Canvas canvas, List<MapLayer> visible) {
-    for (var i = visible.length - 1; i >= 0; i--) {
-      visible[i].whenOrNull(
-        collision: (id, name, v, o, collisions) =>
-            _paintCollisionLayer(canvas, collisions, o),
-      );
+  void _paintCollisionOverlays(
+    Canvas canvas,
+    Iterable<CollisionLayer> layers,
+  ) {
+    for (final layer in layers) {
+      _paintCollisionLayer(canvas, layer.collisions, layer.opacity);
     }
     _paintPlacedElementsCollisionOverlay(canvas);
-  }
-
-  List<TileLayer> _visibleTileLayersInPaintOrder(List<MapLayer> visible) {
-    final layers = visible.whereType<TileLayer>().toList(growable: false);
-    if (bundle.map.properties['tileLayerOrder'] == 'bottom_to_top') {
-      return layers;
-    }
-    return layers.reversed.toList(growable: false);
   }
 
   void _paintShadows(Canvas canvas) {

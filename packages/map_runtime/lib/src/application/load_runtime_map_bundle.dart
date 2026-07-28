@@ -100,6 +100,15 @@ Future<MapData> loadMapDataFromFile(
       map,
       projectDialogueContext: projectDialogueContext,
     );
+    final visualComposition = buildMapVisualCompositionPlan(map);
+    if (!visualComposition.canCompose) {
+      final details = visualComposition.diagnostics
+          .map((diagnostic) => diagnostic.message)
+          .join(' ');
+      throw MapLoadException(
+        'Map ${map.id} cannot be composed by this runtime. $details',
+      );
+    }
     _runtimeLoaderLog(
       'map validated id=${map.id} size=${map.size.width}x${map.size.height} layers=${map.layers.length} entities=${map.entities.length} placedElements=${map.placedElements.length} warps=${map.warps.length} triggers=${map.triggers.length}',
     );

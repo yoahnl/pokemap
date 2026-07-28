@@ -23,6 +23,7 @@ import '../../../application/use_cases/environment_generator_use_cases.dart';
 import '../../../application/use_cases/environment_mask_use_cases.dart';
 import '../../../application/use_cases/layer_use_cases.dart';
 import '../../../application/use_cases/map_use_cases.dart';
+import '../../../application/use_cases/map_visual_stack_migration_use_case.dart';
 import '../../../application/use_cases/tile_layer_environment_area_management_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_area_settings_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_attachment_use_cases.dart';
@@ -1204,6 +1205,17 @@ class EditorNotifier extends _$EditorNotifier {
   }) {
     final map = state.activeMap;
     if (map == null) return false;
+    final visualComposition = buildMapVisualCompositionPlan(map);
+    if (visualComposition.requiresReadOnly) {
+      final detail = visualComposition.diagnostics
+          .map((diagnostic) => diagnostic.message)
+          .join(' ');
+      state = state.copyWith(
+        errorMessage: 'Cette carte utilise une version de pile visuelle '
+            'inconnue et reste en lecture seule. $detail',
+      );
+      return true;
+    }
     try {
       _projectMapIdPolicy.requireValid(map.id);
       final workspace = _projectWorkspace;
@@ -2190,6 +2202,14 @@ class EditorNotifier extends _$EditorNotifier {
         ),
         statusMessage: 'Carte « ${map.id} » chargée',
       );
+      final visualComposition = buildMapVisualCompositionPlan(map);
+      if (visualComposition.requiresReadOnly) {
+        state = state.copyWith(
+          statusMessage: 'Carte « ${map.id} » ouverte en lecture seule',
+          errorMessage: 'Version de pile visuelle non prise en charge. '
+              '${visualComposition.diagnostics.map((diagnostic) => diagnostic.message).join(' ')}',
+        );
+      }
       _rememberMapDocumentRevision(
         targetPath,
         revision: loadedDocument.revision,
@@ -3130,6 +3150,86 @@ class EditorNotifier extends _$EditorNotifier {
                 ),
           project: project,
         );
+  }
+
+  /// Captures the exact project render inputs used by the active map canvas.
+  ///
+  /// Paths are resolved while this notifier still owns the project workspace;
+  /// loading and decoding remain asynchronous in the UI renderer.
+  MapVisualStackMigrationRenderInputs?
+      activeMapVisualStackMigrationRenderInputs() {
+    final map = state.activeMap;
+    if (map == null) return null;
+    final project = state.project;
+    final assetPathsById = <String, String>{};
+    if (project != null) {
+      for (final tileset in project.tilesets) {
+        final path = getTilesetAbsolutePathById(tileset.id);
+        if (path != null && path.trim().isNotEmpty) {
+          assetPathsById[tileset.id] = path;
+        }
+      }
+    }
+    return MapVisualStackMigrationRenderInputs(
+      project: project,
+      projectRootPath: state.projectRootPath,
+      assetPathsById: assetPathsById,
+      pathAutotileSetsByPresetId: getPathAutotileSetsByPresetId(),
+      terrainPresetsByType: getTerrainPresetByType(),
+    );
+  }
+
+  /// Builds the full before/after Gate 1 preview without mutating editor state.
+  Future<EditorMapVisualStackMigrationPreview?>
+      previewActiveMapVisualStackMigration({
+    required MapVisualStackRenderedPixelComparator compareRenderedPixels,
+  }) async {
+    final map = state.activeMap;
+    if (map == null) return null;
+    return const MapVisualStackMigrationUseCase().preview(
+      map,
+      compareRenderedPixels: compareRenderedPixels,
+    );
+  }
+
+  /// Accepts one exact reviewed preview as a normal undoable map mutation.
+  ///
+  /// Persistence stays in the existing revisioned save lifecycle, so accepting
+  /// a visual migration never performs a hidden write or saves unrelated
+  /// authoring changes.
+  void migrateActiveMapVisualStack(
+    EditorMapVisualStackMigrationPreview preview,
+  ) {
+    final map = state.activeMap;
+    if (map == null || _rejectPendingBorderPreviewDirectMapWrite()) return;
+    try {
+      final migrated = const MapVisualStackMigrationUseCase().apply(
+        map: map,
+        preview: preview,
+      );
+      if (identical(migrated, map)) {
+        state = state.copyWith(
+          statusMessage: 'La pile visuelle de cette carte est déjà en v1.',
+          errorMessage: null,
+        );
+        return;
+      }
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: migrated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedEntityId: state.selectedEntityId,
+        preferredSelectedWarpId: state.selectedWarpId,
+        preferredSelectedTriggerId: state.selectedTriggerId,
+        statusMessage: 'Pile visuelle v1 adoptée — sauvegardez la carte pour '
+            'persister cette migration.',
+      );
+    } on Object catch (error) {
+      state = state.copyWith(
+        statusMessage: null,
+        errorMessage: 'La migration de pile visuelle a été refusée : $error',
+      );
+    }
   }
 
   Future<void> resizeActiveMap(int width, int height) async {

@@ -46,6 +46,47 @@ void main() {
     expect(bundle.manifest, same(manifest));
     expect(bundle.map.id, 'p3_test_map');
   });
+
+  test('rejects an unsupported future visual-stack version explicitly',
+      () async {
+    final workspace = await Directory.systemTemp.createTemp(
+      'runtime_unsupported_visual_stack_',
+    );
+    addTearDown(() => workspace.delete(recursive: true));
+    final mapFile = File(p.join(workspace.path, 'future-map.json'));
+    await mapFile.writeAsString(
+      jsonEncode(
+        MapData(
+          id: 'future-map',
+          name: 'Future map',
+          size: const GridSize(width: 1, height: 1),
+          version: ProjectVersion.v3,
+          visualStack: MapVisualStackConfig(semanticsVersion: 99),
+        ).toJson(),
+      ),
+    );
+
+    await expectLater(
+      loadMapDataFromFile(
+        mapFile.path,
+        projectDialogueContext: const ProjectManifest(
+          name: 'Runtime visual stack test',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+        ),
+      ),
+      throwsA(
+        isA<MapLoadException>().having(
+          (error) => error.message,
+          'message',
+          allOf(
+            contains('Visual stack semantics version 99 is not supported'),
+            contains('legacy rendering was not used'),
+          ),
+        ),
+      ),
+    );
+  });
 }
 
 Map<String, dynamic> _legacyBuildingProjectJson() {

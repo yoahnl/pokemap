@@ -14,6 +14,25 @@ import '../errors/application_errors.dart';
 /// journal makes the multi-file lifecycle recoverable rather than atomic.
 enum MapLifecycleOperation { create, duplicate, rename, delete }
 
+/// Refuses every lifecycle mutation whose perceptible stack semantics cannot
+/// be interpreted by this editor.
+///
+/// This guard intentionally lives above persistence. Rename, duplicate and
+/// delete are writes too: allowing one of them to proceed would either erase
+/// an unknown document or persist a copied/renamed document after silently
+/// discarding semantics that only a newer editor understands.
+void requireWritableMapVisualStackForLifecycle(MapData map) {
+  final composition = buildMapVisualCompositionPlan(map);
+  if (!composition.requiresReadOnly) return;
+  final semanticsVersion = map.visualStack?.semanticsVersion;
+  throw EditorInvalidOperationException(
+    'La carte « ${map.id} » utilise visualStack semanticsVersion '
+    '$semanticsVersion, inconnue de cet éditeur. Elle reste strictement en '
+    'lecture seule : renommer, dupliquer ou supprimer exige un éditeur '
+    'compatible.',
+  );
+}
+
 /// Last durable evidence written to the lifecycle journal.
 ///
 /// Recovery never trusts this phase alone. It always re-reads project and map
@@ -504,6 +523,10 @@ final class MapLifecycleTransactionCoordinator {
     String canonicalProjectPath,
   ) async {
     await _recoverLocked(canonicalProjectPath);
+    final targetMap = request.targetMap;
+    if (targetMap != null) {
+      requireWritableMapVisualStackForLifecycle(targetMap);
+    }
     _requireProjectMapPaths(
       canonicalProjectPath,
       request.sourcePath,
@@ -615,6 +638,15 @@ final class MapLifecycleTransactionCoordinator {
     MapLifecycleTransactionRecord initialRecord,
   ) async {
     var record = initialRecord;
+    final targetMap = record.targetMap;
+    if (targetMap != null) {
+      try {
+        requireWritableMapVisualStackForLifecycle(targetMap);
+      } on EditorInvalidOperationException catch (error) {
+        _blocked(record.projectPath, error.message);
+      }
+    }
+    await _requirePresentSourceVisualStackWritable(record);
     var currentProject = await gateway.readProject(record.projectPath);
     final projectIsBefore = currentProject.project == record.beforeProject;
     final projectIsAfter = currentProject.project == record.afterProject;
@@ -785,6 +817,26 @@ final class MapLifecycleTransactionCoordinator {
         canonicalProjectPath,
         'La source "$sourcePath" ne possède plus la révision préparée.',
       );
+    }
+    try {
+      requireWritableMapVisualStackForLifecycle(current.map);
+    } on EditorInvalidOperationException catch (error) {
+      if (!journalIsDurable) rethrow;
+      _blocked(canonicalProjectPath, error.message);
+    }
+  }
+
+  Future<void> _requirePresentSourceVisualStackWritable(
+    MapLifecycleTransactionRecord record,
+  ) async {
+    final sourcePath = record.sourcePath;
+    if (sourcePath == null) return;
+    final current = await gateway.readMap(sourcePath);
+    if (current == null) return;
+    try {
+      requireWritableMapVisualStackForLifecycle(current.map);
+    } on EditorInvalidOperationException catch (error) {
+      _blocked(record.projectPath, error.message);
     }
   }
 

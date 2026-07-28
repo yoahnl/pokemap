@@ -323,6 +323,16 @@ void collectTilesetIdsForEntityEditorVisuals({
   final trainersById = <String, ProjectTrainerEntry>{
     for (final t in project.trainers) t.id: t,
   };
+  for (final instance in map.placedElements) {
+    final entry = byId[instance.elementId.trim()];
+    if (entry == null || entry.frames.isEmpty) {
+      continue;
+    }
+    _collectProjectElementTilesetIds(
+      entry,
+      onTilesetId: onTilesetId,
+    );
+  }
   for (final ent in map.entities) {
     if (ent.kind == MapEntityKind.npc) {
       final direct = ent.npc?.characterId?.trim();
@@ -354,13 +364,23 @@ void collectTilesetIdsForEntityEditorVisuals({
     if (entry == null || entry.frames.isEmpty) {
       continue;
     }
-    for (final frame in entry.frames) {
-      final tid = frame.tilesetId.trim().isNotEmpty
-          ? frame.tilesetId.trim()
-          : entry.tilesetId.trim();
-      if (tid.isNotEmpty) {
-        onTilesetId(tid);
-      }
+    _collectProjectElementTilesetIds(
+      entry,
+      onTilesetId: onTilesetId,
+    );
+  }
+}
+
+void _collectProjectElementTilesetIds(
+  ProjectElementEntry entry, {
+  required void Function(String tilesetId) onTilesetId,
+}) {
+  for (final frame in entry.frames) {
+    final tilesetId = frame.tilesetId.trim().isNotEmpty
+        ? frame.tilesetId.trim()
+        : entry.tilesetId.trim();
+    if (tilesetId.isNotEmpty) {
+      onTilesetId(tilesetId);
     }
   }
 }

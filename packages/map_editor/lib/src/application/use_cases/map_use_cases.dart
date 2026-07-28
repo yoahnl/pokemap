@@ -94,6 +94,8 @@ class CreateMapUseCase {
       id: canonicalMapId,
       name: canonicalMapId,
       size: GridSize(width: w, height: h),
+      version: ProjectVersion.v3,
+      visualStack: MapVisualStackConfig.canonicalV1,
       tilesetId: defaultTilesetId ?? '',
       layers: [
         MapLayer.tile(
@@ -401,6 +403,7 @@ class RenameMapUseCase {
     final sourceDocument = await _loadMapDocument(_mapRepo, oldPath);
     final mapData = sourceDocument.map;
     _requireLoadedMapIdentity(mapData, sourceEntry);
+    requireWritableMapVisualStackForLifecycle(mapData);
     final updatedMap = mapData.copyWith(
       id: canonicalNewId,
       name: canonicalNewId,
@@ -514,6 +517,7 @@ class DeleteMapUseCase {
     final sourceDocument = await _loadMapDocument(_mapRepo, mapPath);
     final mapData = sourceDocument.map;
     _requireLoadedMapIdentity(mapData, sourceEntry);
+    requireWritableMapVisualStackForLifecycle(mapData);
 
     final updatedMaps =
         project.maps.where((entry) => entry.id != mapId).toList();
@@ -587,6 +591,7 @@ class DuplicateMapUseCase {
     final sourceDocument = await _loadMapDocument(_mapRepo, sourcePath);
     final mapData = sourceDocument.map;
     _requireLoadedMapIdentity(mapData, sourceEntry);
+    requireWritableMapVisualStackForLifecycle(mapData);
     final duplicatedMap = mapData.copyWith(id: targetId, name: targetId);
     final updatedProject = project.copyWith(maps: [
       ...project.maps,

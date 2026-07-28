@@ -31,6 +31,17 @@ void main() {
       );
       expect(
           fixture.maps.revisionedSaves.single.path, '/project/maps/alpha.json');
+      expect(
+        fixture.maps.revisionedSaves.single.map.version,
+        ProjectVersion.v3,
+        reason:
+            'old readers must reject canonical visual-stack semantics safely',
+      );
+      expect(
+        fixture.maps.revisionedSaves.single.map.visualStack,
+        MapVisualStackConfig.canonicalV1,
+        reason: 'new maps opt in; existing maps are never migrated on load',
+      );
     });
 
     test('Duplicate uses expected absence for its target', () async {

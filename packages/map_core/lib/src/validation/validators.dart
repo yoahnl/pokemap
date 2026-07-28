@@ -1727,6 +1727,14 @@ class MapValidator {
         'Border layers require ProjectVersion.v2',
       );
     }
+    final visualStack = map.visualStack;
+    if (visualStack != null) {
+      if (map.version != ProjectVersion.v3) {
+        throw const ValidationException(
+          'visualStack requires ProjectVersion.v3',
+        );
+      }
+    }
 
     final expectedCellCount = map.size.width * map.size.height;
     for (final layer in map.layers) {

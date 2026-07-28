@@ -2,7 +2,7 @@
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-enum ProjectVersion { v1, v2 }
+enum ProjectVersion { v1, v2, v3 }
 
 enum MapGroupType {
   @JsonValue('city')

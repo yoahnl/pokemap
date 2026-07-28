@@ -10,6 +10,7 @@ import 'map_event_definition.dart';
 import 'map_gameplay_zone_payloads.dart';
 import 'map_layer.dart';
 import 'map_metadata.dart';
+import 'map_visual_stack_config.dart';
 import 'shadow.dart';
 
 import '../operations/map_placed_element_shadow_override_json_codec.dart';
@@ -25,6 +26,7 @@ class MapData with _$MapData {
     required String name,
     required GridSize size,
     @Default(ProjectVersion.v1) ProjectVersion version,
+    @JsonKey(includeIfNull: false) MapVisualStackConfig? visualStack,
     @Default('') String tilesetId,
     @Default([]) List<MapLayer> layers,
     @Default([]) List<MapPlacedElement> placedElements,
@@ -42,7 +44,20 @@ class MapData with _$MapData {
   }) = _MapData;
 
   factory MapData.fromJson(Map<String, dynamic> json) {
+    if (json.containsKey('visualStack')) {
+      final visualStack = json['visualStack'];
+      if (visualStack is! Map<String, dynamic>) {
+        throw const FormatException(
+          r'$.visualStack: expected an object',
+        );
+      }
+    }
     final map = _$MapDataFromJson(json);
+    if (map.visualStack != null && map.version != ProjectVersion.v3) {
+      throw const FormatException(
+        r'$.version: visualStack requires ProjectVersion.v3',
+      );
+    }
     if (map.version == ProjectVersion.v1) {
       final borderIndex =
           map.layers.indexWhere((layer) => layer is BorderLayer);

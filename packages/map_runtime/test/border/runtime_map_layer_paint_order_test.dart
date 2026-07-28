@@ -27,19 +27,22 @@ void main() {
         ),
       );
 
-      expect(order.usesAuthoredVisualLayerOrder, isTrue);
+      expect(order.strategy, MapVisualCompositionStrategy.authoredStack);
       expect(
-        order.authoredLayers
-            .map((entry) => '${entry.kind.name}:${entry.layer.id}'),
+        order.semantics,
+        MapVisualCompositionSemantics.legacyRuntimeV1,
+      );
+      expect(
+        order.authoredLayerSteps.map((step) => step.stableKey),
         const <String>[
-          'terrain:terrain',
-          'path:path',
-          'border:border-low',
-          'surface:surface',
-          'tileBackground:tile',
+          'terrainLayer:terrain',
+          'pathLayer:path',
+          'borderLayer:border-low',
+          'surfaceLayer:surface',
+          'tileBackgroundLayer:tile',
           'objectNoop:objects',
           'environmentNoop:environment',
-          'border:border-high',
+          'borderLayer:border-high',
         ],
       );
       expect(
@@ -74,7 +77,7 @@ void main() {
       );
 
       expect(
-        order.authoredLayers.map((entry) => entry.layer.id),
+        order.authoredLayerSteps.map((step) => step.layer!.id),
         const <String>[
           'border-low',
           'terrain',
@@ -116,10 +119,15 @@ void main() {
         ),
       );
 
-      expect(hiddenBorder.usesAuthoredVisualLayerOrder, isTrue);
-      expect(hiddenBorder.authoredLayers.map((entry) => entry.layer.id),
-          const <String>['tile']);
-      expect(noBorder.usesAuthoredVisualLayerOrder, isFalse);
+      expect(
+        hiddenBorder.strategy,
+        MapVisualCompositionStrategy.authoredStack,
+      );
+      expect(
+        hiddenBorder.authoredLayerSteps.map((step) => step.layer!.id),
+        const <String>['tile'],
+      );
+      expect(noBorder.strategy, MapVisualCompositionStrategy.legacyPhased);
     });
 
     test('keeps an opted-in path directly after its ground tile', () {
@@ -148,7 +156,7 @@ void main() {
       );
 
       expect(
-        order.authoredLayers.map((entry) => entry.layer.id),
+        order.authoredLayerSteps.map((step) => step.layer!.id),
         const <String>[
           'border-low',
           'ground',
@@ -173,15 +181,81 @@ void main() {
       );
 
       expect(
-        order.deferredSentinels,
-        const <RuntimeMapDeferredPaintSentinel>[
-          RuntimeMapDeferredPaintSentinel.shadows,
-          RuntimeMapDeferredPaintSentinel.backgroundPlacedElements,
-          RuntimeMapDeferredPaintSentinel.backgroundEntities,
-          RuntimeMapDeferredPaintSentinel.foregroundTilesAndPlacedElements,
-          RuntimeMapDeferredPaintSentinel.foregroundEntities,
-          RuntimeMapDeferredPaintSentinel.collisionOverlay,
+        order.steps.skip(1).map((step) => step.kind),
+        const <MapVisualCompositionStepKind>[
+          MapVisualCompositionStepKind.shadows,
+          MapVisualCompositionStepKind.backgroundEntities,
+          MapVisualCompositionStepKind.collisionOverlay,
+          MapVisualCompositionStepKind.foregroundTilesAndPlacedElements,
+          MapVisualCompositionStepKind.foregroundEntities,
         ],
+      );
+    });
+
+    test('canonical order is independent from Border presence', () {
+      MapVisualCompositionPlan plan({required bool includeHiddenBorder}) {
+        return buildRuntimeMapLayerPaintOrder(
+          MapData(
+            id: includeHiddenBorder ? 'with-border' : 'without-border',
+            name: 'Canonical',
+            size: const GridSize(width: 1, height: 1),
+            version: ProjectVersion.v3,
+            visualStack: MapVisualStackConfig.canonicalV1,
+            properties: const <String, dynamic>{
+              'tileLayerOrder': 'bottom_to_top',
+            },
+            layers: <MapLayer>[
+              const SurfaceLayer(id: 'surface-top', name: 'Surface top'),
+              const TileLayer(id: 'tile-bottom', name: 'Tile bottom'),
+              if (includeHiddenBorder)
+                const BorderLayer(
+                  id: 'hidden-border',
+                  name: 'Hidden Border',
+                  isVisible: false,
+                ),
+            ],
+          ),
+        );
+      }
+
+      final withoutBorder = plan(includeHiddenBorder: false);
+      final withBorder = plan(includeHiddenBorder: true);
+
+      expect(
+        withoutBorder.steps.map((step) => step.stableKey),
+        withBorder.steps.map((step) => step.stableKey),
+      );
+      expect(
+        withoutBorder.authoredLayerSteps.map((step) => step.stableKey),
+        const <String>[
+          'tileBackgroundLayer:tile-bottom',
+          'surfaceLayer:surface-top',
+        ],
+      );
+      expect(
+        withoutBorder.semantics,
+        MapVisualCompositionSemantics.canonicalV1,
+      );
+    });
+
+    test('rejects an unsupported future visual-stack version', () {
+      expect(
+        () => buildRuntimeMapLayerPaintOrder(
+          MapData(
+            id: 'future',
+            name: 'Future',
+            size: const GridSize(width: 1, height: 1),
+            version: ProjectVersion.v3,
+            visualStack: MapVisualStackConfig(semanticsVersion: 99),
+          ),
+        ),
+        throwsA(
+          isA<MapLoadException>().having(
+            (error) => error.message,
+            'message',
+            contains('legacy rendering was not used'),
+          ),
+        ),
       );
     });
   });

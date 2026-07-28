@@ -26,6 +26,63 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('MapLayersComponent Border authored ordering', () {
+    test(
+      'canonical top-first order is identical with or without a hidden Border',
+      () async {
+        Future<List<int>> renderedCenterPixel({
+          required bool includeHiddenBorder,
+        }) async {
+          final component = MapLayersComponent(
+            bundle: surfaceTestBundle(
+              map: MapData(
+                id: includeHiddenBorder
+                    ? 'canonical-hidden-border'
+                    : 'canonical-no-border',
+                name: 'Canonical',
+                size: const GridSize(width: 1, height: 1),
+                version: ProjectVersion.v3,
+                visualStack: MapVisualStackConfig.canonicalV1,
+                layers: <MapLayer>[
+                  surfaceTestLayer(),
+                  const TileLayer(
+                    id: 'tile',
+                    name: 'Tile',
+                    tilesetId: 'base',
+                    tiles: <int>[1],
+                  ),
+                  if (includeHiddenBorder)
+                    const BorderLayer(
+                      id: 'hidden-border',
+                      name: 'Hidden Border',
+                      isVisible: false,
+                    ),
+                ],
+              ),
+            ),
+            tileImagesByTilesetId: {
+              'surface-water': await runtimeTilesetImage(
+                const <Color>[Color(0xFF0000FF)],
+              ),
+              'base': await runtimeTilesetImage(
+                const <Color>[Color(0xFFFF0000)],
+              ),
+            },
+          );
+          final image = await renderSurfaceTestComponent(component);
+          return pixelAt(image, 16, 16);
+        }
+
+        expect(
+          await renderedCenterPixel(includeHiddenBorder: false),
+          rgba(0, 0, 255, 255),
+        );
+        expect(
+          await renderedCenterPixel(includeHiddenBorder: true),
+          rgba(0, 0, 255, 255),
+        );
+      },
+    );
+
     test('keeps the exact legacy visual phases when no Border exists',
         () async {
       final component = await _surfaceThenTileComponent(

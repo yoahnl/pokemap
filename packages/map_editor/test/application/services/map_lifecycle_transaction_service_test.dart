@@ -180,6 +180,88 @@ void main() {
       expect(fixture.gateway.journal, isNull);
     });
 
+    for (final operation in <MapLifecycleOperation>[
+      MapLifecycleOperation.rename,
+      MapLifecycleOperation.duplicate,
+      MapLifecycleOperation.delete,
+    ]) {
+      test(
+          '${operation.name} rejects future visual semantics before preparing '
+          'a journal', () async {
+        final fixture = _Fixture();
+        final futureSource = fixture.source.copyWith(
+          version: ProjectVersion.v3,
+          visualStack: MapVisualStackConfig(semanticsVersion: 99),
+        );
+        fixture.gateway.seedMap(_Fixture.sourcePath, futureSource);
+
+        await expectLater(
+          fixture.coordinator.execute(
+            switch (operation) {
+              MapLifecycleOperation.rename => fixture.renameRequest(),
+              MapLifecycleOperation.duplicate => fixture.duplicateRequest(),
+              MapLifecycleOperation.delete => fixture.deleteRequest(),
+              MapLifecycleOperation.create => throw StateError(
+                  'Create is outside this source lifecycle guard test.',
+                ),
+            },
+          ),
+          throwsA(
+            isA<EditorInvalidOperationException>().having(
+              (error) => error.message,
+              'message',
+              contains('strictement en lecture seule'),
+            ),
+          ),
+        );
+
+        expect(fixture.gateway.project, fixture.before);
+        expect(fixture.gateway.maps[_Fixture.sourcePath]!.map, futureSource);
+        expect(fixture.gateway.maps, isNot(contains(_Fixture.targetPath)));
+        expect(fixture.gateway.writtenStatuses, isEmpty);
+        expect(fixture.gateway.journal, isNull);
+      });
+    }
+
+    test('recovery blocks a pre-existing journal for a future visual stack',
+        () async {
+      final fixture = _Fixture();
+      final futureSource = fixture.source.copyWith(
+        version: ProjectVersion.v3,
+        visualStack: MapVisualStackConfig(semanticsVersion: 99),
+      );
+      fixture.gateway.seedMap(_Fixture.sourcePath, futureSource);
+      fixture.gateway.journal = MapLifecycleTransactionRecord.fromRequest(
+        request: fixture.renameRequest(),
+        canonicalProjectPath: _Fixture.projectPath,
+        projectBeforeRevision: fixture.gateway.projectRevision,
+      );
+
+      await expectLater(
+        MapLifecycleTransactionCoordinator(fixture.gateway).recover(
+          _Fixture.projectPath,
+        ),
+        throwsA(
+          isA<ProjectRecoveryBlockedException>()
+              .having(
+                (error) => error.code,
+                'code',
+                'mapLifecycleRecoveryBlocked',
+              )
+              .having(
+                (error) => error.message,
+                'message',
+                contains('strictement en lecture seule'),
+              ),
+        ),
+      );
+
+      expect(fixture.gateway.project, fixture.before);
+      expect(fixture.gateway.maps[_Fixture.sourcePath]!.map, futureSource);
+      expect(fixture.gateway.maps, isNot(contains(_Fixture.targetPath)));
+      expect(fixture.gateway.journal, isNotNull);
+    });
+
     test('recovery blocks instead of overwriting a target collision', () async {
       final fixture = _Fixture(
         crashAt: MapLifecycleTransactionCheckpoint.afterJournalPrepared,
@@ -379,6 +461,19 @@ final class _Fixture {
       projectPath: projectPath,
       beforeProject: before,
       afterProject: afterRename,
+      sourcePath: sourcePath,
+      sourceRevision: sourceRevision,
+      targetPath: targetPath,
+      targetMap: target,
+    );
+  }
+
+  MapLifecycleTransactionRequest duplicateRequest() {
+    final sourceRevision = gateway.maps[sourcePath]!.revision;
+    return MapLifecycleTransactionRequest.duplicate(
+      projectPath: projectPath,
+      beforeProject: before,
+      afterProject: afterCreate,
       sourcePath: sourcePath,
       sourceRevision: sourceRevision,
       targetPath: targetPath,

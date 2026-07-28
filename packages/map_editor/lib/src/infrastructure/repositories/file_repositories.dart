@@ -333,6 +333,7 @@ class FileMapRepository implements RevisionedMapRepository {
     ProjectManifest? projectDialogueContext,
   }) async {
     debugPrint('FileMapRepository: Validating and saving map to $path');
+    _requireSupportedVisualStackForWrite(map);
     MapValidator.validate(
       map,
       projectDialogueContext: projectDialogueContext,
@@ -348,6 +349,7 @@ class FileMapRepository implements RevisionedMapRepository {
     ProjectManifest? projectDialogueContext,
   }) async {
     debugPrint('FileMapRepository: CAS saving map to $path');
+    _requireSupportedVisualStackForWrite(map);
     MapValidator.validate(
       map,
       projectDialogueContext: projectDialogueContext,
@@ -427,6 +429,18 @@ class FileMapRepository implements RevisionedMapRepository {
       await file.rename(newPath);
     }
   }
+}
+
+void _requireSupportedVisualStackForWrite(MapData map) {
+  final composition = buildMapVisualCompositionPlan(map);
+  if (composition.canCompose) {
+    return;
+  }
+  final semanticsVersion = map.visualStack?.semanticsVersion;
+  throw ValidationException(
+    'visualStack semanticsVersion $semanticsVersion is not supported for '
+    'writes',
+  );
 }
 
 class FileTilesetRepository implements TilesetRepository {

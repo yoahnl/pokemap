@@ -1822,6 +1822,18 @@ class _WorkspaceStageHeader extends ConsumerWidget {
                           );
                         },
                       ),
+                      if (activeMap.visualStack !=
+                          MapVisualStackConfig.canonicalV1)
+                        MacosPulldownMenuItem(
+                          label: 'Migrer la pile visuelle',
+                          title: const Text('Migrer la pile visuelle'),
+                          onTap: () {
+                            showTopToolbarVisualStackMigrationDialog(
+                              context,
+                              notifier,
+                            );
+                          },
+                        ),
                       MacosPulldownMenuItem(
                         label: 'Sauvegarder la carte',
                         title: const Text('Sauvegarder la carte'),

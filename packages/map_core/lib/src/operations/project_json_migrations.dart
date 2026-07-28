@@ -71,9 +71,9 @@ void _validateProjectVersion(Map<String, dynamic> raw) {
 
   final version = raw['version'];
   if (version is! String) {
-    throw FormatException(r'$.version: expected null, "v1", or "v2"');
+    throw FormatException(r'$.version: expected null, "v1", "v2", or "v3"');
   }
-  if (version != 'v1' && version != 'v2') {
+  if (version != 'v1' && version != 'v2' && version != 'v3') {
     throw FormatException(
       r'$.version: unsupported project format version "' '$version"',
     );

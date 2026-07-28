@@ -4,6 +4,76 @@ import 'package:map_editor/src/features/border_map_editing/presentation/editor_m
 
 void main() {
   group('buildEditorMapLayerPaintOrder', () {
+    test(
+        'canonical v1 paints the authored top-first stack bottom-to-top '
+        'without Border selecting semantics', () {
+      final withoutBorder = buildEditorMapLayerPaintOrder(
+        const MapData(
+          id: 'canonical',
+          name: 'Canonical',
+          size: GridSize(width: 1, height: 1),
+          version: ProjectVersion.v3,
+          visualStack: MapVisualStackConfig.canonicalV1,
+          properties: <String, dynamic>{
+            'tileLayerOrder': 'bottom_to_top',
+          },
+          layers: <MapLayer>[
+            SurfaceLayer(id: 'top-surface', name: 'Top surface'),
+            TileLayer(id: 'middle-tiles', name: 'Middle tiles'),
+            TerrainLayer(id: 'bottom-terrain', name: 'Bottom terrain'),
+          ],
+        ),
+      );
+      final withHiddenBorder = buildEditorMapLayerPaintOrder(
+        const MapData(
+          id: 'canonical-border',
+          name: 'Canonical with hidden Border',
+          size: GridSize(width: 1, height: 1),
+          version: ProjectVersion.v3,
+          visualStack: MapVisualStackConfig.canonicalV1,
+          layers: <MapLayer>[
+            SurfaceLayer(id: 'top-surface', name: 'Top surface'),
+            BorderLayer(
+              id: 'hidden-border',
+              name: 'Hidden Border',
+              isVisible: false,
+            ),
+            TileLayer(id: 'middle-tiles', name: 'Middle tiles'),
+            TerrainLayer(id: 'bottom-terrain', name: 'Bottom terrain'),
+          ],
+        ),
+      );
+
+      expect(
+        withoutBorder.authoredLayers.map((entry) => entry.layer.id),
+        const <String>['bottom-terrain', 'middle-tiles', 'top-surface'],
+      );
+      expect(
+        withHiddenBorder.authoredLayers.map((entry) => entry.layer.id),
+        const <String>['bottom-terrain', 'middle-tiles', 'top-surface'],
+      );
+    });
+
+    test('future visual semantics are read-only and never use legacy order',
+        () {
+      final result = buildEditorMapLayerPaintOrderResult(
+        MapData(
+          id: 'future',
+          name: 'Future',
+          size: const GridSize(width: 1, height: 1),
+          version: ProjectVersion.v3,
+          visualStack: MapVisualStackConfig(semanticsVersion: 99),
+          layers: const <MapLayer>[
+            TileLayer(id: 'tiles', name: 'Tiles'),
+          ],
+        ),
+      );
+
+      expect(result.requiresReadOnly, isTrue);
+      expect(result.order, isNull);
+      expect(result.diagnostics, isNotEmpty);
+    });
+
     test('uses authored bottom-to-top order for every visual layer kind', () {
       final plan = buildEditorMapLayerPaintOrder(
         const MapData(
@@ -70,7 +140,7 @@ void main() {
       );
     });
 
-    test('keeps deferred legacy sentinels explicit and collision read-only',
+    test('uses shared core steps for deferred passes and collision read-only',
         () {
       final plan = buildEditorMapLayerPaintOrder(
         const MapData(
@@ -85,17 +155,13 @@ void main() {
 
       expect(plan.authoredLayers, isEmpty);
       expect(
-        plan.deferredSentinels,
-        const <EditorMapDeferredPaintSentinel>[
-          EditorMapDeferredPaintSentinel.projectedShadows,
-          EditorMapDeferredPaintSentinel.staticShadows,
-          EditorMapDeferredPaintSentinel.backgroundPlacedElements,
-          EditorMapDeferredPaintSentinel.collisionOverlay,
-          EditorMapDeferredPaintSentinel.gridOverlay,
-          EditorMapDeferredPaintSentinel.backgroundEntities,
-          EditorMapDeferredPaintSentinel.foregroundTilesAndPlacedElements,
-          EditorMapDeferredPaintSentinel.foregroundEntities,
-          EditorMapDeferredPaintSentinel.editorOverlays,
+        plan.compositionPlan.steps.map((step) => step.kind),
+        const <MapVisualCompositionStepKind>[
+          MapVisualCompositionStepKind.shadows,
+          MapVisualCompositionStepKind.backgroundEntities,
+          MapVisualCompositionStepKind.collisionOverlay,
+          MapVisualCompositionStepKind.foregroundTilesAndPlacedElements,
+          MapVisualCompositionStepKind.foregroundEntities,
         ],
       );
       expect(plan.collisionOverlayLayers.single.id, 'collision');

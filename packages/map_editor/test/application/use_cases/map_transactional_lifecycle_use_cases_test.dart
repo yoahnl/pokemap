@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/services/map_dependency_preflight_service.dart';
 import 'package:map_editor/src/application/services/map_lifecycle_transaction_service.dart';
 import 'package:map_editor/src/application/use_cases/map_use_cases.dart';
@@ -148,8 +149,100 @@ void main() {
         false,
       );
     });
+
+    for (final operation in _ReadOnlyLifecycleOperation.values) {
+      test(
+          '${operation.name} keeps an unknown future visual stack byte-exact '
+          'and creates no lifecycle evidence', () async {
+        final fixture = await _Fixture.create();
+        addTearDown(fixture.dispose);
+        final project = _project(
+          entries: <ProjectMapEntry>[_entry('alpha')],
+        );
+        await fixture.writeProject(project);
+        await fixture.seedRawMap(_futureVisualStackMap('alpha'));
+        final before = await _snapshotFiles(fixture.root);
+
+        await expectLater(
+          switch (operation) {
+            _ReadOnlyLifecycleOperation.rename => RenameMapUseCase(
+                fixture.maps,
+                fixture.projects,
+                MapDependencyPreflightService(mapRepository: fixture.maps),
+                lifecycleTransactions: fixture.coordinator,
+              ).executeRevisioned(
+                fixture.workspace,
+                project,
+                'alpha',
+                'beta',
+              ),
+            _ReadOnlyLifecycleOperation.duplicate => DuplicateMapUseCase(
+                fixture.maps,
+                fixture.projects,
+                lifecycleTransactions: fixture.coordinator,
+              ).execute(
+                fixture.workspace,
+                project,
+                'alpha',
+              ),
+            _ReadOnlyLifecycleOperation.delete => DeleteMapUseCase(
+                fixture.maps,
+                fixture.projects,
+                MapDependencyPreflightService(mapRepository: fixture.maps),
+                lifecycleTransactions: fixture.coordinator,
+              ).execute(
+                fixture.workspace,
+                project,
+                'alpha',
+              ),
+          },
+          throwsA(
+            isA<EditorInvalidOperationException>()
+                .having(
+                  (error) => error.message,
+                  'message',
+                  contains('strictement en lecture seule'),
+                )
+                .having(
+                  (error) => error.message,
+                  'semantic version',
+                  contains('99'),
+                ),
+          ),
+        );
+
+        expect(await _snapshotFiles(fixture.root), before);
+        expect(
+          await Directory(p.join(fixture.root.path, '.pokemap')).exists(),
+          isFalse,
+          reason: 'the lifecycle coordinator must not be entered',
+        );
+        expect(
+          await File(
+            fixture.gateway.journalPath(fixture.projectPath),
+          ).exists(),
+          isFalse,
+        );
+        expect(
+          await File(
+            fixture.gateway.journalRewritePath(fixture.projectPath),
+          ).exists(),
+          isFalse,
+        );
+        expect(
+          await File(fixture.workspace.getMapPath('beta')).exists(),
+          isFalse,
+        );
+        expect(
+          await File(fixture.workspace.getMapPath('alpha_copy')).exists(),
+          isFalse,
+        );
+      });
+    }
   });
 }
+
+enum _ReadOnlyLifecycleOperation { rename, duplicate, delete }
 
 final class _Fixture {
   _Fixture._({
@@ -215,6 +308,12 @@ final class _Fixture {
     );
   }
 
+  Future<void> seedRawMap(MapData map) async {
+    final file = File(workspace.getMapPath(map.id));
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes(encodeMapDocumentBytes(map), flush: true);
+  }
+
   Future<void> dispose() async {
     if (await root.exists()) await root.delete(recursive: true);
   }
@@ -242,3 +341,21 @@ MapData _map(String id) => MapData(
       size: const GridSize(width: 2, height: 2),
       layers: const <MapLayer>[],
     );
+
+MapData _futureVisualStackMap(String id) => _map(id).copyWith(
+      version: ProjectVersion.v3,
+      visualStack: MapVisualStackConfig(semanticsVersion: 99),
+    );
+
+Future<Map<String, List<int>>> _snapshotFiles(Directory root) async {
+  final files = await root
+      .list(recursive: true, followLinks: false)
+      .where((entity) => entity is File)
+      .cast<File>()
+      .toList();
+  files.sort((left, right) => left.path.compareTo(right.path));
+  return <String, List<int>>{
+    for (final file in files)
+      p.relative(file.path, from: root.path): await file.readAsBytes(),
+  };
+}

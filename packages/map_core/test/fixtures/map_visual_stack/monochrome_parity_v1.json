@@ -1,0 +1,134 @@
+{
+  "fixtureVersion": 1,
+  "description": "Canonical visual-stack parity fixture shared by map_editor and map_runtime.",
+  "tileSize": 16,
+  "coverage": {
+    "authoredLayerKinds": [
+      "surface",
+      "terrain",
+      "tile",
+      "path",
+      "border",
+      "objectNoop",
+      "environmentNoop"
+    ],
+    "deferredContent": [
+      "placedElements",
+      "entities",
+      "foregroundEntity",
+      "collisionOverlay"
+    ]
+  },
+  "map": {
+    "id": "monochrome-parity-v1",
+    "name": "Monochrome parity v1",
+    "visualStackSemanticsVersion": 1,
+    "layersTopFirst": [
+      {
+        "kind": "object",
+        "id": "objects-top",
+        "name": "Objects no-op"
+      },
+      {
+        "kind": "environment",
+        "id": "environment-top",
+        "name": "Environment no-op"
+      },
+      {
+        "kind": "border",
+        "id": "border",
+        "name": "Border",
+        "opacity": 0.5
+      },
+      {
+        "kind": "surface",
+        "id": "surface",
+        "name": "Surface",
+        "presetId": "surface-preset",
+        "opacity": 0.5
+      },
+      {
+        "kind": "terrain",
+        "id": "terrain",
+        "name": "Terrain",
+        "terrainType": "grass",
+        "opacity": 0.5
+      },
+      {
+        "kind": "path",
+        "id": "path",
+        "name": "Path",
+        "presetId": "path-preset",
+        "paintAfterTileLayerId": "ground",
+        "opacity": 0.5
+      },
+      {
+        "kind": "tile",
+        "id": "ground",
+        "name": "Ground",
+        "tilesetId": "tile",
+        "tileId": 1,
+        "opacity": 0.5
+      },
+      {
+        "kind": "collision",
+        "id": "collision",
+        "name": "Collision",
+        "blocked": true
+      }
+    ],
+    "placedElement": {
+      "id": "placed",
+      "layerId": "ground",
+      "elementId": "placed-element",
+      "opacity": 0.5
+    },
+    "entity": {
+      "id": "entity",
+      "elementId": "entity-element",
+      "renderInForeground": true
+    }
+  },
+  "assets": {
+    "borderSnapshotId": "border-snapshot-sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "borderDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "tilesets": {
+      "tile": [52, 73, 94, 255],
+      "path": [241, 196, 15, 255],
+      "surface": [52, 152, 219, 255],
+      "terrain": [26, 188, 156, 255],
+      "border": [231, 76, 60, 255],
+      "placed": [46, 204, 113, 255],
+      "entity": [155, 89, 182, 128]
+    }
+  },
+  "expectedStablePlanKeys": [
+    "tileBackgroundLayer:ground",
+    "pathLayer:path",
+    "terrainLayer:terrain",
+    "surfaceLayer:surface",
+    "borderLayer:border",
+    "environmentNoop:environment-top",
+    "objectNoop:objects-top",
+    "shadows",
+    "placedElements:ground",
+    "backgroundEntities",
+    "collisionOverlay",
+    "foregroundTilesAndPlacedElements",
+    "foregroundEntities"
+  ],
+  "expectedCenterPixels": {
+    "tile": [26, 36, 47, 128],
+    "path": [121, 98, 7, 128],
+    "terrain": [13, 94, 78, 128],
+    "surface": [26, 76, 110, 128],
+    "border": [116, 38, 30, 128],
+    "placedElement": [11, 51, 28, 64],
+    "entity": [78, 45, 91, 128],
+    "visualStack": [139, 113, 145, 252]
+  },
+  "expectedCollisionCenterPixels": {
+    "editor": [61, 21, 8, 61],
+    "runtime": [76, 46, 0, 76]
+  }
+}

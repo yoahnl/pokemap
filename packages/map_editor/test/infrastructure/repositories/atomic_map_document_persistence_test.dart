@@ -46,6 +46,82 @@ void main() {
       expect(await fixture.artifacts(), isEmpty);
     });
 
+    test(
+        'saveMap persists canonical v3 and refuses future visual semantics '
+        'without replacing it', () async {
+      final fixture = await _Fixture.create();
+      addTearDown(fixture.dispose);
+      final canonical = _visualStackMap(
+        name: 'Canonical',
+        visualStack: MapVisualStackConfig.canonicalV1,
+      );
+
+      await fixture.repository.saveMap(canonical, fixture.mapPath);
+      final beforeBytes = await File(fixture.mapPath).readAsBytes();
+
+      await expectLater(
+        fixture.repository.saveMap(
+          _visualStackMap(
+            name: 'Unsupported future',
+            visualStack: MapVisualStackConfig(semanticsVersion: 99),
+          ),
+          fixture.mapPath,
+        ),
+        throwsA(
+          isA<ValidationException>().having(
+            (error) => error.message,
+            'message',
+            contains('not supported for writes'),
+          ),
+        ),
+      );
+
+      expect(await File(fixture.mapPath).readAsBytes(), beforeBytes);
+      expect(await fixture.repository.loadMap(fixture.mapPath), canonical);
+      expect(await fixture.artifacts(), isEmpty);
+    });
+
+    test(
+        'saveMapDocument persists canonical v3 and refuses future visual '
+        'semantics without a durable CAS write', () async {
+      final fixture = await _Fixture.create();
+      addTearDown(fixture.dispose);
+      final canonical = _visualStackMap(
+        name: 'Canonical',
+        visualStack: MapVisualStackConfig.canonicalV1,
+      );
+      final saved = await fixture.repository.saveMapDocument(
+        canonical,
+        fixture.mapPath,
+        precondition: const MapDocumentWritePrecondition.absent(),
+      );
+      final beforeBytes = await File(fixture.mapPath).readAsBytes();
+
+      await expectLater(
+        fixture.repository.saveMapDocument(
+          _visualStackMap(
+            name: 'Unsupported future',
+            visualStack: MapVisualStackConfig(semanticsVersion: 99),
+          ),
+          fixture.mapPath,
+          precondition: MapDocumentWritePrecondition.revision(saved.revision),
+        ),
+        throwsA(
+          isA<ValidationException>().having(
+            (error) => error.message,
+            'message',
+            contains('not supported for writes'),
+          ),
+        ),
+      );
+
+      expect(await File(fixture.mapPath).readAsBytes(), beforeBytes);
+      final durable = await fixture.repository.loadMapDocument(fixture.mapPath);
+      expect(durable.map, saved.map);
+      expect(durable.revision, saved.revision);
+      expect(await fixture.artifacts(), isEmpty);
+    });
+
     test('expected absence refuses to replace an existing map', () async {
       final fixture = await _Fixture.createWithBaseline();
       addTearDown(fixture.dispose);
@@ -628,4 +704,13 @@ MapData _map({required String name}) => MapData(
           collisions: <bool>[false],
         ),
       ],
+    );
+
+MapData _visualStackMap({
+  required String name,
+  required MapVisualStackConfig visualStack,
+}) =>
+    _map(name: name).copyWith(
+      version: ProjectVersion.v3,
+      visualStack: visualStack,
     );

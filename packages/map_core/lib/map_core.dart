@@ -20,6 +20,7 @@ export 'src/models/map_entity_editor_visual.dart';
 export 'src/models/map_gameplay_zone_payloads.dart';
 export 'src/models/map_layer.dart';
 export 'src/models/map_metadata.dart';
+export 'src/models/map_visual_stack_config.dart';
 export 'src/models/path_center_pattern.dart';
 export 'src/models/project_path_pattern_preset.dart';
 export 'src/models/project_manifest.dart';
@@ -105,6 +106,8 @@ export 'src/operations/border_feature_update_operations.dart';
 export 'src/operations/border_region_contours.dart';
 export 'src/operations/border_stroke_canonicalization.dart';
 export 'src/operations/border_stroke_editing.dart';
+export 'src/operations/map_visual_composition.dart';
+export 'src/operations/map_visual_stack_migration.dart';
 export 'src/operations/border_linear_lattice.dart';
 export 'src/operations/border_locality.dart';
 export 'src/operations/border_local_resolution_scope.dart'
