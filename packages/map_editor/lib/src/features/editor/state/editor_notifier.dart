@@ -3111,6 +3111,27 @@ class EditorNotifier extends _$EditorNotifier {
     };
   }
 
+  /// Returns the same fail-closed plan used by [resizeActiveMap], without
+  /// mutating editor state or history.
+  MapResizePlan? planActiveMapResize(int width, int height) {
+    final map = state.activeMap;
+    if (map == null) return null;
+    final project = state.project;
+    final settings = project?.settings;
+    return ref.read(resizeMapUseCaseProvider).plan(
+          map,
+          width,
+          height,
+          tileSizePx: settings == null
+              ? null
+              : GridSize(
+                  width: settings.tileWidth,
+                  height: settings.tileHeight,
+                ),
+          project: project,
+        );
+  }
+
   Future<void> resizeActiveMap(int width, int height) async {
     final map = state.activeMap;
     if (map == null) return;
@@ -3137,6 +3158,7 @@ class EditorNotifier extends _$EditorNotifier {
           width: settings.tileWidth,
           height: settings.tileHeight,
         ),
+        project: project,
       );
       final resized = result.map;
       if (!result.canApply || resized == null) {
@@ -3147,11 +3169,14 @@ class EditorNotifier extends _$EditorNotifier {
             diagnosticReport: result.diagnosticReport,
           );
         }
-        final count = result.diagnosticReport.errorCount;
+        final impactCount = result.plan.impacts.length;
+        final diagnosticCount = result.diagnosticReport.errorCount;
+        final count = impactCount > 0 ? impactCount : diagnosticCount;
+        final noun = impactCount > 0 ? 'impact' : 'diagnostic';
         state = state.copyWith(
           statusMessage: null,
           errorMessage: 'Impossible de redimensionner la carte : '
-              '$count diagnostic${count > 1 ? 's' : ''} '
+              '$count $noun${count > 1 ? 's' : ''} '
               'bloquant${count > 1 ? 's' : ''}.',
         );
         return;

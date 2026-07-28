@@ -8,7 +8,35 @@ import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 
 void main() {
-  test('ResizeMapUseCase returns the atomic Border-aware result', () {
+  test('ResizeMapUseCase blocks non-Border cell loss before mutation', () {
+    const source = MapData(
+      id: 'tile-map',
+      name: 'Tile map',
+      size: GridSize(width: 2, height: 1),
+      layers: <MapLayer>[
+        MapLayer.tile(
+          id: 'ground',
+          name: 'Ground',
+          tiles: <int>[0, 9],
+        ),
+      ],
+    );
+
+    final result = ResizeMapUseCase().execute(
+      source,
+      1,
+      1,
+      tileSizePx: const GridSize(width: 16, height: 16),
+    );
+
+    expect(result.canApply, isFalse);
+    expect(result.map, isNull);
+    expect(result.plan.impacts, hasLength(1));
+    expect(result.plan.impacts.single.kind, MapResizeImpactKind.tileLayer);
+    expect(source.size, const GridSize(width: 2, height: 1));
+  });
+
+  test('ResizeMapUseCase blocks destructive Border shrink before mutation', () {
     final source = _borderMap();
 
     final result = ResizeMapUseCase().execute(
@@ -16,11 +44,19 @@ void main() {
       2,
       1,
       tileSizePx: const GridSize(width: 24, height: 20),
+      project: _project(tileWidth: 24, tileHeight: 20),
     );
 
-    expect(result.canApply, isTrue);
-    expect(result.map, isNotNull);
-    expect(result.map!.size, const GridSize(width: 2, height: 1));
+    expect(result.canApply, isFalse);
+    expect(result.map, isNull);
+    expect(result.plan.hasDestructiveImpacts, isTrue);
+    expect(
+      result.plan.impacts.map((value) => value.kind),
+      containsAll(<MapResizeImpactKind>[
+        MapResizeImpactKind.collisionLayer,
+        MapResizeImpactKind.borderLayer,
+      ]),
+    );
     expect(
       result.diagnosticReport.diagnostics.map((value) => value.code),
       contains('region_cell_clipped'),
@@ -43,6 +79,7 @@ void main() {
       'resizeActiveMap commits once, uses project tile size, and binds feedback to the new map',
       () async {
     final useCase = _RecordingResizeMapUseCase();
+    final project = _project(tileWidth: 24, tileHeight: 20);
     final container = ProviderContainer(
       overrides: <Override>[
         resizeMapUseCaseProvider.overrideWith((ref) => useCase),
@@ -50,9 +87,9 @@ void main() {
     );
     addTearDown(container.dispose);
     final notifier = container.read(editorNotifierProvider.notifier);
-    final source = _borderMap();
+    final source = _borderMap(destructiveEdge: false);
     notifier.state = EditorState(
-      project: _project(tileWidth: 24, tileHeight: 20),
+      project: project,
       activeMap: source,
       activeLayerId: 'borders',
       hoveredTile: const GridPos(x: 2, y: 0),
@@ -62,20 +99,14 @@ void main() {
 
     final resized = notifier.state.activeMap!;
     expect(useCase.receivedTileSize, const GridSize(width: 24, height: 20));
+    expect(useCase.receivedProject, same(project));
     expect(resized, isNot(same(source)));
     expect(resized.size, const GridSize(width: 2, height: 1));
     expect(notifier.state.mapUndoStack, hasLength(1));
     expect(notifier.state.mapUndoStack.single.map, same(source));
     expect(notifier.state.hoveredTile, isNull);
 
-    final feedback = container.read(borderResizeFeedbackProvider);
-    expect(feedback, isNotNull);
-    expect(feedback!.mapIdentity, same(resized));
-    expect(feedback.appliesTo(resized), isTrue);
-    expect(
-      feedback.diagnosticReport.diagnostics.map((value) => value.code),
-      contains('region_cell_clipped'),
-    );
+    expect(container.read(borderResizeFeedbackProvider), isNull);
 
     final collision = resized.layers.whereType<CollisionLayer>().single;
     expect(collision.collisions, const <bool>[true, false]);
@@ -111,7 +142,7 @@ void main() {
 
     expect(notifier.state.activeMap, same(malformed));
     expect(notifier.state.mapUndoStack, isEmpty);
-    expect(notifier.state.errorMessage, contains('1'));
+    expect(notifier.state.errorMessage, contains('impact'));
     final feedback = container.read(borderResizeFeedbackProvider);
     expect(feedback, isNotNull);
     expect(feedback!.appliesTo(malformed), isTrue);
@@ -141,6 +172,30 @@ void main() {
     expect(container.read(borderResizeFeedbackProvider), isNull);
   });
 
+  test(
+      'resizeActiveMap rejects destructive impacts without mutation or history',
+      () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    final source = _borderMap();
+    notifier.state = EditorState(
+      project: _project(),
+      activeMap: source,
+      activeLayerId: 'borders',
+    );
+
+    await notifier.resizeActiveMap(2, 1);
+
+    expect(notifier.state.activeMap, same(source));
+    expect(notifier.state.mapUndoStack, isEmpty);
+    expect(notifier.state.errorMessage, contains('2 impacts'));
+    expect(
+      notifier.planActiveMapResize(2, 1)?.canApply,
+      isFalse,
+    );
+  });
+
   test('resizeActiveMap treats same-size resize as a history-free no-op',
       () async {
     final container = ProviderContainer();
@@ -166,20 +221,24 @@ void main() {
 
 final class _RecordingResizeMapUseCase extends ResizeMapUseCase {
   GridSize? receivedTileSize;
+  ProjectManifest? receivedProject;
 
   @override
-  MapResizeWithBorderDiagnosticsResult execute(
+  ResizeMapUseCaseResult execute(
     MapData map,
     int width,
     int height, {
     required GridSize tileSizePx,
+    ProjectManifest? project,
   }) {
     receivedTileSize = tileSizePx;
+    receivedProject = project;
     return super.execute(
       map,
       width,
       height,
       tileSizePx: tileSizePx,
+      project: project,
     );
   }
 }
@@ -196,16 +255,20 @@ ProjectManifest _project({int tileWidth = 16, int tileHeight = 16}) =>
       ),
     );
 
-MapData _borderMap({int regionWidth = 3}) => MapData(
+MapData _borderMap({
+  int regionWidth = 3,
+  bool destructiveEdge = true,
+}) =>
+    MapData(
       id: 'map',
       name: 'Border resize map',
       version: ProjectVersion.v2,
       size: const GridSize(width: 3, height: 1),
       layers: <MapLayer>[
-        const MapLayer.collision(
+        MapLayer.collision(
           id: 'collision',
           name: 'Collisions',
-          collisions: <bool>[true, false, true],
+          collisions: <bool>[true, false, destructiveEdge],
         ),
         MapLayer.border(
           id: 'borders',
@@ -221,7 +284,7 @@ MapData _borderMap({int regionWidth = 3}) => MapData(
                   width: regionWidth,
                   height: 1,
                   cells: regionWidth == 3
-                      ? const <bool>[false, false, true]
+                      ? <bool>[false, false, destructiveEdge]
                       : const <bool>[false, false],
                 ),
                 overrides: const <BorderSlotOverride>[],

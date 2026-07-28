@@ -12,13 +12,14 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../../features/editor/presentation/map_activation_guard.dart';
 import '../../../../features/editor/state/editor_notifier.dart';
+import '../../../design_system/pokemap_resize_impact_dialog.dart';
 import '../../cupertino_editor_widgets.dart';
 
 /// Regroupe les dialogs de toolbar pour garder `top_toolbar.dart` focalisé sur
 /// l'assemblage du chrome.
 ///
-/// Le comportement reste strictement inchangé : on déplace seulement le code
-/// de présentation modale dans un fichier dédié.
+/// Les flux sensibles délèguent leur prévisualisation aux composants du design
+/// system avant d'appeler les mutations du notifier.
 Future<void> showTopToolbarNewProjectDialog(
   BuildContext context,
   EditorNotifier notifier,
@@ -380,89 +381,20 @@ Future<void> showTopToolbarResizeMapDialog(
   required int currentWidth,
   required int currentHeight,
 }) async {
-  final widthController = TextEditingController(text: currentWidth.toString());
-  final heightController =
-      TextEditingController(text: currentHeight.toString());
-
-  String? validatePositiveInt(String? value) {
-    final text = (value ?? '').trim();
-    final number = int.tryParse(text);
-    if (number == null) return 'Enter a number';
-    if (number <= 0) return 'Must be > 0';
-    return null;
-  }
-
-  var saved = false;
-  await showMacosSheet<void>(
-    context: context,
-    builder: (ctx) => MacosSheet(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: SizedBox(
-          width: 360,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Resize Map',
-                textAlign: TextAlign.center,
-                style: MacosTheme.of(ctx).typography.title2,
-              ),
-              const SizedBox(height: 16),
-              MacosTextField(
-                controller: widthController,
-                placeholder: 'Width (e.g. 20)',
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                autofocus: true,
-              ),
-              const SizedBox(height: 12),
-              MacosTextField(
-                controller: heightController,
-                placeholder: 'Height (e.g. 15)',
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: PushButton(
-                      controlSize: ControlSize.large,
-                      secondary: true,
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: PushButton(
-                      controlSize: ControlSize.large,
-                      onPressed: () {
-                        if (validatePositiveInt(widthController.text) != null ||
-                            validatePositiveInt(heightController.text) !=
-                                null) {
-                          return;
-                        }
-                        saved = true;
-                        Navigator.of(ctx).pop();
-                      },
-                      child: const Text('Resize'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
+  final target = await showPokeMapResizeImpactDialog(
+    context,
+    currentWidth: currentWidth,
+    currentHeight: currentHeight,
+    buildPlan: (width, height) {
+      final plan = notifier.planActiveMapResize(width, height);
+      if (plan == null) {
+        throw StateError('No active map is available for resize planning.');
+      }
+      return plan;
+    },
   );
-  if (!context.mounted || !saved) return;
-  final width = int.parse(widthController.text.trim());
-  final height = int.parse(heightController.text.trim());
-  await notifier.resizeActiveMap(width, height);
+  if (!context.mounted || target == null) return;
+  await notifier.resizeActiveMap(target.width, target.height);
 }
 
 Widget topToolbarSettingsLabeledField(

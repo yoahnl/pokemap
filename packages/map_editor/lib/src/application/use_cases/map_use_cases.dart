@@ -228,13 +228,64 @@ class LoadMapUseCase {
 
 typedef LoadedMapDocumentResult = ({MapData map, String? revision});
 
+/// Safe application-layer result for map resize.
+///
+/// A null [map] means the pure impact plan or the Border preflight blocked the
+/// operation before mutation. Callers can always present [plan] instead of
+/// reverse-engineering a validation exception after data was truncated.
+final class ResizeMapUseCaseResult {
+  const ResizeMapUseCaseResult({
+    required this.plan,
+    required this.map,
+    required this.diagnosticReport,
+  });
+
+  final MapResizePlan plan;
+  final MapData? map;
+  final BorderDiagnosticsReport diagnosticReport;
+
+  bool get canApply =>
+      plan.canApply && map != null && !diagnosticReport.hasErrors;
+}
+
 class ResizeMapUseCase {
-  MapResizeWithBorderDiagnosticsResult execute(
+  MapResizePlan plan(
+    MapData map,
+    int width,
+    int height, {
+    GridSize? tileSizePx,
+    ProjectManifest? project,
+  }) =>
+      planMapResize(
+        map,
+        width: width,
+        height: height,
+        tileSizePx: tileSizePx,
+        project: project,
+      );
+
+  ResizeMapUseCaseResult execute(
     MapData map,
     int width,
     int height, {
     required GridSize tileSizePx,
+    ProjectManifest? project,
   }) {
+    final impactPlan = plan(
+      map,
+      width,
+      height,
+      tileSizePx: tileSizePx,
+      project: project,
+    );
+    if (!impactPlan.canApply) {
+      return ResizeMapUseCaseResult(
+        plan: impactPlan,
+        map: null,
+        diagnosticReport: impactPlan.borderDiagnostics,
+      );
+    }
+
     final result = resizeMapDataWithBorderDiagnostics(
       map,
       width: width,
@@ -245,7 +296,11 @@ class ResizeMapUseCase {
     if (resized != null) {
       MapValidator.validate(resized);
     }
-    return result;
+    return ResizeMapUseCaseResult(
+      plan: impactPlan,
+      map: resized,
+      diagnosticReport: result.diagnosticReport,
+    );
   }
 }
 

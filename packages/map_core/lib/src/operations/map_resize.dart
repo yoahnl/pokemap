@@ -8,7 +8,581 @@ import '../models/environment.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
+import '../models/project_manifest.dart';
 import 'border_resize.dart';
+
+const int _maximumResizeImpactPositionSamples = 8;
+
+/// Authored map collection that would be affected by a resize.
+///
+/// The enum deliberately stays presentation-neutral. Editor clients can group
+/// or localize impacts without parsing engine messages.
+enum MapResizeImpactKind {
+  tileLayer,
+  collisionLayer,
+  terrainLayer,
+  pathLayer,
+  surfaceLayer,
+  environmentArea,
+  borderLayer,
+  placedElement,
+  generatedPlacementReference,
+  entity,
+  entityWaypoint,
+  warp,
+  warpTriggerArea,
+  localWarpTarget,
+  trigger,
+  gameplayZone,
+  event,
+  connection,
+}
+
+/// Stable reason why an authored collection appears in a resize preview.
+enum MapResizeImpactReason {
+  clippedCells,
+  positionOutside,
+  footprintOutside,
+  footprintUnknown,
+  areaOutside,
+  patrolWaypointOutside,
+  localTargetOutside,
+  triggerAreaClipped,
+  danglingReference,
+  borderDiagnostic,
+  connectionTopologyChanged,
+  missingContext,
+}
+
+/// One machine-readable entry in a [MapResizePlan].
+///
+/// Layer data is aggregated per layer or environment area. Authored objects
+/// are emitted individually, which lets the editor list every affected object
+/// without recreating Core's spatial rules. [affectedCount] is exact while
+/// [positions] is a bounded diagnostic sample, preventing a large clipped map
+/// from allocating millions of coordinate objects during live preview.
+final class MapResizeImpact {
+  factory MapResizeImpact({
+    required MapResizeImpactKind kind,
+    required MapResizeImpactReason reason,
+    required String subjectId,
+    required String subjectLabel,
+    String? layerId,
+    int affectedCount = 1,
+    List<GridPos> positions = const <GridPos>[],
+    List<String> relatedIds = const <String>[],
+    String? diagnosticCode,
+  }) {
+    if (affectedCount <= 0) {
+      throw const ValidationException(
+        'MapResizeImpact.affectedCount must be positive',
+      );
+    }
+    return MapResizeImpact._(
+      kind: kind,
+      reason: reason,
+      subjectId: subjectId,
+      subjectLabel: subjectLabel,
+      layerId: layerId,
+      affectedCount: affectedCount,
+      positions: List<GridPos>.unmodifiable(positions),
+      relatedIds: List<String>.unmodifiable(relatedIds),
+      diagnosticCode: diagnosticCode,
+    );
+  }
+
+  const MapResizeImpact._({
+    required this.kind,
+    required this.reason,
+    required this.subjectId,
+    required this.subjectLabel,
+    required this.layerId,
+    required this.affectedCount,
+    required this.positions,
+    required this.relatedIds,
+    required this.diagnosticCode,
+  });
+
+  final MapResizeImpactKind kind;
+  final MapResizeImpactReason reason;
+  final String subjectId;
+  final String subjectLabel;
+  final String? layerId;
+  final int affectedCount;
+  final List<GridPos> positions;
+  final List<String> relatedIds;
+  final String? diagnosticCode;
+}
+
+/// Pure, immutable preview of a complete map resize.
+///
+/// [canApply] is intentionally conservative. A plan is applicable only when
+/// Core can prove that the target size preserves all authored data and known
+/// spatial semantics. There is no destructive override in DS-06.
+final class MapResizePlan {
+  factory MapResizePlan({
+    required GridSize sourceSize,
+    required GridSize targetSize,
+    required List<MapResizeImpact> impacts,
+    BorderDiagnosticsReport borderDiagnostics =
+        const BorderDiagnosticsReport.empty(),
+  }) =>
+      MapResizePlan._(
+        sourceSize: sourceSize,
+        targetSize: targetSize,
+        impacts: List<MapResizeImpact>.unmodifiable(impacts),
+        borderDiagnostics: borderDiagnostics,
+      );
+
+  const MapResizePlan._({
+    required this.sourceSize,
+    required this.targetSize,
+    required this.impacts,
+    required this.borderDiagnostics,
+  });
+
+  final GridSize sourceSize;
+  final GridSize targetSize;
+  final List<MapResizeImpact> impacts;
+  final BorderDiagnosticsReport borderDiagnostics;
+
+  bool get isNoOp => sourceSize == targetSize;
+
+  bool get isExpansion =>
+      !isNoOp &&
+      targetSize.width >= sourceSize.width &&
+      targetSize.height >= sourceSize.height;
+
+  bool get hasShrink =>
+      targetSize.width < sourceSize.width ||
+      targetSize.height < sourceSize.height;
+
+  bool get hasDestructiveImpacts => impacts.isNotEmpty;
+
+  bool get canApply => !hasDestructiveImpacts;
+}
+
+/// Builds the complete, side-effect-free impact plan for a map resize.
+///
+/// [project] resolves multi-cell `ProjectElementEntry` footprints. When a
+/// shrink contains placed elements but no matching project context, the plan
+/// fails closed instead of assuming a one-cell footprint.
+///
+/// [tileSizePx] is required only when the map contains Border layers. Border
+/// diagnostics are folded into the same plan so their clipping and structural
+/// errors are visible before any map mutation.
+MapResizePlan planMapResize(
+  MapData map, {
+  required int width,
+  required int height,
+  ProjectManifest? project,
+  GridSize? tileSizePx,
+}) {
+  if (width <= 0 || height <= 0) {
+    throw const ValidationException('Map size must be positive');
+  }
+
+  final sourceSize = map.size;
+  final targetSize = GridSize(width: width, height: height);
+  final impacts = <MapResizeImpact>[];
+  final borderDiagnostics = <BorderDiagnostic>[];
+
+  for (final layer in map.layers) {
+    if (layer is TileLayer) {
+      _addClippedLayerImpact<int>(
+        impacts: impacts,
+        kind: MapResizeImpactKind.tileLayer,
+        layerId: layer.id,
+        layerName: layer.name,
+        values: layer.tiles,
+        sourceSize: sourceSize,
+        targetSize: targetSize,
+        isMeaningful: (value) => value != 0,
+      );
+      continue;
+    }
+    if (layer is CollisionLayer) {
+      _addClippedLayerImpact<bool>(
+        impacts: impacts,
+        kind: MapResizeImpactKind.collisionLayer,
+        layerId: layer.id,
+        layerName: layer.name,
+        values: layer.collisions,
+        sourceSize: sourceSize,
+        targetSize: targetSize,
+        isMeaningful: (value) => value,
+      );
+      continue;
+    }
+    if (layer is TerrainLayer) {
+      _addClippedLayerImpact<TerrainType>(
+        impacts: impacts,
+        kind: MapResizeImpactKind.terrainLayer,
+        layerId: layer.id,
+        layerName: layer.name,
+        values: layer.terrains,
+        sourceSize: sourceSize,
+        targetSize: targetSize,
+        isMeaningful: (value) => value != TerrainType.none,
+      );
+      continue;
+    }
+    if (layer is PathLayer) {
+      _addClippedLayerImpact<bool>(
+        impacts: impacts,
+        kind: MapResizeImpactKind.pathLayer,
+        layerId: layer.id,
+        layerName: layer.name,
+        values: layer.cells,
+        sourceSize: sourceSize,
+        targetSize: targetSize,
+        isMeaningful: (value) => value,
+      );
+      continue;
+    }
+    if (layer is SurfaceLayer) {
+      final clipped = _outsidePositionSummary(
+        positions: layer.placements.map(
+          (placement) => GridPos(x: placement.x, y: placement.y),
+        ),
+        targetSize: targetSize,
+      );
+      if (clipped.isNotEmpty) {
+        impacts.add(
+          MapResizeImpact(
+            kind: MapResizeImpactKind.surfaceLayer,
+            reason: MapResizeImpactReason.positionOutside,
+            subjectId: layer.id,
+            subjectLabel: _labelOrId(layer.name, layer.id),
+            layerId: layer.id,
+            affectedCount: clipped.count,
+            positions: clipped.positions,
+          ),
+        );
+      }
+      continue;
+    }
+    if (layer is EnvironmentLayer) {
+      for (final area in layer.content.areas) {
+        final clipped = _clippedMeaningfulPositions<bool>(
+          values: area.mask.cells,
+          sourceSize: sourceSize,
+          targetSize: targetSize,
+          isMeaningful: (value) => value,
+        );
+        if (clipped.isEmpty) continue;
+        impacts.add(
+          MapResizeImpact(
+            kind: MapResizeImpactKind.environmentArea,
+            reason: MapResizeImpactReason.clippedCells,
+            subjectId: area.id,
+            subjectLabel: _labelOrId(area.name, area.id),
+            layerId: layer.id,
+            affectedCount: clipped.count,
+            positions: clipped.positions,
+          ),
+        );
+      }
+      continue;
+    }
+    if (layer is BorderLayer) {
+      final resolvedTileSize = tileSizePx;
+      if (resolvedTileSize == null) {
+        impacts.add(
+          MapResizeImpact(
+            kind: MapResizeImpactKind.borderLayer,
+            reason: MapResizeImpactReason.missingContext,
+            subjectId: layer.id,
+            subjectLabel: _labelOrId(layer.name, layer.id),
+            layerId: layer.id,
+          ),
+        );
+        continue;
+      }
+      final result = resizeBorderLayerContent(
+        content: layer.content,
+        oldMapSize: sourceSize,
+        newMapSize: targetSize,
+        tileSizePx: resolvedTileSize,
+        layerId: layer.id,
+      );
+      borderDiagnostics.addAll(result.diagnosticReport.diagnostics);
+      for (final diagnostic in result.diagnosticReport.diagnostics) {
+        if (diagnostic.severity == BorderDiagnosticSeverity.info) continue;
+        final subjectId = diagnostic.featureId ?? layer.id;
+        impacts.add(
+          MapResizeImpact(
+            kind: MapResizeImpactKind.borderLayer,
+            reason: MapResizeImpactReason.borderDiagnostic,
+            subjectId: subjectId,
+            subjectLabel: subjectId == layer.id
+                ? _labelOrId(layer.name, layer.id)
+                : subjectId,
+            layerId: layer.id,
+            affectedCount: _borderDiagnosticAffectedCount(diagnostic),
+            positions: diagnostic.cell == null
+                ? const <GridPos>[]
+                : <GridPos>[diagnostic.cell!],
+            diagnosticCode: diagnostic.code,
+          ),
+        );
+      }
+    }
+  }
+
+  final removedPlacedElementIds = <String>{};
+  final projectElements = project == null
+      ? const <String, ProjectElementEntry>{}
+      : <String, ProjectElementEntry>{
+          for (final element in project.elements) element.id: element,
+        };
+  for (final instance in map.placedElements) {
+    if (!_isInBounds(instance.pos, targetSize)) {
+      removedPlacedElementIds.add(instance.id);
+      impacts.add(
+        MapResizeImpact(
+          kind: MapResizeImpactKind.placedElement,
+          reason: MapResizeImpactReason.positionOutside,
+          subjectId: instance.id,
+          subjectLabel: instance.id,
+          layerId: instance.layerId,
+          positions: <GridPos>[instance.pos],
+          relatedIds: <String>[instance.elementId],
+        ),
+      );
+      continue;
+    }
+    if (!_hasShrink(sourceSize, targetSize)) continue;
+
+    final element = projectElements[instance.elementId];
+    if (element == null || element.frames.isEmpty) {
+      impacts.add(
+        MapResizeImpact(
+          kind: MapResizeImpactKind.placedElement,
+          reason: project == null
+              ? MapResizeImpactReason.missingContext
+              : MapResizeImpactReason.footprintUnknown,
+          subjectId: instance.id,
+          subjectLabel: instance.id,
+          layerId: instance.layerId,
+          positions: <GridPos>[instance.pos],
+          relatedIds: <String>[instance.elementId],
+        ),
+      );
+      continue;
+    }
+
+    final source = element.frames.primarySource;
+    final footprint = GridSize(
+      width: source.width <= 0 ? 1 : source.width,
+      height: source.height <= 0 ? 1 : source.height,
+    );
+    final clipped = _clippedRectPositions(
+      origin: instance.pos,
+      size: footprint,
+      targetSize: targetSize,
+    );
+    if (clipped.isNotEmpty) {
+      impacts.add(
+        MapResizeImpact(
+          kind: MapResizeImpactKind.placedElement,
+          reason: MapResizeImpactReason.footprintOutside,
+          subjectId: instance.id,
+          subjectLabel: _labelOrId(element.name, instance.id),
+          layerId: instance.layerId,
+          affectedCount: clipped.count,
+          positions: clipped.positions,
+          relatedIds: <String>[instance.elementId],
+        ),
+      );
+    }
+  }
+
+  if (removedPlacedElementIds.isNotEmpty) {
+    for (final layer in map.layers.whereType<EnvironmentLayer>()) {
+      for (final area in layer.content.areas) {
+        final danglingIds = area.generatedPlacementIds
+            .where(removedPlacedElementIds.contains)
+            .toList(growable: false);
+        if (danglingIds.isEmpty) continue;
+        impacts.add(
+          MapResizeImpact(
+            kind: MapResizeImpactKind.generatedPlacementReference,
+            reason: MapResizeImpactReason.danglingReference,
+            subjectId: area.id,
+            subjectLabel: _labelOrId(area.name, area.id),
+            layerId: layer.id,
+            affectedCount: danglingIds.length,
+            relatedIds: danglingIds,
+          ),
+        );
+      }
+    }
+  }
+
+  for (final entity in map.entities) {
+    final clipped = _clippedRectPositions(
+      origin: entity.pos,
+      size: entity.size,
+      targetSize: targetSize,
+    );
+    if (clipped.isNotEmpty) {
+      impacts.add(
+        MapResizeImpact(
+          kind: MapResizeImpactKind.entity,
+          reason: _isInBounds(entity.pos, targetSize)
+              ? MapResizeImpactReason.footprintOutside
+              : MapResizeImpactReason.positionOutside,
+          subjectId: entity.id,
+          subjectLabel: _labelOrId(entity.name, entity.id),
+          affectedCount: clipped.count,
+          positions: clipped.positions,
+        ),
+      );
+    }
+    final clippedWaypoints = _outsidePositionSummary(
+      positions: entity.npc?.movement.waypoints ?? const <GridPos>[],
+      targetSize: targetSize,
+    );
+    if (clippedWaypoints.isNotEmpty) {
+      impacts.add(
+        MapResizeImpact(
+          kind: MapResizeImpactKind.entityWaypoint,
+          reason: MapResizeImpactReason.patrolWaypointOutside,
+          subjectId: entity.id,
+          subjectLabel: _labelOrId(entity.name, entity.id),
+          affectedCount: clippedWaypoints.count,
+          positions: clippedWaypoints.positions,
+        ),
+      );
+    }
+  }
+
+  for (final warp in map.warps) {
+    if (!_isInBounds(warp.pos, targetSize)) {
+      impacts.add(
+        MapResizeImpact(
+          kind: MapResizeImpactKind.warp,
+          reason: MapResizeImpactReason.positionOutside,
+          subjectId: warp.id,
+          subjectLabel: warp.id,
+          positions: <GridPos>[warp.pos],
+          relatedIds: <String>[warp.targetMapId],
+        ),
+      );
+    }
+    if (warp.targetMapId == map.id &&
+        !_isInBounds(warp.targetPos, targetSize)) {
+      impacts.add(
+        MapResizeImpact(
+          kind: MapResizeImpactKind.localWarpTarget,
+          reason: MapResizeImpactReason.localTargetOutside,
+          subjectId: warp.id,
+          subjectLabel: warp.id,
+          positions: <GridPos>[warp.targetPos],
+          relatedIds: <String>[warp.targetMapId],
+        ),
+      );
+    }
+    final clippedTriggerCells = _clippedWarpTriggerCells(
+      warp: warp,
+      sourceSize: sourceSize,
+      targetSize: targetSize,
+    );
+    if (clippedTriggerCells.isNotEmpty) {
+      impacts.add(
+        MapResizeImpact(
+          kind: MapResizeImpactKind.warpTriggerArea,
+          reason: MapResizeImpactReason.triggerAreaClipped,
+          subjectId: warp.id,
+          subjectLabel: warp.id,
+          affectedCount: clippedTriggerCells.count,
+          positions: clippedTriggerCells.positions,
+          relatedIds: <String>[warp.targetMapId],
+        ),
+      );
+    }
+  }
+
+  for (final trigger in map.triggers) {
+    final clipped = _clippedRectPositions(
+      origin: trigger.area.pos,
+      size: trigger.area.size,
+      targetSize: targetSize,
+    );
+    if (clipped.isEmpty) continue;
+    impacts.add(
+      MapResizeImpact(
+        kind: MapResizeImpactKind.trigger,
+        reason: MapResizeImpactReason.areaOutside,
+        subjectId: trigger.id,
+        subjectLabel: _labelOrId(trigger.name, trigger.id),
+        affectedCount: clipped.count,
+        positions: clipped.positions,
+      ),
+    );
+  }
+
+  for (final zone in map.gameplayZones) {
+    final clipped = _clippedRectPositions(
+      origin: zone.area.pos,
+      size: zone.area.size,
+      targetSize: targetSize,
+    );
+    if (clipped.isEmpty) continue;
+    impacts.add(
+      MapResizeImpact(
+        kind: MapResizeImpactKind.gameplayZone,
+        reason: MapResizeImpactReason.areaOutside,
+        subjectId: zone.id,
+        subjectLabel: _labelOrId(zone.name, zone.id),
+        affectedCount: clipped.count,
+        positions: clipped.positions,
+      ),
+    );
+  }
+
+  for (final event in map.events) {
+    final position = GridPos(x: event.position.x, y: event.position.y);
+    if (_isInBounds(position, targetSize)) continue;
+    impacts.add(
+      MapResizeImpact(
+        kind: MapResizeImpactKind.event,
+        reason: MapResizeImpactReason.positionOutside,
+        subjectId: event.id,
+        subjectLabel: _labelOrId(event.title, event.id),
+        layerId: event.position.layerId,
+        positions: <GridPos>[position],
+      ),
+    );
+  }
+
+  // Every connection depends on a source border. Shrinking either dimension
+  // can move that border or remove aligned crossing cells, so DS-06 blocks the
+  // operation until a future connection-aware migration can prove equivalence.
+  if (_hasShrink(sourceSize, targetSize)) {
+    for (final connection in map.connections) {
+      impacts.add(
+        MapResizeImpact(
+          kind: MapResizeImpactKind.connection,
+          reason: MapResizeImpactReason.connectionTopologyChanged,
+          subjectId: connection.direction.name,
+          subjectLabel: connection.targetMapId,
+          relatedIds: <String>[connection.targetMapId],
+        ),
+      );
+    }
+  }
+
+  return MapResizePlan(
+    sourceSize: sourceSize,
+    targetSize: targetSize,
+    impacts: impacts,
+    borderDiagnostics: BorderDiagnosticsReport(
+      diagnostics: borderDiagnostics,
+    ),
+  );
+}
 
 /// Atomic map-level result for the Border-aware resize path.
 final class MapResizeWithBorderDiagnosticsResult {
@@ -243,6 +817,167 @@ MapData _resizeMapDataLegacyLayers(
     layers: newLayers,
     placedElements: newPlacedElements,
   );
+}
+
+void _addClippedLayerImpact<T>({
+  required List<MapResizeImpact> impacts,
+  required MapResizeImpactKind kind,
+  required String layerId,
+  required String layerName,
+  required List<T> values,
+  required GridSize sourceSize,
+  required GridSize targetSize,
+  required bool Function(T value) isMeaningful,
+}) {
+  final clipped = _clippedMeaningfulPositions<T>(
+    values: values,
+    sourceSize: sourceSize,
+    targetSize: targetSize,
+    isMeaningful: isMeaningful,
+  );
+  if (clipped.isEmpty) return;
+  impacts.add(
+    MapResizeImpact(
+      kind: kind,
+      reason: MapResizeImpactReason.clippedCells,
+      subjectId: layerId,
+      subjectLabel: _labelOrId(layerName, layerId),
+      layerId: layerId,
+      affectedCount: clipped.count,
+      positions: clipped.positions,
+    ),
+  );
+}
+
+_ResizePositionSummary _clippedMeaningfulPositions<T>({
+  required List<T> values,
+  required GridSize sourceSize,
+  required GridSize targetSize,
+  required bool Function(T value) isMeaningful,
+}) {
+  var count = 0;
+  final samples = <GridPos>[];
+  for (var y = 0; y < sourceSize.height; y++) {
+    for (var x = 0; x < sourceSize.width; x++) {
+      if (x < targetSize.width && y < targetSize.height) continue;
+      final index = y * sourceSize.width + x;
+      if (index < 0 || index >= values.length) continue;
+      if (isMeaningful(values[index])) {
+        count += 1;
+        if (samples.length < _maximumResizeImpactPositionSamples) {
+          samples.add(GridPos(x: x, y: y));
+        }
+      }
+    }
+  }
+  return _ResizePositionSummary(count: count, positions: samples);
+}
+
+_ResizePositionSummary _clippedRectPositions({
+  required GridPos origin,
+  required GridSize size,
+  required GridSize targetSize,
+}) {
+  var count = 0;
+  final samples = <GridPos>[];
+  for (var y = origin.y; y < origin.y + size.height; y++) {
+    for (var x = origin.x; x < origin.x + size.width; x++) {
+      final position = GridPos(x: x, y: y);
+      if (!_isInBounds(position, targetSize)) {
+        count += 1;
+        if (samples.length < _maximumResizeImpactPositionSamples) {
+          samples.add(position);
+        }
+      }
+    }
+  }
+  return _ResizePositionSummary(count: count, positions: samples);
+}
+
+_ResizePositionSummary _clippedWarpTriggerCells({
+  required MapWarp warp,
+  required GridSize sourceSize,
+  required GridSize targetSize,
+}) {
+  var count = 0;
+  final samples = <GridPos>[];
+  final left = warp.pos.x - warp.triggerPadding.left;
+  final right = warp.pos.x + warp.triggerPadding.right;
+  final top = warp.pos.y - warp.triggerPadding.top;
+  final bottom = warp.pos.y + warp.triggerPadding.bottom;
+  for (var y = top; y <= bottom; y++) {
+    for (var x = left; x <= right; x++) {
+      final position = GridPos(x: x, y: y);
+      // Padding is allowed outside the source map. Only cells that were
+      // reachable before the resize count as newly clipped trigger coverage.
+      if (_isInBounds(position, sourceSize) &&
+          !_isInBounds(position, targetSize)) {
+        count += 1;
+        if (samples.length < _maximumResizeImpactPositionSamples) {
+          samples.add(position);
+        }
+      }
+    }
+  }
+  return _ResizePositionSummary(count: count, positions: samples);
+}
+
+_ResizePositionSummary _outsidePositionSummary({
+  required Iterable<GridPos> positions,
+  required GridSize targetSize,
+}) {
+  var count = 0;
+  final samples = <GridPos>[];
+  for (final position in positions) {
+    if (_isInBounds(position, targetSize)) continue;
+    count += 1;
+    if (samples.length < _maximumResizeImpactPositionSamples) {
+      samples.add(position);
+    }
+  }
+  return _ResizePositionSummary(count: count, positions: samples);
+}
+
+final class _ResizePositionSummary {
+  _ResizePositionSummary({
+    required this.count,
+    required List<GridPos> positions,
+  }) : positions = List<GridPos>.unmodifiable(positions);
+
+  final int count;
+  final List<GridPos> positions;
+
+  bool get isEmpty => count == 0;
+  bool get isNotEmpty => count > 0;
+}
+
+bool _isInBounds(GridPos position, GridSize size) =>
+    position.x >= 0 &&
+    position.y >= 0 &&
+    position.x < size.width &&
+    position.y < size.height;
+
+bool _hasShrink(GridSize sourceSize, GridSize targetSize) =>
+    targetSize.width < sourceSize.width ||
+    targetSize.height < sourceSize.height;
+
+String _labelOrId(String label, String id) {
+  final normalized = label.trim();
+  return normalized.isEmpty ? id : normalized;
+}
+
+int _borderDiagnosticAffectedCount(BorderDiagnostic diagnostic) {
+  const countKeys = <String>[
+    'clippedTrueCellCount',
+    'clippedPointCount',
+    'removedFragmentCount',
+    'affectedPlacementCount',
+  ];
+  for (final key in countKeys) {
+    final value = diagnostic.parameters[key];
+    if (value is int && value > 0) return value;
+  }
+  return 1;
 }
 
 List<T> _resizeFlattened<T>({
