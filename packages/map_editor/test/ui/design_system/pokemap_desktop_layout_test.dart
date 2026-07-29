@@ -10,7 +10,7 @@ void main() {
         PokeMapDesktopWindowClass.compact,
       );
       expect(
-        PokeMapDesktopLayout.resolve(const Size(1280, 800)).windowClass,
+        PokeMapDesktopLayout.resolve(const Size(1024, 600)).windowClass,
         PokeMapDesktopWindowClass.medium,
       );
       expect(
@@ -19,50 +19,114 @@ void main() {
       );
     });
 
-    test('reserves at least the minimum canvas width in every window class',
-        () {
+    test('preserves the existing budget constructor signature', () {
+      const budget = PokeMapDesktopLayoutBudget(
+        viewport: Size(1280, 800),
+        windowClass: PokeMapDesktopWindowClass.medium,
+        explorerRailWidth: 52,
+        inspectorWidth: 360,
+        inspectorIsOverlay: false,
+        dockedInspectorWidth: 360,
+        canvasWidth: 868,
+      );
+
+      expect(budget.explorerIsExpanded, isFalse);
+      expect(budget.explorerWidth, 52);
+      expect(budget.resizeHandleWidth, 0);
+    });
+
+    test('resolves the exact compact budget at 800 logical pixels', () {
+      final budget = PokeMapDesktopLayout.resolve(const Size(800, 600));
+
+      expect(PokeMapDesktopLayoutTokens.explorerExpandedWidth, 344);
+      expect(PokeMapDesktopLayoutTokens.inspectorResizeHandleWidth, 12);
+      expect(budget.windowClass, PokeMapDesktopWindowClass.compact);
+      expect(budget.explorerRailWidth, 52);
+      expect(budget.explorerIsExpanded, isFalse);
+      expect(budget.explorerWidth, 52);
+      expect(budget.inspectorWidth, 360);
+      expect(budget.inspectorIsOverlay, isTrue);
+      expect(budget.dockedInspectorWidth, 0);
+      expect(budget.resizeHandleWidth, 0);
+      expect(budget.canvasWidth, 748);
+    });
+
+    test('auto-collapses the Explorer at 1024 logical pixels', () {
+      final budget = PokeMapDesktopLayout.resolve(const Size(1024, 600));
+
+      expect(budget.windowClass, PokeMapDesktopWindowClass.medium);
+      expect(budget.explorerIsExpanded, isFalse);
+      expect(budget.explorerWidth, 52);
+      expect(budget.inspectorWidth, 360);
+      expect(budget.inspectorIsOverlay, isFalse);
+      expect(budget.dockedInspectorWidth, 360);
+      expect(budget.resizeHandleWidth, 12);
+      expect(budget.canvasWidth, 600);
+    });
+
+    test('resolves the exact medium budget at 1280 logical pixels', () {
+      final budget = PokeMapDesktopLayout.resolve(const Size(1280, 800));
+
+      expect(budget.windowClass, PokeMapDesktopWindowClass.medium);
+      expect(budget.explorerIsExpanded, isTrue);
+      expect(budget.explorerWidth, 344);
+      expect(budget.inspectorWidth, 360);
+      expect(budget.inspectorIsOverlay, isFalse);
+      expect(budget.dockedInspectorWidth, 360);
+      expect(budget.resizeHandleWidth, 12);
+      expect(budget.canvasWidth, 564);
+    });
+
+    test('resolves the exact expanded budget at 1440 logical pixels', () {
+      final budget = PokeMapDesktopLayout.resolve(const Size(1440, 900));
+
+      expect(budget.windowClass, PokeMapDesktopWindowClass.expanded);
+      expect(budget.explorerIsExpanded, isTrue);
+      expect(budget.explorerWidth, 344);
+      expect(budget.inspectorWidth, 400);
+      expect(budget.inspectorIsOverlay, isFalse);
+      expect(budget.dockedInspectorWidth, 400);
+      expect(budget.resizeHandleWidth, 12);
+      expect(budget.canvasWidth, 684);
+    });
+
+    test('honors explicit panel state while preserving the canvas floor', () {
+      final collapsedExplorer = PokeMapDesktopLayout.resolve(
+        const Size(1280, 800),
+        explorerExpanded: false,
+      );
+      final hiddenInspector = PokeMapDesktopLayout.resolve(
+        const Size(1024, 600),
+        inspectorVisible: false,
+      );
+
+      expect(collapsedExplorer.explorerIsExpanded, isFalse);
+      expect(collapsedExplorer.explorerWidth, 52);
+      expect(collapsedExplorer.canvasWidth, 856);
+      expect(hiddenInspector.explorerIsExpanded, isTrue);
+      expect(hiddenInspector.explorerWidth, 344);
+      expect(hiddenInspector.inspectorWidth, 0);
+      expect(hiddenInspector.dockedInspectorWidth, 0);
+      expect(hiddenInspector.resizeHandleWidth, 0);
+      expect(hiddenInspector.canvasWidth, 680);
+    });
+
+    test('always reserves at least the minimum canvas width', () {
       const viewports = <Size>[
         Size(800, 600),
         Size(1024, 600),
-        Size(1440, 600),
+        Size(1280, 800),
+        Size(1440, 900),
       ];
 
-      final budgets = viewports.map(PokeMapDesktopLayout.resolve).toList();
-
-      expect(
-        budgets.map((budget) => budget.windowClass),
-        <PokeMapDesktopWindowClass>[
-          PokeMapDesktopWindowClass.compact,
-          PokeMapDesktopWindowClass.medium,
-          PokeMapDesktopWindowClass.expanded,
-        ],
-      );
-      for (final budget in budgets) {
+      for (final viewport in viewports) {
+        final budget = PokeMapDesktopLayout.resolve(viewport);
         expect(
           budget.canvasWidth,
           greaterThanOrEqualTo(PokeMapDesktopLayoutTokens.minCanvasWidth),
+          reason: 'viewport: $viewport',
         );
       }
-      expect(budgets.first.inspectorIsOverlay, isTrue);
-      expect(budgets.first.dockedInspectorWidth, 0);
-      expect(
-        budgets.first.canvasWidth,
-        800 - PokeMapDesktopLayoutTokens.explorerRailWidth,
-      );
-      expect(budgets[1].inspectorIsOverlay, isFalse);
-      expect(
-        budgets[1].dockedInspectorWidth,
-        PokeMapDesktopLayoutTokens.inspectorWidth,
-      );
-      expect(budgets.last.inspectorIsOverlay, isFalse);
-      expect(
-        budgets.last.dockedInspectorWidth,
-        PokeMapDesktopLayoutTokens.expandedInspectorWidth,
-      );
-      expect(
-        budgets.last.inspectorWidth,
-        PokeMapDesktopLayoutTokens.expandedInspectorWidth,
-      );
     });
 
     test('rejects viewports below the supported desktop floor', () {

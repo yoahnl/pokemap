@@ -100,6 +100,90 @@ void main() {
         ],
       );
     });
+
+    group('desktop source scanner synthetic regressions', () {
+      const syntheticPath =
+          'lib/src/ui/design_system/pokemap_synthetic_primitive.dart';
+
+      test('rejects named hard-coded Color constructors', () {
+        const source = '''
+final argb = Color.fromARGB(255, 1, 2, 3);
+final rgbo = Color.fromRGBO(1, 2, 3, 0.5);
+''';
+
+        expect(
+          _desktopInteractionSourceRegressions(
+            relativePath: syntheticPath,
+            source: source,
+          ),
+          const <String>[
+            '$syntheticPath:1: hard-coded Color.fromARGB constructor',
+            '$syntheticPath:2: hard-coded Color.fromRGBO constructor',
+          ],
+        );
+      });
+
+      test('extracts a multiline import directive', () {
+        const source = '''
+import
+  '../../application/project_loader.dart'
+  show ProjectLoader;
+''';
+
+        expect(
+          _desktopInteractionSourceRegressions(
+            relativePath: syntheticPath,
+            source: source,
+          ),
+          const <String>[
+            '$syntheticPath:2: internal import outside design system/theme',
+          ],
+        );
+      });
+
+      test('extracts every conditional import URI', () {
+        const source = '''
+import 'package:flutter/material.dart'
+    if (dart.library.io) '../../application/project_loader.dart'
+    if (dart.library.html) '../panels/map_inspector_panel.dart'
+    if (dart.library.js_interop) 'package:collection/collection.dart';
+''';
+
+        expect(
+          _desktopInteractionSourceRegressions(
+            relativePath: syntheticPath,
+            source: source,
+          ),
+          const <String>[
+            '$syntheticPath:2: internal import outside design system/theme',
+            '$syntheticPath:3: internal import outside design system/theme',
+          ],
+        );
+      });
+
+      test('ignores comments and strings that resemble guarded source', () {
+        const source = r'''
+// Color(0xFF010203);
+// import '../../application/project_loader.dart';
+/*
+Color.fromARGB(255, 1, 2, 3);
+import '../panels/map_inspector_panel.dart';
+*/
+const example = """
+Color.fromRGBO(1, 2, 3, 0.5);
+import '../../domain/map_document.dart';
+""";
+''';
+
+        expect(
+          _desktopInteractionSourceRegressions(
+            relativePath: syntheticPath,
+            source: source,
+          ),
+          isEmpty,
+        );
+      });
+    });
   });
 }
 
@@ -133,16 +217,19 @@ List<String> _desktopInteractionSourceRegressions({
 }) {
   final forbiddenPatterns = <RegExp, String>{
     RegExp(r'\bColor\s*\(\s*0x'): 'hard-coded Color literal',
+    RegExp(r'\bColor\s*\.\s*fromARGB\s*\('):
+        'hard-coded Color.fromARGB constructor',
+    RegExp(r'\bColor\s*\.\s*fromRGBO\s*\('):
+        'hard-coded Color.fromRGBO constructor',
     RegExp(r'\bColors\.'): 'Material Colors reference',
     RegExp(r'\bCupertinoColors\b'): 'CupertinoColors reference',
     RegExp(r'\bPokeMapLegacyColors\b'): 'legacy PokeMap color reference',
     RegExp(r'\bEditorChrome\b'): 'legacy EditorChrome dependency',
     RegExp(r'\bEditorState\b'): 'EditorState dependency',
-    RegExp(r'''import\s+['"][^'"]*map_core[^'"]*['"]'''): 'map_core import',
   };
-  final importPattern = RegExp(r'''^\s*import\s+['"]([^'"]+)['"]''');
+  final scan = _scanDartSource(source);
   final regressions = <String>[];
-  final lines = source.split('\n');
+  final lines = scan.code.split('\n');
 
   for (var index = 0; index < lines.length; index += 1) {
     final line = lines[index];
@@ -151,22 +238,285 @@ List<String> _desktopInteractionSourceRegressions({
         regressions.add('$relativePath:${index + 1}: ${entry.value}');
       }
     }
+  }
 
-    final importMatch = importPattern.firstMatch(line);
-    if (importMatch == null) continue;
-    final importUri = importMatch.group(1)!.replaceAll(r'\', '/');
+  for (final importReference in scan.importReferences) {
+    final importUri = importReference.uri.replaceAll(r'\', '/');
+    if (importUri.contains('map_core')) {
+      regressions.add(
+        '$relativePath:${importReference.line}: map_core import',
+      );
+    }
     final resolvedImport = _resolveDesktopPrimitiveImport(
       relativePath: relativePath,
       importUri: importUri,
     );
     if (_isDisallowedDesktopPrimitiveImport(resolvedImport)) {
       regressions.add(
-        '$relativePath:${index + 1}: '
+        '$relativePath:${importReference.line}: '
         'internal import outside design system/theme',
       );
     }
   }
   return regressions;
+}
+
+_DartSourceScan _scanDartSource(String source) {
+  final code = StringBuffer();
+  final tokens = <_DartToken>[];
+  var index = 0;
+  var line = 1;
+
+  void appendSourceThrough(int end) {
+    while (index < end) {
+      final character = source[index];
+      code.write(character);
+      if (character == '\n') {
+        line += 1;
+      }
+      index += 1;
+    }
+  }
+
+  void appendMaskedThrough(int end) {
+    while (index < end) {
+      final character = source[index];
+      code.write(character == '\n' ? '\n' : ' ');
+      if (character == '\n') {
+        line += 1;
+      }
+      index += 1;
+    }
+  }
+
+  while (index < source.length) {
+    if (_startsWithAt(source, index, '//')) {
+      var end = index + 2;
+      while (end < source.length && source[end] != '\n') {
+        end += 1;
+      }
+      appendMaskedThrough(end);
+      continue;
+    }
+
+    if (_startsWithAt(source, index, '/*')) {
+      var end = index + 2;
+      var depth = 1;
+      while (end < source.length && depth > 0) {
+        if (_startsWithAt(source, end, '/*')) {
+          depth += 1;
+          end += 2;
+        } else if (_startsWithAt(source, end, '*/')) {
+          depth -= 1;
+          end += 2;
+        } else {
+          end += 1;
+        }
+      }
+      appendMaskedThrough(end);
+      continue;
+    }
+
+    final stringLiteral = _stringLiteralAt(source, index);
+    if (stringLiteral != null) {
+      tokens.add(
+        _DartToken(
+          kind: _DartTokenKind.stringLiteral,
+          lexeme: stringLiteral.value,
+          line: line,
+        ),
+      );
+      appendMaskedThrough(stringLiteral.end);
+      continue;
+    }
+
+    final character = source[index];
+    if (_isDartIdentifierStart(character)) {
+      var end = index + 1;
+      while (end < source.length && _isDartIdentifierPart(source[end])) {
+        end += 1;
+      }
+      tokens.add(
+        _DartToken(
+          kind: _DartTokenKind.identifier,
+          lexeme: source.substring(index, end),
+          line: line,
+        ),
+      );
+      appendSourceThrough(end);
+      continue;
+    }
+
+    if (!_isDartWhitespace(character)) {
+      tokens.add(
+        _DartToken(
+          kind: _DartTokenKind.symbol,
+          lexeme: character,
+          line: line,
+        ),
+      );
+    }
+    appendSourceThrough(index + 1);
+  }
+
+  return _DartSourceScan(
+    code: code.toString(),
+    importReferences: _extractImportReferences(tokens),
+  );
+}
+
+List<_DartImportReference> _extractImportReferences(
+  List<_DartToken> tokens,
+) {
+  final importReferences = <_DartImportReference>[];
+
+  for (var index = 0; index < tokens.length; index += 1) {
+    if (!_isIdentifierToken(tokens[index], 'import')) {
+      continue;
+    }
+
+    var cursor = index + 1;
+    while (cursor < tokens.length &&
+        !_isSymbolToken(tokens[cursor], ';') &&
+        tokens[cursor].kind != _DartTokenKind.stringLiteral) {
+      cursor += 1;
+    }
+    if (cursor >= tokens.length ||
+        tokens[cursor].kind != _DartTokenKind.stringLiteral) {
+      continue;
+    }
+
+    importReferences.add(
+      _DartImportReference(
+        uri: tokens[cursor].lexeme,
+        line: tokens[cursor].line,
+      ),
+    );
+    cursor += 1;
+
+    while (cursor < tokens.length && !_isSymbolToken(tokens[cursor], ';')) {
+      if (!_isIdentifierToken(tokens[cursor], 'if')) {
+        cursor += 1;
+        continue;
+      }
+
+      cursor += 1;
+      if (cursor < tokens.length && _isSymbolToken(tokens[cursor], '(')) {
+        var depth = 0;
+        do {
+          if (_isSymbolToken(tokens[cursor], '(')) {
+            depth += 1;
+          } else if (_isSymbolToken(tokens[cursor], ')')) {
+            depth -= 1;
+          }
+          cursor += 1;
+        } while (cursor < tokens.length && depth > 0);
+      }
+
+      if (cursor < tokens.length &&
+          tokens[cursor].kind == _DartTokenKind.stringLiteral) {
+        importReferences.add(
+          _DartImportReference(
+            uri: tokens[cursor].lexeme,
+            line: tokens[cursor].line,
+          ),
+        );
+        cursor += 1;
+      }
+    }
+    index = cursor;
+  }
+
+  return importReferences;
+}
+
+_DartStringLiteral? _stringLiteralAt(String source, int index) {
+  var quoteIndex = index;
+  var isRaw = false;
+  if ((source[index] == 'r' || source[index] == 'R') &&
+      index + 1 < source.length &&
+      _isQuote(source[index + 1])) {
+    isRaw = true;
+    quoteIndex += 1;
+  } else if (!_isQuote(source[index])) {
+    return null;
+  }
+
+  final quote = source[quoteIndex];
+  final isTriple = quoteIndex + 2 < source.length &&
+      source[quoteIndex + 1] == quote &&
+      source[quoteIndex + 2] == quote;
+  final delimiterLength = isTriple ? 3 : 1;
+  final valueStart = quoteIndex + delimiterLength;
+  var cursor = valueStart;
+
+  while (cursor < source.length) {
+    if (!isRaw && source[cursor] == '\\') {
+      cursor += cursor + 1 < source.length ? 2 : 1;
+      continue;
+    }
+
+    if (isTriple) {
+      if (cursor + 2 < source.length &&
+          source[cursor] == quote &&
+          source[cursor + 1] == quote &&
+          source[cursor + 2] == quote) {
+        return _DartStringLiteral(
+          value: source.substring(valueStart, cursor),
+          end: cursor + delimiterLength,
+        );
+      }
+    } else if (source[cursor] == quote) {
+      return _DartStringLiteral(
+        value: source.substring(valueStart, cursor),
+        end: cursor + delimiterLength,
+      );
+    }
+    cursor += 1;
+  }
+
+  return _DartStringLiteral(
+    value: source.substring(valueStart),
+    end: source.length,
+  );
+}
+
+bool _startsWithAt(String source, int index, String pattern) {
+  return index + pattern.length <= source.length &&
+      source.startsWith(pattern, index);
+}
+
+bool _isQuote(String character) {
+  return character == "'" || character == '"';
+}
+
+bool _isDartIdentifierStart(String character) {
+  final codeUnit = character.codeUnitAt(0);
+  return character == r'$' ||
+      character == '_' ||
+      codeUnit >= 65 && codeUnit <= 90 ||
+      codeUnit >= 97 && codeUnit <= 122;
+}
+
+bool _isDartIdentifierPart(String character) {
+  final codeUnit = character.codeUnitAt(0);
+  return _isDartIdentifierStart(character) || codeUnit >= 48 && codeUnit <= 57;
+}
+
+bool _isDartWhitespace(String character) {
+  return character == ' ' ||
+      character == '\t' ||
+      character == '\n' ||
+      character == '\r' ||
+      character == '\f';
+}
+
+bool _isIdentifierToken(_DartToken token, String lexeme) {
+  return token.kind == _DartTokenKind.identifier && token.lexeme == lexeme;
+}
+
+bool _isSymbolToken(_DartToken token, String lexeme) {
+  return token.kind == _DartTokenKind.symbol && token.lexeme == lexeme;
 }
 
 bool _isDisallowedDesktopPrimitiveImport(String resolvedImport) {
@@ -560,4 +910,52 @@ class _Offender {
   final String snippet;
 
   String describe() => '$path:$line: $snippet';
+}
+
+enum _DartTokenKind {
+  identifier,
+  stringLiteral,
+  symbol,
+}
+
+class _DartToken {
+  const _DartToken({
+    required this.kind,
+    required this.lexeme,
+    required this.line,
+  });
+
+  final _DartTokenKind kind;
+  final String lexeme;
+  final int line;
+}
+
+class _DartStringLiteral {
+  const _DartStringLiteral({
+    required this.value,
+    required this.end,
+  });
+
+  final String value;
+  final int end;
+}
+
+class _DartImportReference {
+  const _DartImportReference({
+    required this.uri,
+    required this.line,
+  });
+
+  final String uri;
+  final int line;
+}
+
+class _DartSourceScan {
+  const _DartSourceScan({
+    required this.code,
+    required this.importReferences,
+  });
+
+  final String code;
+  final List<_DartImportReference> importReferences;
 }

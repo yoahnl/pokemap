@@ -101,7 +101,7 @@ class _PokeMapSplitButtonState<T> extends State<PokeMapSplitButton<T>> {
         anchor: anchor,
         items: widget.items,
         invokerFocusNode: _menuFocusNode,
-        onSelected: widget.onSelected,
+        onSelected: _handleMenuSelection,
         onDismiss: () => _closeMenu(),
       ),
     );
@@ -121,6 +121,13 @@ class _PokeMapSplitButtonState<T> extends State<PokeMapSplitButton<T>> {
       FocusManager.instance.applyFocusChangesIfNeeded();
     }
     if (mounted) setState(() {});
+  }
+
+  void _handleMenuSelection(T value) {
+    final currentItems =
+        widget.items.where((item) => item.value == value).toList();
+    if (currentItems.length != 1 || !currentItems.single.enabled) return;
+    widget.onSelected(currentItems.single.value);
   }
 
   @override
@@ -214,6 +221,15 @@ class _PokeMapSplitButtonSegmentState
   bool _hovered = false;
   bool _focused = false;
 
+  @override
+  void didUpdateWidget(covariant _PokeMapSplitButtonSegment oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.enabled && !widget.enabled) {
+      _hovered = false;
+      _focused = false;
+    }
+  }
+
   void _activate() {
     if (!widget.enabled) return;
     widget.focusNode.requestFocus();
@@ -260,12 +276,12 @@ class _PokeMapSplitButtonSegmentState
               ),
             },
             onShowHoverHighlight: (value) {
-              if (mounted && widget.enabled) {
+              if (mounted && _hovered != value) {
                 setState(() => _hovered = value);
               }
             },
             onShowFocusHighlight: (value) {
-              if (mounted && widget.enabled) {
+              if (mounted && _focused != value) {
                 setState(() => _focused = value);
               }
             },

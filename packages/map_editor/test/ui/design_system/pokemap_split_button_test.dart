@@ -1,5 +1,6 @@
 import 'dart:ui' show SemanticsAction;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -316,6 +317,103 @@ void main() {
     expect(find.byType(PokeMapContextMenu<String>), findsNothing);
     expect(primaryFocusNode.hasFocus, isTrue);
   });
+
+  testWidgets('open menu revalidates updated items and selection callback',
+      (tester) async {
+    final harnessKey = GlobalKey<_StaleSplitHarnessState>();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: Center(child: _StaleSplitHarness(key: harnessKey)),
+        ),
+      ),
+    );
+
+    await tester.tap(find.bySemanticsLabel('Choisir une action'));
+    await tester.pump();
+    harnessKey.currentState!.disableStaleActionAndUseNewCallback();
+    await tester.pump();
+
+    await tester.tap(find.text('Action courante'));
+    await tester.pump();
+
+    expect(harnessKey.currentState!.oldSelections, 0);
+    expect(harnessKey.currentState!.newSelections, 0);
+
+    harnessKey.currentState!.enableStaleActionWithOldCallback();
+    await tester.pump();
+    await tester.tap(find.bySemanticsLabel('Choisir une action'));
+    await tester.pump();
+    harnessKey.currentState!.keepActionAndUseNewCallback();
+    await tester.pump();
+
+    await tester.tap(find.text('Action courante'));
+    await tester.pump();
+
+    expect(harnessKey.currentState!.oldSelections, 0);
+    expect(harnessKey.currentState!.newSelections, 1);
+  });
+
+  testWidgets('clears hover and focus highlights across disable and re-enable',
+      (tester) async {
+    final harnessKey = GlobalKey<_ToggleSplitHarnessState>();
+    final primaryFocusNode = FocusNode(debugLabel: 'toggle split primary');
+    final previousHighlightStrategy = FocusManager.instance.highlightStrategy;
+    addTearDown(primaryFocusNode.dispose);
+    FocusManager.instance.highlightStrategy =
+        FocusHighlightStrategy.alwaysTraditional;
+    addTearDown(
+      () => FocusManager.instance.highlightStrategy = previousHighlightStrategy,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: Center(
+            child: _ToggleSplitHarness(
+              key: harnessKey,
+              primaryFocusNode: primaryFocusNode,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final primarySegment = find.bySemanticsLabel('Action principale');
+    final primaryContainer = find.descendant(
+      of: primarySegment,
+      matching: find.byType(AnimatedContainer),
+    );
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: Offset.zero);
+    await tester.pump();
+    await mouse.moveTo(tester.getCenter(primaryContainer));
+    primaryFocusNode.requestFocus();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    var decoration = tester
+        .widget<AnimatedContainer>(primaryContainer)
+        .decoration! as BoxDecoration;
+    expect(decoration.color, PokeMapColorTokens.dark.cardHover);
+    expect(decoration.boxShadow, isNotEmpty);
+
+    harnessKey.currentState!.setEnabled(false);
+    await tester.pump();
+    await mouse.moveTo(Offset.zero);
+    await tester.pump();
+    harnessKey.currentState!.setEnabled(true);
+    await tester.pump(const Duration(milliseconds: 150));
+
+    decoration = tester.widget<AnimatedContainer>(primaryContainer).decoration!
+        as BoxDecoration;
+    expect(primaryFocusNode.hasFocus, isFalse);
+    expect(decoration.color, PokeMapColorTokens.dark.controlSurface);
+    expect(decoration.boxShadow, isNull);
+  });
 }
 
 class _MutableSplitHarness extends StatefulWidget {
@@ -355,6 +453,100 @@ class _MutableSplitHarnessState extends State<_MutableSplitHarness> {
       tooltip: 'Peindre',
       menuTooltip: 'Choisir un outil',
       child: const Text('Outil'),
+    );
+  }
+}
+
+class _StaleSplitHarness extends StatefulWidget {
+  const _StaleSplitHarness({super.key});
+
+  @override
+  State<_StaleSplitHarness> createState() => _StaleSplitHarnessState();
+}
+
+class _StaleSplitHarnessState extends State<_StaleSplitHarness> {
+  bool _staleActionEnabled = true;
+  bool _useNewCallback = false;
+  int oldSelections = 0;
+  int newSelections = 0;
+
+  void disableStaleActionAndUseNewCallback() {
+    setState(() {
+      _staleActionEnabled = false;
+      _useNewCallback = true;
+    });
+  }
+
+  void enableStaleActionWithOldCallback() {
+    setState(() {
+      _staleActionEnabled = true;
+      _useNewCallback = false;
+    });
+  }
+
+  void keepActionAndUseNewCallback() {
+    setState(() => _useNewCallback = true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PokeMapSplitButton<String>(
+      onPressed: () {},
+      items: [
+        PokeMapMenuItem(
+          value: 'current',
+          label: 'Action courante',
+          enabled: _staleActionEnabled,
+          disabledReason:
+              _staleActionEnabled ? null : 'Action devenue indisponible',
+        ),
+        const PokeMapMenuItem(value: 'fallback', label: 'Action de secours'),
+      ],
+      onSelected: _useNewCallback
+          ? (_) => newSelections += 1
+          : (_) => oldSelections += 1,
+      tooltip: 'Action principale',
+      menuTooltip: 'Choisir une action',
+      child: const Text('Action'),
+    );
+  }
+}
+
+class _ToggleSplitHarness extends StatefulWidget {
+  const _ToggleSplitHarness({
+    required this.primaryFocusNode,
+    super.key,
+  });
+
+  final FocusNode primaryFocusNode;
+
+  @override
+  State<_ToggleSplitHarness> createState() => _ToggleSplitHarnessState();
+}
+
+class _ToggleSplitHarnessState extends State<_ToggleSplitHarness> {
+  bool _enabled = true;
+
+  void setEnabled(bool value) {
+    setState(() => _enabled = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PokeMapSplitButton<String>(
+      focusNode: widget.primaryFocusNode,
+      onPressed: _enabled ? () {} : null,
+      items: const [
+        PokeMapMenuItem(
+          value: 'disabled',
+          label: 'Indisponible',
+          enabled: false,
+        ),
+      ],
+      onSelected: (_) {},
+      tooltip: 'Action principale',
+      menuTooltip: 'Choisir une action',
+      child: const Text('Action'),
     );
   }
 }

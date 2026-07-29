@@ -4,6 +4,11 @@ import 'package:flutter/services.dart';
 import '../../theme/theme.dart';
 import 'pokemap_panel.dart';
 
+const _menuRowHeight = 34.0;
+const _menuVerticalPadding = 6.0;
+const _menuDividerHeight = 1.0;
+const _menuDividerVerticalPadding = 4.0;
+
 @immutable
 class PokeMapMenuItem<T> {
   const PokeMapMenuItem({
@@ -70,23 +75,42 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
   @override
   void didUpdateWidget(covariant PokeMapContextMenu<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final previousFocusedIndex = _focusedIndex;
+    int? reconciledIndex;
+    if (previousFocusedIndex != null &&
+        previousFocusedIndex < oldWidget.items.length) {
+      final focusedValue = oldWidget.items[previousFocusedIndex].value;
+      final oldMatches =
+          oldWidget.items.where((item) => item.value == focusedValue).length;
+      final newMatches =
+          widget.items.where((item) => item.value == focusedValue).length;
+      if (oldMatches == 1 && newMatches == 1) {
+        final candidateIndex =
+            widget.items.indexWhere((item) => item.value == focusedValue);
+        if (widget.items[candidateIndex].enabled) {
+          reconciledIndex = candidateIndex;
+        }
+      }
+    }
+
     if (oldWidget.items.length != widget.items.length) {
       for (final node in _itemFocusNodes) {
         node.dispose();
       }
       _createFocusNodes();
-      WidgetsBinding.instance.addPostFrameCallback((_) => _focusFirstEnabled());
-      return;
     }
-    final focusedIndex = _focusedIndex;
-    final hasFocusedItem = _itemFocusNodes.any((node) => node.hasFocus);
-    final hasEnabledItem = widget.items.any((item) => item.enabled);
-    final focusedItemWasDisabled =
-        focusedIndex != null && !widget.items[focusedIndex].enabled;
-    if (hasEnabledItem &&
-        (focusedIndex == null || !hasFocusedItem || focusedItemWasDisabled)) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _focusFirstEnabled());
-    }
+    _focusedIndex = reconciledIndex;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final targetIndex = _focusedIndex;
+      if (targetIndex == null ||
+          targetIndex >= widget.items.length ||
+          !widget.items[targetIndex].enabled) {
+        _focusFirstEnabled();
+      } else {
+        _focus(targetIndex);
+      }
+    });
   }
 
   @override
@@ -122,18 +146,33 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
   }
 
   void _focus(int index) {
-    if (!widget.items[index].enabled) return;
+    if (index < 0 ||
+        index >= widget.items.length ||
+        !widget.items[index].enabled) {
+      return;
+    }
     setState(() => _focusedIndex = index);
     _itemFocusNodes[index].requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          index >= _itemFocusNodes.length ||
+          _focusedIndex != index) {
+        return;
+      }
+      final itemContext = _itemFocusNodes[index].context;
+      if (itemContext != null) {
+        Scrollable.ensureVisible(
+          itemContext,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+        );
+      }
+    });
   }
 
   void _moveFocus(int delta) {
     final enabledIndices = _enabledIndices;
     if (enabledIndices.isEmpty) return;
-    final currentIndex = _itemFocusNodes.indexWhere((node) => node.hasFocus);
-    final currentPosition = enabledIndices.indexOf(
-      currentIndex >= 0 ? currentIndex : (_focusedIndex ?? -1),
-    );
+    final currentPosition = enabledIndices.indexOf(_focusedIndex ?? -1);
     final nextPosition = currentPosition < 0
         ? 0
         : (currentPosition + delta) % enabledIndices.length;
@@ -141,36 +180,38 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
   }
 
   void _activateFocused() {
-    final focusIndex = _itemFocusNodes.indexWhere((node) => node.hasFocus);
-    final index = focusIndex >= 0 ? focusIndex : _focusedIndex;
-    if (index != null && widget.items[index].enabled) _select(index);
+    final index = _focusedIndex;
+    if (index != null &&
+        index < widget.items.length &&
+        widget.items[index].enabled) {
+      _select(index);
+    }
   }
 
   void _select(int index) {
     final item = widget.items[index];
     if (!item.enabled) return;
-    _dismiss(restoreFocusSynchronously: true);
+    if (!_dismiss()) return;
     widget.onSelected(item.value);
   }
 
-  void _dismiss({bool restoreFocusSynchronously = false}) {
-    if (_isDismissing) return;
+  bool _dismiss() {
+    if (_isDismissing) return false;
     _isDismissing = true;
     final invokerFocusNode = widget.invokerFocusNode;
-    if (restoreFocusSynchronously &&
-        invokerFocusNode?.context != null &&
+    if (invokerFocusNode?.context != null &&
         invokerFocusNode!.canRequestFocus) {
       invokerFocusNode.requestFocus();
       FocusManager.instance.applyFocusChangesIfNeeded();
     }
-    widget.onDismiss();
-    if (restoreFocusSynchronously || invokerFocusNode == null) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (invokerFocusNode.context != null &&
-          invokerFocusNode.canRequestFocus) {
-        invokerFocusNode.requestFocus();
-      }
-    });
+    try {
+      widget.onDismiss();
+    } finally {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _isDismissing = false;
+      });
+    }
+    return true;
   }
 
   void _handleItemFocus(int index, bool focused) {
@@ -218,45 +259,71 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
                   anchor: widget.anchor,
                   width: widget.width,
                 ),
-                child: Semantics(
-                  container: true,
-                  explicitChildNodes: true,
-                  label: widget.semanticLabel,
-                  child: FocusTraversalGroup(
-                    policy: ReadingOrderTraversalPolicy(),
-                    child: PokeMapPanel(
-                      borderRadius: 8,
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          for (var index = 0;
-                              index < widget.items.length;
-                              index += 1) ...[
-                            _PokeMapContextMenuRow<T>(
-                              item: widget.items[index],
-                              focusNode: _itemFocusNodes[index],
-                              focused: _focusedIndex == index,
-                              onFocusChange: (focused) =>
-                                  _handleItemFocus(index, focused),
-                              onSelected: () => _select(index),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final dividerCount = widget.dividerAfter
+                        .where(
+                          (index) => index >= 0 && index < widget.items.length,
+                        )
+                        .length;
+                    final contentHeight = (_menuVerticalPadding * 2) +
+                        (widget.items.length * _menuRowHeight) +
+                        (dividerCount *
+                            ((_menuDividerVerticalPadding * 2) +
+                                _menuDividerHeight));
+                    final menuHeight = contentHeight
+                        .clamp(0, constraints.maxHeight)
+                        .toDouble();
+                    return SizedBox(
+                      height: menuHeight,
+                      child: Semantics(
+                        container: true,
+                        explicitChildNodes: true,
+                        label: widget.semanticLabel,
+                        child: FocusTraversalGroup(
+                          policy: ReadingOrderTraversalPolicy(),
+                          child: PokeMapPanel(
+                            expandChild: true,
+                            borderRadius: 8,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: _menuVerticalPadding,
                             ),
-                            if (widget.dividerAfter.contains(index))
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 4),
-                                child: Divider(
-                                  height: 1,
-                                  thickness: 1,
-                                  color: colors.divider,
-                                ),
+                            child: SingleChildScrollView(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  for (var index = 0;
+                                      index < widget.items.length;
+                                      index += 1) ...[
+                                    _PokeMapContextMenuRow<T>(
+                                      item: widget.items[index],
+                                      focusNode: _itemFocusNodes[index],
+                                      focused: _focusedIndex == index,
+                                      onFocusChange: (focused) =>
+                                          _handleItemFocus(index, focused),
+                                      onSelected: () => _select(index),
+                                    ),
+                                    if (widget.dividerAfter.contains(index))
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: _menuDividerVerticalPadding,
+                                        ),
+                                        child: Divider(
+                                          height: _menuDividerHeight,
+                                          thickness: _menuDividerHeight,
+                                          color: colors.divider,
+                                        ),
+                                      ),
+                                  ],
+                                ],
                               ),
-                          ],
-                        ],
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -318,18 +385,6 @@ class _PokeMapContextMenuRowState<T> extends State<_PokeMapContextMenuRow<T>> {
         child: FocusableActionDetector(
           focusNode: widget.focusNode,
           enabled: item.enabled,
-          shortcuts: const <ShortcutActivator, Intent>{
-            SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
-            SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
-          },
-          actions: <Type, Action<Intent>>{
-            ActivateIntent: CallbackAction<ActivateIntent>(
-              onInvoke: (_) {
-                widget.onSelected();
-                return null;
-              },
-            ),
-          },
           onFocusChange: widget.onFocusChange,
           onShowHoverHighlight: (value) {
             if (mounted && item.enabled) setState(() => _hovered = value);
@@ -342,7 +397,7 @@ class _PokeMapContextMenuRowState<T> extends State<_PokeMapContextMenuRow<T>> {
             onTap: item.enabled ? widget.onSelected : null,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 100),
-              height: 34,
+              height: _menuRowHeight,
               margin: const EdgeInsets.symmetric(horizontal: 6),
               padding: const EdgeInsets.symmetric(horizontal: 10),
               decoration: BoxDecoration(

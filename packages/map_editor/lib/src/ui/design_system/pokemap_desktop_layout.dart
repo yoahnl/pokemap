@@ -8,8 +8,10 @@ abstract final class PokeMapDesktopLayoutTokens {
   static const mediumBreakpoint = 1024.0;
   static const expandedBreakpoint = 1440.0;
   static const explorerRailWidth = 52.0;
+  static const explorerExpandedWidth = 344.0;
   static const inspectorWidth = 360.0;
   static const expandedInspectorWidth = 400.0;
+  static const inspectorResizeHandleWidth = 12.0;
   static const minCanvasWidth = 320.0;
 }
 
@@ -19,18 +21,24 @@ class PokeMapDesktopLayoutBudget {
     required this.viewport,
     required this.windowClass,
     required this.explorerRailWidth,
+    this.explorerIsExpanded = false,
+    double? explorerWidth,
     required this.inspectorWidth,
     required this.inspectorIsOverlay,
     required this.dockedInspectorWidth,
+    this.resizeHandleWidth = 0,
     required this.canvasWidth,
-  });
+  }) : explorerWidth = explorerWidth ?? explorerRailWidth;
 
   final Size viewport;
   final PokeMapDesktopWindowClass windowClass;
   final double explorerRailWidth;
+  final bool explorerIsExpanded;
+  final double explorerWidth;
   final double inspectorWidth;
   final bool inspectorIsOverlay;
   final double dockedInspectorWidth;
+  final double resizeHandleWidth;
   final double canvasWidth;
 }
 
@@ -46,7 +54,11 @@ abstract final class PokeMapDesktopLayout {
     return PokeMapDesktopWindowClass.compact;
   }
 
-  static PokeMapDesktopLayoutBudget resolve(Size viewport) {
+  static PokeMapDesktopLayoutBudget resolve(
+    Size viewport, {
+    bool explorerExpanded = true,
+    bool inspectorVisible = true,
+  }) {
     if (viewport.width < PokeMapDesktopLayoutTokens.minSupportedWidth ||
         viewport.height < PokeMapDesktopLayoutTokens.minSupportedHeight) {
       throw ArgumentError.value(
@@ -59,14 +71,35 @@ abstract final class PokeMapDesktopLayout {
     }
 
     final windowClass = classify(viewport.width);
-    final inspectorWidth = windowClass == PokeMapDesktopWindowClass.expanded
-        ? PokeMapDesktopLayoutTokens.expandedInspectorWidth
-        : PokeMapDesktopLayoutTokens.inspectorWidth;
     final inspectorIsOverlay = windowClass == PokeMapDesktopWindowClass.compact;
+    final inspectorWidth = inspectorVisible
+        ? windowClass == PokeMapDesktopWindowClass.expanded
+            ? PokeMapDesktopLayoutTokens.expandedInspectorWidth
+            : PokeMapDesktopLayoutTokens.inspectorWidth
+        : 0.0;
     final dockedInspectorWidth = inspectorIsOverlay ? 0.0 : inspectorWidth;
-    final canvasWidth = viewport.width -
-        PokeMapDesktopLayoutTokens.explorerRailWidth -
-        dockedInspectorWidth;
+    final resizeHandleWidth = dockedInspectorWidth == 0
+        ? 0.0
+        : PokeMapDesktopLayoutTokens.inspectorResizeHandleWidth;
+    var explorerIsExpanded =
+        explorerExpanded && windowClass != PokeMapDesktopWindowClass.compact;
+    var explorerWidth = explorerIsExpanded
+        ? PokeMapDesktopLayoutTokens.explorerExpandedWidth
+        : PokeMapDesktopLayoutTokens.explorerRailWidth;
+    var canvasWidth = viewport.width -
+        explorerWidth -
+        dockedInspectorWidth -
+        resizeHandleWidth;
+
+    if (explorerIsExpanded &&
+        canvasWidth < PokeMapDesktopLayoutTokens.minCanvasWidth) {
+      explorerIsExpanded = false;
+      explorerWidth = PokeMapDesktopLayoutTokens.explorerRailWidth;
+      canvasWidth = viewport.width -
+          explorerWidth -
+          dockedInspectorWidth -
+          resizeHandleWidth;
+    }
 
     if (canvasWidth < PokeMapDesktopLayoutTokens.minCanvasWidth) {
       throw StateError(
@@ -79,9 +112,12 @@ abstract final class PokeMapDesktopLayout {
       viewport: viewport,
       windowClass: windowClass,
       explorerRailWidth: PokeMapDesktopLayoutTokens.explorerRailWidth,
+      explorerIsExpanded: explorerIsExpanded,
+      explorerWidth: explorerWidth,
       inspectorWidth: inspectorWidth,
       inspectorIsOverlay: inspectorIsOverlay,
       dockedInspectorWidth: dockedInspectorWidth,
+      resizeHandleWidth: resizeHandleWidth,
       canvasWidth: canvasWidth,
     );
   }

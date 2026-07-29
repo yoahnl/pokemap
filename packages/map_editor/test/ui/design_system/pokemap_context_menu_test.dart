@@ -305,6 +305,92 @@ void main() {
     expect(selected, 'open');
     expect(find.byType(PokeMapContextMenu<String>), findsNothing);
   });
+
+  testWidgets('preserves the focused value when items reorder in place',
+      (tester) async {
+    final harnessKey = GlobalKey<_ReorderContextMenuHarnessState>();
+
+    await tester.pumpWidget(_ReorderContextMenuHarness(key: harnessKey));
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+
+    harnessKey.currentState!.reorder();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    expect(harnessKey.currentState!.selected, 'delete');
+  });
+
+  testWidgets('scrolls a long menu to its circularly focused last action',
+      (tester) async {
+    const overlayKey = ValueKey('long-menu-overlay');
+    final harnessKey = GlobalKey<_LongContextMenuHarnessState>();
+
+    await tester.pumpWidget(
+      _LongContextMenuHarness(
+        key: harnessKey,
+        overlayKey: overlayKey,
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pump();
+
+    final overlayRect = tester.getRect(find.byKey(overlayKey));
+    final lastItemRect = tester.getRect(find.text('Action 19'));
+    expect(lastItemRect.top, greaterThanOrEqualTo(overlayRect.top));
+    expect(lastItemRect.bottom, lessThanOrEqualTo(overlayRect.bottom));
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    expect(harnessKey.currentState!.selected, 'action-19');
+    expect(find.byType(PokeMapContextMenu<String>), findsNothing);
+  });
+
+  testWidgets('rearms dismissal when a controlled parent keeps the menu open',
+      (tester) async {
+    final harnessKey = GlobalKey<_StickyDismissHarnessState>();
+
+    await tester.pumpWidget(_StickyDismissHarness(key: harnessKey));
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+
+    expect(harnessKey.currentState!.dismissals, 1);
+    expect(find.byType(PokeMapContextMenu<String>), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+
+    expect(harnessKey.currentState!.dismissals, 2);
+    expect(find.byType(PokeMapContextMenu<String>), findsNothing);
+  });
+
+  testWidgets('dismiss callback focus is not stolen back by the invoker',
+      (tester) async {
+    final invokerFocusNode = FocusNode(debugLabel: 'dismiss invoker');
+    final callbackFocusNode = FocusNode(debugLabel: 'dismiss callback target');
+    addTearDown(invokerFocusNode.dispose);
+    addTearDown(callbackFocusNode.dispose);
+
+    await tester.pumpWidget(
+      _DismissFocusHarness(
+        invokerFocusNode: invokerFocusNode,
+        callbackFocusNode: callbackFocusNode,
+      ),
+    );
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+
+    expect(callbackFocusNode.hasFocus, isTrue);
+    expect(invokerFocusNode.hasFocus, isFalse);
+  });
 }
 
 class _MutableContextMenuHarness extends StatefulWidget {
@@ -415,6 +501,197 @@ class _ContextMenuHarnessState extends State<_ContextMenuHarness> {
                 onDismiss: () {
                   widget.onDismissed?.call();
                   setState(() => _isOpen = false);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReorderContextMenuHarness extends StatefulWidget {
+  const _ReorderContextMenuHarness({super.key});
+
+  @override
+  State<_ReorderContextMenuHarness> createState() =>
+      _ReorderContextMenuHarnessState();
+}
+
+class _ReorderContextMenuHarnessState
+    extends State<_ReorderContextMenuHarness> {
+  bool _reordered = false;
+  String? selected;
+
+  void reorder() {
+    setState(() => _reordered = true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const safe = PokeMapMenuItem(value: 'safe', label: 'Action sûre');
+    const destructive = PokeMapMenuItem(
+      value: 'delete',
+      label: 'Supprimer',
+      destructive: true,
+    );
+    return MaterialApp(
+      theme: PokeMapTheme.dark(),
+      home: Scaffold(
+        body: Stack(
+          children: [
+            PokeMapContextMenu<String>(
+              anchor: const Offset(120, 80),
+              items: _reordered ? [destructive, safe] : [safe, destructive],
+              onSelected: (value) => selected = value,
+              onDismiss: () {},
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LongContextMenuHarness extends StatefulWidget {
+  const _LongContextMenuHarness({
+    required this.overlayKey,
+    super.key,
+  });
+
+  final Key overlayKey;
+
+  @override
+  State<_LongContextMenuHarness> createState() =>
+      _LongContextMenuHarnessState();
+}
+
+class _LongContextMenuHarnessState extends State<_LongContextMenuHarness> {
+  bool _isOpen = true;
+  String? selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      theme: PokeMapTheme.dark(),
+      home: Scaffold(
+        body: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            key: widget.overlayKey,
+            width: 280,
+            height: 160,
+            child: Stack(
+              children: [
+                if (_isOpen)
+                  PokeMapContextMenu<String>(
+                    anchor: const Offset(8, 8),
+                    items: List<PokeMapMenuItem<String>>.generate(
+                      20,
+                      (index) => PokeMapMenuItem(
+                        value: 'action-$index',
+                        label: 'Action $index',
+                      ),
+                    ),
+                    onSelected: (value) => selected = value,
+                    onDismiss: () => setState(() => _isOpen = false),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StickyDismissHarness extends StatefulWidget {
+  const _StickyDismissHarness({super.key});
+
+  @override
+  State<_StickyDismissHarness> createState() => _StickyDismissHarnessState();
+}
+
+class _StickyDismissHarnessState extends State<_StickyDismissHarness> {
+  bool _isOpen = true;
+  int dismissals = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      theme: PokeMapTheme.dark(),
+      home: Scaffold(
+        body: Stack(
+          children: [
+            if (_isOpen)
+              PokeMapContextMenu<String>(
+                anchor: const Offset(120, 80),
+                items: const [
+                  PokeMapMenuItem(value: 'open', label: 'Ouvrir'),
+                ],
+                onSelected: (_) {},
+                onDismiss: () {
+                  dismissals += 1;
+                  if (dismissals == 2) {
+                    setState(() => _isOpen = false);
+                  }
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DismissFocusHarness extends StatefulWidget {
+  const _DismissFocusHarness({
+    required this.invokerFocusNode,
+    required this.callbackFocusNode,
+  });
+
+  final FocusNode invokerFocusNode;
+  final FocusNode callbackFocusNode;
+
+  @override
+  State<_DismissFocusHarness> createState() => _DismissFocusHarnessState();
+}
+
+class _DismissFocusHarnessState extends State<_DismissFocusHarness> {
+  bool _isOpen = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      theme: PokeMapTheme.dark(),
+      home: Scaffold(
+        body: Stack(
+          children: [
+            TextButton(
+              focusNode: widget.invokerFocusNode,
+              onPressed: () {},
+              child: const Text('Invoker'),
+            ),
+            Align(
+              alignment: Alignment.bottomLeft,
+              child: TextButton(
+                focusNode: widget.callbackFocusNode,
+                onPressed: () {},
+                child: const Text('Callback target'),
+              ),
+            ),
+            if (_isOpen)
+              PokeMapContextMenu<String>(
+                anchor: const Offset(120, 80),
+                items: const [
+                  PokeMapMenuItem(value: 'open', label: 'Ouvrir'),
+                ],
+                invokerFocusNode: widget.invokerFocusNode,
+                onSelected: (_) {},
+                onDismiss: () {
+                  setState(() => _isOpen = false);
+                  widget.callbackFocusNode.requestFocus();
+                  FocusManager.instance.applyFocusChangesIfNeeded();
                 },
               ),
           ],
