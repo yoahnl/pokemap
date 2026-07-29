@@ -1250,7 +1250,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                               workspaceMode) {
                                                             EditorWorkspaceMode
                                                                   .map =>
-                                                              const MapInspectorPanel(),
+                                                              const _LegacyWorldMapWorkspaceSeam(),
                                                             EditorWorkspaceMode
                                                                   .tileset =>
                                                               const TilesetPalettePanel(),
@@ -1332,7 +1332,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                           ),
                         ),
                     ],
-                  )._buildLegacyWorkspace(workspaceMode),
+                  ),
           ),
         ),
       ),
@@ -1428,19 +1428,16 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
   }
 }
 
-extension on Widget {
-  Widget _buildLegacyWorkspace(EditorWorkspaceMode workspaceMode) {
-    if (workspaceMode != EditorWorkspaceMode.map) {
-      return this;
-    }
+/// Temporary Gate 5 seam scoped to the inspector branch that already changes
+/// identity between workspaces. Task 4 can widen it when WorldMapWorkspace is
+/// extracted without remounting the shared toolbar or Project Explorer.
+class _LegacyWorldMapWorkspaceSeam extends StatelessWidget {
+  const _LegacyWorldMapWorkspaceSeam()
+      : super(key: const ValueKey<String>('world-map-workspace'));
 
-    // Gate 5 Tasks 1–4 migrate only World Map behind this seam. The complete
-    // legacy subtree intentionally stays inside it so its typed toolbar and
-    // shortcut callbacks keep owning the existing dialogs and history wiring.
-    return KeyedSubtree(
-      key: const ValueKey<String>('world-map-workspace'),
-      child: this,
-    );
+  @override
+  Widget build(BuildContext context) {
+    return const MapInspectorPanel();
   }
 }
 

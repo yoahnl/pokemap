@@ -51,6 +51,65 @@ void main() {
       );
     });
 
+    testWidgets(
+        'preserves Project Explorer expansion across map tileset round trips',
+        (tester) async {
+      final map = buildShellChromeMap(
+        id: 'explorer_state_map',
+        name: 'Explorer State Map',
+      );
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/editor_shell_explorer_state',
+          project: buildShellChromeProject(
+            maps: const <ProjectMapEntry>[
+              ProjectMapEntry(
+                id: 'explorer_state_map',
+                name: 'Explorer State Map',
+                relativePath: 'maps/explorer_state_map.json',
+              ),
+            ],
+            tilesets: const <ProjectTilesetEntry>[
+              ProjectTilesetEntry(
+                id: 'explorer_state_tileset',
+                name: 'Explorer State Tileset',
+                relativePath: 'tilesets/explorer_state_tileset.json',
+              ),
+            ],
+          ),
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: map,
+        ),
+      );
+
+      final worldMaps = find.text('World Maps');
+      await tester.ensureVisible(worldMaps);
+      await tester.tap(worldMaps);
+      await tester.pumpAndSettle();
+      expect(find.text('CARTES NON GROUPÉES'), findsOneWidget);
+
+      container
+          .read(editorNotifierProvider.notifier)
+          .selectTilesetWorkspace('explorer_state_tileset');
+      await tester.pumpAndSettle();
+      expect(
+        container.read(editorNotifierProvider).workspaceMode,
+        EditorWorkspaceMode.tileset,
+      );
+
+      container.read(editorNotifierProvider.notifier).selectMapWorkspace();
+      await tester.pumpAndSettle();
+      expect(
+        container.read(editorNotifierProvider).workspaceMode,
+        EditorWorkspaceMode.map,
+      );
+
+      // The World Explorer belongs to the shared chrome, so its local expansion
+      // state must survive a workspace round trip in the same shell instance.
+      expect(find.text('CARTES NON GROUPÉES'), findsOneWidget);
+    });
+
     testWidgets('renders map workspace chrome and toggles the right panel',
         (tester) async {
       await pumpEditorShellPage(
