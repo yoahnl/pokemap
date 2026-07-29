@@ -249,6 +249,50 @@ void main() {
       expect(alreadyBeforeNext, same(map));
     });
 
+    test(
+      'duplicate Environment ids never duplicate serialized layer instances',
+      () {
+        final firstEnvironment = _environment('duplicate', 'tile-a');
+        final secondEnvironment = _environment('duplicate', 'tile-b');
+        final map = MapData(
+          id: 'invalid-duplicate-environment-ids',
+          name: 'Invalid duplicate Environment ids',
+          size: const GridSize(width: 1, height: 1),
+          layers: <MapLayer>[
+            _tile('tile-a'),
+            firstEnvironment,
+            _tile('tile-b'),
+            secondEnvironment,
+            const ObjectLayer(id: 'bottom', name: 'Bottom'),
+          ],
+        );
+
+        final moved = service.moveAdjacent(
+          map: map,
+          layerId: 'tile-b',
+          direction: MapLayerGroupMoveDirection.down,
+        );
+
+        expect(moved.layers, hasLength(map.layers.length));
+        expect(
+          moved.layers,
+          orderedEquals(<MapLayer>[
+            map.layers[0],
+            firstEnvironment,
+            map.layers[4],
+            map.layers[2],
+            secondEnvironment,
+          ]),
+        );
+        for (final original in map.layers) {
+          expect(
+            moved.layers.where((layer) => identical(layer, original)),
+            hasLength(1),
+          );
+        }
+      },
+    );
+
     test('rejects stale identifiers and invalid drag slots', () {
       final map = _orderedMap();
 

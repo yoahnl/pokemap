@@ -333,8 +333,6 @@ String _mapCanvasObjectMovePreviewSemanticsLabel(
   final destination = 'x ${preview.destinationAnchor.x}, '
       'y ${preview.destinationAnchor.y}';
   final rejectionReason = switch (preview.plan.rejection) {
-    MapCanvasObjectMoveRejection.sourceMapChanged =>
-      'la carte a changé pendant le glisser',
     MapCanvasObjectMoveRejection.targetNotFound => 'l’objet est introuvable',
     MapCanvasObjectMoveRejection.boundsUnavailable =>
       'son empreinte est inconnue',

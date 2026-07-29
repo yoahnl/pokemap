@@ -4,7 +4,6 @@ import '../../../application/services/placed_element_instance_indexer.dart';
 import 'map_canvas_object_hit_test.dart';
 
 enum MapCanvasObjectMoveRejection {
-  sourceMapChanged,
   targetNotFound,
   boundsUnavailable,
   sourceOutOfBounds,

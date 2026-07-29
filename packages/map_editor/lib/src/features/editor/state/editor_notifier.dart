@@ -6321,8 +6321,6 @@ class EditorNotifier extends _$EditorNotifier {
     MapCanvasObjectMoveRejection? rejection,
   ) {
     return switch (rejection) {
-      MapCanvasObjectMoveRejection.sourceMapChanged =>
-        'Déplacement annulé : la carte a changé pendant le glisser.',
       MapCanvasObjectMoveRejection.targetNotFound =>
         'Déplacement impossible : l’objet est introuvable.',
       MapCanvasObjectMoveRejection.boundsUnavailable =>

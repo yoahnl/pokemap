@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/editor/application/map_canvas_object_hit_test.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
@@ -362,6 +363,141 @@ void main() {
       expect(state.errorMessage, contains('généré par une zone Environment'));
     },
   );
+
+  test('direct move commit rejects a stale source map snapshot', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    final changedMap = _map.copyWith(name: 'Map changed during drag');
+    notifier.state = EditorState(
+      project: _project,
+      workspaceMode: EditorWorkspaceMode.map,
+      activeMap: changedMap,
+      activeLayerId: 'objects',
+      activeTool: EditorToolType.selection,
+      savedMapSnapshot: _map,
+    );
+
+    final committed = notifier.commitCanvasObjectMove(
+      sourceMap: _map,
+      target: const MapCanvasObjectTarget(
+        kind: MapCanvasObjectKind.warp,
+        id: 'warp',
+        anchor: GridPos(x: 4, y: 4),
+        size: GridSize(width: 1, height: 1),
+      ),
+      destinationAnchor: const GridPos(x: 5, y: 5),
+    );
+
+    expect(committed, isFalse);
+    expect(notifier.state.activeMap, same(changedMap));
+    expect(notifier.state.mapUndoStack, isEmpty);
+    expect(notifier.state.errorMessage, contains('carte a changé'));
+  });
+
+  test('direct MapEvent move stays blocked in v2Only mode', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = EditorState(
+      project: _project.copyWith(
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          records: const <NarrativeEventRecord>[],
+          legacyClaims: const <LegacySourceClaim>[],
+        ),
+      ),
+      workspaceMode: EditorWorkspaceMode.map,
+      activeMap: _map,
+      activeLayerId: 'objects',
+      activeTool: EditorToolType.selection,
+      savedMapSnapshot: _map,
+    );
+
+    final committed = notifier.commitCanvasObjectMove(
+      sourceMap: _map,
+      target: const MapCanvasObjectTarget(
+        kind: MapCanvasObjectKind.mapEvent,
+        id: 'event',
+        layerId: 'objects',
+        anchor: GridPos(x: 4, y: 4),
+        size: GridSize(width: 1, height: 1),
+      ),
+      destinationAnchor: const GridPos(x: 5, y: 5),
+    );
+
+    expect(committed, isFalse);
+    expect(notifier.state.activeMap, same(_map));
+    expect(notifier.state.mapUndoStack, isEmpty);
+    expect(notifier.state.errorMessage, contains('Event Builder V2'));
+  });
+
+  test('linked Entity and Trigger moves request event revalidation', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    final project = _project.copyWith(
+      maps: const <ProjectMapEntry>[
+        ProjectMapEntry(
+          id: 'map',
+          name: 'Map',
+          relativePath: 'maps/map.json',
+        ),
+      ],
+      eventRegistry: _linkedSourceRegistry,
+    );
+    notifier.state = EditorState(
+      project: project,
+      workspaceMode: EditorWorkspaceMode.map,
+      activeMap: _map,
+      activeLayerId: 'objects',
+      activeTool: EditorToolType.selection,
+      savedMapSnapshot: _map,
+    );
+
+    final entityCommitted = notifier.commitCanvasObjectMove(
+      sourceMap: _map,
+      target: const MapCanvasObjectTarget(
+        kind: MapCanvasObjectKind.entity,
+        id: 'entity',
+        anchor: GridPos(x: 4, y: 4),
+        size: GridSize(width: 1, height: 1),
+      ),
+      destinationAnchor: const GridPos(x: 5, y: 5),
+    );
+
+    expect(entityCommitted, isTrue);
+    expect(notifier.state.activeMap!.entities.single.pos,
+        const GridPos(x: 5, y: 5));
+    expect(notifier.state.statusMessage, contains(_linkedEntityEventId));
+
+    notifier.state = EditorState(
+      project: project,
+      workspaceMode: EditorWorkspaceMode.map,
+      activeMap: _map,
+      activeLayerId: 'objects',
+      activeTool: EditorToolType.selection,
+      savedMapSnapshot: _map,
+    );
+    final triggerCommitted = notifier.commitCanvasObjectMove(
+      sourceMap: _map,
+      target: const MapCanvasObjectTarget(
+        kind: MapCanvasObjectKind.trigger,
+        id: 'trigger',
+        anchor: GridPos(x: 4, y: 4),
+        size: GridSize(width: 2, height: 1),
+      ),
+      destinationAnchor: const GridPos(x: 5, y: 5),
+    );
+
+    expect(triggerCommitted, isTrue);
+    expect(
+      notifier.state.activeMap!.triggers.single.area.pos,
+      const GridPos(x: 5, y: 5),
+    );
+    expect(notifier.state.statusMessage, contains(_linkedTriggerEventId));
+  });
 }
 
 Future<void> _pumpCanvas(
@@ -396,6 +532,37 @@ const _project = ProjectManifest(
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[],
   surfaceCatalog: ProjectSurfaceCatalog.empty(),
+);
+
+const _linkedEntityEventId = 'evt_019abcde-0000-7000-8000-000000000401';
+const _linkedTriggerEventId = 'evt_019abcde-0000-7000-8000-000000000402';
+
+final _linkedSourceRegistry = NarrativeEventRegistry(
+  schemaVersion: 1,
+  mode: EventSystemMode.dualRead,
+  records: <NarrativeEventRecord>[
+    NarrativeEventRecord.draft(
+      NarrativeEventDraft(
+        id: _linkedEntityEventId,
+        name: 'Linked entity event',
+        source: NarrativeEventSourceRef.entityInteract('map', 'entity'),
+        conditions: const <NarrativeEventCondition>[],
+        priority: 0,
+        order: 0,
+      ),
+    ),
+    NarrativeEventRecord.draft(
+      NarrativeEventDraft(
+        id: _linkedTriggerEventId,
+        name: 'Linked trigger event',
+        source: NarrativeEventSourceRef.triggerEnter('map', 'trigger'),
+        conditions: const <NarrativeEventCondition>[],
+        priority: 0,
+        order: 1,
+      ),
+    ),
+  ],
+  legacyClaims: const <LegacySourceClaim>[],
 );
 
 const _map = MapData(

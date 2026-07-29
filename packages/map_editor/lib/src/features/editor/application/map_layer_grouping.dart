@@ -42,29 +42,30 @@ final class MapLayerGroupService {
     final layersById = <String, MapLayer>{
       for (final layer in map.layers) layer.id: layer,
     };
-    final attachmentsByTargetId = <String, List<EnvironmentLayer>>{};
-    final attachedEnvironmentIds = <String>{};
+    final attachmentsByTarget =
+        Map<TileLayer, List<EnvironmentLayer>>.identity();
+    final attachedEnvironments = Set<EnvironmentLayer>.identity();
 
     for (final layer in map.layers.whereType<EnvironmentLayer>()) {
       final targetId = layer.content.targetTileLayerId?.trim();
-      if (targetId == null ||
-          targetId.isEmpty ||
-          layersById[targetId] is! TileLayer) {
+      final target =
+          targetId == null || targetId.isEmpty ? null : layersById[targetId];
+      if (target is! TileLayer) {
         continue;
       }
-      attachmentsByTargetId
-          .putIfAbsent(targetId, () => <EnvironmentLayer>[])
+      attachmentsByTarget
+          .putIfAbsent(target, () => <EnvironmentLayer>[])
           .add(layer);
-      attachedEnvironmentIds.add(layer.id);
+      attachedEnvironments.add(layer);
     }
 
     final groups = <MapLayerGroup>[];
     for (final layer in map.layers) {
-      if (attachedEnvironmentIds.contains(layer.id)) {
+      if (layer is EnvironmentLayer && attachedEnvironments.contains(layer)) {
         continue;
       }
       final attachments = layer is TileLayer
-          ? attachmentsByTargetId[layer.id] ?? const <EnvironmentLayer>[]
+          ? attachmentsByTarget[layer] ?? const <EnvironmentLayer>[]
           : const <EnvironmentLayer>[];
       if (attachments.isEmpty) {
         groups.add(
@@ -77,15 +78,16 @@ final class MapLayerGroupService {
         continue;
       }
 
-      final attachmentIds =
-          attachments.map((environment) => environment.id).toSet();
+      final attachmentSet = Set<EnvironmentLayer>.identity()
+        ..addAll(attachments);
       groups.add(
         MapLayerGroup._(
           primaryLayer: layer,
           membersTopFirst: <MapLayer>[
             for (final candidate in map.layers)
-              if (candidate.id == layer.id ||
-                  attachmentIds.contains(candidate.id))
+              if (identical(candidate, layer) ||
+                  candidate is EnvironmentLayer &&
+                      attachmentSet.contains(candidate))
                 candidate,
           ],
           attachedEnvironmentLayersTopFirst: attachments,
@@ -188,10 +190,36 @@ MapData _mapWithGroups(
   final layers = <MapLayer>[
     for (final group in groups) ...group.membersTopFirst,
   ];
+  if (!_hasSameIdentityMembers(map.layers, layers)) {
+    throw StateError(
+      'Layer group reorder must preserve every serialized layer instance '
+      'exactly once.',
+    );
+  }
   if (_hasSameIdentityOrder(map.layers, layers)) {
     return map;
   }
   return map.copyWith(layers: layers);
+}
+
+bool _hasSameIdentityMembers(
+  List<MapLayer> previous,
+  List<MapLayer> next,
+) {
+  if (previous.length != next.length) {
+    return false;
+  }
+  final remaining = List<MapLayer>.of(next);
+  for (final previousLayer in previous) {
+    final matchIndex = remaining.indexWhere(
+      (nextLayer) => identical(nextLayer, previousLayer),
+    );
+    if (matchIndex < 0) {
+      return false;
+    }
+    remaining.removeAt(matchIndex);
+  }
+  return remaining.isEmpty;
 }
 
 bool _hasSameIdentityOrder(
