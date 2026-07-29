@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show MaterialApp, SizedBox;
+import 'package:flutter/material.dart' show Material, MaterialApp, SizedBox;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -261,7 +261,9 @@ Future<ProviderContainer> pumpTopToolbarHarness(
             child: child ?? const SizedBox.shrink(),
           );
         },
-        home: const _TopToolbarHarness(),
+        // Contextual pulldowns use Material's PopupMenuButton through the
+        // macOS compatibility shim, so the isolated toolbar needs this sheet.
+        home: const Material(child: _TopToolbarHarness()),
       ),
     ),
   );

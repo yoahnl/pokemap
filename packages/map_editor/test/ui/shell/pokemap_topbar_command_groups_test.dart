@@ -1,34 +1,152 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
+import 'package:map_editor/src/ui/design_system/design_system.dart';
+import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar/widgets/toolbar_capsules.dart';
 
 import '../../shell_chrome_test_harness.dart';
 
 void main() {
   group('PokeMap Topbar Command Groups Tests', () {
+    test('uses the approved Gate 5 command destinations', () {
+      expect(
+        _destinationForCommand('project.new'),
+        _WorldMapActionDestination.plusMenu,
+      );
+      expect(
+        _destinationForCommand('project.open'),
+        _WorldMapActionDestination.plusMenu,
+      );
+      expect(
+        _destinationForCommand('map.resize'),
+        _WorldMapActionDestination.plusMenu,
+      );
+      expect(
+        _destinationForCommand('inspector.layers.toggle'),
+        _WorldMapActionDestination.toolbelt,
+      );
+    });
+
     testWidgets('inventories every World Map action for its Gate 5 destination',
         (tester) async {
-      await pumpTopToolbarHarness(
-        tester,
-        initialState: EditorState(
-          projectRootPath: '/tmp/topbar_world_map_action_inventory',
-          project: buildShellChromeProject(
-            tilesets: const <ProjectTilesetEntry>[
-              ProjectTilesetEntry(
-                id: 'ts_1',
-                name: 'Tileset 1',
-                relativePath: 'tilesets/ts_1.json',
-              ),
-            ],
-          ),
-          activeMap: buildShellChromeMap(),
-          workspaceMode: EditorWorkspaceMode.map,
+      final map = buildShellChromeMap(
+        layers: const <MapLayer>[
+          MapLayer.tile(id: 'tile-layer', name: 'Tile layer'),
+          MapLayer.terrain(id: 'terrain-layer', name: 'Terrain layer'),
+          MapLayer.path(id: 'path-layer', name: 'Path layer'),
+          MapLayer.surface(id: 'surface-layer', name: 'Surface layer'),
+          MapLayer.border(id: 'border-layer', name: 'Border layer'),
+          MapLayer.collision(id: 'collision-layer', name: 'Collision layer'),
+        ],
+      );
+      final baseState = EditorState(
+        projectRootPath: '/tmp/topbar_world_map_action_inventory',
+        project: buildShellChromeProject(
+          tilesets: const <ProjectTilesetEntry>[
+            ProjectTilesetEntry(
+              id: 'ts_1',
+              name: 'Tileset 1',
+              relativePath: 'tilesets/ts_1.json',
+            ),
+          ],
         ),
+        activeMap: map,
+        workspaceMode: EditorWorkspaceMode.map,
+      );
+      final container = await pumpTopToolbarHarness(
+        tester,
+        initialState: baseState,
         surfaceSize: const Size(2200, 220),
+      );
+
+      final renderedControls = <Widget>[];
+
+      void captureRenderedControls() {
+        renderedControls.addAll(
+          tester.widgetList<ToolbarCapsuleButton>(
+            find.byType(ToolbarCapsuleButton),
+          ),
+        );
+        renderedControls.addAll(
+          tester.widgetList<ToolbarCapsulePulldown>(
+            find.byType(ToolbarCapsulePulldown),
+          ),
+        );
+        final eraserFootprint = find.byKey(
+          const ValueKey<String>('eraser-footprint-toolbar-button'),
+        );
+        if (eraserFootprint.evaluate().isNotEmpty) {
+          expect(eraserFootprint, findsOneWidget);
+          renderedControls.add(tester.widget<PokeMapButton>(eraserFootprint));
+        }
+      }
+
+      Future<void> renderAndCapture(EditorState state) async {
+        container.read(editorNotifierProvider.notifier).state = state;
+        await tester.pumpAndSettle();
+        captureRenderedControls();
+      }
+
+      captureRenderedControls();
+
+      // Layer probes cover every conditional tool button in the legacy topbar.
+      await renderAndCapture(
+        baseState.copyWith(
+          activeLayerId: 'tile-layer',
+          activeTool: EditorToolType.selection,
+        ),
+      );
+      await renderAndCapture(
+        baseState.copyWith(
+          activeLayerId: 'path-layer',
+          activeTool: EditorToolType.terrainPaint,
+          terrainSelectionMode: TerrainSelectionMode.path,
+        ),
+      );
+      await renderAndCapture(
+        baseState.copyWith(
+          activeLayerId: 'surface-layer',
+          activeTool: EditorToolType.surfacePaint,
+        ),
+      );
+      await renderAndCapture(
+        baseState.copyWith(
+          activeLayerId: 'border-layer',
+          activeTool: EditorToolType.selection,
+        ),
+      );
+
+      // These four states prove the contextual legacy controls requested by the
+      // Gate 5 review, rather than representing them with unverified constants.
+      await renderAndCapture(
+        baseState.copyWith(
+          activeLayerId: 'terrain-layer',
+          activeTool: EditorToolType.terrainPaint,
+          terrainSelectionMode: TerrainSelectionMode.terrain,
+        ),
+      );
+      await renderAndCapture(
+        baseState.copyWith(
+          activeLayerId: null,
+          activeTool: EditorToolType.entityPlacement,
+        ),
+      );
+      await renderAndCapture(
+        baseState.copyWith(
+          activeLayerId: 'collision-layer',
+          activeTool: EditorToolType.collisionPaint,
+        ),
+      );
+      await renderAndCapture(
+        baseState.copyWith(
+          activeLayerId: 'tile-layer',
+          activeTool: EditorToolType.eraser,
+        ),
       );
 
       final commandIds = [
@@ -57,28 +175,29 @@ void main() {
         );
       }
 
-      final assignedTooltips = <String>{
-        for (final actions in _worldMapCommandInventory.values)
-          ...actions.values.whereType<String>(),
-        ..._worldExplorerWorkspaceNavigationInventory.values,
+      final assignedControls = <String, _WorldMapControlSignature>{
+        for (final actions in _worldMapCommandInventory.values) ...actions,
+        ..._worldExplorerWorkspaceNavigationInventory,
       };
-      final renderedTooltips = tester
-          .widgetList<ToolbarCapsuleButton>(
-            find.byType(ToolbarCapsuleButton),
-          )
-          .map((button) => button.tooltip)
-          .toSet();
+      final renderedActionIds = <String>{};
+      for (final control in renderedControls) {
+        final matchingActionIds = assignedControls.entries
+            .where((entry) => entry.value.matches(control))
+            .map((entry) => entry.key)
+            .toList(growable: false);
+        expect(
+          matchingActionIds,
+          hasLength(1),
+          reason: '${_describeControl(control)} must be assigned exactly once.',
+        );
+        renderedActionIds.add(matchingActionIds.single);
+      }
       expect(
-        renderedTooltips.difference(assignedTooltips),
-        isEmpty,
+        renderedActionIds,
+        assignedControls.keys.toSet(),
         reason:
-            'Every currently rendered World Map action must be assigned before '
-            'the legacy topbar is replaced.',
-      );
-
-      expect(
-        _worldExplorerWorkspaceNavigationInventory.values,
-        everyElement(renderedTooltips.contains),
+            'Every inventory entry must match a control rendered in at least '
+            'one characterized World Map state.',
       );
     });
 
@@ -162,63 +281,155 @@ enum _WorldMapActionDestination {
   globalFileHistory,
 }
 
+enum _WorldMapControlKind {
+  capsuleTooltip,
+  capsuleTooltipPrefix,
+  pulldownLabel,
+  pokeMapButtonKey,
+}
+
+final class _WorldMapControlSignature {
+  const _WorldMapControlSignature.capsuleTooltip(this.value)
+      : kind = _WorldMapControlKind.capsuleTooltip;
+
+  const _WorldMapControlSignature.capsuleTooltipPrefix(this.value)
+      : kind = _WorldMapControlKind.capsuleTooltipPrefix;
+
+  const _WorldMapControlSignature.pulldownLabel(this.value)
+      : kind = _WorldMapControlKind.pulldownLabel;
+
+  const _WorldMapControlSignature.pokeMapButtonKey(this.value)
+      : kind = _WorldMapControlKind.pokeMapButtonKey;
+
+  final _WorldMapControlKind kind;
+  final String value;
+
+  bool matches(Widget widget) {
+    return switch (kind) {
+      _WorldMapControlKind.capsuleTooltip =>
+        widget is ToolbarCapsuleButton && widget.tooltip == value,
+      _WorldMapControlKind.capsuleTooltipPrefix =>
+        widget is ToolbarCapsuleButton && widget.tooltip.startsWith(value),
+      _WorldMapControlKind.pulldownLabel =>
+        widget is ToolbarCapsulePulldown && widget.label == value,
+      _WorldMapControlKind.pokeMapButtonKey =>
+        widget is PokeMapButton && widget.key == ValueKey<String>(value),
+    };
+  }
+}
+
 // This is the migration ledger for the topbar that exists before Gate 5.
-// Context-only controls without a stable tooltip keep a semantic id so later
-// tasks can move them without inventing a replacement widget in Task 1.
+// Every entry carries a signature exercised against a real legacy widget above;
+// Task 1 still does not create any destination widget.
 const _worldMapCommandInventory =
-    <_WorldMapActionDestination, Map<String, String?>>{
-  _WorldMapActionDestination.globalFileHistory: <String, String?>{
-    'project.new': 'New Project',
-    'project.open': 'Open Project',
-    'map.save': 'Save Map',
-    'history.undo': 'Undo',
-    'history.redo': 'Redo',
+    <_WorldMapActionDestination, Map<String, _WorldMapControlSignature>>{
+  _WorldMapActionDestination.globalFileHistory:
+      <String, _WorldMapControlSignature>{
+    'map.save': _WorldMapControlSignature.capsuleTooltip('Save Map'),
+    'history.undo': _WorldMapControlSignature.capsuleTooltip('Undo'),
+    'history.redo': _WorldMapControlSignature.capsuleTooltip('Redo'),
   },
-  _WorldMapActionDestination.plusMenu: <String, String?>{
-    'project.settings': 'Project Settings',
-    'game.export': 'Export Game',
-    'map.new': 'New Map',
+  _WorldMapActionDestination.plusMenu: <String, _WorldMapControlSignature>{
+    'project.new': _WorldMapControlSignature.capsuleTooltip('New Project'),
+    'project.open': _WorldMapControlSignature.capsuleTooltip('Open Project'),
+    'project.settings':
+        _WorldMapControlSignature.capsuleTooltip('Project Settings'),
+    'game.export': _WorldMapControlSignature.capsuleTooltip('Export Game'),
+    'map.new': _WorldMapControlSignature.capsuleTooltip('New Map'),
+    'map.resize': _WorldMapControlSignature.capsuleTooltip('Resize Map'),
   },
-  _WorldMapActionDestination.adaptiveInspector: <String, String?>{
-    'map.resize': 'Resize Map',
-    'tool.terrainType': null,
-    'tool.entityKind': null,
-    'tool.collisionBrushSize': null,
-    'tool.eraserFootprint': null,
-    'inspector.layers.toggle': 'Masquer/Afficher le panneau des calques',
+  _WorldMapActionDestination.adaptiveInspector:
+      <String, _WorldMapControlSignature>{
+    'tool.terrainType': _WorldMapControlSignature.pulldownLabel('Grass Base'),
+    'tool.entityKind': _WorldMapControlSignature.pulldownLabel('NPC'),
+    'tool.collisionBrushSize': _WorldMapControlSignature.capsuleTooltip(
+      'Collision Brush Size: Brush Footprint',
+    ),
+    'tool.eraserFootprint': _WorldMapControlSignature.pokeMapButtonKey(
+      'eraser-footprint-toolbar-button',
+    ),
   },
-  _WorldMapActionDestination.toolbelt: <String, String?>{
-    'tool.selection': 'Selection Tool',
-    'tool.tilePaint': 'Tile Paint Tool',
-    'tool.terrainPaint': 'Terrain Paint Tool',
-    'tool.pathPaint': 'Path Paint Tool',
-    'tool.surfacePaint': 'Surface Paint Tool',
-    'tool.borderPaint': 'Border Paint Tool',
-    'tool.borderErase': 'Border Erase Tool',
-    'tool.collisionPaint': 'Collision Paint Tool',
-    'tool.eraser': 'Eraser Tool',
-    'tool.entity': 'Entity Tool',
-    'tool.event': 'Event Tool',
-    'tool.trigger': 'Trigger Tool',
-    'tool.warp': 'Warp Tool',
-    'tool.gameplayZone': 'Gameplay Zone Tool',
+  _WorldMapActionDestination.toolbelt: <String, _WorldMapControlSignature>{
+    'tool.selection':
+        _WorldMapControlSignature.capsuleTooltip('Selection Tool'),
+    'tool.tilePaint':
+        _WorldMapControlSignature.capsuleTooltip('Tile Paint Tool'),
+    'tool.terrainPaint':
+        _WorldMapControlSignature.capsuleTooltip('Terrain Paint Tool'),
+    'tool.pathPaint':
+        _WorldMapControlSignature.capsuleTooltip('Path Paint Tool'),
+    'tool.surfacePaint':
+        _WorldMapControlSignature.capsuleTooltip('Surface Paint Tool'),
+    'tool.borderPaint':
+        _WorldMapControlSignature.capsuleTooltipPrefix('Border Paint Tool'),
+    'tool.borderErase':
+        _WorldMapControlSignature.capsuleTooltipPrefix('Border Erase Tool'),
+    'tool.collisionPaint':
+        _WorldMapControlSignature.capsuleTooltip('Collision Paint Tool'),
+    'tool.eraser': _WorldMapControlSignature.capsuleTooltip('Eraser Tool'),
+    'tool.entity': _WorldMapControlSignature.capsuleTooltip('Entity Tool'),
+    'tool.event': _WorldMapControlSignature.capsuleTooltip('Event Tool'),
+    'tool.trigger': _WorldMapControlSignature.capsuleTooltip('Trigger Tool'),
+    'tool.warp': _WorldMapControlSignature.capsuleTooltip('Warp Tool'),
+    'tool.gameplayZone':
+        _WorldMapControlSignature.capsuleTooltip('Gameplay Zone Tool'),
+    'inspector.layers.toggle': _WorldMapControlSignature.capsuleTooltip(
+      'Masquer/Afficher le panneau des calques',
+    ),
   },
 };
 
 // Workspace switches are navigation, not editing commands. Gate 5 moves all of
 // them to World Explorer while preserving their current semantic tooltips.
-const _worldExplorerWorkspaceNavigationInventory = <String, String>{
-  'workspace.map': 'Switch to map workspace',
-  'workspace.tileset': 'Switch to tileset workspace',
-  'workspace.trainer': 'Switch to Trainer Studio',
-  'workspace.pokemonCatalogs': 'Switch to Catalogues Pokémon',
-  'workspace.narrativeOverview': 'Ouvrir Narrative Studio / Aperçu',
-  'workspace.globalStory': 'Switch to global story workspace',
-  'workspace.step': 'Switch to Step Studio',
-  'workspace.scenes': 'Ouvrir le workspace Scènes',
-  'workspace.events': 'Ouvrir le workspace Événements',
-  'workspace.cutscene': 'Switch to Cutscene Studio',
-  'workspace.dialogue': 'Switch to dialogue studio',
-  'workspace.path': 'Switch to Path Studio',
-  'workspace.environment': 'Switch to Environment Studio',
+const _worldExplorerWorkspaceNavigationInventory =
+    <String, _WorldMapControlSignature>{
+  'workspace.map':
+      _WorldMapControlSignature.capsuleTooltip('Switch to map workspace'),
+  'workspace.tileset':
+      _WorldMapControlSignature.capsuleTooltip('Switch to tileset workspace'),
+  'workspace.trainer':
+      _WorldMapControlSignature.capsuleTooltip('Switch to Trainer Studio'),
+  'workspace.pokemonCatalogs': _WorldMapControlSignature.capsuleTooltip(
+    'Switch to Catalogues Pokémon',
+  ),
+  'workspace.narrativeOverview': _WorldMapControlSignature.capsuleTooltip(
+    'Ouvrir Narrative Studio / Aperçu',
+  ),
+  'workspace.globalStory': _WorldMapControlSignature.capsuleTooltip(
+    'Switch to global story workspace',
+  ),
+  'workspace.step':
+      _WorldMapControlSignature.capsuleTooltip('Switch to Step Studio'),
+  'workspace.scenes':
+      _WorldMapControlSignature.capsuleTooltip('Ouvrir le workspace Scènes'),
+  'workspace.events': _WorldMapControlSignature.capsuleTooltip(
+    'Ouvrir le workspace Événements',
+  ),
+  'workspace.cutscene':
+      _WorldMapControlSignature.capsuleTooltip('Switch to Cutscene Studio'),
+  'workspace.dialogue':
+      _WorldMapControlSignature.capsuleTooltip('Switch to dialogue studio'),
+  'workspace.path':
+      _WorldMapControlSignature.capsuleTooltip('Switch to Path Studio'),
+  'workspace.environment': _WorldMapControlSignature.capsuleTooltip(
+    'Switch to Environment Studio',
+  ),
 };
+
+_WorldMapActionDestination? _destinationForCommand(String actionId) {
+  for (final entry in _worldMapCommandInventory.entries) {
+    if (entry.value.containsKey(actionId)) {
+      return entry.key;
+    }
+  }
+  return null;
+}
+
+String _describeControl(Widget widget) {
+  return switch (widget) {
+    ToolbarCapsuleButton(:final tooltip) => 'capsule "$tooltip"',
+    ToolbarCapsulePulldown(:final label) => 'pulldown "$label"',
+    PokeMapButton(:final key) => 'PokeMapButton key "$key"',
+    _ => widget.runtimeType.toString(),
+  };
+}
