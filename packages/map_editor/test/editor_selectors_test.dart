@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/models/map_history_snapshot.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_selectors.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
@@ -113,6 +114,35 @@ void main() {
       expect(toolbar.canUndoMap, isFalse);
       expect(toolbar.canRedoMap, isFalse);
       expect(toolbar.isProjectDirty, isTrue);
+    });
+
+    test('active map strokes hide save and history actions', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      const map = MapData(
+        id: 'town',
+        name: 'Starter Town',
+        size: GridSize(width: 8, height: 8),
+        layers: <MapLayer>[],
+      );
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        workspaceMode: EditorWorkspaceMode.map,
+        activeMap: map,
+        mapStrokeStart: MapHistorySnapshot(map: map),
+        canUndoMap: true,
+        canRedoMap: true,
+      );
+
+      final shell = container.read(editorShellSnapshotProvider);
+      final toolbar = container.read(editorToolbarSnapshotProvider);
+
+      expect(shell.canSaveMap, isFalse);
+      expect(shell.canUndoMap, isFalse);
+      expect(shell.canRedoMap, isFalse);
+      expect(toolbar.canSaveMap, isFalse);
+      expect(toolbar.canUndoMap, isFalse);
+      expect(toolbar.canRedoMap, isFalse);
     });
 
     test('editorProjectExplorerSnapshotProvider exposes active map selection',

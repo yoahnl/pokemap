@@ -143,17 +143,15 @@ class MapHistoryCoordinator {
     required bool partOfStroke,
   }) {
     if (partOfStroke) {
+      if (strokeStart == null) {
+        throw StateError(
+          'partOfStroke mutations require a complete stroke checkpoint',
+        );
+      }
       return MapHistoryMutationResult(
         undoStack: undoStack,
         redoStack: redoStack,
-        strokeStart: strokeStart ??
-            MapHistorySnapshot(
-              map: previousMap,
-              activeLayerId: activeLayerId,
-              selectedEntityId: selectedEntityId,
-              selectedWarpId: selectedWarpId,
-              selectedTriggerId: selectedTriggerId,
-            ),
+        strokeStart: strokeStart,
       );
     }
     final nextUndo = pushSnapshot(

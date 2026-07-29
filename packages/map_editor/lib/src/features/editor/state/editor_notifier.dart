@@ -1776,6 +1776,11 @@ class EditorNotifier extends _$EditorNotifier {
     if (map == null || path == null) {
       return ActiveMapSaveOutcome.unavailable;
     }
+    // The canvas arbiter still owns this gesture. Saving here would persist a
+    // partial document and clear the rollback checkpoint behind its back.
+    if (state.mapStrokeStart != null) {
+      return ActiveMapSaveOutcome.unavailable;
+    }
     if (_rejectNonCanonicalActiveMapAuthoring(revalidateManifest: true)) {
       return ActiveMapSaveOutcome.unavailable;
     }
@@ -7367,7 +7372,10 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void undoMap() {
-    if (_rejectNarrativeEventSourceCleanupMapMutation() ||
+    // History commands must never terminate a gesture still owned by the
+    // canvas. Pointer-up or cancellation remains its single terminal event.
+    if (state.mapStrokeStart != null ||
+        _rejectNarrativeEventSourceCleanupMapMutation() ||
         _rejectMapDiskMutationLease()) {
       return;
     }
@@ -7399,7 +7407,10 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void redoMap() {
-    if (_rejectNarrativeEventSourceCleanupMapMutation() ||
+    // In particular, finalizing here would clear a pre-existing redo stack
+    // before the physical pointer session has ended.
+    if (state.mapStrokeStart != null ||
+        _rejectNarrativeEventSourceCleanupMapMutation() ||
         _rejectMapDiskMutationLease()) {
       return;
     }

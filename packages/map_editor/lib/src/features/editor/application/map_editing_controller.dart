@@ -220,6 +220,12 @@ class MapEditingController {
     }
 
     var state = current;
+    if (partOfStroke && state.mapStrokeStart == null) {
+      // Legacy/direct callers may submit the first sample without an explicit
+      // begin. Capture the complete editor checkpoint at this public boundary
+      // instead of letting the history layer fabricate a partial snapshot.
+      state = beginStroke(state);
+    }
     if (!partOfStroke && state.mapStrokeStart != null) {
       state = endStroke(state);
     }

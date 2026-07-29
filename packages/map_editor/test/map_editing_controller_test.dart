@@ -8,6 +8,31 @@ import 'package:map_editor/src/features/editor/application/map_editing_controlle
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 
 void main() {
+  group('MapHistoryCoordinator stroke invariant', () {
+    test('rejects an orphan partOfStroke mutation', () {
+      const map = MapData(
+        id: 'map_1',
+        name: 'Map 1',
+        size: GridSize(width: 1, height: 1),
+      );
+
+      expect(
+        () => const MapHistoryCoordinator().applyMutation(
+          previousMap: map,
+          activeLayerId: null,
+          selectedEntityId: null,
+          selectedWarpId: null,
+          selectedTriggerId: null,
+          undoStack: const <MapHistorySnapshot>[],
+          redoStack: const <MapHistorySnapshot>[],
+          strokeStart: null,
+          partOfStroke: true,
+        ),
+        throwsStateError,
+      );
+    });
+  });
+
   group('MapEditingController', () {
     const controller = MapEditingController(
       mutationCoordinator: EditorMapMutationCoordinator(
@@ -246,6 +271,93 @@ void main() {
         expect(cancelled.isDirty, isFalse);
       },
     );
+
+    test('partOfStroke auto-captures a complete rollback checkpoint', () {
+      const original = MapData(
+        id: 'map_1',
+        name: 'Map 1',
+        size: GridSize(width: 2, height: 1),
+        layers: [
+          TileLayer(id: 'ground', name: 'Ground', tiles: [0, 0]),
+        ],
+        entities: [
+          MapEntity(
+            id: 'npc',
+            name: 'NPC',
+            kind: MapEntityKind.npc,
+            pos: GridPos(x: 0, y: 0),
+          ),
+        ],
+        warps: [
+          MapWarp(
+            id: 'warp',
+            pos: GridPos(x: 0, y: 0),
+            targetMapId: 'map_1',
+            targetPos: GridPos(x: 1, y: 0),
+          ),
+        ],
+        triggers: [
+          MapTrigger(
+            id: 'trigger',
+            name: 'Trigger',
+            type: TriggerType.event,
+            area: MapRect(
+              pos: GridPos(x: 0, y: 0),
+              size: GridSize(width: 1, height: 1),
+            ),
+          ),
+        ],
+      );
+      final firstSample = original.copyWith(
+        layers: const [
+          TileLayer(id: 'ground', name: 'Ground', tiles: [1, 0]),
+        ],
+      );
+      const current = EditorState(
+        activeMap: original,
+        activeLayerId: 'ground',
+        selectedEntityId: 'npc',
+        npcWaypointPlacementEntityId: 'npc',
+        selectedMapEventId: 'event',
+        selectedWarpId: 'warp',
+        selectedTriggerId: 'trigger',
+        selectedGameplayZoneId: 'zone',
+        selectedPlacedElementInstanceId: 'placement',
+        isDirty: true,
+      );
+
+      // The controller is a public boundary and must fail safely even when an
+      // older caller marks a sample as part of a stroke without beginning it.
+      final mutated = controller.applyMutation(
+        current: current,
+        previousMap: original,
+        updatedMap: firstSample,
+        preferredActiveLayerId: 'ground',
+        partOfStroke: true,
+      );
+
+      expect(mutated.mapStrokeStart, isNotNull);
+      final cancelled = controller.cancelStroke(mutated);
+      expect(cancelled.activeMap, original);
+      expect(cancelled.activeLayerId, current.activeLayerId);
+      expect(cancelled.selectedEntityId, current.selectedEntityId);
+      expect(
+        cancelled.npcWaypointPlacementEntityId,
+        current.npcWaypointPlacementEntityId,
+      );
+      expect(cancelled.selectedMapEventId, current.selectedMapEventId);
+      expect(cancelled.selectedWarpId, current.selectedWarpId);
+      expect(cancelled.selectedTriggerId, current.selectedTriggerId);
+      expect(
+        cancelled.selectedGameplayZoneId,
+        current.selectedGameplayZoneId,
+      );
+      expect(
+        cancelled.selectedPlacedElementInstanceId,
+        current.selectedPlacedElementInstanceId,
+      );
+      expect(cancelled.isDirty, isTrue);
+    });
 
     test('a multi-sample stroke creates exactly one undo entry', () {
       const original = MapData(

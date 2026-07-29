@@ -492,7 +492,7 @@ void main() {
       expect(notifier.state.errorMessage, contains(_entityEvent));
     });
 
-    test('blocked undo leaves an active stroke and its history untouched', () {
+    test('active stroke interlock leaves map and history untouched', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
       final notifier = container.read(editorNotifierProvider.notifier);
@@ -516,7 +516,7 @@ void main() {
       expect(notifier.state.mapRedoStack, isEmpty);
       expect(notifier.state.canUndoMap, isFalse);
       expect(notifier.state.statusMessage, 'Trait en cours');
-      expect(notifier.state.errorMessage, contains(_entityEvent));
+      expect(notifier.state.errorMessage, isNull);
     });
 
     test('redo keeps map and history unchanged when a trigger becomes system',

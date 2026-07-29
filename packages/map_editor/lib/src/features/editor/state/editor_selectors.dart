@@ -142,6 +142,9 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
   final isSaving = ref.watch(
     editorNotifierProvider.select((s) => s.isSaving),
   );
+  final hasActiveMapStroke = ref.watch(
+    editorNotifierProvider.select((s) => s.mapStrokeStart != null),
+  );
 
   final workspaceTitle = switch (workspaceMode) {
     EditorWorkspaceMode.map => activeMap?.name ?? 'Espace carte',
@@ -214,10 +217,13 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     workspaceMode: workspaceMode,
     workspaceTitle: workspaceTitle,
     workspaceSubtitle: workspaceSubtitle,
-    canUndoMap: exposesMapActions && canUndoMap,
-    canRedoMap: exposesMapActions && canRedoMap,
+    canUndoMap: exposesMapActions && !hasActiveMapStroke && canUndoMap,
+    canRedoMap: exposesMapActions && !hasActiveMapStroke && canRedoMap,
     isSaving: isSaving,
-    canSaveMap: exposesMapActions && activeMap != null && !isSaving,
+    canSaveMap: exposesMapActions &&
+        activeMap != null &&
+        !isSaving &&
+        !hasActiveMapStroke,
   );
 });
 
@@ -226,6 +232,7 @@ final editorToolbarSnapshotProvider = Provider<EditorToolbarSnapshot>((ref) {
     editorNotifierProvider.select((state) {
       final project = state.project;
       final exposesMapActions = state.workspaceMode == EditorWorkspaceMode.map;
+      final hasActiveMapStroke = state.mapStrokeStart != null;
       return (
         project: project,
         projectRootPath: state.projectRootPath,
@@ -243,9 +250,12 @@ final editorToolbarSnapshotProvider = Provider<EditorToolbarSnapshot>((ref) {
         isSaving: state.isSaving,
         isDirty: state.isDirty,
         isProjectDirty: state.isProjectDirty,
-        canSaveMap: exposesMapActions && state.activeMap != null,
-        canUndoMap: exposesMapActions && state.canUndoMap,
-        canRedoMap: exposesMapActions && state.canRedoMap,
+        canSaveMap:
+            exposesMapActions && state.activeMap != null && !hasActiveMapStroke,
+        canUndoMap:
+            exposesMapActions && !hasActiveMapStroke && state.canUndoMap,
+        canRedoMap:
+            exposesMapActions && !hasActiveMapStroke && state.canRedoMap,
         statusMessage: state.statusMessage,
       );
     }),
