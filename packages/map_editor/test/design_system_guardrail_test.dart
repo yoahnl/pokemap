@@ -63,6 +63,43 @@ void main() {
         ].join('\n'),
       );
     });
+
+    test('desktop source ratchet rejects imports from the editor perimeter',
+        () {
+      const syntheticPath =
+          'lib/src/ui/design_system/pokemap_synthetic_primitive.dart';
+      final source = <String>[
+        "import '../../features/editor/application/world_map_tool_activation.dart';",
+        "import '../../application/project_loader.dart';",
+        "import '../../domain/map_document.dart';",
+        "import '../panels/map_inspector_panel.dart';",
+        "import '../shared/top_toolbar.dart';",
+        "import 'package:map_editor/src/app/providers/project_provider.dart';",
+        "import 'package:map_editor/src/ui/canvas/map_canvas.dart';",
+        "import '../../theme/theme.dart';",
+        "import 'editor_local_helper.dart';",
+        "import 'pokemap_panel.dart';",
+        "import 'dart:math';",
+        "import 'package:flutter/material.dart';",
+        "import 'package:collection/collection.dart';",
+      ].join('\n');
+
+      expect(
+        _desktopInteractionSourceRegressions(
+          relativePath: syntheticPath,
+          source: source,
+        ),
+        const <String>[
+          '$syntheticPath:1: internal import outside design system/theme',
+          '$syntheticPath:2: internal import outside design system/theme',
+          '$syntheticPath:3: internal import outside design system/theme',
+          '$syntheticPath:4: internal import outside design system/theme',
+          '$syntheticPath:5: internal import outside design system/theme',
+          '$syntheticPath:6: internal import outside design system/theme',
+          '$syntheticPath:7: internal import outside design system/theme',
+        ],
+      );
+    });
   });
 }
 
@@ -72,17 +109,6 @@ List<String> _desktopInteractionPrimitiveRegressions() {
     'lib/src/ui/design_system/pokemap_context_menu.dart',
     'lib/src/ui/design_system/pokemap_split_button.dart',
   ];
-  final forbiddenPatterns = <RegExp, String>{
-    RegExp(r'\bColor\s*\(\s*0x'): 'hard-coded Color literal',
-    RegExp(r'\bColors\.'): 'Material Colors reference',
-    RegExp(r'\bCupertinoColors\b'): 'CupertinoColors reference',
-    RegExp(r'\bPokeMapLegacyColors\b'): 'legacy PokeMap color reference',
-    RegExp(r'\bEditorChrome\b'): 'legacy EditorChrome dependency',
-    RegExp(r'\bEditorState\b'): 'EditorState dependency',
-    RegExp(r'editor_state\.dart'): 'editor_state import',
-    RegExp(r'editor_notifier\.dart'): 'editor_notifier import',
-    RegExp(r'''import\s+['"][^'"]*map_core[^'"]*['"]'''): 'map_core import',
-  };
   final regressions = <String>[];
 
   for (final relativePath in primitivePaths) {
@@ -91,18 +117,80 @@ List<String> _desktopInteractionPrimitiveRegressions() {
       regressions.add('$relativePath is missing');
       continue;
     }
-    final lines = file.readAsLinesSync();
-    for (var index = 0; index < lines.length; index += 1) {
-      for (final entry in forbiddenPatterns.entries) {
-        if (entry.key.hasMatch(lines[index])) {
-          regressions.add(
-            '$relativePath:${index + 1}: ${entry.value}',
-          );
-        }
+    regressions.addAll(
+      _desktopInteractionSourceRegressions(
+        relativePath: relativePath,
+        source: file.readAsStringSync(),
+      ),
+    );
+  }
+  return regressions;
+}
+
+List<String> _desktopInteractionSourceRegressions({
+  required String relativePath,
+  required String source,
+}) {
+  final forbiddenPatterns = <RegExp, String>{
+    RegExp(r'\bColor\s*\(\s*0x'): 'hard-coded Color literal',
+    RegExp(r'\bColors\.'): 'Material Colors reference',
+    RegExp(r'\bCupertinoColors\b'): 'CupertinoColors reference',
+    RegExp(r'\bPokeMapLegacyColors\b'): 'legacy PokeMap color reference',
+    RegExp(r'\bEditorChrome\b'): 'legacy EditorChrome dependency',
+    RegExp(r'\bEditorState\b'): 'EditorState dependency',
+    RegExp(r'''import\s+['"][^'"]*map_core[^'"]*['"]'''): 'map_core import',
+  };
+  final importPattern = RegExp(r'''^\s*import\s+['"]([^'"]+)['"]''');
+  final regressions = <String>[];
+  final lines = source.split('\n');
+
+  for (var index = 0; index < lines.length; index += 1) {
+    final line = lines[index];
+    for (final entry in forbiddenPatterns.entries) {
+      if (entry.key.hasMatch(line)) {
+        regressions.add('$relativePath:${index + 1}: ${entry.value}');
       }
+    }
+
+    final importMatch = importPattern.firstMatch(line);
+    if (importMatch == null) continue;
+    final importUri = importMatch.group(1)!.replaceAll(r'\', '/');
+    final resolvedImport = _resolveDesktopPrimitiveImport(
+      relativePath: relativePath,
+      importUri: importUri,
+    );
+    if (_isDisallowedDesktopPrimitiveImport(resolvedImport)) {
+      regressions.add(
+        '$relativePath:${index + 1}: '
+        'internal import outside design system/theme',
+      );
     }
   }
   return regressions;
+}
+
+bool _isDisallowedDesktopPrimitiveImport(String resolvedImport) {
+  if (!resolvedImport.startsWith('lib/src/')) return false;
+  return !resolvedImport.startsWith('lib/src/theme/') &&
+      !resolvedImport.startsWith('lib/src/ui/design_system/');
+}
+
+String _resolveDesktopPrimitiveImport({
+  required String relativePath,
+  required String importUri,
+}) {
+  const packagePrefix = 'package:map_editor/';
+  if (importUri.startsWith(packagePrefix)) {
+    return p
+        .join('lib', importUri.substring(packagePrefix.length))
+        .replaceAll(r'\', '/');
+  }
+  if (importUri.startsWith('package:') || importUri.startsWith('dart:')) {
+    return importUri;
+  }
+  return p
+      .normalize(p.join(p.dirname(relativePath), importUri))
+      .replaceAll(r'\', '/');
 }
 
 List<String> _directColorReferenceRegressions() {
