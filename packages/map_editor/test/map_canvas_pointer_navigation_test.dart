@@ -84,6 +84,62 @@ void main() {
       expect(state.activeMap, same(_activeMap));
     });
 
+    testWidgets(
+      'tile paint with no brush ignores a primary click without opening a stroke',
+      (tester) async {
+        final container = _createContainer();
+        const undoCheckpoint = MapHistorySnapshot(
+          map: _activeMap,
+          activeLayerId: 'undo-sentinel',
+        );
+        const redoCheckpoint = MapHistorySnapshot(
+          map: _activeMap,
+          activeLayerId: 'redo-sentinel',
+        );
+        container.read(editorNotifierProvider.notifier).state =
+            const EditorState(
+          project: _project,
+          activeMap: _activeMap,
+          activeLayerId: 'ground',
+          activeTool: EditorToolType.tilePaint,
+          activeBrush: EditorBrush.none(),
+          savedMapSnapshot: _activeMap,
+          mapUndoStack: <MapHistorySnapshot>[undoCheckpoint],
+          mapRedoStack: <MapHistorySnapshot>[redoCheckpoint],
+          canUndoMap: true,
+          canRedoMap: true,
+        );
+
+        await _pumpCanvas(tester, container);
+        final before = container.read(editorNotifierProvider);
+        final emissions = <EditorState>[];
+        final subscription = container.listen<EditorState>(
+          editorNotifierProvider,
+          (_, next) => emissions.add(next),
+        );
+        addTearDown(subscription.close);
+
+        await tester.tapAt(
+          tester.getRect(find.byType(MapCanvas)).topLeft + const Offset(16, 16),
+        );
+        await tester.pump();
+
+        final after = container.read(editorNotifierProvider);
+        expect(
+          emissions.where((snapshot) => snapshot.mapStrokeStart != null),
+          isEmpty,
+        );
+        expect(after.activeMap, same(before.activeMap));
+        expect(after.activeMap!.toJson(), before.activeMap!.toJson());
+        expect(after.mapStrokeStart, isNull);
+        expect(after.mapUndoStack, before.mapUndoStack);
+        expect(after.mapRedoStack, before.mapRedoStack);
+        expect(after.canUndoMap, isTrue);
+        expect(after.canRedoMap, isTrue);
+        expect(after.isDirty, isFalse);
+      },
+    );
+
     testWidgets('command wheel zooms under the pointer without editing',
         (tester) async {
       final container = _createContainer();

@@ -790,8 +790,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           );
         }
 
+        final isInertTilePaint = state.activeTool == EditorToolType.tilePaint &&
+            state.activeBrush is NoEditorBrush;
         final isLegacyStrokeEditingTool =
-            state.activeTool == EditorToolType.tilePaint ||
+            (state.activeTool == EditorToolType.tilePaint &&
+                    !isInertTilePaint) ||
                 state.activeTool == EditorToolType.terrainPaint ||
                 state.activeTool == EditorToolType.surfacePaint ||
                 state.activeTool == EditorToolType.collisionPaint ||

@@ -1,0 +1,452 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/models/map_history_snapshot.dart';
+import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
+import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
+import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_desktop_layout.dart';
+
+void main() {
+  group('worldMapWorkspaceSessionProvider', () {
+    test('starts with the planned typed defaults', () {
+      final container = _createContainer();
+
+      expect(
+        container.read(worldMapWorkspaceSessionProvider),
+        const WorldMapWorkspaceSession(),
+      );
+      final state = container.read(worldMapWorkspaceSessionProvider);
+      expect(state.explorerExpanded, isTrue);
+      expect(state.inspectorVisible, isTrue);
+      expect(
+        state.inspectorWidth,
+        PokeMapDesktopLayoutTokens.inspectorWidth,
+      );
+      expect(state.activeFamily, WorldMapToolFamily.selection);
+      expect(state.lastPaintSubtool, WorldMapPaintSubtool.tile);
+      expect(state.lastPlacementSubtool, WorldMapPlacementSubtool.object);
+      expect(state.lastPaintSubtoolByLayerId, isEmpty);
+      expect(state.pinnedInspectorKind, isNull);
+      expect(state.selectedCell, isNull);
+      expect(state.selectedCellMapId, isNull);
+    });
+
+    test('owns chrome visibility and typed inspector width', () {
+      final container = _createContainer();
+      final controller =
+          container.read(worldMapWorkspaceSessionProvider.notifier);
+
+      controller.setExplorerExpanded(false);
+      controller.setInspectorVisible(false);
+      controller.setInspectorWidth(412);
+
+      final state = container.read(worldMapWorkspaceSessionProvider);
+      expect(state.explorerExpanded, isFalse);
+      expect(state.inspectorVisible, isFalse);
+      expect(state.inspectorWidth, 412);
+    });
+
+    test('pins an inspector and keeps cell ownership tied to one map', () {
+      final container = _createContainer();
+      final controller =
+          container.read(worldMapWorkspaceSessionProvider.notifier);
+
+      controller.pinInspector(WorldMapInspectorKind.objectSelection);
+      controller.selectCell(
+        mapId: 'map-a',
+        cell: const GridPos(x: 2, y: 3),
+      );
+
+      var state = container.read(worldMapWorkspaceSessionProvider);
+      expect(state.pinnedInspectorKind, WorldMapInspectorKind.objectSelection);
+      expect(state.selectedCell, const GridPos(x: 2, y: 3));
+      expect(state.selectedCellMapId, 'map-a');
+
+      controller.resetForMap('map-a');
+      state = container.read(worldMapWorkspaceSessionProvider);
+      expect(state.selectedCell, const GridPos(x: 2, y: 3));
+
+      controller.resetForMap('map-b');
+      state = container.read(worldMapWorkspaceSessionProvider);
+      expect(state.selectedCell, isNull);
+      expect(state.selectedCellMapId, isNull);
+      expect(state.pinnedInspectorKind, WorldMapInspectorKind.objectSelection);
+
+      controller.pinInspector(null);
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).pinnedInspectorKind,
+        isNull,
+      );
+    });
+
+    test('session-only changes preserve editor and serialized documents', () {
+      final container = _createContainer();
+      final editor = container.read(editorNotifierProvider.notifier)
+        ..state = const EditorState(
+          project: _project,
+          activeMap: _mapA,
+          activeLayerId: 'terrain-a',
+          activeTool: EditorToolType.selection,
+          mapUndoStack: <MapHistorySnapshot>[_undo],
+          mapRedoStack: <MapHistorySnapshot>[_redo],
+          canUndoMap: true,
+          canRedoMap: true,
+          isDirty: true,
+          isProjectDirty: true,
+        );
+      final before = editor.state;
+      final projectJson = before.project!.toJson();
+      final mapJson = before.activeMap!.toJson();
+      final controller =
+          container.read(worldMapWorkspaceSessionProvider.notifier);
+
+      controller.setExplorerExpanded(false);
+      controller.setInspectorVisible(false);
+      controller.setInspectorWidth(420);
+      controller.pinInspector(WorldMapInspectorKind.layers);
+      controller.selectCell(
+        mapId: 'map-a',
+        cell: const GridPos(x: 1, y: 1),
+      );
+
+      expect(editor.state, before);
+      expect(editor.state.project!.toJson(), projectJson);
+      expect(editor.state.activeMap!.toJson(), mapJson);
+      expect(editor.state.mapUndoStack, const <MapHistorySnapshot>[_undo]);
+      expect(editor.state.mapRedoStack, const <MapHistorySnapshot>[_redo]);
+      expect(editor.state.canUndoMap, isTrue);
+      expect(editor.state.canRedoMap, isTrue);
+      expect(editor.state.isDirty, isTrue);
+      expect(editor.state.isProjectDirty, isTrue);
+    });
+
+    test('rejected activation preserves complete editor and session snapshots',
+        () {
+      final container = _createContainer();
+      final editor = container.read(editorNotifierProvider.notifier)
+        ..state = const EditorState(
+          project: _project,
+          activeMap: _mapA,
+          activeLayerId: 'terrain-a',
+          activeTool: EditorToolType.entityPlacement,
+          selectedEntityId: 'npc',
+          mapUndoStack: <MapHistorySnapshot>[_undo],
+          mapRedoStack: <MapHistorySnapshot>[_redo],
+          canUndoMap: true,
+          canRedoMap: true,
+          statusMessage: 'status-sentinel',
+          errorMessage: 'error-sentinel',
+        );
+      final controller =
+          container.read(worldMapWorkspaceSessionProvider.notifier);
+      expect(controller.activateLayers(editor).accepted, isTrue);
+      controller.pinInspector(WorldMapInspectorKind.layers);
+      controller.selectCell(
+        mapId: 'map-a',
+        cell: const GridPos(x: 3, y: 2),
+      );
+      final editorBefore = editor.state;
+      final sessionBefore = container.read(worldMapWorkspaceSessionProvider);
+
+      final result = controller.activateTool(
+        editor,
+        const ActivateWorldMapPaint(WorldMapPaintSubtool.surface),
+      );
+
+      expect(result.accepted, isFalse);
+      expect(result.rejectionReason, isNotEmpty);
+      expect(editor.state, editorBefore);
+      expect(container.read(worldMapWorkspaceSessionProvider), sessionBefore);
+    });
+
+    test(
+        'paint, place, and erase publish the requested family only after '
+        'clearing object and cell selections', () {
+      final container = _createContainer();
+      final editor = container.read(editorNotifierProvider.notifier);
+      final controller =
+          container.read(worldMapWorkspaceSessionProvider.notifier);
+      final cases = <({
+        WorldMapToolActivationRequest request,
+        WorldMapToolFamily family,
+      })>[
+        (
+          request: const ActivateWorldMapPaint(WorldMapPaintSubtool.terrain),
+          family: WorldMapToolFamily.paint,
+        ),
+        (
+          request: const ActivateWorldMapPlacement(
+            WorldMapPlacementSubtool.event,
+          ),
+          family: WorldMapToolFamily.place,
+        ),
+        (
+          request: const ActivateWorldMapErase(),
+          family: WorldMapToolFamily.erase,
+        ),
+      ];
+
+      for (final testCase in cases) {
+        editor.state = const EditorState(
+          project: _project,
+          activeMap: _mapA,
+          activeLayerId: 'terrain-a',
+          activeTool: EditorToolType.selection,
+          activeBrush: EditorBrush.tile(tileId: 1, tilesetId: 'world'),
+          selectedEntityId: 'npc',
+        );
+        controller.selectCell(
+          mapId: 'map-a',
+          cell: const GridPos(x: 1, y: 2),
+        );
+
+        final result = controller.activateTool(editor, testCase.request);
+
+        expect(
+          result.accepted,
+          isTrue,
+          reason: testCase.request.runtimeType.toString(),
+        );
+        final session = container.read(worldMapWorkspaceSessionProvider);
+        expect(session.activeFamily, testCase.family);
+        expect(session.selectedCell, isNull);
+        expect(session.selectedCellMapId, isNull);
+        expect(editor.state.selectedEntityId, isNull);
+      }
+
+      final session = container.read(worldMapWorkspaceSessionProvider);
+      expect(session.lastPaintSubtool, WorldMapPaintSubtool.terrain);
+      expect(
+        session.lastPaintSubtoolByLayerId,
+        <String, WorldMapPaintSubtool>{
+          'terrain-a': WorldMapPaintSubtool.terrain,
+        },
+      );
+      expect(
+        session.lastPlacementSubtool,
+        WorldMapPlacementSubtool.event,
+      );
+    });
+
+    test('A to B to A restores paint memory per layer', () {
+      final container = _createContainer();
+      final editor = container.read(editorNotifierProvider.notifier)
+        ..state = const EditorState(
+          project: _project,
+          activeMap: _mapA,
+          activeLayerId: 'terrain-a',
+        );
+      final controller =
+          container.read(worldMapWorkspaceSessionProvider.notifier);
+      controller.resetForMap('map-a');
+
+      expect(
+        controller
+            .activateTool(
+              editor,
+              const ActivateWorldMapPaint(WorldMapPaintSubtool.terrain),
+            )
+            .accepted,
+        isTrue,
+      );
+      controller.setActiveLayer(editor, 'path-b');
+      expect(
+        controller
+            .activateTool(
+              editor,
+              const ActivateWorldMapPaint(WorldMapPaintSubtool.path),
+            )
+            .accepted,
+        isTrue,
+      );
+
+      controller.setActiveLayer(editor, 'terrain-a');
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).lastPaintSubtool,
+        WorldMapPaintSubtool.terrain,
+      );
+
+      controller.setActiveLayer(editor, 'path-b');
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).lastPaintSubtool,
+        WorldMapPaintSubtool.path,
+      );
+    });
+
+    test('map switching clears cell and prevents layer-id memory leaking', () {
+      final container = _createContainer();
+      final editor = container.read(editorNotifierProvider.notifier)
+        ..state = const EditorState(
+          project: _project,
+          activeMap: _mapA,
+          activeLayerId: 'terrain-a',
+        );
+      final controller =
+          container.read(worldMapWorkspaceSessionProvider.notifier);
+      controller.resetForMap('map-a');
+      controller.selectCell(
+        mapId: 'map-a',
+        cell: const GridPos(x: 1, y: 1),
+      );
+      expect(
+        controller
+            .activateTool(
+              editor,
+              const ActivateWorldMapPaint(WorldMapPaintSubtool.terrain),
+            )
+            .accepted,
+        isTrue,
+      );
+
+      controller.resetForMap('map-b');
+
+      final state = container.read(worldMapWorkspaceSessionProvider);
+      expect(state.selectedCell, isNull);
+      expect(state.selectedCellMapId, isNull);
+      expect(state.lastPaintSubtoolByLayerId, isEmpty);
+      expect(state.lastPaintSubtool, WorldMapPaintSubtool.tile);
+    });
+
+    test('layer coercion is one editor emission and reconciles the family', () {
+      final container = _createContainer();
+      final editor = container.read(editorNotifierProvider.notifier)
+        ..state = const EditorState(
+          project: _project,
+          activeMap: _mapA,
+          activeLayerId: 'tile',
+          activeTool: EditorToolType.tilePaint,
+          activeBrush: EditorBrush.tile(tileId: 1, tilesetId: 'world'),
+        );
+      final controller =
+          container.read(worldMapWorkspaceSessionProvider.notifier);
+      expect(
+        controller
+            .activateTool(
+              editor,
+              const ActivateWorldMapPaint(WorldMapPaintSubtool.tile),
+            )
+            .accepted,
+        isTrue,
+      );
+      final emissions = <EditorState>[];
+      final subscription = container.listen<EditorState>(
+        editorNotifierProvider,
+        (_, next) => emissions.add(next),
+      );
+
+      controller.setActiveLayer(editor, 'terrain-a');
+
+      subscription.close();
+      expect(emissions, hasLength(1));
+      expect(editor.state.activeLayerId, 'terrain-a');
+      expect(editor.state.activeTool, EditorToolType.selection);
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).activeFamily,
+        WorldMapToolFamily.selection,
+      );
+    });
+
+    test('explicit Layers survives a layer change when no tool coercion occurs',
+        () {
+      final container = _createContainer();
+      final editor = container.read(editorNotifierProvider.notifier)
+        ..state = const EditorState(
+          project: _project,
+          activeMap: _mapA,
+          activeLayerId: 'terrain-a',
+          activeTool: EditorToolType.selection,
+        );
+      final controller =
+          container.read(worldMapWorkspaceSessionProvider.notifier);
+      expect(controller.activateLayers(editor).accepted, isTrue);
+
+      controller.setActiveLayer(editor, 'path-b');
+
+      expect(editor.state.activeTool, EditorToolType.selection);
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).activeFamily,
+        WorldMapToolFamily.layers,
+      );
+    });
+  });
+}
+
+ProviderContainer _createContainer() {
+  final container = ProviderContainer();
+  final editorKeepAlive = container.listen<EditorState>(
+    editorNotifierProvider,
+    (_, __) {},
+    fireImmediately: true,
+  );
+  final sessionKeepAlive = container.listen<WorldMapWorkspaceSession>(
+    worldMapWorkspaceSessionProvider,
+    (_, __) {},
+    fireImmediately: true,
+  );
+  addTearDown(() {
+    sessionKeepAlive.close();
+    editorKeepAlive.close();
+    container.dispose();
+  });
+  return container;
+}
+
+const _project = ProjectManifest(
+  name: 'Session project',
+  maps: <ProjectMapEntry>[
+    ProjectMapEntry(
+      id: 'map-a',
+      name: 'Map A',
+      relativePath: 'maps/map-a.json',
+    ),
+  ],
+  tilesets: <ProjectTilesetEntry>[
+    ProjectTilesetEntry(
+      id: 'world',
+      name: 'World',
+      relativePath: 'tilesets/world.png',
+    ),
+  ],
+);
+
+const _mapA = MapData(
+  id: 'map-a',
+  name: 'Map A',
+  size: GridSize(width: 4, height: 4),
+  layers: <MapLayer>[
+    TileLayer(
+      id: 'tile',
+      name: 'Tile',
+      tilesetId: 'world',
+      tiles: <int>[],
+    ),
+    TerrainLayer(id: 'terrain-a', name: 'Terrain A'),
+    PathLayer(id: 'path-b', name: 'Path B'),
+  ],
+);
+
+const _undoMap = MapData(
+  id: 'undo',
+  name: 'Undo',
+  size: GridSize(width: 1, height: 1),
+);
+
+const _redoMap = MapData(
+  id: 'redo',
+  name: 'Redo',
+  size: GridSize(width: 1, height: 1),
+);
+
+const _undo = MapHistorySnapshot(
+  map: _undoMap,
+  activeLayerId: 'undo-layer',
+);
+
+const _redo = MapHistorySnapshot(
+  map: _redoMap,
+  activeLayerId: 'redo-layer',
+);
