@@ -3,11 +3,14 @@ import 'dart:ui' as ui;
 import 'package:flutter/painting.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../features/editor/application/project_element_frame_resolver.dart';
+
 /// Valeur par défaut commune quand une frame ne précise pas sa durée.
 ///
 /// Ce helper est purement visuel et n'appartient pas à l'application métier :
 /// il ne sert qu'au rendu éditeur dans le canvas.
-const int kEntityEditorFrameDurationFallbackMs = 200;
+const int kEntityEditorFrameDurationFallbackMs =
+    kProjectElementFrameDurationFallbackMs;
 
 /// Résolution minimale nécessaire au canvas pour peindre une entité.
 ///
@@ -25,42 +28,14 @@ class ResolvedEntityElementVisual {
 }
 
 int entityEditorFrameDurationMs(TilesetVisualFrame frame) {
-  final d = frame.durationMs;
-  if (d == null || d <= 0) {
-    return kEntityEditorFrameDurationFallbackMs;
-  }
-  return d;
+  return projectElementFrameDurationMs(frame);
 }
 
 TilesetVisualFrame entityEditorPickFrame(
   List<TilesetVisualFrame> frames,
   int elapsedMs,
 ) {
-  if (frames.isEmpty) {
-    throw StateError('ProjectElementEntry.frames must not be empty');
-  }
-  if (frames.length == 1) {
-    return frames.first;
-  }
-  var total = 0;
-  for (final f in frames) {
-    total += entityEditorFrameDurationMs(f);
-  }
-  if (total <= 0) {
-    return frames.first;
-  }
-  var t = elapsedMs % total;
-  if (t < 0) {
-    t = (t % total + total) % total;
-  }
-  for (final f in frames) {
-    final d = entityEditorFrameDurationMs(f);
-    if (t < d) {
-      return f;
-    }
-    t -= d;
-  }
-  return frames.last;
+  return pickProjectElementFrame(frames, elapsedMs);
 }
 
 Rect? _sourceRectForFrameInImage({

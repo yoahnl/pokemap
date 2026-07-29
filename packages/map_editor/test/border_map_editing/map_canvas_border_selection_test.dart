@@ -50,6 +50,7 @@ void main() {
       workspaceMode: EditorWorkspaceMode.map,
       activeMap: map,
       activeLayerId: 'borders',
+      selectedEntityId: 'stale-entity',
     );
     final beforeJson = map.toJson();
     await tester.binding.setSurfaceSize(const Size(600, 500));
@@ -89,6 +90,37 @@ void main() {
       container.read(editorNotifierProvider).activeMap!.toJson(),
       beforeJson,
       reason: 'canvas selection must remain ephemeral',
+    );
+    expect(container.read(editorNotifierProvider).selectedEntityId, isNull);
+
+    final mapWithWarp = map.copyWith(
+      warps: const <MapWarp>[
+        MapWarp(
+          id: 'warp-over-border',
+          pos: GridPos(x: 1, y: 1),
+          targetMapId: 'map',
+          targetPos: GridPos(x: 0, y: 0),
+        ),
+      ],
+    );
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = notifier.state.copyWith(activeMap: mapWithWarp);
+    await tester.pump();
+    await tester.tapAt(canvas.topLeft + const Offset(48, 48));
+    await tester.pump();
+
+    expect(
+      container.read(editorNotifierProvider).selectedWarpId,
+      'warp-over-border',
+    );
+    expect(
+      container.read(activeBorderFeatureControllerProvider).activeFeatureId,
+      isNull,
+      reason: 'objects painted above Border must win the common selection hit',
+    );
+    expect(
+      container.read(editorNotifierProvider).activeMap!.toJson(),
+      mapWithWarp.toJson(),
     );
   });
 

@@ -92,6 +92,98 @@ bool _isEnvironmentMaskEditing(EditorState state, MapData map) {
 }
 
 @visibleForTesting
+String mapCanvasSelectionSemanticsLabel({
+  required EditorState state,
+  required MapData map,
+  ProjectManifest? project,
+  String? selectedBorderFeatureId,
+}) {
+  String boundsLabel(GridPos pos, GridSize size) {
+    return 'x ${pos.x}, y ${pos.y}, ${size.width} par ${size.height}';
+  }
+
+  final placedId = state.selectedPlacedElementInstanceId;
+  if (placedId != null) {
+    for (final placed in map.placedElements) {
+      if (placed.id == placedId) {
+        var size = const GridSize(width: 1, height: 1);
+        if (project != null) {
+          for (final element in project.elements) {
+            if (element.id == placed.elementId && element.frames.isNotEmpty) {
+              final source = element.frames.primarySource;
+              size = GridSize(
+                width: source.width <= 0 ? 1 : source.width,
+                height: source.height <= 0 ? 1 : source.height,
+              );
+              break;
+            }
+          }
+        }
+        return 'Élément ${placed.elementId} sélectionné, '
+            '${boundsLabel(placed.pos, size)}.';
+      }
+    }
+  }
+  final entityId = state.selectedEntityId;
+  if (entityId != null) {
+    for (final entity in map.entities) {
+      if (entity.id == entityId) {
+        final name =
+            entity.name.trim().isEmpty ? entity.id : entity.name.trim();
+        return 'Entité $name sélectionnée, '
+            '${boundsLabel(entity.pos, entity.size)}.';
+      }
+    }
+  }
+  final eventId = state.selectedMapEventId;
+  if (eventId != null) {
+    for (final event in map.events) {
+      if (event.id == eventId) {
+        final title =
+            event.title.trim().isEmpty ? event.id : event.title.trim();
+        return 'Événement $title sélectionné, '
+            'x ${event.position.x}, y ${event.position.y}.';
+      }
+    }
+  }
+  final zoneId = state.selectedGameplayZoneId;
+  if (zoneId != null) {
+    for (final zone in map.gameplayZones) {
+      if (zone.id == zoneId) {
+        final name = zone.name.trim().isEmpty ? zone.id : zone.name.trim();
+        return 'Zone $name sélectionnée, '
+            '${boundsLabel(zone.area.pos, zone.area.size)}.';
+      }
+    }
+  }
+  final triggerId = state.selectedTriggerId;
+  if (triggerId != null) {
+    for (final trigger in map.triggers) {
+      if (trigger.id == triggerId) {
+        final name =
+            trigger.name.trim().isEmpty ? trigger.id : trigger.name.trim();
+        return 'Déclencheur $name sélectionné, '
+            '${boundsLabel(trigger.area.pos, trigger.area.size)}.';
+      }
+    }
+  }
+  final warpId = state.selectedWarpId;
+  if (warpId != null) {
+    for (final warp in map.warps) {
+      if (warp.id == warpId) {
+        return 'Téléporteur ${warp.id} sélectionné, '
+            'x ${warp.pos.x}, y ${warp.pos.y}.';
+      }
+    }
+  }
+  final borderId = selectedBorderFeatureId?.trim();
+  if (borderId != null && borderId.isNotEmpty) {
+    return 'Bordure $borderId sélectionnée.';
+  }
+  return 'Carte ${map.name}. Aucun objet sélectionné.';
+}
+
+@visibleForTesting
 bool isNarrativeEventBridgeEntityHighlighted({
   required String entityId,
   required NarrativeEditorFocusTarget? focus,
@@ -815,25 +907,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                   return;
                 }
 
-                if (state.activeTool == EditorToolType.selection &&
-                    activeBorderLayer != null) {
-                  final hit = hitTestBorderFeatureAtScreenPosition(
-                    layer: activeBorderLayer,
-                    localPosition: details.localPosition,
-                    pan: state.panOffset,
-                    zoom: state.zoom,
-                    tileWidth: tileWidth,
-                    tileHeight: tileHeight,
-                  );
-                  if (hit != null) {
-                    notifier.selectBorderFeature(
-                      layerId: activeBorderLayer.id,
-                      featureId: hit.id,
-                    );
-                  }
-                  return;
-                }
-
                 if (gridPos == null) return;
 
                 // Mode secondaire explicite: placement visuel de waypoint NPC.
@@ -860,6 +933,26 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
 
                 if (state.activeTool == EditorToolType.selection &&
                     !isEnvironmentMaskEditing) {
+                  final objectTarget = notifier.selectCanvasObjectAt(
+                    gridPos,
+                    editorAnimationTimeMs: _editorEntityAnimationMs,
+                  );
+                  if (objectTarget == null && activeBorderLayer != null) {
+                    final borderHit = hitTestBorderFeatureAtScreenPosition(
+                      layer: activeBorderLayer,
+                      localPosition: details.localPosition,
+                      pan: state.panOffset,
+                      zoom: state.zoom,
+                      tileWidth: tileWidth,
+                      tileHeight: tileHeight,
+                    );
+                    if (borderHit != null) {
+                      notifier.selectBorderFeature(
+                        layerId: activeBorderLayer.id,
+                        featureId: borderHit.id,
+                      );
+                    }
+                  }
                   return;
                 }
 
@@ -1083,66 +1176,80 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                       child: const SizedBox.shrink(),
                     ),
                     Positioned.fill(
-                      child: CustomPaint(
-                        size: Size.infinite,
-                        painter: MapGridPainter(
+                      child: Semantics(
+                        container: true,
+                        liveRegion: true,
+                        label: mapCanvasSelectionSemanticsLabel(
+                          state: state,
                           map: activeMap,
-                          zoom: state.zoom,
-                          offset: state.panOffset,
-                          hoveredTile: environmentBrushCursorOverlay == null &&
-                                  state.environmentMaskEditMode !=
-                                      EnvironmentMaskEditMode.generatedAdd &&
-                                  eraserPreview == null
-                              ? _hoveredTile
-                              : null,
-                          activeLayerId: state.activeLayerId,
-                          tileWidth: tileWidth,
-                          tileHeight: tileHeight,
-                          tilesetImagesById: tilesetImagesById,
-                          sourceTileWidth: settings.tileWidth,
-                          sourceTileHeight: settings.tileHeight,
-                          tilesPerRowById: tilesPerRowById,
-                          toolPreview: toolPreview,
-                          warps: activeMap.warps,
-                          gameplayZones: activeMap.gameplayZones,
-                          gameplayZoneDraftArea: state.gameplayZoneDraftArea,
-                          selectedEntityId: state.selectedEntityId,
-                          selectedMapEventId: state.selectedMapEventId,
-                          selectedWarpId: state.selectedWarpId,
-                          selectedTriggerId: state.selectedTriggerId,
-                          selectedGameplayZoneId: state.selectedGameplayZoneId,
-                          selectedPlacedElementInstanceId:
-                              state.selectedPlacedElementInstanceId,
-                          narrativeEventFocusTarget:
-                              bridgeState.focusRequest?.focusTarget,
-                          narrativeEventSourceProposal:
-                              bridgeState.sourceCreationProposal,
-                          narrativeEventHighlightColor: colors.narrative,
-                          connectionLabelsByDirection:
-                              connectionLabelsByDirection,
-                          selectedPathAutotileSet: selectedPathAutotileSet,
-                          pathAutotileSetsByPresetId:
-                              pathAutotileSetsByPresetId,
-                          terrainPresetsByType: terrainPresetsByType,
                           project: state.project,
-                          shadowLightPreviewPreset: shadowLightPreviewPreset,
-                          editorEntityAnimationMs: _editorEntityAnimationMs,
-                          showGrid: _showMapGrid,
-                          environmentMaskOverlay: environmentMaskOverlay,
-                          environmentBrushCursorOverlay:
-                              environmentBrushCursorOverlay,
-                          environmentGeneratedAddPreview:
-                              environmentGeneratedAddPreview,
-                          environmentGeneratedDeletePreviewId:
-                              environmentGeneratedDeleteTarget?.placed.id,
-                          borderPreview: borderPreviewState.transaction,
-                          borderDiagnosticOverlayPalette:
-                              EditorBorderDiagnosticOverlayPalette(
-                            warningFill:
-                                colors.warningSoft.withValues(alpha: 0.72),
-                            warningStroke: colors.warningBorder,
-                            errorFill: colors.errorSoft.withValues(alpha: 0.72),
-                            errorStroke: colors.errorBorder,
+                          selectedBorderFeatureId:
+                              activeBorderFeature.activeFeatureId,
+                        ),
+                        child: CustomPaint(
+                          size: Size.infinite,
+                          painter: MapGridPainter(
+                            map: activeMap,
+                            zoom: state.zoom,
+                            offset: state.panOffset,
+                            hoveredTile: environmentBrushCursorOverlay ==
+                                        null &&
+                                    state.environmentMaskEditMode !=
+                                        EnvironmentMaskEditMode.generatedAdd &&
+                                    eraserPreview == null
+                                ? _hoveredTile
+                                : null,
+                            activeLayerId: state.activeLayerId,
+                            tileWidth: tileWidth,
+                            tileHeight: tileHeight,
+                            tilesetImagesById: tilesetImagesById,
+                            sourceTileWidth: settings.tileWidth,
+                            sourceTileHeight: settings.tileHeight,
+                            tilesPerRowById: tilesPerRowById,
+                            toolPreview: toolPreview,
+                            warps: activeMap.warps,
+                            gameplayZones: activeMap.gameplayZones,
+                            gameplayZoneDraftArea: state.gameplayZoneDraftArea,
+                            selectedEntityId: state.selectedEntityId,
+                            selectedMapEventId: state.selectedMapEventId,
+                            selectedWarpId: state.selectedWarpId,
+                            selectedTriggerId: state.selectedTriggerId,
+                            selectedGameplayZoneId:
+                                state.selectedGameplayZoneId,
+                            selectedPlacedElementInstanceId:
+                                state.selectedPlacedElementInstanceId,
+                            narrativeEventFocusTarget:
+                                bridgeState.focusRequest?.focusTarget,
+                            narrativeEventSourceProposal:
+                                bridgeState.sourceCreationProposal,
+                            narrativeEventHighlightColor: colors.narrative,
+                            connectionLabelsByDirection:
+                                connectionLabelsByDirection,
+                            selectedPathAutotileSet: selectedPathAutotileSet,
+                            pathAutotileSetsByPresetId:
+                                pathAutotileSetsByPresetId,
+                            terrainPresetsByType: terrainPresetsByType,
+                            project: state.project,
+                            shadowLightPreviewPreset: shadowLightPreviewPreset,
+                            editorEntityAnimationMs: _editorEntityAnimationMs,
+                            showGrid: _showMapGrid,
+                            environmentMaskOverlay: environmentMaskOverlay,
+                            environmentBrushCursorOverlay:
+                                environmentBrushCursorOverlay,
+                            environmentGeneratedAddPreview:
+                                environmentGeneratedAddPreview,
+                            environmentGeneratedDeletePreviewId:
+                                environmentGeneratedDeleteTarget?.placed.id,
+                            borderPreview: borderPreviewState.transaction,
+                            borderDiagnosticOverlayPalette:
+                                EditorBorderDiagnosticOverlayPalette(
+                              warningFill:
+                                  colors.warningSoft.withValues(alpha: 0.72),
+                              warningStroke: colors.warningBorder,
+                              errorFill:
+                                  colors.errorSoft.withValues(alpha: 0.72),
+                              errorStroke: colors.errorBorder,
+                            ),
                           ),
                         ),
                       ),

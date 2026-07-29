@@ -62,6 +62,7 @@ import '../../../application/services/warp_editing_service.dart';
 import '../../personalization/application/personalization_studio_session_controller.dart';
 import '../application/editor_workspace_controller.dart';
 import '../application/map_activation_coordinator.dart';
+import '../application/map_canvas_object_hit_test.dart';
 import '../application/map_editing_controller.dart';
 import '../application/map_selection_controller.dart';
 import '../application/project_content_controller.dart';
@@ -208,6 +209,12 @@ class EditorNotifier extends _$EditorNotifier {
   NarrativeDocumentSessionStatus? _lastPersonalizationStudioStatus;
   String? _personalizationStudioProjectPath;
   int _personalizationStudioOperationSequence = 0;
+  String? _lastCanvasObjectSelectionMapId;
+  GridPos? _lastCanvasObjectSelectionPosition;
+  List<MapCanvasObjectTarget> _lastCanvasObjectSelectionHits =
+      const <MapCanvasObjectTarget>[];
+  MapCanvasObjectTarget? _lastCanvasObjectSelectionTarget;
+  bool _suppressBorderSelectionReconciliation = false;
   bool _registeredNarrativeDocumentDisposal = false;
   // An attestation binds the revision to the exact object returned by a load.
   // Path-only lookups are used only after that object has become the active
@@ -320,15 +327,29 @@ class EditorNotifier extends _$EditorNotifier {
     final borderPreviewController =
         ref.read(borderPreviewControllerProvider.notifier);
     listenSelf((_, next) {
-      activeBorderFeatureController.reconcile(
-        map: next.activeMap,
-        activeLayerId: next.activeLayerId,
-      );
+      if (_suppressBorderSelectionReconciliation ||
+          _hasCanvasObjectSelection(next)) {
+        activeBorderFeatureController.clear();
+      } else {
+        activeBorderFeatureController.reconcile(
+          map: next.activeMap,
+          activeLayerId: next.activeLayerId,
+        );
+      }
       if (borderPreviewController.current.hasPendingPreview) {
         borderPreviewController.reconcileContext(_borderPreviewContext(next));
       }
     });
     return const EditorState();
+  }
+
+  bool _hasCanvasObjectSelection(EditorState value) {
+    return value.selectedPlacedElementInstanceId != null ||
+        value.selectedEntityId != null ||
+        value.selectedMapEventId != null ||
+        value.selectedGameplayZoneId != null ||
+        value.selectedTriggerId != null ||
+        value.selectedWarpId != null;
   }
 
   /// Returns the persisted manifest path of the most recently opened project.
@@ -6088,6 +6109,152 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  /// Selects the visually uppermost authored object at [position].
+  ///
+  /// Repeated clicks cycle through the same deterministic hit stack. This path
+  /// never calls placement commands and therefore cannot create map content.
+  MapCanvasObjectTarget? selectCanvasObjectAt(
+    GridPos position, {
+    int editorAnimationTimeMs = 0,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return null;
+
+    const hitTest = MapCanvasObjectHitTest();
+    final hits = hitTest.hitStack(
+      map: map,
+      project: state.project,
+      position: position,
+      editorAnimationTimeMs: editorAnimationTimeMs,
+    );
+    final repeatsSameStack = _lastCanvasObjectSelectionMapId == map.id &&
+        _lastCanvasObjectSelectionPosition == position &&
+        _sameCanvasObjectHitStack(_lastCanvasObjectSelectionHits, hits) &&
+        _lastCanvasObjectSelectionTarget != null &&
+        _isCanvasObjectTargetSelected(_lastCanvasObjectSelectionTarget!);
+    final target = repeatsSameStack
+        ? hitTest.cycleTarget(
+            hits: hits,
+            current: _lastCanvasObjectSelectionTarget,
+          )
+        : hits.isEmpty
+            ? null
+            : hits.first;
+    _lastCanvasObjectSelectionMapId = map.id;
+    _lastCanvasObjectSelectionPosition = position;
+    _lastCanvasObjectSelectionHits =
+        List<MapCanvasObjectTarget>.unmodifiable(hits);
+    _lastCanvasObjectSelectionTarget = target;
+    _selectCanvasObjectTarget(target);
+    return target;
+  }
+
+  bool _sameCanvasObjectHitStack(
+    List<MapCanvasObjectTarget> previous,
+    List<MapCanvasObjectTarget> next,
+  ) {
+    if (previous.length != next.length) {
+      return false;
+    }
+    for (var index = 0; index < previous.length; index += 1) {
+      if (previous[index] != next[index]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _resetCanvasObjectSelectionCycle() {
+    _lastCanvasObjectSelectionMapId = null;
+    _lastCanvasObjectSelectionPosition = null;
+    _lastCanvasObjectSelectionHits = const <MapCanvasObjectTarget>[];
+    _lastCanvasObjectSelectionTarget = null;
+  }
+
+  bool _isCanvasObjectTargetSelected(MapCanvasObjectTarget target) {
+    return switch (target.kind) {
+      MapCanvasObjectKind.placedElement =>
+        state.selectedPlacedElementInstanceId == target.id,
+      MapCanvasObjectKind.entity => state.selectedEntityId == target.id,
+      MapCanvasObjectKind.mapEvent => state.selectedMapEventId == target.id,
+      MapCanvasObjectKind.gameplayZone =>
+        state.selectedGameplayZoneId == target.id,
+      MapCanvasObjectKind.trigger => state.selectedTriggerId == target.id,
+      MapCanvasObjectKind.warp => state.selectedWarpId == target.id,
+    };
+  }
+
+  void _selectCanvasObjectTarget(MapCanvasObjectTarget? target) {
+    final map = state.activeMap;
+    if (map == null) return;
+
+    var activeLayerId = state.activeLayerId;
+    final targetLayerId = target?.layerId;
+    if (targetLayerId != null &&
+        map.layers.any((layer) => layer.id == targetLayerId)) {
+      activeLayerId = targetLayerId;
+    }
+
+    var selectedEntityKind = state.selectedEntityKind;
+    if (target?.kind == MapCanvasObjectKind.entity) {
+      MapEntity? entity;
+      for (final candidate in map.entities) {
+        if (candidate.id == target!.id) {
+          entity = candidate;
+          break;
+        }
+      }
+      if (entity != null) {
+        selectedEntityKind = entity.kind;
+      }
+    }
+
+    _suppressBorderSelectionReconciliation = true;
+    try {
+      state = state.copyWith(
+        activeLayerId: activeLayerId,
+        selectedPlacedElementInstanceId:
+            target?.kind == MapCanvasObjectKind.placedElement
+                ? target?.id
+                : null,
+        selectedEntityId:
+            target?.kind == MapCanvasObjectKind.entity ? target?.id : null,
+        selectedMapEventId:
+            target?.kind == MapCanvasObjectKind.mapEvent ? target?.id : null,
+        selectedGameplayZoneId: target?.kind == MapCanvasObjectKind.gameplayZone
+            ? target?.id
+            : null,
+        selectedTriggerId:
+            target?.kind == MapCanvasObjectKind.trigger ? target?.id : null,
+        selectedWarpId:
+            target?.kind == MapCanvasObjectKind.warp ? target?.id : null,
+        selectedEntityKind: selectedEntityKind,
+        selectedEnvironmentAreaId: null,
+        npcWaypointPlacementEntityId: null,
+        statusMessage: target == null
+            ? 'Sélection effacée'
+            : '${_canvasObjectKindLabel(target.kind)} « ${target.id} » '
+                'sélectionné en (${target.anchor.x}, ${target.anchor.y})',
+        errorMessage: null,
+      );
+    } finally {
+      _suppressBorderSelectionReconciliation = false;
+    }
+    ref.read(activeBorderFeatureControllerProvider.notifier).clear();
+    _coerceActiveToolIfIncompatibleWithLayer();
+  }
+
+  String _canvasObjectKindLabel(MapCanvasObjectKind kind) {
+    return switch (kind) {
+      MapCanvasObjectKind.placedElement => 'Élément',
+      MapCanvasObjectKind.entity => 'Entité',
+      MapCanvasObjectKind.mapEvent => 'Événement',
+      MapCanvasObjectKind.gameplayZone => 'Zone',
+      MapCanvasObjectKind.trigger => 'Déclencheur',
+      MapCanvasObjectKind.warp => 'Téléporteur',
+    };
+  }
+
   void updateSelectedMapEvent({
     required String id,
     required String title,
@@ -10281,7 +10448,16 @@ class EditorNotifier extends _$EditorNotifier {
             layerId: layerId,
             featureId: featureId,
           );
+      _resetCanvasObjectSelectionCycle();
       state = state.copyWith(
+        selectedPlacedElementInstanceId: null,
+        selectedEntityId: null,
+        selectedMapEventId: null,
+        selectedGameplayZoneId: null,
+        selectedTriggerId: null,
+        selectedWarpId: null,
+        selectedEnvironmentAreaId: null,
+        npcWaypointPlacementEntityId: null,
         statusMessage: 'Bordure sélectionnée',
         errorMessage: null,
       );

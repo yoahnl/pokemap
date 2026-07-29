@@ -738,6 +738,19 @@ class MapGridPainter extends CustomPainter {
     if (selectedInstance == null) {
       return;
     }
+    TileLayer? selectedLayer;
+    for (final layer in map.layers.whereType<TileLayer>()) {
+      if (layer.id == selectedInstance.layerId) {
+        selectedLayer = layer;
+        break;
+      }
+    }
+    if (selectedLayer == null ||
+        !selectedLayer.isVisible ||
+        selectedLayer.opacity <= 0 ||
+        selectedInstance.opacity <= 0) {
+      return;
+    }
     if (selectedInstance.pos.x < 0 || selectedInstance.pos.y < 0) {
       return;
     }
@@ -751,8 +764,11 @@ class MapGridPainter extends CustomPainter {
     }
     TilesetSourceRect? source;
     for (final entry in projectContext.elements) {
-      if (entry.id == selectedInstance.elementId) {
-        source = entry.frames.primarySource;
+      if (entry.id == selectedInstance.elementId && entry.frames.isNotEmpty) {
+        source = entityEditorPickFrame(
+          entry.frames,
+          editorEntityAnimationMs,
+        ).source;
         break;
       }
     }
@@ -916,9 +932,15 @@ class MapGridPainter extends CustomPainter {
 
   void _paintMapEvents(Canvas canvas) {
     if (map.events.isEmpty) return;
+    final layerVisibility = <String, bool>{
+      for (final layer in map.layers) layer.id: layer.isVisible,
+    };
     for (final event in map.events) {
       final x = event.position.x;
       final y = event.position.y;
+      if (layerVisibility[event.position.layerId.trim()] != true) {
+        continue;
+      }
       if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) {
         continue;
       }
