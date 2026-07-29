@@ -306,6 +306,78 @@ void main() {
       await tester.pump();
     });
 
+    testWidgets(
+        'changing eraser footprint mid-drag rolls the original transaction back',
+        (tester) async {
+      const filledMap = MapData(
+        id: 'map',
+        name: 'Map',
+        size: GridSize(width: 4, height: 2),
+        layers: <MapLayer>[
+          CollisionLayer(
+            id: 'collision',
+            name: 'Collision',
+            collisions: <bool>[
+              true,
+              true,
+              true,
+              true,
+              true,
+              true,
+              true,
+              true,
+            ],
+          ),
+        ],
+      );
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        project: _project,
+        activeMap: filledMap,
+        activeLayerId: 'collision',
+        activeTool: EditorToolType.eraser,
+        savedMapSnapshot: filledMap,
+      );
+      final beforeJson = filledMap.toJson();
+
+      await _pumpCanvas(tester, container);
+      final canvas = tester.getRect(find.byType(MapCanvas));
+      final gesture = await tester.startGesture(
+        canvas.topLeft + const Offset(16, 16),
+        kind: ui.PointerDeviceKind.mouse,
+      );
+      await gesture.moveBy(const Offset(34, 0));
+      await tester.pump();
+      expect(
+        container.read(editorNotifierProvider).mapStrokeStart,
+        isNotNull,
+      );
+
+      final notifier = container.read(editorNotifierProvider.notifier);
+      expect(
+        notifier.setCustomEraserFootprint(width: 2, height: 1),
+        isTrue,
+      );
+      await tester.pump();
+      await gesture.moveBy(const Offset(34, 0));
+      await tester.pump();
+
+      final rolledBack = container.read(editorNotifierProvider);
+      expect(
+        rolledBack.eraserFootprint,
+        const EditorEraserFootprint.custom(
+          size: GridSize(width: 2, height: 1),
+        ),
+      );
+      expect(rolledBack.activeMap!.toJson(), beforeJson);
+      expect(rolledBack.mapStrokeStart, isNull);
+      expect(rolledBack.mapUndoStack, isEmpty);
+      expect(rolledBack.isDirty, isFalse);
+
+      await gesture.up();
+      await tester.pump();
+    });
+
     testWidgets('unmounting the canvas rolls an active stroke back',
         (tester) async {
       final container = _createContainer();

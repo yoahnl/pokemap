@@ -142,6 +142,165 @@ void main() {
       expect(result.map, map);
     });
 
+    test('eraseArea removes a rectangular placement region in one result', () {
+      final map = _map(
+        size: const GridSize(width: 4, height: 3),
+        layers: const [
+          MapLayer.surface(
+            id: 'surface-main',
+            name: 'Surfaces',
+            placements: [
+              SurfaceCellPlacement(
+                x: 0,
+                y: 0,
+                surfacePresetId: 'water',
+              ),
+              SurfaceCellPlacement(
+                x: 1,
+                y: 0,
+                surfacePresetId: 'water',
+              ),
+              SurfaceCellPlacement(
+                x: 2,
+                y: 0,
+                surfacePresetId: 'water',
+              ),
+              SurfaceCellPlacement(
+                x: 1,
+                y: 1,
+                surfacePresetId: 'water',
+              ),
+              SurfaceCellPlacement(
+                x: 2,
+                y: 1,
+                surfacePresetId: 'water',
+              ),
+              SurfaceCellPlacement(
+                x: 3,
+                y: 2,
+                surfacePresetId: 'water',
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final result = controller.eraseArea(
+        map: map,
+        targetLayerId: 'surface-main',
+        pos: const GridPos(x: 1, y: 0),
+        size: const GridSize(width: 2, height: 2),
+      );
+
+      expect(result.changed, isTrue);
+      expect(result.layerId, 'surface-main');
+      expect(
+        result.map.layers.whereType<SurfaceLayer>().single.placements,
+        const [
+          SurfaceCellPlacement(x: 0, y: 0, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 3, y: 2, surfacePresetId: 'water'),
+        ],
+      );
+      expect(
+        map.layers.whereType<SurfaceLayer>().single.placements,
+        hasLength(6),
+      );
+    });
+
+    test('eraseArea clips the rectangle to map bounds', () {
+      final map = _map(
+        layers: const [
+          MapLayer.surface(
+            id: 'surface-main',
+            name: 'Surfaces',
+            placements: [
+              SurfaceCellPlacement(
+                x: 0,
+                y: 0,
+                surfacePresetId: 'water',
+              ),
+              SurfaceCellPlacement(
+                x: 1,
+                y: 1,
+                surfacePresetId: 'water',
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final result = controller.eraseArea(
+        map: map,
+        targetLayerId: 'surface-main',
+        pos: const GridPos(x: 1, y: 1),
+        size: const GridSize(width: 4, height: 4),
+      );
+
+      expect(result.changed, isTrue);
+      expect(
+        result.map.layers.whereType<SurfaceLayer>().single.placements,
+        const [
+          SurfaceCellPlacement(x: 0, y: 0, surfacePresetId: 'water'),
+        ],
+      );
+    });
+
+    test('eraseArea returns the original map when its rectangle is empty', () {
+      final map = _map(
+        layers: const [
+          MapLayer.surface(
+            id: 'surface-main',
+            name: 'Surfaces',
+            placements: [
+              SurfaceCellPlacement(
+                x: 0,
+                y: 0,
+                surfacePresetId: 'water',
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final result = controller.eraseArea(
+        map: map,
+        targetLayerId: 'surface-main',
+        pos: const GridPos(x: 1, y: 1),
+        size: const GridSize(width: 1, height: 1),
+      );
+
+      expect(result.changed, isFalse);
+      expect(result.map, same(map));
+      expect(result.layerId, 'surface-main');
+    });
+
+    test('eraseArea rejects non-positive dimensions', () {
+      final map = _map(
+        layers: const [
+          MapLayer.surface(id: 'surface-main', name: 'Surfaces'),
+        ],
+      );
+
+      expect(
+        () => controller.eraseArea(
+          map: map,
+          targetLayerId: 'surface-main',
+          pos: const GridPos(x: 0, y: 0),
+          size: const GridSize(width: 0, height: 1),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => controller.eraseArea(
+          map: map,
+          targetLayerId: 'surface-main',
+          pos: const GridPos(x: 0, y: 0),
+          size: const GridSize(width: 1, height: -1),
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('paint keeps placements sorted for stable map diffs', () {
       final first = controller.paint(
         map: _map(

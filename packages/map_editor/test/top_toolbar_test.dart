@@ -1,11 +1,14 @@
 import 'dart:io';
 import 'dart:ui' show Size;
 
+import 'package:flutter/widgets.dart' show ValueKey;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_eraser_footprint_dialog.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar/dialogs/top_toolbar_dialogs.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar/widgets/toolbar_capsules.dart';
 
@@ -367,6 +370,163 @@ void main() {
       expect(buttonWithTooltip('Save Map').onPressed, isNotNull);
       buttonWithTooltip('Save Map').onPressed?.call();
       await tester.pumpAndSettle();
+    });
+
+    testWidgets(
+        'keeps collision brush sizing paint-only and shows the eraser footprint',
+        (tester) async {
+      final map = buildShellChromeMap(
+        width: 4,
+        height: 4,
+        layers: const <MapLayer>[
+          MapLayer.collision(
+            id: 'collision',
+            name: 'Collision',
+            collisions: <bool>[
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+            ],
+          ),
+        ],
+      );
+      final initialState = EditorState(
+        project: buildShellChromeProject(),
+        workspaceMode: EditorWorkspaceMode.map,
+        activeMap: map,
+        activeLayerId: 'collision',
+        activeTool: EditorToolType.collisionPaint,
+      );
+      final container = await pumpTopToolbarHarness(
+        tester,
+        initialState: initialState,
+        surfaceSize: const Size(1800, 900),
+      );
+
+      Finder collisionSizeButton() => find.byWidgetPredicate(
+            (widget) =>
+                widget is ToolbarCapsuleButton &&
+                widget.tooltip.startsWith('Collision Brush Size:'),
+          );
+
+      expect(collisionSizeButton(), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey<String>('eraser-footprint-toolbar-button'),
+        ),
+        findsNothing,
+      );
+
+      container.read(editorNotifierProvider.notifier).state =
+          initialState.copyWith(
+        activeTool: EditorToolType.eraser,
+        eraserFootprint: const EditorEraserFootprint.custom(
+          size: GridSize(width: 3, height: 2),
+        ),
+      );
+      await tester.pump();
+
+      expect(collisionSizeButton(), findsNothing);
+      expect(find.text('Gomme 3×2'), findsOneWidget);
+      final footprintButton = tester.widget<PokeMapButton>(
+        find.byKey(
+          const ValueKey<String>('eraser-footprint-toolbar-button'),
+        ),
+      );
+      expect(footprintButton.isSelected, isTrue);
+      expect(footprintButton.onPressed, isNotNull);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('eraser-footprint-toolbar-button'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(pokeMapEraserFootprintDialogKey), findsOneWidget);
+
+      await tester.tap(find.byKey(pokeMapEraserSingleTileChoiceKey));
+      await tester.pump();
+      await tester.tap(find.byKey(pokeMapEraserFootprintApplyButtonKey));
+      await tester.pumpAndSettle();
+
+      final configuredState = container.read(editorNotifierProvider);
+      expect(
+        configuredState.eraserFootprint,
+        isA<SingleTileEditorEraserFootprint>(),
+      );
+      expect(configuredState.isDirty, isFalse);
+      expect(configuredState.mapUndoStack, isEmpty);
+    });
+
+    testWidgets(
+        'reapplying a previous-brush footprint preserves its frozen size',
+        (tester) async {
+      final map = buildShellChromeMap(
+        width: 4,
+        height: 4,
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'tiles',
+            name: 'Tiles',
+            tiles: List<int>.filled(16, 0),
+          ),
+        ],
+      );
+      final container = await pumpTopToolbarHarness(
+        tester,
+        initialState: EditorState(
+          project: buildShellChromeProject(),
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: map,
+          activeLayerId: 'tiles',
+          activeTool: EditorToolType.eraser,
+          eraserFootprint: const EditorEraserFootprint.previousBrush(
+            size: GridSize(width: 3, height: 2),
+          ),
+          savedMapSnapshot: map,
+        ),
+        surfaceSize: const Size(1800, 900),
+      );
+      final notifier = container.read(editorNotifierProvider.notifier);
+      expect(
+        notifier.resolveCurrentPaintFootprintForEraser(),
+        const GridSize(width: 1, height: 1),
+        reason: 'The live paint brush deliberately differs from the snapshot',
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('eraser-footprint-toolbar-button'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('3 × 2 cases'), findsOneWidget);
+
+      await tester.tap(find.byKey(pokeMapEraserFootprintApplyButtonKey));
+      await tester.pumpAndSettle();
+
+      final configuredState = container.read(editorNotifierProvider);
+      expect(
+        configuredState.eraserFootprint,
+        const EditorEraserFootprint.previousBrush(
+          size: GridSize(width: 3, height: 2),
+        ),
+      );
+      expect(configuredState.isDirty, isFalse);
+      expect(configuredState.mapUndoStack, isEmpty);
     });
 
     testWidgets(

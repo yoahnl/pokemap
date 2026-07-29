@@ -69,11 +69,20 @@ void main() {
           ],
         ),
         activeLayerId: 'ground',
+        eraserFootprint: EditorEraserFootprint.custom(
+          size: GridSize(width: 3, height: 2),
+        ),
       );
 
       final toolbar = container.read(editorToolbarSnapshotProvider);
       expect(toolbar.selectedTilesetEntry?.id, 'world');
       expect(toolbar.activeLayer, isA<TileLayer>());
+      expect(
+        toolbar.eraserFootprint,
+        const EditorEraserFootprint.custom(
+          size: GridSize(width: 3, height: 2),
+        ),
+      );
     });
 
     test('Path Studio snapshots hide map save and history actions', () {

@@ -66,6 +66,7 @@ class EditorSelectionState {
     required this.selectedPathPresetId,
     required this.selectedSurfacePresetId,
     required this.selectedTerrainPresetByType,
+    required this.eraserFootprint,
     required this.collisionBrushSizeMode,
     required this.selectedEntityId,
     required this.npcWaypointPlacementEntityId,
@@ -97,6 +98,7 @@ class EditorSelectionState {
   final String? selectedPathPresetId;
   final String? selectedSurfacePresetId;
   final Map<TerrainType, String> selectedTerrainPresetByType;
+  final EditorEraserFootprint eraserFootprint;
   final CollisionBrushSizeMode collisionBrushSizeMode;
   final String? selectedEntityId;
   final String? npcWaypointPlacementEntityId;
@@ -128,6 +130,7 @@ class EditorSelectionState {
     Object? selectedPathPresetId = _editorStateGroupsUnset,
     Object? selectedSurfacePresetId = _editorStateGroupsUnset,
     Map<TerrainType, String>? selectedTerrainPresetByType,
+    EditorEraserFootprint? eraserFootprint,
     CollisionBrushSizeMode? collisionBrushSizeMode,
     Object? selectedEntityId = _editorStateGroupsUnset,
     Object? npcWaypointPlacementEntityId = _editorStateGroupsUnset,
@@ -173,6 +176,7 @@ class EditorSelectionState {
               : selectedSurfacePresetId as String?,
       selectedTerrainPresetByType:
           selectedTerrainPresetByType ?? this.selectedTerrainPresetByType,
+      eraserFootprint: eraserFootprint ?? this.eraserFootprint,
       collisionBrushSizeMode:
           collisionBrushSizeMode ?? this.collisionBrushSizeMode,
       selectedEntityId: identical(selectedEntityId, _editorStateGroupsUnset)
@@ -351,6 +355,7 @@ extension EditorStateGroups on EditorState {
         selectedPathPresetId: selectedPathPresetId,
         selectedSurfacePresetId: selectedSurfacePresetId,
         selectedTerrainPresetByType: selectedTerrainPresetByType,
+        eraserFootprint: eraserFootprint,
         collisionBrushSizeMode: collisionBrushSizeMode,
         selectedEntityId: selectedEntityId,
         npcWaypointPlacementEntityId: npcWaypointPlacementEntityId,
@@ -413,6 +418,7 @@ extension EditorStateGroups on EditorState {
       selectedPathPresetId: next.selectedPathPresetId,
       selectedSurfacePresetId: next.selectedSurfacePresetId,
       selectedTerrainPresetByType: next.selectedTerrainPresetByType,
+      eraserFootprint: next.eraserFootprint,
       collisionBrushSizeMode: next.collisionBrushSizeMode,
       selectedEntityId: next.selectedEntityId,
       npcWaypointPlacementEntityId: next.npcWaypointPlacementEntityId,

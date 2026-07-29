@@ -32,6 +32,33 @@ sealed class EditorBrush with _$EditorBrush {
   }) = ProjectElementEditorBrush;
 }
 
+/// Maximum width or height accepted by the editor eraser.
+///
+/// The same safety bound protects both custom sizes and brush snapshots so a
+/// malformed or unexpectedly large brush cannot trigger an unbounded erase.
+const int kMaxEditorEraserFootprintDimension = 16;
+
+@freezed
+sealed class EditorEraserFootprint with _$EditorEraserFootprint {
+  const factory EditorEraserFootprint.singleTile() =
+      SingleTileEditorEraserFootprint;
+  const factory EditorEraserFootprint.previousBrush({
+    required GridSize size,
+  }) = PreviousBrushEditorEraserFootprint;
+  const factory EditorEraserFootprint.custom({
+    required GridSize size,
+  }) = CustomEditorEraserFootprint;
+}
+
+extension EditorEraserFootprintSize on EditorEraserFootprint {
+  GridSize get size => switch (this) {
+        SingleTileEditorEraserFootprint() =>
+          const GridSize(width: 1, height: 1),
+        PreviousBrushEditorEraserFootprint(:final size) => size,
+        CustomEditorEraserFootprint(:final size) => size,
+      };
+}
+
 @freezed
 class EditorState with _$EditorState {
   const factory EditorState({
@@ -59,6 +86,8 @@ class EditorState with _$EditorState {
     String? selectedPathPresetId,
     String? selectedSurfacePresetId,
     @Default({}) Map<TerrainType, String> selectedTerrainPresetByType,
+    @Default(EditorEraserFootprint.singleTile())
+    EditorEraserFootprint eraserFootprint,
     @Default(CollisionBrushSizeMode.brushFootprint)
     CollisionBrushSizeMode collisionBrushSizeMode,
     String? selectedEntityId,

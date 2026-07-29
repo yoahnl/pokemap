@@ -39,6 +39,9 @@ void main() {
         selectedTerrainPresetByType: {
           TerrainType.rock: 'terrain-water',
         },
+        eraserFootprint: EditorEraserFootprint.custom(
+          size: GridSize(width: 3, height: 2),
+        ),
         selectedEntityId: 'npc_1',
         selectedMapEventId: 'event_1',
         selectedTrainerId: 'trainer_1',
@@ -59,6 +62,12 @@ void main() {
       expect(state.selection.terrainSelectionMode, TerrainSelectionMode.path);
       expect(state.selection.selectedTerrainType, TerrainType.rock);
       expect(state.selection.selectedPathPresetId, 'path-road');
+      expect(
+        state.selection.eraserFootprint,
+        const EditorEraserFootprint.custom(
+          size: GridSize(width: 3, height: 2),
+        ),
+      );
       expect(state.selection.selectedTrainerId, 'trainer_1');
 
       expect(state.viewport.zoom, 2.0);
@@ -101,6 +110,9 @@ void main() {
               selectedPathPresetId: null,
               selectedSurfacePresetId: null,
               selectedTerrainPresetByType: {},
+              eraserFootprint: EditorEraserFootprint.previousBrush(
+                size: GridSize(width: 2, height: 3),
+              ),
               collisionBrushSizeMode: CollisionBrushSizeMode.singleTile,
               selectedEntityId: 'entity_7',
               npcWaypointPlacementEntityId: null,
@@ -148,6 +160,12 @@ void main() {
       expect(updated.activeMapPath, 'maps/new.json');
       expect(updated.activeTool, EditorToolType.entityPlacement);
       expect(updated.selectedEntityKind, MapEntityKind.custom);
+      expect(
+        updated.eraserFootprint,
+        const EditorEraserFootprint.previousBrush(
+          size: GridSize(width: 2, height: 3),
+        ),
+      );
       expect(updated.selectedTilesetEditorId, 'tileset_world');
       expect(updated.tilesElementsPanelMode,
           TilesElementsPanelMode.placedInstances);

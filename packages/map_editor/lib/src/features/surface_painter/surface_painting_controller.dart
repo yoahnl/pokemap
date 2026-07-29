@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:map_core/map_core.dart';
 
 /// Result of a Surface paint/erase operation.
@@ -104,22 +106,65 @@ final class SurfacePaintingController {
     required String? targetLayerId,
     required GridPos pos,
   }) {
+    return eraseArea(
+      map: map,
+      targetLayerId: targetLayerId,
+      pos: pos,
+      size: const GridSize(width: 1, height: 1),
+    );
+  }
+
+  SurfacePaintingResult eraseArea({
+    required MapData map,
+    required String? targetLayerId,
+    required GridPos pos,
+    required GridSize size,
+  }) {
+    if (size.width <= 0 || size.height <= 0) {
+      throw ArgumentError.value(
+        size,
+        'size',
+        'Surface erase size must be positive',
+      );
+    }
     final target = _resolveTargetSurfaceLayer(map, targetLayerId);
     if (target == null) {
       return SurfacePaintingResult(map: map, layerId: null, changed: false);
     }
-    final updatedLayer = eraseSurfacePlacement(
-      layer: target.layer,
-      x: pos.x,
-      y: pos.y,
-    );
-    if (updatedLayer == target.layer) {
+
+    final left = math.max(0, pos.x);
+    final top = math.max(0, pos.y);
+    final right = math.min(map.size.width, pos.x + size.width);
+    final bottom = math.min(map.size.height, pos.y + size.height);
+    if (left >= right || top >= bottom) {
       return SurfacePaintingResult(
         map: map,
         layerId: target.layer.id,
         changed: false,
       );
     }
+
+    final retainedPlacements = target.layer.placements
+        .where(
+          (placement) =>
+              placement.x < left ||
+              placement.x >= right ||
+              placement.y < top ||
+              placement.y >= bottom,
+        )
+        .toList(growable: false);
+    if (retainedPlacements.length == target.layer.placements.length) {
+      return SurfacePaintingResult(
+        map: map,
+        layerId: target.layer.id,
+        changed: false,
+      );
+    }
+    final updatedLayer = replaceSurfacePlacements(
+      layer: target.layer,
+      mapSize: map.size,
+      placements: retainedPlacements,
+    );
     final updatedMap = _replaceLayerAt(
       map,
       index: target.index,

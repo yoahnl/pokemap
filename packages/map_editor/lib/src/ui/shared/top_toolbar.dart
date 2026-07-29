@@ -12,6 +12,7 @@ import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../theme/theme.dart';
+import '../design_system/design_system.dart';
 import 'top_toolbar/dialogs/top_toolbar_dialogs.dart';
 import 'top_toolbar/widgets/toolbar_brand.dart';
 import 'top_toolbar/widgets/toolbar_capsules.dart';
@@ -64,6 +65,64 @@ class TopToolbar extends ConsumerWidget {
         .toList(growable: false);
   }
 
+  static PokeMapEraserFootprintResult _eraserDialogInitialValue(
+    EditorEraserFootprint footprint,
+  ) {
+    final size = footprint.size;
+    return switch (footprint) {
+      SingleTileEditorEraserFootprint() =>
+        const PokeMapEraserFootprintResult.singleTile(),
+      PreviousBrushEditorEraserFootprint() =>
+        PokeMapEraserFootprintResult.previousBrush(
+          width: size.width,
+          height: size.height,
+        ),
+      CustomEditorEraserFootprint() => PokeMapEraserFootprintResult.custom(
+          width: size.width,
+          height: size.height,
+        ),
+    };
+  }
+
+  static Future<void> _configureEraserFootprint(
+    BuildContext context,
+    EditorNotifier notifier,
+    EditorEraserFootprint footprint,
+  ) async {
+    final previousBrushFootprint = switch (footprint) {
+      PreviousBrushEditorEraserFootprint(:final size) => size,
+      _ => notifier.resolveCurrentPaintFootprintForEraser(),
+    };
+    final result = await showPokeMapEraserFootprintDialog(
+      context,
+      initialValue: _eraserDialogInitialValue(footprint),
+      previousBrushSize: previousBrushFootprint == null
+          ? null
+          : (
+              width: previousBrushFootprint.width,
+              height: previousBrushFootprint.height,
+            ),
+      maxDimension: kMaxEditorEraserFootprintDimension,
+    );
+    if (!context.mounted || result == null) return;
+
+    switch (result.mode) {
+      case PokeMapEraserFootprintMode.singleTile:
+        notifier.useSingleTileEraserFootprint();
+        return;
+      case PokeMapEraserFootprintMode.previousBrush:
+        if (footprint is PreviousBrushEditorEraserFootprint) return;
+        notifier.capturePreviousBrushEraserFootprint();
+        return;
+      case PokeMapEraserFootprintMode.custom:
+        notifier.setCustomEraserFootprint(
+          width: result.width,
+          height: result.height,
+        );
+        return;
+    }
+  }
+
   static Widget buildToolBar(
     BuildContext context,
     WidgetRef ref, {
@@ -112,8 +171,8 @@ class TopToolbar extends ConsumerWidget {
         toolbar.activeTool == EditorToolType.entityPlacement;
 
     final showCollisionBrushSize = activeLayer is CollisionLayer &&
-        (toolbar.activeTool == EditorToolType.collisionPaint ||
-            toolbar.activeTool == EditorToolType.eraser);
+        toolbar.activeTool == EditorToolType.collisionPaint;
+    final eraserSize = toolbar.eraserFootprint.size;
 
     final actions = <Widget>[
       _groupItem(
@@ -353,8 +412,7 @@ class TopToolbar extends ConsumerWidget {
                         ? 'Collision Brush Size: 1x1'
                         : 'Collision Brush Size: Brush Footprint',
                     selected:
-                        toolbar.activeTool == EditorToolType.collisionPaint ||
-                            toolbar.activeTool == EditorToolType.eraser,
+                        toolbar.activeTool == EditorToolType.collisionPaint,
                     onPressed: notifier.toggleCollisionBrushSizeMode,
                   ),
               ],
@@ -364,6 +422,29 @@ class TopToolbar extends ConsumerWidget {
                   tooltip: 'Eraser Tool',
                   selected: toolbar.activeTool == EditorToolType.eraser,
                   onPressed: () => notifier.selectTool(EditorToolType.eraser),
+                ),
+              if (toolbar.activeTool == EditorToolType.eraser)
+                MacosTooltip(
+                  message: 'Régler l’empreinte de la gomme',
+                  child: PokeMapButton(
+                    key: const ValueKey<String>(
+                      'eraser-footprint-toolbar-button',
+                    ),
+                    variant: PokeMapButtonVariant.secondary,
+                    size: PokeMapButtonSize.small,
+                    isSelected: true,
+                    leading: const Icon(CupertinoIcons.delete, size: 14),
+                    onPressed: () {
+                      _configureEraserFootprint(
+                        context,
+                        notifier,
+                        toolbar.eraserFootprint,
+                      );
+                    },
+                    child: Text(
+                      'Gomme ${eraserSize.width}×${eraserSize.height}',
+                    ),
+                  ),
                 ),
               ToolbarCapsuleButton(
                 icon: CupertinoIcons.sparkles,

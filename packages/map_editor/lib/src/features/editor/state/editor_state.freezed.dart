@@ -697,6 +697,529 @@ abstract class ProjectElementEditorBrush implements EditorBrush {
 }
 
 /// @nodoc
+mixin _$EditorEraserFootprint {
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() singleTile,
+    required TResult Function(GridSize size) previousBrush,
+    required TResult Function(GridSize size) custom,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? singleTile,
+    TResult? Function(GridSize size)? previousBrush,
+    TResult? Function(GridSize size)? custom,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? singleTile,
+    TResult Function(GridSize size)? previousBrush,
+    TResult Function(GridSize size)? custom,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(SingleTileEditorEraserFootprint value) singleTile,
+    required TResult Function(PreviousBrushEditorEraserFootprint value)
+        previousBrush,
+    required TResult Function(CustomEditorEraserFootprint value) custom,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(SingleTileEditorEraserFootprint value)? singleTile,
+    TResult? Function(PreviousBrushEditorEraserFootprint value)? previousBrush,
+    TResult? Function(CustomEditorEraserFootprint value)? custom,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(SingleTileEditorEraserFootprint value)? singleTile,
+    TResult Function(PreviousBrushEditorEraserFootprint value)? previousBrush,
+    TResult Function(CustomEditorEraserFootprint value)? custom,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $EditorEraserFootprintCopyWith<$Res> {
+  factory $EditorEraserFootprintCopyWith(EditorEraserFootprint value,
+          $Res Function(EditorEraserFootprint) then) =
+      _$EditorEraserFootprintCopyWithImpl<$Res, EditorEraserFootprint>;
+}
+
+/// @nodoc
+class _$EditorEraserFootprintCopyWithImpl<$Res,
+        $Val extends EditorEraserFootprint>
+    implements $EditorEraserFootprintCopyWith<$Res> {
+  _$EditorEraserFootprintCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of EditorEraserFootprint
+  /// with the given fields replaced by the non-null parameter values.
+}
+
+/// @nodoc
+abstract class _$$SingleTileEditorEraserFootprintImplCopyWith<$Res> {
+  factory _$$SingleTileEditorEraserFootprintImplCopyWith(
+          _$SingleTileEditorEraserFootprintImpl value,
+          $Res Function(_$SingleTileEditorEraserFootprintImpl) then) =
+      __$$SingleTileEditorEraserFootprintImplCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$SingleTileEditorEraserFootprintImplCopyWithImpl<$Res>
+    extends _$EditorEraserFootprintCopyWithImpl<$Res,
+        _$SingleTileEditorEraserFootprintImpl>
+    implements _$$SingleTileEditorEraserFootprintImplCopyWith<$Res> {
+  __$$SingleTileEditorEraserFootprintImplCopyWithImpl(
+      _$SingleTileEditorEraserFootprintImpl _value,
+      $Res Function(_$SingleTileEditorEraserFootprintImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of EditorEraserFootprint
+  /// with the given fields replaced by the non-null parameter values.
+}
+
+/// @nodoc
+
+class _$SingleTileEditorEraserFootprintImpl
+    implements SingleTileEditorEraserFootprint {
+  const _$SingleTileEditorEraserFootprintImpl();
+
+  @override
+  String toString() {
+    return 'EditorEraserFootprint.singleTile()';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$SingleTileEditorEraserFootprintImpl);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() singleTile,
+    required TResult Function(GridSize size) previousBrush,
+    required TResult Function(GridSize size) custom,
+  }) {
+    return singleTile();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? singleTile,
+    TResult? Function(GridSize size)? previousBrush,
+    TResult? Function(GridSize size)? custom,
+  }) {
+    return singleTile?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? singleTile,
+    TResult Function(GridSize size)? previousBrush,
+    TResult Function(GridSize size)? custom,
+    required TResult orElse(),
+  }) {
+    if (singleTile != null) {
+      return singleTile();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(SingleTileEditorEraserFootprint value) singleTile,
+    required TResult Function(PreviousBrushEditorEraserFootprint value)
+        previousBrush,
+    required TResult Function(CustomEditorEraserFootprint value) custom,
+  }) {
+    return singleTile(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(SingleTileEditorEraserFootprint value)? singleTile,
+    TResult? Function(PreviousBrushEditorEraserFootprint value)? previousBrush,
+    TResult? Function(CustomEditorEraserFootprint value)? custom,
+  }) {
+    return singleTile?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(SingleTileEditorEraserFootprint value)? singleTile,
+    TResult Function(PreviousBrushEditorEraserFootprint value)? previousBrush,
+    TResult Function(CustomEditorEraserFootprint value)? custom,
+    required TResult orElse(),
+  }) {
+    if (singleTile != null) {
+      return singleTile(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class SingleTileEditorEraserFootprint
+    implements EditorEraserFootprint {
+  const factory SingleTileEditorEraserFootprint() =
+      _$SingleTileEditorEraserFootprintImpl;
+}
+
+/// @nodoc
+abstract class _$$PreviousBrushEditorEraserFootprintImplCopyWith<$Res> {
+  factory _$$PreviousBrushEditorEraserFootprintImplCopyWith(
+          _$PreviousBrushEditorEraserFootprintImpl value,
+          $Res Function(_$PreviousBrushEditorEraserFootprintImpl) then) =
+      __$$PreviousBrushEditorEraserFootprintImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({GridSize size});
+
+  $GridSizeCopyWith<$Res> get size;
+}
+
+/// @nodoc
+class __$$PreviousBrushEditorEraserFootprintImplCopyWithImpl<$Res>
+    extends _$EditorEraserFootprintCopyWithImpl<$Res,
+        _$PreviousBrushEditorEraserFootprintImpl>
+    implements _$$PreviousBrushEditorEraserFootprintImplCopyWith<$Res> {
+  __$$PreviousBrushEditorEraserFootprintImplCopyWithImpl(
+      _$PreviousBrushEditorEraserFootprintImpl _value,
+      $Res Function(_$PreviousBrushEditorEraserFootprintImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of EditorEraserFootprint
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? size = null,
+  }) {
+    return _then(_$PreviousBrushEditorEraserFootprintImpl(
+      size: null == size
+          ? _value.size
+          : size // ignore: cast_nullable_to_non_nullable
+              as GridSize,
+    ));
+  }
+
+  /// Create a copy of EditorEraserFootprint
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $GridSizeCopyWith<$Res> get size {
+    return $GridSizeCopyWith<$Res>(_value.size, (value) {
+      return _then(_value.copyWith(size: value));
+    });
+  }
+}
+
+/// @nodoc
+
+class _$PreviousBrushEditorEraserFootprintImpl
+    implements PreviousBrushEditorEraserFootprint {
+  const _$PreviousBrushEditorEraserFootprintImpl({required this.size});
+
+  @override
+  final GridSize size;
+
+  @override
+  String toString() {
+    return 'EditorEraserFootprint.previousBrush(size: $size)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PreviousBrushEditorEraserFootprintImpl &&
+            (identical(other.size, size) || other.size == size));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, size);
+
+  /// Create a copy of EditorEraserFootprint
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PreviousBrushEditorEraserFootprintImplCopyWith<
+          _$PreviousBrushEditorEraserFootprintImpl>
+      get copyWith => __$$PreviousBrushEditorEraserFootprintImplCopyWithImpl<
+          _$PreviousBrushEditorEraserFootprintImpl>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() singleTile,
+    required TResult Function(GridSize size) previousBrush,
+    required TResult Function(GridSize size) custom,
+  }) {
+    return previousBrush(size);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? singleTile,
+    TResult? Function(GridSize size)? previousBrush,
+    TResult? Function(GridSize size)? custom,
+  }) {
+    return previousBrush?.call(size);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? singleTile,
+    TResult Function(GridSize size)? previousBrush,
+    TResult Function(GridSize size)? custom,
+    required TResult orElse(),
+  }) {
+    if (previousBrush != null) {
+      return previousBrush(size);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(SingleTileEditorEraserFootprint value) singleTile,
+    required TResult Function(PreviousBrushEditorEraserFootprint value)
+        previousBrush,
+    required TResult Function(CustomEditorEraserFootprint value) custom,
+  }) {
+    return previousBrush(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(SingleTileEditorEraserFootprint value)? singleTile,
+    TResult? Function(PreviousBrushEditorEraserFootprint value)? previousBrush,
+    TResult? Function(CustomEditorEraserFootprint value)? custom,
+  }) {
+    return previousBrush?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(SingleTileEditorEraserFootprint value)? singleTile,
+    TResult Function(PreviousBrushEditorEraserFootprint value)? previousBrush,
+    TResult Function(CustomEditorEraserFootprint value)? custom,
+    required TResult orElse(),
+  }) {
+    if (previousBrush != null) {
+      return previousBrush(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class PreviousBrushEditorEraserFootprint
+    implements EditorEraserFootprint {
+  const factory PreviousBrushEditorEraserFootprint(
+          {required final GridSize size}) =
+      _$PreviousBrushEditorEraserFootprintImpl;
+
+  GridSize get size;
+
+  /// Create a copy of EditorEraserFootprint
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$PreviousBrushEditorEraserFootprintImplCopyWith<
+          _$PreviousBrushEditorEraserFootprintImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$CustomEditorEraserFootprintImplCopyWith<$Res> {
+  factory _$$CustomEditorEraserFootprintImplCopyWith(
+          _$CustomEditorEraserFootprintImpl value,
+          $Res Function(_$CustomEditorEraserFootprintImpl) then) =
+      __$$CustomEditorEraserFootprintImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({GridSize size});
+
+  $GridSizeCopyWith<$Res> get size;
+}
+
+/// @nodoc
+class __$$CustomEditorEraserFootprintImplCopyWithImpl<$Res>
+    extends _$EditorEraserFootprintCopyWithImpl<$Res,
+        _$CustomEditorEraserFootprintImpl>
+    implements _$$CustomEditorEraserFootprintImplCopyWith<$Res> {
+  __$$CustomEditorEraserFootprintImplCopyWithImpl(
+      _$CustomEditorEraserFootprintImpl _value,
+      $Res Function(_$CustomEditorEraserFootprintImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of EditorEraserFootprint
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? size = null,
+  }) {
+    return _then(_$CustomEditorEraserFootprintImpl(
+      size: null == size
+          ? _value.size
+          : size // ignore: cast_nullable_to_non_nullable
+              as GridSize,
+    ));
+  }
+
+  /// Create a copy of EditorEraserFootprint
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $GridSizeCopyWith<$Res> get size {
+    return $GridSizeCopyWith<$Res>(_value.size, (value) {
+      return _then(_value.copyWith(size: value));
+    });
+  }
+}
+
+/// @nodoc
+
+class _$CustomEditorEraserFootprintImpl implements CustomEditorEraserFootprint {
+  const _$CustomEditorEraserFootprintImpl({required this.size});
+
+  @override
+  final GridSize size;
+
+  @override
+  String toString() {
+    return 'EditorEraserFootprint.custom(size: $size)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$CustomEditorEraserFootprintImpl &&
+            (identical(other.size, size) || other.size == size));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, size);
+
+  /// Create a copy of EditorEraserFootprint
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$CustomEditorEraserFootprintImplCopyWith<_$CustomEditorEraserFootprintImpl>
+      get copyWith => __$$CustomEditorEraserFootprintImplCopyWithImpl<
+          _$CustomEditorEraserFootprintImpl>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() singleTile,
+    required TResult Function(GridSize size) previousBrush,
+    required TResult Function(GridSize size) custom,
+  }) {
+    return custom(size);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? singleTile,
+    TResult? Function(GridSize size)? previousBrush,
+    TResult? Function(GridSize size)? custom,
+  }) {
+    return custom?.call(size);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? singleTile,
+    TResult Function(GridSize size)? previousBrush,
+    TResult Function(GridSize size)? custom,
+    required TResult orElse(),
+  }) {
+    if (custom != null) {
+      return custom(size);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(SingleTileEditorEraserFootprint value) singleTile,
+    required TResult Function(PreviousBrushEditorEraserFootprint value)
+        previousBrush,
+    required TResult Function(CustomEditorEraserFootprint value) custom,
+  }) {
+    return custom(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(SingleTileEditorEraserFootprint value)? singleTile,
+    TResult? Function(PreviousBrushEditorEraserFootprint value)? previousBrush,
+    TResult? Function(CustomEditorEraserFootprint value)? custom,
+  }) {
+    return custom?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(SingleTileEditorEraserFootprint value)? singleTile,
+    TResult Function(PreviousBrushEditorEraserFootprint value)? previousBrush,
+    TResult Function(CustomEditorEraserFootprint value)? custom,
+    required TResult orElse(),
+  }) {
+    if (custom != null) {
+      return custom(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class CustomEditorEraserFootprint implements EditorEraserFootprint {
+  const factory CustomEditorEraserFootprint({required final GridSize size}) =
+      _$CustomEditorEraserFootprintImpl;
+
+  GridSize get size;
+
+  /// Create a copy of EditorEraserFootprint
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$CustomEditorEraserFootprintImplCopyWith<_$CustomEditorEraserFootprintImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
 mixin _$EditorState {
 // Session projet / document ouvert
   String? get projectRootPath => throw _privateConstructorUsedError;
@@ -719,6 +1242,8 @@ mixin _$EditorState {
   String? get selectedPathPresetId => throw _privateConstructorUsedError;
   String? get selectedSurfacePresetId => throw _privateConstructorUsedError;
   Map<TerrainType, String> get selectedTerrainPresetByType =>
+      throw _privateConstructorUsedError;
+  EditorEraserFootprint get eraserFootprint =>
       throw _privateConstructorUsedError;
   CollisionBrushSizeMode get collisionBrushSizeMode =>
       throw _privateConstructorUsedError;
@@ -814,6 +1339,7 @@ abstract class $EditorStateCopyWith<$Res> {
       String? selectedPathPresetId,
       String? selectedSurfacePresetId,
       Map<TerrainType, String> selectedTerrainPresetByType,
+      EditorEraserFootprint eraserFootprint,
       CollisionBrushSizeMode collisionBrushSizeMode,
       String? selectedEntityId,
       String? npcWaypointPlacementEntityId,
@@ -850,6 +1376,7 @@ abstract class $EditorStateCopyWith<$Res> {
   $MapDataCopyWith<$Res>? get activeMap;
   $GridPosCopyWith<$Res>? get hoveredTile;
   $EditorBrushCopyWith<$Res> get activeBrush;
+  $EditorEraserFootprintCopyWith<$Res> get eraserFootprint;
   $MapRectCopyWith<$Res>? get gameplayZoneDraftArea;
   $MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart;
   $MapDataCopyWith<$Res>? get savedMapSnapshot;
@@ -887,6 +1414,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? selectedPathPresetId = freezed,
     Object? selectedSurfacePresetId = freezed,
     Object? selectedTerrainPresetByType = null,
+    Object? eraserFootprint = null,
     Object? collisionBrushSizeMode = null,
     Object? selectedEntityId = freezed,
     Object? npcWaypointPlacementEntityId = freezed,
@@ -988,6 +1516,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
           ? _value.selectedTerrainPresetByType
           : selectedTerrainPresetByType // ignore: cast_nullable_to_non_nullable
               as Map<TerrainType, String>,
+      eraserFootprint: null == eraserFootprint
+          ? _value.eraserFootprint
+          : eraserFootprint // ignore: cast_nullable_to_non_nullable
+              as EditorEraserFootprint,
       collisionBrushSizeMode: null == collisionBrushSizeMode
           ? _value.collisionBrushSizeMode
           : collisionBrushSizeMode // ignore: cast_nullable_to_non_nullable
@@ -1172,6 +1704,17 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
+  $EditorEraserFootprintCopyWith<$Res> get eraserFootprint {
+    return $EditorEraserFootprintCopyWith<$Res>(_value.eraserFootprint,
+        (value) {
+      return _then(_value.copyWith(eraserFootprint: value) as $Val);
+    });
+  }
+
+  /// Create a copy of EditorState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
   $MapRectCopyWith<$Res>? get gameplayZoneDraftArea {
     if (_value.gameplayZoneDraftArea == null) {
       return null;
@@ -1237,6 +1780,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       String? selectedPathPresetId,
       String? selectedSurfacePresetId,
       Map<TerrainType, String> selectedTerrainPresetByType,
+      EditorEraserFootprint eraserFootprint,
       CollisionBrushSizeMode collisionBrushSizeMode,
       String? selectedEntityId,
       String? npcWaypointPlacementEntityId,
@@ -1278,6 +1822,8 @@ abstract class _$$EditorStateImplCopyWith<$Res>
   @override
   $EditorBrushCopyWith<$Res> get activeBrush;
   @override
+  $EditorEraserFootprintCopyWith<$Res> get eraserFootprint;
+  @override
   $MapRectCopyWith<$Res>? get gameplayZoneDraftArea;
   @override
   $MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart;
@@ -1315,6 +1861,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? selectedPathPresetId = freezed,
     Object? selectedSurfacePresetId = freezed,
     Object? selectedTerrainPresetByType = null,
+    Object? eraserFootprint = null,
     Object? collisionBrushSizeMode = null,
     Object? selectedEntityId = freezed,
     Object? npcWaypointPlacementEntityId = freezed,
@@ -1416,6 +1963,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value._selectedTerrainPresetByType
           : selectedTerrainPresetByType // ignore: cast_nullable_to_non_nullable
               as Map<TerrainType, String>,
+      eraserFootprint: null == eraserFootprint
+          ? _value.eraserFootprint
+          : eraserFootprint // ignore: cast_nullable_to_non_nullable
+              as EditorEraserFootprint,
       collisionBrushSizeMode: null == collisionBrushSizeMode
           ? _value.collisionBrushSizeMode
           : collisionBrushSizeMode // ignore: cast_nullable_to_non_nullable
@@ -1566,6 +2117,7 @@ class _$EditorStateImpl implements _EditorState {
       this.selectedPathPresetId,
       this.selectedSurfacePresetId,
       final Map<TerrainType, String> selectedTerrainPresetByType = const {},
+      this.eraserFootprint = const EditorEraserFootprint.singleTile(),
       this.collisionBrushSizeMode = CollisionBrushSizeMode.brushFootprint,
       this.selectedEntityId,
       this.npcWaypointPlacementEntityId,
@@ -1653,6 +2205,9 @@ class _$EditorStateImpl implements _EditorState {
     return EqualUnmodifiableMapView(_selectedTerrainPresetByType);
   }
 
+  @override
+  @JsonKey()
+  final EditorEraserFootprint eraserFootprint;
   @override
   @JsonKey()
   final CollisionBrushSizeMode collisionBrushSizeMode;
@@ -1765,7 +2320,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, pokemonCatalogSection: $pokemonCatalogSection, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedSurfacePresetId: $selectedSurfacePresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, selectedEnvironmentAreaId: $selectedEnvironmentAreaId, environmentMaskEditMode: $environmentMaskEditMode, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isProjectDirty: $isProjectDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, pokemonCatalogSection: $pokemonCatalogSection, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedSurfacePresetId: $selectedSurfacePresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, eraserFootprint: $eraserFootprint, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, selectedEnvironmentAreaId: $selectedEnvironmentAreaId, environmentMaskEditMode: $environmentMaskEditMode, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isProjectDirty: $isProjectDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1807,6 +2362,8 @@ class _$EditorStateImpl implements _EditorState {
             const DeepCollectionEquality().equals(
                 other._selectedTerrainPresetByType,
                 _selectedTerrainPresetByType) &&
+            (identical(other.eraserFootprint, eraserFootprint) ||
+                other.eraserFootprint == eraserFootprint) &&
             (identical(other.collisionBrushSizeMode, collisionBrushSizeMode) ||
                 other.collisionBrushSizeMode == collisionBrushSizeMode) &&
             (identical(other.selectedEntityId, selectedEntityId) ||
@@ -1835,8 +2392,7 @@ class _$EditorStateImpl implements _EditorState {
                     selectedTilesetElementGroupId) &&
             (identical(other.tilesElementsPanelMode, tilesElementsPanelMode) ||
                 other.tilesElementsPanelMode == tilesElementsPanelMode) &&
-            (identical(other.selectedPlacedElementInstanceId, selectedPlacedElementInstanceId) ||
-                other.selectedPlacedElementInstanceId == selectedPlacedElementInstanceId) &&
+            (identical(other.selectedPlacedElementInstanceId, selectedPlacedElementInstanceId) || other.selectedPlacedElementInstanceId == selectedPlacedElementInstanceId) &&
             (identical(other.selectedProjectDialogueId, selectedProjectDialogueId) || other.selectedProjectDialogueId == selectedProjectDialogueId) &&
             (identical(other.selectedTrainerId, selectedTrainerId) || other.selectedTrainerId == selectedTrainerId) &&
             (identical(other.selectedCharacterId, selectedCharacterId) || other.selectedCharacterId == selectedCharacterId) &&
@@ -1876,6 +2432,7 @@ class _$EditorStateImpl implements _EditorState {
         selectedPathPresetId,
         selectedSurfacePresetId,
         const DeepCollectionEquality().hash(_selectedTerrainPresetByType),
+        eraserFootprint,
         collisionBrushSizeMode,
         selectedEntityId,
         npcWaypointPlacementEntityId,
@@ -1937,6 +2494,7 @@ abstract class _EditorState implements EditorState {
       final String? selectedPathPresetId,
       final String? selectedSurfacePresetId,
       final Map<TerrainType, String> selectedTerrainPresetByType,
+      final EditorEraserFootprint eraserFootprint,
       final CollisionBrushSizeMode collisionBrushSizeMode,
       final String? selectedEntityId,
       final String? npcWaypointPlacementEntityId,
@@ -2004,6 +2562,8 @@ abstract class _EditorState implements EditorState {
   String? get selectedSurfacePresetId;
   @override
   Map<TerrainType, String> get selectedTerrainPresetByType;
+  @override
+  EditorEraserFootprint get eraserFootprint;
   @override
   CollisionBrushSizeMode get collisionBrushSizeMode;
   @override

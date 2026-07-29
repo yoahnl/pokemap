@@ -5295,59 +5295,55 @@ class EditorNotifier extends _$EditorNotifier {
       _setPaintError('Active layer not found: $layerId');
       return;
     }
+    final eraserFootprint = _resolveEraserFootprint(emitErrors: true);
+    if (eraserFootprint == null) return;
     if (activeLayer is TileLayer) {
-      final pattern = _resolveErasePattern(emitErrors: true);
-      if (pattern == null) return;
       _erasePattern(
         map: map,
         layerId: layerId,
         pos: pos,
-        patternSize: pattern.size,
-        failureLabel: pattern.failureLabel,
+        patternSize: eraserFootprint.size,
+        failureLabel: eraserFootprint.failureLabel,
       );
       return;
     }
     if (activeLayer is CollisionLayer) {
-      final collisionFootprint = _resolveCollisionFootprint(emitErrors: true);
-      if (collisionFootprint == null) return;
       _eraseCollisionPattern(
         map: map,
         layerId: layerId,
         pos: pos,
-        patternSize: collisionFootprint.size,
-        failureLabel: collisionFootprint.failureLabel,
+        patternSize: eraserFootprint.size,
+        failureLabel: eraserFootprint.failureLabel,
       );
       return;
     }
     if (activeLayer is TerrainLayer) {
-      final terrainFootprint = _resolveTerrainFootprint(emitErrors: true);
-      if (terrainFootprint == null) return;
       _eraseTerrainPattern(
         map: map,
         layerId: layerId,
         pos: pos,
-        patternSize: terrainFootprint.size,
-        failureLabel: terrainFootprint.failureLabel,
+        patternSize: eraserFootprint.size,
+        failureLabel: eraserFootprint.failureLabel,
       );
       return;
     }
     if (activeLayer is PathLayer) {
-      final pathFootprint = _resolvePathFootprint();
       _erasePathPattern(
         map: map,
         layerId: layerId,
         pos: pos,
-        patternSize: pathFootprint.size,
-        failureLabel: pathFootprint.failureLabel,
+        patternSize: eraserFootprint.size,
+        failureLabel: eraserFootprint.failureLabel,
       );
       return;
     }
     if (activeLayer is SurfaceLayer) {
       try {
-        final erased = _surfacePaintingController.erase(
+        final erased = _surfacePaintingController.eraseArea(
           map: map,
           targetLayerId: layerId,
           pos: pos,
+          size: eraserFootprint.size,
         );
         if (!erased.changed) {
           state = state.copyWith(errorMessage: null);
@@ -7307,38 +7303,40 @@ class EditorNotifier extends _$EditorNotifier {
       );
     }
 
+    final eraserFootprint = _resolveEraserFootprint(emitErrors: false);
+    if (eraserFootprint == null) return null;
     if (activeLayer is TileLayer) {
-      final erasePattern = _resolveErasePattern(emitErrors: false);
-      if (erasePattern == null) return null;
       return MapToolPreview.erase(
         origin: hoveredTile,
-        size: erasePattern.size,
+        size: eraserFootprint.size,
         validity: MapToolPreviewValidity.valid,
       );
     }
     if (activeLayer is CollisionLayer) {
-      final collisionFootprint = _resolveCollisionFootprint(emitErrors: false);
-      if (collisionFootprint == null) return null;
       return MapToolPreview.collisionErase(
         origin: hoveredTile,
-        size: collisionFootprint.size,
+        size: eraserFootprint.size,
         validity: MapToolPreviewValidity.valid,
       );
     }
     if (activeLayer is TerrainLayer) {
-      final terrainFootprint = _resolveTerrainFootprint(emitErrors: false);
-      if (terrainFootprint == null) return null;
       return MapToolPreview.terrainErase(
         origin: hoveredTile,
-        size: terrainFootprint.size,
+        size: eraserFootprint.size,
         validity: MapToolPreviewValidity.valid,
       );
     }
     if (activeLayer is PathLayer) {
-      final pathFootprint = _resolvePathFootprint();
       return MapToolPreview.pathErase(
         origin: hoveredTile,
-        size: pathFootprint.size,
+        size: eraserFootprint.size,
+        validity: MapToolPreviewValidity.valid,
+      );
+    }
+    if (activeLayer is SurfaceLayer) {
+      return MapToolPreview.erase(
+        origin: hoveredTile,
+        size: eraserFootprint.size,
         validity: MapToolPreviewValidity.valid,
       );
     }
@@ -7573,15 +7571,70 @@ class EditorNotifier extends _$EditorNotifier {
     return null;
   }
 
-  _ErasePattern? _resolveErasePattern({
+  _ResolvedBrushFootprint? _resolveEraserFootprint({
     required bool emitErrors,
   }) {
-    final footprint = _resolveBrushFootprint(emitErrors: emitErrors);
-    if (footprint == null) return null;
-    return _ErasePattern(
-      size: footprint.size,
-      failureLabel: footprint.failureLabel,
+    final configured = state.eraserFootprint;
+    final size = configured.size;
+    if (!_isValidEraserFootprintSize(size)) {
+      if (emitErrors) {
+        _setPaintError(
+          'Eraser footprint must be between 1 and '
+          '$kMaxEditorEraserFootprintDimension tiles per side',
+        );
+      }
+      return null;
+    }
+    return _ResolvedBrushFootprint(
+      size: size,
+      failureLabel: switch (configured) {
+        SingleTileEditorEraserFootprint() => 'tile',
+        PreviousBrushEditorEraserFootprint() => 'previous brush footprint',
+        CustomEditorEraserFootprint() => 'custom eraser footprint',
+      },
     );
+  }
+
+  bool _isValidEraserFootprintSize(GridSize size) {
+    return size.width >= 1 &&
+        size.height >= 1 &&
+        size.width <= kMaxEditorEraserFootprintDimension &&
+        size.height <= kMaxEditorEraserFootprintDimension;
+  }
+
+  _ResolvedBrushFootprint? _resolveCurrentPaintFootprint({
+    required bool emitErrors,
+  }) {
+    final map = state.activeMap;
+    final layerId = state.activeLayerId;
+    final activeLayer =
+        map == null || layerId == null ? null : _findLayerById(map, layerId);
+    if (activeLayer is TileLayer) {
+      return _resolveBrushFootprint(emitErrors: emitErrors);
+    }
+    if (activeLayer is CollisionLayer) {
+      return _resolveCollisionFootprint(emitErrors: emitErrors);
+    }
+    if (activeLayer is TerrainLayer) {
+      return _resolveTerrainFootprint(emitErrors: emitErrors);
+    }
+    if (activeLayer is PathLayer) {
+      final footprint = _resolvePathFootprint();
+      return _ResolvedBrushFootprint(
+        size: footprint.size,
+        failureLabel: footprint.failureLabel,
+      );
+    }
+    if (activeLayer is SurfaceLayer) {
+      return const _ResolvedBrushFootprint(
+        size: GridSize(width: 1, height: 1),
+        failureLabel: 'surface placement',
+      );
+    }
+    if (emitErrors) {
+      _setPaintError('The active layer does not expose a paint footprint');
+    }
+    return null;
   }
 
   _ResolvedBrushFootprint? _resolveCollisionFootprint({
@@ -11748,6 +11801,67 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  GridSize? resolveCurrentPaintFootprintForEraser() {
+    final footprint = _resolveCurrentPaintFootprint(emitErrors: false);
+    if (footprint == null || !_isValidEraserFootprintSize(footprint.size)) {
+      return null;
+    }
+    return footprint.size;
+  }
+
+  void useSingleTileEraserFootprint() {
+    if (state.eraserFootprint is SingleTileEditorEraserFootprint) {
+      state = state.copyWith(errorMessage: null);
+      return;
+    }
+    state = state.copyWith(
+      eraserFootprint: const EditorEraserFootprint.singleTile(),
+      statusMessage: 'Eraser footprint: 1x1',
+      errorMessage: null,
+    );
+  }
+
+  bool capturePreviousBrushEraserFootprint() {
+    final footprint = _resolveCurrentPaintFootprint(emitErrors: true);
+    if (footprint == null) return false;
+    if (!_isValidEraserFootprintSize(footprint.size)) {
+      _setPaintError(
+        'The current brush footprint exceeds the '
+        '$kMaxEditorEraserFootprintDimension tile eraser limit',
+      );
+      return false;
+    }
+    state = state.copyWith(
+      eraserFootprint: EditorEraserFootprint.previousBrush(
+        size: footprint.size,
+      ),
+      statusMessage:
+          'Eraser footprint: ${footprint.size.width}x${footprint.size.height}',
+      errorMessage: null,
+    );
+    return true;
+  }
+
+  bool setCustomEraserFootprint({
+    required int width,
+    required int height,
+  }) {
+    final size = GridSize(width: width, height: height);
+    if (!_isValidEraserFootprintSize(size)) {
+      _setPaintError(
+        'Custom eraser size must be between 1 and '
+        '$kMaxEditorEraserFootprintDimension tiles per side',
+      );
+      return false;
+    }
+    state = state.copyWith(
+      eraserFootprint: EditorEraserFootprint.custom(size: size),
+      statusMessage: 'Eraser footprint: ${size.width}x${size.height}',
+      errorMessage: null,
+    );
+    return true;
+  }
+
   void setActiveLayer(String layerId) {
     final map = state.activeMap;
     if (map == null) return;
@@ -13410,16 +13524,6 @@ class _ResolvedBrushPattern {
 
 class _ResolvedBrushFootprint {
   const _ResolvedBrushFootprint({
-    required this.size,
-    required this.failureLabel,
-  });
-
-  final GridSize size;
-  final String failureLabel;
-}
-
-class _ErasePattern {
-  const _ErasePattern({
     required this.size,
     required this.failureLabel,
   });

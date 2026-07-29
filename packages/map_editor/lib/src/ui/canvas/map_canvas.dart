@@ -62,6 +62,7 @@ import 'map_canvas/map_canvas_navigation_controls.dart';
 import 'map_canvas/narrative_event_map_banner.dart';
 import 'narrative_studio/narrative_studio_navigation.dart';
 import 'shadow/editor_static_shadow_preview_painter.dart';
+import '../design_system/pokemap_badge.dart';
 import '../shared/map_workspace_empty_state.dart';
 import '../../theme/theme.dart';
 
@@ -408,6 +409,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           hoveredTile: _hoveredTile,
           tilesetColumnsById: tilesPerRowById,
         );
+        final eraserPreview =
+            state.activeTool == EditorToolType.eraser ? toolPreview : null;
         final shadowLightPreviewPreset =
             editorShadowLightPreviewPresetById(_shadowLightPreviewPresetId) ??
                 neutralEditorShadowLightPreviewPreset;
@@ -1049,7 +1052,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                   ? SystemMouseCursors.grabbing
                   : _spacePressed && _interactionController.isIdle
                       ? SystemMouseCursors.grab
-                      : SystemMouseCursors.basic,
+                      : state.activeTool == EditorToolType.eraser
+                          ? SystemMouseCursors.precise
+                          : SystemMouseCursors.basic,
               onExit: (_) {
                 if (_hoveredTile != null || _hoveredBorderVertex != null) {
                   setState(() {
@@ -1078,7 +1083,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           offset: state.panOffset,
                           hoveredTile: environmentBrushCursorOverlay == null &&
                                   state.environmentMaskEditMode !=
-                                      EnvironmentMaskEditMode.generatedAdd
+                                      EnvironmentMaskEditMode.generatedAdd &&
+                                  eraserPreview == null
                               ? _hoveredTile
                               : null,
                           activeLayerId: state.activeLayerId,
@@ -1206,6 +1212,71 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           context,
                           colors,
                           shadowLightPreviewPreset,
+                        ),
+                      ),
+                    if (_hoveredTile != null && eraserPreview != null)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          key: const ValueKey<String>(
+                            'eraser-footprint-cursor-badge',
+                          ),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              const badgeMargin = 8.0;
+                              const badgeMaxWidth = 160.0;
+                              final desiredLeft = state.panOffset.dx +
+                                  (_hoveredTile!.x + eraserPreview.size.width) *
+                                      tileWidth *
+                                      state.zoom +
+                                  badgeMargin;
+                              final desiredTop = state.panOffset.dy +
+                                  _hoveredTile!.y * tileHeight * state.zoom -
+                                  26;
+                              final maxLeft = math.max(
+                                badgeMargin,
+                                constraints.maxWidth -
+                                    badgeMaxWidth -
+                                    badgeMargin,
+                              );
+                              final maxTop = math.max(
+                                badgeMargin,
+                                constraints.maxHeight - 28,
+                              );
+                              return Stack(
+                                children: [
+                                  Positioned(
+                                    left: desiredLeft
+                                        .clamp(
+                                          badgeMargin,
+                                          maxLeft,
+                                        )
+                                        .toDouble(),
+                                    top: desiredTop
+                                        .clamp(
+                                          badgeMargin,
+                                          maxTop,
+                                        )
+                                        .toDouble(),
+                                    child: Semantics(
+                                      label:
+                                          'Empreinte de la gomme : ${eraserPreview.size.width} par ${eraserPreview.size.height} cases',
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: badgeMaxWidth,
+                                        ),
+                                        child: PokeMapBadge(
+                                          label:
+                                              'Gomme ${eraserPreview.size.width}×${eraserPreview.size.height}',
+                                          variant:
+                                              PokeMapBadgeVariant.mapAccent,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
                         ),
                       ),
                   ],
@@ -1429,6 +1500,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       state.selectedPathPresetId,
       state.selectedSurfacePresetId,
       state.collisionBrushSizeMode,
+      state.eraserFootprint,
       state.selectedEnvironmentAreaId,
       state.environmentMaskEditMode,
       borderFeatureId,
