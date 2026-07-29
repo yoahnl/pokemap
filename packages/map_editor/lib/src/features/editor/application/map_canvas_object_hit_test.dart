@@ -28,15 +28,23 @@ final class MapCanvasObjectTarget {
   final GridPos anchor;
   final GridSize size;
 
+  /// Whether [other] addresses the same authored object across geometry edits.
+  bool sameIdentity(MapCanvasObjectTarget other) {
+    return other.kind == kind && other.id == id;
+  }
+
   @override
   bool operator ==(Object other) {
     return other is MapCanvasObjectTarget &&
         other.kind == kind &&
-        other.id == id;
+        other.id == id &&
+        other.layerId == layerId &&
+        other.anchor == anchor &&
+        other.size == size;
   }
 
   @override
-  int get hashCode => Object.hash(kind, id);
+  int get hashCode => Object.hash(kind, id, layerId, anchor, size);
 }
 
 /// Resolves persisted editor selection IDs into one logical canvas target.
@@ -203,7 +211,7 @@ final class MapCanvasObjectHitTest {
     if (current == null) {
       return hits.first;
     }
-    final index = hits.indexOf(current);
+    final index = hits.indexWhere(current.sameIdentity);
     if (index < 0) {
       return hits.first;
     }

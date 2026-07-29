@@ -935,6 +935,50 @@ void main() {
       );
     });
 
+    test('emits updated geometry when the selected entity keeps its identity',
+        () async {
+      final container = _createContainer();
+      final editor = container.read(editorNotifierProvider.notifier)
+        ..state = EditorState(
+          project: _project,
+          activeMap: _mapWithObject,
+          activeLayerId: 'tile',
+          activeTool: EditorToolType.selection,
+          selectedEntityId: 'entity',
+        );
+      final snapshots = <WorldMapInspectorSnapshot>[];
+      final listener = container.listen<WorldMapInspectorSnapshot>(
+        worldMapInspectorSnapshotProvider,
+        (_, next) => snapshots.add(next),
+        fireImmediately: true,
+      );
+      addTearDown(listener.close);
+
+      editor.state = editor.state.copyWith(
+        activeMap: _mapWithObject.copyWith(
+          entities: const <MapEntity>[
+            MapEntity(
+              id: 'entity',
+              kind: MapEntityKind.custom,
+              pos: GridPos(x: 1, y: 0),
+              size: GridSize(width: 2, height: 3),
+            ),
+          ],
+        ),
+      );
+      await container.pump();
+
+      expect(snapshots, hasLength(2));
+      expect(
+        snapshots.last.objectTarget?.anchor,
+        const GridPos(x: 1, y: 0),
+      );
+      expect(
+        snapshots.last.objectTarget?.size,
+        const GridSize(width: 2, height: 3),
+      );
+    });
+
     test('drops a stale object and clears the selected cell on map change', () {
       final container = _createContainer();
       final editor = container.read(editorNotifierProvider.notifier)

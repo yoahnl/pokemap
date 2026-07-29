@@ -230,6 +230,82 @@ void main() {
       expect(hitTest.cycleTarget(hits: const [], current: first), isNull);
     });
 
+    test('target equality includes layer anchor and size', () {
+      const target = MapCanvasObjectTarget(
+        kind: MapCanvasObjectKind.placedElement,
+        id: 'placed',
+        layerId: 'bottom',
+        anchor: GridPos(x: 1, y: 1),
+        size: GridSize(width: 1, height: 1),
+      );
+
+      expect(
+        target,
+        isNot(
+          const MapCanvasObjectTarget(
+            kind: MapCanvasObjectKind.placedElement,
+            id: 'placed',
+            layerId: 'top',
+            anchor: GridPos(x: 1, y: 1),
+            size: GridSize(width: 1, height: 1),
+          ),
+        ),
+      );
+      expect(
+        target,
+        isNot(
+          const MapCanvasObjectTarget(
+            kind: MapCanvasObjectKind.placedElement,
+            id: 'placed',
+            layerId: 'bottom',
+            anchor: GridPos(x: 2, y: 1),
+            size: GridSize(width: 1, height: 1),
+          ),
+        ),
+      );
+      expect(
+        target,
+        isNot(
+          const MapCanvasObjectTarget(
+            kind: MapCanvasObjectKind.placedElement,
+            id: 'placed',
+            layerId: 'bottom',
+            anchor: GridPos(x: 1, y: 1),
+            size: GridSize(width: 2, height: 1),
+          ),
+        ),
+      );
+    });
+
+    test('cycles by stable identity when current geometry changed', () {
+      const first = MapCanvasObjectTarget(
+        kind: MapCanvasObjectKind.entity,
+        id: 'entity',
+        anchor: GridPos(x: 1, y: 1),
+        size: GridSize(width: 1, height: 1),
+      );
+      const movedFirst = MapCanvasObjectTarget(
+        kind: MapCanvasObjectKind.entity,
+        id: 'entity',
+        anchor: GridPos(x: 2, y: 1),
+        size: GridSize(width: 2, height: 1),
+      );
+      const second = MapCanvasObjectTarget(
+        kind: MapCanvasObjectKind.warp,
+        id: 'warp',
+        anchor: GridPos(x: 2, y: 1),
+        size: GridSize(width: 1, height: 1),
+      );
+
+      expect(
+        hitTest.cycleTarget(
+          hits: const <MapCanvasObjectTarget>[first, second],
+          current: movedFirst,
+        ),
+        second,
+      );
+    });
+
     test('empty and out-of-map positions return no target', () {
       expect(
         hitTest.hitStack(

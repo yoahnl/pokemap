@@ -6720,7 +6720,7 @@ class EditorNotifier extends _$EditorNotifier
       return false;
     }
     for (var index = 0; index < previous.length; index += 1) {
-      if (previous[index] != next[index]) {
+      if (!previous[index].sameIdentity(next[index])) {
         return false;
       }
     }
