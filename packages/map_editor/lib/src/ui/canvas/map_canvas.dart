@@ -321,6 +321,11 @@ class MapCanvas extends ConsumerStatefulWidget {
   ConsumerState<MapCanvas> createState() => _MapCanvasState();
 }
 
+typedef _TilesetImageBatch = ({
+  int generation,
+  Map<String, EditorImageLoadResult> results,
+});
+
 final class _MapCanvasObjectMovePreview {
   const _MapCanvasObjectMovePreview({
     required this.sourceMap,
@@ -409,7 +414,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   Map<String, TilesetTransparentColor> _lastTilesetTransparentColorById =
       const {};
   EditorImageCache? _lastTilesetImageCache;
-  Future<Map<String, EditorImageLoadResult>>? _tilesetImagesFuture;
+  Future<_TilesetImageBatch>? _tilesetImagesFuture;
   int _tilesetImageRequestGeneration = 0;
   GridPos? _hoveredTile;
   GridPos? _hoveredBorderVertex;
@@ -498,15 +503,15 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   }
 
   void _releaseTilesetImagesFuture(
-    Future<Map<String, EditorImageLoadResult>>? future,
+    Future<_TilesetImageBatch>? future,
   ) {
     if (future == null) return;
     unawaited(
       future.then<void>(
-        (results) {
+        (batch) {
           final binding = WidgetsBinding.instance;
           binding.addPostFrameCallback((_) {
-            for (final result in results.values) {
+            for (final result in batch.results.values) {
               result.dispose();
             }
           });
@@ -534,34 +539,41 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     final previousFuture = _tilesetImagesFuture;
     _lastTilesetImageCache = imageCache;
     _tilesetImageRequestGeneration += 1;
+    final requestGeneration = _tilesetImageRequestGeneration;
     _lastTilesetPathsById = Map<String, String>.from(nextTilesetPathsById);
     _lastTilesetTransparentColorById =
         Map<String, TilesetTransparentColor>.from(
       nextTransparentColorByTilesetId,
     );
-    _tilesetImagesFuture = imageCache?.loadMany(
-          _lastTilesetPathsById,
-          variantKeyForId: (tilesetId) =>
-              'transparent:${_lastTilesetTransparentColorById[tilesetId]?.toHexRgb() ?? 'none'}',
-          transformForId: (tilesetId) {
-            final transparentColor =
-                _lastTilesetTransparentColorById[tilesetId];
-            if (transparentColor == null) return null;
-            return (bytes) {
-              try {
-                return applyTilesetTransparentColorToPngBytes(
-                  imageBytes: bytes,
-                  transparentColor: transparentColor,
-                );
-              } on Object {
-                return bytes;
-              }
-            };
-          },
-        ) ??
-        Future<Map<String, EditorImageLoadResult>>.value(
-          const <String, EditorImageLoadResult>{},
-        );
+    final resultsFuture = imageCache?.loadMany(
+      _lastTilesetPathsById,
+      variantKeyForId: (tilesetId) =>
+          'transparent:${_lastTilesetTransparentColorById[tilesetId]?.toHexRgb() ?? 'none'}',
+      transformForId: (tilesetId) {
+        final transparentColor = _lastTilesetTransparentColorById[tilesetId];
+        if (transparentColor == null) return null;
+        return (bytes) {
+          try {
+            return applyTilesetTransparentColorToPngBytes(
+              imageBytes: bytes,
+              transparentColor: transparentColor,
+            );
+          } on Object {
+            return bytes;
+          }
+        };
+      },
+    );
+    _tilesetImagesFuture = (resultsFuture ??
+            Future<Map<String, EditorImageLoadResult>>.value(
+              const <String, EditorImageLoadResult>{},
+            ))
+        .then(
+      (results) => (
+        generation: requestGeneration,
+        results: results,
+      ),
+    );
     _releaseTilesetImagesFuture(previousFuture);
   }
 
@@ -638,15 +650,14 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       zoom: state.zoom,
     );
 
-    return FutureBuilder<Map<String, EditorImageLoadResult>>(
-      key: ValueKey((
-        _lastTilesetImageCache,
-        _tilesetImageRequestGeneration,
-      )),
+    return FutureBuilder<_TilesetImageBatch>(
       future: _tilesetImagesFuture,
       builder: (context, snapshot) {
+        final batch = snapshot.data;
         final tilesetImageResults =
-            snapshot.data ?? const <String, EditorImageLoadResult>{};
+            batch?.generation == _tilesetImageRequestGeneration
+                ? batch!.results
+                : const <String, EditorImageLoadResult>{};
         final tilesetImagesById = <String, ui.Image?>{
           for (final entry in tilesetImageResults.entries)
             entry.key: entry.value.image,

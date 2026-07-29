@@ -1061,6 +1061,7 @@ const _activeMap = MapData(
     TileLayer(
       id: 'ground',
       name: 'Ground',
+      tilesetId: 'world',
       tiles: <int>[0, 0, 0, 0],
     ),
   ],
