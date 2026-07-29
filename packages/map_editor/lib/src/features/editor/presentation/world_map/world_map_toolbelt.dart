@@ -149,7 +149,12 @@ class WorldMapToolbelt extends ConsumerWidget {
               PokeMapSplitButton<WorldMapPaintSubtool>(
                 key: const ValueKey<String>('world-map-tool-paint'),
                 onPressed: () => reportResult(
-                  sessionController.activateRememberedPaint(editor),
+                  sessionController.activatePaintReplay(
+                    editor,
+                    observedMapId: toolbar.activeMap?.id,
+                    observedLayerId: toolbar.activeLayer?.id,
+                    observedSubtool: visualState.paintSubtool,
+                  ),
                 ),
                 items: [
                   for (final subtool in WorldMapPaintSubtool.values)

@@ -171,14 +171,20 @@ class WorldMapWorkspaceSessionController
     return state.lastPaintSubtoolByLayerId[layerId] ?? state.lastPaintSubtool;
   }
 
-  WorldMapToolActivationResult activateRememberedPaint(
-    WorldMapToolActivationHost editorNotifier,
-  ) {
+  WorldMapToolActivationResult activatePaintReplay(
+    WorldMapToolActivationHost editorNotifier, {
+    required String? observedMapId,
+    required String? observedLayerId,
+    required WorldMapPaintSubtool observedSubtool,
+  }) {
     final snapshot = editorNotifier.worldMapToolActivationSessionSnapshot;
-    final subtool = resolveRememberedPaintSubtool(
-      mapId: snapshot.activeMapId,
-      layerId: snapshot.activeLayerId,
-    );
+    final subtool = snapshot.activeMapId == observedMapId &&
+            snapshot.activeLayerId == observedLayerId
+        ? observedSubtool
+        : resolveRememberedPaintSubtool(
+            mapId: snapshot.activeMapId,
+            layerId: snapshot.activeLayerId,
+          );
     return activateTool(
       editorNotifier,
       ActivateWorldMapPaint(subtool),

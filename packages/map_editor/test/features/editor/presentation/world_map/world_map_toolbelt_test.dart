@@ -725,7 +725,6 @@ void main() {
             .accepted,
         isTrue,
       );
-      editor.state = _sameIdTileState();
       String? rejectionReason;
       await _pumpToolbelt(
         tester,
@@ -733,6 +732,7 @@ void main() {
         onActivationRejected: (reason) => rejectionReason = reason,
       );
 
+      editor.state = _sameIdTileState();
       await tester.tap(
         find.byKey(const ValueKey<String>('world-map-tool-paint')),
       );
@@ -750,7 +750,12 @@ void main() {
         'legacy editor tool mutations update visible family and subtool',
         (tester) async {
       final container = _containerWith(_paintState('path'));
-      await _pumpToolbelt(tester, container);
+      String? rejectionReason;
+      await _pumpToolbelt(
+        tester,
+        container,
+        onActivationRejected: (reason) => rejectionReason = reason,
+      );
 
       final editor = container.read(editorNotifierProvider.notifier);
       editor.state = editor.state.copyWith(
@@ -783,6 +788,22 @@ void main() {
               widget.properties.selected == true,
         ),
         findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('world-map-tool-paint')),
+      );
+      await tester.pump();
+
+      expect(rejectionReason, isNull);
+      expect(editor.state.activeTool, EditorToolType.terrainPaint);
+      expect(
+        editor.state.terrainSelectionMode,
+        TerrainSelectionMode.path,
+      );
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).lastPaintSubtool,
+        WorldMapPaintSubtool.path,
       );
     });
 
