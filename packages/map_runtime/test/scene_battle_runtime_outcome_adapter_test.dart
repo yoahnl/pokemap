@@ -68,6 +68,7 @@ void main() {
         SceneRuntimePlanIntent.startBattle(
           battleKind: 'static',
           trainerId: 'trainer_boss_phare_pokemon',
+          battleTemplateId: 'battle_lighthouse_pokemon',
           npcEntityId: 'boss_phare_pokemon',
           declaredOutcomes: const <String>['victory', 'defeat'],
         ),
@@ -76,7 +77,40 @@ void main() {
       expect(result.scenePortId, 'victory');
       expect(requests.single.battleKind, 'static');
       expect(requests.single.trainerId, 'trainer_boss_phare_pokemon');
+      expect(
+        requests.single.battleTemplateId,
+        'battle_lighthouse_pokemon',
+      );
       expect(requests.single.npcEntityId, 'boss_phare_pokemon');
+    });
+
+    test('rejects a static request without a stable template before launch',
+        () async {
+      var launches = 0;
+      final adapter = SceneBattleRuntimeOutcomeAdapter(
+        runtimeSourceId: 'scene:map:boss:0',
+        defaultNpcEntityId: 'boss_phare_pokemon',
+        launcher: _Launcher((_) {
+          launches++;
+          return const SceneBattleRuntimeOutcomeResult.completed(
+            port: SceneBattleRuntimeOutcomePort.victory,
+          );
+        }),
+      );
+
+      final result = await adapter.startBattle(
+        SceneRuntimePlanIntent.startBattle(
+          battleKind: 'static',
+          trainerId: 'trainer_boss_phare_pokemon',
+        ),
+      );
+
+      expect(result.status, SceneBattleRuntimeOutcomeStatus.failed);
+      expect(
+        result.errorCode,
+        SceneBattleRuntimeOutcomeErrorCode.missingStaticBattleTemplateId,
+      );
+      expect(launches, 0);
     });
 
     test('fails clearly when intent has no trainerId', () async {

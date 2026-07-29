@@ -116,10 +116,33 @@ void main() {
       expect(find.textContaining('seed'), findsNothing);
 
       await tester.tap(find.text('Nouvelle partie'));
+      final identityDialog = find.byKey(
+        const ValueKey<String>('player-new-game-identity-dialog'),
+      );
+      await _pumpUntilFound(tester, identityDialog);
+      // The dialog key is mounted before the route transition stops ignoring
+      // pointer events on a real simulator.
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('player-identity-name')),
+        'Camille',
+      );
+      FocusManager.instance.primaryFocus?.unfocus();
+      await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+      await tester.pump(const Duration(milliseconds: 500));
+      final identityConfirm = find.byKey(
+        const ValueKey<String>('player-identity-confirm'),
+      );
+      await tester.ensureVisible(identityConfirm);
+      final hitTestableIdentityConfirm = identityConfirm.hitTestable();
+      await _pumpUntilFound(tester, hitTestableIdentityConfirm);
+      await tester.tap(hitTestableIdentityConfirm);
+      await _pumpUntilGone(tester, identityDialog);
       await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.playing));
       final game = _mountedGame(tester);
       await _pumpUntilGameReady(tester, game);
       expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 2));
+      expect(game.gameStateSnapshot.trainerProfile.name, 'Camille');
 
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await _pumpUntilFound(tester, find.text('Boutique du Rivage'));
@@ -153,8 +176,13 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.paused));
       await tester.tap(find.byKey(const ValueKey<String>('pause.save')));
-      await tester.pump();
-      await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.paused));
+      final saveConfirm = find.byKey(
+        const ValueKey<String>('runtime-save-confirm'),
+      );
+      await _pumpUntilFound(tester, saveConfirm);
+      await tester.tap(saveConfirm);
+      await _pumpUntilGone(tester, saveConfirm);
+      await _pumpUntilSaveCompleted(tester);
 
       final saveStore = HubSaveStore(
         supportRoot: supportRoot,
@@ -238,7 +266,7 @@ void main() {
         find.text('Fin principale — Selbrume sauvée'),
         findsOneWidget,
       );
-      await tester.tap(find.text('Retour au Hub'));
+      await _tapPlayerAction(tester, 'Retour au Hub');
       await _pumpUntilFound(
         tester,
         find.text('Installation vérifiée'),
@@ -268,7 +296,7 @@ void main() {
         find.widgetWithText(PlayerActionButton, 'Continuer'),
       );
       expect(continueAction.onPressed, isNull);
-      await tester.tap(find.text('Retour au Hub'));
+      await _tapPlayerAction(tester, 'Retour au Hub');
       await _pumpUntilFound(tester, find.text('Installation vérifiée'));
       expect(
         runtimeLogs.where(
@@ -429,6 +457,29 @@ Future<void> _pumpUntilFact(
   }
 }
 
+Future<void> _pumpUntilSaveCompleted(WidgetTester tester) async {
+  final savingSurface = _playerSurface(RuntimePlayerPhase.saving);
+  final pausedSurface = _playerSurface(RuntimePlayerPhase.paused);
+  final receipt = find.byKey(
+    const ValueKey<String>('runtime-save-receipt'),
+  );
+  final deadline = DateTime.now().add(const Duration(seconds: 20));
+  var observedSaving = false;
+  while (true) {
+    observedSaving = observedSaving || savingSurface.evaluate().isNotEmpty;
+    if (pausedSurface.evaluate().isNotEmpty && receipt.evaluate().isNotEmpty) {
+      return;
+    }
+    if (DateTime.now().isAfter(deadline)) {
+      fail(
+        'Timed out waiting for the save receipt after confirmation. '
+        'Observed saving phase: $observedSaving.',
+      );
+    }
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
 Future<void> _pumpUntilFound(
   WidgetTester tester,
   Finder finder, {
@@ -495,11 +546,17 @@ Future<void> _tapVisible(
   await tester.tapAt(visibleRect.center);
 }
 
+Future<void> _tapPlayerAction(WidgetTester tester, String label) async {
+  final action = find.widgetWithText(PlayerActionButton, label);
+  await tester.ensureVisible(action);
+  await tester.pump(const Duration(milliseconds: 100));
+  await _tapVisible(tester, action);
+}
+
 Future<void> _scrollPauseUntilFound(
   WidgetTester tester,
   Finder target,
 ) async {
-  if (target.evaluate().isNotEmpty) return;
   if (_playerSurface(RuntimePlayerPhase.lifecyclePaused)
       .evaluate()
       .isNotEmpty) {
@@ -509,6 +566,9 @@ Future<void> _scrollPauseUntilFound(
       _playerSurface(RuntimePlayerPhase.paused),
     );
   }
+  // A keyed pause action can already exist in the tree while remaining below
+  // the viewport (or behind the save receipt). Always scroll it into a
+  // hit-testable position before tapping it.
   final navigation = find.byKey(
     const ValueKey<String>('runtime-pause-navigation-scroll'),
   );

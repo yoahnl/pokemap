@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../theme/theme.dart';
@@ -428,6 +429,42 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                             ? 'Choisir un autre emplacement'
                             : 'Corriger les informations',
                         onAction: widget.controller.clearError,
+                      ),
+                    ],
+                    if (snapshot.gameplayReadinessReport
+                        case final report?) ...[
+                      const SizedBox(height: 10),
+                      PokeMapCard(
+                        key: const ValueKey<String>(
+                          'game-export-gameplay-readiness-diagnostics',
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            PokeMapSectionHeader(
+                              title: 'Diagnostics de jouabilité',
+                              description:
+                                  '${report.errorCount} erreur(s) bloquent la '
+                                  'certification du jeu.',
+                            ),
+                            const SizedBox(height: 10),
+                            for (final diagnostic in report.diagnostics.where(
+                              (item) =>
+                                  item.severity ==
+                                  NarrativeProjectDiagnosticSeverity.error,
+                            ))
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: PokeMapDiagnosticCallout(
+                                  severity: PokeMapDiagnosticSeverity.error,
+                                  title: diagnostic.suggestedFixLabel ??
+                                      'À corriger',
+                                  message: '${diagnostic.message}\n'
+                                      '${diagnostic.path}',
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ],
                     if (snapshot.technicalErrorDetails != null) ...[

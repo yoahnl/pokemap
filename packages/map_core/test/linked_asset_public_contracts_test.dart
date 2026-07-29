@@ -108,6 +108,7 @@ void main() {
       final contract = contracts.single;
       expect(contract.id, 'trainer:trainer_scout');
       expect(contract.battleRefId, 'trainer:trainer_scout');
+      expect(contract.battleTemplateId, isNull);
       expect(contract.label, 'Scout Mina');
       expect(contract.battleKind, BattlePublicContractKind.trainer);
       expect(contract.trainerId, 'trainer_scout');
@@ -158,11 +159,105 @@ void main() {
 
       expect(contract.id, 'static:boss_lanturn');
       expect(contract.battleRefId, 'static:boss_lanturn');
+      expect(contract.battleTemplateId, 'static:boss_lanturn');
       expect(contract.battleKind, BattlePublicContractKind.staticEncounter);
       expect(contract.possibleOutcomes.map((outcome) => outcome.id), [
         'victory',
         'defeat',
       ]);
+    });
+
+    test('preserves one stable static template already authored in Scenes', () {
+      final contract = buildBattlePublicContracts(
+        _manifest(
+          trainers: const [
+            ProjectTrainerEntry(
+              id: 'boss_lanturn',
+              name: 'Lanturn affolé',
+              trainerClass: 'Pokémon du phare',
+              tags: ['static-encounter'],
+            ),
+          ],
+          scenes: [
+            _staticBattleScene(
+              id: 'scene_lighthouse_boss',
+              trainerId: 'boss_lanturn',
+              battleTemplateId: 'battle_lighthouse_pokemon',
+            ),
+          ],
+        ),
+      ).single;
+
+      expect(contract.battleRefId, 'static:boss_lanturn');
+      expect(contract.battleTemplateId, 'battle_lighthouse_pokemon');
+      expect(contract.status, LinkedAssetContractStatus.available);
+    });
+
+    test('does not invent a fallback for an incomplete existing static Scene',
+        () {
+      final contract = buildBattlePublicContracts(
+        _manifest(
+          trainers: const [
+            ProjectTrainerEntry(
+              id: 'boss_lanturn',
+              name: 'Lanturn affolé',
+              trainerClass: 'Pokémon du phare',
+              tags: ['static-encounter'],
+            ),
+          ],
+          scenes: [
+            _staticBattleScene(
+              id: 'scene_lighthouse_boss',
+              trainerId: 'boss_lanturn',
+            ),
+          ],
+        ),
+      ).single;
+
+      expect(contract.battleTemplateId, isNull);
+      expect(contract.status, LinkedAssetContractStatus.unavailable);
+      expect(
+        contract.diagnostics.map((diagnostic) => diagnostic.code),
+        contains(
+          LinkedAssetContractDiagnosticCode.missingBattleTemplateRef,
+        ),
+      );
+    });
+
+    test('fails closed when one static profile has incompatible templates', () {
+      final contract = buildBattlePublicContracts(
+        _manifest(
+          trainers: const [
+            ProjectTrainerEntry(
+              id: 'boss_lanturn',
+              name: 'Lanturn affolé',
+              trainerClass: 'Pokémon du phare',
+              tags: ['static-encounter'],
+            ),
+          ],
+          scenes: [
+            _staticBattleScene(
+              id: 'scene_lighthouse_boss_a',
+              trainerId: 'boss_lanturn',
+              battleTemplateId: 'battle_lighthouse_pokemon',
+            ),
+            _staticBattleScene(
+              id: 'scene_lighthouse_boss_b',
+              trainerId: 'boss_lanturn',
+              battleTemplateId: 'battle_lighthouse_storm',
+            ),
+          ],
+        ),
+      ).single;
+
+      expect(contract.battleTemplateId, isNull);
+      expect(contract.status, LinkedAssetContractStatus.unavailable);
+      expect(
+        contract.diagnostics.map((diagnostic) => diagnostic.code),
+        contains(
+          LinkedAssetContractDiagnosticCode.ambiguousBattleTemplateRef,
+        ),
+      );
     });
 
     test('builds cinematic scenario bridge contracts from cutscene metadata',
@@ -372,6 +467,7 @@ ProjectManifest _manifest({
   List<ProjectTrainerEntry> trainers = const [],
   List<CinematicAsset> cinematics = const [],
   List<ScenarioAsset> scenarios = const [],
+  List<SceneAsset> scenes = const [],
 }) {
   return ProjectManifest(
     name: 'Linked Asset Contract Test Project',
@@ -381,5 +477,34 @@ ProjectManifest _manifest({
     trainers: trainers,
     cinematics: cinematics,
     scenarios: scenarios,
+    scenes: scenes,
+  );
+}
+
+SceneAsset _staticBattleScene({
+  required String id,
+  required String trainerId,
+  String? battleTemplateId,
+}) {
+  return SceneAsset(
+    id: id,
+    name: id,
+    graph: SceneGraph(
+      startNodeId: '$id.start',
+      nodes: [
+        SceneNode(id: '$id.start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: '$id.battle',
+          kind: SceneNodeKind.battle,
+          payload: SceneBattlePayload(
+            battleKind: 'static',
+            trainerId: trainerId,
+            battleTemplateId: battleTemplateId,
+            declaredOutcomes: const ['victory', 'defeat'],
+          ),
+        ),
+      ],
+      edges: const [],
+    ),
   );
 }

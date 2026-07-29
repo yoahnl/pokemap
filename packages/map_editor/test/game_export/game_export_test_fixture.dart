@@ -1,58 +1,118 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:map_core/map_core.dart';
 import 'package:map_editor/game_export.dart';
+import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
+import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
 import 'package:path/path.dart' as p;
 
 Future<Directory> createAuthorProject({
   bool withDialogue = true,
+  bool withCanonicalPokemon = true,
   String name = 'Neutral Adventure',
 }) async {
   final root = await Directory.systemTemp.createTemp('pokemap_author_export_');
-  final project = <String, Object?>{
-    'name': name,
-    'version': 'v2',
-    'maps': <Object?>[
-      <String, Object?>{
-        'id': 'map.start',
-        'name': 'Start',
-        'relativePath': 'maps/start.json',
-      },
+  final project = ProjectManifest(
+    name: name,
+    version: ProjectVersion.v2,
+    maps: const <ProjectMapEntry>[
+      ProjectMapEntry(
+        id: 'map.start',
+        name: 'Start',
+        relativePath: 'maps/start.json',
+      ),
     ],
-    'tilesets': <Object?>[],
-    'dialogues': withDialogue
-        ? <Object?>[
-            <String, Object?>{
-              'id': 'dialogue.intro',
-              'name': 'Introduction',
-              'relativePath': 'dialogues/intro.yarn',
-              'defaultStartNode': 'Start',
-            },
+    tilesets: const <ProjectTilesetEntry>[],
+    dialogues: withDialogue
+        ? const <ProjectDialogueEntry>[
+            ProjectDialogueEntry(
+              id: 'dialogue.intro',
+              name: 'Introduction',
+              relativePath: 'dialogues/intro.yarn',
+              defaultStartNode: 'Start',
+            ),
           ]
-        : <Object?>[],
-    'settings': <String, Object?>{
-      'tileWidth': 16,
-      'tileHeight': 16,
-      'mistralApiKey': 'fixture-secret-that-must-not-ship',
-    },
-    'globalProperties': <String, Object?>{
+        : const <ProjectDialogueEntry>[],
+    scenes: <SceneAsset>[_playableCompletionScene()],
+    eventRegistry: NarrativeEventRegistry(
+      schemaVersion: 1,
+      mode: EventSystemMode.v2Only,
+      records: [
+        NarrativeEventRecord.configuredStructurallyUnchecked(
+          NarrativeEventDefinition(
+            id: 'evt_019abcde-6000-7000-8000-000000000001',
+            name: 'Runtime start',
+            source: NarrativeEventSourceRef.mapEnter('map.start'),
+            conditions: const [],
+            sceneId: 'scene.main',
+            reusePolicy: NarrativeEventReusePolicy.oneShot,
+            priority: 0,
+            order: 0,
+          ),
+          enabled: true,
+        ),
+      ],
+      legacyClaims: const [],
+    ),
+    newGame: ProjectNewGameConfig(
+      enabled: true,
+      startMapId: 'map.start',
+      startSpawnId: 'spawn.player',
+      playerName: 'Player',
+      initialParty: [
+        PlayerPokemon(
+          speciesId: withCanonicalPokemon ? 'bulbasaur' : 'fixture.partner',
+          natureId: 'hardy',
+          abilityId: withCanonicalPokemon ? 'overgrow' : 'steadfast',
+          level: 5,
+          currentHp: 20,
+        ),
+      ],
+    ),
+    pokemon: ProjectPokemonConfig(enabled: withCanonicalPokemon),
+    settings: const ProjectSettings(
+      tileWidth: 16,
+      tileHeight: 16,
+      mistralApiKey: 'fixture-secret-that-must-not-ship',
+    ),
+    globalProperties: const <String, dynamic>{
       'apiKey': 'another-author-secret',
       'weather': 'clear',
     },
-  };
+  ).toJson();
   await File(p.join(root.path, 'project.json')).writeAsString(
     jsonEncode(project),
     flush: true,
   );
   await Directory(p.join(root.path, 'maps')).create(recursive: true);
+  final mapJson = const MapData(
+    id: 'map.start',
+    name: 'Start',
+    version: ProjectVersion.v2,
+    size: GridSize(width: 8, height: 8),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'events', name: 'Events'),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn.player'),
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn.player',
+        name: 'Player start',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 1, y: 1),
+        spawn: MapEntitySpawnData(role: EntitySpawnRole.playerStart),
+      ),
+    ],
+  ).toJson();
+  if (withDialogue) {
+    mapJson['dialogue'] = <String, Object?>{
+      'dialogueId': 'dialogue.intro',
+      'scriptPathRelative': 'dialogues/intro.yarn',
+    };
+  }
   await File(p.join(root.path, 'maps', 'start.json')).writeAsString(
-    jsonEncode(<String, Object?>{
-      'id': 'map.start',
-      'dialogue': <String, Object?>{
-        'dialogueId': 'dialogue.intro',
-        'scriptPathRelative': 'dialogues/intro.yarn',
-      },
-    }),
+    jsonEncode(mapJson),
     flush: true,
   );
   if (withDialogue) {
@@ -102,8 +162,64 @@ Guide: Bienvenue.
     '{}',
     flush: true,
   );
+  if (withCanonicalPokemon) {
+    await const SeedPokemonDemoDataUseCase().execute(
+      ProjectFileSystem(root.path),
+    );
+  }
   return root;
 }
+
+SceneAsset _playableCompletionScene() => SceneAsset(
+      id: 'scene.main',
+      name: 'Main journey',
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: <SceneNode>[
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'finish',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.consequence(
+              SceneConsequence.finishGame(
+                endingId: 'ending.fixture.complete',
+                outcome: SceneGameCompletionOutcome.completed,
+                result: SceneFinishGameResult(
+                  title: SceneLocalizedText(fallback: 'Adventure complete'),
+                  summary: SceneLocalizedText(
+                    fallback: 'The fixture reached its authored ending.',
+                  ),
+                ),
+                postGamePolicy: ScenePostGamePolicy.returnToTitle,
+              ),
+            ),
+          ),
+          SceneNode(
+            id: 'end',
+            kind: SceneNodeKind.end,
+            payload: SceneEndPayload(
+              outcomePolicy: SceneOutcomePolicy.progression,
+            ),
+          ),
+        ],
+        edges: <SceneEdge>[
+          SceneEdge(
+            id: 'start-finish',
+            fromNodeId: 'start',
+            fromPortId: 'completed',
+            toNodeId: 'finish',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'finish-end',
+            fromNodeId: 'finish',
+            fromPortId: 'completed',
+            toNodeId: 'end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      ),
+    );
 
 GamePackageExportProfile neutralExportProfile({
   String gameId = 'games.example.neutral',

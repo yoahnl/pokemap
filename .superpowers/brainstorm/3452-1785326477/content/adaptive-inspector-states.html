@@ -1,0 +1,322 @@
+<style>
+  .state-rule {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.36fr) minmax(400px, 0.64fr);
+    gap: 18px;
+    margin: 18px 0 26px;
+  }
+
+  .rule-card {
+    padding: 18px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .rule-card h3 {
+    margin-top: 0;
+  }
+
+  .rule-card ul {
+    padding-left: 18px;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(240px, 1fr));
+    gap: 14px;
+  }
+
+  .state {
+    min-width: 0;
+  }
+
+  .state .card-image {
+    padding: 11px;
+  }
+
+  .workspace {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16 / 10;
+    border-radius: 9px;
+    background: #08121f;
+    border: 1px solid #30425d;
+    color: #dce9ff;
+    font-size: 8px;
+  }
+
+  .top {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 13%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 7px;
+    background: #0d1929;
+    border-bottom: 1px solid #30425d;
+    font-weight: 800;
+  }
+
+  .canvas {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px),
+      radial-gradient(circle at 68% 32%, #df78a5 0 8%, transparent 9%),
+      radial-gradient(circle at 30% 69%, #d5b05b 0 7%, transparent 8%),
+      #34744a;
+    background-size: 14px 14px, 14px 14px, auto, auto, auto;
+    color: rgba(255,255,255,0.74);
+    font-weight: 800;
+  }
+
+  .inspector {
+    position: absolute;
+    right: 0;
+    top: 13%;
+    bottom: 0;
+    width: 31%;
+    background: #0d1929;
+    border-left: 1px solid #30425d;
+  }
+
+  .inspector.with-tray {
+    bottom: 19%;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 3px;
+    padding: 5px;
+    border-bottom: 1px solid #30425d;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 4px 2px;
+    border-radius: 5px;
+    text-align: center;
+    background: #14243a;
+  }
+
+  .tab.active {
+    background: #245f9c;
+    outline: 1px solid #70aff0;
+  }
+
+  .title {
+    padding: 7px 7px 3px;
+    font-weight: 800;
+  }
+
+  .row {
+    margin: 5px 7px;
+    padding: 6px;
+    border-radius: 6px;
+    background: #14243a;
+  }
+
+  .row.primary {
+    background: #1d4f83;
+    outline: 1px solid #529bf0;
+  }
+
+  .quick {
+    display: flex;
+    gap: 4px;
+    padding: 5px 7px;
+  }
+
+  .quick span {
+    flex: 1;
+    padding: 5px 2px;
+    border-radius: 5px;
+    text-align: center;
+    background: #172a43;
+  }
+
+  .tray {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 19%;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 7px;
+    background: #0d1929;
+    border-top: 1px solid #30425d;
+  }
+
+  .asset {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    background: linear-gradient(145deg, #d2b057, #3c7c4d);
+    border: 1px solid #6f91aa;
+  }
+
+  .context {
+    position: absolute;
+    z-index: 4;
+    width: 82px;
+    padding: 4px;
+    border-radius: 6px;
+    background: #101d2e;
+    border: 1px solid #5a7291;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.45);
+  }
+
+  .context div {
+    padding: 4px 5px;
+    border-radius: 4px;
+  }
+
+  .context div:first-child {
+    background: #1e4e80;
+  }
+
+  .flow-arrow {
+    margin: 19px 0 16px;
+    padding: 13px 16px;
+    border-radius: 11px;
+    background: rgba(74, 128, 204, 0.12);
+    border: 1px solid rgba(100, 155, 230, 0.28);
+    text-align: center;
+    font-weight: 700;
+  }
+
+  @media (max-width: 1000px) {
+    .flow {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .state-rule {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<p class="label">Inspecteur adaptatif · Section 1</p>
+<h2>L’inspecteur suit l’intention, sans sauter à chaque mouvement</h2>
+<p class="subtitle">
+  Le dock conserve toujours sa place. Seul son contenu change lorsque
+  l’utilisateur change d’outil ou effectue une vraie sélection.
+</p>
+
+<div class="state-rule">
+  <div class="rule-card">
+    <h3>Comportement recommandé</h3>
+    <ul>
+      <li><strong>Changer d’outil</strong> change le contexte de travail.</li>
+      <li><strong>Sélectionner un objet</strong> ouvre ses propriétés.</li>
+      <li><strong>Survoler ou cliquer droit</strong> ne remplace jamais le dock.</li>
+      <li><strong>Épingler</strong> permet de garder le contexte actuel.</li>
+      <li>Carte, Calque et Sélection restent accessibles manuellement.</li>
+    </ul>
+  </div>
+  <div class="rule-card">
+    <h3>Ce qui disparaît</h3>
+    <p>
+      Plus de pile « Propriétés / Calques / Bordures / Environnement /
+      Tuiles / Connexions / Warps » à parcourir. À un instant donné,
+      l’inspecteur montre un seul sujet et ses actions les plus probables.
+    </p>
+    <p>
+      Les commandes rares restent dans <strong>Plus d’actions</strong> et dans
+      le menu contextuel, sans encombrer l’écran.
+    </p>
+  </div>
+</div>
+
+<div class="cards flow">
+  <div class="card state">
+    <div class="card-image">
+      <div class="workspace">
+        <div class="top"><span>Outil Peindre</span><span>Calque Terrain</span></div>
+        <div class="canvas" style="left:0;right:31%;top:13%;bottom:19%">PEINTURE</div>
+        <div class="inspector with-tray">
+          <div class="tabs"><div class="tab">Carte</div><div class="tab active">Calque</div><div class="tab">Sélection</div></div>
+          <div class="title">Peindre sur Terrain · 📌</div>
+          <div class="row primary">Source · Tileset world</div>
+          <div class="row">Pinceau · 1 × 1</div>
+          <div class="row">Forme · Carré</div>
+        </div>
+        <div class="tray">
+          <strong>Assets</strong>
+          <div class="asset"></div><div class="asset"></div><div class="asset"></div>
+          <span style="margin-left:auto">Recherche · Favoris</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Peindre</h3>
+      <p>Réglages du pinceau dans le dock, assets immédiatement accessibles dans le tray.</p>
+    </div>
+  </div>
+
+  <div class="card state">
+    <div class="card-image">
+      <div class="workspace">
+        <div class="top"><span>Outil Sélection</span><span>Objet Lampadaire</span></div>
+        <div class="canvas" style="left:0;right:31%;top:13%;bottom:0">OBJET SÉLECTIONNÉ</div>
+        <div class="inspector">
+          <div class="tabs"><div class="tab">Carte</div><div class="tab">Calque</div><div class="tab active">Sélection</div></div>
+          <div class="title">Lampadaire · 📌</div>
+          <div class="quick"><span>Déplacer</span><span>Dupliquer</span><span>Supprimer</span></div>
+          <div class="row primary">Position · 38, 22</div>
+          <div class="row">Calque · Éléments</div>
+          <div class="row">Asset · lampadaire_01</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Sélectionner</h3>
+      <p>Le tray se ferme et l’inspecteur présente l’objet avec ses trois actions directes.</p>
+    </div>
+  </div>
+
+  <div class="card state">
+    <div class="card-image">
+      <div class="workspace">
+        <div class="top"><span>Outil Peindre</span><span>Clic droit local</span></div>
+        <div class="canvas" style="left:0;right:31%;top:13%;bottom:19%">LE DOCK NE BOUGE PAS</div>
+        <div class="inspector with-tray">
+          <div class="tabs"><div class="tab">Carte</div><div class="tab active">Calque</div><div class="tab">Sélection</div></div>
+          <div class="title">Peindre sur Terrain · 📌</div>
+          <div class="row primary">Source · Tileset world</div>
+          <div class="row">Pinceau · 1 × 1</div>
+        </div>
+        <div class="tray">
+          <strong>Assets</strong>
+          <div class="asset"></div><div class="asset"></div><div class="asset"></div>
+        </div>
+        <div class="context" style="left:37%;top:38%">
+          <div>Prélever ici</div>
+          <div>Remplacer</div>
+          <div>Effacer</div>
+          <div>Propriétés</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Cliquer droit</h3>
+      <p>Le menu agit sous le pointeur sans faire perdre le contexte courant.</p>
+    </div>
+  </div>
+</div>
+
+<div class="flow-arrow">
+  Peindre → sélectionner un objet → revenir à Peindre : chaque contexte retrouve
+  ses derniers réglages, son asset et son état épinglé.
+</div>

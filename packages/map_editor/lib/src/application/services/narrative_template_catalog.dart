@@ -11,6 +11,7 @@ enum NarrativeTemplateKind {
   hiddenItem,
   doorWarp,
   trainer,
+  staticEncounter,
   shop,
   nurse,
   starter,
@@ -136,6 +137,15 @@ final class NarrativeTemplateCatalog {
           label: 'Dresseur',
           command: command(NarrativeCommandIds.trainerBattle),
           physicalSourceKind: NarrativeTemplatePhysicalSourceKind.entity,
+        ),
+        NarrativeTemplateDefinition(
+          kind: NarrativeTemplateKind.staticEncounter,
+          label: 'Rencontre statique',
+          command: command(NarrativeCommandIds.staticEncounter),
+          physicalSourceKind: NarrativeTemplatePhysicalSourceKind.entity,
+          authoringHint:
+              'Choisissez une rencontre statique publiée ; son identifiant '
+              'de combat reste stable dans la Scene.',
         ),
         NarrativeTemplateDefinition(
           kind: NarrativeTemplateKind.shop,
@@ -610,6 +620,43 @@ List<String> _diagnoseProjectReferences(
         label: 'La capacité terrain',
       );
       break;
+    case NarrativeCommandIds.staticEncounter:
+      final battleRefId = parameters['staticEncounterId']?.trim();
+      if (battleRefId == null || battleRefId.isEmpty) {
+        break;
+      }
+      BattlePublicContract? selectedContract;
+      for (final contract in buildBattlePublicContracts(project)) {
+        if (contract.battleRefId == battleRefId &&
+            contract.battleKind == BattlePublicContractKind.staticEncounter) {
+          selectedContract = contract;
+          break;
+        }
+      }
+      if (selectedContract == null) {
+        diagnostics.add(
+          'La rencontre statique « $battleRefId » n’existe plus dans le '
+          'catalogue du projet.',
+        );
+        break;
+      }
+      if (selectedContract.status != LinkedAssetContractStatus.available ||
+          selectedContract.battleTemplateId == null) {
+        diagnostics.add(
+          'La rencontre statique « $battleRefId » référence des templates '
+          'incompatibles ou incomplets.',
+        );
+        break;
+      }
+      if (parameters['trainerId']?.trim() != selectedContract.trainerId ||
+          parameters['battleTemplateId']?.trim() !=
+              selectedContract.battleTemplateId) {
+        diagnostics.add(
+          'La rencontre statique « $battleRefId » a changé dans le catalogue ; '
+          'sélectionnez-la de nouveau.',
+        );
+      }
+      break;
   }
   return diagnostics;
 }
@@ -625,6 +672,7 @@ NarrativeEventReusePolicy _reusePolicy(NarrativeTemplateKind kind) =>
       NarrativeTemplateKind.itemBall ||
       NarrativeTemplateKind.hiddenItem ||
       NarrativeTemplateKind.trainer ||
+      NarrativeTemplateKind.staticEncounter ||
       NarrativeTemplateKind.starter ||
       NarrativeTemplateKind.badgeReward ||
       NarrativeTemplateKind.gameEnding =>
@@ -750,7 +798,11 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
       ),
     NarrativeCommandIds.staticEncounter => SceneBattlePayload(
         battleKind: 'static',
-        battleTemplateId: parameters['speciesId']!,
+        trainerId: _staticEncounterTrainerId(
+          parameters,
+        ),
+        battleTemplateId: _staticEncounterBattleTemplateId(parameters),
+        declaredOutcomes: const ['victory', 'defeat'],
       ),
     NarrativeCommandIds.cinematic => SceneCinematicPayload(
         cinematicId: parameters['cinematicId']!,
@@ -761,6 +813,31 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         'An unsupported Narrative command cannot produce a Scene payload.',
       ),
   };
+}
+
+String _staticEncounterTrainerId(Map<String, String> parameters) {
+  final battleRefId = parameters['staticEncounterId']?.trim() ?? '';
+  final trainerId = parameters['trainerId']?.trim() ?? '';
+  if (trainerId.isEmpty || battleRefId != 'static:$trainerId') {
+    throw ArgumentError.value(
+      battleRefId,
+      'staticEncounterId',
+      'Choisissez une rencontre statique publiée dans le projet.',
+    );
+  }
+  return trainerId;
+}
+
+String _staticEncounterBattleTemplateId(Map<String, String> parameters) {
+  final battleTemplateId = parameters['battleTemplateId']?.trim() ?? '';
+  if (battleTemplateId.isEmpty) {
+    throw ArgumentError.value(
+      battleTemplateId,
+      'battleTemplateId',
+      'La rencontre statique doit conserver son template de combat stable.',
+    );
+  }
+  return battleTemplateId;
 }
 
 (String, String) _parseNpcRef(String? value) {

@@ -1,0 +1,381 @@
+<style>
+  .proof {
+    display: grid;
+    grid-template-columns: minmax(360px, 0.58fr) minmax(280px, 0.42fr);
+    gap: 20px;
+    align-items: center;
+    margin: 18px 0 28px;
+  }
+
+  .proof img {
+    width: 100%;
+    display: block;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+
+  .proof-note {
+    padding: 18px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+
+  .proof-note strong {
+    color: #8db7ff;
+  }
+
+  .directions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(300px, 1fr));
+    gap: 15px;
+  }
+
+  .directions .card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .directions .card-body {
+    flex: 1;
+  }
+
+  .screen {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16 / 10;
+    border-radius: 9px;
+    background: #07111e;
+    border: 1px solid #30425d;
+    color: #dce9ff;
+    font-size: 8px;
+  }
+
+  .top {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 12%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    background: #0d1929;
+    border-bottom: 1px solid #30425d;
+    font-weight: 800;
+  }
+
+  .canvas {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px),
+      radial-gradient(circle at 66% 34%, #df78a5 0 8%, transparent 9%),
+      radial-gradient(circle at 29% 71%, #d5b05b 0 8%, transparent 9%),
+      #34744a;
+    background-size: 15px 15px, 15px 15px, auto, auto, auto;
+    color: rgba(255,255,255,0.75);
+    font-weight: 800;
+  }
+
+  .dock {
+    position: absolute;
+    background: #0d1929;
+    border-color: #30425d;
+    border-style: solid;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 3px;
+    padding: 6px;
+    border-bottom: 1px solid #30425d;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 5px 3px;
+    border-radius: 5px;
+    text-align: center;
+    background: #14243a;
+  }
+
+  .tab.active {
+    background: #245f9c;
+    outline: 1px solid #70aff0;
+  }
+
+  .dock-title {
+    padding: 8px 7px 4px;
+    font-weight: 800;
+  }
+
+  .quick {
+    display: flex;
+    gap: 4px;
+    padding: 5px 7px;
+  }
+
+  .quick span {
+    flex: 1;
+    padding: 5px 3px;
+    border-radius: 5px;
+    text-align: center;
+    background: #172a43;
+  }
+
+  .row {
+    margin: 5px 7px;
+    padding: 6px;
+    border-radius: 6px;
+    background: #14243a;
+  }
+
+  .row.active {
+    background: #1d4f83;
+    outline: 1px solid #529bf0;
+  }
+
+  .asset-tray {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 7px;
+    background: #0d1929;
+    border-top: 1px solid #30425d;
+  }
+
+  .asset {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+    border-radius: 5px;
+    background: linear-gradient(145deg, #d2b057, #3c7c4d);
+    border: 1px solid #6f91aa;
+  }
+
+  .context {
+    position: absolute;
+    z-index: 4;
+    width: 85px;
+    padding: 4px;
+    border-radius: 6px;
+    background: #101d2e;
+    border: 1px solid #5a7291;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.45);
+  }
+
+  .context div {
+    padding: 4px 5px;
+    border-radius: 4px;
+  }
+
+  .context div:first-child {
+    background: #1e4e80;
+  }
+
+  .drawer-handle {
+    position: absolute;
+    right: 0;
+    top: 35%;
+    z-index: 5;
+    padding: 7px 4px;
+    border-radius: 6px 0 0 6px;
+    background: #245f9c;
+    border: 1px solid #70aff0;
+    border-right: 0;
+    writing-mode: vertical-rl;
+    font-weight: 800;
+  }
+
+  .recommend {
+    display: inline-block;
+    margin-left: 7px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: rgba(75, 137, 230, 0.16);
+    color: #83b3ff;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .tradeoff {
+    margin-top: 11px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 1180px) {
+    .directions {
+      grid-template-columns: 1fr;
+    }
+
+    .directions .card {
+      display: grid;
+      grid-template-columns: minmax(320px, 0.5fr) minmax(280px, 0.5fr);
+    }
+  }
+
+  @media (max-width: 760px) {
+    .proof,
+    .directions .card {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<p class="label">Gate 5 · Proposition corrigée</p>
+<h2>Le World Explorer est déjà repliable : on garde ce comportement</h2>
+<p class="subtitle">
+  La décision utile porte maintenant sur la façon dont les outils contextuels
+  remplacent l’accordéon droit actuel.
+</p>
+
+<div class="proof">
+  <img
+    src="http://localhost:53723/Screenshot%202026-07-29%20at%2014.12.00.png"
+    alt="World Map Editor avec le World Explorer replié"
+  >
+  <div class="proof-note">
+    <h3>Ce que cette capture prouve</h3>
+    <p>
+      Le repli de gauche libère déjà correctement la largeur. En revanche, la
+      droite réserve la même place à <strong>sept catégories</strong>, même si
+      une seule correspond réellement au geste courant.
+    </p>
+    <p>
+      Le bon changement est donc : <strong>une seule surface contextuelle
+      utile</strong>, complétée par un clic droit local.
+    </p>
+  </div>
+</div>
+
+<div class="cards directions">
+  <div class="card" data-choice="adaptive-inspector" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="screen">
+        <div class="top"><span>Village d’Hanazuki</span><span>Sélection · Peindre · Effacer · Calque Terrain</span></div>
+        <div class="canvas" style="left:0;right:27%;top:12%;bottom:18%">CANVAS</div>
+        <div class="dock" style="right:0;top:12%;bottom:18%;width:27%;border-width:0 0 0 1px">
+          <div class="tabs">
+            <div class="tab">Carte</div>
+            <div class="tab active">Calque</div>
+            <div class="tab">Sélection</div>
+          </div>
+          <div class="dock-title">Calque Terrain</div>
+          <div class="quick"><span>Verrouiller</span><span>Masquer</span><span>•••</span></div>
+          <div class="row active">Tuiles & éléments</div>
+          <div class="row">Bordures</div>
+          <div class="row">Environnement</div>
+        </div>
+        <div class="asset-tray" style="left:0;right:0;bottom:0;height:18%">
+          <strong>Terrain</strong>
+          <div class="asset"></div><div class="asset"></div><div class="asset"></div>
+          <div class="asset"></div><div class="asset"></div>
+          <span style="margin-left:auto">Recherche · Favoris · Taille 1×1</span>
+        </div>
+        <div class="context" style="left:46%;top:42%">
+          <div>Prélever</div>
+          <div>Remplacer ici</div>
+          <div>Effacer</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Inspecteur adaptatif <span class="recommend">Recommandé</span></h3>
+      <p>
+        Le dock reste stable, mais son contenu bascule entre Carte, Calque et
+        Sélection. Les assets apparaissent dans un tray seulement quand l’outil
+        actif en a besoin.
+      </p>
+      <div class="tradeoff">
+        Un clic suffit pour les outils fréquents, le contexte reste visible et
+        le clic droit apporte les actions locales sans rendre l’UI mystérieuse.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="on-demand-drawer" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="screen">
+        <div class="top"><span>Village d’Hanazuki</span><span>Sélection · Peindre · Effacer · Remplir</span></div>
+        <div class="canvas" style="left:0;right:0;top:12%;bottom:17%">CANVAS MAXIMAL</div>
+        <div class="drawer-handle">INSPECTEUR</div>
+        <div class="dock" style="right:3%;top:20%;bottom:23%;width:25%;border-width:1px;border-radius:7px;box-shadow:0 9px 22px rgba(0,0,0,.45)">
+          <div class="tabs"><div class="tab active">Objet sélectionné</div><div class="tab">Épingler</div></div>
+          <div class="dock-title">Lampadaire</div>
+          <div class="quick"><span>Déplacer</span><span>Dupliquer</span><span>Supprimer</span></div>
+          <div class="row">Position · 38, 22</div>
+          <div class="row">Calque · Éléments</div>
+        </div>
+        <div class="asset-tray" style="left:0;right:0;bottom:0;height:17%">
+          <strong>Éléments récents</strong>
+          <div class="asset"></div><div class="asset"></div><div class="asset"></div>
+          <span style="margin-left:auto">Parcourir les assets</span>
+        </div>
+        <div class="context" style="left:37%;top:39%">
+          <div>Déplacer</div>
+          <div>Dupliquer</div>
+          <div>Supprimer</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Tiroir à la demande</h3>
+      <p>
+        La droite disparaît par défaut. Une sélection ouvre un tiroir flottant,
+        que l’utilisateur peut épingler s’il souhaite le garder.
+      </p>
+      <div class="tradeoff">
+        Canvas maximal, mais la position de l’information change davantage et
+        le tiroir peut masquer temporairement la map.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="bottom-workbench" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="screen">
+        <div class="top"><span>Village d’Hanazuki</span><span>Sélection · Peindre · Effacer · Calque Terrain</span></div>
+        <div class="canvas" style="left:0;right:0;top:12%;bottom:35%">CANVAS LARGE</div>
+        <div class="dock" style="left:0;right:0;bottom:0;height:35%;border-width:1px 0 0">
+          <div class="tabs">
+            <div class="tab active">Assets</div>
+            <div class="tab">Calques</div>
+            <div class="tab">Sélection</div>
+            <div class="tab">Carte</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;padding:7px">
+            <strong>Terrain</strong>
+            <div class="asset"></div><div class="asset"></div><div class="asset"></div>
+            <div class="asset"></div><div class="asset"></div><div class="asset"></div>
+            <span style="margin-left:auto">Recherche · Favoris · Réglages</span>
+          </div>
+        </div>
+        <div class="context" style="left:55%;top:35%">
+          <div>Prélever</div>
+          <div>Remplacer</div>
+          <div>Propriétés</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Workbench inférieur</h3>
+      <p>
+        Les assets, calques et propriétés partagent un panneau horizontal sous
+        la map, tandis que la droite disparaît.
+      </p>
+      <div class="tradeoff">
+        Très efficace pour parcourir beaucoup d’assets, mais prend de la hauteur
+        au canvas et ressemble davantage à une timeline de studio.
+      </div>
+    </div>
+  </div>
+</div>

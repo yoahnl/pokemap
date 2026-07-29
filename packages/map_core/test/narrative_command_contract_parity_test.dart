@@ -70,19 +70,30 @@ void main() {
     }
   });
 
-  test('static encounter diagnostics require a template, not a trainer', () {
+  test('static encounter diagnostics require one tagged trainer contract', () {
     final valid = _sceneFor(
       'static.valid',
+      SceneBattlePayload(
+        battleKind: 'static',
+        trainerId: 'trainer_static',
+        battleTemplateId: 'static:trainer_static',
+        declaredOutcomes: const ['victory'],
+      ),
+    );
+    final legacySpeciesOnly = _sceneFor(
+      'static.missing',
       SceneBattlePayload(
         battleKind: 'static',
         battleTemplateId: 'sproutle',
         declaredOutcomes: const ['victory'],
       ),
     );
-    final missingTemplate = _sceneFor(
-      'static.missing',
+    final wrongKind = _sceneFor(
+      'static.trainer',
       SceneBattlePayload(
         battleKind: 'static',
+        trainerId: 'trainer_port',
+        battleTemplateId: 'static:trainer_port',
         declaredOutcomes: const ['victory'],
       ),
     );
@@ -90,13 +101,19 @@ void main() {
     expect(
       diagnoseSceneAgainstProject(valid, _project(), mapsById: {
         'map_port': _map(),
-      }).byCode(SceneDiagnosticCode.battleTrainerRefUnknown),
-      isEmpty,
+      }).hasErrors,
+      isFalse,
     );
     expect(
-      diagnoseSceneAgainstProject(missingTemplate, _project(), mapsById: {
+      diagnoseSceneAgainstProject(legacySpeciesOnly, _project(), mapsById: {
         'map_port': _map(),
-      }).byCode(SceneDiagnosticCode.battleTemplateRefMissing),
+      }).byCode(SceneDiagnosticCode.battleTrainerRefUnknown),
+      hasLength(1),
+    );
+    expect(
+      diagnoseSceneAgainstProject(wrongKind, _project(), mapsById: {
+        'map_port': _map(),
+      }).byCode(SceneDiagnosticCode.battleTrainerRefUnknown),
       hasLength(1),
     );
   });
@@ -160,8 +177,7 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
               postGamePolicy: ScenePostGamePolicy.returnToTitle,
             ),
           ),
-      NarrativeCommandIds.setNpcPresence: () =>
-          SceneActionPayload.consequence(
+      NarrativeCommandIds.setNpcPresence: () => SceneActionPayload.consequence(
             SceneConsequence.setNpcPresence(
               mapId: 'map_port',
               entityId: 'npc_sailor',
@@ -200,7 +216,8 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
           ),
       NarrativeCommandIds.staticEncounter: () => SceneBattlePayload(
             battleKind: 'static',
-            battleTemplateId: 'sproutle',
+            trainerId: 'trainer_static',
+            battleTemplateId: 'static:trainer_static',
             declaredOutcomes: const ['victory'],
           ),
       NarrativeCommandIds.cinematic: () => SceneCinematicPayload(
@@ -292,6 +309,15 @@ ProjectManifest _project() => ProjectManifest(
           trainerClass: 'Marin',
           team: [
             ProjectTrainerPokemonEntry(speciesId: 'sproutle', level: 5),
+          ],
+        ),
+        ProjectTrainerEntry(
+          id: 'trainer_static',
+          name: 'Gardien immobile',
+          trainerClass: 'Rencontre',
+          tags: ['static-encounter'],
+          team: [
+            ProjectTrainerPokemonEntry(speciesId: 'sproutle', level: 7),
           ],
         ),
       ],

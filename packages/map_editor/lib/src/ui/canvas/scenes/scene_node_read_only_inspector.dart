@@ -28,6 +28,8 @@ typedef SceneYarnDialoguePayloadDraftUpdater = Future<bool> Function({
 typedef SceneBattlePayloadDraftUpdater = Future<bool> Function({
   required String nodeId,
   required String trainerId,
+  required String battleKind,
+  String? battleTemplateId,
 });
 
 typedef SceneCinematicPayloadDraftUpdater = Future<bool> Function({
@@ -885,7 +887,7 @@ class _BattlePayloadAuthoringPanel extends StatelessWidget {
     final currentContract = _battleContractFor(payload.trainerId);
     final authorableBattles = [
       for (final battle in battles)
-        if (battle.battleKind == BattlePublicContractKind.trainer &&
+        if (battle.status == LinkedAssetContractStatus.available &&
             battle.trainerId.trim().isNotEmpty)
           battle,
     ];
@@ -964,7 +966,18 @@ class _BattlePayloadAuthoringPanel extends StatelessWidget {
     if (contract == null || !context.mounted) {
       return;
     }
-    await updater(nodeId: node.id, trainerId: contract.trainerId);
+    await updater(
+      nodeId: node.id,
+      trainerId: contract.trainerId,
+      battleKind: switch (contract.battleKind) {
+        BattlePublicContractKind.trainer => 'trainer',
+        BattlePublicContractKind.staticEncounter => 'static',
+      },
+      battleTemplateId:
+          contract.battleKind == BattlePublicContractKind.staticEncounter
+              ? contract.battleTemplateId
+              : null,
+    );
   }
 }
 

@@ -1574,6 +1574,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             required String sceneId,
             required String nodeId,
             required String trainerId,
+            required String battleKind,
+            String? battleTemplateId,
           }) async {
             final project = editor.project;
             if (project == null) {
@@ -1589,6 +1591,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                 project.scenes[sceneIndex],
                 nodeId: nodeId,
                 trainerId: trainerId,
+                battleKind: battleKind,
+                battleTemplateId: battleTemplateId,
               );
               final scenes = project.scenes.toList(growable: true);
               scenes[sceneIndex] = result.updatedScene;
@@ -3818,6 +3822,20 @@ Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
     NarrativeCommandParameterKind.trainer: [
       for (final trainer in project.trainers)
         SceneActionPickerOption(id: trainer.id, label: trainer.name),
+    ],
+    NarrativeCommandParameterKind.staticEncounter: [
+      for (final contract in buildBattlePublicContracts(project))
+        if (contract.battleKind == BattlePublicContractKind.staticEncounter &&
+            contract.status == LinkedAssetContractStatus.available &&
+            contract.battleTemplateId != null)
+          SceneActionPickerOption(
+            id: contract.battleRefId,
+            label: contract.label,
+            parameters: {
+              'trainerId': contract.trainerId,
+              'battleTemplateId': contract.battleTemplateId!,
+            },
+          ),
     ],
     NarrativeCommandParameterKind.dialogue: [
       for (final dialogue in project.dialogues)

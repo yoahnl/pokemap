@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_editor/game_export.dart';
 import 'package:path/path.dart' as p;
@@ -49,6 +50,10 @@ void main() {
 
     expect(first.packageBytes, second.packageBytes);
     expect(first.certification.isCertified, isTrue);
+    expect(
+      first.certification.gameplayReadinessReport.isPlayable,
+      isTrue,
+    );
     expect(first.manifest.gameId, profile.gameId);
     expect(first.manifest.title, profile.title);
     expect(first.manifest.presentation?.schemaVersion, 1);
@@ -83,6 +88,195 @@ void main() {
       const GamePackageInspector().inspect(await output.readAsBytes()).manifest,
       isA<GamePackageManifest>(),
     );
+  });
+
+  group('gameplay publication readiness gate', () {
+    test(
+        'rejects a Finish Game reachable only through the non-runtime '
+        'starterSelectionSceneId hint', () async {
+      final root = await createAuthorProject(withDialogue: false);
+      addTearDown(() => root.delete(recursive: true));
+      final projectFile = File(p.join(root.path, 'project.json'));
+      final project =
+          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+      project.remove('eventRegistry');
+      (project['newGame'] as Map<String, dynamic>)['starterSelectionSceneId'] =
+          'scene.main';
+      await projectFile.writeAsString(jsonEncode(project), flush: true);
+
+      await _expectReadinessFailure(
+        root,
+        diagnosticCode: 'exportStoryEndUnreachable',
+      );
+    });
+
+    test('rejects a new game without an initial party or starter path',
+        () async {
+      final root = await createAuthorProject(withDialogue: false);
+      addTearDown(() => root.delete(recursive: true));
+      final projectFile = File(p.join(root.path, 'project.json'));
+      final project =
+          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+      final newGame = project['newGame'] as Map<String, dynamic>;
+      newGame['initialParty'] = <Object?>[];
+      newGame['starterOptions'] = <Object?>[];
+      newGame.remove('starterSelectionSceneId');
+      await projectFile.writeAsString(jsonEncode(project), flush: true);
+
+      await _expectReadinessFailure(
+        root,
+        diagnosticCode: 'exportPlayablePartyUnavailable',
+      );
+    });
+
+    test('rejects an initial party when the Pokemon feature is disabled',
+        () async {
+      final root = await createAuthorProject(withDialogue: false);
+      addTearDown(() => root.delete(recursive: true));
+      final projectFile = File(p.join(root.path, 'project.json'));
+      final project =
+          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+      (project['pokemon'] as Map<String, dynamic>)['enabled'] = false;
+      await projectFile.writeAsString(jsonEncode(project), flush: true);
+
+      await _expectReadinessFailure(
+        root,
+        diagnosticCode: 'exportPlayablePartyPokemonUnavailable',
+      );
+    });
+
+    test('rejects an initial party species missing from the projected catalog',
+        () async {
+      final root = await createAuthorProject(withDialogue: false);
+      addTearDown(() => root.delete(recursive: true));
+      final projectFile = File(p.join(root.path, 'project.json'));
+      final project =
+          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+      final newGame = project['newGame'] as Map<String, dynamic>;
+      final party = (newGame['initialParty'] as List<Object?>)
+          .cast<Map<String, dynamic>>();
+      party.single['speciesId'] = 'species.missing';
+      await projectFile.writeAsString(jsonEncode(project), flush: true);
+
+      await _expectReadinessFailure(
+        root,
+        diagnosticCode: 'runtimeMissingPokemonSpecies',
+      );
+    });
+
+    test('rejects an initial party when its species catalog is unavailable',
+        () async {
+      final root = await createAuthorProject(withDialogue: false);
+      addTearDown(() => root.delete(recursive: true));
+      await Directory(p.join(root.path, 'data', 'pokemon', 'species'))
+          .delete(recursive: true);
+
+      await _expectReadinessFailure(
+        root,
+        diagnosticCode: 'pokemon.species.directory_unreadable',
+      );
+    });
+
+    test('rejects canonical Pokemon data rejected by PokemonProjectValidator',
+        () async {
+      final root = await createAuthorProject(withDialogue: false);
+      addTearDown(() => root.delete(recursive: true));
+      final typesFile =
+          File(p.join(root.path, 'data', 'pokemon', 'catalogs', 'types.json'));
+      final types =
+          jsonDecode(await typesFile.readAsString()) as Map<String, dynamic>;
+      types['entries'] = <Object?>[];
+      await typesFile.writeAsString(jsonEncode(types), flush: true);
+
+      await _expectReadinessFailure(
+        root,
+        diagnosticCode: 'pokemon.species.type_missing_in_catalog',
+      );
+    });
+
+    test('rejects a missing authored reference before packaging', () async {
+      final root = await createAuthorProject(withDialogue: false);
+      addTearDown(() => root.delete(recursive: true));
+      await _replaceFinishPayload(
+        root,
+        SceneYarnDialoguePayload(dialogueId: 'dialogue.missing').toJson(),
+      );
+
+      await _expectReadinessFailure(
+        root,
+        diagnosticCode: 'dialogueRefUnknown',
+      );
+    });
+
+    test('rejects a projected map whose id differs from the manifest',
+        () async {
+      final root = await createAuthorProject(withDialogue: false);
+      addTearDown(() => root.delete(recursive: true));
+      final mapFile = File(p.join(root.path, 'maps', 'start.json'));
+      final map =
+          jsonDecode(await mapFile.readAsString()) as Map<String, dynamic>;
+      map['id'] = 'map.other';
+      await mapFile.writeAsString(jsonEncode(map), flush: true);
+
+      await _expectReadinessFailure(
+        root,
+        diagnosticCode: 'exportMapIdMismatch',
+      );
+    });
+
+    test('rejects a missing configured player spawn before packaging',
+        () async {
+      final root = await createAuthorProject(withDialogue: false);
+      addTearDown(() => root.delete(recursive: true));
+      final projectFile = File(p.join(root.path, 'project.json'));
+      final project =
+          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+      (project['newGame'] as Map<String, dynamic>)['startSpawnId'] =
+          'spawn.missing';
+      await projectFile.writeAsString(jsonEncode(project), flush: true);
+
+      await _expectReadinessFailure(
+        root,
+        diagnosticCode: 'runtimeNewGameStartSpawnMissing',
+      );
+    });
+
+    test('rejects a project without a reachable Finish Game consequence',
+        () async {
+      final root = await createAuthorProject(withDialogue: false);
+      addTearDown(() => root.delete(recursive: true));
+      await _replaceFinishPayload(
+        root,
+        SceneActionPayload.consequence(
+          SceneConsequence.healParty(),
+        ).toJson(),
+      );
+
+      await _expectReadinessFailure(
+        root,
+        diagnosticCode: 'exportStoryEndUnreachable',
+      );
+    });
+
+    test('rejects an invalid static encounter reference before packaging',
+        () async {
+      final root = await createAuthorProject(withDialogue: false);
+      addTearDown(() => root.delete(recursive: true));
+      await _replaceFinishPayload(
+        root,
+        SceneBattlePayload(
+          battleKind: 'static',
+          trainerId: 'static.missing',
+          battleTemplateId: 'static:static.missing',
+          declaredOutcomes: const <String>['victory', 'defeat'],
+        ).toJson(),
+      );
+
+      await _expectReadinessFailure(
+        root,
+        diagnosticCode: 'battleTrainerRefUnknown',
+      );
+    });
   });
 
   test(
@@ -323,4 +517,47 @@ void main() {
       ),
     );
   });
+}
+
+Future<void> _replaceFinishPayload(
+  Directory root,
+  Map<String, dynamic> payload,
+) async {
+  final projectFile = File(p.join(root.path, 'project.json'));
+  final project =
+      jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+  final scene =
+      (project['scenes'] as List<Object?>).cast<Map<String, dynamic>>().single;
+  final graph = scene['graph'] as Map<String, dynamic>;
+  final finishNode = (graph['nodes'] as List<Object?>)
+      .cast<Map<String, dynamic>>()
+      .singleWhere((node) => node['id'] == 'finish');
+  finishNode['kind'] = payload['kind'];
+  finishNode['payload'] = payload;
+  await projectFile.writeAsString(jsonEncode(project), flush: true);
+}
+
+Future<void> _expectReadinessFailure(
+  Directory root, {
+  required String diagnosticCode,
+}) async {
+  await expectLater(
+    const GamePackageExportService().build(
+      projectRoot: root,
+      profile: neutralExportProfile(),
+    ),
+    throwsA(
+      isA<GamePackageExportException>()
+          .having(
+            (error) => error.code,
+            'code',
+            'gameplayReadinessFailed',
+          )
+          .having(
+            (error) => error.message,
+            'creator diagnostics',
+            contains(diagnosticCode),
+          ),
+    ),
+  );
 }

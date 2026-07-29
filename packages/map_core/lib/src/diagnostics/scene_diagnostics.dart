@@ -408,6 +408,14 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
   };
   final trainerIds =
       contracts.battles.map((battle) => battle.trainerId).toSet();
+  final staticEncounterTrainerIds = contracts.battles
+      .where(
+        (battle) =>
+            battle.battleKind == BattlePublicContractKind.staticEncounter &&
+            battle.status == LinkedAssetContractStatus.available,
+      )
+      .map((battle) => battle.trainerId)
+      .toSet();
   final cinematicById = {
     for (final cinematic in contracts.cinematics) cinematic.id: cinematic,
   };
@@ -466,24 +474,32 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
           }
         }
       case SceneBattlePayload():
-        if (payload.battleKind == 'trainer' &&
+        final isTrainer = payload.battleKind == 'trainer';
+        final isStatic = payload.battleKind == 'static';
+        final validTrainerIds =
+            isStatic ? staticEncounterTrainerIds : trainerIds;
+        if ((isTrainer || isStatic) &&
             (payload.trainerId == null ||
-                !trainerIds.contains(payload.trainerId))) {
+                !validTrainerIds.contains(payload.trainerId))) {
           diagnostics.add(
             SceneDiagnostic(
               code: SceneDiagnosticCode.battleTrainerRefUnknown,
               severity: SceneDiagnosticSeverity.error,
-              message:
-                  'Le combat référence un profil d’adversaire absent du projet.',
+              message: isStatic
+                  ? 'La rencontre statique doit référencer un profil '
+                      '« static-encounter » présent dans le projet.'
+                  : 'Le combat référence un profil d’adversaire absent du '
+                      'projet.',
               sceneId: scene.id,
               nodeId: node.id,
               target: SceneDiagnosticTarget.node,
-              suggestedFixLabel: 'Choisir un adversaire existant.',
+              suggestedFixLabel: isStatic
+                  ? 'Choisir une rencontre statique publiée.'
+                  : 'Choisir un adversaire existant.',
             ),
           );
         }
-        if (payload.battleKind == 'static' &&
-            (payload.battleTemplateId?.trim().isEmpty ?? true)) {
+        if (isStatic && (payload.battleTemplateId?.trim().isEmpty ?? true)) {
           diagnostics.add(
             SceneDiagnostic(
               code: SceneDiagnosticCode.battleTemplateRefMissing,
@@ -493,8 +509,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
               sceneId: scene.id,
               nodeId: node.id,
               target: SceneDiagnosticTarget.node,
-              suggestedFixLabel:
-                  'Choisir une espèce ou un template de rencontre statique.',
+              suggestedFixLabel: 'Choisir une rencontre statique publiée.',
             ),
           );
         }

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -219,6 +220,77 @@ void main() {
 
     expect(controller.snapshot.status, GamePackageExportStatus.succeeded);
     expect(output.existsSync(), isTrue);
+  });
+
+  testWidgets('shows creator diagnostics instead of certification when blocked',
+      (tester) async {
+    late final Directory root;
+    await tester.runAsync(() async {
+      root = await createAuthorProject(withDialogue: false);
+      final projectFile = File(p.join(root.path, 'project.json'));
+      final project =
+          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+      (project['newGame'] as Map<String, dynamic>)['enabled'] = false;
+      await projectFile.writeAsString(jsonEncode(project), flush: true);
+    });
+    addTearDown(() => root.delete(recursive: true));
+    final output = File(p.join(root.parent.path, 'blocked-game.pokemapgame'));
+    addTearDown(() async {
+      if (await output.exists()) await output.delete();
+    });
+    final controller = GamePackageExportController(
+      projectRoot: root,
+      projectName: 'Neutral Adventure',
+      profileStore: GamePackageExportProfileStore(projectRoot: root),
+      localGameIdGenerator: () => 'games.local.blocked',
+    );
+    addTearDown(controller.dispose);
+    await tester.runAsync(controller.initialize);
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.light(),
+        home: Scaffold(
+          body: GamePackageExportDialog(
+            controller: controller,
+            chooseOutputFile: (_) async => output,
+            chooseProjectFile: (_) async => null,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final exportButton = tester.widget<PokeMapButton>(
+      find.widgetWithText(PokeMapButton, 'Exporter pour tester'),
+    );
+    await tester.runAsync(() async {
+      exportButton.onPressed!.call();
+      for (var attempt = 0;
+          attempt < 200 &&
+              controller.snapshot.status != GamePackageExportStatus.error;
+          attempt++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+    });
+    await tester.pump();
+
+    expect(find.text('Diagnostics de jouabilité'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey<String>(
+            'game-export-gameplay-readiness-diagnostics',
+          ),
+        ),
+        matching: find.textContaining('Activez Nouvelle Partie'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Package certifié'), findsNothing);
+    expect(output.existsSync(), isFalse);
   });
 
   testWidgets('shows a copyable technical diagnostic and persistent log path',

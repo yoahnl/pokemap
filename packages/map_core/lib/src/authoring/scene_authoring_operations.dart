@@ -838,6 +838,8 @@ SceneBattlePayloadUpdateResult updateSceneBattlePayload(
   SceneAsset scene, {
   required String nodeId,
   required String trainerId,
+  String battleKind = 'trainer',
+  String? battleTemplateId,
 }) {
   final node = _findNodeOrThrow(scene, nodeId, 'nodeId');
   if (node.kind != SceneNodeKind.battle ||
@@ -845,7 +847,7 @@ SceneBattlePayloadUpdateResult updateSceneBattlePayload(
     throw ArgumentError.value(
       nodeId,
       'nodeId',
-      'Scene payload editing V0 can only update trainer battle nodes.',
+      'Scene payload editing V0 can only update battle nodes.',
     );
   }
   final normalizedTrainerId = _trimRequired(
@@ -853,11 +855,30 @@ SceneBattlePayloadUpdateResult updateSceneBattlePayload(
     'trainerId',
     'Trainer id is required by Scene payload editing V0.',
   );
+  final normalizedBattleKind = battleKind.trim();
+  if (normalizedBattleKind != 'trainer' && normalizedBattleKind != 'static') {
+    throw ArgumentError.value(
+      battleKind,
+      'battleKind',
+      'Battle kind must be trainer or static.',
+    );
+  }
+  final normalizedBattleTemplateId = battleTemplateId?.trim();
+  if (normalizedBattleKind == 'static' &&
+      (normalizedBattleTemplateId == null ||
+          normalizedBattleTemplateId.isEmpty)) {
+    throw ArgumentError.value(
+      battleTemplateId,
+      'battleTemplateId',
+      'Static battles require a stable battle template reference.',
+    );
+  }
   final currentPayload = node.payload as SceneBattlePayload;
   final updatedPayload = SceneBattlePayload(
-    battleKind: 'trainer',
+    battleKind: normalizedBattleKind,
     trainerId: normalizedTrainerId,
-    battleTemplateId: currentPayload.battleTemplateId,
+    battleTemplateId:
+        normalizedBattleKind == 'static' ? normalizedBattleTemplateId : null,
     npcEntityId: currentPayload.npcEntityId,
     declaredOutcomes: const ['victory', 'defeat'],
   );

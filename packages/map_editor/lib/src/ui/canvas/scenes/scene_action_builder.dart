@@ -7,10 +7,15 @@ import '../../design_system/design_system.dart';
 import 'scene_action_inspector.dart';
 
 final class SceneActionPickerOption {
-  const SceneActionPickerOption({required this.id, required this.label});
+  const SceneActionPickerOption({
+    required this.id,
+    required this.label,
+    this.parameters = const {},
+  });
 
   final String id;
   final String label;
+  final Map<String, String> parameters;
 }
 
 final class SceneActionBuildResult {
@@ -125,6 +130,12 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           } else if (options.isNotEmpty) {
             _values[parameter.id] = options.first.id;
           }
+      }
+    }
+    for (final parameter in command.parameters) {
+      final value = _values[parameter.id];
+      if (_isReferenceParameter(parameter) && value != null) {
+        _applyOptionParameters(parameter.kind, value);
       }
     }
   }
@@ -273,7 +284,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
             PokeMapDropdownItem(value: 'true', label: 'Vrai'),
             PokeMapDropdownItem(value: 'false', label: 'Faux'),
           ],
-          onChanged: (value) => _setValue(parameter.id, value),
+          onChanged: (value) => _setReferenceValue(parameter, value),
         );
       case NarrativeCommandParameterKind.integer:
       case NarrativeCommandParameterKind.text:
@@ -359,6 +370,36 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       _values[parameterId] = value;
       _submissionError = null;
     });
+  }
+
+  void _setReferenceValue(
+    NarrativeCommandParameterDescriptor parameter,
+    String value,
+  ) {
+    setState(() {
+      _values[parameter.id] = value;
+      _applyOptionParameters(parameter.kind, value);
+      _submissionError = null;
+    });
+  }
+
+  void _applyOptionParameters(
+    NarrativeCommandParameterKind kind,
+    String optionId,
+  ) {
+    final options = _optionsFor(kind);
+    final parameterKeys = <String>{
+      for (final option in options) ...option.parameters.keys,
+    };
+    for (final key in parameterKeys) {
+      _values.remove(key);
+    }
+    for (final option in options) {
+      if (option.id == optionId) {
+        _values.addAll(option.parameters);
+        return;
+      }
+    }
   }
 
   void _submit() {

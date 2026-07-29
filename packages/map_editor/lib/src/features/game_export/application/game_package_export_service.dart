@@ -5,6 +5,11 @@ import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:pub_semver/pub_semver.dart';
 
+import '../../../application/models/pokemon_validation_report.dart';
+import '../../../application/services/pokemon_project_validator.dart';
+import '../../../infrastructure/filesystem/project_filesystem.dart';
+import '../../../infrastructure/repositories/file_repositories.dart';
+import 'game_package_gameplay_readiness_gate.dart';
 import 'game_package_export_profile.dart';
 import 'runtime_project_projection_builder.dart';
 
@@ -31,11 +36,14 @@ final class GamePackageExportWriteFailure implements Exception {
 final class GamePackageExportCertification {
   GamePackageExportCertification({
     required List<String> diagnostics,
+    required this.gameplayReadinessReport,
   }) : diagnostics = List.unmodifiable(diagnostics);
 
   final List<String> diagnostics;
+  final NarrativeProjectValidationReport gameplayReadinessReport;
 
-  bool get isCertified => diagnostics.isEmpty;
+  bool get isCertified =>
+      gameplayReadinessReport.isPlayable && diagnostics.isEmpty;
 }
 
 final class GamePackageExportArtifact {
@@ -65,11 +73,17 @@ final class GamePackageExportArtifact {
 final class GamePackageExportService {
   const GamePackageExportService({
     this.projectionBuilder = const RuntimeProjectProjectionBuilder(),
+    this.gameplayReadinessGate = const GamePackageGameplayReadinessGate(),
+    this.pokemonProjectValidator = const PokemonProjectValidator(
+      FilePokemonReadRepository(),
+    ),
     this.packageBuilder = const GamePackageBuilder(),
     this.atomicFileWriter,
   });
 
   final RuntimeProjectProjectionBuilder projectionBuilder;
+  final GamePackageGameplayReadinessGate gameplayReadinessGate;
+  final PokemonProjectValidator pokemonProjectValidator;
   final GamePackageBuilder packageBuilder;
   final GamePackageAtomicFileWriter? atomicFileWriter;
 
@@ -82,6 +96,39 @@ final class GamePackageExportService {
         projectRoot: projectRoot,
         profile: profile,
       );
+      PokemonValidationReport? pokemonValidationReport;
+      Object? pokemonValidationFailure;
+      if (projection.project.pokemon.enabled) {
+        try {
+          pokemonValidationReport = await pokemonProjectValidator.validate(
+            ProjectFileSystem(projectRoot.path),
+          );
+        } on Object catch (error) {
+          // Export remains fail-closed if the canonical validator itself
+          // cannot produce a report for the authored workspace.
+          pokemonValidationFailure = error;
+        }
+      }
+      final gameplayReadinessReport = gameplayReadinessGate.evaluate(
+        projection,
+        pokemonValidationReport: pokemonValidationReport,
+        pokemonValidationFailure: pokemonValidationFailure,
+      );
+      if (!gameplayReadinessReport.isPlayable) {
+        final errors = gameplayReadinessReport.diagnostics
+            .where(
+              (diagnostic) =>
+                  diagnostic.severity ==
+                  NarrativeProjectDiagnosticSeverity.error,
+            )
+            .toList(growable: false);
+        throw GamePackageExportException(
+          code: 'gameplayReadinessFailed',
+          path: errors.firstOrNull?.path,
+          message: _gameplayReadinessCreatorMessage(errors),
+          gameplayReadinessReport: gameplayReadinessReport,
+        );
+      }
       final requiredCapabilities = <String>{
         ...profile.requiredCapabilities,
         if (projection.project.maps.isNotEmpty) 'map@1',
@@ -211,8 +258,10 @@ final class GamePackageExportService {
             GamePackageCompatibilityDecision.accept)
           'Exported package is not compatible with the generic Hub contract.',
       ];
-      final certification =
-          GamePackageExportCertification(diagnostics: diagnostics);
+      final certification = GamePackageExportCertification(
+        diagnostics: diagnostics,
+        gameplayReadinessReport: gameplayReadinessReport,
+      );
       if (!certification.isCertified) {
         throw GamePackageExportException(
           code: 'exportCertificationFailed',
@@ -431,6 +480,27 @@ final class GamePackageExportService {
         overworldHudSurface: theme.overworldHudSurface,
         battleHudSurface: theme.battleHudSurface,
       );
+
+  static String _gameplayReadinessCreatorMessage(
+    List<NarrativeProjectDiagnostic> errors,
+  ) {
+    final buffer = StringBuffer(
+      'Le projet n’est pas encore jouable et ne peut pas être certifié.',
+    );
+    for (final diagnostic in errors.take(8)) {
+      buffer
+        ..write('\n[')
+        ..write(diagnostic.code)
+        ..write('] ')
+        ..write(diagnostic.message)
+        ..write(' — ')
+        ..write(diagnostic.path);
+    }
+    if (errors.length > 8) {
+      buffer.write('\n… ${errors.length - 8} autre(s) erreur(s).');
+    }
+    return buffer.toString();
+  }
 
   static String _suggestedFileName(String title, String version) {
     var slug = title

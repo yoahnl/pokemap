@@ -17,6 +17,8 @@ on:
       - "packages/map_gameplay/**"
       - "packages/map_player_ui/**"
       - "packages/map_runtime/**"
+      - "pokemap_roadmap_mecaniques_fangame.md"
+      - "reports/gameplay/**"
       - "tool/pokemap_product_certification/**"
       - ".github/workflows/pokemap_hub_product_certification.yml"
   push:
@@ -65,6 +67,55 @@ jobs:
           flutter pub get
           flutter test
           flutter analyze
+      - name: Gameplay roadmap structure and receipt schema (migration mode)
+        working-directory: packages/map_core
+        run: |
+          dart pub get
+          dart test test/gameplay_roadmap_dashboard_test.dart
+          # Strict freshness consumes post-checkout receipts from a CI artifact
+          # directory. Until every historical DONE lot is migrated, this lane
+          # validates structure without pretending to certify freshness.
+          dart run tool/generate_gameplay_roadmap_dashboard.dart \
+            --check \
+            --candidate-sha "$GITHUB_SHA" \
+            ../..
+
+  map-editor-quality:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Map editor functional lane
+        working-directory: packages/map_editor
+        run: |
+          flutter pub get
+          flutter test --no-pub --timeout 2m -r expanded
+          flutter analyze --no-pub
+      - name: Map editor performance lane
+        working-directory: packages/map_editor
+        run: |
+          for run_number in 1 2 3; do
+            echo "Performance process $run_number of 3"
+            flutter test --no-pub --timeout 2m -r expanded \
+              --tags performance \
+              --run-skipped \
+              --concurrency=1 \
+              test/cinematic_builder_characterization_performance_test.dart \
+              test/event_registry_persistence_performance_test.dart \
+              test/narrative_event_authoring_snapshot_performance_test.dart \
+              test/narrative_event_validation_incremental_performance_test.dart \
+              test/narrative_global_search_performance_test.dart \
+              test/narrative_large_project_workspace_performance_test.dart
+          done
 
   windows-desktop-certification:
     runs-on: windows-2025

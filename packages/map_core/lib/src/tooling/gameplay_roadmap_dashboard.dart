@@ -1,3 +1,5 @@
+import 'gameplay_roadmap_evidence.dart';
+
 enum GameplayRoadmapStatus {
   done,
   partial,
@@ -11,18 +13,29 @@ enum GameplayRoadmapDiagnosticCode {
   duplicateCanonicalLotId,
   reportRoadmapStatusContradiction,
   conflictingReportStatuses,
+  malformedEvidenceReceipt,
+  evidenceReceiptUnknownLot,
+  evidenceStatusContradiction,
+  conflictingEvidenceReceipts,
+  staleEvidenceReceipt,
+  failedEvidenceCommand,
+  missingFreshEvidence,
 }
+
+enum GameplayRoadmapDiagnosticSeverity { warning, error }
 
 final class GameplayRoadmapDashboardDiagnostic {
   const GameplayRoadmapDashboardDiagnostic({
     required this.code,
     required this.message,
+    this.severity = GameplayRoadmapDiagnosticSeverity.error,
     this.lotId,
     this.lineNumber,
   });
 
   final GameplayRoadmapDiagnosticCode code;
   final String message;
+  final GameplayRoadmapDiagnosticSeverity severity;
   final String? lotId;
   final int? lineNumber;
 }
@@ -33,14 +46,37 @@ final class GameplayRoadmapDashboardEntry {
     required this.title,
     required this.status,
     required Iterable<String> evidencePaths,
-  }) : evidencePaths = List.unmodifiable(
+    required Iterable<String> structuredEvidencePaths,
+    required Iterable<String> structuredEvidenceCandidateShas,
+    required Iterable<String> structuredEvidenceCommands,
+    required Iterable<String> structuredEvidenceSourcePaths,
+    required this.evidenceState,
+  })  : evidencePaths = List.unmodifiable(
           evidencePaths.toList(growable: false)..sort(),
+        ),
+        structuredEvidencePaths = List.unmodifiable(
+          structuredEvidencePaths.toList(growable: false)..sort(),
+        ),
+        structuredEvidenceCandidateShas = List.unmodifiable(
+          structuredEvidenceCandidateShas.toSet().toList(growable: false)
+            ..sort(),
+        ),
+        structuredEvidenceCommands = List.unmodifiable(
+          structuredEvidenceCommands.toSet().toList(growable: false)..sort(),
+        ),
+        structuredEvidenceSourcePaths = List.unmodifiable(
+          structuredEvidenceSourcePaths.toSet().toList(growable: false)..sort(),
         );
 
   final String id;
   final String title;
   final GameplayRoadmapStatus status;
   final List<String> evidencePaths;
+  final List<String> structuredEvidencePaths;
+  final List<String> structuredEvidenceCandidateShas;
+  final List<String> structuredEvidenceCommands;
+  final List<String> structuredEvidenceSourcePaths;
+  final GameplayRoadmapEvidenceState evidenceState;
 }
 
 /// Read-only projection of canonical roadmap lots and report status proposals.
@@ -54,6 +90,9 @@ final class GameplayRoadmapDashboard {
   factory GameplayRoadmapDashboard.build({
     required String roadmapMarkdown,
     required Map<String, String> gameplayReports,
+    Map<String, String> structuredEvidenceReceipts = const {},
+    String? candidateSha,
+    bool requireFreshEvidence = false,
   }) {
     final reportEvidence = <String, List<_ReportEvidence>>{};
     for (final report in gameplayReports.entries) {
@@ -67,8 +106,31 @@ final class GameplayRoadmapDashboard {
           );
     }
 
-    final entries = <GameplayRoadmapDashboardEntry>[];
     final diagnostics = <GameplayRoadmapDashboardDiagnostic>[];
+    final receiptEvidence = <String, List<_StructuredReceiptEvidence>>{};
+    for (final source in structuredEvidenceReceipts.entries) {
+      try {
+        final receipt =
+            GameplayRoadmapEvidenceReceipt.fromJsonString(source.value);
+        for (final lotId in receipt.lotIds) {
+          receiptEvidence.putIfAbsent(lotId, () => []).add(
+                _StructuredReceiptEvidence(
+                  path: source.key,
+                  receipt: receipt,
+                ),
+              );
+        }
+      } on Object catch (error) {
+        diagnostics.add(
+          GameplayRoadmapDashboardDiagnostic(
+            code: GameplayRoadmapDiagnosticCode.malformedEvidenceReceipt,
+            message: '${source.key} is not a valid FG evidence receipt: $error',
+          ),
+        );
+      }
+    }
+
+    final parsedLots = <_ParsedCanonicalLot>[];
     final canonicalIds = <String>{};
     var insideCodeFence = false;
     final lines = roadmapMarkdown.split('\n');
@@ -125,6 +187,30 @@ final class GameplayRoadmapDashboard {
         continue;
       }
 
+      parsedLots.add(
+        _ParsedCanonicalLot(
+          id: candidateId,
+          title: cells[2],
+          status: roadmapStatus,
+        ),
+      );
+    }
+
+    for (final lotId in receiptEvidence.keys) {
+      if (canonicalIds.contains(lotId)) continue;
+      diagnostics.add(
+        GameplayRoadmapDashboardDiagnostic(
+          code: GameplayRoadmapDiagnosticCode.evidenceReceiptUnknownLot,
+          message: 'Structured evidence references unknown lot $lotId.',
+          lotId: lotId,
+        ),
+      );
+    }
+
+    final entries = <GameplayRoadmapDashboardEntry>[];
+    for (final lot in parsedLots) {
+      final candidateId = lot.id;
+      final roadmapStatus = lot.status;
       final reports = reportEvidence[candidateId] ?? const <_ReportEvidence>[];
       final proposedStatuses = reports
           .map((report) => report.proposedStatus)
@@ -155,12 +241,33 @@ final class GameplayRoadmapDashboard {
         );
       }
 
+      final receipts =
+          receiptEvidence[candidateId] ?? const <_StructuredReceiptEvidence>[];
+      final evidenceState = _diagnoseStructuredEvidence(
+        lot: lot,
+        receipts: receipts,
+        candidateSha: candidateSha,
+        requireFreshEvidence: requireFreshEvidence,
+        diagnostics: diagnostics,
+      );
       entries.add(
         GameplayRoadmapDashboardEntry(
           id: candidateId,
-          title: cells[2],
+          title: lot.title,
           status: roadmapStatus,
           evidencePaths: reports.map((report) => report.path),
+          structuredEvidencePaths: receipts.map((receipt) => receipt.path),
+          structuredEvidenceCandidateShas:
+              receipts.map((receipt) => receipt.receipt.candidateSha),
+          structuredEvidenceCommands: receipts.expand(
+            (receipt) => receipt.receipt.commands.map(
+              (command) => '${command.command} (exit ${command.exitCode}, '
+                  '${command.outputDigest})',
+            ),
+          ),
+          structuredEvidenceSourcePaths:
+              receipts.expand((receipt) => receipt.receipt.sourcePaths),
+          evidenceState: evidenceState,
         ),
       );
     }
@@ -174,7 +281,10 @@ final class GameplayRoadmapDashboard {
   final List<GameplayRoadmapDashboardEntry> entries;
   final List<GameplayRoadmapDashboardDiagnostic> diagnostics;
 
-  bool get hasBlockingDiagnostics => diagnostics.isNotEmpty;
+  bool get hasBlockingDiagnostics => diagnostics.any(
+        (diagnostic) =>
+            diagnostic.severity == GameplayRoadmapDiagnosticSeverity.error,
+      );
 
   int count(GameplayRoadmapStatus status) =>
       entries.where((entry) => entry.status == status).length;
@@ -191,16 +301,51 @@ final class GameplayRoadmapDashboard {
         'DEFERRED: ${count(GameplayRoadmapStatus.deferred)}',
       )
       ..writeln()
-      ..writeln('| ID | Lot | Status | Evidence reports |')
-      ..writeln('|---|---|---|---:|');
+      ..writeln(
+        '| ID | Lot | Status | Evidence | Receipts / reports | '
+        'Covered paths | Candidate | Commands | Freshness |',
+      )
+      ..writeln('|---|---|---|---:|---|---|---|---|---|');
     for (final entry in entries) {
+      final sources = [
+        ...entry.evidencePaths,
+        ...entry.structuredEvidencePaths,
+      ];
       buffer.writeln(
         '| ${entry.id} | ${_escapeCell(entry.title)} | '
-        '${entry.status.name.toUpperCase()} | ${entry.evidencePaths.length} |',
+        '${entry.status.name.toUpperCase()} | '
+        '${entry.evidencePaths.length + entry.structuredEvidencePaths.length} | '
+        '${_escapeCell(sources.isEmpty ? '—' : sources.join('<br>'))} | '
+        '${_escapeCell(entry.structuredEvidenceSourcePaths.isEmpty ? '—' : entry.structuredEvidenceSourcePaths.join('<br>'))} | '
+        '${_escapeCell(entry.structuredEvidenceCandidateShas.isEmpty ? '—' : entry.structuredEvidenceCandidateShas.join('<br>'))} | '
+        '${_escapeCell(entry.structuredEvidenceCommands.isEmpty ? '—' : entry.structuredEvidenceCommands.join('<br>'))} | '
+        '${entry.evidenceState.name.toUpperCase()} |',
       );
     }
     return buffer.toString().trimRight();
   }
+}
+
+final class _ParsedCanonicalLot {
+  const _ParsedCanonicalLot({
+    required this.id,
+    required this.title,
+    required this.status,
+  });
+
+  final String id;
+  final String title;
+  final GameplayRoadmapStatus status;
+}
+
+final class _StructuredReceiptEvidence {
+  const _StructuredReceiptEvidence({
+    required this.path,
+    required this.receipt,
+  });
+
+  final String path;
+  final GameplayRoadmapEvidenceReceipt receipt;
 }
 
 final class _ReportEvidence {
@@ -211,6 +356,140 @@ final class _ReportEvidence {
 
   final String path;
   final GameplayRoadmapStatus? proposedStatus;
+}
+
+GameplayRoadmapEvidenceState _diagnoseStructuredEvidence({
+  required _ParsedCanonicalLot lot,
+  required List<_StructuredReceiptEvidence> receipts,
+  required String? candidateSha,
+  required bool requireFreshEvidence,
+  required List<GameplayRoadmapDashboardDiagnostic> diagnostics,
+}) {
+  if (receipts.isEmpty) {
+    if (lot.status == GameplayRoadmapStatus.done && candidateSha != null) {
+      diagnostics.add(
+        GameplayRoadmapDashboardDiagnostic(
+          code: GameplayRoadmapDiagnosticCode.missingFreshEvidence,
+          severity: requireFreshEvidence
+              ? GameplayRoadmapDiagnosticSeverity.error
+              : GameplayRoadmapDiagnosticSeverity.warning,
+          message: '${lot.id} is DONE but has no structured evidence receipt '
+              'for candidate $candidateSha.',
+          lotId: lot.id,
+        ),
+      );
+    }
+    return GameplayRoadmapEvidenceState.missing;
+  }
+
+  final candidateReceipts = candidateSha == null
+      ? receipts
+      : receipts
+          .where((evidence) => evidence.receipt.candidateSha == candidateSha)
+          .toList(growable: false);
+  final staleReceipts = candidateSha == null
+      ? const <_StructuredReceiptEvidence>[]
+      : receipts
+          .where((evidence) => evidence.receipt.candidateSha != candidateSha)
+          .toList(growable: false);
+  for (final evidence in staleReceipts) {
+    diagnostics.add(
+      GameplayRoadmapDashboardDiagnostic(
+        code: GameplayRoadmapDiagnosticCode.staleEvidenceReceipt,
+        severity: GameplayRoadmapDiagnosticSeverity.warning,
+        message: '${evidence.path} proves '
+            '${evidence.receipt.candidateSha}, not candidate $candidateSha.',
+        lotId: lot.id,
+      ),
+    );
+  }
+  if (candidateReceipts.isEmpty) {
+    if (lot.status == GameplayRoadmapStatus.done && candidateSha != null) {
+      diagnostics.add(
+        GameplayRoadmapDashboardDiagnostic(
+          code: GameplayRoadmapDiagnosticCode.missingFreshEvidence,
+          severity: requireFreshEvidence
+              ? GameplayRoadmapDiagnosticSeverity.error
+              : GameplayRoadmapDiagnosticSeverity.warning,
+          message: '${lot.id} is DONE without a successful receipt for '
+              'candidate $candidateSha.',
+          lotId: lot.id,
+        ),
+      );
+    }
+    return staleReceipts.isEmpty
+        ? GameplayRoadmapEvidenceState.missing
+        : GameplayRoadmapEvidenceState.stale;
+  }
+
+  // Historical receipts document older candidates. They must not contradict
+  // or poison evidence for the exact candidate currently being certified.
+  final statuses = {
+    for (final evidence in candidateReceipts)
+      evidence.receipt.statusByLot[lot.id]!,
+  };
+  if (statuses.length > 1) {
+    diagnostics.add(
+      GameplayRoadmapDashboardDiagnostic(
+        code: GameplayRoadmapDiagnosticCode.conflictingEvidenceReceipts,
+        message: 'Structured receipts propose conflicting statuses for '
+            '${lot.id}: ${statuses.join(', ')}.',
+        lotId: lot.id,
+      ),
+    );
+    return GameplayRoadmapEvidenceState.contradictory;
+  }
+
+  final expectedStatus = lot.status.name.toUpperCase();
+  final fresh = <_StructuredReceiptEvidence>[];
+  var sawFailed = false;
+  for (final evidence in candidateReceipts) {
+    final receipt = evidence.receipt;
+    if (!receipt.commandsSucceeded) {
+      sawFailed = true;
+      diagnostics.add(
+        GameplayRoadmapDashboardDiagnostic(
+          code: GameplayRoadmapDiagnosticCode.failedEvidenceCommand,
+          message: '${evidence.path} contains a failed command for ${lot.id}.',
+          lotId: lot.id,
+        ),
+      );
+      continue;
+    }
+    if (receipt.statusByLot[lot.id] != expectedStatus) {
+      diagnostics.add(
+        GameplayRoadmapDashboardDiagnostic(
+          code: GameplayRoadmapDiagnosticCode.evidenceStatusContradiction,
+          message: '${evidence.path} proves '
+              '${receipt.statusByLot[lot.id]} for ${lot.id}, but the roadmap '
+              'says $expectedStatus.',
+          lotId: lot.id,
+        ),
+      );
+      continue;
+    }
+    fresh.add(evidence);
+  }
+
+  if (fresh.isNotEmpty) return GameplayRoadmapEvidenceState.fresh;
+  if (lot.status == GameplayRoadmapStatus.done && candidateSha != null) {
+    diagnostics.add(
+      GameplayRoadmapDashboardDiagnostic(
+        code: GameplayRoadmapDiagnosticCode.missingFreshEvidence,
+        severity: requireFreshEvidence
+            ? GameplayRoadmapDiagnosticSeverity.error
+            : GameplayRoadmapDiagnosticSeverity.warning,
+        message: '${lot.id} is DONE without a successful receipt for '
+            'candidate $candidateSha.',
+        lotId: lot.id,
+      ),
+    );
+  }
+  if (sawFailed) return GameplayRoadmapEvidenceState.failed;
+  if (staleReceipts.isNotEmpty) {
+    return GameplayRoadmapEvidenceState.stale;
+  }
+  return GameplayRoadmapEvidenceState.contradictory;
 }
 
 bool _isCodeFence(String line) => RegExp(r'^\s*(?:`{3,}|~{3,})').hasMatch(line);

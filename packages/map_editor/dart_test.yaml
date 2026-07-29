@@ -1,0 +1,7 @@
+# Wall-clock budgets are deliberately absent from the functional lane. They
+# run in a dedicated, single-process lane that opts back into skipped tests.
+tags:
+  performance:
+    skip: >-
+      Run with --tags performance --run-skipped --concurrency=1 in the
+      dedicated performance lane.

@@ -428,6 +428,28 @@ void main() {
       );
     });
 
+    test('updates a static battle through its canonical public reference', () {
+      final scene = _edgeAuthoringSceneWithBattleSource();
+
+      final result = updateSceneBattlePayload(
+        scene,
+        nodeId: 'node_battle',
+        trainerId: 'trainer_static_guardian',
+        battleKind: 'static',
+        battleTemplateId: 'static:trainer_static_guardian',
+      );
+
+      expect(
+        result.updatedPayload,
+        SceneBattlePayload(
+          battleKind: 'static',
+          trainerId: 'trainer_static_guardian',
+          battleTemplateId: 'static:trainer_static_guardian',
+          declaredOutcomes: const ['victory', 'defeat'],
+        ),
+      );
+    });
+
     test('rejects invalid trainer battle payload updates', () {
       final scene = _edgeAuthoringSceneWithBattleSource();
 
@@ -452,6 +474,16 @@ void main() {
           scene,
           nodeId: 'node_battle',
           trainerId: '   ',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => updateSceneBattlePayload(
+          scene,
+          nodeId: 'node_battle',
+          trainerId: 'trainer_static_guardian',
+          battleKind: 'static',
+          battleTemplateId: '   ',
         ),
         throwsArgumentError,
       );

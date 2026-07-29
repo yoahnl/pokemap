@@ -11,6 +11,7 @@ enum SceneBattleRuntimeOutcomePort {
 enum SceneBattleRuntimeOutcomeErrorCode {
   missingTrainerId,
   missingNpcEntityId,
+  missingStaticBattleTemplateId,
   unsupportedBattleKind,
   launcherFailed,
   unsupportedOutcome,

@@ -447,9 +447,11 @@ void main() {
       expect(find.text('Trainer Test Trainer'), findsOneWidget);
       expect(find.text('test_trainer'), findsWidgets);
       expect(find.text('trainer'), findsWidgets);
-      expect(find.text('victory / defeat'), findsOneWidget);
-      expect(find.text('Trainer battle has no authored team yet.'),
-          findsOneWidget);
+      expect(find.text('victory / defeat'), findsNWidgets(2));
+      expect(
+        find.text('Trainer battle has no authored team yet.'),
+        findsNWidgets(2),
+      );
 
       await tester.tap(
         find.byKey(
@@ -471,6 +473,41 @@ void main() {
           find.byKey(ValueKey('scene-graph-node-${node.id}')), findsOneWidget);
       expect(find.text('battle_demo'), findsNothing);
       expect(find.text('trainer_lysa'), findsNothing);
+    });
+
+    testWidgets(
+        'battle payload picker creates the canonical static encounter payload',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithStableStaticPayloadPickerContract(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('scenes-add-node-battle')),
+      );
+      await tester.tap(find.byKey(const ValueKey('scenes-add-node-battle')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-battle-picker-option-static_test_static_guardian',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final scene = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .singleWhere((scene) => scene.id == 'scene_payload_picker');
+      final payload = scene.graph.nodes.last.payload as SceneBattlePayload;
+      expect(payload.battleKind, 'static');
+      expect(payload.trainerId, 'test_static_guardian');
+      expect(payload.battleTemplateId, 'battle_test_static_guardian');
+      expect(payload.declaredOutcomes, ['victory', 'defeat']);
     });
 
     testWidgets('creates a setFact consequence action node from real Facts',
@@ -5213,6 +5250,12 @@ ProjectManifest _projectWithPayloadPickerContracts() {
         name: 'Test Trainer',
         trainerClass: 'Trainer',
       ),
+      ProjectTrainerEntry(
+        id: 'test_static_guardian',
+        name: 'Static Guardian',
+        trainerClass: 'Encounter',
+        tags: ['static-encounter'],
+      ),
     ],
     scenarios: const [
       ScenarioAsset(
@@ -5249,6 +5292,36 @@ ProjectManifest _projectWithPayloadPickerContracts() {
             SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
             SceneNodeLayout(nodeId: 'node_end', x: 420, y: 80),
           ],
+        ),
+      ),
+    ],
+  );
+}
+
+ProjectManifest _projectWithStableStaticPayloadPickerContract() {
+  final project = _projectWithPayloadPickerContracts();
+  return project.copyWith(
+    scenes: [
+      ...project.scenes,
+      SceneAsset(
+        id: 'scene_static_contract',
+        name: 'Stable static contract',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'battle',
+              kind: SceneNodeKind.battle,
+              payload: SceneBattlePayload(
+                battleKind: 'static',
+                trainerId: 'test_static_guardian',
+                battleTemplateId: 'battle_test_static_guardian',
+                declaredOutcomes: const ['victory', 'defeat'],
+              ),
+            ),
+          ],
+          edges: const [],
         ),
       ),
     ],

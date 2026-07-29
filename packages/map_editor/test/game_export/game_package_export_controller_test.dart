@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -78,6 +79,44 @@ void main() {
     expect(controller.snapshot.safeErrorMessage, contains('identifiant'));
     controller.clearError();
     expect(controller.snapshot.status, GamePackageExportStatus.ready);
+  });
+
+  test('exposes creator gameplay diagnostics when publication is blocked',
+      () async {
+    final root = await createAuthorProject(withDialogue: false);
+    addTearDown(() => root.delete(recursive: true));
+    final projectFile = File(p.join(root.path, 'project.json'));
+    final project =
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+    (project['newGame'] as Map<String, dynamic>)['enabled'] = false;
+    await projectFile.writeAsString(jsonEncode(project), flush: true);
+    final controller = GamePackageExportController(
+      projectRoot: root,
+      projectName: 'Neutral Adventure',
+      profileStore: GamePackageExportProfileStore(projectRoot: root),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    final output = File(p.join(root.parent.path, 'unplayable.pokemapgame'));
+    addTearDown(() async {
+      if (await output.exists()) await output.delete();
+    });
+
+    await controller.export(
+      profile: neutralExportProfile(),
+      outputFile: output,
+    );
+
+    expect(controller.snapshot.status, GamePackageExportStatus.error);
+    expect(controller.snapshot.errorCode, 'gameplayReadinessFailed');
+    expect(
+      controller.snapshot.gameplayReadinessReport?.byCode(
+        'exportNewGameDisabled',
+      ),
+      isNotEmpty,
+    );
+    expect(controller.snapshot.safeErrorMessage, contains('jouable'));
+    expect(await output.exists(), isFalse);
   });
 
   test('builds a stable minimal profile for a local test export', () async {

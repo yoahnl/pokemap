@@ -1,0 +1,194 @@
+<style>
+  .rotation-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(320px, 1fr));
+    gap: 18px;
+    margin-top: 22px;
+  }
+
+  .rotation-grid .card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rotation-grid .card-body {
+    flex: 1;
+  }
+
+  .menu-stage {
+    min-height: 255px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border-radius: 10px;
+    background:
+      linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px),
+      #2f6945;
+    background-size: 22px 22px;
+  }
+
+  .object {
+    width: 55px;
+    height: 82px;
+    border-radius: 8px;
+    background: linear-gradient(145deg, #d9b159, #72502d);
+    border: 2px solid #8cc8ff;
+    box-shadow: 0 0 0 3px rgba(55, 127, 200, 0.18);
+  }
+
+  .menu {
+    min-width: 160px;
+    overflow: hidden;
+    border-radius: 9px;
+    background: #101d2e;
+    border: 1px solid #4a6381;
+    box-shadow: 0 10px 22px rgba(0,0,0,0.38);
+    color: #dce9ff;
+    font-size: 13px;
+  }
+
+  .menu-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 10px;
+    border-bottom: 1px solid rgba(96, 125, 158, 0.18);
+  }
+
+  .menu-row:last-child {
+    border-bottom: 0;
+  }
+
+  .menu-row.active {
+    background: #1c416b;
+    font-weight: 800;
+  }
+
+  .menu-row.danger {
+    color: #ff8391;
+  }
+
+  .shortcut {
+    color: #8094ad;
+    font-size: 11px;
+  }
+
+  .submenu {
+    min-width: 145px;
+  }
+
+  .angle-editor {
+    min-width: 195px;
+    padding: 12px;
+    border-radius: 9px;
+    background: #101d2e;
+    border: 1px solid #4a6381;
+    box-shadow: 0 10px 22px rgba(0,0,0,0.38);
+    color: #dce9ff;
+  }
+
+  .angle-value {
+    margin: 10px 0;
+    padding: 9px;
+    border-radius: 6px;
+    background: #172a43;
+    text-align: center;
+    font-weight: 800;
+  }
+
+  .slider {
+    height: 6px;
+    margin: 15px 5px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #4b91df 0 32%, #32465f 32%);
+  }
+
+  .recommended {
+    display: inline-block;
+    margin-left: 7px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: rgba(75, 137, 230, 0.16);
+    color: #83b3ff;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .impact {
+    margin-top: 11px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    line-height: 1.45;
+  }
+
+  @media (max-width: 850px) {
+    .rotation-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<p class="label">Menu contextuel · Rotation d’objet</p>
+<h2>Oui, on peut ajouter « Pivoter »</h2>
+<p class="subtitle">
+  La rotation sera enregistrée avec l’objet, annulable, visible dans l’éditeur
+  et identique dans le jeu. Il reste à choisir son niveau de liberté.
+</p>
+
+<div class="cards rotation-grid">
+  <div class="card" data-choice="quarter-turn-rotation" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="menu-stage">
+        <div class="object"></div>
+        <div class="menu">
+          <div class="menu-row"><span>Déplacer</span><span class="shortcut">V</span></div>
+          <div class="menu-row active"><span>Pivoter</span><span>›</span></div>
+          <div class="menu-row"><span>Dupliquer</span><span class="shortcut">⌘D</span></div>
+          <div class="menu-row danger"><span>Supprimer</span><span class="shortcut">⌫</span></div>
+        </div>
+        <div class="menu submenu">
+          <div class="menu-row active"><span>90° à droite</span><span class="shortcut">R</span></div>
+          <div class="menu-row"><span>90° à gauche</span><span class="shortcut">⇧R</span></div>
+          <div class="menu-row"><span>180°</span></div>
+          <div class="menu-row"><span>Réinitialiser</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Rotation par quarts de tour <span class="recommended">Recommandé</span></h3>
+      <p>0°, 90°, 180° et 270°, avec un aperçu immédiat avant validation.</p>
+      <div class="impact">
+        Idéal pour le pixel art : rendu net, grille et collision prévisibles,
+        raccourci simple et résultat identique dans l’éditeur et le runtime.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="free-angle-rotation" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="menu-stage">
+        <div class="object" style="transform:rotate(32deg)"></div>
+        <div class="angle-editor">
+          <strong>Rotation libre</strong>
+          <div class="angle-value">32°</div>
+          <div class="slider"></div>
+          <div style="display:flex;justify-content:space-between;color:#8fa3bb;font-size:12px">
+            <span>0°</span><span>180°</span><span>360°</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Rotation à angle libre</h3>
+      <p>Poignée ou champ numérique pour choisir n’importe quel angle.</p>
+      <div class="impact">
+        Plus flexible, mais le pixel art devient flou ou crénelé et les
+        collisions/hit-tests demandent une géométrie nettement plus complexe.
+      </div>
+    </div>
+  </div>
+</div>

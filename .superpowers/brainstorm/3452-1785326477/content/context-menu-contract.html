@@ -1,0 +1,143 @@
+<style>
+  .menu-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(210px, 1fr));
+    gap: 14px;
+    margin: 22px 0 26px;
+  }
+
+  .target {
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .target h3 {
+    margin: 0 0 11px;
+  }
+
+  .menu {
+    overflow: hidden;
+    border-radius: 9px;
+    background: #101d2e;
+    border: 1px solid #4a6381;
+    box-shadow: 0 10px 22px rgba(0,0,0,0.3);
+    color: #dce9ff;
+    font-size: 13px;
+  }
+
+  .menu-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 10px;
+    border-bottom: 1px solid rgba(96, 125, 158, 0.18);
+  }
+
+  .menu-row:last-child {
+    border-bottom: 0;
+  }
+
+  .menu-row.primary {
+    background: #1c416b;
+    font-weight: 800;
+  }
+
+  .menu-row.danger {
+    color: #ff8391;
+  }
+
+  .shortcut {
+    color: #8094ad;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .rules {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .rule {
+    padding: 13px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(74, 128, 204, 0.08);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 1050px) {
+    .menu-grid,
+    .rules {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 620px) {
+    .menu-grid,
+    .rules {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<p class="label">Inspecteur adaptatif · Section 3</p>
+<h2>Un clic droit montre uniquement ce qui est faisable ici</h2>
+<p class="subtitle">
+  Le menu cible ce qui se trouve sous la souris. Il n’ouvre pas un écran
+  générique et ne change pas l’outil actif.
+</p>
+
+<div class="menu-grid">
+  <div class="target">
+    <h3>Sur une tuile</h3>
+    <div class="menu">
+      <div class="menu-row primary"><span>Prélever cette tuile</span><span class="shortcut">I</span></div>
+      <div class="menu-row"><span>Remplacer ici</span></div>
+      <div class="menu-row"><span>Effacer ici</span></div>
+      <div class="menu-row"><span>Activer son calque</span></div>
+    </div>
+  </div>
+
+  <div class="target">
+    <h3>Sur un objet</h3>
+    <div class="menu">
+      <div class="menu-row primary"><span>Déplacer</span><span class="shortcut">V</span></div>
+      <div class="menu-row"><span>Ouvrir les propriétés</span></div>
+      <div class="menu-row"><span>Dupliquer</span><span class="shortcut">⌘D</span></div>
+      <div class="menu-row danger"><span>Supprimer</span><span class="shortcut">⌫</span></div>
+    </div>
+  </div>
+
+  <div class="target">
+    <h3>Sur une zone vide</h3>
+    <div class="menu">
+      <div class="menu-row primary"><span>Créer ici…</span></div>
+      <div class="menu-row"><span>Coller ici</span><span class="shortcut">⌘V</span></div>
+      <div class="menu-row"><span>Centrer la vue ici</span></div>
+      <div class="menu-row"><span>Copier les coordonnées</span></div>
+    </div>
+  </div>
+
+  <div class="target">
+    <h3>Sur un calque</h3>
+    <div class="menu">
+      <div class="menu-row primary"><span>Activer ce calque</span></div>
+      <div class="menu-row"><span>Renommer</span></div>
+      <div class="menu-row"><span>Dupliquer</span></div>
+      <div class="menu-row"><span>Monter / descendre</span></div>
+      <div class="menu-row danger"><span>Supprimer</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="rules">
+  <div class="rule"><strong>Pas plus de 5 actions</strong><br>Les commandes rares vont dans « Plus d’actions ».</div>
+  <div class="rule"><strong>Action probable en premier</strong><br>Elle dépend de la cible et de l’outil actif.</div>
+  <div class="rule"><strong>Destruction séparée</strong><br>Supprimer reste en bas, visuellement distinct.</div>
+  <div class="rule"><strong>Contexte préservé</strong><br>Fermer le menu permet de reprendre exactement le geste courant.</div>
+</div>

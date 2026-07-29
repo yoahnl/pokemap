@@ -29,7 +29,7 @@ import '../../support/event_builder_v2_visual_harness.dart';
 
 void main() {
   group('NS-EVENT-V2 H1 product route', () {
-    test('projects shop, badge and field ability authoring pickers', () {
+    test('projects canonical gameplay authoring pickers', () {
       const project = ProjectManifest(
         name: 'Authoring pickers',
         maps: [],
@@ -39,6 +39,19 @@ void main() {
         ],
         badges: [
           BadgeDefinition(id: 'badge_tide', label: 'Badge Marée'),
+        ],
+        trainers: [
+          ProjectTrainerEntry(
+            id: 'trainer_route',
+            name: 'Dresseur de route',
+            trainerClass: 'Guide',
+          ),
+          ProjectTrainerEntry(
+            id: 'trainer_static_guardian',
+            name: 'Gardien immobile',
+            trainerClass: 'Rencontre',
+            tags: ['static-encounter'],
+          ),
         ],
       );
 
@@ -60,6 +73,14 @@ void main() {
         options[NarrativeCommandParameterKind.fieldAbility]!
             .map((option) => option.id),
         contains('surf'),
+      );
+      expect(
+        options[NarrativeCommandParameterKind.staticEncounter]!.single.id,
+        'static:trainer_static_guardian',
+      );
+      expect(
+        options[NarrativeCommandParameterKind.staticEncounter]!.single.label,
+        'Rencontre Gardien immobile',
       );
     });
 

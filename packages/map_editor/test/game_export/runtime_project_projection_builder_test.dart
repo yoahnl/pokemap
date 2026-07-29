@@ -11,7 +11,7 @@ import 'game_export_test_fixture.dart';
 void main() {
   test('projects a clean data-only runtime tree without mutating the author',
       () async {
-    final root = await createAuthorProject();
+    final root = await createAuthorProject(withCanonicalPokemon: false);
     addTearDown(() => root.delete(recursive: true));
 
     final result = await const RuntimeProjectProjectionBuilder().build(
@@ -89,7 +89,10 @@ void main() {
 
   test('project presentation overrides legacy export-profile branding',
       () async {
-    final root = await createAuthorProject(withDialogue: false);
+    final root = await createAuthorProject(
+      withDialogue: false,
+      withCanonicalPokemon: false,
+    );
     addTearDown(() => root.delete(recursive: true));
     final authoredIcon = File(p.join(root.path, 'assets', 'authored-icon.png'));
     await authoredIcon.writeAsBytes(<int>[1, 2, 3, 4], flush: true);
@@ -202,7 +205,10 @@ void main() {
 
   test('rejects symlinks and branding paths outside the project root',
       () async {
-    final root = await createAuthorProject(withDialogue: false);
+    final root = await createAuthorProject(
+      withDialogue: false,
+      withCanonicalPokemon: false,
+    );
     addTearDown(() => root.delete(recursive: true));
     final outside = await File(
       p.join(root.parent.path, 'pokemap-export-outside.png'),
@@ -231,7 +237,10 @@ void main() {
 
   test('enforces filesystem and file-size budgets before materializing bytes',
       () async {
-    final root = await createAuthorProject(withDialogue: false);
+    final root = await createAuthorProject(
+      withDialogue: false,
+      withCanonicalPokemon: false,
+    );
     addTearDown(() => root.delete(recursive: true));
 
     expect(
@@ -272,7 +281,7 @@ void main() {
 
   test('rejects an image used as title music with a precise diagnostic',
       () async {
-    final root = await createAuthorProject();
+    final root = await createAuthorProject(withCanonicalPokemon: false);
     addTearDown(() => root.delete(recursive: true));
 
     expect(
@@ -296,7 +305,10 @@ void main() {
 
   test('normalizes decomposed macOS filenames and JSON references to NFC',
       () async {
-    final root = await createAuthorProject(withDialogue: false);
+    final root = await createAuthorProject(
+      withDialogue: false,
+      withCanonicalPokemon: false,
+    );
     addTearDown(() => root.delete(recursive: true));
     const decomposedName = 'poke\u0301mon center.json';
     const composedName = 'pokémon center.json';
@@ -339,7 +351,10 @@ void main() {
 
   test('removes author-time remote asset URLs while keeping local assets',
       () async {
-    final root = await createAuthorProject(withDialogue: false);
+    final root = await createAuthorProject(
+      withDialogue: false,
+      withCanonicalPokemon: false,
+    );
     addTearDown(() => root.delete(recursive: true));
     final catalog = File(p.join(root.path, 'data', 'items.json'));
     await catalog.writeAsString(

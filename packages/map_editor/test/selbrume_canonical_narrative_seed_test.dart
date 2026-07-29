@@ -308,6 +308,24 @@ void main() {
     expect(finalBattle.battleKind, 'static');
     expect(finalBattle.battleTemplateId, 'battle_lighthouse_pokemon');
     expect(finalBattle.trainerId, 'trainer_boss_phare_pokemon');
+    final finalBattleContract =
+        buildBattlePublicContracts(manifest).singleWhere(
+      (contract) => contract.trainerId == 'trainer_boss_phare_pokemon',
+    );
+    expect(
+      finalBattleContract.battleKind,
+      BattlePublicContractKind.staticEncounter,
+    );
+    expect(
+        finalBattleContract.battleRefId, 'static:trainer_boss_phare_pokemon');
+    expect(
+      finalBattleContract.battleTemplateId,
+      'battle_lighthouse_pokemon',
+    );
+    expect(
+      finalBattleContract.status,
+      LinkedAssetContractStatus.available,
+    );
     expect(
       _scenesCompletingStep(manifest, 'step_climb_lighthouse'),
       <String>{'scene_lighthouse_guardian_2'},

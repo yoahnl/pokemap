@@ -2031,6 +2031,20 @@ Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
       for (final trainer in project.trainers)
         SceneActionPickerOption(id: trainer.id, label: trainer.name),
     ],
+    NarrativeCommandParameterKind.staticEncounter: [
+      for (final contract in buildBattlePublicContracts(project))
+        if (contract.battleKind == BattlePublicContractKind.staticEncounter &&
+            contract.status == LinkedAssetContractStatus.available &&
+            contract.battleTemplateId != null)
+          SceneActionPickerOption(
+            id: contract.battleRefId,
+            label: contract.label,
+            parameters: {
+              'trainerId': contract.trainerId,
+              'battleTemplateId': contract.battleTemplateId!,
+            },
+          ),
+    ],
     NarrativeCommandParameterKind.dialogue: [
       for (final dialogue in project.dialogues)
         SceneActionPickerOption(id: dialogue.id, label: dialogue.name),

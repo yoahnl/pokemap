@@ -10,6 +10,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core_providers.dart'
     as editor_core;
 import 'package:map_editor/src/app/providers/core/repository_providers.dart';
+import 'package:map_editor/src/app/providers/use_case_providers.dart'
+    as editor_use_cases;
 import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/models/narrative_event_authoring_session.dart';
 import 'package:map_editor/src/application/models/narrative_event_map_bridge_models.dart';
@@ -21,6 +23,7 @@ import 'package:map_editor/src/application/ports/narrative_event_spatial_source_
 import 'package:map_editor/src/application/use_cases/narrative_event_explicit_source_creation_use_case.dart';
 import 'package:map_editor/src/application/use_cases/map_use_cases.dart';
 import 'package:map_editor/src/domain/repositories/repositories.dart';
+import 'package:map_editor/src/features/border_map_editing/application/pending_border_save_guard.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_preview_transaction.dart';
 import 'package:map_editor/src/features/border_map_editing/state/border_preview_providers.dart';
 import 'package:map_editor/src/features/editor/application/map_activation_coordinator.dart';
@@ -1916,7 +1919,7 @@ void main() {
         NarrativeEventExplicitSourceCreationStatus.recoveryRequired,
       );
 
-      final mapRepository = _SuspendingMapRepository(FileMapRepository());
+      final saveUseCase = _SuspendingSaveMapUseCase(FileMapRepository());
       final sourceGateway = _RecordingSourceGateway(
         delegate: NarrativeEventSpatialLinkJournalRepository(),
       );
@@ -1925,7 +1928,11 @@ void main() {
         registryGateway: _RecordingRegistryGateway(
           delegate: FileProjectRepository(),
         ),
-        mapRepository: mapRepository,
+        saveMapUseCase: saveUseCase,
+      );
+      expect(
+        container.read(editor_use_cases.saveMapUseCaseProvider),
+        same(saveUseCase),
       );
       final notifier = container.read(editorNotifierProvider.notifier);
       notifier.state = EditorState(
@@ -1950,12 +1957,22 @@ void main() {
       await _pump(tester, container);
       await _openCreationFromEventPanel(tester, controller);
 
-      late final Future<void> writer;
+      late final Future<ActiveMapSaveOutcome> writer;
       await tester.runAsync(() async {
-        writer = notifier.assignTilesetToActiveLayer('secondary');
-        await mapRepository.saveStarted.future.timeout(
-          const Duration(seconds: 2),
+        await notifier.assignTilesetToActiveLayer('secondary');
+        expect(notifier.state.isDirty, isTrue);
+        writer = notifier.saveActiveMap();
+        await Future<void>.delayed(Duration.zero);
+        expect(
+          notifier.state.isSaving,
+          isTrue,
+          reason: notifier.state.errorMessage,
         );
+        for (var attempt = 0; attempt < 200; attempt++) {
+          if (saveUseCase.saveStarted) return;
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+        }
+        fail('The map save did not reach the suspended writer.');
       });
       expect(
         notifier.state.isSaving,
@@ -1990,7 +2007,7 @@ void main() {
       await tester.pump();
 
       expect(sourceGateway.cleanupCalls, 0);
-      expect(mapRepository.saveCalls, 1);
+      expect(saveUseCase.saveCalls, 1);
 
       final concurrentMap = notifier.state.activeMap!.copyWith(
         mapMetadata: notifier.state.activeMap!.mapMetadata.copyWith(
@@ -2003,7 +2020,7 @@ void main() {
       );
 
       await tester.runAsync(() async {
-        mapRepository.releaseSave.complete();
+        saveUseCase.releaseSave = true;
         await writer;
       });
       expect(notifier.state.isSaving, isFalse);
@@ -2012,7 +2029,7 @@ void main() {
           'Concurrent editor snapshot');
       expect(
         (notifier.state.activeMap!.layers.single as TileLayer).tilesetId,
-        'primary',
+        'secondary',
         reason: 'A stale writer result must not replace the newer snapshot.',
       );
       final diskMap = decodeValidatedNarrativeEventAuthoringMap(
@@ -2378,6 +2395,7 @@ ProviderContainer _container({
   required NarrativeEventRegistryPersistenceGateway registryGateway,
   NarrativeEventExplicitSourceCreationUseCase? explicitUseCase,
   MapRepository? mapRepository,
+  SaveMapUseCase? saveMapUseCase,
   ProjectRepository? projectRepository,
 }) {
   final container = ProviderContainer(
@@ -2394,6 +2412,14 @@ ProviderContainer _container({
         ),
       if (mapRepository != null)
         mapRepositoryProvider.overrideWithValue(mapRepository),
+      if (mapRepository != null)
+        editor_use_cases.saveMapUseCaseProvider.overrideWithValue(
+          SaveMapUseCase(mapRepository),
+        ),
+      if (saveMapUseCase != null)
+        editor_use_cases.saveMapUseCaseProvider.overrideWithValue(
+          saveMapUseCase,
+        ),
       if (projectRepository != null)
         editor_core.projectRepositoryProvider
             .overrideWith((ref) => projectRepository),
@@ -2783,38 +2809,32 @@ final class _RecordingSourceGateway
   }
 }
 
-final class _SuspendingMapRepository implements MapRepository {
-  _SuspendingMapRepository(this._delegate);
+final class _SuspendingSaveMapUseCase extends SaveMapUseCase {
+  _SuspendingSaveMapUseCase(this._delegate) : super(_delegate);
 
   final MapRepository _delegate;
-  final Completer<void> saveStarted = Completer<void>();
-  final Completer<void> releaseSave = Completer<void>();
+  bool saveStarted = false;
+  bool releaseSave = false;
   int saveCalls = 0;
 
   @override
-  Future<void> deleteMap(String path) => _delegate.deleteMap(path);
-
-  @override
-  Future<MapData> loadMap(String path) => _delegate.loadMap(path);
-
-  @override
-  Future<void> renameMap(String oldPath, String newPath) =>
-      _delegate.renameMap(oldPath, newPath);
-
-  @override
-  Future<void> saveMap(
+  Future<String?> executeRevisioned(
     MapData map,
     String path, {
+    required String? expectedRevision,
     ProjectManifest? projectDialogueContext,
   }) async {
     saveCalls++;
-    if (!saveStarted.isCompleted) saveStarted.complete();
-    await releaseSave.future;
+    saveStarted = true;
+    while (!releaseSave) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
     await _delegate.saveMap(
       map,
       path,
       projectDialogueContext: projectDialogueContext,
     );
+    return null;
   }
 }
 

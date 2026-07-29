@@ -136,14 +136,9 @@ void main() {
     );
   });
 
-  test('recovers after a process dies at every atomic write stage', () async {
-    for (final stage in SaveWriteStage.values) {
-      final caseRoot =
-          await Directory.systemTemp.createTemp('pokemap-save-kill-');
-      addTearDown(() async {
-        if (await caseRoot.exists()) await caseRoot.delete(recursive: true);
-      });
-      final store = HubSaveStore(supportRoot: caseRoot, identity: identity);
+  for (final stage in SaveWriteStage.values) {
+    test('recovers after a process dies at ${stage.name}', () async {
+      final store = HubSaveStore(supportRoot: root, identity: identity);
       await store.write(_envelope(identity, marker: 'old', revision: 1));
 
       final process = await Process.run(
@@ -151,7 +146,7 @@ void main() {
         <String>[
           '--packages=.dart_tool/package_config.json',
           'test/fixtures/atomic_save_crash_writer.dart',
-          caseRoot.path,
+          root.path,
           stage.name,
         ],
         workingDirectory: Directory.current.path,
@@ -169,8 +164,8 @@ void main() {
         anyOf('old', 'new'),
         reason: stage.name,
       );
-    }
-  });
+    });
+  }
 
   test('keeps a future incompatible save listed in place', () async {
     final futureIdentity = GameIdentity(

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 
 import '../application/game_package_export_profile.dart';
@@ -134,6 +135,7 @@ final class GamePackageExportSnapshot {
     this.errorCode,
     this.technicalErrorDetails,
     this.diagnosticLogPath,
+    this.gameplayReadinessReport,
   });
 
   final GamePackageExportStatus status;
@@ -144,6 +146,7 @@ final class GamePackageExportSnapshot {
   final String? errorCode;
   final String? technicalErrorDetails;
   final String? diagnosticLogPath;
+  final NarrativeProjectValidationReport? gameplayReadinessReport;
 
   bool get isBusy =>
       status == GamePackageExportStatus.loading ||
@@ -161,6 +164,7 @@ final class GamePackageExportSnapshot {
     String? errorCode,
     String? technicalErrorDetails,
     String? diagnosticLogPath,
+    NarrativeProjectValidationReport? gameplayReadinessReport,
     bool clearError = false,
   }) =>
       GamePackageExportSnapshot(
@@ -177,6 +181,9 @@ final class GamePackageExportSnapshot {
             : technicalErrorDetails ?? this.technicalErrorDetails,
         diagnosticLogPath:
             clearError ? null : diagnosticLogPath ?? this.diagnosticLogPath,
+        gameplayReadinessReport: clearError
+            ? null
+            : gameplayReadinessReport ?? this.gameplayReadinessReport,
       );
 }
 
@@ -394,6 +401,7 @@ final class GamePackageExportController extends ChangeNotifier {
     String? errorCode,
     String? technicalErrorDetails,
     String? diagnosticLogPath,
+    NarrativeProjectValidationReport? gameplayReadinessReport,
   }) {
     _publish(
       _snapshot.copyWith(
@@ -402,6 +410,7 @@ final class GamePackageExportController extends ChangeNotifier {
         errorCode: errorCode,
         technicalErrorDetails: technicalErrorDetails,
         diagnosticLogPath: diagnosticLogPath,
+        gameplayReadinessReport: gameplayReadinessReport,
       ),
     );
   }
@@ -431,6 +440,7 @@ final class GamePackageExportController extends ChangeNotifier {
       errorCode: error.code,
       technicalErrorDetails: details,
       diagnosticLogPath: logPath,
+      gameplayReadinessReport: error.gameplayReadinessReport,
     );
   }
 

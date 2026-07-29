@@ -235,6 +235,7 @@ export 'src/read_models/project_capability_truth.dart';
 export 'src/read_models/battle_mvp_capability_gate.dart';
 export 'src/read_models/mvp_product_criterion.dart';
 export 'src/tooling/gameplay_roadmap_dashboard.dart';
+export 'src/tooling/gameplay_roadmap_evidence.dart';
 export 'src/read_models/linked_asset_public_contracts.dart';
 export 'src/read_models/cinematics_library_read_model.dart';
 export 'src/read_models/cinematic_timeline_lane_read_model.dart';

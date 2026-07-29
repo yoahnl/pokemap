@@ -1,0 +1,423 @@
+<style>
+  .gate5-intro {
+    display: grid;
+    grid-template-columns: minmax(240px, 0.42fr) minmax(320px, 0.58fr);
+    gap: 22px;
+    align-items: center;
+    margin: 18px 0 28px;
+  }
+
+  .gate5-before {
+    width: 100%;
+    display: block;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+
+  .gate5-principles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .gate5-principle {
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .direction-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(300px, 1fr));
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .direction-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .direction-card .card-image {
+    padding: 12px;
+  }
+
+  .direction-card .card-body {
+    flex: 1;
+  }
+
+  .recommended {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: rgba(66, 133, 244, 0.14);
+    color: #7da9ff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .workspace {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16 / 10;
+    border-radius: 10px;
+    background: #08111f;
+    color: #dce9ff;
+    border: 1px solid #26364e;
+    font-size: 8px;
+    line-height: 1.2;
+  }
+
+  .ws-top {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 12%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    background: #0d1929;
+    border-bottom: 1px solid #26364e;
+    font-weight: 700;
+  }
+
+  .ws-canvas {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background:
+      linear-gradient(rgba(114, 178, 255, 0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(114, 178, 255, 0.12) 1px, transparent 1px),
+      radial-gradient(circle at 60% 30%, #2c6ba0 0 9%, transparent 10%),
+      radial-gradient(circle at 30% 68%, #426b49 0 10%, transparent 11%),
+      #183f66;
+    background-size: 16px 16px, 16px 16px, auto, auto, auto;
+    color: rgba(255,255,255,0.78);
+    font-weight: 700;
+  }
+
+  .ws-panel {
+    position: absolute;
+    background: #0d1929;
+    border-color: #26364e;
+    border-style: solid;
+  }
+
+  .ws-panel-title {
+    padding: 7px 7px 4px;
+    font-weight: 800;
+    color: #f0f6ff;
+  }
+
+  .ws-row {
+    margin: 4px 6px;
+    padding: 5px 6px;
+    border-radius: 5px;
+    background: #14243a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ws-row.active {
+    background: #1d4e85;
+    outline: 1px solid #4f9df5;
+  }
+
+  .ws-toolrail {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 0;
+    background: #0a1524;
+    border-right: 1px solid #26364e;
+  }
+
+  .ws-tool {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    background: #14243a;
+    font-size: 9px;
+    font-weight: 800;
+  }
+
+  .ws-tool.active {
+    background: #2568ad;
+    outline: 1px solid #75b8ff;
+  }
+
+  .ws-tray {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 7px;
+    background: #0d1929;
+    border-top: 1px solid #26364e;
+  }
+
+  .asset {
+    width: 25px;
+    height: 25px;
+    flex: 0 0 auto;
+    border-radius: 5px;
+    background: linear-gradient(145deg, #2b7f73, #183f66);
+    border: 1px solid #456987;
+  }
+
+  .context-menu {
+    position: absolute;
+    z-index: 5;
+    width: 82px;
+    padding: 4px;
+    border-radius: 6px;
+    background: #101d2e;
+    border: 1px solid #4a6381;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.4);
+  }
+
+  .context-menu div {
+    padding: 4px 5px;
+    border-radius: 4px;
+  }
+
+  .context-menu div:first-child {
+    background: #1c416b;
+  }
+
+  .floating-tools {
+    position: absolute;
+    z-index: 4;
+    display: flex;
+    gap: 3px;
+    padding: 4px;
+    border-radius: 7px;
+    background: #101d2e;
+    border: 1px solid #4a6381;
+  }
+
+  .floating-tools span {
+    padding: 4px 5px;
+    border-radius: 4px;
+    background: #1a2d46;
+  }
+
+  .tradeoff {
+    margin-top: 11px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 1180px) {
+    .direction-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .direction-card {
+      display: grid;
+      grid-template-columns: minmax(320px, 0.52fr) minmax(260px, 0.48fr);
+    }
+  }
+
+  @media (max-width: 760px) {
+    .gate5-intro,
+    .direction-card {
+      grid-template-columns: 1fr;
+    }
+
+    .gate5-principles {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<p class="label">Gate 5 · Choix de structure</p>
+<h2>Quel workspace met vraiment les bons outils à portée de clic ?</h2>
+<p class="subtitle">
+  Clique sur la direction qui se rapproche le plus de ton idée. Le clic droit
+  reste contextuel dans les trois propositions.
+</p>
+
+<div class="gate5-intro">
+  <img
+    class="gate5-before"
+    src="http://localhost:53721/02-port-open-overview-800x600.png"
+    alt="État actuel de l’éditeur World Map"
+  >
+  <div>
+    <h3>Le problème actuel</h3>
+    <p>
+      Le canvas est enfermé, les couches et propriétés vivent dans une longue
+      colonne, et les outils utiles changent de position au gré du scroll.
+    </p>
+    <div class="gate5-principles">
+      <div class="gate5-principle"><strong>Visible</strong><br>Les outils fréquents ne bougent pas.</div>
+      <div class="gate5-principle"><strong>Contextuel</strong><br>La sélection décide du contenu secondaire.</div>
+      <div class="gate5-principle"><strong>Direct</strong><br>Clic droit au point exact de l’action.</div>
+    </div>
+  </div>
+</div>
+
+<div class="cards direction-grid">
+  <div class="card direction-card" data-choice="contextual-workbench" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="workspace">
+        <div class="ws-top"><span>Port des Brisants</span><span>Enregistrer · Tester</span></div>
+        <div class="ws-toolrail" style="left:0;top:12%;bottom:0;width:9%">
+          <div class="ws-tool">S</div>
+          <div class="ws-tool active">P</div>
+          <div class="ws-tool">G</div>
+          <div class="ws-tool">R</div>
+          <div class="ws-tool">O</div>
+        </div>
+        <div class="ws-panel" style="left:9%;top:12%;bottom:18%;width:22%;border-width:0 1px 0 0">
+          <div class="ws-panel-title">Cartes · Calques</div>
+          <div class="ws-row">Port des Brisants</div>
+          <div class="ws-row active">Terrain</div>
+          <div class="ws-row">Sol</div>
+          <div class="ws-row">Chemins</div>
+          <div class="ws-row">Éléments</div>
+        </div>
+        <div class="ws-canvas" style="left:31%;right:22%;top:12%;bottom:18%">CANVAS DOMINANT</div>
+        <div class="ws-panel" style="right:0;top:12%;bottom:18%;width:22%;border-width:0 0 0 1px">
+          <div class="ws-panel-title">Terrain sélectionné</div>
+          <div class="ws-row">Tileset · world</div>
+          <div class="ws-row">Opacité · 100 %</div>
+          <div class="ws-row">Collision · Auto</div>
+        </div>
+        <div class="ws-tray" style="left:9%;right:0;bottom:0;height:18%">
+          <strong>Terrain</strong>
+          <div class="asset"></div><div class="asset"></div><div class="asset"></div>
+          <div class="asset"></div><div class="asset"></div>
+          <span style="margin-left:auto">Rechercher · Favoris</span>
+        </div>
+        <div class="context-menu" style="left:49%;top:41%">
+          <div>Copier la tuile</div>
+          <div>Remplacer</div>
+          <div>Effacer ici</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Atelier contextuel <span class="recommended">Recommandé</span></h3>
+      <p>
+        Une barre d’outils fixe, les cartes/calques à gauche, l’inspecteur à
+        droite et un tray d’assets qui suit automatiquement l’outil et le calque.
+      </p>
+      <div class="tradeoff">
+        <strong>Pourquoi ça colle à ton besoin :</strong> tout ce qui sert tout
+        le temps est stable ; tout ce qui dépend de la sélection vient à toi.
+        Le canvas reste central sans rendre l’interface mystérieuse.
+      </div>
+    </div>
+  </div>
+
+  <div class="card direction-card" data-choice="canvas-command" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="workspace">
+        <div class="ws-top"><span>Port des Brisants</span><span>⌘K · Enregistrer · Tester</span></div>
+        <div class="ws-toolrail" style="left:0;top:12%;bottom:0;width:9%">
+          <div class="ws-tool">S</div>
+          <div class="ws-tool active">P</div>
+          <div class="ws-tool">G</div>
+          <div class="ws-tool">O</div>
+        </div>
+        <div class="ws-canvas" style="left:9%;right:0;top:12%;bottom:0">CANVAS PLEIN</div>
+        <div class="floating-tools" style="left:35%;top:19%">
+          <span>Terrain</span><span>3×3</span><span>100 %</span>
+        </div>
+        <div class="floating-tools" style="right:4%;top:18%;display:block;width:68px">
+          <strong>Calques</strong>
+          <div class="ws-row active">Terrain</div>
+          <div class="ws-row">Sol</div>
+          <div class="ws-row">Objets</div>
+        </div>
+        <div class="context-menu" style="left:47%;top:48%">
+          <div>Actions ici</div>
+          <div>Prélever</div>
+          <div>Remplacer</div>
+          <div>Propriétés</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Canvas + commandes locales</h3>
+      <p>
+        Presque aucun panneau permanent : mini-palettes flottantes, clic droit
+        riche et palette de commandes pour retrouver n’importe quelle action.
+      </p>
+      <div class="tradeoff">
+        <strong>Avantage :</strong> surface de map maximale.
+        <strong>Risque :</strong> plus d’actions deviennent invisibles tant qu’on
+        ne connaît pas le clic droit ou les raccourcis.
+      </div>
+    </div>
+  </div>
+
+  <div class="card direction-card" data-choice="stable-twin-dock" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="workspace">
+        <div class="ws-top"><span>Port des Brisants</span><span>Enregistrer · Tester</span></div>
+        <div class="ws-panel" style="left:0;top:12%;bottom:0;width:25%;border-width:0 1px 0 0">
+          <div class="ws-panel-title">Outils</div>
+          <div style="display:flex;gap:3px;padding:3px 6px">
+            <div class="ws-tool active">P</div><div class="ws-tool">G</div><div class="ws-tool">O</div>
+          </div>
+          <div class="ws-panel-title">Cartes</div>
+          <div class="ws-row">Port des Brisants</div>
+          <div class="ws-panel-title">Calques</div>
+          <div class="ws-row active">Terrain</div>
+          <div class="ws-row">Sol</div>
+          <div class="ws-row">Objets</div>
+        </div>
+        <div class="ws-canvas" style="left:25%;right:28%;top:12%;bottom:0">CANVAS</div>
+        <div class="ws-panel" style="right:0;top:12%;bottom:0;width:28%;border-width:0 0 0 1px">
+          <div class="ws-panel-title">Propriétés · Assets</div>
+          <div class="ws-row active">Bibliothèque Terrain</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:6px">
+            <div class="asset"></div><div class="asset"></div><div class="asset"></div>
+            <div class="asset"></div><div class="asset"></div><div class="asset"></div>
+          </div>
+          <div class="ws-panel-title">Réglages du calque</div>
+          <div class="ws-row">Opacité · 100 %</div>
+        </div>
+        <div class="context-menu" style="left:45%;top:46%">
+          <div>Action principale</div>
+          <div>Dupliquer</div>
+          <div>Supprimer</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Studio à deux docks</h3>
+      <p>
+        Tout reste visible dans deux colonnes stables : navigation et calques à
+        gauche, assets et propriétés à droite.
+      </p>
+      <div class="tradeoff">
+        <strong>Avantage :</strong> modèle très prévisible.
+        <strong>Risque :</strong> à 800×600, le canvas redevient étroit et les
+        docks peuvent recommencer à scroller.
+      </div>
+    </div>
+  </div>
+</div>

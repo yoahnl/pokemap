@@ -3,6 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 import '../models/project_manifest.dart';
 import '../models/project_trainer.dart';
 import '../models/scenario_asset.dart';
+import '../models/scene_asset.dart';
 
 const String _cutsceneStudioSchemaMetadataKey = 'authoring.cutsceneSchema';
 const String _completedOutcomeId = 'completed';
@@ -24,6 +25,8 @@ enum LinkedAssetContractDiagnosticCode {
   legacyBridge,
   unsupportedSource,
   emptyTrainerTeam,
+  missingBattleTemplateRef,
+  ambiguousBattleTemplateRef,
 }
 
 enum LinkedAssetContractStatus {
@@ -151,6 +154,7 @@ final class BattlePublicContract {
   BattlePublicContract({
     required this.id,
     required this.battleRefId,
+    required this.battleTemplateId,
     required this.label,
     required this.battleKind,
     required this.trainerId,
@@ -165,6 +169,7 @@ final class BattlePublicContract {
 
   final String id;
   final String battleRefId;
+  final String? battleTemplateId;
   final String label;
   final BattlePublicContractKind battleKind;
   final String trainerId;
@@ -179,6 +184,7 @@ final class BattlePublicContract {
       other is BattlePublicContract &&
           other.id == id &&
           other.battleRefId == battleRefId &&
+          other.battleTemplateId == battleTemplateId &&
           other.label == label &&
           other.battleKind == battleKind &&
           other.trainerId == trainerId &&
@@ -191,6 +197,7 @@ final class BattlePublicContract {
   int get hashCode => Object.hash(
         id,
         battleRefId,
+        battleTemplateId,
         label,
         battleKind,
         trainerId,
@@ -385,6 +392,31 @@ List<DialoguePublicContract> buildDialoguePublicContracts(
 }
 
 List<BattlePublicContract> buildBattlePublicContracts(ProjectManifest project) {
+  final referencedStaticTrainerIds = <String>{};
+  final staticTrainerIdsWithMissingTemplate = <String>{};
+  final staticTemplateIdsByTrainerId = <String, Set<String>>{};
+  for (final scene in project.scenes) {
+    for (final node in scene.graph.nodes) {
+      final payload = node.payload;
+      if (payload is! SceneBattlePayload || payload.battleKind != 'static') {
+        continue;
+      }
+      final trainerId = payload.trainerId?.trim();
+      if (trainerId == null || trainerId.isEmpty) {
+        continue;
+      }
+      referencedStaticTrainerIds.add(trainerId);
+      final battleTemplateId = payload.battleTemplateId?.trim();
+      if (battleTemplateId == null || battleTemplateId.isEmpty) {
+        staticTrainerIdsWithMissingTemplate.add(trainerId);
+      } else {
+        staticTemplateIdsByTrainerId
+            .putIfAbsent(trainerId, () => <String>{})
+            .add(battleTemplateId);
+      }
+    }
+  }
+
   final contracts = project.trainers.map((trainer) {
     final trainerId = trainer.id.trim();
     final isStaticEncounter = trainer.tags.any(
@@ -423,10 +455,49 @@ List<BattlePublicContract> buildBattlePublicContracts(ProjectManifest project) {
         ),
       );
     }
+    String? battleTemplateId;
+    var battleTemplateContractValid = true;
+    if (isStaticEncounter && trainerId.isNotEmpty) {
+      if (!referencedStaticTrainerIds.contains(trainerId)) {
+        battleTemplateId = battleRefId;
+      } else {
+        final authoredTemplateIds =
+            staticTemplateIdsByTrainerId[trainerId] ?? const <String>{};
+        if (staticTrainerIdsWithMissingTemplate.contains(trainerId)) {
+          battleTemplateContractValid = false;
+          diagnostics.add(
+            LinkedAssetContractDiagnostic(
+              code: LinkedAssetContractDiagnosticCode.missingBattleTemplateRef,
+              severity: LinkedAssetContractDiagnosticSeverity.error,
+              message: 'An existing static Scene is missing its stable battle '
+                  'template reference.',
+              sourceId: trainerId,
+            ),
+          );
+        }
+        if (authoredTemplateIds.length > 1) {
+          battleTemplateContractValid = false;
+          diagnostics.add(
+            LinkedAssetContractDiagnostic(
+              code:
+                  LinkedAssetContractDiagnosticCode.ambiguousBattleTemplateRef,
+              severity: LinkedAssetContractDiagnosticSeverity.error,
+              message: 'Static Scenes for this profile reference incompatible '
+                  'battle templates: ${authoredTemplateIds.toList()..sort()}.',
+              sourceId: trainerId,
+            ),
+          );
+        }
+        if (battleTemplateContractValid && authoredTemplateIds.length == 1) {
+          battleTemplateId = authoredTemplateIds.single;
+        }
+      }
+    }
 
     return BattlePublicContract(
       id: battleRefId,
       battleRefId: battleRefId,
+      battleTemplateId: battleTemplateId,
       label: label,
       battleKind: battleKind,
       trainerId: trainerId,
@@ -442,7 +513,7 @@ List<BattlePublicContract> buildBattlePublicContracts(ProjectManifest project) {
         ),
       ],
       diagnostics: diagnostics,
-      status: trainerId.isEmpty
+      status: trainerId.isEmpty || !battleTemplateContractValid
           ? LinkedAssetContractStatus.unavailable
           : LinkedAssetContractStatus.available,
     );

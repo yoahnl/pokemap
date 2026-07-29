@@ -161,18 +161,32 @@ void main() {
           command.id,
     };
     final invoked = <SceneRuntimePlanIntentKind>[];
+    final launchedBattles = <SceneBattleRuntimeBattleRequest>[];
     String complete(SceneRuntimePlanIntent intent) {
       invoked.add(intent.kind);
-      return switch (intent.kind) {
-        SceneRuntimePlanIntentKind.startBattle => 'victory',
-        _ => 'completed',
-      };
+      return 'completed';
     }
+
+    final battleAdapter = SceneBattleRuntimeOutcomeAdapter(
+      runtimeSourceId: 'runtime-parity',
+      defaultNpcEntityId: 'npc_runtime_parity',
+      createdAtEpochMs: () => 1234,
+      launcher: _ParityBattleLauncher((request) async {
+        launchedBattles.add(request);
+        return const SceneBattleRuntimeOutcomeResult.completed(
+          port: SceneBattleRuntimeOutcomePort.victory,
+        );
+      }),
+    );
 
     final callbacks = SceneRuntimeHostCallbacks(
       evaluateCondition: complete,
       showDialogue: complete,
-      startBattle: complete,
+      startBattle: (intent) async {
+        invoked.add(intent.kind);
+        final result = await battleAdapter.startBattle(intent);
+        return result.scenePortId ?? 'failed';
+      },
       playCinematic: complete,
     ).toExecutionCallbacks(applyConsequence: (_) => 'completed');
 
@@ -197,6 +211,12 @@ void main() {
         SceneRuntimePlanIntentKind.playCinematic,
       ]),
     );
+    expect(launchedBattles, hasLength(2));
+    final staticRequest = launchedBattles.singleWhere(
+      (request) => request.battleKind == 'static',
+    );
+    expect(staticRequest.trainerId, 'trainer_static');
+    expect(staticRequest.battleTemplateId, 'battle_lighthouse_pokemon');
   });
 
   test('runtime parity covers both canonical NPC state commands', () {
@@ -298,8 +318,7 @@ Map<String, SceneConsequence Function()> _consequenceSamples() => {
             ),
             postGamePolicy: ScenePostGamePolicy.returnToTitle,
           ),
-      NarrativeCommandIds.setNpcPresence: () =>
-          SceneConsequence.setNpcPresence(
+      NarrativeCommandIds.setNpcPresence: () => SceneConsequence.setNpcPresence(
             mapId: 'map_test',
             entityId: 'npc_guide',
             present: false,
@@ -333,7 +352,8 @@ Map<String, SceneNodePayload Function()> _dedicatedSamples() => {
           ),
       NarrativeCommandIds.staticEncounter: () => SceneBattlePayload(
             battleKind: 'static',
-            battleTemplateId: 'sproutle',
+            trainerId: 'trainer_static',
+            battleTemplateId: 'battle_lighthouse_pokemon',
             declaredOutcomes: const ['victory'],
           ),
       NarrativeCommandIds.cinematic: () => SceneCinematicPayload(
@@ -476,4 +496,19 @@ SceneAsset _sceneFor(String commandId, SceneNodePayload payload) {
       ],
     ),
   );
+}
+
+final class _ParityBattleLauncher implements SceneBattleRuntimeLauncher {
+  const _ParityBattleLauncher(this._launch);
+
+  final Future<SceneBattleRuntimeOutcomeResult> Function(
+    SceneBattleRuntimeBattleRequest request,
+  ) _launch;
+
+  @override
+  Future<SceneBattleRuntimeOutcomeResult> startTrainerBattle(
+    SceneBattleRuntimeBattleRequest request,
+  ) async {
+    return _launch(request);
+  }
 }

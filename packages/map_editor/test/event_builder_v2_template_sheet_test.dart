@@ -57,11 +57,73 @@ void main() {
     expect(draft!.kind, NarrativeTemplateKind.simpleNpc);
     expect(draft!.name, 'PNJ simple');
   });
+
+  testWidgets(
+      'static encounter template creates the canonical distinct battle payload',
+      (tester) async {
+    NarrativeTemplatePreview? applied;
+    await _pump(
+      tester,
+      project: _staticProject(),
+      sources: [_npcSource()],
+      initialDraft: const EventBuilderV2TemplateDraft(
+        kind: NarrativeTemplateKind.staticEncounter,
+        name: 'Gardien du phare',
+        parameters: {},
+        expectedValue: 'true',
+      ),
+      actionPickerOptions: const {
+        NarrativeCommandParameterKind.staticEncounter: [
+          SceneActionPickerOption(
+            id: 'static:trainer_lighthouse_guardian',
+            label: 'Gardien du phare',
+            parameters: {
+              'trainerId': 'trainer_lighthouse_guardian',
+              'battleTemplateId': 'battle_lighthouse_pokemon',
+            },
+          ),
+        ],
+      },
+      onApply: (preview) async {
+        applied = preview;
+        return null;
+      },
+    );
+
+    expect(find.text('Gardien du phare'), findsWidgets);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('scene-action-submit')),
+    );
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.pump();
+
+    expect(find.text('Prévisualisation prête'), findsOneWidget);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('event-builder-v2-template-apply')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-v2-template-apply')),
+    );
+    await tester.pumpAndSettle();
+
+    final payload = applied!.scene!.graph.nodes
+        .map((node) => node.payload)
+        .whereType<SceneBattlePayload>()
+        .single;
+    expect(payload.battleKind, 'static');
+    expect(payload.trainerId, 'trainer_lighthouse_guardian');
+    expect(payload.battleTemplateId, 'battle_lighthouse_pokemon');
+    expect(payload.declaredOutcomes, const ['victory', 'defeat']);
+  });
 }
 
 Future<void> _pump(
   WidgetTester tester, {
   required List<NarrativeSpatialEventSourceOption> sources,
+  ProjectManifest? project,
+  EventBuilderV2TemplateDraft? initialDraft,
+  Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>?
+      actionPickerOptions,
   EventBuilderV2TemplateApply? onApply,
   ValueChanged<EventBuilderV2TemplateDraft>? onOpenMapEditor,
 }) async {
@@ -74,20 +136,22 @@ Future<void> _pump(
       theme: PokeMapTheme.dark(),
       home: Scaffold(
         body: EventBuilderV2TemplateSheet(
-          project: _project(),
+          project: project ?? _project(),
           eventId: _eventId,
           sceneId: 'scene.template.test',
           spatialSources: sources,
-          actionPickerOptions: const {
-            NarrativeCommandParameterKind.dialogue: [
-              SceneActionPickerOption(
-                id: 'dialogue.npc',
-                label: 'Dialogue PNJ',
-              ),
-            ],
-          },
+          actionPickerOptions: actionPickerOptions ??
+              const {
+                NarrativeCommandParameterKind.dialogue: [
+                  SceneActionPickerOption(
+                    id: 'dialogue.npc',
+                    label: 'Dialogue PNJ',
+                  ),
+                ],
+              },
           onApply: onApply ?? (_) async => null,
           onOpenMapEditor: onOpenMapEditor ?? (_) {},
+          initialDraft: initialDraft,
         ),
       ),
     ),
@@ -110,6 +174,55 @@ ProjectManifest _project() => ProjectManifest(
           id: 'dialogue.npc',
           name: 'Dialogue PNJ',
           relativePath: 'dialogues/npc.yarn',
+        ),
+      ],
+      eventRegistry: NarrativeEventRegistry(
+        schemaVersion: 1,
+        mode: EventSystemMode.v2Only,
+        records: const [],
+        legacyClaims: const [],
+      ),
+    );
+
+ProjectManifest _staticProject() => ProjectManifest(
+      name: 'Static template sheet',
+      maps: const [
+        ProjectMapEntry(
+          id: 'map.port',
+          name: 'Port',
+          relativePath: 'maps/port.json',
+        ),
+      ],
+      tilesets: const [],
+      trainers: const [
+        ProjectTrainerEntry(
+          id: 'trainer_lighthouse_guardian',
+          name: 'Gardien du phare',
+          trainerClass: 'Rencontre',
+          tags: ['static-encounter'],
+        ),
+      ],
+      scenes: [
+        SceneAsset(
+          id: 'scene.static.contract',
+          name: 'Static contract',
+          graph: SceneGraph(
+            startNodeId: 'start',
+            nodes: [
+              SceneNode(id: 'start', kind: SceneNodeKind.start),
+              SceneNode(
+                id: 'battle',
+                kind: SceneNodeKind.battle,
+                payload: SceneBattlePayload(
+                  battleKind: 'static',
+                  trainerId: 'trainer_lighthouse_guardian',
+                  battleTemplateId: 'battle_lighthouse_pokemon',
+                  declaredOutcomes: const ['victory', 'defeat'],
+                ),
+              ),
+            ],
+            edges: const [],
+          ),
         ),
       ],
       eventRegistry: NarrativeEventRegistry(

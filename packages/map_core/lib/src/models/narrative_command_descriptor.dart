@@ -27,6 +27,7 @@ enum NarrativeCommandParameterKind {
   completionOutcome,
   postGamePolicy,
   trainer,
+  staticEncounter,
   dialogue,
   cinematic,
 }

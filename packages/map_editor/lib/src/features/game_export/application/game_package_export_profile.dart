@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 import 'package:pub_semver/pub_semver.dart';
@@ -10,12 +11,14 @@ final class GamePackageExportException implements Exception {
     required this.message,
     this.path,
     this.cause,
+    this.gameplayReadinessReport,
   });
 
   final String code;
   final String message;
   final String? path;
   final Object? cause;
+  final NarrativeProjectValidationReport? gameplayReadinessReport;
 
   @override
   String toString() => 'GamePackageExportException($code): $message';

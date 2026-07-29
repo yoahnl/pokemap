@@ -2,6 +2,7 @@
 library;
 
 export 'src/features/game_export/application/game_package_export_profile.dart';
+export 'src/features/game_export/application/game_package_gameplay_readiness_gate.dart';
 export 'src/features/game_export/application/game_package_export_service.dart';
 export 'src/features/game_export/application/runtime_project_projection_builder.dart';
 export 'src/features/game_export/infrastructure/game_package_export_profile_store.dart';

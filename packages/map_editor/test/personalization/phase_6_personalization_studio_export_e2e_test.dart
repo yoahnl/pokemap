@@ -34,8 +34,17 @@ void main() {
         'playerName': 'Joueur',
         'startingMoney': 500,
         'initialBag': <Object?>[],
-        'initialParty': <Object?>[],
+        'initialParty': <Object?>[
+          const PlayerPokemon(
+            speciesId: 'bulbasaur',
+            natureId: 'hardy',
+            abilityId: 'overgrow',
+            level: 5,
+            currentHp: 20,
+          ).toJson(),
+        ],
         'initialFacts': <String, Object?>{},
+        'starterSelectionSceneId': 'scene.main',
         'starterOptions': <Object?>[],
       };
       await projectFile.writeAsString(

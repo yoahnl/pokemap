@@ -54,7 +54,16 @@ final class SceneBattleRuntimeOutcomeAdapter {
     if (trainerId == null || trainerId.isEmpty) {
       return const SceneBattleRuntimeOutcomeResult.failed(
         errorCode: SceneBattleRuntimeOutcomeErrorCode.missingTrainerId,
-        message: 'Scene trainer battle intent is missing trainerId.',
+        message: 'Scene battle intent is missing trainerId.',
+      );
+    }
+    final battleTemplateId = intent.battleTemplateId?.trim();
+    if (battleKind == 'static' &&
+        (battleTemplateId == null || battleTemplateId.isEmpty)) {
+      return const SceneBattleRuntimeOutcomeResult.failed(
+        errorCode:
+            SceneBattleRuntimeOutcomeErrorCode.missingStaticBattleTemplateId,
+        message: 'Scene static battle intent is missing battleTemplateId.',
       );
     }
 
@@ -73,7 +82,7 @@ final class SceneBattleRuntimeOutcomeAdapter {
       trainerId: trainerId,
       npcEntityId: npcEntityId,
       battleKind: battleKind!,
-      battleTemplateId: intent.battleTemplateId,
+      battleTemplateId: battleTemplateId,
     );
 
     try {

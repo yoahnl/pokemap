@@ -1,3 +1,6 @@
+@Tags(['performance'])
+library;
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -214,7 +217,7 @@ void _emit<T>({
     'os_version=${_singleLine(Platform.operatingSystemVersion)} '
     'dart=${Platform.version.split(' ').first} '
     'processors=${Platform.numberOfProcessors} mode=flutter_test_debug_jit '
-    'execution=sequential volume=$volume '
+    'lane=performance runner_concurrency=1_required volume=$volume '
     'warmups=$_warmupIterations iterations=$_measuredIterations '
     'p50_us=${large.p50} p95_us=${large.p95} '
     'medium_p95_us=$mediumP95 '

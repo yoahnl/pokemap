@@ -1,0 +1,208 @@
+<style>
+  .current-shot {
+    width: 100%;
+    display: block;
+    margin: 18px 0 22px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+
+  .tool-contract {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 18px 0 28px;
+  }
+
+  .tool-contract > div {
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .tool-contract h3 {
+    margin-top: 0;
+  }
+
+  .tool-contract ul {
+    margin: 10px 0 0;
+    padding-left: 18px;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .focus-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .mini-shell {
+    display: grid;
+    grid-template-columns: 74px 1fr 100px;
+    height: 150px;
+    overflow: hidden;
+    border-radius: 9px;
+    background: #0a1422;
+    border: 1px solid #30425d;
+    color: #dce9ff;
+    font-size: 9px;
+  }
+
+  .mini-shell.global {
+    grid-template-columns: 116px 1fr 100px;
+  }
+
+  .mini-left,
+  .mini-right {
+    padding: 8px;
+    background: #0e1a2b;
+  }
+
+  .mini-left {
+    border-right: 1px solid #30425d;
+  }
+
+  .mini-right {
+    border-left: 1px solid #30425d;
+  }
+
+  .mini-canvas {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px),
+      #285f49;
+    background-size: 14px 14px;
+    font-weight: 800;
+  }
+
+  .mini-row {
+    margin: 5px 0;
+    padding: 5px;
+    border-radius: 5px;
+    background: #17273d;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .mini-row.active {
+    background: #1d5f46;
+    outline: 1px solid #57c48c;
+  }
+
+  @media (max-width: 800px) {
+    .tool-contract,
+    .focus-options {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<p class="label">Gate 5 · État actuel recalé</p>
+<h2>Le canvas n’est plus le principal problème</h2>
+<p class="subtitle">
+  La capture actuelle montre surtout trop de choix simultanés autour du canvas.
+  Voici le contrat que je propose pour décider où chaque commande doit vivre.
+</p>
+
+<img
+  class="current-shot"
+  src="http://localhost:53722/Screenshot%202026-07-29%20at%2014.07.53.png"
+  alt="État actuel du World Map Editor"
+>
+
+<div class="tool-contract">
+  <div>
+    <h3>Toujours visible</h3>
+    <ul>
+      <li>Sélectionner, peindre, effacer, remplir</li>
+      <li>Calque actif et verrouillage</li>
+      <li>Undo/redo, sauvegarde et zoom</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Visible seulement si utile</h3>
+    <ul>
+      <li>Assets quand on peint ou place</li>
+      <li>Propriétés de l’objet sélectionné</li>
+      <li>Réglages du calque ou de la carte</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Au clic droit</h3>
+    <ul>
+      <li>Dupliquer, supprimer ou déplacer</li>
+      <li>Prélever/remplacer la tuile sous le pointeur</li>
+      <li>Créer ici ou ouvrir les propriétés</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Première décision : que devient la colonne de gauche ?</h2>
+  <p class="subtitle">
+    Aujourd’hui elle mélange navigation globale, studios, bibliothèques et maps.
+    Clique sur le comportement qui te semble naturel pendant l’édition d’une map.
+  </p>
+
+  <div class="cards focus-options">
+    <div class="card" data-choice="focused-map-workspace" onclick="toggleSelect(this)">
+      <div class="card-image">
+        <div class="mini-shell">
+          <div class="mini-left">
+            <strong>MAP</strong>
+            <div class="mini-row">Cartes</div>
+            <div class="mini-row active">Calques</div>
+            <div class="mini-row">Objets</div>
+          </div>
+          <div class="mini-canvas">CANVAS PLUS LARGE</div>
+          <div class="mini-right">
+            <strong>CONTEXTE</strong>
+            <div class="mini-row">Sélection</div>
+            <div class="mini-row">Propriétés</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <h3>Workspace Map concentré</h3>
+        <p>
+          Les autres studios quittent la colonne. Un sélecteur global permet de
+          changer d’espace ; ici, tout sert uniquement à construire la map.
+        </p>
+      </div>
+    </div>
+
+    <div class="card" data-choice="global-explorer-kept" onclick="toggleSelect(this)">
+      <div class="card-image">
+        <div class="mini-shell global">
+          <div class="mini-left">
+            <strong>TOUT LE PROJET</strong>
+            <div class="mini-row">Tilesets</div>
+            <div class="mini-row">Narratif</div>
+            <div class="mini-row active">World Maps</div>
+            <div class="mini-row">Borders</div>
+            <div class="mini-row">Terrains</div>
+          </div>
+          <div class="mini-canvas">CANVAS</div>
+          <div class="mini-right">
+            <strong>CONTEXTE</strong>
+            <div class="mini-row">Sélection</div>
+            <div class="mini-row">Propriétés</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <h3>Explorateur global conservé</h3>
+        <p>
+          Tous les studios et bibliothèques restent visibles en permanence,
+          même pendant la construction d’une map.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

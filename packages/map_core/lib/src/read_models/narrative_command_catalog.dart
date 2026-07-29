@@ -330,7 +330,10 @@ final class NarrativeCommandCatalog {
         'SceneNode.battle.static',
         'FG-090',
         _parameter(
-            'speciesId', 'Espèce', NarrativeCommandParameterKind.species),
+          'staticEncounterId',
+          'Rencontre statique',
+          NarrativeCommandParameterKind.staticEncounter,
+        ),
       ),
       node(
         NarrativeCommandIds.cinematic,

@@ -40,6 +40,20 @@ void main() {
       catalog.byId(NarrativeCommandIds.trainerBattle)!.wireId,
       'SceneNode.battle.trainer',
     );
+    expect(
+      catalog.byId(NarrativeCommandIds.staticEncounter)!.parameters.single,
+      isA<NarrativeCommandParameterDescriptor>()
+          .having(
+            (parameter) => parameter.id,
+            'id',
+            'staticEncounterId',
+          )
+          .having(
+            (parameter) => parameter.kind,
+            'kind',
+            NarrativeCommandParameterKind.staticEncounter,
+          ),
+    );
   });
 
   test('canonical gameplay consequences are fully authorable', () {

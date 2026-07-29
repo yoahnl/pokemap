@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gate 5 · Inspecteur adaptatif</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050a11;
+      --chrome: #07121f;
+      --surface: #0c1827;
+      --surface-raised: #112238;
+      --surface-active: #163f70;
+      --border: #263b56;
+      --border-strong: #3e6fa7;
+      --text: #edf5ff;
+      --muted: #91a4bc;
+      --blue: #4b97ee;
+      --blue-soft: rgba(75, 151, 238, 0.17);
+      --green: #62d796;
+      --danger: #ff7383;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 30% -20%, rgba(52, 112, 176, 0.18), transparent 40%),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .intro {
+      width: min(1600px, 100%);
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .eyebrow {
+      margin: 0 0 5px;
+      color: #71adf2;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(22px, 2.3vw, 34px);
+      line-height: 1.12;
+    }
+
+    .intro p:last-child {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .try-hint {
+      flex: 0 0 auto;
+      padding: 10px 13px;
+      border-radius: 9px;
+      background: var(--blue-soft);
+      border: 1px solid rgba(83, 157, 239, 0.38);
+      color: #b9d9ff;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .app {
+      position: relative;
+      width: min(1600px, 100%);
+      aspect-ratio: 1920 / 1072;
+      margin: 0 auto;
+      overflow: hidden;
+      border-radius: 14px;
+      border: 1px solid #20344d;
+      background: #050b13;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48);
+      container-type: inline-size;
+    }
+
+    .base-shot {
+      position: absolute;
+      left: 0;
+      top: -4.48%;
+      width: 100%;
+      height: auto;
+      display: block;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .toolbar-cover {
+      position: absolute;
+      z-index: 4;
+      left: 15.6%;
+      right: 0;
+      top: 0;
+      height: 7.35%;
+      display: flex;
+      align-items: center;
+      gap: 0.55cqw;
+      padding: 0.5cqw 0.8cqw;
+      background: rgba(7, 18, 31, 0.985);
+      border-bottom: 1px solid #1d3047;
+    }
+
+    .toolbar-group {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.28cqw;
+      padding: 0.35cqw;
+      border-radius: 0.55cqw;
+      background: #0c1827;
+      border: 1px solid #263b56;
+    }
+
+    .toolbar-label {
+      padding: 0 0.35cqw;
+      color: #778da8;
+      font-size: clamp(7px, 0.66cqw, 11px);
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .tool-button {
+      height: 2.4cqw;
+      min-height: 25px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3cqw;
+      padding: 0 0.62cqw;
+      border: 1px solid transparent;
+      border-radius: 0.42cqw;
+      background: #13243a;
+      color: #d8e6f8;
+      font: inherit;
+      font-size: clamp(8px, 0.72cqw, 12px);
+      font-weight: 750;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .tool-button:hover {
+      border-color: #49698f;
+      background: #182e49;
+    }
+
+    .tool-button.active {
+      border-color: #4c98ec;
+      background: #164b80;
+      box-shadow: inset 0 0 0 1px rgba(116, 184, 255, 0.16);
+      color: #fff;
+    }
+
+    .tool-button.subtle {
+      color: #9db0c7;
+      background: transparent;
+    }
+
+    .loaded-pill {
+      margin-left: auto;
+      max-width: 22cqw;
+      overflow: hidden;
+      padding: 0.65cqw 1cqw;
+      border-radius: 999px;
+      background: #102f5c;
+      border: 1px solid #3478d1;
+      color: #72adff;
+      font-size: clamp(7px, 0.68cqw, 11px);
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .map-hotspot {
+      position: absolute;
+      z-index: 2;
+      left: 3.5%;
+      right: 28.7%;
+      top: 9%;
+      bottom: 5.6%;
+      cursor: crosshair;
+    }
+
+    .map-hint {
+      position: absolute;
+      z-index: 3;
+      left: 42%;
+      bottom: 7.4%;
+      transform: translateX(-50%);
+      padding: 0.46cqw 0.72cqw;
+      border-radius: 999px;
+      background: rgba(6, 15, 25, 0.9);
+      border: 1px solid #37516f;
+      color: #b4c6da;
+      font-size: clamp(7px, 0.64cqw, 10px);
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    .inspector {
+      position: absolute;
+      z-index: 5;
+      top: 8.3%;
+      right: 0.75%;
+      bottom: 5.6%;
+      width: 27.6%;
+      overflow: hidden;
+      border-radius: 1.25cqw;
+      background: rgba(9, 20, 33, 0.99);
+      border: 1px solid #2a405d;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.26);
+    }
+
+    .inspector-header {
+      height: 11.5%;
+      min-height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65cqw;
+      padding: 0.8cqw 0.9cqw;
+      border-bottom: 1px solid #263b56;
+      background: #0c1929;
+    }
+
+    .inspector-heading {
+      min-width: 0;
+    }
+
+    .inspector-title {
+      overflow: hidden;
+      margin: 0;
+      color: #f3f8ff;
+      font-size: clamp(11px, 0.96cqw, 16px);
+      font-weight: 850;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .inspector-subtitle {
+      overflow: hidden;
+      margin-top: 0.24cqw;
+      color: #8ea3bd;
+      font-size: clamp(8px, 0.69cqw, 11px);
+      font-weight: 650;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .pin {
+      flex: 0 0 auto;
+      padding: 0.45cqw 0.62cqw;
+      border-radius: 0.45cqw;
+      background: #13243a;
+      border: 1px solid #304c6c;
+      color: #a9bdd3;
+      font-size: clamp(7px, 0.65cqw, 10px);
+      font-weight: 800;
+    }
+
+    .inspector-body {
+      height: 88.5%;
+      overflow: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #38516f transparent;
+    }
+
+    .settings {
+      position: sticky;
+      z-index: 2;
+      top: 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.45cqw;
+      padding: 0.75cqw;
+      background: rgba(9, 20, 33, 0.985);
+      border-bottom: 1px solid #20334a;
+    }
+
+    .setting {
+      min-width: 0;
+      padding: 0.58cqw 0.38cqw;
+      border-radius: 0.52cqw;
+      background: #13243a;
+      border: 1px solid #2b4564;
+      color: #dce9f8;
+      text-align: center;
+      font-size: clamp(7px, 0.67cqw, 11px);
+      font-weight: 750;
+    }
+
+    .setting strong {
+      display: block;
+      overflow: hidden;
+      margin-top: 0.17cqw;
+      color: #fff;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .source-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65cqw;
+      padding: 0.75cqw 0.85cqw 0.35cqw;
+    }
+
+    .source-label {
+      min-width: 0;
+    }
+
+    .source-label span {
+      display: block;
+      color: #7f94ae;
+      font-size: clamp(7px, 0.63cqw, 10px);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .source-label strong {
+      display: block;
+      overflow: hidden;
+      margin-top: 0.18cqw;
+      font-size: clamp(9px, 0.77cqw, 13px);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .change-source {
+      flex: 0 0 auto;
+      padding: 0.48cqw 0.62cqw;
+      border-radius: 0.43cqw;
+      background: #163d68;
+      border: 1px solid #356da8;
+      color: #cbe3ff;
+      font-size: clamp(7px, 0.62cqw, 10px);
+      font-weight: 800;
+    }
+
+    .search {
+      width: calc(100% - 1.5cqw);
+      margin: 0.58cqw 0.75cqw;
+      padding: 0.65cqw 0.75cqw;
+      border: 1px solid #314a68;
+      border-radius: 0.55cqw;
+      outline: none;
+      background: #0f1d2f;
+      color: var(--text);
+      font: inherit;
+      font-size: clamp(8px, 0.7cqw, 11px);
+    }
+
+    .asset-tabs {
+      display: flex;
+      gap: 0.3cqw;
+      padding: 0 0.75cqw 0.55cqw;
+    }
+
+    .asset-tab {
+      padding: 0.42cqw 0.55cqw;
+      border: 0;
+      border-radius: 0.42cqw;
+      background: #13243a;
+      color: #98abc1;
+      font: inherit;
+      font-size: clamp(7px, 0.63cqw, 10px);
+      font-weight: 750;
+    }
+
+    .asset-tab.active {
+      background: #1b4e80;
+      color: #fff;
+    }
+
+    .asset-section {
+      padding: 0 0.75cqw 0.75cqw;
+    }
+
+    .asset-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.35cqw 0;
+      color: #9fb2c8;
+      font-size: clamp(7px, 0.64cqw, 10px);
+      font-weight: 800;
+    }
+
+    .asset-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.45cqw;
+    }
+
+    .asset {
+      position: relative;
+      aspect-ratio: 1;
+      overflow: hidden;
+      border: 1px solid #314b69;
+      border-radius: 0.52cqw;
+      background-image: url("http://localhost:53723/Screenshot%202026-07-29%20at%2014.12.00.png");
+      background-repeat: no-repeat;
+      background-size: 780% 610%;
+      cursor: pointer;
+    }
+
+    .asset:nth-child(1) { background-position: 30% 29%; }
+    .asset:nth-child(2) { background-position: 41% 42%; }
+    .asset:nth-child(3) { background-position: 55% 29%; }
+    .asset:nth-child(4) { background-position: 24% 49%; }
+    .asset:nth-child(5) { background-position: 47% 61%; }
+    .asset:nth-child(6) { background-position: 61% 44%; }
+    .asset:nth-child(7) { background-position: 34% 68%; }
+    .asset:nth-child(8) { background-position: 57% 69%; }
+    .asset:nth-child(9) { background-position: 28% 78%; }
+    .asset:nth-child(10) { background-position: 49% 76%; }
+    .asset:nth-child(11) { background-position: 62% 78%; }
+    .asset:nth-child(12) { background-position: 38% 34%; }
+
+    .asset:hover,
+    .asset.selected {
+      border-color: #6fb5ff;
+      box-shadow: inset 0 0 0 2px #398be5;
+    }
+
+    .asset.selected::after {
+      content: "Actif";
+      position: absolute;
+      right: 0.22cqw;
+      bottom: 0.22cqw;
+      padding: 0.18cqw 0.28cqw;
+      border-radius: 0.28cqw;
+      background: rgba(10, 43, 77, 0.92);
+      color: #d9edff;
+      font-size: clamp(6px, 0.52cqw, 8px);
+      font-weight: 850;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 72%;
+      padding: 1.5cqw;
+      color: #9db0c5;
+      text-align: center;
+    }
+
+    .empty-state strong {
+      margin-bottom: 0.45cqw;
+      color: #e7f1fc;
+      font-size: clamp(12px, 1.05cqw, 17px);
+    }
+
+    .empty-state p {
+      max-width: 28ch;
+      margin: 0;
+      font-size: clamp(8px, 0.72cqw, 12px);
+      line-height: 1.45;
+    }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.45cqw;
+      padding: 0.75cqw;
+    }
+
+    .primary-action {
+      padding: 0.7cqw 0.35cqw;
+      border-radius: 0.5cqw;
+      border: 1px solid #355d87;
+      background: #163d68;
+      color: #dceeff;
+      text-align: center;
+      font-size: clamp(7px, 0.65cqw, 10px);
+      font-weight: 800;
+    }
+
+    .primary-action.danger {
+      border-color: #73404a;
+      background: #3f2029;
+      color: #ffb6be;
+    }
+
+    .property-list,
+    .layer-list {
+      display: grid;
+      gap: 0.48cqw;
+      padding: 0.75cqw;
+    }
+
+    .property,
+    .layer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5cqw;
+      padding: 0.72cqw;
+      border-radius: 0.52cqw;
+      background: #122338;
+      border: 1px solid #263f5d;
+      font-size: clamp(8px, 0.7cqw, 11px);
+    }
+
+    .property span,
+    .layer-meta {
+      color: #8ea3bc;
+    }
+
+    .layer-row.active {
+      border-color: #4b91df;
+      background: #173e67;
+    }
+
+    .layer-name {
+      min-width: 0;
+      overflow: hidden;
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .context-menu {
+      position: absolute;
+      z-index: 8;
+      display: none;
+      width: 12.8cqw;
+      min-width: 155px;
+      overflow: hidden;
+      border-radius: 0.65cqw;
+      background: #0f1d2e;
+      border: 1px solid #476482;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.48);
+      color: #e4eef9;
+      font-size: clamp(8px, 0.7cqw, 11px);
+    }
+
+    .context-menu.visible {
+      display: block;
+    }
+
+    .context-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5cqw;
+      padding: 0.63cqw 0.72cqw;
+      border-bottom: 1px solid rgba(87, 116, 149, 0.18);
+    }
+
+    .context-item:first-child {
+      background: #19456f;
+      font-weight: 850;
+    }
+
+    .context-item:last-child {
+      border-bottom: 0;
+    }
+
+    .context-item.danger {
+      color: #ff9eaa;
+    }
+
+    .context-shortcut {
+      color: #8296ae;
+      font-size: 0.88em;
+    }
+
+    .caption {
+      width: min(1600px, 100%);
+      margin: 13px auto 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      color: #8ea2ba;
+      font-size: 13px;
+    }
+
+    .caption strong {
+      color: #c9d9ea;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        padding: 12px;
+      }
+
+      .intro {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .try-hint {
+        width: 100%;
+      }
+
+      .tool-button {
+        padding: 0 0.45cqw;
+      }
+
+      .toolbar-label,
+      .loaded-pill {
+        display: none;
+      }
+
+      .caption {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="intro">
+    <div>
+      <p class="eyebrow">Gate 5 · Vue interactive</p>
+      <h1>World Map Editor avec inspecteur adaptatif</h1>
+      <p>La vraie map reste intacte ; seuls la barre supérieure et le panneau droit sont recomposés.</p>
+    </div>
+    <div class="try-hint">Essaie Peindre, Sélection, Effacer, Placer, Calques et le clic droit sur la map.</div>
+  </div>
+
+  <main class="app" id="app">
+    <img
+      class="base-shot"
+      src="http://localhost:53723/Screenshot%202026-07-29%20at%2014.12.00.png"
+      alt=""
+    >
+
+    <div class="toolbar-cover">
+      <div class="toolbar-group">
+        <span class="toolbar-label">Projet</span>
+        <button class="tool-button">Enregistrer</button>
+        <button class="tool-button subtle">Annuler</button>
+        <button class="tool-button subtle">Rétablir</button>
+        <button class="tool-button subtle">Plus</button>
+      </div>
+
+      <div class="toolbar-group" id="tools">
+        <span class="toolbar-label">Outils</span>
+        <button class="tool-button" data-tool="select">Sélection</button>
+        <button class="tool-button active" data-tool="paint">Peindre · Tuiles</button>
+        <button class="tool-button" data-tool="erase">Effacer</button>
+        <button class="tool-button" data-tool="place">Placer · Objet</button>
+        <button class="tool-button" data-tool="layers">Calques</button>
+      </div>
+
+      <div class="loaded-pill">Village d’Hanazuki · synchronisée</div>
+    </div>
+
+    <div class="map-hotspot" id="map-hotspot" aria-label="Zone de démonstration du clic droit"></div>
+    <div class="map-hint">Clic droit sur la map pour afficher les actions locales</div>
+
+    <aside class="inspector" aria-live="polite">
+      <div class="inspector-header">
+        <div class="inspector-heading">
+          <h2 class="inspector-title" id="inspector-title">Peindre sur Terrain</h2>
+          <div class="inspector-subtitle" id="inspector-subtitle">Calque actif · Terrain · source world</div>
+        </div>
+        <div class="pin">Épingler</div>
+      </div>
+      <div class="inspector-body" id="inspector-body"></div>
+    </aside>
+
+    <div class="context-menu" id="context-menu"></div>
+  </main>
+
+  <div class="caption">
+    <span><strong>Principe :</strong> un seul panneau de travail, entièrement dédié à l’action courante.</span>
+    <span><strong>Conservé :</strong> World Explorer repliable, canvas, zoom, statut et identité visuelle.</span>
+  </div>
+
+  <script>
+    const screenshotUrl =
+      'http://localhost:53723/Screenshot%202026-07-29%20at%2014.12.00.png';
+    const toolButtons = [...document.querySelectorAll('[data-tool]')];
+    const title = document.getElementById('inspector-title');
+    const subtitle = document.getElementById('inspector-subtitle');
+    const body = document.getElementById('inspector-body');
+    const app = document.getElementById('app');
+    const mapHotspot = document.getElementById('map-hotspot');
+    const contextMenu = document.getElementById('context-menu');
+    let activeTool = 'paint';
+
+    const assetGrid = `
+      <div class="settings">
+        <div class="setting">Pinceau<strong>1 × 1</strong></div>
+        <div class="setting">Forme<strong>Carré</strong></div>
+        <div class="setting">Opacité<strong>100 %</strong></div>
+      </div>
+      <div class="source-row">
+        <div class="source-label"><span>Source du calque</span><strong>Tileset world</strong></div>
+        <button class="change-source">Changer</button>
+      </div>
+      <input class="search" placeholder="Rechercher une tuile ou un élément…">
+      <div class="asset-tabs">
+        <button class="asset-tab active">Tous</button>
+        <button class="asset-tab">Favoris</button>
+        <button class="asset-tab">Récents</button>
+      </div>
+      <div class="asset-section">
+        <div class="asset-section-title"><span>Terrain</span><span>12 résultats</span></div>
+        <div class="asset-grid">
+          ${Array.from({ length: 12 }, (_, index) =>
+            `<button class="asset ${index === 1 ? 'selected' : ''}" aria-label="Asset ${index + 1}"></button>`
+          ).join('')}
+        </div>
+      </div>
+    `;
+
+    const inspectorStates = {
+      paint: {
+        title: 'Peindre sur Terrain',
+        subtitle: 'Calque actif · Terrain · source world',
+        body: assetGrid
+      },
+      select: {
+        title: 'Sélection',
+        subtitle: 'Objet sous le pointeur · Lampadaire',
+        body: `
+          <div class="action-row">
+            <div class="primary-action">Déplacer</div>
+            <div class="primary-action">Dupliquer</div>
+            <div class="primary-action danger">Supprimer</div>
+          </div>
+          <div class="property-list">
+            <div class="property"><span>Type</span><strong>Objet placé</strong></div>
+            <div class="property"><span>Position</span><strong>38, 22</strong></div>
+            <div class="property"><span>Calque</span><strong>Éléments</strong></div>
+            <div class="property"><span>Rotation</span><strong>90°</strong></div>
+            <div class="property"><span>Collision</span><strong>Activée</strong></div>
+            <div class="property"><span>Opacité</span><strong>100 %</strong></div>
+          </div>
+        `
+      },
+      erase: {
+        title: 'Effacer sur Terrain',
+        subtitle: 'La gomme conserve sa propre taille',
+        body: `
+          <div class="settings">
+            <div class="setting">Taille<strong>1 × 1</strong></div>
+            <div class="setting">Forme<strong>Carré</strong></div>
+            <div class="setting">Portée<strong>Calque actif</strong></div>
+          </div>
+          <div class="property-list">
+            <div class="property"><span>Calque ciblé</span><strong>Terrain</strong></div>
+            <div class="property"><span>Effacer les objets</span><strong>Non</strong></div>
+            <div class="property"><span>Prévisualisation</span><strong>Visible</strong></div>
+          </div>
+          <div class="empty-state">
+            <strong>La gomme est prête</strong>
+            <p>Son empreinte ne dépend plus du dernier asset peint.</p>
+          </div>
+        `
+      },
+      place: {
+        title: 'Placer un objet',
+        subtitle: 'Calque actif · Éléments',
+        body: `
+          <div class="settings">
+            <div class="setting">Alignement<strong>Grille</strong></div>
+            <div class="setting">Collision<strong>Auto</strong></div>
+            <div class="setting">Rotation<strong>0°</strong></div>
+          </div>
+          <input class="search" placeholder="Rechercher un objet…">
+          <div class="asset-tabs">
+            <button class="asset-tab active">Objets</button>
+            <button class="asset-tab">Favoris</button>
+            <button class="asset-tab">Récents</button>
+          </div>
+          <div class="asset-section">
+            <div class="asset-section-title"><span>Objets compatibles</span><span>12 résultats</span></div>
+            <div class="asset-grid">
+              ${Array.from({ length: 12 }, (_, index) =>
+                `<button class="asset ${index === 4 ? 'selected' : ''}" aria-label="Objet ${index + 1}"></button>`
+              ).join('')}
+            </div>
+          </div>
+        `
+      },
+      layers: {
+        title: 'Calques',
+        subtitle: '10 calques · Terrain actif',
+        body: `
+          <div class="action-row">
+            <div class="primary-action">Ajouter</div>
+            <div class="primary-action">Dupliquer</div>
+            <div class="primary-action">Réordonner</div>
+          </div>
+          <div class="layer-list">
+            <div class="layer-row active"><span class="layer-name">Terrain</span><span class="layer-meta">Visible · Déverrouillé</span></div>
+            <div class="layer-row"><span class="layer-name">Sol</span><span class="layer-meta">Visible</span></div>
+            <div class="layer-row"><span class="layer-name">Chemins</span><span class="layer-meta">Visible</span></div>
+            <div class="layer-row"><span class="layer-name">Éléments</span><span class="layer-meta">Visible</span></div>
+            <div class="layer-row"><span class="layer-name">Bordures</span><span class="layer-meta">Masqué</span></div>
+            <div class="layer-row"><span class="layer-name">Collisions</span><span class="layer-meta">Verrouillé</span></div>
+          </div>
+        `
+      }
+    };
+
+    function renderInspector(tool) {
+      const state = inspectorStates[tool];
+      title.textContent = state.title;
+      subtitle.textContent = state.subtitle;
+      body.innerHTML = state.body;
+
+      body.querySelectorAll('.asset').forEach((asset) => {
+        asset.addEventListener('click', () => {
+          body.querySelectorAll('.asset').forEach((item) => item.classList.remove('selected'));
+          asset.classList.add('selected');
+        });
+      });
+    }
+
+    function setTool(tool) {
+      activeTool = tool;
+      toolButtons.forEach((button) => {
+        button.classList.toggle('active', button.dataset.tool === tool);
+      });
+      contextMenu.classList.remove('visible');
+      renderInspector(tool);
+    }
+
+    function menuForTool(tool) {
+      if (tool === 'select') {
+        return [
+          ['Déplacer', 'V'],
+          ['Pivoter de 90°', 'R'],
+          ['Dupliquer', '⌘D'],
+          ['Supprimer', '⌫', true]
+        ];
+      }
+      if (tool === 'erase') {
+        return [
+          ['Effacer ici', ''],
+          ['Effacer cette zone', ''],
+          ['Activer ce calque', ''],
+          ['Annuler le dernier effacement', '⌘Z']
+        ];
+      }
+      if (tool === 'place') {
+        return [
+          ['Placer ici', ''],
+          ['Coller ici', '⌘V'],
+          ['Créer un événement ici', ''],
+          ['Copier les coordonnées', '']
+        ];
+      }
+      if (tool === 'layers') {
+        return [
+          ['Activer ce calque', ''],
+          ['Afficher / masquer', ''],
+          ['Verrouiller', ''],
+          ['Ouvrir les propriétés', '']
+        ];
+      }
+      return [
+        ['Prélever cette tuile', 'I'],
+        ['Remplacer ici', ''],
+        ['Effacer ici', ''],
+        ['Activer son calque', '']
+      ];
+    }
+
+    function showContextMenu(event) {
+      event.preventDefault();
+      const appRect = app.getBoundingClientRect();
+      const items = menuForTool(activeTool);
+      contextMenu.innerHTML = items.map(([label, shortcut, danger]) => `
+        <div class="context-item ${danger ? 'danger' : ''}">
+          <span>${label}</span>
+          <span class="context-shortcut">${shortcut}</span>
+        </div>
+      `).join('');
+      contextMenu.classList.add('visible');
+
+      const maxLeft = app.clientWidth - contextMenu.offsetWidth - 12;
+      const maxTop = app.clientHeight - contextMenu.offsetHeight - 12;
+      contextMenu.style.left = `${Math.max(12, Math.min(event.clientX - appRect.left, maxLeft))}px`;
+      contextMenu.style.top = `${Math.max(12, Math.min(event.clientY - appRect.top, maxTop))}px`;
+    }
+
+    toolButtons.forEach((button) => {
+      button.addEventListener('click', () => setTool(button.dataset.tool));
+    });
+
+    mapHotspot.addEventListener('contextmenu', showContextMenu);
+    app.addEventListener('click', (event) => {
+      if (!contextMenu.contains(event.target)) {
+        contextMenu.classList.remove('visible');
+      }
+    });
+
+    renderInspector(activeTool);
+  </script>
+</body>
+</html>

@@ -59,6 +59,43 @@ void main() {
     expect(find.byType(PokeMapTextField), findsOneWidget);
   });
 
+  testWidgets('static encounter uses the dedicated guided contract picker',
+      (tester) async {
+    SceneNodePayload? submitted;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.staticEncounter,
+      options: const {
+        NarrativeCommandParameterKind.staticEncounter: [
+          SceneActionPickerOption(
+            id: 'static:trainer_lighthouse_guardian',
+            label: 'Gardien du phare',
+            parameters: {
+              'trainerId': 'trainer_lighthouse_guardian',
+              'battleTemplateId': 'battle_lighthouse_pokemon',
+            },
+          ),
+        ],
+      },
+      onSubmit: (payload) => submitted = payload,
+    );
+
+    expect(find.text('Gardien du phare'), findsOneWidget);
+    expect(find.byType(PokeMapTextField), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.pump();
+
+    expect(
+      submitted,
+      SceneBattlePayload(
+        battleKind: 'static',
+        trainerId: 'trainer_lighthouse_guardian',
+        battleTemplateId: 'battle_lighthouse_pokemon',
+        declaredOutcomes: const ['victory', 'defeat'],
+      ),
+    );
+  });
+
   testWidgets('canonical heal command is authorable without raw parameters',
       (tester) async {
     SceneNodePayload? submitted;

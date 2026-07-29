@@ -1,0 +1,221 @@
+<style>
+  .placement-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(320px, 1fr));
+    gap: 18px;
+    margin-top: 22px;
+  }
+
+  .placement-grid .card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .placement-grid .card-body {
+    flex: 1;
+  }
+
+  .mock {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    border-radius: 10px;
+    background: #08121f;
+    border: 1px solid #30425d;
+    color: #dce9ff;
+    font-size: 10px;
+  }
+
+  .top {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 13%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 9px;
+    background: #0d1929;
+    border-bottom: 1px solid #30425d;
+    font-weight: 800;
+  }
+
+  .canvas {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px),
+      #34744a;
+    background-size: 18px 18px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.72);
+  }
+
+  .panel {
+    position: absolute;
+    background: #0d1929;
+    border-color: #30425d;
+    border-style: solid;
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px;
+    border-bottom: 1px solid #30425d;
+    font-weight: 800;
+  }
+
+  .controls {
+    display: flex;
+    gap: 5px;
+    padding: 7px;
+  }
+
+  .control {
+    flex: 1;
+    padding: 6px 4px;
+    border-radius: 6px;
+    background: #172a43;
+    text-align: center;
+  }
+
+  .search {
+    margin: 0 7px 7px;
+    padding: 7px;
+    border-radius: 6px;
+    background: #101d2e;
+    border: 1px solid #3b506c;
+  }
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    padding: 7px;
+  }
+
+  .tile {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    background:
+      linear-gradient(135deg, rgba(255,255,255,.18), transparent),
+      #3d7a4c;
+    border: 1px solid #72906d;
+  }
+
+  .bottom-tiles {
+    display: flex;
+    gap: 6px;
+    padding: 7px;
+  }
+
+  .bottom-tiles .tile {
+    width: 34px;
+    flex: 0 0 auto;
+  }
+
+  .recommended {
+    display: inline-block;
+    margin-left: 7px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: rgba(75, 137, 230, 0.16);
+    color: #83b3ff;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .reason {
+    margin-top: 11px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    line-height: 1.45;
+  }
+
+  @media (max-width: 850px) {
+    .placement-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<p class="label">Inspecteur adaptatif · Section 2</p>
+<h2>Quand tu peins, où doit vivre la palette ?</h2>
+<p class="subtitle">
+  Dans les deux cas, elle apparaît dès que tu choisis Peindre et disparaît
+  lorsque tu reviens à Sélectionner.
+</p>
+
+<div class="cards placement-grid">
+  <div class="card" data-choice="palette-in-right-inspector" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mock">
+        <div class="top"><span>Village d’Hanazuki</span><span>Peindre · Terrain</span></div>
+        <div class="canvas" style="left:0;right:32%;top:13%;bottom:0">CANVAS CONSERVÉ</div>
+        <div class="panel" style="right:0;top:13%;bottom:0;width:32%;border-width:0 0 0 1px">
+          <div class="panel-head"><span>Peindre sur Terrain</span><span>×</span></div>
+          <div class="controls">
+            <div class="control">1 × 1</div>
+            <div class="control">Carré</div>
+            <div class="control">Effacer</div>
+          </div>
+          <div class="search">Rechercher · Favoris · Récents</div>
+          <div class="tiles">
+            <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
+            <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>La droite devient la palette <span class="recommended">Recommandé</span></h3>
+      <p>
+        Aucun nouveau panneau : le grand accordéon est remplacé par l’outil
+        Peindre, ses réglages fixes en haut et les assets juste dessous.
+      </p>
+      <div class="reason">
+        On peut faire défiler les assets eux-mêmes, mais on ne scrolle plus
+        toute l’interface pour retrouver la palette.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="palette-in-bottom-tray" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mock">
+        <div class="top"><span>Village d’Hanazuki</span><span>Peindre · Terrain</span></div>
+        <div class="canvas" style="left:0;right:28%;top:13%;bottom:28%">CANVAS MOINS HAUT</div>
+        <div class="panel" style="right:0;top:13%;bottom:28%;width:28%;border-width:0 0 0 1px">
+          <div class="panel-head"><span>Réglages du pinceau</span><span>×</span></div>
+          <div class="controls" style="display:block">
+            <div class="control" style="margin-bottom:5px">Taille · 1 × 1</div>
+            <div class="control">Forme · Carré</div>
+          </div>
+        </div>
+        <div class="panel" style="left:0;right:0;bottom:0;height:28%;border-width:1px 0 0">
+          <div class="panel-head"><span>Assets Terrain · Recherche · Favoris</span><span>⌄</span></div>
+          <div class="bottom-tiles">
+            <div class="tile"></div><div class="tile"></div><div class="tile"></div>
+            <div class="tile"></div><div class="tile"></div><div class="tile"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Un tray sous la map</h3>
+      <p>
+        Les réglages restent à droite et une grande bande d’assets s’ouvre sous
+        le canvas pendant la peinture.
+      </p>
+      <div class="reason">
+        Plus de largeur pour les assets, mais la map perd de la hauteur et deux
+        panneaux contextuels doivent être surveillés au lieu d’un seul.
+      </div>
+    </div>
+  </div>
+</div>

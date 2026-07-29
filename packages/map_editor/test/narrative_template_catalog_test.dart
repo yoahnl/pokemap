@@ -8,10 +8,10 @@ void main() {
       final catalog = NarrativeTemplateCatalog.canonical();
 
       expect(catalog.schemaVersion, 1);
-      expect(catalog.eventSceneTemplates, hasLength(11));
+      expect(catalog.eventSceneTemplates, hasLength(12));
       expect(catalog.cinematicTemplates, hasLength(2));
       expect(catalog.worldRuleTemplates, hasLength(2));
-      expect(catalog.templates, hasLength(15));
+      expect(catalog.templates, hasLength(16));
       expect(
         catalog.byKind(NarrativeTemplateKind.nurse).isPublishable,
         isTrue,
@@ -49,6 +49,14 @@ void main() {
       expect(
         catalog.byKind(NarrativeTemplateKind.gameEnding).authoringHint,
         contains('résultat'),
+      );
+      expect(
+        catalog.byKind(NarrativeTemplateKind.staticEncounter).command.id,
+        NarrativeCommandIds.staticEncounter,
+      );
+      expect(
+        catalog.byKind(NarrativeTemplateKind.staticEncounter).isPublishable,
+        isTrue,
       );
     });
 
@@ -119,6 +127,26 @@ void main() {
       for (final payload in payloads) {
         expect(SceneNodePayload.fromJson(payload.toJson()), payload);
       }
+    });
+
+    test('static encounter builds the canonical tagged battle reference', () {
+      final payload = buildScenePayloadForNarrativeCommand(
+        commandId: NarrativeCommandIds.staticEncounter,
+        parameters: const {
+          'staticEncounterId': 'static:trainer_lighthouse_guardian',
+          'trainerId': 'trainer_lighthouse_guardian',
+          'battleTemplateId': 'battle_lighthouse_pokemon',
+        },
+      ) as SceneBattlePayload;
+
+      expect(payload.battleKind, 'static');
+      expect(payload.trainerId, 'trainer_lighthouse_guardian');
+      expect(
+        payload.battleTemplateId,
+        'battle_lighthouse_pokemon',
+      );
+      expect(payload.declaredOutcomes, const ['victory', 'defeat']);
+      expect(SceneNodePayload.fromJson(payload.toJson()), payload);
     });
 
     test('Finish Game builds a localized terminal payload from friendly fields',
@@ -232,6 +260,131 @@ void main() {
 
       final reloaded = ProjectManifest.fromJson(preview.after!.toJson());
       expect(reloaded.toJson(), preview.after!.toJson());
+    });
+
+    test('static encounter preview preserves its distinct battle template', () {
+      final before = ProjectManifest(
+        name: 'Static template test',
+        maps: const [
+          ProjectMapEntry(
+            id: 'map_lighthouse',
+            name: 'Phare',
+            relativePath: 'maps/lighthouse.json',
+          ),
+        ],
+        tilesets: const [],
+        trainers: const [
+          ProjectTrainerEntry(
+            id: 'trainer_lighthouse_guardian',
+            name: 'Gardien du phare',
+            trainerClass: 'Rencontre',
+            tags: ['static-encounter'],
+          ),
+        ],
+        scenes: [
+          _staticBattleContractScene(),
+        ],
+      );
+      final preview = previewNarrativeTemplate(
+        project: before,
+        request: NarrativeTemplateRequest(
+          kind: NarrativeTemplateKind.staticEncounter,
+          eventId: _eventId,
+          sceneId: _sceneId,
+          name: 'Gardien du phare',
+          source: NarrativeEventSourceRef.entityInteract(
+            'map_lighthouse',
+            'boss_lighthouse',
+          ),
+          physicalSource: const NarrativeTemplatePhysicalSource(
+            kind: NarrativeTemplatePhysicalSourceKind.entity,
+            mapId: 'map_lighthouse',
+            sourceId: 'boss_lighthouse',
+            exists: true,
+          ),
+          parameters: const {
+            'staticEncounterId': 'static:trainer_lighthouse_guardian',
+            'trainerId': 'trainer_lighthouse_guardian',
+            'battleTemplateId': 'battle_lighthouse_pokemon',
+          },
+        ),
+      );
+
+      expect(preview.canApply, isTrue);
+      final payload = preview.scene!.graph.nodes
+          .map((node) => node.payload)
+          .whereType<SceneBattlePayload>()
+          .single;
+      expect(payload.trainerId, 'trainer_lighthouse_guardian');
+      expect(payload.battleTemplateId, 'battle_lighthouse_pokemon');
+      expect(preview.event!.reusePolicy, NarrativeEventReusePolicy.oneShot);
+
+      final reloaded = ProjectManifest.fromJson(preview.after!.toJson());
+      final reloadedPayload = reloaded.scenes
+          .singleWhere((scene) => scene.id == _sceneId)
+          .graph
+          .nodes
+          .map((node) => node.payload)
+          .whereType<SceneBattlePayload>()
+          .single;
+      expect(reloadedPayload, payload);
+    });
+
+    test('static encounter preview fails closed on conflicting templates', () {
+      final before = ProjectManifest(
+        name: 'Ambiguous static template test',
+        maps: const [
+          ProjectMapEntry(
+            id: 'map_lighthouse',
+            name: 'Phare',
+            relativePath: 'maps/lighthouse.json',
+          ),
+        ],
+        tilesets: const [],
+        trainers: const [
+          ProjectTrainerEntry(
+            id: 'trainer_lighthouse_guardian',
+            name: 'Gardien du phare',
+            trainerClass: 'Rencontre',
+            tags: ['static-encounter'],
+          ),
+        ],
+        scenes: [
+          _staticBattleContractScene(),
+          _staticBattleContractScene(
+            id: 'scene.other.static.contract',
+            battleTemplateId: 'battle_lighthouse_storm',
+          ),
+        ],
+      );
+      final preview = previewNarrativeTemplate(
+        project: before,
+        request: NarrativeTemplateRequest(
+          kind: NarrativeTemplateKind.staticEncounter,
+          eventId: _eventId,
+          sceneId: _sceneId,
+          name: 'Gardien du phare',
+          source: NarrativeEventSourceRef.entityInteract(
+            'map_lighthouse',
+            'boss_lighthouse',
+          ),
+          physicalSource: const NarrativeTemplatePhysicalSource(
+            kind: NarrativeTemplatePhysicalSourceKind.entity,
+            mapId: 'map_lighthouse',
+            sourceId: 'boss_lighthouse',
+            exists: true,
+          ),
+          parameters: const {
+            'staticEncounterId': 'static:trainer_lighthouse_guardian',
+            'trainerId': 'trainer_lighthouse_guardian',
+            'battleTemplateId': 'battle_lighthouse_pokemon',
+          },
+        ),
+      );
+
+      expect(preview.canApply, isFalse);
+      expect(preview.after, isNull);
+      expect(preview.diagnostics.join(' '), contains('incompatibles'));
     });
 
     test('every Cinematic template builds a valid non-empty timeline', () {
@@ -405,5 +558,32 @@ NarrativeTemplateRequest _itemBallRequest({
       exists: sourceExists,
     ),
     parameters: const {'itemId': 'potion', 'quantity': '2'},
+  );
+}
+
+SceneAsset _staticBattleContractScene({
+  String id = 'scene.existing.static.contract',
+  String battleTemplateId = 'battle_lighthouse_pokemon',
+}) {
+  return SceneAsset(
+    id: id,
+    name: 'Existing static contract',
+    graph: SceneGraph(
+      startNodeId: '$id.start',
+      nodes: [
+        SceneNode(id: '$id.start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: '$id.battle',
+          kind: SceneNodeKind.battle,
+          payload: SceneBattlePayload(
+            battleKind: 'static',
+            trainerId: 'trainer_lighthouse_guardian',
+            battleTemplateId: battleTemplateId,
+            declaredOutcomes: const ['victory', 'defeat'],
+          ),
+        ),
+      ],
+      edges: const [],
+    ),
   );
 }

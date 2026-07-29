@@ -1,0 +1,244 @@
+<style>
+  .comparison {
+    display: grid;
+    gap: 16px;
+    margin: 20px 0 26px;
+  }
+
+  .bar-card {
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .bar-card h3 {
+    margin-top: 0;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 58px;
+    padding: 8px;
+    overflow-x: auto;
+    border-radius: 10px;
+    background: #081421;
+    border: 1px solid #30425d;
+    color: #dce9ff;
+    font-size: 12px;
+  }
+
+  .group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px;
+    border-radius: 8px;
+    background: #0e1c2d;
+    border: 1px solid #2e4562;
+    white-space: nowrap;
+  }
+
+  .group-title {
+    margin-right: 3px;
+    color: #8299b4;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .tool {
+    min-width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 7px;
+    border-radius: 6px;
+    background: #162a42;
+    border: 1px solid transparent;
+    font-weight: 800;
+  }
+
+  .tool.active {
+    background: #245f9c;
+    border-color: #70aff0;
+  }
+
+  .tool.muted {
+    color: #8193a9;
+  }
+
+  .split-tool {
+    display: inline-flex;
+    overflow: hidden;
+    border-radius: 6px;
+    border: 1px solid #3e5a79;
+  }
+
+  .split-tool .tool {
+    border-radius: 0;
+  }
+
+  .chevron {
+    width: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #122338;
+    border-left: 1px solid #3e5a79;
+  }
+
+  .workspace-note {
+    margin-left: auto;
+    padding: 7px 10px;
+    border-radius: 7px;
+    background: rgba(55, 130, 85, 0.18);
+    color: #82d9a4;
+    border: 1px solid rgba(78, 174, 112, 0.34);
+    white-space: nowrap;
+  }
+
+  .menu-demo {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+  }
+
+  .popover {
+    overflow: hidden;
+    border-radius: 9px;
+    background: #101d2e;
+    border: 1px solid #4a6381;
+    color: #dce9ff;
+    font-size: 13px;
+  }
+
+  .popover-head {
+    padding: 9px 10px;
+    font-weight: 800;
+    border-bottom: 1px solid #334b67;
+  }
+
+  .popover-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 9px 10px;
+    border-bottom: 1px solid rgba(96, 125, 158, 0.16);
+  }
+
+  .popover-row:last-child {
+    border-bottom: 0;
+  }
+
+  .popover-row.active {
+    background: #1c416b;
+  }
+
+  .rules {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .rule {
+    padding: 13px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(74, 128, 204, 0.08);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 760px) {
+    .menu-demo,
+    .rules {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<p class="label">Inspecteur adaptatif · Section 4</p>
+<h2>La barre du haut devient une ceinture d’outils, pas un inventaire</h2>
+<p class="subtitle">
+  Aujourd’hui elle mélange fichiers, édition de map, treize outils et treize
+  raccourcis vers d’autres studios. La proposition garde les gestes quotidiens
+  visibles et range le reste par intention.
+</p>
+
+<div class="comparison">
+  <div class="bar-card">
+    <h3>Organisation actuelle</h3>
+    <div class="toolbar">
+      <div class="group"><span class="group-title">Fichier</span><span class="tool">7 actions</span></div>
+      <div class="group"><span class="group-title">Carte</span><span class="tool">2</span></div>
+      <div class="group"><span class="group-title">Outils</span><span class="tool">13 icônes</span></div>
+      <div class="group"><span class="group-title">Calques</span><span class="tool">1</span></div>
+      <div class="group"><span class="group-title">Aperçu</span><span class="tool">13 studios</span></div>
+    </div>
+  </div>
+
+  <div class="bar-card">
+    <h3>Organisation proposée</h3>
+    <div class="toolbar">
+      <div class="group">
+        <span class="group-title">Projet</span>
+        <span class="tool">Enregistrer</span>
+        <span class="tool">↶</span>
+        <span class="tool">↷</span>
+        <span class="tool muted">•••</span>
+      </div>
+      <div class="group">
+        <span class="group-title">Outils</span>
+        <span class="tool">Sélection</span>
+        <span class="split-tool">
+          <span class="tool active">Peindre · Tuiles</span>
+          <span class="chevron">⌄</span>
+        </span>
+        <span class="tool">Effacer</span>
+        <span class="split-tool">
+          <span class="tool">Placer · Objet</span>
+          <span class="chevron">⌄</span>
+        </span>
+        <span class="tool">Calques</span>
+      </div>
+      <div class="workspace-note">World Map · Village d’Hanazuki</div>
+    </div>
+  </div>
+</div>
+
+<div class="menu-demo">
+  <div>
+    <h3>Flèche de « Peindre »</h3>
+    <div class="popover">
+      <div class="popover-head">Choisir ce que tu peins</div>
+      <div class="popover-row active"><span>Tuiles & éléments</span><span>dernier utilisé</span></div>
+      <div class="popover-row"><span>Terrain</span></div>
+      <div class="popover-row"><span>Chemins</span></div>
+      <div class="popover-row"><span>Surfaces</span></div>
+      <div class="popover-row"><span>Bordures</span></div>
+      <div class="popover-row"><span>Collisions</span></div>
+    </div>
+  </div>
+  <div>
+    <h3>Flèche de « Placer »</h3>
+    <div class="popover">
+      <div class="popover-head">Choisir ce que tu places</div>
+      <div class="popover-row active"><span>Objet</span><span>dernier utilisé</span></div>
+      <div class="popover-row"><span>Entité</span></div>
+      <div class="popover-row"><span>Événement</span></div>
+      <div class="popover-row"><span>Déclencheur</span></div>
+      <div class="popover-row"><span>Warp</span></div>
+      <div class="popover-row"><span>Zone de gameplay</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="rules" style="margin-top:18px">
+  <div class="rule"><strong>Le gros bouton répète le dernier outil</strong><br>Peindre reste donc une action à un clic.</div>
+  <div class="rule"><strong>La petite flèche change la variante</strong><br>Les outils moins fréquents restent à deux clics maximum.</div>
+  <div class="rule"><strong>Les studios quittent cette barre</strong><br>Ils restent accessibles depuis le World Explorer, qui sait déjà se replier.</div>
+</div>

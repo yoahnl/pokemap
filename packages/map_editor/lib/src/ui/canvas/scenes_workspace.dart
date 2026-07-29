@@ -101,6 +101,8 @@ typedef SceneBattlePayloadUpdater = Future<bool> Function({
   required String sceneId,
   required String nodeId,
   required String trainerId,
+  required String battleKind,
+  String? battleTemplateId,
 });
 
 typedef SceneCinematicPayloadUpdater = Future<bool> Function({
@@ -1191,6 +1193,8 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
   Future<bool> _updateBattlePayload({
     required String nodeId,
     required String trainerId,
+    required String battleKind,
+    String? battleTemplateId,
   }) async {
     final selected = _selectedScene;
     if (selected == null) {
@@ -1200,6 +1204,8 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
       sceneId: selected.id,
       nodeId: nodeId,
       trainerId: trainerId,
+      battleKind: battleKind,
+      battleTemplateId: battleTemplateId,
     );
     if (!mounted || !updated) {
       return false;
@@ -2162,8 +2168,15 @@ class _SceneNodeDraftPalette extends StatelessWidget {
     }
     await onAddLinkedAssetNodeDraft(
       payload: SceneBattlePayload(
-        battleKind: contract.battleKind.name,
+        battleKind: switch (contract.battleKind) {
+          BattlePublicContractKind.trainer => 'trainer',
+          BattlePublicContractKind.staticEncounter => 'static',
+        },
         trainerId: contract.trainerId,
+        battleTemplateId:
+            contract.battleKind == BattlePublicContractKind.staticEncounter
+                ? contract.battleTemplateId
+                : null,
         declaredOutcomes: [
           for (final outcome in contract.possibleOutcomes) outcome.id,
         ],
