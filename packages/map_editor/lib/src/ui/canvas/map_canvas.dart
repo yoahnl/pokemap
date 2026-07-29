@@ -5,7 +5,13 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart'
-    show DragStartBehavior, PointerScrollEvent, PointerSignalEvent;
+    show
+        DragStartBehavior,
+        PointerPanZoomEndEvent,
+        PointerPanZoomStartEvent,
+        PointerPanZoomUpdateEvent,
+        PointerScrollEvent,
+        PointerSignalEvent;
 import 'package:flutter/services.dart'
     show
         HardwareKeyboard,
@@ -29,6 +35,7 @@ import '../../application/services/environment_generated_placement_hover_resolve
 import '../../application/services/environment_mask_brush_footprint_resolver.dart';
 import '../../application/services/environment_mask_paint_target_resolver.dart';
 import '../../application/services/map_focus_viewport_resolver.dart';
+import '../../application/services/map_viewport_navigation.dart';
 import '../../application/services/tileset_transparent_color_processor.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
@@ -51,6 +58,7 @@ import '../../features/path_pattern/path_pattern_editor_render_resolution.dart';
 import '../../features/surface_painter/surface_layer_static_preview.dart';
 import '../../features/surface_painter/surface_tile_preview_resolver.dart';
 import 'entity_editor_element_visual.dart';
+import 'map_canvas/map_canvas_navigation_controls.dart';
 import 'map_canvas/narrative_event_map_banner.dart';
 import 'narrative_studio/narrative_studio_navigation.dart';
 import 'shadow/editor_static_shadow_preview_painter.dart';
@@ -196,6 +204,12 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   Future<Map<String, ui.Image?>>? _tilesetImagesFuture;
   GridPos? _hoveredTile;
   GridPos? _hoveredBorderVertex;
+  ({
+    int interactionId,
+    int pointerId,
+    MapViewport viewport,
+    Offset focalPoint,
+  })? _trackpadGesture;
 
   bool _spacePressed = false;
 
@@ -248,6 +262,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   @override
   void deactivate() {
     final cancelled = _interactionController.cancelActive();
+    _clearTrackpadGesture();
     if (cancelled != null) {
       _scheduleDetachedInteractionRollback(cancelled.session);
     } else if (ref.read(editorNotifierProvider).mapStrokeStart != null) {
@@ -263,6 +278,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   void dispose() {
     _entityEditorAnimTimer?.cancel();
     _pressedMapPointers.clear();
+    _clearTrackpadGesture();
     _mapFocusNode.dispose();
     super.dispose();
   }
@@ -691,16 +707,25 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           _borderStrokeEditingDraft = null;
         }
 
-        return Listener(
+        final interactiveCanvas = Listener(
           behavior: HitTestBehavior.translucent,
           onPointerDown: _onMapPointerDown,
           onPointerMove: _onMapPointerMove,
           onPointerUp: _onMapPointerUp,
           onPointerCancel: _onMapPointerCancel,
           onPointerSignal: _onMapPointerSignal,
+          onPointerPanZoomStart: _onMapPointerPanZoomStart,
+          onPointerPanZoomUpdate: _onMapPointerPanZoomUpdate,
+          onPointerPanZoomEnd: _onMapPointerPanZoomEnd,
           onPointerHover: (event) => _onMapPointerHover(event.localPosition),
           child: GestureDetector(
             key: const ValueKey<String>('map-canvas-gesture-detector'),
+            supportedDevices: const <ui.PointerDeviceKind>{
+              ui.PointerDeviceKind.mouse,
+              ui.PointerDeviceKind.touch,
+              ui.PointerDeviceKind.stylus,
+              ui.PointerDeviceKind.invertedStylus,
+            },
             dragStartBehavior: DragStartBehavior.down,
             onTapUp: (details) {
               final pendingSession = _interactionController.activeSession;
@@ -1019,6 +1044,12 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               if (mounted) setState(() {});
             },
             child: MouseRegion(
+              cursor: _interactionController.activeSession?.kind ==
+                      MapCanvasInteractionKind.panning
+                  ? SystemMouseCursors.grabbing
+                  : _spacePressed && _interactionController.isIdle
+                      ? SystemMouseCursors.grab
+                      : SystemMouseCursors.basic,
               onExit: (_) {
                 if (_hoveredTile != null || _hoveredBorderVertex != null) {
                   setState(() {
@@ -1182,6 +1213,24 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               ),
             ),
           ),
+        );
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            interactiveCanvas,
+            Positioned(
+              right: 12,
+              bottom: 12,
+              child: MapCanvasNavigationControls(
+                zoom: state.zoom,
+                onZoomOut: _zoomOut,
+                onZoomIn: _zoomIn,
+                onFit: _fitActiveMap,
+                onActualSize: _showActiveMapAtActualSize,
+                onCenter: _centerActiveMap,
+              ),
+            ),
+          ],
         );
       },
     );
@@ -1357,6 +1406,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   void _cancelAndRollbackPointer(int pointerId) {
     final cancelled = _interactionController.cancelPointer(pointerId);
     if (cancelled == null) return;
+    if (cancelled.session.kind == MapCanvasInteractionKind.trackpadPanZoom) {
+      _clearTrackpadGesture(cancelled.session.interactionId);
+    }
     _rollbackMapInteraction(cancelled.session);
     if (mounted) setState(() {});
   }
@@ -1465,16 +1517,113 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     }
   }
 
+  void _onMapPointerPanZoomStart(PointerPanZoomStartEvent event) {
+    _mapFocusNode.requestFocus();
+    if (_pressedMapPointers.isNotEmpty) return;
+
+    final started = _interactionController.beginPanZoom(
+      MapCanvasInteractionInput(
+        pointerId: event.pointer,
+        pointerKind: _mapCanvasPointerKind(event.kind),
+        buttons: event.buttons,
+        modifiers: _currentMapInteractionModifiers(),
+        context: _currentMapInteractionContext(),
+      ),
+    );
+    final session = started.session;
+    if (session == null) return;
+    final state = ref.read(editorNotifierProvider);
+    _trackpadGesture = (
+      interactionId: session.interactionId,
+      pointerId: event.pointer,
+      viewport: MapViewport(
+        zoom: state.zoom,
+        panOffset: state.panOffset,
+      ),
+      focalPoint: event.localPosition,
+    );
+    setState(() {});
+  }
+
+  void _onMapPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
+    final interaction = _interactionController.activeSession;
+    final snapshot = _trackpadGesture;
+    if (interaction == null ||
+        interaction.kind != MapCanvasInteractionKind.trackpadPanZoom ||
+        interaction.pointerId != event.pointer ||
+        snapshot == null ||
+        snapshot.interactionId != interaction.interactionId ||
+        snapshot.pointerId != event.pointer) {
+      return;
+    }
+    if (!_ensureCurrentInteractionContext(interaction)) {
+      _clearTrackpadGesture(interaction.interactionId);
+      return;
+    }
+    final cumulativePan = PointerEvent.transformDeltaViaPositions(
+      transform: event.transform,
+      untransformedDelta: event.pan,
+      untransformedEndPosition: event.position,
+      transformedEndPosition: event.localPosition,
+    );
+    final viewport = MapViewportNavigation.panZoomFromStart(
+      startViewport: snapshot.viewport,
+      startFocalPoint: snapshot.focalPoint,
+      cumulativePan: cumulativePan,
+      scale: event.scale,
+    );
+    ref.read(editorNotifierProvider.notifier).setMapViewport(viewport);
+  }
+
+  void _onMapPointerPanZoomEnd(PointerPanZoomEndEvent event) {
+    final interaction = _interactionController.activeSession;
+    final snapshot = _trackpadGesture;
+    if (interaction == null ||
+        interaction.kind != MapCanvasInteractionKind.trackpadPanZoom ||
+        interaction.pointerId != event.pointer ||
+        snapshot == null ||
+        snapshot.interactionId != interaction.interactionId ||
+        snapshot.pointerId != event.pointer) {
+      return;
+    }
+    _interactionController.finishPointer(event.pointer);
+    _clearTrackpadGesture(interaction.interactionId);
+    if (mounted) setState(() {});
+  }
+
   void _onMapPointerSignal(PointerSignalEvent event) {
     if (event is! PointerScrollEvent) return;
     if (!_interactionController.acceptsScroll) return;
+    if (event.buttons != 0 || _pressedMapPointers.isNotEmpty) return;
     final kind = event.kind;
     if (kind != ui.PointerDeviceKind.mouse &&
         kind != ui.PointerDeviceKind.trackpad) {
       return;
     }
     if (event.scrollDelta == Offset.zero) return;
-    ref.read(editorNotifierProvider.notifier).pan(-event.scrollDelta);
+    _mapFocusNode.requestFocus();
+    final state = ref.read(editorNotifierProvider);
+    final current = MapViewport(
+      zoom: state.zoom,
+      panOffset: state.panOffset,
+    );
+    final keyboard = HardwareKeyboard.instance;
+    final zoomRequested = keyboard.isMetaPressed || keyboard.isControlPressed;
+    if (zoomRequested) {
+      if (event.scrollDelta.dy == 0) return;
+      final viewport = MapViewportNavigation.zoomFromScroll(
+        viewport: current,
+        focalPoint: event.localPosition,
+        scrollDeltaY: event.scrollDelta.dy,
+      );
+      ref.read(editorNotifierProvider.notifier).setMapViewport(viewport);
+      return;
+    }
+    final viewport = MapViewportNavigation.panBy(
+      viewport: current,
+      delta: -event.scrollDelta,
+    );
+    ref.read(editorNotifierProvider.notifier).setMapViewport(viewport);
   }
 
   KeyEventResult _onMapKeyEvent(FocusNode node, KeyEvent event) {
@@ -1482,6 +1631,17 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       final nextPressed = event is! KeyUpEvent;
       if (_spacePressed != nextPressed) {
         setState(() => _spacePressed = nextPressed);
+      }
+      return KeyEventResult.handled;
+    }
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.keyF &&
+        !HardwareKeyboard.instance.isShiftPressed &&
+        !HardwareKeyboard.instance.isAltPressed &&
+        !HardwareKeyboard.instance.isControlPressed &&
+        !HardwareKeyboard.instance.isMetaPressed) {
+      if (_interactionController.isIdle) {
+        _fitActiveMap();
       }
       return KeyEventResult.handled;
     }
@@ -1504,12 +1664,104 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     final cancelled = _interactionController.cancelActive();
     final needsRebuild = _spacePressed || cancelled != null;
     _spacePressed = false;
+    _pressedMapPointers.clear();
+    _clearTrackpadGesture();
     if (cancelled != null) {
       _rollbackMapInteraction(cancelled.session);
     }
     if (needsRebuild && mounted) {
       setState(() {});
     }
+  }
+
+  void _zoomOut() => _zoomActiveMap(1 / 1.2);
+
+  void _zoomIn() => _zoomActiveMap(1.2);
+
+  void _zoomActiveMap(double factor) {
+    final geometry = _readActiveMapViewportGeometry();
+    if (geometry == null || !_interactionController.isIdle) return;
+    final viewport = MapViewportNavigation.zoomAt(
+      viewport: geometry.viewport,
+      focalPoint: geometry.viewportSize.center(Offset.zero),
+      targetZoom: geometry.viewport.zoom * factor,
+    );
+    ref.read(editorNotifierProvider.notifier).setMapViewport(viewport);
+    _mapFocusNode.requestFocus();
+  }
+
+  void _fitActiveMap() {
+    final geometry = _readActiveMapViewportGeometry();
+    if (geometry == null || !_interactionController.isIdle) return;
+    final viewport = MapViewportNavigation.fitMap(
+      mapPixelSize: geometry.mapPixelSize,
+      viewportSize: geometry.viewportSize,
+    );
+    ref.read(editorNotifierProvider.notifier).setMapViewport(viewport);
+    _mapFocusNode.requestFocus();
+  }
+
+  void _showActiveMapAtActualSize() {
+    final geometry = _readActiveMapViewportGeometry();
+    if (geometry == null || !_interactionController.isIdle) return;
+    final viewport = MapViewportNavigation.actualSize(
+      viewport: geometry.viewport,
+      viewportSize: geometry.viewportSize,
+    );
+    ref.read(editorNotifierProvider.notifier).setMapViewport(viewport);
+    _mapFocusNode.requestFocus();
+  }
+
+  void _centerActiveMap() {
+    final geometry = _readActiveMapViewportGeometry();
+    if (geometry == null || !_interactionController.isIdle) return;
+    final viewport = MapViewportNavigation.centerMap(
+      mapPixelSize: geometry.mapPixelSize,
+      viewportSize: geometry.viewportSize,
+      zoom: geometry.viewport.zoom,
+    );
+    ref.read(editorNotifierProvider.notifier).setMapViewport(viewport);
+    _mapFocusNode.requestFocus();
+  }
+
+  ({
+    Size mapPixelSize,
+    Size viewportSize,
+    MapViewport viewport,
+  })? _readActiveMapViewportGeometry() {
+    final state = ref.read(editorNotifierProvider);
+    final map = state.activeMap;
+    if (map == null) return null;
+    final renderObject = _mapViewportKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox ||
+        !renderObject.hasSize ||
+        renderObject.size.isEmpty) {
+      return null;
+    }
+    final settings = state.project?.settings ?? const ProjectSettings();
+    final tileWidth = settings.tileWidth * settings.displayScale;
+    final tileHeight = settings.tileHeight * settings.displayScale;
+    final mapPixelSize = Size(
+      map.size.width * tileWidth,
+      map.size.height * tileHeight,
+    );
+    if (mapPixelSize.width <= 0 || mapPixelSize.height <= 0) return null;
+    return (
+      mapPixelSize: mapPixelSize,
+      viewportSize: renderObject.size,
+      viewport: MapViewport(
+        zoom: state.zoom,
+        panOffset: state.panOffset,
+      ),
+    );
+  }
+
+  void _clearTrackpadGesture([int? interactionId]) {
+    if (interactionId != null &&
+        _trackpadGesture?.interactionId != interactionId) {
+      return;
+    }
+    _trackpadGesture = null;
   }
 
   void _scheduleDetachedInteractionRollback(
@@ -1536,7 +1788,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
         rollback = controller.rollbackDrawingGesture;
       case MapCanvasInteractionKind.pendingPrimary:
       case MapCanvasInteractionKind.panning:
+        break;
       case MapCanvasInteractionKind.trackpadPanZoom:
+        _clearTrackpadGesture(interaction.interactionId);
         break;
     }
     if (rollback == null) return;
@@ -1597,7 +1851,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             .rollbackDrawingGesture();
       case MapCanvasInteractionKind.pendingPrimary:
       case MapCanvasInteractionKind.panning:
+        break;
       case MapCanvasInteractionKind.trackpadPanZoom:
+        _clearTrackpadGesture(session.interactionId);
         break;
     }
   }

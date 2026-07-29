@@ -213,8 +213,14 @@ class MapCanvasInteractionController {
     final primaryOnly = input.buttons == _primaryButton;
     final secondaryOnly = input.buttons == _secondaryButton;
     final tertiaryOnly = input.buttons == _tertiaryButton;
+    if (secondaryOnly) {
+      // Reserved for a future context action. It must never pan or edit.
+      return const MapCanvasInteractionStartResult(
+        status: MapCanvasInteractionStartStatus.ignored,
+      );
+    }
     final navigationRequested =
-        secondaryOnly || tertiaryOnly || (primaryOnly && input.modifiers.space);
+        tertiaryOnly || (primaryOnly && input.modifiers.space);
 
     if (navigationRequested) {
       if (input.pointerKind != MapCanvasPointerKind.mouse) {

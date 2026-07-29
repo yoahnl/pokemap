@@ -235,7 +235,7 @@ class TopToolbar extends ConsumerWidget {
             ),
           ],
         ),
-      if (!isNarrativeOverview)
+      if (toolbar.workspaceMode == EditorWorkspaceMode.tileset)
         _groupItem(
           context,
           title: 'Affichage',

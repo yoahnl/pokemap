@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show Size;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -59,6 +60,47 @@ void main() {
       expect(find.text('RPG Map Editor'), findsOneWidget);
       expect(find.text('World Editor'), findsOneWidget);
     });
+
+    testWidgets(
+      'keeps map zoom on the canvas and preserves tileset zoom controls',
+      (tester) async {
+        final initialState = EditorState(
+          projectRootPath: '/tmp/top_toolbar_zoom_scope',
+          project: buildShellChromeProject(),
+          activeMap: buildShellChromeMap(),
+          workspaceMode: EditorWorkspaceMode.map,
+        );
+        final container = await pumpTopToolbarHarness(
+          tester,
+          initialState: initialState,
+          surfaceSize: const Size(1800, 220),
+        );
+
+        Finder zoomButton(String tooltip) => find.byWidgetPredicate(
+              (widget) =>
+                  widget is ToolbarCapsuleButton && widget.tooltip == tooltip,
+            );
+
+        expect(find.text('Affichage'), findsNothing);
+        expect(zoomButton('Zoom Out'), findsNothing);
+        expect(zoomButton('Zoom In'), findsNothing);
+
+        container.read(editorNotifierProvider.notifier).state =
+            initialState.copyWith(
+          workspaceMode: EditorWorkspaceMode.tileset,
+        );
+        await tester.pump();
+
+        expect(find.text('Affichage'), findsOneWidget);
+        expect(zoomButton('Zoom Out'), findsOneWidget);
+        expect(zoomButton('Zoom In'), findsOneWidget);
+
+        await tester.tap(zoomButton('Zoom In'));
+        await tester.pump();
+        expect(
+            container.read(editorNotifierProvider).zoom, closeTo(1.1, 0.001));
+      },
+    );
 
     testWidgets('shows the toolbar status chip when a status is present',
         (tester) async {

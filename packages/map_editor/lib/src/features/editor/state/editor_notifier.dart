@@ -15,6 +15,7 @@ import '../../../app/providers/editor_workspace_providers.dart';
 import '../../../app/providers/use_case_providers.dart';
 import '../../../application/errors/application_errors.dart';
 import '../../../application/services/map_dependency_preflight_service.dart';
+import '../../../application/services/map_viewport_navigation.dart';
 import '../../../application/use_cases/apply_element_auto_shadow_suggestions_use_case.dart';
 import '../../../application/use_cases/environment_generator_apply_use_cases.dart';
 import '../../../application/use_cases/environment_generator_clear_use_cases.dart';
@@ -12707,17 +12708,41 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void pan(Offset delta) {
-    state = state.copyWith(panOffset: state.panOffset + delta);
+    setMapViewport(
+      MapViewport(
+        zoom: state.zoom,
+        panOffset: state.panOffset + delta,
+      ),
+    );
   }
 
   void setNarrativeEventMapPanOffset(Offset value) {
-    if (state.panOffset == value) return;
-    state = state.copyWith(panOffset: value);
+    setMapViewport(
+      MapViewport(
+        zoom: state.zoom,
+        panOffset: value,
+      ),
+    );
+  }
+
+  void setMapViewport(MapViewport viewport) {
+    if (state.zoom == viewport.zoom && state.panOffset == viewport.panOffset) {
+      return;
+    }
+    state = state.copyWith(
+      zoom: viewport.zoom,
+      panOffset: viewport.panOffset,
+    );
   }
 
   void zoom(double delta) {
     final newZoom = (state.zoom + delta).clamp(0.1, 5.0);
-    state = state.copyWith(zoom: newZoom);
+    setMapViewport(
+      MapViewport(
+        zoom: newZoom,
+        panOffset: state.panOffset,
+      ),
+    );
   }
 
   void _applyMapMutation({

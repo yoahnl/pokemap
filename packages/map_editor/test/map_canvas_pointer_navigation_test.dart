@@ -4,10 +4,14 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/models/map_history_snapshot.dart';
+import 'package:map_editor/src/application/services/map_viewport_navigation.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
@@ -48,6 +52,9 @@ void main() {
           expect(state.panOffset, const Offset(-14, 36));
           expect(state.zoom, 1.25);
           expect(state.activeMap, same(map));
+          expect(state.isDirty, isFalse);
+          expect(state.mapUndoStack, isEmpty);
+          expect(state.mapRedoStack, isEmpty);
         },
       );
     }
@@ -58,6 +65,7 @@ void main() {
         project: _project,
         activeMap: _activeMap,
         activeLayerId: 'ground',
+        activeTool: EditorToolType.tilePaint,
         savedMapSnapshot: _activeMap,
       );
 
@@ -74,6 +82,737 @@ void main() {
       expect(state.panOffset, Offset.zero);
       expect(state.zoom, 1);
       expect(state.activeMap, same(_activeMap));
+    });
+
+    testWidgets('command wheel zooms under the pointer without editing',
+        (tester) async {
+      final container = _createContainer();
+      const initial = MapViewport(
+        zoom: 2,
+        panOffset: Offset(10, 20),
+      );
+      const undoCheckpoint = MapHistorySnapshot(
+        map: _activeMap,
+        activeLayerId: 'undo-sentinel',
+      );
+      const redoCheckpoint = MapHistorySnapshot(
+        map: _activeMap,
+        activeLayerId: 'redo-sentinel',
+      );
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        activeTool: EditorToolType.tilePaint,
+        savedMapSnapshot: _activeMap,
+        panOffset: initial.panOffset,
+        zoom: initial.zoom,
+        mapUndoStack: const <MapHistorySnapshot>[undoCheckpoint],
+        mapRedoStack: const <MapHistorySnapshot>[redoCheckpoint],
+        canUndoMap: true,
+        canRedoMap: true,
+        isDirty: true,
+        isProjectDirty: true,
+      );
+      final before = container.read(editorNotifierProvider);
+
+      await _pumpCanvas(
+        tester,
+        container,
+        canvasPadding: const EdgeInsets.only(left: 137, top: 83),
+      );
+      final canvas = find.byType(MapCanvas);
+      final canvasOrigin = tester.getTopLeft(canvas);
+      expect(canvasOrigin, const Offset(137, 83));
+      const localPointer = Offset(300, 200);
+      final expected = MapViewportNavigation.zoomFromScroll(
+        viewport: initial,
+        focalPoint: localPointer,
+        scrollDeltaY: -120,
+      );
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      try {
+        tester.binding.handlePointerEvent(
+          PointerScrollEvent(
+            position: canvasOrigin + localPointer,
+            kind: ui.PointerDeviceKind.mouse,
+            scrollDelta: const Offset(0, -120),
+          ),
+        );
+        await tester.pump();
+      } finally {
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+      }
+
+      final state = container.read(editorNotifierProvider);
+      expect(state.zoom, closeTo(expected.zoom, 0.000001));
+      expect(state.panOffset.dx, closeTo(expected.panOffset.dx, 0.000001));
+      expect(state.panOffset.dy, closeTo(expected.panOffset.dy, 0.000001));
+      expect(state.activeMap, same(_activeMap));
+      expect(state.savedMapSnapshot, same(before.savedMapSnapshot));
+      expect(state.isDirty, isTrue);
+      expect(state.isProjectDirty, isTrue);
+      expect(state.mapUndoStack, before.mapUndoStack);
+      expect(state.mapRedoStack, before.mapRedoStack);
+      expect(state.canUndoMap, isTrue);
+      expect(state.canRedoMap, isTrue);
+    });
+
+    testWidgets('control wheel uses the same anchored zoom contract',
+        (tester) async {
+      final container = _createContainer();
+      const initial = MapViewport(
+        zoom: 1.5,
+        panOffset: Offset(-25, 35),
+      );
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        activeTool: EditorToolType.tilePaint,
+        savedMapSnapshot: _activeMap,
+        panOffset: initial.panOffset,
+        zoom: initial.zoom,
+      );
+
+      await _pumpCanvas(tester, container);
+      final canvas = find.byType(MapCanvas);
+      final canvasOrigin = tester.getTopLeft(canvas);
+      const localPointer = Offset(240, 180);
+      final expected = MapViewportNavigation.zoomFromScroll(
+        viewport: initial,
+        focalPoint: localPointer,
+        scrollDeltaY: 80,
+      );
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      try {
+        tester.binding.handlePointerEvent(
+          PointerScrollEvent(
+            position: canvasOrigin + localPointer,
+            kind: ui.PointerDeviceKind.mouse,
+            scrollDelta: const Offset(0, 80),
+          ),
+        );
+        await tester.pump();
+      } finally {
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      }
+
+      final state = container.read(editorNotifierProvider);
+      expect(state.zoom, closeTo(expected.zoom, 0.000001));
+      expect(state.panOffset.dx, closeTo(expected.panOffset.dx, 0.000001));
+      expect(state.panOffset.dy, closeTo(expected.panOffset.dy, 0.000001));
+      expect(state.activeMap, same(_activeMap));
+      expect(state.isDirty, isFalse);
+    });
+
+    testWidgets('native trackpad pan and pinch use one absolute start snapshot',
+        (tester) async {
+      final container = _createContainer();
+      const initial = MapViewport(
+        zoom: 2,
+        panOffset: Offset(10, 20),
+      );
+      const undoCheckpoint = MapHistorySnapshot(
+        map: _activeMap,
+        activeLayerId: 'undo-sentinel',
+      );
+      const redoCheckpoint = MapHistorySnapshot(
+        map: _activeMap,
+        activeLayerId: 'redo-sentinel',
+      );
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        activeTool: EditorToolType.tilePaint,
+        savedMapSnapshot: _activeMap,
+        panOffset: initial.panOffset,
+        zoom: initial.zoom,
+        mapUndoStack: const <MapHistorySnapshot>[undoCheckpoint],
+        mapRedoStack: const <MapHistorySnapshot>[redoCheckpoint],
+        canUndoMap: true,
+        canRedoMap: true,
+        isDirty: true,
+        isProjectDirty: true,
+      );
+      final before = container.read(editorNotifierProvider);
+
+      await _pumpCanvas(
+        tester,
+        container,
+        canvasPadding: const EdgeInsets.only(left: 137, top: 83),
+      );
+      final canvas = find.byType(MapCanvas);
+      final canvasOrigin = tester.getTopLeft(canvas);
+      expect(canvasOrigin, const Offset(137, 83));
+      const localFocalPoint = Offset(400, 300);
+      const cumulativePan = Offset(20, -10);
+      final expected = MapViewportNavigation.panZoomFromStart(
+        startViewport: initial,
+        startFocalPoint: localFocalPoint,
+        cumulativePan: cumulativePan,
+        scale: 1.5,
+      );
+      final gesture = await tester.createGesture(
+        kind: ui.PointerDeviceKind.trackpad,
+        pointer: 41,
+      );
+
+      await gesture.panZoomStart(canvasOrigin + localFocalPoint);
+      await gesture.panZoomUpdate(
+        canvasOrigin + localFocalPoint,
+        pan: cumulativePan,
+        scale: 1.5,
+      );
+      await tester.pump();
+      final afterFirstUpdate = container.read(editorNotifierProvider);
+      await gesture.panZoomUpdate(
+        canvasOrigin + localFocalPoint,
+        pan: cumulativePan,
+        scale: 1.5,
+      );
+      tester.binding.handlePointerEvent(
+        PointerScrollEvent(
+          position: canvasOrigin + localFocalPoint,
+          kind: ui.PointerDeviceKind.trackpad,
+          scrollDelta: const Offset(30, 20),
+        ),
+      );
+      await tester.pump();
+      final whileOwned = container.read(editorNotifierProvider);
+      expect(whileOwned.zoom, afterFirstUpdate.zoom);
+      expect(whileOwned.panOffset, afterFirstUpdate.panOffset);
+      await gesture.panZoomEnd();
+      await tester.pump();
+      tester.binding.handlePointerEvent(
+        PointerScrollEvent(
+          position: canvasOrigin + localFocalPoint,
+          kind: ui.PointerDeviceKind.trackpad,
+          scrollDelta: const Offset(4, -6),
+        ),
+      );
+      await tester.pump();
+
+      final state = container.read(editorNotifierProvider);
+      expect(state.zoom, closeTo(expected.zoom, 0.000001));
+      expect(
+        state.panOffset.dx,
+        closeTo(expected.panOffset.dx - 4, 0.000001),
+      );
+      expect(
+        state.panOffset.dy,
+        closeTo(expected.panOffset.dy + 6, 0.000001),
+      );
+      expect(state.activeMap, same(_activeMap));
+      expect(state.savedMapSnapshot, same(before.savedMapSnapshot));
+      expect(state.isDirty, isTrue);
+      expect(state.isProjectDirty, isTrue);
+      expect(state.mapUndoStack, before.mapUndoStack);
+      expect(state.mapRedoStack, before.mapRedoStack);
+      expect(state.mapStrokeStart, before.mapStrokeStart);
+      expect(state.canUndoMap, isTrue);
+      expect(state.canRedoMap, isTrue);
+    });
+
+    testWidgets('Escape clears a native pan zoom snapshot and reopens scroll',
+        (tester) async {
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        activeTool: EditorToolType.tilePaint,
+        savedMapSnapshot: _activeMap,
+        panOffset: Offset(10, 20),
+        zoom: 2,
+      );
+
+      await _pumpCanvas(tester, container);
+      final canvas = find.byType(MapCanvas);
+      final focalPoint = tester.getCenter(canvas);
+      final gesture = await tester.createGesture(
+        kind: ui.PointerDeviceKind.trackpad,
+        pointer: 42,
+      );
+      await gesture.panZoomStart(focalPoint);
+      await gesture.panZoomUpdate(
+        focalPoint,
+        pan: const Offset(20, 10),
+        scale: 1.25,
+      );
+      await tester.pump();
+      final beforeEscape = container.read(editorNotifierProvider);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.escape);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      await gesture.panZoomUpdate(
+        focalPoint,
+        pan: const Offset(100, 80),
+        scale: 2,
+      );
+      await tester.pump();
+      final afterLateUpdate = container.read(editorNotifierProvider);
+      expect(afterLateUpdate.zoom, beforeEscape.zoom);
+      expect(afterLateUpdate.panOffset, beforeEscape.panOffset);
+
+      final replacement = await tester.createGesture(
+        kind: ui.PointerDeviceKind.trackpad,
+        pointer: 43,
+      );
+      await replacement.panZoomStart(focalPoint);
+      await replacement.panZoomUpdate(
+        focalPoint,
+        pan: const Offset(10, -5),
+        scale: 1.1,
+      );
+      await tester.pump();
+      await gesture.panZoomEnd();
+      await replacement.panZoomUpdate(
+        focalPoint,
+        pan: const Offset(30, -15),
+        scale: 0.8,
+      );
+      await tester.pump();
+      final expectedReplacement = MapViewportNavigation.panZoomFromStart(
+        startViewport: MapViewport(
+          zoom: beforeEscape.zoom,
+          panOffset: beforeEscape.panOffset,
+        ),
+        startFocalPoint: focalPoint,
+        cumulativePan: const Offset(30, -15),
+        scale: 0.8,
+      );
+      final afterLateEnd = container.read(editorNotifierProvider);
+      expect(
+        afterLateEnd.zoom,
+        closeTo(expectedReplacement.zoom, 0.000001),
+      );
+      expect(
+        afterLateEnd.panOffset.dx,
+        closeTo(expectedReplacement.panOffset.dx, 0.000001),
+      );
+      expect(
+        afterLateEnd.panOffset.dy,
+        closeTo(expectedReplacement.panOffset.dy, 0.000001),
+      );
+      await replacement.panZoomEnd();
+      tester.binding.handlePointerEvent(
+        PointerScrollEvent(
+          position: focalPoint,
+          kind: ui.PointerDeviceKind.trackpad,
+          scrollDelta: const Offset(5, 7),
+        ),
+      );
+      await tester.pump();
+
+      final state = container.read(editorNotifierProvider);
+      expect(
+        state.panOffset,
+        expectedReplacement.panOffset - const Offset(5, 7),
+      );
+      expect(state.zoom, expectedReplacement.zoom);
+      expect(state.activeMap, same(_activeMap));
+      expect(state.isDirty, isFalse);
+    });
+
+    testWidgets('an incidental pinch cannot rollback an owned paint stroke',
+        (tester) async {
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        activeTool: EditorToolType.tilePaint,
+        activeBrush: EditorBrush.tile(tileId: 7, tilesetId: 'world'),
+        savedMapSnapshot: _activeMap,
+      );
+
+      await _pumpCanvas(tester, container);
+      final canvasOrigin = tester.getTopLeft(find.byType(MapCanvas));
+      final paint = await tester.startGesture(
+        canvasOrigin + const Offset(8, 8),
+        kind: ui.PointerDeviceKind.mouse,
+        buttons: kPrimaryButton,
+      );
+      await paint.moveBy(const Offset(20, 0));
+      await tester.pump();
+      final duringPaint = container.read(editorNotifierProvider);
+      expect(duringPaint.mapStrokeStart, isNotNull);
+      expect(duringPaint.activeMap, isNot(same(_activeMap)));
+
+      final pinch = await tester.createGesture(
+        kind: ui.PointerDeviceKind.trackpad,
+        pointer: 44,
+      );
+      await pinch.panZoomStart(canvasOrigin + const Offset(20, 20));
+      await pinch.panZoomUpdate(
+        canvasOrigin + const Offset(20, 20),
+        pan: const Offset(30, 10),
+        scale: 1.4,
+      );
+      await tester.pump();
+      await pinch.panZoomEnd();
+      await tester.pump();
+
+      final afterPinch = container.read(editorNotifierProvider);
+      expect(afterPinch.mapStrokeStart, same(duringPaint.mapStrokeStart));
+      expect(afterPinch.activeMap, same(duringPaint.activeMap));
+      expect(afterPinch.zoom, duringPaint.zoom);
+      expect(afterPinch.panOffset, duringPaint.panOffset);
+
+      await paint.up();
+      await tester.pump();
+      final committed = container.read(editorNotifierProvider);
+      expect(committed.mapStrokeStart, isNull);
+      expect(committed.isDirty, isTrue);
+      expect(committed.mapUndoStack, hasLength(1));
+    });
+
+    testWidgets('space plus primary drag pans without painting',
+        (tester) async {
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        savedMapSnapshot: _activeMap,
+        panOffset: Offset(10, 20),
+      );
+
+      await _pumpCanvas(tester, container);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byType(MapCanvas)),
+        kind: ui.PointerDeviceKind.mouse,
+        buttons: kPrimaryButton,
+      );
+      await gesture.moveBy(const Offset(45, -30));
+      await gesture.up();
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+      await tester.pump();
+
+      final state = container.read(editorNotifierProvider);
+      expect(state.panOffset, const Offset(55, -10));
+      expect(state.activeMap, same(_activeMap));
+      expect(state.isDirty, isFalse);
+      expect(state.mapUndoStack, isEmpty);
+    });
+
+    testWidgets('focus loss clears a stale physical pan owner', (tester) async {
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        savedMapSnapshot: _activeMap,
+      );
+
+      await _pumpCanvas(tester, container);
+      final center = tester.getCenter(find.byType(MapCanvas));
+      final abandoned = await tester.startGesture(
+        center,
+        kind: ui.PointerDeviceKind.mouse,
+        buttons: kTertiaryButton,
+      );
+      await abandoned.moveBy(const Offset(20, 10));
+      await tester.pump();
+      expect(
+        container.read(editorNotifierProvider).panOffset,
+        const Offset(20, 10),
+      );
+
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+
+      final replacement = await tester.startGesture(
+        center,
+        kind: ui.PointerDeviceKind.mouse,
+        buttons: kTertiaryButton,
+      );
+      await replacement.moveBy(const Offset(15, -5));
+      await tester.pump();
+      expect(
+        container.read(editorNotifierProvider).panOffset,
+        const Offset(35, 5),
+      );
+      await replacement.up();
+      await abandoned.cancel();
+      await tester.pump();
+
+      final state = container.read(editorNotifierProvider);
+      expect(state.panOffset, const Offset(35, 5));
+      expect(state.activeMap, same(_activeMap));
+      expect(state.isDirty, isFalse);
+      expect(state.mapUndoStack, isEmpty);
+    });
+
+    testWidgets('middle drag pans while right drag remains reserved',
+        (tester) async {
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        savedMapSnapshot: _activeMap,
+        panOffset: Offset(10, 20),
+      );
+
+      await _pumpCanvas(tester, container);
+      final center = tester.getCenter(find.byType(MapCanvas));
+      final middle = await tester.startGesture(
+        center,
+        kind: ui.PointerDeviceKind.mouse,
+        buttons: kTertiaryButton,
+      );
+      await middle.moveBy(const Offset(25, 15));
+      await middle.up();
+      await tester.pump();
+      expect(
+        container.read(editorNotifierProvider).panOffset,
+        const Offset(35, 35),
+      );
+
+      final right = await tester.startGesture(
+        center,
+        kind: ui.PointerDeviceKind.mouse,
+        buttons: kSecondaryButton,
+      );
+      await right.moveBy(const Offset(60, 50));
+      await right.up();
+      await tester.pump();
+
+      final state = container.read(editorNotifierProvider);
+      expect(state.panOffset, const Offset(35, 35));
+      expect(state.activeMap, same(_activeMap));
+      expect(state.isDirty, isFalse);
+      expect(state.mapUndoStack, isEmpty);
+    });
+
+    testWidgets('F fits the complete map after the canvas takes focus',
+        (tester) async {
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        savedMapSnapshot: _activeMap,
+        panOffset: Offset(180, -90),
+        zoom: 3,
+      );
+
+      await _pumpCanvas(tester, container);
+      final canvas = find.byType(MapCanvas);
+      final focusGesture = await tester.startGesture(
+        tester.getCenter(canvas),
+        kind: ui.PointerDeviceKind.mouse,
+        buttons: kSecondaryButton,
+      );
+      await focusGesture.up();
+      await tester.pump();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      try {
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.keyF);
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.keyF);
+        await tester.pump();
+      } finally {
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+      }
+      var state = container.read(editorNotifierProvider);
+      expect(state.zoom, 3);
+      expect(state.panOffset, const Offset(180, -90));
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.keyF);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.keyF);
+      await tester.pump();
+
+      final settings = _project.settings;
+      final expected = MapViewportNavigation.fitMap(
+        mapPixelSize: Size(
+          _activeMap.size.width * settings.tileWidth * settings.displayScale,
+          _activeMap.size.height * settings.tileHeight * settings.displayScale,
+        ),
+        viewportSize: tester.getSize(canvas),
+      );
+      state = container.read(editorNotifierProvider);
+      expect(state.zoom, closeTo(expected.zoom, 0.000001));
+      expect(state.panOffset.dx, closeTo(expected.panOffset.dx, 0.000001));
+      expect(state.panOffset.dy, closeTo(expected.panOffset.dy, 0.000001));
+      expect(state.isDirty, isFalse);
+    });
+
+    testWidgets('F is inert until the canvas owns keyboard focus',
+        (tester) async {
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        savedMapSnapshot: _activeMap,
+        panOffset: Offset(180, -90),
+        zoom: 3,
+      );
+
+      await _pumpCanvas(tester, container);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.keyF);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.keyF);
+      await tester.pump();
+
+      final state = container.read(editorNotifierProvider);
+      expect(state.zoom, 3);
+      expect(state.panOffset, const Offset(180, -90));
+    });
+
+    testWidgets('overlay exposes fit, 100 percent, and center controls',
+        (tester) async {
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        savedMapSnapshot: _activeMap,
+        panOffset: Offset(-300, -100),
+        zoom: 2,
+      );
+
+      await _pumpCanvas(tester, container);
+
+      expect(find.byKey(const ValueKey('map-navigation-fit')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('map-navigation-actual-size')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('map-navigation-center')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('map-navigation-zoom-out')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('map-navigation-zoom-in')),
+        findsOneWidget,
+      );
+      expect(find.text('200 %'), findsOneWidget);
+
+      final canvasSize = tester.getSize(find.byType(MapCanvas));
+      const initialViewport = MapViewport(
+        zoom: 2,
+        panOffset: Offset(-300, -100),
+      );
+      final expectedZoomOut = MapViewportNavigation.zoomAt(
+        viewport: initialViewport,
+        focalPoint: canvasSize.center(Offset.zero),
+        targetZoom: 2 / 1.2,
+      );
+      await tester.tap(find.byKey(const ValueKey('map-navigation-zoom-out')));
+      await tester.pump();
+      var state = container.read(editorNotifierProvider);
+      expect(state.zoom, closeTo(expectedZoomOut.zoom, 0.000001));
+      expect(
+        state.panOffset.dx,
+        closeTo(expectedZoomOut.panOffset.dx, 0.000001),
+      );
+      expect(
+        state.panOffset.dy,
+        closeTo(expectedZoomOut.panOffset.dy, 0.000001),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('map-navigation-zoom-in')));
+      await tester.pump();
+      state = container.read(editorNotifierProvider);
+      expect(state.zoom, closeTo(2, 0.000001));
+
+      container.read(editorNotifierProvider.notifier).state =
+          state.copyWith(panOffset: const Offset(200, -150), zoom: 3);
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('map-navigation-fit')));
+      await tester.pump();
+      final settings = _project.settings;
+      final mapPixelSize = Size(
+        _activeMap.size.width * settings.tileWidth * settings.displayScale,
+        _activeMap.size.height * settings.tileHeight * settings.displayScale,
+      );
+      final expectedFit = MapViewportNavigation.fitMap(
+        mapPixelSize: mapPixelSize,
+        viewportSize: canvasSize,
+      );
+      state = container.read(editorNotifierProvider);
+      expect(state.zoom, closeTo(expectedFit.zoom, 0.000001));
+      expect(state.panOffset.dx, closeTo(expectedFit.panOffset.dx, 0.000001));
+      expect(state.panOffset.dy, closeTo(expectedFit.panOffset.dy, 0.000001));
+
+      container.read(editorNotifierProvider.notifier).state = state.copyWith(
+        panOffset: initialViewport.panOffset,
+        zoom: initialViewport.zoom,
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('map-navigation-actual-size')),
+      );
+      await tester.pump();
+      state = container.read(editorNotifierProvider);
+      expect(state.zoom, 1);
+      expect(state.activeMap, same(_activeMap));
+      expect(state.isDirty, isFalse);
+
+      container.read(editorNotifierProvider.notifier).state =
+          state.copyWith(panOffset: const Offset(400, -200), zoom: 2);
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('map-navigation-center')));
+      await tester.pump();
+
+      final expected = MapViewportNavigation.centerMap(
+        mapPixelSize: mapPixelSize,
+        viewportSize: canvasSize,
+        zoom: 2,
+      );
+      state = container.read(editorNotifierProvider);
+      expect(state.panOffset.dx, closeTo(expected.panOffset.dx, 0.000001));
+      expect(state.panOffset.dy, closeTo(expected.panOffset.dy, 0.000001));
+      expect(state.mapUndoStack, isEmpty);
+
+      tester.binding.handlePointerEvent(
+        PointerScrollEvent(
+          position: tester.getCenter(find.byType(MapCanvas)),
+          kind: ui.PointerDeviceKind.mouse,
+          scrollDelta: const Offset(3, 4),
+        ),
+      );
+      await tester.pump();
+      state = container.read(editorNotifierProvider);
+      expect(
+        state.panOffset.dx,
+        closeTo(expected.panOffset.dx - 3, 0.000001),
+      );
+      expect(
+        state.panOffset.dy,
+        closeTo(expected.panOffset.dy - 4, 0.000001),
+      );
+    });
+
+    testWidgets('navigation controls are absent without an active map',
+        (tester) async {
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state =
+          const EditorState(project: _project);
+
+      await _pumpCanvas(tester, container);
+
+      expect(
+        find.byKey(const ValueKey('map-navigation-zoom-out')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('map-navigation-zoom-in')),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('map-navigation-fit')), findsNothing);
     });
   });
 }
@@ -94,8 +833,9 @@ ProviderContainer _createContainer() {
 
 Future<void> _pumpCanvas(
   WidgetTester tester,
-  ProviderContainer container,
-) async {
+  ProviderContainer container, {
+  EdgeInsets canvasPadding = EdgeInsets.zero,
+}) async {
   await tester.binding.setSurfaceSize(const Size(900, 700));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   addTearDown(() async {
@@ -107,9 +847,12 @@ Future<void> _pumpCanvas(
       container: container,
       child: MacosTheme(
         data: MacosThemeData.light(),
-        child: const MaterialApp(
+        child: MaterialApp(
           home: CupertinoPageScaffold(
-            child: SizedBox.expand(child: MapCanvas()),
+            child: Padding(
+              padding: canvasPadding,
+              child: const SizedBox.expand(child: MapCanvas()),
+            ),
           ),
         ),
       ),

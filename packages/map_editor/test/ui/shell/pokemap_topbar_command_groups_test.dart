@@ -10,7 +10,7 @@ import '../../shell_chrome_test_harness.dart';
 
 void main() {
   group('PokeMap Topbar Command Groups Tests', () {
-    testWidgets('Renders all 6 functional command groups and PokeMap brand logo',
+    testWidgets('routes map zoom to the canvas and keeps tileset zoom controls',
         (tester) async {
       final container = await pumpTopToolbarHarness(
         tester,
@@ -37,10 +37,10 @@ void main() {
       expect(find.text('RPG Map Editor'), findsOneWidget);
       expect(find.text('Selbrume Demo  •  World Editor'), findsOneWidget);
 
-      // Verify the 6 named capsule groups
+      // World-map navigation now lives directly on the canvas.
       expect(find.text('Fichier'), findsOneWidget);
       expect(find.text('Carte'), findsOneWidget);
-      expect(find.text('Affichage'), findsOneWidget);
+      expect(find.text('Affichage'), findsNothing);
       expect(find.text('Outils'), findsOneWidget);
       expect(find.text('Calques'), findsOneWidget);
       expect(find.text('Aperçu'), findsOneWidget);
@@ -51,13 +51,33 @@ void main() {
 
       // Verify buttons are clickable (e.g. Switch to tileset workspace)
       final tilesetButton = find.byWidgetPredicate(
-        (widget) => widget is MacosTooltip && widget.message == 'Switch to tileset workspace',
+        (widget) =>
+            widget is MacosTooltip &&
+            widget.message == 'Switch to tileset workspace',
       );
       expect(tilesetButton, findsOneWidget);
       await tester.tap(tilesetButton);
       await tester.pumpAndSettle();
 
-      expect(container.read(editorNotifierProvider).workspaceMode, EditorWorkspaceMode.tileset);
+      expect(
+        container.read(editorNotifierProvider).workspaceMode,
+        EditorWorkspaceMode.tileset,
+      );
+      expect(find.text('Affichage'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is ToolbarCapsuleButton && widget.tooltip == 'Zoom Out',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is ToolbarCapsuleButton && widget.tooltip == 'Zoom In',
+        ),
+        findsOneWidget,
+      );
     });
   });
 }

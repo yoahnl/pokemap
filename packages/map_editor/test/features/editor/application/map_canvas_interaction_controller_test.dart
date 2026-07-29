@@ -38,16 +38,20 @@ void main() {
       );
       controller.finishPointer(2);
 
-      for (final buttons in <int>[kSecondaryButton, kTertiaryButton]) {
-        final navigation = controller.beginPointer(
-          _input(pointerId: buttons + 10, buttons: buttons),
-        );
-        expect(
-          navigation.session?.kind,
-          MapCanvasInteractionKind.panning,
-        );
-        controller.finishPointer(buttons + 10);
-      }
+      final secondary = controller.beginPointer(
+        _input(pointerId: 12, buttons: kSecondaryButton),
+      );
+      expect(secondary.status, MapCanvasInteractionStartStatus.ignored);
+      expect(controller.isIdle, isTrue);
+
+      final middle = controller.beginPointer(
+        _input(pointerId: 14, buttons: kTertiaryButton),
+      );
+      expect(
+        middle.session?.kind,
+        MapCanvasInteractionKind.panning,
+      );
+      controller.finishPointer(14);
 
       final mixed = controller.beginPointer(
         _input(
