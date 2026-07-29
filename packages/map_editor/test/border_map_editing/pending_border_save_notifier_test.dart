@@ -81,37 +81,21 @@ void main() {
       fixture.dispose();
     });
 
-    test(
-        'successful Apply finalizes an earlier stroke after persistence and before the Border undo',
-        () async {
+    test('active stroke blocks Apply before persistence', () async {
       final candidate = _richCandidateMap();
-      final fixture = _fixture(candidate: candidate);
+      final fixture = _fixture(candidate: candidate, withPendingStroke: true);
       final pendingStroke = fixture.notifier.state.mapStrokeStart;
-      final initialHistoryLength = fixture.notifier.state.mapUndoStack.length;
+      final before = fixture.notifier.state;
 
       final outcome = await fixture.notifier.saveActiveMap(
         pendingBorderDecision: PendingBorderSaveDecision.applyAndSave,
       );
 
-      expect(outcome, ActiveMapSaveOutcome.saved);
-      expect(
-        fixture.repository.strokeSeenInNotifierDuringWrite,
-        same(pendingStroke),
-      );
-      expect(fixture.notifier.state.mapStrokeStart, isNull);
-      expect(
-        fixture.notifier.state.mapUndoStack,
-        hasLength(initialHistoryLength + 2),
-      );
-      expect(
-        fixture.notifier.state.mapUndoStack[initialHistoryLength],
-        same(pendingStroke),
-      );
-      expect(
-        fixture.notifier.state.mapUndoStack.last.map,
-        same(fixture.baseMap),
-      );
-      expect(fixture.preview.current, const BorderPreviewState.idle());
+      expect(outcome, ActiveMapSaveOutcome.unavailable);
+      expect(fixture.repository.writeAttempts, 0);
+      expect(fixture.notifier.state, before);
+      expect(fixture.notifier.state.mapStrokeStart, same(pendingStroke));
+      expect(fixture.preview.current.phase, BorderPreviewPhase.resolved);
       fixture.dispose();
     });
 
@@ -134,40 +118,32 @@ void main() {
       fixture.dispose();
     });
 
-    test('successful Discard finalizes an earlier stroke after persistence',
-        () async {
-      final fixture = _fixture(candidate: _richCandidateMap());
+    test('active stroke blocks Discard before persistence', () async {
+      final fixture = _fixture(
+        candidate: _richCandidateMap(),
+        withPendingStroke: true,
+      );
       final pendingStroke = fixture.notifier.state.mapStrokeStart;
-      final initialHistoryLength = fixture.notifier.state.mapUndoStack.length;
+      final before = fixture.notifier.state;
 
       final outcome = await fixture.notifier.saveActiveMap(
         pendingBorderDecision: PendingBorderSaveDecision.discardAndSave,
       );
 
-      expect(outcome, ActiveMapSaveOutcome.saved);
-      expect(
-        fixture.repository.strokeSeenInNotifierDuringWrite,
-        same(pendingStroke),
-      );
-      expect(fixture.notifier.state.mapStrokeStart, isNull);
-      expect(
-        fixture.notifier.state.mapUndoStack,
-        hasLength(initialHistoryLength + 1),
-      );
-      expect(fixture.notifier.state.mapUndoStack.last, same(pendingStroke));
-      expect(fixture.notifier.state.activeMap, same(fixture.baseMap));
-      expect(fixture.preview.current, const BorderPreviewState.idle());
+      expect(outcome, ActiveMapSaveOutcome.unavailable);
+      expect(fixture.repository.writeAttempts, 0);
+      expect(fixture.notifier.state, before);
+      expect(fixture.notifier.state.mapStrokeStart, same(pendingStroke));
+      expect(fixture.preview.current.phase, BorderPreviewPhase.resolved);
       fixture.dispose();
     });
 
-    test('persistence failure retains map, history, stroke and preview',
-        () async {
+    test('persistence failure retains map, history and preview', () async {
       final fixture = _fixture(
         candidate: _richCandidateMap(),
         failPersistence: true,
       );
       final history = fixture.notifier.state.mapUndoStack;
-      final stroke = fixture.notifier.state.mapStrokeStart;
 
       final outcome = await fixture.notifier.saveActiveMap(
         pendingBorderDecision: PendingBorderSaveDecision.applyAndSave,
@@ -178,7 +154,7 @@ void main() {
       expect(fixture.notifier.state.activeMap, same(fixture.baseMap));
       expect(fixture.notifier.state.mapUndoStack, history);
       expect(fixture.notifier.state.mapUndoStack.single, same(history.single));
-      expect(fixture.notifier.state.mapStrokeStart, same(stroke));
+      expect(fixture.notifier.state.mapStrokeStart, isNull);
       expect(fixture.notifier.state.savedMapSnapshot, same(fixture.baseMap));
       expect(fixture.notifier.state.isDirty, isTrue);
       expect(fixture.preview.current.phase, BorderPreviewPhase.resolved);
@@ -404,7 +380,7 @@ void main() {
 _NotifierFixture _fixture({
   MapData? candidate,
   bool failPersistence = false,
-  bool withPendingStroke = true,
+  bool withPendingStroke = false,
 }) {
   final project = _project();
   final map = _baseMap();

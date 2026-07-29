@@ -796,6 +796,163 @@ void main() {
       );
     });
 
+    testWidgets(
+        'Tab skips the programmatic canvas sink and shows navigation focus',
+        (tester) async {
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        savedMapSnapshot: _activeMap,
+      );
+
+      await _pumpCanvas(tester, container);
+
+      final canvasFocus = tester.widget<Focus>(
+        find.byKey(const ValueKey<String>('map-canvas-focus')),
+      );
+      expect(canvasFocus.skipTraversal, isTrue);
+      expect(canvasFocus.includeSemantics, isFalse);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+
+      const zoomOutKey = ValueKey<String>('map-navigation-zoom-out');
+      expect(_hasPrimaryFocusWithin(tester, zoomOutKey), isTrue);
+      expect(_focusRingFor(tester, zoomOutKey), isNotEmpty);
+      expect(canvasFocus.focusNode!.hasFocus, isFalse);
+    });
+
+    testWidgets(
+        'keyboard navigation actions retain visible focus and Tab advances',
+        (tester) async {
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        savedMapSnapshot: _activeMap,
+        panOffset: Offset(-300, -100),
+        zoom: 2,
+      );
+
+      await _pumpCanvas(tester, container);
+
+      const zoomOutKey = ValueKey<String>('map-navigation-zoom-out');
+      const zoomInKey = ValueKey<String>('map-navigation-zoom-in');
+      const fitKey = ValueKey<String>('map-navigation-fit');
+      const actualSizeKey = ValueKey<String>('map-navigation-actual-size');
+      const centerKey = ValueKey<String>('map-navigation-center');
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      expect(_hasPrimaryFocusWithin(tester, zoomOutKey), isTrue);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(container.read(editorNotifierProvider).zoom, lessThan(2));
+      expect(_hasPrimaryFocusWithin(tester, zoomOutKey), isTrue);
+      expect(_focusRingFor(tester, zoomOutKey), isNotEmpty);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      expect(_hasPrimaryFocusWithin(tester, zoomInKey), isTrue);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pump();
+      expect(container.read(editorNotifierProvider).zoom, closeTo(2, 0.000001));
+      expect(_hasPrimaryFocusWithin(tester, zoomInKey), isTrue);
+      expect(_focusRingFor(tester, zoomInKey), isNotEmpty);
+
+      var state = container.read(editorNotifierProvider);
+      container.read(editorNotifierProvider.notifier).state =
+          state.copyWith(panOffset: const Offset(200, -150), zoom: 3);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      expect(_hasPrimaryFocusWithin(tester, fitKey), isTrue);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      state = container.read(editorNotifierProvider);
+      expect(state.zoom, isNot(3));
+      expect(state.panOffset, isNot(const Offset(200, -150)));
+      expect(_hasPrimaryFocusWithin(tester, fitKey), isTrue);
+
+      container.read(editorNotifierProvider.notifier).state =
+          state.copyWith(panOffset: const Offset(-80, 45), zoom: 2);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      expect(_hasPrimaryFocusWithin(tester, actualSizeKey), isTrue);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pump();
+      state = container.read(editorNotifierProvider);
+      expect(state.zoom, 1);
+      expect(_hasPrimaryFocusWithin(tester, actualSizeKey), isTrue);
+
+      container.read(editorNotifierProvider.notifier).state =
+          state.copyWith(panOffset: const Offset(400, -200), zoom: 2);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      expect(_hasPrimaryFocusWithin(tester, centerKey), isTrue);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      state = container.read(editorNotifierProvider);
+      expect(state.panOffset, isNot(const Offset(400, -200)));
+      expect(_hasPrimaryFocusWithin(tester, centerKey), isTrue);
+      expect(_focusRingFor(tester, centerKey), isNotEmpty);
+    });
+
+    testWidgets('pointer navigation returns focus to the canvas for F',
+        (tester) async {
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        savedMapSnapshot: _activeMap,
+        panOffset: Offset(-300, -100),
+        zoom: 2,
+      );
+
+      await _pumpCanvas(tester, container);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('map-navigation-zoom-out')),
+      );
+      await tester.pump();
+      final canvasFocus = tester.widget<Focus>(
+        find.byKey(const ValueKey<String>('map-canvas-focus')),
+      );
+      expect(canvasFocus.focusNode!.hasFocus, isTrue);
+
+      final state = container.read(editorNotifierProvider);
+      container.read(editorNotifierProvider.notifier).state =
+          state.copyWith(panOffset: const Offset(250, -175), zoom: 3);
+      await tester.pump();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+      await tester.pump();
+
+      final settings = _project.settings;
+      final expected = MapViewportNavigation.fitMap(
+        mapPixelSize: Size(
+          _activeMap.size.width * settings.tileWidth * settings.displayScale,
+          _activeMap.size.height * settings.tileHeight * settings.displayScale,
+        ),
+        viewportSize: tester.getSize(find.byType(MapCanvas)),
+      );
+      final fitted = container.read(editorNotifierProvider);
+      expect(fitted.zoom, closeTo(expected.zoom, 0.000001));
+      expect(fitted.panOffset.dx, closeTo(expected.panOffset.dx, 0.000001));
+      expect(fitted.panOffset.dy, closeTo(expected.panOffset.dy, 0.000001));
+    });
+
     testWidgets('navigation controls are absent without an active map',
         (tester) async {
       final container = _createContainer();
@@ -859,6 +1016,34 @@ Future<void> _pumpCanvas(
     ),
   );
   await tester.pump();
+}
+
+bool _hasPrimaryFocusWithin(WidgetTester tester, Key key) {
+  final ancestor = tester.element(find.byKey(key));
+  final focusContext = FocusManager.instance.primaryFocus?.context;
+  if (focusContext == null) return false;
+  if (identical(focusContext, ancestor)) return true;
+
+  var isWithin = false;
+  focusContext.visitAncestorElements((element) {
+    if (identical(element, ancestor)) {
+      isWithin = true;
+      return false;
+    }
+    return true;
+  });
+  return isWithin;
+}
+
+List<BoxShadow> _focusRingFor(WidgetTester tester, Key key) {
+  final animatedContainer = find.descendant(
+    of: find.byKey(key),
+    matching: find.byType(AnimatedContainer),
+  );
+  expect(animatedContainer, findsOneWidget);
+  final widget = tester.widget<AnimatedContainer>(animatedContainer);
+  final decoration = widget.decoration! as BoxDecoration;
+  return decoration.boxShadow ?? const <BoxShadow>[];
 }
 
 const _project = ProjectManifest(

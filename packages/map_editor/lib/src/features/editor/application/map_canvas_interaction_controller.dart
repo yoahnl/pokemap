@@ -280,6 +280,19 @@ class MapCanvasInteractionController {
     return promoted;
   }
 
+  MapCanvasInteractionEndResult? cancelPointerIfButtonsChanged({
+    required int pointerId,
+    required int buttons,
+  }) {
+    final current = _activeSession;
+    if (current == null ||
+        current.pointerId != pointerId ||
+        current.buttonsAtStart == buttons) {
+      return null;
+    }
+    return _end(pointerId, MapCanvasInteractionTerminal.rollback);
+  }
+
   MapCanvasInteractionEndResult? finishPointer(int pointerId) {
     return _end(pointerId, MapCanvasInteractionTerminal.commit);
   }

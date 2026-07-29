@@ -90,6 +90,80 @@ void main() {
       },
     );
 
+    testWidgets(
+      'changing buttons during paint rolls the exact transaction back',
+      (tester) async {
+        const pointer = 41;
+        const undoCheckpoint = MapHistorySnapshot(
+          map: _historicalUndoMap,
+          activeLayerId: 'collision',
+        );
+        const redoCheckpoint = MapHistorySnapshot(
+          map: _historicalRedoMap,
+          activeLayerId: 'collision',
+        );
+        final container = _createContainer();
+        container.read(editorNotifierProvider.notifier).state =
+            const EditorState(
+          project: _project,
+          activeMap: _activeMap,
+          activeLayerId: 'collision',
+          activeTool: EditorToolType.collisionPaint,
+          savedMapSnapshot: _activeMap,
+          mapUndoStack: <MapHistorySnapshot>[undoCheckpoint],
+          mapRedoStack: <MapHistorySnapshot>[redoCheckpoint],
+          canUndoMap: true,
+          canRedoMap: true,
+        );
+        final beforeJson = _activeMap.toJson();
+
+        await _pumpCanvas(tester, container);
+        final canvas = tester.getRect(find.byType(MapCanvas));
+        final downPosition = canvas.topLeft + const Offset(16, 16);
+        final gesture = await tester.startGesture(
+          downPosition,
+          pointer: pointer,
+          kind: ui.PointerDeviceKind.mouse,
+          buttons: kPrimaryButton,
+        );
+        await gesture.moveBy(const Offset(34, 0));
+        await tester.pump();
+        expect(
+          container.read(editorNotifierProvider).mapStrokeStart,
+          isNotNull,
+        );
+
+        await gesture.updateWithCustomEvent(
+          PointerMoveEvent(
+            pointer: pointer,
+            kind: ui.PointerDeviceKind.mouse,
+            device: 1,
+            position: downPosition + const Offset(68, 0),
+            delta: const Offset(34, 0),
+            buttons: kPrimaryButton | kSecondaryButton,
+          ),
+        );
+        await tester.pump();
+        await gesture.up();
+        await tester.pump();
+
+        final rolledBack = container.read(editorNotifierProvider);
+        expect(rolledBack.activeMap!.toJson(), beforeJson);
+        expect(rolledBack.mapStrokeStart, isNull);
+        expect(
+          rolledBack.mapUndoStack,
+          const <MapHistorySnapshot>[undoCheckpoint],
+        );
+        expect(
+          rolledBack.mapRedoStack,
+          const <MapHistorySnapshot>[redoCheckpoint],
+        );
+        expect(rolledBack.canUndoMap, isTrue);
+        expect(rolledBack.canRedoMap, isTrue);
+        expect(rolledBack.isDirty, isFalse);
+      },
+    );
+
     testWidgets('a multi-sample drag creates exactly one undo entry',
         (tester) async {
       final container = _createContainer();
@@ -181,6 +255,69 @@ void main() {
         expect(navigated.mapStrokeStart, isNull);
         expect(navigated.canUndoMap, isTrue);
         expect(navigated.isDirty, isFalse);
+      },
+    );
+
+    testWidgets(
+      'changing buttons during primary pan ignores the mixed delta and cancels',
+      (tester) async {
+        const pointer = 42;
+        const historical = MapHistorySnapshot(
+          map: _activeMap,
+          activeLayerId: 'collision',
+        );
+        final container = _createContainer();
+        container.read(editorNotifierProvider.notifier).state =
+            const EditorState(
+          project: _project,
+          activeMap: _activeMap,
+          activeLayerId: 'collision',
+          activeTool: EditorToolType.collisionPaint,
+          savedMapSnapshot: _activeMap,
+          mapUndoStack: <MapHistorySnapshot>[historical],
+          canUndoMap: true,
+          panOffset: Offset(10, 20),
+        );
+        final beforeJson = _activeMap.toJson();
+
+        await _pumpCanvas(tester, container);
+        final canvas = tester.getRect(find.byType(MapCanvas));
+        final downPosition = canvas.center;
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+        final gesture = await tester.startGesture(
+          downPosition,
+          pointer: pointer,
+          kind: ui.PointerDeviceKind.mouse,
+          buttons: kPrimaryButton,
+        );
+        await gesture.moveBy(const Offset(30, -12));
+        await tester.pump();
+
+        await gesture.updateWithCustomEvent(
+          PointerMoveEvent(
+            pointer: pointer,
+            kind: ui.PointerDeviceKind.mouse,
+            device: 1,
+            position: downPosition + const Offset(48, -6),
+            delta: const Offset(18, 6),
+            buttons: kPrimaryButton | kSecondaryButton,
+          ),
+        );
+        await tester.pump();
+        await gesture.moveBy(const Offset(9, 4));
+        await tester.pump();
+        await gesture.up();
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+        await tester.pump();
+
+        final cancelled = container.read(editorNotifierProvider);
+        expect(cancelled.panOffset, const Offset(40, 8));
+        expect(cancelled.activeMap!.toJson(), beforeJson);
+        expect(cancelled.mapUndoStack, const <MapHistorySnapshot>[historical]);
+        expect(cancelled.mapRedoStack, isEmpty);
+        expect(cancelled.mapStrokeStart, isNull);
+        expect(cancelled.canUndoMap, isTrue);
+        expect(cancelled.isDirty, isFalse);
       },
     );
 

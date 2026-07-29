@@ -96,6 +96,78 @@ void main() {
       expect(controller.isIdle, isTrue);
     });
 
+    test(
+        'changed move buttons rollback while matching moves and pointer up commit',
+        () {
+      final controller = MapCanvasInteractionController();
+      controller.beginPointer(
+        _input(pointerId: 41, buttons: kPrimaryButton),
+      );
+      controller.promotePending(
+        pointerId: 41,
+        kind: MapCanvasInteractionKind.paintingStroke,
+      );
+
+      expect(
+        controller.cancelPointerIfButtonsChanged(
+          pointerId: 41,
+          buttons: kPrimaryButton,
+        ),
+        isNull,
+      );
+      expect(
+        controller.cancelPointerIfButtonsChanged(
+          pointerId: 99,
+          buttons: kPrimaryButton | kSecondaryButton,
+        ),
+        isNull,
+      );
+      expect(
+        controller.activeSession?.kind,
+        MapCanvasInteractionKind.paintingStroke,
+      );
+
+      final mixed = controller.cancelPointerIfButtonsChanged(
+        pointerId: 41,
+        buttons: kPrimaryButton | kSecondaryButton,
+      );
+      expect(mixed?.terminal, MapCanvasInteractionTerminal.rollback);
+      expect(
+        mixed?.session.kind,
+        MapCanvasInteractionKind.paintingStroke,
+      );
+      expect(controller.isIdle, isTrue);
+      expect(
+        controller.cancelPointerIfButtonsChanged(
+          pointerId: 41,
+          buttons: kPrimaryButton,
+        ),
+        isNull,
+      );
+
+      controller.beginPointer(
+        _input(pointerId: 42, buttons: kPrimaryButton),
+      );
+      final missingButton = controller.cancelPointerIfButtonsChanged(
+        pointerId: 42,
+        buttons: 0,
+      );
+      expect(
+        missingButton?.terminal,
+        MapCanvasInteractionTerminal.rollback,
+      );
+      expect(controller.isIdle, isTrue);
+
+      controller.beginPointer(
+        _input(pointerId: 43, buttons: kPrimaryButton),
+      );
+      expect(
+        controller.finishPointer(43)?.terminal,
+        MapCanvasInteractionTerminal.commit,
+      );
+      expect(controller.isIdle, isTrue);
+    });
+
     test('cancel is rollback, idempotent, and reopens scroll routing', () {
       final controller = MapCanvasInteractionController();
       expect(controller.acceptsScroll, isTrue);

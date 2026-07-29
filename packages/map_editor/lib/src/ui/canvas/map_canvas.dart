@@ -193,6 +193,11 @@ class MapCanvas extends ConsumerStatefulWidget {
 class _MapCanvasState extends ConsumerState<MapCanvas> {
   final GlobalKey _mapViewportKey = GlobalKey();
   final FocusNode _mapFocusNode = FocusNode(debugLabel: 'Map canvas');
+  final FocusNode _mapNavigationControlsFocusNode = FocusNode(
+    debugLabel: 'Map navigation controls',
+    canRequestFocus: false,
+    skipTraversal: true,
+  );
   final MapCanvasInteractionController _interactionController =
       MapCanvasInteractionController();
   final Set<int> _pressedMapPointers = <int>{};
@@ -281,6 +286,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     _pressedMapPointers.clear();
     _clearTrackpadGesture();
     _mapFocusNode.dispose();
+    _mapNavigationControlsFocusNode.dispose();
     super.dispose();
   }
 
@@ -1070,6 +1076,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                     Focus(
                       key: const ValueKey<String>('map-canvas-focus'),
                       focusNode: _mapFocusNode,
+                      skipTraversal: true,
+                      includeSemantics: false,
                       onKeyEvent: _onMapKeyEvent,
                       onFocusChange: _onMapFocusChanged,
                       child: const SizedBox.shrink(),
@@ -1279,6 +1287,13 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           ),
                         ),
                       ),
+                    Positioned.fill(
+                      child: Listener(
+                        behavior: HitTestBehavior.translucent,
+                        onPointerMove: _onMapPointerButtonsChanged,
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1290,15 +1305,23 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           children: [
             interactiveCanvas,
             Positioned(
+              left: 12,
               right: 12,
               bottom: 12,
-              child: MapCanvasNavigationControls(
-                zoom: state.zoom,
-                onZoomOut: _zoomOut,
-                onZoomIn: _zoomIn,
-                onFit: _fitActiveMap,
-                onActualSize: _showActiveMapAtActualSize,
-                onCenter: _centerActiveMap,
+              child: Align(
+                alignment: Alignment.bottomRight,
+                child: Focus.withExternalFocusNode(
+                  focusNode: _mapNavigationControlsFocusNode,
+                  includeSemantics: false,
+                  child: MapCanvasNavigationControls(
+                    zoom: state.zoom,
+                    onZoomOut: _zoomOut,
+                    onZoomIn: _zoomIn,
+                    onFit: _fitActiveMap,
+                    onActualSize: _showActiveMapAtActualSize,
+                    onCenter: _centerActiveMap,
+                  ),
+                ),
               ),
             ),
           ],
@@ -1552,6 +1575,16 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     ref.read(editorNotifierProvider.notifier).pan(event.delta);
   }
 
+  void _onMapPointerButtonsChanged(PointerMoveEvent event) {
+    final cancelled = _interactionController.cancelPointerIfButtonsChanged(
+      pointerId: event.pointer,
+      buttons: event.buttons,
+    );
+    if (cancelled == null) return;
+    _rollbackMapInteraction(cancelled.session);
+    if (mounted) setState(() {});
+  }
+
   void _onMapPointerUp(PointerUpEvent event) {
     try {
       final interaction = _interactionController.activeSession;
@@ -1759,7 +1792,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       targetZoom: geometry.viewport.zoom * factor,
     );
     ref.read(editorNotifierProvider.notifier).setMapViewport(viewport);
-    _mapFocusNode.requestFocus();
+    _focusMapUnlessNavigationControlsHaveFocus();
   }
 
   void _fitActiveMap() {
@@ -1770,7 +1803,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       viewportSize: geometry.viewportSize,
     );
     ref.read(editorNotifierProvider.notifier).setMapViewport(viewport);
-    _mapFocusNode.requestFocus();
+    _focusMapUnlessNavigationControlsHaveFocus();
   }
 
   void _showActiveMapAtActualSize() {
@@ -1781,7 +1814,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       viewportSize: geometry.viewportSize,
     );
     ref.read(editorNotifierProvider.notifier).setMapViewport(viewport);
-    _mapFocusNode.requestFocus();
+    _focusMapUnlessNavigationControlsHaveFocus();
   }
 
   void _centerActiveMap() {
@@ -1793,7 +1826,13 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       zoom: geometry.viewport.zoom,
     );
     ref.read(editorNotifierProvider.notifier).setMapViewport(viewport);
-    _mapFocusNode.requestFocus();
+    _focusMapUnlessNavigationControlsHaveFocus();
+  }
+
+  void _focusMapUnlessNavigationControlsHaveFocus() {
+    if (!_mapNavigationControlsFocusNode.hasFocus) {
+      _mapFocusNode.requestFocus();
+    }
   }
 
   ({
