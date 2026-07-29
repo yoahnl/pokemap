@@ -1,33 +1,22 @@
 import 'dart:io';
 
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pokemap_hub/src/platform/android_hub_platform_adapter.dart';
 import 'package:pokemap_hub/src/platform/hub_platform_adapter.dart';
 
 void main() {
-  test('picker accepts Avelune packages and returns the selected local path',
-      () async {
-    late List<XTypeGroup> requestedTypes;
+  test('picker returns the local path copied by the Android host', () async {
     final adapter = AndroidHubPlatformAdapter(
-      pickFile: (types) async {
-        requestedTypes = types;
-        return XFile('/tmp/adventure.avelunegame');
-      },
+      pickFile: () async => '/tmp/adventure.avelunegame',
       readAvailableDiskBytes: () async => 1024,
     );
 
     expect(await adapter.pickPackage(), '/tmp/adventure.avelunegame');
-    expect(requestedTypes, hasLength(1));
-    expect(
-      requestedTypes.single.extensions,
-      containsAll(<String>['avelunegame', 'pokemapgame']),
-    );
   });
 
   test('picker cancellation is preserved', () async {
     final adapter = AndroidHubPlatformAdapter(
-      pickFile: (_) async => null,
+      pickFile: () async => null,
       readAvailableDiskBytes: () async => 1024,
     );
 
@@ -36,7 +25,7 @@ void main() {
 
   test('picker failures have an actionable import error', () async {
     final adapter = AndroidHubPlatformAdapter(
-      pickFile: (_) async => throw StateError('picker unavailable'),
+      pickFile: () async => throw StateError('picker unavailable'),
       readAvailableDiskBytes: () async => 1024,
     );
 
@@ -68,7 +57,7 @@ void main() {
       if (await root.exists()) await root.delete(recursive: true);
     });
     final adapter = AndroidHubPlatformAdapter(
-      pickFile: (_) async => null,
+      pickFile: () async => null,
       readAvailableDiskBytes: () async => 4096,
     );
 
@@ -83,7 +72,7 @@ void main() {
       );
       addTearDown(() => root.delete(recursive: true));
       final adapter = AndroidHubPlatformAdapter(
-        pickFile: (_) async => null,
+        pickFile: () async => null,
         readAvailableDiskBytes: () async => invalidValue,
       );
 

@@ -77,6 +77,25 @@ void main() {
     expect(productIdentity, contains("'android' || 'ios' => 'Avelune'"));
   });
 
+  test('Android streams selected packages into the application cache',
+      () async {
+    final activity = await File(
+      'android/app/src/main/kotlin/com/yoahnl/avelune/player/MainActivity.kt',
+    ).readAsString();
+    final adapter = await File(
+      'lib/src/platform/android_hub_platform_adapter.dart',
+    ).readAsString();
+
+    expect(activity, contains('Intent.ACTION_OPEN_DOCUMENT'));
+    expect(
+      activity,
+      contains('input.copyTo(output, bufferSize = 64 * 1024)'),
+    );
+    expect(activity, isNot(contains('readBytes')));
+    expect(adapter, contains("invokeMethod<String>('pickPackage')"));
+    expect(adapter, isNot(contains('openFile(')));
+  });
+
   test('GitHub delegates iOS to Xcode Cloud and releases Android', () async {
     final hubWorkflow = await File(
       '../../.github/workflows/pokemap_hub_product_certification.yml',
