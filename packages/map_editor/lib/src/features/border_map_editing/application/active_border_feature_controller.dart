@@ -40,23 +40,10 @@ final class ActiveBorderFeatureController
   /// Reconciles selection after layer/feature selection, deletion or reorder.
   /// Later authored features are visually uppermost and become the fallback.
   void reconcile({required MapData? map, required String? activeLayerId}) {
-    final layer = _findBorderLayer(map, activeLayerId);
-    if (layer == null) {
-      state = const ActiveBorderFeatureState.empty();
-      return;
-    }
-    final currentFeatureId =
-        state.activeLayerId == layer.id ? state.activeFeatureId : null;
-    final currentStillExists = currentFeatureId != null &&
-        layer.content.featureById(currentFeatureId) != null;
-    final nextFeatureId = currentStillExists
-        ? currentFeatureId
-        : layer.content.features.isEmpty
-            ? null
-            : layer.content.features.last.id;
-    state = ActiveBorderFeatureState(
-      activeLayerId: layer.id,
-      activeFeatureId: nextFeatureId,
+    state = resolveActiveBorderFeatureSelection(
+      current: state,
+      map: map,
+      activeLayerId: activeLayerId,
     );
   }
 
@@ -82,6 +69,31 @@ final class ActiveBorderFeatureController
   void clear() {
     state = const ActiveBorderFeatureState.empty();
   }
+}
+
+/// Purely resolves the canonical Border feature without publishing selection.
+ActiveBorderFeatureState resolveActiveBorderFeatureSelection({
+  required ActiveBorderFeatureState current,
+  required MapData? map,
+  required String? activeLayerId,
+}) {
+  final layer = _findBorderLayer(map, activeLayerId);
+  if (layer == null) {
+    return const ActiveBorderFeatureState.empty();
+  }
+  final currentFeatureId =
+      current.activeLayerId == layer.id ? current.activeFeatureId : null;
+  final currentStillExists = currentFeatureId != null &&
+      layer.content.featureById(currentFeatureId) != null;
+  final nextFeatureId = currentStillExists
+      ? currentFeatureId
+      : layer.content.features.isEmpty
+          ? null
+          : layer.content.features.last.id;
+  return ActiveBorderFeatureState(
+    activeLayerId: layer.id,
+    activeFeatureId: nextFeatureId,
+  );
 }
 
 BorderLayer? _findBorderLayer(MapData? map, String? layerId) {

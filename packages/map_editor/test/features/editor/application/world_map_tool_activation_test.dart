@@ -7,6 +7,7 @@ import 'package:map_editor/src/features/border_map_editing/application/border_to
 import 'package:map_editor/src/features/border_map_editing/state/border_map_editing_providers.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
@@ -464,6 +465,91 @@ void main() {
       expect(result.accepted, isTrue);
       expect(notifier.state.activeBrush, const EditorBrush.none());
     });
+
+    for (final testCase in <({
+      String label,
+      WorldMapToolActivationRequest borderRequest,
+      WorldMapToolActivationRequest? tileRequest,
+      EditorToolType resultingTool,
+      WorldMapToolFamily family,
+    })>[
+      (
+        label: 'paint',
+        borderRequest: const ActivateWorldMapPaint(WorldMapPaintSubtool.border),
+        tileRequest: const ActivateWorldMapPaint(WorldMapPaintSubtool.tile),
+        resultingTool: EditorToolType.borderPaint,
+        family: WorldMapToolFamily.paint,
+      ),
+      (
+        label: 'erase',
+        borderRequest: const ActivateWorldMapErase(),
+        tileRequest: null,
+        resultingTool: EditorToolType.borderErase,
+        family: WorldMapToolFamily.erase,
+      ),
+    ]) {
+      test(
+          'returning to a Border layer atomically restores ${testCase.label} '
+          'with its canonical feature', () {
+        final container = _createContainer();
+        final editor = container.read(editorNotifierProvider.notifier)
+          ..state = _stateForLayer('border').copyWith(
+            activeTool: EditorToolType.selection,
+          );
+        final controller =
+            container.read(worldMapWorkspaceSessionProvider.notifier);
+        controller.resetForMap('map-a');
+        container
+            .read(activeBorderFeatureControllerProvider.notifier)
+            .selectFeature(
+              map: _map,
+              layerId: 'border',
+              featureId: 'coast',
+            );
+        expect(
+          controller.activateTool(editor, testCase.borderRequest).accepted,
+          isTrue,
+        );
+
+        controller.setActiveLayer(editor, 'tile');
+        if (testCase.tileRequest case final tileRequest?) {
+          expect(
+            controller.activateTool(editor, tileRequest).accepted,
+            isTrue,
+          );
+        }
+        expect(
+          container.read(activeBorderFeatureControllerProvider).activeFeatureId,
+          isNull,
+        );
+
+        final emissions = <EditorState>[];
+        final subscription = container.listen<EditorState>(
+          editorNotifierProvider,
+          (_, next) => emissions.add(next),
+        );
+
+        controller.setActiveLayer(editor, 'border');
+
+        subscription.close();
+        expect(emissions, hasLength(1));
+        expect(editor.state.activeLayerId, 'border');
+        expect(editor.state.activeTool, testCase.resultingTool);
+        final session = container.read(worldMapWorkspaceSessionProvider);
+        expect(session.activeFamily, testCase.family);
+        if (testCase.family == WorldMapToolFamily.paint) {
+          expect(session.lastPaintSubtool, WorldMapPaintSubtool.border);
+          expect(
+            session.lastPaintSubtoolByLayerId['border'],
+            WorldMapPaintSubtool.border,
+          );
+        }
+        final borderSelection =
+            container.read(activeBorderFeatureControllerProvider);
+        expect(borderSelection.activeLayerId, 'border');
+        expect(borderSelection.activeFeatureId, 'coast');
+      });
+    }
 
     test('border rejection reuses the canonical availability reason', () {
       final container = _createContainer();

@@ -78,6 +78,7 @@ import '../tools/editor_tool.dart';
 import 'editor_state.dart';
 import 'environment_generated_placement_add_element_provider.dart';
 import 'environment_mask_brush_size_provider.dart';
+import '../../border_map_editing/application/active_border_feature_controller.dart';
 import '../../border_map_editing/application/border_feature_authoring_controller.dart';
 import '../../border_map_editing/application/border_preview_transaction.dart';
 import '../../border_map_editing/application/border_tool_availability.dart';
@@ -11322,7 +11323,12 @@ class EditorNotifier extends _$EditorNotifier
     WorldMapToolActivationRequest request,
   ) {
     final source = state;
-    final preflight = _preflightWorldMapToolActivation(source, request);
+    final preflight = _preflightWorldMapToolActivation(
+      source,
+      request,
+      activeBorderFeatureId:
+          ref.read(activeBorderFeatureControllerProvider).activeFeatureId,
+    );
     if (preflight.rejectionReason case final reason?) {
       return WorldMapToolActivationResult(
         accepted: false,
@@ -11378,9 +11384,15 @@ class EditorNotifier extends _$EditorNotifier
         errorMessage: null,
       ),
     );
+    final destinationBorderSelection = resolveActiveBorderFeatureSelection(
+      current: ref.read(activeBorderFeatureControllerProvider),
+      map: destination.activeMap,
+      activeLayerId: destination.activeLayerId,
+    );
     final preflight = _preflightWorldMapToolActivation(
       destination,
       toolRequest,
+      activeBorderFeatureId: destinationBorderSelection.activeFeatureId,
     );
     if (preflight.rejectionReason case final reason?) {
       const fallbackRequest = ActivateWorldMapSelection();
@@ -11453,8 +11465,9 @@ class EditorNotifier extends _$EditorNotifier
 
   _WorldMapToolActivationPreflight _preflightWorldMapToolActivation(
     EditorState source,
-    WorldMapToolActivationRequest request,
-  ) {
+    WorldMapToolActivationRequest request, {
+    String? activeBorderFeatureId,
+  }) {
     if (request is ActivateWorldMapSelection) {
       return (
         resultingTool: EditorToolType.selection,
@@ -11521,8 +11534,7 @@ class EditorNotifier extends _$EditorNotifier
           manifest: source.project,
           map: map,
           activeLayerId: layerId,
-          activeFeatureId:
-              ref.read(activeBorderFeatureControllerProvider).activeFeatureId,
+          activeFeatureId: activeBorderFeatureId,
         );
         return (
           resultingTool:
@@ -11612,8 +11624,7 @@ class EditorNotifier extends _$EditorNotifier
           manifest: source.project,
           map: map,
           activeLayerId: layerId,
-          activeFeatureId:
-              ref.read(activeBorderFeatureControllerProvider).activeFeatureId,
+          activeFeatureId: activeBorderFeatureId,
         );
         return (
           resultingTool:
