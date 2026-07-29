@@ -1,9 +1,11 @@
 import 'package:map_core/map_core.dart';
 
+import '../../features/editor/application/map_layer_grouping.dart';
+
 final class LayerPanelPresentationRow {
   const LayerPanelPresentationRow({
     required this.layer,
-    required this.layerIndex,
+    required this.groupIndex,
     required this.isActive,
     this.environmentAttachmentLabel,
     this.environmentWarningLabel,
@@ -12,7 +14,7 @@ final class LayerPanelPresentationRow {
   });
 
   final MapLayer layer;
-  final int layerIndex;
+  final int groupIndex;
   final bool isActive;
   final String? environmentAttachmentLabel;
   final String? environmentWarningLabel;
@@ -36,36 +38,13 @@ List<LayerPanelPresentationRow> buildLayerPanelPresentationRows(
   final layersById = {
     for (final layer in map.layers) layer.id: layer,
   };
-  final attachedEnvironmentLayersByTarget = <String, List<EnvironmentLayer>>{};
-  final hiddenEnvironmentLayerIds = <String>{};
-
-  for (final layer in map.layers.whereType<EnvironmentLayer>()) {
-    final targetLayerId = layer.content.targetTileLayerId?.trim();
-    if (targetLayerId == null || targetLayerId.isEmpty) {
-      continue;
-    }
-    final targetLayer = layersById[targetLayerId];
-    if (targetLayer is! TileLayer) {
-      continue;
-    }
-    attachedEnvironmentLayersByTarget
-        .putIfAbsent(targetLayer.id, () => <EnvironmentLayer>[])
-        .add(layer);
-    hiddenEnvironmentLayerIds.add(layer.id);
-  }
-
+  const groupService = MapLayerGroupService();
+  final groups = groupService.groupsTopFirst(map);
   final rows = <LayerPanelPresentationRow>[];
-  for (var index = 0; index < map.layers.length; index += 1) {
-    final layer = map.layers[index];
-    if (hiddenEnvironmentLayerIds.contains(layer.id)) {
-      continue;
-    }
-
-    final attachedEnvironmentLayers = layer is TileLayer
-        ? attachedEnvironmentLayersByTarget[layer.id] ??
-            const <EnvironmentLayer>[]
-        : const <EnvironmentLayer>[];
-    final attachedEnvironmentLayerIds = attachedEnvironmentLayers
+  for (var groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
+    final group = groups[groupIndex];
+    final layer = group.primaryLayer;
+    final attachedEnvironmentLayerIds = group.attachedEnvironmentLayersTopFirst
         .map((environmentLayer) => environmentLayer.id)
         .toList(growable: false);
     final hasActiveTechnicalEnvironment =
@@ -74,7 +53,7 @@ List<LayerPanelPresentationRow> buildLayerPanelPresentationRows(
     rows.add(
       LayerPanelPresentationRow(
         layer: layer,
-        layerIndex: index,
+        groupIndex: groupIndex,
         isActive: layer.id == activeLayerId || hasActiveTechnicalEnvironment,
         environmentAttachmentLabel:
             _environmentAttachmentLabel(attachedEnvironmentLayerIds.length),

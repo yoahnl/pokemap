@@ -65,6 +65,7 @@ import '../application/map_activation_coordinator.dart';
 import '../application/map_canvas_object_hit_test.dart';
 import '../application/map_canvas_object_move_planner.dart';
 import '../application/map_editing_controller.dart';
+import '../application/map_layer_grouping.dart';
 import '../application/map_selection_controller.dart';
 import '../application/project_content_controller.dart';
 import '../application/project_session_controller.dart';
@@ -10475,6 +10476,110 @@ class EditorNotifier extends _$EditorNotifier {
     } catch (e) {
       state = state.copyWith(
           errorMessage: 'Impossible de supprimer tous les calques : $e');
+    }
+  }
+
+  void moveMapLayerGroupUp(String layerId) {
+    _moveMapLayerGroup(
+      layerId,
+      MapLayerGroupMoveDirection.up,
+    );
+  }
+
+  void moveMapLayerGroupDown(String layerId) {
+    _moveMapLayerGroup(
+      layerId,
+      MapLayerGroupMoveDirection.down,
+    );
+  }
+
+  void _moveMapLayerGroup(
+    String layerId,
+    MapLayerGroupMoveDirection direction,
+  ) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      const service = MapLayerGroupService();
+      final updated = service.moveAdjacent(
+        map: map,
+        layerId: layerId,
+        direction: direction,
+      );
+      if (updated == map) {
+        state = state.copyWith(errorMessage: null);
+        return;
+      }
+      _validateLayerGroupReorder(
+        previousMap: map,
+        updatedMap: updated,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        statusMessage: 'Groupe de calques réorganisé',
+      );
+    } catch (error) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de réorganiser le groupe de calques : '
+            '$error',
+      );
+    }
+  }
+
+  /// Places one visible layer group before a top-first presentation slot.
+  void moveMapLayerGroupBeforeVisibleIndex(
+    String layerId,
+    int beforeVisibleIndex,
+  ) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      const service = MapLayerGroupService();
+      final updated = service.moveBeforeGroupIndex(
+        map: map,
+        layerId: layerId,
+        beforeGroupIndex: beforeVisibleIndex,
+      );
+      if (updated == map) {
+        state = state.copyWith(errorMessage: null);
+        return;
+      }
+      _validateLayerGroupReorder(
+        previousMap: map,
+        updatedMap: updated,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        statusMessage: 'Groupe de calques réorganisé',
+      );
+    } catch (error) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de réorganiser le groupe de calques : '
+            '$error',
+      );
+    }
+  }
+
+  void _validateLayerGroupReorder({
+    required MapData previousMap,
+    required MapData updatedMap,
+  }) {
+    try {
+      MapValidator.validate(updatedMap);
+    } catch (updatedError, updatedStackTrace) {
+      try {
+        MapValidator.validate(previousMap);
+      } catch (_) {
+        // Reordering preserves every layer instance and only changes their
+        // order. Keep repairable legacy maps editable when they already carry
+        // an unrelated validation error, such as an orphan Environment layer.
+        return;
+      }
+      Error.throwWithStackTrace(updatedError, updatedStackTrace);
     }
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart'
-    show Colors, Draggable, DragTarget, Material;
+    show Draggable, DragTarget, Material, MaterialType;
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
@@ -323,11 +323,12 @@ class _LayerList extends StatelessWidget {
       itemBuilder: (context, index) {
         if (index == rows.length) {
           return DragTarget<String>(
+            key: const ValueKey('drop-layer-group-at-end'),
             onWillAcceptWithDetails: (_) => true,
             onAcceptWithDetails: (details) {
-              notifier.moveMapLayerBeforeIndex(
+              notifier.moveMapLayerGroupBeforeVisibleIndex(
                 details.data,
-                map.layers.length,
+                rows.length,
               );
             },
             builder: (context, candidateData, _) {
@@ -359,14 +360,18 @@ class _LayerList extends StatelessWidget {
         final row = rows[index];
         final layer = row.layer;
         final isActive = row.isActive;
-        final canMoveUp = row.layerIndex > 0;
-        final canMoveDown = row.layerIndex < map.layers.length - 1;
+        final canMoveUp = row.groupIndex > 0;
+        final canMoveDown = row.groupIndex < rows.length - 1;
         final canDeleteLayer = !row.isDeleteProtectedByEnvironmentAttachment;
 
         return DragTarget<String>(
+          key: ValueKey('drop-layer-group-before-${layer.id}'),
           onWillAcceptWithDetails: (_) => true,
           onAcceptWithDetails: (details) {
-            notifier.moveMapLayerBeforeIndex(details.data, row.layerIndex);
+            notifier.moveMapLayerGroupBeforeVisibleIndex(
+              details.data,
+              row.groupIndex,
+            );
           },
           builder: (context, candidateData, _) {
             final dropHovering = candidateData.isNotEmpty;
@@ -391,11 +396,12 @@ class _LayerList extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Draggable<String>(
+                      key: ValueKey('drag-layer-group-${layer.id}'),
                       data: layer.id,
                       axis: Axis.vertical,
                       affinity: Axis.vertical,
                       feedback: Material(
-                        color: Colors.transparent,
+                        type: MaterialType.transparency,
                         child: _dragFeedback(
                           context,
                           layer,
@@ -438,42 +444,31 @@ class _LayerList extends StatelessWidget {
                       ),
                     ),
                     Expanded(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: isActive
+                      child: Semantics(
+                        key: ValueKey('layer-row-semantics-${layer.id}'),
+                        container: true,
+                        selected: isActive,
+                        label: _layerRowSemanticsLabel(
+                          row,
+                          visibleIndex: index,
+                          visibleCount: rows.length,
+                        ),
+                        child: PokeMapCard(
+                          selected: isActive,
+                          backgroundColor: isActive
                               ? colors.surfaceSelected
                               : colors.surfaceSubtle,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isActive
-                                ? colors.brandPrimaryBorder
-                                : colors.borderSubtle,
-                            width: 1,
-                          ),
-                          boxShadow:
-                              EditorChrome.inspectorTileHardShadows(context),
-                        ),
-                        child: Padding(
+                          borderRadius: 8,
                           padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-                          child: Column(
-                            children: [
-                              CupertinoButton(
-                                padding: EdgeInsets.zero,
-                                minimumSize: Size.zero,
-                                onPressed: () =>
-                                    notifier.setActiveLayer(layer.id),
-                                child: ClipRect(
-                                  child: _buildLayerRowHeader(
-                                    context: context,
-                                    row: row,
-                                    notifier: notifier,
-                                    canMoveUp: canMoveUp,
-                                    canMoveDown: canMoveDown,
-                                    canDeleteLayer: canDeleteLayer,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          child: ClipRect(
+                            child: _buildLayerRowHeader(
+                              context: context,
+                              row: row,
+                              notifier: notifier,
+                              canMoveUp: canMoveUp,
+                              canMoveDown: canMoveDown,
+                              canDeleteLayer: canDeleteLayer,
+                            ),
                           ),
                         ),
                       ),
@@ -498,8 +493,15 @@ class _LayerList extends StatelessWidget {
   }) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.maxWidth < 180;
-        final identity = _buildLayerIdentity(context, row);
+        final compact = constraints.maxWidth < 220;
+        final identity = PokeMapButton(
+          key: ValueKey('select-layer-${row.layer.id}'),
+          onPressed: () => notifier.setActiveLayer(row.layer.id),
+          variant: PokeMapButtonVariant.ghost,
+          size: PokeMapButtonSize.small,
+          isSelected: row.isActive,
+          child: _buildLayerIdentity(context, row),
+        );
         final actions = _buildLayerActions(
           context: context,
           row: row,
@@ -509,21 +511,40 @@ class _LayerList extends StatelessWidget {
           canDeleteLayer: canDeleteLayer,
           wrap: compact,
         );
+        final details = _buildLayerDetails(context, row.layer);
+        final statuses = _buildLayerStatusBadges(row);
         if (compact) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               identity,
+              const SizedBox(height: 2),
+              details,
+              if (statuses != null) ...[
+                const SizedBox(height: 5),
+                statuses,
+              ],
               const SizedBox(height: 5),
               Align(alignment: Alignment.centerRight, child: actions),
             ],
           );
         }
-        return Row(
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(child: identity),
-            const SizedBox(width: 4),
-            actions,
+            Row(
+              children: [
+                Expanded(child: identity),
+                const SizedBox(width: 4),
+                actions,
+              ],
+            ),
+            const SizedBox(height: 2),
+            details,
+            if (statuses != null) ...[
+              const SizedBox(height: 5),
+              statuses,
+            ],
           ],
         );
       },
@@ -545,51 +566,62 @@ class _LayerList extends StatelessWidget {
         ),
         const SizedBox(width: 7),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                layer.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: row.isActive ? FontWeight.w600 : FontWeight.w500,
-                  color: colors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '${_labelForLayer(layer)} • ${layer.id}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 10, color: colors.textMuted),
-              ),
-              if (row.environmentAttachmentLabel != null) ...[
-                const SizedBox(height: 4),
-                _LayerStatusText(
-                  row.environmentAttachmentLabel!,
-                  color: colors.textSecondary,
-                ),
-              ],
-              if (row.technicalEnvironmentSelectionLabel != null) ...[
-                const SizedBox(height: 3),
-                _LayerStatusText(
-                  row.technicalEnvironmentSelectionLabel!,
-                  color: colors.textSecondary,
-                ),
-              ],
-              if (row.environmentWarningLabel != null) ...[
-                const SizedBox(height: 3),
-                _LayerStatusText(
-                  row.environmentWarningLabel!,
-                  color: colors.warning,
-                ),
-              ],
-            ],
+          child: Text(
+            layer.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: row.isActive ? FontWeight.w600 : FontWeight.w500,
+              color: colors.textPrimary,
+            ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLayerDetails(
+    BuildContext context,
+    MapLayer layer,
+  ) {
+    final colors = context.pokeMapColors;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Text(
+        '${_labelForLayer(layer)} • ${layer.id}',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(fontSize: 10, color: colors.textMuted),
+      ),
+    );
+  }
+
+  Widget? _buildLayerStatusBadges(LayerPanelPresentationRow row) {
+    final badges = <Widget>[
+      if (row.environmentAttachmentLabel != null)
+        PokeMapBadge(
+          label: row.environmentAttachmentLabel!,
+          variant: PokeMapBadgeVariant.mapAccent,
+        ),
+      if (row.technicalEnvironmentSelectionLabel != null)
+        PokeMapBadge(
+          label: row.technicalEnvironmentSelectionLabel!,
+          variant: PokeMapBadgeVariant.info,
+        ),
+      if (row.environmentWarningLabel != null)
+        PokeMapBadge(
+          label: row.environmentWarningLabel!,
+          variant: PokeMapBadgeVariant.warning,
+        ),
+    ];
+    if (badges.isEmpty) {
+      return null;
+    }
+    return Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      children: badges,
     );
   }
 
@@ -614,14 +646,17 @@ class _LayerList extends StatelessWidget {
         size: 26,
       ),
       PokeMapIconButton(
-        onPressed: canMoveUp ? () => notifier.moveMapLayerUp(layer.id) : null,
+        key: ValueKey('move-layer-up-${layer.id}'),
+        onPressed:
+            canMoveUp ? () => notifier.moveMapLayerGroupUp(layer.id) : null,
         icon: const Icon(CupertinoIcons.arrow_up),
         tooltip: 'Monter le calque',
         size: 26,
       ),
       PokeMapIconButton(
+        key: ValueKey('move-layer-down-${layer.id}'),
         onPressed:
-            canMoveDown ? () => notifier.moveMapLayerDown(layer.id) : null,
+            canMoveDown ? () => notifier.moveMapLayerGroupDown(layer.id) : null,
         icon: const Icon(CupertinoIcons.arrow_down),
         tooltip: 'Descendre le calque',
         size: 26,
@@ -671,17 +706,11 @@ class _LayerList extends StatelessWidget {
     final colors = context.pokeMapColors;
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 280),
-      child: Container(
+      child: PokeMapCard(
+        selected: true,
+        backgroundColor: colors.surfaceRaised,
+        borderRadius: 8,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: colors.surfaceRaised,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: colors.brandPrimaryBorder,
-            width: 1,
-          ),
-          boxShadow: EditorChrome.inspectorTileHardShadows(context),
-        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -707,6 +736,31 @@ class _LayerList extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _layerRowSemanticsLabel(
+    LayerPanelPresentationRow row, {
+    required int visibleIndex,
+    required int visibleCount,
+  }) {
+    final parts = <String>[
+      row.layer.name,
+      _labelForLayer(row.layer),
+      'position ${visibleIndex + 1} sur $visibleCount',
+    ];
+    final attachmentCount = row.attachedEnvironmentLayerIds.length;
+    if (attachmentCount == 1) {
+      parts.add('groupe avec 1 environnement attaché');
+    } else if (attachmentCount > 1) {
+      parts.add('groupe avec $attachmentCount environnements attachés');
+    }
+    if (row.technicalEnvironmentSelectionLabel != null) {
+      parts.add(row.technicalEnvironmentSelectionLabel!);
+    }
+    if (row.environmentWarningLabel != null) {
+      parts.add(row.environmentWarningLabel!);
+    }
+    return parts.join(', ');
   }
 
   IconData _iconForLayer(MapLayer layer) {
@@ -768,29 +822,5 @@ class _LayerList extends StatelessWidget {
     );
     if (!shouldDelete) return;
     notifier.deleteMapLayer(layer.id);
-  }
-}
-
-class _LayerStatusText extends StatelessWidget {
-  const _LayerStatusText(
-    this.text, {
-    required this.color,
-  });
-
-  final String text;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: TextStyle(
-        fontSize: 10,
-        fontWeight: FontWeight.w600,
-        color: color,
-      ),
-    );
   }
 }
