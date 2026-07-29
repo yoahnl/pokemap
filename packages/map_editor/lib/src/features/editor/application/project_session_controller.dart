@@ -17,6 +17,7 @@ class ProjectSessionController {
     required String statusMessage,
   }) {
     return current
+        .copyWith(paletteSession: const EditorPaletteSession())
         .copyWithProjectSession(
           current.projectSession.copyWith(
             projectRootPath: session.projectRootPath,

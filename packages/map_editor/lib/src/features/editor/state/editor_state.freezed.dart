@@ -1273,6 +1273,7 @@ mixin _$EditorState {
   String? get selectedTilesetEditorId => throw _privateConstructorUsedError;
   String? get selectedTilesetElementGroupId =>
       throw _privateConstructorUsedError;
+  EditorPaletteSession get paletteSession => throw _privateConstructorUsedError;
   TilesElementsPanelMode get tilesElementsPanelMode =>
       throw _privateConstructorUsedError;
   String? get selectedPlacedElementInstanceId =>
@@ -1352,6 +1353,7 @@ abstract class $EditorStateCopyWith<$Res> {
       MapRect? gameplayZoneDraftArea,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
+      EditorPaletteSession paletteSession,
       TilesElementsPanelMode tilesElementsPanelMode,
       String? selectedPlacedElementInstanceId,
       String? selectedProjectDialogueId,
@@ -1378,6 +1380,7 @@ abstract class $EditorStateCopyWith<$Res> {
   $EditorBrushCopyWith<$Res> get activeBrush;
   $EditorEraserFootprintCopyWith<$Res> get eraserFootprint;
   $MapRectCopyWith<$Res>? get gameplayZoneDraftArea;
+  $EditorPaletteSessionCopyWith<$Res> get paletteSession;
   $MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart;
   $MapDataCopyWith<$Res>? get savedMapSnapshot;
 }
@@ -1427,6 +1430,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? gameplayZoneDraftArea = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
+    Object? paletteSession = null,
     Object? tilesElementsPanelMode = null,
     Object? selectedPlacedElementInstanceId = freezed,
     Object? selectedProjectDialogueId = freezed,
@@ -1568,6 +1572,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
           ? _value.selectedTilesetElementGroupId
           : selectedTilesetElementGroupId // ignore: cast_nullable_to_non_nullable
               as String?,
+      paletteSession: null == paletteSession
+          ? _value.paletteSession
+          : paletteSession // ignore: cast_nullable_to_non_nullable
+              as EditorPaletteSession,
       tilesElementsPanelMode: null == tilesElementsPanelMode
           ? _value.tilesElementsPanelMode
           : tilesElementsPanelMode // ignore: cast_nullable_to_non_nullable
@@ -1729,6 +1737,16 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
+  $EditorPaletteSessionCopyWith<$Res> get paletteSession {
+    return $EditorPaletteSessionCopyWith<$Res>(_value.paletteSession, (value) {
+      return _then(_value.copyWith(paletteSession: value) as $Val);
+    });
+  }
+
+  /// Create a copy of EditorState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
   $MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart {
     if (_value.mapStrokeStart == null) {
       return null;
@@ -1793,6 +1811,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       MapRect? gameplayZoneDraftArea,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
+      EditorPaletteSession paletteSession,
       TilesElementsPanelMode tilesElementsPanelMode,
       String? selectedPlacedElementInstanceId,
       String? selectedProjectDialogueId,
@@ -1825,6 +1844,8 @@ abstract class _$$EditorStateImplCopyWith<$Res>
   $EditorEraserFootprintCopyWith<$Res> get eraserFootprint;
   @override
   $MapRectCopyWith<$Res>? get gameplayZoneDraftArea;
+  @override
+  $EditorPaletteSessionCopyWith<$Res> get paletteSession;
   @override
   $MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart;
   @override
@@ -1874,6 +1895,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? gameplayZoneDraftArea = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
+    Object? paletteSession = null,
     Object? tilesElementsPanelMode = null,
     Object? selectedPlacedElementInstanceId = freezed,
     Object? selectedProjectDialogueId = freezed,
@@ -2015,6 +2037,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.selectedTilesetElementGroupId
           : selectedTilesetElementGroupId // ignore: cast_nullable_to_non_nullable
               as String?,
+      paletteSession: null == paletteSession
+          ? _value.paletteSession
+          : paletteSession // ignore: cast_nullable_to_non_nullable
+              as EditorPaletteSession,
       tilesElementsPanelMode: null == tilesElementsPanelMode
           ? _value.tilesElementsPanelMode
           : tilesElementsPanelMode // ignore: cast_nullable_to_non_nullable
@@ -2130,6 +2156,7 @@ class _$EditorStateImpl implements _EditorState {
       this.gameplayZoneDraftArea,
       this.selectedTilesetEditorId,
       this.selectedTilesetElementGroupId,
+      this.paletteSession = const EditorPaletteSession(),
       this.tilesElementsPanelMode = TilesElementsPanelMode.palette,
       this.selectedPlacedElementInstanceId,
       this.selectedProjectDialogueId,
@@ -2247,6 +2274,9 @@ class _$EditorStateImpl implements _EditorState {
   final String? selectedTilesetElementGroupId;
   @override
   @JsonKey()
+  final EditorPaletteSession paletteSession;
+  @override
+  @JsonKey()
   final TilesElementsPanelMode tilesElementsPanelMode;
   @override
   final String? selectedPlacedElementInstanceId;
@@ -2320,7 +2350,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, pokemonCatalogSection: $pokemonCatalogSection, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedSurfacePresetId: $selectedSurfacePresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, eraserFootprint: $eraserFootprint, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, selectedEnvironmentAreaId: $selectedEnvironmentAreaId, environmentMaskEditMode: $environmentMaskEditMode, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isProjectDirty: $isProjectDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, pokemonCatalogSection: $pokemonCatalogSection, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedSurfacePresetId: $selectedSurfacePresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, eraserFootprint: $eraserFootprint, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, selectedEnvironmentAreaId: $selectedEnvironmentAreaId, environmentMaskEditMode: $environmentMaskEditMode, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteSession: $paletteSession, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isProjectDirty: $isProjectDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -2390,8 +2420,9 @@ class _$EditorStateImpl implements _EditorState {
             (identical(other.selectedTilesetElementGroupId, selectedTilesetElementGroupId) ||
                 other.selectedTilesetElementGroupId ==
                     selectedTilesetElementGroupId) &&
-            (identical(other.tilesElementsPanelMode, tilesElementsPanelMode) ||
-                other.tilesElementsPanelMode == tilesElementsPanelMode) &&
+            (identical(other.paletteSession, paletteSession) ||
+                other.paletteSession == paletteSession) &&
+            (identical(other.tilesElementsPanelMode, tilesElementsPanelMode) || other.tilesElementsPanelMode == tilesElementsPanelMode) &&
             (identical(other.selectedPlacedElementInstanceId, selectedPlacedElementInstanceId) || other.selectedPlacedElementInstanceId == selectedPlacedElementInstanceId) &&
             (identical(other.selectedProjectDialogueId, selectedProjectDialogueId) || other.selectedProjectDialogueId == selectedProjectDialogueId) &&
             (identical(other.selectedTrainerId, selectedTrainerId) || other.selectedTrainerId == selectedTrainerId) &&
@@ -2445,6 +2476,7 @@ class _$EditorStateImpl implements _EditorState {
         gameplayZoneDraftArea,
         selectedTilesetEditorId,
         selectedTilesetElementGroupId,
+        paletteSession,
         tilesElementsPanelMode,
         selectedPlacedElementInstanceId,
         selectedProjectDialogueId,
@@ -2507,6 +2539,7 @@ abstract class _EditorState implements EditorState {
       final MapRect? gameplayZoneDraftArea,
       final String? selectedTilesetEditorId,
       final String? selectedTilesetElementGroupId,
+      final EditorPaletteSession paletteSession,
       final TilesElementsPanelMode tilesElementsPanelMode,
       final String? selectedPlacedElementInstanceId,
       final String? selectedProjectDialogueId,
@@ -2600,6 +2633,8 @@ abstract class _EditorState implements EditorState {
   String? get selectedTilesetEditorId;
   @override
   String? get selectedTilesetElementGroupId;
+  @override
+  EditorPaletteSession get paletteSession;
   @override
   TilesElementsPanelMode get tilesElementsPanelMode;
   @override

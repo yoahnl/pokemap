@@ -5,12 +5,14 @@ import 'package:map_core/map_core.dart';
 import '../../../application/models/map_history_snapshot.dart';
 import '../../../application/models/terrain_selection_mode.dart';
 import 'models/editor_ui_modes.dart';
+import 'models/editor_palette_session.dart';
 import 'models/editor_workspace_mode.dart';
 import 'models/pokemon_catalog_section.dart';
 import '../tools/editor_tool.dart';
 
 export 'models/editor_state_groups.dart';
 export 'models/editor_ui_modes.dart';
+export 'models/editor_palette_session.dart';
 export 'models/editor_workspace_mode.dart';
 export 'models/pokemon_catalog_section.dart';
 
@@ -113,6 +115,7 @@ class EditorState with _$EditorState {
     MapRect? gameplayZoneDraftArea,
     String? selectedTilesetEditorId,
     String? selectedTilesetElementGroupId,
+    @Default(EditorPaletteSession()) EditorPaletteSession paletteSession,
     @Default(TilesElementsPanelMode.palette)
     TilesElementsPanelMode tilesElementsPanelMode,
     String? selectedPlacedElementInstanceId,

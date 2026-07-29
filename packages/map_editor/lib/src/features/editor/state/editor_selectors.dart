@@ -339,18 +339,42 @@ ProjectTilesetEntry? _resolveSelectedTilesetEntryFromState(EditorState state) {
     return null;
   }
 
-  final selectedId = state.selectedTilesetEditorId;
-  if (selectedId != null) {
+  final studioSelectedId = state.selectedTilesetEditorId;
+  if (state.workspaceMode == EditorWorkspaceMode.tileset &&
+      studioSelectedId != null) {
     for (final tileset in project.tilesets) {
-      if (tileset.id == selectedId) {
+      if (tileset.id == studioSelectedId) {
         return tileset;
+      }
+    }
+  }
+
+  final activeMap = state.activeMap;
+  final activeLayerId = state.activeLayerId;
+  if (activeMap != null && activeLayerId != null) {
+    final key = EditorPaletteContextKey(
+      mapId: activeMap.id,
+      layerId: activeLayerId,
+    );
+    final contextSelectedId =
+        state.paletteSession.contexts[key]?.selectedTilesetId;
+    if (contextSelectedId != null) {
+      for (final tileset in project.tilesets) {
+        if (tileset.id == contextSelectedId) {
+          return tileset;
+        }
       }
     }
   }
 
   final activeLayer = _resolveActiveLayerFromState(state);
   if (activeLayer is TileLayer) {
-    final layerTilesetId = activeLayer.tilesetId?.trim();
+    final explicitLayerTilesetId = activeLayer.tilesetId?.trim();
+    final mapTilesetId = activeMap?.tilesetId.trim();
+    final layerTilesetId =
+        explicitLayerTilesetId != null && explicitLayerTilesetId.isNotEmpty
+            ? explicitLayerTilesetId
+            : mapTilesetId;
     if (layerTilesetId != null && layerTilesetId.isNotEmpty) {
       for (final tileset in project.tilesets) {
         if (tileset.id == layerTilesetId) {
@@ -360,10 +384,24 @@ ProjectTilesetEntry? _resolveSelectedTilesetEntryFromState(EditorState state) {
     }
   }
 
+  if (state.workspaceMode == EditorWorkspaceMode.map &&
+      activeMap != null &&
+      activeLayerId != null) {
+    return null;
+  }
+
   final brushTilesetId = _resolveActiveBrushTilesetId(state, project);
   if (brushTilesetId != null) {
     for (final tileset in project.tilesets) {
       if (tileset.id == brushTilesetId) {
+        return tileset;
+      }
+    }
+  }
+
+  if (studioSelectedId != null) {
+    for (final tileset in project.tilesets) {
+      if (tileset.id == studioSelectedId) {
         return tileset;
       }
     }

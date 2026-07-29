@@ -131,7 +131,9 @@ void main() {
       expect(await File(fixture.mapPath).readAsBytes(), beforeBytes);
     });
 
-    test('active-layer tileset assignment uses the loaded revision', () async {
+    test(
+        'active-layer tileset assignment is undoable and conflicts only on save',
+        () async {
       final fixture = await _Fixture.create();
       addTearDown(fixture.dispose);
       final notifier = fixture.notifier;
@@ -142,13 +144,121 @@ void main() {
 
       await notifier.assignTilesetToActiveLayer('alternate');
 
-      expect(notifier.state.errorMessage, contains('changed outside'));
+      expect(notifier.state.errorMessage, isNull);
+      expect(notifier.state.isDirty, isTrue);
+      expect(notifier.state.mapUndoStack, hasLength(1));
       expect(notifier.state.activeMap!.layers.first, isA<TileLayer>());
+      expect(
+        (notifier.state.activeMap!.layers.first as TileLayer).tilesetId,
+        'alternate',
+      );
+      expect(await File(fixture.mapPath).readAsBytes(), externalBytes);
+
+      notifier.undoMap();
       expect(
         (notifier.state.activeMap!.layers.first as TileLayer).tilesetId,
         'base_tiles',
       );
+      notifier.redoMap();
+      expect(
+        (notifier.state.activeMap!.layers.first as TileLayer).tilesetId,
+        'alternate',
+      );
+
+      expect(await notifier.saveActiveMap(), ActiveMapSaveOutcome.conflict);
+      expect(notifier.state.errorMessage, contains('modifiée en dehors'));
+      expect(
+        (notifier.state.activeMap!.layers.first as TileLayer).tilesetId,
+        'alternate',
+      );
       expect(await File(fixture.mapPath).readAsBytes(), externalBytes);
+    });
+
+    test('active-layer tileset assignment rejects a non-empty layer', () async {
+      final fixture = await _Fixture.create();
+      addTearDown(fixture.dispose);
+      final notifier = fixture.notifier;
+      await fixture.load(notifier);
+      final map = notifier.state.activeMap!;
+      final layer = map.layers.first as TileLayer;
+      final occupiedMap = map.copyWith(
+        layers: <MapLayer>[
+          layer.copyWith(tiles: const <int>[1, 0, 0, 0]),
+          ...map.layers.skip(1),
+        ],
+      );
+      notifier.state = notifier.state.copyWith(activeMap: occupiedMap);
+      final historyBefore = notifier.state.mapUndoStack;
+      final diskBefore = await File(fixture.mapPath).readAsBytes();
+
+      await notifier.assignTilesetToActiveLayer('alternate');
+
+      expect(notifier.state.activeMap, occupiedMap);
+      expect(notifier.state.mapUndoStack, historyBefore);
+      expect(notifier.state.errorMessage, contains('Videz-la'));
+      expect(await File(fixture.mapPath).readAsBytes(), diskBefore);
+    });
+
+    test(
+        'layer deletion and history transitions activate the matching palette context',
+        () async {
+      final fixture = await _Fixture.create();
+      addTearDown(fixture.dispose);
+      final notifier = fixture.notifier;
+      await fixture.load(notifier);
+
+      notifier.selectTilesetElementGroupFilter(null);
+      notifier.setPaletteCategoryFilter(PaletteCategory.trees);
+      notifier.selectPaletteTile(1);
+      notifier.setTilesElementsPanelMode(
+        TilesElementsPanelMode.placedInstances,
+      );
+      notifier.addMapLayer(
+        kind: MapLayerKind.tile,
+        name: 'Details',
+        tileTilesetId: 'alternate',
+      );
+      final detailsLayerId = notifier.state.activeLayerId!;
+      notifier.setPaletteCategoryFilter(PaletteCategory.decorations);
+      notifier.selectPaletteTile(2);
+
+      notifier.setActiveLayer('base');
+      expect(notifier.state.paletteCategoryFilter, PaletteCategory.trees);
+      expect(
+        notifier.state.tilesElementsPanelMode,
+        TilesElementsPanelMode.placedInstances,
+      );
+      notifier.setActiveLayer(detailsLayerId);
+      expect(
+        notifier.state.paletteCategoryFilter,
+        PaletteCategory.decorations,
+      );
+
+      notifier.deleteMapLayer(detailsLayerId);
+
+      expect(notifier.state.activeLayerId, 'base');
+      expect(notifier.state.paletteCategoryFilter, PaletteCategory.trees);
+      expect(
+        notifier.state.tilesElementsPanelMode,
+        TilesElementsPanelMode.placedInstances,
+      );
+      expect(
+        notifier.state.paletteSession.contexts.keys,
+        isNot(contains(EditorPaletteContextKey(
+          mapId: 'alpha',
+          layerId: detailsLayerId,
+        ))),
+      );
+
+      notifier.undoMap();
+      expect(notifier.state.activeLayerId, detailsLayerId);
+      expect(notifier.getSelectedTilesetEntry()?.id, 'alternate');
+      expect(notifier.state.activeBrush, const EditorBrush.none());
+      expect(notifier.state.paletteCategoryFilter, isNull);
+
+      notifier.redoMap();
+      expect(notifier.state.activeLayerId, 'base');
+      expect(notifier.state.paletteCategoryFilter, PaletteCategory.trees);
     });
 
     test('project replacement clears cached map revisions', () async {

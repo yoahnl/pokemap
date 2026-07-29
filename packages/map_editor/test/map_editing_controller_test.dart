@@ -133,6 +133,54 @@ void main() {
       expect(redone.statusMessage, 'Redo');
     });
 
+    test('map history never overwrites the independent Tileset Studio source',
+        () {
+      const previousMap = MapData(
+        id: 'map_1',
+        name: 'Map 1',
+        size: GridSize(width: 1, height: 1),
+        layers: [
+          TileLayer(
+            id: 'ground',
+            name: 'Ground',
+            tilesetId: 'map_tiles',
+            tiles: [0],
+          ),
+        ],
+      );
+      const updatedMap = MapData(
+        id: 'map_1',
+        name: 'Map 1',
+        size: GridSize(width: 1, height: 1),
+        layers: [
+          TileLayer(
+            id: 'ground',
+            name: 'Ground',
+            tilesetId: 'map_tiles',
+            tiles: [1],
+          ),
+        ],
+      );
+      const current = EditorState(
+        activeMap: previousMap,
+        activeLayerId: 'ground',
+        selectedTilesetEditorId: 'studio_tiles',
+      );
+
+      final mutated = controller.applyMutation(
+        current: current,
+        previousMap: previousMap,
+        updatedMap: updatedMap,
+        preferredActiveLayerId: 'ground',
+      );
+      final undone = controller.undo(mutated)!;
+      final redone = controller.redo(undone)!;
+
+      expect(mutated.selectedTilesetEditorId, 'studio_tiles');
+      expect(undone.selectedTilesetEditorId, 'studio_tiles');
+      expect(redone.selectedTilesetEditorId, 'studio_tiles');
+    });
+
     test('endStroke clears the transient stroke marker', () {
       const map = MapData(
         id: 'map_1',

@@ -41,6 +41,7 @@ import '../../../application/models/path_autotile_set.dart';
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
 import '../../../application/services/editor_map_mutation_coordinator.dart';
+import '../../../application/services/editor_palette_session_service.dart';
 import '../../../application/services/element_collision_profile_generator.dart';
 import '../../../application/services/environment_mask_paint_target_resolver.dart';
 import '../../../application/services/entity_editing_service.dart';
@@ -1985,19 +1986,29 @@ class EditorNotifier extends _$EditorNotifier {
           role: role,
         )
       ]);
+      final preservedPaletteSession = _rememberActivePaletteContext(state);
+      final preservedSelectedTilesetEditorId = state.selectedTilesetEditorId;
       state = _projectSessionController.openMapDocument(
-        current: state.copyWith(project: updatedProject),
+        current: state.copyWith(
+          project: updatedProject,
+          paletteSession: preservedPaletteSession,
+        ),
         document: MapDocumentLoadResult(
           map: map,
           activeMapPath: mapPath,
           presetSelection: presetSelection,
-          selectedTilesetEditorId:
-              _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(
-            map,
-          ),
+          selectedTilesetEditorId: preservedSelectedTilesetEditorId != null &&
+                  updatedProject.tilesets.any(
+                    (tileset) => tileset.id == preservedSelectedTilesetEditorId,
+                  )
+              ? preservedSelectedTilesetEditorId
+              : updatedProject.tilesets.isNotEmpty
+                  ? updatedProject.tilesets.first.id
+                  : null,
         ),
         statusMessage: 'Carte « $id » créée avec succès',
       );
+      state = _activatePaletteContext(state);
       _rememberMapDocumentRevision(
         mapPath,
         revision: persistedDocument.revision,
@@ -2209,6 +2220,7 @@ class EditorNotifier extends _$EditorNotifier {
               project: project,
               current: _currentTerrainPresetSelection(),
             );
+      final preservedPaletteSession = _rememberActivePaletteContext(state);
       final preservedSelectedTilesetEditorId = state.selectedTilesetEditorId;
       final nextSelectedTilesetEditorId =
           preservedSelectedTilesetEditorId != null &&
@@ -2218,11 +2230,11 @@ class EditorNotifier extends _$EditorNotifier {
                     (tileset) => tileset.id == preservedSelectedTilesetEditorId,
                   )
               ? preservedSelectedTilesetEditorId
-              : _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(
-                  map,
-                );
+              : project != null && project.tilesets.isNotEmpty
+                  ? project.tilesets.first.id
+                  : null;
       state = _projectSessionController.openMapDocument(
-        current: state,
+        current: state.copyWith(paletteSession: preservedPaletteSession),
         document: MapDocumentLoadResult(
           map: map,
           activeMapPath: targetPath,
@@ -2231,6 +2243,7 @@ class EditorNotifier extends _$EditorNotifier {
         ),
         statusMessage: 'Carte « ${map.id} » chargée',
       );
+      state = _activatePaletteContext(state);
       final visualComposition = buildMapVisualCompositionPlan(map);
       if (visualComposition.requiresReadOnly) {
         state = state.copyWith(
@@ -3945,6 +3958,7 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Tileset deleted',
         errorMessage: null,
       );
+      state = _activatePaletteContext(state);
     } catch (e) {
       debugPrint('EditorNotifier: Error deleting tileset: $e');
       state = state.copyWith(errorMessage: 'Failed to delete tileset: $e');
@@ -3959,10 +3973,9 @@ class EditorNotifier extends _$EditorNotifier {
     if (project == null || map == null || mapPath == null || layerId == null) {
       return;
     }
-    // This use case writes the map before returning the updated value, so the
-    // authoring guards must run before its lease and before any repository I/O.
     if (_rejectNonCanonicalActiveMapAuthoring(revalidateManifest: true) ||
-        _rejectPendingBorderPreviewDirectMapWrite()) {
+        _rejectPendingBorderPreviewDirectMapWrite() ||
+        _rejectMapDiskMutationLease()) {
       return;
     }
     if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
@@ -3973,50 +3986,55 @@ class EditorNotifier extends _$EditorNotifier {
       );
       return;
     }
-    final lease = _beginMapDiskMutationLease();
-    if (lease == null) return;
+
+    final currentTilesetId = _assignedTilesetIdForLayer(map, layer);
+    if (currentTilesetId == tilesetId) {
+      state = state.copyWith(
+        workspaceMode: EditorWorkspaceMode.map,
+        statusMessage: 'Le tileset « $tilesetId » est déjà assigné à '
+            '« ${layer.name} ».',
+        errorMessage: null,
+      );
+      _setActivePaletteSelectedTileset(tilesetId);
+      return;
+    }
+    if (!_isTileLayerEmpty(layer)) {
+      state = state.copyWith(
+        errorMessage: 'La couche « ${layer.name} » contient déjà des tuiles. '
+            'Videz-la avant de changer de tileset afin de ne pas réinterpréter '
+            'ses identifiants de tuiles.',
+      );
+      return;
+    }
 
     try {
       final useCase = ref.read(assignTilesetToMapUseCaseProvider);
-      final result = await useCase.executeRevisioned(
+      final updatedMap = useCase.prepare(
         project,
         map,
-        mapPath,
         layerId,
         tilesetId,
-        expectedRevision: _mapDocumentRevisionFor(mapPath),
-      );
-      if (!_canAdoptMapDiskMutation(lease)) return;
-      final updatedMap = result.map;
-      _rememberMapDocumentRevision(
-        mapPath,
-        revision: result.revision,
-        sourceDocument: updatedMap,
       );
       _applyMapMutation(
         previousMap: map,
         updatedMap: updatedMap,
         preferredActiveLayerId: state.activeLayerId,
-        statusMessage: 'Tileset "$tilesetId" assigned to layer "${layer.name}"',
-        updateSavedSnapshot: true,
-        mapWriteLeaseToken: lease.token,
+        statusMessage:
+            'Tileset « $tilesetId » assigné à la couche « ${layer.name} »',
       );
       state = state.copyWith(
         workspaceMode: EditorWorkspaceMode.map,
         activeBrush: const EditorBrush.none(),
-        selectedTilesetEditorId: tilesetId,
         selectedTilesetElementGroupId: null,
         paletteCategoryFilter: null,
+        errorMessage: null,
       );
+      _setActivePaletteSelectedTileset(tilesetId);
     } catch (e) {
       debugPrint('EditorNotifier: Error assigning layer tileset: $e');
-      if (_canAdoptMapDiskMutation(lease)) {
-        state = state.copyWith(
-          errorMessage: 'Failed to assign layer tileset: $e',
-        );
-      }
-    } finally {
-      _endMapDiskMutationLease(lease);
+      state = state.copyWith(
+        errorMessage: 'Impossible d’assigner le tileset à la couche : $e',
+      );
     }
   }
 
@@ -4332,6 +4350,32 @@ class EditorNotifier extends _$EditorNotifier {
     if (tilesetId != null && !project.tilesets.any((t) => t.id == tilesetId)) {
       return;
     }
+
+    if (state.workspaceMode == EditorWorkspaceMode.map &&
+        state.activeMap != null &&
+        state.activeLayerId != null) {
+      if (tilesetId != null &&
+          !getAssignableTilesetsForActiveMap()
+              .any((tileset) => tileset.id == tilesetId)) {
+        state = state.copyWith(
+          errorMessage: 'Ce tileset n’est pas disponible pour la carte active.',
+        );
+        return;
+      }
+      final selectedTilesetId = tilesetId ?? _assignedTilesetIdForState(state);
+      final assignedTilesetId = _assignedTilesetIdForState(state);
+      final brushTilesetId = getActiveBrushTilesetId();
+      final keepBrush = selectedTilesetId == assignedTilesetId &&
+          (brushTilesetId == null || brushTilesetId == assignedTilesetId);
+      state = state.copyWith(
+        activeBrush: keepBrush ? state.activeBrush : const EditorBrush.none(),
+        selectedTilesetElementGroupId: null,
+        errorMessage: null,
+      );
+      _setActivePaletteSelectedTileset(selectedTilesetId);
+      return;
+    }
+
     state = state.copyWith(
       selectedTilesetEditorId: tilesetId,
       selectedTilesetElementGroupId: null,
@@ -4343,10 +4387,11 @@ class EditorNotifier extends _$EditorNotifier {
     final project = state.project;
     if (project == null) return null;
 
-    final selectedId = state.selectedTilesetEditorId;
-    if (selectedId != null) {
+    final studioSelectedId = state.selectedTilesetEditorId;
+    if (state.workspaceMode == EditorWorkspaceMode.tileset &&
+        studioSelectedId != null) {
       for (final tileset in project.tilesets) {
-        if (tileset.id == selectedId) {
+        if (tileset.id == studioSelectedId) {
           return tileset;
         }
       }
@@ -4355,9 +4400,24 @@ class EditorNotifier extends _$EditorNotifier {
     final map = state.activeMap;
     final activeLayerId = state.activeLayerId;
     if (map != null && activeLayerId != null) {
+      final contextKey = EditorPaletteContextKey(
+        mapId: map.id,
+        layerId: activeLayerId,
+      );
+      final paletteSelectedId =
+          state.paletteSession.contexts[contextKey]?.selectedTilesetId;
+      if (paletteSelectedId != null) {
+        for (final tileset in project.tilesets) {
+          if (tileset.id == paletteSelectedId) {
+            return tileset;
+          }
+        }
+      }
+
       final activeLayer = _findLayerById(map, activeLayerId);
       if (activeLayer is TileLayer) {
-        final layerTilesetId = activeLayer.tilesetId?.trim();
+        final layerTilesetId =
+            _assignedTilesetIdForLayer(map, activeLayer)?.trim();
         if (layerTilesetId != null && layerTilesetId.isNotEmpty) {
           for (final tileset in project.tilesets) {
             if (tileset.id == layerTilesetId) {
@@ -4368,10 +4428,24 @@ class EditorNotifier extends _$EditorNotifier {
       }
     }
 
+    if (state.workspaceMode == EditorWorkspaceMode.map &&
+        map != null &&
+        activeLayerId != null) {
+      return null;
+    }
+
     final brushTilesetId = getActiveBrushTilesetId();
     if (brushTilesetId != null) {
       for (final tileset in project.tilesets) {
         if (tileset.id == brushTilesetId) {
+          return tileset;
+        }
+      }
+    }
+
+    if (studioSelectedId != null) {
+      for (final tileset in project.tilesets) {
+        if (tileset.id == studioSelectedId) {
           return tileset;
         }
       }
@@ -4411,6 +4485,165 @@ class EditorNotifier extends _$EditorNotifier {
     return null;
   }
 
+  EditorPaletteContextKey? _activePaletteContextKey(EditorState source) {
+    final map = source.activeMap;
+    final layerId = source.activeLayerId;
+    if (map == null || layerId == null) return null;
+    return EditorPaletteContextKey(mapId: map.id, layerId: layerId);
+  }
+
+  String? _assignedTilesetIdForLayer(MapData map, TileLayer layer) {
+    final layerTilesetId = layer.tilesetId?.trim();
+    if (layerTilesetId != null && layerTilesetId.isNotEmpty) {
+      return layerTilesetId;
+    }
+    final mapTilesetId = map.tilesetId.trim();
+    return mapTilesetId.isEmpty ? null : mapTilesetId;
+  }
+
+  String? _assignedTilesetIdForState(EditorState source) {
+    final map = source.activeMap;
+    final layerId = source.activeLayerId;
+    if (map == null || layerId == null) return null;
+    final layer = _findLayerById(map, layerId);
+    return layer is TileLayer ? _assignedTilesetIdForLayer(map, layer) : null;
+  }
+
+  EditorPaletteBrushMemory _paletteBrushMemory(EditorBrush brush) {
+    if (brush is TileEditorBrush) {
+      return EditorPaletteBrushMemory.tile(
+        tileId: brush.tileId,
+        tilesetId: brush.tilesetId,
+      );
+    }
+    if (brush is PaletteEntryEditorBrush) {
+      return EditorPaletteBrushMemory.paletteEntry(
+        entryId: brush.entryId,
+        tilesetId: brush.tilesetId,
+      );
+    }
+    if (brush is ProjectElementEditorBrush) {
+      return EditorPaletteBrushMemory.projectElement(
+        elementId: brush.elementId,
+      );
+    }
+    return const EditorPaletteBrushMemory.none();
+  }
+
+  EditorBrush _editorBrush(EditorPaletteBrushMemory brush) {
+    return brush.map(
+      none: (_) => const EditorBrush.none(),
+      tile: (tile) => EditorBrush.tile(
+        tileId: tile.tileId,
+        tilesetId: tile.tilesetId,
+      ),
+      paletteEntry: (entry) => EditorBrush.paletteEntry(
+        entryId: entry.entryId,
+        tilesetId: entry.tilesetId,
+      ),
+      projectElement: (element) => EditorBrush.projectElement(
+        elementId: element.elementId,
+      ),
+    );
+  }
+
+  EditorPaletteSession _rememberActivePaletteContext(EditorState source) {
+    final key = _activePaletteContextKey(source);
+    if (key == null) return source.paletteSession;
+    final assignedTilesetId = _assignedTilesetIdForState(source);
+    final existing = source.paletteSession.contexts[key] ??
+        EditorLayerPaletteContext(selectedTilesetId: assignedTilesetId);
+    final context = existing.copyWith(
+      selectedTilesetId: existing.selectedTilesetId ?? assignedTilesetId,
+      selectedElementGroupId: source.selectedTilesetElementGroupId,
+      paletteCategoryFilter: source.paletteCategoryFilter,
+      activeBrush: _paletteBrushMemory(source.activeBrush),
+      panelMode: source.tilesElementsPanelMode,
+    );
+    return const EditorPaletteSessionService().remember(
+      source.paletteSession,
+      key: key,
+      context: context,
+    );
+  }
+
+  EditorState _activatePaletteContext(EditorState source) {
+    final project = source.project;
+    final key = _activePaletteContextKey(source);
+    if (project == null) return source;
+    final sanitizedSession = const EditorPaletteSessionService().sanitize(
+      source.paletteSession,
+      project: project,
+      activeMap: source.activeMap,
+    );
+    if (key == null) {
+      return source.copyWith(
+        paletteSession: sanitizedSession,
+        activeBrush: const EditorBrush.none(),
+        selectedTilesetElementGroupId: null,
+        paletteCategoryFilter: null,
+      );
+    }
+    final activation = const EditorPaletteSessionService().activate(
+      sanitizedSession,
+      key: key,
+      project: project,
+      assignedTilesetId: _assignedTilesetIdForState(source),
+      activeMap: source.activeMap,
+    );
+    return source.copyWith(
+      paletteSession: activation.session,
+      selectedTilesetElementGroupId: activation.context.selectedElementGroupId,
+      paletteCategoryFilter: activation.context.paletteCategoryFilter,
+      activeBrush: _editorBrush(activation.context.activeBrush),
+      tilesElementsPanelMode: activation.context.panelMode,
+    );
+  }
+
+  void _syncActivePaletteContext() {
+    state = state.copyWith(
+      paletteSession: _rememberActivePaletteContext(state),
+    );
+  }
+
+  void _setActivePaletteSelectedTileset(String? tilesetId) {
+    final project = state.project;
+    final key = _activePaletteContextKey(state);
+    if (project == null || key == null) return;
+    var session = _rememberActivePaletteContext(state);
+    final existing = session.contexts[key] ??
+        EditorLayerPaletteContext(
+          selectedTilesetId: _assignedTilesetIdForState(state),
+        );
+    session = const EditorPaletteSessionService().remember(
+      session,
+      key: key,
+      context: existing.copyWith(selectedTilesetId: tilesetId),
+    );
+    if (tilesetId != null) {
+      session = const EditorPaletteSessionService().recordRecent(
+        session,
+        tilesetId: tilesetId,
+        validTilesetIds: project.tilesets.map((tileset) => tileset.id).toSet(),
+      );
+    }
+    state = state.copyWith(paletteSession: session);
+  }
+
+  bool _canUsePaletteTileset(String tilesetId) {
+    final assignedTilesetId = _assignedTilesetIdForState(state);
+    if (assignedTilesetId == tilesetId) return true;
+    state = state.copyWith(
+      activeBrush: const EditorBrush.none(),
+      errorMessage: assignedTilesetId == null
+          ? 'Assignez « $tilesetId » à cette couche avant de peindre.'
+          : 'Cette couche utilise « $assignedTilesetId ». Assignez-lui '
+              '« $tilesetId » avant de peindre.',
+    );
+    _syncActivePaletteContext();
+    return false;
+  }
+
   List<TilesetElementGroup> getSelectedTilesetElementGroups() {
     final tileset = getSelectedTilesetEntry();
     if (tileset == null) return const [];
@@ -4441,6 +4674,7 @@ class EditorNotifier extends _$EditorNotifier {
       return;
     }
     state = state.copyWith(selectedTilesetElementGroupId: groupId);
+    _syncActivePaletteContext();
   }
 
   Future<void> createTilesetElementGroup(
@@ -4978,6 +5212,7 @@ class EditorNotifier extends _$EditorNotifier {
 
   void setPaletteCategoryFilter(PaletteCategory? category) {
     state = state.copyWith(paletteCategoryFilter: category);
+    _syncActivePaletteContext();
   }
 
   void selectPaletteTile(int tileId) {
@@ -4985,12 +5220,15 @@ class EditorNotifier extends _$EditorNotifier {
     final selectedTileset =
         getSelectedTilesetEntry() ?? getActiveTilesetEntry();
     if (selectedTileset == null) return;
+    if (!_canUsePaletteTileset(selectedTileset.id)) return;
     state = state.copyWith(
       activeBrush: EditorBrush.tile(
         tileId: tileId,
         tilesetId: selectedTileset.id,
       ),
+      errorMessage: null,
     );
+    _setActivePaletteSelectedTileset(selectedTileset.id);
   }
 
   void selectPaletteEntry(String entryId) {
@@ -5000,23 +5238,28 @@ class EditorNotifier extends _$EditorNotifier {
     final entry =
         getPaletteEntryById(tilesetId: selectedTileset.id, entryId: entryId);
     if (entry == null) return;
+    if (!_canUsePaletteTileset(selectedTileset.id)) return;
     state = state.copyWith(
       activeBrush: EditorBrush.paletteEntry(
         entryId: entry.id,
         tilesetId: selectedTileset.id,
       ),
+      errorMessage: null,
     );
+    _setActivePaletteSelectedTileset(selectedTileset.id);
   }
 
   void selectProjectElement(String elementId) {
     final element = getProjectElementById(elementId);
     if (element == null) return;
+    if (!_canUsePaletteTileset(element.tilesetId)) return;
     state = state.copyWith(
       activeBrush: EditorBrush.projectElement(elementId: element.id),
-      selectedTilesetEditorId: element.tilesetId,
       selectedTilesetElementGroupId: element.tilesetGroupId,
       selectedPlacedElementInstanceId: null,
+      errorMessage: null,
     );
+    _setActivePaletteSelectedTileset(element.tilesetId);
   }
 
   Future<void> createPaletteEntry({
@@ -5131,7 +5374,6 @@ class EditorNotifier extends _$EditorNotifier {
     if (resolvedBrush == null) return;
     final preparedMap = _prepareMapForBrushTileset(
       map: layerContext.map,
-      layerId: layerContext.layerId,
       activeLayer: layerContext.layer,
       brushTilesetId: resolvedBrush.tilesetId,
     );
@@ -7621,11 +7863,8 @@ class EditorNotifier extends _$EditorNotifier {
         emitErrors: false,
       );
       if (resolvedBrush == null) return null;
-      final compatibility = _resolveLayerBrushCompatibility(
-        activeLayer,
-        resolvedBrush.tilesetId,
-      );
-      final validity = compatibility == _BrushLayerCompatibility.incompatible
+      final assignedTilesetId = _assignedTilesetIdForLayer(map, activeLayer);
+      final validity = assignedTilesetId != resolvedBrush.tilesetId
           ? MapToolPreviewValidity.invalid
           : MapToolPreviewValidity.valid;
       return MapToolPreview.paint(
@@ -7743,6 +7982,8 @@ class EditorNotifier extends _$EditorNotifier {
     }
     final initialState = state;
     final historyReadyState = _mapEditingController.endStroke(initialState);
+    final outgoingPaletteSession =
+        _rememberActivePaletteContext(historyReadyState);
     final restored = _mapEditingController.undo(historyReadyState);
     if (restored == null) {
       state = historyReadyState;
@@ -7763,9 +8004,11 @@ class EditorNotifier extends _$EditorNotifier {
         return;
       }
     }
-    state = _mapSelectionController.coerceActiveToolIfIncompatibleWithLayer(
-      restored,
+    final adopted =
+        _mapSelectionController.coerceActiveToolIfIncompatibleWithLayer(
+      restored.copyWith(paletteSession: outgoingPaletteSession),
     );
+    state = _activatePaletteContext(adopted);
   }
 
   void redoMap() {
@@ -7778,6 +8021,8 @@ class EditorNotifier extends _$EditorNotifier {
     }
     final initialState = state;
     final historyReadyState = _mapEditingController.endStroke(initialState);
+    final outgoingPaletteSession =
+        _rememberActivePaletteContext(historyReadyState);
     final restored = _mapEditingController.redo(historyReadyState);
     if (restored == null) {
       state = historyReadyState;
@@ -7798,9 +8043,11 @@ class EditorNotifier extends _$EditorNotifier {
         return;
       }
     }
-    state = _mapSelectionController.coerceActiveToolIfIncompatibleWithLayer(
-      restored,
+    final adopted =
+        _mapSelectionController.coerceActiveToolIfIncompatibleWithLayer(
+      restored.copyWith(paletteSession: outgoingPaletteSession),
     );
+    state = _activatePaletteContext(adopted);
   }
 
   EditorBrush _clearBrushIfTilesetRemoved(EditorBrush brush, String tilesetId) {
@@ -8519,71 +8766,24 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
-  _BrushLayerCompatibility _resolveLayerBrushCompatibility(
-    TileLayer activeLayer,
-    String brushTilesetId,
-  ) {
-    final currentTilesetId = activeLayer.tilesetId?.trim();
-    if (currentTilesetId == brushTilesetId) {
-      return _BrushLayerCompatibility.compatible;
-    }
-    if (currentTilesetId == null ||
-        currentTilesetId.isEmpty ||
-        _isTileLayerEmpty(activeLayer)) {
-      return _BrushLayerCompatibility.rebindable;
-    }
-    return _BrushLayerCompatibility.incompatible;
-  }
-
   MapData? _prepareMapForBrushTileset({
     required MapData map,
-    required String layerId,
     required TileLayer activeLayer,
     required String brushTilesetId,
   }) {
-    final compatibility = _resolveLayerBrushCompatibility(
-      activeLayer,
-      brushTilesetId,
-    );
-    if (compatibility == _BrushLayerCompatibility.compatible) {
+    final assignedTilesetId = _assignedTilesetIdForLayer(map, activeLayer);
+    if (assignedTilesetId == brushTilesetId) {
       return map;
     }
-    if (compatibility == _BrushLayerCompatibility.incompatible) {
-      _setPaintError(
-        'Layer "${activeLayer.name}" already contains tiles from another source',
-      );
-      return null;
-    }
-
-    final updatedLayers = List<MapLayer>.from(map.layers, growable: false);
-    final layerIndex = updatedLayers.indexWhere((layer) => layer.id == layerId);
-    if (layerIndex < 0) {
-      _setPaintError('Active layer not found: $layerId');
-      return null;
-    }
-    final layer = updatedLayers[layerIndex];
-    if (layer is! TileLayer) {
-      _setPaintError('Active layer is not a tile layer');
-      return null;
-    }
-    updatedLayers[layerIndex] = layer.copyWith(tilesetId: brushTilesetId);
-    final updatedMap = map.copyWith(
-      layers: updatedLayers,
-      tilesetId: map.tilesetId.trim().isEmpty ? brushTilesetId : map.tilesetId,
+    _setPaintError(
+      assignedTilesetId == null
+          ? 'Assignez « $brushTilesetId » à la couche '
+              '« ${activeLayer.name} » avant de peindre.'
+          : 'La couche « ${activeLayer.name} » utilise '
+              '« $assignedTilesetId ». Assignez-lui « $brushTilesetId » '
+              'avant de peindre.',
     );
-    _applyMapMutation(
-      previousMap: map,
-      updatedMap: updatedMap,
-      preferredActiveLayerId: layerId,
-      statusMessage: 'Layer "${activeLayer.name}" updated for current brush',
-      partOfStroke: true,
-    );
-    state = state.copyWith(
-      selectedTilesetEditorId: brushTilesetId,
-      selectedTilesetElementGroupId: null,
-      paletteCategoryFilter: null,
-    );
-    return updatedMap;
+    return null;
   }
 
   bool _isTileLayerEmpty(TileLayer layer) {
@@ -12356,13 +12556,15 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(errorMessage: 'Layer not found: $layerId');
       return;
     }
-    state = state.copyWith(
+    final paletteSession = _rememberActivePaletteContext(state);
+    state = _activatePaletteContext(state.copyWith(
       activeLayerId: layerId,
+      paletteSession: paletteSession,
       selectedPlacedElementInstanceId: null,
       selectedEnvironmentAreaId: null,
       environmentMaskEditMode: null,
       errorMessage: null,
-    );
+    ));
     _coerceActiveToolIfIncompatibleWithLayer();
   }
 
@@ -12374,6 +12576,7 @@ class EditorNotifier extends _$EditorNotifier {
       tilesElementsPanelMode: mode,
       errorMessage: null,
     );
+    _syncActivePaletteContext();
   }
 
   void selectPlacedElementInstance({
@@ -13367,6 +13570,8 @@ class EditorNotifier extends _$EditorNotifier {
         )) {
       return;
     }
+    final outgoingPaletteSession = _rememberActivePaletteContext(state);
+    final outgoingPaletteKey = _activePaletteContextKey(state);
     final next = _mapEditingController.applyMutation(
       current: state,
       previousMap: previousMap,
@@ -13382,9 +13587,19 @@ class EditorNotifier extends _$EditorNotifier {
       updateHoveredTile: updateHoveredTile,
       statusMessage: statusMessage,
     );
-    state = _mapSelectionController.coerceActiveToolIfIncompatibleWithLayer(
-      next,
+    var adopted =
+        _mapSelectionController.coerceActiveToolIfIncompatibleWithLayer(
+      next.copyWith(paletteSession: outgoingPaletteSession),
     );
+    final incomingPaletteKey = _activePaletteContextKey(adopted);
+    final layerIdentityChanged = !listEquals(
+      previousMap.layers.map((layer) => layer.id).toList(growable: false),
+      updatedMap.layers.map((layer) => layer.id).toList(growable: false),
+    );
+    if (outgoingPaletteKey != incomingPaletteKey || layerIdentityChanged) {
+      adopted = _activatePaletteContext(adopted);
+    }
+    state = adopted;
   }
 
   int _findLayerIndexById(MapData map, String layerId) {
@@ -13988,12 +14203,6 @@ class _PaintPattern {
 
   final GridSize size;
   final List<int> tiles;
-}
-
-enum _BrushLayerCompatibility {
-  compatible,
-  rebindable,
-  incompatible,
 }
 
 class _ResolvedBrushPattern {

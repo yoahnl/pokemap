@@ -404,7 +404,7 @@ class AssignTilesetToMapUseCase {
     String layerId,
     String tilesetId,
   ) async {
-    final updatedMap = _prepareUpdatedMap(
+    final updatedMap = prepare(
       project,
       map,
       layerId,
@@ -422,7 +422,7 @@ class AssignTilesetToMapUseCase {
     String tilesetId, {
     required String? expectedRevision,
   }) async {
-    final updatedMap = _prepareUpdatedMap(
+    final updatedMap = prepare(
       project,
       map,
       layerId,
@@ -446,7 +446,10 @@ class AssignTilesetToMapUseCase {
     return (map: updatedMap, revision: null);
   }
 
-  MapData _prepareUpdatedMap(
+  /// Builds the validated assignment candidate without performing repository
+  /// I/O. Editor commands use this path so assignment participates in the
+  /// normal undo/redo and explicit-save lifecycle.
+  MapData prepare(
     ProjectManifest project,
     MapData map,
     String layerId,

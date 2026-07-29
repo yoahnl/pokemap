@@ -147,7 +147,109 @@ void main() {
       expect(repo.savedProject?.tilesets.single.transparentColor, isNull);
     });
   });
+
+  group('AssignTilesetToMapUseCase', () {
+    late _FakeMapRepository mapRepository;
+    late AssignTilesetToMapUseCase useCase;
+
+    setUp(() {
+      mapRepository = _FakeMapRepository();
+      useCase = AssignTilesetToMapUseCase(
+        mapRepository,
+        ResolveAssignableTilesetsForMapUseCase(),
+      );
+    });
+
+    test('prepare builds a normalized candidate without repository IO', () {
+      const map = MapData(
+        id: 'town',
+        name: 'Town',
+        size: GridSize(width: 1, height: 1),
+        tilesetId: '',
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'ground',
+            name: 'Ground',
+            tiles: <int>[0],
+          ),
+        ],
+      );
+
+      final candidate = useCase.prepare(
+        _assignmentProject,
+        map,
+        'ground',
+        'details',
+      );
+
+      expect(mapRepository.saveCalls, 0);
+      expect(map.tilesetId, isEmpty);
+      expect((map.layers.single as TileLayer).tilesetId, isNull);
+      expect(candidate.tilesetId, 'details');
+      expect((candidate.layers.single as TileLayer).tilesetId, 'details');
+    });
+
+    test('prepare rejects a tileset outside the map assignability scope', () {
+      const map = MapData(
+        id: 'town',
+        name: 'Town',
+        size: GridSize(width: 1, height: 1),
+        tilesetId: 'world',
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'ground',
+            name: 'Ground',
+            tilesetId: 'world',
+            tiles: <int>[0],
+          ),
+        ],
+      );
+
+      expect(
+        () => useCase.prepare(
+          _assignmentProject,
+          map,
+          'ground',
+          'private',
+        ),
+        throwsA(isA<EditorInvalidOperationException>()),
+      );
+      expect(mapRepository.saveCalls, 0);
+    });
+  });
 }
+
+const _assignmentProject = ProjectManifest(
+  name: 'Assignment',
+  maps: <ProjectMapEntry>[
+    ProjectMapEntry(
+      id: 'town',
+      name: 'Town',
+      relativePath: 'maps/town.json',
+    ),
+  ],
+  tilesets: <ProjectTilesetEntry>[
+    ProjectTilesetEntry(
+      id: 'world',
+      name: 'World',
+      relativePath: 'tilesets/world.png',
+      scope: TilesetScope.global,
+    ),
+    ProjectTilesetEntry(
+      id: 'details',
+      name: 'Details',
+      relativePath: 'tilesets/details.png',
+      scope: TilesetScope.global,
+    ),
+    ProjectTilesetEntry(
+      id: 'private',
+      name: 'Private',
+      relativePath: 'tilesets/private.png',
+      scope: TilesetScope.group,
+      groupId: 'other',
+    ),
+  ],
+);
 
 Future<void> _writePng(
   String path, {
@@ -171,6 +273,30 @@ class _FakeProjectRepository implements ProjectRepository {
   @override
   Future<void> saveProject(ProjectManifest project, String path) async {
     savedProject = project;
+  }
+}
+
+class _FakeMapRepository implements MapRepository {
+  int saveCalls = 0;
+
+  @override
+  Future<void> deleteMap(String path) async {}
+
+  @override
+  Future<MapData> loadMap(String path) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> renameMap(String oldPath, String newPath) async {}
+
+  @override
+  Future<void> saveMap(
+    MapData map,
+    String path, {
+    ProjectManifest? projectDialogueContext,
+  }) async {
+    saveCalls++;
   }
 }
 

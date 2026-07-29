@@ -1391,7 +1391,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                       groupLabel: groupLabel,
                       tilesetGroupLabel: tilesetGroupLabel,
                       onTap: () {
-                        notifier.selectProjectElement(element.id);
                         if (element.recommendedLayerId != null &&
                             (snapshot.activeMap?.layers.any(
                                   (layer) =>
@@ -1403,6 +1402,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                             element.recommendedLayerId!,
                           );
                         }
+                        notifier.selectProjectElement(element.id);
                         notifier.selectTool(EditorToolType.tilePaint);
                       },
                       onEdit: () => _showEditElementDialog(

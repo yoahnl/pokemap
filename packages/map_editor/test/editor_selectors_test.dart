@@ -86,6 +86,95 @@ void main() {
       );
     });
 
+    test('map selectors do not let the Tileset Studio choice outrank the layer',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        workspaceMode: EditorWorkspaceMode.map,
+        selectedTilesetEditorId: 'details',
+        project: ProjectManifest(
+          name: 'demo',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[
+            ProjectTilesetEntry(
+              id: 'world',
+              name: 'World',
+              relativePath: 'tilesets/world.png',
+            ),
+            ProjectTilesetEntry(
+              id: 'details',
+              name: 'Details',
+              relativePath: 'tilesets/details.png',
+            ),
+          ],
+        ),
+        activeMap: MapData(
+          id: 'town',
+          name: 'Town',
+          size: GridSize(width: 4, height: 4),
+          layers: <MapLayer>[
+            TileLayer(
+              id: 'ground',
+              name: 'Ground',
+              tilesetId: 'world',
+              tiles: [],
+            ),
+          ],
+        ),
+        activeLayerId: 'ground',
+      );
+
+      final palette = container.read(editorTilesetPaletteSnapshotProvider);
+      expect(palette.selectedTilesetEntry?.id, 'world');
+    });
+
+    test(
+        'an unassigned map layer never falls back to the Tileset Studio source',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        workspaceMode: EditorWorkspaceMode.map,
+        selectedTilesetEditorId: 'studio_only',
+        project: ProjectManifest(
+          name: 'demo',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[
+            ProjectTilesetEntry(
+              id: 'studio_only',
+              name: 'Studio only',
+              relativePath: 'tilesets/studio.png',
+            ),
+          ],
+        ),
+        activeMap: MapData(
+          id: 'town',
+          name: 'Town',
+          size: GridSize(width: 1, height: 1),
+          layers: <MapLayer>[
+            TileLayer(
+              id: 'ground',
+              name: 'Ground',
+              tiles: <int>[0],
+            ),
+          ],
+        ),
+        activeLayerId: 'ground',
+      );
+
+      final palette = container.read(editorTilesetPaletteSnapshotProvider);
+      expect(palette.selectedTilesetEntry, isNull);
+      expect(
+        container
+            .read(editorNotifierProvider.notifier)
+            .getSelectedTilesetEntry(),
+        isNull,
+      );
+    });
+
     test('Path Studio snapshots hide map save and history actions', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);

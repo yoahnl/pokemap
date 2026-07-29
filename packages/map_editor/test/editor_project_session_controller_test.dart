@@ -28,6 +28,13 @@ void main() {
         isDirty: true,
         isProjectDirty: true,
         errorMessage: 'Old error',
+        paletteSession: EditorPaletteSession(
+          activeKey: EditorPaletteContextKey(
+            mapId: 'old',
+            layerId: 'ground',
+          ),
+          recentTilesetIds: <String>['old_tiles'],
+        ),
       );
 
       const updated = ProjectManifest(
@@ -68,6 +75,7 @@ void main() {
       expect(next.isProjectDirty, isFalse);
       expect(next.errorMessage, isNull);
       expect(next.statusMessage, 'Loaded');
+      expect(next.paletteSession, const EditorPaletteSession());
     });
 
     test('openMapDocument swaps the active document and resets history', () {
