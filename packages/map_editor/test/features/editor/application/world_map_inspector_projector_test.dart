@@ -3,10 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/map_history_snapshot.dart';
 import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
+import 'package:map_editor/src/features/editor/application/map_canvas_object_hit_test.dart';
+import 'package:map_editor/src/features/editor/application/world_map_inspector_projector.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
+import 'package:map_editor/src/features/editor/state/editor_selectors.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_desktop_layout.dart';
@@ -586,6 +589,225 @@ void main() {
       );
     });
   });
+
+  group('WorldMapInspectorProjector', () {
+    const projector = WorldMapInspectorProjector();
+    const cell = GridPos(x: 1, y: 2);
+
+    test('gives a valid pin priority over every live context', () {
+      final snapshot = projector.project(
+        editor: _inspectorInput(selectedEntityId: 'entity'),
+        session: const WorldMapWorkspaceSession(
+          activeFamily: WorldMapToolFamily.layers,
+          pinnedInspectorKind: WorldMapInspectorKind.paint,
+          selectedCell: cell,
+          selectedCellMapId: 'map-a',
+        ),
+      );
+
+      expect(snapshot.kind, WorldMapInspectorKind.paint);
+      expect(snapshot.activeLayerId, 'tile');
+      expect(snapshot.objectTarget, isNull);
+      expect(snapshot.cell, isNull);
+      expect(snapshot.pinned, isTrue);
+    });
+
+    test('gives explicit Layers priority over object and cell selections', () {
+      final snapshot = projector.project(
+        editor: _inspectorInput(selectedEntityId: 'entity'),
+        session: const WorldMapWorkspaceSession(
+          activeFamily: WorldMapToolFamily.layers,
+          selectedCell: cell,
+          selectedCellMapId: 'map-a',
+        ),
+      );
+
+      expect(snapshot.kind, WorldMapInspectorKind.layers);
+      expect(snapshot.objectTarget, isNull);
+      expect(snapshot.cell, isNull);
+      expect(snapshot.pinned, isFalse);
+    });
+
+    test('gives a selected object priority over a selected cell and tool', () {
+      final snapshot = projector.project(
+        editor: _inspectorInput(
+          activeTool: EditorToolType.tilePaint,
+          selectedEntityId: 'entity',
+        ),
+        session: const WorldMapWorkspaceSession(
+          activeFamily: WorldMapToolFamily.paint,
+          selectedCell: cell,
+          selectedCellMapId: 'map-a',
+        ),
+      );
+
+      expect(snapshot.kind, WorldMapInspectorKind.objectSelection);
+      expect(snapshot.objectTarget?.kind, MapCanvasObjectKind.entity);
+      expect(snapshot.objectTarget?.id, 'entity');
+      expect(snapshot.cell, isNull);
+    });
+
+    test('gives a selected cell priority over the active tool family', () {
+      final snapshot = projector.project(
+        editor: _inspectorInput(activeTool: EditorToolType.eraser),
+        session: const WorldMapWorkspaceSession(
+          activeFamily: WorldMapToolFamily.erase,
+          selectedCell: cell,
+          selectedCellMapId: 'map-a',
+        ),
+      );
+
+      expect(snapshot.kind, WorldMapInspectorKind.cellSelection);
+      expect(snapshot.objectTarget, isNull);
+      expect(snapshot.cell, cell);
+    });
+
+    test('projects Paint Erase and Place when no selection has priority', () {
+      const expectations = <({
+        EditorToolType tool,
+        WorldMapToolFamily sessionFamily,
+        WorldMapInspectorKind kind,
+      })>[
+        (
+          tool: EditorToolType.tilePaint,
+          sessionFamily: WorldMapToolFamily.paint,
+          kind: WorldMapInspectorKind.paint,
+        ),
+        (
+          tool: EditorToolType.eraser,
+          sessionFamily: WorldMapToolFamily.layers,
+          kind: WorldMapInspectorKind.erase,
+        ),
+        (
+          tool: EditorToolType.entityPlacement,
+          sessionFamily: WorldMapToolFamily.selection,
+          kind: WorldMapInspectorKind.place,
+        ),
+      ];
+
+      for (final entry in expectations) {
+        final snapshot = projector.project(
+          editor: _inspectorInput(activeTool: entry.tool),
+          session: WorldMapWorkspaceSession(
+            activeFamily: entry.sessionFamily,
+          ),
+        );
+
+        expect(snapshot.kind, entry.kind, reason: entry.tool.name);
+        expect(snapshot.pinned, isFalse, reason: entry.tool.name);
+      }
+    });
+
+    test('uses session only to disambiguate tilePaint object placement', () {
+      final snapshot = projector.project(
+        editor: _inspectorInput(activeTool: EditorToolType.tilePaint),
+        session: const WorldMapWorkspaceSession(
+          activeFamily: WorldMapToolFamily.place,
+          lastPlacementSubtool: WorldMapPlacementSubtool.object,
+        ),
+      );
+
+      expect(snapshot.kind, WorldMapInspectorKind.place);
+    });
+
+    test('projects empty guidance for Selection without a target', () {
+      final snapshot = projector.project(
+        editor: _inspectorInput(),
+        session: const WorldMapWorkspaceSession(),
+      );
+
+      expect(snapshot.kind, WorldMapInspectorKind.empty);
+      expect(snapshot.activeLayerId, 'tile');
+      expect(snapshot.objectTarget, isNull);
+      expect(snapshot.cell, isNull);
+      expect(snapshot.pinned, isFalse);
+    });
+
+    test('falls back to live context when the pinned target is invalid', () {
+      final snapshot = projector.project(
+        editor: _inspectorInput(
+          activeTool: EditorToolType.tilePaint,
+          selectedEntityId: 'stale-entity',
+        ),
+        session: const WorldMapWorkspaceSession(
+          activeFamily: WorldMapToolFamily.paint,
+          pinnedInspectorKind: WorldMapInspectorKind.objectSelection,
+        ),
+      );
+
+      expect(snapshot.kind, WorldMapInspectorKind.paint);
+      expect(snapshot.objectTarget, isNull);
+      expect(snapshot.pinned, isFalse);
+    });
+  });
+
+  group('worldMapInspectorSnapshotProvider', () {
+    test('composes only the narrow editor input and workspace session', () {
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        project: _project,
+        activeMap: _mapWithObject,
+        activeLayerId: 'tile',
+        activeTool: EditorToolType.selection,
+        selectedEntityId: 'entity',
+      );
+
+      expect(
+        container.read(editorWorldMapInspectorInputSnapshotProvider),
+        (
+          activeMap: _mapWithObject,
+          project: _project,
+          activeTool: EditorToolType.selection,
+          activeLayerId: 'tile',
+          activeLayerName: 'Tile',
+          selectedEntityId: 'entity',
+          selectedMapEventId: null,
+          selectedWarpId: null,
+          selectedTriggerId: null,
+          selectedGameplayZoneId: null,
+          selectedPlacedElementInstanceId: null,
+          assignedTilesetId: 'world',
+        ),
+      );
+      final projected = container.read(worldMapInspectorSnapshotProvider);
+      expect(projected.kind, WorldMapInspectorKind.objectSelection);
+      expect(projected.objectTarget?.id, 'entity');
+    });
+
+    test('drops a stale object and clears the selected cell on map change', () {
+      final container = _createContainer();
+      final editor = container.read(editorNotifierProvider.notifier)
+        ..state = EditorState(
+          project: _project,
+          activeMap: _mapWithObject,
+          activeLayerId: 'tile',
+          activeTool: EditorToolType.selection,
+          selectedEntityId: 'entity',
+        );
+      final session = container.read(worldMapWorkspaceSessionProvider.notifier);
+      session.selectCell(
+        mapId: 'map-a',
+        cell: const GridPos(x: 1, y: 1),
+      );
+      expect(
+        container.read(worldMapInspectorSnapshotProvider).kind,
+        WorldMapInspectorKind.objectSelection,
+      );
+
+      editor.state = editor.state.copyWith(
+        activeMap: _mapB,
+        activeLayerId: 'tile',
+      );
+
+      final workspace = container.read(worldMapWorkspaceSessionProvider);
+      final projected = container.read(worldMapInspectorSnapshotProvider);
+      expect(workspace.selectedCell, isNull);
+      expect(workspace.selectedCellMapId, isNull);
+      expect(projected.kind, WorldMapInspectorKind.empty);
+      expect(projected.objectTarget, isNull);
+      expect(projected.cell, isNull);
+    });
+  });
 }
 
 ProviderContainer _createContainer() {
@@ -681,6 +903,30 @@ const _mapA = MapData(
   ],
 );
 
+final _mapWithObject = _mapA.copyWith(
+  entities: const <MapEntity>[
+    MapEntity(
+      id: 'entity',
+      kind: MapEntityKind.custom,
+      pos: GridPos(x: 2, y: 1),
+    ),
+  ],
+);
+
+const _mapB = MapData(
+  id: 'map-b',
+  name: 'Map B',
+  size: GridSize(width: 4, height: 4),
+  layers: <MapLayer>[
+    TileLayer(
+      id: 'tile',
+      name: 'Tile',
+      tilesetId: 'world',
+      tiles: <int>[],
+    ),
+  ],
+);
+
 const _undoMap = MapData(
   id: 'undo',
   name: 'Undo',
@@ -702,3 +948,28 @@ const _redo = MapHistorySnapshot(
   map: _redoMap,
   activeLayerId: 'redo-layer',
 );
+
+EditorWorldMapInspectorInputSnapshot _inspectorInput({
+  EditorToolType activeTool = EditorToolType.selection,
+  String? selectedEntityId,
+  String? selectedMapEventId,
+  String? selectedWarpId,
+  String? selectedTriggerId,
+  String? selectedGameplayZoneId,
+  String? selectedPlacedElementInstanceId,
+}) {
+  return (
+    activeMap: _mapWithObject,
+    project: _project,
+    activeTool: activeTool,
+    activeLayerId: 'tile',
+    activeLayerName: 'Tile',
+    selectedEntityId: selectedEntityId,
+    selectedMapEventId: selectedMapEventId,
+    selectedWarpId: selectedWarpId,
+    selectedTriggerId: selectedTriggerId,
+    selectedGameplayZoneId: selectedGameplayZoneId,
+    selectedPlacedElementInstanceId: selectedPlacedElementInstanceId,
+    assignedTilesetId: 'world',
+  );
+}

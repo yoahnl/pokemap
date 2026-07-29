@@ -59,6 +59,21 @@ typedef EditorWorldMapToolbarSnapshot = ({
   bool canRedoMap,
 });
 
+typedef EditorWorldMapInspectorInputSnapshot = ({
+  MapData? activeMap,
+  ProjectManifest? project,
+  EditorToolType activeTool,
+  String? activeLayerId,
+  String? activeLayerName,
+  String? selectedEntityId,
+  String? selectedMapEventId,
+  String? selectedWarpId,
+  String? selectedTriggerId,
+  String? selectedGameplayZoneId,
+  String? selectedPlacedElementInstanceId,
+  String? assignedTilesetId,
+});
+
 enum EditorWorldMapBrushKind {
   none,
   tile,
@@ -315,6 +330,32 @@ final editorWorldMapToolbarSnapshotProvider =
             exposesMapActions && !hasActiveMapStroke && state.canUndoMap,
         canRedoMap:
             exposesMapActions && !hasActiveMapStroke && state.canRedoMap,
+      );
+    }),
+  );
+});
+
+final editorWorldMapInspectorInputSnapshotProvider =
+    Provider<EditorWorldMapInspectorInputSnapshot>((ref) {
+  return ref.watch(
+    editorNotifierProvider.select((state) {
+      final activeLayer = _resolveActiveLayerFromState(state);
+      return (
+        activeMap: state.activeMap,
+        project: state.project,
+        activeTool: state.activeTool,
+        activeLayerId: state.activeLayerId,
+        activeLayerName: activeLayer?.name,
+        selectedEntityId: state.selectedEntityId,
+        selectedMapEventId: state.selectedMapEventId,
+        selectedWarpId: state.selectedWarpId,
+        selectedTriggerId: state.selectedTriggerId,
+        selectedGameplayZoneId: state.selectedGameplayZoneId,
+        selectedPlacedElementInstanceId: state.selectedPlacedElementInstanceId,
+        assignedTilesetId: _resolveAssignedTilesetId(
+          state.activeMap,
+          state.activeLayerId,
+        ),
       );
     }),
   );

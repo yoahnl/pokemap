@@ -39,6 +39,67 @@ final class MapCanvasObjectTarget {
   int get hashCode => Object.hash(kind, id);
 }
 
+/// Resolves persisted editor selection IDs into one logical canvas target.
+///
+/// This deliberately differs from [MapCanvasObjectHitTest.hitStack]: a selected
+/// placed element remains inspectable when its visual frame is unavailable.
+/// If stale IDs overlap, the same topmost-first family order as the visual hit
+/// stack wins.
+MapCanvasObjectTarget? resolveSelectedCanvasObjectTarget({
+  required MapData map,
+  required ProjectManifest? project,
+  required String? selectedPlacedElementInstanceId,
+  required String? selectedEntityId,
+  required String? selectedMapEventId,
+  required String? selectedWarpId,
+  required String? selectedTriggerId,
+  required String? selectedGameplayZoneId,
+  int editorAnimationTimeMs = 0,
+}) {
+  for (final warp in map.warps) {
+    if (warp.id == selectedWarpId) {
+      return _warpTarget(warp);
+    }
+  }
+  for (final trigger in map.triggers) {
+    if (trigger.id == selectedTriggerId) {
+      return _triggerTarget(trigger);
+    }
+  }
+  for (final event in map.events) {
+    if (event.id == selectedMapEventId) {
+      return _mapEventTarget(event);
+    }
+  }
+  for (final zone in map.gameplayZones) {
+    if (zone.id == selectedGameplayZoneId) {
+      return _gameplayZoneTarget(zone);
+    }
+  }
+  for (final entity in map.entities) {
+    if (entity.id == selectedEntityId) {
+      return _entityTarget(entity);
+    }
+  }
+  for (final instance in map.placedElements) {
+    if (instance.id != selectedPlacedElementInstanceId) continue;
+    ProjectElementEntry? entry;
+    for (final candidate
+        in project?.elements ?? const <ProjectElementEntry>[]) {
+      if (candidate.id == instance.elementId.trim()) {
+        entry = candidate;
+        break;
+      }
+    }
+    return _placedElementTarget(
+      instance,
+      entry: entry,
+      editorAnimationTimeMs: editorAnimationTimeMs,
+    );
+  }
+  return null;
+}
+
 /// Resolves object hits in the same bottom-to-top phases as [MapGridPainter].
 ///
 /// The result is topmost-first. Layer order and visibility come from the shared
@@ -170,12 +231,13 @@ final class MapCanvasObjectHitTest {
       if (entry == null || entry.frames.isEmpty) {
         continue;
       }
-      final source =
-          pickProjectElementFrame(entry.frames, editorAnimationTimeMs).source;
-      final size = GridSize(
-        width: source.width <= 0 ? 1 : source.width,
-        height: source.height <= 0 ? 1 : source.height,
+      final target = _placedElementTarget(
+        instance,
+        entry: entry,
+        layerId: layer.id,
+        editorAnimationTimeMs: editorAnimationTimeMs,
       );
+      final size = target.size;
       if (!_containsCell(position, instance.pos, size)) {
         continue;
       }
@@ -191,15 +253,7 @@ final class MapCanvasObjectHitTest {
       )) {
         continue;
       }
-      out.add(
-        MapCanvasObjectTarget(
-          kind: MapCanvasObjectKind.placedElement,
-          id: instance.id,
-          layerId: layer.id,
-          anchor: instance.pos,
-          size: size,
-        ),
-      );
+      out.add(target);
     }
   }
 
@@ -214,14 +268,7 @@ final class MapCanvasObjectHitTest {
           !_containsCell(position, entity.pos, entity.size)) {
         continue;
       }
-      out.add(
-        MapCanvasObjectTarget(
-          kind: MapCanvasObjectKind.entity,
-          id: entity.id,
-          anchor: entity.pos,
-          size: entity.size,
-        ),
-      );
+      out.add(_entityTarget(entity));
     }
   }
 
@@ -234,14 +281,7 @@ final class MapCanvasObjectHitTest {
       if (!_containsCell(position, zone.area.pos, zone.area.size)) {
         continue;
       }
-      out.add(
-        MapCanvasObjectTarget(
-          kind: MapCanvasObjectKind.gameplayZone,
-          id: zone.id,
-          anchor: zone.area.pos,
-          size: zone.area.size,
-        ),
-      );
+      out.add(_gameplayZoneTarget(zone));
     }
   }
 
@@ -260,15 +300,7 @@ final class MapCanvasObjectHitTest {
           event.position.y != position.y) {
         continue;
       }
-      out.add(
-        MapCanvasObjectTarget(
-          kind: MapCanvasObjectKind.mapEvent,
-          id: event.id,
-          layerId: layerId.isEmpty ? null : layerId,
-          anchor: GridPos(x: event.position.x, y: event.position.y),
-          size: const GridSize(width: 1, height: 1),
-        ),
-      );
+      out.add(_mapEventTarget(event));
     }
   }
 
@@ -281,14 +313,7 @@ final class MapCanvasObjectHitTest {
       if (!_containsCell(position, trigger.area.pos, trigger.area.size)) {
         continue;
       }
-      out.add(
-        MapCanvasObjectTarget(
-          kind: MapCanvasObjectKind.trigger,
-          id: trigger.id,
-          anchor: trigger.area.pos,
-          size: trigger.area.size,
-        ),
-      );
+      out.add(_triggerTarget(trigger));
     }
   }
 
@@ -301,14 +326,7 @@ final class MapCanvasObjectHitTest {
       if (warp.pos != position) {
         continue;
       }
-      out.add(
-        MapCanvasObjectTarget(
-          kind: MapCanvasObjectKind.warp,
-          id: warp.id,
-          anchor: warp.pos,
-          size: const GridSize(width: 1, height: 1),
-        ),
-      );
+      out.add(_warpTarget(warp));
     }
   }
 
@@ -368,4 +386,72 @@ final class MapCanvasObjectHitTest {
         cell.x < anchor.x + size.width &&
         cell.y < anchor.y + size.height;
   }
+}
+
+MapCanvasObjectTarget _placedElementTarget(
+  MapPlacedElement instance, {
+  required ProjectElementEntry? entry,
+  required int editorAnimationTimeMs,
+  String? layerId,
+}) {
+  final source = entry == null || entry.frames.isEmpty
+      ? null
+      : pickProjectElementFrame(entry.frames, editorAnimationTimeMs).source;
+  return MapCanvasObjectTarget(
+    kind: MapCanvasObjectKind.placedElement,
+    id: instance.id,
+    layerId: layerId ?? instance.layerId.trim(),
+    anchor: instance.pos,
+    size: GridSize(
+      width: source == null || source.width <= 0 ? 1 : source.width,
+      height: source == null || source.height <= 0 ? 1 : source.height,
+    ),
+  );
+}
+
+MapCanvasObjectTarget _entityTarget(MapEntity entity) {
+  return MapCanvasObjectTarget(
+    kind: MapCanvasObjectKind.entity,
+    id: entity.id,
+    anchor: entity.pos,
+    size: entity.size,
+  );
+}
+
+MapCanvasObjectTarget _mapEventTarget(MapEventDefinition event) {
+  final layerId = event.position.layerId.trim();
+  return MapCanvasObjectTarget(
+    kind: MapCanvasObjectKind.mapEvent,
+    id: event.id,
+    layerId: layerId.isEmpty ? null : layerId,
+    anchor: GridPos(x: event.position.x, y: event.position.y),
+    size: const GridSize(width: 1, height: 1),
+  );
+}
+
+MapCanvasObjectTarget _gameplayZoneTarget(MapGameplayZone zone) {
+  return MapCanvasObjectTarget(
+    kind: MapCanvasObjectKind.gameplayZone,
+    id: zone.id,
+    anchor: zone.area.pos,
+    size: zone.area.size,
+  );
+}
+
+MapCanvasObjectTarget _triggerTarget(MapTrigger trigger) {
+  return MapCanvasObjectTarget(
+    kind: MapCanvasObjectKind.trigger,
+    id: trigger.id,
+    anchor: trigger.area.pos,
+    size: trigger.area.size,
+  );
+}
+
+MapCanvasObjectTarget _warpTarget(MapWarp warp) {
+  return MapCanvasObjectTarget(
+    kind: MapCanvasObjectKind.warp,
+    id: warp.id,
+    anchor: warp.pos,
+    size: const GridSize(width: 1, height: 1),
+  );
 }

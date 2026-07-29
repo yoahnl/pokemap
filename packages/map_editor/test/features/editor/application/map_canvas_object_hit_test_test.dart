@@ -249,6 +249,152 @@ void main() {
       );
     });
   });
+
+  group('resolveSelectedCanvasObjectTarget', () {
+    test('resolves every selected family with the canonical target shape', () {
+      MapCanvasObjectTarget? resolve({
+        String? placedElementId,
+        String? entityId,
+        String? eventId,
+        String? warpId,
+        String? triggerId,
+        String? gameplayZoneId,
+      }) {
+        return resolveSelectedCanvasObjectTarget(
+          map: _mapWithEveryFamily,
+          project: _project,
+          selectedPlacedElementInstanceId: placedElementId,
+          selectedEntityId: entityId,
+          selectedMapEventId: eventId,
+          selectedWarpId: warpId,
+          selectedTriggerId: triggerId,
+          selectedGameplayZoneId: gameplayZoneId,
+        );
+      }
+
+      void expectTarget(
+        MapCanvasObjectTarget? target, {
+        required MapCanvasObjectKind kind,
+        required String id,
+        required GridSize size,
+        String? layerId,
+      }) {
+        expect(target, isNotNull);
+        expect(target!.kind, kind);
+        expect(target.id, id);
+        expect(target.layerId, layerId);
+        expect(target.anchor, overlap);
+        expect(target.size, size);
+      }
+
+      expectTarget(
+        resolve(placedElementId: 'placed'),
+        kind: MapCanvasObjectKind.placedElement,
+        id: 'placed',
+        layerId: 'top',
+        size: const GridSize(width: 2, height: 2),
+      );
+      expectTarget(
+        resolve(entityId: 'entity'),
+        kind: MapCanvasObjectKind.entity,
+        id: 'entity',
+        size: const GridSize(width: 1, height: 1),
+      );
+      expectTarget(
+        resolve(eventId: 'event'),
+        kind: MapCanvasObjectKind.mapEvent,
+        id: 'event',
+        layerId: 'top',
+        size: const GridSize(width: 1, height: 1),
+      );
+      expectTarget(
+        resolve(gameplayZoneId: 'zone'),
+        kind: MapCanvasObjectKind.gameplayZone,
+        id: 'zone',
+        size: const GridSize(width: 1, height: 1),
+      );
+      expectTarget(
+        resolve(triggerId: 'trigger'),
+        kind: MapCanvasObjectKind.trigger,
+        id: 'trigger',
+        size: const GridSize(width: 1, height: 1),
+      );
+      expectTarget(
+        resolve(warpId: 'warp'),
+        kind: MapCanvasObjectKind.warp,
+        id: 'warp',
+        size: const GridSize(width: 1, height: 1),
+      );
+    });
+
+    test('uses canonical family order when stale selection flags overlap', () {
+      final target = resolveSelectedCanvasObjectTarget(
+        map: _mapWithEveryFamily,
+        project: _project,
+        selectedPlacedElementInstanceId: 'placed',
+        selectedEntityId: 'entity',
+        selectedMapEventId: 'event',
+        selectedWarpId: 'warp',
+        selectedTriggerId: 'trigger',
+        selectedGameplayZoneId: 'zone',
+      );
+
+      expect(target?.kind, MapCanvasObjectKind.warp);
+      expect(target?.id, 'warp');
+    });
+
+    test('keeps logical identity when visual frame data is unavailable', () {
+      final map = _baseMap.copyWith(
+        placedElements: const <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'logical-only',
+            layerId: 'top',
+            elementId: 'missing-frame-data',
+            pos: overlap,
+          ),
+        ],
+      );
+
+      final logical = resolveSelectedCanvasObjectTarget(
+        map: map,
+        project: _project,
+        selectedPlacedElementInstanceId: 'logical-only',
+        selectedEntityId: null,
+        selectedMapEventId: null,
+        selectedWarpId: null,
+        selectedTriggerId: null,
+        selectedGameplayZoneId: null,
+      );
+      final visual = hitTest.hitStack(
+        map: map,
+        project: _project,
+        position: overlap,
+      );
+
+      expect(logical?.kind, MapCanvasObjectKind.placedElement);
+      expect(logical?.id, 'logical-only');
+      expect(logical?.layerId, 'top');
+      expect(logical?.anchor, overlap);
+      expect(logical?.size, const GridSize(width: 1, height: 1));
+      expect(visual, isEmpty);
+    });
+
+    test('returns null when every selected identity is stale', () {
+      expect(
+        resolveSelectedCanvasObjectTarget(
+          map: _mapWithEveryFamily,
+          project: _project,
+          selectedPlacedElementInstanceId: 'missing-placed',
+          selectedEntityId: 'missing-entity',
+          selectedMapEventId: 'missing-event',
+          selectedWarpId: 'missing-warp',
+          selectedTriggerId: 'missing-trigger',
+          selectedGameplayZoneId: 'missing-zone',
+        ),
+        isNull,
+      );
+    });
+  });
 }
 
 const _project = ProjectManifest(
