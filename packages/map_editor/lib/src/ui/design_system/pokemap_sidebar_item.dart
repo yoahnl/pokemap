@@ -16,11 +16,12 @@ class PokeMapSidebarItem extends StatefulWidget {
     this.compact = false,
     this.collapsed = false,
     this.growForTextScale = false,
+    this.subtitleMaxLines = 1,
     this.selected = false,
     this.disabled = false,
     this.onTap,
     this.focusNode,
-  });
+  }) : assert(subtitleMaxLines > 0);
 
   /// The primary item label.
   final String label;
@@ -50,6 +51,12 @@ class PokeMapSidebarItem extends StatefulWidget {
   /// Keeps the established row height as a minimum while allowing scaled
   /// labels and subtitles to request the vertical space they need.
   final bool growForTextScale;
+
+  /// Maximum visible subtitle lines before applying an ellipsis.
+  ///
+  /// Defaults to the compact navigation behavior. Dense authoring browsers
+  /// can opt into a second line while retaining design-system spacing.
+  final int subtitleMaxLines;
 
   /// If true, highlights the item as the current active page/selection.
   final bool selected;
@@ -197,7 +204,7 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
                                 const SizedBox(height: 1),
                                 Text(
                                   widget.subtitle!,
-                                  maxLines: 1,
+                                  maxLines: widget.subtitleMaxLines,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     color: isActive

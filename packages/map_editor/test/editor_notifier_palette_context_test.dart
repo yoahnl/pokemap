@@ -22,6 +22,14 @@ void main() {
         tilesElementsPanelMode: TilesElementsPanelMode.placedInstances,
       );
 
+    notifier.setPaletteBrowserQuery('arbres');
+    notifier.setPaletteBrowserFolder('outdoor');
+    notifier.setPaletteBrowserElementCategory('nature');
+    notifier.setPaletteBrowserCollection(
+      EditorPaletteAssetCollection.favorites,
+    );
+    notifier.setPaletteBrowserShowIncompatible(true);
+    notifier.togglePaletteTilesetFavorite('world');
     notifier.setActiveLayer('details');
 
     expect(notifier.getSelectedTilesetEntry()?.id, 'details');
@@ -32,12 +40,21 @@ void main() {
       notifier.state.tilesElementsPanelMode,
       TilesElementsPanelMode.palette,
     );
+    expect(_activeContext(notifier).browserQuery, isEmpty);
+    expect(_activeContext(notifier).browserFolderId, isNull);
+    expect(
+      _activeContext(notifier).browserCollection,
+      EditorPaletteAssetCollection.all,
+    );
+    expect(_activeContext(notifier).showIncompatible, isFalse);
 
     notifier.selectTilesetEditorContext('details');
     notifier.selectTilesetElementGroupFilter('decor');
     notifier.setPaletteCategoryFilter(PaletteCategory.decorations);
     notifier.selectPaletteTile(3);
     notifier.setTilesElementsPanelMode(TilesElementsPanelMode.palette);
+    notifier.setPaletteBrowserQuery('lampes');
+    notifier.setPaletteBrowserCollection(EditorPaletteAssetCollection.recent);
 
     notifier.setActiveLayer('ground');
 
@@ -52,6 +69,15 @@ void main() {
       notifier.state.tilesElementsPanelMode,
       TilesElementsPanelMode.placedInstances,
     );
+    expect(_activeContext(notifier).browserQuery, 'arbres');
+    expect(_activeContext(notifier).browserFolderId, 'outdoor');
+    expect(_activeContext(notifier).projectElementCategoryId, 'nature');
+    expect(
+      _activeContext(notifier).browserCollection,
+      EditorPaletteAssetCollection.favorites,
+    );
+    expect(_activeContext(notifier).showIncompatible, isTrue);
+    expect(notifier.state.paletteSession.favoriteTilesetIds, <String>['world']);
 
     notifier.setActiveLayer('details');
 
@@ -64,6 +90,11 @@ void main() {
     expect(
       notifier.state.paletteCategoryFilter,
       PaletteCategory.decorations,
+    );
+    expect(_activeContext(notifier).browserQuery, 'lampes');
+    expect(
+      _activeContext(notifier).browserCollection,
+      EditorPaletteAssetCollection.recent,
     );
     expect(notifier.state.isDirty, isFalse);
     expect(notifier.state.mapUndoStack, isEmpty);
@@ -117,6 +148,34 @@ void main() {
     expect(notifier.state.isDirty, isFalse);
     expect(notifier.state.errorMessage, contains('Assignez-lui'));
   });
+
+  test('invalid browser filters are rejected without map mutations', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier)
+      ..state = const EditorState(
+        project: _project,
+        workspaceMode: EditorWorkspaceMode.map,
+        activeMap: _map,
+        activeLayerId: 'ground',
+      );
+
+    notifier.setPaletteBrowserFolder('missing-folder');
+
+    expect(notifier.state.errorMessage, contains('n’existe plus'));
+    expect(notifier.state.activeMap, _map);
+    expect(notifier.state.isDirty, isFalse);
+    expect(notifier.state.mapUndoStack, isEmpty);
+  });
+}
+
+EditorLayerPaletteContext _activeContext(EditorNotifier notifier) {
+  final map = notifier.state.activeMap!;
+  final key = EditorPaletteContextKey(
+    mapId: map.id,
+    layerId: notifier.state.activeLayerId!,
+  );
+  return notifier.state.paletteSession.contexts[key]!;
 }
 
 const _project = ProjectManifest(
@@ -127,6 +186,12 @@ const _project = ProjectManifest(
       name: 'Town',
       relativePath: 'maps/town.json',
     ),
+  ],
+  tilesetFolders: <ProjectTilesetFolder>[
+    ProjectTilesetFolder(id: 'outdoor', name: 'Extérieur'),
+  ],
+  elementCategories: <ProjectElementCategory>[
+    ProjectElementCategory(id: 'nature', name: 'Nature'),
   ],
   tilesets: <ProjectTilesetEntry>[
     ProjectTilesetEntry(

@@ -175,6 +175,59 @@ void main() {
       );
     });
 
+    test('asset browser snapshot exposes only active layer session inputs', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      const key = EditorPaletteContextKey(
+        mapId: 'town',
+        layerId: 'ground',
+      );
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        project: const ProjectManifest(
+          name: 'demo',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+        ),
+        activeMap: const MapData(
+          id: 'town',
+          name: 'Town',
+          size: GridSize(width: 1, height: 1),
+          layers: <MapLayer>[
+            TileLayer(
+              id: 'ground',
+              name: 'Ground',
+              tilesetId: 'world',
+              tiles: <int>[0],
+            ),
+          ],
+        ),
+        activeLayerId: 'ground',
+        paletteSession: EditorPaletteSession(
+          activeKey: key,
+          contexts: <EditorPaletteContextKey, EditorLayerPaletteContext>{
+            key: const EditorLayerPaletteContext(
+              selectedTilesetId: 'details',
+              browserQuery: 'arbres',
+              browserCollection: EditorPaletteAssetCollection.favorites,
+            ),
+          },
+          recentTilesetIds: <String>['world'],
+          favoriteTilesetIds: <String>['details'],
+        ),
+      );
+
+      final snapshot =
+          container.read(editorMapPaletteAssetBrowserSnapshotProvider);
+
+      expect(snapshot.activeMap?.id, 'town');
+      expect(snapshot.activeLayerId, 'ground');
+      expect(snapshot.assignedTilesetId, 'world');
+      expect(snapshot.context.selectedTilesetId, 'details');
+      expect(snapshot.context.browserQuery, 'arbres');
+      expect(snapshot.recentTilesetIds, <String>['world']);
+      expect(snapshot.favoriteTilesetIds, <String>['details']);
+    });
+
     test('Path Studio snapshots hide map save and history actions', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);

@@ -5,6 +5,10 @@ import 'editor_ui_modes.dart';
 
 part 'editor_palette_session.freezed.dart';
 
+/// Session-only sentinel used by the asset browser for tilesets that have no
+/// declared library folder. It is UI taxonomy, never a persisted folder ID.
+const kEditorPaletteUnclassifiedFolderId = '__unclassified__';
+
 enum EditorPaletteAssetCollection {
   all,
   recent,

@@ -4630,6 +4630,111 @@ class EditorNotifier extends _$EditorNotifier {
     state = state.copyWith(paletteSession: session);
   }
 
+  void _updateActivePaletteContext(
+    EditorLayerPaletteContext Function(EditorLayerPaletteContext current)
+        update,
+  ) {
+    final key = _activePaletteContextKey(state);
+    if (key == null) return;
+    var session = _rememberActivePaletteContext(state);
+    final current = session.contexts[key] ??
+        EditorLayerPaletteContext(
+          selectedTilesetId: _assignedTilesetIdForState(state),
+        );
+    session = const EditorPaletteSessionService().remember(
+      session,
+      key: key,
+      context: update(current),
+    );
+    state = state.copyWith(
+      paletteSession: session,
+      errorMessage: null,
+    );
+  }
+
+  void setPaletteBrowserQuery(String query) {
+    _updateActivePaletteContext(
+      (context) => context.copyWith(browserQuery: query),
+    );
+  }
+
+  void setPaletteBrowserFolder(String? folderId) {
+    final project = state.project;
+    if (project == null) return;
+    final normalized = folderId?.trim();
+    final valid = normalized == null ||
+        normalized.isEmpty ||
+        normalized == kEditorPaletteUnclassifiedFolderId ||
+        project.tilesetFolders.any((folder) => folder.id == normalized);
+    if (!valid) {
+      state = state.copyWith(
+        errorMessage: 'Ce dossier de sources n’existe plus.',
+      );
+      return;
+    }
+    _updateActivePaletteContext(
+      (context) => context.copyWith(
+        browserFolderId:
+            normalized == null || normalized.isEmpty ? null : normalized,
+      ),
+    );
+  }
+
+  void setPaletteBrowserElementCategory(String? categoryId) {
+    final project = state.project;
+    if (project == null) return;
+    final normalized = categoryId?.trim();
+    final valid = normalized == null ||
+        normalized.isEmpty ||
+        project.elementCategories.any((category) => category.id == normalized);
+    if (!valid) {
+      state = state.copyWith(
+        errorMessage: 'Cette catégorie d’éléments n’existe plus.',
+      );
+      return;
+    }
+    _updateActivePaletteContext(
+      (context) => context.copyWith(
+        projectElementCategoryId:
+            normalized == null || normalized.isEmpty ? null : normalized,
+      ),
+    );
+  }
+
+  void setPaletteBrowserCollection(EditorPaletteAssetCollection collection) {
+    _updateActivePaletteContext(
+      (context) => context.copyWith(browserCollection: collection),
+    );
+  }
+
+  void setPaletteBrowserShowIncompatible(bool value) {
+    _updateActivePaletteContext(
+      (context) => context.copyWith(showIncompatible: value),
+    );
+  }
+
+  void togglePaletteTilesetFavorite(String tilesetId) {
+    final project = state.project;
+    final normalized = tilesetId.trim();
+    if (project == null ||
+        normalized.isEmpty ||
+        !project.tilesets.any((tileset) => tileset.id == normalized)) {
+      state = state.copyWith(
+        errorMessage: 'Cette source n’existe plus dans le projet.',
+      );
+      return;
+    }
+    final validIds = project.tilesets.map((tileset) => tileset.id).toSet();
+    state = state.copyWith(
+      paletteSession: const EditorPaletteSessionService().toggleFavorite(
+        state.paletteSession,
+        tilesetId: normalized,
+        validTilesetIds: validIds,
+      ),
+      errorMessage: null,
+    );
+  }
+
   bool _canUsePaletteTileset(String tilesetId) {
     final assignedTilesetId = _assignedTilesetIdForState(state);
     if (assignedTilesetId == tilesetId) return true;

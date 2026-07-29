@@ -180,8 +180,10 @@ class EditorPaletteSessionService {
             true
         ? context.selectedElementGroupId
         : null;
-    final validFolderIds =
-        project.tilesetFolders.map((folder) => folder.id).toSet();
+    final validFolderIds = project.tilesetFolders
+        .map((folder) => folder.id)
+        .toSet()
+      ..add(kEditorPaletteUnclassifiedFolderId);
     final validElementCategoryIds =
         project.elementCategories.map((category) => category.id).toSet();
 

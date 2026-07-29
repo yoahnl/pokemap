@@ -33,6 +33,7 @@ import '../../features/editor/tools/editor_tool.dart';
 import '../assets/editor_image_cache.dart';
 import '../design_system/design_system.dart';
 import 'element_collision_editor_sheet.dart';
+import 'tileset_palette/widgets/browser/map_palette_asset_browser.dart';
 import '../../theme/theme.dart';
 
 part 'tileset_palette/dialogs/element_frame_picker_dialog.dart';
@@ -400,6 +401,20 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     return GridPos(x: x, y: y);
   }
 
+  Widget _withMapAssetBrowserLauncher(Widget child) {
+    if (!widget.embedded) return child;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(12, 8, 12, 6),
+          child: MapPaletteAssetBrowserLauncher(),
+        ),
+        Expanded(child: child),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final paletteSnapshot = ref.watch(editorTilesetPaletteSnapshotProvider);
@@ -423,11 +438,13 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     final selectedTileset = paletteSnapshot.selectedTilesetEntry;
     final selectedTilesetPath = notifier.getSelectedTilesetAbsolutePath();
     if (selectedTileset == null || selectedTilesetPath == null) {
-      return Center(
-        child: Text(
-          'Aucun tileset sélectionné',
-          style: TextStyle(
-            color: colors.textMuted,
+      return _withMapAssetBrowserLauncher(
+        Center(
+          child: Text(
+            'Aucun tileset sélectionné',
+            style: TextStyle(
+              color: colors.textMuted,
+            ),
           ),
         ),
       );
@@ -455,7 +472,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       imageCache,
       selectedTilesetPath,
     );
-    return FutureBuilder<EditorImageLoadResult>(
+    final palette = FutureBuilder<EditorImageLoadResult>(
       key: ValueKey((imageCache, selectedTilesetPath)),
       future: imageFuture,
       builder: (context, imageSnapshot) {
@@ -540,20 +557,22 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                       ),
                     ),
                   if (!widget.embedded) const SizedBox(height: 6),
-                  _inspectorPickerDropdown(
-                    context: context,
-                    accent: pickerAccent,
-                    fieldLabel: 'Tileset',
-                    valueLabel: selectedTileset.name,
-                    tooltip: 'Choisir un tileset',
-                    orderedIds:
-                        sortedTilesets.map((tileset) => tileset.id).toList(),
-                    selectedId: selectedTileset.id,
-                    idToLabel: (id) =>
-                        sortedTilesets.firstWhere((t) => t.id == id).name,
-                    onSelected: notifier.selectTilesetEditorContext,
-                  ),
-                  const SizedBox(height: 4),
+                  if (!widget.embedded) ...[
+                    _inspectorPickerDropdown(
+                      context: context,
+                      accent: pickerAccent,
+                      fieldLabel: 'Tileset',
+                      valueLabel: selectedTileset.name,
+                      tooltip: 'Choisir un tileset',
+                      orderedIds:
+                          sortedTilesets.map((tileset) => tileset.id).toList(),
+                      selectedId: selectedTileset.id,
+                      idToLabel: (id) =>
+                          sortedTilesets.firstWhere((t) => t.id == id).name,
+                      onSelected: notifier.selectTilesetEditorContext,
+                    ),
+                    const SizedBox(height: 4),
+                  ],
                   Row(
                     children: [
                       Expanded(
@@ -603,6 +622,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         );
       },
     );
+    return _withMapAssetBrowserLauncher(palette);
   }
 
   // ignore: unused_element

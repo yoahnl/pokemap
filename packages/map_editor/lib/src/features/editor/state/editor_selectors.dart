@@ -82,6 +82,16 @@ typedef EditorTilesetPaletteSnapshot = ({
   String? selectedPlacedElementInstanceId,
 });
 
+typedef EditorMapPaletteAssetBrowserSnapshot = ({
+  ProjectManifest? project,
+  MapData? activeMap,
+  String? activeLayerId,
+  String? assignedTilesetId,
+  EditorLayerPaletteContext context,
+  List<String> recentTilesetIds,
+  List<String> favoriteTilesetIds,
+});
+
 final editorWorkspaceModeProvider = Provider<EditorWorkspaceMode>((ref) {
   return ref.watch(editorNotifierProvider.select((s) => s.workspaceMode));
 });
@@ -318,6 +328,51 @@ final editorTilesetPaletteSnapshotProvider =
     }),
   );
 });
+
+final editorMapPaletteAssetBrowserSnapshotProvider =
+    Provider<EditorMapPaletteAssetBrowserSnapshot>((ref) {
+  return ref.watch(
+    editorNotifierProvider.select((state) {
+      final map = state.activeMap;
+      final layerId = state.activeLayerId;
+      final key = map == null || layerId == null
+          ? null
+          : EditorPaletteContextKey(mapId: map.id, layerId: layerId);
+      final assignedTilesetId = _resolveAssignedTilesetId(
+        map,
+        layerId,
+      );
+      return (
+        project: state.project,
+        activeMap: map,
+        activeLayerId: layerId,
+        assignedTilesetId: assignedTilesetId,
+        context: key == null
+            ? const EditorLayerPaletteContext()
+            : state.paletteSession.contexts[key] ??
+                EditorLayerPaletteContext(
+                  selectedTilesetId: assignedTilesetId,
+                ),
+        recentTilesetIds: state.paletteSession.recentTilesetIds,
+        favoriteTilesetIds: state.paletteSession.favoriteTilesetIds,
+      );
+    }),
+  );
+});
+
+String? _resolveAssignedTilesetId(MapData? map, String? activeLayerId) {
+  if (map == null || activeLayerId == null) return null;
+  for (final layer in map.layers) {
+    if (layer.id != activeLayerId || layer is! TileLayer) continue;
+    final layerTilesetId = layer.tilesetId?.trim();
+    if (layerTilesetId != null && layerTilesetId.isNotEmpty) {
+      return layerTilesetId;
+    }
+    final mapTilesetId = map.tilesetId.trim();
+    return mapTilesetId.isEmpty ? null : mapTilesetId;
+  }
+  return null;
+}
 
 MapLayer? _resolveActiveLayerFromState(EditorState state) {
   final map = state.activeMap;
