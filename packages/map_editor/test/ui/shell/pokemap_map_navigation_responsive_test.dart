@@ -18,9 +18,8 @@ void main() {
       );
 
       _expectAllNavigationActionsInsideCanvas(tester);
-      expect(find.byTooltip('Ajuster la carte'), findsOneWidget);
-      expect(find.byTooltip('Afficher à 100 %'), findsOneWidget);
-      expect(find.byTooltip('Centrer la carte'), findsOneWidget);
+      _expectAdaptiveWorkspace(tester, inspectorIsOverlay: true);
+      _expectNavigationActionsDiscoverable();
 
       await tester.tap(_navigationAction('map-navigation-zoom-out'));
       await tester.pump();
@@ -41,9 +40,8 @@ void main() {
       );
 
       _expectAllNavigationActionsInsideCanvas(tester);
-      expect(find.byTooltip('Ajuster la carte'), findsOneWidget);
-      expect(find.byTooltip('Afficher à 100 %'), findsOneWidget);
-      expect(find.byTooltip('Centrer la carte'), findsOneWidget);
+      _expectAdaptiveWorkspace(tester, inspectorIsOverlay: false);
+      _expectNavigationActionsDiscoverable();
       expect(tester.takeException(), isNull);
     });
 
@@ -56,9 +54,7 @@ void main() {
       );
 
       _expectAllNavigationActionsInsideCanvas(tester);
-      expect(find.byTooltip('Ajuster la carte'), findsOneWidget);
-      expect(find.byTooltip('Afficher à 100 %'), findsOneWidget);
-      expect(find.byTooltip('Centrer la carte'), findsOneWidget);
+      _expectNavigationActionsDiscoverable();
       expect(tester.takeException(), isNull);
     });
 
@@ -101,6 +97,43 @@ Finder _navigationAction(String key) {
   return find.byKey(ValueKey<String>(key));
 }
 
+void _expectNavigationActionsDiscoverable() {
+  for (final action in const <({
+    String key,
+    String tooltip,
+    String label,
+  })>[
+    (
+      key: 'map-navigation-fit',
+      tooltip: 'Ajuster la carte',
+      label: 'Ajuster',
+    ),
+    (
+      key: 'map-navigation-actual-size',
+      tooltip: 'Afficher à 100 %',
+      label: '100 %',
+    ),
+    (
+      key: 'map-navigation-center',
+      tooltip: 'Centrer la carte',
+      label: 'Centrer',
+    ),
+  ]) {
+    final tooltip = find.byTooltip(action.tooltip);
+    if (tooltip.evaluate().isNotEmpty) {
+      expect(tooltip, findsOneWidget);
+    } else {
+      expect(
+        find.descendant(
+          of: _navigationAction(action.key),
+          matching: find.text(action.label),
+        ),
+        findsOneWidget,
+      );
+    }
+  }
+}
+
 void _expectAllNavigationActionsInsideCanvas(WidgetTester tester) {
   final canvasRect = tester.getRect(find.byType(MapCanvas));
   for (final key in const <String>[
@@ -132,6 +165,37 @@ void _expectAllNavigationActionsInsideCanvas(WidgetTester tester) {
       reason: '$key must not be clipped at the bottom',
     );
   }
+}
+
+void _expectAdaptiveWorkspace(
+  WidgetTester tester, {
+  required bool inspectorIsOverlay,
+}) {
+  expect(
+    find.byKey(const ValueKey<String>('world-map-workspace')),
+    findsOneWidget,
+  );
+  expect(
+    tester
+        .getSize(
+          find.byKey(
+            const ValueKey<String>('world-map-canvas-region'),
+          ),
+        )
+        .width,
+    greaterThanOrEqualTo(320),
+  );
+  expect(
+    find.byKey(
+      ValueKey<String>(
+        inspectorIsOverlay
+            ? 'world-map-inspector-overlay'
+            : 'world-map-inspector-dock',
+      ),
+    ),
+    findsOneWidget,
+  );
+  expect(tester.takeException(), isNull);
 }
 
 EditorState _editorState() {

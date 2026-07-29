@@ -30,6 +30,8 @@ import '../theme/theme.dart';
 import '../features/border_map_editing/presentation/pending_border_save_dialog.dart';
 import '../features/editor/application/map_activation_coordinator.dart';
 import '../features/editor/presentation/map_activation_guard.dart';
+import '../features/editor/presentation/world_map/world_map_workspace.dart';
+import '../features/editor/presentation/world_map/world_map_workspace_session.dart';
 import '../features/editor/state/editor_notifier.dart';
 import '../features/editor/state/editor_selectors.dart';
 import '../features/editor/state/editor_state.dart';
@@ -69,6 +71,8 @@ class EditorShellPage extends ConsumerStatefulWidget {
 
 class _EditorShellPageState extends ConsumerState<EditorShellPage> {
   Timer? _toastTimer;
+  final GlobalKey _projectExplorerKey =
+      GlobalKey(debugLabel: 'shared-project-explorer');
   String? _toastMessage;
   bool _toastIsError = false;
   bool _didAttemptProjectAutoRestore = false;
@@ -785,6 +789,91 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                             ),
                             Builder(
                               builder: (context) {
+                                if (workspaceMode ==
+                                    EditorWorkspaceMode.map) {
+                                  return Column(
+                                    children: [
+                                      Expanded(
+                                        child: WorldMapWorkspace(
+                                          toolSlot: Consumer(
+                                            builder: (context, ref, child) {
+                                              final session = ref.watch(
+                                                worldMapWorkspaceSessionProvider,
+                                              );
+                                              return TopToolbar(
+                                                onToggleRightPanel: () {
+                                                  ref
+                                                      .read(
+                                                        worldMapWorkspaceSessionProvider
+                                                            .notifier,
+                                                      )
+                                                      .setInspectorVisible(
+                                                        !session
+                                                            .inspectorVisible,
+                                                      );
+                                                },
+                                                rightPanelVisible:
+                                                    session.inspectorVisible,
+                                              );
+                                            },
+                                          ),
+                                          stageHeaderSlot: Consumer(
+                                            builder: (context, ref, child) {
+                                              final session = ref.watch(
+                                                worldMapWorkspaceSessionProvider,
+                                              );
+                                              return _WorkspaceStageHeader(
+                                                title: shell.workspaceTitle,
+                                                subtitle:
+                                                    shell.workspaceSubtitle,
+                                                workspaceMode: workspaceMode,
+                                                rightPanelVisible:
+                                                    session.inspectorVisible,
+                                                showRightPanelToggle: true,
+                                                onToggleRightPanel: () {
+                                                  ref
+                                                      .read(
+                                                        worldMapWorkspaceSessionProvider
+                                                            .notifier,
+                                                      )
+                                                      .setInspectorVisible(
+                                                        !session
+                                                            .inspectorVisible,
+                                                      );
+                                                },
+                                              );
+                                            },
+                                          ),
+                                          inspectorSlot:
+                                              const MapInspectorPanel(),
+                                          explorerBuilder:
+                                              (context, onCollapse) {
+                                            return ProjectExplorerPanel(
+                                              key: _projectExplorerKey,
+                                              onOpenDependency: (intent) =>
+                                                  unawaited(
+                                                openNarrativeDependencyIntent(
+                                                  intent,
+                                                ),
+                                              ),
+                                              onCollapse: onCollapse,
+                                            );
+                                          },
+                                          explorerRailBuilder:
+                                              (context, onReopen) {
+                                            return _CollapsedExpandButton(
+                                              key: const ValueKey<String>(
+                                                'project-explorer-reopen-toggle',
+                                              ),
+                                              onTap: onReopen,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                      const StatusBar(),
+                                    ],
+                                  );
+                                }
                                 final colors = context.pokeMapColors;
                                 return Column(
                                   children: [
@@ -918,6 +1007,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                                         ),
                                                                         child:
                                                                             ProjectExplorerPanel(
+                                                                          key:
+                                                                              _projectExplorerKey,
                                                                           onOpenDependency: (intent) =>
                                                                               unawaited(
                                                                             openNarrativeDependencyIntent(

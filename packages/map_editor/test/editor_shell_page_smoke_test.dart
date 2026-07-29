@@ -15,6 +15,7 @@ import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
+import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar/widgets/toolbar_capsules.dart';
 
@@ -39,6 +40,27 @@ void main() {
         const ValueKey<String>('world-map-workspace'),
       );
       expect(worldMapWorkspace, findsOneWidget);
+      expect(
+        find.descendant(
+          of: worldMapWorkspace,
+          matching: find.byType(ProjectExplorerPanel),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: worldMapWorkspace,
+          matching: find.byType(TopToolbar),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: worldMapWorkspace,
+          matching: find.byType(EditorCanvasHost),
+        ),
+        findsOneWidget,
+      );
 
       // Tasks 1–4 migrate around the proven legacy behavior. Keeping this
       // descendant assertion prevents the seam from hiding a premature rewrite.
