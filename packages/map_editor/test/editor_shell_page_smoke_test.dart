@@ -13,12 +13,44 @@ import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_
 import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
+import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
+import 'package:map_editor/src/ui/shared/top_toolbar.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar/widgets/toolbar_capsules.dart';
 
 import 'shell_chrome_test_harness.dart';
 
 void main() {
   group('EditorShellPage smoke', () {
+    testWidgets(
+        'isolates the legacy map chrome behind the World Map workspace seam',
+        (tester) async {
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/editor_shell_world_map_seam',
+          project: buildShellChromeProject(),
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: buildShellChromeMap(),
+        ),
+      );
+
+      final worldMapWorkspace = find.byKey(
+        const ValueKey<String>('world-map-workspace'),
+      );
+      expect(worldMapWorkspace, findsOneWidget);
+
+      // Tasks 1–4 migrate around the proven legacy behavior. Keeping this
+      // descendant assertion prevents the seam from hiding a premature rewrite.
+      expect(
+        find.descendant(
+          of: worldMapWorkspace,
+          matching: find.byType(MapInspectorPanel),
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('renders map workspace chrome and toggles the right panel',
         (tester) async {
       await pumpEditorShellPage(
@@ -90,6 +122,12 @@ void main() {
         ),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const ValueKey<String>('world-map-workspace')),
+        findsNothing,
+      );
+      expect(find.byType(TopToolbar), findsOneWidget);
+      expect(find.byType(EditorCanvasHost), findsOneWidget);
     });
 
     testWidgets('renders the trainer studio workspace chrome', (tester) async {

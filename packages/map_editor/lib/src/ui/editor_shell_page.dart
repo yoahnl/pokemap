@@ -1332,7 +1332,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                           ),
                         ),
                     ],
-                  ),
+                  )._buildLegacyWorkspace(workspaceMode),
           ),
         ),
       ),
@@ -1425,6 +1425,22 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         ref.read(editorNotifierProvider.notifier).selectBorderStudioWorkspace();
     }
     _isHandlingBorderExit = false;
+  }
+}
+
+extension on Widget {
+  Widget _buildLegacyWorkspace(EditorWorkspaceMode workspaceMode) {
+    if (workspaceMode != EditorWorkspaceMode.map) {
+      return this;
+    }
+
+    // Gate 5 Tasks 1–4 migrate only World Map behind this seam. The complete
+    // legacy subtree intentionally stays inside it so its typed toolbar and
+    // shortcut callbacks keep owning the existing dialogs and history wiring.
+    return KeyedSubtree(
+      key: const ValueKey<String>('world-map-workspace'),
+      child: this,
+    );
   }
 }
 
