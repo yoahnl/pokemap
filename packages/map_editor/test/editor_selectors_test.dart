@@ -547,6 +547,10 @@ void main() {
           .read(worldMapWorkspaceSessionProvider.notifier)
           .setInspectorVisible(false);
       notifier.state = notifier.state.copyWith(
+        activeBrush: const EditorBrush.tile(
+          tileId: 7,
+          tilesetId: 'world',
+        ),
         paletteSession: EditorPaletteSession(
           activeKey: key,
           contexts: <EditorPaletteContextKey, EditorLayerPaletteContext>{
@@ -569,6 +573,63 @@ void main() {
 
       expect(emissions, hasLength(2));
       expect(emissions.last.activeTool, EditorToolType.eraser);
+      subscription.close();
+    });
+
+    test('world map brush kind stays narrow and covers every brush variant',
+        () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final emissions = <EditorWorldMapBrushKind>[];
+      final subscription = container.listen<EditorWorldMapBrushKind>(
+        editorWorldMapBrushKindProvider,
+        (_, next) => emissions.add(next),
+        fireImmediately: true,
+      );
+
+      for (final testCase
+          in <({EditorBrush brush, EditorWorldMapBrushKind kind})>[
+        (
+          brush: const EditorBrush.tile(tileId: 1, tilesetId: 'world'),
+          kind: EditorWorldMapBrushKind.tile,
+        ),
+        (
+          brush: const EditorBrush.paletteEntry(
+            entryId: 'tree',
+            tilesetId: 'world',
+          ),
+          kind: EditorWorldMapBrushKind.paletteEntry,
+        ),
+        (
+          brush: const EditorBrush.projectElement(elementId: 'tree'),
+          kind: EditorWorldMapBrushKind.projectElement,
+        ),
+        (
+          brush: const EditorBrush.none(),
+          kind: EditorWorldMapBrushKind.none,
+        ),
+      ]) {
+        notifier.state = notifier.state.copyWith(
+          activeBrush: testCase.brush,
+        );
+        await container.pump();
+        expect(
+          container.read(editorWorldMapBrushKindProvider),
+          testCase.kind,
+        );
+      }
+
+      expect(
+        emissions,
+        <EditorWorldMapBrushKind>[
+          EditorWorldMapBrushKind.none,
+          EditorWorldMapBrushKind.tile,
+          EditorWorldMapBrushKind.paletteEntry,
+          EditorWorldMapBrushKind.projectElement,
+          EditorWorldMapBrushKind.none,
+        ],
+      );
       subscription.close();
     });
 

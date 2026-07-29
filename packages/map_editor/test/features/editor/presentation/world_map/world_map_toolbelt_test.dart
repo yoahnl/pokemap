@@ -849,6 +849,7 @@ void main() {
       await _pumpToolbelt(tester, container);
 
       expect(editor.state.activeTool, EditorToolType.tilePaint);
+      expect(editor.state.activeBrush, isA<NoEditorBrush>());
       expect(
         find.byWidgetPredicate(
           (widget) =>
@@ -858,6 +859,137 @@ void main() {
         ),
         findsOneWidget,
       );
+    });
+
+    for (final testCase in <({String label, EditorBrush brush})>[
+      (
+        label: 'tile',
+        brush: const EditorBrush.tile(tileId: 1, tilesetId: 'world'),
+      ),
+      (
+        label: 'palette-entry',
+        brush: const EditorBrush.paletteEntry(
+          entryId: 'tree',
+          tilesetId: 'world',
+        ),
+      ),
+    ]) {
+      testWidgets(
+          'legacy ${testCase.label} brush makes tilePaint visibly Paint/tile '
+          'without mutating the Place/object session', (tester) async {
+        final container = _containerWith(_tileState());
+        final editor = container.read(editorNotifierProvider.notifier);
+        final session =
+            container.read(worldMapWorkspaceSessionProvider.notifier);
+        expect(
+          session
+              .activateTool(
+                editor,
+                const ActivateWorldMapPlacement(
+                  WorldMapPlacementSubtool.object,
+                ),
+              )
+              .accepted,
+          isTrue,
+        );
+        editor.state = editor.state.copyWith(
+          activeTool: EditorToolType.tilePaint,
+          activeBrush: const EditorBrush.projectElement(elementId: 'tree'),
+        );
+        await _pumpToolbelt(tester, container);
+        final sessionBefore = container.read(worldMapWorkspaceSessionProvider);
+        final sessionEmissions = <WorldMapWorkspaceSession>[];
+        final subscription = container.listen<WorldMapWorkspaceSession>(
+          worldMapWorkspaceSessionProvider,
+          (_, next) => sessionEmissions.add(next),
+        );
+
+        editor.state = editor.state.copyWith(
+          activeTool: EditorToolType.tilePaint,
+          activeBrush: testCase.brush,
+        );
+        await tester.pump();
+
+        subscription.close();
+        expect(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is Semantics &&
+                widget.properties.label == 'Peindre · Tuiles' &&
+                widget.properties.selected == true,
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is Semantics &&
+                widget.properties.label == 'Placer · Objet' &&
+                widget.properties.selected == true,
+          ),
+          findsNothing,
+        );
+        expect(
+          container.read(worldMapWorkspaceSessionProvider),
+          sessionBefore,
+        );
+        expect(sessionEmissions, isEmpty);
+      });
+    }
+
+    testWidgets(
+        'legacy project-element brush makes tilePaint visibly Place/object '
+        'without mutating the Paint/tile session', (tester) async {
+      final container = _containerWith(_tileState());
+      final editor = container.read(editorNotifierProvider.notifier);
+      final session = container.read(worldMapWorkspaceSessionProvider.notifier);
+      expect(
+        session
+            .activateTool(
+              editor,
+              const ActivateWorldMapPaint(WorldMapPaintSubtool.tile),
+            )
+            .accepted,
+        isTrue,
+      );
+      await _pumpToolbelt(tester, container);
+      final sessionBefore = container.read(worldMapWorkspaceSessionProvider);
+      final sessionEmissions = <WorldMapWorkspaceSession>[];
+      final subscription = container.listen<WorldMapWorkspaceSession>(
+        worldMapWorkspaceSessionProvider,
+        (_, next) => sessionEmissions.add(next),
+      );
+
+      editor.state = editor.state.copyWith(
+        activeTool: EditorToolType.tilePaint,
+        activeBrush: const EditorBrush.projectElement(elementId: 'tree'),
+      );
+      await tester.pump();
+
+      subscription.close();
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Semantics &&
+              widget.properties.label == 'Placer · Objet' &&
+              widget.properties.selected == true,
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Semantics &&
+              widget.properties.label == 'Peindre · Tuiles' &&
+              widget.properties.selected == true,
+        ),
+        findsNothing,
+      );
+      expect(
+        container.read(worldMapWorkspaceSessionProvider),
+        sessionBefore,
+      );
+      expect(sessionEmissions, isEmpty);
     });
 
     testWidgets('keeps every command visible at 800 and 1280 pixels',

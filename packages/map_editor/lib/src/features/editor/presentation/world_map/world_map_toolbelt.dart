@@ -42,6 +42,7 @@ class WorldMapToolbelt extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final toolbar = ref.watch(editorWorldMapToolbarSnapshotProvider);
+    final brushKind = ref.watch(editorWorldMapBrushKindProvider);
     final session = ref.watch(worldMapWorkspaceSessionProvider);
     final sessionController =
         ref.read(worldMapWorkspaceSessionProvider.notifier);
@@ -75,6 +76,7 @@ class WorldMapToolbelt extends ConsumerWidget {
       activeTool: toolbar.activeTool,
       terrainSelectionMode: toolbar.terrainSelectionMode,
       rememberedPaint: rememberedPaint,
+      brushKind: brushKind,
     );
     final paintLabel = _paintSubtoolLabel(visualState.paintSubtool);
     final placementLabel = _placementSubtoolLabel(
@@ -238,12 +240,22 @@ _WorldMapVisualToolState _resolveVisualToolState({
   required EditorToolType activeTool,
   required TerrainSelectionMode terrainSelectionMode,
   required WorldMapPaintSubtool rememberedPaint,
+  required EditorWorldMapBrushKind brushKind,
 }) {
   final fallback = (
     family: session.activeFamily,
     paintSubtool: rememberedPaint,
     placementSubtool: session.lastPlacementSubtool,
   );
+  final tilePaintIsPlace = switch (brushKind) {
+    EditorWorldMapBrushKind.projectElement => true,
+    EditorWorldMapBrushKind.tile ||
+    EditorWorldMapBrushKind.paletteEntry =>
+      false,
+    EditorWorldMapBrushKind.none =>
+      session.activeFamily == WorldMapToolFamily.place &&
+          session.lastPlacementSubtool == WorldMapPlacementSubtool.object,
+  };
   return switch (activeTool) {
     // Selection is also the engine representation of the explicit Layers
     // family, so only that session ambiguity is preserved.
@@ -254,16 +266,14 @@ _WorldMapVisualToolState _resolveVisualToolState({
         paintSubtool: fallback.paintSubtool,
         placementSubtool: fallback.placementSubtool,
       ),
-    // tilePaint represents both Paint/tile and Place/object. The explicit
-    // Place/object session wins only for that exact ambiguous pairing.
+    // tilePaint represents both Paint/tile and Place/object. A concrete brush
+    // disambiguates first; only an inert brush preserves explicit Place/object.
     EditorToolType.tilePaint => (
-        family: session.activeFamily == WorldMapToolFamily.place &&
-                session.lastPlacementSubtool == WorldMapPlacementSubtool.object
+        family: tilePaintIsPlace
             ? WorldMapToolFamily.place
             : WorldMapToolFamily.paint,
         paintSubtool: WorldMapPaintSubtool.tile,
-        placementSubtool: session.activeFamily == WorldMapToolFamily.place &&
-                session.lastPlacementSubtool == WorldMapPlacementSubtool.object
+        placementSubtool: tilePaintIsPlace
             ? WorldMapPlacementSubtool.object
             : fallback.placementSubtool,
       ),

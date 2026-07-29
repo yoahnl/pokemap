@@ -59,6 +59,13 @@ typedef EditorWorldMapToolbarSnapshot = ({
   bool canRedoMap,
 });
 
+enum EditorWorldMapBrushKind {
+  none,
+  tile,
+  paletteEntry,
+  projectElement,
+}
+
 /// Snapshot ciblé pour le Project Explorer.
 typedef EditorProjectExplorerSnapshot = ({
   ProjectManifest? project,
@@ -310,6 +317,20 @@ final editorWorldMapToolbarSnapshotProvider =
             exposesMapActions && !hasActiveMapStroke && state.canRedoMap,
       );
     }),
+  );
+});
+
+final editorWorldMapBrushKindProvider =
+    Provider<EditorWorldMapBrushKind>((ref) {
+  return ref.watch(
+    editorNotifierProvider.select(
+      (state) => switch (state.activeBrush) {
+        NoEditorBrush() => EditorWorldMapBrushKind.none,
+        TileEditorBrush() => EditorWorldMapBrushKind.tile,
+        PaletteEntryEditorBrush() => EditorWorldMapBrushKind.paletteEntry,
+        ProjectElementEditorBrush() => EditorWorldMapBrushKind.projectElement,
+      },
+    ),
   );
 });
 
