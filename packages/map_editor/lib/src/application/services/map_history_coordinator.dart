@@ -52,9 +52,14 @@ class MapHistoryCoordinator {
     required String? selectedEntityId,
     required String? selectedWarpId,
     required String? selectedTriggerId,
+    required String? selectedMapEventId,
+    required String? selectedGameplayZoneId,
+    required String? selectedPlacedElementInstanceId,
+    required String? npcWaypointPlacementEntityId,
     required List<MapHistorySnapshot> undoStack,
     required List<MapHistorySnapshot> redoStack,
     required MapHistorySnapshot? strokeStart,
+    required bool currentDirty,
   }) {
     if (strokeStart != null) {
       return MapHistoryMutationResult(
@@ -72,6 +77,11 @@ class MapHistoryCoordinator {
         selectedEntityId: selectedEntityId,
         selectedWarpId: selectedWarpId,
         selectedTriggerId: selectedTriggerId,
+        selectedMapEventId: selectedMapEventId,
+        selectedGameplayZoneId: selectedGameplayZoneId,
+        selectedPlacedElementInstanceId: selectedPlacedElementInstanceId,
+        npcWaypointPlacementEntityId: npcWaypointPlacementEntityId,
+        wasDirty: currentDirty,
       ),
     );
   }
@@ -104,6 +114,20 @@ class MapHistoryCoordinator {
       redoStack: const [],
       strokeStart: null,
       committed: true,
+    );
+  }
+
+  MapHistoryRestoreResult? rollbackStroke({
+    required List<MapHistorySnapshot> undoStack,
+    required List<MapHistorySnapshot> redoStack,
+    required MapHistorySnapshot? strokeStart,
+  }) {
+    if (strokeStart == null) return null;
+    return MapHistoryRestoreResult(
+      undoStack: undoStack,
+      redoStack: redoStack,
+      strokeStart: null,
+      restoredSnapshot: strokeStart,
     );
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/models/map_history_snapshot.dart';
 import 'package:map_editor/src/application/services/editor_map_mutation_coordinator.dart';
 import 'package:map_editor/src/application/services/editor_map_session_coordinator.dart';
 import 'package:map_editor/src/application/services/map_history_coordinator.dart';
@@ -125,6 +126,180 @@ void main() {
 
       expect(started.mapStrokeStart, isNotNull);
       expect(ended.mapStrokeStart, isNull);
+    });
+
+    test('cancelStroke restores the checkpoint without touching history', () {
+      const original = MapData(
+        id: 'map_1',
+        name: 'Map 1',
+        size: GridSize(width: 2, height: 1),
+        layers: [
+          TileLayer(id: 'ground', name: 'Ground', tiles: [0, 0]),
+        ],
+      );
+      const firstSample = MapData(
+        id: 'map_1',
+        name: 'Map 1',
+        size: GridSize(width: 2, height: 1),
+        layers: [
+          TileLayer(id: 'ground', name: 'Ground', tiles: [1, 0]),
+        ],
+      );
+      const secondSample = MapData(
+        id: 'map_1',
+        name: 'Map 1',
+        size: GridSize(width: 2, height: 1),
+        layers: [
+          TileLayer(id: 'ground', name: 'Ground', tiles: [1, 1]),
+        ],
+      );
+      const historical = MapHistorySnapshot(
+        map: original,
+        activeLayerId: 'ground',
+      );
+      final started = controller.beginStroke(
+        const EditorState(
+          activeMap: original,
+          activeLayerId: 'ground',
+          savedMapSnapshot: original,
+          mapUndoStack: [historical],
+          canUndoMap: true,
+        ),
+      );
+      final first = controller.applyMutation(
+        current: started,
+        previousMap: original,
+        updatedMap: firstSample,
+        preferredActiveLayerId: 'ground',
+        partOfStroke: true,
+      );
+      final second = controller.applyMutation(
+        current: first,
+        previousMap: firstSample,
+        updatedMap: secondSample,
+        preferredActiveLayerId: 'ground',
+        partOfStroke: true,
+      );
+
+      final cancelled = controller.cancelStroke(second);
+
+      expect(cancelled.activeMap, original);
+      expect(cancelled.activeLayerId, 'ground');
+      expect(cancelled.mapStrokeStart, isNull);
+      expect(cancelled.mapUndoStack, [historical]);
+      expect(cancelled.mapRedoStack, isEmpty);
+      expect(cancelled.canUndoMap, isTrue);
+      expect(cancelled.canRedoMap, isFalse);
+      expect(cancelled.isDirty, isFalse);
+    });
+
+    test(
+      'cancelStroke restores pre-stroke dirty and placed-element selection',
+      () {
+        const original = MapData(
+          id: 'map_1',
+          name: 'Map 1',
+          size: GridSize(width: 1, height: 1),
+          layers: [
+            TileLayer(id: 'ground', name: 'Ground', tiles: [1]),
+          ],
+          placedElements: [
+            MapPlacedElement(
+              id: 'tree',
+              layerId: 'ground',
+              elementId: 'tree_element',
+              pos: GridPos(x: 0, y: 0),
+            ),
+          ],
+        );
+        const erased = MapData(
+          id: 'map_1',
+          name: 'Map 1',
+          size: GridSize(width: 1, height: 1),
+          layers: [
+            TileLayer(id: 'ground', name: 'Ground', tiles: [0]),
+          ],
+        );
+        final started = controller.beginStroke(
+          const EditorState(
+            activeMap: original,
+            activeLayerId: 'ground',
+            selectedPlacedElementInstanceId: 'tree',
+            isDirty: false,
+          ),
+        );
+        final mutated = controller.applyMutation(
+          current: started,
+          previousMap: original,
+          updatedMap: erased,
+          preferredActiveLayerId: 'ground',
+          partOfStroke: true,
+        );
+
+        expect(mutated.selectedPlacedElementInstanceId, isNull);
+        expect(mutated.isDirty, isTrue);
+
+        final cancelled = controller.cancelStroke(mutated);
+
+        expect(cancelled.activeMap, original);
+        expect(cancelled.selectedPlacedElementInstanceId, 'tree');
+        expect(cancelled.isDirty, isFalse);
+      },
+    );
+
+    test('a multi-sample stroke creates exactly one undo entry', () {
+      const original = MapData(
+        id: 'map_1',
+        name: 'Map 1',
+        size: GridSize(width: 2, height: 1),
+        layers: [
+          TileLayer(id: 'ground', name: 'Ground', tiles: [0, 0]),
+        ],
+      );
+      const firstSample = MapData(
+        id: 'map_1',
+        name: 'Map 1',
+        size: GridSize(width: 2, height: 1),
+        layers: [
+          TileLayer(id: 'ground', name: 'Ground', tiles: [1, 0]),
+        ],
+      );
+      const secondSample = MapData(
+        id: 'map_1',
+        name: 'Map 1',
+        size: GridSize(width: 2, height: 1),
+        layers: [
+          TileLayer(id: 'ground', name: 'Ground', tiles: [1, 1]),
+        ],
+      );
+      final started = controller.beginStroke(
+        const EditorState(
+          activeMap: original,
+          activeLayerId: 'ground',
+          savedMapSnapshot: original,
+        ),
+      );
+      final first = controller.applyMutation(
+        current: started,
+        previousMap: original,
+        updatedMap: firstSample,
+        preferredActiveLayerId: 'ground',
+        partOfStroke: true,
+      );
+      final second = controller.applyMutation(
+        current: first,
+        previousMap: firstSample,
+        updatedMap: secondSample,
+        preferredActiveLayerId: 'ground',
+        partOfStroke: true,
+      );
+
+      final committed = controller.endStroke(second);
+      final undone = controller.undo(committed);
+
+      expect(committed.mapUndoStack, hasLength(1));
+      expect(committed.canUndoMap, isTrue);
+      expect(undone?.activeMap, original);
     });
   });
 }

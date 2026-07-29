@@ -5,12 +5,14 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart'
+    show DragStartBehavior, PointerScrollEvent, PointerSignalEvent;
+import 'package:flutter/services.dart'
     show
-        DragStartBehavior,
-        PointerScrollEvent,
-        PointerSignalEvent,
-        kSecondaryButton,
-        kTertiaryButton;
+        HardwareKeyboard,
+        KeyDownEvent,
+        KeyEvent,
+        KeyUpEvent,
+        LogicalKeyboardKey;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
@@ -32,6 +34,7 @@ import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/state/environment_generated_placement_add_element_provider.dart';
 import '../../features/editor/state/environment_mask_brush_size_provider.dart';
+import '../../features/editor/application/map_canvas_interaction_controller.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/narrative/state/narrative_event_map_bridge_state.dart';
 import '../../features/border_map_editing/application/border_feature_hit_test.dart';
@@ -180,6 +183,12 @@ class MapCanvas extends ConsumerStatefulWidget {
 
 class _MapCanvasState extends ConsumerState<MapCanvas> {
   final GlobalKey _mapViewportKey = GlobalKey();
+  final FocusNode _mapFocusNode = FocusNode(debugLabel: 'Map canvas');
+  final MapCanvasInteractionController _interactionController =
+      MapCanvasInteractionController();
+  final Set<int> _pressedMapPointers = <int>{};
+  int? _activeGestureInteractionId;
+  int? _scheduledRollbackInteractionId;
   String? _scheduledNarrativeEventCameraRequestId;
   Map<String, String> _lastTilesetPathsById = const {};
   Map<String, TilesetTransparentColor> _lastTilesetTransparentColorById =
@@ -188,9 +197,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   GridPos? _hoveredTile;
   GridPos? _hoveredBorderVertex;
 
-  /// Clic droit + glisser (souris Apple / macOS) ou clic molette + glisser : panoramique.
-  int? _rightPanPointerId;
-  int? _middlePanPointerId;
+  bool _spacePressed = false;
 
   /// Cellule de départ pour le tracé d'une zone par clic+glisser.
   GridPos? _zoneDragStart;
@@ -239,8 +246,24 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   }
 
   @override
+  void deactivate() {
+    final cancelled = _interactionController.cancelActive();
+    if (cancelled != null) {
+      _scheduleDetachedInteractionRollback(cancelled.session);
+    } else if (ref.read(editorNotifierProvider).mapStrokeStart != null) {
+      final notifier = ref.read(editorNotifierProvider.notifier);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifier.cancelMapStroke();
+      });
+    }
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
     _entityEditorAnimTimer?.cancel();
+    _pressedMapPointers.clear();
+    _mapFocusNode.dispose();
     super.dispose();
   }
 
@@ -310,8 +333,12 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     );
 
     if (activeMap == null) {
-      _rightPanPointerId = null;
-      _middlePanPointerId = null;
+      final cancelled = _interactionController.cancelActive();
+      if (cancelled != null) {
+        _scheduleMapInteractionRollback(cancelled.session);
+      } else if (state.mapStrokeStart != null) {
+        _scheduleOrphanedMapStrokeRollback();
+      }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _syncEditorEntityAnimationTimer(false);
@@ -676,137 +703,177 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             key: const ValueKey<String>('map-canvas-gesture-detector'),
             dragStartBehavior: DragStartBehavior.down,
             onTapUp: (details) {
-              final gridPos = screenToActiveToolGrid(details.localPosition);
-
-              if (bridgeState.pendingReturn != null &&
-                  bridgeState.navigationMode ==
-                      NarrativeEventMapNavigationMode.create) {
-                if (gridPos == null) return;
-                final kind = bridgeState.sourceCreationKind;
-                if (kind != null && !bridgeState.isSourceCreationBusy) {
-                  final proposal = notifier.proposeNarrativeEventSourceAt(
-                    position: gridPos,
-                    kind: kind,
-                  );
-                  if (proposal != null) {
-                    ref
-                        .read(
-                          narrativeEventMapBridgeControllerProvider.notifier,
-                        )
-                        .previewSourceCreationProposal(proposal);
-                  }
-                }
+              final pendingSession = _interactionController.activeSession;
+              if (pendingSession == null ||
+                  pendingSession.kind !=
+                      MapCanvasInteractionKind.pendingPrimary) {
                 return;
               }
+              if (!_ensureCurrentInteractionContext(pendingSession)) return;
+              final interactionPointerId = pendingSession.pointerId;
+              try {
+                final gridPos = screenToActiveToolGrid(details.localPosition);
 
-              final eventBuilderPositionChosen =
-                  widget.onEventBuilderPositionChosen;
-              if (eventBuilderPositionChosen != null) {
-                final eventGridPos = _screenToGrid(
-                  details.localPosition,
-                  state.panOffset,
-                  state.zoom,
-                  activeMap.size,
-                  tileWidth,
-                  tileHeight,
-                );
-                if (eventGridPos == null) return;
-                eventBuilderPositionChosen(eventGridPos);
-                return;
-              }
-
-              if (bridgeState.pendingReturn != null &&
-                  bridgeState.navigationMode ==
-                      NarrativeEventMapNavigationMode.choose) {
-                if (gridPos == null) return;
-                final candidate = resolveNarrativeEventMapCandidateAt(
-                  map: activeMap,
-                  pos: gridPos,
-                );
-                final project = state.project;
-                if (candidate != null && project != null) {
-                  final bridgeController = ref.read(
-                    narrativeEventMapBridgeControllerProvider.notifier,
-                  );
-                  if (bridgeController.previewChosenSource(
-                    project: project,
-                    map: activeMap,
-                    source: candidate,
-                  )) {
-                    final focus = ref
-                        .read(narrativeEventMapBridgeControllerProvider)
-                        .focusRequest
-                        ?.focusTarget;
-                    if (focus != null) {
-                      notifier.focusNarrativeEventMapSource(focus);
+                if (bridgeState.pendingReturn != null &&
+                    bridgeState.navigationMode ==
+                        NarrativeEventMapNavigationMode.create) {
+                  if (gridPos == null) return;
+                  final kind = bridgeState.sourceCreationKind;
+                  if (kind != null && !bridgeState.isSourceCreationBusy) {
+                    final proposal = notifier.proposeNarrativeEventSourceAt(
+                      position: gridPos,
+                      kind: kind,
+                    );
+                    if (proposal != null) {
+                      ref
+                          .read(
+                            narrativeEventMapBridgeControllerProvider.notifier,
+                          )
+                          .previewSourceCreationProposal(proposal);
                     }
                   }
-                }
-                return;
-              }
-
-              if (state.activeTool == EditorToolType.selection &&
-                  activeBorderLayer != null) {
-                final hit = hitTestBorderFeatureAtScreenPosition(
-                  layer: activeBorderLayer,
-                  localPosition: details.localPosition,
-                  pan: state.panOffset,
-                  zoom: state.zoom,
-                  tileWidth: tileWidth,
-                  tileHeight: tileHeight,
-                );
-                if (hit != null) {
-                  notifier.selectBorderFeature(
-                    layerId: activeBorderLayer.id,
-                    featureId: hit.id,
-                  );
-                }
-                return;
-              }
-
-              if (gridPos == null) return;
-
-              // Mode secondaire explicite: placement visuel de waypoint NPC.
-              // Tant qu'il est actif, le clic map est routé vers l'ajout d'un
-              // waypoint, avant d'appliquer les outils classiques.
-              if (isNpcWaypointPlacementActive) {
-                final handled = notifier.addNpcWaypointAt(gridPos);
-                if (handled) {
                   return;
                 }
-              }
 
-              if (state.environmentMaskEditMode ==
-                  EnvironmentMaskEditMode.generatedAdd) {
-                notifier.addGeneratedEnvironmentPlacementAt(gridPos);
-                return;
-              }
+                final eventBuilderPositionChosen =
+                    widget.onEventBuilderPositionChosen;
+                if (eventBuilderPositionChosen != null) {
+                  final eventGridPos = _screenToGrid(
+                    details.localPosition,
+                    state.panOffset,
+                    state.zoom,
+                    activeMap.size,
+                    tileWidth,
+                    tileHeight,
+                  );
+                  if (eventGridPos == null) return;
+                  eventBuilderPositionChosen(eventGridPos);
+                  return;
+                }
 
-              if (state.environmentMaskEditMode ==
-                  EnvironmentMaskEditMode.generatedDelete) {
-                notifier.deleteGeneratedEnvironmentPlacementAt(gridPos);
-                return;
-              }
+                if (bridgeState.pendingReturn != null &&
+                    bridgeState.navigationMode ==
+                        NarrativeEventMapNavigationMode.choose) {
+                  if (gridPos == null) return;
+                  final candidate = resolveNarrativeEventMapCandidateAt(
+                    map: activeMap,
+                    pos: gridPos,
+                  );
+                  final project = state.project;
+                  if (candidate != null && project != null) {
+                    final bridgeController = ref.read(
+                      narrativeEventMapBridgeControllerProvider.notifier,
+                    );
+                    if (bridgeController.previewChosenSource(
+                      project: project,
+                      map: activeMap,
+                      source: candidate,
+                    )) {
+                      final focus = ref
+                          .read(narrativeEventMapBridgeControllerProvider)
+                          .focusRequest
+                          ?.focusTarget;
+                      if (focus != null) {
+                        notifier.focusNarrativeEventMapSource(focus);
+                      }
+                    }
+                  }
+                  return;
+                }
 
-              if (state.activeTool == EditorToolType.selection &&
-                  !isEnvironmentMaskEditing) {
-                return;
-              }
+                if (state.activeTool == EditorToolType.selection &&
+                    activeBorderLayer != null) {
+                  final hit = hitTestBorderFeatureAtScreenPosition(
+                    layer: activeBorderLayer,
+                    localPosition: details.localPosition,
+                    pan: state.panOffset,
+                    zoom: state.zoom,
+                    tileWidth: tileWidth,
+                    tileHeight: tileHeight,
+                  );
+                  if (hit != null) {
+                    notifier.selectBorderFeature(
+                      layerId: activeBorderLayer.id,
+                      featureId: hit.id,
+                    );
+                  }
+                  return;
+                }
 
-              if (!isTapEditingTool) return;
-              if (isLegacyStrokeEditingTool) {
-                notifier.beginMapStroke();
-              }
-              applyToolAt(gridPos, partOfStroke: isStrokeEditingTool);
-              if (isBorderEditing) {
-                finishBorderPreview();
-              } else if (isLegacyStrokeEditingTool) {
-                notifier.endMapStroke();
+                if (gridPos == null) return;
+
+                // Mode secondaire explicite: placement visuel de waypoint NPC.
+                // Tant qu'il est actif, le clic map est routé vers l'ajout d'un
+                // waypoint, avant d'appliquer les outils classiques.
+                if (isNpcWaypointPlacementActive) {
+                  final handled = notifier.addNpcWaypointAt(gridPos);
+                  if (handled) {
+                    return;
+                  }
+                }
+
+                if (state.environmentMaskEditMode ==
+                    EnvironmentMaskEditMode.generatedAdd) {
+                  notifier.addGeneratedEnvironmentPlacementAt(gridPos);
+                  return;
+                }
+
+                if (state.environmentMaskEditMode ==
+                    EnvironmentMaskEditMode.generatedDelete) {
+                  notifier.deleteGeneratedEnvironmentPlacementAt(gridPos);
+                  return;
+                }
+
+                if (state.activeTool == EditorToolType.selection &&
+                    !isEnvironmentMaskEditing) {
+                  return;
+                }
+
+                if (!isTapEditingTool) return;
+                if (isLegacyStrokeEditingTool) {
+                  final promoted = _interactionController.promotePending(
+                    pointerId: interactionPointerId,
+                    kind: MapCanvasInteractionKind.paintingStroke,
+                  );
+                  if (promoted == null) return;
+                  notifier.beginMapStroke();
+                } else if (isBorderEditing) {
+                  final promoted = _interactionController.promotePending(
+                    pointerId: interactionPointerId,
+                    kind: MapCanvasInteractionKind.borderGesture,
+                  );
+                  if (promoted == null) return;
+                }
+                applyToolAt(gridPos, partOfStroke: isStrokeEditingTool);
+                if (isBorderEditing) {
+                  finishBorderPreview();
+                } else if (isLegacyStrokeEditingTool) {
+                  notifier.endMapStroke();
+                }
+              } finally {
+                _interactionController.finishPointer(interactionPointerId);
               }
             },
             onPanStart: (details) {
-              if (isNarrativeEventGuidedNavigation) return;
+              final pendingSession = _interactionController.activeSession;
+              if (pendingSession == null ||
+                  pendingSession.kind !=
+                      MapCanvasInteractionKind.pendingPrimary) {
+                return;
+              }
+              final interactionPointerId = pendingSession.pointerId;
+              if (!_ensureCurrentInteractionContext(pendingSession)) return;
+              if (isNarrativeEventGuidedNavigation) {
+                _cancelAndRollbackPointer(interactionPointerId);
+                return;
+              }
               if (state.activeTool == EditorToolType.gameplayZonePlacement) {
+                final promoted = _interactionController.promotePending(
+                  pointerId: interactionPointerId,
+                  kind: MapCanvasInteractionKind.drawingZone,
+                );
+                if (promoted == null) return;
+                _activeGestureInteractionId = promoted.interactionId;
                 final gridPos = _screenToGrid(
                   details.localPosition,
                   state.panOffset,
@@ -815,7 +882,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                   tileWidth,
                   tileHeight,
                 );
-                if (gridPos == null) return;
+                if (gridPos == null) {
+                  _cancelAndRollbackPointer(interactionPointerId);
+                  return;
+                }
                 setState(() => _zoneDragStart = gridPos);
                 notifier.setGameplayZoneDraftArea(
                   MapRect(
@@ -825,9 +895,23 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 );
                 return;
               }
-              if (!isStrokeEditingTool) return;
+              if (!isStrokeEditingTool) {
+                _cancelAndRollbackPointer(interactionPointerId);
+                return;
+              }
+              final promoted = _interactionController.promotePending(
+                pointerId: interactionPointerId,
+                kind: isBorderEditing
+                    ? MapCanvasInteractionKind.borderGesture
+                    : MapCanvasInteractionKind.paintingStroke,
+              );
+              if (promoted == null) return;
+              _activeGestureInteractionId = promoted.interactionId;
               final gridPos = screenToActiveToolGrid(details.localPosition);
-              if (gridPos == null) return;
+              if (gridPos == null) {
+                _cancelAndRollbackPointer(interactionPointerId);
+                return;
+              }
               if (isEnvironmentMaskEditing) {
                 _lastEnvironmentMaskPaintCell = null;
               }
@@ -847,8 +931,13 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               }
             },
             onPanUpdate: (details) {
-              if (isNarrativeEventGuidedNavigation) return;
-              if (state.activeTool == EditorToolType.gameplayZonePlacement &&
+              final interaction = _activeGestureInteraction();
+              if (interaction == null ||
+                  !_ensureCurrentInteractionContext(interaction)) {
+                return;
+              }
+              final interactionKind = interaction.kind;
+              if (interactionKind == MapCanvasInteractionKind.drawingZone &&
                   _zoneDragStart != null) {
                 final gridPos = _screenToGrid(
                   details.localPosition,
@@ -865,7 +954,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 }
                 return;
               }
-              if (!isStrokeEditingTool) return;
+              final isActiveStroke =
+                  interactionKind == MapCanvasInteractionKind.paintingStroke ||
+                      interactionKind == MapCanvasInteractionKind.borderGesture;
+              if (!isActiveStroke || !isStrokeEditingTool) return;
               final gridPos = screenToActiveToolGrid(details.localPosition);
               if (gridPos != null) {
                 if (isEnvironmentMaskEditing &&
@@ -886,46 +978,45 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             },
             onPanEnd: (_) {
               _borderStrokeGestureRejected = false;
-              if (isNarrativeEventGuidedNavigation) return;
-              if (state.activeTool == EditorToolType.gameplayZonePlacement &&
+              final interaction = _activeGestureInteraction();
+              if (interaction == null ||
+                  !_ensureCurrentInteractionContext(interaction)) {
+                return;
+              }
+              if (interaction.kind == MapCanvasInteractionKind.drawingZone &&
                   _zoneDragStart != null) {
                 setState(() => _zoneDragStart = null);
                 notifier.commitGameplayZoneDraft();
-                return;
-              }
-              if (isStrokeEditingTool) {
+              } else if (interaction.kind ==
+                      MapCanvasInteractionKind.paintingStroke ||
+                  interaction.kind == MapCanvasInteractionKind.borderGesture) {
                 if (isEnvironmentMaskEditing) {
                   _lastEnvironmentMaskPaintCell = null;
                 }
-                if (isBorderEditing) {
+                if (interaction.kind ==
+                    MapCanvasInteractionKind.borderGesture) {
                   _lastBorderPaintCell = null;
                   finishBorderPreview();
                 } else {
                   notifier.endMapStroke();
                 }
               }
+              _interactionController.finishPointer(interaction.pointerId);
+              _activeGestureInteractionId = null;
             },
             onPanCancel: () {
               _borderStrokeGestureRejected = false;
-              if (isNarrativeEventGuidedNavigation) return;
-              if (state.activeTool == EditorToolType.gameplayZonePlacement &&
-                  _zoneDragStart != null) {
-                setState(() => _zoneDragStart = null);
-                notifier.cancelGameplayZoneDraft();
+              if (_interactionController.activeSession?.kind ==
+                  MapCanvasInteractionKind.pendingPrimary) {
                 return;
               }
-              if (isStrokeEditingTool) {
-                if (isEnvironmentMaskEditing) {
-                  _lastEnvironmentMaskPaintCell = null;
-                }
-                if (isBorderEditing) {
-                  _lastBorderPaintCell = null;
-                  _borderStrokeEditingDraft = null;
-                  borderPreviewController.rollbackDrawingGesture();
-                } else {
-                  notifier.endMapStroke();
-                }
-              }
+              final interaction = _activeGestureInteraction();
+              if (interaction == null) return;
+              final cancelled =
+                  _interactionController.cancelPointer(interaction.pointerId);
+              if (cancelled == null) return;
+              _rollbackMapInteraction(cancelled.session);
+              if (mounted) setState(() {});
             },
             child: MouseRegion(
               onExit: (_) {
@@ -940,6 +1031,13 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 key: _mapViewportKey,
                 child: Stack(
                   children: [
+                    Focus(
+                      key: const ValueKey<String>('map-canvas-focus'),
+                      focusNode: _mapFocusNode,
+                      onKeyEvent: _onMapKeyEvent,
+                      onFocusChange: _onMapFocusChanged,
+                      child: const SizedBox.shrink(),
+                    ),
                     Positioned.fill(
                       child: CustomPaint(
                         size: Size.infinite,
@@ -1237,53 +1335,139 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     );
   }
 
+  MapCanvasInteractionSession? _activeGestureInteraction() {
+    final interaction = _interactionController.activeSession;
+    if (interaction == null ||
+        interaction.interactionId != _activeGestureInteractionId) {
+      return null;
+    }
+    return interaction;
+  }
+
+  bool _ensureCurrentInteractionContext(
+    MapCanvasInteractionSession interaction,
+  ) {
+    if (interaction.contextAtStart == _currentMapInteractionContext()) {
+      return true;
+    }
+    _cancelAndRollbackPointer(interaction.pointerId);
+    return false;
+  }
+
+  void _cancelAndRollbackPointer(int pointerId) {
+    final cancelled = _interactionController.cancelPointer(pointerId);
+    if (cancelled == null) return;
+    _rollbackMapInteraction(cancelled.session);
+    if (mounted) setState(() {});
+  }
+
+  MapCanvasInteractionContext _currentMapInteractionContext() {
+    final state = ref.read(editorNotifierProvider);
+    final bridge = ref.read(narrativeEventMapBridgeControllerProvider);
+    final borderFeatureId =
+        ref.read(activeBorderFeatureControllerProvider).activeFeatureId;
+    final guidedNavigation = bridge.pendingReturn != null &&
+        (bridge.navigationMode == NarrativeEventMapNavigationMode.create ||
+            bridge.navigationMode == NarrativeEventMapNavigationMode.choose);
+    final targetKey = <Object?>[
+      state.activeBrush,
+      state.selectedTerrainType,
+      state.selectedTerrainPresetId,
+      state.selectedTerrainPresetByType[state.selectedTerrainType],
+      state.selectedPathPresetId,
+      state.selectedSurfacePresetId,
+      state.collisionBrushSizeMode,
+      state.selectedEnvironmentAreaId,
+      state.environmentMaskEditMode,
+      borderFeatureId,
+      state.npcWaypointPlacementEntityId,
+    ].join('|');
+    return MapCanvasInteractionContext(
+      projectRootPath: state.projectRootPath,
+      mapId: state.activeMap?.id,
+      activeMapPath: state.activeMapPath,
+      layerId: state.activeLayerId,
+      toolKey: state.activeTool.name,
+      targetId: targetKey,
+      guidedNavigation: guidedNavigation,
+    );
+  }
+
   void _onMapPointerDown(PointerDownEvent event) {
-    final kind = event.kind;
-    if (kind != ui.PointerDeviceKind.mouse &&
-        kind != ui.PointerDeviceKind.trackpad) {
+    _mapFocusNode.requestFocus();
+    final anotherPointerIsPressed = _pressedMapPointers.isNotEmpty;
+    _pressedMapPointers.add(event.pointer);
+    if (anotherPointerIsPressed) {
+      final active = _interactionController.activeSession;
+      if (active != null) {
+        _cancelAndRollbackPointer(active.pointerId);
+      }
       return;
     }
-    // Molette / bouton milieu (souris classique).
-    if ((event.buttons & kTertiaryButton) != 0) {
-      if (_middlePanPointerId != null) return;
-      _middlePanPointerId = event.pointer;
-      return;
-    }
-    // Clic droit + glisser : panoramique (comportement attendu macOS / souris Apple).
-    if ((event.buttons & kSecondaryButton) != 0) {
-      if (_rightPanPointerId != null) return;
-      _rightPanPointerId = event.pointer;
+    final started = _interactionController.beginPointer(
+      MapCanvasInteractionInput(
+        pointerId: event.pointer,
+        pointerKind: _mapCanvasPointerKind(event.kind),
+        buttons: event.buttons,
+        modifiers: _currentMapInteractionModifiers(),
+        context: _currentMapInteractionContext(),
+      ),
+    );
+    if (started.session?.kind == MapCanvasInteractionKind.panning) {
+      setState(() {});
     }
   }
 
   void _onMapPointerMove(PointerMoveEvent event) {
-    if (event.pointer != _middlePanPointerId &&
-        event.pointer != _rightPanPointerId) {
+    final interaction = _interactionController.activeSession;
+    if (interaction == null ||
+        interaction.kind != MapCanvasInteractionKind.panning ||
+        interaction.pointerId != event.pointer) {
       return;
     }
     ref.read(editorNotifierProvider.notifier).pan(event.delta);
   }
 
   void _onMapPointerUp(PointerUpEvent event) {
-    if (event.pointer == _middlePanPointerId) {
-      _middlePanPointerId = null;
-    }
-    if (event.pointer == _rightPanPointerId) {
-      _rightPanPointerId = null;
+    try {
+      final interaction = _interactionController.activeSession;
+      if (interaction == null || interaction.pointerId != event.pointer) {
+        return;
+      }
+      if (interaction.kind == MapCanvasInteractionKind.panning) {
+        _interactionController.finishPointer(event.pointer);
+        setState(() {});
+        return;
+      }
+      if (interaction.kind != MapCanvasInteractionKind.pendingPrimary) return;
+      final interactionId = interaction.interactionId;
+      scheduleMicrotask(() {
+        final pending = _interactionController.activeSession;
+        if (pending?.interactionId != interactionId ||
+            pending?.kind != MapCanvasInteractionKind.pendingPrimary) {
+          return;
+        }
+        _interactionController.cancelPointer(event.pointer);
+      });
+    } finally {
+      _pressedMapPointers.remove(event.pointer);
     }
   }
 
   void _onMapPointerCancel(PointerCancelEvent event) {
-    if (event.pointer == _middlePanPointerId) {
-      _middlePanPointerId = null;
-    }
-    if (event.pointer == _rightPanPointerId) {
-      _rightPanPointerId = null;
+    try {
+      final cancelled = _interactionController.cancelPointer(event.pointer);
+      if (cancelled == null) return;
+      _rollbackMapInteraction(cancelled.session);
+      setState(() {});
+    } finally {
+      _pressedMapPointers.remove(event.pointer);
     }
   }
 
   void _onMapPointerSignal(PointerSignalEvent event) {
     if (event is! PointerScrollEvent) return;
+    if (!_interactionController.acceptsScroll) return;
     final kind = event.kind;
     if (kind != ui.PointerDeviceKind.mouse &&
         kind != ui.PointerDeviceKind.trackpad) {
@@ -1291,6 +1475,155 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     }
     if (event.scrollDelta == Offset.zero) return;
     ref.read(editorNotifierProvider.notifier).pan(-event.scrollDelta);
+  }
+
+  KeyEventResult _onMapKeyEvent(FocusNode node, KeyEvent event) {
+    if (event.logicalKey == LogicalKeyboardKey.space) {
+      final nextPressed = event is! KeyUpEvent;
+      if (_spacePressed != nextPressed) {
+        setState(() => _spacePressed = nextPressed);
+      }
+      return KeyEventResult.handled;
+    }
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.escape) {
+      final cancelled = _interactionController.cancelActive();
+      if (cancelled != null) {
+        _rollbackMapInteraction(cancelled.session);
+        setState(() {});
+      } else if (ref.read(editorNotifierProvider).mapStrokeStart != null) {
+        ref.read(editorNotifierProvider.notifier).cancelMapStroke();
+      }
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  void _onMapFocusChanged(bool hasFocus) {
+    if (hasFocus) return;
+    final cancelled = _interactionController.cancelActive();
+    final needsRebuild = _spacePressed || cancelled != null;
+    _spacePressed = false;
+    if (cancelled != null) {
+      _rollbackMapInteraction(cancelled.session);
+    }
+    if (needsRebuild && mounted) {
+      setState(() {});
+    }
+  }
+
+  void _scheduleDetachedInteractionRollback(
+    MapCanvasInteractionSession interaction,
+  ) {
+    if (_activeGestureInteractionId == interaction.interactionId) {
+      _activeGestureInteractionId = null;
+    }
+    _lastEnvironmentMaskPaintCell = null;
+    _lastBorderPaintCell = null;
+    _borderStrokeEditingDraft = null;
+    _borderStrokeGestureRejected = false;
+    VoidCallback? rollback;
+    switch (interaction.kind) {
+      case MapCanvasInteractionKind.paintingStroke:
+        final notifier = ref.read(editorNotifierProvider.notifier);
+        rollback = notifier.cancelMapStroke;
+      case MapCanvasInteractionKind.drawingZone:
+        _zoneDragStart = null;
+        final notifier = ref.read(editorNotifierProvider.notifier);
+        rollback = notifier.cancelGameplayZoneDraft;
+      case MapCanvasInteractionKind.borderGesture:
+        final controller = ref.read(borderPreviewControllerProvider.notifier);
+        rollback = controller.rollbackDrawingGesture;
+      case MapCanvasInteractionKind.pendingPrimary:
+      case MapCanvasInteractionKind.panning:
+      case MapCanvasInteractionKind.trackpadPanZoom:
+        break;
+    }
+    if (rollback == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      rollback?.call();
+    });
+  }
+
+  void _scheduleMapInteractionRollback(
+    MapCanvasInteractionSession interaction,
+  ) {
+    if (_scheduledRollbackInteractionId == interaction.interactionId) return;
+    _scheduledRollbackInteractionId = interaction.interactionId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          _scheduledRollbackInteractionId != interaction.interactionId) {
+        return;
+      }
+      _scheduledRollbackInteractionId = null;
+      _rollbackMapInteraction(interaction);
+    });
+  }
+
+  void _scheduleOrphanedMapStrokeRollback() {
+    if (_scheduledRollbackInteractionId == 0) return;
+    _scheduledRollbackInteractionId = 0;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _scheduledRollbackInteractionId != 0) return;
+      _scheduledRollbackInteractionId = null;
+      _activeGestureInteractionId = null;
+      if (ref.read(editorNotifierProvider).mapStrokeStart != null) {
+        ref.read(editorNotifierProvider.notifier).cancelMapStroke();
+      }
+    });
+  }
+
+  void _rollbackMapInteraction(MapCanvasInteractionSession session) {
+    if (_activeGestureInteractionId == session.interactionId) {
+      _activeGestureInteractionId = null;
+    }
+    if (_scheduledRollbackInteractionId == session.interactionId) {
+      _scheduledRollbackInteractionId = null;
+    }
+    _lastEnvironmentMaskPaintCell = null;
+    _lastBorderPaintCell = null;
+    _borderStrokeEditingDraft = null;
+    _borderStrokeGestureRejected = false;
+    final notifier = ref.read(editorNotifierProvider.notifier);
+    switch (session.kind) {
+      case MapCanvasInteractionKind.paintingStroke:
+        notifier.cancelMapStroke();
+      case MapCanvasInteractionKind.drawingZone:
+        _zoneDragStart = null;
+        notifier.cancelGameplayZoneDraft();
+      case MapCanvasInteractionKind.borderGesture:
+        ref
+            .read(borderPreviewControllerProvider.notifier)
+            .rollbackDrawingGesture();
+      case MapCanvasInteractionKind.pendingPrimary:
+      case MapCanvasInteractionKind.panning:
+      case MapCanvasInteractionKind.trackpadPanZoom:
+        break;
+    }
+  }
+
+  MapCanvasInteractionModifiers _currentMapInteractionModifiers() {
+    final keyboard = HardwareKeyboard.instance;
+    return MapCanvasInteractionModifiers(
+      shift: keyboard.isShiftPressed,
+      alt: keyboard.isAltPressed,
+      control: keyboard.isControlPressed,
+      meta: keyboard.isMetaPressed,
+      space: _spacePressed ||
+          keyboard.logicalKeysPressed.contains(LogicalKeyboardKey.space),
+    );
+  }
+
+  MapCanvasPointerKind _mapCanvasPointerKind(ui.PointerDeviceKind kind) {
+    return switch (kind) {
+      ui.PointerDeviceKind.mouse => MapCanvasPointerKind.mouse,
+      ui.PointerDeviceKind.trackpad => MapCanvasPointerKind.trackpad,
+      ui.PointerDeviceKind.touch => MapCanvasPointerKind.touch,
+      ui.PointerDeviceKind.stylus => MapCanvasPointerKind.stylus,
+      ui.PointerDeviceKind.invertedStylus =>
+        MapCanvasPointerKind.invertedStylus,
+      ui.PointerDeviceKind.unknown => MapCanvasPointerKind.unknown,
+    };
   }
 
   void _onMapPointerHover(Offset localPosition) {

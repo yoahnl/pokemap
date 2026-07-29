@@ -26,6 +26,10 @@ class MapEditingController {
       selectedEntityId: current.selectedEntityId,
       selectedWarpId: current.selectedWarpId,
       selectedTriggerId: current.selectedTriggerId,
+      selectedMapEventId: current.selectedMapEventId,
+      selectedGameplayZoneId: current.selectedGameplayZoneId,
+      selectedPlacedElementInstanceId: current.selectedPlacedElementInstanceId,
+      npcWaypointPlacementEntityId: current.npcWaypointPlacementEntityId,
       undoStack: current.mapUndoStack,
       redoStack: current.mapRedoStack,
       strokeStart: current.mapStrokeStart,
@@ -60,6 +64,40 @@ class MapEditingController {
       canUndoMap: history.canUndoMap,
       canRedoMap: history.canRedoMap,
       isDirty: history.isDirty,
+      errorMessage: null,
+    );
+  }
+
+  EditorState cancelStroke(EditorState current) {
+    final checkpoint = current.mapStrokeStart;
+    final restored = _mutationCoordinator.rollbackStroke(
+      selectedTilesetEditorId: current.selectedTilesetEditorId,
+      undoStack: current.mapUndoStack,
+      redoStack: current.mapRedoStack,
+      strokeStart: current.mapStrokeStart,
+      savedMapSnapshot: current.savedMapSnapshot,
+    );
+    if (restored == null || checkpoint == null) return current;
+    return current.copyWith(
+      activeMap: restored.activeMap,
+      activeLayerId: restored.activeLayerId,
+      selectedEntityId: restored.selectedEntityId,
+      npcWaypointPlacementEntityId: checkpoint.npcWaypointPlacementEntityId,
+      selectedMapEventId: checkpoint.selectedMapEventId,
+      selectedWarpId: restored.selectedWarpId,
+      selectedTriggerId: restored.selectedTriggerId,
+      selectedGameplayZoneId: checkpoint.selectedGameplayZoneId,
+      selectedPlacedElementInstanceId:
+          checkpoint.selectedPlacedElementInstanceId,
+      selectedTilesetEditorId: restored.selectedTilesetEditorId,
+      mapUndoStack: restored.undoStack,
+      mapRedoStack: restored.redoStack,
+      mapStrokeStart: restored.strokeStart,
+      canUndoMap: restored.canUndoMap,
+      canRedoMap: restored.canRedoMap,
+      savedMapSnapshot: restored.savedMapSnapshot,
+      isDirty: restored.isDirty,
+      statusMessage: 'Interaction cancelled',
       errorMessage: null,
     );
   }

@@ -11,5 +11,10 @@ class MapHistorySnapshot with _$MapHistorySnapshot {
     String? selectedEntityId,
     String? selectedWarpId,
     String? selectedTriggerId,
+    String? selectedMapEventId,
+    String? selectedGameplayZoneId,
+    String? selectedPlacedElementInstanceId,
+    String? npcWaypointPlacementEntityId,
+    @Default(false) bool wasDirty,
   }) = _MapHistorySnapshot;
 }

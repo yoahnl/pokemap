@@ -7363,6 +7363,10 @@ class EditorNotifier extends _$EditorNotifier {
     state = _mapEditingController.endStroke(state);
   }
 
+  void cancelMapStroke() {
+    state = _mapEditingController.cancelStroke(state);
+  }
+
   void undoMap() {
     if (_rejectNarrativeEventSourceCleanupMapMutation() ||
         _rejectMapDiskMutationLease()) {

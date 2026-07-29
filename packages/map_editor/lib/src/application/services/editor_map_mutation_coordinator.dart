@@ -64,6 +64,10 @@ class EditorMapMutationCoordinator {
     required String? selectedEntityId,
     required String? selectedWarpId,
     required String? selectedTriggerId,
+    required String? selectedMapEventId,
+    required String? selectedGameplayZoneId,
+    required String? selectedPlacedElementInstanceId,
+    required String? npcWaypointPlacementEntityId,
     required List<MapHistorySnapshot> undoStack,
     required List<MapHistorySnapshot> redoStack,
     required MapHistorySnapshot? strokeStart,
@@ -75,9 +79,14 @@ class EditorMapMutationCoordinator {
       selectedEntityId: selectedEntityId,
       selectedWarpId: selectedWarpId,
       selectedTriggerId: selectedTriggerId,
+      selectedMapEventId: selectedMapEventId,
+      selectedGameplayZoneId: selectedGameplayZoneId,
+      selectedPlacedElementInstanceId: selectedPlacedElementInstanceId,
+      npcWaypointPlacementEntityId: npcWaypointPlacementEntityId,
       undoStack: undoStack,
       redoStack: redoStack,
       strokeStart: strokeStart,
+      currentDirty: currentDirty,
     );
     return EditorMapHistoryState(
       undoStack: history.undoStack,
@@ -112,6 +121,45 @@ class EditorMapMutationCoordinator {
       isDirty: history.committed
           ? (savedMapSnapshot == null ? true : currentMap != savedMapSnapshot)
           : currentDirty,
+    );
+  }
+
+  EditorMapMutationState? rollbackStroke({
+    required String? selectedTilesetEditorId,
+    required List<MapHistorySnapshot> undoStack,
+    required List<MapHistorySnapshot> redoStack,
+    required MapHistorySnapshot? strokeStart,
+    required MapData? savedMapSnapshot,
+  }) {
+    final history = _historyCoordinator.rollbackStroke(
+      undoStack: undoStack,
+      redoStack: redoStack,
+      strokeStart: strokeStart,
+    );
+    if (history == null) return null;
+    final restoredMap = history.restoredSnapshot.map;
+    final session = _sessionCoordinator.resolveSelectionForMap(
+      restoredMap,
+      preferredLayerId: history.restoredSnapshot.activeLayerId,
+      preferredEntityId: history.restoredSnapshot.selectedEntityId,
+      preferredWarpId: history.restoredSnapshot.selectedWarpId,
+      preferredTriggerId: history.restoredSnapshot.selectedTriggerId,
+      currentSelectedTilesetEditorId: selectedTilesetEditorId,
+    );
+    return EditorMapMutationState(
+      activeMap: restoredMap,
+      activeLayerId: session.activeLayerId,
+      selectedEntityId: session.selectedEntityId,
+      selectedWarpId: session.selectedWarpId,
+      selectedTriggerId: session.selectedTriggerId,
+      selectedTilesetEditorId: session.selectedTilesetEditorId,
+      savedMapSnapshot: savedMapSnapshot,
+      undoStack: history.undoStack,
+      redoStack: history.redoStack,
+      strokeStart: history.strokeStart,
+      canUndoMap: history.canUndoMap,
+      canRedoMap: history.canRedoMap,
+      isDirty: history.restoredSnapshot.wasDirty,
     );
   }
 

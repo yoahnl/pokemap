@@ -1,0 +1,198 @@
+import 'package:flutter/gestures.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_editor/src/features/editor/application/map_canvas_interaction_controller.dart';
+
+void main() {
+  group('MapCanvasInteractionController', () {
+    test('resolves buttons and modifiers before any editing intent', () {
+      final controller = MapCanvasInteractionController();
+
+      final primary = controller.beginPointer(
+        _input(buttons: kPrimaryButton),
+      );
+      expect(primary.status, MapCanvasInteractionStartStatus.started);
+      expect(
+        primary.session?.kind,
+        MapCanvasInteractionKind.pendingPrimary,
+      );
+      expect(
+        controller.cancelActive()?.terminal,
+        MapCanvasInteractionTerminal.rollback,
+      );
+
+      final spacePrimary = controller.beginPointer(
+        _input(
+          pointerId: 2,
+          buttons: kPrimaryButton,
+          modifiers: const MapCanvasInteractionModifiers(space: true),
+        ),
+      );
+      expect(spacePrimary.status, MapCanvasInteractionStartStatus.started);
+      expect(
+        spacePrimary.session?.kind,
+        MapCanvasInteractionKind.panning,
+      );
+      expect(
+        spacePrimary.session?.modifiersAtStart.space,
+        isTrue,
+      );
+      controller.finishPointer(2);
+
+      for (final buttons in <int>[kSecondaryButton, kTertiaryButton]) {
+        final navigation = controller.beginPointer(
+          _input(pointerId: buttons + 10, buttons: buttons),
+        );
+        expect(
+          navigation.session?.kind,
+          MapCanvasInteractionKind.panning,
+        );
+        controller.finishPointer(buttons + 10);
+      }
+
+      final mixed = controller.beginPointer(
+        _input(
+          pointerId: 99,
+          buttons: kPrimaryButton | kSecondaryButton,
+        ),
+      );
+      expect(
+        mixed.status,
+        MapCanvasInteractionStartStatus.rejectedButtons,
+      );
+      expect(controller.isIdle, isTrue);
+    });
+
+    test('keeps one exclusive owner and ignores non-owner terminals', () {
+      final controller = MapCanvasInteractionController();
+      final started = controller.beginPointer(
+        _input(pointerId: 7, buttons: kPrimaryButton),
+      );
+      final interactionId = started.session!.interactionId;
+
+      final second = controller.beginPointer(
+        _input(pointerId: 8, buttons: kPrimaryButton),
+      );
+      expect(second.status, MapCanvasInteractionStartStatus.rejectedBusy);
+      expect(controller.activeSession?.interactionId, interactionId);
+      expect(controller.ownsPointer(7), isTrue);
+      expect(controller.ownsPointer(8), isFalse);
+      expect(controller.finishPointer(8), isNull);
+      expect(controller.activeSession?.interactionId, interactionId);
+
+      final promoted = controller.promotePending(
+        pointerId: 7,
+        kind: MapCanvasInteractionKind.paintingStroke,
+      );
+      expect(promoted?.kind, MapCanvasInteractionKind.paintingStroke);
+
+      final finished = controller.finishPointer(7);
+      expect(finished?.terminal, MapCanvasInteractionTerminal.commit);
+      expect(finished?.session.interactionId, interactionId);
+      expect(controller.finishPointer(7), isNull);
+      expect(controller.isIdle, isTrue);
+    });
+
+    test('cancel is rollback, idempotent, and reopens scroll routing', () {
+      final controller = MapCanvasInteractionController();
+      expect(controller.acceptsScroll, isTrue);
+
+      controller.beginPointer(
+        _input(pointerId: 4, buttons: kPrimaryButton),
+      );
+      controller.promotePending(
+        pointerId: 4,
+        kind: MapCanvasInteractionKind.drawingZone,
+      );
+      expect(controller.acceptsScroll, isFalse);
+
+      final cancelled = controller.cancelPointer(4);
+      expect(cancelled?.terminal, MapCanvasInteractionTerminal.rollback);
+      expect(
+        cancelled?.session.kind,
+        MapCanvasInteractionKind.drawingZone,
+      );
+      expect(controller.cancelPointer(4), isNull);
+      expect(controller.acceptsScroll, isTrue);
+    });
+
+    test('pan zoom accepts only a trackpad while idle', () {
+      final controller = MapCanvasInteractionController();
+
+      final mouse = controller.beginPanZoom(
+        _input(
+          pointerId: 20,
+          kind: MapCanvasPointerKind.mouse,
+          buttons: 0,
+        ),
+      );
+      expect(
+        mouse.status,
+        MapCanvasInteractionStartStatus.rejectedPointerKind,
+      );
+
+      final trackpad = controller.beginPanZoom(
+        _input(
+          pointerId: 21,
+          kind: MapCanvasPointerKind.trackpad,
+          buttons: 0,
+        ),
+      );
+      expect(trackpad.status, MapCanvasInteractionStartStatus.started);
+      expect(
+        trackpad.session?.kind,
+        MapCanvasInteractionKind.trackpadPanZoom,
+      );
+      expect(controller.finishPointer(21)?.terminal,
+          MapCanvasInteractionTerminal.commit);
+    });
+
+    test('captures the complete modifier snapshot at interaction start', () {
+      final controller = MapCanvasInteractionController();
+      const modifiers = MapCanvasInteractionModifiers(
+        shift: true,
+        alt: true,
+        control: true,
+        meta: true,
+      );
+
+      final started = controller.beginPointer(
+        _input(
+          pointerId: 30,
+          buttons: kPrimaryButton,
+          modifiers: modifiers,
+        ),
+      );
+
+      expect(started.session?.modifiersAtStart, modifiers);
+      expect(started.session?.pointerKind, MapCanvasPointerKind.mouse);
+      expect(started.session?.buttonsAtStart, kPrimaryButton);
+      expect(started.session?.contextAtStart, _context);
+    });
+  });
+}
+
+MapCanvasInteractionInput _input({
+  int pointerId = 1,
+  MapCanvasPointerKind kind = MapCanvasPointerKind.mouse,
+  int buttons = kPrimaryButton,
+  MapCanvasInteractionModifiers modifiers =
+      const MapCanvasInteractionModifiers(),
+}) {
+  return MapCanvasInteractionInput(
+    pointerId: pointerId,
+    pointerKind: kind,
+    buttons: buttons,
+    modifiers: modifiers,
+    context: _context,
+  );
+}
+
+const _context = MapCanvasInteractionContext(
+  projectRootPath: '/projects/example',
+  mapId: 'map',
+  activeMapPath: '/projects/example/maps/map.json',
+  layerId: 'ground',
+  toolKey: 'tilePaint',
+  targetId: null,
+  guidedNavigation: false,
+);
