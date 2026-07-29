@@ -219,5 +219,30 @@ void main() {
           widget.properties.enabled == true);
       expect(iconSemanticsFinder, findsOneWidget);
     });
+
+    testWidgets('PokeMapButton exposes its selected state to semantics',
+        (tester) async {
+      final semantics = tester.ensureSemantics();
+
+      await tester.pumpWidget(
+        buildTestWidget(
+          theme: PokeMapTheme.dark(),
+          child: PokeMapButton(
+            onPressed: () {},
+            isSelected: true,
+            child: const Text('Sélection'),
+          ),
+        ),
+      );
+
+      final selectedButton = find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.button == true &&
+            widget.properties.selected == true,
+      );
+      expect(selectedButton, findsOneWidget);
+      semantics.dispose();
+    });
   });
 }

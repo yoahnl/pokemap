@@ -217,6 +217,7 @@ class _PokeMapButtonState extends State<PokeMapButton> {
     return Semantics(
       button: true,
       enabled: !isDisabled,
+      selected: widget.isSelected,
       child: FocusableActionDetector(
         focusNode: widget.focusNode,
         autofocus: widget.autofocus,

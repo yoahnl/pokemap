@@ -5,6 +5,8 @@ import 'package:map_editor/src/application/models/map_history_snapshot.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_selectors.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
+import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 
 void main() {
   group('editor selectors', () {
@@ -461,6 +463,158 @@ void main() {
         TilesElementsPanelMode.placedInstances,
       );
       expect(snapshot.selectedPlacedElementInstanceId, 'instance_1');
+    });
+
+    test('editorWorldMapToolbarSnapshotProvider projects only toolbar inputs',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      const map = MapData(
+        id: 'town',
+        name: 'Starter Town',
+        size: GridSize(width: 8, height: 8),
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'ground',
+            name: 'Ground',
+            tilesetId: 'world',
+            tiles: <int>[],
+          ),
+        ],
+      );
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        workspaceMode: EditorWorkspaceMode.map,
+        project: ProjectManifest(
+          name: 'demo',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
+        ),
+        activeMap: map,
+        activeLayerId: 'ground',
+        activeTool: EditorToolType.selection,
+        canUndoMap: true,
+        canRedoMap: true,
+      );
+
+      final snapshot = container.read(editorWorldMapToolbarSnapshotProvider);
+
+      expect(snapshot.project?.name, 'demo');
+      expect(snapshot.settings, const ProjectSettings());
+      expect(snapshot.activeMap, map);
+      expect(snapshot.activeLayer?.id, 'ground');
+      expect(snapshot.activeTool, EditorToolType.selection);
+      expect(snapshot.canSaveMap, isTrue);
+      expect(snapshot.canUndoMap, isTrue);
+      expect(snapshot.canRedoMap, isTrue);
+    });
+
+    test('world map toolbar snapshot ignores session and palette-only changes',
+        () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      const key = EditorPaletteContextKey(mapId: 'town', layerId: 'ground');
+      const map = MapData(
+        id: 'town',
+        name: 'Starter Town',
+        size: GridSize(width: 8, height: 8),
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'ground',
+            name: 'Ground',
+            tilesetId: 'world',
+            tiles: <int>[],
+          ),
+        ],
+      );
+      final notifier = container.read(editorNotifierProvider.notifier)
+        ..state = const EditorState(
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: map,
+          activeLayerId: 'ground',
+          activeTool: EditorToolType.selection,
+        );
+      final emissions = <EditorWorldMapToolbarSnapshot>[];
+      final subscription = container.listen<EditorWorldMapToolbarSnapshot>(
+        editorWorldMapToolbarSnapshotProvider,
+        (_, next) => emissions.add(next),
+        fireImmediately: true,
+      );
+
+      container
+          .read(worldMapWorkspaceSessionProvider.notifier)
+          .setInspectorVisible(false);
+      notifier.state = notifier.state.copyWith(
+        paletteSession: EditorPaletteSession(
+          activeKey: key,
+          contexts: <EditorPaletteContextKey, EditorLayerPaletteContext>{
+            key: const EditorLayerPaletteContext(
+              browserQuery: 'arbres',
+              browserCollection: EditorPaletteAssetCollection.favorites,
+            ),
+          },
+        ),
+        tilesElementsPanelMode: TilesElementsPanelMode.placedInstances,
+      );
+      await container.pump();
+
+      expect(emissions, hasLength(1));
+
+      notifier.state = notifier.state.copyWith(
+        activeTool: EditorToolType.eraser,
+      );
+      await container.pump();
+
+      expect(emissions, hasLength(2));
+      expect(emissions.last.activeTool, EditorToolType.eraser);
+      subscription.close();
+    });
+
+    test('world map toolbar disables map commands outside map and in strokes',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      const map = MapData(
+        id: 'town',
+        name: 'Starter Town',
+        size: GridSize(width: 8, height: 8),
+        layers: <MapLayer>[],
+      );
+      final notifier = container.read(editorNotifierProvider.notifier);
+
+      notifier.state = const EditorState(
+        workspaceMode: EditorWorkspaceMode.tileset,
+        activeMap: map,
+        canUndoMap: true,
+        canRedoMap: true,
+      );
+      var snapshot = container.read(editorWorldMapToolbarSnapshotProvider);
+      expect(snapshot.canSaveMap, isFalse);
+      expect(snapshot.canUndoMap, isFalse);
+      expect(snapshot.canRedoMap, isFalse);
+
+      notifier.state = const EditorState(
+        workspaceMode: EditorWorkspaceMode.map,
+        activeMap: map,
+        mapStrokeStart: MapHistorySnapshot(map: map),
+        canUndoMap: true,
+        canRedoMap: true,
+      );
+      snapshot = container.read(editorWorldMapToolbarSnapshotProvider);
+      expect(snapshot.canSaveMap, isFalse);
+      expect(snapshot.canUndoMap, isFalse);
+      expect(snapshot.canRedoMap, isFalse);
+
+      notifier.state = const EditorState(
+        workspaceMode: EditorWorkspaceMode.map,
+        activeMap: map,
+        isSaving: true,
+      );
+      snapshot = container.read(editorWorldMapToolbarSnapshotProvider);
+      expect(snapshot.canSaveMap, isFalse);
     });
   });
 }

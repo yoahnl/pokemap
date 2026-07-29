@@ -13,6 +13,7 @@ import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_
 import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_toolbelt.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
@@ -50,9 +51,16 @@ void main() {
       expect(
         find.descendant(
           of: worldMapWorkspace,
-          matching: find.byType(TopToolbar),
+          matching: find.byType(WorldMapToolbelt),
         ),
         findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: worldMapWorkspace,
+          matching: find.byType(TopToolbar),
+        ),
+        findsNothing,
       );
       expect(
         find.descendant(
@@ -70,6 +78,33 @@ void main() {
           matching: find.byType(MapInspectorPanel),
         ),
         findsOneWidget,
+      );
+      for (final key in const <ValueKey<String>>[
+        ValueKey<String>('world-map-command-save'),
+        ValueKey<String>('world-map-command-undo'),
+        ValueKey<String>('world-map-command-redo'),
+        ValueKey<String>('world-map-command-plus'),
+      ]) {
+        expect(
+          find.descendant(
+            of: worldMapWorkspace,
+            matching: find.byKey(key),
+          ),
+          findsOneWidget,
+        );
+      }
+      expect(
+        tester.getRect(find.byType(WorldMapToolbelt)).bottom,
+        lessThanOrEqualTo(
+          tester
+              .getRect(
+                find.descendant(
+                  of: worldMapWorkspace,
+                  matching: find.byType(EditorCanvasHost),
+                ),
+              )
+              .top,
+        ),
       );
     });
 

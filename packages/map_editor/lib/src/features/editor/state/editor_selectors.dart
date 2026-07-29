@@ -46,6 +46,19 @@ typedef EditorToolbarSnapshot = ({
   String? statusMessage,
 });
 
+typedef EditorWorldMapToolbarSnapshot = ({
+  ProjectManifest? project,
+  ProjectSettings settings,
+  MapData? activeMap,
+  MapLayer? activeLayer,
+  EditorToolType activeTool,
+  TerrainSelectionMode terrainSelectionMode,
+  bool isSaving,
+  bool canSaveMap,
+  bool canUndoMap,
+  bool canRedoMap,
+});
+
 /// Snapshot ciblé pour le Project Explorer.
 typedef EditorProjectExplorerSnapshot = ({
   ProjectManifest? project,
@@ -267,6 +280,34 @@ final editorToolbarSnapshotProvider = Provider<EditorToolbarSnapshot>((ref) {
         canRedoMap:
             exposesMapActions && !hasActiveMapStroke && state.canRedoMap,
         statusMessage: state.statusMessage,
+      );
+    }),
+  );
+});
+
+final editorWorldMapToolbarSnapshotProvider =
+    Provider<EditorWorldMapToolbarSnapshot>((ref) {
+  return ref.watch(
+    editorNotifierProvider.select((state) {
+      final project = state.project;
+      final exposesMapActions = state.workspaceMode == EditorWorkspaceMode.map;
+      final hasActiveMapStroke = state.mapStrokeStart != null;
+      return (
+        project: project,
+        settings: project?.settings ?? const ProjectSettings(),
+        activeMap: state.activeMap,
+        activeLayer: _resolveActiveLayerFromState(state),
+        activeTool: state.activeTool,
+        terrainSelectionMode: state.terrainSelectionMode,
+        isSaving: state.isSaving,
+        canSaveMap: exposesMapActions &&
+            state.activeMap != null &&
+            !state.isSaving &&
+            !hasActiveMapStroke,
+        canUndoMap:
+            exposesMapActions && !hasActiveMapStroke && state.canUndoMap,
+        canRedoMap:
+            exposesMapActions && !hasActiveMapStroke && state.canRedoMap,
       );
     }),
   );

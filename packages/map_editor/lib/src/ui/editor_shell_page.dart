@@ -30,6 +30,7 @@ import '../theme/theme.dart';
 import '../features/border_map_editing/presentation/pending_border_save_dialog.dart';
 import '../features/editor/application/map_activation_coordinator.dart';
 import '../features/editor/presentation/map_activation_guard.dart';
+import '../features/editor/presentation/world_map/world_map_toolbelt.dart';
 import '../features/editor/presentation/world_map/world_map_workspace.dart';
 import '../features/editor/presentation/world_map/world_map_workspace_session.dart';
 import '../features/editor/state/editor_notifier.dart';
@@ -789,33 +790,77 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                             ),
                             Builder(
                               builder: (context) {
-                                if (workspaceMode ==
-                                    EditorWorkspaceMode.map) {
+                                if (workspaceMode == EditorWorkspaceMode.map) {
                                   return Column(
                                     children: [
                                       Expanded(
                                         child: WorldMapWorkspace(
-                                          toolSlot: Consumer(
-                                            builder: (context, ref, child) {
-                                              final session = ref.watch(
-                                                worldMapWorkspaceSessionProvider,
-                                              );
-                                              return TopToolbar(
-                                                onToggleRightPanel: () {
-                                                  ref
-                                                      .read(
-                                                        worldMapWorkspaceSessionProvider
-                                                            .notifier,
-                                                      )
-                                                      .setInspectorVisible(
-                                                        !session
-                                                            .inspectorVisible,
-                                                      );
-                                                },
-                                                rightPanelVisible:
-                                                    session.inspectorVisible,
-                                              );
-                                            },
+                                          toolSlot: WorldMapToolbelt(
+                                            onSave: () =>
+                                                requestActiveMapSaveWithBorderPreviewGuard(
+                                              context: context,
+                                              notifier: notifier,
+                                            ),
+                                            onUndo: notifier.undoMap,
+                                            onRedo: notifier.redoMap,
+                                            onNewProject: () =>
+                                                showTopToolbarNewProjectDialog(
+                                              context,
+                                              notifier,
+                                            ),
+                                            onOpenProject: () =>
+                                                showTopToolbarOpenProjectDialog(
+                                              context,
+                                              notifier,
+                                            ),
+                                            onProjectSettings: project == null
+                                                ? null
+                                                : () =>
+                                                    showTopToolbarProjectSettingsDialog(
+                                                      context,
+                                                      notifier,
+                                                      project,
+                                                    ),
+                                            onExportGame: project == null ||
+                                                    projectRootPath == null
+                                                ? null
+                                                : () =>
+                                                    showTopToolbarGameExportDialog(
+                                                      context,
+                                                      projectRootPath:
+                                                          projectRootPath,
+                                                      projectName: project.name,
+                                                    ),
+                                            onNewMap: project == null ||
+                                                    projectRootPath == null
+                                                ? null
+                                                : () =>
+                                                    showTopToolbarNewMapDialog(
+                                                      context,
+                                                      notifier,
+                                                      defaultWidth: project
+                                                          .settings
+                                                          .defaultMapWidth,
+                                                      defaultHeight: project
+                                                          .settings
+                                                          .defaultMapHeight,
+                                                    ),
+                                            onResizeMap: activeMap == null
+                                                ? null
+                                                : () =>
+                                                    showTopToolbarResizeMapDialog(
+                                                      context,
+                                                      notifier,
+                                                      currentWidth:
+                                                          activeMap.size.width,
+                                                      currentHeight:
+                                                          activeMap.size.height,
+                                                    ),
+                                            onActivationRejected: (reason) =>
+                                                _flashToast(
+                                              reason,
+                                              isError: true,
+                                            ),
                                           ),
                                           stageHeaderSlot: Consumer(
                                             builder: (context, ref, child) {
