@@ -107,6 +107,7 @@ enum MapCanvasInteractionKind {
   paintingStroke,
   drawingZone,
   borderGesture,
+  draggingSelection,
   trackpadPanZoom,
 }
 
@@ -354,6 +355,7 @@ class MapCanvasInteractionController {
   bool _isPrimaryPromotion(MapCanvasInteractionKind kind) {
     return kind == MapCanvasInteractionKind.paintingStroke ||
         kind == MapCanvasInteractionKind.drawingZone ||
-        kind == MapCanvasInteractionKind.borderGesture;
+        kind == MapCanvasInteractionKind.borderGesture ||
+        kind == MapCanvasInteractionKind.draggingSelection;
   }
 }

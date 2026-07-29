@@ -4,6 +4,109 @@ import 'package:map_editor/src/features/editor/application/map_canvas_interactio
 
 void main() {
   group('MapCanvasInteractionController', () {
+    test('exposes draggingSelection as a canvas interaction kind', () {
+      expect(
+        MapCanvasInteractionKind.values.map((kind) => kind.name),
+        contains('draggingSelection'),
+      );
+    });
+
+    test(
+      'promotes only the primary owner to an exclusive selection drag',
+      () {
+        final controller = MapCanvasInteractionController();
+        final started = controller.beginPointer(
+          _input(pointerId: 51, buttons: kPrimaryButton),
+        );
+        final interactionId = started.session!.interactionId;
+
+        expect(
+          controller.promotePending(
+            pointerId: 52,
+            kind: MapCanvasInteractionKind.draggingSelection,
+          ),
+          isNull,
+        );
+        expect(
+          controller
+              .beginPointer(
+                _input(pointerId: 52, buttons: kPrimaryButton),
+              )
+              .status,
+          MapCanvasInteractionStartStatus.rejectedBusy,
+        );
+
+        final promoted = controller.promotePending(
+          pointerId: 51,
+          kind: MapCanvasInteractionKind.draggingSelection,
+        );
+
+        expect(promoted, isNotNull);
+        expect(promoted?.kind, MapCanvasInteractionKind.draggingSelection);
+        expect(promoted?.interactionId, interactionId);
+        expect(promoted?.pointerId, 51);
+        expect(promoted?.contextAtStart, _context);
+        expect(controller.ownsPointer(51), isTrue);
+        expect(controller.ownsPointer(52), isFalse);
+        expect(
+          controller.promotePending(
+            pointerId: 51,
+            kind: MapCanvasInteractionKind.draggingSelection,
+          ),
+          isNull,
+          reason: 'an owned drag cannot be promoted a second time',
+        );
+      },
+    );
+
+    test(
+      'selection drag terminals commit or rollback exactly once',
+      () {
+        final controller = MapCanvasInteractionController();
+        controller.beginPointer(
+          _input(pointerId: 61, buttons: kPrimaryButton),
+        );
+        controller.promotePending(
+          pointerId: 61,
+          kind: MapCanvasInteractionKind.draggingSelection,
+        );
+
+        expect(controller.finishPointer(99), isNull);
+        expect(
+          controller.activeSession?.kind,
+          MapCanvasInteractionKind.draggingSelection,
+        );
+        final committed = controller.finishPointer(61);
+        expect(committed?.terminal, MapCanvasInteractionTerminal.commit);
+        expect(
+          committed?.session.kind,
+          MapCanvasInteractionKind.draggingSelection,
+        );
+        expect(controller.finishPointer(61), isNull);
+        expect(controller.cancelPointer(61), isNull);
+        expect(controller.isIdle, isTrue);
+
+        controller.beginPointer(
+          _input(pointerId: 62, buttons: kPrimaryButton),
+        );
+        controller.promotePending(
+          pointerId: 62,
+          kind: MapCanvasInteractionKind.draggingSelection,
+        );
+
+        final cancelled = controller.cancelPointer(62);
+        expect(cancelled?.terminal, MapCanvasInteractionTerminal.rollback);
+        expect(
+          cancelled?.session.kind,
+          MapCanvasInteractionKind.draggingSelection,
+        );
+        expect(controller.cancelPointer(62), isNull);
+        expect(controller.finishPointer(62), isNull);
+        expect(controller.cancelActive(), isNull);
+        expect(controller.acceptsScroll, isTrue);
+      },
+    );
+
     test('resolves buttons and modifiers before any editing intent', () {
       final controller = MapCanvasInteractionController();
 

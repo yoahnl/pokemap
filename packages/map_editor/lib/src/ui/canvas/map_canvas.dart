@@ -42,6 +42,9 @@ import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/state/environment_generated_placement_add_element_provider.dart';
 import '../../features/editor/state/environment_mask_brush_size_provider.dart';
 import '../../features/editor/application/map_canvas_interaction_controller.dart';
+import '../../features/editor/application/map_canvas_object_hit_test.dart';
+import '../../features/editor/application/map_canvas_object_move_planner.dart';
+import '../../features/editor/application/project_element_frame_resolver.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/narrative/state/narrative_event_map_bridge_state.dart';
 import '../../features/border_map_editing/application/border_feature_hit_test.dart';
@@ -97,6 +100,7 @@ String mapCanvasSelectionSemanticsLabel({
   required MapData map,
   ProjectManifest? project,
   String? selectedBorderFeatureId,
+  int editorAnimationTimeMs = 0,
 }) {
   String boundsLabel(GridPos pos, GridSize size) {
     return 'x ${pos.x}, y ${pos.y}, ${size.width} par ${size.height}';
@@ -110,7 +114,10 @@ String mapCanvasSelectionSemanticsLabel({
         if (project != null) {
           for (final element in project.elements) {
             if (element.id == placed.elementId && element.frames.isNotEmpty) {
-              final source = element.frames.primarySource;
+              final source = pickProjectElementFrame(
+                element.frames,
+                editorAnimationTimeMs,
+              ).source;
               size = GridSize(
                 width: source.width <= 0 ? 1 : source.width,
                 height: source.height <= 0 ? 1 : source.height,
@@ -282,6 +289,77 @@ class MapCanvas extends ConsumerStatefulWidget {
   ConsumerState<MapCanvas> createState() => _MapCanvasState();
 }
 
+final class _MapCanvasObjectMovePreview {
+  const _MapCanvasObjectMovePreview({
+    required this.sourceMap,
+    required this.target,
+    required this.grabCell,
+    required this.destinationAnchor,
+    required this.plan,
+    required this.contextAfterSelection,
+  });
+
+  final MapData sourceMap;
+  final MapCanvasObjectTarget target;
+  final GridPos grabCell;
+  final GridPos destinationAnchor;
+  final MapCanvasObjectMovePlan plan;
+  final MapCanvasInteractionContext contextAfterSelection;
+
+  MapCanvasObjectTarget get visualTarget =>
+      plan.previewTarget ??
+      MapCanvasObjectTarget(
+        kind: target.kind,
+        id: target.id,
+        layerId: target.layerId,
+        anchor: destinationAnchor,
+        size: target.size,
+      );
+
+  bool get isRejected => plan.rejection != null;
+}
+
+String _mapCanvasObjectMovePreviewSemanticsLabel(
+  _MapCanvasObjectMovePreview preview,
+) {
+  final objectLabel = switch (preview.target.kind) {
+    MapCanvasObjectKind.placedElement => 'l’élément',
+    MapCanvasObjectKind.entity => 'l’entité',
+    MapCanvasObjectKind.mapEvent => 'l’événement',
+    MapCanvasObjectKind.gameplayZone => 'la zone',
+    MapCanvasObjectKind.trigger => 'le déclencheur',
+    MapCanvasObjectKind.warp => 'le téléporteur',
+  };
+  final destination = 'x ${preview.destinationAnchor.x}, '
+      'y ${preview.destinationAnchor.y}';
+  final rejectionReason = switch (preview.plan.rejection) {
+    MapCanvasObjectMoveRejection.sourceMapChanged =>
+      'la carte a changé pendant le glisser',
+    MapCanvasObjectMoveRejection.targetNotFound => 'l’objet est introuvable',
+    MapCanvasObjectMoveRejection.boundsUnavailable =>
+      'son empreinte est inconnue',
+    MapCanvasObjectMoveRejection.sourceOutOfBounds =>
+      'sa position actuelle dépasse la carte',
+    MapCanvasObjectMoveRejection.destinationOutOfBounds =>
+      'la destination dépasse la carte',
+    MapCanvasObjectMoveRejection.environmentGeneratedPlacement =>
+      'cet élément est généré par une zone Environment',
+    MapCanvasObjectMoveRejection.tileIndexedSourceInvalid =>
+      'les tuiles source ne correspondent plus à cet élément',
+    MapCanvasObjectMoveRejection.tileIndexedDestinationOccupied =>
+      'des tuiles occupent déjà la destination',
+    MapCanvasObjectMoveRejection.tileIndexedProjectionInvalid =>
+      'la projection de tuiles obtenue est invalide',
+    null => null,
+  };
+  if (rejectionReason != null) {
+    return 'Déplacement de $objectLabel ${preview.target.id} impossible vers '
+        '$destination : $rejectionReason.';
+  }
+  return 'Aperçu du déplacement de $objectLabel ${preview.target.id} vers '
+      '$destination.';
+}
+
 class _MapCanvasState extends ConsumerState<MapCanvas> {
   final GlobalKey _mapViewportKey = GlobalKey();
   final FocusNode _mapFocusNode = FocusNode(debugLabel: 'Map canvas');
@@ -293,6 +371,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   final MapCanvasInteractionController _interactionController =
       MapCanvasInteractionController();
   final Set<int> _pressedMapPointers = <int>{};
+  final Map<int, Offset> _latestMapPointerLocalPositions = <int, Offset>{};
   int? _activeGestureInteractionId;
   int? _scheduledRollbackInteractionId;
   String? _scheduledNarrativeEventCameraRequestId;
@@ -302,6 +381,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   Future<Map<String, ui.Image?>>? _tilesetImagesFuture;
   GridPos? _hoveredTile;
   GridPos? _hoveredBorderVertex;
+  _MapCanvasObjectMovePreview? _objectMovePreview;
   ({
     int interactionId,
     int pointerId,
@@ -376,6 +456,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   void dispose() {
     _entityEditorAnimTimer?.cancel();
     _pressedMapPointers.clear();
+    _latestMapPointerLocalPositions.clear();
     _clearTrackpadGesture();
     _mapFocusNode.dispose();
     _mapNavigationControlsFocusNode.dispose();
@@ -994,6 +1075,65 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 _cancelAndRollbackPointer(interactionPointerId);
                 return;
               }
+              if (state.activeTool == EditorToolType.selection &&
+                  !isEnvironmentMaskEditing) {
+                final grabCell = _screenToGrid(
+                  details.localPosition,
+                  state.panOffset,
+                  state.zoom,
+                  activeMap.size,
+                  tileWidth,
+                  tileHeight,
+                );
+                if (grabCell == null) {
+                  _cancelAndRollbackPointer(interactionPointerId);
+                  return;
+                }
+                final target = notifier.selectCanvasObjectForDragAt(
+                  grabCell,
+                  editorAnimationTimeMs: _editorEntityAnimationMs,
+                );
+                if (target == null) {
+                  _cancelAndRollbackPointer(interactionPointerId);
+                  return;
+                }
+                final promoted = _interactionController.promotePending(
+                  pointerId: interactionPointerId,
+                  kind: MapCanvasInteractionKind.draggingSelection,
+                );
+                if (promoted == null) return;
+                final latestPointerCell = _screenToUnboundedGrid(
+                  _latestMapPointerLocalPositions[interactionPointerId] ??
+                      details.localPosition,
+                  state.panOffset,
+                  state.zoom,
+                  tileWidth,
+                  tileHeight,
+                );
+                final destinationAnchor = GridPos(
+                  x: target.anchor.x + latestPointerCell.x - grabCell.x,
+                  y: target.anchor.y + latestPointerCell.y - grabCell.y,
+                );
+                const planner = MapCanvasObjectMovePlanner();
+                final plan = planner.plan(
+                  map: activeMap,
+                  project: state.project,
+                  target: target,
+                  destinationAnchor: destinationAnchor,
+                );
+                _activeGestureInteractionId = promoted.interactionId;
+                setState(() {
+                  _objectMovePreview = _MapCanvasObjectMovePreview(
+                    sourceMap: activeMap,
+                    target: target,
+                    grabCell: grabCell,
+                    destinationAnchor: destinationAnchor,
+                    plan: plan,
+                    contextAfterSelection: _currentMapInteractionContext(),
+                  );
+                });
+                return;
+              }
               if (state.activeTool == EditorToolType.gameplayZonePlacement) {
                 final promoted = _interactionController.promotePending(
                   pointerId: interactionPointerId,
@@ -1064,6 +1204,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 return;
               }
               final interactionKind = interaction.kind;
+              if (interactionKind ==
+                  MapCanvasInteractionKind.draggingSelection) {
+                _updateObjectMovePreview(details.localPosition);
+                return;
+              }
               if (interactionKind == MapCanvasInteractionKind.drawingZone &&
                   _zoneDragStart != null) {
                 final gridPos = _screenToGrid(
@@ -1115,6 +1260,19 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 setState(() => _zoneDragStart = null);
                 notifier.commitGameplayZoneDraft();
               } else if (interaction.kind ==
+                  MapCanvasInteractionKind.draggingSelection) {
+                final preview = _objectMovePreview;
+                if (preview != null &&
+                    (preview.plan.canCommit ||
+                        preview.plan.rejection != null)) {
+                  notifier.commitCanvasObjectMove(
+                    sourceMap: preview.sourceMap,
+                    target: preview.target,
+                    destinationAnchor: preview.destinationAnchor,
+                  );
+                }
+                setState(() => _objectMovePreview = null);
+              } else if (interaction.kind ==
                       MapCanvasInteractionKind.paintingStroke ||
                   interaction.kind == MapCanvasInteractionKind.borderGesture) {
                 if (isEnvironmentMaskEditing) {
@@ -1146,8 +1304,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               if (mounted) setState(() {});
             },
             child: MouseRegion(
-              cursor: _interactionController.activeSession?.kind ==
-                      MapCanvasInteractionKind.panning
+              cursor: (_interactionController.activeSession?.kind ==
+                          MapCanvasInteractionKind.panning ||
+                      _interactionController.activeSession?.kind ==
+                          MapCanvasInteractionKind.draggingSelection)
                   ? SystemMouseCursors.grabbing
                   : _spacePressed && _interactionController.isIdle
                       ? SystemMouseCursors.grab
@@ -1185,6 +1345,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           project: state.project,
                           selectedBorderFeatureId:
                               activeBorderFeature.activeFeatureId,
+                          editorAnimationTimeMs: _editorEntityAnimationMs,
                         ),
                         child: CustomPaint(
                           size: Size.infinite,
@@ -1254,6 +1415,36 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                         ),
                       ),
                     ),
+                    if (_objectMovePreview case final preview?)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: Semantics(
+                            liveRegion: true,
+                            label: _mapCanvasObjectMovePreviewSemanticsLabel(
+                              preview,
+                            ),
+                            child: CustomPaint(
+                              key: const ValueKey<String>(
+                                'map-canvas-object-move-preview',
+                              ),
+                              painter: _MapCanvasObjectMovePreviewPainter(
+                                target: preview.visualTarget,
+                                pan: state.panOffset,
+                                zoom: state.zoom,
+                                tileWidth: tileWidth,
+                                tileHeight: tileHeight,
+                                fillColor: preview.isRejected
+                                    ? colors.errorSoft.withValues(alpha: 0.62)
+                                    : colors.brandPrimarySoft
+                                        .withValues(alpha: 0.62),
+                                strokeColor: preview.isRejected
+                                    ? colors.errorBorder
+                                    : colors.brandPrimaryBorder,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     if (isBorderEditing &&
                         usesGridEdgeSnapping &&
                         _hoveredBorderVertex != null)
@@ -1597,11 +1788,79 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   bool _ensureCurrentInteractionContext(
     MapCanvasInteractionSession interaction,
   ) {
-    if (interaction.contextAtStart == _currentMapInteractionContext()) {
+    final objectMovePreview = _objectMovePreview;
+    final expectedContext =
+        interaction.kind == MapCanvasInteractionKind.draggingSelection
+            ? objectMovePreview?.contextAfterSelection
+            : interaction.contextAtStart;
+    final currentState = ref.read(editorNotifierProvider);
+    final sourceIsCurrent = interaction.kind !=
+            MapCanvasInteractionKind.draggingSelection ||
+        (objectMovePreview != null &&
+            identical(currentState.activeMap, objectMovePreview.sourceMap) &&
+            _isCanvasObjectTargetSelected(
+              currentState,
+              objectMovePreview.target,
+            ));
+    if (expectedContext != null &&
+        expectedContext == _currentMapInteractionContext() &&
+        sourceIsCurrent) {
       return true;
     }
     _cancelAndRollbackPointer(interaction.pointerId);
     return false;
+  }
+
+  bool _isCanvasObjectTargetSelected(
+    EditorState state,
+    MapCanvasObjectTarget target,
+  ) {
+    return switch (target.kind) {
+      MapCanvasObjectKind.placedElement =>
+        state.selectedPlacedElementInstanceId == target.id,
+      MapCanvasObjectKind.entity => state.selectedEntityId == target.id,
+      MapCanvasObjectKind.mapEvent => state.selectedMapEventId == target.id,
+      MapCanvasObjectKind.gameplayZone =>
+        state.selectedGameplayZoneId == target.id,
+      MapCanvasObjectKind.trigger => state.selectedTriggerId == target.id,
+      MapCanvasObjectKind.warp => state.selectedWarpId == target.id,
+    };
+  }
+
+  void _updateObjectMovePreview(Offset localPosition) {
+    final preview = _objectMovePreview;
+    if (preview == null) return;
+    final currentState = ref.read(editorNotifierProvider);
+    final settings = currentState.project?.settings ?? const ProjectSettings();
+    final pointerCell = _screenToUnboundedGrid(
+      localPosition,
+      currentState.panOffset,
+      currentState.zoom,
+      settings.tileWidth * settings.displayScale,
+      settings.tileHeight * settings.displayScale,
+    );
+    final destinationAnchor = GridPos(
+      x: preview.target.anchor.x + pointerCell.x - preview.grabCell.x,
+      y: preview.target.anchor.y + pointerCell.y - preview.grabCell.y,
+    );
+    if (destinationAnchor == preview.destinationAnchor) return;
+    const planner = MapCanvasObjectMovePlanner();
+    final plan = planner.plan(
+      map: preview.sourceMap,
+      project: currentState.project,
+      target: preview.target,
+      destinationAnchor: destinationAnchor,
+    );
+    setState(() {
+      _objectMovePreview = _MapCanvasObjectMovePreview(
+        sourceMap: preview.sourceMap,
+        target: preview.target,
+        grabCell: preview.grabCell,
+        destinationAnchor: destinationAnchor,
+        plan: plan,
+        contextAfterSelection: preview.contextAfterSelection,
+      );
+    });
   }
 
   void _cancelAndRollbackPointer(int pointerId) {
@@ -1651,6 +1910,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     _mapFocusNode.requestFocus();
     final anotherPointerIsPressed = _pressedMapPointers.isNotEmpty;
     _pressedMapPointers.add(event.pointer);
+    _latestMapPointerLocalPositions[event.pointer] = event.localPosition;
     if (anotherPointerIsPressed) {
       final active = _interactionController.activeSession;
       if (active != null) {
@@ -1673,6 +1933,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   }
 
   void _onMapPointerMove(PointerMoveEvent event) {
+    _latestMapPointerLocalPositions[event.pointer] = event.localPosition;
     final interaction = _interactionController.activeSession;
     if (interaction == null ||
         interaction.kind != MapCanvasInteractionKind.panning ||
@@ -1715,6 +1976,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       });
     } finally {
       _pressedMapPointers.remove(event.pointer);
+      _latestMapPointerLocalPositions.remove(event.pointer);
     }
   }
 
@@ -1726,6 +1988,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       setState(() {});
     } finally {
       _pressedMapPointers.remove(event.pointer);
+      _latestMapPointerLocalPositions.remove(event.pointer);
     }
   }
 
@@ -1877,6 +2140,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     final needsRebuild = _spacePressed || cancelled != null;
     _spacePressed = false;
     _pressedMapPointers.clear();
+    _latestMapPointerLocalPositions.clear();
     _clearTrackpadGesture();
     if (cancelled != null) {
       _rollbackMapInteraction(cancelled.session);
@@ -2004,6 +2268,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       case MapCanvasInteractionKind.borderGesture:
         final controller = ref.read(borderPreviewControllerProvider.notifier);
         rollback = controller.rollbackDrawingGesture;
+      case MapCanvasInteractionKind.draggingSelection:
+        _objectMovePreview = null;
       case MapCanvasInteractionKind.pendingPrimary:
       case MapCanvasInteractionKind.panning:
         break;
@@ -2067,6 +2333,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
         ref
             .read(borderPreviewControllerProvider.notifier)
             .rollbackDrawingGesture();
+      case MapCanvasInteractionKind.draggingSelection:
+        _objectMovePreview = null;
       case MapCanvasInteractionKind.pendingPrimary:
       case MapCanvasInteractionKind.panning:
         break;
@@ -2451,17 +2719,93 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     double tileWidth,
     double tileHeight,
   ) {
-    final adjustedX = (screenPos.dx - pan.dx) / zoom;
-    final adjustedY = (screenPos.dy - pan.dy) / zoom;
-
-    final tileX = (adjustedX / tileWidth).floor();
-    final tileY = (adjustedY / tileHeight).floor();
-
-    if (tileX >= 0 && tileX < size.width && tileY >= 0 && tileY < size.height) {
-      return GridPos(x: tileX, y: tileY);
+    final gridPos = _screenToUnboundedGrid(
+      screenPos,
+      pan,
+      zoom,
+      tileWidth,
+      tileHeight,
+    );
+    if (gridPos.x >= 0 &&
+        gridPos.x < size.width &&
+        gridPos.y >= 0 &&
+        gridPos.y < size.height) {
+      return gridPos;
     }
     return null;
   }
+
+  GridPos _screenToUnboundedGrid(
+    Offset screenPos,
+    Offset pan,
+    double zoom,
+    double tileWidth,
+    double tileHeight,
+  ) {
+    final adjustedX = (screenPos.dx - pan.dx) / zoom;
+    final adjustedY = (screenPos.dy - pan.dy) / zoom;
+
+    return GridPos(
+      x: (adjustedX / tileWidth).floor(),
+      y: (adjustedY / tileHeight).floor(),
+    );
+  }
+}
+
+final class _MapCanvasObjectMovePreviewPainter extends CustomPainter {
+  const _MapCanvasObjectMovePreviewPainter({
+    required this.target,
+    required this.pan,
+    required this.zoom,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.fillColor,
+    required this.strokeColor,
+  });
+
+  final MapCanvasObjectTarget target;
+  final Offset pan;
+  final double zoom;
+  final double tileWidth;
+  final double tileHeight;
+  final Color fillColor;
+  final Color strokeColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(
+      pan.dx + target.anchor.x * tileWidth * zoom,
+      pan.dy + target.anchor.y * tileHeight * zoom,
+      target.size.width * tileWidth * zoom,
+      target.size.height * tileHeight * zoom,
+    );
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..color = fillColor
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawRect(
+      rect.deflate(1),
+      Paint()
+        ..color = strokeColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_MapCanvasObjectMovePreviewPainter oldDelegate) =>
+      target.kind != oldDelegate.target.kind ||
+      target.id != oldDelegate.target.id ||
+      target.anchor != oldDelegate.target.anchor ||
+      target.size != oldDelegate.target.size ||
+      pan != oldDelegate.pan ||
+      zoom != oldDelegate.zoom ||
+      tileWidth != oldDelegate.tileWidth ||
+      tileHeight != oldDelegate.tileHeight ||
+      fillColor != oldDelegate.fillColor ||
+      strokeColor != oldDelegate.strokeColor;
 }
 
 final class _BorderGridEdgeGuidePainter extends CustomPainter {

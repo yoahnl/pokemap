@@ -154,6 +154,59 @@ void main() {
       );
     });
 
+    test('repainting a moved placement origin allocates a stable unique id',
+        () {
+      final oldPositionId = buildMapPlacedElementId(
+        layerId: 'decor',
+        elementId: 'tree',
+        pos: const GridPos(x: 0, y: 0),
+      );
+      final moved = _placement(
+        id: oldPositionId,
+        x: 1,
+        properties: const {_originKey: 'tile_index', 'custom': 'keep'},
+      );
+      const indexer = PlacedElementInstanceIndexer();
+      final movedMap = indexer.syncAllTileLayers(
+        map: _map(
+          width: 2,
+          tiles: const [0, 1],
+          placedElements: [moved],
+        ),
+        project: _manifest(),
+      );
+      final movedLayer = movedMap.layers.whereType<TileLayer>().single;
+      final repaintedMap = movedMap.copyWith(
+        layers: <MapLayer>[
+          movedLayer.copyWith(tiles: const [1, 1]),
+        ],
+      );
+
+      final firstSync = indexer.syncAllTileLayers(
+        map: repaintedMap,
+        project: _manifest(),
+      );
+      final secondSync = indexer.syncAllTileLayers(
+        map: firstSync,
+        project: _manifest(),
+      );
+
+      expect(firstSync.placedElements, hasLength(2));
+      expect(
+        firstSync.placedElements.map((entry) => entry.id).toSet(),
+        hasLength(2),
+      );
+      expect(
+        firstSync.placedElements.singleWhere((entry) => entry.pos.x == 1),
+        moved,
+      );
+      expect(
+        firstSync.placedElements.singleWhere((entry) => entry.pos.x == 0).id,
+        '${oldPositionId}_2',
+      );
+      expect(secondSync.placedElements, firstSync.placedElements);
+    });
+
     test('resize keeps in-bounds authored and environment ownership', () {
       final authored = _placement(
         id: 'authored',

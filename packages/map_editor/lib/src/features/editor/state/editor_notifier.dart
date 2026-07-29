@@ -63,6 +63,7 @@ import '../../personalization/application/personalization_studio_session_control
 import '../application/editor_workspace_controller.dart';
 import '../application/map_activation_coordinator.dart';
 import '../application/map_canvas_object_hit_test.dart';
+import '../application/map_canvas_object_move_planner.dart';
 import '../application/map_editing_controller.dart';
 import '../application/map_selection_controller.dart';
 import '../application/project_content_controller.dart';
@@ -6147,6 +6148,201 @@ class EditorNotifier extends _$EditorNotifier {
     _lastCanvasObjectSelectionTarget = target;
     _selectCanvasObjectTarget(target);
     return target;
+  }
+
+  /// Resolves a direct-manipulation drag target without advancing the
+  /// repeated-click selection cycle.
+  ///
+  /// If an object in the hit stack is already selected, that exact object
+  /// keeps ownership of the drag. Otherwise the visually uppermost hit wins.
+  MapCanvasObjectTarget? selectCanvasObjectForDragAt(
+    GridPos position, {
+    int editorAnimationTimeMs = 0,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return null;
+
+    const hitTest = MapCanvasObjectHitTest();
+    final hits = hitTest.hitStack(
+      map: map,
+      project: state.project,
+      position: position,
+      editorAnimationTimeMs: editorAnimationTimeMs,
+    );
+    MapCanvasObjectTarget? target;
+    for (final hit in hits) {
+      if (_isCanvasObjectTargetSelected(hit)) {
+        target = hit;
+        break;
+      }
+    }
+    if (target == null && hits.isNotEmpty) {
+      target = hits.first;
+    }
+    _resetCanvasObjectSelectionCycle();
+    _selectCanvasObjectTarget(target);
+    return target;
+  }
+
+  /// Applies one exact object selection without invoking overlap cycling.
+  void selectCanvasObjectTarget(MapCanvasObjectTarget? target) {
+    _resetCanvasObjectSelectionCycle();
+    _selectCanvasObjectTarget(target);
+  }
+
+  /// Commits one direct-manipulation move as one map-history transaction.
+  ///
+  /// The immutable [sourceMap] snapshot prevents a stale drag from overwriting
+  /// any map mutation that happened after pointer-down.
+  bool commitCanvasObjectMove({
+    required MapData sourceMap,
+    required MapCanvasObjectTarget target,
+    required GridPos destinationAnchor,
+  }) {
+    final map = state.activeMap;
+    if (map == null || !identical(map, sourceMap)) {
+      state = state.copyWith(
+        errorMessage:
+            'Déplacement annulé : la carte a changé pendant le glisser.',
+      );
+      return false;
+    }
+    if (target.kind == MapCanvasObjectKind.mapEvent &&
+        _rejectLegacyMapEventMutationInV2Only()) {
+      return false;
+    }
+
+    const planner = MapCanvasObjectMovePlanner();
+    final plan = planner.plan(
+      map: map,
+      project: state.project,
+      target: target,
+      destinationAnchor: destinationAnchor,
+    );
+    if (!plan.canCommit) {
+      if (!plan.isNoOp) {
+        state = state.copyWith(
+          errorMessage: _canvasObjectMoveRejectionMessage(plan.rejection),
+        );
+      }
+      return false;
+    }
+    final candidate = plan.candidateMap!;
+
+    String? eventRevalidationMessage;
+    if (target.kind == MapCanvasObjectKind.entity) {
+      final current =
+          map.entities.where((entry) => entry.id == target.id).firstOrNull;
+      final next = candidate.entities
+          .where((entry) => entry.id == target.id)
+          .firstOrNull;
+      if (current == null || next == null) {
+        state = state.copyWith(
+          errorMessage: 'Déplacement annulé : entité introuvable.',
+        );
+        return false;
+      }
+      final dependencyDecision =
+          _narrativeEventSourceDependencyGuard.inspectEntityUpdate(
+        registry: state.project?.eventRegistry,
+        mapId: map.id,
+        current: current,
+        next: next,
+      );
+      if (!dependencyDecision.isAllowed) {
+        state = state.copyWith(errorMessage: dependencyDecision.message);
+        return false;
+      }
+      eventRevalidationMessage = dependencyDecision.revalidationMessage;
+    } else if (target.kind == MapCanvasObjectKind.trigger) {
+      final current =
+          map.triggers.where((entry) => entry.id == target.id).firstOrNull;
+      final next = candidate.triggers
+          .where((entry) => entry.id == target.id)
+          .firstOrNull;
+      if (current == null || next == null) {
+        state = state.copyWith(
+          errorMessage: 'Déplacement annulé : déclencheur introuvable.',
+        );
+        return false;
+      }
+      final dependencyDecision =
+          _narrativeEventSourceDependencyGuard.inspectTriggerUpdate(
+        registry: state.project?.eventRegistry,
+        mapId: map.id,
+        current: current,
+        next: next,
+      );
+      if (!dependencyDecision.isAllowed) {
+        state = state.copyWith(errorMessage: dependencyDecision.message);
+        return false;
+      }
+      eventRevalidationMessage = dependencyDecision.revalidationMessage;
+    }
+
+    try {
+      MapValidator.validate(
+        candidate,
+        projectDialogueContext: state.project,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        errorMessage: 'Déplacement impossible : $error',
+      );
+      return false;
+    }
+
+    final previewTarget = plan.previewTarget!;
+    _applyMapMutation(
+      previousMap: map,
+      updatedMap: candidate,
+      preferredActiveLayerId: previewTarget.layerId ?? state.activeLayerId,
+      preferredSelectedEntityId:
+          target.kind == MapCanvasObjectKind.entity ? target.id : null,
+      preferredSelectedMapEventId:
+          target.kind == MapCanvasObjectKind.mapEvent ? target.id : null,
+      preferredSelectedWarpId:
+          target.kind == MapCanvasObjectKind.warp ? target.id : null,
+      preferredSelectedTriggerId:
+          target.kind == MapCanvasObjectKind.trigger ? target.id : null,
+      statusMessage: '${_canvasObjectKindLabel(target.kind)} '
+          '« ${target.id} » déplacé en '
+          '(${destinationAnchor.x}, ${destinationAnchor.y})',
+    );
+    final committed = identical(state.activeMap, candidate);
+    if (committed && eventRevalidationMessage != null) {
+      state = state.copyWith(statusMessage: eventRevalidationMessage);
+    }
+    return committed;
+  }
+
+  String _canvasObjectMoveRejectionMessage(
+    MapCanvasObjectMoveRejection? rejection,
+  ) {
+    return switch (rejection) {
+      MapCanvasObjectMoveRejection.sourceMapChanged =>
+        'Déplacement annulé : la carte a changé pendant le glisser.',
+      MapCanvasObjectMoveRejection.targetNotFound =>
+        'Déplacement impossible : l’objet est introuvable.',
+      MapCanvasObjectMoveRejection.boundsUnavailable =>
+        'Déplacement impossible : l’empreinte de l’élément est inconnue.',
+      MapCanvasObjectMoveRejection.sourceOutOfBounds =>
+        'Déplacement impossible : la position actuelle est hors carte.',
+      MapCanvasObjectMoveRejection.destinationOutOfBounds =>
+        'Déplacement impossible : la destination dépasse la carte.',
+      MapCanvasObjectMoveRejection.environmentGeneratedPlacement =>
+        'Cet élément est généré par une zone Environment. '
+            'Modifiez ou régénérez cette zone pour le déplacer.',
+      MapCanvasObjectMoveRejection.tileIndexedSourceInvalid =>
+        'Déplacement impossible : la projection de tuiles source '
+            'n’est plus cohérente.',
+      MapCanvasObjectMoveRejection.tileIndexedDestinationOccupied =>
+        'Déplacement impossible : des tuiles occupent déjà la destination.',
+      MapCanvasObjectMoveRejection.tileIndexedProjectionInvalid =>
+        'Déplacement impossible : la projection de tuiles obtenue '
+            'n’est pas valide.',
+      null => 'Déplacement impossible.',
+    };
   }
 
   bool _sameCanvasObjectHitStack(

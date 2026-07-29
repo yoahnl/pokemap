@@ -107,6 +107,9 @@ class PlacedElementInstanceIndexer {
 
     final existingByKey = <String, MapPlacedElement>{};
     final existingByPos = <String, MapPlacedElement>{};
+    final reservedPlacementIds = <String>{
+      for (final existing in map.placedElements) existing.id,
+    };
     for (final existing in map.placedElements) {
       if (existing.layerId != layerId || !_isTileIndexed(existing)) {
         continue;
@@ -205,10 +208,13 @@ class PlacedElementInstanceIndexer {
         final existing = existingByKey[key] ?? existingByPos[posKey];
         final instance = existing ??
             MapPlacedElement(
-              id: buildMapPlacedElementId(
-                layerId: layerId,
-                elementId: matched.id,
-                pos: pos,
+              id: _reserveUniquePlacementId(
+                buildMapPlacedElementId(
+                  layerId: layerId,
+                  elementId: matched.id,
+                  pos: pos,
+                ),
+                reservedPlacementIds,
               ),
               layerId: layerId,
               elementId: matched.id,
@@ -315,6 +321,17 @@ class PlacedElementInstanceIndexer {
         ),
       ],
     );
+  }
+
+  String _reserveUniquePlacementId(String baseId, Set<String> reservedIds) {
+    if (reservedIds.add(baseId)) {
+      return baseId;
+    }
+    var suffix = 2;
+    while (!reservedIds.add('${baseId}_$suffix')) {
+      suffix += 1;
+    }
+    return '${baseId}_$suffix';
   }
 
   Map<String, int> _resolveTilesetColumns(ProjectManifest project) {
