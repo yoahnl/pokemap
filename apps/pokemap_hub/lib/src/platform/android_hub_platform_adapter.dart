@@ -1,19 +1,16 @@
 import 'dart:io';
 
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/services.dart';
 
 import 'hub_platform_adapter.dart';
 
-typedef AndroidPackageFilePicker = Future<XFile?> Function(
-  List<XTypeGroup> acceptedTypeGroups,
-);
+typedef AndroidPackageFilePicker = Future<String?> Function();
 typedef AndroidDiskBytesReader = Future<num?> Function();
 
 const _androidChannel = MethodChannel('com.yoahnl.avelune.player/android');
 
-Future<XFile?> _pickAndroidPackage(List<XTypeGroup> acceptedTypeGroups) {
-  return openFile(acceptedTypeGroups: acceptedTypeGroups);
+Future<String?> _pickAndroidPackage() {
+  return _androidChannel.invokeMethod<String>('pickPackage');
 }
 
 Future<num?> _readAndroidDiskBytes() {
@@ -29,13 +26,6 @@ final class AndroidHubPlatformAdapter implements HubPlatformAdapter {
         _readAvailableDiskBytes =
             readAvailableDiskBytes ?? _readAndroidDiskBytes;
 
-  static const _acceptedTypeGroups = <XTypeGroup>[
-    XTypeGroup(
-      label: 'Avelune game package',
-      extensions: <String>['avelunegame', 'pokemapgame'],
-    ),
-  ];
-
   final AndroidPackageFilePicker _pickFile;
   final AndroidDiskBytesReader _readAvailableDiskBytes;
 
@@ -48,7 +38,7 @@ final class AndroidHubPlatformAdapter implements HubPlatformAdapter {
   @override
   Future<String?> pickPackage() async {
     try {
-      return (await _pickFile(_acceptedTypeGroups))?.path;
+      return await _pickFile();
     } on Object catch (error) {
       throw HubPackagePickerFailure(
         code: 'importPicker.openFailed',

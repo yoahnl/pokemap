@@ -4,7 +4,6 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
-  file_selector_windows
   gamepads_windows
   screen_retriever_windows
   window_manager
