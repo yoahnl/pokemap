@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/map_history_snapshot.dart';
+import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
@@ -264,16 +265,55 @@ void main() {
         isTrue,
       );
 
+      var emissions = <EditorState>[];
+      var subscription = container.listen<EditorState>(
+        editorNotifierProvider,
+        (_, next) => emissions.add(next),
+      );
       controller.setActiveLayer(editor, 'terrain-a');
+      subscription.close();
+      expect(emissions, hasLength(1));
+      expect(editor.state.activeTool, EditorToolType.terrainPaint);
+      expect(
+        editor.state.terrainSelectionMode,
+        TerrainSelectionMode.terrain,
+      );
       expect(
         container.read(worldMapWorkspaceSessionProvider).lastPaintSubtool,
         WorldMapPaintSubtool.terrain,
       );
 
+      emissions = <EditorState>[];
+      subscription = container.listen<EditorState>(
+        editorNotifierProvider,
+        (_, next) => emissions.add(next),
+      );
       controller.setActiveLayer(editor, 'path-b');
+      subscription.close();
+      expect(emissions, hasLength(1));
+      expect(editor.state.activeTool, EditorToolType.terrainPaint);
+      expect(editor.state.terrainSelectionMode, TerrainSelectionMode.path);
       expect(
         container.read(worldMapWorkspaceSessionProvider).lastPaintSubtool,
         WorldMapPaintSubtool.path,
+      );
+
+      emissions = <EditorState>[];
+      subscription = container.listen<EditorState>(
+        editorNotifierProvider,
+        (_, next) => emissions.add(next),
+      );
+      controller.setActiveLayer(editor, 'terrain-a');
+      subscription.close();
+      expect(emissions, hasLength(1));
+      expect(editor.state.activeTool, EditorToolType.terrainPaint);
+      expect(
+        editor.state.terrainSelectionMode,
+        TerrainSelectionMode.terrain,
+      );
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).lastPaintSubtool,
+        WorldMapPaintSubtool.terrain,
       );
     });
 
@@ -350,6 +390,179 @@ void main() {
       );
     });
 
+    for (final rememberedBrush in const <String>['tile', 'palette entry']) {
+      test(
+          'Place remains brush-safe when a same-engine destination remembers '
+          'a $rememberedBrush brush', () {
+        final container = _createContainer();
+        final editor = container.read(editorNotifierProvider.notifier)
+          ..state = const EditorState(
+            project: _project,
+            activeMap: _mapA,
+            activeLayerId: 'tile-b',
+            activeTool: EditorToolType.selection,
+          );
+        final controller =
+            container.read(worldMapWorkspaceSessionProvider.notifier);
+        controller.resetForMap('map-a');
+
+        if (rememberedBrush == 'tile') {
+          editor.selectPaletteTile(3);
+          expect(
+            editor.state.activeBrush,
+            const EditorBrush.tile(tileId: 3, tilesetId: 'details'),
+          );
+        } else {
+          editor.selectPaletteEntry('detail-entry');
+          expect(
+            editor.state.activeBrush,
+            const EditorBrush.paletteEntry(
+              entryId: 'detail-entry',
+              tilesetId: 'details',
+            ),
+          );
+        }
+        editor.setActiveLayer('tile');
+        editor.selectProjectElement('tree');
+        expect(
+          controller
+              .activateTool(
+                editor,
+                const ActivateWorldMapPlacement(
+                  WorldMapPlacementSubtool.object,
+                ),
+              )
+              .accepted,
+          isTrue,
+        );
+
+        final emissions = <EditorState>[];
+        final subscription = container.listen<EditorState>(
+          editorNotifierProvider,
+          (_, next) => emissions.add(next),
+        );
+
+        controller.setActiveLayer(editor, 'tile-b');
+
+        subscription.close();
+        expect(emissions, hasLength(1));
+        expect(editor.state.activeLayerId, 'tile-b');
+        expect(editor.state.activeTool, EditorToolType.tilePaint);
+        expect(editor.state.activeBrush, const EditorBrush.none());
+        expect(
+          editor.state.activeBrush,
+          isNot(anyOf(isA<TileEditorBrush>(), isA<PaletteEntryEditorBrush>())),
+        );
+        expect(
+          container.read(worldMapWorkspaceSessionProvider).activeFamily,
+          WorldMapToolFamily.place,
+        );
+      });
+    }
+
+    test(
+        'Paint remains brush-safe when a same-engine destination remembers a '
+        'project element', () {
+      final container = _createContainer();
+      final editor = container.read(editorNotifierProvider.notifier)
+        ..state = const EditorState(
+          project: _project,
+          activeMap: _mapA,
+          activeLayerId: 'tile-b',
+          activeTool: EditorToolType.selection,
+        );
+      final controller =
+          container.read(worldMapWorkspaceSessionProvider.notifier);
+      controller.resetForMap('map-a');
+
+      editor.selectProjectElement('lamp');
+      expect(
+        editor.state.activeBrush,
+        const EditorBrush.projectElement(elementId: 'lamp'),
+      );
+      editor.setActiveLayer('tile');
+      editor.selectPaletteTile(5);
+      expect(
+        controller
+            .activateTool(
+              editor,
+              const ActivateWorldMapPaint(WorldMapPaintSubtool.tile),
+            )
+            .accepted,
+        isTrue,
+      );
+
+      final emissions = <EditorState>[];
+      final subscription = container.listen<EditorState>(
+        editorNotifierProvider,
+        (_, next) => emissions.add(next),
+      );
+
+      controller.setActiveLayer(editor, 'tile-b');
+
+      subscription.close();
+      expect(emissions, hasLength(1));
+      expect(editor.state.activeLayerId, 'tile-b');
+      expect(editor.state.activeTool, EditorToolType.tilePaint);
+      expect(editor.state.activeBrush, const EditorBrush.none());
+      expect(
+        editor.state.activeBrush,
+        isNot(isA<ProjectElementEditorBrush>()),
+      );
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).activeFamily,
+        WorldMapToolFamily.paint,
+      );
+    });
+
+    test('Place retains a compatible destination project-element brush', () {
+      final container = _createContainer();
+      final editor = container.read(editorNotifierProvider.notifier)
+        ..state = const EditorState(
+          project: _project,
+          activeMap: _mapA,
+          activeLayerId: 'tile-b',
+          activeTool: EditorToolType.selection,
+        );
+      final controller =
+          container.read(worldMapWorkspaceSessionProvider.notifier);
+      controller.resetForMap('map-a');
+
+      editor.selectProjectElement('lamp');
+      editor.setActiveLayer('tile');
+      editor.selectProjectElement('tree');
+      expect(
+        controller
+            .activateTool(
+              editor,
+              const ActivateWorldMapPlacement(
+                WorldMapPlacementSubtool.object,
+              ),
+            )
+            .accepted,
+        isTrue,
+      );
+
+      final emissions = <EditorState>[];
+      final subscription = container.listen<EditorState>(
+        editorNotifierProvider,
+        (_, next) => emissions.add(next),
+      );
+
+      controller.setActiveLayer(editor, 'tile-b');
+
+      subscription.close();
+      expect(emissions, hasLength(1));
+      expect(
+        editor.state.activeBrush,
+        const EditorBrush.projectElement(elementId: 'lamp'),
+      );
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).activeFamily,
+        WorldMapToolFamily.place,
+      );
+    });
+
     test('explicit Layers survives a layer change when no tool coercion occurs',
         () {
       final container = _createContainer();
@@ -410,6 +623,39 @@ const _project = ProjectManifest(
       name: 'World',
       relativePath: 'tilesets/world.png',
     ),
+    ProjectTilesetEntry(
+      id: 'details',
+      name: 'Details',
+      relativePath: 'tilesets/details.png',
+      paletteEntries: <TilesetPaletteEntry>[
+        TilesetPaletteEntry(
+          id: 'detail-entry',
+          frames: <TilesetVisualFrame>[
+            TilesetVisualFrame(source: TilesetSourceRect(x: 2, y: 0)),
+          ],
+        ),
+      ],
+    ),
+  ],
+  elements: <ProjectElementEntry>[
+    ProjectElementEntry(
+      id: 'tree',
+      name: 'Tree',
+      tilesetId: 'world',
+      categoryId: 'decor',
+      frames: <TilesetVisualFrame>[
+        TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+      ],
+    ),
+    ProjectElementEntry(
+      id: 'lamp',
+      name: 'Lamp',
+      tilesetId: 'details',
+      categoryId: 'decor',
+      frames: <TilesetVisualFrame>[
+        TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0)),
+      ],
+    ),
   ],
 );
 
@@ -422,6 +668,12 @@ const _mapA = MapData(
       id: 'tile',
       name: 'Tile',
       tilesetId: 'world',
+      tiles: <int>[],
+    ),
+    TileLayer(
+      id: 'tile-b',
+      name: 'Tile B',
+      tilesetId: 'details',
       tiles: <int>[],
     ),
     TerrainLayer(id: 'terrain-a', name: 'Terrain A'),

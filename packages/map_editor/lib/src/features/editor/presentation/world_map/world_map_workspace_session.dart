@@ -5,7 +5,6 @@ import 'package:map_core/map_core.dart';
 import '../../../../ui/design_system/pokemap_desktop_layout.dart';
 import '../../application/world_map_tool_activation.dart';
 import '../../application/world_map_tool_family.dart';
-import '../../tools/editor_tool.dart';
 
 part 'world_map_workspace_session.freezed.dart';
 
@@ -159,10 +158,10 @@ class WorldMapWorkspaceSessionController
     WorldMapToolActivationHost editorNotifier,
     String layerId,
   ) {
-    final beforeTool =
-        editorNotifier.worldMapToolActivationSessionSnapshot.activeTool;
-    final beforeFamily = state.activeFamily;
-    editorNotifier.setActiveLayer(layerId);
+    final result = editorNotifier.setActiveWorldMapLayer(
+      layerId: layerId,
+      toolRequest: _toolRequestForLayer(state, layerId),
+    );
     final editorState = editorNotifier.worldMapToolActivationSessionSnapshot;
     if (editorState.activeLayerId != layerId) return;
 
@@ -171,19 +170,31 @@ class WorldMapWorkspaceSessionController
     if (remembered != null) {
       candidate = candidate.copyWith(lastPaintSubtool: remembered);
     }
-    final wasEditingFamily = beforeFamily == WorldMapToolFamily.paint ||
-        beforeFamily == WorldMapToolFamily.place ||
-        beforeFamily == WorldMapToolFamily.erase;
-    final wasActuallyCoerced = wasEditingFamily &&
-        beforeTool != EditorToolType.selection &&
-        editorState.activeTool == EditorToolType.selection;
-    if (wasActuallyCoerced) {
+    if (!result.accepted) {
       candidate = candidate.copyWith(
         activeFamily: WorldMapToolFamily.selection,
       );
     }
     if (candidate == state) return;
     state = candidate;
+  }
+
+  WorldMapToolActivationRequest _toolRequestForLayer(
+    WorldMapWorkspaceSession source,
+    String layerId,
+  ) {
+    return switch (source.activeFamily) {
+      WorldMapToolFamily.selection ||
+      WorldMapToolFamily.layers =>
+        const ActivateWorldMapSelection(),
+      WorldMapToolFamily.paint => ActivateWorldMapPaint(
+          source.lastPaintSubtoolByLayerId[layerId] ?? source.lastPaintSubtool,
+        ),
+      WorldMapToolFamily.erase => const ActivateWorldMapErase(),
+      WorldMapToolFamily.place => ActivateWorldMapPlacement(
+          source.lastPlacementSubtool,
+        ),
+    };
   }
 
   WorldMapWorkspaceSession _forMapOwnership(

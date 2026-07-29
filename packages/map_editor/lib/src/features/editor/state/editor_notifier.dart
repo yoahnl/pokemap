@@ -141,6 +141,13 @@ typedef _MapDocumentRevisionAttestation = ({
   String revision,
   MapData sourceDocument,
 });
+typedef _WorldMapToolActivationPreflight = ({
+  EditorToolType? resultingTool,
+  TerrainSelectionMode? terrainSelectionMode,
+  EditorBrush? activeBrush,
+  TilesElementsPanelMode? tilesElementsPanelMode,
+  String? rejectionReason,
+});
 
 BorderPreviewContext? _borderPreviewContext(EditorState state) {
   final projectRootPath = state.projectRootPath;
@@ -11323,6 +11330,96 @@ class EditorNotifier extends _$EditorNotifier
       );
     }
 
+    final candidate = _worldMapToolActivationCandidate(
+      source: source,
+      request: request,
+      preflight: preflight,
+    );
+    if (request is! ActivateWorldMapSelection) {
+      _resetCanvasObjectSelectionCycle();
+    }
+    state = candidate;
+    return WorldMapToolActivationResult(
+      accepted: true,
+      resultingTool: preflight.resultingTool,
+    );
+  }
+
+  @override
+  WorldMapToolActivationResult setActiveWorldMapLayer({
+    required String layerId,
+    required WorldMapToolActivationRequest toolRequest,
+  }) {
+    final source = state;
+    final map = source.activeMap;
+    if (map == null) {
+      return const WorldMapToolActivationResult(
+        accepted: false,
+        rejectionReason: 'No active map selected.',
+      );
+    }
+    if (!map.layers.any((layer) => layer.id == layerId)) {
+      final reason = 'Layer not found: $layerId';
+      state = source.copyWith(errorMessage: reason);
+      return WorldMapToolActivationResult(
+        accepted: false,
+        rejectionReason: reason,
+      );
+    }
+
+    final paletteSession = _rememberActivePaletteContext(source);
+    final destination = _activatePaletteContext(
+      source.copyWith(
+        activeLayerId: layerId,
+        paletteSession: paletteSession,
+        selectedPlacedElementInstanceId: null,
+        selectedEnvironmentAreaId: null,
+        environmentMaskEditMode: null,
+        errorMessage: null,
+      ),
+    );
+    final preflight = _preflightWorldMapToolActivation(
+      destination,
+      toolRequest,
+    );
+    if (preflight.rejectionReason case final reason?) {
+      const fallbackRequest = ActivateWorldMapSelection();
+      final fallbackPreflight = _preflightWorldMapToolActivation(
+        destination,
+        fallbackRequest,
+      );
+      state = _worldMapToolActivationCandidate(
+        source: destination,
+        request: fallbackRequest,
+        preflight: fallbackPreflight,
+      );
+      return WorldMapToolActivationResult(
+        accepted: false,
+        resultingTool: EditorToolType.selection,
+        rejectionReason: reason,
+      );
+    }
+
+    final candidate = _worldMapToolActivationCandidate(
+      source: destination,
+      request: toolRequest,
+      preflight: preflight,
+    );
+    if (toolRequest is! ActivateWorldMapSelection) {
+      _resetCanvasObjectSelectionCycle();
+    }
+    state = candidate;
+    return WorldMapToolActivationResult(
+      accepted: true,
+      resultingTool: preflight.resultingTool,
+    );
+  }
+
+  EditorState _worldMapToolActivationCandidate({
+    required EditorState source,
+    required WorldMapToolActivationRequest request,
+    required _WorldMapToolActivationPreflight preflight,
+  }) {
     var candidate = source.copyWith(
       activeTool: preflight.resultingTool!,
       terrainSelectionMode:
@@ -11350,22 +11447,11 @@ class EditorNotifier extends _$EditorNotifier
         environmentMaskEditMode: null,
         gameplayZoneDraftArea: null,
       );
-      _resetCanvasObjectSelectionCycle();
     }
-    state = candidate;
-    return WorldMapToolActivationResult(
-      accepted: true,
-      resultingTool: preflight.resultingTool,
-    );
+    return candidate;
   }
 
-  ({
-    EditorToolType? resultingTool,
-    TerrainSelectionMode? terrainSelectionMode,
-    EditorBrush? activeBrush,
-    TilesElementsPanelMode? tilesElementsPanelMode,
-    String? rejectionReason,
-  }) _preflightWorldMapToolActivation(
+  _WorldMapToolActivationPreflight _preflightWorldMapToolActivation(
     EditorState source,
     WorldMapToolActivationRequest request,
   ) {
@@ -11554,13 +11640,7 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-  ({
-    EditorToolType? resultingTool,
-    TerrainSelectionMode? terrainSelectionMode,
-    EditorBrush? activeBrush,
-    TilesElementsPanelMode? tilesElementsPanelMode,
-    String? rejectionReason,
-  }) _rejectedWorldMapActivation(String reason) {
+  _WorldMapToolActivationPreflight _rejectedWorldMapActivation(String reason) {
     return (
       resultingTool: null,
       terrainSelectionMode: null,

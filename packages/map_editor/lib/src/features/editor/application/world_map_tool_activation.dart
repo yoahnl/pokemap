@@ -54,5 +54,10 @@ abstract interface class WorldMapToolActivationHost {
     WorldMapToolActivationRequest request,
   );
 
+  WorldMapToolActivationResult setActiveWorldMapLayer({
+    required String layerId,
+    required WorldMapToolActivationRequest toolRequest,
+  });
+
   void setActiveLayer(String layerId);
 }
