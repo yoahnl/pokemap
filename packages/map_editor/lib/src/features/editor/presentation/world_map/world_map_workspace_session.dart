@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import '../../../../ui/design_system/pokemap_desktop_layout.dart';
 import '../../application/world_map_tool_activation.dart';
 import '../../application/world_map_tool_family.dart';
+import '../../state/editor_notifier.dart';
 
 part 'world_map_workspace_session.freezed.dart';
 
@@ -36,7 +37,14 @@ class WorldMapWorkspaceSessionController
   String? _currentMapId;
 
   @override
-  WorldMapWorkspaceSession build() => const WorldMapWorkspaceSession();
+  WorldMapWorkspaceSession build() {
+    _currentMapId = ref.read(editorNotifierProvider).activeMap?.id;
+    ref.listen<String?>(
+      editorNotifierProvider.select((state) => state.activeMap?.id),
+      (_, mapId) => resetForMap(mapId),
+    );
+    return const WorldMapWorkspaceSession();
+  }
 
   void setExplorerExpanded(bool expanded) {
     if (state.explorerExpanded == expanded) return;
@@ -152,6 +160,29 @@ class WorldMapWorkspaceSessionController
     WorldMapToolActivationRequest request,
   ) {
     return activateTool(editorNotifier, request);
+  }
+
+  WorldMapPaintSubtool resolveRememberedPaintSubtool({
+    required String? mapId,
+    required String? layerId,
+  }) {
+    if (_currentMapId != mapId) return WorldMapPaintSubtool.tile;
+    if (layerId == null) return state.lastPaintSubtool;
+    return state.lastPaintSubtoolByLayerId[layerId] ?? state.lastPaintSubtool;
+  }
+
+  WorldMapToolActivationResult activateRememberedPaint(
+    WorldMapToolActivationHost editorNotifier,
+  ) {
+    final snapshot = editorNotifier.worldMapToolActivationSessionSnapshot;
+    final subtool = resolveRememberedPaintSubtool(
+      mapId: snapshot.activeMapId,
+      layerId: snapshot.activeLayerId,
+    );
+    return activateTool(
+      editorNotifier,
+      ActivateWorldMapPaint(subtool),
+    );
   }
 
   void setActiveLayer(

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
+import 'package:map_editor/src/features/border_map_editing/state/border_map_editing_providers.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_toolbelt.dart';
@@ -74,6 +75,79 @@ void main() {
         find.byKey(const ValueKey<String>('world-map-command-plus')),
         findsOneWidget,
       );
+      expect(
+        tester.widget<PokeMapIconButton>(
+          find.byKey(const ValueKey<String>('world-map-command-undo')),
+        ),
+        isA<PokeMapIconButton>(),
+      );
+      expect(
+        tester.widget<PokeMapIconButton>(
+          find.byKey(const ValueKey<String>('world-map-command-redo')),
+        ),
+        isA<PokeMapIconButton>(),
+      );
+      expect(find.text('Enregistrer'), findsOneWidget);
+      expect(find.text('Annuler'), findsOneWidget);
+      expect(find.text('Rétablir'), findsOneWidget);
+    });
+
+    testWidgets('global and family tooltips expose exact accessible labels',
+        (tester) async {
+      final container = _containerWith(
+        _tileState().copyWith(canUndoMap: true, canRedoMap: true),
+      );
+      await _pumpToolbelt(
+        tester,
+        container,
+        onSave: () {},
+        onUndo: () {},
+        onRedo: () {},
+      );
+
+      void expectTooltip(String key, String message) {
+        final target = find.byKey(ValueKey<String>(key));
+        final widget = tester.widget<Widget>(target);
+        if (widget is PokeMapIconButton) {
+          expect(widget.tooltip, message, reason: key);
+          return;
+        }
+        final tooltip = find.ancestor(
+          of: target,
+          matching: find.byType(Tooltip),
+        );
+        expect(tooltip, findsOneWidget, reason: key);
+        expect(tester.widget<Tooltip>(tooltip).message, message, reason: key);
+      }
+
+      expectTooltip(
+        'world-map-command-save',
+        'Enregistrer (Cmd/Ctrl+S)',
+      );
+      expectTooltip(
+        'world-map-command-undo',
+        'Annuler (Cmd/Ctrl+Z)',
+      );
+      expectTooltip(
+        'world-map-command-redo',
+        'Rétablir (Shift+Cmd/Ctrl+Z ou Cmd/Ctrl+Y)',
+      );
+      expectTooltip(
+        'world-map-command-plus',
+        'Plus d’actions',
+      );
+      expectTooltip(
+        'world-map-tool-selection',
+        'Sélectionner et manipuler',
+      );
+      expectTooltip(
+        'world-map-tool-erase',
+        'Effacer sur le calque actif',
+      );
+      expectTooltip(
+        'world-map-tool-layers',
+        'Ouvrir la gestion des calques',
+      );
     });
 
     testWidgets('Plus exposes the exact project and map action inventory',
@@ -81,23 +155,26 @@ void main() {
       final container = _containerWith(_tileState());
       final invoked = <String>[];
       final callbacks = <String, VoidCallback>{
-        'New Project': () => invoked.add('New Project'),
-        'Open Project': () => invoked.add('Open Project'),
-        'Project Settings': () => invoked.add('Project Settings'),
-        'Export Game': () => invoked.add('Export Game'),
-        'New Map': () => invoked.add('New Map'),
-        'Resize Map': () => invoked.add('Resize Map'),
+        'Projet · Nouveau projet': () => invoked.add('Projet · Nouveau projet'),
+        'Projet · Ouvrir un projet': () =>
+            invoked.add('Projet · Ouvrir un projet'),
+        'Projet · Réglages du projet': () =>
+            invoked.add('Projet · Réglages du projet'),
+        'Projet · Exporter le jeu': () =>
+            invoked.add('Projet · Exporter le jeu'),
+        'Carte · Nouvelle map': () => invoked.add('Carte · Nouvelle map'),
+        'Carte · Redimensionner': () => invoked.add('Carte · Redimensionner'),
       };
 
       await _pumpToolbelt(
         tester,
         container,
-        onNewProject: callbacks['New Project'],
-        onOpenProject: callbacks['Open Project'],
-        onProjectSettings: callbacks['Project Settings'],
-        onExportGame: callbacks['Export Game'],
-        onNewMap: callbacks['New Map'],
-        onResizeMap: callbacks['Resize Map'],
+        onNewProject: callbacks['Projet · Nouveau projet'],
+        onOpenProject: callbacks['Projet · Ouvrir un projet'],
+        onProjectSettings: callbacks['Projet · Réglages du projet'],
+        onExportGame: callbacks['Projet · Exporter le jeu'],
+        onNewMap: callbacks['Carte · Nouvelle map'],
+        onResizeMap: callbacks['Carte · Redimensionner'],
       );
 
       Future<void> openPlus() async {
@@ -115,12 +192,12 @@ void main() {
       expect(
         menu.items.map((item) => item.label),
         const <String>[
-          'New Project',
-          'Open Project',
-          'Project Settings',
-          'Export Game',
-          'New Map',
-          'Resize Map',
+          'Projet · Nouveau projet',
+          'Projet · Ouvrir un projet',
+          'Projet · Réglages du projet',
+          'Projet · Exporter le jeu',
+          'Carte · Nouvelle map',
+          'Carte · Redimensionner',
         ],
       );
       expect(menu.dividerAfter, const <int>{3});
@@ -510,12 +587,296 @@ void main() {
       final menuBottom = tester.getRect(menuFinder).bottom;
       expect(menuBottom, greaterThan(toolbarBottom));
 
-      await tester.tap(find.text('New Project'));
+      await tester.tap(find.text('Projet · Nouveau projet'));
       await tester.pump();
 
       expect(opened, 1);
       expect(menuFinder, findsNothing);
       expect(plus.focusNode?.hasFocus, isTrue);
+    });
+
+    testWidgets('valid Border paint menu activation reaches borderPaint',
+        (tester) async {
+      final container = _containerWith(_validBorderState());
+      container
+          .read(activeBorderFeatureControllerProvider.notifier)
+          .selectFeature(
+            map: _validBorderMap,
+            layerId: 'border',
+            featureId: 'coast',
+          );
+      String? rejectionReason;
+      await _pumpToolbelt(
+        tester,
+        container,
+        onActivationRejected: (reason) => rejectionReason = reason,
+      );
+
+      await tester.tap(
+        find.bySemanticsLabel('Choisir un outil de peinture'),
+      );
+      await tester.pump();
+      await tester.tap(find.text('Bordures'));
+      await tester.pump();
+
+      expect(rejectionReason, isNull);
+      expect(
+        container.read(editorNotifierProvider).activeTool,
+        EditorToolType.borderPaint,
+      );
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).activeFamily,
+        WorldMapToolFamily.paint,
+      );
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).lastPaintSubtool,
+        WorldMapPaintSubtool.border,
+      );
+    });
+
+    testWidgets('Plus reconciles enabled to disabled callbacks while open',
+        (tester) async {
+      final container = _containerWith(_tileState());
+      var settingsCalls = 0;
+      String? rejectionReason;
+      await _pumpToolbelt(
+        tester,
+        container,
+        onProjectSettings: () => settingsCalls += 1,
+        onActivationRejected: (reason) => rejectionReason = reason,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('world-map-command-plus')),
+      );
+      await tester.pump();
+      final menuFinder = find.byWidgetPredicate(
+        (widget) => widget is PokeMapContextMenu,
+      );
+      final dynamic staleMenu = tester.widget<Widget>(menuFinder);
+      final staleSettingsAction = staleMenu.items[2].value;
+      expect(staleMenu.items[2].enabled, isTrue);
+
+      await _pumpToolbelt(
+        tester,
+        container,
+        onProjectSettings: null,
+        onActivationRejected: (reason) => rejectionReason = reason,
+      );
+      await tester.pump();
+
+      final reconciled = tester.widget<PokeMapContextMenu<dynamic>>(menuFinder);
+      expect(reconciled.items[2].enabled, isFalse);
+      expect(reconciled.items[2].disabledReason, 'Ouvrez un projet.');
+
+      staleMenu.onSelected(staleSettingsAction);
+      await tester.pump();
+
+      expect(settingsCalls, 0);
+      expect(rejectionReason, 'Ouvrez un projet.');
+    });
+
+    testWidgets('Plus reconciles disabled to enabled callbacks while open',
+        (tester) async {
+      final container = _containerWith(_tileState());
+      var settingsCalls = 0;
+      await _pumpToolbelt(tester, container);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('world-map-command-plus')),
+      );
+      await tester.pump();
+      final menuFinder = find.byWidgetPredicate(
+        (widget) => widget is PokeMapContextMenu,
+      );
+      expect(
+        tester.widget<PokeMapContextMenu<dynamic>>(menuFinder).items[2].enabled,
+        isFalse,
+      );
+
+      await _pumpToolbelt(
+        tester,
+        container,
+        onProjectSettings: () => settingsCalls += 1,
+      );
+      await tester.pump();
+
+      expect(
+        tester.widget<PokeMapContextMenu<dynamic>>(menuFinder).items[2].enabled,
+        isTrue,
+      );
+      await tester.tap(find.text('Projet · Réglages du projet'));
+      await tester.pump();
+      expect(settingsCalls, 1);
+    });
+
+    testWidgets(
+        'Paint main does not replay same-id layer memory after map change',
+        (tester) async {
+      final container = _containerWith(_sameIdPathState());
+      final editor = container.read(editorNotifierProvider.notifier);
+      final session = container.read(worldMapWorkspaceSessionProvider.notifier);
+      expect(
+        session
+            .activateTool(
+              editor,
+              const ActivateWorldMapPaint(WorldMapPaintSubtool.path),
+            )
+            .accepted,
+        isTrue,
+      );
+      editor.state = _sameIdTileState();
+      String? rejectionReason;
+      await _pumpToolbelt(
+        tester,
+        container,
+        onActivationRejected: (reason) => rejectionReason = reason,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('world-map-tool-paint')),
+      );
+      await tester.pump();
+
+      expect(rejectionReason, isNull);
+      expect(editor.state.activeTool, EditorToolType.tilePaint);
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).lastPaintSubtool,
+        WorldMapPaintSubtool.tile,
+      );
+    });
+
+    testWidgets(
+        'legacy editor tool mutations update visible family and subtool',
+        (tester) async {
+      final container = _containerWith(_paintState('path'));
+      await _pumpToolbelt(tester, container);
+
+      final editor = container.read(editorNotifierProvider.notifier);
+      editor.state = editor.state.copyWith(
+        activeTool: EditorToolType.eraser,
+      );
+      await tester.pump();
+
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(
+                const ValueKey<String>('world-map-tool-erase'),
+              ),
+            )
+            .isSelected,
+        isTrue,
+      );
+
+      editor.state = editor.state.copyWith(
+        activeTool: EditorToolType.terrainPaint,
+        terrainSelectionMode: TerrainSelectionMode.path,
+      );
+      await tester.pump();
+
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Semantics &&
+              widget.properties.label == 'Peindre · Paths' &&
+              widget.properties.selected == true,
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('visual resolver preserves Layers engine ambiguity',
+        (tester) async {
+      final container = _containerWith(_tileState());
+      final editor = container.read(editorNotifierProvider.notifier);
+      final session = container.read(worldMapWorkspaceSessionProvider.notifier);
+      expect(session.activateLayers(editor).accepted, isTrue);
+
+      await _pumpToolbelt(tester, container);
+
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(
+                const ValueKey<String>('world-map-tool-layers'),
+              ),
+            )
+            .isSelected,
+        isTrue,
+      );
+      expect(editor.state.activeTool, EditorToolType.selection);
+    });
+
+    testWidgets('visual resolver preserves Place object engine ambiguity',
+        (tester) async {
+      final container = _containerWith(_tileState());
+      final editor = container.read(editorNotifierProvider.notifier);
+      final session = container.read(worldMapWorkspaceSessionProvider.notifier);
+      expect(
+        session
+            .activateTool(
+              editor,
+              const ActivateWorldMapPlacement(
+                WorldMapPlacementSubtool.object,
+              ),
+            )
+            .accepted,
+        isTrue,
+      );
+
+      await _pumpToolbelt(tester, container);
+
+      expect(editor.state.activeTool, EditorToolType.tilePaint);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Semantics &&
+              widget.properties.label == 'Placer · Objet' &&
+              widget.properties.selected == true,
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('keeps every command visible at 800 and 1280 pixels',
+        (tester) async {
+      addTearDown(() {
+        tester.view
+          ..resetPhysicalSize()
+          ..resetDevicePixelRatio();
+      });
+      tester.view.devicePixelRatio = 1;
+      final container = _containerWith(
+        _tileState().copyWith(canUndoMap: true, canRedoMap: true),
+      );
+      const keys = <ValueKey<String>>[
+        ValueKey<String>('world-map-command-save'),
+        ValueKey<String>('world-map-command-undo'),
+        ValueKey<String>('world-map-command-redo'),
+        ValueKey<String>('world-map-command-plus'),
+        ValueKey<String>('world-map-tool-selection'),
+        ValueKey<String>('world-map-tool-paint'),
+        ValueKey<String>('world-map-tool-erase'),
+        ValueKey<String>('world-map-tool-place'),
+        ValueKey<String>('world-map-tool-layers'),
+      ];
+
+      for (final width in <double>[800, 1280]) {
+        tester.view.physicalSize = Size(width, 600);
+        await _pumpToolbelt(
+          tester,
+          container,
+          onSave: () {},
+          onUndo: () {},
+          onRedo: () {},
+        );
+
+        for (final key in keys) {
+          expect(find.byKey(key), findsOneWidget, reason: '$width / $key');
+        }
+        expect(tester.takeException(), isNull, reason: '$width px');
+      }
     });
   });
 }
@@ -654,5 +1015,141 @@ const _paintMap = MapData(
     PathLayer(id: 'path', name: 'Path'),
     SurfaceLayer(id: 'surface', name: 'Surface'),
     CollisionLayer(id: 'collision', name: 'Collision'),
+  ],
+);
+
+EditorState _sameIdPathState() {
+  return const EditorState(
+    workspaceMode: EditorWorkspaceMode.map,
+    activeMap: MapData(
+      id: 'map-a',
+      name: 'Map A',
+      size: GridSize(width: 8, height: 8),
+      layers: <MapLayer>[
+        PathLayer(id: 'shared-layer', name: 'Shared path'),
+      ],
+    ),
+    activeLayerId: 'shared-layer',
+  );
+}
+
+EditorState _sameIdTileState() {
+  return const EditorState(
+    workspaceMode: EditorWorkspaceMode.map,
+    activeMap: MapData(
+      id: 'map-b',
+      name: 'Map B',
+      size: GridSize(width: 8, height: 8),
+      layers: <MapLayer>[
+        TileLayer(
+          id: 'shared-layer',
+          name: 'Shared tile',
+          tilesetId: 'world',
+          tiles: <int>[],
+        ),
+      ],
+    ),
+    activeLayerId: 'shared-layer',
+  );
+}
+
+EditorState _validBorderState() {
+  return EditorState(
+    project: _validBorderProject,
+    workspaceMode: EditorWorkspaceMode.map,
+    activeMap: _validBorderMap,
+    activeLayerId: 'border',
+  );
+}
+
+final _validBorderProject = ProjectManifest(
+  name: 'Valid border tool',
+  maps: const <ProjectMapEntry>[],
+  tilesets: const <ProjectTilesetEntry>[],
+  surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+  borderCatalog: ProjectBorderCatalog(
+    records: <BorderBlueprintRecord>[
+      BorderBlueprintRecord(
+        id: 'coast-blueprint',
+        draft: BorderBlueprintDraft(
+          baseRevision: 1,
+          definition: BorderBlueprintDraftDefinition(
+            name: 'Coast',
+            previewSeed: BorderSignedInt64.zero,
+            template: BorderBlueprintTemplate.organicEdge,
+            primitives: const <BorderPrimitiveDraft>[],
+            defaults: _validBorderParams,
+            sortOrder: 0,
+          ),
+        ),
+        latestPublished: BorderBlueprintRevision(
+          revision: 1,
+          definition: BorderBlueprintPublishedDefinition(
+            name: 'Coast',
+            previewSeed: BorderSignedInt64.zero,
+            template: BorderBlueprintTemplate.organicEdge,
+            primitives: const <BorderPublishedPrimitive>[],
+            defaults: _validBorderParams,
+            sortOrder: 0,
+          ),
+        ),
+      ),
+    ],
+  ),
+);
+
+final _validBorderParams = BorderGenerationParams(
+  irregularityPermille: 0,
+  detailDensityPermille: 0,
+  variationPermille: 0,
+  maxOverlapPx: 0,
+  gapTolerancePx: 0,
+  depthRows: 1,
+);
+
+final _validBorderMap = MapData(
+  id: 'border-map',
+  name: 'Border Map',
+  version: ProjectVersion.v2,
+  size: const GridSize(width: 4, height: 4),
+  layers: <MapLayer>[
+    MapLayer.border(
+      id: 'border',
+      name: 'Border',
+      content: BorderLayerContent(
+        features: <BorderFeature>[
+          BorderFeature(
+            id: 'coast',
+            name: 'Coast',
+            blueprintId: 'coast-blueprint',
+            seed: BorderSignedInt64.zero,
+            geometry: BorderRegionGeometry(
+              width: 4,
+              height: 4,
+              cells: const <bool>[
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+              ],
+            ),
+            overrides: const <BorderSlotOverride>[],
+            keepOutRegions: const <BorderKeepOutRegion>[],
+          ),
+        ],
+      ),
+    ),
   ],
 );

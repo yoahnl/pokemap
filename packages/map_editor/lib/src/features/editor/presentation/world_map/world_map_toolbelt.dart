@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../application/models/terrain_selection_mode.dart';
 import '../../../../theme/theme.dart';
 import '../../../../ui/design_system/design_system.dart';
 import '../../application/world_map_tool_activation.dart';
 import '../../application/world_map_tool_family.dart';
 import '../../state/editor_notifier.dart';
 import '../../state/editor_selectors.dart';
+import '../../tools/editor_tool.dart';
 import 'world_map_workspace_session.dart';
 
 class WorldMapToolbelt extends ConsumerWidget {
@@ -64,14 +66,19 @@ class WorldMapToolbelt extends ConsumerWidget {
       reportResult(result);
     }
 
-    final activeLayerId = toolbar.activeLayer?.id;
-    final rememberedPaint = activeLayerId == null
-        ? session.lastPaintSubtool
-        : session.lastPaintSubtoolByLayerId[activeLayerId] ??
-            session.lastPaintSubtool;
-    final paintLabel = _paintSubtoolLabel(rememberedPaint);
+    final rememberedPaint = sessionController.resolveRememberedPaintSubtool(
+      mapId: toolbar.activeMap?.id,
+      layerId: toolbar.activeLayer?.id,
+    );
+    final visualState = _resolveVisualToolState(
+      session: session,
+      activeTool: toolbar.activeTool,
+      terrainSelectionMode: toolbar.terrainSelectionMode,
+      rememberedPaint: rememberedPaint,
+    );
+    final paintLabel = _paintSubtoolLabel(visualState.paintSubtool);
     final placementLabel = _placementSubtoolLabel(
-      session.lastPlacementSubtool,
+      visualState.placementSubtool,
     );
 
     return PokeMapToolbarSurface(
@@ -94,27 +101,19 @@ class WorldMapToolbelt extends ConsumerWidget {
                   child: const Text('Enregistrer'),
                 ),
               ),
-              Tooltip(
-                message: 'Annuler (Cmd/Ctrl+Z)',
-                child: PokeMapButton(
-                  key: const ValueKey<String>('world-map-command-undo'),
-                  onPressed: toolbar.canUndoMap ? onUndo : null,
-                  size: PokeMapButtonSize.small,
-                  variant: PokeMapButtonVariant.ghost,
-                  leading: const Icon(Icons.undo_rounded),
-                  child: const Text('Annuler'),
-                ),
+              _LabeledIconCommand(
+                commandKey: const ValueKey<String>('world-map-command-undo'),
+                onPressed: toolbar.canUndoMap ? onUndo : null,
+                icon: const Icon(Icons.undo_rounded),
+                label: 'Annuler',
+                tooltip: 'Annuler (Cmd/Ctrl+Z)',
               ),
-              Tooltip(
-                message: 'Rétablir (Shift+Cmd/Ctrl+Z ou Cmd/Ctrl+Y)',
-                child: PokeMapButton(
-                  key: const ValueKey<String>('world-map-command-redo'),
-                  onPressed: toolbar.canRedoMap ? onRedo : null,
-                  size: PokeMapButtonSize.small,
-                  variant: PokeMapButtonVariant.ghost,
-                  leading: const Icon(Icons.redo_rounded),
-                  child: const Text('Rétablir'),
-                ),
+              _LabeledIconCommand(
+                commandKey: const ValueKey<String>('world-map-command-redo'),
+                onPressed: toolbar.canRedoMap ? onRedo : null,
+                icon: const Icon(Icons.redo_rounded),
+                label: 'Rétablir',
+                tooltip: 'Rétablir (Shift+Cmd/Ctrl+Z ou Cmd/Ctrl+Y)',
               ),
               _WorldMapPlusMenu(
                 onNewProject: onNewProject,
@@ -123,6 +122,7 @@ class WorldMapToolbelt extends ConsumerWidget {
                 onExportGame: onExportGame,
                 onNewMap: onNewMap,
                 onResizeMap: onResizeMap,
+                onUnavailable: onActivationRejected,
               ),
             ],
           ),
@@ -130,23 +130,26 @@ class WorldMapToolbelt extends ConsumerWidget {
           _ToolbeltRow(
             label: 'Outils',
             children: [
-              PokeMapButton(
-                key: const ValueKey<String>('world-map-tool-selection'),
-                onPressed: () => activate(
-                  const ActivateWorldMapSelection(),
+              Tooltip(
+                message: 'Sélectionner et manipuler',
+                child: PokeMapButton(
+                  key: const ValueKey<String>('world-map-tool-selection'),
+                  onPressed: () => activate(
+                    const ActivateWorldMapSelection(),
+                  ),
+                  focusNode: selectionFocusNode,
+                  isSelected:
+                      visualState.family == WorldMapToolFamily.selection,
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  leading: const Icon(Icons.near_me_outlined),
+                  child: const Text('Sélection'),
                 ),
-                focusNode: selectionFocusNode,
-                isSelected:
-                    session.activeFamily == WorldMapToolFamily.selection,
-                size: PokeMapButtonSize.small,
-                variant: PokeMapButtonVariant.secondary,
-                leading: const Icon(Icons.near_me_outlined),
-                child: const Text('Sélection'),
               ),
               PokeMapSplitButton<WorldMapPaintSubtool>(
                 key: const ValueKey<String>('world-map-tool-paint'),
-                onPressed: () => activate(
-                  ActivateWorldMapPaint(rememberedPaint),
+                onPressed: () => reportResult(
+                  sessionController.activateRememberedPaint(editor),
                 ),
                 items: [
                   for (final subtool in WorldMapPaintSubtool.values)
@@ -160,25 +163,28 @@ class WorldMapToolbelt extends ConsumerWidget {
                 ),
                 tooltip: 'Peindre · $paintLabel',
                 menuTooltip: 'Choisir un outil de peinture',
-                isSelected: session.activeFamily == WorldMapToolFamily.paint,
+                isSelected: visualState.family == WorldMapToolFamily.paint,
                 child: const Text('Peindre'),
               ),
-              PokeMapButton(
-                key: const ValueKey<String>('world-map-tool-erase'),
-                onPressed: () => activate(
-                  const ActivateWorldMapErase(),
+              Tooltip(
+                message: 'Effacer sur le calque actif',
+                child: PokeMapButton(
+                  key: const ValueKey<String>('world-map-tool-erase'),
+                  onPressed: () => activate(
+                    const ActivateWorldMapErase(),
+                  ),
+                  isSelected: visualState.family == WorldMapToolFamily.erase,
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  leading: const Icon(Icons.auto_fix_off_outlined),
+                  child: const Text('Effacer'),
                 ),
-                isSelected: session.activeFamily == WorldMapToolFamily.erase,
-                size: PokeMapButtonSize.small,
-                variant: PokeMapButtonVariant.secondary,
-                leading: const Icon(Icons.auto_fix_off_outlined),
-                child: const Text('Effacer'),
               ),
               PokeMapSplitButton<WorldMapPlacementSubtool>(
                 key: const ValueKey<String>('world-map-tool-place'),
                 onPressed: () => activate(
                   ActivateWorldMapPlacement(
-                    session.lastPlacementSubtool,
+                    visualState.placementSubtool,
                   ),
                 ),
                 items: [
@@ -193,22 +199,162 @@ class WorldMapToolbelt extends ConsumerWidget {
                 ),
                 tooltip: 'Placer · $placementLabel',
                 menuTooltip: 'Choisir un outil de placement',
-                isSelected: session.activeFamily == WorldMapToolFamily.place,
+                isSelected: visualState.family == WorldMapToolFamily.place,
                 child: const Text('Placer'),
               ),
-              PokeMapButton(
-                key: const ValueKey<String>('world-map-tool-layers'),
-                onPressed: activateLayers,
-                isSelected: session.activeFamily == WorldMapToolFamily.layers,
-                size: PokeMapButtonSize.small,
-                variant: PokeMapButtonVariant.secondary,
-                leading: const Icon(Icons.layers_outlined),
-                child: const Text('Calques'),
+              Tooltip(
+                message: 'Ouvrir la gestion des calques',
+                child: PokeMapButton(
+                  key: const ValueKey<String>('world-map-tool-layers'),
+                  onPressed: activateLayers,
+                  isSelected: visualState.family == WorldMapToolFamily.layers,
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  leading: const Icon(Icons.layers_outlined),
+                  child: const Text('Calques'),
+                ),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+}
+
+typedef _WorldMapVisualToolState = ({
+  WorldMapToolFamily family,
+  WorldMapPaintSubtool paintSubtool,
+  WorldMapPlacementSubtool placementSubtool,
+});
+
+_WorldMapVisualToolState _resolveVisualToolState({
+  required WorldMapWorkspaceSession session,
+  required EditorToolType activeTool,
+  required TerrainSelectionMode terrainSelectionMode,
+  required WorldMapPaintSubtool rememberedPaint,
+}) {
+  final fallback = (
+    family: session.activeFamily,
+    paintSubtool: rememberedPaint,
+    placementSubtool: session.lastPlacementSubtool,
+  );
+  return switch (activeTool) {
+    // Selection is also the engine representation of the explicit Layers
+    // family, so only that session ambiguity is preserved.
+    EditorToolType.selection => (
+        family: session.activeFamily == WorldMapToolFamily.layers
+            ? WorldMapToolFamily.layers
+            : WorldMapToolFamily.selection,
+        paintSubtool: fallback.paintSubtool,
+        placementSubtool: fallback.placementSubtool,
+      ),
+    // tilePaint represents both Paint/tile and Place/object. The explicit
+    // Place/object session wins only for that exact ambiguous pairing.
+    EditorToolType.tilePaint => (
+        family: session.activeFamily == WorldMapToolFamily.place &&
+                session.lastPlacementSubtool == WorldMapPlacementSubtool.object
+            ? WorldMapToolFamily.place
+            : WorldMapToolFamily.paint,
+        paintSubtool: WorldMapPaintSubtool.tile,
+        placementSubtool: session.activeFamily == WorldMapToolFamily.place &&
+                session.lastPlacementSubtool == WorldMapPlacementSubtool.object
+            ? WorldMapPlacementSubtool.object
+            : fallback.placementSubtool,
+      ),
+    EditorToolType.terrainPaint => (
+        family: WorldMapToolFamily.paint,
+        paintSubtool: terrainSelectionMode == TerrainSelectionMode.path
+            ? WorldMapPaintSubtool.path
+            : WorldMapPaintSubtool.terrain,
+        placementSubtool: fallback.placementSubtool,
+      ),
+    EditorToolType.surfacePaint => (
+        family: WorldMapToolFamily.paint,
+        paintSubtool: WorldMapPaintSubtool.surface,
+        placementSubtool: fallback.placementSubtool,
+      ),
+    EditorToolType.collisionPaint => (
+        family: WorldMapToolFamily.paint,
+        paintSubtool: WorldMapPaintSubtool.collision,
+        placementSubtool: fallback.placementSubtool,
+      ),
+    EditorToolType.borderPaint => (
+        family: WorldMapToolFamily.paint,
+        paintSubtool: WorldMapPaintSubtool.border,
+        placementSubtool: fallback.placementSubtool,
+      ),
+    EditorToolType.eraser || EditorToolType.borderErase => (
+        family: WorldMapToolFamily.erase,
+        paintSubtool: fallback.paintSubtool,
+        placementSubtool: fallback.placementSubtool,
+      ),
+    EditorToolType.entityPlacement => (
+        family: WorldMapToolFamily.place,
+        paintSubtool: fallback.paintSubtool,
+        placementSubtool: WorldMapPlacementSubtool.entity,
+      ),
+    EditorToolType.eventPlacement => (
+        family: WorldMapToolFamily.place,
+        paintSubtool: fallback.paintSubtool,
+        placementSubtool: WorldMapPlacementSubtool.event,
+      ),
+    EditorToolType.triggerPlacement => (
+        family: WorldMapToolFamily.place,
+        paintSubtool: fallback.paintSubtool,
+        placementSubtool: WorldMapPlacementSubtool.trigger,
+      ),
+    EditorToolType.warpPlacement => (
+        family: WorldMapToolFamily.place,
+        paintSubtool: fallback.paintSubtool,
+        placementSubtool: WorldMapPlacementSubtool.warp,
+      ),
+    EditorToolType.gameplayZonePlacement => (
+        family: WorldMapToolFamily.place,
+        paintSubtool: fallback.paintSubtool,
+        placementSubtool: WorldMapPlacementSubtool.gameplayZone,
+      ),
+  };
+}
+
+class _LabeledIconCommand extends StatelessWidget {
+  const _LabeledIconCommand({
+    required this.commandKey,
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+    required this.tooltip,
+  });
+
+  final Key commandKey;
+  final VoidCallback? onPressed;
+  final Widget icon;
+  final String label;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        PokeMapIconButton(
+          key: commandKey,
+          onPressed: onPressed,
+          icon: icon,
+          tooltip: tooltip,
+          variant: PokeMapIconButtonVariant.soft,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: onPressed == null ? colors.textDisabled : colors.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -264,6 +410,7 @@ class _WorldMapPlusMenu extends StatefulWidget {
     this.onExportGame,
     this.onNewMap,
     this.onResizeMap,
+    this.onUnavailable,
   });
 
   final VoidCallback? onNewProject;
@@ -272,6 +419,7 @@ class _WorldMapPlusMenu extends StatefulWidget {
   final VoidCallback? onExportGame;
   final VoidCallback? onNewMap;
   final VoidCallback? onResizeMap;
+  final ValueChanged<String>? onUnavailable;
 
   @override
   State<_WorldMapPlusMenu> createState() => _WorldMapPlusMenuState();
@@ -281,6 +429,16 @@ class _WorldMapPlusMenuState extends State<_WorldMapPlusMenu> {
   final GlobalKey _anchorKey = GlobalKey();
   final FocusNode _focusNode = FocusNode(debugLabel: 'world map plus command');
   OverlayEntry? _menuEntry;
+
+  @override
+  void didUpdateWidget(covariant _WorldMapPlusMenu oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_menuEntry == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _menuEntry == null) return;
+      _menuEntry?.markNeedsBuild();
+    });
+  }
 
   @override
   void dispose() {
@@ -295,7 +453,7 @@ class _WorldMapPlusMenuState extends State<_WorldMapPlusMenu> {
   List<PokeMapMenuItem<_WorldMapMoreAction>> get _items => [
         PokeMapMenuItem<_WorldMapMoreAction>(
           value: _WorldMapMoreAction.newProject,
-          label: 'New Project',
+          label: 'Projet · Nouveau projet',
           enabled: widget.onNewProject != null,
           disabledReason: widget.onNewProject == null
               ? 'La création de projet est indisponible.'
@@ -303,7 +461,7 @@ class _WorldMapPlusMenuState extends State<_WorldMapPlusMenu> {
         ),
         PokeMapMenuItem<_WorldMapMoreAction>(
           value: _WorldMapMoreAction.openProject,
-          label: 'Open Project',
+          label: 'Projet · Ouvrir un projet',
           enabled: widget.onOpenProject != null,
           disabledReason: widget.onOpenProject == null
               ? 'L’ouverture de projet est indisponible.'
@@ -311,14 +469,14 @@ class _WorldMapPlusMenuState extends State<_WorldMapPlusMenu> {
         ),
         PokeMapMenuItem<_WorldMapMoreAction>(
           value: _WorldMapMoreAction.projectSettings,
-          label: 'Project Settings',
+          label: 'Projet · Réglages du projet',
           enabled: widget.onProjectSettings != null,
           disabledReason:
               widget.onProjectSettings == null ? 'Ouvrez un projet.' : null,
         ),
         PokeMapMenuItem<_WorldMapMoreAction>(
           value: _WorldMapMoreAction.exportGame,
-          label: 'Export Game',
+          label: 'Projet · Exporter le jeu',
           enabled: widget.onExportGame != null,
           disabledReason: widget.onExportGame == null
               ? 'Ouvrez un projet enregistré.'
@@ -326,14 +484,14 @@ class _WorldMapPlusMenuState extends State<_WorldMapPlusMenu> {
         ),
         PokeMapMenuItem<_WorldMapMoreAction>(
           value: _WorldMapMoreAction.newMap,
-          label: 'New Map',
+          label: 'Carte · Nouvelle map',
           enabled: widget.onNewMap != null,
           disabledReason:
               widget.onNewMap == null ? 'Ouvrez un projet enregistré.' : null,
         ),
         PokeMapMenuItem<_WorldMapMoreAction>(
           value: _WorldMapMoreAction.resizeMap,
-          label: 'Resize Map',
+          label: 'Carte · Redimensionner',
           enabled: widget.onResizeMap != null,
           disabledReason:
               widget.onResizeMap == null ? 'Ouvrez une carte.' : null,
@@ -377,34 +535,41 @@ class _WorldMapPlusMenuState extends State<_WorldMapPlusMenu> {
   }
 
   void _activate(_WorldMapMoreAction action) {
-    switch (action) {
-      case _WorldMapMoreAction.newProject:
-        widget.onNewProject?.call();
-      case _WorldMapMoreAction.openProject:
-        widget.onOpenProject?.call();
-      case _WorldMapMoreAction.projectSettings:
-        widget.onProjectSettings?.call();
-      case _WorldMapMoreAction.exportGame:
-        widget.onExportGame?.call();
-      case _WorldMapMoreAction.newMap:
-        widget.onNewMap?.call();
-      case _WorldMapMoreAction.resizeMap:
-        widget.onResizeMap?.call();
+    final callback = switch (action) {
+      _WorldMapMoreAction.newProject => widget.onNewProject,
+      _WorldMapMoreAction.openProject => widget.onOpenProject,
+      _WorldMapMoreAction.projectSettings => widget.onProjectSettings,
+      _WorldMapMoreAction.exportGame => widget.onExportGame,
+      _WorldMapMoreAction.newMap => widget.onNewMap,
+      _WorldMapMoreAction.resizeMap => widget.onResizeMap,
+    };
+    if (callback == null) {
+      final disabledReason =
+          _items.singleWhere((item) => item.value == action).disabledReason;
+      if (disabledReason != null && disabledReason.isNotEmpty) {
+        widget.onUnavailable?.call(disabledReason);
+      }
+      _menuEntry?.markNeedsBuild();
+      return;
     }
+    callback();
   }
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       key: _anchorKey,
-      child: PokeMapButton(
-        key: const ValueKey<String>('world-map-command-plus'),
-        onPressed: _openMenu,
-        focusNode: _focusNode,
-        size: PokeMapButtonSize.small,
-        variant: PokeMapButtonVariant.ghost,
-        trailing: const Icon(Icons.arrow_drop_down_rounded),
-        child: const Text('Plus'),
+      child: Tooltip(
+        message: 'Plus d’actions',
+        child: PokeMapButton(
+          key: const ValueKey<String>('world-map-command-plus'),
+          onPressed: _openMenu,
+          focusNode: _focusNode,
+          size: PokeMapButtonSize.small,
+          variant: PokeMapButtonVariant.ghost,
+          trailing: const Icon(Icons.arrow_drop_down_rounded),
+          child: const Text('Plus'),
+        ),
       ),
     );
   }
