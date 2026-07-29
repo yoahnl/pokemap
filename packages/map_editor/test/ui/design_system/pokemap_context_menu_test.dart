@@ -281,6 +281,88 @@ void main() {
     expect(menuRect.right, lessThanOrEqualTo(overlayRect.right - 8));
     expect(menuRect.bottom, lessThanOrEqualTo(overlayRect.bottom - 8));
   });
+
+  testWidgets('focuses an entry enabled in place after an all-disabled opening',
+      (tester) async {
+    final harnessKey = GlobalKey<_MutableContextMenuHarnessState>();
+    String? selected;
+
+    await tester.pumpWidget(
+      _MutableContextMenuHarness(
+        key: harnessKey,
+        onSelected: (value) => selected = value,
+      ),
+    );
+    await tester.tap(find.text('Afficher'));
+    await tester.pump();
+    expect(find.byType(PokeMapContextMenu<String>), findsOneWidget);
+
+    harnessKey.currentState!.enableEntry();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    expect(selected, 'open');
+    expect(find.byType(PokeMapContextMenu<String>), findsNothing);
+  });
+}
+
+class _MutableContextMenuHarness extends StatefulWidget {
+  const _MutableContextMenuHarness({
+    required this.onSelected,
+    super.key,
+  });
+
+  final ValueChanged<String> onSelected;
+
+  @override
+  State<_MutableContextMenuHarness> createState() =>
+      _MutableContextMenuHarnessState();
+}
+
+class _MutableContextMenuHarnessState
+    extends State<_MutableContextMenuHarness> {
+  bool _isOpen = false;
+  bool _entryEnabled = false;
+
+  void enableEntry() {
+    setState(() => _entryEnabled = true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      theme: PokeMapTheme.dark(),
+      home: Scaffold(
+        body: Stack(
+          children: [
+            Align(
+              alignment: Alignment.topLeft,
+              child: TextButton(
+                onPressed: () => setState(() => _isOpen = true),
+                child: const Text('Afficher'),
+              ),
+            ),
+            if (_isOpen)
+              PokeMapContextMenu<String>(
+                anchor: const Offset(120, 80),
+                items: [
+                  PokeMapMenuItem(
+                    value: 'open',
+                    label: 'Ouvrir',
+                    enabled: _entryEnabled,
+                    disabledReason:
+                        _entryEnabled ? null : 'Action temporairement bloquée',
+                  ),
+                ],
+                onSelected: widget.onSelected,
+                onDismiss: () => setState(() => _isOpen = false),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _ContextMenuHarness extends StatefulWidget {

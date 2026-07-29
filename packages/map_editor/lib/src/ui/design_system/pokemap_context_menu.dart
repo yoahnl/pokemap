@@ -79,7 +79,12 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
       return;
     }
     final focusedIndex = _focusedIndex;
-    if (focusedIndex != null && !widget.items[focusedIndex].enabled) {
+    final hasFocusedItem = _itemFocusNodes.any((node) => node.hasFocus);
+    final hasEnabledItem = widget.items.any((item) => item.enabled);
+    final focusedItemWasDisabled =
+        focusedIndex != null && !widget.items[focusedIndex].enabled;
+    if (hasEnabledItem &&
+        (focusedIndex == null || !hasFocusedItem || focusedItemWasDisabled)) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _focusFirstEnabled());
     }
   }

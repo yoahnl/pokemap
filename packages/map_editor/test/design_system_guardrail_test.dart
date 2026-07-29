@@ -49,7 +49,60 @@ void main() {
         ].join('\n'),
       );
     });
+
+    test('desktop interaction primitives keep the strict source ratchet', () {
+      final regressions = _desktopInteractionPrimitiveRegressions();
+
+      expect(
+        regressions,
+        isEmpty,
+        reason: [
+          'Desktop design-system primitives must stay token-only and generic.',
+          'Do not couple layout, split buttons, or context menus to editor state.',
+          ...regressions,
+        ].join('\n'),
+      );
+    });
   });
+}
+
+List<String> _desktopInteractionPrimitiveRegressions() {
+  const primitivePaths = <String>[
+    'lib/src/ui/design_system/pokemap_desktop_layout.dart',
+    'lib/src/ui/design_system/pokemap_context_menu.dart',
+    'lib/src/ui/design_system/pokemap_split_button.dart',
+  ];
+  final forbiddenPatterns = <RegExp, String>{
+    RegExp(r'\bColor\s*\(\s*0x'): 'hard-coded Color literal',
+    RegExp(r'\bColors\.'): 'Material Colors reference',
+    RegExp(r'\bCupertinoColors\b'): 'CupertinoColors reference',
+    RegExp(r'\bPokeMapLegacyColors\b'): 'legacy PokeMap color reference',
+    RegExp(r'\bEditorChrome\b'): 'legacy EditorChrome dependency',
+    RegExp(r'\bEditorState\b'): 'EditorState dependency',
+    RegExp(r'editor_state\.dart'): 'editor_state import',
+    RegExp(r'editor_notifier\.dart'): 'editor_notifier import',
+    RegExp(r'''import\s+['"][^'"]*map_core[^'"]*['"]'''): 'map_core import',
+  };
+  final regressions = <String>[];
+
+  for (final relativePath in primitivePaths) {
+    final file = File(p.join(Directory.current.path, relativePath));
+    if (!file.existsSync()) {
+      regressions.add('$relativePath is missing');
+      continue;
+    }
+    final lines = file.readAsLinesSync();
+    for (var index = 0; index < lines.length; index += 1) {
+      for (final entry in forbiddenPatterns.entries) {
+        if (entry.key.hasMatch(lines[index])) {
+          regressions.add(
+            '$relativePath:${index + 1}: ${entry.value}',
+          );
+        }
+      }
+    }
+  }
+  return regressions;
 }
 
 List<String> _directColorReferenceRegressions() {
