@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../application/models/terrain_selection_mode.dart';
 import '../../../../theme/theme.dart';
 import '../../../../ui/design_system/design_system.dart';
+import '../../application/world_map_observed_tool_family.dart';
 import '../../application/world_map_tool_activation.dart';
 import '../../application/world_map_tool_family.dart';
 import '../../state/editor_notifier.dart';
@@ -242,91 +243,74 @@ _WorldMapVisualToolState _resolveVisualToolState({
   required WorldMapPaintSubtool rememberedPaint,
   required EditorWorldMapBrushKind brushKind,
 }) {
-  final fallback = (
-    family: session.activeFamily,
-    paintSubtool: rememberedPaint,
-    placementSubtool: session.lastPlacementSubtool,
+  final family = resolveWorldMapObservedToolFamily(
+    activeTool: activeTool,
+    session: session,
+    brushKind: brushKind,
   );
-  final tilePaintIsPlace = switch (brushKind) {
-    EditorWorldMapBrushKind.projectElement => true,
-    EditorWorldMapBrushKind.tile ||
-    EditorWorldMapBrushKind.paletteEntry =>
-      false,
-    EditorWorldMapBrushKind.none =>
-      session.activeFamily == WorldMapToolFamily.place &&
-          session.lastPlacementSubtool == WorldMapPlacementSubtool.object,
-  };
   return switch (activeTool) {
-    // Selection is also the engine representation of the explicit Layers
-    // family, so only that session ambiguity is preserved.
     EditorToolType.selection => (
-        family: session.activeFamily == WorldMapToolFamily.layers
-            ? WorldMapToolFamily.layers
-            : WorldMapToolFamily.selection,
-        paintSubtool: fallback.paintSubtool,
-        placementSubtool: fallback.placementSubtool,
+        family: family,
+        paintSubtool: rememberedPaint,
+        placementSubtool: session.lastPlacementSubtool,
       ),
-    // tilePaint represents both Paint/tile and Place/object. A concrete brush
-    // disambiguates first; only an inert brush preserves explicit Place/object.
     EditorToolType.tilePaint => (
-        family: tilePaintIsPlace
-            ? WorldMapToolFamily.place
-            : WorldMapToolFamily.paint,
+        family: family,
         paintSubtool: WorldMapPaintSubtool.tile,
-        placementSubtool: tilePaintIsPlace
+        placementSubtool: family == WorldMapToolFamily.place
             ? WorldMapPlacementSubtool.object
-            : fallback.placementSubtool,
+            : session.lastPlacementSubtool,
       ),
     EditorToolType.terrainPaint => (
-        family: WorldMapToolFamily.paint,
+        family: family,
         paintSubtool: terrainSelectionMode == TerrainSelectionMode.path
             ? WorldMapPaintSubtool.path
             : WorldMapPaintSubtool.terrain,
-        placementSubtool: fallback.placementSubtool,
+        placementSubtool: session.lastPlacementSubtool,
       ),
     EditorToolType.surfacePaint => (
-        family: WorldMapToolFamily.paint,
+        family: family,
         paintSubtool: WorldMapPaintSubtool.surface,
-        placementSubtool: fallback.placementSubtool,
+        placementSubtool: session.lastPlacementSubtool,
       ),
     EditorToolType.collisionPaint => (
-        family: WorldMapToolFamily.paint,
+        family: family,
         paintSubtool: WorldMapPaintSubtool.collision,
-        placementSubtool: fallback.placementSubtool,
+        placementSubtool: session.lastPlacementSubtool,
       ),
     EditorToolType.borderPaint => (
-        family: WorldMapToolFamily.paint,
+        family: family,
         paintSubtool: WorldMapPaintSubtool.border,
-        placementSubtool: fallback.placementSubtool,
+        placementSubtool: session.lastPlacementSubtool,
       ),
     EditorToolType.eraser || EditorToolType.borderErase => (
-        family: WorldMapToolFamily.erase,
-        paintSubtool: fallback.paintSubtool,
-        placementSubtool: fallback.placementSubtool,
+        family: family,
+        paintSubtool: rememberedPaint,
+        placementSubtool: session.lastPlacementSubtool,
       ),
     EditorToolType.entityPlacement => (
-        family: WorldMapToolFamily.place,
-        paintSubtool: fallback.paintSubtool,
+        family: family,
+        paintSubtool: rememberedPaint,
         placementSubtool: WorldMapPlacementSubtool.entity,
       ),
     EditorToolType.eventPlacement => (
-        family: WorldMapToolFamily.place,
-        paintSubtool: fallback.paintSubtool,
+        family: family,
+        paintSubtool: rememberedPaint,
         placementSubtool: WorldMapPlacementSubtool.event,
       ),
     EditorToolType.triggerPlacement => (
-        family: WorldMapToolFamily.place,
-        paintSubtool: fallback.paintSubtool,
+        family: family,
+        paintSubtool: rememberedPaint,
         placementSubtool: WorldMapPlacementSubtool.trigger,
       ),
     EditorToolType.warpPlacement => (
-        family: WorldMapToolFamily.place,
-        paintSubtool: fallback.paintSubtool,
+        family: family,
+        paintSubtool: rememberedPaint,
         placementSubtool: WorldMapPlacementSubtool.warp,
       ),
     EditorToolType.gameplayZonePlacement => (
-        family: WorldMapToolFamily.place,
-        paintSubtool: fallback.paintSubtool,
+        family: family,
+        paintSubtool: rememberedPaint,
         placementSubtool: WorldMapPlacementSubtool.gameplayZone,
       ),
   };

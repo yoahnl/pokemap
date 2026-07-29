@@ -5,6 +5,7 @@ import 'package:map_editor/src/application/models/map_history_snapshot.dart';
 import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
 import 'package:map_editor/src/features/editor/application/map_canvas_object_hit_test.dart';
 import 'package:map_editor/src/features/editor/application/world_map_inspector_projector.dart';
+import 'package:map_editor/src/features/editor/application/world_map_observed_tool_family.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
@@ -710,6 +711,127 @@ void main() {
       expect(snapshot.kind, WorldMapInspectorKind.place);
     });
 
+    test('shares concrete brush disambiguation with the observed tool family',
+        () {
+      const placeObject = WorldMapWorkspaceSession(
+        activeFamily: WorldMapToolFamily.place,
+        lastPlacementSubtool: WorldMapPlacementSubtool.object,
+      );
+      const stalePaint = WorldMapWorkspaceSession(
+        activeFamily: WorldMapToolFamily.paint,
+        lastPlacementSubtool: WorldMapPlacementSubtool.object,
+      );
+      const stalePlaceEntity = WorldMapWorkspaceSession(
+        activeFamily: WorldMapToolFamily.place,
+        lastPlacementSubtool: WorldMapPlacementSubtool.entity,
+      );
+      const cases = <({
+        EditorWorldMapBrushKind brushKind,
+        WorldMapWorkspaceSession session,
+        WorldMapToolFamily family,
+      })>[
+        (
+          brushKind: EditorWorldMapBrushKind.projectElement,
+          session: stalePaint,
+          family: WorldMapToolFamily.place,
+        ),
+        (
+          brushKind: EditorWorldMapBrushKind.tile,
+          session: placeObject,
+          family: WorldMapToolFamily.paint,
+        ),
+        (
+          brushKind: EditorWorldMapBrushKind.paletteEntry,
+          session: placeObject,
+          family: WorldMapToolFamily.paint,
+        ),
+        (
+          brushKind: EditorWorldMapBrushKind.none,
+          session: placeObject,
+          family: WorldMapToolFamily.place,
+        ),
+        (
+          brushKind: EditorWorldMapBrushKind.none,
+          session: stalePlaceEntity,
+          family: WorldMapToolFamily.paint,
+        ),
+      ];
+
+      for (final entry in cases) {
+        final observed = resolveWorldMapObservedToolFamily(
+          activeTool: EditorToolType.tilePaint,
+          session: entry.session,
+          brushKind: entry.brushKind,
+        );
+        final projected = WorldMapInspectorProjector(
+          brushKind: entry.brushKind,
+        ).project(
+          editor: _inspectorInput(activeTool: EditorToolType.tilePaint),
+          session: entry.session,
+        );
+
+        expect(observed, entry.family, reason: entry.brushKind.name);
+        expect(
+          projected.kind,
+          entry.family == WorldMapToolFamily.place
+              ? WorldMapInspectorKind.place
+              : WorldMapInspectorKind.paint,
+          reason: entry.brushKind.name,
+        );
+      }
+    });
+
+    test('keeps every non-object Place pin valid on a layerless map', () {
+      const tools = <EditorToolType>[
+        EditorToolType.entityPlacement,
+        EditorToolType.eventPlacement,
+        EditorToolType.triggerPlacement,
+        EditorToolType.warpPlacement,
+        EditorToolType.gameplayZonePlacement,
+      ];
+      const editor = (
+        activeMap: _layerlessMap,
+        project: null,
+        activeTool: EditorToolType.entityPlacement,
+        activeLayerId: null,
+        activeLayerName: null,
+        selectedEntityId: null,
+        selectedMapEventId: null,
+        selectedWarpId: null,
+        selectedTriggerId: null,
+        selectedGameplayZoneId: null,
+        selectedPlacedElementInstanceId: null,
+        assignedTilesetId: null,
+      );
+
+      for (final tool in tools) {
+        final snapshot = projector.project(
+          editor: (
+            activeMap: editor.activeMap,
+            project: editor.project,
+            activeTool: tool,
+            activeLayerId: editor.activeLayerId,
+            activeLayerName: editor.activeLayerName,
+            selectedEntityId: editor.selectedEntityId,
+            selectedMapEventId: editor.selectedMapEventId,
+            selectedWarpId: editor.selectedWarpId,
+            selectedTriggerId: editor.selectedTriggerId,
+            selectedGameplayZoneId: editor.selectedGameplayZoneId,
+            selectedPlacedElementInstanceId:
+                editor.selectedPlacedElementInstanceId,
+            assignedTilesetId: editor.assignedTilesetId,
+          ),
+          session: const WorldMapWorkspaceSession(
+            pinnedInspectorKind: WorldMapInspectorKind.place,
+          ),
+        );
+
+        expect(snapshot.kind, WorldMapInspectorKind.place, reason: tool.name);
+        expect(snapshot.activeLayerId, isNull, reason: tool.name);
+        expect(snapshot.pinned, isTrue, reason: tool.name);
+      }
+    });
+
     test('projects empty guidance for Selection without a target', () {
       final snapshot = projector.project(
         editor: _inspectorInput(),
@@ -772,6 +894,45 @@ void main() {
       final projected = container.read(worldMapInspectorSnapshotProvider);
       expect(projected.kind, WorldMapInspectorKind.objectSelection);
       expect(projected.objectTarget?.id, 'entity');
+    });
+
+    test('tracks concrete brush kind without widening the editor snapshot', () {
+      final container = _createContainer();
+      final editor = container.read(editorNotifierProvider.notifier)
+        ..state = EditorState(
+          project: _project,
+          activeMap: _mapWithObject,
+          activeLayerId: 'tile',
+          activeTool: EditorToolType.tilePaint,
+          activeBrush: const EditorBrush.projectElement(elementId: 'tree'),
+        );
+
+      expect(
+        container.read(worldMapInspectorSnapshotProvider).kind,
+        WorldMapInspectorKind.place,
+      );
+
+      editor.state = editor.state.copyWith(
+        activeBrush: const EditorBrush.tile(
+          tileId: 1,
+          tilesetId: 'world',
+        ),
+      );
+      expect(
+        container.read(worldMapInspectorSnapshotProvider).kind,
+        WorldMapInspectorKind.paint,
+      );
+
+      editor.state = editor.state.copyWith(
+        activeBrush: const EditorBrush.paletteEntry(
+          entryId: 'detail-entry',
+          tilesetId: 'details',
+        ),
+      );
+      expect(
+        container.read(worldMapInspectorSnapshotProvider).kind,
+        WorldMapInspectorKind.paint,
+      );
     });
 
     test('drops a stale object and clears the selected cell on map change', () {
@@ -925,6 +1086,12 @@ const _mapB = MapData(
       tiles: <int>[],
     ),
   ],
+);
+
+const _layerlessMap = MapData(
+  id: 'layerless',
+  name: 'Layerless',
+  size: GridSize(width: 4, height: 4),
 );
 
 const _undoMap = MapData(

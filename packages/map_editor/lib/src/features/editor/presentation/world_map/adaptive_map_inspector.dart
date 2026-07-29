@@ -23,7 +23,7 @@ class AdaptiveMapInspector extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final snapshot = ref.watch(worldMapInspectorSnapshotProvider);
     final title = _titleFor(snapshot.kind);
-    final canPin = snapshot.kind != WorldMapInspectorKind.empty;
+    final canPin = ref.watch(worldMapInspectorCanPinProvider);
     final session = ref.read(worldMapWorkspaceSessionProvider.notifier);
 
     return Semantics(

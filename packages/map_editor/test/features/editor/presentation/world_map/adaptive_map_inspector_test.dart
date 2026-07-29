@@ -256,6 +256,144 @@ void main() {
         isFalse,
       );
     });
+
+    testWidgets(
+        'pins and unpins layerless non-object Place without a stale no-op',
+        (tester) async {
+      final container = ProviderContainer();
+      final editorKeepAlive = container.listen<EditorState>(
+        editorNotifierProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      final sessionKeepAlive = container.listen<WorldMapWorkspaceSession>(
+        worldMapWorkspaceSessionProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() {
+        sessionKeepAlive.close();
+        editorKeepAlive.close();
+        container.dispose();
+      });
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        activeMap: _layerlessMap,
+        activeTool: EditorToolType.entityPlacement,
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: PokeMapTheme.dark(),
+            home: Scaffold(
+              body: SizedBox(
+                width: 400,
+                height: 600,
+                child: AdaptiveMapInspector(
+                  bodyBuilder: (context, snapshot) => SizedBox(
+                    key: ValueKey<String>(
+                      'stub-inspector-${snapshot.kind.name}',
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final pin = find.byKey(
+        const ValueKey<String>('world-map-inspector-pin'),
+      );
+      expect(find.text('Placer'), findsOneWidget);
+      expect(tester.widget<PokeMapIconButton>(pin).tooltip,
+          'Épingler l’inspecteur');
+
+      await tester.tap(pin);
+      await tester.pump();
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).pinnedInspectorKind,
+        WorldMapInspectorKind.place,
+      );
+      expect(
+        container.read(worldMapInspectorSnapshotProvider).pinned,
+        isTrue,
+      );
+      expect(tester.widget<PokeMapIconButton>(pin).tooltip,
+          'Désépingler l’inspecteur');
+
+      await tester.tap(pin);
+      await tester.pump();
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).pinnedInspectorKind,
+        isNull,
+      );
+      expect(
+        container.read(worldMapInspectorSnapshotProvider).pinned,
+        isFalse,
+      );
+    });
+
+    testWidgets('disables pin when the visible tool context cannot stay pinned',
+        (tester) async {
+      final container = ProviderContainer();
+      final editorKeepAlive = container.listen<EditorState>(
+        editorNotifierProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      final sessionKeepAlive = container.listen<WorldMapWorkspaceSession>(
+        worldMapWorkspaceSessionProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() {
+        sessionKeepAlive.close();
+        editorKeepAlive.close();
+        container.dispose();
+      });
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        activeMap: _layerlessMap,
+        activeTool: EditorToolType.tilePaint,
+        activeBrush: EditorBrush.tile(tileId: 1, tilesetId: 'world'),
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: PokeMapTheme.dark(),
+            home: Scaffold(
+              body: SizedBox(
+                width: 400,
+                height: 600,
+                child: AdaptiveMapInspector(
+                  bodyBuilder: (context, snapshot) => SizedBox(
+                    key: ValueKey<String>(
+                      'stub-inspector-${snapshot.kind.name}',
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final pin = find.byKey(
+        const ValueKey<String>('world-map-inspector-pin'),
+      );
+      expect(find.text('Peindre'), findsOneWidget);
+      expect(tester.widget<PokeMapIconButton>(pin).onPressed, isNull);
+
+      await tester.tap(pin);
+      await tester.pump();
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).pinnedInspectorKind,
+        isNull,
+      );
+    });
   });
 }
 
@@ -271,4 +409,10 @@ const _map = MapData(
       tiles: <int>[],
     ),
   ],
+);
+
+const _layerlessMap = MapData(
+  id: 'layerless',
+  name: 'Layerless',
+  size: GridSize(width: 4, height: 4),
 );

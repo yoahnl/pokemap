@@ -3,8 +3,8 @@ import 'package:map_core/map_core.dart';
 
 import '../presentation/world_map/world_map_workspace_session.dart';
 import '../state/editor_selectors.dart';
-import '../tools/editor_tool.dart';
 import 'map_canvas_object_hit_test.dart';
+import 'world_map_observed_tool_family.dart';
 import 'world_map_tool_family.dart';
 
 typedef WorldMapInspectorSnapshot = ({
@@ -17,14 +17,32 @@ typedef WorldMapInspectorSnapshot = ({
 
 final worldMapInspectorSnapshotProvider =
     Provider<WorldMapInspectorSnapshot>((ref) {
-  return const WorldMapInspectorProjector().project(
+  return WorldMapInspectorProjector(
+    brushKind: ref.watch(editorWorldMapBrushKindProvider),
+  ).project(
     editor: ref.watch(editorWorldMapInspectorInputSnapshotProvider),
     session: ref.watch(worldMapWorkspaceSessionProvider),
   );
 });
 
+final worldMapInspectorCanPinProvider = Provider<bool>((ref) {
+  final editor = ref.watch(editorWorldMapInspectorInputSnapshotProvider);
+  final snapshot = ref.watch(worldMapInspectorSnapshotProvider);
+  return isWorldMapInspectorPinValid(
+    kind: snapshot.kind,
+    map: editor.activeMap,
+    activeLayerId: snapshot.activeLayerId,
+    objectTarget: snapshot.objectTarget,
+    cell: snapshot.cell,
+  );
+});
+
 final class WorldMapInspectorProjector {
-  const WorldMapInspectorProjector();
+  const WorldMapInspectorProjector({
+    this.brushKind = EditorWorldMapBrushKind.none,
+  });
+
+  final EditorWorldMapBrushKind brushKind;
 
   WorldMapInspectorSnapshot project({
     required EditorWorldMapInspectorInputSnapshot editor,
@@ -52,7 +70,7 @@ final class WorldMapInspectorProjector {
     final pinnedKind = session.pinnedInspectorKind;
 
     if (pinnedKind != null &&
-        _isValidPin(
+        isWorldMapInspectorPinValid(
           kind: pinnedKind,
           map: map,
           activeLayerId: activeLayerId,
@@ -68,9 +86,10 @@ final class WorldMapInspectorProjector {
       );
     }
 
-    final family = _resolveObservedFamily(
+    final family = resolveWorldMapObservedToolFamily(
       activeTool: editor.activeTool,
       session: session,
+      brushKind: brushKind,
     );
     final kind = switch (family) {
       WorldMapToolFamily.layers => WorldMapInspectorKind.layers,
@@ -136,7 +155,11 @@ GridPos? _resolveSelectedCell({
   return cell;
 }
 
-bool _isValidPin({
+/// Whether [kind] has enough live context to remain pinned.
+///
+/// Place is map-scoped because non-object placement tools do not require an
+/// active layer. Paint and Erase remain layer-scoped.
+bool isWorldMapInspectorPinValid({
   required WorldMapInspectorKind kind,
   required MapData? map,
   required String? activeLayerId,
@@ -147,41 +170,10 @@ bool _isValidPin({
     WorldMapInspectorKind.objectSelection => objectTarget != null,
     WorldMapInspectorKind.cellSelection => cell != null,
     WorldMapInspectorKind.paint ||
-    WorldMapInspectorKind.erase ||
-    WorldMapInspectorKind.place =>
+    WorldMapInspectorKind.erase =>
       map != null && activeLayerId != null,
+    WorldMapInspectorKind.place => map != null,
     WorldMapInspectorKind.layers => map != null,
     WorldMapInspectorKind.empty => false,
-  };
-}
-
-WorldMapToolFamily _resolveObservedFamily({
-  required EditorToolType activeTool,
-  required WorldMapWorkspaceSession session,
-}) {
-  return switch (activeTool) {
-    EditorToolType.selection =>
-      session.activeFamily == WorldMapToolFamily.layers
-          ? WorldMapToolFamily.layers
-          : WorldMapToolFamily.selection,
-    EditorToolType.tilePaint =>
-      session.activeFamily == WorldMapToolFamily.place &&
-              session.lastPlacementSubtool == WorldMapPlacementSubtool.object
-          ? WorldMapToolFamily.place
-          : WorldMapToolFamily.paint,
-    EditorToolType.terrainPaint ||
-    EditorToolType.surfacePaint ||
-    EditorToolType.collisionPaint ||
-    EditorToolType.borderPaint =>
-      WorldMapToolFamily.paint,
-    EditorToolType.eraser ||
-    EditorToolType.borderErase =>
-      WorldMapToolFamily.erase,
-    EditorToolType.entityPlacement ||
-    EditorToolType.eventPlacement ||
-    EditorToolType.triggerPlacement ||
-    EditorToolType.warpPlacement ||
-    EditorToolType.gameplayZonePlacement =>
-      WorldMapToolFamily.place,
   };
 }
