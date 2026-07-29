@@ -243,24 +243,3 @@ class _TilesetSelectionPainter extends CustomPainter {
         oldDelegate.selection != selection;
   }
 }
-
-class _PaletteImageCache {
-  static final Map<String, Future<ui.Image?>> _cache = {};
-
-  static Future<ui.Image?> load(String? path) {
-    if (path == null || path.isEmpty) return Future.value(null);
-    return _cache.putIfAbsent(path, () async {
-      try {
-        final file = File(path);
-        if (!await file.exists()) return null;
-        final bytes = await file.readAsBytes();
-        if (bytes.isEmpty) return null;
-        final codec = await ui.instantiateImageCodec(bytes);
-        final frame = await codec.getNextFrame();
-        return frame.image;
-      } catch (_) {
-        return null;
-      }
-    });
-  }
-}

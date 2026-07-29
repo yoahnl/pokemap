@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -24,6 +23,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
+import '../../app/providers/editor/editor_asset_cache_providers.dart';
 import '../../application/models/map_tool_preview.dart';
 import '../../application/models/path_autotile_set.dart';
 import '../../application/models/narrative_event_map_bridge_models.dart';
@@ -61,11 +61,13 @@ import '../../features/path_pattern/path_pattern_editor_render_resolution.dart';
 import '../../features/surface_painter/surface_layer_static_preview.dart';
 import '../../features/surface_painter/surface_tile_preview_resolver.dart';
 import 'entity_editor_element_visual.dart';
+import '../assets/editor_image_cache.dart';
 import 'map_canvas/map_canvas_navigation_controls.dart';
 import 'map_canvas/narrative_event_map_banner.dart';
 import 'narrative_studio/narrative_studio_navigation.dart';
 import 'shadow/editor_static_shadow_preview_painter.dart';
 import '../design_system/pokemap_badge.dart';
+import '../design_system/pokemap_diagnostic_callout.dart';
 import '../shared/map_workspace_empty_state.dart';
 import '../../theme/theme.dart';
 
@@ -92,6 +94,36 @@ bool _isEnvironmentMaskEditing(EditorState state, MapData map) {
         selectedAreaId: state.selectedEnvironmentAreaId,
       ) !=
       null;
+}
+
+String _mapCanvasImageFailureMessage(
+  Map<String, EditorImageFailure> failures,
+  ProjectManifest? project,
+) {
+  String tilesetLabel(String id) {
+    for (final tileset in project?.tilesets ?? const <ProjectTilesetEntry>[]) {
+      if (tileset.id == id) return tileset.name;
+    }
+    return id;
+  }
+
+  String reason(EditorImageFailureKind kind) => switch (kind) {
+        EditorImageFailureKind.invalidPath => 'aucun fichier associé',
+        EditorImageFailureKind.missingFile => 'fichier introuvable',
+        EditorImageFailureKind.emptyFile => 'fichier vide',
+        EditorImageFailureKind.readFailed => 'lecture impossible',
+        EditorImageFailureKind.decodeFailed => 'image illisible',
+        EditorImageFailureKind.cacheDisposed => 'session projet fermée',
+      };
+
+  final visible = failures.entries.take(3).map(
+        (entry) => '${tilesetLabel(entry.key)} : ${reason(entry.value.kind)}',
+      );
+  final remaining = failures.length - 3;
+  return [
+    ...visible,
+    if (remaining > 0) '$remaining autre${remaining > 1 ? 's' : ''}',
+  ].join(' · ');
 }
 
 @visibleForTesting
@@ -376,7 +408,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   Map<String, String> _lastTilesetPathsById = const {};
   Map<String, TilesetTransparentColor> _lastTilesetTransparentColorById =
       const {};
-  Future<Map<String, ui.Image?>>? _tilesetImagesFuture;
+  EditorImageCache? _lastTilesetImageCache;
+  Future<Map<String, EditorImageLoadResult>>? _tilesetImagesFuture;
+  int _tilesetImageRequestGeneration = 0;
   GridPos? _hoveredTile;
   GridPos? _hoveredBorderVertex;
   _MapCanvasObjectMovePreview? _objectMovePreview;
@@ -462,10 +496,12 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   }
 
   void _updateTilesetImagesFuture(
+    EditorImageCache? imageCache,
     Map<String, String> nextTilesetPathsById,
     Map<String, TilesetTransparentColor> nextTransparentColorByTilesetId,
   ) {
     if (_tilesetImagesFuture != null &&
+        identical(_lastTilesetImageCache, imageCache) &&
         mapEquals(_lastTilesetPathsById, nextTilesetPathsById) &&
         mapEquals(
           _lastTilesetTransparentColorById,
@@ -473,21 +509,47 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
         )) {
       return;
     }
+    _lastTilesetImageCache = imageCache;
+    _tilesetImageRequestGeneration += 1;
     _lastTilesetPathsById = Map<String, String>.from(nextTilesetPathsById);
     _lastTilesetTransparentColorById =
         Map<String, TilesetTransparentColor>.from(
       nextTransparentColorByTilesetId,
     );
-    _tilesetImagesFuture = _TilesetImageCache.loadMany(
-      _lastTilesetPathsById,
-      transparentColorByTilesetId: _lastTilesetTransparentColorById,
-    );
+    _tilesetImagesFuture = imageCache?.loadMany(
+          _lastTilesetPathsById,
+          variantKeyForId: (tilesetId) =>
+              'transparent:${_lastTilesetTransparentColorById[tilesetId]?.toHexRgb() ?? 'none'}',
+          transformForId: (tilesetId) {
+            final transparentColor =
+                _lastTilesetTransparentColorById[tilesetId];
+            if (transparentColor == null) return null;
+            return (bytes) {
+              try {
+                return applyTilesetTransparentColorToPngBytes(
+                  imageBytes: bytes,
+                  transparentColor: transparentColor,
+                );
+              } on Object {
+                return bytes;
+              }
+            };
+          },
+        ) ??
+        Future<Map<String, EditorImageLoadResult>>.value(
+          const <String, EditorImageLoadResult>{},
+        );
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final state = ref.watch(editorNotifierProvider);
+    final imageCache = switch (state.projectRootPath?.trim()) {
+      final root? when root.isNotEmpty =>
+        ref.watch(editorImageCacheProvider(root)),
+      _ => null,
+    };
     final bridgeState = ref.watch(narrativeEventMapBridgeControllerProvider);
     final narrativeNavigation =
         ref.watch(narrativeStudioNavigationControllerProvider);
@@ -522,6 +584,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       state.project,
     );
     _updateTilesetImagesFuture(
+      imageCache,
       tilesetPathsById,
       transparentColorByTilesetId,
     );
@@ -551,10 +614,23 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       zoom: state.zoom,
     );
 
-    return FutureBuilder<Map<String, ui.Image?>>(
+    return FutureBuilder<Map<String, EditorImageLoadResult>>(
+      key: ValueKey((
+        _lastTilesetImageCache,
+        _tilesetImageRequestGeneration,
+      )),
       future: _tilesetImagesFuture,
       builder: (context, snapshot) {
-        final tilesetImagesById = snapshot.data ?? const <String, ui.Image?>{};
+        final tilesetImageResults =
+            snapshot.data ?? const <String, EditorImageLoadResult>{};
+        final tilesetImagesById = <String, ui.Image?>{
+          for (final entry in tilesetImageResults.entries)
+            entry.key: entry.value.image,
+        };
+        final tilesetImageFailures = <String, EditorImageFailure>{
+          for (final entry in tilesetImageResults.entries)
+            if (entry.value.failure case final failure?) entry.key: failure,
+        };
         final tilesPerRowById = <String, int>{};
         if (settings.tileWidth > 0) {
           tilesetImagesById.forEach((tilesetId, image) {
@@ -1600,6 +1676,32 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           fit: StackFit.expand,
           children: [
             interactiveCanvas,
+            if (tilesetImageFailures.isNotEmpty)
+              Positioned(
+                left: 12,
+                top: 12,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: PokeMapDiagnosticCallout(
+                    severity: PokeMapDiagnosticSeverity.warning,
+                    title: 'Assets de carte indisponibles',
+                    message: _mapCanvasImageFailureMessage(
+                      tilesetImageFailures,
+                      state.project,
+                    ),
+                    actionLabel: state.projectRootPath?.trim().isEmpty == false
+                        ? 'Actualiser'
+                        : null,
+                    onAction: state.projectRootPath?.trim().isEmpty == false
+                        ? () => ref.invalidate(
+                              editorImageCacheProvider(
+                                state.projectRootPath!.trim(),
+                              ),
+                            )
+                        : null,
+                  ),
+                ),
+              ),
             Positioned(
               left: 12,
               right: 12,

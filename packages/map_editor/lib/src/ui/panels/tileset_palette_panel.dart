@@ -23,12 +23,15 @@ import 'package:map_editor/src/ui/panels/tileset_palette/widgets/shadow/element_
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
 
+import '../../app/providers/editor/editor_asset_cache_providers.dart';
 import '../../application/models/element_collision_truth_summary.dart';
 import '../../application/services/element_collision_authoring_service.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/models/editor_ui_modes.dart';
 import '../../features/editor/tools/editor_tool.dart';
+import '../assets/editor_image_cache.dart';
+import '../design_system/design_system.dart';
 import 'element_collision_editor_sheet.dart';
 import '../../theme/theme.dart';
 
@@ -42,6 +45,28 @@ part 'tileset_palette/widgets/placed_instances/placed_instances_section.dart';
 
 const ElementCollisionAuthoringService _elementCollisionAuthoringService =
     ElementCollisionAuthoringService();
+
+String _paletteImageFailureMessage(
+  EditorImageFailure? failure,
+  String assetPath,
+) {
+  return switch (failure?.kind) {
+    EditorImageFailureKind.missingFile =>
+      'Le fichier source de ce tileset est introuvable. '
+          'Vérifiez l’asset dans la bibliothèque puis réessayez.',
+    EditorImageFailureKind.emptyFile =>
+      'Le fichier source de ce tileset est vide.',
+    EditorImageFailureKind.readFailed =>
+      'Le fichier source existe mais ne peut pas être lu.',
+    EditorImageFailureKind.decodeFailed =>
+      'Le fichier source ne peut pas être décodé comme une image.',
+    EditorImageFailureKind.cacheDisposed =>
+      'La session projet qui possédait cette image est fermée.',
+    EditorImageFailureKind.invalidPath =>
+      'Aucun fichier image valide n’est associé à ce tileset.',
+    null => 'L’image du tileset ne peut pas être chargée ($assetPath).',
+  };
+}
 
 class _InspectorPulldownAction {
   const _InspectorPulldownAction({
@@ -80,12 +105,47 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   final ScrollController _selectionVerticalScrollController =
       ScrollController();
   String? _lastPlacedInstancesSignature;
+  EditorImageCache? _lastPaletteImageCache;
+  String? _lastPaletteImagePath;
+  Future<EditorImageLoadResult>? _paletteImageFuture;
 
   @override
   void dispose() {
     _selectionHorizontalScrollController.dispose();
     _selectionVerticalScrollController.dispose();
     super.dispose();
+  }
+
+  Future<EditorImageLoadResult> _resolvePaletteImageFuture(
+    EditorImageCache? imageCache,
+    String path,
+  ) {
+    if (_paletteImageFuture != null &&
+        identical(_lastPaletteImageCache, imageCache) &&
+        _lastPaletteImagePath == path) {
+      return _paletteImageFuture!;
+    }
+    _lastPaletteImageCache = imageCache;
+    _lastPaletteImagePath = path;
+    return _paletteImageFuture = imageCache?.load(path) ??
+        Future<EditorImageLoadResult>.value(
+          EditorImageLoadResult.failure(
+            EditorImageFailure(
+              kind: EditorImageFailureKind.invalidPath,
+              path: path,
+              message: 'No active project session owns this image.',
+            ),
+          ),
+        );
+  }
+
+  void _refreshProjectImages(String projectRoot) {
+    ref.invalidate(editorImageCacheProvider(projectRoot));
+    setState(() {
+      _lastPaletteImageCache = null;
+      _lastPaletteImagePath = null;
+      _paletteImageFuture = null;
+    });
   }
 
   /// Sélecteur type « menu déroulant » (ancré sous le contrôle), même look que les pilules inspecteur.
@@ -349,6 +409,10 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         ),
       );
     }
+    final projectRoot = paletteSnapshot.projectRootPath?.trim();
+    final imageCache = projectRoot == null || projectRoot.isEmpty
+        ? null
+        : ref.watch(editorImageCacheProvider(projectRoot));
     final sortedTilesets = List<ProjectTilesetEntry>.from(project.tilesets)
       ..sort((a, b) {
         final sortCompare = a.sortOrder.compareTo(b.sortOrder);
@@ -364,11 +428,18 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       _selectedCategoryId = null;
     }
 
-    return FutureBuilder<ui.Image?>(
-      future: _PaletteImageCache.load(selectedTilesetPath),
+    final imageFuture = _resolvePaletteImageFuture(
+      imageCache,
+      selectedTilesetPath,
+    );
+    return FutureBuilder<EditorImageLoadResult>(
+      key: ValueKey((imageCache, selectedTilesetPath)),
+      future: imageFuture,
       builder: (context, imageSnapshot) {
-        final image = imageSnapshot.data;
+        final result = imageSnapshot.data;
+        final image = result?.image;
         if (image == null) {
+          final failure = result?.failure;
           return Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -379,21 +450,27 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  'Tileset image unavailable',
-                  style: TextStyle(
-                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                PokeMapDiagnosticCallout(
+                  severity: PokeMapDiagnosticSeverity.error,
+                  title: 'Tileset image unavailable',
+                  message: _paletteImageFailureMessage(
+                    failure,
+                    selectedTilesetPath,
                   ),
+                  actionLabel: imageCache == null ? null : 'Réessayer',
+                  onAction: imageCache == null
+                      ? null
+                      : () => _refreshProjectImages(projectRoot!),
                 ),
                 const SizedBox(height: 12),
-                PushButton(
+                PokeMapButton(
                   key: const ValueKey('element-auto-shadow-backfill-button'),
-                  controlSize: ControlSize.small,
-                  secondary: true,
                   onPressed: () => _showApplyElementAutoShadowsDialog(
                     context,
                     notifier: notifier,
                   ),
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
                   child: const Text('Ombres auto'),
                 ),
               ],
@@ -454,9 +531,24 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     onSelected: notifier.selectTilesetEditorContext,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    '${columns * rows} tuiles',
-                    style: TextStyle(color: secondary, fontSize: 11),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${columns * rows} tuiles',
+                          style: TextStyle(color: secondary, fontSize: 11),
+                        ),
+                      ),
+                      PokeMapIconButton(
+                        key: const ValueKey('tileset-image-refresh-button'),
+                        onPressed: projectRoot == null
+                            ? null
+                            : () => _refreshProjectImages(projectRoot),
+                        icon: const Icon(CupertinoIcons.refresh, size: 14),
+                        tooltip: 'Actualiser les images du projet',
+                        size: 28,
+                      ),
+                    ],
                   ),
                   if (map == null)
                     Padding(
@@ -2317,7 +2409,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                           ),
                         );
                         if (picked != null) {
-                           setStateDialog(() => selectedCategoryId = picked);
+                          setStateDialog(() => selectedCategoryId = picked);
                         }
                       },
                       child: Text(
