@@ -356,6 +356,34 @@ void main() {
     expect(harnessKey.currentState!.newSelections, 1);
   });
 
+  testWidgets('rejects a rendered value removed by an in-place list mutation',
+      (tester) async {
+    final mutableItems = <PokeMapMenuItem<String>>[
+      const PokeMapMenuItem(value: 'safe', label: 'Action visible'),
+    ];
+    String? selected;
+
+    await tester.pumpWidget(
+      buildSubject(
+        onPressed: () {},
+        items: mutableItems,
+        onSelected: (value) => selected = value,
+      ),
+    );
+    await tester.tap(find.bySemanticsLabel('Choisir un outil'));
+    await tester.pump();
+
+    mutableItems[0] = const PokeMapMenuItem(
+      value: 'delete',
+      label: 'Action destructive invisible',
+      destructive: true,
+    );
+    await tester.tap(find.text('Action visible'));
+    await tester.pump();
+
+    expect(selected, isNull);
+  });
+
   testWidgets('clears hover and focus highlights across disable and re-enable',
       (tester) async {
     final harnessKey = GlobalKey<_ToggleSplitHarnessState>();

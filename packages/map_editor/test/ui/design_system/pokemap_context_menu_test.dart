@@ -48,6 +48,95 @@ void main() {
     expect(find.byType(PokeMapContextMenu<String>), findsNothing);
   });
 
+  testWidgets(
+      'selects the rendered item after its source list mutates in place',
+      (tester) async {
+    final mutableItems = <PokeMapMenuItem<String>>[
+      const PokeMapMenuItem(value: 'safe', label: 'Action visible'),
+    ];
+    String? selected;
+
+    await tester.pumpWidget(
+      _ContextMenuHarness(
+        items: mutableItems,
+        onSelected: (value) => selected = value,
+      ),
+    );
+    await tester.tap(find.text('Afficher'));
+    await tester.pump();
+
+    mutableItems[0] = const PokeMapMenuItem(
+      value: 'delete',
+      label: 'Action destructive invisible',
+      destructive: true,
+    );
+    expect(find.text('Action visible'), findsOneWidget);
+    expect(find.text('Action destructive invisible'), findsNothing);
+
+    await tester.tap(find.text('Action visible'));
+    await tester.pump();
+
+    expect(selected, 'safe');
+  });
+
+  testWidgets('keeps rendered rows safe after source length mutates in place',
+      (tester) async {
+    final mutableItems = <PokeMapMenuItem<String>>[
+      const PokeMapMenuItem(value: 'safe', label: 'Action persistante'),
+    ];
+    String? selected;
+
+    await tester.pumpWidget(
+      _ContextMenuHarness(
+        items: mutableItems,
+        onSelected: (value) => selected = value,
+      ),
+    );
+    await tester.tap(find.text('Afficher'));
+    await tester.pump();
+
+    mutableItems.clear();
+    await tester.tap(find.text('Action persistante'));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(selected, 'safe');
+  });
+
+  testWidgets('resnapshots a same-list length mutation on a real rebuild',
+      (tester) async {
+    final mutableItems = <PokeMapMenuItem<String>>[
+      const PokeMapMenuItem(value: 'safe', label: 'Action initiale'),
+    ];
+    final harnessKey = GlobalKey<_ContextMenuHarnessState>();
+    String? selected;
+
+    await tester.pumpWidget(
+      _ContextMenuHarness(
+        key: harnessKey,
+        items: mutableItems,
+        onSelected: (value) => selected = value,
+      ),
+    );
+    await tester.tap(find.text('Afficher'));
+    await tester.pump();
+
+    mutableItems.add(
+      const PokeMapMenuItem(value: 'second', label: 'Action ajoutée'),
+    );
+    harnessKey.currentState!.rebuildMenu();
+    await tester.pump();
+
+    expect(find.text('Action initiale'), findsOneWidget);
+    expect(find.text('Action ajoutée'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    expect(selected, 'second');
+  });
+
   testWidgets('exposes a disabled reason and never activates that entry',
       (tester) async {
     final semantics = tester.ensureSemantics();
@@ -458,6 +547,7 @@ class _ContextMenuHarness extends StatefulWidget {
     this.dividerAfter = const <int>{},
     this.invokerFocusNode,
     this.onDismissed,
+    super.key,
   });
 
   final List<PokeMapMenuItem<String>> items;
@@ -472,6 +562,10 @@ class _ContextMenuHarness extends StatefulWidget {
 
 class _ContextMenuHarnessState extends State<_ContextMenuHarness> {
   bool _isOpen = false;
+
+  void rebuildMenu() {
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {

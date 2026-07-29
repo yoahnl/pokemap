@@ -61,6 +61,7 @@ class PokeMapContextMenu<T> extends StatefulWidget {
 class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
   final FocusNode _menuFocusNode =
       FocusNode(debugLabel: 'context menu keyboard scope');
+  late List<PokeMapMenuItem<T>> _renderedItems;
   late List<FocusNode> _itemFocusNodes;
   int? _focusedIndex;
   bool _isDismissing = false;
@@ -68,6 +69,7 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
   @override
   void initState() {
     super.initState();
+    _renderedItems = List<PokeMapMenuItem<T>>.unmodifiable(widget.items);
     _createFocusNodes();
     WidgetsBinding.instance.addPostFrameCallback((_) => _focusFirstEnabled());
   }
@@ -75,28 +77,34 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
   @override
   void didUpdateWidget(covariant PokeMapContextMenu<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final previousItems = _renderedItems;
+    final nextItems = List<PokeMapMenuItem<T>>.unmodifiable(widget.items);
     final previousFocusedIndex = _focusedIndex;
     int? reconciledIndex;
     if (previousFocusedIndex != null &&
-        previousFocusedIndex < oldWidget.items.length) {
-      final focusedValue = oldWidget.items[previousFocusedIndex].value;
+        previousFocusedIndex < previousItems.length) {
+      final focusedValue = previousItems[previousFocusedIndex].value;
       final oldMatches =
-          oldWidget.items.where((item) => item.value == focusedValue).length;
+          previousItems.where((item) => item.value == focusedValue).length;
       final newMatches =
-          widget.items.where((item) => item.value == focusedValue).length;
+          nextItems.where((item) => item.value == focusedValue).length;
       if (oldMatches == 1 && newMatches == 1) {
         final candidateIndex =
-            widget.items.indexWhere((item) => item.value == focusedValue);
-        if (widget.items[candidateIndex].enabled) {
+            nextItems.indexWhere((item) => item.value == focusedValue);
+        if (nextItems[candidateIndex].enabled) {
           reconciledIndex = candidateIndex;
         }
       }
     }
 
-    if (oldWidget.items.length != widget.items.length) {
+    final lengthChanged = previousItems.length != nextItems.length;
+    if (lengthChanged) {
       for (final node in _itemFocusNodes) {
         node.dispose();
       }
+    }
+    _renderedItems = nextItems;
+    if (lengthChanged) {
       _createFocusNodes();
     }
     _focusedIndex = reconciledIndex;
@@ -104,8 +112,8 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
       if (!mounted) return;
       final targetIndex = _focusedIndex;
       if (targetIndex == null ||
-          targetIndex >= widget.items.length ||
-          !widget.items[targetIndex].enabled) {
+          targetIndex >= _renderedItems.length ||
+          !_renderedItems[targetIndex].enabled) {
         _focusFirstEnabled();
       } else {
         _focus(targetIndex);
@@ -124,15 +132,15 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
 
   void _createFocusNodes() {
     _itemFocusNodes = List<FocusNode>.generate(
-      widget.items.length,
+      _renderedItems.length,
       (index) => FocusNode(debugLabel: 'context menu item $index'),
     );
     _focusedIndex = null;
   }
 
   List<int> get _enabledIndices => <int>[
-        for (var index = 0; index < widget.items.length; index += 1)
-          if (widget.items[index].enabled) index,
+        for (var index = 0; index < _renderedItems.length; index += 1)
+          if (_renderedItems[index].enabled) index,
       ];
 
   void _focusFirstEnabled() {
@@ -147,8 +155,8 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
 
   void _focus(int index) {
     if (index < 0 ||
-        index >= widget.items.length ||
-        !widget.items[index].enabled) {
+        index >= _renderedItems.length ||
+        !_renderedItems[index].enabled) {
       return;
     }
     setState(() => _focusedIndex = index);
@@ -160,7 +168,7 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
         return;
       }
       final itemContext = _itemFocusNodes[index].context;
-      if (itemContext != null) {
+      if (itemContext != null && itemContext.mounted) {
         Scrollable.ensureVisible(
           itemContext,
           alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
@@ -182,14 +190,15 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
   void _activateFocused() {
     final index = _focusedIndex;
     if (index != null &&
-        index < widget.items.length &&
-        widget.items[index].enabled) {
+        index < _renderedItems.length &&
+        _renderedItems[index].enabled) {
       _select(index);
     }
   }
 
   void _select(int index) {
-    final item = widget.items[index];
+    if (index < 0 || index >= _renderedItems.length) return;
+    final item = _renderedItems[index];
     if (!item.enabled) return;
     if (!_dismiss()) return;
     widget.onSelected(item.value);
@@ -225,8 +234,8 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
     final colors = context.pokeMapColors;
     for (var index = 0; index < _itemFocusNodes.length; index += 1) {
       _itemFocusNodes[index]
-        ..canRequestFocus = widget.items[index].enabled
-        ..skipTraversal = !widget.items[index].enabled;
+        ..canRequestFocus = _renderedItems[index].enabled
+        ..skipTraversal = !_renderedItems[index].enabled;
     }
 
     return Positioned.fill(
@@ -263,11 +272,12 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
                   builder: (context, constraints) {
                     final dividerCount = widget.dividerAfter
                         .where(
-                          (index) => index >= 0 && index < widget.items.length,
+                          (index) =>
+                              index >= 0 && index < _renderedItems.length,
                         )
                         .length;
                     final contentHeight = (_menuVerticalPadding * 2) +
-                        (widget.items.length * _menuRowHeight) +
+                        (_renderedItems.length * _menuRowHeight) +
                         (dividerCount *
                             ((_menuDividerVerticalPadding * 2) +
                                 _menuDividerHeight));
@@ -294,10 +304,10 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   for (var index = 0;
-                                      index < widget.items.length;
+                                      index < _renderedItems.length;
                                       index += 1) ...[
                                     _PokeMapContextMenuRow<T>(
-                                      item: widget.items[index],
+                                      item: _renderedItems[index],
                                       focusNode: _itemFocusNodes[index],
                                       focused: _focusedIndex == index,
                                       onFocusChange: (focused) =>

@@ -183,6 +183,42 @@ import '../../domain/map_document.dart';
           isEmpty,
         );
       });
+
+      test('scans executable code inside a string interpolation', () {
+        const source = r'''
+final label = 'literal Color(0xFF999999) '
+    '${Color(0xFF010203)}';
+''';
+
+        expect(
+          _desktopInteractionSourceRegressions(
+            relativePath: syntheticPath,
+            source: source,
+          ),
+          const <String>[
+            '$syntheticPath:2: hard-coded Color literal',
+          ],
+        );
+      });
+
+      test('detects a hard-coded Color constructor across lines', () {
+        const source = '''
+final untouched = 0;
+final color = Color(
+  0xFF010203,
+);
+''';
+
+        expect(
+          _desktopInteractionSourceRegressions(
+            relativePath: syntheticPath,
+            source: source,
+          ),
+          const <String>[
+            '$syntheticPath:2: hard-coded Color literal',
+          ],
+        );
+      });
     });
   });
 }
@@ -229,16 +265,25 @@ List<String> _desktopInteractionSourceRegressions({
   };
   final scan = _scanDartSource(source);
   final regressions = <String>[];
-  final lines = scan.code.split('\n');
+  final sourceFindings = <_DartSourceFinding>[];
 
-  for (var index = 0; index < lines.length; index += 1) {
-    final line = lines[index];
-    for (final entry in forbiddenPatterns.entries) {
-      if (entry.key.hasMatch(line)) {
-        regressions.add('$relativePath:${index + 1}: ${entry.value}');
-      }
+  for (final entry in forbiddenPatterns.entries) {
+    for (final match in entry.key.allMatches(scan.code)) {
+      sourceFindings.add(
+        _DartSourceFinding(
+          offset: match.start,
+          line: _lineNumberAt(scan.code, match.start),
+          message: entry.value,
+        ),
+      );
     }
   }
+  sourceFindings.sort((left, right) => left.offset.compareTo(right.offset));
+  regressions.addAll(
+    sourceFindings.map(
+      (finding) => '$relativePath:${finding.line}: ${finding.message}',
+    ),
+  );
 
   for (final importReference in scan.importReferences) {
     final importUri = importReference.uri.replaceAll(r'\', '/');
@@ -259,6 +304,14 @@ List<String> _desktopInteractionSourceRegressions({
     }
   }
   return regressions;
+}
+
+int _lineNumberAt(String source, int offset) {
+  var line = 1;
+  for (var index = 0; index < offset; index += 1) {
+    if (source.codeUnitAt(index) == 10) line += 1;
+  }
+  return line;
 }
 
 _DartSourceScan _scanDartSource(String source) {
@@ -287,6 +340,19 @@ _DartSourceScan _scanDartSource(String source) {
       }
       index += 1;
     }
+  }
+
+  void appendStringLiteral(_DartStringLiteral literal) {
+    final masked = _maskStringLiteralCode(
+      source: source,
+      start: index,
+      literal: literal,
+    );
+    code.write(masked);
+    for (var offset = index; offset < literal.end; offset += 1) {
+      if (source[offset] == '\n') line += 1;
+    }
+    index = literal.end;
   }
 
   while (index < source.length) {
@@ -326,7 +392,7 @@ _DartSourceScan _scanDartSource(String source) {
           line: line,
         ),
       );
-      appendMaskedThrough(stringLiteral.end);
+      appendStringLiteral(stringLiteral);
       continue;
     }
 
@@ -363,6 +429,106 @@ _DartSourceScan _scanDartSource(String source) {
     code: code.toString(),
     importReferences: _extractImportReferences(tokens),
   );
+}
+
+String _maskStringLiteralCode({
+  required String source,
+  required int start,
+  required _DartStringLiteral literal,
+}) {
+  final segment = source.substring(start, literal.end);
+  final masked = List<String>.generate(
+    segment.length,
+    (index) => segment[index] == '\n' ? '\n' : ' ',
+  );
+  if (literal.isRaw) return masked.join();
+
+  var cursor = literal.valueStart;
+  while (cursor + 1 < literal.valueEnd) {
+    if (source[cursor] != r'$' ||
+        source[cursor + 1] != '{' ||
+        _isEscapedAt(source, cursor, literal.valueStart)) {
+      cursor += 1;
+      continue;
+    }
+
+    final expressionStart = cursor + 2;
+    final expressionEnd = _findInterpolationEnd(
+      source: source,
+      start: expressionStart,
+      limit: literal.valueEnd,
+    );
+    if (expressionEnd == null) break;
+
+    final expressionCode =
+        _scanDartSource(source.substring(expressionStart, expressionEnd)).code;
+    final relativeStart = expressionStart - start;
+    for (var index = 0; index < expressionCode.length; index += 1) {
+      masked[relativeStart + index] = expressionCode[index];
+    }
+    cursor = expressionEnd + 1;
+  }
+  return masked.join();
+}
+
+int? _findInterpolationEnd({
+  required String source,
+  required int start,
+  required int limit,
+}) {
+  var cursor = start;
+  var depth = 1;
+
+  while (cursor < limit) {
+    if (_startsWithAt(source, cursor, '//')) {
+      cursor += 2;
+      while (cursor < limit && source[cursor] != '\n') {
+        cursor += 1;
+      }
+      continue;
+    }
+    if (_startsWithAt(source, cursor, '/*')) {
+      cursor += 2;
+      var commentDepth = 1;
+      while (cursor < limit && commentDepth > 0) {
+        if (_startsWithAt(source, cursor, '/*')) {
+          commentDepth += 1;
+          cursor += 2;
+        } else if (_startsWithAt(source, cursor, '*/')) {
+          commentDepth -= 1;
+          cursor += 2;
+        } else {
+          cursor += 1;
+        }
+      }
+      continue;
+    }
+
+    final nestedString = _stringLiteralAt(source, cursor);
+    if (nestedString != null && nestedString.end <= limit) {
+      cursor = nestedString.end;
+      continue;
+    }
+
+    if (source[cursor] == '{') {
+      depth += 1;
+    } else if (source[cursor] == '}') {
+      depth -= 1;
+      if (depth == 0) return cursor;
+    }
+    cursor += 1;
+  }
+  return null;
+}
+
+bool _isEscapedAt(String source, int index, int lowerBound) {
+  var backslashCount = 0;
+  for (var cursor = index - 1;
+      cursor >= lowerBound && source[cursor] == r'\';
+      cursor -= 1) {
+    backslashCount += 1;
+  }
+  return backslashCount.isOdd;
 }
 
 List<_DartImportReference> _extractImportReferences(
@@ -451,6 +617,21 @@ _DartStringLiteral? _stringLiteralAt(String source, int index) {
   var cursor = valueStart;
 
   while (cursor < source.length) {
+    if (!isRaw &&
+        cursor + 1 < source.length &&
+        source[cursor] == r'$' &&
+        source[cursor + 1] == '{') {
+      final interpolationEnd = _findInterpolationEnd(
+        source: source,
+        start: cursor + 2,
+        limit: source.length,
+      );
+      if (interpolationEnd != null) {
+        cursor = interpolationEnd + 1;
+        continue;
+      }
+    }
+
     if (!isRaw && source[cursor] == '\\') {
       cursor += cursor + 1 < source.length ? 2 : 1;
       continue;
@@ -463,13 +644,19 @@ _DartStringLiteral? _stringLiteralAt(String source, int index) {
           source[cursor + 2] == quote) {
         return _DartStringLiteral(
           value: source.substring(valueStart, cursor),
+          valueStart: valueStart,
+          valueEnd: cursor,
           end: cursor + delimiterLength,
+          isRaw: isRaw,
         );
       }
     } else if (source[cursor] == quote) {
       return _DartStringLiteral(
         value: source.substring(valueStart, cursor),
+        valueStart: valueStart,
+        valueEnd: cursor,
         end: cursor + delimiterLength,
+        isRaw: isRaw,
       );
     }
     cursor += 1;
@@ -477,7 +664,10 @@ _DartStringLiteral? _stringLiteralAt(String source, int index) {
 
   return _DartStringLiteral(
     value: source.substring(valueStart),
+    valueStart: valueStart,
+    valueEnd: source.length,
     end: source.length,
+    isRaw: isRaw,
   );
 }
 
@@ -933,11 +1123,29 @@ class _DartToken {
 class _DartStringLiteral {
   const _DartStringLiteral({
     required this.value,
+    required this.valueStart,
+    required this.valueEnd,
     required this.end,
+    required this.isRaw,
   });
 
   final String value;
+  final int valueStart;
+  final int valueEnd;
   final int end;
+  final bool isRaw;
+}
+
+class _DartSourceFinding {
+  const _DartSourceFinding({
+    required this.offset,
+    required this.line,
+    required this.message,
+  });
+
+  final int offset;
+  final int line;
+  final String message;
 }
 
 class _DartImportReference {
