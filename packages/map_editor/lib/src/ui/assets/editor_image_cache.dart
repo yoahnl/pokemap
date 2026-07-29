@@ -29,19 +29,47 @@ class EditorImageFailure {
   final Object? cause;
 }
 
+/// A successful result owns one disposable consumer handle.
+///
+/// Call [dispose] when the consumer no longer paints or inspects [image].
 class EditorImageLoadResult {
-  const EditorImageLoadResult.success(ui.Image decodedImage)
+  EditorImageLoadResult.success(ui.Image decodedImage)
       : image = decodedImage,
-        failure = null;
+        failure = null,
+        _lease = _EditorImageConsumerLease();
 
   const EditorImageLoadResult.failure(EditorImageFailure loadFailure)
       : image = null,
-        failure = loadFailure;
+        failure = loadFailure,
+        _lease = null;
 
   final ui.Image? image;
   final EditorImageFailure? failure;
+  final _EditorImageConsumerLease? _lease;
 
   bool get isSuccess => image != null;
+
+  /// Releases this consumer's image handle without affecting cache masters or
+  /// handles owned by other consumers.
+  void release() {
+    final decodedImage = image;
+    if (decodedImage != null) {
+      _lease?.release(decodedImage);
+    }
+  }
+
+  /// Alias for [release], suitable for widget and owner lifecycle methods.
+  void dispose() => release();
+}
+
+class _EditorImageConsumerLease {
+  var _released = false;
+
+  void release(ui.Image image) {
+    if (_released) return;
+    _released = true;
+    image.dispose();
+  }
 }
 
 class EditorImageCacheDiagnostics {
@@ -190,7 +218,10 @@ class EditorImageCache {
     final current = _entries[slot];
     if (current != null && current.fingerprint == fingerprint) {
       _hits += 1;
-      return current.future;
+      return _acquireConsumer(
+        current.future,
+        canonicalPath: canonicalPath,
+      );
     }
 
     _misses += 1;
@@ -199,7 +230,7 @@ class EditorImageCache {
       _retire(current.future);
     }
 
-    late final Future<EditorImageLoadResult> future;
+    late final Future<_EditorImageMasterResult> future;
     future = _decode(
       canonicalPath,
       targetWidth: targetWidth,
@@ -222,7 +253,10 @@ class EditorImageCache {
         }
       }),
     );
-    return future;
+    return _acquireConsumer(
+      future,
+      canonicalPath: canonicalPath,
+    );
   }
 
   Future<Map<String, EditorImageLoadResult>> loadMany(
@@ -274,7 +308,7 @@ class EditorImageCache {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
-    final ownedFutures = <Future<EditorImageLoadResult>>{
+    final ownedFutures = <Future<_EditorImageMasterResult>>{
       ..._entries.values.map((entry) => entry.future),
     };
     _entries.clear();
@@ -290,7 +324,7 @@ class EditorImageCache {
     }
   }
 
-  Future<EditorImageLoadResult> _decode(
+  Future<_EditorImageMasterResult> _decode(
     String canonicalPath, {
     required int? targetWidth,
     required int? targetHeight,
@@ -302,7 +336,7 @@ class EditorImageCache {
       bytes = await File(canonicalPath).readAsBytes();
       if (bytes.isEmpty) {
         _readFailures += 1;
-        return EditorImageLoadResult.failure(
+        return _EditorImageMasterResult.failure(
           EditorImageFailure(
             kind: EditorImageFailureKind.emptyFile,
             path: canonicalPath,
@@ -315,7 +349,7 @@ class EditorImageCache {
       }
     } on Object catch (error) {
       _readFailures += 1;
-      return EditorImageLoadResult.failure(
+      return _EditorImageMasterResult.failure(
         EditorImageFailure(
           kind: EditorImageFailureKind.readFailed,
           path: canonicalPath,
@@ -336,7 +370,7 @@ class EditorImageCache {
       final frame = await codec.getNextFrame();
       if (_disposed) {
         _disposeImage(frame.image);
-        return EditorImageLoadResult.failure(
+        return _EditorImageMasterResult.failure(
           EditorImageFailure(
             kind: EditorImageFailureKind.cacheDisposed,
             path: canonicalPath,
@@ -344,10 +378,10 @@ class EditorImageCache {
           ),
         );
       }
-      return EditorImageLoadResult.success(frame.image);
+      return _EditorImageMasterResult.success(frame.image);
     } on Object catch (error) {
       _decodeFailures += 1;
-      return EditorImageLoadResult.failure(
+      return _EditorImageMasterResult.failure(
         EditorImageFailure(
           kind: EditorImageFailureKind.decodeFailed,
           path: canonicalPath,
@@ -367,7 +401,49 @@ class EditorImageCache {
     _disposedImages += 1;
   }
 
-  void _retire(Future<EditorImageLoadResult> future) {
+  Future<EditorImageLoadResult> _acquireConsumer(
+    Future<_EditorImageMasterResult> future, {
+    required String canonicalPath,
+  }) async {
+    final result = await future;
+    final failure = result.failure;
+    if (failure != null) {
+      return EditorImageLoadResult.failure(failure);
+    }
+    if (_disposed) {
+      return EditorImageLoadResult.failure(
+        EditorImageFailure(
+          kind: EditorImageFailureKind.cacheDisposed,
+          path: canonicalPath,
+          message: 'The project session closed while the image was loading.',
+        ),
+      );
+    }
+    final image = result.image;
+    if (image == null) {
+      return EditorImageLoadResult.failure(
+        EditorImageFailure(
+          kind: EditorImageFailureKind.decodeFailed,
+          path: canonicalPath,
+          message: 'The decoded image is unavailable.',
+        ),
+      );
+    }
+    try {
+      return EditorImageLoadResult.success(image.clone());
+    } on Object catch (error) {
+      return EditorImageLoadResult.failure(
+        EditorImageFailure(
+          kind: EditorImageFailureKind.cacheDisposed,
+          path: canonicalPath,
+          message: 'The project image became unavailable before acquisition.',
+          cause: error,
+        ),
+      );
+    }
+  }
+
+  void _retire(Future<_EditorImageMasterResult> future) {
     unawaited(
       future.then((result) {
         final image = result.image;
@@ -450,5 +526,18 @@ class _EditorImageCacheEntry {
   });
 
   final _EditorImageFingerprint fingerprint;
-  final Future<EditorImageLoadResult> future;
+  final Future<_EditorImageMasterResult> future;
+}
+
+class _EditorImageMasterResult {
+  const _EditorImageMasterResult.success(ui.Image decodedImage)
+      : image = decodedImage,
+        failure = null;
+
+  const _EditorImageMasterResult.failure(EditorImageFailure loadFailure)
+      : image = null,
+        failure = loadFailure;
+
+  final ui.Image? image;
+  final EditorImageFailure? failure;
 }

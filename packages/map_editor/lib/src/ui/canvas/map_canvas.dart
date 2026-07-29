@@ -487,12 +487,34 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   @override
   void dispose() {
     _entityEditorAnimTimer?.cancel();
+    _releaseTilesetImagesFuture(_tilesetImagesFuture);
+    _tilesetImagesFuture = null;
     _pressedMapPointers.clear();
     _latestMapPointerLocalPositions.clear();
     _clearTrackpadGesture();
     _mapFocusNode.dispose();
     _mapNavigationControlsFocusNode.dispose();
     super.dispose();
+  }
+
+  void _releaseTilesetImagesFuture(
+    Future<Map<String, EditorImageLoadResult>>? future,
+  ) {
+    if (future == null) return;
+    unawaited(
+      future.then<void>(
+        (results) {
+          final binding = WidgetsBinding.instance;
+          binding.addPostFrameCallback((_) {
+            for (final result in results.values) {
+              result.dispose();
+            }
+          });
+          binding.ensureVisualUpdate();
+        },
+        onError: (Object _, StackTrace __) {},
+      ),
+    );
   }
 
   void _updateTilesetImagesFuture(
@@ -509,6 +531,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
         )) {
       return;
     }
+    final previousFuture = _tilesetImagesFuture;
     _lastTilesetImageCache = imageCache;
     _tilesetImageRequestGeneration += 1;
     _lastTilesetPathsById = Map<String, String>.from(nextTilesetPathsById);
@@ -539,6 +562,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
         Future<Map<String, EditorImageLoadResult>>.value(
           const <String, EditorImageLoadResult>{},
         );
+    _releaseTilesetImagesFuture(previousFuture);
   }
 
   @override

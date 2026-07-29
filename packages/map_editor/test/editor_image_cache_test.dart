@@ -39,7 +39,7 @@ void main() {
     cache.dispose();
   });
 
-  test('reuses a decoded image while its file fingerprint is unchanged',
+  test('reuses decoded pixels through distinct consumer image handles',
       () async {
     final file = File('${tempDir.path}/tiles.png');
     await file.writeAsBytes(_png(width: 1, height: 1), flush: true);
@@ -49,11 +49,17 @@ void main() {
     final second = await cache.load(file.path);
 
     expect(first.image, isNotNull);
-    expect(identical(second.image, first.image), isTrue);
+    expect(identical(second.image, first.image), isFalse);
+    expect(second.image!.isCloneOf(first.image!), isTrue);
     expect(cache.diagnostics.entries, 1);
     expect(cache.diagnostics.misses, 1);
     expect(cache.diagnostics.hits, 1);
 
+    first.dispose();
+    expect(second.image!.debugDisposed, isFalse);
+    final secondConsumerClone = second.image!.clone();
+    secondConsumerClone.dispose();
+    second.dispose();
     cache.dispose();
   });
 
@@ -67,10 +73,13 @@ void main() {
     final first = await cache.load(file.path);
     final second = await cache.load(alias.path);
 
-    expect(identical(second.image, first.image), isTrue);
+    expect(identical(second.image, first.image), isFalse);
+    expect(second.image!.isCloneOf(first.image!), isTrue);
     expect(cache.diagnostics.entries, 1);
     expect(cache.diagnostics.hits, 1);
 
+    first.dispose();
+    second.dispose();
     cache.dispose();
   });
 
@@ -94,7 +103,12 @@ void main() {
     expect(cache.diagnostics.invalidations, 1);
     expect(cache.diagnostics.entries, 1);
     expect(cache.diagnostics.disposedImages, 1);
+    expect(first.image!.debugDisposed, isFalse);
+    final retainedConsumerClone = first.image!.clone();
+    retainedConsumerClone.dispose();
 
+    first.dispose();
+    second.dispose();
     cache.dispose();
   });
 
@@ -121,6 +135,7 @@ void main() {
 
     await tester.pump();
     expect(cache.diagnostics.disposedImages, 1);
+    expect(first.image!.debugDisposed, isFalse);
 
     cache.dispose();
     await tester.runAsync(() async {
@@ -128,6 +143,32 @@ void main() {
     });
     await tester.pump();
     expect(cache.diagnostics.disposedImages, 2);
+    expect(first.image!.debugDisposed, isFalse);
+    expect(second.image!.debugDisposed, isFalse);
+
+    first.dispose();
+    second.dispose();
+  });
+
+  test('consumer release is idempotent and independent from cache disposal',
+      () async {
+    final file = File('${tempDir.path}/tiles.png');
+    await file.writeAsBytes(_png(width: 1, height: 1), flush: true);
+    final cache = _immediateCache(tempDir);
+    final result = await cache.load(file.path);
+
+    cache.dispose();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(cache.diagnostics.disposedImages, 1);
+    expect(result.image!.debugDisposed, isFalse);
+    expect(result.image!.debugGetOpenHandleStackTraces(), hasLength(1));
+
+    result.release();
+    result.dispose();
+
+    expect(result.image!.debugDisposed, isTrue);
+    expect(result.image!.debugGetOpenHandleStackTraces(), isEmpty);
   });
 
   test('keeps decode variants isolated in the cache key', () async {
@@ -149,10 +190,17 @@ void main() {
 
     expect(original.image?.width, 1);
     expect(transformed.image?.width, 2);
-    expect(identical(transformedAgain.image, transformed.image), isTrue);
+    expect(identical(transformedAgain.image, transformed.image), isFalse);
+    expect(
+      transformedAgain.image!.isCloneOf(transformed.image!),
+      isTrue,
+    );
     expect(cache.diagnostics.entries, 2);
     expect(cache.diagnostics.hits, 1);
 
+    original.dispose();
+    transformed.dispose();
+    transformedAgain.dispose();
     cache.dispose();
   });
 
@@ -177,6 +225,7 @@ void main() {
     expect(recovered.image, isNotNull);
     expect(recovered.failure, isNull);
 
+    recovered.dispose();
     cache.dispose();
   });
 
@@ -196,6 +245,29 @@ void main() {
       EditorImageFailureKind.missingFile,
     );
 
+    for (final result in results.values) {
+      result.dispose();
+    }
+    cache.dispose();
+  });
+
+  test('bulk loading gives each consumer id its own image handle', () async {
+    final file = File('${tempDir.path}/tiles.png');
+    await file.writeAsBytes(_png(width: 1, height: 1), flush: true);
+    final cache = _immediateCache(tempDir);
+
+    final results = await cache.loadMany({
+      'ground': file.path,
+      'details': file.path,
+    });
+    final ground = results['ground']!;
+    final details = results['details']!;
+
+    expect(identical(ground.image, details.image), isFalse);
+    expect(ground.image!.isCloneOf(details.image!), isTrue);
+
+    ground.dispose();
+    details.dispose();
     cache.dispose();
   });
 
@@ -203,7 +275,7 @@ void main() {
     final file = File('${tempDir.path}/tiles.png');
     await file.writeAsBytes(_png(width: 1, height: 1), flush: true);
     final cache = _immediateCache(tempDir);
-    await cache.load(file.path);
+    final consumer = await cache.load(file.path);
 
     cache.dispose();
     cache.dispose();
@@ -211,8 +283,11 @@ void main() {
 
     expect(cache.diagnostics.isDisposed, isTrue);
     expect(cache.diagnostics.disposedImages, 1);
+    expect(consumer.image!.debugDisposed, isFalse);
     final afterDispose = await cache.load(file.path);
     expect(afterDispose.failure?.kind, EditorImageFailureKind.cacheDisposed);
+
+    consumer.dispose();
   });
 
   test('dispose owns an image that is still decoding', () async {

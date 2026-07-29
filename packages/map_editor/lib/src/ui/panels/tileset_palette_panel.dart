@@ -111,9 +111,27 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
 
   @override
   void dispose() {
+    _releasePaletteImageFuture(_paletteImageFuture);
+    _paletteImageFuture = null;
     _selectionHorizontalScrollController.dispose();
     _selectionVerticalScrollController.dispose();
     super.dispose();
+  }
+
+  void _releasePaletteImageFuture(
+    Future<EditorImageLoadResult>? future,
+  ) {
+    if (future == null) return;
+    unawaited(
+      future.then<void>(
+        (result) {
+          final binding = WidgetsBinding.instance;
+          binding.addPostFrameCallback((_) => result.dispose());
+          binding.ensureVisualUpdate();
+        },
+        onError: (Object _, StackTrace __) {},
+      ),
+    );
   }
 
   Future<EditorImageLoadResult> _resolvePaletteImageFuture(
@@ -125,9 +143,10 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         _lastPaletteImagePath == path) {
       return _paletteImageFuture!;
     }
+    final previousFuture = _paletteImageFuture;
     _lastPaletteImageCache = imageCache;
     _lastPaletteImagePath = path;
-    return _paletteImageFuture = imageCache?.load(path) ??
+    final nextFuture = imageCache?.load(path) ??
         Future<EditorImageLoadResult>.value(
           EditorImageLoadResult.failure(
             EditorImageFailure(
@@ -137,9 +156,13 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
             ),
           ),
         );
+    _paletteImageFuture = nextFuture;
+    _releasePaletteImageFuture(previousFuture);
+    return nextFuture;
   }
 
   void _refreshProjectImages(String projectRoot) {
+    _releasePaletteImageFuture(_paletteImageFuture);
     ref.invalidate(editorImageCacheProvider(projectRoot));
     setState(() {
       _lastPaletteImageCache = null;
