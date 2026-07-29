@@ -68,20 +68,32 @@ class WorldMapWorkspace extends ConsumerWidget {
             session.inspectorVisible && budget.inspectorIsOverlay;
         final inspectorIsDocked =
             session.inspectorVisible && !budget.inspectorIsOverlay;
-        final inspectorMaxWidth = math.max(
-          minInspectorWidth,
-          math.min(
-            maxInspectorWidth,
-            constraints.maxWidth -
-                explorerWidth -
-                PokeMapDesktopLayoutTokens.inspectorResizeHandleWidth -
-                PokeMapDesktopLayoutTokens.minCanvasWidth -
-                36,
-          ),
-        );
-        final inspectorWidth = session.inspectorWidth
-            .clamp(minInspectorWidth, inspectorMaxWidth)
-            .toDouble();
+
+        double inspectorMaxWidthFor(double targetExplorerWidth) {
+          return math.max(
+            minInspectorWidth,
+            math.min(
+              maxInspectorWidth,
+              constraints.maxWidth -
+                  targetExplorerWidth -
+                  PokeMapDesktopLayoutTokens.inspectorResizeHandleWidth -
+                  PokeMapDesktopLayoutTokens.minCanvasWidth -
+                  36,
+            ),
+          );
+        }
+
+        double inspectorWidthFor(double targetExplorerWidth) {
+          return session.inspectorWidth
+              .clamp(
+                minInspectorWidth,
+                inspectorMaxWidthFor(targetExplorerWidth),
+              )
+              .toDouble();
+        }
+
+        final inspectorMaxWidth = inspectorMaxWidthFor(explorerWidth);
+        final inspectorWidth = inspectorWidthFor(explorerWidth);
 
         void collapseExplorer() {
           controller
@@ -90,7 +102,25 @@ class WorldMapWorkspace extends ConsumerWidget {
         }
 
         void reopenExplorer() {
-          if (!budget.explorerIsExpanded && session.inspectorVisible) {
+          final prospectiveBudget = PokeMapDesktopLayout.resolve(
+            Size(constraints.maxWidth, appWindow.height),
+            explorerExpanded: true,
+            inspectorVisible: session.inspectorVisible,
+          );
+          const prospectiveExplorerWidth =
+              PokeMapDesktopLayoutTokens.explorerExpandedWidth;
+          final prospectiveInspectorWidth =
+              inspectorWidthFor(prospectiveExplorerWidth);
+          final prospectiveCanvasWidth = constraints.maxWidth -
+              prospectiveExplorerWidth -
+              prospectiveBudget.resizeHandleWidth -
+              prospectiveInspectorWidth -
+              36;
+          final inspectorCanRemainVisible =
+              prospectiveBudget.explorerIsExpanded &&
+                  prospectiveCanvasWidth >=
+                      PokeMapDesktopLayoutTokens.minCanvasWidth;
+          if (!inspectorCanRemainVisible && session.inspectorVisible) {
             controller.setInspectorVisible(false);
           }
           controller.setExplorerExpanded(true);
@@ -281,18 +311,21 @@ class _WorldMapInspectorRegion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      key: const ValueKey<String>('right-inspector-region'),
-      width: width,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 18, 16, 18),
-        child: PokeMapPanel(
-          padding: EdgeInsets.zero,
-          expandChild: true,
-          borderRadius: 32,
-          child: KeyedSubtree(
-            key: const ValueKey<String>('world-map-inspector-slot'),
-            child: child,
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        key: const ValueKey<String>('right-inspector-region'),
+        width: width,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 18, 16, 18),
+          child: PokeMapPanel(
+            padding: EdgeInsets.zero,
+            expandChild: true,
+            borderRadius: 32,
+            child: KeyedSubtree(
+              key: const ValueKey<String>('world-map-inspector-slot'),
+              child: child,
+            ),
           ),
         ),
       ),

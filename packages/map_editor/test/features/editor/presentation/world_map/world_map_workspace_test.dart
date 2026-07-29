@@ -176,6 +176,27 @@ void main() {
         container.read(worldMapWorkspaceSessionProvider).inspectorVisible,
         isTrue,
       );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('project-explorer-reopen-toggle'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        container.read(worldMapWorkspaceSessionProvider),
+        isA<WorldMapWorkspaceSession>()
+            .having((session) => session.explorerExpanded, 'explorer', isTrue)
+            .having(
+              (session) => session.inspectorVisible,
+              'compact inspector',
+              isFalse,
+            ),
+      );
+      expect(
+        _opacity(tester, 'project-explorer-expanded-state'),
+        1,
+      );
       expect(tester.takeException(), isNull);
     });
 
@@ -255,6 +276,99 @@ void main() {
       );
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+        'reopens the Explorer beside a docked inspector when both fit',
+        (tester) async {
+      final container = await _pumpWorkspace(
+        tester,
+        surfaceSize: const Size(1280, 800),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('project-explorer-toggle')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        container.read(worldMapWorkspaceSessionProvider),
+        isA<WorldMapWorkspaceSession>()
+            .having((session) => session.explorerExpanded, 'explorer', isFalse)
+            .having((session) => session.inspectorVisible, 'inspector', isTrue),
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('project-explorer-reopen-toggle'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        container.read(worldMapWorkspaceSessionProvider),
+        isA<WorldMapWorkspaceSession>()
+            .having((session) => session.explorerExpanded, 'explorer', isTrue)
+            .having((session) => session.inspectorVisible, 'inspector', isTrue),
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('world-map-inspector-dock'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .getSize(
+              find.byKey(
+                const ValueKey<String>('world-map-canvas-region'),
+              ),
+            )
+            .width,
+        greaterThanOrEqualTo(PokeMapDesktopLayoutTokens.minCanvasWidth),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'compact inspector overlay absorbs padding pointers and keeps controls interactive',
+        (tester) async {
+      var inspectorPressCount = 0;
+      await _pumpWorkspace(
+        tester,
+        surfaceSize: const Size(800, 600),
+        onInspectorPressed: () => inspectorPressCount++,
+      );
+      final mapFocus = tester
+          .widget<Focus>(
+            find.byKey(const ValueKey<String>('map-canvas-focus')),
+          )
+          .focusNode!;
+      mapFocus.unfocus();
+      await tester.pump();
+      expect(mapFocus.hasFocus, isFalse);
+
+      final inspectorRect = tester.getRect(
+        find.byKey(const ValueKey<String>('right-inspector-region')),
+      );
+      await tester.tapAt(
+        Offset(inspectorRect.left + 4, inspectorRect.center.dy),
+      );
+      await tester.pump();
+
+      expect(
+        mapFocus.hasFocus,
+        isFalse,
+        reason: 'overlay padding must not pass the pointer to MapCanvas',
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('workspace-test-inspector-action'),
+        ),
+      );
+      await tester.pump();
+      expect(inspectorPressCount, 1);
+      expect(tester.takeException(), isNull);
+    });
   });
 }
 
@@ -263,6 +377,7 @@ Future<ProviderContainer> _pumpWorkspace(
   required Size surfaceSize,
   FocusNode? toolFocusNode,
   FocusNode? inspectorFocusNode,
+  VoidCallback? onInspectorPressed,
 }) async {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(_appkitUiElementColorsChannel, (call) async {
@@ -309,8 +424,18 @@ Future<ProviderContainer> _pumpWorkspace(
                 'workspace-test-inspector-focus',
               ),
               focusNode: inspectorFocusNode,
-              child: const SizedBox.expand(
-                child: Center(child: Text('Legacy inspector slot')),
+              child: SizedBox.expand(
+                child: Center(
+                  child: onInspectorPressed == null
+                      ? const Text('Legacy inspector slot')
+                      : PokeMapButton(
+                          key: const ValueKey<String>(
+                            'workspace-test-inspector-action',
+                          ),
+                          onPressed: onInspectorPressed,
+                          child: const Text('Inspector action'),
+                        ),
+                ),
               ),
             ),
             stageHeaderSlot: const SizedBox(
