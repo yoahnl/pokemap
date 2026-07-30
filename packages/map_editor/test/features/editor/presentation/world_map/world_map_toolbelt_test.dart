@@ -344,7 +344,7 @@ void main() {
         find.byWidgetPredicate(
           (widget) =>
               widget is Semantics &&
-              widget.properties.label == 'Peindre · Paths' &&
+              widget.properties.label == 'Peindre · Chemins' &&
               widget.properties.selected == true,
         ),
         findsOneWidget,
@@ -417,7 +417,7 @@ void main() {
       ),
       (
         subtool: WorldMapPaintSubtool.path,
-        label: 'Paths',
+        label: 'Chemins',
         layerId: 'path',
         expectedTool: EditorToolType.terrainPaint,
         expectedTerrainMode: TerrainSelectionMode.path,
@@ -478,7 +478,7 @@ void main() {
             );
           }
         } else {
-          expect(rejectionReason, isNotEmpty);
+          expect(rejectionReason, isNull);
           expect(
             container.read(editorNotifierProvider).activeTool,
             EditorToolType.selection,
@@ -487,9 +487,133 @@ void main() {
             container.read(worldMapWorkspaceSessionProvider).activeFamily,
             WorldMapToolFamily.selection,
           );
+          expect(
+            container.read(worldMapPaintInspectionIntentProvider)?.kind,
+            WorldMapPaintInspectionIntentKind.missingLayer,
+          );
         }
       });
     }
+
+    testWidgets(
+      'Paint routes from a TileLayer to the sole compatible layer atomically',
+      (tester) async {
+        final container = _containerWith(_paintState('tile'));
+        final beforeMap = container.read(editorNotifierProvider).activeMap;
+        String? rejectionReason;
+        await _pumpToolbelt(
+          tester,
+          container,
+          onActivationRejected: (reason) => rejectionReason = reason,
+        );
+
+        await tester.tap(
+          find.bySemanticsLabel('Choisir un outil de peinture'),
+        );
+        await tester.pump();
+        await tester.tap(find.text('Terrain'));
+        await tester.pump();
+
+        final editor = container.read(editorNotifierProvider);
+        expect(rejectionReason, isNull);
+        expect(editor.activeLayerId, 'terrain');
+        expect(editor.activeTool, EditorToolType.terrainPaint);
+        expect(editor.activeMap, same(beforeMap));
+        expect(editor.mapUndoStack, isEmpty);
+        expect(editor.mapRedoStack, isEmpty);
+        expect(editor.isDirty, isFalse);
+        expect(
+          container.read(worldMapWorkspaceSessionProvider).activeFamily,
+          WorldMapToolFamily.paint,
+        );
+        expect(
+          container.read(worldMapPaintInspectionIntentProvider),
+          isNull,
+        );
+      },
+    );
+
+    testWidgets(
+      'Paint opens a mutation-free layer choice when several layers match',
+      (tester) async {
+        final initial = _paintState('tile').copyWith(
+          activeMap: _paintMap.copyWith(
+            layers: <MapLayer>[
+              ..._paintMap.layers,
+              const TerrainLayer(
+                id: 'terrain-secondary',
+                name: 'Terrain secondaire',
+              ),
+            ],
+          ),
+        );
+        final container = _containerWith(initial);
+        final beforeSession = container.read(worldMapWorkspaceSessionProvider);
+        String? rejectionReason;
+        await _pumpToolbelt(
+          tester,
+          container,
+          onActivationRejected: (reason) => rejectionReason = reason,
+        );
+
+        await tester.tap(
+          find.bySemanticsLabel('Choisir un outil de peinture'),
+        );
+        await tester.pump();
+        await tester.tap(find.text('Terrain'));
+        await tester.pump();
+
+        final intent = container.read(worldMapPaintInspectionIntentProvider);
+        expect(rejectionReason, isNull);
+        expect(container.read(editorNotifierProvider), same(initial));
+        expect(
+          container.read(worldMapWorkspaceSessionProvider),
+          same(beforeSession),
+        );
+        expect(intent?.kind, WorldMapPaintInspectionIntentKind.layerChoice);
+        expect(
+          intent?.compatibleLayerIds,
+          const <String>['terrain', 'terrain-secondary'],
+        );
+      },
+    );
+
+    testWidgets(
+      'Paint opens French missing-layer guidance without technical rejection',
+      (tester) async {
+        final initial = _tileState();
+        final container = _containerWith(initial);
+        final beforeSession = container.read(worldMapWorkspaceSessionProvider);
+        String? rejectionReason;
+        await _pumpToolbelt(
+          tester,
+          container,
+          onActivationRejected: (reason) => rejectionReason = reason,
+        );
+
+        await tester.tap(
+          find.bySemanticsLabel('Choisir un outil de peinture'),
+        );
+        await tester.pump();
+        await tester.tap(find.text('Collision'));
+        await tester.pump();
+
+        final intent = container.read(worldMapPaintInspectionIntentProvider);
+        expect(rejectionReason, isNull);
+        expect(container.read(editorNotifierProvider), same(initial));
+        expect(
+          container.read(worldMapWorkspaceSessionProvider),
+          same(beforeSession),
+        );
+        expect(intent?.kind, WorldMapPaintInspectionIntentKind.missingLayer);
+        expect(intent?.subtool, WorldMapPaintSubtool.collision);
+        expect(
+          container.read(editorNotifierProvider).mapUndoStack,
+          isEmpty,
+        );
+        expect(container.read(editorNotifierProvider).isDirty, isFalse);
+      },
+    );
 
     for (final entry
         in <WorldMapPlacementSubtool, ({String label, EditorToolType tool})>{
@@ -583,11 +707,9 @@ void main() {
       },
     );
 
-    testWidgets('rejected split choice preserves editor and session state',
+    testWidgets('split choice routes to the sole compatible TileLayer',
         (tester) async {
       final container = _containerWith(_paintState('terrain'));
-      final beforeEditor = container.read(editorNotifierProvider);
-      final beforeSession = container.read(worldMapWorkspaceSessionProvider);
       String? rejectionReason;
       await _pumpToolbelt(
         tester,
@@ -602,13 +724,22 @@ void main() {
       await tester.tap(find.text('Éléments'));
       await tester.pump();
 
-      expect(rejectionReason, isNotEmpty);
-      expect(container.read(editorNotifierProvider), beforeEditor);
-      expect(container.read(worldMapWorkspaceSessionProvider), beforeSession);
+      expect(rejectionReason, isNull);
+      expect(container.read(editorNotifierProvider).activeLayerId, 'tile');
+      expect(
+        container.read(editorNotifierProvider).activeTool,
+        EditorToolType.tilePaint,
+      );
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).activeFamily,
+        WorldMapToolFamily.paint,
+      );
+      expect(container.read(editorNotifierProvider).mapUndoStack, isEmpty);
+      expect(container.read(editorNotifierProvider).isDirty, isFalse);
     });
 
     testWidgets(
-      'rejected Surface setup opens UI intent without arming editor or session',
+      'Surface setup opens UI intent without technical rejection',
       (tester) async {
         final container = _containerWith(
           _paintState('surface').copyWith(
@@ -631,7 +762,7 @@ void main() {
         await tester.tap(find.text('Surfaces'));
         await tester.pump();
 
-        expect(rejectionReason, 'Select an available surface before painting.');
+        expect(rejectionReason, isNull);
         expect(container.read(editorNotifierProvider), same(beforeEditor));
         expect(
           container.read(worldMapWorkspaceSessionProvider),
@@ -640,7 +771,11 @@ void main() {
         expect(
           container.read(worldMapPaintInspectionIntentProvider),
           const WorldMapPaintInspectionIntent(
-            mapId: 'map-a',
+            scope: (
+              projectRootPath: null,
+              activeMapPath: null,
+              activeMapId: 'map-a',
+            ),
             layerId: 'surface',
             subtool: WorldMapPaintSubtool.surface,
           ),
@@ -651,7 +786,7 @@ void main() {
     );
 
     testWidgets(
-      'rejected empty Border setup opens UI intent without arming editor',
+      'empty Border setup opens UI intent without technical rejection',
       (tester) async {
         final container = _containerWith(_emptyBorderState());
         final beforeEditor = container.read(editorNotifierProvider);
@@ -670,10 +805,7 @@ void main() {
         await tester.tap(find.text('Bordures'));
         await tester.pump();
 
-        expect(
-          rejectionReason,
-          'Sélectionnez ou créez une bordure dans ce calque.',
-        );
+        expect(rejectionReason, isNull);
         expect(container.read(editorNotifierProvider), same(beforeEditor));
         expect(
           container.read(worldMapWorkspaceSessionProvider),
@@ -682,7 +814,11 @@ void main() {
         expect(
           container.read(worldMapPaintInspectionIntentProvider),
           const WorldMapPaintInspectionIntent(
-            mapId: 'border-map',
+            scope: (
+              projectRootPath: null,
+              activeMapPath: null,
+              activeMapId: 'border-map',
+            ),
             layerId: 'border',
             subtool: WorldMapPaintSubtool.border,
           ),
@@ -691,11 +827,9 @@ void main() {
     );
 
     testWidgets(
-      'wrong-layer rejection never opens setup intent',
+      'wrong-layer Surface choice routes to the sole SurfaceLayer',
       (tester) async {
         final container = _containerWith(_paintState('terrain'));
-        final beforeEditor = container.read(editorNotifierProvider);
-        final beforeSession = container.read(worldMapWorkspaceSessionProvider);
         await _pumpToolbelt(tester, container);
 
         await tester.tap(
@@ -705,10 +839,14 @@ void main() {
         await tester.tap(find.text('Surfaces'));
         await tester.pump();
 
-        expect(container.read(editorNotifierProvider), same(beforeEditor));
+        expect(container.read(editorNotifierProvider).activeLayerId, 'surface');
         expect(
-          container.read(worldMapWorkspaceSessionProvider),
-          same(beforeSession),
+          container.read(editorNotifierProvider).activeTool,
+          EditorToolType.surfacePaint,
+        );
+        expect(
+          container.read(worldMapWorkspaceSessionProvider).activeFamily,
+          WorldMapToolFamily.paint,
         );
         expect(
           container.read(worldMapPaintInspectionIntentProvider),
@@ -1002,10 +1140,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(
-        rejectionReason,
-        'Sélectionnez ou créez une bordure dans ce calque.',
-      );
+      expect(rejectionReason, isNull);
       expect(editor.state, same(beforeEditor));
       expect(
         container.read(worldMapWorkspaceSessionProvider),
@@ -1014,7 +1149,11 @@ void main() {
       expect(
         container.read(worldMapPaintInspectionIntentProvider),
         const WorldMapPaintInspectionIntent(
-          mapId: 'map-a',
+          scope: (
+            projectRootPath: null,
+            activeMapPath: null,
+            activeMapId: 'map-a',
+          ),
           layerId: 'border',
           subtool: WorldMapPaintSubtool.border,
         ),
@@ -1059,7 +1198,7 @@ void main() {
         find.byWidgetPredicate(
           (widget) =>
               widget is Semantics &&
-              widget.properties.label == 'Peindre · Paths' &&
+              widget.properties.label == 'Peindre · Chemins' &&
               widget.properties.selected == true,
         ),
         findsOneWidget,

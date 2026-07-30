@@ -9,6 +9,7 @@ import '../../../../ui/panels/layers_panel_presentation.dart';
 import '../../application/map_layer_deletion_impact.dart';
 import '../../state/editor_notifier.dart';
 import 'world_map_layer_mutation_dialogs.dart';
+import 'world_map_workspace_session.dart';
 
 enum WorldMapLayerCreationKind {
   tile,
@@ -42,6 +43,7 @@ class WorldMapLayersInspector extends ConsumerWidget {
       ),
     );
     final notifier = ref.read(editorNotifierProvider.notifier);
+    final session = ref.read(worldMapWorkspaceSessionProvider.notifier);
     final map = snapshot.map;
     if (map == null) {
       return const PokeMapEmptyState(
@@ -106,6 +108,7 @@ class WorldMapLayersInspector extends ConsumerWidget {
                   ),
                   row: rows[index],
                   notifier: notifier,
+                  session: session,
                   readActiveMap: () =>
                       ref.read(editorNotifierProvider).activeMap,
                   onRenameRequested: onRenameRequested,
@@ -124,6 +127,7 @@ final class _WorldMapLayerRow extends StatelessWidget {
   const _WorldMapLayerRow({
     required this.row,
     required this.notifier,
+    required this.session,
     required this.readActiveMap,
     required this.onRenameRequested,
     required this.onDeleteRequested,
@@ -132,6 +136,7 @@ final class _WorldMapLayerRow extends StatelessWidget {
 
   final LayerPanelPresentationRow row;
   final EditorNotifier notifier;
+  final WorldMapWorkspaceSessionController session;
   final MapData? Function() readActiveMap;
   final WorldMapLayerRenameRequested onRenameRequested;
   final WorldMapLayerDeleteRequested onDeleteRequested;
@@ -161,7 +166,7 @@ final class _WorldMapLayerRow extends StatelessWidget {
                   child: PokeMapButton(
                     key: ValueKey<String>('world-map-layer-activate-$layerId'),
                     onPressed: row.activation.enabled
-                        ? () => notifier.setActiveLayer(layerId)
+                        ? () => session.setActiveLayer(notifier, layerId)
                         : null,
                     variant: PokeMapButtonVariant.ghost,
                     size: PokeMapButtonSize.compact,
@@ -424,7 +429,7 @@ String _creationKindLabel(WorldMapLayerCreationKind kind) {
     WorldMapLayerCreationKind.tile => 'Couche de tuiles (Tile)',
     WorldMapLayerCreationKind.collision => 'Couche de collision',
     WorldMapLayerCreationKind.terrain => 'Couche de terrain',
-    WorldMapLayerCreationKind.path => 'Couche de chemin (Path)',
+    WorldMapLayerCreationKind.path => 'Couche de chemin',
     WorldMapLayerCreationKind.object => 'Couche d’objets',
     WorldMapLayerCreationKind.environment => 'Couche d’environnement',
     WorldMapLayerCreationKind.border => 'Couche de bordures',

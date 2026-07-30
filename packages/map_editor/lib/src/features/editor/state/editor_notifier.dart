@@ -192,8 +192,13 @@ class EditorNotifier extends _$EditorNotifier
   EditorState get currentState => state;
 
   @override
+  MapData? get worldMapToolActivationMap => state.activeMap;
+
+  @override
   WorldMapToolActivationSessionSnapshot
       get worldMapToolActivationSessionSnapshot => (
+            projectRootPath: state.projectRootPath,
+            activeMapPath: state.activeMapPath,
             activeMapId: state.activeMap?.id,
             activeLayerId: state.activeLayerId,
             activeTool: state.activeTool,

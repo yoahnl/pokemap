@@ -67,12 +67,54 @@ typedef WorldMapToolActivationAssessment = ({
 });
 
 typedef WorldMapToolActivationSessionSnapshot = ({
+  String? projectRootPath,
+  String? activeMapPath,
   String? activeMapId,
   String? activeLayerId,
   EditorToolType activeTool,
 });
 
+typedef WorldMapDocumentScope = ({
+  String? projectRootPath,
+  String? activeMapPath,
+  String? activeMapId,
+});
+
+WorldMapDocumentScope worldMapDocumentScopeFromState(EditorState state) {
+  return (
+    projectRootPath: state.projectRootPath,
+    activeMapPath: state.activeMapPath,
+    activeMapId: state.activeMap?.id,
+  );
+}
+
+WorldMapDocumentScope worldMapDocumentScopeFromSnapshot(
+  WorldMapToolActivationSessionSnapshot snapshot,
+) {
+  return (
+    projectRootPath: snapshot.projectRootPath,
+    activeMapPath: snapshot.activeMapPath,
+    activeMapId: snapshot.activeMapId,
+  );
+}
+
+enum WorldMapPaintLayerRoutingKind {
+  current,
+  remembered,
+  unique,
+  choice,
+  missing,
+}
+
+typedef WorldMapPaintLayerRouting = ({
+  WorldMapPaintLayerRoutingKind kind,
+  String? targetLayerId,
+  List<String> compatibleLayerIds,
+});
+
 abstract interface class WorldMapToolActivationHost {
+  MapData? get worldMapToolActivationMap;
+
   WorldMapToolActivationSessionSnapshot
       get worldMapToolActivationSessionSnapshot;
 
@@ -86,6 +128,64 @@ abstract interface class WorldMapToolActivationHost {
   });
 
   void setActiveLayer(String layerId);
+}
+
+WorldMapPaintLayerRouting resolveWorldMapPaintLayerRouting({
+  required MapData map,
+  required String? activeLayerId,
+  required WorldMapPaintSubtool subtool,
+  String? rememberedLayerId,
+}) {
+  // Compatibility is deliberately type-only here. Surface presets and border
+  // features are setup prerequisites handled by the canonical activation
+  // preflight after a destination layer has been resolved.
+  final compatibleLayerIds = map.layers
+      .where((layer) => isWorldMapPaintLayerCompatible(subtool, layer))
+      .map((layer) => layer.id)
+      .toList(growable: false);
+  if (activeLayerId != null && compatibleLayerIds.contains(activeLayerId)) {
+    return (
+      kind: WorldMapPaintLayerRoutingKind.current,
+      targetLayerId: activeLayerId,
+      compatibleLayerIds: compatibleLayerIds,
+    );
+  }
+  if (rememberedLayerId != null &&
+      compatibleLayerIds.contains(rememberedLayerId)) {
+    return (
+      kind: WorldMapPaintLayerRoutingKind.remembered,
+      targetLayerId: rememberedLayerId,
+      compatibleLayerIds: compatibleLayerIds,
+    );
+  }
+  if (compatibleLayerIds.length == 1) {
+    return (
+      kind: WorldMapPaintLayerRoutingKind.unique,
+      targetLayerId: compatibleLayerIds.single,
+      compatibleLayerIds: compatibleLayerIds,
+    );
+  }
+  return (
+    kind: compatibleLayerIds.isEmpty
+        ? WorldMapPaintLayerRoutingKind.missing
+        : WorldMapPaintLayerRoutingKind.choice,
+    targetLayerId: null,
+    compatibleLayerIds: compatibleLayerIds,
+  );
+}
+
+bool isWorldMapPaintLayerCompatible(
+  WorldMapPaintSubtool subtool,
+  MapLayer layer,
+) {
+  return switch (subtool) {
+    WorldMapPaintSubtool.tile => layer is TileLayer,
+    WorldMapPaintSubtool.terrain => layer is TerrainLayer,
+    WorldMapPaintSubtool.path => layer is PathLayer,
+    WorldMapPaintSubtool.surface => layer is SurfaceLayer,
+    WorldMapPaintSubtool.border => layer is BorderLayer,
+    WorldMapPaintSubtool.collision => layer is CollisionLayer,
+  };
 }
 
 WorldMapToolActivationSource worldMapToolActivationSourceFromState(
@@ -213,26 +313,41 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
     ActivateWorldMapPlacement() =>
       throw StateError('Activation request was already handled.'),
   };
+  if (layer == null || !isWorldMapPaintLayerCompatible(paint.subtool, layer)) {
+    final reason = switch (paint.subtool) {
+      WorldMapPaintSubtool.tile =>
+        'Paint/tile requires an active editable tile layer.',
+      WorldMapPaintSubtool.terrain =>
+        'Paint/terrain requires an active terrain layer.',
+      WorldMapPaintSubtool.path => 'Paint/path requires an active path layer.',
+      WorldMapPaintSubtool.surface =>
+        'Paint/surface requires an active surface layer.',
+      WorldMapPaintSubtool.border => assessBorderToolAvailability(
+            manifest: source.project,
+            map: map,
+            activeLayerId: layerId,
+            activeFeatureId: activeBorderFeatureId,
+          ).disabledReason ??
+          'L’outil Bordures nécessite un calque de bordures actif.',
+      WorldMapPaintSubtool.collision =>
+        'Paint/collision requires an active collision layer.',
+    };
+    return _rejectedWorldMapActivation(reason);
+  }
   switch (paint.subtool) {
     case WorldMapPaintSubtool.tile:
-      if (layer is! TileLayer) {
-        return _rejectedWorldMapActivation(
-          'Paint/tile requires an active editable tile layer.',
-        );
-      }
       return (
         resultingTool: EditorToolType.tilePaint,
         terrainSelectionMode: null,
-        resultingBrush: _compatibleTilePaintBrushForLayer(source, map, layer),
+        resultingBrush: _compatibleTilePaintBrushForLayer(
+          source,
+          map,
+          layer as TileLayer,
+        ),
         tilesElementsPanelMode: TilesElementsPanelMode.palette,
         rejectionReason: null,
       );
     case WorldMapPaintSubtool.terrain:
-      if (layer is! TerrainLayer) {
-        return _rejectedWorldMapActivation(
-          'Paint/terrain requires an active terrain layer.',
-        );
-      }
       return (
         resultingTool: EditorToolType.terrainPaint,
         terrainSelectionMode: TerrainSelectionMode.terrain,
@@ -241,11 +356,6 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
         rejectionReason: null,
       );
     case WorldMapPaintSubtool.path:
-      if (layer is! PathLayer) {
-        return _rejectedWorldMapActivation(
-          'Paint/path requires an active path layer.',
-        );
-      }
       return (
         resultingTool: EditorToolType.terrainPaint,
         terrainSelectionMode: TerrainSelectionMode.path,
@@ -254,11 +364,6 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
         rejectionReason: null,
       );
     case WorldMapPaintSubtool.surface:
-      if (layer is! SurfaceLayer) {
-        return _rejectedWorldMapActivation(
-          'Paint/surface requires an active surface layer.',
-        );
-      }
       if (!_surfacePresetExists(
         source.project,
         source.selectedSurfacePresetId,
@@ -292,11 +397,6 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
             availability.isEnabled ? null : availability.disabledReason,
       );
     case WorldMapPaintSubtool.collision:
-      if (layer is! CollisionLayer) {
-        return _rejectedWorldMapActivation(
-          'Paint/collision requires an active collision layer.',
-        );
-      }
       return (
         resultingTool: EditorToolType.collisionPaint,
         terrainSelectionMode: null,

@@ -4,9 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../application/models/terrain_selection_mode.dart';
 import '../../../../theme/theme.dart';
 import '../../../../ui/design_system/design_system.dart';
-import '../../../border_map_editing/state/border_map_editing_providers.dart';
 import '../../application/world_map_observed_tool_family.dart';
-import '../../application/world_map_subtool_body_projector.dart';
 import '../../application/world_map_tool_activation.dart';
 import '../../application/world_map_tool_family.dart';
 import '../../state/editor_notifier.dart';
@@ -61,44 +59,60 @@ class WorldMapToolbelt extends ConsumerWidget {
       }
     }
 
-    void reconcilePaintInspectionIntent(
-      WorldMapToolActivationRequest request,
-      WorldMapToolActivationResult result,
-    ) {
-      if (result.accepted) {
-        paintInspectionIntent.clear();
-        return;
-      }
-      if (request case ActivateWorldMapPaint(:final subtool)) {
-        final editorState = ref.read(editorNotifierProvider);
-        final borderSelection = ref.read(activeBorderFeatureControllerProvider);
-        final projection = const WorldMapSubtoolBodyProjector().project(
-          source: worldMapToolActivationSourceFromState(editorState),
-          request: request,
-          activeBorderFeatureId:
-              borderSelection.activeLayerId == editorState.activeLayerId
-                  ? borderSelection.activeFeatureId
-                  : null,
-        );
-        final mapId = editorState.activeMap?.id;
-        final layerId = editorState.activeLayerId;
-        if (projection.access == WorldMapSubtoolBodyAccess.setup &&
-            mapId != null &&
-            layerId != null) {
-          paintInspectionIntent.showSetup(
-            mapId: mapId,
-            layerId: layerId,
-            subtool: subtool,
-          );
-        } else {
+    void reconcilePaintRouting(WorldMapPaintRoutingResult routing) {
+      final editorState = ref.read(editorNotifierProvider);
+      final mapId = editorState.activeMap?.id;
+      switch (routing.outcome) {
+        case WorldMapPaintRoutingOutcome.activated:
           paintInspectionIntent.clear();
-        }
+          sessionController.setInspectorVisible(true);
+        case WorldMapPaintRoutingOutcome.setupRequired:
+          final layerId = routing.layerId;
+          if (mapId != null && layerId != null) {
+            paintInspectionIntent.showSetup(
+              mapId: mapId,
+              layerId: layerId,
+              subtool: routing.request.subtool,
+            );
+            sessionController.setInspectorVisible(true);
+          }
+        case WorldMapPaintRoutingOutcome.choiceRequired:
+          if (mapId != null) {
+            paintInspectionIntent.showLayerChoice(
+              mapId: mapId,
+              subtool: routing.request.subtool,
+              compatibleLayerIds: routing.compatibleLayerIds,
+            );
+            sessionController.setInspectorVisible(true);
+          }
+        case WorldMapPaintRoutingOutcome.missingLayer:
+          if (mapId != null) {
+            paintInspectionIntent.showMissingLayer(
+              mapId: mapId,
+              subtool: routing.request.subtool,
+            );
+            sessionController.setInspectorVisible(true);
+          }
+        case WorldMapPaintRoutingOutcome.rejected:
+          paintInspectionIntent.clear();
+          final activation = routing.activation;
+          if (activation != null) {
+            reportResult(activation);
+          }
       }
     }
 
     void activate(WorldMapToolActivationRequest request) {
+      if (request case ActivateWorldMapPaint(:final subtool)) {
+        reconcilePaintRouting(
+          sessionController.routePaintSubtool(editor, subtool),
+        );
+        return;
+      }
       final result = sessionController.activateTool(editor, request);
-      reconcilePaintInspectionIntent(request, result);
+      if (result.accepted) {
+        paintInspectionIntent.clear();
+      }
       reportResult(result);
     }
 
@@ -201,11 +215,7 @@ class WorldMapToolbelt extends ConsumerWidget {
                     observedLayerId: toolbar.activeLayer?.id,
                     observedSubtool: visualState.paintSubtool,
                   );
-                  reconcilePaintInspectionIntent(
-                    replay.request,
-                    replay.result,
-                  );
-                  reportResult(replay.result);
+                  reconcilePaintRouting(replay.routing);
                 },
                 items: [
                   for (final subtool in WorldMapPaintSubtool.values)
@@ -626,7 +636,7 @@ String _paintSubtoolLabel(WorldMapPaintSubtool subtool) {
   return switch (subtool) {
     WorldMapPaintSubtool.tile => 'Éléments',
     WorldMapPaintSubtool.terrain => 'Terrain',
-    WorldMapPaintSubtool.path => 'Paths',
+    WorldMapPaintSubtool.path => 'Chemins',
     WorldMapPaintSubtool.surface => 'Surfaces',
     WorldMapPaintSubtool.border => 'Bordures',
     WorldMapPaintSubtool.collision => 'Collision',
