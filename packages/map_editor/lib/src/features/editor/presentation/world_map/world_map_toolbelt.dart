@@ -26,6 +26,7 @@ class WorldMapToolbelt extends ConsumerWidget {
     this.onResizeMap,
     this.onActivationRejected,
     this.selectionFocusNode,
+    this.debugOnBuild,
     super.key,
   });
 
@@ -40,9 +41,15 @@ class WorldMapToolbelt extends ConsumerWidget {
   final VoidCallback? onResizeMap;
   final ValueChanged<String>? onActivationRejected;
   final FocusNode? selectionFocusNode;
+  @visibleForTesting
+  final VoidCallback? debugOnBuild;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    assert(() {
+      debugOnBuild?.call();
+      return true;
+    }());
     final toolbar = ref.watch(editorWorldMapToolbarSnapshotProvider);
     final brushKind = ref.watch(editorWorldMapBrushKindProvider);
     final session = ref.watch(worldMapWorkspaceSessionProvider);

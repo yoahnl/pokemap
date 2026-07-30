@@ -19,13 +19,26 @@ class AdaptiveMapInspector extends ConsumerWidget {
     super.key,
     this.onLayerContextMenuRequested,
     this.focusNode,
+    this.debugOnBuild,
+    this.debugOnBodyBuild,
+    this.debugOnPaletteBuild,
   });
 
   final WorldMapLayerContextMenuRequested? onLayerContextMenuRequested;
   final FocusNode? focusNode;
+  @visibleForTesting
+  final VoidCallback? debugOnBuild;
+  @visibleForTesting
+  final ValueChanged<WorldMapInspectorKind>? debugOnBodyBuild;
+  @visibleForTesting
+  final VoidCallback? debugOnPaletteBuild;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    assert(() {
+      debugOnBuild?.call();
+      return true;
+    }());
     final snapshot = ref.watch(worldMapInspectorSnapshotProvider);
     final title = _titleFor(snapshot.kind);
     final canPin = ref.watch(worldMapInspectorCanPinProvider);
@@ -82,6 +95,8 @@ class AdaptiveMapInspector extends ConsumerWidget {
           child: _bodyFor(
             snapshot,
             onLayerContextMenuRequested: onLayerContextMenuRequested,
+            debugOnBodyBuild: debugOnBodyBuild,
+            debugOnPaletteBuild: debugOnPaletteBuild,
           ),
         ),
       ),
@@ -97,9 +112,17 @@ class AdaptiveMapInspector extends ConsumerWidget {
 Widget _bodyFor(
   WorldMapInspectorSnapshot snapshot, {
   WorldMapLayerContextMenuRequested? onLayerContextMenuRequested,
+  ValueChanged<WorldMapInspectorKind>? debugOnBodyBuild,
+  VoidCallback? debugOnPaletteBuild,
 }) {
+  assert(() {
+    debugOnBodyBuild?.call(snapshot.kind);
+    return true;
+  }());
   return switch (snapshot.kind) {
-    WorldMapInspectorKind.paint => const WorldMapPaintInspector(),
+    WorldMapInspectorKind.paint => WorldMapPaintInspector(
+        debugOnPaletteBuild: debugOnPaletteBuild,
+      ),
     WorldMapInspectorKind.erase => const WorldMapEraseInspector(),
     WorldMapInspectorKind.place => const WorldMapPlaceInspector(),
     WorldMapInspectorKind.objectSelection => WorldMapSelectionInspector(

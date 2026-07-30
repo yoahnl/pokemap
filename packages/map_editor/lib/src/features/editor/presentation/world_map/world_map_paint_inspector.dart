@@ -19,7 +19,13 @@ import 'world_map_subtool_disabled_guidance.dart';
 import 'world_map_workspace_session.dart';
 
 class WorldMapPaintInspector extends ConsumerWidget {
-  const WorldMapPaintInspector({super.key});
+  const WorldMapPaintInspector({
+    super.key,
+    this.debugOnPaletteBuild,
+  });
+
+  @visibleForTesting
+  final VoidCallback? debugOnPaletteBuild;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -164,15 +170,19 @@ class WorldMapPaintInspector extends ConsumerWidget {
       WorldMapSubtoolBodyKind.tilesPalette => Semantics(
           container: true,
           label: 'Catalogue d’éléments à placer du calque actif',
-          child: const Padding(
-            padding: EdgeInsets.all(10),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                MapPaletteAssetBrowserLauncher(label: 'Changer de source'),
-                SizedBox(height: 10),
+                const MapPaletteAssetBrowserLauncher(
+                  label: 'Changer de source',
+                ),
+                const SizedBox(height: 10),
                 Expanded(
-                  child: MapLayerAssetPalette(),
+                  child: MapLayerAssetPalette(
+                    debugOnBuild: debugOnPaletteBuild,
+                  ),
                 ),
               ],
             ),

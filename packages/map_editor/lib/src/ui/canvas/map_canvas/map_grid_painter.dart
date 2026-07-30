@@ -187,6 +187,8 @@ final class EnvironmentMaskBrushCursorOverlay {
 }
 
 /// Painter massif extrait tel quel du shell `MapCanvas`.
+typedef MapGridPaintObserver = void Function();
+
 ///
 /// Cette extraction est volontairement mécanique : on ne change pas la
 /// responsabilité ni le comportement du painter dans ce lot, on réduit
@@ -225,7 +227,9 @@ class MapGridPainter extends CustomPainter {
   final Map<TerrainType, ProjectTerrainPreset> terrainPresetsByType;
   final ProjectManifest? project;
   final EditorShadowLightPreviewPreset? shadowLightPreviewPreset;
-  final int editorEntityAnimationMs;
+  final EditorCanvasRepaintClock? _animationClock;
+  final int _staticAnimationMs;
+  final MapGridPaintObserver? debugOnPaint;
   final bool showGrid;
   final bool showEntityEditorChrome;
   final bool showEditorOverlays;
@@ -272,7 +276,9 @@ class MapGridPainter extends CustomPainter {
     required this.terrainPresetsByType,
     this.project,
     this.shadowLightPreviewPreset,
-    this.editorEntityAnimationMs = 0,
+    EditorCanvasRepaintClock? animationClock,
+    int editorEntityAnimationMs = 0,
+    this.debugOnPaint,
     this.showGrid = true,
     this.showEntityEditorChrome = true,
     this.showEditorOverlays = true,
@@ -282,10 +288,19 @@ class MapGridPainter extends CustomPainter {
     this.environmentGeneratedDeletePreviewId,
     this.borderPreview,
     this.borderDiagnosticOverlayPalette,
-  });
+  })  : _animationClock = animationClock,
+        _staticAnimationMs = editorEntityAnimationMs,
+        super(repaint: animationClock);
+
+  int get effectiveAnimationMs =>
+      _animationClock?.elapsedMs ?? _staticAnimationMs;
 
   @override
   void paint(Canvas canvas, Size size) {
+    assert(() {
+      debugOnPaint?.call();
+      return true;
+    }());
     canvas.save();
     canvas.translate(offset.dx, offset.dy);
     canvas.scale(zoom);
@@ -344,7 +359,7 @@ class MapGridPainter extends CustomPainter {
             tileWidth: tileWidth,
             tileHeight: tileHeight,
             zoom: zoom,
-            elapsedMs: editorEntityAnimationMs,
+            elapsedMs: effectiveAnimationMs,
           );
         case MapVisualCompositionStepKind.tileBackgroundLayer:
           _paintTileLayer(
@@ -366,7 +381,7 @@ class MapGridPainter extends CustomPainter {
               sourceTileHeight: sourceTileHeight,
               displayScale:
                   sourceTileWidth <= 0 ? 1 : tileWidth / sourceTileWidth,
-              elapsedMs: editorEntityAnimationMs,
+              elapsedMs: effectiveAnimationMs,
               preview: borderPreview,
             );
           }
@@ -780,7 +795,7 @@ class MapGridPainter extends CustomPainter {
       if (entry.id == selectedInstance.elementId && entry.frames.isNotEmpty) {
         source = entityEditorPickFrame(
           entry.frames,
-          editorEntityAnimationMs,
+          effectiveAnimationMs,
         ).source;
         break;
       }
@@ -921,7 +936,7 @@ class MapGridPainter extends CustomPainter {
         tilesetImagesById: tilesetImagesById,
         sourceTileWidth: sourceTileWidth,
         sourceTileHeight: sourceTileHeight,
-        editorAnimationTimeMs: editorEntityAnimationMs,
+        editorAnimationTimeMs: effectiveAnimationMs,
       );
       if (resolved != null) {
         if (showEntityEditorChrome) {
@@ -1625,7 +1640,7 @@ class MapGridPainter extends CustomPainter {
       tileHeight,
     );
 
-    final elapsedMs = editorEntityAnimationMs.toDouble();
+    final elapsedMs = effectiveAnimationMs.toDouble();
 
     final painted = _paintResolvedPathVariantCell(
       canvas,
@@ -1679,7 +1694,7 @@ class MapGridPainter extends CustomPainter {
           preset: preset,
           x: mapX,
           y: mapY,
-          elapsedMs: editorEntityAnimationMs.toDouble(),
+          elapsedMs: effectiveAnimationMs.toDouble(),
         );
         if (resolved == null) continue;
         final tilesetId = resolved.tilesetId.trim();
@@ -1919,7 +1934,7 @@ class MapGridPainter extends CustomPainter {
       }
       final frame = entityEditorPickFrame(
         entry.frames,
-        editorEntityAnimationMs,
+        effectiveAnimationMs,
       );
       final tilesetId = frame.tilesetId.trim().isNotEmpty
           ? frame.tilesetId.trim()
@@ -2020,7 +2035,7 @@ class MapGridPainter extends CustomPainter {
     }
     final frame = entityEditorPickFrame(
       entry.frames,
-      editorEntityAnimationMs,
+      effectiveAnimationMs,
     );
     final tilesetId = frame.tilesetId.trim().isNotEmpty
         ? frame.tilesetId.trim()
@@ -2464,7 +2479,7 @@ class MapGridPainter extends CustomPainter {
       tileHeight,
     );
 
-    final elapsedMs = editorEntityAnimationMs.toDouble();
+    final elapsedMs = effectiveAnimationMs.toDouble();
 
     return _paintResolvedPathVariantCell(
       canvas,
@@ -2570,7 +2585,7 @@ class MapGridPainter extends CustomPainter {
       preset: preset,
       x: x,
       y: y,
-      elapsedMs: editorEntityAnimationMs.toDouble(),
+      elapsedMs: effectiveAnimationMs.toDouble(),
     );
     if (resolved == null) return false;
     final tilesetId = resolved.tilesetId.trim();
@@ -2909,7 +2924,10 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.sourceTileWidth != sourceTileWidth ||
         oldDelegate.sourceTileHeight != sourceTileHeight ||
         !mapEquals(oldDelegate.tilesPerRowById, tilesPerRowById) ||
-        oldDelegate.editorEntityAnimationMs != editorEntityAnimationMs ||
+        oldDelegate._animationClock != _animationClock ||
+        (_animationClock == null &&
+            oldDelegate._animationClock == null &&
+            oldDelegate._staticAnimationMs != _staticAnimationMs) ||
         oldDelegate.showGrid != showGrid ||
         oldDelegate.showEntityEditorChrome != showEntityEditorChrome ||
         oldDelegate.showEditorOverlays != showEditorOverlays ||

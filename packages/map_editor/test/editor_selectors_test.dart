@@ -5,6 +5,8 @@ import 'package:map_editor/src/application/models/map_history_snapshot.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_selectors.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/application/world_map_inspector_projector.dart';
+import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 
@@ -676,6 +678,165 @@ void main() {
       );
       snapshot = container.read(editorWorldMapToolbarSnapshotProvider);
       expect(snapshot.canSaveMap, isFalse);
+    });
+
+    test(
+        'world map document viewport interaction and inspector snapshots emit only for declared inputs',
+        () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      const map = MapData(
+        id: 'town',
+        name: 'Town',
+        size: GridSize(width: 8, height: 8),
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'ground',
+            name: 'Ground',
+            tilesetId: 'world',
+            tiles: <int>[],
+          ),
+        ],
+        placedElements: <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'tree-1',
+            layerId: 'ground',
+            elementId: 'tree',
+            pos: GridPos(x: 2, y: 3),
+          ),
+        ],
+      );
+      const project = ProjectManifest(
+        name: 'Demo',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+      );
+      const paletteKey = EditorPaletteContextKey(
+        mapId: 'town',
+        layerId: 'ground',
+      );
+      final notifier = container.read(editorNotifierProvider.notifier)
+        ..state = const EditorState(
+          projectRootPath: '/tmp/demo',
+          project: project,
+          activeMap: map,
+          activeMapPath: 'maps/town.json',
+          activeLayerId: 'ground',
+          activeTool: EditorToolType.selection,
+        );
+      container.read(worldMapWorkspaceSessionProvider);
+
+      final documents = <EditorMapDocumentSnapshot>[];
+      final viewports = <EditorMapViewportSnapshot>[];
+      final interactions = <EditorMapInteractionSnapshot>[];
+      final inspectorInputs = <EditorWorldMapInspectorInputSnapshot>[];
+      final inspectorOutputs = <WorldMapInspectorSnapshot>[];
+      final subscriptions = [
+        container.listen(
+          editorMapDocumentSnapshotProvider,
+          (_, next) => documents.add(next),
+          fireImmediately: true,
+        ),
+        container.listen(
+          editorMapViewportSnapshotProvider,
+          (_, next) => viewports.add(next),
+          fireImmediately: true,
+        ),
+        container.listen(
+          editorMapInteractionSnapshotProvider,
+          (_, next) => interactions.add(next),
+          fireImmediately: true,
+        ),
+        container.listen(
+          editorWorldMapInspectorInputSnapshotProvider,
+          (_, next) => inspectorInputs.add(next),
+          fireImmediately: true,
+        ),
+        container.listen(
+          worldMapInspectorSnapshotProvider,
+          (_, next) => inspectorOutputs.add(next),
+          fireImmediately: true,
+        ),
+      ];
+      addTearDown(() {
+        for (final subscription in subscriptions) {
+          subscription.close();
+        }
+      });
+
+      notifier.state = notifier.state.copyWith(
+        paletteCategoryFilter: PaletteCategory.floors,
+        paletteSession: EditorPaletteSession(
+          activeKey: paletteKey,
+          contexts: <EditorPaletteContextKey, EditorLayerPaletteContext>{
+            paletteKey: const EditorLayerPaletteContext(
+              browserQuery: 'arbres',
+              browserFolderId: 'nature',
+              projectElementCategoryId: 'vegetation',
+              browserCollection: EditorPaletteAssetCollection.favorites,
+            ),
+          },
+          recentTilesetIds: <String>['world'],
+          favoriteTilesetIds: <String>['world'],
+        ),
+        tilesElementsPanelMode: TilesElementsPanelMode.placedInstances,
+      );
+      await container.pump();
+
+      expect(documents, hasLength(1));
+      expect(viewports, hasLength(1));
+      expect(interactions, hasLength(1));
+      expect(inspectorInputs, hasLength(1));
+      expect(inspectorOutputs, hasLength(1));
+
+      notifier.state = notifier.state.copyWith(
+        zoom: 1.5,
+        panOffset: const Offset(12, 24),
+      );
+      await container.pump();
+
+      expect(documents, hasLength(1));
+      expect(viewports, hasLength(2));
+      expect(interactions, hasLength(1));
+      expect(inspectorInputs, hasLength(1));
+
+      notifier.state = notifier.state.copyWith(
+        selectedPlacedElementInstanceId: 'tree-1',
+      );
+      await container.pump();
+
+      expect(documents, hasLength(1));
+      expect(viewports, hasLength(2));
+      expect(interactions, hasLength(2));
+      expect(inspectorInputs, hasLength(2));
+      expect(inspectorOutputs.last.kind, WorldMapInspectorKind.objectSelection);
+
+      notifier.state = notifier.state.copyWith(
+        activeMap: map.copyWith(name: 'Town updated'),
+      );
+      await container.pump();
+
+      expect(documents, hasLength(2));
+      expect(viewports, hasLength(2));
+
+      notifier.state = notifier.state.copyWith(
+        selectedPlacedElementInstanceId: null,
+      );
+      await container.pump();
+      final interactionCountBeforeCell = interactions.length;
+      final inspectorInputCountBeforeCell = inspectorInputs.length;
+      final inspectorOutputCountBeforeCell = inspectorOutputs.length;
+
+      container
+          .read(worldMapWorkspaceSessionProvider.notifier)
+          .selectCell(mapId: 'town', cell: const GridPos(x: 4, y: 5));
+      await container.pump();
+
+      expect(interactions, hasLength(interactionCountBeforeCell));
+      expect(inspectorInputs, hasLength(inspectorInputCountBeforeCell));
+      expect(inspectorOutputs, hasLength(inspectorOutputCountBeforeCell + 1));
+      expect(inspectorOutputs.last.kind, WorldMapInspectorKind.cellSelection);
+      expect(inspectorOutputs.last.cell, const GridPos(x: 4, y: 5));
     });
   });
 }
