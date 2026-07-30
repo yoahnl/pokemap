@@ -51,6 +51,18 @@ void main() {
       matching: find.byType(FocusableActionDetector),
     );
     expect(focusDetector, findsOneWidget);
+    final focusIndicator = find.descendant(
+      of: find.byKey(const ValueKey<String>('guided-slider')),
+      matching: find.byKey(
+        const ValueKey<String>('pokemap-guided-slider-focus-indicator'),
+      ),
+    );
+    expect(focusIndicator, findsOneWidget);
+    final colors = tester.element(focusIndicator).pokeMapColors;
+    expect(
+      _focusBorderColor(tester, focusIndicator),
+      colors.brandPrimary.withValues(alpha: 0),
+    );
     final sliderFocus =
         tester.widget<FocusableActionDetector>(focusDetector).focusNode!;
 
@@ -59,6 +71,10 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
     expect(sliderFocus.hasFocus, isTrue);
+    expect(
+      _focusBorderColor(tester, focusIndicator),
+      colors.brandPrimary,
+    );
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pump();
@@ -66,4 +82,10 @@ void main() {
     expect(value, 51);
     expect(events, const ['start:50', 'change:51', 'end:51']);
   });
+}
+
+Color _focusBorderColor(WidgetTester tester, Finder indicator) {
+  final decoration =
+      tester.widget<AnimatedContainer>(indicator).decoration! as BoxDecoration;
+  return (decoration.border! as Border).top.color;
 }

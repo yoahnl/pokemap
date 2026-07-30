@@ -37,6 +37,7 @@ class _PokeMapGuidedSliderState extends State<PokeMapGuidedSlider> {
   final FocusNode _focusNode = FocusNode();
 
   bool _interactionActive = false;
+  bool _showFocusHighlight = false;
   int? _lastInteractionValue;
 
   int get _clampedValue => widget.value.clamp(widget.min, widget.max).toInt();
@@ -161,6 +162,12 @@ class _PokeMapGuidedSliderState extends State<PokeMapGuidedSlider> {
           const SizedBox(height: 4),
           FocusableActionDetector(
             focusNode: _focusNode,
+            onShowFocusHighlight: (show) {
+              if (_showFocusHighlight == show) {
+                return;
+              }
+              setState(() => _showFocusHighlight = show);
+            },
             shortcuts: const <ShortcutActivator, Intent>{
               SingleActivator(LogicalKeyboardKey.arrowLeft):
                   _AdjustGuidedSliderIntent(-1),
@@ -180,20 +187,35 @@ class _PokeMapGuidedSliderState extends State<PokeMapGuidedSlider> {
                 },
               ),
             },
-            child: Listener(
-              onPointerDown: (_) => _focusNode.requestFocus(),
-              onPointerUp: (_) => _endInteraction(),
-              onPointerCancel: (_) => _endInteraction(),
-              child: CupertinoSlider(
-                value: clampedValue.toDouble(),
-                min: widget.min.toDouble(),
-                max: widget.max.toDouble(),
-                divisions: widget.max - widget.min,
-                activeColor: colors.brandPrimary,
-                thumbColor: colors.surfaceBase,
-                onChangeStart: _handleChangeStart,
-                onChanged: _handleChanged,
-                onChangeEnd: _handleChangeEnd,
+            child: AnimatedContainer(
+              key: const ValueKey<String>(
+                'pokemap-guided-slider-focus-indicator',
+              ),
+              duration: const Duration(milliseconds: 100),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: _showFocusHighlight
+                      ? colors.brandPrimary
+                      : colors.brandPrimary.withValues(alpha: 0),
+                  width: 2,
+                ),
+              ),
+              child: Listener(
+                onPointerDown: (_) => _focusNode.requestFocus(),
+                onPointerUp: (_) => _endInteraction(),
+                onPointerCancel: (_) => _endInteraction(),
+                child: CupertinoSlider(
+                  value: clampedValue.toDouble(),
+                  min: widget.min.toDouble(),
+                  max: widget.max.toDouble(),
+                  divisions: widget.max - widget.min,
+                  activeColor: colors.brandPrimary,
+                  thumbColor: colors.surfaceBase,
+                  onChangeStart: _handleChangeStart,
+                  onChanged: _handleChanged,
+                  onChangeEnd: _handleChangeEnd,
+                ),
               ),
             ),
           ),
