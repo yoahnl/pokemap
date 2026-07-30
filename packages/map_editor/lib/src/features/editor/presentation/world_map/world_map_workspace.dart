@@ -13,6 +13,7 @@ import '../../application/map_context_command.dart';
 import '../../application/map_context_target.dart';
 import '../../application/map_context_target_resolver.dart';
 import '../../application/world_map_target_editor_intent.dart';
+import '../../application/world_map_rejection_message.dart';
 import '../../application/world_map_tool_activation.dart';
 import '../../state/editor_notifier.dart';
 import '../../state/editor_state.dart';
@@ -40,7 +41,7 @@ typedef WorldMapExplorerRailBuilder = Widget Function(
 ///
 /// The shell owns transient chrome layout and the existing canvas/explorer
 /// boundaries. The map inspector remains adaptive to the current session.
-class WorldMapWorkspace extends ConsumerWidget {
+class WorldMapWorkspace extends ConsumerStatefulWidget {
   const WorldMapWorkspace({
     Key? key,
     required this.toolSlot,
@@ -53,6 +54,7 @@ class WorldMapWorkspace extends ConsumerWidget {
     this.onLayerDeleteRequested = showWorldMapLayerDeleteDialog,
     this.onCommandRejected,
     this.inspectorFocusNode,
+    this.compactInspectorReturnFocusNode,
   }) : super(
           key: key ?? const ValueKey<String>('world-map-workspace'),
         );
@@ -71,9 +73,18 @@ class WorldMapWorkspace extends ConsumerWidget {
   final WorldMapLayerDeleteRequested onLayerDeleteRequested;
   final ValueChanged<String>? onCommandRejected;
   final FocusNode? inspectorFocusNode;
+  final FocusNode? compactInspectorReturnFocusNode;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WorldMapWorkspace> createState() => _WorldMapWorkspaceState();
+}
+
+class _WorldMapWorkspaceState extends ConsumerState<WorldMapWorkspace> {
+  bool? _previousInspectorVisible;
+  FocusNode? _compactInspectorInvokerFocusNode;
+
+  @override
+  Widget build(BuildContext context) {
     final session = ref.watch(worldMapWorkspaceSessionProvider);
     final placedElementRotationPreview =
         ref.watch(mapPlacedElementRotationPreviewProvider);
@@ -195,7 +206,12 @@ class WorldMapWorkspace extends ConsumerWidget {
     }
 
     void reject(String message) {
-      onCommandRejected?.call(message);
+      final userMessage = projectWorldMapRejectionMessageFr(message);
+      if (userMessage == null) return;
+      ref
+          .read(worldMapAccessibilityErrorProvider.notifier)
+          .announce(userMessage);
+      widget.onCommandRejected?.call(userMessage);
     }
 
     Future<void> deleteObject(MapObjectContextTarget contextTarget) async {
@@ -206,7 +222,7 @@ class WorldMapWorkspace extends ConsumerWidget {
         return;
       }
       final copy = _objectDeleteCopy(contextTarget.target.kind);
-      final confirmed = await onDeleteConfirmationRequested(
+      final confirmed = await widget.onDeleteConfirmationRequested(
         context: context,
         target: contextTarget,
         title: copy.title,
@@ -280,7 +296,7 @@ class WorldMapWorkspace extends ConsumerWidget {
         case MapContextCommand.openTargetEditor:
           final resolution = menu.targetEditorResolution;
           if (resolution is WorldMapTargetEditorReady) {
-            await onTargetEditorRequested(resolution.intent);
+            await widget.onTargetEditorRequested(resolution.intent);
           } else if (resolution is WorldMapTargetEditorBlocked) {
             reject(resolution.reason);
           }
@@ -318,7 +334,7 @@ class WorldMapWorkspace extends ConsumerWidget {
             context: context,
             layerId: target.layerId,
             readActiveMap: () => ref.read(editorNotifierProvider).activeMap,
-            onRenameRequested: onLayerRenameRequested,
+            onRenameRequested: widget.onLayerRenameRequested,
             renameLayer: editorNotifier.renameMapLayer,
           );
         case MapContextCommand.moveLayerUp:
@@ -338,7 +354,7 @@ class WorldMapWorkspace extends ConsumerWidget {
             context: context,
             layerId: target.layerId,
             readActiveMap: () => ref.read(editorNotifierProvider).activeMap,
-            onDeleteRequested: onLayerDeleteRequested,
+            onDeleteRequested: widget.onLayerDeleteRequested,
             deleteLayer: editorNotifier.deleteMapLayer,
           );
       }
@@ -367,9 +383,9 @@ class WorldMapWorkspace extends ConsumerWidget {
 
         double inspectorMaxWidthFor(double targetExplorerWidth) {
           return math.max(
-            minInspectorWidth,
+            WorldMapWorkspace.minInspectorWidth,
             math.min(
-              maxInspectorWidth,
+              WorldMapWorkspace.maxInspectorWidth,
               constraints.maxWidth -
                   targetExplorerWidth -
                   PokeMapDesktopLayoutTokens.inspectorResizeHandleWidth -
@@ -382,7 +398,7 @@ class WorldMapWorkspace extends ConsumerWidget {
         double inspectorWidthFor(double targetExplorerWidth) {
           return session.inspectorWidth
               .clamp(
-                minInspectorWidth,
+                WorldMapWorkspace.minInspectorWidth,
                 inspectorMaxWidthFor(targetExplorerWidth),
               )
               .toDouble();
@@ -390,11 +406,16 @@ class WorldMapWorkspace extends ConsumerWidget {
 
         final inspectorMaxWidth = inspectorMaxWidthFor(explorerWidth);
         final inspectorWidth = inspectorWidthFor(explorerWidth);
+        if (_previousInspectorVisible == false && inspectorIsOverlay) {
+          _compactInspectorInvokerFocusNode =
+              FocusManager.instance.primaryFocus;
+        }
+        _previousInspectorVisible = session.inspectorVisible;
 
         void collapseExplorer() {
           controller
             ..setExplorerExpanded(false)
-            ..setInspectorWidth(maxInspectorWidth);
+            ..setInspectorWidth(WorldMapWorkspace.maxInspectorWidth);
         }
 
         void reopenExplorer() {
@@ -425,108 +446,154 @@ class WorldMapWorkspace extends ConsumerWidget {
         void resizeInspector(double delta) {
           controller.setInspectorWidth(
             (inspectorWidth - delta)
-                .clamp(minInspectorWidth, inspectorMaxWidth)
+                .clamp(WorldMapWorkspace.minInspectorWidth, inspectorMaxWidth)
                 .toDouble(),
           );
         }
 
-        final explorer = _WorldMapExplorerRegion(
-          width: explorerWidth,
-          expanded: explorerIsExpanded,
-          expandedChild: explorerBuilder(context, collapseExplorer),
-          reducedChild: explorerRailBuilder(context, reopenExplorer),
+        final explorer = FocusTraversalOrder(
+          order: const NumericFocusOrder(4),
+          child: _WorldMapExplorerRegion(
+            width: explorerWidth,
+            expanded: explorerIsExpanded,
+            expandedChild: widget.explorerBuilder(context, collapseExplorer),
+            reducedChild: widget.explorerRailBuilder(context, reopenExplorer),
+          ),
         );
         final canvas = Expanded(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
+          child: FocusTraversalOrder(
+            order: const NumericFocusOrder(2),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  widget.stageHeaderSlot,
+                  const SizedBox(height: 18),
+                  Expanded(
+                    child: PokeMapPanel(
+                      key: const ValueKey<String>('world-map-canvas-region'),
+                      padding: const EdgeInsets.all(14),
+                      expandChild: true,
+                      borderRadius: 20,
+                      child: MapCanvas(
+                        placedElementRotationPreview:
+                            placedElementRotationPreview,
+                        keyboardContextCell: session.selectedCellMapId ==
+                                ref.read(editorNotifierProvider).activeMap?.id
+                            ? session.selectedCell
+                            : null,
+                        onCellSelected: selectCell,
+                        onContextMenuRequested: openCanvasContextMenu,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        void closeInspector() {
+          if (!session.inspectorVisible) return;
+          final capturedFocus = _compactInspectorInvokerFocusNode;
+          final fallbackFocus = capturedFocus == null
+              ? widget.compactInspectorReturnFocusNode
+              : null;
+          _compactInspectorInvokerFocusNode = null;
+          controller.setInspectorVisible(false);
+          if (!inspectorIsOverlay) return;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
+            final returnFocus = capturedFocus ?? fallbackFocus;
+            if (returnFocus?.context != null && returnFocus!.canRequestFocus) {
+              returnFocus.requestFocus();
+            } else {
+              FocusScope.of(context).previousFocus();
+            }
+          });
+        }
+
+        void closeCompactInspector() {
+          if (inspectorIsOverlay) closeInspector();
+        }
+
+        final inspector = FocusTraversalOrder(
+          order: const NumericFocusOrder(3),
+          child: _WorldMapInspectorRegion(
+            width: inspectorWidth,
+            child: AdaptiveMapInspector(
+              onLayerContextMenuRequested: openLayerContextMenu,
+              onClose: closeInspector,
+              focusNode: widget.inspectorFocusNode,
+            ),
+          ),
+        );
+
+        return CallbackShortcuts(
+          bindings: <ShortcutActivator, VoidCallback>{
+            const SingleActivator(LogicalKeyboardKey.escape):
+                closeCompactInspector,
+          },
+          child: FocusTraversalGroup(
+            policy: OrderedTraversalPolicy(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                stageHeaderSlot,
-                const SizedBox(height: 18),
+                FocusTraversalOrder(
+                  order: const NumericFocusOrder(1),
+                  child: KeyedSubtree(
+                    key: const ValueKey<String>('world-map-tool-slot'),
+                    child: widget.toolSlot,
+                  ),
+                ),
                 Expanded(
-                  child: PokeMapPanel(
-                    key: const ValueKey<String>('world-map-canvas-region'),
-                    padding: const EdgeInsets.all(14),
-                    expandChild: true,
-                    borderRadius: 20,
-                    child: MapCanvas(
-                      placedElementRotationPreview:
-                          placedElementRotationPreview,
-                      keyboardContextCell: session.selectedCellMapId ==
-                              ref.read(editorNotifierProvider).activeMap?.id
-                          ? session.selectedCell
-                          : null,
-                      onCellSelected: selectCell,
-                      onContextMenuRequested: openCanvasContextMenu,
-                    ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          explorer,
+                          canvas,
+                          if (inspectorIsDocked) ...[
+                            PokeMapHorizontalResizeHandle(
+                              key: const ValueKey<String>(
+                                'right-inspector-resize-handle',
+                              ),
+                              tooltip: 'Redimensionner le panneau droit',
+                              width: PokeMapDesktopLayoutTokens
+                                  .inspectorResizeHandleWidth,
+                              onDrag: resizeInspector,
+                            ),
+                            KeyedSubtree(
+                              key: const ValueKey<String>(
+                                'world-map-inspector-dock',
+                              ),
+                              child: inspector,
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (inspectorIsOverlay)
+                        Positioned(
+                          key: const ValueKey<String>(
+                            'world-map-inspector-overlay',
+                          ),
+                          top: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: inspector,
+                        ),
+                      MapContextMenuHost(
+                        onCommandSelected: executeContextCommand,
+                        onCommandRejected: reject,
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-        );
-        final inspector = _WorldMapInspectorRegion(
-          width: inspectorWidth,
-          child: AdaptiveMapInspector(
-            onLayerContextMenuRequested: openLayerContextMenu,
-            focusNode: inspectorFocusNode,
-          ),
-        );
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            KeyedSubtree(
-              key: const ValueKey<String>('world-map-tool-slot'),
-              child: toolSlot,
-            ),
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      explorer,
-                      canvas,
-                      if (inspectorIsDocked) ...[
-                        PokeMapHorizontalResizeHandle(
-                          key: const ValueKey<String>(
-                            'right-inspector-resize-handle',
-                          ),
-                          tooltip: 'Redimensionner le panneau droit',
-                          width: PokeMapDesktopLayoutTokens
-                              .inspectorResizeHandleWidth,
-                          onDrag: resizeInspector,
-                        ),
-                        KeyedSubtree(
-                          key: const ValueKey<String>(
-                            'world-map-inspector-dock',
-                          ),
-                          child: inspector,
-                        ),
-                      ],
-                    ],
-                  ),
-                  if (inspectorIsOverlay)
-                    Positioned(
-                      key: const ValueKey<String>(
-                        'world-map-inspector-overlay',
-                      ),
-                      top: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: inspector,
-                    ),
-                  MapContextMenuHost(
-                    onCommandSelected: executeContextCommand,
-                    onCommandRejected: reject,
-                  ),
-                ],
-              ),
-            ),
-          ],
         );
       },
     );
@@ -647,13 +714,16 @@ class _WorldMapExplorerRegion extends StatelessWidget {
                     opacity: expanded ? 1 : 0,
                     child: IgnorePointer(
                       ignoring: !expanded,
-                      child: KeyedSubtree(
-                        key: const ValueKey<String>(
-                          'project-explorer-expanded',
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 18, 12, 18),
-                          child: expandedChild,
+                      child: ExcludeFocus(
+                        excluding: !expanded,
+                        child: KeyedSubtree(
+                          key: const ValueKey<String>(
+                            'project-explorer-expanded',
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 18, 12, 18),
+                            child: expandedChild,
+                          ),
                         ),
                       ),
                     ),
@@ -671,11 +741,14 @@ class _WorldMapExplorerRegion extends StatelessWidget {
                     opacity: expanded ? 0 : 1,
                     child: IgnorePointer(
                       ignoring: expanded,
-                      child: KeyedSubtree(
-                        key: const ValueKey<String>(
-                          'project-explorer-reduced',
+                      child: ExcludeFocus(
+                        excluding: expanded,
+                        child: KeyedSubtree(
+                          key: const ValueKey<String>(
+                            'project-explorer-reduced',
+                          ),
+                          child: Center(child: reducedChild),
                         ),
-                        child: Center(child: reducedChild),
                       ),
                     ),
                   ),

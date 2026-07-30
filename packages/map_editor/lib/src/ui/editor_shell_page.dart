@@ -78,6 +78,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       GlobalKey(debugLabel: 'shared-project-explorer');
   final FocusNode _worldMapInspectorFocusNode =
       FocusNode(debugLabel: 'World Map adaptive inspector');
+  final FocusNode _worldMapSelectionFocusNode =
+      FocusNode(debugLabel: 'World Map selection tool');
   String? _toastMessage;
   bool _toastIsError = false;
   bool _didAttemptProjectAutoRestore = false;
@@ -148,6 +150,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
   void dispose() {
     _toastTimer?.cancel();
     _worldMapInspectorFocusNode.dispose();
+    _worldMapSelectionFocusNode.dispose();
     super.dispose();
   }
 
@@ -835,12 +838,16 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                               openWorldMapTargetEditor,
                                           inspectorFocusNode:
                                               _worldMapInspectorFocusNode,
+                                          compactInspectorReturnFocusNode:
+                                              _worldMapSelectionFocusNode,
                                           onCommandRejected: (reason) =>
                                               _flashToast(
                                             reason,
                                             isError: true,
                                           ),
                                           toolSlot: WorldMapToolbelt(
+                                            selectionFocusNode:
+                                                _worldMapSelectionFocusNode,
                                             onSave: () =>
                                                 requestActiveMapSaveWithBorderPreviewGuard(
                                               context: context,

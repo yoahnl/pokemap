@@ -5,6 +5,7 @@ import '../../../../application/models/terrain_selection_mode.dart';
 import '../../../../theme/theme.dart';
 import '../../../../ui/design_system/design_system.dart';
 import '../../application/world_map_observed_tool_family.dart';
+import '../../application/world_map_rejection_message.dart';
 import '../../application/world_map_tool_activation.dart';
 import '../../application/world_map_tool_family.dart';
 import '../../state/editor_notifier.dart';
@@ -58,11 +59,25 @@ class WorldMapToolbelt extends ConsumerWidget {
     final editor = ref.read(editorNotifierProvider.notifier);
     final paintInspectionIntent =
         ref.read(worldMapPaintInspectionIntentProvider.notifier);
+    final accessibilityAnnouncement = ref.watch(
+      worldMapAccessibilityErrorProvider,
+    );
+    final accessibilityErrorController = ref.read(
+      worldMapAccessibilityErrorProvider.notifier,
+    );
+
+    void reportRejection(String? technicalReason) {
+      final message = projectWorldMapRejectionMessageFr(technicalReason);
+      if (message == null) return;
+      accessibilityErrorController.announce(message);
+      onActivationRejected?.call(message);
+    }
 
     void reportResult(WorldMapToolActivationResult result) {
-      final reason = result.rejectionReason;
-      if (!result.accepted && reason != null && reason.isNotEmpty) {
-        onActivationRejected?.call(reason);
+      if (!result.accepted) {
+        reportRejection(result.rejectionReason);
+      } else {
+        accessibilityErrorController.clear();
       }
     }
 
@@ -147,6 +162,15 @@ class WorldMapToolbelt extends ConsumerWidget {
     final placementLabel = _placementSubtoolLabel(
       visualState.placementSubtool,
     );
+    final condensed = MediaQuery.sizeOf(context).width < 1024 ||
+        MediaQuery.textScalerOf(context).scale(1) > 1.5;
+    if (accessibilityAnnouncement != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        accessibilityErrorController.consume(
+          accessibilityAnnouncement.sequence,
+        );
+      });
+    }
 
     return PokeMapToolbarSurface(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -155,6 +179,7 @@ class WorldMapToolbelt extends ConsumerWidget {
         children: [
           _ToolbeltRow(
             label: 'Projet',
+            showLabel: !condensed,
             children: [
               Tooltip(
                 message: 'Enregistrer (Cmd/Ctrl+S)',
@@ -162,10 +187,13 @@ class WorldMapToolbelt extends ConsumerWidget {
                   key: const ValueKey<String>('world-map-command-save'),
                   onPressed: toolbar.canSaveMap ? onSave : null,
                   isLoading: toolbar.isSaving,
-                  size: PokeMapButtonSize.small,
+                  semanticLabel: 'Enregistrer (Cmd/Ctrl+S)',
+                  size: PokeMapButtonSize.compact,
                   variant: PokeMapButtonVariant.secondary,
-                  leading: const Icon(Icons.save_outlined),
-                  child: const Text('Enregistrer'),
+                  leading: condensed ? null : const Icon(Icons.save_outlined),
+                  child: condensed
+                      ? const Icon(Icons.save_outlined)
+                      : const Text('Enregistrer'),
                 ),
               ),
               _LabeledIconCommand(
@@ -174,6 +202,7 @@ class WorldMapToolbelt extends ConsumerWidget {
                 icon: const Icon(Icons.undo_rounded),
                 label: 'Annuler',
                 tooltip: 'Annuler (Cmd/Ctrl+Z)',
+                showLabel: !condensed,
               ),
               _LabeledIconCommand(
                 commandKey: const ValueKey<String>('world-map-command-redo'),
@@ -181,21 +210,24 @@ class WorldMapToolbelt extends ConsumerWidget {
                 icon: const Icon(Icons.redo_rounded),
                 label: 'Rétablir',
                 tooltip: 'Rétablir (Shift+Cmd/Ctrl+Z ou Cmd/Ctrl+Y)',
+                showLabel: !condensed,
               ),
               _WorldMapPlusMenu(
+                condensed: condensed,
                 onNewProject: onNewProject,
                 onOpenProject: onOpenProject,
                 onProjectSettings: onProjectSettings,
                 onExportGame: onExportGame,
                 onNewMap: onNewMap,
                 onResizeMap: onResizeMap,
-                onUnavailable: onActivationRejected,
+                onUnavailable: reportRejection,
               ),
             ],
           ),
           const SizedBox(height: 6),
           _ToolbeltRow(
             label: 'Outils',
+            showLabel: !condensed,
             children: [
               Tooltip(
                 message: 'Sélectionner et manipuler',
@@ -207,10 +239,13 @@ class WorldMapToolbelt extends ConsumerWidget {
                   focusNode: selectionFocusNode,
                   isSelected:
                       visualState.family == WorldMapToolFamily.selection,
-                  size: PokeMapButtonSize.small,
+                  size: PokeMapButtonSize.compact,
                   variant: PokeMapButtonVariant.secondary,
-                  leading: const Icon(Icons.near_me_outlined),
-                  child: const Text('Sélection'),
+                  leading:
+                      condensed ? null : const Icon(Icons.near_me_outlined),
+                  child: condensed
+                      ? const Icon(Icons.near_me_outlined)
+                      : const Text('Sélection'),
                 ),
               ),
               PokeMapSplitButton<WorldMapPaintSubtool>(
@@ -237,7 +272,9 @@ class WorldMapToolbelt extends ConsumerWidget {
                 tooltip: 'Peindre · $paintLabel',
                 menuTooltip: 'Choisir un outil de peinture',
                 isSelected: visualState.family == WorldMapToolFamily.paint,
-                child: const Text('Peindre'),
+                child: condensed
+                    ? const Icon(Icons.format_paint_outlined)
+                    : const Text('Peindre'),
               ),
               Tooltip(
                 message: 'Effacer sur le calque actif',
@@ -247,10 +284,14 @@ class WorldMapToolbelt extends ConsumerWidget {
                     const ActivateWorldMapErase(),
                   ),
                   isSelected: visualState.family == WorldMapToolFamily.erase,
-                  size: PokeMapButtonSize.small,
+                  size: PokeMapButtonSize.compact,
                   variant: PokeMapButtonVariant.secondary,
-                  leading: const Icon(Icons.auto_fix_off_outlined),
-                  child: const Text('Effacer'),
+                  leading: condensed
+                      ? null
+                      : const Icon(Icons.auto_fix_off_outlined),
+                  child: condensed
+                      ? const Icon(Icons.auto_fix_off_outlined)
+                      : const Text('Effacer'),
                 ),
               ),
               PokeMapSplitButton<WorldMapPlacementSubtool>(
@@ -273,7 +314,9 @@ class WorldMapToolbelt extends ConsumerWidget {
                 tooltip: 'Placer · $placementLabel',
                 menuTooltip: 'Choisir un outil de placement',
                 isSelected: visualState.family == WorldMapToolFamily.place,
-                child: const Text('Placer'),
+                child: condensed
+                    ? const Icon(Icons.add_location_alt_outlined)
+                    : const Text('Placer'),
               ),
               Tooltip(
                 message: 'Ouvrir la gestion des calques',
@@ -281,14 +324,35 @@ class WorldMapToolbelt extends ConsumerWidget {
                   key: const ValueKey<String>('world-map-tool-layers'),
                   onPressed: activateLayers,
                   isSelected: visualState.family == WorldMapToolFamily.layers,
-                  size: PokeMapButtonSize.small,
+                  size: PokeMapButtonSize.compact,
                   variant: PokeMapButtonVariant.secondary,
-                  leading: const Icon(Icons.layers_outlined),
-                  child: const Text('Calques'),
+                  leading: condensed ? null : const Icon(Icons.layers_outlined),
+                  child: condensed
+                      ? const Icon(Icons.layers_outlined)
+                      : const Text('Calques'),
                 ),
               ),
             ],
           ),
+          Semantics(
+            key: const ValueKey<String>('world-map-accessibility-status'),
+            container: true,
+            liveRegion: true,
+            label: 'Outil actif : ${_toolFamilyAccessibleLabel(
+              visualState.family,
+            )}. Calque actif : ${toolbar.activeLayer?.name ?? 'aucun'}.',
+            child: const SizedBox.shrink(),
+          ),
+          if (accessibilityAnnouncement != null)
+            Semantics(
+              key: const ValueKey<String>(
+                'world-map-accessibility-error-announcement',
+              ),
+              container: true,
+              liveRegion: true,
+              label: accessibilityAnnouncement.message,
+              child: const SizedBox.shrink(),
+            ),
         ],
       ),
     );
@@ -388,6 +452,7 @@ class _LabeledIconCommand extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.tooltip,
+    this.showLabel = true,
   });
 
   final Key commandKey;
@@ -395,6 +460,7 @@ class _LabeledIconCommand extends StatelessWidget {
   final Widget icon;
   final String label;
   final String tooltip;
+  final bool showLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -408,16 +474,20 @@ class _LabeledIconCommand extends StatelessWidget {
           icon: icon,
           tooltip: tooltip,
           variant: PokeMapIconButtonVariant.soft,
+          size: 36,
         ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: onPressed == null ? colors.textDisabled : colors.textPrimary,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+        if (showLabel) ...[
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color:
+                  onPressed == null ? colors.textDisabled : colors.textPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -427,27 +497,30 @@ class _ToolbeltRow extends StatelessWidget {
   const _ToolbeltRow({
     required this.label,
     required this.children,
+    this.showLabel = true,
   });
 
   final String label;
   final List<Widget> children;
+  final bool showLabel;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     return Row(
       children: [
-        SizedBox(
-          width: 48,
-          child: Text(
-            label,
-            style: TextStyle(
-              color: colors.textMuted,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
+        if (showLabel)
+          SizedBox(
+            width: 48,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: colors.textMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
-        ),
         for (var index = 0; index < children.length; index += 1) ...[
           if (index > 0) const SizedBox(width: 6),
           children[index],
@@ -468,6 +541,7 @@ enum _WorldMapMoreAction {
 
 class _WorldMapPlusMenu extends StatefulWidget {
   const _WorldMapPlusMenu({
+    this.condensed = false,
     this.onNewProject,
     this.onOpenProject,
     this.onProjectSettings,
@@ -477,6 +551,7 @@ class _WorldMapPlusMenu extends StatefulWidget {
     this.onUnavailable,
   });
 
+  final bool condensed;
   final VoidCallback? onNewProject;
   final VoidCallback? onOpenProject;
   final VoidCallback? onProjectSettings;
@@ -629,10 +704,14 @@ class _WorldMapPlusMenuState extends State<_WorldMapPlusMenu> {
           key: const ValueKey<String>('world-map-command-plus'),
           onPressed: _openMenu,
           focusNode: _focusNode,
-          size: PokeMapButtonSize.small,
+          size: PokeMapButtonSize.compact,
           variant: PokeMapButtonVariant.ghost,
-          trailing: const Icon(Icons.arrow_drop_down_rounded),
-          child: const Text('Plus'),
+          trailing: widget.condensed
+              ? null
+              : const Icon(Icons.arrow_drop_down_rounded),
+          child: widget.condensed
+              ? const Icon(Icons.more_horiz_rounded)
+              : const Text('Plus'),
         ),
       ),
     );
@@ -653,10 +732,20 @@ String _paintSubtoolLabel(WorldMapPaintSubtool subtool) {
 String _placementSubtoolLabel(WorldMapPlacementSubtool subtool) {
   return switch (subtool) {
     WorldMapPlacementSubtool.object => 'Objet',
-    WorldMapPlacementSubtool.entity => 'Entity',
-    WorldMapPlacementSubtool.event => 'Event',
-    WorldMapPlacementSubtool.trigger => 'Trigger',
-    WorldMapPlacementSubtool.warp => 'Warp',
-    WorldMapPlacementSubtool.gameplayZone => 'Gameplay zone',
+    WorldMapPlacementSubtool.entity => 'Entité',
+    WorldMapPlacementSubtool.event => 'Événement',
+    WorldMapPlacementSubtool.trigger => 'Déclencheur',
+    WorldMapPlacementSubtool.warp => 'Téléporteur',
+    WorldMapPlacementSubtool.gameplayZone => 'Zone de gameplay',
+  };
+}
+
+String _toolFamilyAccessibleLabel(WorldMapToolFamily family) {
+  return switch (family) {
+    WorldMapToolFamily.selection => 'Sélection',
+    WorldMapToolFamily.paint => 'Peinture',
+    WorldMapToolFamily.erase => 'Effacement',
+    WorldMapToolFamily.place => 'Placement',
+    WorldMapToolFamily.layers => 'Calques',
   };
 }

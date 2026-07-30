@@ -21,6 +21,7 @@ void main() {
   group('WorldMapToolbelt', () {
     testWidgets('keeps the five tool families visible in the approved order',
         (tester) async {
+      _useViewport(tester, const Size(1280, 800));
       final container = _containerWith(_tileState());
 
       await _pumpToolbelt(tester, container);
@@ -46,6 +47,7 @@ void main() {
 
     testWidgets('keeps Save Undo Redo and Plus one click above the workspace',
         (tester) async {
+      _useViewport(tester, const Size(1280, 800));
       final container = _containerWith(
         _tileState().copyWith(canUndoMap: true, canRedoMap: true),
       );
@@ -615,6 +617,37 @@ void main() {
       },
     );
 
+    testWidgets('Place menu exposes only French placement labels',
+        (tester) async {
+      final container = _containerWith(_tileState());
+      await _pumpToolbelt(tester, container);
+
+      await tester.tap(
+        find.bySemanticsLabel('Choisir un outil de placement'),
+      );
+      await tester.pump();
+
+      for (final label in const <String>[
+        'Objet',
+        'Entité',
+        'Événement',
+        'Déclencheur',
+        'Téléporteur',
+        'Zone de gameplay',
+      ]) {
+        expect(find.text(label), findsOneWidget, reason: label);
+      }
+      for (final label in const <String>[
+        'Entity',
+        'Event',
+        'Trigger',
+        'Warp',
+        'Gameplay zone',
+      ]) {
+        expect(find.text(label), findsNothing, reason: label);
+      }
+    });
+
     for (final entry
         in <WorldMapPlacementSubtool, ({String label, EditorToolType tool})>{
       WorldMapPlacementSubtool.object: (
@@ -622,23 +655,23 @@ void main() {
         tool: EditorToolType.tilePaint,
       ),
       WorldMapPlacementSubtool.entity: (
-        label: 'Entity',
+        label: 'Entité',
         tool: EditorToolType.entityPlacement,
       ),
       WorldMapPlacementSubtool.event: (
-        label: 'Event',
+        label: 'Événement',
         tool: EditorToolType.eventPlacement,
       ),
       WorldMapPlacementSubtool.trigger: (
-        label: 'Trigger',
+        label: 'Déclencheur',
         tool: EditorToolType.triggerPlacement,
       ),
       WorldMapPlacementSubtool.warp: (
-        label: 'Warp',
+        label: 'Téléporteur',
         tool: EditorToolType.warpPlacement,
       ),
       WorldMapPlacementSubtool.gameplayZone: (
-        label: 'Gameplay zone',
+        label: 'Zone de gameplay',
         tool: EditorToolType.gameplayZonePlacement,
       ),
     }.entries) {
@@ -686,7 +719,7 @@ void main() {
           find.bySemanticsLabel('Choisir un outil de placement'),
         );
         await tester.pump();
-        await tester.tap(find.text('Event'));
+        await tester.tap(find.text('Événement'));
         await tester.pump();
 
         expect(canonicalReason, isNotNull);
@@ -1445,6 +1478,17 @@ void main() {
         expect(tester.takeException(), isNull, reason: '$width px');
       }
     });
+  });
+}
+
+void _useViewport(WidgetTester tester, Size size) {
+  tester.view
+    ..devicePixelRatio = 1
+    ..physicalSize = size;
+  addTearDown(() {
+    tester.view
+      ..resetPhysicalSize()
+      ..resetDevicePixelRatio();
   });
 }
 

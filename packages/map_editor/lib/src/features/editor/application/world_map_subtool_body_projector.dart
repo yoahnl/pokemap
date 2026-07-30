@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../state/editor_state.dart';
 import '../tools/editor_tool.dart';
+import 'world_map_rejection_message.dart';
 import 'world_map_tool_activation.dart';
 import 'world_map_tool_family.dart';
 
@@ -41,7 +42,8 @@ final class WorldMapSubtoolBodyProjection {
 
   bool get isAvailable => access == WorldMapSubtoolBodyAccess.ready;
   bool get canRenderBody => access != WorldMapSubtoolBodyAccess.unavailable;
-  String? get disabledReason => activation.rejectionReason;
+  String? get disabledReason =>
+      projectWorldMapRejectionMessageFr(activation.rejectionReason);
   EditorToolType? get resultingTool => activation.resultingTool;
   EditorBrush? get resultingBrush => activation.resultingBrush;
 }

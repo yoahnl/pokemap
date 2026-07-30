@@ -56,6 +56,46 @@ final worldMapWorkspaceSessionProvider = NotifierProvider<
   WorldMapWorkspaceSessionController.new,
 );
 
+final worldMapAccessibilityErrorProvider = NotifierProvider<
+    WorldMapAccessibilityErrorController, WorldMapAccessibilityAnnouncement?>(
+  WorldMapAccessibilityErrorController.new,
+);
+
+class WorldMapAccessibilityAnnouncement {
+  const WorldMapAccessibilityAnnouncement({
+    required this.sequence,
+    required this.message,
+  });
+
+  final int sequence;
+  final String message;
+}
+
+class WorldMapAccessibilityErrorController
+    extends Notifier<WorldMapAccessibilityAnnouncement?> {
+  int _nextSequence = 0;
+
+  @override
+  WorldMapAccessibilityAnnouncement? build() => null;
+
+  void announce(String message) {
+    final normalized = message.trim();
+    if (normalized.isEmpty) return;
+    state = WorldMapAccessibilityAnnouncement(
+      sequence: ++_nextSequence,
+      message: normalized,
+    );
+  }
+
+  void consume(int sequence) {
+    if (state?.sequence == sequence) state = null;
+  }
+
+  void clear() {
+    if (state != null) state = null;
+  }
+}
+
 class WorldMapWorkspaceSessionController
     extends Notifier<WorldMapWorkspaceSession> {
   static const int _paintRoutingMemoryScopeLimit = 32;

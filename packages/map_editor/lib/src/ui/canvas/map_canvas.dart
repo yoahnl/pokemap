@@ -1605,7 +1605,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                     Focus(
                       key: const ValueKey<String>('map-canvas-focus'),
                       focusNode: _mapFocusNode,
-                      skipTraversal: true,
+                      skipTraversal: false,
                       includeSemantics: false,
                       onKeyEvent: _onMapKeyEvent,
                       onFocusChange: _onMapFocusChanged,

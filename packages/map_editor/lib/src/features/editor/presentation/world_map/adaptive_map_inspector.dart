@@ -18,6 +18,7 @@ class AdaptiveMapInspector extends ConsumerWidget {
   const AdaptiveMapInspector({
     super.key,
     this.onLayerContextMenuRequested,
+    this.onClose,
     this.focusNode,
     this.debugOnBuild,
     this.debugOnBodyBuild,
@@ -25,6 +26,7 @@ class AdaptiveMapInspector extends ConsumerWidget {
   });
 
   final WorldMapLayerContextMenuRequested? onLayerContextMenuRequested;
+  final VoidCallback? onClose;
   final FocusNode? focusNode;
   @visibleForTesting
   final VoidCallback? debugOnBuild;
@@ -64,6 +66,7 @@ class AdaptiveMapInspector extends ConsumerWidget {
               children: [
                 PokeMapIconButton(
                   key: const ValueKey<String>('world-map-inspector-pin'),
+                  size: 36,
                   tooltip: snapshot.pinned
                       ? 'Désépingler l’inspecteur'
                       : 'Épingler l’inspecteur',
@@ -80,8 +83,10 @@ class AdaptiveMapInspector extends ConsumerWidget {
                 const SizedBox(width: 4),
                 PokeMapIconButton(
                   key: const ValueKey<String>('world-map-inspector-close'),
+                  size: 36,
                   tooltip: 'Fermer l’inspecteur',
-                  onPressed: () => session.setInspectorVisible(false),
+                  onPressed:
+                      onClose ?? () => session.setInspectorVisible(false),
                   icon: const Icon(Icons.close),
                 ),
               ],

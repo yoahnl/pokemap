@@ -1033,7 +1033,7 @@ void main() {
     });
 
     testWidgets(
-        'Tab skips the programmatic canvas sink and shows navigation focus',
+        'Tab reaches the canvas before showing navigation control focus',
         (tester) async {
       final container = _createContainer();
       container.read(editorNotifierProvider.notifier).state = const EditorState(
@@ -1048,12 +1048,15 @@ void main() {
       final canvasFocus = tester.widget<Focus>(
         find.byKey(const ValueKey<String>('map-canvas-focus')),
       );
-      expect(canvasFocus.skipTraversal, isTrue);
+      expect(canvasFocus.skipTraversal, isFalse);
       expect(canvasFocus.includeSemantics, isFalse);
 
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pump();
+      expect(canvasFocus.focusNode!.hasFocus, isTrue);
 
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
       const zoomOutKey = ValueKey<String>('map-navigation-zoom-out');
       expect(_hasPrimaryFocusWithin(tester, zoomOutKey), isTrue);
       expect(_focusRingFor(tester, zoomOutKey), isNotEmpty);
@@ -1081,6 +1084,17 @@ void main() {
       const actualSizeKey = ValueKey<String>('map-navigation-actual-size');
       const centerKey = ValueKey<String>('map-navigation-center');
 
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      expect(
+        tester
+            .widget<Focus>(
+              find.byKey(const ValueKey<String>('map-canvas-focus')),
+            )
+            .focusNode!
+            .hasFocus,
+        isTrue,
+      );
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pump();
       expect(_hasPrimaryFocusWithin(tester, zoomOutKey), isTrue);

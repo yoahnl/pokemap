@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import '../../theme/theme.dart';
 
@@ -31,60 +33,77 @@ class PokeMapEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: colors.surfaceSubtle,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: colors.borderSubtle, width: 1),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final padding = constraints.maxHeight < 300 ? 12.0 : 24.0;
+        final content = ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: constraints.hasBoundedHeight
+                ? math.max(0, constraints.maxHeight - padding * 2)
+                : 0,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: colors.surfaceSubtle,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: colors.borderSubtle, width: 1),
+                  ),
+                  alignment: Alignment.center,
+                  child: IconTheme.merge(
+                    data: IconThemeData(color: colors.textMuted, size: 28),
+                    child: icon!,
+                  ),
                 ),
-                alignment: Alignment.center,
-                child: IconTheme.merge(
-                  data: IconThemeData(color: colors.textMuted, size: 28),
-                  child: icon!,
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: colors.textPrimary,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            if (description != null) ...[
-              const SizedBox(height: 6),
+                const SizedBox(height: 16),
+              ],
               Text(
-                description!,
+                title,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: colors.textSecondary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
-                  height: 1.4,
+                  color: colors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
+              if (description != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  description!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+              if (action != null) ...[
+                const SizedBox(height: 16),
+                action!,
+              ],
             ],
-            if (action != null) ...[
-              const SizedBox(height: 16),
-              action!,
-            ],
-          ],
-        ),
-      ),
+          ),
+        );
+        if (!constraints.hasBoundedHeight) {
+          return Padding(
+            padding: EdgeInsets.all(padding),
+            child: content,
+          );
+        }
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(padding),
+          child: content,
+        );
+      },
     );
   }
 }

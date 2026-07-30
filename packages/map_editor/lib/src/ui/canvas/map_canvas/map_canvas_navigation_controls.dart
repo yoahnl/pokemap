@@ -28,7 +28,8 @@ class MapCanvasNavigationControls extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.maxWidth < _wideLayoutMinWidth;
+        final compact = constraints.maxWidth < _wideLayoutMinWidth ||
+            MediaQuery.textScalerOf(context).scale(1) > 1.5;
         return MouseRegion(
           cursor: SystemMouseCursors.basic,
           child: PokeMapCard(
@@ -51,7 +52,7 @@ class MapCanvasNavigationControls extends StatelessWidget {
           key: const ValueKey<String>('map-navigation-fit'),
           onPressed: onFit,
           variant: PokeMapButtonVariant.ghost,
-          size: PokeMapButtonSize.small,
+          size: PokeMapButtonSize.compact,
           child: const Text('Ajuster'),
         ),
         const SizedBox(width: 2),
@@ -59,7 +60,7 @@ class MapCanvasNavigationControls extends StatelessWidget {
           key: const ValueKey<String>('map-navigation-actual-size'),
           onPressed: onActualSize,
           variant: PokeMapButtonVariant.ghost,
-          size: PokeMapButtonSize.small,
+          size: PokeMapButtonSize.compact,
           child: const Text('100 %'),
         ),
         const SizedBox(width: 2),
@@ -67,7 +68,7 @@ class MapCanvasNavigationControls extends StatelessWidget {
           key: const ValueKey<String>('map-navigation-center'),
           onPressed: onCenter,
           variant: PokeMapButtonVariant.ghost,
-          size: PokeMapButtonSize.small,
+          size: PokeMapButtonSize.compact,
           child: const Text('Centrer'),
         ),
       ],
@@ -88,6 +89,7 @@ class MapCanvasNavigationControls extends StatelessWidget {
           children: [
             PokeMapIconButton(
               key: const ValueKey<String>('map-navigation-fit'),
+              size: 36,
               onPressed: onFit,
               icon: const Icon(
                 CupertinoIcons.arrow_up_left_arrow_down_right,
@@ -97,6 +99,7 @@ class MapCanvasNavigationControls extends StatelessWidget {
             const SizedBox(width: 2),
             PokeMapIconButton(
               key: const ValueKey<String>('map-navigation-actual-size'),
+              size: 36,
               onPressed: onActualSize,
               icon: const Icon(CupertinoIcons.viewfinder),
               tooltip: 'Afficher à 100 %',
@@ -104,6 +107,7 @@ class MapCanvasNavigationControls extends StatelessWidget {
             const SizedBox(width: 2),
             PokeMapIconButton(
               key: const ValueKey<String>('map-navigation-center'),
+              size: 36,
               onPressed: onCenter,
               icon: const Icon(CupertinoIcons.scope),
               tooltip: 'Centrer la carte',
@@ -120,6 +124,7 @@ class MapCanvasNavigationControls extends StatelessWidget {
       children: [
         PokeMapIconButton(
           key: const ValueKey<String>('map-navigation-zoom-out'),
+          size: 36,
           onPressed: onZoomOut,
           icon: const Icon(CupertinoIcons.minus),
           tooltip: 'Zoom arrière',
@@ -130,6 +135,7 @@ class MapCanvasNavigationControls extends StatelessWidget {
         const SizedBox(width: 4),
         PokeMapIconButton(
           key: const ValueKey<String>('map-navigation-zoom-in'),
+          size: 36,
           onPressed: onZoomIn,
           icon: const Icon(CupertinoIcons.plus),
           tooltip: 'Zoom avant',

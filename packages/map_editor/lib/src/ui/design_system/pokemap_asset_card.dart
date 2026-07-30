@@ -11,20 +11,24 @@ import '../../theme/theme.dart';
 class PokeMapAssetCard extends StatefulWidget {
   const PokeMapAssetCard({
     super.key,
-    required this.semanticLabel,
+    required this.thumbnail,
+    required this.label,
     required this.onPressed,
-    required this.child,
+    this.description,
     this.disabledReason,
     this.selected = false,
+    this.trailing,
     this.focusNode,
     this.padding = const EdgeInsets.all(8),
   });
 
-  final String semanticLabel;
+  final Widget thumbnail;
+  final String label;
+  final String? description;
   final VoidCallback? onPressed;
-  final Widget child;
   final String? disabledReason;
   final bool selected;
+  final Widget? trailing;
   final FocusNode? focusNode;
   final EdgeInsetsGeometry padding;
 
@@ -46,10 +50,15 @@ class _PokeMapAssetCardState extends State<PokeMapAssetCard> {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final disabledReason = widget.disabledReason?.trim();
+    final description = widget.description?.trim();
+    final accessibleContent = [
+      widget.label,
+      if (description != null && description.isNotEmpty) description,
+    ].join('. ');
     final semanticLabel =
         !_enabled && disabledReason != null && disabledReason.isNotEmpty
-            ? '${widget.semanticLabel}. Désactivé. $disabledReason'
-            : widget.semanticLabel;
+            ? '$accessibleContent. Désactivé. $disabledReason'
+            : accessibleContent;
     final borderColor = widget.selected || _focused
         ? colors.brandPrimaryBorder
         : _hovered && _enabled
@@ -92,6 +101,7 @@ class _PokeMapAssetCardState extends State<PokeMapAssetCard> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
           padding: widget.padding,
+          constraints: const BoxConstraints(minHeight: 36, minWidth: 36),
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(8),
@@ -112,7 +122,47 @@ class _PokeMapAssetCardState extends State<PokeMapAssetCard> {
           child: ExcludeSemantics(
             child: Opacity(
               opacity: _enabled ? 1 : 0.56,
-              child: widget.child,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  widget.thumbnail,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (description != null && description.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            description,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: colors.textSecondary,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (widget.trailing != null) ...[
+                    const SizedBox(width: 8),
+                    widget.trailing!,
+                  ],
+                ],
+              ),
             ),
           ),
         ),

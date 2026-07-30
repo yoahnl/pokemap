@@ -10,7 +10,11 @@ void main() {
         PokeMapDesktopWindowClass.compact,
       );
       expect(
-        PokeMapDesktopLayout.resolve(const Size(1024, 600)).windowClass,
+        PokeMapDesktopLayout.resolve(const Size(1279, 800)).windowClass,
+        PokeMapDesktopWindowClass.compact,
+      );
+      expect(
+        PokeMapDesktopLayout.resolve(const Size(1280, 800)).windowClass,
         PokeMapDesktopWindowClass.medium,
       );
       expect(
@@ -51,17 +55,17 @@ void main() {
       expect(budget.canvasWidth, 748);
     });
 
-    test('auto-collapses the Explorer at 1024 logical pixels', () {
-      final budget = PokeMapDesktopLayout.resolve(const Size(1024, 600));
+    test('keeps the compact overlay budget immediately below 1280', () {
+      final budget = PokeMapDesktopLayout.resolve(const Size(1279, 800));
 
-      expect(budget.windowClass, PokeMapDesktopWindowClass.medium);
+      expect(budget.windowClass, PokeMapDesktopWindowClass.compact);
       expect(budget.explorerIsExpanded, isFalse);
       expect(budget.explorerWidth, 52);
       expect(budget.inspectorWidth, 360);
-      expect(budget.inspectorIsOverlay, isFalse);
-      expect(budget.dockedInspectorWidth, 360);
-      expect(budget.resizeHandleWidth, 12);
-      expect(budget.canvasWidth, 600);
+      expect(budget.inspectorIsOverlay, isTrue);
+      expect(budget.dockedInspectorWidth, 0);
+      expect(budget.resizeHandleWidth, 0);
+      expect(budget.canvasWidth, 1227);
     });
 
     test('resolves the exact medium budget at 1280 logical pixels', () {
@@ -96,7 +100,7 @@ void main() {
         explorerExpanded: false,
       );
       final hiddenInspector = PokeMapDesktopLayout.resolve(
-        const Size(1024, 600),
+        const Size(1280, 800),
         inspectorVisible: false,
       );
 
@@ -108,14 +112,15 @@ void main() {
       expect(hiddenInspector.inspectorWidth, 0);
       expect(hiddenInspector.dockedInspectorWidth, 0);
       expect(hiddenInspector.resizeHandleWidth, 0);
-      expect(hiddenInspector.canvasWidth, 680);
+      expect(hiddenInspector.canvasWidth, 936);
     });
 
     test('always reserves at least the minimum canvas width', () {
       const viewports = <Size>[
         Size(800, 600),
-        Size(1024, 600),
+        Size(1279, 800),
         Size(1280, 800),
+        Size(1439, 900),
         Size(1440, 900),
       ];
 

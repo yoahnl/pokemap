@@ -190,10 +190,10 @@ class _WorldMapPlacementGuidance extends StatelessWidget {
 String _placementSubtoolLabel(WorldMapPlacementSubtool subtool) {
   return switch (subtool) {
     WorldMapPlacementSubtool.object => 'Objet',
-    WorldMapPlacementSubtool.entity => 'Entity',
-    WorldMapPlacementSubtool.event => 'Event',
-    WorldMapPlacementSubtool.trigger => 'Trigger',
-    WorldMapPlacementSubtool.warp => 'Warp',
-    WorldMapPlacementSubtool.gameplayZone => 'Gameplay zone',
+    WorldMapPlacementSubtool.entity => 'Entité',
+    WorldMapPlacementSubtool.event => 'Événement',
+    WorldMapPlacementSubtool.trigger => 'Déclencheur',
+    WorldMapPlacementSubtool.warp => 'Téléporteur',
+    WorldMapPlacementSubtool.gameplayZone => 'Zone de gameplay',
   };
 }

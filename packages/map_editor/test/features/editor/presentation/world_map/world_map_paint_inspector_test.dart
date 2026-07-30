@@ -166,7 +166,8 @@ void main() {
 
       await harness.pump(tester);
 
-      const reason = 'Paint/terrain requires an active terrain layer.';
+      const reason =
+          'Sélectionnez un calque de terrain pour peindre le terrain.';
       final guidance = find.byKey(
         const ValueKey<String>('world-map-inspector-disabled-guidance'),
       );
@@ -580,7 +581,7 @@ void main() {
       expect(find.byType(SurfacePainterPanel), findsOneWidget);
       expect(_mountedPaintBodyCount(), 1);
       expect(
-        find.text('Select an available surface before painting.'),
+        find.text('Sélectionnez une surface disponible avant de peindre.'),
         findsOneWidget,
       );
       expect(harness.notifier.state, same(beforeEditor));

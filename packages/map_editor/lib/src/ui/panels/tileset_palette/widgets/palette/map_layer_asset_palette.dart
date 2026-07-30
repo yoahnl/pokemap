@@ -401,80 +401,28 @@ class _ElementAssetList extends StatelessWidget {
                     final presetLabel = elementPresetLabel(element.presetKind);
                     final collisionCellCount =
                         element.collisionProfile?.cells.length ?? 0;
-                    final metadataStyle = TextStyle(
-                      color: context.pokeMapColors.textMuted,
-                      fontSize: 10,
-                    );
                     final card = PokeMapAssetCard(
                       key: MapLayerAssetPaletteKeys.elementCard(element.id),
-                      semanticLabel: '${element.name}, '
-                          '${_categoryPath(project, element.categoryId)}, '
-                          'Type : $presetLabel, '
+                      thumbnail: SizedBox.square(
+                        dimension: 48,
+                        child: _ElementPreview(
+                          image: image,
+                          source: element.frames.primarySource,
+                          tileWidth: settings.tileWidth,
+                          tileHeight: settings.tileHeight,
+                        ),
+                      ),
+                      label: element.name,
+                      description: '${_categoryPath(
+                        project,
+                        element.categoryId,
+                      )} · Type : $presetLabel · '
                           'Collision : $collisionCellCount',
                       selected: presentation.selected,
                       disabledReason: presentation.disabledReason,
                       onPressed: presentation.enabled
                           ? () => onSelected(presentation)
                           : null,
-                      child: Row(
-                        children: [
-                          SizedBox.square(
-                            dimension: 48,
-                            child: _ElementPreview(
-                              image: image,
-                              source: element.frames.primarySource,
-                              tileWidth: settings.tileWidth,
-                              tileHeight: settings.tileHeight,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  element.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: context.pokeMapColors.textPrimary,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  _categoryPath(
-                                    project,
-                                    element.categoryId,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: context.pokeMapColors.textSecondary,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 2,
-                                  children: [
-                                    Text(
-                                      'Type : $presetLabel',
-                                      style: metadataStyle,
-                                    ),
-                                    Text(
-                                      'Collision : $collisionCellCount',
-                                      style: metadataStyle,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
                     );
                     final actionsBuilder = elementActionsBuilder;
                     if (actionsBuilder == null) return card;
