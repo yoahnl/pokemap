@@ -71,20 +71,3 @@ class _CategoryTreeRow extends StatelessWidget {
     );
   }
 }
-
-String _elementPresetLabel(ElementPresetKind kind) {
-  switch (kind) {
-    case ElementPresetKind.generic:
-      return 'Générique';
-    case ElementPresetKind.tree:
-      return 'Arbre';
-    case ElementPresetKind.building:
-      return 'Bâtiment';
-    case ElementPresetKind.rock:
-      return 'Roche';
-    case ElementPresetKind.cliff:
-      return 'Falaise';
-    case ElementPresetKind.tallDecoration:
-      return 'Grande déco';
-  }
-}

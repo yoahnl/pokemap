@@ -17,6 +17,7 @@ import '../../../../../features/editor/tools/editor_tool.dart';
 import '../../../../assets/editor_image_cache.dart';
 import '../../../../design_system/design_system.dart';
 import '../../../../../theme/theme.dart';
+import '../../element_preset_label.dart';
 import '../browser/map_palette_asset_browser.dart';
 
 enum MapLayerAssetPaletteMode { tiles, elements }
@@ -529,10 +530,19 @@ class _ElementAssetList extends StatelessWidget {
                       enabled: availability.enabled,
                       disabledReason: availability.disabledReason,
                     );
+                    final presetLabel = elementPresetLabel(element.presetKind);
+                    final collisionCellCount =
+                        element.collisionProfile?.cells.length ?? 0;
+                    final metadataStyle = TextStyle(
+                      color: context.pokeMapColors.textMuted,
+                      fontSize: 10,
+                    );
                     final card = PokeMapAssetCard(
                       key: MapLayerAssetPaletteKeys.elementCard(element.id),
-                      semanticLabel:
-                          '${element.name}, ${_categoryPath(project, element.categoryId)}',
+                      semanticLabel: '${element.name}, '
+                          '${_categoryPath(project, element.categoryId)}, '
+                          'Type : $presetLabel, '
+                          'Collision : $collisionCellCount',
                       selected: presentation.selected,
                       disabledReason: presentation.disabledReason,
                       onPressed: presentation.enabled
@@ -576,6 +586,21 @@ class _ElementAssetList extends StatelessWidget {
                                     color: context.pokeMapColors.textSecondary,
                                     fontSize: 11,
                                   ),
+                                ),
+                                const SizedBox(height: 2),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 2,
+                                  children: [
+                                    Text(
+                                      'Type : $presetLabel',
+                                      style: metadataStyle,
+                                    ),
+                                    Text(
+                                      'Collision : $collisionCellCount',
+                                      style: metadataStyle,
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),

@@ -33,6 +33,7 @@ import '../../features/editor/tools/editor_tool.dart';
 import '../assets/editor_image_cache.dart';
 import '../design_system/design_system.dart';
 import 'element_collision_editor_sheet.dart';
+import 'tileset_palette/element_preset_label.dart';
 import 'tileset_palette/widgets/browser/map_palette_asset_browser.dart';
 import 'tileset_palette/widgets/palette/map_layer_asset_palette.dart';
 import '../../theme/theme.dart';
@@ -2018,14 +2019,14 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                           context: ctx,
                           title: 'Type prédéfini',
                           items: ElementPresetKind.values,
-                          labelOf: _elementPresetLabel,
+                          labelOf: elementPresetLabel,
                         );
                         if (picked != null) {
                           setStateDialog(() => selectedPresetKind = picked);
                         }
                       },
                       child: Text(
-                        'Type : ${_elementPresetLabel(selectedPresetKind)}',
+                        'Type : ${elementPresetLabel(selectedPresetKind)}',
                       ),
                     ),
                   ),
@@ -2361,14 +2362,14 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                           context: ctx,
                           title: 'Type prédéfini',
                           items: ElementPresetKind.values,
-                          labelOf: _elementPresetLabel,
+                          labelOf: elementPresetLabel,
                         );
                         if (picked != null) {
                           setStateDialog(() => selectedPresetKind = picked);
                         }
                       },
                       child: Text(
-                        'Type: ${_elementPresetLabel(selectedPresetKind)}',
+                        'Type: ${elementPresetLabel(selectedPresetKind)}',
                       ),
                     ),
                   ),

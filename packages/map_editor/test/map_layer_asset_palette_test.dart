@@ -77,7 +77,24 @@ void main() {
         find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')),
         findsOneWidget,
       );
+      final treeCard = find.byKey(
+        MapLayerAssetPaletteKeys.elementCard('tree'),
+      );
       expect(find.text('Arbre'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: treeCard,
+          matching: find.text('Type : Arbre'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: treeCard,
+          matching: find.text('Collision : 2'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Lampe'), findsNothing);
       expect(
         find.descendant(
@@ -437,6 +454,13 @@ const _project = ProjectManifest(
       name: 'Arbre',
       tilesetId: 'world',
       categoryId: 'nature',
+      presetKind: ElementPresetKind.tree,
+      collisionProfile: ElementCollisionProfile(
+        cells: <GridPos>[
+          GridPos(x: 0, y: 0),
+          GridPos(x: 0, y: 1),
+        ],
+      ),
       frames: <TilesetVisualFrame>[
         TilesetVisualFrame(
           source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),

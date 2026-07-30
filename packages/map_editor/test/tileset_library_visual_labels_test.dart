@@ -1,10 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/ui/panels/tileset_palette/element_preset_label.dart';
 
 void main() {
   group('Tileset Library Visual Labels Refinement', () {
-    test('TilesetEditorCanvas uses French labels and refined visual elements', () {
+    test('TilesetEditorCanvas uses French labels and refined visual elements',
+        () {
       final source = File(
         'lib/src/ui/canvas/tileset_editor_canvas.dart',
       ).readAsStringSync();
@@ -51,26 +54,16 @@ void main() {
       expect(source, contains("colors.borderSubtle"));
     });
 
-    test('TilesetPaletteLibraryWidgets uses French labels and semantic colors', () {
-      final source = File(
-        'lib/src/ui/panels/tileset_palette/widgets/library/tileset_palette_library_widgets.dart',
-      ).readAsStringSync();
-
-      // Check element preset label translations
-      expect(source, contains("Générique"));
-      expect(source, contains("Arbre"));
-      expect(source, contains("Bâtiment"));
-      expect(source, contains("Roche"));
-      expect(source, contains("Falaise"));
-      expect(source, contains("Grande déco"));
-
-      // Check card meta translations
-      expect(source, contains("'Type : "));
-      expect(source, contains("'Collision : "));
-
-      // Check card container border/fill refinement (uses context.pokeMapColors)
-      expect(source, contains("colors.surfaceSelected"));
-      expect(source, contains("colors.borderSubtle"));
+    test('shared element preset labels use French product copy', () {
+      expect(elementPresetLabel(ElementPresetKind.generic), 'Générique');
+      expect(elementPresetLabel(ElementPresetKind.tree), 'Arbre');
+      expect(elementPresetLabel(ElementPresetKind.building), 'Bâtiment');
+      expect(elementPresetLabel(ElementPresetKind.rock), 'Roche');
+      expect(elementPresetLabel(ElementPresetKind.cliff), 'Falaise');
+      expect(
+        elementPresetLabel(ElementPresetKind.tallDecoration),
+        'Grande déco',
+      );
     });
   });
 }
