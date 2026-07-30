@@ -3,6 +3,17 @@ import 'package:test/test.dart';
 
 void main() {
   group('MapPlacedElement quarter-turn persistence', () {
+    test('direct constructor defaults omitted quarterTurns to zero', () {
+      const instance = MapPlacedElement(
+        id: 'placed',
+        layerId: 'ground',
+        elementId: 'sign',
+        pos: GridPos(x: 1, y: 1),
+      );
+
+      expect(instance.quarterTurns, 0);
+    });
+
     test('historical JSON without quarterTurns defaults to zero', () {
       final decoded = MapPlacedElement.fromJson(_legacyPlacedElementJson());
 
@@ -63,6 +74,9 @@ void main() {
     test('absolute setter accepts every normalized value immutably', () {
       for (var quarterTurns = 0; quarterTurns < 4; quarterTurns++) {
         final source = _map();
+        final sourceSnapshot = source.toJson();
+        final targetBefore = source.placedElements.first;
+        final otherBefore = source.placedElements.last;
 
         final updated = setMapPlacedElementQuarterTurns(
           source,
@@ -70,8 +84,14 @@ void main() {
           quarterTurns: quarterTurns,
         );
 
-        expect(updated.placedElements.first.quarterTurns, quarterTurns);
-        expect(source.placedElements.first.quarterTurns, 0);
+        _expectOnlyTargetRotationChanged(
+          source: source,
+          sourceSnapshot: sourceSnapshot,
+          targetBefore: targetBefore,
+          otherBefore: otherBefore,
+          result: updated,
+          expectedQuarterTurns: quarterTurns,
+        );
         expect(
           () => updated.placedElements.add(_placedElement()),
           throwsUnsupportedError,
@@ -82,6 +102,9 @@ void main() {
     test('absolute setter rejects values outside zero through three', () {
       for (final quarterTurns in <int>[-1, 4]) {
         final source = _map();
+        final sourceSnapshot = source.toJson();
+        final targetBefore = source.placedElements.first;
+        final otherBefore = source.placedElements.last;
 
         expect(
           () => setMapPlacedElementQuarterTurns(
@@ -91,25 +114,50 @@ void main() {
           ),
           throwsA(isA<ValidationException>()),
         );
-        expect(source, same(source));
-        expect(source.placedElements.first.quarterTurns, 0);
+        expect(source, MapData.fromJson(sourceSnapshot));
+        expect(source.toJson(), sourceSnapshot);
+        expect(source.placedElements, hasLength(2));
+        expect(source.placedElements.first, same(targetBefore));
+        expect(source.placedElements.last, same(otherBefore));
       }
     });
 
     test('delta rotation wraps positive and negative values', () {
+      final positiveSource = _map(quarterTurns: 3);
+      final positiveSnapshot = positiveSource.toJson();
+      final positiveTargetBefore = positiveSource.placedElements.first;
+      final positiveOtherBefore = positiveSource.placedElements.last;
       final positive = rotateMapPlacedElement(
-        _map(quarterTurns: 3),
+        positiveSource,
         instanceId: 'placed',
         deltaQuarterTurns: 5,
       );
+      final negativeSource = _map(quarterTurns: 0);
+      final negativeSnapshot = negativeSource.toJson();
+      final negativeTargetBefore = negativeSource.placedElements.first;
+      final negativeOtherBefore = negativeSource.placedElements.last;
       final negative = rotateMapPlacedElement(
-        _map(quarterTurns: 0),
+        negativeSource,
         instanceId: 'placed',
         deltaQuarterTurns: -2,
       );
 
-      expect(positive.placedElements.first.quarterTurns, 0);
-      expect(negative.placedElements.first.quarterTurns, 2);
+      _expectOnlyTargetRotationChanged(
+        source: positiveSource,
+        sourceSnapshot: positiveSnapshot,
+        targetBefore: positiveTargetBefore,
+        otherBefore: positiveOtherBefore,
+        result: positive,
+        expectedQuarterTurns: 0,
+      );
+      _expectOnlyTargetRotationChanged(
+        source: negativeSource,
+        sourceSnapshot: negativeSnapshot,
+        targetBefore: negativeTargetBefore,
+        otherBefore: negativeOtherBefore,
+        result: negative,
+        expectedQuarterTurns: 2,
+      );
     });
 
     test('absolute and delta no-ops return the identical MapData instance', () {
@@ -553,6 +601,30 @@ MapData _map({int quarterTurns = 0}) => MapData(
         ),
       ],
     );
+
+void _expectOnlyTargetRotationChanged({
+  required MapData source,
+  required Map<String, dynamic> sourceSnapshot,
+  required MapPlacedElement targetBefore,
+  required MapPlacedElement otherBefore,
+  required MapData result,
+  required int expectedQuarterTurns,
+}) {
+  expect(source, MapData.fromJson(sourceSnapshot));
+  expect(source.toJson(), sourceSnapshot);
+  expect(source.placedElements, hasLength(2));
+  expect(source.placedElements.first, same(targetBefore));
+  expect(source.placedElements.last, same(otherBefore));
+
+  expect(result.placedElements, hasLength(2));
+  expect(
+    result.placedElements.map((instance) => instance.id),
+    orderedEquals(const <String>['placed', 'other']),
+  );
+  expect(result.placedElements.first.quarterTurns, expectedQuarterTurns);
+  expect(result.placedElements.last, same(otherBefore));
+  expect(result.placedElements.last, otherBefore);
+}
 
 MapData _validationMap({
   required int quarterTurns,
