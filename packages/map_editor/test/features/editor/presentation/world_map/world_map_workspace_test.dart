@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/adaptive_map_inspector.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/map_placed_element_rotation_preview_controller.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
@@ -123,6 +124,24 @@ void main() {
         findsNothing,
       );
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('passes the transient rotation preview into MapCanvas',
+        (tester) async {
+      final container = await _pumpWorkspace(
+        tester,
+        surfaceSize: const Size(1280, 800),
+        seedRotationPreview: true,
+      );
+
+      final preview = container.read(mapPlacedElementRotationPreviewProvider);
+      final canvas = tester.widget<MapCanvas>(find.byType(MapCanvas));
+      expect(preview, isNotNull);
+      expect(canvas.placedElementRotationPreview, same(preview));
+      expect(
+        container.read(editorNotifierProvider).mapUndoStack,
+        isEmpty,
+      );
     });
 
     testWidgets(
@@ -366,6 +385,7 @@ Future<ProviderContainer> _pumpWorkspace(
   WidgetTester tester, {
   required Size surfaceSize,
   FocusNode? toolFocusNode,
+  bool seedRotationPreview = false,
 }) async {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(_appkitUiElementColorsChannel, (call) async {
@@ -395,6 +415,15 @@ Future<ProviderContainer> _pumpWorkspace(
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   container.read(editorNotifierProvider.notifier).state = _editorState();
+  if (seedRotationPreview) {
+    final editor = container.read(editorNotifierProvider);
+    container.read(mapPlacedElementRotationPreviewProvider.notifier).preview(
+          map: editor.activeMap,
+          project: editor.project,
+          instanceId: 'missing-preview-target',
+          targetQuarterTurns: 1,
+        );
+  }
 
   await tester.pumpWidget(
     UncontrolledProviderScope(

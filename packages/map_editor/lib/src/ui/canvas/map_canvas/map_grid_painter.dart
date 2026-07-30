@@ -56,9 +56,12 @@ Map<String, Set<int>> buildEditorForegroundTileCellIndicesByLayerId({
       continue;
     }
 
-    final source = entry.frames.primarySource;
-    final width = source.width <= 0 ? 1 : source.width;
-    final height = source.height <= 0 ? 1 : source.height;
+    final transform = resolveMapPlacedElementFootprint(
+      instance: instance,
+      element: entry,
+    );
+    final width = transform.sourceSize.width;
+    final height = transform.sourceSize.height;
     if (width <= 1 && height <= 1) {
       continue;
     }
@@ -82,8 +85,11 @@ Map<String, Set<int>> buildEditorForegroundTileCellIndicesByLayerId({
           continue;
         }
 
-        final x = instance.pos.x + localX;
-        final y = instance.pos.y + localY;
+        final destination = transform.sourceToDestination(
+          GridPos(x: localX, y: localY),
+        );
+        final x = instance.pos.x + destination.x;
+        final y = instance.pos.y + destination.y;
         if (x < 0 || y < 0 || x >= mapWidth || y >= mapHeight) {
           continue;
         }
@@ -207,9 +213,12 @@ class MapGridPainter extends CustomPainter {
   final String? selectedTriggerId;
   final String? selectedGameplayZoneId;
   final String? selectedPlacedElementInstanceId;
+  final MapPlacedElementRotationPlan? placedElementRotationPreview;
   final NarrativeEditorFocusTarget? narrativeEventFocusTarget;
   final NarrativeEventCreatedSourceProposal? narrativeEventSourceProposal;
   final Color? narrativeEventHighlightColor;
+  final Color? rotationPreviewAcceptedColor;
+  final Color? rotationPreviewRejectedColor;
   final Map<MapConnectionDirection, String> connectionLabelsByDirection;
   final PathAutotileSet? selectedPathAutotileSet;
   final Map<String, PathAutotileSet> pathAutotileSetsByPresetId;
@@ -251,9 +260,12 @@ class MapGridPainter extends CustomPainter {
     this.selectedTriggerId,
     this.selectedGameplayZoneId,
     this.selectedPlacedElementInstanceId,
+    this.placedElementRotationPreview,
     this.narrativeEventFocusTarget,
     this.narrativeEventSourceProposal,
     this.narrativeEventHighlightColor,
+    this.rotationPreviewAcceptedColor,
+    this.rotationPreviewRejectedColor,
     required this.connectionLabelsByDirection,
     this.selectedPathAutotileSet,
     required this.pathAutotileSetsByPresetId,
@@ -469,6 +481,7 @@ class MapGridPainter extends CustomPainter {
 
       _paintGameplayZones(canvas);
       _paintSelectedPlacedElementInstance(canvas);
+      _paintPlacedElementRotationPreview(canvas);
       _paintToolPreview(canvas);
       _paintEnvironmentGeneratedAddPreview(canvas);
       _paintEnvironmentMaskOverlay(canvas);
@@ -777,11 +790,20 @@ class MapGridPainter extends CustomPainter {
     if (width <= 0 || height <= 0) {
       return;
     }
+    final persistedTransform = QuarterTurnGridTransform(
+      sourceSize: GridSize(width: width, height: height),
+      quarterTurns: selectedInstance.quarterTurns,
+    );
+    final preview = placedElementRotationPreview;
+    final destinationSize = preview?.instance?.id == selectedInstance.id &&
+            preview?.previewFootprint != null
+        ? preview!.previewFootprint!.destinationSize
+        : persistedTransform.destinationSize;
     final rect = Rect.fromLTWH(
       selectedInstance.pos.x * tileWidth,
       selectedInstance.pos.y * tileHeight,
-      width * tileWidth,
-      height * tileHeight,
+      destinationSize.width * tileWidth,
+      destinationSize.height * tileHeight,
     );
     final fill = Paint()
       ..color = PokeMapLegacyColors.yellowAccent.withValues(alpha: 0.17)
@@ -1908,10 +1930,17 @@ class MapGridPainter extends CustomPainter {
       final source = frame.source;
       final width = source.width <= 0 ? 1 : source.width;
       final height = source.height <= 0 ? 1 : source.height;
+      final transform = QuarterTurnGridTransform(
+        sourceSize: GridSize(width: width, height: height),
+        quarterTurns: instance.quarterTurns,
+      );
       for (var localY = 0; localY < height; localY++) {
         for (var localX = 0; localX < width; localX++) {
-          final x = instance.pos.x + localX;
-          final y = instance.pos.y + localY;
+          final destination = transform.sourceToDestination(
+            GridPos(x: localX, y: localY),
+          );
+          final x = instance.pos.x + destination.x;
+          final y = instance.pos.y + destination.y;
           if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) {
             continue;
           }
@@ -2007,6 +2036,10 @@ class MapGridPainter extends CustomPainter {
     final source = frame.source;
     final width = source.width <= 0 ? 1 : source.width;
     final height = source.height <= 0 ? 1 : source.height;
+    final transform = QuarterTurnGridTransform(
+      sourceSize: GridSize(width: width, height: height),
+      quarterTurns: instance.quarterTurns,
+    );
     final resolvedOpacity =
         (opacity * instance.opacity).clamp(0.0, 1.0).toDouble();
 
@@ -2023,8 +2056,11 @@ class MapGridPainter extends CustomPainter {
           continue;
         }
 
-        final x = instance.pos.x + localX;
-        final y = instance.pos.y + localY;
+        final destination = transform.sourceToDestination(
+          GridPos(x: localX, y: localY),
+        );
+        final x = instance.pos.x + destination.x;
+        final y = instance.pos.y + destination.y;
         if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) {
           continue;
         }
@@ -2057,6 +2093,7 @@ class MapGridPainter extends CustomPainter {
           dstRect,
           opacity: resolvedOpacity,
           highlight: highlight,
+          quarterTurns: transform.quarterTurns,
         );
       }
     }
@@ -2069,15 +2106,25 @@ class MapGridPainter extends CustomPainter {
     Rect dstRect, {
     required double opacity,
     bool highlight = false,
+    required int quarterTurns,
   }) {
     if (opacity >= 1) {
-      canvas.drawImageRect(image, srcRect, dstRect, Paint());
+      _drawQuarterTurnImageRect(
+        canvas,
+        image,
+        srcRect,
+        dstRect,
+        quarterTurns: quarterTurns,
+        paint: Paint(),
+      );
       if (highlight) {
-        canvas.drawImageRect(
+        _drawQuarterTurnImageRect(
+          canvas,
           image,
           srcRect,
           dstRect,
-          Paint()
+          quarterTurns: quarterTurns,
+          paint: Paint()
             ..colorFilter = ui.ColorFilter.mode(
               PokeMapLegacyColors.white.withValues(alpha: 0.45),
               ui.BlendMode.srcATop,
@@ -2090,19 +2137,56 @@ class MapGridPainter extends CustomPainter {
       dstRect,
       Paint()..color = PokeMapLegacyColors.white.withValues(alpha: opacity),
     );
-    canvas.drawImageRect(image, srcRect, dstRect, Paint());
+    _drawQuarterTurnImageRect(
+      canvas,
+      image,
+      srcRect,
+      dstRect,
+      quarterTurns: quarterTurns,
+      paint: Paint(),
+    );
     if (highlight) {
-      canvas.drawImageRect(
+      _drawQuarterTurnImageRect(
+        canvas,
         image,
         srcRect,
         dstRect,
-        Paint()
+        quarterTurns: quarterTurns,
+        paint: Paint()
           ..colorFilter = ui.ColorFilter.mode(
             PokeMapLegacyColors.white.withValues(alpha: 0.45),
             ui.BlendMode.srcATop,
           ),
       );
     }
+    canvas.restore();
+  }
+
+  void _drawQuarterTurnImageRect(
+    Canvas canvas,
+    ui.Image image,
+    Rect srcRect,
+    Rect dstRect, {
+    required int quarterTurns,
+    required Paint paint,
+  }) {
+    paint
+      ..isAntiAlias = false
+      ..filterQuality = ui.FilterQuality.none;
+    if (quarterTurns == 0) {
+      canvas.drawImageRect(image, srcRect, dstRect, paint);
+      return;
+    }
+    canvas.save();
+    canvas.clipRect(dstRect);
+    canvas.translate(dstRect.center.dx, dstRect.center.dy);
+    canvas.rotate(quarterTurns * math.pi / 2);
+    final normalizedDestination = Rect.fromCenter(
+      center: Offset.zero,
+      width: quarterTurns.isOdd ? dstRect.height : dstRect.width,
+      height: quarterTurns.isOdd ? dstRect.width : dstRect.height,
+    );
+    canvas.drawImageRect(image, srcRect, normalizedDestination, paint);
     canvas.restore();
   }
 
@@ -2134,6 +2218,45 @@ class MapGridPainter extends CustomPainter {
     );
   }
 
+  void _paintPlacedElementRotationPreview(Canvas canvas) {
+    final preview = placedElementRotationPreview;
+    final instance = preview?.instance;
+    final footprint = preview?.previewFootprint;
+    final projectContext = project;
+    if (preview == null ||
+        instance == null ||
+        footprint == null ||
+        projectContext == null) {
+      return;
+    }
+    final elementById = <String, ProjectElementEntry>{
+      for (final entry in projectContext.elements) entry.id: entry,
+    };
+    final projected = instance.copyWith(
+      quarterTurns: footprint.quarterTurns,
+    );
+    final previewColor = preview.rejection == null
+        ? rotationPreviewAcceptedColor
+        : rotationPreviewRejectedColor;
+    _paintPlacedElement(
+      canvas,
+      projected,
+      elementById: elementById,
+      renderPass: _EditorMapTileRenderPass.foreground,
+      opacity: preview.rejection == null ? 0.52 : 0.34,
+      ignoreRenderPassSplit: true,
+    );
+    if (previewColor == null) return;
+    _paintPlacedElementFootprintHint(
+      canvas,
+      projected,
+      elementById: elementById,
+      color: previewColor,
+      fillAlpha: preview.rejection == null ? 0.08 : 0.14,
+      strokeAlpha: 0.95,
+    );
+  }
+
   void _paintPlacedElementFootprintHint(
     Canvas canvas,
     MapPlacedElement instance, {
@@ -2143,14 +2266,17 @@ class MapGridPainter extends CustomPainter {
     required double strokeAlpha,
   }) {
     final entry = elementById[instance.elementId.trim()];
-    final source = entry?.frames.primarySource;
-    final width = source == null || source.width <= 0 ? 1 : source.width;
-    final height = source == null || source.height <= 0 ? 1 : source.height;
+    final destinationSize = entry == null
+        ? const GridSize(width: 1, height: 1)
+        : resolveMapPlacedElementFootprint(
+            instance: instance,
+            element: entry,
+          ).destinationSize;
     final rect = Rect.fromLTWH(
       instance.pos.x * tileWidth,
       instance.pos.y * tileHeight,
-      width * tileWidth,
-      height * tileHeight,
+      destinationSize.width * tileWidth,
+      destinationSize.height * tileHeight,
     );
     canvas.drawRect(
       rect,
@@ -2750,11 +2876,17 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.selectedGameplayZoneId != selectedGameplayZoneId ||
         oldDelegate.selectedPlacedElementInstanceId !=
             selectedPlacedElementInstanceId ||
+        oldDelegate.placedElementRotationPreview !=
+            placedElementRotationPreview ||
         oldDelegate.narrativeEventFocusTarget != narrativeEventFocusTarget ||
         oldDelegate.narrativeEventSourceProposal !=
             narrativeEventSourceProposal ||
         oldDelegate.narrativeEventHighlightColor !=
             narrativeEventHighlightColor ||
+        oldDelegate.rotationPreviewAcceptedColor !=
+            rotationPreviewAcceptedColor ||
+        oldDelegate.rotationPreviewRejectedColor !=
+            rotationPreviewRejectedColor ||
         oldDelegate.gameplayZoneDraftArea != gameplayZoneDraftArea ||
         !listEquals(oldDelegate.warps, warps) ||
         !listEquals(oldDelegate.gameplayZones, gameplayZones) ||

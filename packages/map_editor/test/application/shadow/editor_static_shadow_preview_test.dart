@@ -25,6 +25,27 @@ void main() {
       );
     });
 
+    test('uses the rotated destination footprint without rotating world light',
+        () {
+      final rotated = buildEditorStaticShadowPreviewInstructions(
+        manifest: _manifest(),
+        map: _map(quarterTurns: 1),
+        tileWidth: 16,
+        tileHeight: 16,
+      ).single;
+
+      _expectProjectedInstructionMatchesCore(
+        instruction: rotated,
+        shadowConfig: _resolvedConfig(),
+        metrics: StaticShadowVisualMetrics(
+          left: 16,
+          top: 32,
+          visualWidth: 64,
+          visualHeight: 32,
+        ),
+      );
+    });
+
     test('neutral light preview matches the runtime default projection', () {
       final instructions = buildEditorStaticShadowPreviewInstructions(
         manifest: _manifest(),
@@ -999,6 +1020,7 @@ MapData _map({
   bool layerVisible = true,
   MapPlacedElementShadowOverride? shadowOverride,
   List<MapPlacedElement>? placedElements,
+  int quarterTurns = 0,
 }) {
   return MapData(
     id: 'map',
@@ -1020,6 +1042,7 @@ MapData _map({
             layerId: 'layer',
             elementId: 'stand',
             pos: const GridPos(x: 1, y: 2),
+            quarterTurns: quarterTurns,
             shadowOverride: shadowOverride,
           ),
         ],

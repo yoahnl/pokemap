@@ -44,7 +44,9 @@ import '../../features/editor/state/environment_mask_brush_size_provider.dart';
 import '../../features/editor/application/map_canvas_interaction_controller.dart';
 import '../../features/editor/application/map_canvas_object_hit_test.dart';
 import '../../features/editor/application/map_canvas_object_move_planner.dart';
+import '../../features/editor/application/map_placed_element_rotation_planner.dart';
 import '../../features/editor/application/project_element_frame_resolver.dart';
+import '../../features/editor/presentation/world_map/map_placed_element_rotation_preview_controller.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/narrative/state/narrative_event_map_bridge_state.dart';
 import '../../features/border_map_editing/application/border_feature_hit_test.dart';
@@ -150,10 +152,13 @@ String mapCanvasSelectionSemanticsLabel({
                 element.frames,
                 editorAnimationTimeMs,
               ).source;
-              size = GridSize(
-                width: source.width <= 0 ? 1 : source.width,
-                height: source.height <= 0 ? 1 : source.height,
-              );
+              size = QuarterTurnGridTransform(
+                sourceSize: GridSize(
+                  width: source.width <= 0 ? 1 : source.width,
+                  height: source.height <= 0 ? 1 : source.height,
+                ),
+                quarterTurns: placed.quarterTurns,
+              ).destinationSize;
               break;
             }
           }
@@ -311,11 +316,13 @@ class MapCanvas extends ConsumerStatefulWidget {
   const MapCanvas({
     super.key,
     this.onEventBuilderPositionChosen,
+    this.placedElementRotationPreview,
   });
 
   /// Scoped Event Builder bridge: when supplied, a primary map tap selects a
   /// position for the Event Builder instead of applying the global map tool.
   final ValueChanged<GridPos>? onEventBuilderPositionChosen;
+  final MapPlacedElementRotationPreviewState? placedElementRotationPreview;
 
   @override
   ConsumerState<MapCanvas> createState() => _MapCanvasState();
@@ -1491,11 +1498,15 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                                 state.selectedGameplayZoneId,
                             selectedPlacedElementInstanceId:
                                 state.selectedPlacedElementInstanceId,
+                            placedElementRotationPreview:
+                                widget.placedElementRotationPreview?.plan,
                             narrativeEventFocusTarget:
                                 bridgeState.focusRequest?.focusTarget,
                             narrativeEventSourceProposal:
                                 bridgeState.sourceCreationProposal,
                             narrativeEventHighlightColor: colors.narrative,
+                            rotationPreviewAcceptedColor: colors.info,
+                            rotationPreviewRejectedColor: colors.error,
                             connectionLabelsByDirection:
                                 connectionLabelsByDirection,
                             selectedPathAutotileSet: selectedPathAutotileSet,
@@ -2256,6 +2267,25 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       if (_interactionController.isIdle) {
         _fitActiveMap();
       }
+      return KeyEventResult.handled;
+    }
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.keyR &&
+        !HardwareKeyboard.instance.isAltPressed &&
+        !HardwareKeyboard.instance.isControlPressed &&
+        !HardwareKeyboard.instance.isMetaPressed) {
+      if (!_interactionController.isIdle) {
+        return KeyEventResult.handled;
+      }
+      final editor = ref.read(editorNotifierProvider);
+      final instanceId = editor.selectedPlacedElementInstanceId?.trim() ?? '';
+      if (instanceId.isEmpty) {
+        return KeyEventResult.handled;
+      }
+      final delta = HardwareKeyboard.instance.isShiftPressed ? -1 : 1;
+      ref
+          .read(editorNotifierProvider.notifier)
+          .rotateSelectedPlacedElement(deltaQuarterTurns: delta);
       return KeyEventResult.handled;
     }
     if (event is KeyDownEvent &&

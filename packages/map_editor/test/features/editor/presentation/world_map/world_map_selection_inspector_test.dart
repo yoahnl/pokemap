@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/services/placed_element_instance_indexer.dart';
 import 'package:map_editor/src/features/editor/application/map_canvas_object_hit_test.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/map_placed_element_rotation_preview_controller.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_selection_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_subtool_disabled_guidance.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/theme/theme.dart';
+import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:map_editor/src/ui/panels/entity_properties_panel.dart';
 import 'package:map_editor/src/ui/panels/event_properties_panel.dart';
 import 'package:map_editor/src/ui/panels/gameplay_zone_properties_panel.dart';
@@ -205,7 +208,208 @@ void main() {
       expect(find.byType(WorldMapSubtoolDisabledGuidance), findsOneWidget);
     },
   );
+
+  testWidgets('authored placement exposes preview, Apply, and Cancel actions',
+      (tester) async {
+    final rotationMap = _map.copyWith(
+      entities: const <MapEntity>[],
+      events: const <MapEventDefinition>[],
+      gameplayZones: const <MapGameplayZone>[],
+      triggers: const <MapTrigger>[],
+      warps: const <MapWarp>[],
+    );
+    final harness = _SelectionHarness(
+      EditorState(
+        project: _project,
+        activeMap: rotationMap,
+        activeLayerId: 'ground',
+        selectedPlacedElementInstanceId: 'placed',
+      ),
+    );
+    addTearDown(harness.dispose);
+    await harness.pump(
+      tester,
+      WorldMapSelectionInspector(
+        target: _target(MapCanvasObjectKind.placedElement, 'placed'),
+      ),
+    );
+
+    for (final action in <String>[
+      'cw',
+      'ccw',
+      '180',
+      'reset',
+      'apply',
+      'cancel',
+    ]) {
+      expect(_rotationAction(action), findsOneWidget);
+    }
+
+    await tester.tap(_rotationAction('cw'));
+    await tester.pump();
+    expect(
+      harness.container
+          .read(mapPlacedElementRotationPreviewProvider)
+          ?.targetQuarterTurns,
+      1,
+    );
+    expect(harness.notifier.state.mapUndoStack, isEmpty);
+
+    await tester.tap(_rotationAction('cancel'));
+    await tester.pump();
+    expect(
+      harness.container.read(mapPlacedElementRotationPreviewProvider),
+      isNull,
+    );
+    expect(harness.notifier.state.mapUndoStack, isEmpty);
+
+    await tester.tap(_rotationAction('ccw'));
+    await tester.pump();
+    expect(
+      harness.container
+          .read(mapPlacedElementRotationPreviewProvider)
+          ?.targetQuarterTurns,
+      3,
+    );
+    await tester.tap(_rotationAction('180'));
+    await tester.pump();
+    expect(
+      harness.container
+          .read(mapPlacedElementRotationPreviewProvider)
+          ?.targetQuarterTurns,
+      2,
+    );
+    await tester.tap(_rotationAction('reset'));
+    await tester.pump();
+    expect(
+      harness.container
+          .read(mapPlacedElementRotationPreviewProvider)
+          ?.targetQuarterTurns,
+      0,
+    );
+
+    await tester.tap(_rotationAction('cw'));
+    await tester.pump();
+    await tester.tap(_rotationAction('apply'));
+    await tester.pump();
+    expect(
+      harness.notifier.state.activeMap!.placedElements.single.quarterTurns,
+      1,
+    );
+    expect(harness.notifier.state.mapUndoStack, hasLength(1));
+  });
+
+  testWidgets('rejected preview shows the precise planner reason', (
+    tester,
+  ) async {
+    final project = _project.copyWith(
+      elements: const <ProjectElementEntry>[
+        ProjectElementEntry(
+          id: 'lamp',
+          name: 'Lamp',
+          tilesetId: 'world',
+          categoryId: 'decor',
+          frames: <TilesetVisualFrame>[
+            TilesetVisualFrame(
+              source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 1),
+            ),
+          ],
+        ),
+      ],
+    );
+    final map = _map.copyWith(
+      size: const GridSize(width: 2, height: 1),
+      layers: const <MapLayer>[
+        TileLayer(
+          id: 'ground',
+          name: 'Ground',
+          tilesetId: 'world',
+          tiles: <int>[0, 0],
+        ),
+      ],
+      placedElements: const <MapPlacedElement>[
+        MapPlacedElement(
+          id: 'placed',
+          layerId: 'ground',
+          elementId: 'lamp',
+          pos: GridPos(x: 0, y: 0),
+        ),
+      ],
+      entities: const <MapEntity>[],
+      events: const <MapEventDefinition>[],
+      gameplayZones: const <MapGameplayZone>[],
+      triggers: const <MapTrigger>[],
+      warps: const <MapWarp>[],
+    );
+    final harness = _SelectionHarness(
+      EditorState(
+        project: project,
+        activeMap: map,
+        activeLayerId: 'ground',
+        selectedPlacedElementInstanceId: 'placed',
+      ),
+    );
+    addTearDown(harness.dispose);
+    await harness.pump(
+      tester,
+      WorldMapSelectionInspector(
+        target: _target(MapCanvasObjectKind.placedElement, 'placed'),
+      ),
+    );
+
+    await tester.tap(_rotationAction('cw'));
+    await tester.pump();
+
+    expect(find.byType(PokeMapDiagnosticCallout), findsOneWidget);
+    expect(
+      find.text('La rotation sortirait de la carte.'),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<PokeMapButton>(_rotationAction('apply')).onPressed,
+      isNull,
+    );
+  });
+
+  for (final origin in <String>[
+    pokemapPlacementOriginEnvironment,
+    pokemapPlacementOriginTileIndex,
+  ]) {
+    testWidgets('hides rotation actions for $origin ownership', (tester) async {
+      final ownedMap = _map.copyWith(
+        placedElements: <MapPlacedElement>[
+          _map.placedElements.single.copyWith(
+            properties: <String, String>{
+              pokemapPlacementOriginProperty: origin,
+            },
+          ),
+        ],
+      );
+      final harness = _SelectionHarness(
+        EditorState(
+          project: _project,
+          activeMap: ownedMap,
+          activeLayerId: 'ground',
+          selectedPlacedElementInstanceId: 'placed',
+        ),
+      );
+      addTearDown(harness.dispose);
+      await harness.pump(
+        tester,
+        WorldMapSelectionInspector(
+          target: _target(MapCanvasObjectKind.placedElement, 'placed'),
+        ),
+      );
+
+      expect(_rotationAction('cw'), findsNothing);
+      expect(find.byType(PlacedElementPropertiesPanel), findsOneWidget);
+    });
+  }
 }
+
+Finder _rotationAction(String action) => find.byKey(
+      ValueKey<String>('placed-element-rotation-$action'),
+    );
 
 class _CountingWorldMapSelectionInspector extends WorldMapSelectionInspector {
   const _CountingWorldMapSelectionInspector({

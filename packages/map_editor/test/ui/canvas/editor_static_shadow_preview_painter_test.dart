@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/shadow/editor_static_shadow_preview.dart';
 import 'package:map_editor/src/ui/canvas/shadow/editor_static_shadow_preview_painter.dart';
 
@@ -102,6 +103,80 @@ void main() {
 
       final picture = recorder.endRecording();
       picture.dispose();
+    });
+
+    test('paints geometry derived from a rotated non-square caster', () async {
+      final manifest = ProjectManifest(
+        name: 'Rotated shadow',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        shadowCatalog: ProjectShadowCatalog(
+          profiles: [
+            ProjectShadowProfile(
+              id: 'ground',
+              name: 'Ground',
+              mode: ShadowCasterMode.ellipse,
+              renderPass: ShadowRenderPass.groundStatic,
+            ),
+          ],
+        ),
+        elements: [
+          ProjectElementEntry(
+            id: 'wide',
+            name: 'Wide',
+            tilesetId: 'tiles',
+            categoryId: 'decor',
+            frames: <TilesetVisualFrame>[
+              const TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 1),
+              ),
+            ],
+            shadow: ProjectElementShadowConfig(
+              castsShadow: true,
+              shadowProfileId: 'ground',
+            ),
+          ),
+        ],
+      );
+      const map = MapData(
+        id: 'map',
+        name: 'Map',
+        size: GridSize(width: 3, height: 3),
+        layers: <MapLayer>[
+          TileLayer(id: 'decor', name: 'Decor', tilesetId: 'tiles'),
+        ],
+        placedElements: <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'wide-1',
+            layerId: 'decor',
+            elementId: 'wide',
+            pos: GridPos(x: 1, y: 0),
+            quarterTurns: 1,
+          ),
+        ],
+      );
+      final instruction = buildEditorStaticShadowPreviewInstructions(
+        manifest: manifest,
+        map: map,
+        tileWidth: 8,
+        tileHeight: 8,
+      ).single;
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+      paintEditorStaticShadowPreviewInstructions(canvas, [instruction]);
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(32, 32);
+      final bytes = (await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!;
+
+      var paintedPixels = 0;
+      for (var offset = 3; offset < bytes.lengthInBytes; offset += 4) {
+        if (bytes.getUint8(offset) > 0) paintedPixels += 1;
+      }
+      expect(paintedPixels, greaterThan(0));
+      picture.dispose();
+      image.dispose();
     });
   });
 }

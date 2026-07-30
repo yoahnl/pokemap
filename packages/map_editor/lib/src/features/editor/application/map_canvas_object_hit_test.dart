@@ -251,11 +251,19 @@ final class MapCanvasObjectHitTest {
       }
       final localX = position.x - instance.pos.x;
       final localY = position.y - instance.pos.y;
+      final transform = _placedElementTransform(
+        instance,
+        entry: entry,
+        editorAnimationTimeMs: editorAnimationTimeMs,
+      );
+      final sourceCell = transform.destinationToSource(
+        GridPos(x: localX, y: localY),
+      );
       if (!_isPlacedCellInPass(
         instance: instance,
         entry: entry,
-        localX: localX,
-        localY: localY,
+        localX: sourceCell.x,
+        localY: sourceCell.y,
         explicitForeground: explicitForeground,
         foregroundPass: foregroundPass,
       )) {
@@ -402,18 +410,34 @@ MapCanvasObjectTarget _placedElementTarget(
   required int editorAnimationTimeMs,
   String? layerId,
 }) {
-  final source = entry == null || entry.frames.isEmpty
-      ? null
-      : pickProjectElementFrame(entry.frames, editorAnimationTimeMs).source;
+  final transform = _placedElementTransform(
+    instance,
+    entry: entry,
+    editorAnimationTimeMs: editorAnimationTimeMs,
+  );
   return MapCanvasObjectTarget(
     kind: MapCanvasObjectKind.placedElement,
     id: instance.id,
     layerId: layerId ?? instance.layerId.trim(),
     anchor: instance.pos,
-    size: GridSize(
+    size: transform.destinationSize,
+  );
+}
+
+QuarterTurnGridTransform _placedElementTransform(
+  MapPlacedElement instance, {
+  required ProjectElementEntry? entry,
+  required int editorAnimationTimeMs,
+}) {
+  final source = entry == null || entry.frames.isEmpty
+      ? null
+      : pickProjectElementFrame(entry.frames, editorAnimationTimeMs).source;
+  return QuarterTurnGridTransform(
+    sourceSize: GridSize(
       width: source == null || source.width <= 0 ? 1 : source.width,
       height: source == null || source.height <= 0 ? 1 : source.height,
     ),
+    quarterTurns: instance.quarterTurns,
   );
 }
 

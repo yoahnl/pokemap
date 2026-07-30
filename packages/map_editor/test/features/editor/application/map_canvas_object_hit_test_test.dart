@@ -127,6 +127,77 @@ void main() {
       expect(outside, isEmpty);
     });
 
+    test('hit-tests every destination cell of each non-square rotation', () {
+      for (final quarterTurns in <int>[0, 1, 2, 3]) {
+        final map = _baseMap.copyWith(
+          placedElements: <MapPlacedElement>[
+            MapPlacedElement(
+              id: 'rotated-$quarterTurns',
+              layerId: 'top',
+              elementId: 'element-3x2',
+              pos: overlap,
+              quarterTurns: quarterTurns,
+            ),
+          ],
+        );
+        final expectedSize = quarterTurns.isEven
+            ? const GridSize(width: 3, height: 2)
+            : const GridSize(width: 2, height: 3);
+
+        for (var y = 0; y < expectedSize.height; y++) {
+          for (var x = 0; x < expectedSize.width; x++) {
+            final hits = hitTest.hitStack(
+              map: map,
+              project: _project,
+              position: GridPos(x: overlap.x + x, y: overlap.y + y),
+            );
+
+            expect(
+              hits.single.id,
+              'rotated-$quarterTurns',
+              reason: 'q$quarterTurns destination cell ($x, $y)',
+            );
+            expect(hits.single.size, expectedSize);
+          }
+        }
+      }
+    });
+
+    test('inverse-maps rotated destination cells before foreground splitting',
+        () {
+      const collisionDestination = GridPos(x: 3, y: 2);
+      const foregroundDestination = GridPos(x: 2, y: 2);
+      const rotated = MapPlacedElement(
+        id: 'rotated',
+        layerId: 'top',
+        elementId: 'element-3x2',
+        pos: overlap,
+        quarterTurns: 1,
+      );
+
+      List<String> hitsAt(GridPos position) {
+        final map = _baseMap.copyWith(
+          placedElements: const <MapPlacedElement>[rotated],
+          entities: <MapEntity>[
+            MapEntity(
+              id: 'entity',
+              kind: MapEntityKind.custom,
+              pos: position,
+            ),
+          ],
+        );
+        return hitTest
+            .hitStack(map: map, project: _project, position: position)
+            .map((target) => target.id)
+            .toList(growable: false);
+      }
+
+      // Source (0,0) is the only collision cell. At q1 it lands at
+      // destination-local (1,0), so the entity remains above it.
+      expect(hitsAt(collisionDestination), <String>['entity', 'rotated']);
+      expect(hitsAt(foregroundDestination), <String>['rotated', 'entity']);
+    });
+
     test('uses the currently painted animation frame footprint', () {
       final map = _baseMap.copyWith(
         placedElements: const <MapPlacedElement>[
@@ -135,6 +206,7 @@ void main() {
             layerId: 'top',
             elementId: 'animated-element',
             pos: overlap,
+            quarterTurns: 1,
           ),
         ],
       );
@@ -143,7 +215,7 @@ void main() {
         hitTest.hitStack(
           map: map,
           project: _project,
-          position: const GridPos(x: 3, y: 2),
+          position: const GridPos(x: 2, y: 3),
           editorAnimationTimeMs: 0,
         ),
         isEmpty,
@@ -153,12 +225,12 @@ void main() {
             .hitStack(
               map: map,
               project: _project,
-              position: const GridPos(x: 3, y: 2),
+              position: const GridPos(x: 2, y: 3),
               editorAnimationTimeMs: 100,
             )
             .single
-            .id,
-        'animated',
+            .size,
+        const GridSize(width: 1, height: 2),
       );
     });
 
@@ -495,6 +567,20 @@ const _project = ProjectManifest(
           source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
         ),
       ],
+    ),
+    ProjectElementEntry(
+      id: 'element-3x2',
+      name: 'Element 3x2',
+      tilesetId: 'tiles',
+      categoryId: 'decor',
+      frames: <TilesetVisualFrame>[
+        TilesetVisualFrame(
+          source: TilesetSourceRect(x: 0, y: 0, width: 3, height: 2),
+        ),
+      ],
+      collisionProfile: ElementCollisionProfile(
+        cells: <GridPos>[GridPos(x: 0, y: 0)],
+      ),
     ),
     ProjectElementEntry(
       id: 'animated-element',

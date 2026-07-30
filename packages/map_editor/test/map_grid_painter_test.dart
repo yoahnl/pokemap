@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/path_autotile_set.dart';
+import 'package:map_editor/src/features/editor/application/map_placed_element_rotation_planner.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
 void main() {
@@ -113,6 +115,60 @@ void main() {
       );
 
       expect(result['ground'], equals(<int>{3, 4}));
+    });
+
+    test('rotates source collision cells into destination foreground bounds',
+        () {
+      final map = MapData(
+        id: 'rotated-foreground',
+        name: 'Rotated foreground',
+        size: const GridSize(width: 4, height: 4),
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'ground',
+            name: 'Ground',
+            tiles: List<int>.filled(16, 1, growable: false),
+          ),
+        ],
+        placedElements: const <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'rotated-table',
+            layerId: 'ground',
+            elementId: 'table-3x2',
+            pos: GridPos(x: 1, y: 0),
+            quarterTurns: 1,
+          ),
+        ],
+      );
+      const project = ProjectManifest(
+        name: 'editor',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
+        elements: <ProjectElementEntry>[
+          ProjectElementEntry(
+            id: 'table-3x2',
+            name: 'Table 3x2',
+            tilesetId: 'interior',
+            categoryId: 'decor',
+            frames: <TilesetVisualFrame>[
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 3, height: 2),
+              ),
+            ],
+            collisionProfile: ElementCollisionProfile(
+              cells: <GridPos>[GridPos(x: 0, y: 0)],
+            ),
+          ),
+        ],
+      );
+
+      final result = buildEditorForegroundTileCellIndicesByLayerId(
+        map: map,
+        project: project,
+      );
+
+      expect(result['ground'], equals(<int>{1, 5, 6, 9, 10}));
     });
 
     test('routes split cells to the correct render pass deterministically', () {
@@ -384,6 +440,233 @@ void main() {
       picture.dispose();
       image.dispose();
       tilesetImage.dispose();
+    });
+
+    test('rotates non-square placed-element cells and rectangular pixels',
+        () async {
+      final tilesetImage = await _rectangularAsymmetricTilesetImage();
+
+      Future<ByteData> render(
+        int quarterTurns, {
+        int animationMs = 0,
+      }) async {
+        final map = MapData(
+          id: 'rotated-pixels-$quarterTurns',
+          name: 'Rotated pixels',
+          size: const GridSize(width: 2, height: 2),
+          layers: const <MapLayer>[
+            TileLayer(
+              id: 'decor',
+              name: 'Decor',
+              tilesetId: 'rectangular',
+              tiles: <int>[0, 0, 0, 0],
+            ),
+          ],
+          placedElements: <MapPlacedElement>[
+            MapPlacedElement(
+              id: 'asymmetric',
+              layerId: 'decor',
+              elementId: 'two-cells',
+              pos: const GridPos(x: 0, y: 0),
+              quarterTurns: quarterTurns,
+            ),
+          ],
+        );
+        const project = ProjectManifest(
+          name: 'Rotated painter',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[
+            ProjectTilesetEntry(
+              id: 'rectangular',
+              name: 'Rectangular',
+              relativePath: 'rectangular.png',
+            ),
+          ],
+          elements: <ProjectElementEntry>[
+            ProjectElementEntry(
+              id: 'two-cells',
+              name: 'Two cells',
+              tilesetId: 'rectangular',
+              categoryId: 'decor',
+              frames: <TilesetVisualFrame>[
+                TilesetVisualFrame(
+                  source: TilesetSourceRect(
+                    x: 0,
+                    y: 0,
+                    width: 2,
+                    height: 1,
+                  ),
+                  durationMs: 100,
+                ),
+                TilesetVisualFrame(
+                  source: TilesetSourceRect(
+                    x: 0,
+                    y: 1,
+                    width: 2,
+                    height: 1,
+                  ),
+                  durationMs: 100,
+                ),
+              ],
+            ),
+          ],
+        );
+        final recorder = ui.PictureRecorder();
+        final canvas = ui.Canvas(recorder);
+        MapGridPainter(
+          map: map,
+          zoom: 1,
+          offset: ui.Offset.zero,
+          tileWidth: 12,
+          tileHeight: 8,
+          tilesetImagesById: <String, ui.Image?>{
+            'rectangular': tilesetImage,
+          },
+          sourceTileWidth: 8,
+          sourceTileHeight: 4,
+          tilesPerRowById: const <String, int>{'rectangular': 2},
+          warps: const <MapWarp>[],
+          gameplayZones: const <MapGameplayZone>[],
+          connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+          pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
+          terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+          project: project,
+          editorEntityAnimationMs: animationMs,
+          showGrid: false,
+          showEditorOverlays: false,
+        ).paint(canvas, const ui.Size(24, 16));
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(24, 16);
+        final pixels =
+            await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+        picture.dispose();
+        image.dispose();
+        return pixels!;
+      }
+
+      void expectRgb(
+        ByteData pixels,
+        int x,
+        int y,
+        int red,
+        int green,
+        int blue,
+      ) {
+        final offset = ((y * 24) + x) * 4;
+        expect(pixels.getUint8(offset), red);
+        expect(pixels.getUint8(offset + 1), green);
+        expect(pixels.getUint8(offset + 2), blue);
+      }
+
+      final q1 = await render(1);
+      expectRgb(q1, 6, 2, 255, 0, 0);
+      expectRgb(q1, 6, 6, 0, 255, 0);
+      expectRgb(q1, 6, 10, 0, 0, 255);
+      expectRgb(q1, 6, 14, 255, 255, 0);
+
+      final q3 = await render(3);
+      expectRgb(q3, 6, 2, 255, 255, 0);
+      expectRgb(q3, 6, 6, 0, 0, 255);
+      expectRgb(q3, 6, 10, 0, 255, 0);
+      expectRgb(q3, 6, 14, 255, 0, 0);
+
+      final q1SecondFrame = await render(1, animationMs: 120);
+      expectRgb(q1SecondFrame, 6, 2, 255, 0, 255);
+      expectRgb(q1SecondFrame, 6, 6, 0, 255, 255);
+      tilesetImage.dispose();
+    });
+
+    test('selection and rotation ghost use preview destination bounds',
+        () async {
+      const map = MapData(
+        id: 'rotation-preview',
+        name: 'Rotation preview',
+        size: GridSize(width: 4, height: 4),
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'decor',
+            name: 'Decor',
+            tilesetId: 'tiles',
+            tiles: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          ),
+        ],
+        placedElements: <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'selected',
+            layerId: 'decor',
+            elementId: 'wide',
+            pos: GridPos(x: 0, y: 0),
+          ),
+        ],
+      );
+      const project = ProjectManifest(
+        name: 'Rotation preview',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        elements: <ProjectElementEntry>[
+          ProjectElementEntry(
+            id: 'wide',
+            name: 'Wide',
+            tilesetId: 'tiles',
+            categoryId: 'decor',
+            frames: <TilesetVisualFrame>[
+              TilesetVisualFrame(
+                source: TilesetSourceRect(
+                  x: 0,
+                  y: 0,
+                  width: 3,
+                  height: 2,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+      final preview = planMapPlacedElementRotation(
+        map: map,
+        project: project,
+        instanceId: 'selected',
+        targetQuarterTurns: 1,
+      );
+      expect(preview.canCommit, isTrue);
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+      MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 8,
+        tileHeight: 8,
+        tilesetImagesById: const <String, ui.Image?>{},
+        sourceTileWidth: 8,
+        sourceTileHeight: 8,
+        tilesPerRowById: const <String, int>{},
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
+        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+        project: project,
+        selectedPlacedElementInstanceId: 'selected',
+        placedElementRotationPreview: preview,
+        rotationPreviewAcceptedColor: const ui.Color(0xFF00FFFF),
+        showGrid: false,
+      ).paint(canvas, const ui.Size(32, 32));
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(32, 32);
+      final pixels = (await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!;
+
+      int alphaAt(int x, int y) =>
+          pixels.getUint8((((y * image.width) + x) * 4) + 3);
+
+      // q1 swaps 3x2 into 2x3. Both selection and ghost include row 3,
+      // while the obsolete third column stays untouched.
+      expect(alphaAt(4, 20), greaterThan(0));
+      expect(alphaAt(20, 20), 0);
+      picture.dispose();
+      image.dispose();
     });
 
     test('map with Border keeps static shadow preview below placed elements',
@@ -1404,6 +1687,47 @@ Future<ui.Image> _solidColorImage({
   );
   final picture = recorder.endRecording();
   final image = await picture.toImage(width, height);
+  picture.dispose();
+  return image;
+}
+
+Future<ui.Image> _rectangularAsymmetricTilesetImage() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(0, 0, 4, 4),
+    ui.Paint()..color = const ui.Color(0xFFFF0000),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(4, 0, 4, 4),
+    ui.Paint()..color = const ui.Color(0xFF00FF00),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(8, 0, 4, 4),
+    ui.Paint()..color = const ui.Color(0xFF0000FF),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(12, 0, 4, 4),
+    ui.Paint()..color = const ui.Color(0xFFFFFF00),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(0, 4, 4, 4),
+    ui.Paint()..color = const ui.Color(0xFFFF00FF),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(4, 4, 4, 4),
+    ui.Paint()..color = const ui.Color(0xFF00FFFF),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(8, 4, 4, 4),
+    ui.Paint()..color = const ui.Color(0xFF000000),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(12, 4, 4, 4),
+    ui.Paint()..color = const ui.Color(0xFFFFFFFF),
+  );
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(16, 8);
   picture.dispose();
   return image;
 }

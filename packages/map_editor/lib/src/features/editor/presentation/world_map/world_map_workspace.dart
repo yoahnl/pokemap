@@ -3,9 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../ui/canvas/map_canvas.dart';
 import '../../../../ui/design_system/design_system.dart';
 import 'adaptive_map_inspector.dart';
-import 'world_map_canvas_region.dart';
+import 'map_placed_element_rotation_preview_controller.dart';
 import 'world_map_workspace_session.dart';
 
 typedef WorldMapExplorerBuilder = Widget Function(
@@ -44,6 +45,8 @@ class WorldMapWorkspace extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(worldMapWorkspaceSessionProvider);
+    final placedElementRotationPreview =
+        ref.watch(mapPlacedElementRotationPreviewProvider);
     final controller = ref.read(worldMapWorkspaceSessionProvider.notifier);
     final appWindow = MediaQuery.sizeOf(context);
 
@@ -147,9 +150,16 @@ class WorldMapWorkspace extends ConsumerWidget {
               children: [
                 stageHeaderSlot,
                 const SizedBox(height: 18),
-                const Expanded(
-                  child: WorldMapCanvasRegion(
-                    key: ValueKey<String>('world-map-canvas-region'),
+                Expanded(
+                  child: PokeMapPanel(
+                    key: const ValueKey<String>('world-map-canvas-region'),
+                    padding: const EdgeInsets.all(14),
+                    expandChild: true,
+                    borderRadius: 20,
+                    child: MapCanvas(
+                      placedElementRotationPreview:
+                          placedElementRotationPreview,
+                    ),
                   ),
                 ),
               ],

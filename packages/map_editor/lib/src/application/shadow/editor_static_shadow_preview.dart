@@ -156,6 +156,10 @@ List<EditorStaticShadowPreviewInstruction>
     if (source.width <= 0 || source.height <= 0) {
       continue;
     }
+    final transform = QuarterTurnGridTransform(
+      sourceSize: GridSize(width: source.width, height: source.height),
+      quarterTurns: placed.quarterTurns,
+    );
 
     final resolution = resolveShadowConfig(
       catalog: manifest.shadowCatalog,
@@ -169,8 +173,10 @@ List<EditorStaticShadowPreviewInstruction>
       continue;
     }
 
-    final visualWidth = source.width * tileWidth;
-    final visualHeight = source.height * tileHeight;
+    // Light direction remains in world space; only the caster's occupied
+    // destination rectangle changes when the placed visual rotates.
+    final visualWidth = transform.destinationSize.width * tileWidth;
+    final visualHeight = transform.destinationSize.height * tileHeight;
     final baseLeft = placed.pos.x * tileWidth;
     final baseTop = placed.pos.y * tileHeight;
     final metrics = StaticShadowVisualMetrics(

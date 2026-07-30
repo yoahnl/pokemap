@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
 
@@ -55,11 +56,14 @@ final class CinematicMapBackdropLayerRenderPainter extends CustomPainter {
         instruction.destinationRect.width * scaleX,
         instruction.destinationRect.height * scaleY,
       );
-      canvas.drawImageRect(
-        image,
-        instruction.sourceRect,
-        destination,
-        paint,
+      _drawInstruction(
+        canvas: canvas,
+        image: image,
+        instruction: instruction,
+        destination: destination,
+        scaleX: scaleX,
+        scaleY: scaleY,
+        paint: paint,
       );
     }
 
@@ -75,6 +79,49 @@ final class CinematicMapBackdropLayerRenderPainter extends CustomPainter {
           ..strokeWidth = 1,
       );
     }
+  }
+
+  void _drawInstruction({
+    required Canvas canvas,
+    required ui.Image image,
+    required CinematicMapBackdropLayerBitmapInstruction instruction,
+    required ui.Rect destination,
+    required double scaleX,
+    required double scaleY,
+    required Paint paint,
+  }) {
+    if (instruction.quarterTurns == 0) {
+      canvas.drawImageRect(
+        image,
+        instruction.sourceRect,
+        destination,
+        paint,
+      );
+      return;
+    }
+
+    final outputWidth = instruction.destinationWidthPx * scaleX;
+    final outputHeight = instruction.destinationHeightPx * scaleY;
+    final oddTurn = instruction.quarterTurns.isOdd;
+    final unrotatedWidth = oddTurn ? outputHeight : outputWidth;
+    final unrotatedHeight = oddTurn ? outputWidth : outputHeight;
+
+    // Keep each rotated source cell confined to its destination grid cell.
+    canvas.save();
+    canvas.clipRect(destination);
+    canvas.translate(destination.center.dx, destination.center.dy);
+    canvas.rotate(instruction.quarterTurns * math.pi / 2);
+    canvas.drawImageRect(
+      image,
+      instruction.sourceRect,
+      ui.Rect.fromCenter(
+        center: ui.Offset.zero,
+        width: unrotatedWidth,
+        height: unrotatedHeight,
+      ),
+      paint,
+    );
+    canvas.restore();
   }
 
   void _paintGrid(Canvas canvas, Size size) {

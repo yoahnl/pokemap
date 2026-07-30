@@ -38,6 +38,36 @@ void main() {
       _expectPointClose(instruction.polygonPoints[3], x: 101.38, y: 147.36);
     });
 
+    test('uses rotated destination dimensions while preserving world direction',
+        () {
+      final manifest = _manifest(
+        catalog: _catalog([_preset()]),
+        elements: [_element(projectedBuildingShadow: _config())],
+      );
+      final q1 = buildEditorProjectedBuildingShadowPreviewInstructions(
+        manifest: manifest,
+        map: _map(placedElements: [_placed(quarterTurns: 1)]),
+        tileWidth: 32,
+        tileHeight: 32,
+      ).single;
+      final q3 = buildEditorProjectedBuildingShadowPreviewInstructions(
+        manifest: manifest,
+        map: _map(placedElements: [_placed(quarterTurns: 3)]),
+        tileWidth: 32,
+        tileHeight: 32,
+      ).single;
+      final unrotated = buildEditorProjectedBuildingShadowPreviewInstructions(
+        manifest: manifest,
+        map: _map(placedElements: [_placed()]),
+        tileWidth: 32,
+        tileHeight: 32,
+      ).single;
+
+      expect(q1.polygonPoints, q3.polygonPoints);
+      expect(q1.width, isNot(closeTo(unrotated.width, 0.001)));
+      expect(q1.height, isNot(closeTo(unrotated.height, 0.001)));
+    });
+
     test(
         'buildEditorProjectedBuildingShadowPreviewInstructions builds a footprint projected polygon preview',
         () {
@@ -333,12 +363,14 @@ MapPlacedElement _placed({
   String elementId = 'building',
   GridPos pos = const GridPos(x: 1, y: 2),
   double opacity = 1,
+  int quarterTurns = 0,
 }) {
   return MapPlacedElement(
     id: id,
     layerId: layerId,
     elementId: elementId,
     pos: pos,
+    quarterTurns: quarterTurns,
     opacity: opacity,
   );
 }

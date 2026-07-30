@@ -56,6 +56,10 @@ List<EditorStaticShadowPreviewInstruction>
     if (source.width <= 0 || source.height <= 0) {
       continue;
     }
+    final transform = QuarterTurnGridTransform(
+      sourceSize: GridSize(width: source.width, height: source.height),
+      quarterTurns: placed.quarterTurns,
+    );
 
     final geometry = resolveProjectedBuildingShadowGeometry(
       config: config,
@@ -63,8 +67,10 @@ List<EditorStaticShadowPreviewInstruction>
       metrics: StaticShadowVisualMetrics(
         left: placed.pos.x * tileWidth,
         top: placed.pos.y * tileHeight,
-        visualWidth: source.width * tileWidth,
-        visualHeight: source.height * tileHeight,
+        // Rotation changes the caster footprint, not the preset's world-space
+        // projection direction.
+        visualWidth: transform.destinationSize.width * tileWidth,
+        visualHeight: transform.destinationSize.height * tileHeight,
       ),
     );
     if (geometry == null) {

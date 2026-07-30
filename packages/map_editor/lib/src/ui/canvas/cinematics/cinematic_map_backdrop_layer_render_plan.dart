@@ -24,6 +24,9 @@ final class CinematicMapBackdropLayerBitmapInstruction {
     required this.elementBottomY,
     required this.elementX,
     required this.layerIndex,
+    required this.quarterTurns,
+    required this.destinationWidthPx,
+    required this.destinationHeightPx,
     this.tileId,
   });
 
@@ -42,6 +45,9 @@ final class CinematicMapBackdropLayerBitmapInstruction {
   final double elementBottomY;
   final double elementX;
   final int layerIndex;
+  final int quarterTurns;
+  final int destinationWidthPx;
+  final int destinationHeightPx;
   final int? tileId;
 }
 
@@ -372,13 +378,20 @@ Map<String, Set<int>> buildCinematicBackdropForegroundTileCellIndices({
       continue;
     }
     final layerMask = masks.putIfAbsent(placement.layerId, () => <int>{});
+    final transform = QuarterTurnGridTransform(
+      sourceSize: GridSize(width: source.width, height: source.height),
+      quarterTurns: placement.quarterTurns,
+    );
     for (var localY = 0; localY < source.height; localY += 1) {
       for (var localX = 0; localX < source.width; localX += 1) {
         if (collisionCells.contains(GridPos(x: localX, y: localY))) {
           continue;
         }
-        final x = placement.pos.x + localX;
-        final y = placement.pos.y + localY;
+        final destination = transform.sourceToDestination(
+          GridPos(x: localX, y: localY),
+        );
+        final x = placement.pos.x + destination.x;
+        final y = placement.pos.y + destination.y;
         if (!_containsCell(map, x, y)) {
           continue;
         }
@@ -503,6 +516,9 @@ int _appendTerrainInstructions({
         elementBottomY: y + 1.0,
         elementX: x.toDouble(),
         layerIndex: layerIndex,
+        quarterTurns: 0,
+        destinationWidthPx: tileWidth,
+        destinationHeightPx: tileHeight,
       ),
     );
     nextZ += 1;
@@ -607,6 +623,9 @@ int _appendPathInstructions({
         elementBottomY: y + 1.0,
         elementX: x.toDouble(),
         layerIndex: layerIndex,
+        quarterTurns: 0,
+        destinationWidthPx: tileWidth,
+        destinationHeightPx: tileHeight,
       ),
     );
     nextZ += 1;
@@ -687,6 +706,9 @@ int _appendTileInstructions({
         elementBottomY: y + 1.0,
         elementX: x.toDouble(),
         layerIndex: layerIndex,
+        quarterTurns: 0,
+        destinationWidthPx: tileWidth,
+        destinationHeightPx: tileHeight,
       ),
     );
     nextZ += 1;
@@ -771,6 +793,9 @@ int _appendSurfaceInstructions({
         elementBottomY: placement.y + 1.0,
         elementX: placement.x.toDouble(),
         layerIndex: layerIndex,
+        quarterTurns: 0,
+        destinationWidthPx: tileWidth,
+        destinationHeightPx: tileHeight,
       ),
     );
     nextZ += 1;
@@ -866,14 +891,19 @@ int _appendPlacedElementInstructions({
     final isForegroundElement =
         _shouldElementRenderInForeground(placement, element, layer);
     final layerIndex = mapData.layers.indexOf(layer);
+    final transform = QuarterTurnGridTransform(
+      sourceSize: GridSize(width: source.width, height: source.height),
+      quarterTurns: placement.quarterTurns,
+    );
     for (var localY = 0; localY < source.height; localY += 1) {
       for (var localX = 0; localX < source.width; localX += 1) {
-        final x = placement.pos.x + localX;
-        final y = placement.pos.y + localY;
+        final localPos = GridPos(x: localX, y: localY);
+        final destinationLocal = transform.sourceToDestination(localPos);
+        final x = placement.pos.x + destinationLocal.x;
+        final y = placement.pos.y + destinationLocal.y;
         if (!_containsCell(mapData, x, y)) {
           continue;
         }
-        final localPos = GridPos(x: localX, y: localY);
         final renderPass = isForegroundElement
             ? CinematicMapBackdropRenderPass.placedForeground
             : (splitByCollision && !collisionCells.contains(localPos)
@@ -914,9 +944,13 @@ int _appendPlacedElementInstructions({
             opacity: _opacity(layer.opacity * placement.opacity),
             sourceFamily: sourceFamily,
             sourceId: placement.id,
-            elementBottomY: placement.pos.y + source.height.toDouble(),
+            elementBottomY:
+                placement.pos.y + transform.destinationSize.height.toDouble(),
             elementX: placement.pos.x.toDouble(),
             layerIndex: layerIndex,
+            quarterTurns: placement.quarterTurns,
+            destinationWidthPx: tileWidth,
+            destinationHeightPx: tileHeight,
           ),
         );
         nextZ += 1;
