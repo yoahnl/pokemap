@@ -41,6 +41,56 @@ void main() {
     expect(harness.notifier.state.activeLayerId, 'top');
   });
 
+  testWidgets('labels the projected row count as layer groups', (tester) async {
+    final harness = _Harness(
+      _threeLayerMap().copyWith(
+        layers: [
+          _tile('top', 'Top').copyWith(isVisible: false),
+          _tile('middle', 'Middle'),
+          _tile('bottom', 'Bottom'),
+        ],
+      ),
+      activeLayerId: 'middle',
+    );
+    addTearDown(harness.dispose);
+    await harness.pump(tester);
+
+    expect(find.text('3 groupes de calques'), findsOneWidget);
+    expect(find.textContaining('calque(s) visible(s)'), findsNothing);
+  });
+
+  testWidgets(
+      'explains an active technical environment visually and semantically',
+      (tester) async {
+    final map = MapData(
+      id: 'map',
+      name: 'Map',
+      size: const GridSize(width: 1, height: 1),
+      layers: [
+        _tile('decor', 'Décor'),
+        EnvironmentLayer(
+          id: 'env_decor',
+          name: 'Environnement du décor',
+          content: EnvironmentLayerContent(targetTileLayerId: 'decor'),
+        ),
+      ],
+    );
+    final harness = _Harness(map, activeLayerId: 'env_decor');
+    addTearDown(harness.dispose);
+    await harness.pump(tester);
+
+    expect(find.text('Environnement technique sélectionné'), findsOneWidget);
+    final semantics = tester.getSemantics(
+      find.byKey(
+        const ValueKey<String>('world-map-layer-semantics-decor'),
+      ),
+    );
+    expect(
+      semantics.label,
+      contains('Environnement technique sélectionné'),
+    );
+  });
+
   testWidgets('edits visibility opacity rename and group order',
       (tester) async {
     final harness = _Harness(_threeLayerMap(), activeLayerId: 'middle');

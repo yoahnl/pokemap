@@ -65,7 +65,9 @@ class WorldMapLayersInspector extends ConsumerWidget {
           children: [
             PokeMapSectionHeader(
               title: 'Calques',
-              description: '${rows.length} calque(s) visible(s)',
+              description: rows.length == 1
+                  ? '1 groupe de calques'
+                  : '${rows.length} groupes de calques',
               trailing: PokeMapSplitButton<WorldMapLayerCreationKind>(
                 key: const ValueKey<String>('world-map-layer-add'),
                 onPressed: () => _addLayer(
@@ -138,129 +140,148 @@ final class _WorldMapLayerRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final layer = row.layer;
     final layerId = layer.id;
-    return PokeMapPanel(
-      borderRadius: 8,
-      padding: const EdgeInsets.all(10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: PokeMapButton(
-                  key: ValueKey<String>('world-map-layer-activate-$layerId'),
-                  onPressed: row.activation.enabled
-                      ? () => notifier.setActiveLayer(layerId)
-                      : null,
-                  variant: PokeMapButtonVariant.ghost,
-                  size: PokeMapButtonSize.compact,
-                  isSelected: row.isActive,
-                  leading: row.isActive
-                      ? Icon(
-                          Icons.check_circle_rounded,
-                          key: ValueKey<String>(
-                            'world-map-layer-active-$layerId',
-                          ),
-                        )
-                      : Icon(_layerIcon(layer)),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(layer.name),
+    return Semantics(
+      key: ValueKey<String>('world-map-layer-semantics-$layerId'),
+      container: true,
+      selected: row.isActive,
+      label: [
+        layer.name,
+        if (row.technicalEnvironmentSelectionLabel case final label?) label,
+      ].join(', '),
+      child: PokeMapPanel(
+        borderRadius: 8,
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: PokeMapButton(
+                    key: ValueKey<String>('world-map-layer-activate-$layerId'),
+                    onPressed: row.activation.enabled
+                        ? () => notifier.setActiveLayer(layerId)
+                        : null,
+                    variant: PokeMapButtonVariant.ghost,
+                    size: PokeMapButtonSize.compact,
+                    isSelected: row.isActive,
+                    leading: row.isActive
+                        ? Icon(
+                            Icons.check_circle_rounded,
+                            key: ValueKey<String>(
+                              'world-map-layer-active-$layerId',
+                            ),
+                          )
+                        : Icon(_layerIcon(layer)),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(layer.name),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              PokeMapIconButton(
-                key: ValueKey<String>('world-map-layer-visibility-$layerId'),
-                tooltip: layer.isVisible
-                    ? 'Masquer le calque'
-                    : 'Afficher le calque',
-                isSelected: layer.isVisible,
-                onPressed: row.visibility.enabled
-                    ? () => notifier.setMapLayerVisibility(
-                          layerId,
-                          !layer.isVisible,
-                        )
-                    : null,
-                icon: Icon(
-                  layer.isVisible
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
+                const SizedBox(width: 4),
+                PokeMapIconButton(
+                  key: ValueKey<String>('world-map-layer-visibility-$layerId'),
+                  tooltip: layer.isVisible
+                      ? 'Masquer le calque'
+                      : 'Afficher le calque',
+                  isSelected: layer.isVisible,
+                  onPressed: row.visibility.enabled
+                      ? () => notifier.setMapLayerVisibility(
+                            layerId,
+                            !layer.isVisible,
+                          )
+                      : null,
+                  icon: Icon(
+                    layer.isVisible
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                ),
+                PokeMapIconButton(
+                  key: ValueKey<String>('world-map-layer-rename-$layerId'),
+                  tooltip: row.rename.disabledReason ?? 'Renommer le calque',
+                  onPressed: row.rename.enabled
+                      ? () => _renameLayer(context, layer)
+                      : null,
+                  icon: const Icon(Icons.edit_outlined),
+                ),
+                PokeMapIconButton(
+                  key: ValueKey<String>('world-map-layer-delete-$layerId'),
+                  tooltip: row.delete.disabledReason ?? 'Supprimer le calque',
+                  variant: PokeMapIconButtonVariant.danger,
+                  onPressed: row.delete.enabled
+                      ? () => _deleteLayer(context, layerId)
+                      : null,
+                  icon: const Icon(Icons.delete_outline_rounded),
+                ),
+              ],
+            ),
+            if (row.environmentAttachmentLabel case final label?) ...[
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: context.pokeMapColors.textSecondary,
+                  fontSize: 11,
                 ),
               ),
-              PokeMapIconButton(
-                key: ValueKey<String>('world-map-layer-rename-$layerId'),
-                tooltip: row.rename.disabledReason ?? 'Renommer le calque',
-                onPressed: row.rename.enabled
-                    ? () => _renameLayer(context, layer)
-                    : null,
-                icon: const Icon(Icons.edit_outlined),
-              ),
-              PokeMapIconButton(
-                key: ValueKey<String>('world-map-layer-delete-$layerId'),
-                tooltip: row.delete.disabledReason ?? 'Supprimer le calque',
-                variant: PokeMapIconButtonVariant.danger,
-                onPressed: row.delete.enabled
-                    ? () => _deleteLayer(context, layerId)
-                    : null,
-                icon: const Icon(Icons.delete_outline_rounded),
+            ],
+            if (row.technicalEnvironmentSelectionLabel case final label?) ...[
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: PokeMapBadge(
+                  label: label,
+                  variant: PokeMapBadgeVariant.info,
+                ),
               ),
             ],
-          ),
-          if (row.environmentAttachmentLabel case final label?) ...[
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: context.pokeMapColors.textSecondary,
-                fontSize: 11,
-              ),
-            ),
-          ],
-          if (row.environmentWarningLabel case final warning?) ...[
-            const SizedBox(height: 6),
-            PokeMapDiagnosticCallout(
-              severity: PokeMapDiagnosticSeverity.warning,
-              message: warning,
-            ),
-          ],
-          const SizedBox(height: 8),
-          PokeMapGuidedSlider(
-            key: ValueKey<String>('world-map-layer-opacity-$layerId'),
-            label: 'Opacité',
-            value: (layer.opacity * 100).round(),
-            onChanged: row.opacity.enabled
-                ? (value) => notifier.setMapLayerOpacity(
-                      layerId,
-                      value / 100,
-                    )
-                : (_) {},
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              PokeMapIconButton(
-                key: ValueKey<String>('world-map-layer-move-up-$layerId'),
-                tooltip: row.moveUp.disabledReason ?? 'Monter le calque',
-                onPressed: row.moveUp.enabled
-                    ? () => notifier.moveMapLayerGroupUp(layerId)
-                    : null,
-                icon: const Icon(Icons.arrow_upward_rounded),
-              ),
-              const SizedBox(width: 4),
-              PokeMapIconButton(
-                key: ValueKey<String>('world-map-layer-move-down-$layerId'),
-                tooltip: row.moveDown.disabledReason ?? 'Descendre le calque',
-                onPressed: row.moveDown.enabled
-                    ? () => notifier.moveMapLayerGroupDown(layerId)
-                    : null,
-                icon: const Icon(Icons.arrow_downward_rounded),
+            if (row.environmentWarningLabel case final warning?) ...[
+              const SizedBox(height: 6),
+              PokeMapDiagnosticCallout(
+                severity: PokeMapDiagnosticSeverity.warning,
+                message: warning,
               ),
             ],
-          ),
-        ],
+            const SizedBox(height: 8),
+            PokeMapGuidedSlider(
+              key: ValueKey<String>('world-map-layer-opacity-$layerId'),
+              label: 'Opacité',
+              value: (layer.opacity * 100).round(),
+              onChanged: row.opacity.enabled
+                  ? (value) => notifier.setMapLayerOpacity(
+                        layerId,
+                        value / 100,
+                      )
+                  : (_) {},
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                PokeMapIconButton(
+                  key: ValueKey<String>('world-map-layer-move-up-$layerId'),
+                  tooltip: row.moveUp.disabledReason ?? 'Monter le calque',
+                  onPressed: row.moveUp.enabled
+                      ? () => notifier.moveMapLayerGroupUp(layerId)
+                      : null,
+                  icon: const Icon(Icons.arrow_upward_rounded),
+                ),
+                const SizedBox(width: 4),
+                PokeMapIconButton(
+                  key: ValueKey<String>('world-map-layer-move-down-$layerId'),
+                  tooltip: row.moveDown.disabledReason ?? 'Descendre le calque',
+                  onPressed: row.moveDown.enabled
+                      ? () => notifier.moveMapLayerGroupDown(layerId)
+                      : null,
+                  icon: const Icon(Icons.arrow_downward_rounded),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
