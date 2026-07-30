@@ -994,16 +994,36 @@ List<bool> _buildPixelCollisionCache(
       return false;
     }
     final destinationSize = transform.destinationPixelSize;
-    for (var py = 0; py < destinationSize.height; py++) {
+    final destinationLeft = BigInt.from(leftPx);
+    final destinationTop = BigInt.from(topPx);
+    final destinationRight =
+        destinationLeft + BigInt.from(destinationSize.width);
+    final destinationBottom =
+        destinationTop + BigInt.from(destinationSize.height);
+    final worldWidth = BigInt.from(widthPx);
+    final worldHeight = BigInt.from(heightPx);
+    if (destinationRight <= BigInt.zero ||
+        destinationBottom <= BigInt.zero ||
+        destinationLeft >= worldWidth ||
+        destinationTop >= worldHeight) {
+      return true;
+    }
+    final startX =
+        (destinationLeft.isNegative ? -destinationLeft : BigInt.zero).toInt();
+    final startY =
+        (destinationTop.isNegative ? -destinationTop : BigInt.zero).toInt();
+    final endX = (destinationRight > worldWidth
+            ? worldWidth - destinationLeft
+            : BigInt.from(destinationSize.width))
+        .toInt();
+    final endY = (destinationBottom > worldHeight
+            ? worldHeight - destinationTop
+            : BigInt.from(destinationSize.height))
+        .toInt();
+    for (var py = startY; py < endY; py++) {
       final y = topPx + py;
-      if (y < 0 || y >= heightPx) {
-        continue;
-      }
-      for (var px = 0; px < destinationSize.width; px++) {
+      for (var px = startX; px < endX; px++) {
         final x = leftPx + px;
-        if (x < 0 || x >= widthPx) {
-          continue;
-        }
         final source = transform.destinationPixelToSourcePixel(
           GridPos(x: px, y: py),
         );
@@ -1083,21 +1103,39 @@ List<bool> _buildPixelCollisionCache(
       instance: instance,
       element: element,
     );
-    final destinationPixelSize = GridSize(
-      width: footprint.destinationSize.width * safeTileWidth,
-      height: footprint.destinationSize.height * safeTileHeight,
+    final sourcePixelSize = GridSize(
+      width: mask.widthPx,
+      height: mask.heightPx,
     );
-    final worldLeftPx = instance.pos.x * safeTileWidth;
-    final worldTopPx = instance.pos.y * safeTileHeight;
+    final maxSafeInteger = BigInt.from(9007199254740991);
+    final destinationWidth = footprint.quarterTurns == 0
+        ? BigInt.from(mask.widthPx)
+        : BigInt.from(footprint.destinationSize.width) *
+            BigInt.from(safeTileWidth);
+    final destinationHeight = footprint.quarterTurns == 0
+        ? BigInt.from(mask.heightPx)
+        : BigInt.from(footprint.destinationSize.height) *
+            BigInt.from(safeTileHeight);
+    final worldLeft = BigInt.from(instance.pos.x) * BigInt.from(safeTileWidth);
+    final worldTop = BigInt.from(instance.pos.y) * BigInt.from(safeTileHeight);
+    if (destinationWidth <= BigInt.zero ||
+        destinationHeight <= BigInt.zero ||
+        destinationWidth > maxSafeInteger ||
+        destinationHeight > maxSafeInteger ||
+        worldLeft.abs() > maxSafeInteger ||
+        worldTop.abs() > maxSafeInteger) {
+      continue;
+    }
+    final destinationPixelSize = GridSize(
+      width: destinationWidth.toInt(),
+      height: destinationHeight.toInt(),
+    );
     stampPackedMask(
-      leftPx: worldLeftPx,
-      topPx: worldTopPx,
+      leftPx: worldLeft.toInt(),
+      topPx: worldTop.toInt(),
       mask: mask,
       transform: QuarterTurnPixelTransform(
-        sourcePixelSize: GridSize(
-          width: mask.widthPx,
-          height: mask.heightPx,
-        ),
+        sourcePixelSize: sourcePixelSize,
         destinationPixelSize: destinationPixelSize,
         quarterTurns: footprint.quarterTurns,
       ),
@@ -1493,13 +1531,16 @@ Map<int, Set<String>> _buildPlacedElementCoverageByPos(
     final footprint = _resolvePlacedElementFootprintSize(instance, elementById);
     final width = footprint.width;
     final height = footprint.height;
-    for (var localY = 0; localY < height; localY++) {
-      for (var localX = 0; localX < width; localX++) {
+    final startLocalX = instance.pos.x < 0 ? -instance.pos.x : 0;
+    final startLocalY = instance.pos.y < 0 ? -instance.pos.y : 0;
+    final visibleWidth = w - instance.pos.x;
+    final visibleHeight = h - instance.pos.y;
+    final endLocalX = width < visibleWidth ? width : visibleWidth;
+    final endLocalY = height < visibleHeight ? height : visibleHeight;
+    for (var localY = startLocalY; localY < endLocalY; localY++) {
+      for (var localX = startLocalX; localX < endLocalX; localX++) {
         final x = instance.pos.x + localX;
         final y = instance.pos.y + localY;
-        if (x < 0 || y < 0 || x >= w || y >= h) {
-          continue;
-        }
         final index = y * w + x;
         result.putIfAbsent(index, () => <String>{}).add(instance.id);
       }

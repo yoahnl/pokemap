@@ -198,6 +198,130 @@ void main() {
       }
     });
 
+    test('q0 preserves raw legacy mask dimensions without resampling', () {
+      final mask = ElementCollisionPixelMask(
+        widthPx: 2,
+        heightPx: 1,
+        dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+          widthPx: 2,
+          heightPx: 1,
+          solidPixels: const <bool>[false, true],
+        ),
+      );
+      final world = _world(
+        instance: _placedElement(
+          quarterTurns: 0,
+          applyCollision: true,
+        ),
+        element: _element(
+          collisionProfile: ElementCollisionProfile(
+            collisionMask: mask,
+            cells: const <GridPos>[],
+          ),
+        ),
+      );
+      final worldLeft = _origin.x * _tileWidth;
+      final worldTop = _origin.y * _tileHeight;
+
+      expect(_pixelIsBlocked(world, worldLeft, worldTop), isFalse);
+      expect(_pixelIsBlocked(world, worldLeft + 1, worldTop), isTrue);
+      expect(_pixelIsBlocked(world, worldLeft + 2, worldTop), isFalse);
+      expect(_pixelIsBlocked(world, worldLeft + 1, worldTop + 1), isFalse);
+    });
+
+    test('clips a mostly offscreen rotated mask before sampling', () {
+      final mask = ElementCollisionPixelMask(
+        widthPx: 1,
+        heightPx: 1,
+        dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+          widthPx: 1,
+          heightPx: 1,
+          solidPixels: const <bool>[true],
+        ),
+      );
+
+      late GameplayWorldState world;
+      expect(
+        () => world = _world(
+          instance: _placedElement(
+            quarterTurns: 1,
+            applyCollision: true,
+          ),
+          element: _element(
+            frames: const <TilesetVisualFrame>[
+              TilesetVisualFrame(
+                source: TilesetSourceRect(
+                  x: 0,
+                  y: 0,
+                  width: 50000000,
+                  height: 1,
+                ),
+              ),
+            ],
+            collisionProfile: ElementCollisionProfile(
+              collisionMask: mask,
+              cells: const <GridPos>[],
+            ),
+          ),
+        ),
+        returnsNormally,
+      );
+
+      final worldLeft = _origin.x * _tileWidth;
+      final worldTop = _origin.y * _tileHeight;
+      expect(_pixelIsBlocked(world, worldLeft, worldTop), isTrue);
+      expect(_pixelIsBlocked(world, worldLeft + 3, worldTop + 17), isTrue);
+      expect(_pixelIsBlocked(world, worldLeft + 4, worldTop), isFalse);
+      expect(_pixelIsBlocked(world, worldLeft, worldTop - 1), isFalse);
+    });
+
+    test('skips rotated masks whose pixel extent is not web-representable', () {
+      final mask = ElementCollisionPixelMask(
+        widthPx: 1,
+        heightPx: 1,
+        dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+          widthPx: 1,
+          heightPx: 1,
+          solidPixels: const <bool>[true],
+        ),
+      );
+
+      late GameplayWorldState world;
+      expect(
+        () => world = _world(
+          instance: _placedElement(
+            quarterTurns: 2,
+            applyCollision: true,
+          ),
+          element: _element(
+            frames: const <TilesetVisualFrame>[
+              TilesetVisualFrame(
+                source: TilesetSourceRect(
+                  x: 0,
+                  y: 0,
+                  width: 2251799813685248,
+                  height: 1,
+                ),
+              ),
+            ],
+            collisionProfile: ElementCollisionProfile(
+              collisionMask: mask,
+              cells: const <GridPos>[],
+            ),
+          ),
+        ),
+        returnsNormally,
+      );
+      expect(
+        _pixelIsBlocked(
+          world,
+          _origin.x * _tileWidth,
+          _origin.y * _tileHeight,
+        ),
+        isFalse,
+      );
+    });
+
     test('q0 ignores resolved legacy masks with non-positive dimensions', () {
       const invalidMasks = <ElementCollisionPixelMask>[
         ElementCollisionPixelMask(widthPx: 0, heightPx: 6),
@@ -495,22 +619,23 @@ MapPlacedElement _placedElement({
 
 ProjectElementEntry _element({
   ElementCollisionProfile? collisionProfile,
+  List<TilesetVisualFrame> frames = const <TilesetVisualFrame>[
+    TilesetVisualFrame(
+      source: TilesetSourceRect(
+        x: 0,
+        y: 0,
+        width: 3,
+        height: 2,
+      ),
+    ),
+  ],
 }) {
   return ProjectElementEntry(
     id: 'asymmetric',
     name: 'Asymmetric',
     tilesetId: 'tiles',
     categoryId: 'objects',
-    frames: const <TilesetVisualFrame>[
-      TilesetVisualFrame(
-        source: TilesetSourceRect(
-          x: 0,
-          y: 0,
-          width: 3,
-          height: 2,
-        ),
-      ),
-    ],
+    frames: frames,
     collisionProfile: collisionProfile,
   );
 }
