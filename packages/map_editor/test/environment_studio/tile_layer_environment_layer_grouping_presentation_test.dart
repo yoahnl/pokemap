@@ -132,6 +132,29 @@ void main() {
         rows.map((row) => row.layer.id),
         const ['collision', 'decor', 'objects'],
       );
+      expect(rows.first.moveUp.enabled, isFalse);
+      expect(rows.first.moveUp.disabledReason, isNotEmpty);
+      expect(rows[1].moveUp.enabled, isTrue);
+      expect(rows[1].moveDown.enabled, isTrue);
+      expect(rows.last.moveDown.enabled, isFalse);
+      expect(rows.last.moveDown.disabledReason, isNotEmpty);
+      expect(rows.first.rename.enabled, isTrue);
+      expect(rows.first.visibility.enabled, isTrue);
+      expect(rows.first.opacity.enabled, isTrue);
+      expect(rows.first.delete.enabled, isTrue);
+    });
+
+    test('suppression expose la raison canonique des dépendances', () {
+      final rows = buildLayerPanelPresentationRows(
+        _mapWithAttachedEnvironment(),
+      );
+
+      expect(rows.first.delete.enabled, isFalse);
+      expect(
+        rows.first.delete.disabledReason,
+        'Impossible de supprimer ce layer : un environnement lui est attaché.',
+      );
+      expect(rows.first.deletionImpact.environmentAttachmentCount, 1);
     });
   });
 }

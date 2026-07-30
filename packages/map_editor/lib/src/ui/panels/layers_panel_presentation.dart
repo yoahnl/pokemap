@@ -1,12 +1,39 @@
 import 'package:map_core/map_core.dart';
 
+import '../../features/editor/application/map_layer_deletion_impact.dart';
 import '../../features/editor/application/map_layer_grouping.dart';
+
+final class LayerPanelActionCapability {
+  const LayerPanelActionCapability({
+    required this.enabled,
+    this.disabledReason,
+  }) : assert(enabled || disabledReason != null);
+
+  const LayerPanelActionCapability.enabled()
+      : enabled = true,
+        disabledReason = null;
+
+  const LayerPanelActionCapability.disabled(String reason)
+      : enabled = false,
+        disabledReason = reason;
+
+  final bool enabled;
+  final String? disabledReason;
+}
 
 final class LayerPanelPresentationRow {
   const LayerPanelPresentationRow({
     required this.layer,
     required this.groupIndex,
     required this.isActive,
+    required this.activation,
+    required this.visibility,
+    required this.opacity,
+    required this.rename,
+    required this.delete,
+    required this.moveUp,
+    required this.moveDown,
+    required this.deletionImpact,
     this.environmentAttachmentLabel,
     this.environmentWarningLabel,
     this.technicalEnvironmentSelectionLabel,
@@ -16,6 +43,14 @@ final class LayerPanelPresentationRow {
   final MapLayer layer;
   final int groupIndex;
   final bool isActive;
+  final LayerPanelActionCapability activation;
+  final LayerPanelActionCapability visibility;
+  final LayerPanelActionCapability opacity;
+  final LayerPanelActionCapability rename;
+  final LayerPanelActionCapability delete;
+  final LayerPanelActionCapability moveUp;
+  final LayerPanelActionCapability moveDown;
+  final MapLayerDeletionImpact deletionImpact;
   final String? environmentAttachmentLabel;
   final String? environmentWarningLabel;
   final String? technicalEnvironmentSelectionLabel;
@@ -49,12 +84,36 @@ List<LayerPanelPresentationRow> buildLayerPanelPresentationRows(
         .toList(growable: false);
     final hasActiveTechnicalEnvironment =
         attachedEnvironmentLayerIds.contains(activeLayerId);
+    final deletionImpact = const MapLayerDeletionImpactProjector().project(
+      map: map,
+      layerId: layer.id,
+    );
 
     rows.add(
       LayerPanelPresentationRow(
         layer: layer,
         groupIndex: groupIndex,
         isActive: layer.id == activeLayerId || hasActiveTechnicalEnvironment,
+        activation: const LayerPanelActionCapability.enabled(),
+        visibility: const LayerPanelActionCapability.enabled(),
+        opacity: const LayerPanelActionCapability.enabled(),
+        rename: const LayerPanelActionCapability.enabled(),
+        delete: deletionImpact.isBlocked
+            ? LayerPanelActionCapability.disabled(
+                deletionImpact.blockingReasons.join('\n'),
+              )
+            : const LayerPanelActionCapability.enabled(),
+        moveUp: groupIndex == 0
+            ? const LayerPanelActionCapability.disabled(
+                'Ce calque est déjà tout en haut.',
+              )
+            : const LayerPanelActionCapability.enabled(),
+        moveDown: groupIndex == groups.length - 1
+            ? const LayerPanelActionCapability.disabled(
+                'Ce calque est déjà tout en bas.',
+              )
+            : const LayerPanelActionCapability.enabled(),
+        deletionImpact: deletionImpact,
         environmentAttachmentLabel:
             _environmentAttachmentLabel(attachedEnvironmentLayerIds.length),
         environmentWarningLabel: _environmentWarningLabel(layer, layersById),
