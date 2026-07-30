@@ -52,7 +52,6 @@ class _PlacedElementInstanceVm {
 
 class _PlacedInstancesSection extends StatelessWidget {
   const _PlacedInstancesSection({
-    required this.manifest,
     required this.image,
     required this.tileWidth,
     required this.tileHeight,
@@ -60,46 +59,15 @@ class _PlacedInstancesSection extends StatelessWidget {
     required this.selectedInstanceId,
     required this.selectedInstance,
     required this.onSelectInstance,
-    required this.onCollisionAppliedChanged,
-    required this.onOpacityChanged,
-    required this.onShadowOverrideChanged,
-    required this.onEnsureDefaultShadowProfiles,
-    required this.onAnimationConfigChanged,
-    required this.onBehaviorsChanged,
-    required this.dialogues,
-    required this.projectRootPath,
-    required this.onDeleteInstance,
   });
 
-  final ProjectManifest manifest;
   final ui.Image image;
   final int tileWidth;
   final int tileHeight;
   final _PlacedElementInstancesScope scope;
   final String? selectedInstanceId;
   final _PlacedElementInstanceVm? selectedInstance;
-  final List<ProjectDialogueEntry> dialogues;
-  final String? projectRootPath;
   final ValueChanged<_PlacedElementInstanceVm?> onSelectInstance;
-  final void Function(_PlacedElementInstanceVm instance, bool applyCollision)
-      onCollisionAppliedChanged;
-  final void Function(_PlacedElementInstanceVm instance, double opacity)
-      onOpacityChanged;
-  final void Function(
-    _PlacedElementInstanceVm instance,
-    MapPlacedElementShadowOverride? shadowOverride,
-  ) onShadowOverrideChanged;
-  final VoidCallback onEnsureDefaultShadowProfiles;
-  final void Function(
-    _PlacedElementInstanceVm instance,
-    MapPlacedElementAnimation? animation,
-  ) onAnimationConfigChanged;
-  final void Function(
-    _PlacedElementInstanceVm instance,
-    List<MapPlacedElementBehavior> behaviors,
-  ) onBehaviorsChanged;
-  final Future<void> Function(_PlacedElementInstanceVm instance)
-      onDeleteInstance;
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +75,6 @@ class _PlacedInstancesSection extends StatelessWidget {
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final label = CupertinoColors.label.resolveFrom(context);
     final separator = CupertinoColors.separator.resolveFrom(context);
-    final selected = selectedInstance;
 
     return Column(
       children: [
@@ -220,149 +187,310 @@ class _PlacedInstancesSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 10),
-          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-          decoration: BoxDecoration(
-            color: context.pokeMapColors.surfaceBase,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: context.pokeMapColors.borderSubtle,
-            ),
-            boxShadow: EditorChrome.sectionCardShadows(context),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    CupertinoIcons.slider_horizontal_3,
-                    size: 15,
-                    color: EditorChrome.inspectorJoyMint,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      "Propriétés de l'instance sélectionnée",
-                      style: TextStyle(
-                        color: label,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (selected == null)
-                Text(
-                  'Sélectionne une instance dans la liste pour afficher ses détails.',
-                  style: TextStyle(
-                    color: secondary,
-                    fontSize: 11,
-                  ),
-                )
-              else ...[
-                _PropertyLine(
-                  label: 'Élément source',
-                  value: selected.element == null
-                      ? 'Introuvable (${selected.instance.elementId})'
-                      : '${selected.element!.name} (${selected.element!.id})',
-                ),
-                _PropertyLine(
-                  label: 'Instance',
-                  value: selected.displayLabel,
-                ),
-                _PropertyLine(
-                  label: 'Position',
-                  value: '(${selected.pos.x}, ${selected.pos.y})',
-                ),
-                _PropertyLine(
-                  label: 'Taille',
-                  value: '${selected.source.width} x ${selected.source.height}',
-                ),
-                _PropertyLine(
-                  label: 'Layer',
-                  value: '${selected.layerName} (${selected.layerId})',
-                ),
-                _PropertyLine(
-                  label: 'ID interne',
-                  value: selected.instanceId,
-                ),
-                const SizedBox(height: 8),
-                _CollisionToggleRow(
-                  value: selected.applyCollision,
-                  onChanged: (value) {
-                    if (value == null) {
-                      return;
-                    }
-                    onCollisionAppliedChanged(selected, value);
-                  },
-                ),
-                const SizedBox(height: 8),
-                _OpacitySliderRow(
-                  value: selected.opacity,
-                  onChanged: (value) => onOpacityChanged(selected, value),
-                ),
-                const SizedBox(height: 8),
-                PlacedElementShadowOverrideSection(
-                  manifest: manifest,
-                  element: selected.element,
-                  instance: selected.instance,
-                  shadowOverride: selected.shadowOverride,
-                  onChanged: (next) => onShadowOverrideChanged(
-                    selected,
-                    next,
-                  ),
-                  onEnsureDefaultShadowProfiles: onEnsureDefaultShadowProfiles,
-                ),
-                const SizedBox(height: 8),
-                _PlacedElementAnimationSection(
-                  value: selected.animation,
-                  frameCount: selected.frameCount,
-                  previewEnabled: selected.previewAvailable,
-                  image: image,
-                  sourceFrames: selected.element?.frames ?? const [],
-                  tileWidth: tileWidth,
-                  tileHeight: tileHeight,
-                  onChanged: (next) => onAnimationConfigChanged(selected, next),
-                ),
-                const SizedBox(height: 8),
-                _PlacedElementBehaviorsSection(
-                  value: selected.behaviors,
-                  dialogues: dialogues,
-                  projectRootPath: projectRootPath,
-                  onChanged: (next) => onBehaviorsChanged(selected, next),
-                ),
-                const SizedBox(height: 8),
-                CupertinoButton(
-                  color: CupertinoColors.systemRed.withValues(alpha: 0.9),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  onPressed: () => onDeleteInstance(selected),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(CupertinoIcons.trash, size: 14),
-                      SizedBox(width: 6),
-                      Text(
-                        'Supprimer cette instance',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
+        PlacedElementPropertiesPanel(
+          instanceId: selectedInstance?.instanceId,
+          previewImage: image,
+          tileWidth: tileWidth,
+          tileHeight: tileHeight,
+          previewAvailable: selectedInstance?.previewAvailable ?? false,
         ),
       ],
     );
   }
+}
+
+class PlacedElementPropertiesPanel extends ConsumerWidget {
+  const PlacedElementPropertiesPanel({
+    super.key,
+    required this.instanceId,
+    this.previewImage,
+    this.tileWidth,
+    this.tileHeight,
+    this.previewAvailable = false,
+  });
+
+  final String? instanceId;
+
+  /// A borrowed image owned by the caller. This panel never loads or disposes
+  /// project images, so the palette remains the single cache-lease owner.
+  final ui.Image? previewImage;
+  final int? tileWidth;
+  final int? tileHeight;
+  final bool previewAvailable;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final snapshot = ref.watch(
+      editorNotifierProvider.select(
+        (state) => (
+          project: state.project,
+          map: state.activeMap,
+          projectRootPath: state.projectRootPath,
+        ),
+      ),
+    );
+    final selected = _resolvePlacedElementInstance(
+      project: snapshot.project,
+      map: snapshot.map,
+      instanceId: instanceId,
+      previewAvailable: previewAvailable && previewImage != null,
+    );
+    final notifier = ref.read(editorNotifierProvider.notifier);
+    final colors = context.pokeMapColors;
+    final secondary = colors.textSecondary;
+    final label = colors.textPrimary;
+    final formKey = ValueKey<String>(
+      'placed-element-properties-form-${selected?.instanceId ?? instanceId ?? 'none'}',
+    );
+
+    return KeyedSubtree(
+      key: formKey,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 10),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+        decoration: BoxDecoration(
+          color: colors.surfaceBase,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: colors.borderSubtle),
+          boxShadow: EditorChrome.sectionCardShadows(context),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  CupertinoIcons.slider_horizontal_3,
+                  size: 15,
+                  color: EditorChrome.inspectorJoyMint,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Propriétés de l'instance sélectionnée",
+                    style: TextStyle(
+                      color: label,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (selected == null)
+              Text(
+                instanceId == null
+                    ? 'Sélectionne une instance dans la liste pour afficher ses détails.'
+                    : 'Instance introuvable',
+                style: TextStyle(
+                  color: secondary,
+                  fontSize: 11,
+                ),
+              )
+            else ...[
+              _PropertyLine(
+                label: 'Élément source',
+                value: selected.element == null
+                    ? 'Introuvable (${selected.instance.elementId})'
+                    : '${selected.element!.name} (${selected.element!.id})',
+              ),
+              _PropertyLine(
+                label: 'Instance',
+                value: selected.displayLabel,
+              ),
+              _PropertyLine(
+                label: 'Position',
+                value: '(${selected.pos.x}, ${selected.pos.y})',
+              ),
+              _PropertyLine(
+                label: 'Taille',
+                value: '${selected.source.width} x ${selected.source.height}',
+              ),
+              _PropertyLine(
+                label: 'Layer',
+                value: '${selected.layerName} (${selected.layerId})',
+              ),
+              _PropertyLine(
+                label: 'ID interne',
+                value: selected.instanceId,
+              ),
+              const SizedBox(height: 8),
+              _CollisionToggleRow(
+                value: selected.applyCollision,
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  notifier.setPlacedElementInstanceCollisionApplied(
+                    instanceId: selected.instanceId,
+                    applyCollision: value,
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+              _OpacitySliderRow(
+                value: selected.opacity,
+                onChanged: (value) => notifier.setPlacedElementInstanceOpacity(
+                  instanceId: selected.instanceId,
+                  opacity: value,
+                ),
+              ),
+              const SizedBox(height: 8),
+              PlacedElementShadowOverrideSection(
+                manifest: snapshot.project!,
+                element: selected.element,
+                instance: selected.instance,
+                shadowOverride: selected.shadowOverride,
+                onChanged: (next) =>
+                    notifier.setPlacedElementInstanceShadowOverride(
+                  instanceId: selected.instanceId,
+                  shadowOverride: next,
+                ),
+                onEnsureDefaultShadowProfiles:
+                    notifier.ensureDefaultShadowProfiles,
+              ),
+              const SizedBox(height: 8),
+              _PlacedElementAnimationSection(
+                value: selected.animation,
+                frameCount: selected.frameCount,
+                previewEnabled: selected.previewAvailable,
+                image: previewImage,
+                sourceFrames: selected.element?.frames ?? const [],
+                tileWidth: tileWidth ?? snapshot.project!.settings.tileWidth,
+                tileHeight: tileHeight ?? snapshot.project!.settings.tileHeight,
+                onChanged: (next) =>
+                    notifier.setPlacedElementInstanceAnimationConfig(
+                  instanceId: selected.instanceId,
+                  animation: next,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _PlacedElementBehaviorsSection(
+                value: selected.behaviors,
+                dialogues: snapshot.project!.dialogues,
+                projectRootPath: snapshot.projectRootPath,
+                onChanged: (next) => notifier.setPlacedElementInstanceBehaviors(
+                  instanceId: selected.instanceId,
+                  behaviors: next,
+                ),
+              ),
+              const SizedBox(height: 8),
+              CupertinoButton(
+                color: CupertinoColors.systemRed.withValues(alpha: 0.9),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                onPressed: () => _showDeletePlacedInstanceDialog(
+                  context,
+                  notifier: notifier,
+                  instance: selected,
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(CupertinoIcons.trash, size: 14),
+                    SizedBox(width: 6),
+                    Text(
+                      'Supprimer cette instance',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+_PlacedElementInstanceVm? _resolvePlacedElementInstance({
+  required ProjectManifest? project,
+  required MapData? map,
+  required String? instanceId,
+  required bool previewAvailable,
+}) {
+  if (project == null || map == null || instanceId == null) {
+    return null;
+  }
+
+  MapPlacedElement? selected;
+  for (final instance in map.placedElements) {
+    if (instance.id == instanceId) {
+      selected = instance;
+      break;
+    }
+  }
+  if (selected == null) {
+    return null;
+  }
+  final selectedLayerId = selected.layerId;
+
+  MapLayer? layer;
+  for (final candidate in map.layers) {
+    if (candidate.id == selectedLayerId) {
+      layer = candidate;
+      break;
+    }
+  }
+  final sameLayerInstances = map.placedElements
+      .where((instance) => instance.layerId == selectedLayerId)
+      .toList(growable: false)
+    ..sort((a, b) {
+      final yCompare = a.pos.y.compareTo(b.pos.y);
+      if (yCompare != 0) return yCompare;
+      final xCompare = a.pos.x.compareTo(b.pos.x);
+      if (xCompare != 0) return xCompare;
+      return a.id.compareTo(b.id);
+    });
+  var occurrence = 0;
+  for (final instance in sameLayerInstances) {
+    if (instance.elementId == selected.elementId) {
+      occurrence += 1;
+    }
+    if (instance.id == selected.id) {
+      break;
+    }
+  }
+
+  ProjectElementEntry? element;
+  for (final entry in project.elements) {
+    if (entry.id == selected.elementId) {
+      element = entry;
+      break;
+    }
+  }
+  return _PlacedElementInstanceVm(
+    instance: selected,
+    element: element,
+    layerName: layer?.name ?? selected.layerId,
+    occurrence: occurrence,
+    previewAvailable: previewAvailable,
+  );
+}
+
+Future<void> _showDeletePlacedInstanceDialog(
+  BuildContext context, {
+  required EditorNotifier notifier,
+  required _PlacedElementInstanceVm instance,
+}) async {
+  final elementName = instance.element?.name ?? instance.instance.elementId;
+  final shouldDelete = await showMacosEditorTwoChoiceAlert(
+    context,
+    title: 'Supprimer l’instance',
+    message:
+        'Supprimer "$elementName" en (${instance.pos.x}, ${instance.pos.y}) sur "${instance.layerName}" ?',
+    primaryLabel: 'Supprimer',
+    primaryIsDestructive: true,
+  );
+  if (!shouldDelete) {
+    return;
+  }
+  notifier.deletePlacedElementInstance(instanceId: instance.instanceId);
 }
 
 class _PlacedInstanceCard extends StatelessWidget {
@@ -580,6 +708,7 @@ class _CollisionToggleRow extends StatelessWidget {
           Transform.scale(
             scale: 0.9,
             child: CupertinoSwitch(
+              key: const ValueKey('placed-element-collision-switch'),
               value: value,
               onChanged: (next) => onChanged(next),
             ),

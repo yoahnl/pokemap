@@ -18,7 +18,7 @@ class _PlacedElementAnimationSection extends StatelessWidget {
   final MapPlacedElementAnimation? value;
   final int frameCount;
   final bool previewEnabled;
-  final ui.Image image;
+  final ui.Image? image;
   final List<TilesetVisualFrame> sourceFrames;
   final int tileWidth;
   final int tileHeight;
@@ -183,7 +183,7 @@ class _PlacedElementAnimationSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          if (!previewEnabled || sourceFrames.isEmpty)
+          if (!previewEnabled || sourceFrames.isEmpty || image == null)
             Text(
               'Aperçu indisponible pour le tileset actuellement chargé.',
               style: TextStyle(
@@ -195,7 +195,7 @@ class _PlacedElementAnimationSection extends StatelessWidget {
             SizedBox(
               height: 52,
               child: _PlacedElementAnimationPreview(
-                image: image,
+                image: image!,
                 sourceFrames: sourceFrames,
                 tileWidth: tileWidth,
                 tileHeight: tileHeight,

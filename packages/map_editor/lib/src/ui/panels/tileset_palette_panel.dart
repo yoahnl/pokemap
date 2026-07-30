@@ -1049,60 +1049,17 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         ),
         const SizedBox(height: 4),
         _PlacedInstancesSection(
-          manifest: project,
           image: image,
           tileWidth: tileWidth,
           tileHeight: tileHeight,
           scope: placedInstancesScope,
           selectedInstanceId: snapshot.selectedPlacedElementInstanceId,
           selectedInstance: selectedPlacedInstance,
-          dialogues: project.dialogues,
-          projectRootPath: snapshot.projectRootPath,
           onSelectInstance: (instance) {
             notifier.selectPlacedElementInstance(
               instanceId: instance?.instanceId,
               elementId: instance?.element?.id ?? instance?.instance.elementId,
               layerId: instance?.layerId,
-            );
-          },
-          onCollisionAppliedChanged: (instance, applyCollision) {
-            notifier.setPlacedElementInstanceCollisionApplied(
-              instanceId: instance.instanceId,
-              applyCollision: applyCollision,
-            );
-          },
-          onOpacityChanged: (instance, opacity) {
-            notifier.setPlacedElementInstanceOpacity(
-              instanceId: instance.instanceId,
-              opacity: opacity,
-            );
-          },
-          onShadowOverrideChanged: (instance, shadowOverride) {
-            notifier.setPlacedElementInstanceShadowOverride(
-              instanceId: instance.instanceId,
-              shadowOverride: shadowOverride,
-            );
-          },
-          onEnsureDefaultShadowProfiles: () {
-            notifier.ensureDefaultShadowProfiles();
-          },
-          onAnimationConfigChanged: (instance, animation) {
-            notifier.setPlacedElementInstanceAnimationConfig(
-              instanceId: instance.instanceId,
-              animation: animation,
-            );
-          },
-          onBehaviorsChanged: (instance, behaviors) {
-            notifier.setPlacedElementInstanceBehaviors(
-              instanceId: instance.instanceId,
-              behaviors: behaviors,
-            );
-          },
-          onDeleteInstance: (instance) async {
-            await _showDeletePlacedInstanceDialog(
-              context,
-              notifier: notifier,
-              instance: instance,
             );
           },
         ),
@@ -2554,26 +2511,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     );
     if (!shouldApply) return;
     await notifier.applyElementAutoShadowSuggestions();
-  }
-
-  Future<void> _showDeletePlacedInstanceDialog(
-    BuildContext context, {
-    required EditorNotifier notifier,
-    required _PlacedElementInstanceVm instance,
-  }) async {
-    final elementName = instance.element?.name ?? instance.instance.elementId;
-    final shouldDelete = await showMacosEditorTwoChoiceAlert(
-      context,
-      title: 'Supprimer l’instance',
-      message:
-          'Supprimer "$elementName" en (${instance.pos.x}, ${instance.pos.y}) sur "${instance.layerName}" ?',
-      primaryLabel: 'Supprimer',
-      primaryIsDestructive: true,
-    );
-    if (!shouldDelete) {
-      return;
-    }
-    notifier.deletePlacedElementInstance(instanceId: instance.instanceId);
   }
 
   List<String> _parseTags(String value) {

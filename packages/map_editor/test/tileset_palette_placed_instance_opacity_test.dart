@@ -9,6 +9,8 @@ import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/ui/panels/placed_element_properties_panel.dart'
+    as placed_properties;
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
 
 void main() {
@@ -70,6 +72,10 @@ void main() {
     }
     expect(find.text('Opacité'), findsOneWidget);
     expect(find.text('75 %'), findsOneWidget);
+    expect(
+      find.byType(placed_properties.PlacedElementPropertiesPanel),
+      findsOneWidget,
+    );
 
     final sliderFinder =
         find.byKey(const ValueKey('placed-instance-opacity-slider'));
