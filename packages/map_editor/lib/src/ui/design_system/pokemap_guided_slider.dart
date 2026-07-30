@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 
 import '../../theme/theme.dart';
 
@@ -6,7 +7,7 @@ import '../../theme/theme.dart';
 ///
 /// Product screens keep their domain conversion outside this primitive. The
 /// slider only exposes a named, accessible value between [min] and [max].
-class PokeMapGuidedSlider extends StatelessWidget {
+class PokeMapGuidedSlider extends StatefulWidget {
   const PokeMapGuidedSlider({
     super.key,
     required this.label,
@@ -29,12 +30,92 @@ class PokeMapGuidedSlider extends StatelessWidget {
   final ValueChanged<int>? onChangeEnd;
 
   @override
+  State<PokeMapGuidedSlider> createState() => _PokeMapGuidedSliderState();
+}
+
+class _PokeMapGuidedSliderState extends State<PokeMapGuidedSlider> {
+  final FocusNode _focusNode = FocusNode();
+
+  bool _interactionActive = false;
+  int? _lastInteractionValue;
+
+  int get _clampedValue => widget.value.clamp(widget.min, widget.max).toInt();
+
+  int _roundedValue(double value) =>
+      value.round().clamp(widget.min, widget.max).toInt();
+
+  void _beginInteraction(int value) {
+    if (_interactionActive) {
+      return;
+    }
+    _interactionActive = true;
+    _lastInteractionValue = value;
+    widget.onChangeStart?.call(value);
+  }
+
+  void _endInteraction([int? value]) {
+    if (!_interactionActive) {
+      return;
+    }
+    final finalValue = value ?? _lastInteractionValue ?? _clampedValue;
+    _interactionActive = false;
+    _lastInteractionValue = null;
+    widget.onChangeEnd?.call(finalValue);
+  }
+
+  void _runDiscreteChange(int value) {
+    _beginInteraction(_clampedValue);
+    try {
+      _lastInteractionValue = value;
+      widget.onChanged(value);
+    } finally {
+      _endInteraction(value);
+    }
+  }
+
+  void _handleChangeStart(double value) {
+    _beginInteraction(_roundedValue(value));
+  }
+
+  void _handleChanged(double value) {
+    final roundedValue = _roundedValue(value);
+    if (!_interactionActive) {
+      _runDiscreteChange(roundedValue);
+      return;
+    }
+    _lastInteractionValue = roundedValue;
+    widget.onChanged(roundedValue);
+  }
+
+  void _handleChangeEnd(double value) {
+    _endInteraction(_roundedValue(value));
+  }
+
+  void _adjustWithKeyboard(int delta) {
+    if (_interactionActive) {
+      return;
+    }
+    final nextValue =
+        (_clampedValue + delta).clamp(widget.min, widget.max).toInt();
+    if (nextValue == _clampedValue) {
+      return;
+    }
+    _runDiscreteChange(nextValue);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    final clampedValue = value.clamp(min, max);
+    final clampedValue = _clampedValue;
     return Semantics(
       slider: true,
-      label: label,
+      label: widget.label,
       value: '$clampedValue %',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -46,14 +127,14 @@ class PokeMapGuidedSlider extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      label,
+                      widget.label,
                       style: TextStyle(
                         color: colors.textPrimary,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    if (description case final description?) ...[
+                    if (widget.description case final description?) ...[
                       const SizedBox(height: 2),
                       Text(
                         description,
@@ -78,23 +159,52 @@ class PokeMapGuidedSlider extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          CupertinoSlider(
-            value: clampedValue.toDouble(),
-            min: min.toDouble(),
-            max: max.toDouble(),
-            divisions: max - min,
-            activeColor: colors.brandPrimary,
-            thumbColor: colors.surfaceBase,
-            onChangeStart: onChangeStart == null
-                ? null
-                : (next) => onChangeStart!(next.round()),
-            onChanged: (next) => onChanged(next.round()),
-            onChangeEnd: onChangeEnd == null
-                ? null
-                : (next) => onChangeEnd!(next.round()),
+          FocusableActionDetector(
+            focusNode: _focusNode,
+            shortcuts: const <ShortcutActivator, Intent>{
+              SingleActivator(LogicalKeyboardKey.arrowLeft):
+                  _AdjustGuidedSliderIntent(-1),
+              SingleActivator(LogicalKeyboardKey.arrowDown):
+                  _AdjustGuidedSliderIntent(-1),
+              SingleActivator(LogicalKeyboardKey.arrowRight):
+                  _AdjustGuidedSliderIntent(1),
+              SingleActivator(LogicalKeyboardKey.arrowUp):
+                  _AdjustGuidedSliderIntent(1),
+            },
+            actions: <Type, Action<Intent>>{
+              _AdjustGuidedSliderIntent:
+                  CallbackAction<_AdjustGuidedSliderIntent>(
+                onInvoke: (intent) {
+                  _adjustWithKeyboard(intent.delta);
+                  return null;
+                },
+              ),
+            },
+            child: Listener(
+              onPointerDown: (_) => _focusNode.requestFocus(),
+              onPointerUp: (_) => _endInteraction(),
+              onPointerCancel: (_) => _endInteraction(),
+              child: CupertinoSlider(
+                value: clampedValue.toDouble(),
+                min: widget.min.toDouble(),
+                max: widget.max.toDouble(),
+                divisions: widget.max - widget.min,
+                activeColor: colors.brandPrimary,
+                thumbColor: colors.surfaceBase,
+                onChangeStart: _handleChangeStart,
+                onChanged: _handleChanged,
+                onChangeEnd: _handleChangeEnd,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+}
+
+class _AdjustGuidedSliderIntent extends Intent {
+  const _AdjustGuidedSliderIntent(this.delta);
+
+  final int delta;
 }

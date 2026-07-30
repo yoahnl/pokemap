@@ -1,3 +1,5 @@
+import 'dart:ui' show SemanticsAction;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -187,6 +189,96 @@ void main() {
 
     harness.notifier.undoMap();
     expect(_layer(harness, 'middle').opacity, 1);
+  });
+
+  testWidgets('closes a semantic opacity increase as one undo entry',
+      (tester) async {
+    final harness = _Harness(
+      _threeLayerMap().copyWith(
+        layers: [
+          _tile('top', 'Top'),
+          _tile('middle', 'Middle').copyWith(opacity: 0.5),
+          _tile('bottom', 'Bottom'),
+        ],
+      ),
+      activeLayerId: 'middle',
+    );
+    addTearDown(harness.dispose);
+    final semantics = tester.ensureSemantics();
+    await harness.pump(tester);
+
+    final control = find.byKey(
+      const ValueKey<String>('world-map-layer-opacity-middle'),
+    );
+    await tester.ensureVisible(control);
+    await tester.pump();
+    final slider = find.descendant(
+      of: control,
+      matching: find.byType(CupertinoSlider),
+    );
+    final node = tester.getSemantics(slider);
+    node.owner!.performAction(node.id, SemanticsAction.increase);
+    await tester.pump();
+
+    expect(_layer(harness, 'middle').opacity, greaterThan(0.5));
+    expect(harness.notifier.state.mapStrokeStart, isNull);
+    expect(harness.notifier.state.mapUndoStack, hasLength(1));
+
+    harness.notifier.undoMap();
+    expect(_layer(harness, 'middle').opacity, 0.5);
+    semantics.dispose();
+  });
+
+  testWidgets('cancelled opacity drag closes before a distinct next gesture',
+      (tester) async {
+    final harness = _Harness(_threeLayerMap(), activeLayerId: 'middle');
+    addTearDown(harness.dispose);
+    await harness.pump(tester);
+
+    final control = find.byKey(
+      const ValueKey<String>('world-map-layer-opacity-middle'),
+    );
+    await tester.ensureVisible(control);
+    await tester.pump();
+    final slider = find.descendant(
+      of: control,
+      matching: find.byType(CupertinoSlider),
+    );
+    final rect = tester.getRect(slider);
+    final firstGesture = await tester.startGesture(
+      Offset(rect.right - 8, rect.center.dy),
+    );
+    await firstGesture.moveTo(
+      Offset(rect.left + rect.width * 0.8, rect.center.dy),
+    );
+    await tester.pump();
+    await firstGesture.moveTo(
+      Offset(rect.left + rect.width * 0.6, rect.center.dy),
+    );
+    await tester.pump();
+    await firstGesture.cancel();
+    await tester.pump();
+
+    final opacityAfterCancel = _layer(harness, 'middle').opacity;
+    expect(opacityAfterCancel, lessThan(1));
+    expect(harness.notifier.state.mapStrokeStart, isNull);
+    expect(harness.notifier.state.mapUndoStack, hasLength(1));
+
+    final thumbX = rect.left + 22 + (rect.width - 44) * opacityAfterCancel;
+    final secondGesture = await tester.startGesture(
+      Offset(thumbX, rect.center.dy),
+    );
+    await secondGesture.moveBy(const Offset(-8, 0));
+    await tester.pump();
+    await secondGesture.moveBy(const Offset(-24, 0));
+    await tester.pump();
+    await secondGesture.moveBy(const Offset(-24, 0));
+    await tester.pump();
+    await secondGesture.up();
+    await tester.pump();
+
+    expect(harness.notifier.state.mapStrokeStart, isNull);
+    expect(harness.notifier.state.mapUndoStack, hasLength(2));
   });
 
   testWidgets('dispatches all eight creation kinds with real layer types',
