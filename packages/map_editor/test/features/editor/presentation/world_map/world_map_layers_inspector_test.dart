@@ -387,6 +387,61 @@ void main() {
     expect(harness.notifier.state.canUndoMap, isFalse);
   });
 
+  testWidgets(
+      'rejects deletion when a confirmed placement is replaced one for one',
+      (tester) async {
+    final map = _threeLayerMap().copyWith(
+      placedElements: const [
+        MapPlacedElement(
+          id: 'confirmed_tree',
+          layerId: 'middle',
+          elementId: 'tree',
+          pos: GridPos(x: 0, y: 0),
+        ),
+      ],
+    );
+    final harness = _Harness(map, activeLayerId: 'middle');
+    addTearDown(harness.dispose);
+    await harness.pump(
+      tester,
+      onDeleteRequested: ({
+        required context,
+        required impact,
+      }) async {
+        final current = harness.notifier.state.activeMap!;
+        harness.notifier.state = harness.notifier.state.copyWith(
+          activeMap: current.copyWith(
+            placedElements: const [
+              MapPlacedElement(
+                id: 'replacement_rock',
+                layerId: 'middle',
+                elementId: 'rock',
+                pos: GridPos(x: 1, y: 0),
+              ),
+            ],
+          ),
+        );
+        return true;
+      },
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('world-map-layer-delete-middle')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      harness.notifier.state.activeMap!.layers
+          .any((layer) => layer.id == 'middle'),
+      isTrue,
+    );
+    expect(
+      harness.notifier.state.activeMap!.placedElements.single.id,
+      'replacement_rock',
+    );
+    expect(harness.notifier.state.canUndoMap, isFalse);
+  });
+
   testWidgets('delete confirmation cannot mutate a newly active map',
       (tester) async {
     final harness = _Harness(_threeLayerMap(), activeLayerId: 'middle');

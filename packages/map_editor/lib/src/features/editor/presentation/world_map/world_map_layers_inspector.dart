@@ -322,6 +322,7 @@ final class _WorldMapLayerRow extends StatelessWidget {
       map: map,
       layerId: layerId,
     );
+    final confirmedPlacements = _placementsHostedByLayer(map, layerId);
     if (impact.isBlocked) {
       return;
     }
@@ -343,11 +344,24 @@ final class _WorldMapLayerRow extends StatelessWidget {
       layerId: layerId,
     );
     if (currentImpact.isBlocked ||
-        !_hasSameDeletionImpact(impact, currentImpact)) {
+        !_hasSameDeletionImpact(impact, currentImpact) ||
+        !listEquals(
+          confirmedPlacements,
+          _placementsHostedByLayer(currentMap, layerId),
+        )) {
       return;
     }
     notifier.deleteMapLayer(layerId);
   }
+}
+
+List<MapPlacedElement> _placementsHostedByLayer(
+  MapData map,
+  String layerId,
+) {
+  return map.placedElements
+      .where((placement) => placement.layerId == layerId)
+      .toList(growable: false);
 }
 
 bool _hasSameDeletionImpact(
