@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/path_autotile_set.dart';
+import 'package:map_editor/src/features/editor/application/map_layer_grouping.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
 void main() {
@@ -131,6 +132,38 @@ void main() {
         _red,
       );
     });
+
+    test('group reorder immediately changes the painted top layer', () async {
+      const map = MapData(
+        id: 'reorder_paint',
+        name: 'Reorder paint',
+        size: GridSize(width: 1, height: 1),
+        version: ProjectVersion.v3,
+        visualStack: MapVisualStackConfig.canonicalV1,
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'blue_top',
+            name: 'Blue top',
+            tilesetId: 'test_tileset',
+            tiles: <int>[2],
+          ),
+          TileLayer(
+            id: 'red_bottom',
+            name: 'Red bottom',
+            tilesetId: 'test_tileset',
+            tiles: <int>[1],
+          ),
+        ],
+      );
+      final reordered = const MapLayerGroupService().moveAdjacent(
+        map: map,
+        layerId: 'blue_top',
+        direction: MapLayerGroupMoveDirection.down,
+      );
+
+      expect(await _paintMap(map), _blue);
+      expect(await _paintMap(reordered), _red);
+    });
   });
 }
 
@@ -183,6 +216,10 @@ Future<ui.Color> _paintOverlappingLayers({
           ]
         : const <MapPlacedElement>[],
   );
+  return _paintMap(map);
+}
+
+Future<ui.Color> _paintMap(MapData map) async {
   final tilesetImage = await _twoColorTileset();
   final recorder = ui.PictureRecorder();
   final canvas = ui.Canvas(recorder);
