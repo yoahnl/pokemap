@@ -43,9 +43,14 @@ Future<bool> showPokeMapPromptDialog(
   required String cancelLabel,
   required String confirmLabel,
 }) async {
-  final result = await showDialog<bool>(
+  final navigator = Navigator.of(context, rootNavigator: true);
+  final route = DialogRoute<bool>(
     context: context,
     barrierDismissible: false,
+    themes: InheritedTheme.capture(
+      from: context,
+      to: navigator.context,
+    ),
     builder: (dialogContext) => _PokeMapDialogFrame(
       title: title,
       footer: _PokeMapDialogActions(
@@ -63,6 +68,8 @@ Future<bool> showPokeMapPromptDialog(
       ),
     ),
   );
+  final result = await navigator.push(route);
+  await route.completed;
   return result ?? false;
 }
 

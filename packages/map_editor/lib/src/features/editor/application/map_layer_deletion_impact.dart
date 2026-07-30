@@ -64,11 +64,22 @@ final class MapLayerDeletionImpactProjector {
     };
     final environmentLayers =
         map.layers.whereType<EnvironmentLayer>().toList(growable: false);
+    final attachments = layer is TileLayer
+        ? validEnvironmentLayerAttachmentsForTileLayer(
+            map,
+            normalizedLayerId,
+          )
+        : const <EnvironmentLayer>[];
+    final relevantGeneratedIds = <String>{
+      for (final attachment in attachments)
+        ...attachment.content.generatedPlacementIds,
+    };
     final orphanedGeneratedIds = <String>{};
 
     for (final environment in environmentLayers) {
       final generatedIds = environment.content.generatedPlacementIds.toSet();
       if (environment.id == normalizedLayerId) {
+        relevantGeneratedIds.addAll(generatedIds);
         for (final generatedId in generatedIds) {
           final placement = placementsById[generatedId];
           if (placement == null ||
@@ -87,6 +98,7 @@ final class MapLayerDeletionImpactProjector {
 
       for (final generatedId in generatedIds) {
         if (removedPlacementIds.contains(generatedId)) {
+          relevantGeneratedIds.add(generatedId);
           orphanedGeneratedIds.add(generatedId);
         }
       }
@@ -98,12 +110,6 @@ final class MapLayerDeletionImpactProjector {
         .toSet()
         .toList(growable: false)
       ..sort();
-    final attachments = layer is TileLayer
-        ? validEnvironmentLayerAttachmentsForTileLayer(
-            map,
-            normalizedLayerId,
-          )
-        : const <EnvironmentLayer>[];
 
     final blockingReasons = <String>[
       if (attachments.isNotEmpty) mapLayerEnvironmentAttachmentDeletionReason,
@@ -117,7 +123,7 @@ final class MapLayerDeletionImpactProjector {
       layerId: normalizedLayerId,
       placedElementCount: removedPlacements.length,
       affectedMapEventIds: List<String>.unmodifiable(affectedMapEventIds),
-      environmentGeneratedCount: orphanedGeneratedIds.length,
+      environmentGeneratedCount: relevantGeneratedIds.length,
       environmentAttachmentCount: attachments.length,
       blockingReasons: List<String>.unmodifiable(blockingReasons),
     );

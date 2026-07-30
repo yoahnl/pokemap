@@ -79,7 +79,11 @@ void main() {
           _environment(
             id: 'forest',
             targetLayerId: 'decor',
-            generatedIds: const ['generated_tree', 'generated_tree'],
+            generatedIds: const [
+              'generated_tree',
+              'missing_generated',
+              'generated_tree',
+            ],
           ),
           _environment(id: 'orphan', targetLayerId: 'missing'),
           const ObjectLayer(id: 'objects', name: 'Objects'),
@@ -100,7 +104,7 @@ void main() {
       );
 
       expect(impact.environmentAttachmentCount, 1);
-      expect(impact.environmentGeneratedCount, 1);
+      expect(impact.environmentGeneratedCount, 2);
       expect(
         impact.blockingReasons,
         contains(
@@ -135,7 +139,7 @@ void main() {
         layerId: 'forest',
       );
 
-      expect(impact.environmentGeneratedCount, 1);
+      expect(impact.environmentGeneratedCount, 2);
       expect(
         impact.blockingReasons,
         contains(

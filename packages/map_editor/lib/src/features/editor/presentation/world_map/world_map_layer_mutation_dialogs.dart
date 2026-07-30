@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../../../theme/theme.dart';
@@ -38,12 +36,7 @@ Future<String?> showWorldMapLayerRenameDialog({
     final normalizedName = controller.text.trim();
     return normalizedName.isEmpty ? null : normalizedName;
   } finally {
-    unawaited(
-      Future<void>.delayed(
-        const Duration(milliseconds: 250),
-        controller.dispose,
-      ),
-    );
+    controller.dispose();
   }
 }
 
