@@ -207,6 +207,7 @@ class PlacedElementPropertiesPanel extends ConsumerWidget {
     this.tileWidth,
     this.tileHeight,
     this.previewAvailable = false,
+    this.scrollable = false,
   });
 
   final String? instanceId;
@@ -217,6 +218,7 @@ class PlacedElementPropertiesPanel extends ConsumerWidget {
   final int? tileWidth;
   final int? tileHeight;
   final bool previewAvailable;
+  final bool scrollable;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -243,7 +245,7 @@ class PlacedElementPropertiesPanel extends ConsumerWidget {
       'placed-element-properties-form-${selected?.instanceId ?? instanceId ?? 'none'}',
     );
 
-    return KeyedSubtree(
+    final content = KeyedSubtree(
       key: formKey,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 10),
@@ -404,6 +406,13 @@ class PlacedElementPropertiesPanel extends ConsumerWidget {
           ],
         ),
       ),
+    );
+    if (!scrollable) {
+      return content;
+    }
+    return SingleChildScrollView(
+      primary: false,
+      child: content,
     );
   }
 }

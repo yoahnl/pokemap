@@ -9,6 +9,11 @@ import '../../state/editor_notifier.dart';
 
 part 'world_map_workspace_session.freezed.dart';
 
+typedef WorldMapPaintReplayOutcome = ({
+  ActivateWorldMapPaint request,
+  WorldMapToolActivationResult result,
+});
+
 @freezed
 class WorldMapWorkspaceSession with _$WorldMapWorkspaceSession {
   const factory WorldMapWorkspaceSession({
@@ -171,7 +176,7 @@ class WorldMapWorkspaceSessionController
     return state.lastPaintSubtoolByLayerId[layerId] ?? state.lastPaintSubtool;
   }
 
-  WorldMapToolActivationResult activatePaintReplay(
+  WorldMapPaintReplayOutcome activatePaintReplay(
     WorldMapToolActivationHost editorNotifier, {
     required String? observedMapId,
     required String? observedLayerId,
@@ -185,9 +190,10 @@ class WorldMapWorkspaceSessionController
             mapId: snapshot.activeMapId,
             layerId: snapshot.activeLayerId,
           );
-    return activateTool(
-      editorNotifier,
-      ActivateWorldMapPaint(subtool),
+    final request = ActivateWorldMapPaint(subtool);
+    return (
+      request: request,
+      result: activateTool(editorNotifier, request),
     );
   }
 

@@ -20,6 +20,36 @@ part 'entity_properties/entity_properties_drafts.dart';
 part 'entity_properties/entity_properties_dialogue_bindings.dart';
 part 'entity_properties/entity_properties_npc_runtime.dart';
 
+class EntityPlacementKindPicker extends ConsumerWidget {
+  const EntityPlacementKindPicker({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedKind = ref.watch(
+      editorNotifierProvider.select((state) => state.selectedEntityKind),
+    );
+    final notifier = ref.read(editorNotifierProvider.notifier);
+
+    return InspectorEmbeddedDropdown(
+      accent: EditorChrome.inspectorJoyCyan,
+      fieldLabel: 'Type à placer',
+      valueLabel: _EntityPropertiesPanelState._entityKindLabel(selectedKind),
+      orderedIds: MapEntityKind.values.map((kind) => kind.name).toList(),
+      selectedMenuValue: selectedKind.name,
+      selectedIdForCheck: selectedKind.name,
+      idToLabel: (id) => _EntityPropertiesPanelState._entityKindLabel(
+        MapEntityKind.values.firstWhere((kind) => kind.name == id),
+      ),
+      onSelected: (id) {
+        notifier.selectEntityKind(
+          MapEntityKind.values.firstWhere((kind) => kind.name == id),
+        );
+      },
+      tooltip: 'Type d’entité à placer sur la carte',
+    );
+  }
+}
+
 class EntityPropertiesPanel extends ConsumerStatefulWidget {
   const EntityPropertiesPanel({
     super.key,
@@ -157,24 +187,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                 : const EdgeInsets.fromLTRB(8, 8, 8, 8),
             children: [
               if (widget.embedded)
-                InspectorEmbeddedDropdown(
-                  accent: EditorChrome.inspectorJoyCyan,
-                  fieldLabel: 'Type à placer',
-                  valueLabel: _entityKindLabel(state.selectedEntityKind),
-                  orderedIds: MapEntityKind.values.map((k) => k.name).toList(),
-                  selectedMenuValue: state.selectedEntityKind.name,
-                  selectedIdForCheck: state.selectedEntityKind.name,
-                  idToLabel: (id) => _entityKindLabel(
-                    MapEntityKind.values.firstWhere((k) => k.name == id),
-                  ),
-                  onSelected: (id) {
-                    final k = MapEntityKind.values.firstWhere(
-                      (e) => e.name == id,
-                    );
-                    notifier.selectEntityKind(k);
-                  },
-                  tooltip: 'Type d’entité à placer sur la carte',
-                )
+                const EntityPlacementKindPicker()
               else
                 CupertinoButton(
                   padding: EdgeInsets.zero,

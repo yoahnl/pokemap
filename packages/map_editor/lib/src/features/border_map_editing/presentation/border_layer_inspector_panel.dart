@@ -15,7 +15,14 @@ import '../state/border_preview_providers.dart';
 
 /// Dedicated no-code authoring controls for one World Maps Border layer.
 class BorderLayerInspectorPanel extends ConsumerStatefulWidget {
-  const BorderLayerInspectorPanel({super.key});
+  const BorderLayerInspectorPanel({
+    super.key,
+    this.onPaintRequested,
+    this.onEraseRequested,
+  });
+
+  final VoidCallback? onPaintRequested;
+  final VoidCallback? onEraseRequested;
 
   @override
   ConsumerState<BorderLayerInspectorPanel> createState() =>
@@ -478,7 +485,8 @@ class _BorderLayerInspectorPanelState
               PokeMapButton(
                 key: const ValueKey('border-inspector-paint-button'),
                 onPressed: availability.isEnabled
-                    ? () => notifier.selectTool(EditorToolType.borderPaint)
+                    ? widget.onPaintRequested ??
+                        () => notifier.selectTool(EditorToolType.borderPaint)
                     : null,
                 size: PokeMapButtonSize.small,
                 leading: const Icon(CupertinoIcons.paintbrush),
@@ -489,7 +497,8 @@ class _BorderLayerInspectorPanelState
               PokeMapButton(
                 key: const ValueKey('border-inspector-erase-button'),
                 onPressed: availability.isEnabled
-                    ? () => notifier.selectTool(EditorToolType.borderErase)
+                    ? widget.onEraseRequested ??
+                        () => notifier.selectTool(EditorToolType.borderErase)
                     : null,
                 size: PokeMapButtonSize.small,
                 variant: PokeMapButtonVariant.secondary,

@@ -7,6 +7,7 @@ import 'package:map_editor/src/features/border_map_editing/application/border_pr
 import 'package:map_editor/src/features/border_map_editing/state/border_preview_providers.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:map_editor/src/ui/shared/inspector_section_card.dart';
 
@@ -136,6 +137,27 @@ void main() {
         findsOneWidget);
     expect(find.byKey(const ValueKey('border-layer-visibility-button')),
         findsOneWidget);
+
+    final legacyPaintButton = tester.widget<PokeMapButton>(
+      find.byKey(const ValueKey('border-inspector-paint-button')),
+    );
+    expect(legacyPaintButton.onPressed, isNotNull);
+    legacyPaintButton.onPressed!.call();
+    await tester.pump();
+    expect(
+      container.read(editorNotifierProvider).activeTool,
+      EditorToolType.borderPaint,
+    );
+    final legacyEraseButton = tester.widget<PokeMapButton>(
+      find.byKey(const ValueKey('border-inspector-erase-button')),
+    );
+    expect(legacyEraseButton.onPressed, isNotNull);
+    legacyEraseButton.onPressed!.call();
+    await tester.pump();
+    expect(
+      container.read(editorNotifierProvider).activeTool,
+      EditorToolType.borderErase,
+    );
 
     final createPicker = tester.widget<PokeMapDropdownField<String>>(
       find.byKey(const ValueKey('border-blueprint-create-picker')),

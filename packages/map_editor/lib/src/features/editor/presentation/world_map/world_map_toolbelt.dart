@@ -4,12 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../application/models/terrain_selection_mode.dart';
 import '../../../../theme/theme.dart';
 import '../../../../ui/design_system/design_system.dart';
+import '../../../border_map_editing/state/border_map_editing_providers.dart';
 import '../../application/world_map_observed_tool_family.dart';
+import '../../application/world_map_subtool_body_projector.dart';
 import '../../application/world_map_tool_activation.dart';
 import '../../application/world_map_tool_family.dart';
 import '../../state/editor_notifier.dart';
 import '../../state/editor_selectors.dart';
 import '../../tools/editor_tool.dart';
+import 'world_map_paint_inspection_intent.dart';
 import 'world_map_workspace_session.dart';
 
 class WorldMapToolbelt extends ConsumerWidget {
@@ -48,6 +51,8 @@ class WorldMapToolbelt extends ConsumerWidget {
     final sessionController =
         ref.read(worldMapWorkspaceSessionProvider.notifier);
     final editor = ref.read(editorNotifierProvider.notifier);
+    final paintInspectionIntent =
+        ref.read(worldMapPaintInspectionIntentProvider.notifier);
 
     void reportResult(WorldMapToolActivationResult result) {
       final reason = result.rejectionReason;
@@ -56,13 +61,51 @@ class WorldMapToolbelt extends ConsumerWidget {
       }
     }
 
+    void reconcilePaintInspectionIntent(
+      WorldMapToolActivationRequest request,
+      WorldMapToolActivationResult result,
+    ) {
+      if (result.accepted) {
+        paintInspectionIntent.clear();
+        return;
+      }
+      if (request case ActivateWorldMapPaint(:final subtool)) {
+        final editorState = ref.read(editorNotifierProvider);
+        final borderSelection = ref.read(activeBorderFeatureControllerProvider);
+        final projection = const WorldMapSubtoolBodyProjector().project(
+          source: worldMapToolActivationSourceFromState(editorState),
+          request: request,
+          activeBorderFeatureId:
+              borderSelection.activeLayerId == editorState.activeLayerId
+                  ? borderSelection.activeFeatureId
+                  : null,
+        );
+        final mapId = editorState.activeMap?.id;
+        final layerId = editorState.activeLayerId;
+        if (projection.access == WorldMapSubtoolBodyAccess.setup &&
+            mapId != null &&
+            layerId != null) {
+          paintInspectionIntent.showSetup(
+            mapId: mapId,
+            layerId: layerId,
+            subtool: subtool,
+          );
+        } else {
+          paintInspectionIntent.clear();
+        }
+      }
+    }
+
     void activate(WorldMapToolActivationRequest request) {
-      reportResult(sessionController.activateTool(editor, request));
+      final result = sessionController.activateTool(editor, request);
+      reconcilePaintInspectionIntent(request, result);
+      reportResult(result);
     }
 
     void activateLayers() {
       final result = sessionController.activateLayers(editor);
       if (result.accepted) {
+        paintInspectionIntent.clear();
         sessionController.setInspectorVisible(true);
       }
       reportResult(result);
@@ -151,14 +194,19 @@ class WorldMapToolbelt extends ConsumerWidget {
               ),
               PokeMapSplitButton<WorldMapPaintSubtool>(
                 key: const ValueKey<String>('world-map-tool-paint'),
-                onPressed: () => reportResult(
-                  sessionController.activatePaintReplay(
+                onPressed: () {
+                  final replay = sessionController.activatePaintReplay(
                     editor,
                     observedMapId: toolbar.activeMap?.id,
                     observedLayerId: toolbar.activeLayer?.id,
                     observedSubtool: visualState.paintSubtool,
-                  ),
-                ),
+                  );
+                  reconcilePaintInspectionIntent(
+                    replay.request,
+                    replay.result,
+                  );
+                  reportResult(replay.result);
+                },
                 items: [
                   for (final subtool in WorldMapPaintSubtool.values)
                     PokeMapMenuItem<WorldMapPaintSubtool>(

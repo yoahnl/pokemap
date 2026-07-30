@@ -7,6 +7,7 @@ import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
 import 'package:map_editor/src/features/border_map_editing/state/border_map_editing_providers.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_paint_inspection_intent.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_toolbelt.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
@@ -563,6 +564,147 @@ void main() {
       expect(container.read(worldMapWorkspaceSessionProvider), beforeSession);
     });
 
+    testWidgets(
+      'rejected Surface setup opens UI intent without arming editor or session',
+      (tester) async {
+        final container = _containerWith(
+          _paintState('surface').copyWith(
+            selectedSurfacePresetId: 'stale-surface',
+          ),
+        );
+        final beforeEditor = container.read(editorNotifierProvider);
+        final beforeSession = container.read(worldMapWorkspaceSessionProvider);
+        String? rejectionReason;
+        await _pumpToolbelt(
+          tester,
+          container,
+          onActivationRejected: (reason) => rejectionReason = reason,
+        );
+
+        await tester.tap(
+          find.bySemanticsLabel('Choisir un outil de peinture'),
+        );
+        await tester.pump();
+        await tester.tap(find.text('Surfaces'));
+        await tester.pump();
+
+        expect(rejectionReason, 'Select an available surface before painting.');
+        expect(container.read(editorNotifierProvider), same(beforeEditor));
+        expect(
+          container.read(worldMapWorkspaceSessionProvider),
+          same(beforeSession),
+        );
+        expect(
+          container.read(worldMapPaintInspectionIntentProvider),
+          const WorldMapPaintInspectionIntent(
+            mapId: 'map-a',
+            layerId: 'surface',
+            subtool: WorldMapPaintSubtool.surface,
+          ),
+        );
+        expect(beforeEditor.mapUndoStack, isEmpty);
+        expect(beforeEditor.mapRedoStack, isEmpty);
+      },
+    );
+
+    testWidgets(
+      'rejected empty Border setup opens UI intent without arming editor',
+      (tester) async {
+        final container = _containerWith(_emptyBorderState());
+        final beforeEditor = container.read(editorNotifierProvider);
+        final beforeSession = container.read(worldMapWorkspaceSessionProvider);
+        String? rejectionReason;
+        await _pumpToolbelt(
+          tester,
+          container,
+          onActivationRejected: (reason) => rejectionReason = reason,
+        );
+
+        await tester.tap(
+          find.bySemanticsLabel('Choisir un outil de peinture'),
+        );
+        await tester.pump();
+        await tester.tap(find.text('Bordures'));
+        await tester.pump();
+
+        expect(
+          rejectionReason,
+          'Sélectionnez ou créez une bordure dans ce calque.',
+        );
+        expect(container.read(editorNotifierProvider), same(beforeEditor));
+        expect(
+          container.read(worldMapWorkspaceSessionProvider),
+          same(beforeSession),
+        );
+        expect(
+          container.read(worldMapPaintInspectionIntentProvider),
+          const WorldMapPaintInspectionIntent(
+            mapId: 'border-map',
+            layerId: 'border',
+            subtool: WorldMapPaintSubtool.border,
+          ),
+        );
+      },
+    );
+
+    testWidgets(
+      'wrong-layer rejection never opens setup intent',
+      (tester) async {
+        final container = _containerWith(_paintState('terrain'));
+        final beforeEditor = container.read(editorNotifierProvider);
+        final beforeSession = container.read(worldMapWorkspaceSessionProvider);
+        await _pumpToolbelt(tester, container);
+
+        await tester.tap(
+          find.bySemanticsLabel('Choisir un outil de peinture'),
+        );
+        await tester.pump();
+        await tester.tap(find.text('Surfaces'));
+        await tester.pump();
+
+        expect(container.read(editorNotifierProvider), same(beforeEditor));
+        expect(
+          container.read(worldMapWorkspaceSessionProvider),
+          same(beforeSession),
+        );
+        expect(
+          container.read(worldMapPaintInspectionIntentProvider),
+          isNull,
+        );
+      },
+    );
+
+    testWidgets('accepted activation clears an existing setup intent',
+        (tester) async {
+      final container = _containerWith(_paintState('surface'));
+      container.read(worldMapPaintInspectionIntentProvider.notifier).showSetup(
+            mapId: 'map-a',
+            layerId: 'surface',
+            subtool: WorldMapPaintSubtool.surface,
+          );
+      await _pumpToolbelt(tester, container);
+
+      await tester.tap(
+        find.bySemanticsLabel('Choisir un outil de peinture'),
+      );
+      await tester.pump();
+      await tester.tap(find.text('Surfaces'));
+      await tester.pump();
+
+      expect(
+        container.read(editorNotifierProvider).activeTool,
+        EditorToolType.surfacePaint,
+      );
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).activeFamily,
+        WorldMapToolFamily.paint,
+      );
+      expect(
+        container.read(worldMapPaintInspectionIntentProvider),
+        isNull,
+      );
+    });
+
     testWidgets('Plus escapes the toolbar bounds and restores launcher focus',
         (tester) async {
       final container = _containerWith(_tileState());
@@ -743,6 +885,96 @@ void main() {
       expect(
         container.read(worldMapWorkspaceSessionProvider).lastPaintSubtool,
         WorldMapPaintSubtool.tile,
+      );
+    });
+
+    testWidgets(
+        'Paint main reconciles a rejected stale replay with its resolved subtool',
+        (tester) async {
+      final project = _validBorderProject.copyWith(
+        surfaceCatalog: _paintProject.surfaceCatalog,
+      );
+      final map = _validBorderMap.copyWith(
+        id: 'map-a',
+        layers: <MapLayer>[
+          const SurfaceLayer(id: 'surface', name: 'Surface'),
+          ..._validBorderMap.layers,
+        ],
+      );
+      final container = _containerWith(
+        EditorState(
+          project: project,
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: map,
+          activeLayerId: 'border',
+          selectedSurfacePresetId: 'water',
+        ),
+      );
+      final editor = container.read(editorNotifierProvider.notifier);
+      final session = container.read(worldMapWorkspaceSessionProvider.notifier);
+      expect(
+        session
+            .activateTool(
+              editor,
+              const ActivateWorldMapPaint(WorldMapPaintSubtool.border),
+            )
+            .accepted,
+        isTrue,
+      );
+      editor.state = editor.state.copyWith(
+        activeLayerId: 'surface',
+        activeTool: EditorToolType.selection,
+      );
+      expect(
+        session
+            .activateTool(
+              editor,
+              const ActivateWorldMapPaint(WorldMapPaintSubtool.surface),
+            )
+            .accepted,
+        isTrue,
+      );
+      String? rejectionReason;
+      await _pumpToolbelt(
+        tester,
+        container,
+        onActivationRejected: (reason) => rejectionReason = reason,
+      );
+
+      editor.state = editor.state.copyWith(
+        activeMap: map.copyWith(
+          layers: const <MapLayer>[
+            SurfaceLayer(id: 'surface', name: 'Surface'),
+            BorderLayer(id: 'border', name: 'Border'),
+          ],
+        ),
+        activeLayerId: 'border',
+        activeTool: EditorToolType.selection,
+      );
+      final beforeEditor = editor.state;
+      final beforeSession = container.read(worldMapWorkspaceSessionProvider);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('world-map-tool-paint')),
+      );
+      await tester.pump();
+
+      expect(
+        rejectionReason,
+        'Sélectionnez ou créez une bordure dans ce calque.',
+      );
+      expect(editor.state, same(beforeEditor));
+      expect(
+        container.read(worldMapWorkspaceSessionProvider),
+        same(beforeSession),
+      );
+      expect(
+        container.read(worldMapPaintInspectionIntentProvider),
+        const WorldMapPaintInspectionIntent(
+          mapId: 'map-a',
+          layerId: 'border',
+          subtool: WorldMapPaintSubtool.border,
+        ),
       );
     });
 
@@ -1211,6 +1443,19 @@ EditorState _validBorderState() {
     project: _validBorderProject,
     workspaceMode: EditorWorkspaceMode.map,
     activeMap: _validBorderMap,
+    activeLayerId: 'border',
+  );
+}
+
+EditorState _emptyBorderState() {
+  return EditorState(
+    project: _validBorderProject,
+    workspaceMode: EditorWorkspaceMode.map,
+    activeMap: _validBorderMap.copyWith(
+      layers: const <MapLayer>[
+        BorderLayer(id: 'border', name: 'Border'),
+      ],
+    ),
     activeLayerId: 'border',
   );
 }

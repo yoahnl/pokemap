@@ -11809,6 +11809,19 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
+  void selectSurfacePresetForSetup(String? presetId) {
+    final preset = getSurfacePresetById(presetId);
+    if (preset == null) {
+      state = state.copyWith(errorMessage: 'Surface introuvable');
+      return;
+    }
+    state = state.copyWith(
+      selectedSurfacePresetId: preset.id,
+      statusMessage: 'Surface configurée : ${preset.name}',
+      errorMessage: null,
+    );
+  }
+
   void selectPathPresetForActivePathLayer(String? presetId) {
     final preset = getPathPresetById(presetId);
     if (preset == null) {

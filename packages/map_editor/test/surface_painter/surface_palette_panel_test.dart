@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/features/surface_painter/surface_catalog_availability.dart';
 import 'package:map_editor/src/features/surface_painter/surface_palette_panel.dart';
 
@@ -174,6 +175,59 @@ void main() {
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
+    });
+
+    testWidgets('legacy callbacks still arm paint and erase tools',
+        (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+      addTearDown(keepAlive.close);
+      final preset = _preset(id: 'water', name: 'Water');
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        project: ProjectManifest(
+          name: 'Demo',
+          maps: const [],
+          tilesets: const [],
+          surfaceCatalog: ProjectSurfaceCatalog(presets: [preset]),
+        ),
+        activeMap: const MapData(
+          id: 'map_1',
+          name: 'Map 1',
+          size: GridSize(width: 3, height: 3),
+          layers: [
+            SurfaceLayer(id: 'surface-main', name: 'Eau'),
+          ],
+        ),
+        activeLayerId: 'surface-main',
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const CupertinoApp(
+            home: CupertinoPageScaffold(
+              child: SurfacePainterPanel(embedded: true),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const Key('surface-palette-preset-water')),
+      );
+      await tester.pump();
+      expect(
+        container.read(editorNotifierProvider).activeTool,
+        EditorToolType.surfacePaint,
+      );
+
+      await tester.tap(find.text('Effacer Surface'));
+      await tester.pump();
+      expect(
+        container.read(editorNotifierProvider).activeTool,
+        EditorToolType.eraser,
+      );
     });
   });
 }

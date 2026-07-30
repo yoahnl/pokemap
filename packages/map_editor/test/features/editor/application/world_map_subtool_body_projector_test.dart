@@ -16,6 +16,7 @@ void main() {
       WorldMapSubtoolActivationRequest request,
       WorldMapToolActivationSource source,
       WorldMapSubtoolBodyKind body,
+      WorldMapSubtoolBodyAccess access,
       bool available,
       String? reason,
       EditorToolType? tool,
@@ -26,6 +27,7 @@ void main() {
         request: const ActivateWorldMapPaint(WorldMapPaintSubtool.tile),
         source: _source(activeLayerId: 'tile', brush: tileBrush),
         body: WorldMapSubtoolBodyKind.tilesPalette,
+        access: WorldMapSubtoolBodyAccess.ready,
         available: true,
         reason: null,
         tool: EditorToolType.tilePaint,
@@ -36,6 +38,7 @@ void main() {
         request: const ActivateWorldMapPaint(WorldMapPaintSubtool.terrain),
         source: _source(activeLayerId: 'terrain'),
         body: WorldMapSubtoolBodyKind.terrainPainter,
+        access: WorldMapSubtoolBodyAccess.ready,
         available: true,
         reason: null,
         tool: EditorToolType.terrainPaint,
@@ -46,19 +49,21 @@ void main() {
         request: const ActivateWorldMapPaint(WorldMapPaintSubtool.path),
         source: _source(activeLayerId: 'path'),
         body: WorldMapSubtoolBodyKind.pathPainter,
+        access: WorldMapSubtoolBodyAccess.ready,
         available: true,
         reason: null,
         tool: EditorToolType.terrainPaint,
         brush: noBrush,
       ),
       (
-        label: 'paint surface without a live source',
+        label: 'paint surface without a selected preset',
         request: const ActivateWorldMapPaint(WorldMapPaintSubtool.surface),
         source: _source(
           activeLayerId: 'surface',
-          selectedSurfacePresetId: 'missing-surface',
+          selectedSurfacePresetId: null,
         ),
         body: WorldMapSubtoolBodyKind.surfacePainter,
+        access: WorldMapSubtoolBodyAccess.setup,
         available: false,
         reason: 'Select an available surface before painting.',
         tool: null,
@@ -69,6 +74,7 @@ void main() {
         request: const ActivateWorldMapPaint(WorldMapPaintSubtool.border),
         source: _source(activeLayerId: 'border'),
         body: WorldMapSubtoolBodyKind.borderInspector,
+        access: WorldMapSubtoolBodyAccess.setup,
         available: false,
         reason: 'Sélectionnez ou créez une bordure dans ce calque.',
         tool: null,
@@ -79,6 +85,7 @@ void main() {
         request: const ActivateWorldMapPaint(WorldMapPaintSubtool.collision),
         source: _source(activeLayerId: 'collision'),
         body: WorldMapSubtoolBodyKind.collisionInspector,
+        access: WorldMapSubtoolBodyAccess.ready,
         available: true,
         reason: null,
         tool: EditorToolType.collisionPaint,
@@ -91,6 +98,7 @@ void main() {
         ),
         source: _source(activeLayerId: 'tile', brush: objectBrush),
         body: WorldMapSubtoolBodyKind.elementsPalette,
+        access: WorldMapSubtoolBodyAccess.ready,
         available: true,
         reason: null,
         tool: EditorToolType.tilePaint,
@@ -103,6 +111,7 @@ void main() {
         ),
         source: _source(activeLayerId: 'terrain'),
         body: WorldMapSubtoolBodyKind.entityPlacement,
+        access: WorldMapSubtoolBodyAccess.ready,
         available: true,
         reason: null,
         tool: EditorToolType.entityPlacement,
@@ -115,6 +124,7 @@ void main() {
         ),
         source: _source(activeLayerId: 'terrain'),
         body: WorldMapSubtoolBodyKind.eventPlacement,
+        access: WorldMapSubtoolBodyAccess.ready,
         available: true,
         reason: null,
         tool: EditorToolType.eventPlacement,
@@ -127,6 +137,7 @@ void main() {
         ),
         source: _source(activeLayerId: 'terrain'),
         body: WorldMapSubtoolBodyKind.triggerPlacement,
+        access: WorldMapSubtoolBodyAccess.ready,
         available: true,
         reason: null,
         tool: EditorToolType.triggerPlacement,
@@ -139,6 +150,7 @@ void main() {
         ),
         source: _source(activeLayerId: 'terrain'),
         body: WorldMapSubtoolBodyKind.warpPlacement,
+        access: WorldMapSubtoolBodyAccess.ready,
         available: true,
         reason: null,
         tool: EditorToolType.warpPlacement,
@@ -151,6 +163,7 @@ void main() {
         ),
         source: _source(activeLayerId: 'terrain'),
         body: WorldMapSubtoolBodyKind.gameplayZonePlacement,
+        access: WorldMapSubtoolBodyAccess.ready,
         available: true,
         reason: null,
         tool: EditorToolType.gameplayZonePlacement,
@@ -169,6 +182,7 @@ void main() {
       );
 
       expect(projection.bodyKind, testCase.body, reason: testCase.label);
+      expect(projection.access, testCase.access, reason: testCase.label);
       expect(
         projection.isAvailable,
         testCase.available,
@@ -205,10 +219,38 @@ void main() {
     );
 
     expect(projection.bodyKind, WorldMapSubtoolBodyKind.borderInspector);
+    expect(projection.access, WorldMapSubtoolBodyAccess.ready);
     expect(projection.isAvailable, isTrue);
     expect(projection.disabledReason, isNull);
     expect(projection.resultingTool, EditorToolType.borderPaint);
     expect(projection.resultingBrush, const EditorBrush.none());
+  });
+
+  test('keeps wrong-layer and no-map Paint requests unavailable', () {
+    for (final request in const <WorldMapSubtoolActivationRequest>[
+      ActivateWorldMapPaint(WorldMapPaintSubtool.surface),
+      ActivateWorldMapPaint(WorldMapPaintSubtool.border),
+    ]) {
+      final wrongLayer = const WorldMapSubtoolBodyProjector().project(
+        source: _source(activeLayerId: 'terrain'),
+        request: request,
+      );
+      final noMap = const WorldMapSubtoolBodyProjector().project(
+        source: (
+          project: _project,
+          activeMap: null,
+          activeLayerId: null,
+          activeBrush: const EditorBrush.none(),
+          selectedSurfacePresetId: null,
+        ),
+        request: request,
+      );
+
+      expect(wrongLayer.access, WorldMapSubtoolBodyAccess.unavailable);
+      expect(wrongLayer.disabledReason, isNotEmpty);
+      expect(noMap.access, WorldMapSubtoolBodyAccess.unavailable);
+      expect(noMap.disabledReason, isNotEmpty);
+    }
   });
 }
 

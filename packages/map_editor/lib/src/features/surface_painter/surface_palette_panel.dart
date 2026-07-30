@@ -96,9 +96,15 @@ class SurfacePainterPanel extends ConsumerWidget {
   const SurfacePainterPanel({
     super.key,
     this.embedded = false,
+    this.onSurfacePresetSelected,
+    this.onPaintRequested,
+    this.onEraseRequested,
   });
 
   final bool embedded;
+  final ValueChanged<String>? onSurfacePresetSelected;
+  final VoidCallback? onPaintRequested;
+  final VoidCallback? onEraseRequested;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -140,7 +146,8 @@ class SurfacePainterPanel extends ConsumerWidget {
               availability: availability,
               presets: presets,
               selectedSurfacePresetId: state.selectedSurfacePresetId,
-              onPresetSelected: notifier.selectSurfacePreset,
+              onPresetSelected:
+                  onSurfacePresetSelected ?? notifier.selectSurfacePreset,
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -150,7 +157,9 @@ class SurfacePainterPanel extends ConsumerWidget {
                 CupertinoButton.filled(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  onPressed: canPaint ? notifier.selectSurfacePaintMode : null,
+                  onPressed: canPaint
+                      ? onPaintRequested ?? notifier.selectSurfacePaintMode
+                      : null,
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -165,7 +174,8 @@ class SurfacePainterPanel extends ConsumerWidget {
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   onPressed: activeLayer == null
                       ? null
-                      : () => notifier.selectTool(EditorToolType.eraser),
+                      : onEraseRequested ??
+                          () => notifier.selectTool(EditorToolType.eraser),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

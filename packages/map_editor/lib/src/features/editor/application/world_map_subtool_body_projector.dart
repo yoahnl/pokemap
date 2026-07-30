@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart' show immutable;
+import 'package:map_core/map_core.dart';
 
 import '../state/editor_state.dart';
 import '../tools/editor_tool.dart';
@@ -20,17 +21,26 @@ enum WorldMapSubtoolBodyKind {
   gameplayZonePlacement,
 }
 
+enum WorldMapSubtoolBodyAccess {
+  ready,
+  setup,
+  unavailable,
+}
+
 @immutable
 final class WorldMapSubtoolBodyProjection {
   const WorldMapSubtoolBodyProjection({
     required this.bodyKind,
+    required this.access,
     required this.activation,
   });
 
   final WorldMapSubtoolBodyKind bodyKind;
+  final WorldMapSubtoolBodyAccess access;
   final WorldMapToolActivationAssessment activation;
 
-  bool get isAvailable => activation.rejectionReason == null;
+  bool get isAvailable => access == WorldMapSubtoolBodyAccess.ready;
+  bool get canRenderBody => access != WorldMapSubtoolBodyAccess.unavailable;
   String? get disabledReason => activation.rejectionReason;
   EditorToolType? get resultingTool => activation.resultingTool;
   EditorBrush? get resultingBrush => activation.resultingBrush;
@@ -77,9 +87,40 @@ final class WorldMapSubtoolBodyProjector {
       request: request,
       activeBorderFeatureId: activeBorderFeatureId,
     );
+    final access = activation.rejectionReason == null
+        ? WorldMapSubtoolBodyAccess.ready
+        : _isSetupCapablePaintRequest(source: source, request: request)
+            ? WorldMapSubtoolBodyAccess.setup
+            : WorldMapSubtoolBodyAccess.unavailable;
     return WorldMapSubtoolBodyProjection(
       bodyKind: bodyKind,
+      access: access,
       activation: activation,
     );
   }
+}
+
+bool _isSetupCapablePaintRequest({
+  required WorldMapToolActivationSource source,
+  required WorldMapSubtoolActivationRequest request,
+}) {
+  final map = source.activeMap;
+  final activeLayerId = source.activeLayerId;
+  if (map == null || activeLayerId == null) {
+    return false;
+  }
+  MapLayer? activeLayer;
+  for (final layer in map.layers) {
+    if (layer.id == activeLayerId) {
+      activeLayer = layer;
+      break;
+    }
+  }
+  return switch (request) {
+    ActivateWorldMapPaint(subtool: WorldMapPaintSubtool.surface) =>
+      activeLayer is SurfaceLayer,
+    ActivateWorldMapPaint(subtool: WorldMapPaintSubtool.border) =>
+      activeLayer is BorderLayer,
+    ActivateWorldMapPaint() || ActivateWorldMapPlacement() => false,
+  };
 }

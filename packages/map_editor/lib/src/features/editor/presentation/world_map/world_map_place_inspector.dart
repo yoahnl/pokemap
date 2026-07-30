@@ -2,9 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../ui/design_system/design_system.dart';
+import '../../../../ui/panels/entity_properties_panel.dart';
+import '../../../../ui/panels/event_properties_panel.dart';
+import '../../../../ui/panels/gameplay_zone_properties_panel.dart';
+import '../../../../ui/panels/trigger_properties_panel.dart';
 import '../../../../ui/panels/tileset_palette/widgets/browser/map_palette_asset_browser.dart';
 import '../../../../ui/panels/tileset_palette/widgets/palette/map_layer_asset_palette.dart';
+import '../../../../ui/panels/warp_properties_panel.dart';
+import '../../application/world_map_subtool_body_projector.dart';
+import '../../application/world_map_tool_activation.dart';
 import '../../application/world_map_tool_family.dart';
+import '../../state/editor_notifier.dart';
+import '../../state/editor_state.dart';
+import 'world_map_subtool_disabled_guidance.dart';
 import 'world_map_workspace_session.dart';
 
 class WorldMapPlaceInspector extends ConsumerWidget {
@@ -17,33 +27,155 @@ class WorldMapPlaceInspector extends ConsumerWidget {
         (session) => session.lastPlacementSubtool,
       ),
     );
-    if (subtool != WorldMapPlacementSubtool.object) {
-      final label = _placementSubtoolLabel(subtool);
-      return PokeMapEmptyState(
+    final editor = ref.watch(editorNotifierProvider);
+    final projection = const WorldMapSubtoolBodyProjector().project(
+      source: worldMapToolActivationSourceFromState(editor),
+      request: ActivateWorldMapPlacement(subtool),
+    );
+    if (!projection.isAvailable) {
+      return WorldMapSubtoolDisabledGuidance(
+        title: 'Placer · ${_placementSubtoolLabel(subtool)}',
+        reason: projection.disabledReason!,
+        icon: const Icon(Icons.add_location_alt_outlined),
+      );
+    }
+
+    return KeyedSubtree(
+      key: ValueKey<String>(
+        'world-map-place-body-${projection.bodyKind.name}',
+      ),
+      child: switch (projection.bodyKind) {
+        WorldMapSubtoolBodyKind.elementsPalette => Semantics(
+            container: true,
+            label: 'Catalogue d’objets du calque actif',
+            child: const Padding(
+              padding: EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  MapPaletteAssetBrowserLauncher(label: 'Changer de source'),
+                  SizedBox(height: 10),
+                  Expanded(
+                    child: MapLayerAssetPalette(
+                      mode: MapLayerAssetPaletteMode.elements,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        WorldMapSubtoolBodyKind.entityPlacement => _placementBody(
+            editor,
+            subtool: subtool,
+            bodyKind: projection.bodyKind,
+            selectedId: editor.selectedEntityId,
+            items: editor.activeMap?.entities,
+            readId: (item) => item.id,
+            panel: const EntityPropertiesPanel(embedded: true),
+            guidanceAction: const EntityPlacementKindPicker(),
+          ),
+        WorldMapSubtoolBodyKind.eventPlacement => _placementBody(
+            editor,
+            subtool: subtool,
+            bodyKind: projection.bodyKind,
+            selectedId: editor.selectedMapEventId,
+            items: editor.activeMap?.events,
+            readId: (item) => item.id,
+            panel: const EventPropertiesPanel(embedded: true),
+          ),
+        WorldMapSubtoolBodyKind.triggerPlacement => _placementBody(
+            editor,
+            subtool: subtool,
+            bodyKind: projection.bodyKind,
+            selectedId: editor.selectedTriggerId,
+            items: editor.activeMap?.triggers,
+            readId: (item) => item.id,
+            panel: const TriggerPropertiesPanel(embedded: true),
+          ),
+        WorldMapSubtoolBodyKind.warpPlacement => _placementBody(
+            editor,
+            subtool: subtool,
+            bodyKind: projection.bodyKind,
+            selectedId: editor.selectedWarpId,
+            items: editor.activeMap?.warps,
+            readId: (item) => item.id,
+            panel: const WarpPropertiesPanel(embedded: true),
+          ),
+        WorldMapSubtoolBodyKind.gameplayZonePlacement => _placementBody(
+            editor,
+            subtool: subtool,
+            bodyKind: projection.bodyKind,
+            selectedId: editor.selectedGameplayZoneId,
+            items: editor.activeMap?.gameplayZones,
+            readId: (item) => item.id,
+            panel: const GameplayZonePropertiesPanel(embedded: true),
+          ),
+        WorldMapSubtoolBodyKind.tilesPalette ||
+        WorldMapSubtoolBodyKind.terrainPainter ||
+        WorldMapSubtoolBodyKind.pathPainter ||
+        WorldMapSubtoolBodyKind.surfacePainter ||
+        WorldMapSubtoolBodyKind.borderInspector ||
+        WorldMapSubtoolBodyKind.collisionInspector =>
+          throw StateError(
+            'A paint body cannot be projected for Place.',
+          ),
+      },
+    );
+  }
+}
+
+Widget _placementBody<T>(
+  EditorState editor, {
+  required WorldMapPlacementSubtool subtool,
+  required WorldMapSubtoolBodyKind bodyKind,
+  required String? selectedId,
+  required Iterable<T>? items,
+  required String Function(T item) readId,
+  required Widget panel,
+  Widget? guidanceAction,
+}) {
+  final resolved = selectedId != null &&
+      items?.any((item) => readId(item) == selectedId) == true;
+  if (resolved) {
+    return KeyedSubtree(
+      key: ValueKey<String>(
+        'world-map-place-selection-${subtool.name}-$selectedId',
+      ),
+      child: panel,
+    );
+  }
+  return _WorldMapPlacementGuidance(
+    key: ValueKey<String>(
+      'world-map-placement-guidance-${bodyKind.name}',
+    ),
+    subtool: subtool,
+    action: guidanceAction,
+  );
+}
+
+class _WorldMapPlacementGuidance extends StatelessWidget {
+  const _WorldMapPlacementGuidance({
+    super.key,
+    required this.subtool,
+    this.action,
+  });
+
+  final WorldMapPlacementSubtool subtool;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = _placementSubtoolLabel(subtool);
+    return Semantics(
+      container: true,
+      label: 'Placement $label',
+      child: PokeMapEmptyState(
         icon: const Icon(Icons.add_location_alt_outlined),
         title: 'Placer · $label',
         description:
-            'Les réglages dédiés à $label arriveront dans leur lot applicatif. '
-            'Aucune donnée de carte n’est modifiée depuis cette guidance.',
-      );
-    }
-    return Semantics(
-      container: true,
-      label: 'Catalogue d’objets du calque actif',
-      child: const Padding(
-        padding: EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            MapPaletteAssetBrowserLauncher(label: 'Changer de source'),
-            SizedBox(height: 10),
-            Expanded(
-              child: MapLayerAssetPalette(
-                mode: MapLayerAssetPaletteMode.elements,
-              ),
-            ),
-          ],
-        ),
+            'Cliquez sur la carte pour placer un élément de ce type. Ses '
+            'propriétés apparaîtront ici dès qu’il sera sélectionné.',
+        action: action,
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../presentation/world_map/world_map_workspace_session.dart';
+import '../presentation/world_map/world_map_paint_inspection_intent.dart';
 import '../state/editor_selectors.dart';
 import 'map_canvas_object_hit_test.dart';
 import 'world_map_observed_tool_family.dart';
@@ -17,17 +18,33 @@ typedef WorldMapInspectorSnapshot = ({
 
 final worldMapInspectorSnapshotProvider =
     Provider<WorldMapInspectorSnapshot>((ref) {
-  return WorldMapInspectorProjector(
+  final projected = WorldMapInspectorProjector(
     brushKind: ref.watch(editorWorldMapBrushKindProvider),
   ).project(
     editor: ref.watch(editorWorldMapInspectorInputSnapshotProvider),
     session: ref.watch(worldMapWorkspaceSessionProvider),
+  );
+  final paintInspectionIntent =
+      ref.watch(effectiveWorldMapPaintInspectionIntentProvider);
+  if (paintInspectionIntent == null || projected.pinned) {
+    return projected;
+  }
+  return (
+    kind: WorldMapInspectorKind.paint,
+    activeLayerId: paintInspectionIntent.layerId,
+    objectTarget: null,
+    cell: null,
+    pinned: false,
   );
 });
 
 final worldMapInspectorCanPinProvider = Provider<bool>((ref) {
   final editor = ref.watch(editorWorldMapInspectorInputSnapshotProvider);
   final snapshot = ref.watch(worldMapInspectorSnapshotProvider);
+  if (!snapshot.pinned &&
+      ref.watch(effectiveWorldMapPaintInspectionIntentProvider) != null) {
+    return false;
+  }
   return isWorldMapInspectorPinValid(
     kind: snapshot.kind,
     map: editor.activeMap,

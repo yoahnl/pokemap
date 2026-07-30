@@ -8,6 +8,7 @@ import 'package:map_editor/src/features/editor/application/world_map_inspector_p
 import 'package:map_editor/src/features/editor/application/world_map_observed_tool_family.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_paint_inspection_intent.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_selectors.dart';
@@ -1011,6 +1012,68 @@ void main() {
       expect(projected.kind, WorldMapInspectorKind.empty);
       expect(projected.objectTarget, isNull);
       expect(projected.cell, isNull);
+    });
+
+    test('effective setup intent projects an unpinnable Paint inspector', () {
+      final container = _createContainer();
+      final setupMap = _mapA.copyWith(
+        layers: <MapLayer>[
+          ..._mapA.layers,
+          const SurfaceLayer(id: 'surface', name: 'Surface'),
+        ],
+      );
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        project: _project,
+        activeMap: setupMap,
+        activeLayerId: 'surface',
+        activeTool: EditorToolType.selection,
+        selectedEntityId: 'stale-selection',
+      );
+      container.read(worldMapPaintInspectionIntentProvider.notifier).showSetup(
+            mapId: 'map-a',
+            layerId: 'surface',
+            subtool: WorldMapPaintSubtool.surface,
+          );
+
+      final projected = container.read(worldMapInspectorSnapshotProvider);
+
+      expect(projected.kind, WorldMapInspectorKind.paint);
+      expect(projected.activeLayerId, 'surface');
+      expect(projected.objectTarget, isNull);
+      expect(projected.cell, isNull);
+      expect(projected.pinned, isFalse);
+      expect(container.read(worldMapInspectorCanPinProvider), isFalse);
+    });
+
+    test('valid pin keeps priority over an effective setup intent', () {
+      final container = _createContainer();
+      final setupMap = _mapA.copyWith(
+        layers: <MapLayer>[
+          ..._mapA.layers,
+          const SurfaceLayer(id: 'surface', name: 'Surface'),
+        ],
+      );
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        project: _project,
+        activeMap: setupMap,
+        activeLayerId: 'surface',
+        activeTool: EditorToolType.selection,
+      );
+      container
+          .read(worldMapWorkspaceSessionProvider.notifier)
+          .pinInspector(WorldMapInspectorKind.layers);
+      container.read(worldMapPaintInspectionIntentProvider.notifier).showSetup(
+            mapId: 'map-a',
+            layerId: 'surface',
+            subtool: WorldMapPaintSubtool.surface,
+          );
+
+      final projected = container.read(worldMapInspectorSnapshotProvider);
+
+      expect(projected.kind, WorldMapInspectorKind.layers);
+      expect(projected.activeLayerId, 'surface');
+      expect(projected.pinned, isTrue);
+      expect(container.read(worldMapInspectorCanPinProvider), isTrue);
     });
   });
 }
