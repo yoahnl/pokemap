@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
@@ -265,6 +266,11 @@ final class _WorldMapLayerRow extends StatelessWidget {
   }
 
   Future<void> _renameLayer(BuildContext context, MapLayer layer) async {
+    final originalMap = readActiveMap();
+    if (originalMap == null ||
+        !originalMap.layers.any((candidate) => candidate.id == layer.id)) {
+      return;
+    }
     final nextName = await onRenameRequested(
       context: context,
       layerId: layer.id,
@@ -272,6 +278,15 @@ final class _WorldMapLayerRow extends StatelessWidget {
     );
     final normalizedName = nextName?.trim();
     if (normalizedName == null || normalizedName.isEmpty) {
+      return;
+    }
+    final currentMap = readActiveMap();
+    final currentLayer = currentMap?.layers
+        .where((candidate) => candidate.id == layer.id)
+        .firstOrNull;
+    if (currentMap?.id != originalMap.id ||
+        currentLayer == null ||
+        currentLayer.name != layer.name) {
       return;
     }
     notifier.renameMapLayer(layer.id, normalizedName);
@@ -298,6 +313,7 @@ final class _WorldMapLayerRow extends StatelessWidget {
     }
     final currentMap = readActiveMap();
     if (currentMap == null ||
+        currentMap.id != map.id ||
         !currentMap.layers.any((layer) => layer.id == layerId)) {
       return;
     }
@@ -305,11 +321,26 @@ final class _WorldMapLayerRow extends StatelessWidget {
       map: currentMap,
       layerId: layerId,
     );
-    if (currentImpact.isBlocked) {
+    if (currentImpact.isBlocked ||
+        !_hasSameDeletionImpact(impact, currentImpact)) {
       return;
     }
     notifier.deleteMapLayer(layerId);
   }
+}
+
+bool _hasSameDeletionImpact(
+  MapLayerDeletionImpact confirmed,
+  MapLayerDeletionImpact current,
+) {
+  return confirmed.layerId == current.layerId &&
+      confirmed.placedElementCount == current.placedElementCount &&
+      listEquals(confirmed.affectedMapEventIds, current.affectedMapEventIds) &&
+      confirmed.environmentGeneratedCount ==
+          current.environmentGeneratedCount &&
+      confirmed.environmentAttachmentCount ==
+          current.environmentAttachmentCount &&
+      listEquals(confirmed.blockingReasons, current.blockingReasons);
 }
 
 void _addLayer(
