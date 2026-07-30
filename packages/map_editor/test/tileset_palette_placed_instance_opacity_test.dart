@@ -9,6 +9,7 @@ import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:map_editor/src/ui/panels/placed_element_properties_panel.dart'
     as placed_properties;
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
@@ -80,8 +81,10 @@ void main() {
     final sliderFinder =
         find.byKey(const ValueKey('placed-instance-opacity-slider'));
     expect(sliderFinder, findsOneWidget);
-    final slider = tester.widget<MacosSlider>(sliderFinder);
-    slider.onChanged(0.5);
+    final slider = tester.widget<PokeMapGuidedSlider>(sliderFinder);
+    slider.onChangeStart?.call(slider.value);
+    slider.onChanged(50);
+    slider.onChangeEnd?.call(50);
     await tester.pump();
 
     final state = container.read(editorNotifierProvider);

@@ -12939,6 +12939,7 @@ class EditorNotifier extends _$EditorNotifier
   void setPlacedElementInstanceOpacity({
     required String instanceId,
     required double opacity,
+    bool partOfStroke = false,
   }) {
     final map = state.activeMap;
     if (map == null) {
@@ -12970,6 +12971,7 @@ class EditorNotifier extends _$EditorNotifier
       previousMap: map,
       updatedMap: updatedMap,
       preferredActiveLayerId: state.activeLayerId,
+      partOfStroke: partOfStroke,
       statusMessage: 'Opacité mise à jour pour ${previous.elementId}',
     );
   }
@@ -13093,9 +13095,14 @@ class EditorNotifier extends _$EditorNotifier
 
   void deletePlacedElementInstance({
     required String instanceId,
+    MapData? expectedMapIdentity,
+    MapPlacedElement? expectedInstanceIdentity,
   }) {
     final map = state.activeMap;
     if (map == null) {
+      return;
+    }
+    if (expectedMapIdentity != null && !identical(map, expectedMapIdentity)) {
       return;
     }
     final trimmedId = instanceId.trim();
@@ -13108,6 +13115,10 @@ class EditorNotifier extends _$EditorNotifier
       state = state.copyWith(
         errorMessage: 'Placed element instance not found: $trimmedId',
       );
+      return;
+    }
+    if (expectedInstanceIdentity != null &&
+        !identical(map.placedElements[index], expectedInstanceIdentity)) {
       return;
     }
     final instance = map.placedElements[index];

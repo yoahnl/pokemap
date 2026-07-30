@@ -52,6 +52,35 @@ void main() {
         const [0],
       );
     });
+
+    test('rejects a same-value but non-identical expected instance', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final map = _map(properties: const {});
+      final exactInstance = map.placedElements.single;
+      final staleInstance = exactInstance.copyWith();
+      expect(staleInstance, exactInstance);
+      expect(identical(staleInstance, exactInstance), isFalse);
+      notifier.state = EditorState(
+        project: _manifest,
+        activeMap: map,
+        activeLayerId: 'decor',
+      );
+
+      notifier.deletePlacedElementInstance(
+        instanceId: 'placement',
+        expectedMapIdentity: map,
+        expectedInstanceIdentity: staleInstance,
+      );
+
+      expect(notifier.state.activeMap, same(map));
+      expect(
+          notifier.state.activeMap!.placedElements.single, same(exactInstance));
+      expect(notifier.state.mapUndoStack, isEmpty);
+      expect(notifier.state.mapRedoStack, isEmpty);
+      expect(notifier.state.mapStrokeStart, isNull);
+    });
   });
 }
 

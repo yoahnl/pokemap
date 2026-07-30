@@ -333,10 +333,13 @@ class PlacedElementPropertiesPanel extends ConsumerWidget {
               const SizedBox(height: 8),
               _OpacitySliderRow(
                 value: selected.opacity,
+                onChangeStart: notifier.beginMapStroke,
                 onChanged: (value) => notifier.setPlacedElementInstanceOpacity(
                   instanceId: selected.instanceId,
                   opacity: value,
+                  partOfStroke: true,
                 ),
+                onChangeEnd: notifier.endMapStroke,
               ),
               const SizedBox(height: 8),
               PlacedElementShadowOverrideSection(
@@ -385,6 +388,7 @@ class PlacedElementPropertiesPanel extends ConsumerWidget {
                 onPressed: () => _showDeletePlacedInstanceDialog(
                   context,
                   notifier: notifier,
+                  mapIdentity: snapshot.map!,
                   instance: selected,
                 ),
                 child: const Row(
@@ -485,6 +489,7 @@ _PlacedElementInstanceVm? _resolvePlacedElementInstance({
 Future<void> _showDeletePlacedInstanceDialog(
   BuildContext context, {
   required EditorNotifier notifier,
+  required MapData mapIdentity,
   required _PlacedElementInstanceVm instance,
 }) async {
   final elementName = instance.element?.name ?? instance.instance.elementId;
@@ -499,7 +504,11 @@ Future<void> _showDeletePlacedInstanceDialog(
   if (!shouldDelete) {
     return;
   }
-  notifier.deletePlacedElementInstance(instanceId: instance.instanceId);
+  notifier.deletePlacedElementInstance(
+    instanceId: instance.instanceId,
+    expectedMapIdentity: mapIdentity,
+    expectedInstanceIdentity: instance.instance,
+  );
 }
 
 class _PlacedInstanceCard extends StatelessWidget {
@@ -731,16 +740,18 @@ class _CollisionToggleRow extends StatelessWidget {
 class _OpacitySliderRow extends StatelessWidget {
   const _OpacitySliderRow({
     required this.value,
+    required this.onChangeStart,
     required this.onChanged,
+    required this.onChangeEnd,
   });
 
   final double value;
+  final VoidCallback onChangeStart;
   final ValueChanged<double> onChanged;
+  final VoidCallback onChangeEnd;
 
   @override
   Widget build(BuildContext context) {
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
-    final label = CupertinoColors.label.resolveFrom(context);
     final normalized = _normalizeInstanceOpacity(value);
     final percent = (normalized * 100).round();
     final colors = context.pokeMapColors;
@@ -753,56 +764,14 @@ class _OpacitySliderRow extends StatelessWidget {
           color: colors.borderSubtle,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Opacité',
-                      style: TextStyle(
-                        color: label,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Transparence visuelle de cette instance',
-                      style: TextStyle(
-                        color: secondary,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '$percent %',
-                style: TextStyle(
-                  color: label,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          MacosSlider(
-            key: const ValueKey('placed-instance-opacity-slider'),
-            value: normalized,
-            min: 0,
-            max: 1,
-            discrete: true,
-            splits: 21,
-            color: EditorChrome.inspectorJoyMint,
-            onChanged: (next) => onChanged(_normalizeInstanceOpacity(next)),
-          ),
-        ],
+      child: PokeMapGuidedSlider(
+        key: const ValueKey('placed-instance-opacity-slider'),
+        label: 'Opacité',
+        description: 'Transparence visuelle de cette instance',
+        value: percent,
+        onChangeStart: (_) => onChangeStart(),
+        onChanged: (next) => onChanged(next / 100),
+        onChangeEnd: (_) => onChangeEnd(),
       ),
     );
   }
