@@ -31,7 +31,9 @@ class WorldMapPaintInspector extends ConsumerWidget {
       effectiveWorldMapPaintInspectionIntentProvider,
     );
     final subtool = inspectionIntent?.subtool ?? rememberedSubtool;
-    final editor = ref.watch(editorNotifierProvider);
+    final activationSource = ref.watch(
+      editorNotifierProvider.select(worldMapToolActivationSourceFromState),
+    );
     final notifier = ref.read(editorNotifierProvider.notifier);
     final session = ref.read(worldMapWorkspaceSessionProvider.notifier);
     final inspectionIntentController = ref.read(
@@ -39,10 +41,10 @@ class WorldMapPaintInspector extends ConsumerWidget {
     );
     final borderSelection = ref.watch(activeBorderFeatureControllerProvider);
     final projection = const WorldMapSubtoolBodyProjector().project(
-      source: worldMapToolActivationSourceFromState(editor),
+      source: activationSource,
       request: ActivateWorldMapPaint(subtool),
       activeBorderFeatureId:
-          borderSelection.activeLayerId == editor.activeLayerId
+          borderSelection.activeLayerId == activationSource.activeLayerId
               ? borderSelection.activeFeatureId
               : null,
     );

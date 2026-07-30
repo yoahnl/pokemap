@@ -426,6 +426,52 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'ignores viewport and status rebuilds but reacts to paint input changes',
+    (tester) async {
+      var rebuilds = 0;
+      final harness = _PaintHarness(
+        'collision',
+        initialSession: const WorldMapWorkspaceSession(
+          activeFamily: WorldMapToolFamily.paint,
+          lastPaintSubtool: WorldMapPaintSubtool.collision,
+        ),
+      );
+      addTearDown(harness.dispose);
+      await harness.pump(
+        tester,
+        child: _CountingWorldMapPaintInspector(
+          onBuild: () => rebuilds += 1,
+        ),
+      );
+      expect(find.byType(WorldMapCollisionInspector), findsOneWidget);
+
+      rebuilds = 0;
+      harness.notifier.state = harness.notifier.state.copyWith(
+        zoom: 2,
+        panOffset: const Offset(12, 8),
+        statusMessage: 'viewport-only',
+      );
+      await tester.pump();
+
+      expect(rebuilds, 0);
+      expect(find.byType(WorldMapCollisionInspector), findsOneWidget);
+
+      harness.notifier.state = harness.notifier.state.copyWith(
+        activeLayerId: 'tile',
+      );
+      await tester.pump();
+
+      expect(rebuilds, greaterThan(0));
+      expect(
+        find.byKey(
+          const ValueKey<String>('world-map-inspector-disabled-guidance'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 }
 
 int _mountedPaintBodyCount() {
@@ -507,18 +553,21 @@ class _PaintHarness {
     container.read(activeBorderFeatureControllerProvider.notifier).clear();
   }
 
-  Future<void> pump(WidgetTester tester) async {
+  Future<void> pump(
+    WidgetTester tester, {
+    Widget child = const WorldMapPaintInspector(),
+  }) async {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         key: ValueKey<Object>(container),
         container: container,
         child: MaterialApp(
           theme: PokeMapTheme.light(),
-          home: const Scaffold(
+          home: Scaffold(
             body: SizedBox(
               width: 440,
               height: 720,
-              child: WorldMapPaintInspector(),
+              child: child,
             ),
           ),
         ),
@@ -530,6 +579,18 @@ class _PaintHarness {
   void dispose() {
     keepAlive.close();
     container.dispose();
+  }
+}
+
+class _CountingWorldMapPaintInspector extends WorldMapPaintInspector {
+  const _CountingWorldMapPaintInspector({required this.onBuild});
+
+  final VoidCallback onBuild;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    onBuild();
+    return super.build(context, ref);
   }
 }
 

@@ -167,6 +167,59 @@ void main() {
     expect(find.byType(EntityPropertiesPanel), findsNothing);
     expect(harness.notifier.state, same(before));
   });
+
+  testWidgets(
+    'ignores viewport and status rebuilds but reacts when target becomes stale',
+    (tester) async {
+      var rebuilds = 0;
+      final harness = _SelectionHarness(
+        _stateFor(MapCanvasObjectKind.entity),
+      );
+      addTearDown(harness.dispose);
+      await harness.pump(
+        tester,
+        _CountingWorldMapSelectionInspector(
+          target: _target(MapCanvasObjectKind.entity, 'entity'),
+          onBuild: () => rebuilds += 1,
+        ),
+      );
+      expect(find.byType(EntityPropertiesPanel), findsOneWidget);
+
+      rebuilds = 0;
+      harness.notifier.state = harness.notifier.state.copyWith(
+        zoom: 2,
+        panOffset: const Offset(12, 8),
+        statusMessage: 'viewport-only',
+      );
+      await tester.pump();
+
+      expect(rebuilds, 0);
+      expect(find.byType(EntityPropertiesPanel), findsOneWidget);
+
+      harness.notifier.state = harness.notifier.state.copyWith(
+        selectedEntityId: null,
+      );
+      await tester.pump();
+
+      expect(rebuilds, greaterThan(0));
+      expect(find.byType(WorldMapSubtoolDisabledGuidance), findsOneWidget);
+    },
+  );
+}
+
+class _CountingWorldMapSelectionInspector extends WorldMapSelectionInspector {
+  const _CountingWorldMapSelectionInspector({
+    required super.target,
+    required this.onBuild,
+  });
+
+  final VoidCallback onBuild;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    onBuild();
+    return super.build(context, ref);
+  }
 }
 
 MapCanvasObjectTarget _target(MapCanvasObjectKind kind, String id) {

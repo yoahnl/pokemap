@@ -22,8 +22,12 @@ class WorldMapSelectionInspector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(editorNotifierProvider);
-    if (!_targetIsCurrentAndResolved(state, target)) {
+    final targetIsCurrentAndResolved = ref.watch(
+      editorNotifierProvider.select(
+        (state) => _targetIsCurrentAndResolved(state, target),
+      ),
+    );
+    if (!targetIsCurrentAndResolved) {
       return const WorldMapSubtoolDisabledGuidance(
         title: 'Sélection indisponible',
         reason:

@@ -325,6 +325,61 @@ void main() {
       expect(harness.notifier.state.mapRedoStack, isEmpty);
     },
   );
+
+  testWidgets(
+    'ignores viewport and status rebuilds but reacts to active selection',
+    (tester) async {
+      var rebuilds = 0;
+      final harness = _PlaceHarness(
+        activeLayerId: 'tile',
+        initialSession: const WorldMapWorkspaceSession(
+          activeFamily: WorldMapToolFamily.place,
+          lastPlacementSubtool: WorldMapPlacementSubtool.entity,
+        ),
+      );
+      addTearDown(harness.dispose);
+      await harness.pump(
+        tester,
+        child: _CountingWorldMapPlaceInspector(
+          onBuild: () => rebuilds += 1,
+        ),
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'world-map-placement-guidance-entityPlacement',
+          ),
+        ),
+        findsOneWidget,
+      );
+
+      rebuilds = 0;
+      harness.notifier.state = harness.notifier.state.copyWith(
+        zoom: 2,
+        panOffset: const Offset(12, 8),
+        statusMessage: 'viewport-only',
+      );
+      await tester.pump();
+
+      expect(rebuilds, 0);
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'world-map-placement-guidance-entityPlacement',
+          ),
+        ),
+        findsOneWidget,
+      );
+
+      harness.notifier.state = harness.notifier.state.copyWith(
+        selectedEntityId: 'entity',
+      );
+      await tester.pump();
+
+      expect(rebuilds, greaterThan(0));
+      expect(find.byType(EntityPropertiesPanel), findsOneWidget);
+    },
+  );
 }
 
 int _mountedPropertyPanelCount() {
@@ -389,18 +444,21 @@ class _PlaceHarness {
     };
   }
 
-  Future<void> pump(WidgetTester tester) async {
+  Future<void> pump(
+    WidgetTester tester, {
+    Widget child = const WorldMapPlaceInspector(),
+  }) async {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         key: ValueKey<Object>(container),
         container: container,
         child: MaterialApp(
           theme: PokeMapTheme.light(),
-          home: const Scaffold(
+          home: Scaffold(
             body: SizedBox(
               width: 440,
               height: 720,
-              child: WorldMapPlaceInspector(),
+              child: child,
             ),
           ),
         ),
@@ -412,6 +470,18 @@ class _PlaceHarness {
   void dispose() {
     keepAlive.close();
     container.dispose();
+  }
+}
+
+class _CountingWorldMapPlaceInspector extends WorldMapPlaceInspector {
+  const _CountingWorldMapPlaceInspector({required this.onBuild});
+
+  final VoidCallback onBuild;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    onBuild();
+    return super.build(context, ref);
   }
 }
 

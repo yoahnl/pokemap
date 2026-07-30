@@ -13,7 +13,6 @@ import '../../application/world_map_subtool_body_projector.dart';
 import '../../application/world_map_tool_activation.dart';
 import '../../application/world_map_tool_family.dart';
 import '../../state/editor_notifier.dart';
-import '../../state/editor_state.dart';
 import 'world_map_subtool_disabled_guidance.dart';
 import 'world_map_workspace_session.dart';
 
@@ -27,9 +26,24 @@ class WorldMapPlaceInspector extends ConsumerWidget {
         (session) => session.lastPlacementSubtool,
       ),
     );
-    final editor = ref.watch(editorNotifierProvider);
+    final snapshot = ref.watch(
+      editorNotifierProvider.select(
+        (state) => (
+          source: worldMapToolActivationSourceFromState(state),
+          selectedId: switch (subtool) {
+            WorldMapPlacementSubtool.object => null,
+            WorldMapPlacementSubtool.entity => state.selectedEntityId,
+            WorldMapPlacementSubtool.event => state.selectedMapEventId,
+            WorldMapPlacementSubtool.trigger => state.selectedTriggerId,
+            WorldMapPlacementSubtool.warp => state.selectedWarpId,
+            WorldMapPlacementSubtool.gameplayZone =>
+              state.selectedGameplayZoneId,
+          },
+        ),
+      ),
+    );
     final projection = const WorldMapSubtoolBodyProjector().project(
-      source: worldMapToolActivationSourceFromState(editor),
+      source: snapshot.source,
       request: ActivateWorldMapPlacement(subtool),
     );
     if (!projection.isAvailable) {
@@ -65,48 +79,43 @@ class WorldMapPlaceInspector extends ConsumerWidget {
             ),
           ),
         WorldMapSubtoolBodyKind.entityPlacement => _placementBody(
-            editor,
             subtool: subtool,
             bodyKind: projection.bodyKind,
-            selectedId: editor.selectedEntityId,
-            items: editor.activeMap?.entities,
+            selectedId: snapshot.selectedId,
+            items: snapshot.source.activeMap?.entities,
             readId: (item) => item.id,
             panel: const EntityPropertiesPanel(embedded: true),
             guidanceAction: const EntityPlacementKindPicker(),
           ),
         WorldMapSubtoolBodyKind.eventPlacement => _placementBody(
-            editor,
             subtool: subtool,
             bodyKind: projection.bodyKind,
-            selectedId: editor.selectedMapEventId,
-            items: editor.activeMap?.events,
+            selectedId: snapshot.selectedId,
+            items: snapshot.source.activeMap?.events,
             readId: (item) => item.id,
             panel: const EventPropertiesPanel(embedded: true),
           ),
         WorldMapSubtoolBodyKind.triggerPlacement => _placementBody(
-            editor,
             subtool: subtool,
             bodyKind: projection.bodyKind,
-            selectedId: editor.selectedTriggerId,
-            items: editor.activeMap?.triggers,
+            selectedId: snapshot.selectedId,
+            items: snapshot.source.activeMap?.triggers,
             readId: (item) => item.id,
             panel: const TriggerPropertiesPanel(embedded: true),
           ),
         WorldMapSubtoolBodyKind.warpPlacement => _placementBody(
-            editor,
             subtool: subtool,
             bodyKind: projection.bodyKind,
-            selectedId: editor.selectedWarpId,
-            items: editor.activeMap?.warps,
+            selectedId: snapshot.selectedId,
+            items: snapshot.source.activeMap?.warps,
             readId: (item) => item.id,
             panel: const WarpPropertiesPanel(embedded: true),
           ),
         WorldMapSubtoolBodyKind.gameplayZonePlacement => _placementBody(
-            editor,
             subtool: subtool,
             bodyKind: projection.bodyKind,
-            selectedId: editor.selectedGameplayZoneId,
-            items: editor.activeMap?.gameplayZones,
+            selectedId: snapshot.selectedId,
+            items: snapshot.source.activeMap?.gameplayZones,
             readId: (item) => item.id,
             panel: const GameplayZonePropertiesPanel(embedded: true),
           ),
@@ -124,8 +133,7 @@ class WorldMapPlaceInspector extends ConsumerWidget {
   }
 }
 
-Widget _placementBody<T>(
-  EditorState editor, {
+Widget _placementBody<T>({
   required WorldMapPlacementSubtool subtool,
   required WorldMapSubtoolBodyKind bodyKind,
   required String? selectedId,
