@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart' show immutable;
 import 'package:map_core/map_core.dart';
 
 import '../../../application/models/terrain_selection_mode.dart';
+import '../../../application/services/narrative_event_legacy_authoring_guard.dart';
 import '../../border_map_editing/application/border_tool_availability.dart';
 import '../state/editor_state.dart';
 import '../tools/editor_tool.dart';
@@ -124,6 +125,15 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
   final layer = layerId == null ? null : _findLayerById(map, layerId);
 
   if (request case ActivateWorldMapPlacement(:final subtool)) {
+    if (subtool == WorldMapPlacementSubtool.event) {
+      final reason = narrativeEventLegacyAuthoringBlockReason(
+        source.project,
+        kind: NarrativeEventLegacyAuthoringKind.mapEvent,
+      );
+      if (reason != null) {
+        return _rejectedWorldMapActivation(reason);
+      }
+    }
     if (subtool != WorldMapPlacementSubtool.object) {
       return (
         resultingTool: switch (subtool) {

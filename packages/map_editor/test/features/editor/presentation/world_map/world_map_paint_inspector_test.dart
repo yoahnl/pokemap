@@ -359,6 +359,73 @@ void main() {
     expect(harness.notifier.state, same(beforeEditor));
     expect(harness.sessionState, same(beforeSession));
   });
+
+  testWidgets(
+    'Terrain and Path embedded actions keep editor and typed session coherent',
+    (tester) async {
+      final terrainHarness = _PaintHarness(
+        'terrain',
+        initialSession: const WorldMapWorkspaceSession(
+          activeFamily: WorldMapToolFamily.erase,
+          lastPaintSubtool: WorldMapPaintSubtool.terrain,
+        ),
+      );
+      addTearDown(terrainHarness.dispose);
+
+      await terrainHarness.pump(tester);
+      await tester.tap(find.text('Peindre le fond'));
+      await tester.pump();
+
+      expect(
+        terrainHarness.notifier.state.activeTool,
+        EditorToolType.terrainPaint,
+      );
+      expect(
+        terrainHarness.sessionState.activeFamily,
+        WorldMapToolFamily.paint,
+      );
+      expect(
+        terrainHarness.sessionState.lastPaintSubtool,
+        WorldMapPaintSubtool.terrain,
+      );
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      final pathHarness = _PaintHarness(
+        'path',
+        initialSession: const WorldMapWorkspaceSession(
+          activeFamily: WorldMapToolFamily.erase,
+          lastPaintSubtool: WorldMapPaintSubtool.path,
+        ),
+      );
+      addTearDown(pathHarness.dispose);
+
+      await pathHarness.pump(tester);
+      await tester.tap(find.text('Peindre le path'));
+      await tester.pump();
+
+      expect(
+        pathHarness.notifier.state.activeTool,
+        EditorToolType.terrainPaint,
+      );
+      expect(
+        pathHarness.sessionState.activeFamily,
+        WorldMapToolFamily.paint,
+      );
+      expect(
+        pathHarness.sessionState.lastPaintSubtool,
+        WorldMapPaintSubtool.path,
+      );
+
+      await tester.tap(find.text('Gommer'));
+      await tester.pump();
+
+      expect(pathHarness.notifier.state.activeTool, EditorToolType.eraser);
+      expect(
+        pathHarness.sessionState.activeFamily,
+        WorldMapToolFamily.erase,
+      );
+    },
+  );
 }
 
 int _mountedPaintBodyCount() {
@@ -394,6 +461,8 @@ class _PaintHarness {
       activeMap: this.map,
       activeLayerId: activeLayerId,
       activeBrush: const EditorBrush.tile(tileId: 1, tilesetId: 'world'),
+      selectedTerrainType: TerrainType.grass,
+      selectedTerrainPresetId: 'grass',
       selectedSurfacePresetId: selectedSurfacePresetId,
       savedMapSnapshot: this.map,
     );
@@ -481,6 +550,13 @@ final _project = ProjectManifest(
       id: 'world',
       name: 'World',
       relativePath: 'tilesets/world.png',
+    ),
+  ],
+  terrainPresets: const <ProjectTerrainPreset>[
+    ProjectTerrainPreset(
+      id: 'grass',
+      name: 'Grass',
+      terrainType: TerrainType.grass,
     ),
   ],
   surfaceCatalog: ProjectSurfaceCatalog(

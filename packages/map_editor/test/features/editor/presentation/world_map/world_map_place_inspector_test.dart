@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/services/narrative_event_legacy_authoring_guard.dart';
 import 'package:map_editor/src/features/editor/application/world_map_subtool_body_projector.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
@@ -273,6 +274,57 @@ void main() {
       expect(harness.notifier.state.isDirty, isFalse);
     },
   );
+
+  testWidgets(
+    'v2Only Event is canonical disabled guidance and never fake placement help',
+    (tester) async {
+      final harness = _PlaceHarness(
+        activeLayerId: 'tile',
+        project: _v2OnlyProject,
+        initialSession: const WorldMapWorkspaceSession(
+          activeFamily: WorldMapToolFamily.place,
+          lastPlacementSubtool: WorldMapPlacementSubtool.event,
+        ),
+      );
+      addTearDown(harness.dispose);
+      final beforeEditor = harness.notifier.state;
+      final beforeSession = harness.sessionState;
+      final canonicalReason = narrativeEventLegacyAuthoringBlockReason(
+        beforeEditor.project,
+        kind: NarrativeEventLegacyAuthoringKind.mapEvent,
+      );
+
+      await harness.pump(tester);
+
+      final disabled = find.byKey(
+        const ValueKey<String>('world-map-inspector-disabled-guidance'),
+      );
+      expect(canonicalReason, isNotNull);
+      final reason = canonicalReason!;
+      expect(disabled, findsOneWidget);
+      expect(find.text(reason), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'world-map-placement-guidance-eventPlacement',
+          ),
+        ),
+        findsNothing,
+      );
+      expect(find.textContaining('cliquez dans la carte'), findsNothing);
+      expect(_mountedPropertyPanelCount(), 0);
+
+      Focus.of(tester.element(find.text(reason))).requestFocus();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pump();
+
+      expect(harness.notifier.state, same(beforeEditor));
+      expect(harness.sessionState, same(beforeSession));
+      expect(harness.notifier.state.mapUndoStack, isEmpty);
+      expect(harness.notifier.state.mapRedoStack, isEmpty);
+    },
+  );
 }
 
 int _mountedPropertyPanelCount() {
@@ -289,6 +341,7 @@ class _PlaceHarness {
   _PlaceHarness({
     required String activeLayerId,
     WorldMapWorkspaceSession initialSession = const WorldMapWorkspaceSession(),
+    ProjectManifest? project,
   }) : container = ProviderContainer(
           overrides: <Override>[
             worldMapWorkspaceSessionProvider.overrideWith(
@@ -299,7 +352,7 @@ class _PlaceHarness {
     keepAlive = container.listen(editorNotifierProvider, (_, __) {});
     notifier.state = EditorState(
       projectRootPath: '/virtual/project',
-      project: _project,
+      project: project ?? _project,
       workspaceMode: EditorWorkspaceMode.map,
       activeMap: _map,
       activeLayerId: activeLayerId,
@@ -316,6 +369,9 @@ class _PlaceHarness {
 
   WorldMapWorkspaceSessionController get session =>
       container.read(worldMapWorkspaceSessionProvider.notifier);
+
+  WorldMapWorkspaceSession get sessionState =>
+      container.read(worldMapWorkspaceSessionProvider);
 
   void select(WorldMapPlacementSubtool subtool, String id) {
     notifier.state = switch (subtool) {
@@ -394,6 +450,21 @@ const _project = ProjectManifest(
     ),
   ],
   surfaceCatalog: ProjectSurfaceCatalog.empty(),
+);
+
+final _v2OnlyProject = ProjectManifest(
+  name: 'Place inspector V2 only',
+  maps: const <ProjectMapEntry>[
+    ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'maps/map.json'),
+  ],
+  tilesets: const <ProjectTilesetEntry>[],
+  surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+  eventRegistry: NarrativeEventRegistry(
+    schemaVersion: 1,
+    mode: EventSystemMode.v2Only,
+    records: const [],
+    legacyClaims: const [],
+  ),
 );
 
 const _map = MapData(

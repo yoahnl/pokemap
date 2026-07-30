@@ -20,10 +20,16 @@ class TerrainMapPanel extends ConsumerWidget {
     super.key,
     this.embedded = false,
     this.mode = TerrainMapPanelMode.combined,
+    this.onTerrainPaintRequested,
+    this.onPathPaintRequested,
+    this.onEraseRequested,
   });
 
   final bool embedded;
   final TerrainMapPanelMode mode;
+  final VoidCallback? onTerrainPaintRequested;
+  final VoidCallback? onPathPaintRequested;
+  final VoidCallback? onEraseRequested;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -63,6 +69,37 @@ class TerrainMapPanel extends ConsumerWidget {
     final pathPresets = notifier.getPathPresets();
     final selectedTerrainPreset = notifier.getSelectedTerrainPreset();
     final selectedPathPreset = notifier.getSelectedPathPreset();
+    void requestTerrainPaint() {
+      final callback = onTerrainPaintRequested;
+      if (callback != null) {
+        callback();
+        return;
+      }
+      final preset = selectedTerrainPreset;
+      if (preset == null) {
+        return;
+      }
+      notifier.selectTerrainPaintMode(terrainType: preset.terrainType);
+    }
+
+    void requestPathPaint() {
+      final callback = onPathPaintRequested;
+      if (callback != null) {
+        callback();
+        return;
+      }
+      notifier.selectPathPaintMode();
+    }
+
+    void requestErase() {
+      final callback = onEraseRequested;
+      if (callback != null) {
+        callback();
+        return;
+      }
+      notifier.selectTool(EditorToolType.eraser);
+    }
+
     final showGround = mode != TerrainMapPanelMode.surfaceOnly;
     final showPaths = mode != TerrainMapPanelMode.groundOnly;
     final sections = <Widget>[];
@@ -84,6 +121,7 @@ class TerrainMapPanel extends ConsumerWidget {
               terrainPresets: terrainPresets,
               selectedTerrainPreset: selectedTerrainPreset,
               accent: groundAccent,
+              onPaint: requestTerrainPaint,
             )
           else ...[
             _LayerSelector<TerrainLayer>(
@@ -128,9 +166,7 @@ class TerrainMapPanel extends ConsumerWidget {
                   onPressed: activeTerrainLayer == null ||
                           selectedTerrainPreset == null
                       ? null
-                      : () => notifier.selectTerrainPaintMode(
-                            terrainType: selectedTerrainPreset.terrainType,
-                          ),
+                      : requestTerrainPaint,
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -177,7 +213,8 @@ class TerrainMapPanel extends ConsumerWidget {
             ? groundContent
             : _SurfaceSectionCard(
                 title: 'Sol de base',
-                subtitle: 'Les calques de terrain peignent uniquement l’arrière-plan de la carte.',
+                subtitle:
+                    'Les calques de terrain peignent uniquement l’arrière-plan de la carte.',
                 color: const Color(0xFF2B6F53),
                 icon: CupertinoIcons.tree,
                 child: groundContent,
@@ -206,6 +243,8 @@ class TerrainMapPanel extends ConsumerWidget {
               pathPresets: pathPresets,
               selectedPathPreset: selectedPathPreset,
               accent: pathsAccent,
+              onPaint: requestPathPaint,
+              onErase: requestErase,
             )
           else ...[
             _LayerSelector<PathLayer>(
@@ -253,9 +292,7 @@ class TerrainMapPanel extends ConsumerWidget {
                 CupertinoButton.filled(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  onPressed: activePathLayer == null
-                      ? null
-                      : notifier.selectPathPaintMode,
+                  onPressed: activePathLayer == null ? null : requestPathPaint,
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -268,9 +305,7 @@ class TerrainMapPanel extends ConsumerWidget {
                 CupertinoButton(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  onPressed: activePathLayer == null
-                      ? null
-                      : () => notifier.selectTool(EditorToolType.eraser),
+                  onPressed: activePathLayer == null ? null : requestErase,
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -447,6 +482,7 @@ List<Widget> _groundInspectorEmbeddedChildren({
   required List<ProjectTerrainPreset> terrainPresets,
   required ProjectTerrainPreset? selectedTerrainPreset,
   required Color accent,
+  required VoidCallback onPaint,
 }) {
   final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
   final subtle = EditorChrome.subtleLabel(context);
@@ -546,13 +582,7 @@ List<Widget> _groundInspectorEmbeddedChildren({
             label: 'Peindre le fond',
             prominent: true,
             enabled: canPaint,
-            onPressed: () {
-              final preset = selectedTerrainPreset;
-              if (preset == null) return;
-              notifier.selectTerrainPaintMode(
-                terrainType: preset.terrainType,
-              );
-            },
+            onPressed: onPaint,
           ),
         ),
         const SizedBox(width: 8),
@@ -592,6 +622,8 @@ List<Widget> _pathInspectorEmbeddedChildren({
   required List<ProjectPathPreset> pathPresets,
   required ProjectPathPreset? selectedPathPreset,
   required Color accent,
+  required VoidCallback onPaint,
+  required VoidCallback onErase,
 }) {
   final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
   final subtle = EditorChrome.subtleLabel(context);
@@ -692,8 +724,8 @@ List<Widget> _pathInspectorEmbeddedChildren({
     _PathInspectorToolBar(
       accent: accent,
       activePathLayer: activePathLayer,
-      onPaint: notifier.selectPathPaintMode,
-      onErase: () => notifier.selectTool(EditorToolType.eraser),
+      onPaint: onPaint,
+      onErase: onErase,
     ),
     const SizedBox(height: 10),
     _PathLayerPropertiesBlock(

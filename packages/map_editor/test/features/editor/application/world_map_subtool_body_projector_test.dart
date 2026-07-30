@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/services/narrative_event_legacy_authoring_guard.dart';
 import 'package:map_editor/src/features/editor/application/world_map_subtool_body_projector.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
@@ -226,6 +227,48 @@ void main() {
     expect(projection.resultingBrush, const EditorBrush.none());
   });
 
+  test(
+    'keeps legacy Event placement ready and projects v2Only as unavailable '
+    'with the canonical reason',
+    () {
+      const request = ActivateWorldMapPlacement(
+        WorldMapPlacementSubtool.event,
+      );
+      final legacyAssessment = assessWorldMapToolActivation(
+        source: _source(activeLayerId: 'terrain'),
+        request: request,
+      );
+      final canonicalReason = narrativeEventLegacyAuthoringBlockReason(
+        _v2OnlyProject,
+        kind: NarrativeEventLegacyAuthoringKind.mapEvent,
+      );
+
+      expect(legacyAssessment.rejectionReason, isNull);
+      expect(legacyAssessment.resultingTool, EditorToolType.eventPlacement);
+      expect(canonicalReason, isNotNull);
+
+      final v2OnlySource = _source(
+        activeLayerId: 'terrain',
+        project: _v2OnlyProject,
+      );
+      final v2OnlyAssessment = assessWorldMapToolActivation(
+        source: v2OnlySource,
+        request: request,
+      );
+      final projection = const WorldMapSubtoolBodyProjector().project(
+        source: v2OnlySource,
+        request: request,
+      );
+
+      expect(v2OnlyAssessment.resultingTool, isNull);
+      expect(v2OnlyAssessment.rejectionReason, canonicalReason);
+      expect(projection.bodyKind, WorldMapSubtoolBodyKind.eventPlacement);
+      expect(projection.access, WorldMapSubtoolBodyAccess.unavailable);
+      expect(projection.isAvailable, isFalse);
+      expect(projection.disabledReason, canonicalReason);
+    },
+  );
+
   test('keeps wrong-layer and no-map Paint requests unavailable', () {
     for (final request in const <WorldMapSubtoolActivationRequest>[
       ActivateWorldMapPaint(WorldMapPaintSubtool.surface),
@@ -258,15 +301,25 @@ WorldMapToolActivationSource _source({
   required String activeLayerId,
   EditorBrush brush = const EditorBrush.none(),
   String? selectedSurfacePresetId = 'water',
+  ProjectManifest? project,
 }) {
   return (
-    project: _project,
+    project: project ?? _project,
     activeMap: _map,
     activeLayerId: activeLayerId,
     activeBrush: brush,
     selectedSurfacePresetId: selectedSurfacePresetId,
   );
 }
+
+final _v2OnlyProject = _project.copyWith(
+  eventRegistry: NarrativeEventRegistry(
+    schemaVersion: 1,
+    mode: EventSystemMode.v2Only,
+    records: const [],
+    legacyClaims: const [],
+  ),
+);
 
 final _project = ProjectManifest(
   name: 'Subtool projector',

@@ -81,13 +81,20 @@ class WorldMapPaintInspector extends ConsumerWidget {
             ),
           ),
         ),
-      WorldMapSubtoolBodyKind.terrainPainter => const TerrainMapPanel(
+      WorldMapSubtoolBodyKind.terrainPainter => TerrainMapPanel(
           embedded: true,
           mode: TerrainMapPanelMode.groundOnly,
+          onTerrainPaintRequested: () => activate(
+            const ActivateWorldMapPaint(WorldMapPaintSubtool.terrain),
+          ),
         ),
-      WorldMapSubtoolBodyKind.pathPainter => const TerrainMapPanel(
+      WorldMapSubtoolBodyKind.pathPainter => TerrainMapPanel(
           embedded: true,
           mode: TerrainMapPanelMode.surfaceOnly,
+          onPathPaintRequested: () => activate(
+            const ActivateWorldMapPaint(WorldMapPaintSubtool.path),
+          ),
+          onEraseRequested: () => activate(const ActivateWorldMapErase()),
         ),
       WorldMapSubtoolBodyKind.surfacePainter => SurfacePainterPanel(
           embedded: true,

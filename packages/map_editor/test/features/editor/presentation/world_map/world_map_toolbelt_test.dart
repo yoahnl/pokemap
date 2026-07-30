@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
+import 'package:map_editor/src/application/services/narrative_event_legacy_authoring_guard.dart';
 import 'package:map_editor/src/features/border_map_editing/state/border_map_editing_providers.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
@@ -539,6 +540,48 @@ void main() {
         );
       });
     }
+
+    testWidgets(
+      'v2Only Event click rejects canonically without arming fake guidance',
+      (tester) async {
+        final container = _containerWith(_v2OnlyTileState());
+        final beforeEditor = container.read(editorNotifierProvider);
+        final beforeSession = container.read(worldMapWorkspaceSessionProvider);
+        final canonicalReason = narrativeEventLegacyAuthoringBlockReason(
+          beforeEditor.project,
+          kind: NarrativeEventLegacyAuthoringKind.mapEvent,
+        );
+        String? rejectionReason;
+        await _pumpToolbelt(
+          tester,
+          container,
+          onActivationRejected: (reason) => rejectionReason = reason,
+        );
+
+        await tester.tap(
+          find.bySemanticsLabel('Choisir un outil de placement'),
+        );
+        await tester.pump();
+        await tester.tap(find.text('Event'));
+        await tester.pump();
+
+        expect(canonicalReason, isNotNull);
+        expect(rejectionReason, canonicalReason);
+        expect(container.read(editorNotifierProvider), same(beforeEditor));
+        expect(
+          container.read(worldMapWorkspaceSessionProvider),
+          same(beforeSession),
+        );
+        expect(
+          container.read(worldMapWorkspaceSessionProvider).activeFamily,
+          isNot(WorldMapToolFamily.place),
+        );
+        expect(
+          container.read(editorNotifierProvider).activeTool,
+          isNot(EditorToolType.eventPlacement),
+        );
+      },
+    );
 
     testWidgets('rejected split choice preserves editor and session state',
         (tester) async {
@@ -1349,6 +1392,23 @@ EditorState _tileState() {
       ],
     ),
     activeLayerId: 'tile',
+  );
+}
+
+EditorState _v2OnlyTileState() {
+  return _tileState().copyWith(
+    project: ProjectManifest(
+      name: 'World map toolbelt V2 only',
+      maps: const <ProjectMapEntry>[],
+      tilesets: const <ProjectTilesetEntry>[],
+      surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+      eventRegistry: NarrativeEventRegistry(
+        schemaVersion: 1,
+        mode: EventSystemMode.v2Only,
+        records: const [],
+        legacyClaims: const [],
+      ),
+    ),
   );
 }
 
