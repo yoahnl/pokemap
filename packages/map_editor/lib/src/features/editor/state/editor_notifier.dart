@@ -67,6 +67,7 @@ import '../application/map_canvas_object_hit_test.dart';
 import '../application/map_canvas_object_move_planner.dart';
 import '../application/map_editing_controller.dart';
 import '../application/map_layer_grouping.dart';
+import '../application/map_placed_element_rotation_planner.dart';
 import '../application/map_selection_controller.dart';
 import '../application/project_content_controller.dart';
 import '../application/project_session_controller.dart';
@@ -12934,6 +12935,103 @@ class EditorNotifier extends _$EditorNotifier
       statusMessage:
           'Collision ${applyCollision ? 'activée' : 'désactivée'} pour ${previous.elementId}',
     );
+  }
+
+  /// Commits one absolute quarter-turn value through the pure preview planner.
+  ///
+  /// Rotation is deliberately not a stroke: one accepted request maps to one
+  /// editor mutation and therefore one exact undo record. Capability and
+  /// validation failures stay outside history and use the normal error path.
+  bool setPlacedElementInstanceQuarterTurns({
+    required String instanceId,
+    required int quarterTurns,
+  }) {
+    final plan = planMapPlacedElementRotation(
+      map: state.activeMap,
+      project: state.project,
+      instanceId: instanceId,
+      targetQuarterTurns: quarterTurns,
+    );
+    if (!plan.canCommit) {
+      final rejection = plan.rejection;
+      if (rejection != null) {
+        state = state.copyWith(
+          errorMessage: _mapPlacedElementRotationRejectionMessage(rejection),
+        );
+      }
+      return false;
+    }
+
+    final sourceMap = plan.sourceMap!;
+    final instance = plan.instance!;
+    final candidateMap = plan.candidateMap!;
+    _applyMapMutation(
+      previousMap: sourceMap,
+      updatedMap: candidateMap,
+      preferredActiveLayerId: instance.layerId,
+      partOfStroke: false,
+      statusMessage: 'Rotation mise à jour pour ${instance.elementId}',
+    );
+    return identical(state.activeMap, candidateMap);
+  }
+
+  /// Rotates the selected authored placement by a relative number of turns.
+  ///
+  /// The delta is normalized before addition so the intermediate remains
+  /// portable on Dart native and JavaScript even for a very large exact input.
+  bool rotateSelectedPlacedElement({
+    required int deltaQuarterTurns,
+  }) {
+    final selectedId = state.selectedPlacedElementInstanceId?.trim() ?? '';
+    MapPlacedElement? selected;
+    for (final instance
+        in state.activeMap?.placedElements ?? const <MapPlacedElement>[]) {
+      if (instance.id == selectedId) {
+        selected = instance;
+        break;
+      }
+    }
+    final normalizedDelta = normalizeQuarterTurns(deltaQuarterTurns);
+    final targetQuarterTurns = normalizeQuarterTurns(
+      (selected?.quarterTurns ?? 0) + normalizedDelta,
+    );
+    return setPlacedElementInstanceQuarterTurns(
+      instanceId: selectedId,
+      quarterTurns: targetQuarterTurns,
+    );
+  }
+
+  String _mapPlacedElementRotationRejectionMessage(
+    MapPlacedElementRotationRejection rejection,
+  ) {
+    return switch (rejection) {
+      MapPlacedElementRotationRejection.mapUnavailable =>
+        'Rotation impossible : aucune map active.',
+      MapPlacedElementRotationRejection.projectUnavailable =>
+        'Rotation impossible : aucun projet actif.',
+      MapPlacedElementRotationRejection.instanceMissing =>
+        'Rotation impossible : l’élément placé est introuvable.',
+      MapPlacedElementRotationRejection.elementMissing =>
+        'Rotation impossible : la définition de l’élément est introuvable.',
+      MapPlacedElementRotationRejection.layerMissing =>
+        'Rotation impossible : le layer de l’élément est introuvable.',
+      MapPlacedElementRotationRejection.unsupportedLayer =>
+        'Rotation impossible : seuls les éléments placés sur un layer de '
+            'tuiles sont compatibles.',
+      MapPlacedElementRotationRejection.environmentGenerated =>
+        'Cet élément est généré par une zone Environment. '
+            'Modifiez ou régénérez cette zone pour changer son orientation.',
+      MapPlacedElementRotationRejection.tileIndexed =>
+        'Cet élément est dérivé du tile index. '
+            'Modifiez les tuiles source pour changer sa projection.',
+      MapPlacedElementRotationRejection.targetQuarterTurnsOutOfRange =>
+        'Rotation impossible : la valeur absolue doit être comprise entre '
+            '0 et 3 quarts de tour.',
+      MapPlacedElementRotationRejection.destinationOutOfBounds =>
+        'Rotation impossible : l’empreinte tournée dépasse la carte.',
+      MapPlacedElementRotationRejection.candidateInvalid =>
+        'Rotation impossible : la carte obtenue ne passe pas la validation.',
+    };
   }
 
   void setPlacedElementInstanceOpacity({

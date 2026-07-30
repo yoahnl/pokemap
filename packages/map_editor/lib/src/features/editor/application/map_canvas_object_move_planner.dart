@@ -100,7 +100,6 @@ final class MapCanvasObjectMovePlanner {
       final moveSize = _placedElementMoveSize(
         project: project,
         placed: placed,
-        requested: target,
       );
       final sourceTarget = MapCanvasObjectTarget(
         kind: MapCanvasObjectKind.placedElement,
@@ -360,7 +359,6 @@ MapCanvasObjectTarget? _resolveTarget({
           : _placedElementMoveSize(
               project: project,
               placed: placed,
-              requested: requested,
             );
       if (placed == null || size == null) return null;
       return MapCanvasObjectTarget(
@@ -504,14 +502,24 @@ GridSize? _placedElementSize(
 GridSize? _placedElementMoveSize({
   required ProjectManifest? project,
   required MapPlacedElement placed,
-  required MapCanvasObjectTarget requested,
 }) {
   final primarySize = _placedElementSize(project, placed);
   if (primarySize == null) return null;
-  if (requested.size.width <= 0 || requested.size.height <= 0) {
+  if (placed.properties[pokemapPlacementOriginProperty] ==
+      pokemapPlacementOriginTileIndex) {
     return primarySize;
   }
-  return requested.size;
+  final element =
+      _findById(project!.elements, placed.elementId, (entry) => entry.id);
+  if (element == null) return null;
+  try {
+    return resolveMapPlacedElementFootprint(
+      instance: placed,
+      element: element,
+    ).destinationSize;
+  } on Object {
+    return null;
+  }
 }
 
 bool _isEnvironmentGenerated(MapData map, String placementId) {

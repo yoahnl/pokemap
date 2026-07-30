@@ -112,7 +112,8 @@ void main() {
       expect(moved.shadowOverride, same(shadow));
     });
 
-    test('keeps the visible animated-frame footprint from selection', () {
+    test('uses the canonical primary footprint over transient frame bounds',
+        () {
       const animatedProject = ProjectManifest(
         name: 'Animated move footprint',
         version: ProjectVersion.v3,
@@ -164,13 +165,13 @@ void main() {
         map: map,
         project: animatedProject,
         target: visibleFrameTarget,
-        destinationAnchor: const GridPos(x: 3, y: 3),
+        destinationAnchor: const GridPos(x: 4, y: 4),
       );
       final ready = planner.plan(
         map: map,
         project: animatedProject,
         target: visibleFrameTarget,
-        destinationAnchor: const GridPos(x: 2, y: 2),
+        destinationAnchor: const GridPos(x: 3, y: 3),
       );
 
       expect(
@@ -180,7 +181,59 @@ void main() {
       expect(ready.canCommit, isTrue);
       expect(
         ready.previewTarget?.size,
-        const GridSize(width: 2, height: 2),
+        const GridSize(width: 1, height: 1),
+      );
+    });
+
+    test('moves authored rotations with canonical destination dimensions', () {
+      final map = _emptyMap.copyWith(
+        placedElements: const <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'rotated',
+            layerId: 'decor',
+            elementId: 'element-3x2',
+            pos: GridPos(x: 1, y: 1),
+            quarterTurns: 1,
+          ),
+        ],
+      );
+      const staleUnrotatedTarget = MapCanvasObjectTarget(
+        kind: MapCanvasObjectKind.placedElement,
+        id: 'rotated',
+        layerId: 'decor',
+        anchor: GridPos(x: 1, y: 1),
+        size: GridSize(width: 3, height: 2),
+      );
+
+      final widthEdgeAccepted = planner.plan(
+        map: map,
+        project: _nonSquareProject,
+        target: staleUnrotatedTarget,
+        destinationAnchor: const GridPos(x: 6, y: 5),
+      );
+      final heightEdgeRejected = planner.plan(
+        map: map,
+        project: _nonSquareProject,
+        target: staleUnrotatedTarget,
+        destinationAnchor: const GridPos(x: 5, y: 6),
+      );
+
+      expect(widthEdgeAccepted.canCommit, isTrue);
+      expect(
+        widthEdgeAccepted.sourceTarget?.size,
+        const GridSize(width: 2, height: 3),
+      );
+      expect(
+        widthEdgeAccepted.previewTarget?.size,
+        const GridSize(width: 2, height: 3),
+      );
+      expect(
+        heightEdgeRejected.rejection,
+        MapCanvasObjectMoveRejection.destinationOutOfBounds,
+      );
+      expect(
+        heightEdgeRejected.previewTarget?.size,
+        const GridSize(width: 2, height: 3),
       );
     });
 
@@ -650,6 +703,32 @@ const _project = ProjectManifest(
       frames: <TilesetVisualFrame>[
         TilesetVisualFrame(
           source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+        ),
+      ],
+    ),
+  ],
+);
+
+const _nonSquareProject = ProjectManifest(
+  name: 'Non-square move planner',
+  version: ProjectVersion.v3,
+  maps: <ProjectMapEntry>[],
+  tilesets: <ProjectTilesetEntry>[
+    ProjectTilesetEntry(
+      id: 'tiles',
+      name: 'Tiles',
+      relativePath: 'assets/tiles.png',
+    ),
+  ],
+  elements: <ProjectElementEntry>[
+    ProjectElementEntry(
+      id: 'element-3x2',
+      name: 'Element 3x2',
+      tilesetId: 'tiles',
+      categoryId: 'decor',
+      frames: <TilesetVisualFrame>[
+        TilesetVisualFrame(
+          source: TilesetSourceRect(x: 0, y: 0, width: 3, height: 2),
         ),
       ],
     ),

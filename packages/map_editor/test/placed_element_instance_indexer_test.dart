@@ -154,6 +154,40 @@ void main() {
       );
     });
 
+    test(
+        'preserves a reused tile-index rotation and creates new instances unrotated',
+        () {
+      final existingDerived = _placement(
+        id: 'derived',
+        x: 0,
+        quarterTurns: 3,
+        properties: const {_originKey: 'tile_index', 'custom': 'keep'},
+      );
+      final map = _map(
+        width: 2,
+        tiles: const [1, 1],
+        placedElements: [existingDerived],
+      );
+
+      final synced = const PlacedElementInstanceIndexer().syncAllTileLayers(
+        map: map,
+        project: _manifest(),
+      );
+
+      expect(synced.placedElements, hasLength(2));
+      final reused =
+          synced.placedElements.singleWhere((entry) => entry.pos.x == 0);
+      final generated =
+          synced.placedElements.singleWhere((entry) => entry.pos.x == 1);
+      expect(reused, existingDerived);
+      expect(reused.quarterTurns, 3);
+      expect(
+        reused.properties,
+        const {_originKey: 'tile_index', 'custom': 'keep'},
+      );
+      expect(generated.quarterTurns, 0);
+    });
+
     test('repainting a moved placement origin allocates a stable unique id',
         () {
       final oldPositionId = buildMapPlacedElementId(
@@ -291,6 +325,7 @@ MapData _map({
 MapPlacedElement _placement({
   required String id,
   required int x,
+  int quarterTurns = 0,
   Map<String, String> properties = const {},
 }) {
   return MapPlacedElement(
@@ -298,6 +333,7 @@ MapPlacedElement _placement({
     layerId: 'decor',
     elementId: 'tree',
     pos: GridPos(x: x, y: 0),
+    quarterTurns: quarterTurns,
     properties: properties,
   );
 }
