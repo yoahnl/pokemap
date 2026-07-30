@@ -144,7 +144,9 @@ _$MapPlacedElementImpl _$$MapPlacedElementImplFromJson(
       layerId: json['layerId'] as String,
       elementId: json['elementId'] as String,
       pos: GridPos.fromJson(json['pos'] as Map<String, dynamic>),
-      quarterTurns: (json['quarterTurns'] as num?)?.toInt() ?? 0,
+      quarterTurns: json['quarterTurns'] == null
+          ? 0
+          : _mapPlacedElementQuarterTurnsFromJson(json['quarterTurns']),
       applyCollision: json['applyCollision'] as bool? ?? true,
       opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
       animation: json['animation'] == null

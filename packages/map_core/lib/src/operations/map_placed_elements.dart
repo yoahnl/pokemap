@@ -149,8 +149,11 @@ MapData rotateMapPlacedElement(
       'Placed element instance not found: $normalizedId',
     );
   }
+  final normalizedDeltaQuarterTurns = normalizeQuarterTurns(
+    deltaQuarterTurns,
+  );
   final normalizedQuarterTurns = normalizeQuarterTurns(
-    map.placedElements[index].quarterTurns + deltaQuarterTurns,
+    map.placedElements[index].quarterTurns + normalizedDeltaQuarterTurns,
   );
   return setMapPlacedElementQuarterTurns(
     map,

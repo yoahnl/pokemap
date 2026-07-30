@@ -1095,6 +1095,7 @@ mixin _$MapPlacedElement {
   String get layerId => throw _privateConstructorUsedError;
   String get elementId => throw _privateConstructorUsedError;
   GridPos get pos => throw _privateConstructorUsedError;
+  @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)
   int get quarterTurns => throw _privateConstructorUsedError;
   bool get applyCollision => throw _privateConstructorUsedError;
   double get opacity => throw _privateConstructorUsedError;
@@ -1128,6 +1129,7 @@ abstract class $MapPlacedElementCopyWith<$Res> {
       String layerId,
       String elementId,
       GridPos pos,
+      @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)
       int quarterTurns,
       bool applyCollision,
       double opacity,
@@ -1254,6 +1256,7 @@ abstract class _$$MapPlacedElementImplCopyWith<$Res>
       String layerId,
       String elementId,
       GridPos pos,
+      @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)
       int quarterTurns,
       bool applyCollision,
       double opacity,
@@ -1352,6 +1355,7 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
       required this.layerId,
       required this.elementId,
       required this.pos,
+      @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)
       this.quarterTurns = 0,
       this.applyCollision = true,
       this.opacity = 1.0,
@@ -1374,7 +1378,7 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
   @override
   final GridPos pos;
   @override
-  @JsonKey()
+  @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)
   final int quarterTurns;
   @override
   @JsonKey()
@@ -1474,6 +1478,7 @@ abstract class _MapPlacedElement implements MapPlacedElement {
       required final String layerId,
       required final String elementId,
       required final GridPos pos,
+      @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)
       final int quarterTurns,
       final bool applyCollision,
       final double opacity,
@@ -1495,6 +1500,7 @@ abstract class _MapPlacedElement implements MapPlacedElement {
   @override
   GridPos get pos;
   @override
+  @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)
   int get quarterTurns;
   @override
   bool get applyCollision;

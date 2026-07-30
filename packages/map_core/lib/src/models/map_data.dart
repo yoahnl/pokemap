@@ -123,6 +123,19 @@ class MapGameplayZone with _$MapGameplayZone {
       _$MapGameplayZoneFromJson(migrateMapGameplayZoneJson(json));
 }
 
+int _mapPlacedElementQuarterTurnsFromJson(Object? value) {
+  if (value == null) return 0;
+  if (value is num &&
+      value.isFinite &&
+      (value is int || value == value.truncateToDouble())) {
+    return value.toInt();
+  }
+  throw FormatException(
+    'MapPlacedElement.quarterTurns must be a finite integer',
+    value,
+  );
+}
+
 @freezed
 class MapPlacedElement with _$MapPlacedElement {
   @JsonSerializable(explicitToJson: true)
@@ -131,7 +144,9 @@ class MapPlacedElement with _$MapPlacedElement {
     required String layerId,
     required String elementId,
     required GridPos pos,
-    @Default(0) int quarterTurns,
+    @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)
+    @Default(0)
+    int quarterTurns,
     @Default(true) bool applyCollision,
     @Default(1.0) double opacity,
     MapPlacedElementAnimation? animation,

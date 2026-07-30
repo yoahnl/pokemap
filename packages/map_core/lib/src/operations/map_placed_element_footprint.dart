@@ -116,9 +116,10 @@ QuarterTurnGridTransform resolveMapPlacedElementFootprint({
 /// Inverse-samples a rotated destination bitmap from source pixel centers.
 ///
 /// Destination pixel centers are converted to normalized coordinates before
-/// the inverse quarter turn. This keeps sampling canonical when rendered tile
-/// width and height differ. Construction and coordinate conversion reject
-/// invalid values in release mode.
+/// the inverse quarter turn. The normalized centers are evaluated as exact
+/// rational numbers so sampling stays stable at pixel boundaries and when
+/// rendered tile width and height differ. Construction and coordinate
+/// conversion reject invalid values in release mode.
 final class QuarterTurnPixelTransform {
   QuarterTurnPixelTransform({
     required this.sourcePixelSize,
@@ -153,35 +154,104 @@ final class QuarterTurnPixelTransform {
       argumentName: 'destination',
     );
 
-    final u = (destination.x + 0.5) / destinationPixelSize.width;
-    final v = (destination.y + 0.5) / destinationPixelSize.height;
-    late final double sourceU;
-    late final double sourceV;
+    late final int sourceX;
+    late final int sourceY;
     switch (quarterTurns) {
       case 0:
-        sourceU = u;
-        sourceV = v;
+        sourceX = _samplePixelCenter(
+          destinationCoordinate: destination.x,
+          destinationLength: destinationPixelSize.width,
+          sourceLength: sourcePixelSize.width,
+        );
+        sourceY = _samplePixelCenter(
+          destinationCoordinate: destination.y,
+          destinationLength: destinationPixelSize.height,
+          sourceLength: sourcePixelSize.height,
+        );
       case 1:
-        sourceU = v;
-        sourceV = 1 - u;
+        sourceX = _samplePixelCenter(
+          destinationCoordinate: destination.y,
+          destinationLength: destinationPixelSize.height,
+          sourceLength: sourcePixelSize.width,
+        );
+        sourceY = _samplePixelCenter(
+          destinationCoordinate: destination.x,
+          destinationLength: destinationPixelSize.width,
+          sourceLength: sourcePixelSize.height,
+          inverted: true,
+        );
       case 2:
-        sourceU = 1 - u;
-        sourceV = 1 - v;
+        sourceX = _samplePixelCenter(
+          destinationCoordinate: destination.x,
+          destinationLength: destinationPixelSize.width,
+          sourceLength: sourcePixelSize.width,
+          inverted: true,
+        );
+        sourceY = _samplePixelCenter(
+          destinationCoordinate: destination.y,
+          destinationLength: destinationPixelSize.height,
+          sourceLength: sourcePixelSize.height,
+          inverted: true,
+        );
       case 3:
-        sourceU = 1 - v;
-        sourceV = u;
+        sourceX = _samplePixelCenter(
+          destinationCoordinate: destination.y,
+          destinationLength: destinationPixelSize.height,
+          sourceLength: sourcePixelSize.width,
+          inverted: true,
+        );
+        sourceY = _samplePixelCenter(
+          destinationCoordinate: destination.x,
+          destinationLength: destinationPixelSize.width,
+          sourceLength: sourcePixelSize.height,
+        );
     }
 
-    final sourceX = (sourceU * sourcePixelSize.width)
-        .floor()
-        .clamp(0, sourcePixelSize.width - 1)
-        .toInt();
-    final sourceY = (sourceV * sourcePixelSize.height)
-        .floor()
-        .clamp(0, sourcePixelSize.height - 1)
-        .toInt();
     return GridPos(x: sourceX, y: sourceY);
   }
+}
+
+const int _maxExactlyRepresentableWebInteger = 9007199254740991;
+
+/// Evaluates an exact normalized center without floating-point intermediates.
+///
+/// This is equivalent to
+/// `floor(sourceLength * (2 * center + 1) / (2 * destinationLength))`.
+int _samplePixelCenter({
+  required int destinationCoordinate,
+  required int destinationLength,
+  required int sourceLength,
+  bool inverted = false,
+}) {
+  // Keep the common path on `int` only while every intermediate is exactly
+  // representable by Dart's 53-bit web integers.
+  if (destinationLength <= _maxExactlyRepresentableWebInteger ~/ 2) {
+    final centerIndex = inverted
+        ? destinationLength - 1 - destinationCoordinate
+        : destinationCoordinate;
+    final centerNumerator = centerIndex * 2 + 1;
+    if (sourceLength <= _maxExactlyRepresentableWebInteger ~/ centerNumerator) {
+      final sampled =
+          (centerNumerator * sourceLength) ~/ (destinationLength * 2);
+      return sampled.clamp(0, sourceLength - 1).toInt();
+    }
+  }
+
+  final destinationLengthBig = BigInt.from(destinationLength);
+  final destinationCoordinateBig = BigInt.from(destinationCoordinate);
+  final centerIndexBig = inverted
+      ? destinationLengthBig - BigInt.one - destinationCoordinateBig
+      : destinationCoordinateBig;
+  final sampled = ((centerIndexBig * BigInt.two + BigInt.one) *
+          BigInt.from(sourceLength)) ~/
+      (destinationLengthBig * BigInt.two);
+  final sourceMax = BigInt.from(sourceLength) - BigInt.one;
+  final clamped = sampled < BigInt.zero
+      ? BigInt.zero
+      : sampled > sourceMax
+          ? sourceMax
+          : sampled;
+  return clamped.toInt();
 }
 
 void _requirePositiveSize(

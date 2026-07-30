@@ -33,6 +33,65 @@ void main() {
       }
     });
 
+    test('accepts null and integer-valued JSON numbers', () {
+      for (final entry in <(Object?, int)>[
+        (null, 0),
+        (0, 0),
+        (1.0, 1),
+        (2, 2),
+        (3.0, 3),
+      ]) {
+        final json = _legacyPlacedElementJson()..['quarterTurns'] = entry.$1;
+
+        expect(
+          MapPlacedElement.fromJson(json).quarterTurns,
+          entry.$2,
+          reason: 'quarterTurns=${entry.$1}',
+        );
+      }
+    });
+
+    for (final value in <double>[1.9, -0.9]) {
+      test('rejects fractional JSON quarterTurns $value', () {
+        final json = _legacyPlacedElementJson()..['quarterTurns'] = value;
+
+        expect(
+          () => MapPlacedElement.fromJson(json),
+          throwsA(isA<FormatException>()),
+        );
+      });
+    }
+
+    for (final entry in <(Object, String)>[
+      (double.nan, 'NaN'),
+      (double.infinity, 'positive infinity'),
+      (double.negativeInfinity, 'negative infinity'),
+      ('1', 'string'),
+      (true, 'boolean'),
+    ]) {
+      test('rejects non-integer JSON quarterTurns ${entry.$2}', () {
+        final json = _legacyPlacedElementJson()..['quarterTurns'] = entry.$1;
+
+        expect(
+          () => MapPlacedElement.fromJson(json),
+          throwsA(isA<FormatException>()),
+        );
+      });
+    }
+
+    test('decodes four before semantic range validation rejects it', () {
+      final json = _legacyPlacedElementJson()..['quarterTurns'] = 4;
+      final decoded = MapPlacedElement.fromJson(json);
+
+      expect(decoded.quarterTurns, 4);
+      expect(
+        () => MapValidator.validate(
+          _validationMap(quarterTurns: decoded.quarterTurns),
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
     test('copy and value equality include quarterTurns', () {
       const original = MapPlacedElement(
         id: 'placed',
@@ -158,6 +217,18 @@ void main() {
         result: negative,
         expectedQuarterTurns: 2,
       );
+    });
+
+    test('delta rotation reduces web-safe integer limits before addition', () {
+      final source = _map(quarterTurns: 2);
+
+      final result = rotateMapPlacedElement(
+        source,
+        instanceId: 'placed',
+        deltaQuarterTurns: 9007199254740991,
+      );
+
+      expect(result.placedElements.first.quarterTurns, 1);
     });
 
     test('absolute and delta no-ops return the identical MapData instance', () {
@@ -368,6 +439,52 @@ void main() {
   });
 
   group('QuarterTurnPixelTransform', () {
+    test('samples forward pixel centers at exact rational boundaries', () {
+      final transform = QuarterTurnPixelTransform(
+        sourcePixelSize: const GridSize(width: 22, height: 1),
+        destinationPixelSize: const GridSize(width: 11, height: 1),
+        quarterTurns: 0,
+      );
+
+      expect(
+        transform.destinationPixelToSourcePixel(
+          const GridPos(x: 7, y: 0),
+        ),
+        const GridPos(x: 15, y: 0),
+      );
+    });
+
+    test('samples inverted pixel centers at exact rational boundaries', () {
+      final transform = QuarterTurnPixelTransform(
+        sourcePixelSize: const GridSize(width: 6, height: 1),
+        destinationPixelSize: const GridSize(width: 3, height: 1),
+        quarterTurns: 2,
+      );
+
+      expect(
+        transform.destinationPixelToSourcePixel(
+          const GridPos(x: 2, y: 0),
+        ),
+        const GridPos(x: 1, y: 0),
+      );
+    });
+
+    test('uses exact fallback when center products exceed web-safe integers',
+        () {
+      final transform = QuarterTurnPixelTransform(
+        sourcePixelSize: const GridSize(width: 9007199254740991, height: 1),
+        destinationPixelSize: const GridSize(width: 3, height: 1),
+        quarterTurns: 0,
+      );
+
+      expect(
+        transform.destinationPixelToSourcePixel(
+          const GridPos(x: 2, y: 0),
+        ),
+        const GridPos(x: 7505999378950825, y: 0),
+      );
+    });
+
     test('inverse-samples every pixel with unequal world tile dimensions', () {
       const sourcePixelSize = GridSize(width: 6, height: 2);
       const destinationSizes = <GridSize>[
