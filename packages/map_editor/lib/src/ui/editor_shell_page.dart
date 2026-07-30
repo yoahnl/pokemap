@@ -28,7 +28,10 @@ import '../theme/theme.dart';
 
 import '../features/border_map_editing/presentation/pending_border_save_dialog.dart';
 import '../features/editor/application/map_activation_coordinator.dart';
+import '../features/editor/application/world_map_target_editor_intent.dart';
+import '../features/editor/application/world_map_tool_family.dart';
 import '../features/editor/presentation/map_activation_guard.dart';
+import '../features/editor/presentation/world_map/world_map_target_editor_navigation.dart';
 import '../features/editor/presentation/world_map/world_map_toolbelt.dart';
 import '../features/editor/presentation/world_map/world_map_workspace.dart';
 import '../features/editor/presentation/world_map/world_map_workspace_session.dart';
@@ -73,6 +76,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
   Timer? _toastTimer;
   final GlobalKey _projectExplorerKey =
       GlobalKey(debugLabel: 'shared-project-explorer');
+  final FocusNode _worldMapInspectorFocusNode =
+      FocusNode(debugLabel: 'World Map adaptive inspector');
   String? _toastMessage;
   bool _toastIsError = false;
   bool _didAttemptProjectAutoRestore = false;
@@ -142,6 +147,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
   @override
   void dispose() {
     _toastTimer?.cancel();
+    _worldMapInspectorFocusNode.dispose();
     super.dispose();
   }
 
@@ -182,6 +188,37 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
             ? navigationState.location
             : workspaceLocation;
     final notifier = ref.read(editorNotifierProvider.notifier);
+
+    Future<void> openWorldMapTargetEditor(
+      WorldMapTargetEditorIntent intent,
+    ) async {
+      switch (intent) {
+        case OpenLegacyMapEventEditorIntent(:final eventId):
+          notifier.selectMapEvent(eventId);
+          notifier.selectEventsWorkspace();
+        case OpenNarrativeCompatibilityEventIntent(:final stableKey):
+          ref
+              .read(worldMapTargetEditorNavigationProvider.notifier)
+              .enqueue(stableKey);
+          notifier.selectEventsWorkspace();
+        case FocusWorldMapObjectInspectorIntent(:final target):
+          notifier.selectCanvasObjectTarget(target);
+          ref
+              .read(worldMapWorkspaceSessionProvider.notifier)
+              .setInspectorVisible(true);
+          ref
+              .read(worldMapWorkspaceSessionProvider.notifier)
+              .pinInspector(WorldMapInspectorKind.objectSelection);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted &&
+                _worldMapInspectorFocusNode.context != null &&
+                _worldMapInspectorFocusNode.canRequestFocus) {
+              _worldMapInspectorFocusNode.requestFocus();
+            }
+          });
+      }
+    }
+
     final eventSystemMode =
         project?.eventRegistry?.mode ?? EventSystemMode.legacyOnly;
     final usesNarrativeStudioProductShell =
@@ -794,6 +831,15 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                     children: [
                                       Expanded(
                                         child: WorldMapWorkspace(
+                                          onTargetEditorRequested:
+                                              openWorldMapTargetEditor,
+                                          inspectorFocusNode:
+                                              _worldMapInspectorFocusNode,
+                                          onCommandRejected: (reason) =>
+                                              _flashToast(
+                                            reason,
+                                            isError: true,
+                                          ),
                                           toolSlot: WorldMapToolbelt(
                                             onSave: () =>
                                                 requestActiveMapSaveWithBorderPreviewGuard(

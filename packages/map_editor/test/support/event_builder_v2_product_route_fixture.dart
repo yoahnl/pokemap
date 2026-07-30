@@ -12,6 +12,7 @@ import 'package:map_editor/src/application/ports/narrative_event_spatial_source_
 import 'package:map_editor/src/app/providers/core/repository_providers.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_target_editor_navigation.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_event_builder_v2_providers.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_event_map_bridge_state.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_event_validation_state.dart';
@@ -248,6 +249,7 @@ Future<ProviderContainer> pumpEventBuilderV2ProductRoute(
   LoadNarrativeEventBuilderV2ReadModel? readModelLoader,
   LoadNarrativeEventValidationSnapshot? validationLoader,
   NarrativeEventRegistryPersistenceGateway? persistenceGateway,
+  String? pendingCompatibilityStableKey,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = viewport;
@@ -290,6 +292,11 @@ Future<ProviderContainer> pumpEventBuilderV2ProductRoute(
     activeMap: activeMap ?? fixture.portMap,
     activeLayerId: 'events',
   );
+  if (pendingCompatibilityStableKey != null) {
+    container
+        .read(worldMapTargetEditorNavigationProvider.notifier)
+        .enqueue(pendingCompatibilityStableKey);
+  }
 
   final baseTheme = PokeMapTheme.dark();
   final theme = fontFamily == null

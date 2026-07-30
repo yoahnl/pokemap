@@ -13,9 +13,12 @@ import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_
 import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/adaptive_map_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_toolbelt.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
+import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar.dart';
@@ -65,7 +68,7 @@ void main() {
       expect(
         find.descendant(
           of: worldMapWorkspace,
-          matching: find.byType(EditorCanvasHost),
+          matching: find.byType(MapCanvas),
         ),
         findsOneWidget,
       );
@@ -105,12 +108,81 @@ void main() {
               .getRect(
                 find.descendant(
                   of: worldMapWorkspace,
-                  matching: find.byType(EditorCanvasHost),
+                  matching: find.byType(MapCanvas),
                 ),
               )
               .top,
         ),
       );
+    });
+
+    testWidgets(
+        'opening a non-Event target selects, pins and focuses its inspector',
+        (tester) async {
+      final map = buildShellChromeMap(
+        id: 'inspector_focus_map',
+        name: 'Inspector Focus Map',
+        width: 8,
+        height: 8,
+        layers: const <MapLayer>[
+          ObjectLayer(id: 'objects', name: 'Objects'),
+        ],
+      ).copyWith(
+        entities: const <MapEntity>[
+          MapEntity(
+            id: 'npc',
+            kind: MapEntityKind.npc,
+            pos: GridPos(x: 1, y: 1),
+          ),
+        ],
+      );
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/editor_shell_inspector_focus',
+          project: buildShellChromeProject(
+            maps: const <ProjectMapEntry>[
+              ProjectMapEntry(
+                id: 'inspector_focus_map',
+                name: 'Inspector Focus Map',
+                relativePath: 'maps/inspector_focus_map.json',
+              ),
+            ],
+          ),
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: map,
+          activeLayerId: 'objects',
+          savedMapSnapshot: map,
+        ),
+      );
+
+      final canvas = tester.widget<MapCanvas>(find.byType(MapCanvas));
+      canvas.onCellSelected!(const GridPos(x: 1, y: 1));
+      canvas.onContextMenuRequested!(
+        const MapCanvasContextMenuRequest(
+          globalPosition: Offset(900, 500),
+          gridPosition: GridPos(x: 1, y: 1),
+          invocation: MapContextMenuInvocation.keyboard,
+        ),
+      );
+      await tester.pump();
+      await tester.tap(find.text('Ouvrir l’entité'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(container.read(editorNotifierProvider).selectedEntityId, 'npc');
+      final session = container.read(worldMapWorkspaceSessionProvider);
+      expect(session.inspectorVisible, isTrue);
+      expect(
+        session.pinnedInspectorKind,
+        WorldMapInspectorKind.objectSelection,
+      );
+      final inspectorFocus = tester.widget<Focus>(
+        find.byKey(
+          const ValueKey<String>('adaptive-map-inspector-focus'),
+        ),
+      );
+      expect(inspectorFocus.focusNode?.hasFocus, isTrue);
     });
 
     testWidgets(

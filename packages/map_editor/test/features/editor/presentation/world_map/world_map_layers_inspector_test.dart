@@ -1,11 +1,14 @@
 import 'dart:ui' show SemanticsAction;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/application/map_layer_deletion_impact.dart';
+import 'package:map_editor/src/features/editor/application/map_context_target.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_layer_mutation_dialogs.dart';
@@ -15,6 +18,7 @@ import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/theme/theme.dart';
+import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
@@ -885,6 +889,84 @@ void main() {
     expect(find.byIcon(Icons.lock), findsNothing);
     expect(find.byIcon(Icons.copy), findsNothing);
   });
+
+  testWidgets('secondary click on the whole layer card emits its typed target',
+      (tester) async {
+    final harness = _Harness(_threeLayerMap(), activeLayerId: 'middle');
+    addTearDown(harness.dispose);
+    final requests = <WorldMapLayerContextMenuRequest>[];
+    await harness.pump(
+      tester,
+      onContextMenuRequested: requests.add,
+    );
+
+    final row = find.byKey(
+      const ValueKey<String>('world-map-layer-row-top'),
+    );
+    final rowRect = tester.getRect(row);
+    final gesture = await tester.createGesture(
+      kind: PointerDeviceKind.mouse,
+      buttons: kSecondaryButton,
+    );
+    await gesture.down(
+      Offset(rowRect.left + 12, rowRect.bottom - 12),
+    );
+    await gesture.up();
+    await tester.pump();
+
+    expect(requests, hasLength(1));
+    expect(requests.single.target, const MapLayerContextTarget('top'));
+    expect(requests.single.invocation, MapContextMenuInvocation.pointer);
+    expect(requests.single.invokerFocusNode.hasFocus, isTrue);
+  });
+
+  testWidgets('Menu key from a nested layer control targets the whole card',
+      (tester) async {
+    final harness = _Harness(_threeLayerMap(), activeLayerId: 'middle');
+    addTearDown(harness.dispose);
+    final requests = <WorldMapLayerContextMenuRequest>[];
+    await harness.pump(
+      tester,
+      onContextMenuRequested: requests.add,
+    );
+
+    final rowFocus = tester.widget<Focus>(
+      find.byKey(
+        const ValueKey<String>('world-map-layer-context-focus-top'),
+      ),
+    );
+    rowFocus.focusNode!.requestFocus();
+    await tester.pump();
+    var visibilityHasPrimaryFocus = false;
+    for (var attempt = 0; attempt < 8; attempt += 1) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      final focusedContext = FocusManager.instance.primaryFocus?.context;
+      if (focusedContext == null) continue;
+      visibilityHasPrimaryFocus = find
+          .ancestor(
+            of: find.byElementPredicate(
+              (element) => identical(element, focusedContext),
+            ),
+            matching: find.byKey(
+              const ValueKey<String>('world-map-layer-visibility-top'),
+            ),
+          )
+          .evaluate()
+          .isNotEmpty;
+      if (visibilityHasPrimaryFocus) break;
+    }
+    expect(visibilityHasPrimaryFocus, isTrue);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.contextMenu);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.contextMenu);
+    await tester.pump();
+
+    expect(requests, hasLength(1));
+    expect(requests.single.target, const MapLayerContextTarget('top'));
+    expect(requests.single.invocation, MapContextMenuInvocation.keyboard);
+    expect(requests.single.invokerFocusNode, same(rowFocus.focusNode));
+    expect(requests.single.invokerFocusNode.hasFocus, isTrue);
+  });
 }
 
 final class _Harness {
@@ -924,6 +1006,7 @@ final class _Harness {
         showWorldMapLayerRenameDialog,
     WorldMapLayerDeleteRequested onDeleteRequested =
         showWorldMapLayerDeleteDialog,
+    WorldMapLayerContextMenuRequested? onContextMenuRequested,
   }) {
     return tester.pumpWidget(
       UncontrolledProviderScope(
@@ -937,6 +1020,7 @@ final class _Harness {
               child: WorldMapLayersInspector(
                 onRenameRequested: onRenameRequested,
                 onDeleteRequested: onDeleteRequested,
+                onContextMenuRequested: onContextMenuRequested,
               ),
             ),
           ),

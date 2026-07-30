@@ -15,7 +15,14 @@ import 'world_map_selection_inspector.dart';
 import 'world_map_workspace_session.dart';
 
 class AdaptiveMapInspector extends ConsumerWidget {
-  const AdaptiveMapInspector({super.key});
+  const AdaptiveMapInspector({
+    super.key,
+    this.onLayerContextMenuRequested,
+    this.focusNode,
+  });
+
+  final WorldMapLayerContextMenuRequested? onLayerContextMenuRequested;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,7 +31,7 @@ class AdaptiveMapInspector extends ConsumerWidget {
     final canPin = ref.watch(worldMapInspectorCanPinProvider);
     final session = ref.read(worldMapWorkspaceSessionProvider.notifier);
 
-    return Semantics(
+    final inspector = Semantics(
       container: true,
       label: 'Inspecteur de carte : $title',
       child: PokeMapPanel(
@@ -72,14 +79,25 @@ class AdaptiveMapInspector extends ConsumerWidget {
           key: ValueKey<String>(
             'world-map-inspector-body-${snapshot.kind.name}',
           ),
-          child: _bodyFor(snapshot),
+          child: _bodyFor(
+            snapshot,
+            onLayerContextMenuRequested: onLayerContextMenuRequested,
+          ),
         ),
       ),
+    );
+    return Focus(
+      key: const ValueKey<String>('adaptive-map-inspector-focus'),
+      focusNode: focusNode,
+      child: inspector,
     );
   }
 }
 
-Widget _bodyFor(WorldMapInspectorSnapshot snapshot) {
+Widget _bodyFor(
+  WorldMapInspectorSnapshot snapshot, {
+  WorldMapLayerContextMenuRequested? onLayerContextMenuRequested,
+}) {
   return switch (snapshot.kind) {
     WorldMapInspectorKind.paint => const WorldMapPaintInspector(),
     WorldMapInspectorKind.erase => const WorldMapEraseInspector(),
@@ -91,7 +109,9 @@ Widget _bodyFor(WorldMapInspectorSnapshot snapshot) {
         cell: _requiredCell(snapshot),
         layerId: snapshot.activeLayerId,
       ),
-    WorldMapInspectorKind.layers => const WorldMapLayersInspector(),
+    WorldMapInspectorKind.layers => WorldMapLayersInspector(
+        onContextMenuRequested: onLayerContextMenuRequested,
+      ),
     WorldMapInspectorKind.empty => const PokeMapEmptyState(
         icon: Icon(Icons.ads_click_outlined),
         title: 'Aucune sélection',

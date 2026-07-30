@@ -408,6 +408,132 @@ void main() {
       expect(notifier.state.mapUndoStack, isEmpty);
       expect(notifier.state.isDirty, isFalse);
     });
+
+    for (final kind in _LayerKind.values) {
+      test(
+          'eraseCellAt addresses exactly one ${kind.name} cell outside strokes',
+          () {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        final notifier = container.read(editorNotifierProvider.notifier);
+        final map = _mapFor(kind);
+        notifier.state = EditorState(
+          activeMap: map,
+          activeLayerId: 'layer',
+          activeTool: EditorToolType.selection,
+          eraserFootprint: const EditorEraserFootprint.custom(
+            size: GridSize(width: 3, height: 3),
+          ),
+          savedMapSnapshot: map,
+        );
+
+        expect(
+          notifier.eraseCellAt(
+            layerId: 'layer',
+            pos: const GridPos(x: 1, y: 1),
+          ),
+          isTrue,
+        );
+
+        final state = notifier.state;
+        final layer = state.activeMap!.layers.single;
+        for (var y = 0; y < 4; y++) {
+          for (var x = 0; x < 4; x++) {
+            expect(
+              _isFilled(layer, x: x, y: y),
+              x != 1 || y != 1,
+              reason: '${kind.name} cell ($x,$y)',
+            );
+          }
+        }
+        expect(
+          state.eraserFootprint,
+          const EditorEraserFootprint.custom(
+            size: GridSize(width: 3, height: 3),
+          ),
+        );
+        expect(state.mapStrokeStart, isNull);
+        expect(state.mapUndoStack, hasLength(1));
+
+        notifier.undoMap();
+        expect(notifier.state.activeMap, map);
+      });
+    }
+
+    test('eraseCellAt rejects stale, unsupported and no-op targets cleanly',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final map = _mapWithLayers(
+        const <MapLayer>[
+          ObjectLayer(id: 'objects', name: 'Objects'),
+          TileLayer(
+            id: 'empty',
+            name: 'Empty',
+            tilesetId: 'world',
+            tiles: <int>[
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+            ],
+          ),
+        ],
+      );
+      notifier.state = EditorState(
+        activeMap: map,
+        activeLayerId: 'objects',
+        savedMapSnapshot: map,
+      );
+
+      expect(
+        notifier.eraseCellAt(
+          layerId: 'missing',
+          pos: const GridPos(x: 0, y: 0),
+        ),
+        isFalse,
+      );
+      expect(
+        notifier.eraseCellAt(
+          layerId: 'objects',
+          pos: const GridPos(x: 0, y: 0),
+        ),
+        isFalse,
+      );
+      expect(
+        notifier.eraseCellAt(
+          layerId: 'empty',
+          pos: const GridPos(x: 0, y: 0),
+        ),
+        isFalse,
+      );
+      expect(
+        notifier.eraseCellAt(
+          layerId: 'empty',
+          pos: const GridPos(x: -1, y: 0),
+        ),
+        isFalse,
+      );
+
+      expect(notifier.state.activeMap, same(map));
+      expect(notifier.state.mapStrokeStart, isNull);
+      expect(notifier.state.mapUndoStack, isEmpty);
+      expect(notifier.state.mapRedoStack, isEmpty);
+      expect(notifier.state.isDirty, isFalse);
+    });
   });
 }
 

@@ -390,6 +390,9 @@ class _PokeMapContextMenuRowState<T> extends State<_PokeMapContextMenuRow<T>> {
       button: true,
       enabled: item.enabled,
       label: semanticLabel,
+      hint: item.shortcutLabel == null
+          ? null
+          : 'Raccourci : ${item.shortcutLabel}',
       onTap: item.enabled ? widget.onSelected : null,
       child: ExcludeSemantics(
         child: FocusableActionDetector(

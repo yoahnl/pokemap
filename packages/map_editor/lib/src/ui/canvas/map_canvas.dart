@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart'
     show
         DragStartBehavior,
+        kSecondaryButton,
         PointerPanZoomEndEvent,
         PointerPanZoomStartEvent,
         PointerPanZoomUpdateEvent,
@@ -317,16 +318,40 @@ class MapCanvas extends ConsumerStatefulWidget {
     super.key,
     this.onEventBuilderPositionChosen,
     this.placedElementRotationPreview,
+    this.onContextMenuRequested,
+    this.onCellSelected,
+    this.keyboardContextCell,
   });
 
   /// Scoped Event Builder bridge: when supplied, a primary map tap selects a
   /// position for the Event Builder instead of applying the global map tool.
   final ValueChanged<GridPos>? onEventBuilderPositionChosen;
   final MapPlacedElementRotationPreviewState? placedElementRotationPreview;
+  final MapCanvasContextMenuRequested? onContextMenuRequested;
+  final ValueChanged<GridPos?>? onCellSelected;
+  final GridPos? keyboardContextCell;
 
   @override
   ConsumerState<MapCanvas> createState() => _MapCanvasState();
 }
+
+enum MapContextMenuInvocation { pointer, keyboard }
+
+@immutable
+final class MapCanvasContextMenuRequest {
+  const MapCanvasContextMenuRequest({
+    required this.globalPosition,
+    required this.gridPosition,
+    required this.invocation,
+  });
+
+  final Offset globalPosition;
+  final GridPos gridPosition;
+  final MapContextMenuInvocation invocation;
+}
+
+typedef MapCanvasContextMenuRequested
+    = ValueChanged<MapCanvasContextMenuRequest>;
 
 typedef _TilesetImageBatch = ({
   int generation,
@@ -413,6 +438,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   final MapCanvasInteractionController _interactionController =
       MapCanvasInteractionController();
   final Set<int> _pressedMapPointers = <int>{};
+  final Set<LogicalKeyboardKey> _pressedContextMenuKeys =
+      <LogicalKeyboardKey>{};
   final Map<int, Offset> _latestMapPointerLocalPositions = <int, Offset>{};
   int? _activeGestureInteractionId;
   int? _scheduledRollbackInteractionId;
@@ -502,6 +529,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     _releaseTilesetImagesFuture(_tilesetImagesFuture);
     _tilesetImagesFuture = null;
     _pressedMapPointers.clear();
+    _pressedContextMenuKeys.clear();
     _latestMapPointerLocalPositions.clear();
     _clearTrackpadGesture();
     _mapFocusNode.dispose();
@@ -1133,6 +1161,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
 
                 if (state.activeTool == EditorToolType.selection &&
                     !isEnvironmentMaskEditing) {
+                  widget.onCellSelected?.call(gridPos);
                   final objectTarget = notifier.selectCanvasObjectAt(
                     gridPos,
                     editorAnimationTimeMs: _editorEntityAnimationMs,
@@ -2056,6 +2085,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   }
 
   void _onMapPointerDown(PointerDownEvent event) {
+    if ((event.buttons & kSecondaryButton) != 0) {
+      _requestPointerContextMenu(event);
+      return;
+    }
     _mapFocusNode.requestFocus();
     final anotherPointerIsPressed = _pressedMapPointers.isNotEmpty;
     _pressedMapPointers.add(event.pointer);
@@ -2251,6 +2284,22 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   }
 
   KeyEventResult _onMapKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent &&
+        _pressedContextMenuKeys.remove(event.logicalKey)) {
+      return KeyEventResult.handled;
+    }
+    if (event is KeyDownEvent && _isKeyboardContextMenuEvent(event)) {
+      if (!_pressedContextMenuKeys.add(event.logicalKey)) {
+        return KeyEventResult.handled;
+      }
+      final request = _keyboardContextMenuRequest();
+      if (request == null || widget.onContextMenuRequested == null) {
+        _pressedContextMenuKeys.remove(event.logicalKey);
+        return KeyEventResult.ignored;
+      }
+      widget.onContextMenuRequested!(request);
+      return KeyEventResult.handled;
+    }
     if (event.logicalKey == LogicalKeyboardKey.space) {
       final nextPressed = event is! KeyUpEvent;
       if (_spacePressed != nextPressed) {
@@ -2302,12 +2351,171 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     return KeyEventResult.ignored;
   }
 
+  void _requestPointerContextMenu(PointerDownEvent event) {
+    _mapFocusNode.requestFocus();
+    final cancelled = _interactionController.cancelActive();
+    if (cancelled != null) {
+      _rollbackMapInteraction(cancelled.session);
+      if (mounted) {
+        setState(() {});
+      }
+    }
+    final callback = widget.onContextMenuRequested;
+    if (callback == null) {
+      return;
+    }
+    final state = ref.read(editorNotifierProvider);
+    final map = state.activeMap;
+    if (map == null) {
+      return;
+    }
+    final settings = state.project?.settings ?? const ProjectSettings();
+    final position = _screenToGrid(
+      event.localPosition,
+      state.panOffset,
+      state.zoom,
+      map.size,
+      settings.tileWidth * settings.displayScale,
+      settings.tileHeight * settings.displayScale,
+    );
+    if (position == null) {
+      return;
+    }
+    widget.onCellSelected?.call(position);
+    callback(
+      MapCanvasContextMenuRequest(
+        globalPosition: event.position,
+        gridPosition: position,
+        invocation: MapContextMenuInvocation.pointer,
+      ),
+    );
+  }
+
+  bool _isKeyboardContextMenuEvent(KeyDownEvent event) {
+    if (event.logicalKey == LogicalKeyboardKey.contextMenu) {
+      return true;
+    }
+    final keyboard = HardwareKeyboard.instance;
+    return event.logicalKey == LogicalKeyboardKey.f10 &&
+        keyboard.isShiftPressed &&
+        !keyboard.isAltPressed &&
+        !keyboard.isControlPressed &&
+        !keyboard.isMetaPressed;
+  }
+
+  MapCanvasContextMenuRequest? _keyboardContextMenuRequest() {
+    final callback = widget.onContextMenuRequested;
+    final state = ref.read(editorNotifierProvider);
+    final map = state.activeMap;
+    final viewportContext = _mapViewportKey.currentContext;
+    if (callback == null || map == null || viewportContext == null) {
+      return null;
+    }
+    final renderObject = viewportContext.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return null;
+    }
+    final settings = state.project?.settings ?? const ProjectSettings();
+    final tileWidth = settings.tileWidth * settings.displayScale;
+    final tileHeight = settings.tileHeight * settings.displayScale;
+    final selectedObject = resolveSelectedCanvasObjectTarget(
+      map: map,
+      project: state.project,
+      selectedPlacedElementInstanceId: state.selectedPlacedElementInstanceId,
+      selectedEntityId: state.selectedEntityId,
+      selectedMapEventId: state.selectedMapEventId,
+      selectedWarpId: state.selectedWarpId,
+      selectedTriggerId: state.selectedTriggerId,
+      selectedGameplayZoneId: state.selectedGameplayZoneId,
+      editorAnimationTimeMs: _editorEntityAnimationMs,
+    );
+
+    late final GridPos gridPosition;
+    late final Offset preferredLocalAnchor;
+    if (selectedObject != null) {
+      gridPosition = selectedObject.anchor;
+      preferredLocalAnchor = _gridTargetCenterInViewport(
+        anchor: selectedObject.anchor,
+        size: selectedObject.size,
+        pan: state.panOffset,
+        zoom: state.zoom,
+        tileWidth: tileWidth,
+        tileHeight: tileHeight,
+      );
+    } else if (_isInMap(widget.keyboardContextCell, map.size)) {
+      gridPosition = widget.keyboardContextCell!;
+      preferredLocalAnchor = _gridTargetCenterInViewport(
+        anchor: gridPosition,
+        size: const GridSize(width: 1, height: 1),
+        pan: state.panOffset,
+        zoom: state.zoom,
+        tileWidth: tileWidth,
+        tileHeight: tileHeight,
+      );
+    } else {
+      final center = renderObject.size.center(Offset.zero);
+      final unbounded = _screenToUnboundedGrid(
+        center,
+        state.panOffset,
+        state.zoom,
+        tileWidth,
+        tileHeight,
+      );
+      gridPosition = GridPos(
+        x: unbounded.x.clamp(0, map.size.width - 1).toInt(),
+        y: unbounded.y.clamp(0, map.size.height - 1).toInt(),
+      );
+      preferredLocalAnchor = center;
+    }
+
+    final localAnchor = Offset(
+      _clampContextAnchor(preferredLocalAnchor.dx, renderObject.size.width),
+      _clampContextAnchor(preferredLocalAnchor.dy, renderObject.size.height),
+    );
+    return MapCanvasContextMenuRequest(
+      globalPosition: renderObject.localToGlobal(localAnchor),
+      gridPosition: gridPosition,
+      invocation: MapContextMenuInvocation.keyboard,
+    );
+  }
+
+  Offset _gridTargetCenterInViewport({
+    required GridPos anchor,
+    required GridSize size,
+    required Offset pan,
+    required double zoom,
+    required double tileWidth,
+    required double tileHeight,
+  }) {
+    return Offset(
+      pan.dx + (anchor.x + size.width / 2) * tileWidth * zoom,
+      pan.dy + (anchor.y + size.height / 2) * tileHeight * zoom,
+    );
+  }
+
+  bool _isInMap(GridPos? position, GridSize size) {
+    return position != null &&
+        position.x >= 0 &&
+        position.y >= 0 &&
+        position.x < size.width &&
+        position.y < size.height;
+  }
+
+  double _clampContextAnchor(double value, double extent) {
+    if (extent <= 0) {
+      return 0;
+    }
+    final inset = math.min(8.0, extent / 2);
+    return value.clamp(inset, extent - inset).toDouble();
+  }
+
   void _onMapFocusChanged(bool hasFocus) {
     if (hasFocus) return;
     final cancelled = _interactionController.cancelActive();
     final needsRebuild = _spacePressed || cancelled != null;
     _spacePressed = false;
     _pressedMapPointers.clear();
+    _pressedContextMenuKeys.clear();
     _latestMapPointerLocalPositions.clear();
     _clearTrackpadGesture();
     if (cancelled != null) {

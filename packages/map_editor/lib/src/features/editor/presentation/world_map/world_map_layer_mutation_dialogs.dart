@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 
 import '../../../../theme/theme.dart';
 import '../../../../ui/design_system/design_system.dart';
@@ -14,6 +16,80 @@ typedef WorldMapLayerDeleteRequested = Future<bool> Function({
   required BuildContext context,
   required MapLayerDeletionImpact impact,
 });
+
+Future<bool> runWorldMapLayerRenameFlow({
+  required BuildContext context,
+  required String layerId,
+  required MapData? Function() readActiveMap,
+  required WorldMapLayerRenameRequested onRenameRequested,
+  required void Function(String layerId, String name) renameLayer,
+}) async {
+  final originalMap = readActiveMap();
+  final originalLayer = originalMap?.layers
+      .where((candidate) => candidate.id == layerId)
+      .firstOrNull;
+  if (originalMap == null || originalLayer == null) return false;
+  final nextName = await onRenameRequested(
+    context: context,
+    layerId: layerId,
+    currentName: originalLayer.name,
+  );
+  final normalizedName = nextName?.trim();
+  if (normalizedName == null || normalizedName.isEmpty) return false;
+  final currentMap = readActiveMap();
+  final currentLayer = currentMap?.layers
+      .where((candidate) => candidate.id == layerId)
+      .firstOrNull;
+  if (currentMap?.id != originalMap.id ||
+      currentLayer == null ||
+      currentLayer.name != originalLayer.name) {
+    return false;
+  }
+  renameLayer(layerId, normalizedName);
+  return true;
+}
+
+Future<bool> runWorldMapLayerDeleteFlow({
+  required BuildContext context,
+  required String layerId,
+  required MapData? Function() readActiveMap,
+  required WorldMapLayerDeleteRequested onDeleteRequested,
+  required void Function(String layerId) deleteLayer,
+}) async {
+  final map = readActiveMap();
+  if (map == null) return false;
+  final impact = const MapLayerDeletionImpactProjector().project(
+    map: map,
+    layerId: layerId,
+  );
+  final confirmedPlacements = _placementsHostedByLayer(map, layerId);
+  if (impact.isBlocked) return false;
+  final confirmed = await onDeleteRequested(
+    context: context,
+    impact: impact,
+  );
+  if (!confirmed) return false;
+  final currentMap = readActiveMap();
+  if (currentMap == null ||
+      currentMap.id != map.id ||
+      !currentMap.layers.any((layer) => layer.id == layerId)) {
+    return false;
+  }
+  final currentImpact = const MapLayerDeletionImpactProjector().project(
+    map: currentMap,
+    layerId: layerId,
+  );
+  if (currentImpact.isBlocked ||
+      !_hasSameDeletionImpact(impact, currentImpact) ||
+      !listEquals(
+        confirmedPlacements,
+        _placementsHostedByLayer(currentMap, layerId),
+      )) {
+    return false;
+  }
+  deleteLayer(layerId);
+  return true;
+}
 
 Future<String?> showWorldMapLayerRenameDialog({
   required BuildContext context,
@@ -181,4 +257,27 @@ final class _ImpactRow extends StatelessWidget {
       ],
     );
   }
+}
+
+List<MapPlacedElement> _placementsHostedByLayer(
+  MapData map,
+  String layerId,
+) {
+  return map.placedElements
+      .where((placement) => placement.layerId == layerId)
+      .toList(growable: false);
+}
+
+bool _hasSameDeletionImpact(
+  MapLayerDeletionImpact confirmed,
+  MapLayerDeletionImpact current,
+) {
+  return confirmed.layerId == current.layerId &&
+      confirmed.placedElementCount == current.placedElementCount &&
+      listEquals(confirmed.affectedMapEventIds, current.affectedMapEventIds) &&
+      confirmed.environmentGeneratedCount ==
+          current.environmentGeneratedCount &&
+      confirmed.environmentAttachmentCount ==
+          current.environmentAttachmentCount &&
+      listEquals(confirmed.blockingReasons, current.blockingReasons);
 }

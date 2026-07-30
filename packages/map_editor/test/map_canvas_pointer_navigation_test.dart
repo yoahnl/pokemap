@@ -648,6 +648,186 @@ void main() {
       expect(state.mapUndoStack, isEmpty);
     });
 
+    testWidgets(
+      'secondary click emits one typed request after selecting its cell',
+      (tester) async {
+        final container = _createContainer();
+        container.read(editorNotifierProvider.notifier).state =
+            const EditorState(
+          project: _project,
+          activeMap: _activeMap,
+          activeLayerId: 'ground',
+          savedMapSnapshot: _activeMap,
+        );
+        final calls = <String>[];
+        final requests = <MapCanvasContextMenuRequest>[];
+
+        await _pumpCanvas(
+          tester,
+          container,
+          onCellSelected: (cell) => calls.add('cell:$cell'),
+          onContextMenuRequested: (request) {
+            calls.add('menu:${request.gridPosition}');
+            requests.add(request);
+          },
+        );
+        final canvas = find.byType(MapCanvas);
+        final origin = tester.getTopLeft(canvas);
+        final gesture = await tester.startGesture(
+          origin + const Offset(16, 16),
+          kind: ui.PointerDeviceKind.mouse,
+          buttons: kSecondaryButton,
+        );
+        await gesture.moveBy(const Offset(80, 60));
+        await gesture.up();
+        await tester.pump();
+
+        expect(requests, hasLength(1));
+        expect(
+          requests.single.invocation,
+          MapContextMenuInvocation.pointer,
+        );
+        expect(requests.single.gridPosition, const GridPos(x: 0, y: 0));
+        expect(requests.single.globalPosition, origin + const Offset(16, 16));
+        expect(
+          calls,
+          const <String>[
+            'cell:GridPos(x: 0, y: 0)',
+            'menu:GridPos(x: 0, y: 0)'
+          ],
+        );
+      },
+    );
+
+    testWidgets('Menu and Shift+F10 emit keyboard-equivalent requests once',
+        (tester) async {
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        savedMapSnapshot: _activeMap,
+      );
+      final requests = <MapCanvasContextMenuRequest>[];
+
+      await _pumpCanvas(
+        tester,
+        container,
+        keyboardContextCell: const GridPos(x: 1, y: 1),
+        onContextMenuRequested: requests.add,
+      );
+      await tester.tap(find.byType(MapCanvas));
+      await tester.pump();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.contextMenu);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.contextMenu);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.contextMenu);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.f10);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.f10);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+
+      expect(requests, hasLength(2));
+      expect(
+        requests.map((request) => request.invocation),
+        everyElement(MapContextMenuInvocation.keyboard),
+      );
+      expect(
+        requests.map((request) => request.gridPosition),
+        everyElement(const GridPos(x: 1, y: 1)),
+      );
+      final canvas = tester.getRect(find.byType(MapCanvas));
+      expect(
+        requests.every((request) => canvas.contains(request.globalPosition)),
+        isTrue,
+      );
+    });
+
+    testWidgets('keyboard context prefers the selected object anchor',
+        (tester) async {
+      final container = _createContainer();
+      final map = _activeMap.copyWith(
+        entities: const <MapEntity>[
+          MapEntity(
+            id: 'selected',
+            kind: MapEntityKind.custom,
+            pos: GridPos(x: 0, y: 1),
+          ),
+        ],
+      );
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        project: _project,
+        activeMap: map,
+        activeLayerId: 'ground',
+        selectedEntityId: 'selected',
+        savedMapSnapshot: map,
+      );
+      final requests = <MapCanvasContextMenuRequest>[];
+
+      await _pumpCanvas(
+        tester,
+        container,
+        keyboardContextCell: const GridPos(x: 1, y: 0),
+        onContextMenuRequested: requests.add,
+      );
+      final focusGesture = await tester.startGesture(
+        tester.getCenter(find.byType(MapCanvas)),
+        kind: ui.PointerDeviceKind.mouse,
+        buttons: kSecondaryButton,
+      );
+      await focusGesture.up();
+      requests.clear();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
+      await tester.pump();
+
+      expect(requests.single.gridPosition, const GridPos(x: 0, y: 1));
+      expect(
+        requests.single.invocation,
+        MapContextMenuInvocation.keyboard,
+      );
+    });
+
+    testWidgets('keyboard context has a deterministic in-map fallback',
+        (tester) async {
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        savedMapSnapshot: _activeMap,
+        panOffset: Offset(-500, -400),
+      );
+      final requests = <MapCanvasContextMenuRequest>[];
+
+      await _pumpCanvas(
+        tester,
+        container,
+        onContextMenuRequested: requests.add,
+      );
+      final focusGesture = await tester.startGesture(
+        tester.getCenter(find.byType(MapCanvas)),
+        kind: ui.PointerDeviceKind.mouse,
+        buttons: kSecondaryButton,
+      );
+      await focusGesture.up();
+      requests.clear();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
+      await tester.pump();
+
+      expect(requests, hasLength(1));
+      expect(requests.single.gridPosition.x, inInclusiveRange(0, 1));
+      expect(requests.single.gridPosition.y, inInclusiveRange(0, 1));
+      expect(
+        tester
+            .getRect(find.byType(MapCanvas))
+            .contains(requests.single.globalPosition),
+        isTrue,
+      );
+    });
+
     testWidgets('F fits the complete map after the canvas takes focus',
         (tester) async {
       final container = _createContainer();
@@ -1048,6 +1228,9 @@ Future<void> _pumpCanvas(
   WidgetTester tester,
   ProviderContainer container, {
   EdgeInsets canvasPadding = EdgeInsets.zero,
+  MapCanvasContextMenuRequested? onContextMenuRequested,
+  ValueChanged<GridPos?>? onCellSelected,
+  GridPos? keyboardContextCell,
 }) async {
   await tester.binding.setSurfaceSize(const Size(900, 700));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -1064,7 +1247,13 @@ Future<void> _pumpCanvas(
           home: CupertinoPageScaffold(
             child: Padding(
               padding: canvasPadding,
-              child: const SizedBox.expand(child: MapCanvas()),
+              child: SizedBox.expand(
+                child: MapCanvas(
+                  onContextMenuRequested: onContextMenuRequested,
+                  onCellSelected: onCellSelected,
+                  keyboardContextCell: keyboardContextCell,
+                ),
+              ),
             ),
           ),
         ),

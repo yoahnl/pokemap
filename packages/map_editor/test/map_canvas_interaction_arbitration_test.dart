@@ -677,6 +677,122 @@ void main() {
         await tester.pump();
       },
     );
+
+    testWidgets(
+      'secondary click requests context without stroke mutation or quarantine',
+      (tester) async {
+        final container = _createContainer();
+        container.read(editorNotifierProvider.notifier).state =
+            const EditorState(
+          project: _project,
+          activeMap: _activeMap,
+          activeLayerId: 'collision',
+          activeTool: EditorToolType.collisionPaint,
+          savedMapSnapshot: _activeMap,
+        );
+        final beforeJson = _activeMap.toJson();
+        final requests = <MapCanvasContextMenuRequest>[];
+
+        await _pumpCanvas(
+          tester,
+          container,
+          onContextMenuRequested: requests.add,
+        );
+        final origin = tester.getTopLeft(find.byType(MapCanvas));
+        final secondary = await tester.startGesture(
+          origin + const Offset(16, 16),
+          pointer: 81,
+          kind: ui.PointerDeviceKind.mouse,
+          buttons: kSecondaryButton,
+        );
+        await secondary.moveBy(const Offset(68, 0));
+        await tester.pump();
+        await secondary.up();
+        await tester.pump();
+
+        final afterSecondary = container.read(editorNotifierProvider);
+        expect(requests, hasLength(1));
+        expect(afterSecondary.activeMap!.toJson(), beforeJson);
+        expect(afterSecondary.mapStrokeStart, isNull);
+        expect(afterSecondary.mapUndoStack, isEmpty);
+        expect(afterSecondary.mapRedoStack, isEmpty);
+        expect(afterSecondary.isDirty, isFalse);
+
+        final primary = await tester.startGesture(
+          origin + const Offset(16, 16),
+          pointer: 82,
+          kind: ui.PointerDeviceKind.mouse,
+          buttons: kPrimaryButton,
+        );
+        await primary.moveBy(const Offset(34, 0));
+        await tester.pump();
+        await primary.up();
+        await tester.pump();
+
+        final committed = container.read(editorNotifierProvider);
+        expect(committed.mapStrokeStart, isNull);
+        expect(committed.mapUndoStack, hasLength(1));
+        expect(committed.isDirty, isTrue);
+      },
+    );
+
+    testWidgets(
+      'any chord containing secondary opens context without owning a pressed pointer',
+      (tester) async {
+        final container = _createContainer();
+        container.read(editorNotifierProvider.notifier).state =
+            const EditorState(
+          project: _project,
+          activeMap: _activeMap,
+          activeLayerId: 'collision',
+          activeTool: EditorToolType.collisionPaint,
+          savedMapSnapshot: _activeMap,
+        );
+        final beforeJson = _activeMap.toJson();
+        final requests = <MapCanvasContextMenuRequest>[];
+
+        await _pumpCanvas(
+          tester,
+          container,
+          onContextMenuRequested: requests.add,
+        );
+        final origin = tester.getTopLeft(find.byType(MapCanvas));
+        final secondaryChord = await tester.startGesture(
+          origin + const Offset(16, 16),
+          pointer: 83,
+          kind: ui.PointerDeviceKind.mouse,
+          buttons: kPrimaryButton | kSecondaryButton,
+        );
+        await secondaryChord.moveBy(const Offset(68, 0));
+        await tester.pump();
+
+        final afterChord = container.read(editorNotifierProvider);
+        expect(requests, hasLength(1));
+        expect(afterChord.activeMap!.toJson(), beforeJson);
+        expect(afterChord.mapStrokeStart, isNull);
+        expect(afterChord.mapUndoStack, isEmpty);
+        expect(afterChord.isDirty, isFalse);
+
+        final primary = await tester.startGesture(
+          origin + const Offset(16, 16),
+          pointer: 84,
+          kind: ui.PointerDeviceKind.mouse,
+          buttons: kPrimaryButton,
+        );
+        await primary.moveBy(const Offset(34, 0));
+        await tester.pump();
+        await primary.up();
+        await tester.pump();
+
+        final committed = container.read(editorNotifierProvider);
+        expect(committed.mapStrokeStart, isNull);
+        expect(committed.mapUndoStack, hasLength(1));
+        expect(committed.isDirty, isTrue);
+
+        await secondaryChord.up();
+        await tester.pump();
+      },
+    );
   });
 }
 
@@ -696,8 +812,9 @@ ProviderContainer _createContainer() {
 
 Future<void> _pumpCanvas(
   WidgetTester tester,
-  ProviderContainer container,
-) async {
+  ProviderContainer container, {
+  MapCanvasContextMenuRequested? onContextMenuRequested,
+}) async {
   await tester.binding.setSurfaceSize(const Size(900, 700));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   addTearDown(() async {
@@ -709,9 +826,13 @@ Future<void> _pumpCanvas(
       container: container,
       child: MacosTheme(
         data: MacosThemeData.light(),
-        child: const MaterialApp(
+        child: MaterialApp(
           home: CupertinoPageScaffold(
-            child: SizedBox.expand(child: MapCanvas()),
+            child: SizedBox.expand(
+              child: MapCanvas(
+                onContextMenuRequested: onContextMenuRequested,
+              ),
+            ),
           ),
         ),
       ),

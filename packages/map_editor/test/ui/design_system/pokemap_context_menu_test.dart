@@ -178,6 +178,31 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('announces the rendered shortcut label in row semantics',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+
+    await tester.pumpWidget(
+      _ContextMenuHarness(
+        items: items,
+        onSelected: (_) {},
+      ),
+    );
+    await tester.tap(find.text('Afficher'));
+    await tester.pump();
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label?.contains('Ouvrir') == true &&
+            widget.properties.hint?.contains('Raccourci : Entrée') == true,
+      ),
+      findsOneWidget,
+    );
+    semantics.dispose();
+  });
+
   testWidgets('uses destructive tokens and renders requested separators',
       (tester) async {
     await tester.pumpWidget(

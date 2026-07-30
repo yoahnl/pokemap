@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../application/services/placed_element_instance_indexer.dart';
@@ -12,6 +13,56 @@ enum MapCanvasObjectMoveRejection {
   tileIndexedSourceInvalid,
   tileIndexedDestinationOccupied,
   tileIndexedProjectionInvalid,
+}
+
+@immutable
+final class MapCanvasObjectMoveStartCapability {
+  const MapCanvasObjectMoveStartCapability._({
+    required this.allowed,
+    this.rejection,
+    this.reason,
+  });
+
+  const MapCanvasObjectMoveStartCapability.allowed() : this._(allowed: true);
+
+  const MapCanvasObjectMoveStartCapability.blocked({
+    required MapCanvasObjectMoveRejection rejection,
+    required String reason,
+  }) : this._(
+          allowed: false,
+          rejection: rejection,
+          reason: reason,
+        );
+
+  final bool allowed;
+  final MapCanvasObjectMoveRejection? rejection;
+  final String? reason;
+}
+
+String mapCanvasObjectMoveRejectionReason(
+  MapCanvasObjectMoveRejection rejection,
+) {
+  return switch (rejection) {
+    MapCanvasObjectMoveRejection.targetNotFound =>
+      'Déplacement impossible : l’objet est introuvable.',
+    MapCanvasObjectMoveRejection.boundsUnavailable =>
+      'Déplacement impossible : l’empreinte de l’élément est inconnue.',
+    MapCanvasObjectMoveRejection.sourceOutOfBounds =>
+      'Déplacement impossible : la position actuelle est hors carte.',
+    MapCanvasObjectMoveRejection.destinationOutOfBounds =>
+      'Déplacement impossible : la destination dépasse la carte.',
+    MapCanvasObjectMoveRejection.environmentGeneratedPlacement =>
+      'Cet élément est généré par une zone Environment. '
+          'Modifiez ou régénérez cette zone pour le déplacer.',
+    MapCanvasObjectMoveRejection.tileIndexedSourceInvalid =>
+      'Déplacement impossible : la projection de tuiles source '
+          'n’est plus cohérente.',
+    MapCanvasObjectMoveRejection.tileIndexedDestinationOccupied =>
+      'Déplacement impossible : des tuiles occupent déjà la destination.',
+    MapCanvasObjectMoveRejection.tileIndexedProjectionInvalid =>
+      'Déplacement impossible : la projection de tuiles obtenue '
+          'n’est pas valide.',
+  };
 }
 
 final class MapCanvasObjectMovePlan {
@@ -87,6 +138,53 @@ final class MapCanvasObjectMovePlanner {
 
   final PlacedElementInstanceIndexer _indexer;
 
+  MapCanvasObjectMoveStartCapability canStartMove({
+    required MapData map,
+    required ProjectManifest? project,
+    required MapCanvasObjectTarget target,
+  }) {
+    final placed = target.kind == MapCanvasObjectKind.placedElement
+        ? _findPlacedElement(map, target.id)
+        : null;
+    if (placed != null && _isEnvironmentGenerated(map, placed)) {
+      return _blockedMoveStart(
+        MapCanvasObjectMoveRejection.environmentGeneratedPlacement,
+      );
+    }
+
+    final sourceTarget = _resolveTarget(
+      map: map,
+      project: project,
+      requested: target,
+    );
+    if (sourceTarget == null) {
+      return _blockedMoveStart(
+        placed == null
+            ? MapCanvasObjectMoveRejection.targetNotFound
+            : MapCanvasObjectMoveRejection.boundsUnavailable,
+      );
+    }
+    if (!_isInBounds(sourceTarget.anchor, sourceTarget.size, map.size)) {
+      return _blockedMoveStart(
+        MapCanvasObjectMoveRejection.sourceOutOfBounds,
+      );
+    }
+    if (placed?.properties[pokemapPlacementOriginProperty] ==
+            pokemapPlacementOriginTileIndex &&
+        (project == null ||
+            _resolveTileIndexedSource(
+                  map: map,
+                  project: project,
+                  placed: placed!,
+                ) ==
+                null)) {
+      return _blockedMoveStart(
+        MapCanvasObjectMoveRejection.tileIndexedSourceInvalid,
+      );
+    }
+    return const MapCanvasObjectMoveStartCapability.allowed();
+  }
+
   MapCanvasObjectMovePlan plan({
     required MapData map,
     required ProjectManifest? project,
@@ -96,7 +194,7 @@ final class MapCanvasObjectMovePlanner {
     final placed = target.kind == MapCanvasObjectKind.placedElement
         ? _findPlacedElement(map, target.id)
         : null;
-    if (placed != null && _isEnvironmentGenerated(map, placed.id)) {
+    if (placed != null && _isEnvironmentGenerated(map, placed)) {
       final moveSize = _placedElementMoveSize(
         project: project,
         placed: placed,
@@ -194,9 +292,12 @@ final class MapCanvasObjectMovePlanner {
     required MapCanvasObjectTarget previewTarget,
     required GridPos destinationAnchor,
   }) {
-    final tilePatternSize = _placedElementSize(project, placed);
-    if (tilePatternSize == null ||
-        !_isInBounds(placed.pos, tilePatternSize, map.size)) {
+    final source = _resolveTileIndexedSource(
+      map: map,
+      project: project,
+      placed: placed,
+    );
+    if (source == null) {
       return MapCanvasObjectMovePlan.rejected(
         sourceMap: map,
         sourceTarget: sourceTarget,
@@ -204,6 +305,7 @@ final class MapCanvasObjectMovePlanner {
         rejection: MapCanvasObjectMoveRejection.tileIndexedSourceInvalid,
       );
     }
+    final tilePatternSize = source.patternSize;
     if (!_isInBounds(destinationAnchor, tilePatternSize, map.size)) {
       return MapCanvasObjectMovePlan.rejected(
         sourceMap: map,
@@ -219,36 +321,8 @@ final class MapCanvasObjectMovePlanner {
       anchor: placed.pos,
       size: tilePatternSize,
     );
-    final layerIndex =
-        map.layers.indexWhere((entry) => entry.id == placed.layerId);
-    if (layerIndex < 0 || map.layers[layerIndex] is! TileLayer) {
-      return MapCanvasObjectMovePlan.rejected(
-        sourceMap: map,
-        sourceTarget: sourceTarget,
-        previewTarget: previewTarget,
-        rejection: MapCanvasObjectMoveRejection.tileIndexedSourceInvalid,
-      );
-    }
-    final layer = map.layers[layerIndex] as TileLayer;
-    final synchronized = _indexer.syncLayer(
-      map: map,
-      project: project,
-      layerId: layer.id,
-    );
-    final synchronizedPlaced = _findPlacedElement(synchronized, placed.id);
-    if (synchronizedPlaced == null ||
-        synchronizedPlaced.layerId != placed.layerId ||
-        synchronizedPlaced.elementId != placed.elementId ||
-        synchronizedPlaced.pos != placed.pos ||
-        synchronizedPlaced.properties[pokemapPlacementOriginProperty] !=
-            pokemapPlacementOriginTileIndex) {
-      return MapCanvasObjectMovePlan.rejected(
-        sourceMap: map,
-        sourceTarget: sourceTarget,
-        previewTarget: previewTarget,
-        rejection: MapCanvasObjectMoveRejection.tileIndexedSourceInvalid,
-      );
-    }
+    final layerIndex = source.layerIndex;
+    final layer = source.layer;
 
     for (var localY = 0; localY < tilePatternSize.height; localY++) {
       for (var localX = 0; localX < tilePatternSize.width; localX++) {
@@ -344,6 +418,62 @@ final class MapCanvasObjectMovePlanner {
       candidateMap: candidate,
     );
   }
+
+  _TileIndexedMoveSource? _resolveTileIndexedSource({
+    required MapData map,
+    required ProjectManifest project,
+    required MapPlacedElement placed,
+  }) {
+    final patternSize = _placedElementSize(project, placed);
+    if (patternSize == null ||
+        !_isInBounds(placed.pos, patternSize, map.size)) {
+      return null;
+    }
+    final layerIndex =
+        map.layers.indexWhere((entry) => entry.id == placed.layerId);
+    if (layerIndex < 0 || map.layers[layerIndex] is! TileLayer) {
+      return null;
+    }
+    final layer = map.layers[layerIndex] as TileLayer;
+    try {
+      final synchronized = _indexer.syncLayer(
+        map: map,
+        project: project,
+        layerId: layer.id,
+      );
+      final synchronizedPlaced = _findPlacedElement(synchronized, placed.id);
+      if (synchronizedPlaced == null ||
+          synchronizedPlaced.layerId != placed.layerId ||
+          synchronizedPlaced.elementId != placed.elementId ||
+          synchronizedPlaced.pos != placed.pos ||
+          synchronizedPlaced.properties[pokemapPlacementOriginProperty] !=
+              pokemapPlacementOriginTileIndex) {
+        return null;
+      }
+    } on Object {
+      return null;
+    }
+    return (
+      patternSize: patternSize,
+      layerIndex: layerIndex,
+      layer: layer,
+    );
+  }
+}
+
+typedef _TileIndexedMoveSource = ({
+  GridSize patternSize,
+  int layerIndex,
+  TileLayer layer,
+});
+
+MapCanvasObjectMoveStartCapability _blockedMoveStart(
+  MapCanvasObjectMoveRejection rejection,
+) {
+  return MapCanvasObjectMoveStartCapability.blocked(
+    rejection: rejection,
+    reason: mapCanvasObjectMoveRejectionReason(rejection),
+  );
 }
 
 MapCanvasObjectTarget? _resolveTarget({
@@ -522,7 +652,12 @@ GridSize? _placedElementMoveSize({
   }
 }
 
-bool _isEnvironmentGenerated(MapData map, String placementId) {
+bool _isEnvironmentGenerated(MapData map, MapPlacedElement placement) {
+  if (placement.properties[pokemapPlacementOriginProperty]?.trim() ==
+      pokemapPlacementOriginEnvironment) {
+    return true;
+  }
+  final placementId = placement.id;
   for (final layer in map.layers.whereType<EnvironmentLayer>()) {
     for (final area in layer.content.areas) {
       if (area.generatedPlacementIds.contains(placementId)) return true;

@@ -1,13 +1,14 @@
-import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../../theme/theme.dart';
 import '../../../../ui/design_system/design_system.dart';
 import '../../../../ui/panels/layers_panel_presentation.dart';
-import '../../application/map_layer_deletion_impact.dart';
+import '../../application/map_context_target.dart';
 import '../../state/editor_notifier.dart';
+import '../../../../ui/canvas/map_canvas.dart';
 import 'world_map_layer_mutation_dialogs.dart';
 import 'world_map_workspace_session.dart';
 
@@ -22,15 +23,35 @@ enum WorldMapLayerCreationKind {
   surface,
 }
 
+@immutable
+final class WorldMapLayerContextMenuRequest {
+  const WorldMapLayerContextMenuRequest({
+    required this.target,
+    required this.globalPosition,
+    required this.invocation,
+    required this.invokerFocusNode,
+  });
+
+  final MapLayerContextTarget target;
+  final Offset globalPosition;
+  final MapContextMenuInvocation invocation;
+  final FocusNode invokerFocusNode;
+}
+
+typedef WorldMapLayerContextMenuRequested
+    = ValueChanged<WorldMapLayerContextMenuRequest>;
+
 class WorldMapLayersInspector extends ConsumerWidget {
   const WorldMapLayersInspector({
     super.key,
     this.onRenameRequested = showWorldMapLayerRenameDialog,
     this.onDeleteRequested = showWorldMapLayerDeleteDialog,
+    this.onContextMenuRequested,
   });
 
   final WorldMapLayerRenameRequested onRenameRequested;
   final WorldMapLayerDeleteRequested onDeleteRequested;
+  final WorldMapLayerContextMenuRequested? onContextMenuRequested;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -113,6 +134,7 @@ class WorldMapLayersInspector extends ConsumerWidget {
                       ref.read(editorNotifierProvider).activeMap,
                   onRenameRequested: onRenameRequested,
                   onDeleteRequested: onDeleteRequested,
+                  onContextMenuRequested: onContextMenuRequested,
                 ),
               ),
             ),
@@ -131,6 +153,7 @@ final class _WorldMapLayerRow extends StatelessWidget {
     required this.readActiveMap,
     required this.onRenameRequested,
     required this.onDeleteRequested,
+    required this.onContextMenuRequested,
     super.key,
   });
 
@@ -140,12 +163,13 @@ final class _WorldMapLayerRow extends StatelessWidget {
   final MapData? Function() readActiveMap;
   final WorldMapLayerRenameRequested onRenameRequested;
   final WorldMapLayerDeleteRequested onDeleteRequested;
+  final WorldMapLayerContextMenuRequested? onContextMenuRequested;
 
   @override
   Widget build(BuildContext context) {
     final layer = row.layer;
     final layerId = layer.id;
-    return Semantics(
+    final card = Semantics(
       key: ValueKey<String>('world-map-layer-semantics-$layerId'),
       container: true,
       selected: row.isActive,
@@ -294,98 +318,116 @@ final class _WorldMapLayerRow extends StatelessWidget {
         ),
       ),
     );
+    return _WorldMapLayerContextMenuInvoker(
+      layerId: layerId,
+      onRequested: onContextMenuRequested,
+      child: card,
+    );
   }
 
   Future<void> _renameLayer(BuildContext context, MapLayer layer) async {
-    final originalMap = readActiveMap();
-    if (originalMap == null ||
-        !originalMap.layers.any((candidate) => candidate.id == layer.id)) {
-      return;
-    }
-    final nextName = await onRenameRequested(
+    await runWorldMapLayerRenameFlow(
       context: context,
       layerId: layer.id,
-      currentName: layer.name,
+      readActiveMap: readActiveMap,
+      onRenameRequested: onRenameRequested,
+      renameLayer: notifier.renameMapLayer,
     );
-    final normalizedName = nextName?.trim();
-    if (normalizedName == null || normalizedName.isEmpty) {
-      return;
-    }
-    final currentMap = readActiveMap();
-    final currentLayer = currentMap?.layers
-        .where((candidate) => candidate.id == layer.id)
-        .firstOrNull;
-    if (currentMap?.id != originalMap.id ||
-        currentLayer == null ||
-        currentLayer.name != layer.name) {
-      return;
-    }
-    notifier.renameMapLayer(layer.id, normalizedName);
   }
 
   Future<void> _deleteLayer(BuildContext context, String layerId) async {
-    final map = readActiveMap();
-    if (map == null) {
-      return;
-    }
-    final impact = const MapLayerDeletionImpactProjector().project(
-      map: map,
-      layerId: layerId,
-    );
-    final confirmedPlacements = _placementsHostedByLayer(map, layerId);
-    if (impact.isBlocked) {
-      return;
-    }
-    final confirmed = await onDeleteRequested(
+    await runWorldMapLayerDeleteFlow(
       context: context,
-      impact: impact,
-    );
-    if (!confirmed) {
-      return;
-    }
-    final currentMap = readActiveMap();
-    if (currentMap == null ||
-        currentMap.id != map.id ||
-        !currentMap.layers.any((layer) => layer.id == layerId)) {
-      return;
-    }
-    final currentImpact = const MapLayerDeletionImpactProjector().project(
-      map: currentMap,
       layerId: layerId,
+      readActiveMap: readActiveMap,
+      onDeleteRequested: onDeleteRequested,
+      deleteLayer: notifier.deleteMapLayer,
     );
-    if (currentImpact.isBlocked ||
-        !_hasSameDeletionImpact(impact, currentImpact) ||
-        !listEquals(
-          confirmedPlacements,
-          _placementsHostedByLayer(currentMap, layerId),
-        )) {
-      return;
-    }
-    notifier.deleteMapLayer(layerId);
   }
 }
 
-List<MapPlacedElement> _placementsHostedByLayer(
-  MapData map,
-  String layerId,
-) {
-  return map.placedElements
-      .where((placement) => placement.layerId == layerId)
-      .toList(growable: false);
+final class _WorldMapLayerContextMenuInvoker extends StatefulWidget {
+  const _WorldMapLayerContextMenuInvoker({
+    required this.layerId,
+    required this.onRequested,
+    required this.child,
+  });
+
+  final String layerId;
+  final WorldMapLayerContextMenuRequested? onRequested;
+  final Widget child;
+
+  @override
+  State<_WorldMapLayerContextMenuInvoker> createState() =>
+      _WorldMapLayerContextMenuInvokerState();
 }
 
-bool _hasSameDeletionImpact(
-  MapLayerDeletionImpact confirmed,
-  MapLayerDeletionImpact current,
-) {
-  return confirmed.layerId == current.layerId &&
-      confirmed.placedElementCount == current.placedElementCount &&
-      listEquals(confirmed.affectedMapEventIds, current.affectedMapEventIds) &&
-      confirmed.environmentGeneratedCount ==
-          current.environmentGeneratedCount &&
-      confirmed.environmentAttachmentCount ==
-          current.environmentAttachmentCount &&
-      listEquals(confirmed.blockingReasons, current.blockingReasons);
+final class _WorldMapLayerContextMenuInvokerState
+    extends State<_WorldMapLayerContextMenuInvoker> {
+  late final FocusNode _focusNode = FocusNode(
+    debugLabel: 'World Map layer ${widget.layerId} context actions',
+  );
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _request({
+    required Offset globalPosition,
+    required MapContextMenuInvocation invocation,
+  }) {
+    widget.onRequested?.call(
+      WorldMapLayerContextMenuRequest(
+        target: MapLayerContextTarget(widget.layerId),
+        globalPosition: globalPosition,
+        invocation: invocation,
+        invokerFocusNode: _focusNode,
+      ),
+    );
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final isMenuKey = event.logicalKey == LogicalKeyboardKey.contextMenu;
+    final isShiftF10 = event.logicalKey == LogicalKeyboardKey.f10 &&
+        HardwareKeyboard.instance.isShiftPressed;
+    if (!isMenuKey && !isShiftF10) return KeyEventResult.ignored;
+    final renderObject = context.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return KeyEventResult.handled;
+    }
+    _request(
+      globalPosition: renderObject.localToGlobal(renderObject.size.center(
+        Offset.zero,
+      )),
+      invocation: MapContextMenuInvocation.keyboard,
+    );
+    return KeyEventResult.handled;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      key: ValueKey<String>(
+        'world-map-layer-context-focus-${widget.layerId}',
+      ),
+      focusNode: _focusNode,
+      onKeyEvent: _handleKeyEvent,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onSecondaryTapDown: (details) {
+          _focusNode.requestFocus();
+          _request(
+            globalPosition: details.globalPosition,
+            invocation: MapContextMenuInvocation.pointer,
+          );
+        },
+        child: widget.child,
+      ),
+    );
+  }
 }
 
 void _addLayer(

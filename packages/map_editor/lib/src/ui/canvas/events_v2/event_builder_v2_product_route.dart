@@ -15,6 +15,7 @@ import '../../../app/providers/core/repository_providers.dart';
 import '../../../features/border_map_editing/state/border_preview_providers.dart';
 import '../../../features/editor/application/map_activation_coordinator.dart';
 import '../../../features/editor/presentation/map_activation_guard.dart';
+import '../../../features/editor/presentation/world_map/world_map_target_editor_navigation.dart';
 import '../../../features/editor/state/editor_notifier.dart';
 import '../../../features/editor/state/editor_state.dart';
 import '../../../features/narrative/state/narrative_event_builder_v2_providers.dart';
@@ -93,6 +94,7 @@ class _EventBuilderV2ProductRouteState
   final ScrollController _eventListScrollController = ScrollController();
   final Map<String, FocusNode> _eventFocusNodes = <String, FocusNode>{};
   int? _eventRestorationRevisionInFlight;
+  int? _worldMapNavigationRevisionInFlight;
 
   @override
   void dispose() {
@@ -281,6 +283,14 @@ class _EventBuilderV2ProductRouteState
       filter: _filter,
       selectedCompatibilityStableKey: _selectedCompatibilityStableKey,
     );
+    final worldMapNavigation =
+        ref.watch(worldMapTargetEditorNavigationProvider).pending;
+    if (worldMapNavigation != null) {
+      _scheduleWorldMapCompatibilityNavigation(
+        worldMapNavigation,
+        readModel,
+      );
+    }
     final selected = selectedNarrativeEventBuilderV2Event(
       state: state,
       bridgeState: bridge,
@@ -1022,6 +1032,114 @@ class _EventBuilderV2ProductRouteState
         stableKey,
         () => FocusNode(debugLabel: 'Event Builder item $stableKey'),
       );
+
+  void _scheduleWorldMapCompatibilityNavigation(
+    WorldMapTargetEditorNavigationRequest request,
+    NarrativeEventBuilderProjectReadModel readModel,
+  ) {
+    if (_worldMapNavigationRevisionInFlight == request.revision) return;
+    _worldMapNavigationRevisionInFlight = request.revision;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _consumeWorldMapCompatibilityNavigation(
+        request,
+        readModel,
+        attempt: 0,
+      );
+    });
+  }
+
+  void _consumeWorldMapCompatibilityNavigation(
+    WorldMapTargetEditorNavigationRequest request,
+    NarrativeEventBuilderProjectReadModel readModel, {
+    required int attempt,
+  }) {
+    if (!mounted) return;
+    final current = ref.read(worldMapTargetEditorNavigationProvider).pending;
+    if (current?.revision != request.revision ||
+        current?.stableKey != request.stableKey) {
+      if (_worldMapNavigationRevisionInFlight == request.revision) {
+        _worldMapNavigationRevisionInFlight = null;
+      }
+      return;
+    }
+    final event = readModel.eventByStableKey(request.stableKey);
+    if (event?.readOnly != true) {
+      ref
+          .read(worldMapTargetEditorNavigationProvider.notifier)
+          .acknowledgeIfCurrent(
+            revision: request.revision,
+            stableKey: request.stableKey,
+          );
+      _worldMapNavigationRevisionInFlight = null;
+      return;
+    }
+    if (_selectedCompatibilityStableKey != request.stableKey ||
+        _query.isNotEmpty ||
+        _filter != NarrativeEventBuilderV2Filter.all) {
+      setState(() {
+        _selectedCompatibilityStableKey = request.stableKey;
+        _query = '';
+        _filter = NarrativeEventBuilderV2Filter.all;
+      });
+      _retryWorldMapCompatibilityNavigation(
+        request,
+        readModel,
+        attempt: attempt,
+      );
+      return;
+    }
+    final focusNode = _eventFocusNodes[request.stableKey];
+    final focusContext = focusNode?.context;
+    if (focusNode == null || focusContext == null) {
+      _retryWorldMapCompatibilityNavigation(
+        request,
+        readModel,
+        attempt: attempt,
+      );
+      return;
+    }
+    Scrollable.ensureVisible(
+      focusContext,
+      alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+    );
+    focusNode.requestFocus();
+    FocusManager.instance.applyFocusChangesIfNeeded();
+    if (!focusNode.hasFocus) {
+      _retryWorldMapCompatibilityNavigation(
+        request,
+        readModel,
+        attempt: attempt,
+      );
+      return;
+    }
+    ref
+        .read(worldMapTargetEditorNavigationProvider.notifier)
+        .acknowledgeIfCurrent(
+          revision: request.revision,
+          stableKey: request.stableKey,
+        );
+    _worldMapNavigationRevisionInFlight = null;
+  }
+
+  void _retryWorldMapCompatibilityNavigation(
+    WorldMapTargetEditorNavigationRequest request,
+    NarrativeEventBuilderProjectReadModel readModel, {
+    required int attempt,
+  }) {
+    if (attempt >= 12) {
+      if (_worldMapNavigationRevisionInFlight == request.revision) {
+        _worldMapNavigationRevisionInFlight = null;
+      }
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _consumeWorldMapCompatibilityNavigation(
+        request,
+        readModel,
+        attempt: attempt + 1,
+      );
+    });
+  }
 
   void _scheduleEventReturnRestoration(
     NarrativeStudioRestorationRequest restoration,
