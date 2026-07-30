@@ -133,6 +133,7 @@ class _PokeMapAssetCardState extends State<PokeMapAssetCard> {
       enabled: _enabled,
       selected: widget.selected,
       label: semanticLabel,
+      onTap: _enabled ? _activate : null,
       child: card,
     );
   }

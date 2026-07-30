@@ -54,6 +54,56 @@ void main() {
     },
   );
 
+  testWidgets('semantic tap activates only an enabled PokeMapAssetCard',
+      (tester) async {
+    var activationCount = 0;
+    final semantics = tester.ensureSemantics();
+
+    Widget buildCard(VoidCallback? onPressed) {
+      return MaterialApp(
+        theme: PokeMapTheme.light(),
+        home: Scaffold(
+          body: PokeMapAssetCard(
+            semanticLabel: 'Objet Arbre',
+            disabledReason:
+                onPressed == null ? 'Assignez d’abord cette source.' : null,
+            onPressed: onPressed,
+            child: const Text('Arbre'),
+          ),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(buildCard(() => activationCount += 1));
+
+    final enabledFinder = find.semantics.byLabel('Objet Arbre');
+    final enabledNode = enabledFinder.evaluate().single;
+    expect(
+      enabledNode.getSemanticsData().hasAction(SemanticsAction.tap),
+      isTrue,
+    );
+    tester.semantics.tap(enabledFinder);
+    await tester.pump();
+    expect(activationCount, 1);
+
+    await tester.pumpWidget(buildCard(null));
+
+    final disabledFinder = find.semantics.byLabel(RegExp('Objet Arbre'));
+    final disabledNode = disabledFinder.evaluate().single;
+    expect(
+      disabledNode.getSemanticsData().hasAction(SemanticsAction.tap),
+      isFalse,
+    );
+    tester.semantics.performAction(
+      disabledFinder,
+      SemanticsAction.tap,
+      checkForAction: false,
+    );
+    await tester.pump();
+    expect(activationCount, 1);
+    semantics.dispose();
+  });
+
   testWidgets('PokeMapAssetCard activates with pointer, Enter, and Space',
       (tester) async {
     var activationCount = 0;
