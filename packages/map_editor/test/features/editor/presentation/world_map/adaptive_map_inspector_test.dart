@@ -7,6 +7,12 @@ import 'package:map_editor/src/features/editor/application/world_map_inspector_p
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/adaptive_map_inspector.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_cell_inspector.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_erase_inspector.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_layers_inspector.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_paint_inspector.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_place_inspector.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_selection_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
@@ -16,11 +22,12 @@ import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
   group('AdaptiveMapInspector', () {
-    testWidgets('renders exactly one injected body with the active title',
+    testWidgets('owns exactly one real body for every projected kind',
         (tester) async {
       const cases = <({
         WorldMapInspectorSnapshot snapshot,
         String title,
+        Type? bodyType,
       })>[
         (
           snapshot: (
@@ -31,6 +38,7 @@ void main() {
             pinned: false,
           ),
           title: 'Peindre',
+          bodyType: WorldMapPaintInspector,
         ),
         (
           snapshot: (
@@ -41,6 +49,7 @@ void main() {
             pinned: false,
           ),
           title: 'Effacer',
+          bodyType: WorldMapEraseInspector,
         ),
         (
           snapshot: (
@@ -51,6 +60,7 @@ void main() {
             pinned: false,
           ),
           title: 'Placer',
+          bodyType: WorldMapPlaceInspector,
         ),
         (
           snapshot: (
@@ -66,6 +76,7 @@ void main() {
             pinned: false,
           ),
           title: 'Objet sélectionné',
+          bodyType: WorldMapSelectionInspector,
         ),
         (
           snapshot: (
@@ -76,6 +87,7 @@ void main() {
             pinned: false,
           ),
           title: 'Cellule sélectionnée',
+          bodyType: WorldMapCellInspector,
         ),
         (
           snapshot: (
@@ -86,6 +98,7 @@ void main() {
             pinned: false,
           ),
           title: 'Calques',
+          bodyType: WorldMapLayersInspector,
         ),
         (
           snapshot: (
@@ -96,31 +109,41 @@ void main() {
             pinned: false,
           ),
           title: 'Aucune sélection',
+          bodyType: null,
         ),
       ];
 
       for (final entry in cases) {
+        final container = ProviderContainer(
+          overrides: [
+            worldMapInspectorSnapshotProvider.overrideWith(
+              (ref) => entry.snapshot,
+            ),
+          ],
+        );
+        final keepAlive = container.listen<EditorState>(
+          editorNotifierProvider,
+          (_, __) {},
+          fireImmediately: true,
+        );
+        container.read(editorNotifierProvider.notifier).state =
+            const EditorState(
+          activeMap: _map,
+          activeLayerId: 'tile',
+          selectedEntityId: 'npc',
+        );
+
         await tester.pumpWidget(
-          ProviderScope(
+          UncontrolledProviderScope(
             key: ValueKey<String>('scope-${entry.snapshot.kind.name}'),
-            overrides: [
-              worldMapInspectorSnapshotProvider.overrideWith(
-                (ref) => entry.snapshot,
-              ),
-            ],
+            container: container,
             child: MaterialApp(
               theme: PokeMapTheme.dark(),
-              home: Scaffold(
+              home: const Scaffold(
                 body: SizedBox(
                   width: 400,
                   height: 600,
-                  child: AdaptiveMapInspector(
-                    bodyBuilder: (context, snapshot) => SizedBox(
-                      key: ValueKey<String>(
-                        'stub-inspector-${snapshot.kind.name}',
-                      ),
-                    ),
-                  ),
+                  child: AdaptiveMapInspector(),
                 ),
               ),
             ),
@@ -131,21 +154,33 @@ void main() {
           find.byKey(const ValueKey<String>('adaptive-map-inspector')),
           findsOneWidget,
         );
-        expect(find.text(entry.title), findsOneWidget);
-        expect(
-          find.byWidgetPredicate((widget) {
-            final key = widget.key;
-            return key is ValueKey<String> &&
-                key.value.startsWith('stub-inspector-');
-          }),
-          findsOneWidget,
-        );
-        expect(
-          find.byKey(
-            ValueKey<String>('stub-inspector-${entry.snapshot.kind.name}'),
+        expect(find.text(entry.title), findsAtLeastNWidgets(1));
+        final body = find.byKey(
+          ValueKey<String>(
+            'world-map-inspector-body-${entry.snapshot.kind.name}',
           ),
-          findsOneWidget,
         );
+        expect(body, findsOneWidget);
+        expect(
+          _mountedRoutedBodyCount(),
+          entry.bodyType == null ? 0 : 1,
+          reason: entry.snapshot.kind.name,
+        );
+        if (entry.bodyType case final bodyType?) {
+          expect(find.byType(bodyType), findsOneWidget);
+        } else {
+          expect(
+            find.descendant(
+              of: body,
+              matching: find.byType(PokeMapEmptyState),
+            ),
+            findsOneWidget,
+          );
+        }
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        keepAlive.close();
+        container.dispose();
       }
     });
 
@@ -190,17 +225,11 @@ void main() {
           container: container,
           child: MaterialApp(
             theme: PokeMapTheme.dark(),
-            home: Scaffold(
+            home: const Scaffold(
               body: SizedBox(
                 width: 400,
                 height: 600,
-                child: AdaptiveMapInspector(
-                  bodyBuilder: (context, snapshot) => SizedBox(
-                    key: ValueKey<String>(
-                      'stub-inspector-${snapshot.kind.name}',
-                    ),
-                  ),
-                ),
+                child: AdaptiveMapInspector(),
               ),
             ),
           ),
@@ -286,17 +315,11 @@ void main() {
           container: container,
           child: MaterialApp(
             theme: PokeMapTheme.dark(),
-            home: Scaffold(
+            home: const Scaffold(
               body: SizedBox(
                 width: 400,
                 height: 600,
-                child: AdaptiveMapInspector(
-                  bodyBuilder: (context, snapshot) => SizedBox(
-                    key: ValueKey<String>(
-                      'stub-inspector-${snapshot.kind.name}',
-                    ),
-                  ),
-                ),
+                child: AdaptiveMapInspector(),
               ),
             ),
           ),
@@ -364,17 +387,11 @@ void main() {
           container: container,
           child: MaterialApp(
             theme: PokeMapTheme.dark(),
-            home: Scaffold(
+            home: const Scaffold(
               body: SizedBox(
                 width: 400,
                 height: 600,
-                child: AdaptiveMapInspector(
-                  bodyBuilder: (context, snapshot) => SizedBox(
-                    key: ValueKey<String>(
-                      'stub-inspector-${snapshot.kind.name}',
-                    ),
-                  ),
-                ),
+                child: AdaptiveMapInspector(),
               ),
             ),
           ),
@@ -397,6 +414,17 @@ void main() {
   });
 }
 
+int _mountedRoutedBodyCount() {
+  return <Type>[
+    WorldMapPaintInspector,
+    WorldMapEraseInspector,
+    WorldMapPlaceInspector,
+    WorldMapSelectionInspector,
+    WorldMapCellInspector,
+    WorldMapLayersInspector,
+  ].map((type) => find.byType(type).evaluate().length).reduce((a, b) => a + b);
+}
+
 const _map = MapData(
   id: 'map',
   name: 'Map',
@@ -407,6 +435,14 @@ const _map = MapData(
       name: 'Tile',
       tilesetId: 'world',
       tiles: <int>[],
+    ),
+  ],
+  entities: <MapEntity>[
+    MapEntity(
+      id: 'npc',
+      name: 'NPC',
+      kind: MapEntityKind.custom,
+      pos: GridPos(x: 1, y: 1),
     ),
   ],
 );

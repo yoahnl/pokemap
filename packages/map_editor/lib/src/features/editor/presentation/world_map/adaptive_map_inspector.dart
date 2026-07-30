@@ -1,23 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:map_core/map_core.dart';
 
 import '../../../../ui/design_system/design_system.dart';
+import '../../application/map_canvas_object_hit_test.dart';
 import '../../application/world_map_inspector_projector.dart';
 import '../../application/world_map_tool_family.dart';
+import 'world_map_cell_inspector.dart';
+import 'world_map_erase_inspector.dart';
+import 'world_map_layers_inspector.dart';
+import 'world_map_paint_inspector.dart';
+import 'world_map_place_inspector.dart';
+import 'world_map_selection_inspector.dart';
 import 'world_map_workspace_session.dart';
 
-typedef AdaptiveMapInspectorBodyBuilder = Widget Function(
-  BuildContext context,
-  WorldMapInspectorSnapshot snapshot,
-);
-
 class AdaptiveMapInspector extends ConsumerWidget {
-  const AdaptiveMapInspector({
-    super.key,
-    required this.bodyBuilder,
-  });
-
-  final AdaptiveMapInspectorBodyBuilder bodyBuilder;
+  const AdaptiveMapInspector({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -70,10 +68,58 @@ class AdaptiveMapInspector extends ConsumerWidget {
             ),
           ),
         ),
-        child: bodyBuilder(context, snapshot),
+        child: KeyedSubtree(
+          key: ValueKey<String>(
+            'world-map-inspector-body-${snapshot.kind.name}',
+          ),
+          child: _bodyFor(snapshot),
+        ),
       ),
     );
   }
+}
+
+Widget _bodyFor(WorldMapInspectorSnapshot snapshot) {
+  return switch (snapshot.kind) {
+    WorldMapInspectorKind.paint => const WorldMapPaintInspector(),
+    WorldMapInspectorKind.erase => const WorldMapEraseInspector(),
+    WorldMapInspectorKind.place => const WorldMapPlaceInspector(),
+    WorldMapInspectorKind.objectSelection => WorldMapSelectionInspector(
+        target: _requiredObjectTarget(snapshot),
+      ),
+    WorldMapInspectorKind.cellSelection => WorldMapCellInspector(
+        cell: _requiredCell(snapshot),
+        layerId: snapshot.activeLayerId,
+      ),
+    WorldMapInspectorKind.layers => const WorldMapLayersInspector(),
+    WorldMapInspectorKind.empty => const PokeMapEmptyState(
+        icon: Icon(Icons.ads_click_outlined),
+        title: 'Aucune sélection',
+        description:
+            'Sélectionnez un objet ou une cellule sur la carte, ou choisissez '
+            'un outil pour afficher ses réglages.',
+      ),
+  };
+}
+
+MapCanvasObjectTarget _requiredObjectTarget(
+  WorldMapInspectorSnapshot snapshot,
+) {
+  final target = snapshot.objectTarget;
+  if (target == null) {
+    throw StateError(
+      'Object selection inspector requires a resolved object target.',
+    );
+  }
+  return target;
+}
+
+GridPos _requiredCell(WorldMapInspectorSnapshot snapshot) {
+  final cell = snapshot.cell;
+  if (cell == null) {
+    throw StateError('Cell selection inspector requires a resolved cell.');
+  }
+  return cell;
 }
 
 String _titleFor(WorldMapInspectorKind kind) {
