@@ -5,16 +5,19 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_preview_controller.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_preview_transaction.dart';
 import 'package:map_editor/src/features/border_map_editing/state/border_preview_providers.dart';
+import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
+import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_paint_inspection_intent.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
-import 'package:map_editor/src/ui/shared/inspector_section_card.dart';
 
 import 'shell_chrome_test_harness.dart';
 
 void main() {
-  testWidgets('MapInspector presents Border as a dedicated active layer',
+  testWidgets('Adaptive inspector presents Border as a dedicated paint body',
       (tester) async {
     final project = _project(<BorderBlueprintRecord>[_record('coast-a')]);
     const map = MapData(
@@ -27,7 +30,7 @@ void main() {
       ],
     );
 
-    await pumpEditorShellPage(
+    await _pumpBorderInspector(
       tester,
       initialState: EditorState(
         projectRootPath: '/tmp/border_inspector_project',
@@ -38,17 +41,19 @@ void main() {
       ),
     );
 
-    expect(find.text('Actif : Calque de bordure'), findsOneWidget);
-    expect(find.text('Calque de bordure actif'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('world-map-inspector-body-paint')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('world-map-paint-body-borderInspector')),
+      findsOneWidget,
+    );
+    expect(find.text('Actif : Calque de bordure'), findsNothing);
+    expect(find.text('Calque de bordures actif'), findsOneWidget);
     expect(find.text('Visuel uniquement — aucune collision'), findsOneWidget);
     expect(find.textContaining('Calque de collision actif'), findsNothing);
     expect(find.textContaining('Calque de surface actif'), findsNothing);
-
-    final titles = tester
-        .widgetList<InspectorSectionCard>(find.byType(InspectorSectionCard))
-        .map((card) => card.title)
-        .toList(growable: false);
-    expect(titles.indexOf('Bordures'), titles.indexOf('Calques') + 1);
   });
 
   testWidgets(
@@ -110,7 +115,7 @@ void main() {
       ],
     );
 
-    final container = await pumpEditorShellPage(
+    final container = await _pumpBorderInspector(
       tester,
       initialState: EditorState(
         projectRootPath: '/tmp/border_inspector_crud',
@@ -138,25 +143,46 @@ void main() {
     expect(find.byKey(const ValueKey('border-layer-visibility-button')),
         findsOneWidget);
 
-    final legacyPaintButton = tester.widget<PokeMapButton>(
+    final paintButton = tester.widget<PokeMapButton>(
       find.byKey(const ValueKey('border-inspector-paint-button')),
     );
-    expect(legacyPaintButton.onPressed, isNotNull);
-    legacyPaintButton.onPressed!.call();
+    expect(paintButton.onPressed, isNotNull);
+    paintButton.onPressed!.call();
     await tester.pump();
     expect(
       container.read(editorNotifierProvider).activeTool,
       EditorToolType.borderPaint,
     );
-    final legacyEraseButton = tester.widget<PokeMapButton>(
+    expect(
+      find.byKey(const ValueKey('world-map-paint-body-borderInspector')),
+      findsOneWidget,
+    );
+    final eraseButton = tester.widget<PokeMapButton>(
       find.byKey(const ValueKey('border-inspector-erase-button')),
     );
-    expect(legacyEraseButton.onPressed, isNotNull);
-    legacyEraseButton.onPressed!.call();
+    expect(eraseButton.onPressed, isNotNull);
+    eraseButton.onPressed!.call();
     await tester.pump();
     expect(
       container.read(editorNotifierProvider).activeTool,
       EditorToolType.borderErase,
+    );
+    expect(
+      find.byKey(const ValueKey('world-map-inspector-body-erase')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('world-map-tool-paint')),
+    );
+    await tester.pump();
+    expect(
+      container.read(editorNotifierProvider).activeTool,
+      EditorToolType.borderPaint,
+    );
+    expect(
+      find.byKey(const ValueKey('world-map-paint-body-borderInspector')),
+      findsOneWidget,
     );
 
     final createPicker = tester.widget<PokeMapDropdownField<String>>(
@@ -367,7 +393,7 @@ void main() {
       ],
     );
 
-    await pumpEditorShellPage(
+    await _pumpBorderInspector(
       tester,
       initialState: EditorState(
         projectRootPath: '/tmp/border_inspector_two_tier',
@@ -433,7 +459,7 @@ void main() {
       ],
     );
     final before = map.toJson();
-    final container = await pumpEditorShellPage(
+    final container = await _pumpBorderInspector(
       tester,
       initialState: EditorState(
         projectRootPath: '/tmp/border_local_corrections',
@@ -615,7 +641,7 @@ void main() {
         ),
       );
       final before = map.toJson();
-      final container = await pumpEditorShellPage(
+      final container = await _pumpBorderInspector(
         tester,
         initialState: EditorState(
           projectRootPath: '/tmp/connected_line_side',
@@ -692,7 +718,7 @@ void main() {
       applier: ({required map, required transaction}) =>
           map.copyWith(name: 'Aperçu appliqué'),
     );
-    final container = await pumpEditorShellPage(
+    final container = await _pumpBorderInspector(
       tester,
       initialState: EditorState(
         projectRootPath: '/tmp/border_preview_actions',
@@ -769,7 +795,7 @@ void main() {
         ),
       ),
     );
-    final container = await pumpEditorShellPage(
+    final container = await _pumpBorderInspector(
       tester,
       initialState: EditorState(
         projectRootPath: '/tmp/border_preview_invalid',
@@ -847,7 +873,7 @@ void main() {
         ),
       ),
     );
-    await pumpEditorShellPage(
+    await _pumpBorderInspector(
       tester,
       initialState: EditorState(
         projectRootPath: '/tmp/border_preview_diagnostics',
@@ -886,7 +912,7 @@ void main() {
       'Border inspector localizes resize feedback only for its map identity',
       (tester) async {
     final fixture = _previewFixture();
-    final container = await pumpEditorShellPage(
+    final container = await _pumpBorderInspector(
       tester,
       initialState: EditorState(
         projectRootPath: '/tmp/border_resize_feedback',
@@ -944,6 +970,38 @@ void main() {
       reason: 'feedback must never leak to another map object',
     );
   });
+}
+
+Future<ProviderContainer> _pumpBorderInspector(
+  WidgetTester tester, {
+  required EditorState initialState,
+  List<Override> overrides = const <Override>[],
+}) async {
+  final container = await pumpEditorShellPage(
+    tester,
+    initialState: initialState,
+    overrides: overrides,
+  );
+  final editor = container.read(editorNotifierProvider.notifier);
+  final result =
+      container.read(worldMapWorkspaceSessionProvider.notifier).activateTool(
+            editor,
+            const ActivateWorldMapPaint(WorldMapPaintSubtool.border),
+          );
+  if (!result.accepted) {
+    final state = container.read(editorNotifierProvider);
+    container.read(worldMapPaintInspectionIntentProvider.notifier).showSetup(
+          mapId: state.activeMap!.id,
+          layerId: state.activeLayerId!,
+          subtool: WorldMapPaintSubtool.border,
+        );
+  }
+  await tester.pump();
+  expect(
+    find.byKey(const ValueKey('world-map-paint-body-borderInspector')),
+    findsOneWidget,
+  );
+  return container;
 }
 
 BorderDiagnostic _previewDiagnostic(String code) => BorderDiagnostic(

@@ -17,7 +17,6 @@ import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_produ
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_route_presentation.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_shell_policy.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
-import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
@@ -889,8 +888,6 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                               );
                                             },
                                           ),
-                                          inspectorSlot:
-                                              const MapInspectorPanel(),
                                           explorerBuilder:
                                               (context, onCollapse) {
                                             return ProjectExplorerPanel(
@@ -1386,7 +1383,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                               workspaceMode) {
                                                             EditorWorkspaceMode
                                                                   .map =>
-                                                              const _LegacyWorldMapWorkspaceSeam(),
+                                                              const SizedBox
+                                                                  .shrink(),
                                                             EditorWorkspaceMode
                                                                   .tileset =>
                                                               const TilesetPalettePanel(),
@@ -1561,19 +1559,6 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         ref.read(editorNotifierProvider.notifier).selectBorderStudioWorkspace();
     }
     _isHandlingBorderExit = false;
-  }
-}
-
-/// Temporary Gate 5 seam scoped to the inspector branch that already changes
-/// identity between workspaces. Task 4 can widen it when WorldMapWorkspace is
-/// extracted without remounting the shared toolbar or Project Explorer.
-class _LegacyWorldMapWorkspaceSeam extends StatelessWidget {
-  const _LegacyWorldMapWorkspaceSeam()
-      : super(key: const ValueKey<String>('world-map-workspace'));
-
-  @override
-  Widget build(BuildContext context) {
-    return const MapInspectorPanel();
   }
 }
 

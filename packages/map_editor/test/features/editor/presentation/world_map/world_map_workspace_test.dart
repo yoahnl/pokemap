@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/adaptive_map_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
@@ -21,19 +22,15 @@ const _appkitUiElementColorsChannel = MethodChannel('appkit_ui_element_colors');
 void main() {
   group('WorldMapWorkspace', () {
     testWidgets(
-        'composes the Explorer, explicit slots, and real MapCanvas at medium width',
+        'composes Explorer, tool slot, adaptive inspector, and real MapCanvas',
         (tester) async {
       final toolFocusNode = FocusNode(debugLabel: 'workspace tool slot');
-      final inspectorFocusNode =
-          FocusNode(debugLabel: 'workspace inspector slot');
       addTearDown(toolFocusNode.dispose);
-      addTearDown(inspectorFocusNode.dispose);
 
       await _pumpWorkspace(
         tester,
         surfaceSize: const Size(1280, 800),
         toolFocusNode: toolFocusNode,
-        inspectorFocusNode: inspectorFocusNode,
       );
 
       final workspace =
@@ -71,11 +68,17 @@ void main() {
           of: find.byKey(
             const ValueKey<String>('world-map-inspector-slot'),
           ),
-          matching: find.byKey(
-            const ValueKey<String>('workspace-test-inspector-focus'),
-          ),
+          matching: find.byType(AdaptiveMapInspector),
         ),
         findsOneWidget,
+      );
+      expect(
+        find.ancestor(
+          of: find.byType(AdaptiveMapInspector),
+          matching: find.byType(PokeMapPanel),
+        ),
+        findsNothing,
+        reason: 'AdaptiveMapInspector must own the only inspector panel.',
       );
       expect(
         tester
@@ -88,14 +91,10 @@ void main() {
         same(toolFocusNode),
       );
       expect(
-        tester
-            .widget<Focus>(
-              find.byKey(
-                const ValueKey<String>('workspace-test-inspector-focus'),
-              ),
-            )
-            .focusNode,
-        same(inspectorFocusNode),
+        find.byKey(
+          const ValueKey<String>('world-map-inspector-close'),
+        ),
+        findsOneWidget,
       );
       expect(
         find.byKey(const ValueKey<String>('map-canvas-focus')),
@@ -204,15 +203,11 @@ void main() {
         'closes and reopens the inspector and persists clamped dock resizing in session state',
         (tester) async {
       final toolFocusNode = FocusNode(debugLabel: 'workspace tool slot');
-      final inspectorFocusNode =
-          FocusNode(debugLabel: 'workspace inspector slot');
       addTearDown(toolFocusNode.dispose);
-      addTearDown(inspectorFocusNode.dispose);
       final container = await _pumpWorkspace(
         tester,
         surfaceSize: const Size(1440, 900),
         toolFocusNode: toolFocusNode,
-        inspectorFocusNode: inspectorFocusNode,
       );
 
       final region =
@@ -264,21 +259,11 @@ void main() {
             .focusNode,
         same(toolFocusNode),
       );
-      expect(
-        tester
-            .widget<Focus>(
-              find.byKey(
-                const ValueKey<String>('workspace-test-inspector-focus'),
-              ),
-            )
-            .focusNode,
-        same(inspectorFocusNode),
-      );
+      expect(find.byType(AdaptiveMapInspector), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets(
-        'reopens the Explorer beside a docked inspector when both fit',
+    testWidgets('reopens the Explorer beside a docked inspector when both fit',
         (tester) async {
       final container = await _pumpWorkspace(
         tester,
@@ -331,11 +316,9 @@ void main() {
     testWidgets(
         'compact inspector overlay absorbs padding pointers and keeps controls interactive',
         (tester) async {
-      var inspectorPressCount = 0;
-      await _pumpWorkspace(
+      final container = await _pumpWorkspace(
         tester,
         surfaceSize: const Size(800, 600),
-        onInspectorPressed: () => inspectorPressCount++,
       );
       final mapFocus = tester
           .widget<Focus>(
@@ -362,11 +345,18 @@ void main() {
 
       await tester.tap(
         find.byKey(
-          const ValueKey<String>('workspace-test-inspector-action'),
+          const ValueKey<String>('world-map-inspector-close'),
         ),
       );
       await tester.pump();
-      expect(inspectorPressCount, 1);
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).inspectorVisible,
+        isFalse,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('right-inspector-region')),
+        findsNothing,
+      );
       expect(tester.takeException(), isNull);
     });
   });
@@ -376,8 +366,6 @@ Future<ProviderContainer> _pumpWorkspace(
   WidgetTester tester, {
   required Size surfaceSize,
   FocusNode? toolFocusNode,
-  FocusNode? inspectorFocusNode,
-  VoidCallback? onInspectorPressed,
 }) async {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(_appkitUiElementColorsChannel, (call) async {
@@ -419,25 +407,6 @@ Future<ProviderContainer> _pumpWorkspace(
         home: Material(
           child: WorldMapWorkspace(
             toolSlot: _TestToolSlot(focusNode: toolFocusNode),
-            inspectorSlot: Focus(
-              key: const ValueKey<String>(
-                'workspace-test-inspector-focus',
-              ),
-              focusNode: inspectorFocusNode,
-              child: SizedBox.expand(
-                child: Center(
-                  child: onInspectorPressed == null
-                      ? const Text('Legacy inspector slot')
-                      : PokeMapButton(
-                          key: const ValueKey<String>(
-                            'workspace-test-inspector-action',
-                          ),
-                          onPressed: onInspectorPressed,
-                          child: const Text('Inspector action'),
-                        ),
-                ),
-              ),
-            ),
             stageHeaderSlot: const SizedBox(
               key: ValueKey<String>('workspace-test-stage-header'),
               height: 36,

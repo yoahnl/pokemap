@@ -69,7 +69,7 @@ void main() {
   );
 
   testWidgets(
-    'EditorShellPage compacts the explorer when both side panes would crush the stage',
+    'EditorShellPage compacts the explorer at the minimum supported width',
     (tester) async {
       await pumpEditorShellPage(
         tester,
@@ -79,7 +79,7 @@ void main() {
           project: _project(),
           activeMap: _map(),
         ),
-        surfaceSize: const Size(768, 800),
+        surfaceSize: const Size(800, 800),
       );
 
       expect(find.byKey(const ValueKey('project-explorer-region')),
@@ -92,7 +92,7 @@ void main() {
               find.byKey(const ValueKey<String>('right-inspector-region')),
             )
             .width,
-        336,
+        360,
       );
       expect(tester.takeException(), isNull);
     },

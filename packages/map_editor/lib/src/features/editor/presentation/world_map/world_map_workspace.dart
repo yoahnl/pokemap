@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../ui/design_system/design_system.dart';
+import 'adaptive_map_inspector.dart';
 import 'world_map_canvas_region.dart';
 import 'world_map_workspace_session.dart';
 
@@ -19,13 +20,12 @@ typedef WorldMapExplorerRailBuilder = Widget Function(
 
 /// Structural, map-only workspace composition.
 ///
-/// Tool behavior and inspector behavior remain injected while this shell owns
-/// only transient chrome layout and the existing canvas/explorer boundaries.
+/// The shell owns transient chrome layout and the existing canvas/explorer
+/// boundaries. The map inspector remains adaptive to the current session.
 class WorldMapWorkspace extends ConsumerWidget {
   const WorldMapWorkspace({
     Key? key,
     required this.toolSlot,
-    required this.inspectorSlot,
     required this.stageHeaderSlot,
     required this.explorerBuilder,
     required this.explorerRailBuilder,
@@ -37,7 +37,6 @@ class WorldMapWorkspace extends ConsumerWidget {
   static const maxInspectorWidth = 560.0;
 
   final Widget toolSlot;
-  final Widget inspectorSlot;
   final Widget stageHeaderSlot;
   final WorldMapExplorerBuilder explorerBuilder;
   final WorldMapExplorerRailBuilder explorerRailBuilder;
@@ -159,7 +158,7 @@ class WorldMapWorkspace extends ConsumerWidget {
         );
         final inspector = _WorldMapInspectorRegion(
           width: inspectorWidth,
-          child: inspectorSlot,
+          child: const AdaptiveMapInspector(),
         );
 
         return Column(
@@ -318,14 +317,9 @@ class _WorldMapInspectorRegion extends StatelessWidget {
         width: width,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 18, 16, 18),
-          child: PokeMapPanel(
-            padding: EdgeInsets.zero,
-            expandChild: true,
-            borderRadius: 32,
-            child: KeyedSubtree(
-              key: const ValueKey<String>('world-map-inspector-slot'),
-              child: child,
-            ),
+          child: KeyedSubtree(
+            key: const ValueKey<String>('world-map-inspector-slot'),
+            child: child,
           ),
         ),
       ),

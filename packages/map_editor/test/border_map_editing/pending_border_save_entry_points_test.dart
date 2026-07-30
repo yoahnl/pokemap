@@ -13,20 +13,18 @@ import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
-import 'package:map_editor/src/ui/shared/top_toolbar/widgets/toolbar_capsules.dart';
 
 import '../shell_chrome_test_harness.dart';
 
 void main() {
   testWidgets(
-      'toolbar Save Map shows the shared guard and Cancel writes nothing',
+      'world map Save command shows the shared guard and Cancel writes nothing',
       (tester) async {
     final harness = await _pump(tester);
 
     await tester.tap(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is ToolbarCapsuleButton && widget.tooltip == 'Save Map',
+      find.byKey(
+        const ValueKey<String>('world-map-command-save'),
       ),
     );
     await tester.pumpAndSettle();

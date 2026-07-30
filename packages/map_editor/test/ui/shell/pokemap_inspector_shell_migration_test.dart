@@ -2,9 +2,14 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/adaptive_map_inspector.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_layers_inspector.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
+import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
 import 'package:map_editor/src/ui/shared/inspector_section_card.dart';
 
 import '../../shell_chrome_test_harness.dart';
@@ -33,7 +38,8 @@ Future<void> _pumpInBridge(
 
 void main() {
   group('PokeMap Inspector Shell Migration', () {
-    testWidgets('InspectorSectionCard uses PokeMap design tokens and custom border radius',
+    testWidgets(
+        'InspectorSectionCard uses PokeMap design tokens and custom border radius',
         (tester) async {
       await _pumpInBridge(
         tester,
@@ -55,14 +61,17 @@ void main() {
 
       // Verify container decoration uses PokeMap surfaceBase and borderSubtle colors
       final containerFinder = find.byType(Container).first;
-      final Container containerWidget = tester.widget<Container>(containerFinder);
+      final Container containerWidget =
+          tester.widget<Container>(containerFinder);
       final BoxDecoration? deco = containerWidget.decoration as BoxDecoration?;
       expect(deco?.color, equals(PokeMapColorTokens.dark.surfaceBase));
-      expect(deco?.border?.top.color, equals(PokeMapColorTokens.dark.borderSubtle));
+      expect(deco?.border?.top.color,
+          equals(PokeMapColorTokens.dark.borderSubtle));
       expect(deco?.borderRadius, equals(BorderRadius.circular(12)));
     });
 
-    testWidgets('Full MapInspectorPanel renders localized sections and active overview card',
+    testWidgets(
+        'AdaptiveMapInspector replaces the legacy full map inspector panel',
         (tester) async {
       final project = buildShellChromeProject(
         name: 'Inspector Shell Project',
@@ -74,8 +83,10 @@ void main() {
         width: 15,
         height: 10,
         layers: const [
-          TileLayer(id: 'layer_tiles_1', name: 'Sol principal', isVisible: true),
-          TerrainLayer(id: 'layer_terrain_1', name: 'Herbe base', isVisible: true),
+          TileLayer(
+              id: 'layer_tiles_1', name: 'Sol principal', isVisible: true),
+          TerrainLayer(
+              id: 'layer_terrain_1', name: 'Herbe base', isVisible: true),
         ],
       );
 
@@ -90,23 +101,24 @@ void main() {
         ),
       );
 
-      // Verify Map Overview Card renders Bourg-Palette in French
-      expect(find.text('Bourg-Palette'), findsNWidgets(2));
-      expect(find.text('15 × 10 tuiles • 2 couches'), findsNWidgets(2));
-      expect(find.text('Calque de tuiles actif'), findsOneWidget);
-
-      // Verify French section headers are present
-      expect(find.text('Propriétés de carte'), findsOneWidget);
-      expect(find.text('Calques'), findsWidgets);
-      expect(find.text('Tuiles & éléments'), findsOneWidget);
-
-      // Verify that old English names do not exist
-      expect(find.text('Layers'), findsNothing);
-      expect(find.text('Base Ground'), findsNothing);
-      expect(find.text('Map Entities'), findsNothing);
+      expect(find.byType(AdaptiveMapInspector), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('adaptive-map-inspector')),
+        findsOneWidget,
+      );
+      expect(find.byType(MapInspectorPanel), findsNothing);
+      expect(
+        find.byKey(
+          const ValueKey<String>('world-map-inspector-body-empty'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Aucune sélection'), findsWidgets);
+      expect(find.text('Propriétés de carte'), findsNothing);
+      expect(find.text('Tuiles & éléments'), findsNothing);
     });
 
-    testWidgets('LayersPanel renders localized options and action buttons',
+    testWidgets('adaptive layers inspector renders localized rows and actions',
         (tester) async {
       final project = buildShellChromeProject(
         name: 'Layers Panel Project',
@@ -116,12 +128,14 @@ void main() {
         id: 'starting_map',
         name: 'Bourg-Palette',
         layers: const [
-          TileLayer(id: 'layer_tiles_1', name: 'Sol principal', isVisible: true),
-          TerrainLayer(id: 'layer_terrain_1', name: 'Herbe base', isVisible: false),
+          TileLayer(
+              id: 'layer_tiles_1', name: 'Sol principal', isVisible: true),
+          TerrainLayer(
+              id: 'layer_terrain_1', name: 'Herbe base', isVisible: false),
         ],
       );
 
-      await pumpEditorShellPage(
+      final container = await pumpEditorShellPage(
         tester,
         initialState: EditorState(
           projectRootPath: '/tmp/theme_9_test_project',
@@ -132,16 +146,31 @@ void main() {
         ),
       );
 
-      // Verify layers panel titles
-      expect(find.text('Actions du calque'), findsWidgets);
-      
-      // Verify layer rows are shown with correct styles and statuses
+      final result = container
+          .read(worldMapWorkspaceSessionProvider.notifier)
+          .activateLayers(container.read(editorNotifierProvider.notifier));
+      expect(result.accepted, isTrue);
+      await tester.pump();
+
+      expect(find.byType(WorldMapLayersInspector), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey<String>('world-map-layer-row-layer_tiles_1'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('world-map-layer-row-layer_terrain_1'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Sol principal'), findsOneWidget);
       expect(find.text('Herbe base'), findsOneWidget);
-      expect(find.text('tuiles • layer_tiles_1'), findsOneWidget);
-      expect(find.text('terrain • layer_terrain_1'), findsOneWidget);
-
-      // Verify action buttons are rendered using PokeMapIconButton
+      expect(
+        find.byKey(const ValueKey<String>('world-map-layer-add')),
+        findsOneWidget,
+      );
       expect(find.byType(PokeMapIconButton), findsWidgets);
     });
   });

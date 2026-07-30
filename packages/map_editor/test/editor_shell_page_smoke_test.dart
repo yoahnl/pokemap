@@ -13,6 +13,7 @@ import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_
 import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/adaptive_map_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_toolbelt.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
@@ -24,8 +25,7 @@ import 'shell_chrome_test_harness.dart';
 
 void main() {
   group('EditorShellPage smoke', () {
-    testWidgets(
-        'isolates the legacy map chrome behind the World Map workspace seam',
+    testWidgets('composes the map chrome with the adaptive inspector',
         (tester) async {
       await pumpEditorShellPage(
         tester,
@@ -70,14 +70,19 @@ void main() {
         findsOneWidget,
       );
 
-      // Tasks 1–4 migrate around the proven legacy behavior. Keeping this
-      // descendant assertion prevents the seam from hiding a premature rewrite.
+      expect(
+        find.descendant(
+          of: worldMapWorkspace,
+          matching: find.byType(AdaptiveMapInspector),
+        ),
+        findsOneWidget,
+      );
       expect(
         find.descendant(
           of: worldMapWorkspace,
           matching: find.byType(MapInspectorPanel),
         ),
-        findsOneWidget,
+        findsNothing,
       );
       for (final key in const <ValueKey<String>>[
         ValueKey<String>('world-map-command-save'),
