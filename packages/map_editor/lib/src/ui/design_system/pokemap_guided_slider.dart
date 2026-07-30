@@ -37,10 +37,15 @@ class _PokeMapGuidedSliderState extends State<PokeMapGuidedSlider> {
   final FocusNode _focusNode = FocusNode();
 
   bool _interactionActive = false;
-  bool _showFocusHighlight = false;
+  bool _focusHighlightRequested = false;
+  _GuidedSliderFocusOrigin? _focusOrigin;
   int? _lastInteractionValue;
 
   int get _clampedValue => widget.value.clamp(widget.min, widget.max).toInt();
+
+  bool get _showFocusHighlight =>
+      _focusHighlightRequested &&
+      _focusOrigin == _GuidedSliderFocusOrigin.keyboard;
 
   int _roundedValue(double value) =>
       value.round().clamp(widget.min, widget.max).toInt();
@@ -93,6 +98,7 @@ class _PokeMapGuidedSliderState extends State<PokeMapGuidedSlider> {
   }
 
   void _adjustWithKeyboard(int delta) {
+    _setFocusOrigin(_GuidedSliderFocusOrigin.keyboard);
     if (_interactionActive) {
       return;
     }
@@ -102,6 +108,30 @@ class _PokeMapGuidedSliderState extends State<PokeMapGuidedSlider> {
       return;
     }
     _runDiscreteChange(nextValue);
+  }
+
+  void _setFocusOrigin(_GuidedSliderFocusOrigin origin) {
+    if (_focusOrigin == origin) {
+      return;
+    }
+    setState(() => _focusOrigin = origin);
+  }
+
+  void _handleFocusChange(bool focused) {
+    if (focused) {
+      if (_focusOrigin == null) {
+        _setFocusOrigin(_GuidedSliderFocusOrigin.keyboard);
+      }
+      return;
+    }
+    if (_focusOrigin != null) {
+      setState(() => _focusOrigin = null);
+    }
+  }
+
+  void _handlePointerDown(PointerDownEvent event) {
+    _setFocusOrigin(_GuidedSliderFocusOrigin.pointer);
+    _focusNode.requestFocus();
   }
 
   @override
@@ -162,11 +192,12 @@ class _PokeMapGuidedSliderState extends State<PokeMapGuidedSlider> {
           const SizedBox(height: 4),
           FocusableActionDetector(
             focusNode: _focusNode,
+            onFocusChange: _handleFocusChange,
             onShowFocusHighlight: (show) {
-              if (_showFocusHighlight == show) {
+              if (_focusHighlightRequested == show) {
                 return;
               }
-              setState(() => _showFocusHighlight = show);
+              setState(() => _focusHighlightRequested = show);
             },
             shortcuts: const <ShortcutActivator, Intent>{
               SingleActivator(LogicalKeyboardKey.arrowLeft):
@@ -187,36 +218,53 @@ class _PokeMapGuidedSliderState extends State<PokeMapGuidedSlider> {
                 },
               ),
             },
-            child: AnimatedContainer(
-              key: const ValueKey<String>(
-                'pokemap-guided-slider-focus-indicator',
-              ),
-              duration: const Duration(milliseconds: 100),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: _showFocusHighlight
-                      ? colors.brandPrimary
-                      : colors.brandPrimary.withValues(alpha: 0),
-                  width: 2,
+            child: Stack(
+              fit: StackFit.passthrough,
+              children: [
+                Listener(
+                  onPointerDown: _handlePointerDown,
+                  onPointerUp: (_) => _endInteraction(),
+                  onPointerCancel: (_) => _endInteraction(),
+                  child: CupertinoSlider(
+                    value: clampedValue.toDouble(),
+                    min: widget.min.toDouble(),
+                    max: widget.max.toDouble(),
+                    divisions: widget.max - widget.min,
+                    activeColor: colors.brandPrimary,
+                    thumbColor: colors.surfaceBase,
+                    onChangeStart: _handleChangeStart,
+                    onChanged: _handleChanged,
+                    onChangeEnd: _handleChangeEnd,
+                  ),
                 ),
-              ),
-              child: Listener(
-                onPointerDown: (_) => _focusNode.requestFocus(),
-                onPointerUp: (_) => _endInteraction(),
-                onPointerCancel: (_) => _endInteraction(),
-                child: CupertinoSlider(
-                  value: clampedValue.toDouble(),
-                  min: widget.min.toDouble(),
-                  max: widget.max.toDouble(),
-                  divisions: widget.max - widget.min,
-                  activeColor: colors.brandPrimary,
-                  thumbColor: colors.surfaceBase,
-                  onChangeStart: _handleChangeStart,
-                  onChanged: _handleChanged,
-                  onChangeEnd: _handleChangeEnd,
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: TweenAnimationBuilder<double>(
+                      duration: const Duration(milliseconds: 100),
+                      tween: Tween<double>(
+                        begin: 0,
+                        end: _showFocusHighlight ? 1 : 0,
+                      ),
+                      builder: (context, progress, child) => DecoratedBox(
+                        key: const ValueKey<String>(
+                          'pokemap-guided-slider-focus-indicator',
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Color.lerp(
+                              colors.brandPrimary.withValues(alpha: 0),
+                              colors.brandPrimary,
+                              progress,
+                            )!,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
@@ -229,4 +277,9 @@ class _AdjustGuidedSliderIntent extends Intent {
   const _AdjustGuidedSliderIntent(this.delta);
 
   final int delta;
+}
+
+enum _GuidedSliderFocusOrigin {
+  keyboard,
+  pointer,
 }

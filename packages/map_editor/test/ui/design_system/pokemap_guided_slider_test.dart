@@ -1,3 +1,6 @@
+import 'dart:ui' show PointerDeviceKind;
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -45,6 +48,7 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
 
     final focusDetector = find.descendant(
       of: find.byKey(const ValueKey<String>('guided-slider')),
@@ -59,8 +63,13 @@ void main() {
     );
     expect(focusIndicator, findsOneWidget);
     final colors = tester.element(focusIndicator).pokeMapColors;
+    final slider = find.descendant(
+      of: find.byKey(const ValueKey<String>('guided-slider')),
+      matching: find.byType(CupertinoSlider),
+    );
+    final restingSliderRect = tester.getRect(slider);
     expect(
-      _focusBorderColor(tester, focusIndicator),
+      _paintedFocusBorderColor(tester, focusIndicator),
       colors.brandPrimary.withValues(alpha: 0),
     );
     final sliderFocus =
@@ -69,12 +78,13 @@ void main() {
     leadingFocus.requestFocus();
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(sliderFocus.hasFocus, isTrue);
     expect(
-      _focusBorderColor(tester, focusIndicator),
+      _paintedFocusBorderColor(tester, focusIndicator),
       colors.brandPrimary,
     );
+    expect(tester.getRect(slider), restingSliderRect);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pump();
@@ -82,10 +92,71 @@ void main() {
     expect(value, 51);
     expect(events, const ['start:50', 'change:51', 'end:51']);
   });
+
+  testWidgets(
+      'mouse focus keeps the painted ring hidden without moving the slider',
+      (tester) async {
+    final previousStrategy = FocusManager.instance.highlightStrategy;
+    FocusManager.instance.highlightStrategy =
+        FocusHighlightStrategy.alwaysTraditional;
+    addTearDown(() {
+      FocusManager.instance.highlightStrategy = previousStrategy;
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: PokeMapGuidedSlider(
+            key: const ValueKey<String>('guided-slider'),
+            label: 'Opacité',
+            value: 50,
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final root = find.byKey(const ValueKey<String>('guided-slider'));
+    final focusDetector = find.descendant(
+      of: root,
+      matching: find.byType(FocusableActionDetector),
+    );
+    final slider = find.descendant(
+      of: root,
+      matching: find.byType(CupertinoSlider),
+    );
+    final focusIndicator = find.descendant(
+      of: root,
+      matching: find.byKey(
+        const ValueKey<String>('pokemap-guided-slider-focus-indicator'),
+      ),
+    );
+    final colors = tester.element(focusIndicator).pokeMapColors;
+    final restingSliderRect = tester.getRect(slider);
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(slider),
+      kind: PointerDeviceKind.mouse,
+    );
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<FocusableActionDetector>(focusDetector).focusNode!.hasFocus,
+      isTrue,
+    );
+    expect(
+      _paintedFocusBorderColor(tester, focusIndicator),
+      colors.brandPrimary.withValues(alpha: 0),
+    );
+    expect(tester.getRect(slider), restingSliderRect);
+  });
 }
 
-Color _focusBorderColor(WidgetTester tester, Finder indicator) {
+Color _paintedFocusBorderColor(WidgetTester tester, Finder indicator) {
   final decoration =
-      tester.widget<AnimatedContainer>(indicator).decoration! as BoxDecoration;
+      tester.widget<DecoratedBox>(indicator).decoration as BoxDecoration;
   return (decoration.border! as Border).top.color;
 }
