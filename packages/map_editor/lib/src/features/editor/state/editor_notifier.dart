@@ -38,7 +38,6 @@ import '../../../application/models/narrative_event_spatial_link_journal_models.
 import '../../../application/models/narrative_event_spatial_source_creation_models.dart';
 import '../../../application/models/narrative_authoring_transaction.dart';
 import '../../../application/models/path_autotile_set.dart';
-import '../../../application/models/terrain_selection_mode.dart';
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
 import '../../../application/services/editor_map_mutation_coordinator.dart';
@@ -73,7 +72,6 @@ import '../application/project_content_controller.dart';
 import '../application/project_session_controller.dart';
 import '../application/project_session_models.dart';
 import '../application/world_map_tool_activation.dart';
-import '../application/world_map_tool_family.dart';
 import '../tools/editor_tool.dart';
 import 'editor_state.dart';
 import 'environment_generated_placement_add_element_provider.dart';
@@ -81,7 +79,6 @@ import 'environment_mask_brush_size_provider.dart';
 import '../../border_map_editing/application/active_border_feature_controller.dart';
 import '../../border_map_editing/application/border_feature_authoring_controller.dart';
 import '../../border_map_editing/application/border_preview_transaction.dart';
-import '../../border_map_editing/application/border_tool_availability.dart';
 import '../../border_map_editing/application/pending_border_save_guard.dart';
 import '../../border_map_editing/state/border_map_editing_providers.dart';
 import '../../border_map_editing/state/border_preview_providers.dart';
@@ -142,14 +139,6 @@ typedef _MapDocumentRevisionAttestation = ({
   String revision,
   MapData sourceDocument,
 });
-typedef _WorldMapToolActivationPreflight = ({
-  EditorToolType? resultingTool,
-  TerrainSelectionMode? terrainSelectionMode,
-  EditorBrush? activeBrush,
-  TilesElementsPanelMode? tilesElementsPanelMode,
-  String? rejectionReason,
-});
-
 BorderPreviewContext? _borderPreviewContext(EditorState state) {
   final projectRootPath = state.projectRootPath;
   final project = state.project;
@@ -11328,9 +11317,9 @@ class EditorNotifier extends _$EditorNotifier
     WorldMapToolActivationRequest request,
   ) {
     final source = state;
-    final preflight = _preflightWorldMapToolActivation(
-      source,
-      request,
+    final preflight = assessWorldMapToolActivation(
+      source: worldMapToolActivationSourceFromState(source),
+      request: request,
       activeBorderFeatureId:
           ref.read(activeBorderFeatureControllerProvider).activeFeatureId,
     );
@@ -11394,16 +11383,16 @@ class EditorNotifier extends _$EditorNotifier
       map: destination.activeMap,
       activeLayerId: destination.activeLayerId,
     );
-    final preflight = _preflightWorldMapToolActivation(
-      destination,
-      toolRequest,
+    final preflight = assessWorldMapToolActivation(
+      source: worldMapToolActivationSourceFromState(destination),
+      request: toolRequest,
       activeBorderFeatureId: destinationBorderSelection.activeFeatureId,
     );
     if (preflight.rejectionReason case final reason?) {
       const fallbackRequest = ActivateWorldMapSelection();
-      final fallbackPreflight = _preflightWorldMapToolActivation(
-        destination,
-        fallbackRequest,
+      final fallbackPreflight = assessWorldMapToolActivation(
+        source: worldMapToolActivationSourceFromState(destination),
+        request: fallbackRequest,
       );
       state = _worldMapToolActivationCandidate(
         source: destination,
@@ -11435,13 +11424,13 @@ class EditorNotifier extends _$EditorNotifier
   EditorState _worldMapToolActivationCandidate({
     required EditorState source,
     required WorldMapToolActivationRequest request,
-    required _WorldMapToolActivationPreflight preflight,
+    required WorldMapToolActivationAssessment preflight,
   }) {
     var candidate = source.copyWith(
       activeTool: preflight.resultingTool!,
       terrainSelectionMode:
           preflight.terrainSelectionMode ?? source.terrainSelectionMode,
-      activeBrush: preflight.activeBrush ?? source.activeBrush,
+      activeBrush: preflight.resultingBrush ?? source.activeBrush,
       tilesElementsPanelMode:
           preflight.tilesElementsPanelMode ?? source.tilesElementsPanelMode,
     );
@@ -11466,254 +11455,6 @@ class EditorNotifier extends _$EditorNotifier
       );
     }
     return candidate;
-  }
-
-  _WorldMapToolActivationPreflight _preflightWorldMapToolActivation(
-    EditorState source,
-    WorldMapToolActivationRequest request, {
-    String? activeBorderFeatureId,
-  }) {
-    if (request is ActivateWorldMapSelection) {
-      return (
-        resultingTool: EditorToolType.selection,
-        terrainSelectionMode: null,
-        activeBrush: null,
-        tilesElementsPanelMode: null,
-        rejectionReason: null,
-      );
-    }
-
-    final map = source.activeMap;
-    if (map == null) {
-      return _rejectedWorldMapActivation(
-        'Select an active map before choosing an editing tool.',
-      );
-    }
-    final layerId = source.activeLayerId;
-    final layer = layerId == null ? null : _findLayerById(map, layerId);
-
-    if (request case ActivateWorldMapPlacement(:final subtool)) {
-      if (subtool != WorldMapPlacementSubtool.object) {
-        return (
-          resultingTool: switch (subtool) {
-            WorldMapPlacementSubtool.entity => EditorToolType.entityPlacement,
-            WorldMapPlacementSubtool.event => EditorToolType.eventPlacement,
-            WorldMapPlacementSubtool.trigger => EditorToolType.triggerPlacement,
-            WorldMapPlacementSubtool.warp => EditorToolType.warpPlacement,
-            WorldMapPlacementSubtool.gameplayZone =>
-              EditorToolType.gameplayZonePlacement,
-            WorldMapPlacementSubtool.object => throw StateError('unreachable'),
-          },
-          terrainSelectionMode: null,
-          activeBrush: const EditorBrush.none(),
-          tilesElementsPanelMode: null,
-          rejectionReason: null,
-        );
-      }
-      if (layer is! TileLayer) {
-        return (
-          resultingTool: null,
-          terrainSelectionMode: null,
-          activeBrush: null,
-          tilesElementsPanelMode: null,
-          rejectionReason:
-              'Place/object requires an active editable tile layer.',
-        );
-      }
-      return (
-        resultingTool: EditorToolType.tilePaint,
-        terrainSelectionMode: null,
-        activeBrush: _compatibleProjectElementBrushForLayer(
-          source,
-          map,
-          layer,
-        ),
-        tilesElementsPanelMode: TilesElementsPanelMode.palette,
-        rejectionReason: null,
-      );
-    }
-
-    if (request is ActivateWorldMapErase) {
-      if (layer is BorderLayer) {
-        final availability = assessBorderToolAvailability(
-          manifest: source.project,
-          map: map,
-          activeLayerId: layerId,
-          activeFeatureId: activeBorderFeatureId,
-        );
-        return (
-          resultingTool:
-              availability.isEnabled ? EditorToolType.borderErase : null,
-          terrainSelectionMode: null,
-          activeBrush: availability.isEnabled ? const EditorBrush.none() : null,
-          tilesElementsPanelMode: null,
-          rejectionReason:
-              availability.isEnabled ? null : availability.disabledReason,
-        );
-      }
-      final canErase = layer is TileLayer ||
-          layer is CollisionLayer ||
-          layer is TerrainLayer ||
-          layer is PathLayer ||
-          layer is SurfaceLayer;
-      return (
-        resultingTool: canErase ? EditorToolType.eraser : null,
-        terrainSelectionMode: null,
-        activeBrush: canErase ? const EditorBrush.none() : null,
-        tilesElementsPanelMode: null,
-        rejectionReason: canErase ? null : 'The active layer cannot be erased.',
-      );
-    }
-
-    final paint = request as ActivateWorldMapPaint;
-    switch (paint.subtool) {
-      case WorldMapPaintSubtool.tile:
-        if (layer is! TileLayer) {
-          return _rejectedWorldMapActivation(
-            'Paint/tile requires an active editable tile layer.',
-          );
-        }
-        return (
-          resultingTool: EditorToolType.tilePaint,
-          terrainSelectionMode: null,
-          activeBrush: _compatibleTilePaintBrushForLayer(source, map, layer),
-          tilesElementsPanelMode: TilesElementsPanelMode.palette,
-          rejectionReason: null,
-        );
-      case WorldMapPaintSubtool.terrain:
-        if (layer is! TerrainLayer) {
-          return _rejectedWorldMapActivation(
-            'Paint/terrain requires an active terrain layer.',
-          );
-        }
-        return (
-          resultingTool: EditorToolType.terrainPaint,
-          terrainSelectionMode: TerrainSelectionMode.terrain,
-          activeBrush: const EditorBrush.none(),
-          tilesElementsPanelMode: null,
-          rejectionReason: null,
-        );
-      case WorldMapPaintSubtool.path:
-        if (layer is! PathLayer) {
-          return _rejectedWorldMapActivation(
-            'Paint/path requires an active path layer.',
-          );
-        }
-        return (
-          resultingTool: EditorToolType.terrainPaint,
-          terrainSelectionMode: TerrainSelectionMode.path,
-          activeBrush: const EditorBrush.none(),
-          tilesElementsPanelMode: null,
-          rejectionReason: null,
-        );
-      case WorldMapPaintSubtool.surface:
-        if (layer is! SurfaceLayer) {
-          return _rejectedWorldMapActivation(
-            'Paint/surface requires an active surface layer.',
-          );
-        }
-        if (getSurfacePresetById(source.selectedSurfacePresetId) == null) {
-          return _rejectedWorldMapActivation(
-            'Select an available surface before painting.',
-          );
-        }
-        return (
-          resultingTool: EditorToolType.surfacePaint,
-          terrainSelectionMode: null,
-          activeBrush: const EditorBrush.none(),
-          tilesElementsPanelMode: null,
-          rejectionReason: null,
-        );
-      case WorldMapPaintSubtool.border:
-        final availability = assessBorderToolAvailability(
-          manifest: source.project,
-          map: map,
-          activeLayerId: layerId,
-          activeFeatureId: activeBorderFeatureId,
-        );
-        return (
-          resultingTool:
-              availability.isEnabled ? EditorToolType.borderPaint : null,
-          terrainSelectionMode: null,
-          activeBrush: availability.isEnabled ? const EditorBrush.none() : null,
-          tilesElementsPanelMode: null,
-          rejectionReason:
-              availability.isEnabled ? null : availability.disabledReason,
-        );
-      case WorldMapPaintSubtool.collision:
-        if (layer is! CollisionLayer) {
-          return _rejectedWorldMapActivation(
-            'Paint/collision requires an active collision layer.',
-          );
-        }
-        return (
-          resultingTool: EditorToolType.collisionPaint,
-          terrainSelectionMode: null,
-          activeBrush: const EditorBrush.none(),
-          tilesElementsPanelMode: null,
-          rejectionReason: null,
-        );
-    }
-  }
-
-  _WorldMapToolActivationPreflight _rejectedWorldMapActivation(String reason) {
-    return (
-      resultingTool: null,
-      terrainSelectionMode: null,
-      activeBrush: null,
-      tilesElementsPanelMode: null,
-      rejectionReason: reason,
-    );
-  }
-
-  EditorBrush _compatibleTilePaintBrushForLayer(
-    EditorState source,
-    MapData map,
-    TileLayer layer,
-  ) {
-    final assignedTilesetId = _assignedTilesetIdForLayer(map, layer);
-    return switch (source.activeBrush) {
-      TileEditorBrush(:final tileId, :final tilesetId)
-          when tileId > 0 && tilesetId == assignedTilesetId =>
-        source.activeBrush,
-      PaletteEntryEditorBrush(:final entryId, :final tilesetId)
-          when tilesetId == assignedTilesetId &&
-              _paletteEntryExists(source.project, tilesetId, entryId) =>
-        source.activeBrush,
-      _ => const EditorBrush.none(),
-    };
-  }
-
-  EditorBrush _compatibleProjectElementBrushForLayer(
-    EditorState source,
-    MapData map,
-    TileLayer layer,
-  ) {
-    final brush = source.activeBrush;
-    if (brush is! ProjectElementEditorBrush) {
-      return const EditorBrush.none();
-    }
-    final assignedTilesetId = _assignedTilesetIdForLayer(map, layer);
-    final element = source.project?.elements
-        .where((candidate) => candidate.id == brush.elementId)
-        .firstOrNull;
-    if (element == null || element.tilesetId != assignedTilesetId) {
-      return const EditorBrush.none();
-    }
-    return brush;
-  }
-
-  bool _paletteEntryExists(
-    ProjectManifest? project,
-    String tilesetId,
-    String entryId,
-  ) {
-    final tileset = project?.tilesets
-        .where((candidate) => candidate.id == tilesetId)
-        .firstOrNull;
-    return tileset?.paletteEntries
-            .any((candidate) => candidate.id == entryId) ==
-        true;
   }
 
   /// Resolves the current authored Border state into a transient repair preview.
