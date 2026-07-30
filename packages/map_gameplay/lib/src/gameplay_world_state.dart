@@ -981,6 +981,7 @@ List<bool> _buildPixelCollisionCache(
     required int leftPx,
     required int topPx,
     required ElementCollisionPixelMask mask,
+    required QuarterTurnPixelTransform transform,
   }) {
     List<bool> decoded;
     try {
@@ -992,17 +993,21 @@ List<bool> _buildPixelCollisionCache(
     } catch (_) {
       return false;
     }
-    for (var py = 0; py < mask.heightPx; py++) {
+    final destinationSize = transform.destinationPixelSize;
+    for (var py = 0; py < destinationSize.height; py++) {
       final y = topPx + py;
       if (y < 0 || y >= heightPx) {
         continue;
       }
-      for (var px = 0; px < mask.widthPx; px++) {
+      for (var px = 0; px < destinationSize.width; px++) {
         final x = leftPx + px;
         if (x < 0 || x >= widthPx) {
           continue;
         }
-        final idx = py * mask.widthPx + px;
+        final source = transform.destinationPixelToSourcePixel(
+          GridPos(x: px, y: py),
+        );
+        final idx = source.y * mask.widthPx + source.x;
         if (idx < 0 || idx >= decoded.length || !decoded[idx]) {
           continue;
         }
@@ -1062,18 +1067,40 @@ List<bool> _buildPixelCollisionCache(
     if (!instance.applyCollision) {
       continue;
     }
-    final profile = elementById[instance.elementId]?.collisionProfile;
+    final element = elementById[instance.elementId];
+    final profile = element?.collisionProfile;
     // Masque **collision** uniquement (JSON historique : `pixelMask`).
     final mask = profile?.collisionMask;
-    if (mask == null) {
+    // Missing project data and non-positive legacy masks keep their historical
+    // no-mask branch. Neither may reach the strict canonical transforms.
+    if (element == null ||
+        mask == null ||
+        mask.widthPx <= 0 ||
+        mask.heightPx <= 0) {
       continue;
     }
+    final footprint = resolveMapPlacedElementFootprint(
+      instance: instance,
+      element: element,
+    );
+    final destinationPixelSize = GridSize(
+      width: footprint.destinationSize.width * safeTileWidth,
+      height: footprint.destinationSize.height * safeTileHeight,
+    );
     final worldLeftPx = instance.pos.x * safeTileWidth;
     final worldTopPx = instance.pos.y * safeTileHeight;
     stampPackedMask(
       leftPx: worldLeftPx,
       topPx: worldTopPx,
       mask: mask,
+      transform: QuarterTurnPixelTransform(
+        sourcePixelSize: GridSize(
+          width: mask.widthPx,
+          height: mask.heightPx,
+        ),
+        destinationPixelSize: destinationPixelSize,
+        quarterTurns: footprint.quarterTurns,
+      ),
     );
   }
 
@@ -1114,13 +1141,21 @@ List<bool> _buildPlacedElementCellCollisionCache(
     if (!instance.applyCollision) {
       continue;
     }
-    final profile = elementById[instance.elementId]?.collisionProfile;
-    if (profile == null || profile.collisionMask != null) {
+    final element = elementById[instance.elementId];
+    final profile = element?.collisionProfile;
+    // An unresolved element has never contributed collision cells. Keep that
+    // branch ahead of the strict footprint resolver for legacy map safety.
+    if (element == null || profile == null || profile.collisionMask != null) {
       continue;
     }
+    final footprint = resolveMapPlacedElementFootprint(
+      instance: instance,
+      element: element,
+    );
     for (final cell in profile.cells) {
-      final x = instance.pos.x + cell.x;
-      final y = instance.pos.y + cell.y;
+      final destination = footprint.sourceToDestination(cell);
+      final x = instance.pos.x + destination.x;
+      final y = instance.pos.y + destination.y;
       if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) {
         continue;
       }
@@ -1578,11 +1613,17 @@ GridSize _resolvePlacedElementFootprintSize(
   MapPlacedElement instance,
   Map<String, ProjectElementEntry> elementById,
 ) {
-  final entry = elementById[instance.elementId];
-  final source = entry?.frames.primarySource;
-  final width = source == null || source.width <= 0 ? 1 : source.width;
-  final height = source == null || source.height <= 0 ? 1 : source.height;
-  return GridSize(width: width, height: height);
+  final element = elementById[instance.elementId];
+  // Gameplay historically treats unresolved placed elements as one cell.
+  // Preserve that branch before the strict shared transform so project-less
+  // worlds cannot fail merely because quarterTurns contains unvalidated data.
+  if (element == null) {
+    return const GridSize(width: 1, height: 1);
+  }
+  return resolveMapPlacedElementFootprint(
+    instance: instance,
+    element: element,
+  ).destinationSize;
 }
 
 bool _isEntityBlockingCandidate(MapEntity entity) {
