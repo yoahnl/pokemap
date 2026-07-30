@@ -55,8 +55,18 @@ abstract final class MapPaletteAssetBrowserKeys {
       ValueKey<String>('world-map-asset-browser-assign-$id');
 }
 
+enum MapPaletteAssetBrowserPresentation {
+  sideSheet,
+  inspector,
+}
+
 class MapPaletteAssetBrowserLauncher extends ConsumerStatefulWidget {
-  const MapPaletteAssetBrowserLauncher({super.key});
+  const MapPaletteAssetBrowserLauncher({
+    super.key,
+    this.label,
+  });
+
+  final String? label;
 
   @override
   ConsumerState<MapPaletteAssetBrowserLauncher> createState() =>
@@ -89,7 +99,8 @@ class _MapPaletteAssetBrowserLauncherState
         initialFocusNode: searchFocusNode,
         builder: (_) => UncontrolledProviderScope(
           container: container,
-          child: _MapPaletteAssetBrowserSheet(
+          child: MapPaletteAssetBrowser(
+            presentation: MapPaletteAssetBrowserPresentation.sideSheet,
             searchFocusNode: searchFocusNode,
           ),
         ),
@@ -123,11 +134,12 @@ class _MapPaletteAssetBrowserLauncherState
       leading: const Icon(Icons.grid_view_rounded),
       trailing: const Icon(Icons.chevron_right_rounded),
       child: Text(
-        assignedSourceMissing
-            ? 'Source introuvable : ${snapshot.assignedTilesetId}'
-            : selectedName == null
-                ? 'Choisir une source'
-                : 'Source : $selectedName',
+        widget.label ??
+            (assignedSourceMissing
+                ? 'Source introuvable : ${snapshot.assignedTilesetId}'
+                : selectedName == null
+                    ? 'Choisir une source'
+                    : 'Source : $selectedName'),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -135,20 +147,23 @@ class _MapPaletteAssetBrowserLauncherState
   }
 }
 
-class _MapPaletteAssetBrowserSheet extends ConsumerStatefulWidget {
-  const _MapPaletteAssetBrowserSheet({
-    required this.searchFocusNode,
+class MapPaletteAssetBrowser extends ConsumerStatefulWidget {
+  const MapPaletteAssetBrowser({
+    super.key,
+    this.presentation = MapPaletteAssetBrowserPresentation.inspector,
+    this.searchFocusNode,
   });
 
-  final FocusNode searchFocusNode;
+  final MapPaletteAssetBrowserPresentation presentation;
+  final FocusNode? searchFocusNode;
 
   @override
-  ConsumerState<_MapPaletteAssetBrowserSheet> createState() =>
-      _MapPaletteAssetBrowserSheetState();
+  ConsumerState<MapPaletteAssetBrowser> createState() =>
+      _MapPaletteAssetBrowserState();
 }
 
-class _MapPaletteAssetBrowserSheetState
-    extends ConsumerState<_MapPaletteAssetBrowserSheet> {
+class _MapPaletteAssetBrowserState
+    extends ConsumerState<MapPaletteAssetBrowser> {
   late final TextEditingController _searchController;
 
   @override
@@ -167,11 +182,25 @@ class _MapPaletteAssetBrowserSheetState
     super.dispose();
   }
 
+  void _synchronizeSearchController(String query) {
+    if (_searchController.text == query) return;
+    _searchController.value = TextEditingValue(
+      text: query,
+      selection: TextSelection.collapsed(offset: query.length),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final snapshot = ref.watch(editorMapPaletteAssetBrowserSnapshotProvider);
     final browserContext = snapshot.context;
+    ref.listen<String>(
+      editorMapPaletteAssetBrowserSnapshotProvider.select(
+        (value) => value.context.browserQuery,
+      ),
+      (_, query) => _synchronizeSearchController(query),
+    );
     final notifier = ref.read(editorNotifierProvider.notifier);
     final projector = MapPaletteAssetBrowserProjector(
       ref.watch(resolveAssignableTilesetsForMapUseCaseProvider),
@@ -200,7 +229,11 @@ class _MapPaletteAssetBrowserSheetState
     return KeyedSubtree(
       key: MapPaletteAssetBrowserKeys.sheet,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(
+          widget.presentation == MapPaletteAssetBrowserPresentation.sideSheet
+              ? 16
+              : 12,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

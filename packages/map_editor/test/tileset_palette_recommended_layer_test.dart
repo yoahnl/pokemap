@@ -9,6 +9,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
+import 'package:map_editor/src/ui/panels/tileset_palette/widgets/palette/map_layer_asset_palette.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 void main() {
@@ -70,6 +71,14 @@ void main() {
         await tester.pump(const Duration(milliseconds: 50));
       }
 
+      expect(find.byType(MapLayerAssetPalette), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(MapLayerAssetPalette),
+          matching: find.byType(Scrollable),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Table du gardien'), findsOneWidget);
       await tester.tap(find.text('Table du gardien'));
       await tester.pump();

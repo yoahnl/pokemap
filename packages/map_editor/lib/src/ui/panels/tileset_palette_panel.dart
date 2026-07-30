@@ -34,6 +34,7 @@ import '../assets/editor_image_cache.dart';
 import '../design_system/design_system.dart';
 import 'element_collision_editor_sheet.dart';
 import 'tileset_palette/widgets/browser/map_palette_asset_browser.dart';
+import 'tileset_palette/widgets/palette/map_layer_asset_palette.dart';
 import '../../theme/theme.dart';
 
 part 'tileset_palette/dialogs/element_frame_picker_dialog.dart';
@@ -95,16 +96,9 @@ class TilesetPalettePanel extends ConsumerStatefulWidget {
 }
 
 class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
-  bool _creationMode = false;
-  GridPos? _selectionStart;
-  GridPos? _selectionEnd;
   String? _selectedCategoryId;
   final Set<String> _expandedCategories = <String>{};
   final Set<String> _expandedTilesetGroups = <String>{};
-  final ScrollController _selectionHorizontalScrollController =
-      ScrollController();
-  final ScrollController _selectionVerticalScrollController =
-      ScrollController();
   String? _lastPlacedInstancesSignature;
   EditorImageCache? _lastPaletteImageCache;
   String? _lastPaletteImagePath;
@@ -114,8 +108,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   void dispose() {
     _releasePaletteImageFuture(_paletteImageFuture);
     _paletteImageFuture = null;
-    _selectionHorizontalScrollController.dispose();
-    _selectionVerticalScrollController.dispose();
     super.dispose();
   }
 
@@ -358,49 +350,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     );
   }
 
-  TilesetSourceRect? get _selectionRect {
-    final start = _selectionStart;
-    final end = _selectionEnd;
-    if (start == null || end == null) return null;
-    return _rectFromPoints(start, end);
-  }
-
-  TilesetSourceRect _rectFromPoints(GridPos start, GridPos end) {
-    final left = math.min(start.x, end.x);
-    final top = math.min(start.y, end.y);
-    final right = math.max(start.x, end.x);
-    final bottom = math.max(start.y, end.y);
-    return TilesetSourceRect(
-      x: left,
-      y: top,
-      width: right - left + 1,
-      height: bottom - top + 1,
-    );
-  }
-
-  void _setCreationMode(bool enabled) {
-    setState(() {
-      _creationMode = enabled;
-      _selectionStart = null;
-      _selectionEnd = null;
-    });
-  }
-
-  GridPos _gridFromLocal(
-    Offset localPosition,
-    double cellSize,
-    int columns,
-    int rows,
-  ) {
-    final maxX = math.max(0.0, columns * cellSize - 0.000001);
-    final maxY = math.max(0.0, rows * cellSize - 0.000001);
-    final dx = localPosition.dx.clamp(0.0, maxX).toDouble();
-    final dy = localPosition.dy.clamp(0.0, maxY).toDouble();
-    final x = (dx / cellSize).floor().clamp(0, columns - 1);
-    final y = (dy / cellSize).floor().clamp(0, rows - 1);
-    return GridPos(x: x, y: y);
-  }
-
   Widget _withMapAssetBrowserLauncher(Widget child) {
     if (!widget.embedded) return child;
     return Column(
@@ -625,350 +574,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     return _withMapAssetBrowserLauncher(palette);
   }
 
-  // ignore: unused_element
-  Widget _buildTilesTab({
-    required EditorTilesetPaletteSnapshot snapshot,
-    required EditorNotifier notifier,
-    required ui.Image image,
-    required ProjectManifest project,
-    required List<TileLayer> tileLayers,
-    required int columns,
-    required int rows,
-    required ProjectSettings settings,
-    required ProjectTilesetEntry activeTileset,
-  }) {
-    final unitEntryByTileId = <int, TilesetPaletteEntry>{};
-    for (final entry in activeTileset.paletteEntries) {
-      final ps = entry.frames.primarySource;
-      if (ps.width != 1 || ps.height != 1) continue;
-      final tileId = ps.y * columns + ps.x + 1;
-      if (tileId > 0 && tileId <= columns * rows) {
-        unitEntryByTileId[tileId] = entry;
-      }
-    }
-
-    final filter = snapshot.paletteCategoryFilter;
-    final filteredTileIds = <int>[];
-    for (var tileId = 1; tileId <= columns * rows; tileId++) {
-      if (filter == null) {
-        filteredTileIds.add(tileId);
-        continue;
-      }
-      final entry = unitEntryByTileId[tileId];
-      if (entry == null) {
-        if (filter == PaletteCategory.uncategorized) {
-          filteredTileIds.add(tileId);
-        }
-      } else if (entry.category == filter) {
-        filteredTileIds.add(tileId);
-      }
-    }
-
-    final selectedTileId = snapshot.activeBrush.maybeMap(
-      tile: (brush) =>
-          brush.tilesetId == activeTileset.id ? brush.tileId : null,
-      orElse: () => null,
-    );
-    final selectedEntry =
-        selectedTileId == null ? null : unitEntryByTileId[selectedTileId];
-    final selectedCategory =
-        selectedEntry?.category ?? PaletteCategory.uncategorized;
-    final previewSize = settings.tileWidth * settings.displayScale * 2.0;
-    final selectionRect = _selectionRect;
-
-    final tileTabSecondary =
-        CupertinoColors.secondaryLabel.resolveFrom(context);
-    final tileTabLabel = CupertinoColors.label.resolveFrom(context);
-    final filterItems = <int>[
-      -1,
-      ...List.generate(PaletteCategory.values.length, (i) => i),
-    ];
-    String filterLabel(int i) =>
-        i < 0 ? 'All' : _legacyCategoryLabel(PaletteCategory.values[i]);
-    final currentFilterIndex =
-        filter == null ? -1 : PaletteCategory.values.indexOf(filter);
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-          child: CupertinoButton(
-            padding: EdgeInsets.zero,
-            alignment: Alignment.centerLeft,
-            onPressed: () async {
-              final picked = await showCupertinoListPicker<int>(
-                context: context,
-                title: 'Tile Category Filter',
-                items: filterItems,
-                labelOf: filterLabel,
-              );
-              if (picked != null) {
-                notifier.setPaletteCategoryFilter(
-                  picked < 0 ? null : PaletteCategory.values[picked],
-                );
-              }
-            },
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Tile Category Filter',
-                  style: TextStyle(fontSize: 12, color: tileTabSecondary),
-                ),
-                Text(
-                  filterLabel(currentFilterIndex),
-                  style: TextStyle(color: tileTabLabel),
-                ),
-              ],
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: CupertinoButton(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  onPressed: () => _setCreationMode(!_creationMode),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        _creationMode
-                            ? CupertinoIcons.xmark
-                            : CupertinoIcons.square,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          _creationMode
-                              ? 'Quitter la création d\'élément'
-                              : 'Créer un élément',
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              CupertinoButton.filled(
-                onPressed: !_creationMode || selectionRect == null
-                    ? null
-                    : () => _showCreateElementDialog(
-                          context,
-                          notifier: notifier,
-                          project: project,
-                          image: image,
-                          tilesetId: activeTileset.id,
-                          tilesetGroups: activeTileset.elementGroups,
-                          source: selectionRect,
-                          tileWidth: settings.tileWidth,
-                          tileHeight: settings.tileHeight,
-                          activeLayerId: snapshot.activeLayerId,
-                          tileLayers: tileLayers,
-                        ),
-                child: const Text('Save'),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: _creationMode
-              ? _buildSelectionCanvas(
-                  image: image,
-                  columns: columns,
-                  rows: rows,
-                  tileWidth: settings.tileWidth,
-                  tileHeight: settings.tileHeight,
-                  displayScale: settings.displayScale,
-                  selectionRect: selectionRect,
-                )
-              : ListView(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  children: [
-                    SizedBox(
-                      height: 220,
-                      child: _buildSelectionCanvas(
-                        image: image,
-                        columns: columns,
-                        rows: rows,
-                        tileWidth: settings.tileWidth,
-                        tileHeight: settings.tileHeight,
-                        displayScale: settings.displayScale,
-                        selectionRect: selectionRect,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final paletteTileSize =
-                              settings.tileWidth * settings.displayScale;
-                          final crossAxisCount =
-                              (constraints.maxWidth / (paletteTileSize + 8))
-                                  .floor()
-                                  .clamp(1, 20);
-                          return GridView.builder(
-                            itemCount: filteredTileIds.length,
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: crossAxisCount,
-                              crossAxisSpacing: 4,
-                              mainAxisSpacing: 4,
-                            ),
-                            itemBuilder: (context, index) {
-                              final tileId = filteredTileIds[index];
-                              return _PaletteTileCell(
-                                image: image,
-                                tileId: tileId,
-                                tileWidth: settings.tileWidth,
-                                tileHeight: settings.tileHeight,
-                                columns: columns,
-                                selected: tileId == selectedTileId,
-                                onTap: () {
-                                  notifier.selectPaletteTile(tileId);
-                                  notifier.selectTool(EditorToolType.tilePaint);
-                                },
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                  color: CupertinoColors.separator.resolveFrom(context)),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Selected Tile',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  color: tileTabLabel,
-                ),
-              ),
-              if (_creationMode && selectionRect != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  'Selection: ${selectionRect.width}x${selectionRect.height} at (${selectionRect.x}, ${selectionRect.y})',
-                  style: TextStyle(
-                    color: tileTabSecondary,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Container(
-                    width: previewSize,
-                    height: previewSize,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: CupertinoColors.separator.resolveFrom(context),
-                      ),
-                    ),
-                    child: selectedTileId == null
-                        ? Center(
-                            child: Text(
-                              '-',
-                              style: TextStyle(
-                                color: CupertinoColors.placeholderText
-                                    .resolveFrom(context),
-                              ),
-                            ),
-                          )
-                        : _PaletteTilePreview(
-                            image: image,
-                            tileId: selectedTileId,
-                            tileWidth: settings.tileWidth,
-                            tileHeight: settings.tileHeight,
-                            columns: columns,
-                          ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          selectedTileId == null
-                              ? 'No tile selected'
-                              : 'Tile #$selectedTileId',
-                          style: TextStyle(fontSize: 12, color: tileTabLabel),
-                        ),
-                        const SizedBox(height: 8),
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          alignment: Alignment.centerLeft,
-                          onPressed: selectedTileId == null
-                              ? null
-                              : () async {
-                                  final picked = await showCupertinoListPicker<
-                                      PaletteCategory>(
-                                    context: context,
-                                    title: 'Tile Category',
-                                    items: PaletteCategory.values.toList(),
-                                    labelOf: _legacyCategoryLabel,
-                                  );
-                                  if (picked != null) {
-                                    notifier.upsertPaletteEntryForTile(
-                                      tileId: selectedTileId,
-                                      columns: columns,
-                                      category: picked,
-                                      recommendedLayerId:
-                                          snapshot.activeLayerId,
-                                    );
-                                  }
-                                },
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Tile Category',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: tileTabSecondary,
-                                ),
-                              ),
-                              Text(
-                                _legacyCategoryLabel(selectedCategory),
-                                style: TextStyle(color: tileTabLabel),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildElementsTab({
     required EditorTilesetPaletteSnapshot snapshot,
     required EditorNotifier notifier,
@@ -1039,10 +644,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       }
       return true;
     }).toList(growable: false);
-
-    final groupById = <String, ProjectMapGroup>{
-      for (final group in project.groups) group.id: group,
-    };
 
     final colors = context.pokeMapColors;
     const tilesAccent = EditorChrome.inspectorJoyLilac;
@@ -1337,142 +938,103 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         ),
       ),
       const SizedBox(height: 6),
-      Container(
-        margin: const EdgeInsets.symmetric(horizontal: 10),
-        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-        decoration: BoxDecoration(
-          color: colors.surfaceBase,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: colors.borderSubtle),
-          boxShadow: EditorChrome.sectionCardShadows(context),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Row(
           children: [
-            Row(
-              children: [
-                const Icon(
-                  CupertinoIcons.cube_box_fill,
-                  size: 15,
-                  color: tilesAccent,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Éléments à placer',
-                    style: TextStyle(
-                      color: EditorChrome.primaryLabel(context),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                Text(
-                  '${filteredElements.length}',
-                  style: TextStyle(
-                    color: secondaryLabel,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                PushButton(
-                  key: const ValueKey('element-auto-shadow-backfill-button'),
-                  controlSize: ControlSize.small,
-                  secondary: true,
-                  onPressed: () => _showApplyElementAutoShadowsDialog(
-                    context,
-                    notifier: notifier,
-                  ),
-                  child: const Text('Ombres auto'),
-                ),
-              ],
+            const Icon(
+              CupertinoIcons.cube_box_fill,
+              size: 15,
+              color: tilesAccent,
             ),
-            const SizedBox(height: 8),
-            if (filteredElements.isEmpty)
-              Text(
-                'Aucun élément pour ces filtres',
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Éléments à placer',
                 style: TextStyle(
-                  color: CupertinoColors.placeholderText.resolveFrom(context),
+                  color: EditorChrome.primaryLabel(context),
                   fontSize: 12,
+                  fontWeight: FontWeight.w700,
                 ),
-              )
-            else
-              ListView.builder(
-                padding: EdgeInsets.zero,
-                itemCount: filteredElements.length,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemBuilder: (context, index) {
-                  final element = filteredElements[index];
-                  final categoryPath = _buildCategoryPathLabel(
-                    categoriesById: categoriesById,
-                    categoryId: element.categoryId,
-                  );
-                  final tilesetName = activeTileset.name;
-                  final groupLabel = element.groupId == null
-                      ? 'Global'
-                      : 'Groupe : ${_buildGroupPathLabel(groupById, element.groupId!)}';
-                  final tilesetGroupLabel = element.tilesetGroupId == null
-                      ? 'Interne : aucun'
-                      : 'Interne : ${_buildTilesetGroupPathLabel(tilesetGroupById, element.tilesetGroupId!)}';
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: _ProjectElementCard(
-                      image: image,
-                      element: element,
-                      tileWidth: tileWidth,
-                      tileHeight: tileHeight,
-                      selectionAccent: tilesAccent,
-                      selected: snapshot.activeBrush.maybeMap(
-                        projectElement: (brush) =>
-                            brush.elementId == element.id,
-                        orElse: () => false,
-                      ),
-                      categoryPath: categoryPath,
-                      tilesetName: tilesetName,
-                      groupLabel: groupLabel,
-                      tilesetGroupLabel: tilesetGroupLabel,
-                      onTap: () {
-                        if (element.recommendedLayerId != null &&
-                            (snapshot.activeMap?.layers.any(
-                                  (layer) =>
-                                      layer is TileLayer &&
-                                      layer.id == element.recommendedLayerId,
-                                ) ??
-                                false)) {
-                          notifier.setActiveLayer(
-                            element.recommendedLayerId!,
-                          );
-                        }
-                        notifier.selectProjectElement(element.id);
-                        notifier.selectTool(EditorToolType.tilePaint);
-                      },
-                      onEdit: () => _showEditElementDialog(
-                        context,
-                        notifier: notifier,
-                        project: project,
-                        image: image,
-                        element: element,
-                        categories: categories,
-                        tileWidth: tileWidth,
-                        tileHeight: tileHeight,
-                        tileLayers: tileLayers,
-                        tilesetGroups: tilesetGroups,
-                      ),
-                      onDelete: () => _showDeleteElementDialog(
-                        context,
-                        notifier: notifier,
-                        element: element,
-                      ),
-                    ),
-                  );
-                },
               ),
+            ),
+            PokeMapButton(
+              key: const ValueKey('element-auto-shadow-backfill-button'),
+              onPressed: () => _showApplyElementAutoShadowsDialog(
+                context,
+                notifier: notifier,
+              ),
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              child: const Text('Ombres auto'),
+            ),
           ],
         ),
       ),
+      const SizedBox(height: 6),
+      Expanded(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+          child: MapLayerAssetPalette(
+            mode: MapLayerAssetPaletteMode.elements,
+            presentation: widget.embedded
+                ? MapPaletteAssetBrowserPresentation.inspector
+                : MapPaletteAssetBrowserPresentation.sideSheet,
+            sourceId: activeTileset.id,
+            visibleElementIds:
+                filteredElements.map((element) => element.id).toSet(),
+            elementActionsBuilder: (context, element) => Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                PokeMapIconButton(
+                  tooltip: 'Modifier ${element.name}',
+                  onPressed: () => _showEditElementDialog(
+                    context,
+                    notifier: notifier,
+                    project: project,
+                    image: image,
+                    element: element,
+                    categories: categories,
+                    tileWidth: tileWidth,
+                    tileHeight: tileHeight,
+                    tileLayers: tileLayers,
+                    tilesetGroups: tilesetGroups,
+                  ),
+                  icon: const Icon(CupertinoIcons.pencil),
+                ),
+                PokeMapIconButton(
+                  tooltip: 'Supprimer ${element.name}',
+                  variant: PokeMapIconButtonVariant.danger,
+                  onPressed: () => _showDeleteElementDialog(
+                    context,
+                    notifier: notifier,
+                    element: element,
+                  ),
+                  icon: const Icon(CupertinoIcons.trash),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     ];
+
+    if (panelMode == TilesElementsPanelMode.palette) {
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 2),
+            child: _buildTilesElementsModeSelector(
+              mode: panelMode,
+              onChanged: notifier.setTilesElementsPanelMode,
+              placedCount: placedInstancesScope.instances.length,
+            ),
+          ),
+          const SizedBox(height: 4),
+          ...paletteSections,
+        ],
+      );
+    }
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 12),
@@ -1486,67 +1048,64 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           ),
         ),
         const SizedBox(height: 4),
-        if (panelMode == TilesElementsPanelMode.palette) ...paletteSections,
-        if (panelMode == TilesElementsPanelMode.placedInstances)
-          _PlacedInstancesSection(
-            manifest: project,
-            image: image,
-            tileWidth: tileWidth,
-            tileHeight: tileHeight,
-            scope: placedInstancesScope,
-            selectedInstanceId: snapshot.selectedPlacedElementInstanceId,
-            selectedInstance: selectedPlacedInstance,
-            dialogues: project.dialogues,
-            projectRootPath: snapshot.projectRootPath,
-            onSelectInstance: (instance) {
-              notifier.selectPlacedElementInstance(
-                instanceId: instance?.instanceId,
-                elementId:
-                    instance?.element?.id ?? instance?.instance.elementId,
-                layerId: instance?.layerId,
-              );
-            },
-            onCollisionAppliedChanged: (instance, applyCollision) {
-              notifier.setPlacedElementInstanceCollisionApplied(
-                instanceId: instance.instanceId,
-                applyCollision: applyCollision,
-              );
-            },
-            onOpacityChanged: (instance, opacity) {
-              notifier.setPlacedElementInstanceOpacity(
-                instanceId: instance.instanceId,
-                opacity: opacity,
-              );
-            },
-            onShadowOverrideChanged: (instance, shadowOverride) {
-              notifier.setPlacedElementInstanceShadowOverride(
-                instanceId: instance.instanceId,
-                shadowOverride: shadowOverride,
-              );
-            },
-            onEnsureDefaultShadowProfiles: () {
-              notifier.ensureDefaultShadowProfiles();
-            },
-            onAnimationConfigChanged: (instance, animation) {
-              notifier.setPlacedElementInstanceAnimationConfig(
-                instanceId: instance.instanceId,
-                animation: animation,
-              );
-            },
-            onBehaviorsChanged: (instance, behaviors) {
-              notifier.setPlacedElementInstanceBehaviors(
-                instanceId: instance.instanceId,
-                behaviors: behaviors,
-              );
-            },
-            onDeleteInstance: (instance) async {
-              await _showDeletePlacedInstanceDialog(
-                context,
-                notifier: notifier,
-                instance: instance,
-              );
-            },
-          ),
+        _PlacedInstancesSection(
+          manifest: project,
+          image: image,
+          tileWidth: tileWidth,
+          tileHeight: tileHeight,
+          scope: placedInstancesScope,
+          selectedInstanceId: snapshot.selectedPlacedElementInstanceId,
+          selectedInstance: selectedPlacedInstance,
+          dialogues: project.dialogues,
+          projectRootPath: snapshot.projectRootPath,
+          onSelectInstance: (instance) {
+            notifier.selectPlacedElementInstance(
+              instanceId: instance?.instanceId,
+              elementId: instance?.element?.id ?? instance?.instance.elementId,
+              layerId: instance?.layerId,
+            );
+          },
+          onCollisionAppliedChanged: (instance, applyCollision) {
+            notifier.setPlacedElementInstanceCollisionApplied(
+              instanceId: instance.instanceId,
+              applyCollision: applyCollision,
+            );
+          },
+          onOpacityChanged: (instance, opacity) {
+            notifier.setPlacedElementInstanceOpacity(
+              instanceId: instance.instanceId,
+              opacity: opacity,
+            );
+          },
+          onShadowOverrideChanged: (instance, shadowOverride) {
+            notifier.setPlacedElementInstanceShadowOverride(
+              instanceId: instance.instanceId,
+              shadowOverride: shadowOverride,
+            );
+          },
+          onEnsureDefaultShadowProfiles: () {
+            notifier.ensureDefaultShadowProfiles();
+          },
+          onAnimationConfigChanged: (instance, animation) {
+            notifier.setPlacedElementInstanceAnimationConfig(
+              instanceId: instance.instanceId,
+              animation: animation,
+            );
+          },
+          onBehaviorsChanged: (instance, behaviors) {
+            notifier.setPlacedElementInstanceBehaviors(
+              instanceId: instance.instanceId,
+              behaviors: behaviors,
+            );
+          },
+          onDeleteInstance: (instance) async {
+            await _showDeletePlacedInstanceDialog(
+              context,
+              notifier: notifier,
+              instance: instance,
+            );
+          },
+        ),
       ],
     );
   }
@@ -1948,72 +1507,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     return labels.reversed.join(' / ');
   }
 
-  Widget _buildSelectionCanvas({
-    required ui.Image image,
-    required int columns,
-    required int rows,
-    required int tileWidth,
-    required int tileHeight,
-    required double displayScale,
-    required TilesetSourceRect? selectionRect,
-  }) {
-    final cellSize = math.max(8.0, tileWidth * displayScale);
-    final canvasWidth = columns * cellSize;
-    final canvasHeight = rows * cellSize;
-
-    return SingleChildScrollView(
-      controller: _selectionHorizontalScrollController,
-      primary: false,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        controller: _selectionVerticalScrollController,
-        primary: false,
-        scrollDirection: Axis.vertical,
-        child: SizedBox(
-          width: canvasWidth,
-          height: canvasHeight,
-          child: GestureDetector(
-            onPanStart: (details) {
-              final pos = _gridFromLocal(
-                  details.localPosition, cellSize, columns, rows);
-              setState(() {
-                _selectionStart = pos;
-                _selectionEnd = pos;
-              });
-            },
-            onPanUpdate: (details) {
-              if (_selectionStart == null) return;
-              final pos = _gridFromLocal(
-                  details.localPosition, cellSize, columns, rows);
-              setState(() {
-                _selectionEnd = pos;
-              });
-            },
-            onTapUp: (details) {
-              final pos = _gridFromLocal(
-                  details.localPosition, cellSize, columns, rows);
-              setState(() {
-                _selectionStart = pos;
-                _selectionEnd = pos;
-              });
-            },
-            child: CustomPaint(
-              painter: _TilesetSelectionPainter(
-                image: image,
-                columns: columns,
-                rows: rows,
-                tileWidth: tileWidth,
-                tileHeight: tileHeight,
-                selection: selectionRect,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Future<void> _showCreateCategoryDialog(
     BuildContext context, {
     required EditorNotifier notifier,
@@ -2309,6 +1802,10 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     );
   }
 
+  // Kept as the authoring endpoint for the dedicated tileset editor. The
+  // world-map palette now consumes existing elements and no longer owns a
+  // source-rectangle selection canvas.
+  // ignore: unused_element
   Future<void> _showCreateElementDialog(
     BuildContext context, {
     required EditorNotifier notifier,
@@ -2660,12 +2157,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       tags: _parseTags(tagsController.text),
     );
     notifier.selectTool(EditorToolType.tilePaint);
-    if (!mounted) return;
-    setState(() {
-      _creationMode = false;
-      _selectionStart = null;
-      _selectionEnd = null;
-    });
   }
 
   Future<void> _showEditElementDialog(
@@ -3104,35 +2595,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       }
     }
     return null;
-  }
-
-  String _legacyCategoryLabel(PaletteCategory category) {
-    switch (category) {
-      case PaletteCategory.floors:
-        return 'Sols';
-      case PaletteCategory.paths:
-        return 'Chemins';
-      case PaletteCategory.water:
-        return 'Eau';
-      case PaletteCategory.buildings:
-        return 'Batiments';
-      case PaletteCategory.roofs:
-        return 'Toits';
-      case PaletteCategory.plants:
-        return 'Plantes';
-      case PaletteCategory.trees:
-        return 'Arbres';
-      case PaletteCategory.cliffs:
-        return 'Falaises';
-      case PaletteCategory.decorations:
-        return 'Decorations';
-      case PaletteCategory.interiors:
-        return 'Interieurs';
-      case PaletteCategory.objects:
-        return 'Objets';
-      case PaletteCategory.uncategorized:
-        return 'Non classes';
-    }
   }
 }
 

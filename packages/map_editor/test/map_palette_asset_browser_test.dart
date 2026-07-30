@@ -9,14 +9,183 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/editor/editor_asset_cache_providers.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/assets/editor_image_cache.dart';
+import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette/widgets/browser/map_palette_asset_browser.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
+  testWidgets(
+    'public side-sheet and inspector presentations share browser state',
+    (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final inspectorSearchFocusNode = FocusNode(
+        debugLabel: 'inspector asset browser search',
+      );
+      addTearDown(inspectorSearchFocusNode.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier)
+        ..state = const EditorState(
+          project: project,
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: map,
+          activeLayerId: 'ground',
+        );
+
+      await tester.binding.setSurfaceSize(const Size(1100, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: PokeMapTheme.light(),
+            home: Scaffold(
+              body: Row(
+                children: [
+                  const Expanded(
+                    child: MapPaletteAssetBrowser(
+                      presentation:
+                          MapPaletteAssetBrowserPresentation.sideSheet,
+                    ),
+                  ),
+                  Expanded(
+                    child: MapPaletteAssetBrowser(
+                      presentation:
+                          MapPaletteAssetBrowserPresentation.inspector,
+                      searchFocusNode: inspectorSearchFocusNode,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(MapPaletteAssetBrowser), findsNWidgets(2));
+      expect(find.byType(TextField), findsNWidgets(2));
+
+      await tester.enterText(find.byType(TextField).first, 'Détails');
+      await tester.pump();
+
+      expect(
+        tester
+            .widgetList<TextField>(find.byType(TextField))
+            .map((field) => field.controller!.text),
+        everyElement('Détails'),
+      );
+      expect(_activeBrowserContext(notifier).browserQuery, 'Détails');
+
+      notifier.setPaletteBrowserCollection(
+        EditorPaletteAssetCollection.recent,
+      );
+      notifier.togglePaletteTilesetFavorite('details');
+      notifier.selectTilesetEditorContext('details');
+      await tester.pump();
+
+      expect(
+        _activeBrowserContext(notifier).browserCollection,
+        EditorPaletteAssetCollection.recent,
+      );
+      expect(
+        notifier.state.paletteSession.favoriteTilesetIds,
+        <String>['details'],
+      );
+      expect(
+        notifier.state.paletteSession.recentTilesetIds,
+        contains('details'),
+      );
+      expect(
+        find.byKey(MapPaletteAssetBrowserKeys.collectionRecent),
+        findsNWidgets(2),
+      );
+      expect(
+        tester
+            .widgetList<PokeMapButton>(
+              find.ancestor(
+                of: find.byKey(MapPaletteAssetBrowserKeys.collectionRecent),
+                matching: find.byType(PokeMapButton),
+              ),
+            )
+            .every((button) => button.isSelected),
+        isTrue,
+      );
+    },
+  );
+
+  testWidgets(
+    'choosing an incompatible source cannot change brush tool or history',
+    (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      const contextKey = EditorPaletteContextKey(
+        mapId: 'town',
+        layerId: 'ground',
+      );
+      final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+      addTearDown(keepAlive.close);
+      final notifier = container.read(editorNotifierProvider.notifier)
+        ..state = EditorState(
+          project: project,
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: map,
+          activeLayerId: 'ground',
+          activeTool: EditorToolType.tilePaint,
+          activeBrush: const EditorBrush.tile(
+            tileId: 1,
+            tilesetId: 'world',
+          ),
+          paletteSession: EditorPaletteSession(
+            activeKey: contextKey,
+            contexts: <EditorPaletteContextKey, EditorLayerPaletteContext>{
+              contextKey: const EditorLayerPaletteContext(
+                selectedTilesetId: 'world',
+                showIncompatible: true,
+              ),
+            },
+          ),
+        );
+      final before = notifier.state;
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: PokeMapTheme.light(),
+            home: const Scaffold(
+              body: SizedBox(
+                width: 560,
+                height: 650,
+                child: MapPaletteAssetBrowser(
+                  presentation: MapPaletteAssetBrowserPresentation.inspector,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(
+        find.byKey(
+          MapPaletteAssetBrowserKeys.tilesetRow('private_characters'),
+        ),
+      );
+      await tester.pump();
+
+      expect(notifier.state.activeBrush, before.activeBrush);
+      expect(notifier.state.activeTool, before.activeTool);
+      expect(notifier.state.paletteSession, before.paletteSession);
+      expect(notifier.state.mapUndoStack, before.mapUndoStack);
+      expect(notifier.state.mapRedoStack, before.mapRedoStack);
+      expect(notifier.state.isDirty, before.isDirty);
+    },
+  );
+
   testWidgets(
     'browser filters declared sources without dirtying the map',
     (tester) async {
