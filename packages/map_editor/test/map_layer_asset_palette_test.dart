@@ -16,62 +16,34 @@ import 'package:map_editor/src/ui/panels/tileset_palette/widgets/palette/map_lay
 
 void main() {
   testWidgets(
-    'tile mode renders real cells from the assigned canonical source with one scroll owner',
+    'multi-cell atlas without project elements renders no raw tiles and explains where to define objects',
     (tester) async {
-      final harness = await _PaletteHarness.create();
+      final harness = await _PaletteHarness.create(
+        project: _projectWithoutElements,
+      );
       addTearDown(harness.dispose);
 
-      await harness.pump(
-        tester,
-        mode: MapLayerAssetPaletteMode.tiles,
-      );
+      await harness.pump(tester);
 
+      expect(find.byType(PokeMapAssetCard), findsNothing);
+      expect(find.text('Aucun objet à placer'), findsOneWidget);
       expect(
-        find.byKey(MapLayerAssetPaletteKeys.tileCell('world', 1)),
+        find.textContaining('Tileset Library'),
         findsOneWidget,
       );
-      expect(
-        find.byKey(MapLayerAssetPaletteKeys.tileCell('world', 2)),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(
-          of: find.byKey(MapLayerAssetPaletteKeys.root),
-          matching: find.byType(Scrollable),
-        ),
-        findsOneWidget,
-      );
-
-      final firstCell = tester.widget<PokeMapAssetCard>(
-        find.byKey(MapLayerAssetPaletteKeys.tileCell('world', 1)),
-      );
-      expect(firstCell.onPressed, isNotNull);
-      expect(firstCell.disabledReason, isNull);
-
-      await tester.tap(
-        find.byKey(MapLayerAssetPaletteKeys.tileCell('world', 1)),
-      );
-      await tester.pump();
-
-      expect(
-        harness.notifier.state.activeBrush,
-        const EditorBrush.tile(tileId: 1, tilesetId: 'world'),
-      );
-      expect(harness.notifier.state.activeTool, EditorToolType.tilePaint);
+      expect(harness.notifier.state.activeBrush, const EditorBrush.none());
+      expect(harness.notifier.state.activeTool, EditorToolType.selection);
       expect(harness.notifier.state.mapUndoStack, isEmpty);
     },
   );
 
   testWidgets(
-    'element mode renders real project-element cards from the assigned source',
+    'renders real project-element cards from the assigned source',
     (tester) async {
       final harness = await _PaletteHarness.create();
       addTearDown(harness.dispose);
 
-      await harness.pump(
-        tester,
-        mode: MapLayerAssetPaletteMode.elements,
-      );
+      await harness.pump(tester);
 
       expect(
         find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')),
@@ -123,22 +95,16 @@ void main() {
     (tester) async {
       final harness = await _PaletteHarness.create(
         selectedTilesetId: 'details',
-        activeBrush: const EditorBrush.tile(
-          tileId: 2,
-          tilesetId: 'world',
-        ),
+        activeBrush: const EditorBrush.projectElement(elementId: 'tree'),
         activeTool: EditorToolType.tilePaint,
       );
       addTearDown(harness.dispose);
       final before = harness.notifier.state;
 
-      await harness.pump(
-        tester,
-        mode: MapLayerAssetPaletteMode.tiles,
-      );
+      await harness.pump(tester);
 
       final cardFinder = find.byKey(
-        MapLayerAssetPaletteKeys.tileCell('details', 1),
+        MapLayerAssetPaletteKeys.elementCard('lamp'),
       );
       final card = tester.widget<PokeMapAssetCard>(cardFinder);
       expect(card.onPressed, isNull);
@@ -173,10 +139,7 @@ void main() {
       addTearDown(harness.dispose);
       final before = harness.notifier.state;
 
-      await harness.pump(
-        tester,
-        mode: MapLayerAssetPaletteMode.elements,
-      );
+      await harness.pump(tester);
 
       final cardFinder = find.byKey(
         MapLayerAssetPaletteKeys.elementCard('private_actor'),
@@ -196,15 +159,37 @@ void main() {
   );
 
   testWidgets(
+    'active filters with no match give context-neutral reset guidance',
+    (tester) async {
+      final harness = await _PaletteHarness.create(
+        projectElementCategoryId: 'decor',
+      );
+      addTearDown(harness.dispose);
+
+      await harness.pump(tester);
+
+      expect(
+        find.text('Aucun objet ne correspond aux filtres actifs'),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Modifiez ou réinitialisez les filtres actifs pour afficher les '
+          'objets.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(PokeMapAssetCard), findsNothing);
+    },
+  );
+
+  testWidgets(
     'A to B to A restores each layer source and selected asset',
     (tester) async {
       final harness = await _PaletteHarness.create();
       addTearDown(harness.dispose);
 
-      await harness.pump(
-        tester,
-        mode: MapLayerAssetPaletteMode.elements,
-      );
+      await harness.pump(tester);
       await tester.tap(
         find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')),
       );
@@ -293,7 +278,9 @@ class _PaletteHarness {
       container.read(editorNotifierProvider.notifier);
 
   static Future<_PaletteHarness> create({
+    ProjectManifest project = _project,
     String? selectedTilesetId,
+    String? projectElementCategoryId,
     EditorBrush activeBrush = const EditorBrush.none(),
     EditorToolType activeTool = EditorToolType.selection,
   }) async {
@@ -326,19 +313,21 @@ class _PaletteHarness {
     );
     container.read(editorNotifierProvider.notifier).state = EditorState(
       projectRootPath: '/virtual/project',
-      project: _project,
+      project: project,
       workspaceMode: EditorWorkspaceMode.map,
       activeMap: _map,
       activeLayerId: 'ground',
       activeTool: activeTool,
       activeBrush: activeBrush,
-      paletteSession: selectedTilesetId == null
+      paletteSession: selectedTilesetId == null &&
+              projectElementCategoryId == null
           ? const EditorPaletteSession()
           : EditorPaletteSession(
               activeKey: contextKey,
               contexts: <EditorPaletteContextKey, EditorLayerPaletteContext>{
                 contextKey: EditorLayerPaletteContext(
                   selectedTilesetId: selectedTilesetId,
+                  projectElementCategoryId: projectElementCategoryId,
                 ),
               },
             ),
@@ -350,10 +339,7 @@ class _PaletteHarness {
     );
   }
 
-  Future<void> pump(
-    WidgetTester tester, {
-    required MapLayerAssetPaletteMode mode,
-  }) async {
+  Future<void> pump(WidgetTester tester) async {
     await tester.binding.setSurfaceSize(const Size(420, 620));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
@@ -361,11 +347,11 @@ class _PaletteHarness {
         container: container,
         child: MaterialApp(
           theme: PokeMapTheme.light(),
-          home: Scaffold(
+          home: const Scaffold(
             body: SizedBox(
               width: 400,
               height: 600,
-              child: MapLayerAssetPalette(mode: mode),
+              child: MapLayerAssetPalette(),
             ),
           ),
         ),
@@ -488,6 +474,38 @@ const _project = ProjectManifest(
           source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
         ),
       ],
+    ),
+  ],
+  settings: ProjectSettings(tileWidth: 1, tileHeight: 1),
+);
+
+const _projectWithoutElements = ProjectManifest(
+  name: 'Palette sans objets',
+  maps: <ProjectMapEntry>[
+    ProjectMapEntry(
+      id: 'town',
+      name: 'Ville',
+      relativePath: 'maps/town.json',
+      groupId: 'towns',
+    ),
+  ],
+  groups: <ProjectMapGroup>[
+    ProjectMapGroup(
+      id: 'towns',
+      name: 'Villes',
+      type: MapGroupType.city,
+    ),
+  ],
+  tilesets: <ProjectTilesetEntry>[
+    ProjectTilesetEntry(
+      id: 'world',
+      name: 'Monde',
+      relativePath: 'tilesets/world.png',
+    ),
+    ProjectTilesetEntry(
+      id: 'details',
+      name: 'Détails',
+      relativePath: 'tilesets/details.png',
     ),
   ],
   settings: ProjectSettings(tileWidth: 1, tileHeight: 1),

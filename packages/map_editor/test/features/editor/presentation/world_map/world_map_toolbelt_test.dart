@@ -403,7 +403,7 @@ void main() {
     })>[
       (
         subtool: WorldMapPaintSubtool.tile,
-        label: 'Tuiles',
+        label: 'Éléments',
         layerId: 'tile',
         expectedTool: EditorToolType.tilePaint,
         expectedTerrainMode: null,
@@ -599,7 +599,7 @@ void main() {
         find.bySemanticsLabel('Choisir un outil de peinture'),
       );
       await tester.pump();
-      await tester.tap(find.text('Tuiles'));
+      await tester.tap(find.text('Éléments'));
       await tester.pump();
 
       expect(rejectionReason, isNotEmpty);
@@ -1190,7 +1190,7 @@ void main() {
           find.byWidgetPredicate(
             (widget) =>
                 widget is Semantics &&
-                widget.properties.label == 'Peindre · Tuiles' &&
+                widget.properties.label == 'Peindre · Éléments' &&
                 widget.properties.selected == true,
           ),
           findsOneWidget,
@@ -1213,8 +1213,8 @@ void main() {
     }
 
     testWidgets(
-        'legacy project-element brush makes tilePaint visibly Place/object '
-        'without mutating the Paint/tile session', (tester) async {
+        'project-element brush keeps tilePaint visibly Paint/elements '
+        'when the session is Paint', (tester) async {
       final container = _containerWith(_tileState());
       final editor = container.read(editorNotifierProvider.notifier);
       final session = container.read(worldMapWorkspaceSessionProvider.notifier);
@@ -1246,7 +1246,7 @@ void main() {
         find.byWidgetPredicate(
           (widget) =>
               widget is Semantics &&
-              widget.properties.label == 'Placer · Objet' &&
+              widget.properties.label == 'Peindre · Éléments' &&
               widget.properties.selected == true,
         ),
         findsOneWidget,
@@ -1255,7 +1255,7 @@ void main() {
         find.byWidgetPredicate(
           (widget) =>
               widget is Semantics &&
-              widget.properties.label == 'Peindre · Tuiles' &&
+              widget.properties.label == 'Placer · Objet' &&
               widget.properties.selected == true,
         ),
         findsNothing,

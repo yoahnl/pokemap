@@ -1,44 +1,83 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/editor/editor_asset_cache_providers.dart';
+import 'package:map_editor/src/features/editor/application/world_map_inspector_projector.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/adaptive_map_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_paint_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_place_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/theme/theme.dart';
+import 'package:map_editor/src/ui/assets/editor_image_cache.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette/widgets/browser/map_palette_asset_browser.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette/widgets/palette/map_layer_asset_palette.dart';
 
 void main() {
   testWidgets(
-    'Paint Tile embeds the tile palette and source chooser',
+    'Paint Elements renders named cards and keeps Paint after selection',
     (tester) async {
-      final harness = _InspectorHarness();
+      final harness = await _InspectorHarness.create();
       addTearDown(harness.dispose);
       harness.session.activateTool(
         harness.notifier,
         const ActivateWorldMapPaint(WorldMapPaintSubtool.tile),
       );
 
-      await harness.pump(tester, const WorldMapPaintInspector());
+      await harness.pump(tester, const AdaptiveMapInspector());
 
-      final palette = tester.widget<MapLayerAssetPalette>(
-        find.byType(MapLayerAssetPalette),
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Semantics &&
+              widget.properties.label ==
+                  'Catalogue d’éléments à placer du calque actif',
+        ),
+        findsOneWidget,
       );
-      expect(palette.mode, MapLayerAssetPaletteMode.tiles);
       expect(find.byType(MapPaletteAssetBrowserLauncher), findsOneWidget);
       expect(find.text('Changer de source'), findsOneWidget);
+      expect(
+        find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')),
+        findsOneWidget,
+      );
+      expect(find.text('Arbre'), findsOneWidget);
+      expect(find.byWidgetPredicate(_isRawTileCell), findsNothing);
+
+      await tester.tap(
+        find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')),
+      );
+      await tester.pump();
+
+      expect(
+        harness.notifier.state.activeBrush,
+        const EditorBrush.projectElement(elementId: 'tree'),
+      );
+      expect(harness.notifier.state.activeTool, EditorToolType.tilePaint);
+      expect(
+        harness.container.read(worldMapWorkspaceSessionProvider).activeFamily,
+        WorldMapToolFamily.paint,
+      );
+      expect(
+        harness.container.read(worldMapInspectorSnapshotProvider).kind,
+        WorldMapInspectorKind.paint,
+      );
+      expect(find.byType(WorldMapPaintInspector), findsOneWidget);
+      expect(find.byType(WorldMapPlaceInspector), findsNothing);
     },
   );
 
   testWidgets(
     'Paint non-tile subtools show non-mutating guidance without an asset palette',
     (tester) async {
-      final harness = _InspectorHarness(
+      final harness = await _InspectorHarness.create(
         initialSession: const WorldMapWorkspaceSession(
           activeFamily: WorldMapToolFamily.paint,
           lastPaintSubtool: WorldMapPaintSubtool.terrain,
@@ -56,30 +95,51 @@ void main() {
   );
 
   testWidgets(
-    'Place Object embeds the element palette and source chooser',
+    'Place Object keeps its named-card selection in Place',
     (tester) async {
-      final harness = _InspectorHarness();
+      final harness = await _InspectorHarness.create();
       addTearDown(harness.dispose);
       harness.session.activateTool(
         harness.notifier,
         const ActivateWorldMapPlacement(WorldMapPlacementSubtool.object),
       );
 
-      await harness.pump(tester, const WorldMapPlaceInspector());
+      await harness.pump(tester, const AdaptiveMapInspector());
 
-      final palette = tester.widget<MapLayerAssetPalette>(
-        find.byType(MapLayerAssetPalette),
+      expect(
+        find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')),
+        findsOneWidget,
       );
-      expect(palette.mode, MapLayerAssetPaletteMode.elements);
       expect(find.byType(MapPaletteAssetBrowserLauncher), findsOneWidget);
       expect(find.text('Changer de source'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')),
+      );
+      await tester.pump();
+
+      expect(
+        harness.notifier.state.activeBrush,
+        const EditorBrush.projectElement(elementId: 'tree'),
+      );
+      expect(harness.notifier.state.activeTool, EditorToolType.tilePaint);
+      expect(
+        harness.container.read(worldMapWorkspaceSessionProvider).activeFamily,
+        WorldMapToolFamily.place,
+      );
+      expect(
+        harness.container.read(worldMapInspectorSnapshotProvider).kind,
+        WorldMapInspectorKind.place,
+      );
+      expect(find.byType(WorldMapPlaceInspector), findsOneWidget);
+      expect(find.byType(WorldMapPaintInspector), findsNothing);
     },
   );
 
   testWidgets(
     'Place non-object subtools show non-mutating guidance without an asset palette',
     (tester) async {
-      final harness = _InspectorHarness(
+      final harness = await _InspectorHarness.create(
         initialSession: const WorldMapWorkspaceSession(
           activeFamily: WorldMapToolFamily.place,
           lastPlacementSubtool: WorldMapPlacementSubtool.entity,
@@ -97,16 +157,17 @@ void main() {
   );
 }
 
+bool _isRawTileCell(Widget widget) {
+  final key = widget.key;
+  return key is ValueKey<String> &&
+      key.value.startsWith('world-map-layer-asset-tile-');
+}
+
 class _InspectorHarness {
-  _InspectorHarness({
-    WorldMapWorkspaceSession initialSession = const WorldMapWorkspaceSession(),
-  }) : container = ProviderContainer(
-          overrides: <Override>[
-            worldMapWorkspaceSessionProvider.overrideWith(
-              () => _TestWorldMapWorkspaceSessionController(initialSession),
-            ),
-          ],
-        ) {
+  _InspectorHarness._({
+    required this.container,
+    required this.image,
+  }) {
     keepAlive = container.listen(editorNotifierProvider, (_, __) {});
     notifier.state = const EditorState(
       projectRootPath: '/virtual/project',
@@ -117,7 +178,39 @@ class _InspectorHarness {
     );
   }
 
+  static Future<_InspectorHarness> create({
+    WorldMapWorkspaceSession initialSession = const WorldMapWorkspaceSession(),
+  }) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    canvas.drawRect(
+      const Rect.fromLTWH(0, 0, 1, 1),
+      Paint()..color = const Color(0xFFFFFFFF),
+    );
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(1, 1);
+    picture.dispose();
+    final container = ProviderContainer(
+      overrides: <Override>[
+        editorImageCacheProvider.overrideWith(
+          (ref, projectRoot) => _ImmediateEditorImageCache(
+            projectRoot,
+            image,
+          ),
+        ),
+        worldMapWorkspaceSessionProvider.overrideWith(
+          () => _TestWorldMapWorkspaceSessionController(initialSession),
+        ),
+      ],
+    );
+    return _InspectorHarness._(
+      container: container,
+      image: image,
+    );
+  }
+
   final ProviderContainer container;
+  final ui.Image image;
   late final ProviderSubscription<EditorState> keepAlive;
 
   EditorNotifier get notifier =>
@@ -143,11 +236,34 @@ class _InspectorHarness {
       ),
     );
     await tester.pump();
+    await tester.pump();
   }
 
   void dispose() {
     keepAlive.close();
     container.dispose();
+    image.dispose();
+  }
+}
+
+class _ImmediateEditorImageCache extends EditorImageCache {
+  _ImmediateEditorImageCache(String sessionKey, this._image)
+      : super(sessionKey: sessionKey);
+
+  final ui.Image _image;
+
+  @override
+  Future<EditorImageLoadResult> load(
+    String? path, {
+    String variantKey = 'original',
+    int? targetWidth,
+    int? targetHeight,
+    bool allowUpscaling = true,
+    EditorImageBytesTransform? transformBytes,
+  }) {
+    return Future<EditorImageLoadResult>.value(
+      EditorImageLoadResult.success(_image.clone()),
+    );
   }
 }
 
@@ -175,6 +291,22 @@ const _project = ProjectManifest(
       id: 'world',
       name: 'Monde',
       relativePath: 'tilesets/world.png',
+    ),
+  ],
+  elementCategories: <ProjectElementCategory>[
+    ProjectElementCategory(id: 'nature', name: 'Nature'),
+  ],
+  elements: <ProjectElementEntry>[
+    ProjectElementEntry(
+      id: 'tree',
+      name: 'Arbre',
+      tilesetId: 'world',
+      categoryId: 'nature',
+      frames: <TilesetVisualFrame>[
+        TilesetVisualFrame(
+          source: TilesetSourceRect(x: 0, y: 0),
+        ),
+      ],
     ),
   ],
   settings: ProjectSettings(tileWidth: 1, tileHeight: 1),

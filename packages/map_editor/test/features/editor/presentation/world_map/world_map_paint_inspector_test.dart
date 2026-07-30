@@ -124,12 +124,13 @@ void main() {
       );
       if (testCase.subtool == WorldMapPaintSubtool.tile) {
         expect(
-          tester
-              .widget<MapLayerAssetPalette>(
-                find.byType(MapLayerAssetPalette),
-              )
-              .mode,
-          MapLayerAssetPaletteMode.tiles,
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is Semantics &&
+                widget.properties.label ==
+                    'Catalogue d’éléments à placer du calque actif',
+          ),
+          findsOneWidget,
         );
         expect(find.byType(MapPaletteAssetBrowserLauncher), findsOneWidget);
       }

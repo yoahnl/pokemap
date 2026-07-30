@@ -977,7 +977,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
           child: MapLayerAssetPalette(
-            mode: MapLayerAssetPaletteMode.elements,
             presentation: widget.embedded
                 ? MapPaletteAssetBrowserPresentation.inspector
                 : MapPaletteAssetBrowserPresentation.sideSheet,

@@ -70,9 +70,7 @@ class WorldMapPlaceInspector extends ConsumerWidget {
                   MapPaletteAssetBrowserLauncher(label: 'Changer de source'),
                   SizedBox(height: 10),
                   Expanded(
-                    child: MapLayerAssetPalette(
-                      mode: MapLayerAssetPaletteMode.elements,
-                    ),
+                    child: MapLayerAssetPalette(),
                   ),
                 ],
               ),

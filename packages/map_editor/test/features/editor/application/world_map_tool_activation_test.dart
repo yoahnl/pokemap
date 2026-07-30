@@ -114,8 +114,10 @@ void main() {
         }
         expect(
           notifier.state.activeBrush,
-          const EditorBrush.none(),
-          reason: '${testCase.subtool.name} must not retain an incompatible '
+          testCase.subtool == WorldMapPaintSubtool.tile
+              ? const EditorBrush.projectElement(elementId: 'tree')
+              : const EditorBrush.none(),
+          reason: '${testCase.subtool.name} must retain only a compatible '
               'project-element brush',
         );
       }
@@ -424,7 +426,7 @@ void main() {
       expect(notifier.state.activeBrush, const EditorBrush.none());
     });
 
-    test('paint tile never retains a project-element brush', () {
+    test('paint tile retains a project element compatible with the layer', () {
       final container = _createContainer();
       final notifier = container.read(editorNotifierProvider.notifier)
         ..state = _stateForLayer('tile').copyWith(
@@ -437,7 +439,34 @@ void main() {
 
       expect(result.accepted, isTrue);
       expect(notifier.state.activeTool, EditorToolType.tilePaint);
-      expect(notifier.state.activeBrush, const EditorBrush.none());
+      expect(
+        notifier.state.activeBrush,
+        const EditorBrush.projectElement(elementId: 'tree'),
+      );
+    });
+
+    test('paint tile rejects project elements from another or missing source',
+        () {
+      final container = _createContainer();
+      final notifier = container.read(editorNotifierProvider.notifier);
+
+      for (final elementId in <String>['lamp', 'missing-element']) {
+        notifier.state = _stateForLayer('tile').copyWith(
+          activeBrush: EditorBrush.projectElement(elementId: elementId),
+        );
+
+        final result = notifier.activateWorldMapTool(
+          const ActivateWorldMapPaint(WorldMapPaintSubtool.tile),
+        );
+
+        expect(result.accepted, isTrue, reason: elementId);
+        expect(notifier.state.activeTool, EditorToolType.tilePaint);
+        expect(
+          notifier.state.activeBrush,
+          const EditorBrush.none(),
+          reason: elementId,
+        );
+      }
     });
 
     test('paint tile retains only a compatible current tile source', () {
@@ -651,7 +680,7 @@ void main() {
         (
           request: const ActivateWorldMapPaint(WorldMapPaintSubtool.tile),
           expectedTool: EditorToolType.tilePaint,
-          expectedBrush: const EditorBrush.none(),
+          expectedBrush: const EditorBrush.projectElement(elementId: 'tree'),
         ),
         (
           request: const ActivateWorldMapPlacement(

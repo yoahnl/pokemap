@@ -97,10 +97,7 @@ void main() {
         expect(harness.notifier.state.activeBrush, testCase.resultingBrush);
 
         if (testCase.subtool == WorldMapPlacementSubtool.object) {
-          final palette = tester.widget<MapLayerAssetPalette>(
-            find.byType(MapLayerAssetPalette),
-          );
-          expect(palette.mode, MapLayerAssetPaletteMode.elements);
+          expect(find.byType(MapLayerAssetPalette), findsOneWidget);
           expect(find.byType(MapPaletteAssetBrowserLauncher), findsOneWidget);
         } else {
           expect(

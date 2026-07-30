@@ -466,8 +466,8 @@ void main() {
     }
 
     test(
-        'Paint remains brush-safe when a same-engine destination remembers a '
-        'project element', () {
+        'Paint restores a compatible project element remembered by the '
+        'destination layer', () {
       final container = _createContainer();
       final editor = container.read(editorNotifierProvider.notifier)
         ..state = const EditorState(
@@ -509,10 +509,9 @@ void main() {
       expect(emissions, hasLength(1));
       expect(editor.state.activeLayerId, 'tile-b');
       expect(editor.state.activeTool, EditorToolType.tilePaint);
-      expect(editor.state.activeBrush, const EditorBrush.none());
       expect(
         editor.state.activeBrush,
-        isNot(isA<ProjectElementEditorBrush>()),
+        const EditorBrush.projectElement(elementId: 'lamp'),
       );
       expect(
         container.read(worldMapWorkspaceSessionProvider).activeFamily,
@@ -734,6 +733,18 @@ void main() {
         (
           brushKind: EditorWorldMapBrushKind.projectElement,
           session: stalePaint,
+          family: WorldMapToolFamily.paint,
+        ),
+        (
+          brushKind: EditorWorldMapBrushKind.projectElement,
+          session: placeObject,
+          family: WorldMapToolFamily.place,
+        ),
+        (
+          brushKind: EditorWorldMapBrushKind.projectElement,
+          session: WorldMapWorkspaceSession(
+            activeFamily: WorldMapToolFamily.selection,
+          ),
           family: WorldMapToolFamily.place,
         ),
         (

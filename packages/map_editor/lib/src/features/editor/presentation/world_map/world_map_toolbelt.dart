@@ -624,7 +624,7 @@ class _WorldMapPlusMenuState extends State<_WorldMapPlusMenu> {
 
 String _paintSubtoolLabel(WorldMapPaintSubtool subtool) {
   return switch (subtool) {
-    WorldMapPaintSubtool.tile => 'Tuiles',
+    WorldMapPaintSubtool.tile => 'Éléments',
     WorldMapPaintSubtool.terrain => 'Terrain',
     WorldMapPaintSubtool.path => 'Paths',
     WorldMapPaintSubtool.surface => 'Surfaces',

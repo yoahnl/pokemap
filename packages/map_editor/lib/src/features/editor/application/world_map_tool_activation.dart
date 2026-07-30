@@ -350,6 +350,11 @@ EditorBrush _compatibleTilePaintBrushForLayer(
         when tilesetId == assignedTilesetId &&
             _paletteEntryExists(source.project, tilesetId, entryId) =>
       source.activeBrush,
+    ProjectElementEditorBrush() => _compatibleProjectElementBrushForLayer(
+        source,
+        map,
+        layer,
+      ),
     _ => const EditorBrush.none(),
   };
 }

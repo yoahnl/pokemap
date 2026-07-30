@@ -20,8 +20,6 @@ import '../../../../../theme/theme.dart';
 import '../../element_preset_label.dart';
 import '../browser/map_palette_asset_browser.dart';
 
-enum MapLayerAssetPaletteMode { tiles, elements }
-
 typedef MapLayerElementActionsBuilder = Widget Function(
   BuildContext context,
   ProjectElementEntry element,
@@ -31,27 +29,8 @@ abstract final class MapLayerAssetPaletteKeys {
   static const root = ValueKey<String>('world-map-layer-asset-palette');
   static const scroll = ValueKey<String>('world-map-layer-asset-scroll');
 
-  static ValueKey<String> tileCell(String tilesetId, int tileId) =>
-      ValueKey<String>('world-map-layer-asset-tile-$tilesetId-$tileId');
-
   static ValueKey<String> elementCard(String elementId) =>
       ValueKey<String>('world-map-layer-asset-element-$elementId');
-}
-
-class MapLayerTileAssetPresentation {
-  const MapLayerTileAssetPresentation({
-    required this.tilesetId,
-    required this.tileId,
-    required this.selected,
-    required this.enabled,
-    required this.disabledReason,
-  });
-
-  final String tilesetId;
-  final int tileId;
-  final bool selected;
-  final bool enabled;
-  final String? disabledReason;
 }
 
 class MapLayerElementAssetPresentation {
@@ -70,7 +49,6 @@ class MapLayerElementAssetPresentation {
 
 class MapLayerAssetPalette extends ConsumerStatefulWidget {
   const MapLayerAssetPalette({
-    required this.mode,
     this.presentation = MapPaletteAssetBrowserPresentation.inspector,
     this.sourceId,
     this.visibleElementIds,
@@ -78,7 +56,6 @@ class MapLayerAssetPalette extends ConsumerStatefulWidget {
     super.key,
   });
 
-  final MapLayerAssetPaletteMode mode;
   final MapPaletteAssetBrowserPresentation presentation;
   final String? sourceId;
   final Set<String>? visibleElementIds;
@@ -211,40 +188,23 @@ class _MapLayerAssetPaletteState extends ConsumerState<MapLayerAssetPalette> {
               description: 'La palette sera disponible dans un instant.',
             );
           }
-          return switch (widget.mode) {
-            MapLayerAssetPaletteMode.tiles => _TileAssetGrid(
-                source: source,
-                image: image,
-                settings: paletteSnapshot.settings,
-                selectedBrush: paletteSnapshot.activeBrush,
-                availability: availability,
-                categoryFilter: browserSnapshot.context.paletteCategoryFilter,
-                onSelected: _selectTile,
-              ),
-            MapLayerAssetPaletteMode.elements => _ElementAssetList(
-                source: source,
-                image: image,
-                project: project,
-                settings: paletteSnapshot.settings,
-                selectedBrush: paletteSnapshot.activeBrush,
-                availability: availability,
-                categoryId: widget.visibleElementIds == null
-                    ? browserSnapshot.context.projectElementCategoryId
-                    : null,
-                visibleElementIds: widget.visibleElementIds,
-                elementActionsBuilder: widget.elementActionsBuilder,
-                onSelected: _selectElement,
-              ),
-          };
+          return _ElementAssetList(
+            source: source,
+            image: image,
+            project: project,
+            settings: paletteSnapshot.settings,
+            selectedBrush: paletteSnapshot.activeBrush,
+            availability: availability,
+            categoryId: widget.visibleElementIds == null
+                ? browserSnapshot.context.projectElementCategoryId
+                : null,
+            visibleElementIds: widget.visibleElementIds,
+            elementActionsBuilder: widget.elementActionsBuilder,
+            onSelected: _selectElement,
+          );
         },
       ),
     );
-  }
-
-  void _selectTile(MapLayerTileAssetPresentation tile) {
-    final notifier = ref.read(editorNotifierProvider.notifier);
-    notifier.selectPaletteTile(tile.tileId);
-    notifier.selectTool(EditorToolType.tilePaint);
   }
 
   void _selectElement(MapLayerElementAssetPresentation asset) {
@@ -335,130 +295,6 @@ MapPaletteAssetBrowserItem? _findSourceProjection(
   return null;
 }
 
-class _TileAssetGrid extends StatelessWidget {
-  const _TileAssetGrid({
-    required this.source,
-    required this.image,
-    required this.settings,
-    required this.selectedBrush,
-    required this.availability,
-    required this.categoryFilter,
-    required this.onSelected,
-  });
-
-  final ProjectTilesetEntry source;
-  final ui.Image image;
-  final ProjectSettings settings;
-  final EditorBrush selectedBrush;
-  final _MapLayerAssetAvailability availability;
-  final PaletteCategory? categoryFilter;
-  final ValueChanged<MapLayerTileAssetPresentation> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final columns =
-        settings.tileWidth <= 0 ? 0 : image.width ~/ settings.tileWidth;
-    final rows =
-        settings.tileHeight <= 0 ? 0 : image.height ~/ settings.tileHeight;
-    if (columns <= 0 || rows <= 0) {
-      return const PokeMapEmptyState(
-        icon: Icon(Icons.broken_image_outlined),
-        title: 'Dimensions de tuiles invalides',
-        description:
-            'La source ne contient aucune tuile aux dimensions du projet.',
-      );
-    }
-    final entriesByTileId = <int, TilesetPaletteEntry>{};
-    for (final entry in source.paletteEntries) {
-      final frame = entry.frames.primarySource;
-      if (frame.width != 1 || frame.height != 1) continue;
-      final tileId = frame.y * columns + frame.x + 1;
-      if (tileId > 0 && tileId <= columns * rows) {
-        entriesByTileId[tileId] = entry;
-      }
-    }
-    final tileIds = <int>[
-      for (var tileId = 1; tileId <= columns * rows; tileId++)
-        if (_matchesTileCategory(
-          entriesByTileId[tileId],
-          categoryFilter,
-        ))
-          tileId,
-    ];
-    final selectedTileId = selectedBrush.maybeMap(
-      tile: (brush) => brush.tilesetId == source.id ? brush.tileId : null,
-      orElse: () => null,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _AssetPaletteFixedHeader(
-          sourceName: source.name,
-          count: tileIds.length,
-          disabledReason: availability.disabledReason,
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return GridView.builder(
-                key: MapLayerAssetPaletteKeys.scroll,
-                padding: EdgeInsets.zero,
-                itemCount: tileIds.length,
-                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: constraints.maxWidth < 280 ? 58 : 72,
-                  crossAxisSpacing: 6,
-                  mainAxisSpacing: 6,
-                ),
-                itemBuilder: (context, index) {
-                  final tileId = tileIds[index];
-                  final presentation = MapLayerTileAssetPresentation(
-                    tilesetId: source.id,
-                    tileId: tileId,
-                    selected: selectedTileId == tileId,
-                    enabled: availability.enabled,
-                    disabledReason: availability.disabledReason,
-                  );
-                  return PokeMapAssetCard(
-                    key: MapLayerAssetPaletteKeys.tileCell(
-                      source.id,
-                      tileId,
-                    ),
-                    semanticLabel: 'Tuile $tileId de ${source.name}',
-                    selected: presentation.selected,
-                    disabledReason: presentation.disabledReason,
-                    onPressed: presentation.enabled
-                        ? () => onSelected(presentation)
-                        : null,
-                    padding: const EdgeInsets.all(4),
-                    child: _TilePreview(
-                      image: image,
-                      tileId: tileId,
-                      tileWidth: settings.tileWidth,
-                      tileHeight: settings.tileHeight,
-                      columns: columns,
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-bool _matchesTileCategory(
-  TilesetPaletteEntry? entry,
-  PaletteCategory? category,
-) {
-  if (category == null) return true;
-  if (entry == null) return category == PaletteCategory.uncategorized;
-  return entry.category == category;
-}
-
 class _ElementAssetList extends StatelessWidget {
   const _ElementAssetList({
     required this.source,
@@ -486,10 +322,12 @@ class _ElementAssetList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final elements = project.elements
+    final sourceElements = project.elements
+        .where((element) => element.tilesetId == source.id)
+        .toList(growable: false);
+    final elements = sourceElements
         .where(
           (element) =>
-              element.tilesetId == source.id &&
               (visibleElementIds == null ||
                   visibleElementIds!.contains(element.id)) &&
               (categoryId == null || element.categoryId == categoryId),
@@ -511,11 +349,16 @@ class _ElementAssetList extends StatelessWidget {
         const SizedBox(height: 8),
         Expanded(
           child: elements.isEmpty
-              ? const PokeMapEmptyState(
-                  icon: Icon(Icons.category_outlined),
-                  title: 'Aucun élément',
-                  description:
-                      'Cette source ne contient aucun élément pour ce filtre.',
+              ? PokeMapEmptyState(
+                  icon: const Icon(Icons.category_outlined),
+                  title: sourceElements.isEmpty
+                      ? 'Aucun objet à placer'
+                      : 'Aucun objet ne correspond aux filtres actifs',
+                  description: sourceElements.isEmpty
+                      ? 'Définissez des objets dans la Tileset Library, '
+                          'section « Éléments à placer », pour cette source.'
+                      : 'Modifiez ou réinitialisez les filtres actifs pour '
+                          'afficher les objets.',
                 )
               : ListView.separated(
                   key: MapLayerAssetPaletteKeys.scroll,
@@ -688,78 +531,6 @@ String _categoryPath(ProjectManifest project, String categoryId) {
     currentId = category.parentCategoryId;
   }
   return labels.isEmpty ? 'Sans catégorie' : labels.reversed.join(' / ');
-}
-
-class _TilePreview extends StatelessWidget {
-  const _TilePreview({
-    required this.image,
-    required this.tileId,
-    required this.tileWidth,
-    required this.tileHeight,
-    required this.columns,
-  });
-
-  final ui.Image image;
-  final int tileId;
-  final int tileWidth;
-  final int tileHeight;
-  final int columns;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _TilePreviewPainter(
-        image: image,
-        tileId: tileId,
-        tileWidth: tileWidth,
-        tileHeight: tileHeight,
-        columns: columns,
-      ),
-      child: const SizedBox.expand(),
-    );
-  }
-}
-
-class _TilePreviewPainter extends CustomPainter {
-  const _TilePreviewPainter({
-    required this.image,
-    required this.tileId,
-    required this.tileWidth,
-    required this.tileHeight,
-    required this.columns,
-  });
-
-  final ui.Image image;
-  final int tileId;
-  final int tileWidth;
-  final int tileHeight;
-  final int columns;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final index = tileId - 1;
-    final sourceRect = Rect.fromLTWH(
-      (index % columns) * tileWidth.toDouble(),
-      (index ~/ columns) * tileHeight.toDouble(),
-      tileWidth.toDouble(),
-      tileHeight.toDouble(),
-    );
-    canvas.drawImageRect(
-      image,
-      sourceRect,
-      Offset.zero & size,
-      Paint()..filterQuality = FilterQuality.none,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _TilePreviewPainter oldDelegate) {
-    return oldDelegate.image != image ||
-        oldDelegate.tileId != tileId ||
-        oldDelegate.tileWidth != tileWidth ||
-        oldDelegate.tileHeight != tileHeight ||
-        oldDelegate.columns != columns;
-  }
 }
 
 class _ElementPreview extends StatelessWidget {

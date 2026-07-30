@@ -66,7 +66,7 @@ class WorldMapPaintInspector extends ConsumerWidget {
     final body = switch (projection.bodyKind) {
       WorldMapSubtoolBodyKind.tilesPalette => Semantics(
           container: true,
-          label: 'Palette de tuiles du calque actif',
+          label: 'Catalogue d’éléments à placer du calque actif',
           child: const Padding(
             padding: EdgeInsets.all(10),
             child: Column(
@@ -75,9 +75,7 @@ class WorldMapPaintInspector extends ConsumerWidget {
                 MapPaletteAssetBrowserLauncher(label: 'Changer de source'),
                 SizedBox(height: 10),
                 Expanded(
-                  child: MapLayerAssetPalette(
-                    mode: MapLayerAssetPaletteMode.tiles,
-                  ),
+                  child: MapLayerAssetPalette(),
                 ),
               ],
             ),
@@ -152,7 +150,7 @@ class WorldMapPaintInspector extends ConsumerWidget {
 
 String _paintSubtoolLabel(WorldMapPaintSubtool subtool) {
   return switch (subtool) {
-    WorldMapPaintSubtool.tile => 'Tuiles',
+    WorldMapPaintSubtool.tile => 'Éléments',
     WorldMapPaintSubtool.terrain => 'Terrain',
     WorldMapPaintSubtool.path => 'Path',
     WorldMapPaintSubtool.surface => 'Surface',
