@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -143,6 +144,49 @@ void main() {
       harness.notifier.state.activeMap!.layers.map((layer) => layer.id),
       const ['top', 'middle', 'bottom'],
     );
+  });
+
+  testWidgets('coalesces one opacity drag into one undo entry', (tester) async {
+    final harness = _Harness(_threeLayerMap(), activeLayerId: 'middle');
+    addTearDown(harness.dispose);
+    await harness.pump(tester);
+
+    final control = find.byKey(
+      const ValueKey<String>('world-map-layer-opacity-middle'),
+    );
+    await tester.ensureVisible(control);
+    await tester.pump();
+    final slider = find.descendant(
+      of: control,
+      matching: find.byType(CupertinoSlider),
+    );
+    final rect = tester.getRect(slider);
+    final gesture = await tester.startGesture(
+      Offset(rect.right - 8, rect.center.dy),
+    );
+    await gesture.moveTo(
+      Offset(rect.left + rect.width * 0.8, rect.center.dy),
+    );
+    await tester.pump();
+    await gesture.moveTo(
+      Offset(rect.left + rect.width * 0.6, rect.center.dy),
+    );
+    await tester.pump();
+    await gesture.moveTo(
+      Offset(rect.left + rect.width * 0.4, rect.center.dy),
+    );
+    await tester.pump();
+
+    expect(_layer(harness, 'middle').opacity, lessThan(1));
+
+    await gesture.up();
+    await tester.pump();
+
+    expect(harness.notifier.state.mapStrokeStart, isNull);
+    expect(harness.notifier.state.mapUndoStack, hasLength(1));
+
+    harness.notifier.undoMap();
+    expect(_layer(harness, 'middle').opacity, 1);
   });
 
   testWidgets('dispatches all eight creation kinds with real layer types',

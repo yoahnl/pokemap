@@ -250,12 +250,17 @@ final class _WorldMapLayerRow extends StatelessWidget {
               key: ValueKey<String>('world-map-layer-opacity-$layerId'),
               label: 'Opacité',
               value: (layer.opacity * 100).round(),
+              onChangeStart:
+                  row.opacity.enabled ? (_) => notifier.beginMapStroke() : null,
               onChanged: row.opacity.enabled
                   ? (value) => notifier.setMapLayerOpacity(
                         layerId,
                         value / 100,
+                        partOfStroke: true,
                       )
                   : (_) {},
+              onChangeEnd:
+                  row.opacity.enabled ? (_) => notifier.endMapStroke() : null,
             ),
             const SizedBox(height: 4),
             Row(

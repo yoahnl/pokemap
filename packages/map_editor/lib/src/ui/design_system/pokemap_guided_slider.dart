@@ -12,6 +12,8 @@ class PokeMapGuidedSlider extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onChanged,
+    this.onChangeStart,
+    this.onChangeEnd,
     this.description,
     this.min = 0,
     this.max = 100,
@@ -23,6 +25,8 @@ class PokeMapGuidedSlider extends StatelessWidget {
   final int min;
   final int max;
   final ValueChanged<int> onChanged;
+  final ValueChanged<int>? onChangeStart;
+  final ValueChanged<int>? onChangeEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +85,13 @@ class PokeMapGuidedSlider extends StatelessWidget {
             divisions: max - min,
             activeColor: colors.brandPrimary,
             thumbColor: colors.surfaceBase,
+            onChangeStart: onChangeStart == null
+                ? null
+                : (next) => onChangeStart!(next.round()),
             onChanged: (next) => onChanged(next.round()),
+            onChangeEnd: onChangeEnd == null
+                ? null
+                : (next) => onChangeEnd!(next.round()),
           ),
         ],
       ),

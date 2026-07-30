@@ -11006,7 +11006,11 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-  void setMapLayerOpacity(String layerId, double opacity) {
+  void setMapLayerOpacity(
+    String layerId,
+    double opacity, {
+    bool partOfStroke = false,
+  }) {
     final map = state.activeMap;
     if (map == null) return;
     try {
@@ -11020,6 +11024,7 @@ class EditorNotifier extends _$EditorNotifier
         previousMap: map,
         updatedMap: updated,
         preferredActiveLayerId: state.activeLayerId,
+        partOfStroke: partOfStroke,
       );
     } catch (e) {
       state = state.copyWith(
