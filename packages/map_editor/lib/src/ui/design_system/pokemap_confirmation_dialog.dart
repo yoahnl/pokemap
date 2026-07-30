@@ -7,6 +7,8 @@ import 'pokemap_panel.dart';
 
 const pokeMapConfirmationDialogKey =
     ValueKey<String>('pokemap-confirmation-dialog');
+const pokeMapConfirmationDialogDetailsScrollKey =
+    ValueKey<String>('pokemap-confirmation-dialog-details-scroll');
 
 @immutable
 final class PokeMapDialogAction<T> {
@@ -27,6 +29,7 @@ Future<T?> showPokeMapConfirmationDialog<T>({
   required String title,
   required String message,
   required List<PokeMapDialogAction<T>> actions,
+  Widget? details,
   String barrierLabel = 'Fermer la confirmation',
 }) {
   assert(actions.isNotEmpty);
@@ -42,6 +45,7 @@ Future<T?> showPokeMapConfirmationDialog<T>({
         title: title,
         message: message,
         actions: actions,
+        details: details,
       );
     },
     transitionBuilder: (context, animation, secondaryAnimation, child) {
@@ -66,74 +70,95 @@ final class _PokeMapConfirmationDialog<T> extends StatelessWidget {
     required this.title,
     required this.message,
     required this.actions,
+    this.details,
   });
 
   final String title;
   final String message;
   final List<PokeMapDialogAction<T>> actions;
+  final Widget? details;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     return SafeArea(
-      child: CallbackShortcuts(
-        bindings: <ShortcutActivator, VoidCallback>{
-          const SingleActivator(LogicalKeyboardKey.escape): () =>
-              Navigator.of(context).pop(),
-        },
-        child: FocusTraversalGroup(
-          child: Center(
-            child: Material(
-              type: MaterialType.transparency,
-              child: Semantics(
-                key: pokeMapConfirmationDialogKey,
-                container: true,
-                scopesRoute: true,
-                namesRoute: true,
-                label: title,
-                explicitChildNodes: true,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
-                  child: PokeMapPanel(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            color: colors.textPrimary,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          message,
-                          style: TextStyle(
-                            color: colors.textSecondary,
-                            fontSize: 13,
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Wrap(
-                          alignment: WrapAlignment.end,
-                          spacing: 8,
-                          runSpacing: 8,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: LayoutBuilder(
+          builder: (context, constraints) => CallbackShortcuts(
+            bindings: <ShortcutActivator, VoidCallback>{
+              const SingleActivator(LogicalKeyboardKey.escape): () =>
+                  Navigator.of(context).pop(),
+            },
+            child: FocusTraversalGroup(
+              child: Center(
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: Semantics(
+                    key: pokeMapConfirmationDialogKey,
+                    container: true,
+                    scopesRoute: true,
+                    namesRoute: true,
+                    label: title,
+                    explicitChildNodes: true,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: 520,
+                        maxHeight: constraints.maxHeight,
+                      ),
+                      child: PokeMapPanel(
+                        padding: const EdgeInsets.all(20),
+                        expandChild: details != null,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            for (final action in actions)
-                              PokeMapButton(
-                                onPressed: () =>
-                                    Navigator.of(context).pop(action.value),
-                                variant: action.variant,
-                                size: PokeMapButtonSize.compact,
-                                child: Text(action.label),
+                            Text(
+                              title,
+                              style: TextStyle(
+                                color: colors.textPrimary,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
                               ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              message,
+                              style: TextStyle(
+                                color: colors.textSecondary,
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
+                            ),
+                            if (details != null) ...[
+                              const SizedBox(height: 12),
+                              Flexible(
+                                child: SingleChildScrollView(
+                                  key:
+                                      pokeMapConfirmationDialogDetailsScrollKey,
+                                  child: details,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 20),
+                            Wrap(
+                              alignment: WrapAlignment.end,
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                for (final action in actions)
+                                  PokeMapButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(action.value),
+                                    variant: action.variant,
+                                    size: PokeMapButtonSize.compact,
+                                    child: Text(action.label),
+                                  ),
+                              ],
+                            ),
                           ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
