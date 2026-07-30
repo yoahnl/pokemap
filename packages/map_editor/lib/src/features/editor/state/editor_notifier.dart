@@ -12752,6 +12752,19 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
+  GridSize? resolveCurrentCollisionBrushFootprint() {
+    final map = state.activeMap;
+    final layerId = state.activeLayerId;
+    if (map == null || layerId == null) {
+      return null;
+    }
+    final layer = _findLayerById(map, layerId);
+    if (layer is! CollisionLayer) {
+      return null;
+    }
+    return _resolveCollisionFootprint(emitErrors: false)?.size;
+  }
+
   GridSize? resolveCurrentPaintFootprintForEraser() {
     final footprint = _resolveCurrentPaintFootprint(emitErrors: false);
     if (footprint == null || !_isValidEraserFootprintSize(footprint.size)) {
