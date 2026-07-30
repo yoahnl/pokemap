@@ -201,6 +201,43 @@ void main() {
       );
     });
 
+    test('uses swapped q1 and q3 footprints for resize clipping impacts', () {
+      final plan = planMapResize(
+        _rotatedPlacedElementsMap(),
+        width: 4,
+        height: 4,
+        project: _rotatedPlacedElementsProject(),
+      );
+
+      final impactsById = <String, MapResizeImpact>{
+        for (final impact in plan.impacts.where(
+            (impact) => impact.kind == MapResizeImpactKind.placedElement))
+          impact.subjectId: impact,
+      };
+      expect(impactsById.keys, containsAll(<String>['q0', 'q1', 'q3']));
+      expect(impactsById['q0']!.affectedCount, 4);
+      expect(
+        impactsById['q0']!.positions,
+        const <GridPos>[
+          GridPos(x: 4, y: 1),
+          GridPos(x: 5, y: 1),
+          GridPos(x: 4, y: 2),
+          GridPos(x: 5, y: 2),
+        ],
+      );
+      for (final id in <String>['q1', 'q3']) {
+        expect(impactsById[id]!.affectedCount, 3);
+        expect(
+          impactsById[id]!.positions,
+          const <GridPos>[
+            GridPos(x: 4, y: 1),
+            GridPos(x: 4, y: 2),
+            GridPos(x: 4, y: 3),
+          ],
+        );
+      }
+    });
+
     test('rejects non-positive target dimensions', () {
       expect(
         () => planMapResize(_emptyMap(), width: 0, height: 2),
@@ -392,6 +429,61 @@ ProjectManifest _project() => const ProjectManifest(
           frames: <TilesetVisualFrame>[
             TilesetVisualFrame(
               source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+            ),
+          ],
+        ),
+      ],
+    );
+
+MapData _rotatedPlacedElementsMap() => MapData(
+      id: 'rotation-resize',
+      name: 'Rotation resize',
+      size: const GridSize(width: 6, height: 5),
+      layers: <MapLayer>[
+        MapLayer.tile(
+          id: 'ground',
+          name: 'Ground',
+          tilesetId: 'buildings',
+          tiles: List<int>.filled(30, 0),
+        ),
+      ],
+      placedElements: const <MapPlacedElement>[
+        MapPlacedElement(
+          id: 'q0',
+          layerId: 'ground',
+          elementId: 'wide-house',
+          pos: GridPos(x: 3, y: 1),
+        ),
+        MapPlacedElement(
+          id: 'q1',
+          layerId: 'ground',
+          elementId: 'wide-house',
+          pos: GridPos(x: 3, y: 1),
+          quarterTurns: 1,
+        ),
+        MapPlacedElement(
+          id: 'q3',
+          layerId: 'ground',
+          elementId: 'wide-house',
+          pos: GridPos(x: 3, y: 1),
+          quarterTurns: 3,
+        ),
+      ],
+    );
+
+ProjectManifest _rotatedPlacedElementsProject() => const ProjectManifest(
+      name: 'Rotation resize project',
+      maps: <ProjectMapEntry>[],
+      tilesets: <ProjectTilesetEntry>[],
+      elements: <ProjectElementEntry>[
+        ProjectElementEntry(
+          id: 'wide-house',
+          name: 'Wide house',
+          tilesetId: 'buildings',
+          categoryId: 'buildings',
+          frames: <TilesetVisualFrame>[
+            TilesetVisualFrame(
+              source: TilesetSourceRect(x: 0, y: 0, width: 3, height: 2),
             ),
           ],
         ),

@@ -1095,6 +1095,7 @@ mixin _$MapPlacedElement {
   String get layerId => throw _privateConstructorUsedError;
   String get elementId => throw _privateConstructorUsedError;
   GridPos get pos => throw _privateConstructorUsedError;
+  int get quarterTurns => throw _privateConstructorUsedError;
   bool get applyCollision => throw _privateConstructorUsedError;
   double get opacity => throw _privateConstructorUsedError;
   MapPlacedElementAnimation? get animation =>
@@ -1127,6 +1128,7 @@ abstract class $MapPlacedElementCopyWith<$Res> {
       String layerId,
       String elementId,
       GridPos pos,
+      int quarterTurns,
       bool applyCollision,
       double opacity,
       MapPlacedElementAnimation? animation,
@@ -1158,6 +1160,7 @@ class _$MapPlacedElementCopyWithImpl<$Res, $Val extends MapPlacedElement>
     Object? layerId = null,
     Object? elementId = null,
     Object? pos = null,
+    Object? quarterTurns = null,
     Object? applyCollision = null,
     Object? opacity = null,
     Object? animation = freezed,
@@ -1182,6 +1185,10 @@ class _$MapPlacedElementCopyWithImpl<$Res, $Val extends MapPlacedElement>
           ? _value.pos
           : pos // ignore: cast_nullable_to_non_nullable
               as GridPos,
+      quarterTurns: null == quarterTurns
+          ? _value.quarterTurns
+          : quarterTurns // ignore: cast_nullable_to_non_nullable
+              as int,
       applyCollision: null == applyCollision
           ? _value.applyCollision
           : applyCollision // ignore: cast_nullable_to_non_nullable
@@ -1247,6 +1254,7 @@ abstract class _$$MapPlacedElementImplCopyWith<$Res>
       String layerId,
       String elementId,
       GridPos pos,
+      int quarterTurns,
       bool applyCollision,
       double opacity,
       MapPlacedElementAnimation? animation,
@@ -1278,6 +1286,7 @@ class __$$MapPlacedElementImplCopyWithImpl<$Res>
     Object? layerId = null,
     Object? elementId = null,
     Object? pos = null,
+    Object? quarterTurns = null,
     Object? applyCollision = null,
     Object? opacity = null,
     Object? animation = freezed,
@@ -1302,6 +1311,10 @@ class __$$MapPlacedElementImplCopyWithImpl<$Res>
           ? _value.pos
           : pos // ignore: cast_nullable_to_non_nullable
               as GridPos,
+      quarterTurns: null == quarterTurns
+          ? _value.quarterTurns
+          : quarterTurns // ignore: cast_nullable_to_non_nullable
+              as int,
       applyCollision: null == applyCollision
           ? _value.applyCollision
           : applyCollision // ignore: cast_nullable_to_non_nullable
@@ -1339,6 +1352,7 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
       required this.layerId,
       required this.elementId,
       required this.pos,
+      this.quarterTurns = 0,
       this.applyCollision = true,
       this.opacity = 1.0,
       this.animation,
@@ -1359,6 +1373,9 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
   final String elementId;
   @override
   final GridPos pos;
+  @override
+  @JsonKey()
+  final int quarterTurns;
   @override
   @JsonKey()
   final bool applyCollision;
@@ -1390,7 +1407,7 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
 
   @override
   String toString() {
-    return 'MapPlacedElement(id: $id, layerId: $layerId, elementId: $elementId, pos: $pos, applyCollision: $applyCollision, opacity: $opacity, animation: $animation, shadowOverride: $shadowOverride, behaviors: $behaviors, properties: $properties)';
+    return 'MapPlacedElement(id: $id, layerId: $layerId, elementId: $elementId, pos: $pos, quarterTurns: $quarterTurns, applyCollision: $applyCollision, opacity: $opacity, animation: $animation, shadowOverride: $shadowOverride, behaviors: $behaviors, properties: $properties)';
   }
 
   @override
@@ -1403,6 +1420,8 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
             (identical(other.elementId, elementId) ||
                 other.elementId == elementId) &&
             (identical(other.pos, pos) || other.pos == pos) &&
+            (identical(other.quarterTurns, quarterTurns) ||
+                other.quarterTurns == quarterTurns) &&
             (identical(other.applyCollision, applyCollision) ||
                 other.applyCollision == applyCollision) &&
             (identical(other.opacity, opacity) || other.opacity == opacity) &&
@@ -1424,6 +1443,7 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
       layerId,
       elementId,
       pos,
+      quarterTurns,
       applyCollision,
       opacity,
       animation,
@@ -1454,6 +1474,7 @@ abstract class _MapPlacedElement implements MapPlacedElement {
       required final String layerId,
       required final String elementId,
       required final GridPos pos,
+      final int quarterTurns,
       final bool applyCollision,
       final double opacity,
       final MapPlacedElementAnimation? animation,
@@ -1473,6 +1494,8 @@ abstract class _MapPlacedElement implements MapPlacedElement {
   String get elementId;
   @override
   GridPos get pos;
+  @override
+  int get quarterTurns;
   @override
   bool get applyCollision;
   @override

@@ -2,6 +2,7 @@ import '../exceptions/map_exceptions.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/shadow.dart';
+import 'map_placed_element_footprint.dart';
 
 String buildMapPlacedElementId({
   required String layerId,
@@ -94,6 +95,68 @@ MapData setMapPlacedElementCollisionApplied(
   final next = List<MapPlacedElement>.from(map.placedElements, growable: true);
   next[index] = next[index].copyWith(applyCollision: applyCollision);
   return map.copyWith(placedElements: next);
+}
+
+MapData setMapPlacedElementQuarterTurns(
+  MapData map, {
+  required String instanceId,
+  required int quarterTurns,
+}) {
+  if (quarterTurns < 0 || quarterTurns > 3) {
+    throw ValidationException(
+      'Placed element quarterTurns must be between 0 and 3: $quarterTurns',
+    );
+  }
+  final normalizedId = instanceId.trim();
+  if (normalizedId.isEmpty) {
+    throw const ValidationException(
+      'Placed element instance id cannot be empty',
+    );
+  }
+  final index =
+      map.placedElements.indexWhere((entry) => entry.id == normalizedId);
+  if (index < 0) {
+    throw ValidationException(
+      'Placed element instance not found: $normalizedId',
+    );
+  }
+  if (map.placedElements[index].quarterTurns == quarterTurns) {
+    return map;
+  }
+  final next = List<MapPlacedElement>.of(
+    map.placedElements,
+    growable: false,
+  );
+  next[index] = next[index].copyWith(quarterTurns: quarterTurns);
+  return map.copyWith(placedElements: next);
+}
+
+MapData rotateMapPlacedElement(
+  MapData map, {
+  required String instanceId,
+  required int deltaQuarterTurns,
+}) {
+  final normalizedId = instanceId.trim();
+  if (normalizedId.isEmpty) {
+    throw const ValidationException(
+      'Placed element instance id cannot be empty',
+    );
+  }
+  final index =
+      map.placedElements.indexWhere((entry) => entry.id == normalizedId);
+  if (index < 0) {
+    throw ValidationException(
+      'Placed element instance not found: $normalizedId',
+    );
+  }
+  final normalizedQuarterTurns = normalizeQuarterTurns(
+    map.placedElements[index].quarterTurns + deltaQuarterTurns,
+  );
+  return setMapPlacedElementQuarterTurns(
+    map,
+    instanceId: normalizedId,
+    quarterTurns: normalizedQuarterTurns,
+  );
 }
 
 MapData setMapPlacedElementOpacity(

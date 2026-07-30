@@ -11,6 +11,7 @@ import '../models/project_trainer.dart';
 import '../models/scenario_asset.dart';
 import '../models/script_conditions.dart';
 import '../operations/map_entities.dart';
+import '../operations/map_placed_element_footprint.dart';
 import '../operations/narrative_fact_runtime.dart';
 import 'dialogue_validation.dart';
 import 'entity_editor_visual_validation.dart';
@@ -1831,6 +1832,12 @@ class MapValidator {
         map.size,
         errorLabel: 'Placed element instance $instanceId origin',
       );
+      if (instance.quarterTurns < 0 || instance.quarterTurns > 3) {
+        throw ValidationException(
+          'Placed element instance $instanceId has invalid quarterTurns: '
+          '${instance.quarterTurns}',
+        );
+      }
       if (instance.opacity < 0 || instance.opacity > 1) {
         throw ValidationException(
           'Placed element instance $instanceId has invalid opacity: ${instance.opacity}',
@@ -2001,14 +2008,17 @@ class MapValidator {
             'Placed element instance $instanceId references element $elementId from tileset $elementTilesetId, but layer $layerId uses tileset $layerTilesetId',
           );
         }
-        final source = element.frames.primarySource;
-        final width = source.width <= 0 ? 1 : source.width;
-        final height = source.height <= 0 ? 1 : source.height;
-        final right = instance.pos.x + width;
-        final bottom = instance.pos.y + height;
+        final footprint = resolveMapPlacedElementFootprint(
+          instance: instance,
+          element: element,
+        ).destinationSize;
+        final right = instance.pos.x + footprint.width;
+        final bottom = instance.pos.y + footprint.height;
         if (right > map.size.width || bottom > map.size.height) {
           throw ValidationException(
-            'Placed element instance $instanceId footprint ${width}x$height exceeds map bounds from origin (${instance.pos.x}, ${instance.pos.y})',
+            'Placed element instance $instanceId footprint '
+            '${footprint.width}x${footprint.height} exceeds map bounds from '
+            'origin (${instance.pos.x}, ${instance.pos.y})',
           );
         }
         if (animation != null && animation.enabled && element.frames.isEmpty) {

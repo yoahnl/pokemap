@@ -131,6 +131,7 @@ class MapPlacedElement with _$MapPlacedElement {
     required String layerId,
     required String elementId,
     required GridPos pos,
+    @Default(0) int quarterTurns,
     @Default(true) bool applyCollision,
     @Default(1.0) double opacity,
     MapPlacedElementAnimation? animation,
@@ -378,6 +379,7 @@ class MapTrigger with _$MapTrigger {
 
 Map<String, dynamic> migrateMapPlacedElementJson(Map<String, dynamic> json) {
   final out = Map<String, dynamic>.from(json);
+  out.putIfAbsent('quarterTurns', () => 0);
   final instanceId = (out['id'] as String?)?.trim() ?? '';
   final existingBehaviorsRaw = out['behaviors'];
   final hasBehaviorList =

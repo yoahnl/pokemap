@@ -10,6 +10,7 @@ import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
 import 'border_resize.dart';
+import 'map_placed_element_footprint.dart';
 
 const int _maximumResizeImpactPositionSamples = 8;
 
@@ -372,11 +373,10 @@ MapResizePlan planMapResize(
       continue;
     }
 
-    final source = element.frames.primarySource;
-    final footprint = GridSize(
-      width: source.width <= 0 ? 1 : source.width,
-      height: source.height <= 0 ? 1 : source.height,
-    );
+    final footprint = resolveMapPlacedElementFootprint(
+      instance: instance,
+      element: element,
+    ).destinationSize;
     final clipped = _clippedRectPositions(
       origin: instance.pos,
       size: footprint,
