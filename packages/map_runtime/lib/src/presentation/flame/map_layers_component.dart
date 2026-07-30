@@ -15,6 +15,7 @@ import '../../shadow/shadow_runtime_collection_provider.dart';
 import '../../shadow/shadow_runtime_renderer.dart';
 import '../../surface/surface_runtime_resolver.dart';
 import 'path_pattern_runtime_render_resolution.dart';
+import 'quarter_turn_pixel_renderer.dart';
 import 'runtime_map_layer_paint_order.dart';
 import 'runtime_path_autotile.dart';
 
@@ -768,11 +769,7 @@ class MapLayersComponent extends PositionComponent {
       layerId: layerId,
       layerName: layerName,
     );
-    final shouldRenderThisLayer = switch (renderPass) {
-      MapLayerRenderPass.background => !explicitForeground,
-      MapLayerRenderPass.foreground => explicitForeground,
-    };
-    if (!shouldRenderThisLayer) {
+    if (explicitForeground && renderPass == MapLayerRenderPass.background) {
       return;
     }
     final tw = bundle.manifest.settings.tileWidth;
@@ -807,12 +804,32 @@ class MapLayersComponent extends PositionComponent {
       if (source.width <= 0 || source.height <= 0) {
         continue;
       }
+      final gridTransform = QuarterTurnGridTransform(
+        sourceSize: GridSize(width: source.width, height: source.height),
+        quarterTurns: instance.quarterTurns,
+      );
+      final collisionCells =
+          instance.applyCollision ? entry.collisionProfile?.cells : null;
+      final hasForegroundSplit = !explicitForeground &&
+          (source.width > 1 || source.height > 1) &&
+          collisionCells != null &&
+          collisionCells.isNotEmpty;
+      if (!explicitForeground &&
+          renderPass == MapLayerRenderPass.foreground &&
+          !hasForegroundSplit) {
+        continue;
+      }
+      final collisionCellIndices = hasForegroundSplit
+          ? <int>{
+              for (final cell in collisionCells) cell.y * source.width + cell.x,
+            }
+          : const <int>{};
       // Viewport culling pour les éléments placés.
       if (visibleRect != null) {
         final dstLeft = instance.pos.x * cw;
         final dstTop = instance.pos.y * ch;
-        final dstRight = dstLeft + source.width * cw;
-        final dstBottom = dstTop + source.height * ch;
+        final dstRight = dstLeft + gridTransform.destinationSize.width * cw;
+        final dstBottom = dstTop + gridTransform.destinationSize.height * ch;
         if (dstRight < visibleRect.left ||
             dstLeft > visibleRect.right ||
             dstBottom < visibleRect.top ||
@@ -842,10 +859,39 @@ class MapLayersComponent extends PositionComponent {
       final dst = Rect.fromLTWH(
         instance.pos.x * cw,
         instance.pos.y * ch,
-        source.width * cw,
-        source.height * ch,
+        gridTransform.destinationSize.width * cw,
+        gridTransform.destinationSize.height * ch,
       );
-      image.drawImageRect(canvas, src, dst, paint);
+      final sourcePixelSize = GridSize(
+        width: source.width * tw,
+        height: source.height * th,
+      );
+      final destinationPixelSize = GridSize(
+        width: gridTransform.destinationSize.width * tw,
+        height: gridTransform.destinationSize.height * th,
+      );
+      drawQuarterTurnPixels(
+        canvas,
+        image: image,
+        sourceRect: src,
+        destinationRect: dst,
+        sourcePixelSize: sourcePixelSize,
+        destinationPixelSize: destinationPixelSize,
+        quarterTurns: gridTransform.quarterTurns,
+        paint: paint,
+        includeSourcePixel: hasForegroundSplit
+            ? (sourcePixel) {
+                final cellIndex =
+                    (sourcePixel.y ~/ th) * source.width + sourcePixel.x ~/ tw;
+                final isCollisionCell =
+                    collisionCellIndices.contains(cellIndex);
+                return switch (renderPass) {
+                  MapLayerRenderPass.background => isCollisionCell,
+                  MapLayerRenderPass.foreground => !isCollisionCell,
+                };
+              }
+            : null,
+      );
     }
   }
 
@@ -913,6 +959,13 @@ class MapLayersComponent extends PositionComponent {
       if (width <= 1 && height <= 1) {
         continue;
       }
+      if (!instance.applyCollision) {
+        continue;
+      }
+      final gridTransform = QuarterTurnGridTransform(
+        sourceSize: GridSize(width: width, height: height),
+        quarterTurns: instance.quarterTurns,
+      );
       final collisionCells = entry.collisionProfile?.cells;
       if (collisionCells == null || collisionCells.isEmpty) {
         continue;
@@ -927,8 +980,11 @@ class MapLayersComponent extends PositionComponent {
           if (collisionSet.contains(localIndex)) {
             continue;
           }
-          final x = instance.pos.x + lx;
-          final y = instance.pos.y + ly;
+          final destination = gridTransform.sourceToDestination(
+            GridPos(x: lx, y: ly),
+          );
+          final x = instance.pos.x + destination.x;
+          final y = instance.pos.y + destination.y;
           if (x < 0 || y < 0 || x >= mapW || y >= mapH) {
             continue;
           }
@@ -1001,13 +1057,20 @@ class MapLayersComponent extends PositionComponent {
       final baseSource = frames.first.source;
       final width = baseSource.width <= 0 ? 1 : baseSource.width;
       final height = baseSource.height <= 0 ? 1 : baseSource.height;
+      final gridTransform = QuarterTurnGridTransform(
+        sourceSize: GridSize(width: width, height: height),
+        quarterTurns: instance.quarterTurns,
+      );
       final seed = stableHash32(instance.id);
       final layerCells =
           out.putIfAbsent(instance.layerId, () => <int, _AnimatedPlacedCell>{});
       for (var ly = 0; ly < height; ly++) {
         for (var lx = 0; lx < width; lx++) {
-          final x = instance.pos.x + lx;
-          final y = instance.pos.y + ly;
+          final destination = gridTransform.sourceToDestination(
+            GridPos(x: lx, y: ly),
+          );
+          final x = instance.pos.x + destination.x;
+          final y = instance.pos.y + destination.y;
           if (x < 0 || y < 0 || x >= mapW || y >= mapH) {
             continue;
           }
@@ -1023,6 +1086,7 @@ class MapLayersComponent extends PositionComponent {
             frameDurationsMs: frameDurationsMs,
             animation: animation,
             deterministicSeed: seed,
+            quarterTurns: gridTransform.quarterTurns,
           );
         }
       }
@@ -1190,8 +1254,17 @@ class MapLayersComponent extends PositionComponent {
       return false;
     }
     final dst = Rect.fromLTWH(x * dstWidth, y * dstHeight, dstWidth, dstHeight);
-    image.drawImageRect(canvas, src, dst, paint);
-    return true;
+    final result = drawQuarterTurnPixels(
+      canvas,
+      image: image,
+      sourceRect: src,
+      destinationRect: dst,
+      sourcePixelSize: GridSize(width: tw, height: th),
+      destinationPixelSize: GridSize(width: tw, height: th),
+      quarterTurns: animatedCell.quarterTurns,
+      paint: paint,
+    );
+    return result.drawRunCount > 0;
   }
 
   void _paintCollisionLayer(
@@ -1237,14 +1310,21 @@ class MapLayersComponent extends PositionComponent {
       }
       final element = elementById[instance.elementId];
       final profile = element?.collisionProfile;
-      if (profile == null) {
+      if (element == null || element.frames.isEmpty || profile == null) {
         continue;
       }
+      final footprint = resolveMapPlacedElementFootprint(
+        instance: instance,
+        element: element,
+      );
       final worldLeftPx = instance.pos.x * cw;
       final worldTopPx = instance.pos.y * ch;
       // Overlay debug : masque **collision** (blocage), pas l’occlusion.
       final collisionMask = profile.collisionMask;
       if (collisionMask != null) {
+        if (collisionMask.widthPx <= 0 || collisionMask.heightPx <= 0) {
+          continue;
+        }
         List<bool> maskPixels;
         try {
           maskPixels = ElementCollisionMaskCodec.decodePackedBits(
@@ -1255,9 +1335,28 @@ class MapLayersComponent extends PositionComponent {
         } catch (_) {
           continue;
         }
-        for (var py = 0; py < collisionMask.heightPx; py++) {
-          for (var px = 0; px < collisionMask.widthPx; px++) {
-            final idx = py * collisionMask.widthPx + px;
+        final destinationPixelSize = GridSize(
+          width: footprint.quarterTurns == 0
+              ? collisionMask.widthPx
+              : footprint.destinationSize.width * tileWidth,
+          height: footprint.quarterTurns == 0
+              ? collisionMask.heightPx
+              : footprint.destinationSize.height * tileHeight,
+        );
+        final pixelTransform = QuarterTurnPixelTransform(
+          sourcePixelSize: GridSize(
+            width: collisionMask.widthPx,
+            height: collisionMask.heightPx,
+          ),
+          destinationPixelSize: destinationPixelSize,
+          quarterTurns: footprint.quarterTurns,
+        );
+        for (var py = 0; py < destinationPixelSize.height; py++) {
+          for (var px = 0; px < destinationPixelSize.width; px++) {
+            final source = pixelTransform.destinationPixelToSourcePixel(
+              GridPos(x: px, y: py),
+            );
+            final idx = source.y * collisionMask.widthPx + source.x;
             if (idx < 0 || idx >= maskPixels.length || !maskPixels[idx]) {
               continue;
             }
@@ -1280,8 +1379,9 @@ class MapLayersComponent extends PositionComponent {
 
       // Fallback legacy: profils sans masque collision pixel.
       for (final local in profile.cells) {
-        final x = instance.pos.x + local.x;
-        final y = instance.pos.y + local.y;
+        final destination = footprint.sourceToDestination(local);
+        final x = instance.pos.x + destination.x;
+        final y = instance.pos.y + destination.y;
         if (x < 0 || y < 0 || x >= w || y >= h) {
           continue;
         }
@@ -1776,6 +1876,7 @@ class _AnimatedPlacedCell {
     required this.frameDurationsMs,
     required this.animation,
     required this.deterministicSeed,
+    required this.quarterTurns,
   });
 
   final String instanceId;
@@ -1785,6 +1886,7 @@ class _AnimatedPlacedCell {
   final List<int> frameDurationsMs;
   final MapPlacedElementAnimation animation;
   final int deterministicSeed;
+  final int quarterTurns;
 }
 
 class _AnimatedPlacedInstanceSpec {

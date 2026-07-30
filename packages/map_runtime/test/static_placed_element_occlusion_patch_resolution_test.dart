@@ -44,6 +44,9 @@ void main() {
       expect(instruction.sourceTopPx, 64);
       expect(instruction.sourceWidthPx, 32);
       expect(instruction.sourceHeightPx, 16);
+      expect(instruction.quarterTurns, 0);
+      expect(instruction.destinationWidthPx, 32);
+      expect(instruction.destinationHeightPx, 16);
       expect(instruction.worldLeft, 80);
       expect(instruction.worldTop, 112);
       expect(instruction.visualWidth, 32);
@@ -52,6 +55,67 @@ void main() {
       expect(instruction.flamePriority, 1128);
       expect(instruction.opacity, 0.75);
       expect(instruction.occlusionMask, same(mask));
+    });
+
+    test('resolves rotated asymmetric destination geometry for q0 through q3',
+        () {
+      const settings = ProjectSettings(
+        tileWidth: 6,
+        tileHeight: 4,
+        displayScale: 1.5,
+      );
+      final mask = _mask(
+        widthPx: 12,
+        heightPx: 4,
+        solidPixels: const {0, 47},
+      );
+
+      for (var quarterTurns = 0; quarterTurns < 4; quarterTurns++) {
+        final bundle = _bundle(
+          settings: settings,
+          placedElements: [
+            _placedElement(
+              pos: const GridPos(x: 5, y: 7),
+              quarterTurns: quarterTurns,
+            ),
+          ],
+          elements: [
+            _projectElement(
+              frames: const [
+                TilesetVisualFrame(
+                  source: TilesetSourceRect(
+                    x: 3,
+                    y: 4,
+                    width: 2,
+                    height: 1,
+                  ),
+                ),
+              ],
+              occlusionMask: mask,
+            ),
+          ],
+        );
+
+        final instruction =
+            resolveStaticPlacedElementOcclusionPatchInstructions(
+          bundle: bundle,
+          originCellX: 0,
+          originCellY: 0,
+        ).single;
+        final isOdd = quarterTurns.isOdd;
+
+        expect(instruction.quarterTurns, quarterTurns);
+        expect(instruction.sourceWidthPx, 12);
+        expect(instruction.sourceHeightPx, 4);
+        expect(instruction.destinationWidthPx, isOdd ? 6 : 12);
+        expect(instruction.destinationHeightPx, isOdd ? 8 : 4);
+        expect(instruction.worldLeft, 45);
+        expect(instruction.worldTop, 42);
+        expect(instruction.visualWidth, isOdd ? 9 : 18);
+        expect(instruction.visualHeight, isOdd ? 12 : 6);
+        expect(instruction.depthSortY, isOdd ? 54 : 48);
+        expect(instruction.flamePriority, isOdd ? 1054 : 1048);
+      }
     });
 
     test('applies connected map origin to world coordinates', () {
@@ -356,6 +420,7 @@ MapPlacedElement _placedElement({
   GridPos pos = const GridPos(x: 0, y: 0),
   bool applyCollision = true,
   double opacity = 1,
+  int quarterTurns = 0,
   MapPlacedElementAnimation? animation,
 }) {
   return MapPlacedElement(
@@ -365,6 +430,7 @@ MapPlacedElement _placedElement({
     pos: pos,
     applyCollision: applyCollision,
     opacity: opacity,
+    quarterTurns: quarterTurns,
     animation: animation,
   );
 }

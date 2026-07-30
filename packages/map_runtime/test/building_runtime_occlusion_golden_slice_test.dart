@@ -91,6 +91,8 @@ void main() {
           patch.instruction.occlusionMask.heightPx,
           _buildingSourceHeightPx,
         );
+        expect(patch.instruction.destinationWidthPx, _buildingSourceWidthPx);
+        expect(patch.instruction.destinationHeightPx, _buildingSourceHeightPx);
         expect(patch.debugDrawRunCount, _roofMaskHeightPx);
         expect(patch.priority, patch.instruction.flamePriority);
         expect(patch.priority, (1000 + patch.instruction.depthSortY).round());
@@ -128,6 +130,9 @@ StaticPlacedElementOcclusionPatchInstruction _buildingRoofInstruction({
     sourceTopPx: 0,
     sourceWidthPx: _buildingSourceWidthPx,
     sourceHeightPx: _buildingSourceHeightPx,
+    quarterTurns: 0,
+    destinationWidthPx: _buildingSourceWidthPx,
+    destinationHeightPx: _buildingSourceHeightPx,
     worldLeft: 0,
     worldTop: 0,
     visualWidth: _buildingSourceWidthPx.toDouble(),

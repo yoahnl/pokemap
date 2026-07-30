@@ -49,6 +49,71 @@ void main() {
       expect(await pixelAt(image, 1, 1), rgba(255, 255, 0, 255));
     });
 
+    for (var quarterTurns = 0; quarterTurns < 4; quarterTurns++) {
+      test(
+          'renders asymmetric masked source with exact core sampling at q$quarterTurns',
+          () async {
+        const sourceSize = GridSize(width: 6, height: 2);
+        final destinationSize = quarterTurns.isEven
+            ? const GridSize(width: 6, height: 2)
+            : const GridSize(width: 3, height: 4);
+        const solidPixels = <int>{0, 1, 4, 6, 8, 11};
+        final component = PlacedElementOcclusionPatchComponent(
+          instruction: _instruction(
+            sourceWidthPx: sourceSize.width,
+            sourceHeightPx: sourceSize.height,
+            quarterTurns: quarterTurns,
+            destinationWidthPx: destinationSize.width,
+            destinationHeightPx: destinationSize.height,
+            visualWidth: destinationSize.width.toDouble(),
+            visualHeight: destinationSize.height.toDouble(),
+            depthSortY: destinationSize.height.toDouble(),
+            mask: _mask(
+              widthPx: sourceSize.width,
+              heightPx: sourceSize.height,
+              solidPixels: solidPixels,
+            ),
+          ),
+          tilesetImage: await _runtimeTilesetImage6x2(),
+        );
+        final transform = QuarterTurnPixelTransform(
+          sourcePixelSize: sourceSize,
+          destinationPixelSize: destinationSize,
+          quarterTurns: quarterTurns,
+        );
+
+        final image = await _render(
+          component,
+          width: destinationSize.width,
+          height: destinationSize.height,
+        );
+
+        for (var y = 0; y < destinationSize.height; y++) {
+          for (var x = 0; x < destinationSize.width; x++) {
+            final source = transform.destinationPixelToSourcePixel(
+              GridPos(x: x, y: y),
+            );
+            final sourceIndex = source.y * sourceSize.width + source.x;
+            final expected = solidPixels.contains(sourceIndex)
+                ? _asymmetricPixel(source.x, source.y)
+                : rgba(0, 0, 0, 0);
+            expect(
+              await pixelAt(image, x, y),
+              expected,
+              reason: 'q$quarterTurns destination ($x, $y) '
+                  'samples source (${source.x}, ${source.y})',
+            );
+          }
+        }
+        expect(component.debugQuarterTurnDrawRunCount, greaterThan(0));
+        expect(
+          component.debugQuarterTurnDrawRunCount,
+          lessThan(component.debugIncludedDestinationPixelCount),
+          reason: 'q$quarterTurns must batch included destination pixels',
+        );
+      });
+    }
+
     test('does not render when opacity is zero', () async {
       final component = PlacedElementOcclusionPatchComponent(
         instruction: _instruction(
@@ -123,6 +188,11 @@ StaticPlacedElementOcclusionPatchInstruction _instruction({
   double depthSortY = 2,
   int flamePriority = 1002,
   double opacity = 1,
+  int sourceWidthPx = 2,
+  int sourceHeightPx = 2,
+  int quarterTurns = 0,
+  int destinationWidthPx = 2,
+  int destinationHeightPx = 2,
   ElementCollisionPixelMask? mask,
 }) {
   return StaticPlacedElementOcclusionPatchInstruction(
@@ -133,8 +203,11 @@ StaticPlacedElementOcclusionPatchInstruction _instruction({
     tilesetId: 'entity',
     sourceLeftPx: 0,
     sourceTopPx: 0,
-    sourceWidthPx: 2,
-    sourceHeightPx: 2,
+    sourceWidthPx: sourceWidthPx,
+    sourceHeightPx: sourceHeightPx,
+    quarterTurns: quarterTurns,
+    destinationWidthPx: destinationWidthPx,
+    destinationHeightPx: destinationHeightPx,
     worldLeft: worldLeft,
     worldTop: worldTop,
     visualWidth: visualWidth,
@@ -197,6 +270,41 @@ Future<RuntimeTilesetImage> _runtimeTilesetImage2x2() async {
     height: 2,
   );
 }
+
+Future<RuntimeTilesetImage> _runtimeTilesetImage6x2() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  for (var y = 0; y < 2; y++) {
+    for (var x = 0; x < 6; x++) {
+      canvas.drawRect(
+        Rect.fromLTWH(x.toDouble(), y.toDouble(), 1, 1),
+        Paint()
+          ..color = Color.fromARGB(
+            255,
+            20 + x * 30,
+            40 + y * 120,
+            10 + x * 7 + y * 3,
+          ),
+      );
+    }
+  }
+  final image = await recorder.endRecording().toImage(6, 2);
+  return RuntimeTilesetImage(
+    images: [image],
+    chunks: const [
+      RuntimeTilesetChunk(top: 0, height: 2, width: 6),
+    ],
+    width: 6,
+    height: 2,
+  );
+}
+
+List<int> _asymmetricPixel(int x, int y) => rgba(
+      20 + x * 30,
+      40 + y * 120,
+      10 + x * 7 + y * 3,
+      255,
+    );
 
 Future<ui.Image> _render(
   PlacedElementOcclusionPatchComponent component, {

@@ -52,6 +52,39 @@ void main() {
     });
 
     test(
+        'uses the rotated bounding box while fixed world light stays unchanged',
+        () {
+      final manifest = _manifest(
+        catalog: _catalog([_preset()]),
+        elements: [_element(projectedBuildingShadow: _config())],
+      );
+
+      for (final quarterTurns in const [1, 3]) {
+        final collection = buildRuntimeProjectedBuildingShadowCollection(
+          manifest: manifest,
+          mapData: _map(
+            placedElements: [
+              _placed(
+                pos: const GridPos(x: 1, y: 2),
+                quarterTurns: quarterTurns,
+              ),
+            ],
+          ),
+        );
+
+        final instruction = collection.groundStatic.single;
+        expect(instruction.worldLeft, closeTo(80, 0.000001));
+        expect(instruction.worldTop, closeTo(80, 0.000001));
+        expect(instruction.width, closeTo(32, 0.000001));
+        expect(instruction.height, closeTo(96, 0.000001));
+        _expectPointClose(instruction.polygonPoints[0], x: 80, y: 80);
+        _expectPointClose(instruction.polygonPoints[1], x: 80, y: 176);
+        _expectPointClose(instruction.polygonPoints[2], x: 112, y: 152);
+        _expectPointClose(instruction.polygonPoints[3], x: 112, y: 104);
+      }
+    });
+
+    test(
         'buildRuntimeProjectedBuildingShadowCollection resolves footprint preset through map_core geometry',
         () {
       final collection = buildRuntimeProjectedBuildingShadowCollection(
@@ -381,6 +414,7 @@ MapPlacedElement _placed({
   String elementId = 'building',
   GridPos pos = const GridPos(x: 1, y: 2),
   double opacity = 1,
+  int quarterTurns = 0,
 }) {
   return MapPlacedElement(
     id: id,
@@ -388,6 +422,7 @@ MapPlacedElement _placed({
     elementId: elementId,
     pos: pos,
     opacity: opacity,
+    quarterTurns: quarterTurns,
   );
 }
 

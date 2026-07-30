@@ -55,6 +55,10 @@ ShadowRuntimeInstructionCollection
     if (source.width <= 0 || source.height <= 0) {
       continue;
     }
+    final footprint = resolveMapPlacedElementFootprint(
+      instance: placed,
+      element: element,
+    );
 
     final geometry = resolveProjectedBuildingShadowGeometry(
       config: config,
@@ -62,8 +66,8 @@ ShadowRuntimeInstructionCollection
       metrics: StaticShadowVisualMetrics(
         left: placed.pos.x * cellWidth,
         top: placed.pos.y * cellHeight,
-        visualWidth: source.width * cellWidth,
-        visualHeight: source.height * cellHeight,
+        visualWidth: footprint.destinationSize.width * cellWidth,
+        visualHeight: footprint.destinationSize.height * cellHeight,
       ),
     );
     if (geometry == null) {

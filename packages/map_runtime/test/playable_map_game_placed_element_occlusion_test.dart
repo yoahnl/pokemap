@@ -48,6 +48,27 @@ void main() {
       expect(_occlusionPatches(game), hasLength(1));
     });
 
+    test('mounts rotated asymmetric occlusion patch with rotated geometry',
+        () async {
+      final game = _game(
+        bundle: _bundle(
+          quarterTurns: 1,
+          sourceWidth: 2,
+          sourceHeight: 1,
+        ),
+      );
+
+      await _load(game);
+
+      final patch = _occlusionPatches(game).single;
+      expect(patch.instruction.quarterTurns, 1);
+      expect(patch.instruction.destinationWidthPx, 16);
+      expect(patch.instruction.destinationHeightPx, 32);
+      expect(patch.size.x, 32);
+      expect(patch.size.y, 64);
+      expect(patch.priority, 1096);
+    });
+
     test('skips occlusion patch when RuntimeTilesetImage is missing', () async {
       final game = _game(
         bundle: _bundle(),
@@ -125,7 +146,7 @@ PlayableMapGame _game({
       if (includeElementTilesetImage &&
           absolutePathByTilesetId.containsKey('entity')) {
         out['entity'] = await _runtimeTilesetImage(
-          width: 16,
+          width: 32,
           height: 16,
           color: const Color(0xFFFF0000),
         );
@@ -152,8 +173,16 @@ List<PlacedElementOcclusionPatchComponent> _occlusionPatches(
 RuntimeMapBundle _bundle({
   bool includeOcclusionMask = true,
   bool applyCollision = true,
+  int quarterTurns = 0,
+  int sourceWidth = 1,
+  int sourceHeight = 1,
 }) {
-  final occlusionMask = includeOcclusionMask ? _mask() : null;
+  final occlusionMask = includeOcclusionMask
+      ? _mask(
+          widthPx: sourceWidth * 16,
+          heightPx: sourceHeight * 16,
+        )
+      : null;
   return RuntimeMapBundle(
     manifest: ProjectManifest(
       name: 'Playable Occlusion Test',
@@ -191,8 +220,15 @@ RuntimeMapBundle _bundle({
           name: 'House',
           tilesetId: 'entity',
           categoryId: 'buildings',
-          frames: const [
-            TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+          frames: [
+            TilesetVisualFrame(
+              source: TilesetSourceRect(
+                x: 0,
+                y: 0,
+                width: sourceWidth,
+                height: sourceHeight,
+              ),
+            ),
           ],
           collisionProfile: occlusionMask == null
               ? null
@@ -231,6 +267,7 @@ RuntimeMapBundle _bundle({
           elementId: 'house',
           pos: const GridPos(x: 1, y: 1),
           applyCollision: applyCollision,
+          quarterTurns: quarterTurns,
         ),
       ],
       mapMetadata: const MapMetadata(defaultSpawnId: 'spawn'),
@@ -243,15 +280,18 @@ RuntimeMapBundle _bundle({
   );
 }
 
-ElementCollisionPixelMask _mask() {
-  final bits = List<bool>.filled(16 * 16, false);
+ElementCollisionPixelMask _mask({
+  int widthPx = 16,
+  int heightPx = 16,
+}) {
+  final bits = List<bool>.filled(widthPx * heightPx, false);
   bits[0] = true;
   return ElementCollisionPixelMask(
-    widthPx: 16,
-    heightPx: 16,
+    widthPx: widthPx,
+    heightPx: heightPx,
     dataBase64: ElementCollisionMaskCodec.encodePackedBits(
-      widthPx: 16,
-      heightPx: 16,
+      widthPx: widthPx,
+      heightPx: heightPx,
       solidPixels: bits,
     ),
   );

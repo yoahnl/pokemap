@@ -50,6 +50,10 @@ List<RuntimeStaticPlacedElementShadowSource>
     if (tilesetId.isEmpty) {
       continue;
     }
+    final footprint = resolveMapPlacedElementFootprint(
+      instance: placed,
+      element: element,
+    );
     sources.add(
       RuntimeStaticPlacedElementShadowSource(
         id: placed.id,
@@ -59,8 +63,8 @@ List<RuntimeStaticPlacedElementShadowSource>
         metrics: StaticPlacedElementShadowRuntimeMetrics(
           worldLeft: placed.pos.x * cellWidth,
           worldTop: placed.pos.y * cellHeight,
-          visualWidth: source.width * cellWidth,
-          visualHeight: source.height * cellHeight,
+          visualWidth: footprint.destinationSize.width * cellWidth,
+          visualHeight: footprint.destinationSize.height * cellHeight,
         ),
       ),
     );

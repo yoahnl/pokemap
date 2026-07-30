@@ -87,6 +87,21 @@ void main() {
       expect(sources.single.elementId, 'tree');
     });
 
+    test('uses the rotated q0-q3 footprint metrics without moving its origin',
+        () {
+      for (var quarterTurns = 0; quarterTurns < 4; quarterTurns++) {
+        final source = buildRuntimeStaticPlacedElementShadowSources(
+          bundle: _bundle(quarterTurns: quarterTurns),
+        ).single;
+        final isOdd = quarterTurns.isOdd;
+
+        expect(source.metrics.worldLeft, 32);
+        expect(source.metrics.worldTop, 32);
+        expect(source.metrics.visualWidth, isOdd ? 96 : 64);
+        expect(source.metrics.visualHeight, isOdd ? 64 : 96);
+      }
+    });
+
     test(
         'keeps legacy static shadow when projected building shadow is disabled',
         () {
@@ -687,6 +702,7 @@ RuntimeMapBundle _bundle({
   bool includeLegacyOnlyElement = false,
   MapPlacedElementShadowOverride? placedOverride,
   ProjectBuildingShadowPreset? projectedPreset,
+  int quarterTurns = 0,
 }) {
   return RuntimeMapBundle(
     manifest: ProjectManifest(
@@ -762,6 +778,7 @@ RuntimeMapBundle _bundle({
           layerId: 'decor',
           elementId: 'tree',
           pos: const GridPos(x: 1, y: 1),
+          quarterTurns: quarterTurns,
           shadowOverride: placedOverride,
         ),
         if (includeLegacyOnlyElement)

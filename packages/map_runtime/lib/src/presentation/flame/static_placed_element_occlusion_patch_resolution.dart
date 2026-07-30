@@ -13,6 +13,9 @@ final class StaticPlacedElementOcclusionPatchInstruction {
     required this.sourceTopPx,
     required this.sourceWidthPx,
     required this.sourceHeightPx,
+    required this.quarterTurns,
+    required this.destinationWidthPx,
+    required this.destinationHeightPx,
     required this.worldLeft,
     required this.worldTop,
     required this.visualWidth,
@@ -32,6 +35,9 @@ final class StaticPlacedElementOcclusionPatchInstruction {
   final int sourceTopPx;
   final int sourceWidthPx;
   final int sourceHeightPx;
+  final int quarterTurns;
+  final int destinationWidthPx;
+  final int destinationHeightPx;
   final double worldLeft;
   final double worldTop;
   final double visualWidth;
@@ -127,8 +133,14 @@ StaticPlacedElementOcclusionPatchInstruction? _resolveInstruction({
 
   final worldLeft = (originCellX + instance.pos.x) * bundle.cellWidth;
   final worldTop = (originCellY + instance.pos.y) * bundle.cellHeight;
-  final visualWidth = source.width * bundle.cellWidth;
-  final visualHeight = source.height * bundle.cellHeight;
+  final footprint = resolveMapPlacedElementFootprint(
+    instance: instance,
+    element: element,
+  );
+  final destinationWidthPx = footprint.destinationSize.width * tileWidth;
+  final destinationHeightPx = footprint.destinationSize.height * tileHeight;
+  final visualWidth = footprint.destinationSize.width * bundle.cellWidth;
+  final visualHeight = footprint.destinationSize.height * bundle.cellHeight;
   final depthSortY = worldTop + visualHeight;
 
   return StaticPlacedElementOcclusionPatchInstruction(
@@ -141,6 +153,9 @@ StaticPlacedElementOcclusionPatchInstruction? _resolveInstruction({
     sourceTopPx: source.y * tileHeight,
     sourceWidthPx: sourceWidthPx,
     sourceHeightPx: sourceHeightPx,
+    quarterTurns: footprint.quarterTurns,
+    destinationWidthPx: destinationWidthPx,
+    destinationHeightPx: destinationHeightPx,
     worldLeft: worldLeft,
     worldTop: worldTop,
     visualWidth: visualWidth,
