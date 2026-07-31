@@ -6,6 +6,8 @@
 library;
 
 export 'src/api/authoring_read_api.dart';
+export 'src/api/authoring_mutation_api.dart';
+export 'src/api/local_map_authoring_mutation_api.dart';
 export 'src/architecture/package_boundaries.dart';
 export 'src/contracts/action_descriptor.dart';
 export 'src/contracts/capability_descriptor.dart';
@@ -19,6 +21,9 @@ export 'src/contracts/schema_descriptor.dart';
 export 'src/contracts/query_page.dart';
 export 'src/contracts/query_request.dart';
 export 'src/domains/maps/map_region_query.dart';
+export 'src/domains/maps/map_lifecycle_actions.dart';
+export 'src/domains/maps/map_lifecycle_adapter.dart';
+export 'src/domains/maps/map_mutation_dispatcher.dart';
 export 'src/domains/project/capability_truth_adapter.dart';
 export 'src/history/authoring_history.dart';
 export 'src/history/content_blob_store.dart';

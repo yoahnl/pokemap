@@ -176,7 +176,11 @@ final class AuthoringTransactionJournal {
     final afterSet = AuthoringRevisionSet([
       for (final entry in this.entries)
         AuthoringResourceRevision(
-          resource: entry.resource,
+          resource: AuthoringResourceRef(
+            kind: entry.resource.kind,
+            id: entry.resource.id,
+            extensions: entry.resource.extensions,
+          ),
           revision: entry.afterRevision,
         ),
     ]);

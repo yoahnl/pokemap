@@ -3,13 +3,25 @@ import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
 
+import '../api/authoring_mutation_api.dart';
 import '../api/authoring_read_api.dart';
 import '../contracts/authoring_error.dart';
+import '../contracts/authoring_request.dart';
 import '../contracts/authoring_result.dart';
 import '../contracts/json_contract_support.dart';
 import '../contracts/query_request.dart';
+import '../domains/maps/map_lifecycle_adapter.dart';
 import '../domains/maps/map_region_query.dart';
+import '../history/authoring_history.dart';
 import '../ports/project_file_reader.dart';
+import '../security/authorization_policy.dart';
+import '../security/confirmation_token.dart';
+import '../security/output_redaction.dart';
+import '../transactions/idempotency_ledger.dart';
+import '../transactions/journaled_transaction.dart';
+import '../transactions/plan_store.dart';
+import '../transactions/recovery_service.dart';
+import '../transactions/revision_set.dart';
 import '../workspace/project_open_service.dart';
 import '../workspace/project_query_service.dart';
 import '../workspace/project_snapshot.dart';
@@ -18,9 +30,11 @@ import '../workspace/workspace_handle_store.dart';
 final class JsonlWorker {
   JsonlWorker({
     required AuthoringReadApiPort api,
+    AuthoringMutationApiPort? mutations,
     this.maxInputBytes = 64 * 1024,
     this.commandTimeout = const Duration(seconds: 10),
-  }) : _api = api {
+  })  : _api = api,
+        _mutations = mutations {
     if (maxInputBytes <= 0) {
       throw ArgumentError.value(
         maxInputBytes,
@@ -38,6 +52,7 @@ final class JsonlWorker {
   }
 
   final AuthoringReadApiPort _api;
+  final AuthoringMutationApiPort? _mutations;
   final int maxInputBytes;
   final Duration commandTimeout;
 
@@ -133,6 +148,82 @@ final class JsonlWorker {
         domainCode: error.code,
         message: error.message,
       );
+    } on MapAuthoringException catch (error) {
+      result = _failure(
+        requestId,
+        code: _mapDomainErrorCode(error.code),
+        domainCode: error.code,
+        message: error.message,
+        remediation: error.remediation,
+        details: _safeDetails(error.details),
+      );
+    } on AuthoringPlanException catch (error) {
+      result = _failure(
+        requestId,
+        code: error.code == 'plan.stale'
+            ? AuthoringErrorCode.revisionConflict
+            : AuthoringErrorCode.validationFailed,
+        domainCode: error.code,
+        message: error.message,
+        remediation: error.remediation,
+        retryable: error.code == 'plan.stale',
+      );
+    } on AuthoringAuthorizationException catch (error) {
+      result = _failure(
+        requestId,
+        code: AuthoringErrorCode.permissionDenied,
+        domainCode: error.code,
+        message: error.message,
+        remediation: error.remediation,
+      );
+    } on AuthoringConfirmationException catch (error) {
+      result = _failure(
+        requestId,
+        code: AuthoringErrorCode.invalidRequest,
+        domainCode: error.code,
+        message: error.message,
+      );
+    } on AuthoringRevisionConflict catch (error) {
+      result = _failure(
+        requestId,
+        code: AuthoringErrorCode.revisionConflict,
+        domainCode: error.code,
+        message: 'One or more mutation resources changed.',
+        remediation: error.remediation,
+        retryable: true,
+      );
+    } on AuthoringIdempotencyException catch (error) {
+      result = _failure(
+        requestId,
+        code: AuthoringErrorCode.revisionConflict,
+        domainCode: error.code,
+        message: error.message,
+        remediation: error.remediation,
+        retryable: error.code == 'idempotency.recovery_required',
+      );
+    } on JournaledAuthoringTransactionException catch (error) {
+      result = _failure(
+        requestId,
+        code: AuthoringErrorCode.revisionConflict,
+        domainCode: error.code,
+        message: error.message,
+      );
+    } on AuthoringRecoveryException catch (error) {
+      result = _failure(
+        requestId,
+        code: AuthoringErrorCode.revisionConflict,
+        domainCode: error.code,
+        message: error.message,
+      );
+    } on AuthoringHistoryException catch (error) {
+      result = _failure(
+        requestId,
+        code: error.code == 'history.entry_missing'
+            ? AuthoringErrorCode.notFound
+            : AuthoringErrorCode.revisionConflict,
+        domainCode: error.code,
+        message: error.message,
+      );
     } on Object {
       result = _failure(
         requestId,
@@ -151,12 +242,34 @@ final class JsonlWorker {
     switch (command) {
       case 'describe':
         rejectUnknownContractKeys(args, const {});
-        return _api.describe();
+        return _combinedDescription();
       case 'open':
         rejectUnknownContractKeys(args, const {'projectRoot'});
-        return _api.open(
-          requireContractString(args['projectRoot'], 'args.projectRoot'),
+        final projectRoot =
+            requireContractString(args['projectRoot'], 'args.projectRoot');
+        final opened = await _api.open(projectRoot);
+        final mutations = _mutations;
+        if (mutations == null) return opened;
+        final workspaceHandle = WorkspaceHandle(
+          requireContractString(
+            opened['workspaceHandle'],
+            'open.workspaceHandle',
+          ),
         );
+        final projectHandle = ProjectHandle(
+          requireContractString(opened['projectHandle'], 'open.projectHandle'),
+        );
+        try {
+          await mutations.attachProject(
+            projectRootPath: projectRoot,
+            workspaceHandle: workspaceHandle,
+            projectHandle: projectHandle,
+          );
+        } on Object {
+          await _api.close(workspaceHandle);
+          rethrow;
+        }
+        return Map.unmodifiable({...opened, 'readOnly': false});
       case 'query':
         rejectUnknownContractKeys(
           args,
@@ -190,17 +303,107 @@ final class JsonlWorker {
         );
       case 'close':
         rejectUnknownContractKeys(args, const {'workspaceHandle'});
-        return _api.close(
-          WorkspaceHandle(
-            requireContractString(
-              args['workspaceHandle'],
-              'args.workspaceHandle',
-            ),
+        final workspaceHandle = WorkspaceHandle(
+          requireContractString(
+            args['workspaceHandle'],
+            'args.workspaceHandle',
           ),
+        );
+        await _mutations?.detachWorkspace(workspaceHandle);
+        return _api.close(workspaceHandle);
+      case 'plan':
+        rejectUnknownContractKeys(args, const {'projectHandle', 'request'});
+        final request = _jsonObject(args['request'], 'args.request');
+        return _mutationApi().plan(
+          _projectHandle(args),
+          AuthoringRequest.fromJson(request),
+        );
+      case 'confirm':
+        rejectUnknownContractKeys(args, const {'projectHandle', 'planId'});
+        return _mutationApi().confirm(
+          _projectHandle(args),
+          planId: requireContractString(args['planId'], 'args.planId'),
+        );
+      case 'apply':
+        rejectUnknownContractKeys(
+          args,
+          const {
+            'projectHandle',
+            'planId',
+            'operationId',
+            'confirmationToken',
+          },
+        );
+        return _mutationApi().apply(
+          _projectHandle(args),
+          planId: requireContractString(args['planId'], 'args.planId'),
+          operationId:
+              requireContractString(args['operationId'], 'args.operationId'),
+          confirmationToken: readOptionalContractString(
+            args['confirmationToken'],
+            'args.confirmationToken',
+          ),
+        );
+      case 'undo':
+        rejectUnknownContractKeys(
+          args,
+          const {'projectHandle', 'entryId', 'idempotencyKey'},
+        );
+        return _mutationApi().undo(
+          _projectHandle(args),
+          entryId: requireContractString(args['entryId'], 'args.entryId'),
+          idempotencyKey: requireContractString(
+            args['idempotencyKey'],
+            'args.idempotencyKey',
+          ),
+        );
+      case 'recover':
+        rejectUnknownContractKeys(
+          args,
+          const {'projectHandle', 'operationId'},
+        );
+        return _mutationApi().recover(
+          _projectHandle(args),
+          operationId:
+              requireContractString(args['operationId'], 'args.operationId'),
         );
       default:
         throw const _UnsupportedWorkerCommand();
     }
+  }
+
+  AuthoringMutationApiPort _mutationApi() =>
+      _mutations ?? (throw const _UnsupportedWorkerCommand());
+
+  ProjectHandle _projectHandle(Map<String, dynamic> args) => ProjectHandle(
+        requireContractString(args['projectHandle'], 'args.projectHandle'),
+      );
+
+  Map<String, Object?> _combinedDescription() {
+    final read = _api.describe();
+    final mutations = _mutations;
+    if (mutations == null) return read;
+    final mutation = mutations.describeMutations();
+    final commands = <Map<String, Object?>>[
+      for (final command in read['commands']! as List)
+        Map<String, Object?>.from(command as Map),
+      for (final command in mutation['commands']! as List)
+        Map<String, Object?>.from(command as Map),
+    ]..sort(
+        (left, right) =>
+            (left['id']! as String).compareTo(right['id']! as String),
+      );
+    return freezeContractJsonObject(
+      {
+        ...read,
+        'protocol': 'pokemap.authoring.v1',
+        'readOnly': false,
+        'commands': commands,
+        'mutationActions': mutation['actions'],
+        'multiFileGuarantee': mutation['multiFileGuarantee'],
+      },
+      field: 'describe',
+    );
   }
 }
 
@@ -352,6 +555,8 @@ AuthoringResult _failure(
   required String domainCode,
   required String message,
   bool retryable = false,
+  Iterable<String> remediation = const [],
+  Map<String, Object?> details = const {},
 }) {
   return AuthoringResult.failure(
     requestId: requestId,
@@ -359,9 +564,23 @@ AuthoringResult _failure(
       code: code,
       message: message,
       retryable: retryable,
-      details: {'domainCode': domainCode},
+      remediation: remediation,
+      details: {'domainCode': domainCode, ...details},
     ),
   );
+}
+
+AuthoringErrorCode _mapDomainErrorCode(String code) {
+  if (code.endsWith('_unsupported')) return AuthoringErrorCode.unsupported;
+  if (code == 'map.not_found' || code == 'map.document_missing') {
+    return AuthoringErrorCode.notFound;
+  }
+  return AuthoringErrorCode.validationFailed;
+}
+
+Map<String, Object?> _safeDetails(Map<String, Object?> details) {
+  final redacted = const AuthoringOutputRedactor().redact(details);
+  return redacted is Map<String, Object?> ? redacted : const {};
 }
 
 final class _CapabilityInput {

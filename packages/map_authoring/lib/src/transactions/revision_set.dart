@@ -129,7 +129,14 @@ final class AuthoringRevisionSet {
     return AuthoringRevisionSet([
       for (final change in changeSet.changes)
         AuthoringResourceRevision(
-          resource: change.resource,
+          // A resource ref revision is the frozen pre-image used by CAS. The
+          // post-image set must keep the same typed identity without claiming
+          // that the old revision also describes the newly written bytes.
+          resource: AuthoringResourceRef(
+            kind: change.resource.kind,
+            id: change.resource.id,
+            extensions: change.resource.extensions,
+          ),
           revision: change.afterRevision,
         ),
     ]);

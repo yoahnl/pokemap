@@ -7,7 +7,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('pokemap_authoring CLI', () {
-    test('runs the real read-only JSONL session with direct API parity',
+    test('runs the real authoring JSONL session with read API parity',
         () async {
       expect(
         File('bin/pokemap_authoring.dart').existsSync(),
@@ -65,7 +65,7 @@ void main() {
       expect(malformed.error?.code, AuthoringErrorCode.invalidRequest);
       expect(described.status, AuthoringResultStatus.success);
       expect(opened.status, AuthoringResultStatus.success);
-      expect(opened.data['readOnly'], isTrue);
+      expect(opened.data['readOnly'], isFalse);
       expect(queried.data, directQuery);
       expect(validated.status, AuthoringResultStatus.success);
       expect(validated.data['references'], isA<Map<String, Object?>>());

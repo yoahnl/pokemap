@@ -29,22 +29,28 @@ Future<void> main(List<String> arguments) async {
     exitCode = AuthoringCliExitCodes.config;
     return;
   } on Object {
-    stderr.writeln('Unable to initialize the read-only workspace.');
+    stderr.writeln('Unable to initialize the authoring workspace.');
     exitCode = AuthoringCliExitCodes.software;
     return;
   }
 
   final handles = WorkspaceHandleStore();
+  final snapshots = ProjectSnapshotLoader(handles: handles);
   final api = AuthoringReadApi(
     openService: ProjectOpenService(
       policy: policy,
       fileReader: fileReader,
       handles: handles,
     ),
-    snapshotLoader: ProjectSnapshotLoader(handles: handles),
+    snapshotLoader: snapshots,
+  );
+  final mutations = LocalMapAuthoringMutationApi(
+    policy: policy,
+    snapshotLoader: snapshots,
   );
   final worker = JsonlWorker(
     api: api,
+    mutations: mutations,
     commandTimeout: options.commandTimeout,
     maxInputBytes: options.maxInputBytes,
   );

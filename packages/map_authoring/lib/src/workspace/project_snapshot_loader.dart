@@ -83,6 +83,9 @@ final class ProjectSnapshotLoader {
       manifest: manifest,
       maps: maps,
       resourceFingerprints: resourceFingerprints,
+      resourceBytes: {
+        for (final resource in resources) resource.identity: resource.bytes,
+      },
     );
   }
 }

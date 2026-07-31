@@ -20,6 +20,7 @@ final class ProjectSnapshot {
     required this.manifest,
     required Iterable<MapData> maps,
     required Map<String, String> resourceFingerprints,
+    Map<String, List<int>> resourceBytes = const {},
   })  : maps = List.unmodifiable(
           maps.toList()..sort((left, right) => left.id.compareTo(right.id)),
         ),
@@ -28,6 +29,18 @@ final class ProjectSnapshot {
             (resourceFingerprints.entries.toList()
                   ..sort((left, right) => left.key.compareTo(right.key)))
                 .map((entry) => MapEntry(entry.key, entry.value)),
+          ),
+        ),
+        _resourceBytes = Map.unmodifiable(
+          Map.fromEntries(
+            (resourceBytes.entries.toList()
+                  ..sort((left, right) => left.key.compareTo(right.key)))
+                .map(
+              (entry) => MapEntry(
+                entry.key,
+                List<int>.unmodifiable(entry.value),
+              ),
+            ),
           ),
         ) {
     if (!RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(revision)) {
@@ -57,6 +70,16 @@ final class ProjectSnapshot {
         );
       }
     }
+    for (final entry in _resourceBytes.entries) {
+      if (!this.resourceFingerprints.containsKey(entry.key) ||
+          entry.value.any((byte) => byte < 0 || byte > 255)) {
+        throw ArgumentError.value(
+          entry.key,
+          'resourceBytes',
+          'keys must identify fingerprinted resources and values must be bytes',
+        );
+      }
+    }
     _mapsById = Map.unmodifiable({
       for (final map in this.maps) map.id: map,
     });
@@ -67,7 +90,24 @@ final class ProjectSnapshot {
   final ProjectManifest manifest;
   final List<MapData> maps;
   final Map<String, String> resourceFingerprints;
+  final Map<String, List<int>> _resourceBytes;
   late final Map<String, MapData> _mapsById;
 
   MapData? mapById(String id) => _mapsById[id];
+
+  /// Exact snapshot pre-image for one path-free resource identity.
+  ///
+  /// Payloads are intentionally excluded from JSON projections. They exist so
+  /// mutation planners can freeze the real disk bytes used by compare-and-swap
+  /// instead of manufacturing authority from a re-encoded model.
+  List<int> resourceBytes(String identity) {
+    final bytes = _resourceBytes[identity];
+    if (bytes == null) {
+      throw const ProjectSnapshotException(
+        'project.resource_bytes_unavailable',
+        'The exact resource pre-image is unavailable in this snapshot.',
+      );
+    }
+    return List<int>.unmodifiable(bytes);
+  }
 }
