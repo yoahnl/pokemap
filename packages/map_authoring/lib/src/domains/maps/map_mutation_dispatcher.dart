@@ -2,6 +2,10 @@ import 'dart:async';
 
 import '../../contracts/action_descriptor.dart';
 import '../../domains/assets/asset_actions.dart';
+import '../../domains/assets/element_actions.dart';
+import '../../domains/assets/palette_actions.dart';
+import '../../domains/assets/preset_actions.dart';
+import '../../domains/assets/tileset_actions.dart';
 import '../../ports/artifact_store.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
@@ -57,6 +61,10 @@ final class MapMutationDispatcher {
       artifactStore:
           artifactStore ?? MemoryArtifactStore(maximumArtifactBytes: 64 << 20),
     );
+    const tilesets = TilesetActions();
+    const palettes = PaletteActions();
+    const elements = ElementActions();
+    const presets = PresetActions();
     return MapMutationDispatcher([
       for (final descriptor in MapLifecycleActions.descriptors)
         MapMutationActionRegistration(
@@ -127,6 +135,26 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: assets.build,
+        ),
+      for (final descriptor in TilesetActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: tilesets.build,
+        ),
+      for (final descriptor in PaletteActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: palettes.build,
+        ),
+      for (final descriptor in ElementActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: elements.build,
+        ),
+      for (final descriptor in PresetActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: presets.build,
         ),
     ]);
   }

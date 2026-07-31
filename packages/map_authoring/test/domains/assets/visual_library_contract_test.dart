@@ -1,0 +1,203 @@
+import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('visual library contracts', () {
+    const atlas = TilesetAtlasSpec(
+      tilesetId: 'world',
+      assetId: 'world-atlas',
+      pixelWidth: 64,
+      pixelHeight: 48,
+      tileWidth: 16,
+      tileHeight: 16,
+    );
+
+    test('rejects a source rect outside the real atlas bounds', () {
+      expect(
+        () => const TilesetActions().validateFrame(
+          const TilesetVisualFrame(
+            source: TilesetSourceRect(x: 3, y: 0, width: 2),
+          ),
+          owningTilesetId: 'world',
+          atlases: const {'world': atlas},
+        ),
+        throwsA(
+          isA<VisualLibraryException>().having(
+            (error) => error.code,
+            'code',
+            'tileset.source_out_of_bounds',
+          ),
+        ),
+      );
+    });
+
+    test('regrid preview reports every affected visual before apply', () {
+      final preview = const TilesetActions().previewRegrid(
+        _manifest(),
+        current: atlas,
+        tileWidth: 8,
+        tileHeight: 8,
+      );
+
+      expect(preview.canApply, isTrue);
+      expect(preview.impacts.map((impact) => impact.ownerKind), [
+        'element',
+        'paletteEntry',
+        'pathPreset',
+        'terrainPreset',
+      ]);
+      expect(preview.before.tileWidth, 16);
+      expect(preview.after.tileWidth, 8);
+    });
+
+    test('element deletion scans every loaded map', () {
+      final town = const MapData(
+        id: 'town',
+        name: 'Town',
+        size: GridSize(width: 4, height: 4),
+        placedElements: [
+          MapPlacedElement(
+            id: 'tree-placed',
+            layerId: 'objects',
+            elementId: 'tree',
+            pos: GridPos(x: 1, y: 1),
+          ),
+        ],
+      );
+
+      expect(
+        () => const ElementActions().delete(
+          _manifest(),
+          maps: [town],
+          elementId: 'tree',
+        ),
+        throwsA(
+          isA<VisualLibraryException>()
+              .having(
+                (error) => error.code,
+                'code',
+                'element.references_blocking',
+              )
+              .having(
+                (error) => error.details['references'],
+                'references',
+                contains('map:town:placedElement:tree-placed'),
+              ),
+        ),
+      );
+    });
+
+    test('preset gate stays compatible with semantic map actions', () {
+      final gate = const PresetActions().validate(
+        _manifest(),
+        atlases: const {'world': atlas},
+      );
+
+      expect(gate.diagnostics, isEmpty);
+      expect(
+        gate.semanticActionIds,
+        containsAll([
+          'terrain.paint',
+          'path.paint',
+          'surface.paint',
+          'environment.generate_apply',
+        ]),
+      );
+    });
+
+    test('dispatcher exposes canonical visual library mutations', () {
+      final ids = MapMutationDispatcher.canonical()
+          .descriptors
+          .map((descriptor) => descriptor.id)
+          .toSet();
+
+      expect(
+        ids,
+        containsAll({
+          'tileset.upsert',
+          'tileset.delete',
+          'palette.upsert',
+          'palette.delete',
+          'element.upsert',
+          'element.delete',
+          'preset.terrain_upsert',
+          'preset.path_upsert',
+        }),
+      );
+    });
+  });
+}
+
+ProjectManifest _manifest() => ProjectManifest(
+      name: 'Visual fixture',
+      maps: const [],
+      tilesets: const [
+        ProjectTilesetEntry(
+          id: 'world',
+          name: 'World',
+          relativePath: 'images/world.png',
+          paletteEntries: [
+            TilesetPaletteEntry(
+              id: 'grass-tile',
+              name: 'Grass',
+              frames: [
+                TilesetVisualFrame(
+                  source: TilesetSourceRect(x: 0, y: 0),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+      elementCategories: const [
+        ProjectElementCategory(id: 'nature', name: 'Nature'),
+      ],
+      elements: const [
+        ProjectElementEntry(
+          id: 'tree',
+          name: 'Tree',
+          tilesetId: 'world',
+          categoryId: 'nature',
+          frames: [
+            TilesetVisualFrame(
+              source: TilesetSourceRect(x: 1, y: 0),
+            ),
+          ],
+        ),
+      ],
+      terrainPresets: const [
+        ProjectTerrainPreset(
+          id: 'grass',
+          name: 'Grass',
+          terrainType: TerrainType.grass,
+          tilesetId: 'world',
+          variants: [
+            TerrainPresetVariant(
+              frames: [
+                TilesetVisualFrame(
+                  source: TilesetSourceRect(x: 2, y: 0),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+      pathPresets: const [
+        ProjectPathPreset(
+          id: 'road',
+          name: 'Road',
+          tilesetId: 'world',
+          variants: [
+            PathPresetVariantMapping(
+              variant: TerrainPathVariant.isolated,
+              frames: [
+                TilesetVisualFrame(
+                  source: TilesetSourceRect(x: 3, y: 0),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );

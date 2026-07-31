@@ -547,7 +547,7 @@ List<int> encodeMapAuthoringDocument(MapData map) => utf8.encode(
       const JsonEncoder.withIndent('  ').convert(map.toJson()),
     );
 
-List<int> _encodeManifest(
+List<int> encodeProjectAuthoringDocument(
   ProjectSnapshot snapshot,
   ProjectManifest manifest,
 ) {
@@ -578,7 +578,7 @@ AuthoringResourceChange _manifestChange(
     resource: resource,
     storageKey: 'project.json',
     beforeBytes: snapshot.resourceBytes('project'),
-    afterBytes: _encodeManifest(snapshot, manifest),
+    afterBytes: encodeProjectAuthoringDocument(snapshot, manifest),
   );
 }
 
