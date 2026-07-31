@@ -2576,6 +2576,40 @@ Limites volontaires :
   tests frais ;
 - aucune modification des changements préexistants du worktree.
 
+### 30.1 Gate PMCP-085 — preuves fraîches du 31 juillet 2026
+
+Le catalogue est désormais matérialisé par
+`AuthoringFullParityCatalog.canonical()` et inspectable avec
+`dart run tool/pmcp085_conformance.dart` depuis `packages/map_authoring`.
+La gate couvre explicitement les 62 `resourceKind` sémantiques de la section 7,
+avec un propriétaire canonique pour chaque agrégat, afin qu’un outil générique
+ne puisse pas masquer une ressource oubliée.
+
+Preuve fraîche ciblée :
+
+```text
+resourceCount: 62
+mutationActionCount: 223
+blockedOrMissingCount: 0
+notApplicableCount: 51
+coverageScope: canonicalAuthoringCatalog
+catalogComplete: true
+```
+
+`catalogComplete` qualifie uniquement le registre canonique. Il n'autorise pas
+la revendication produit « 100 % » : la gate stricte reste bloquée tant que
+l'inventaire PMCP-081 contient cinq chemins de mutation éditeur hors API
+(lifecycle de maps, sauvegarde projet/éditeur, Event Builder et Storylines).
+Le script de release exécute toutes les validations puis retourne volontairement
+un code non nul tant que cette dette explicite existe.
+
+Les 51 cellules `NOT_APPLICABLE` sont principalement les rendus de ressources
+sans surface visuelle, plus les garanties de mutation projet volontairement
+inapplicables à `gameSave` sandboxé et `gamePackage` dérivé. Chaque cellule
+porte sa justification dans la sortie JSON. La gate de release complète reste
+`tools/pokemap_mcp/scripts/pmcp085_release_gate.sh`; le présent résumé ne
+remplace pas son exécution fraîche.
+
 ## 31. Conclusion
 
 La bonne unité de construction n’est pas « le serveur MCP ». C’est le

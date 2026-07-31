@@ -1,0 +1,23 @@
+{
+  "actionId": "map.create",
+  "actionVersion": 1,
+  "status": "applied",
+  "changes": [
+    {
+      "operation": "add",
+      "resource": {
+        "kind": "map",
+        "id": "pmcp085_golden_map"
+      },
+      "path": "/"
+    },
+    {
+      "operation": "add",
+      "resource": {
+        "kind": "project",
+        "id": "project"
+      },
+      "path": "/maps/pmcp085_golden_map"
+    }
+  ]
+}

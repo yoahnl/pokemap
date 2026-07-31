@@ -418,6 +418,7 @@ final class JsonlWorker {
         'commands': commands,
         'mutationActions': mutation['actions'],
         'multiFileGuarantee': mutation['multiFileGuarantee'],
+        'fullParity': mutation['fullParity'],
       },
       field: 'describe',
     );

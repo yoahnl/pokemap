@@ -87,6 +87,7 @@ export 'src/ports/artifact_store.dart';
 export 'src/ports/map_render_port.dart';
 export 'src/ports/playtest_port.dart';
 export 'src/ports/transaction_file_gateway.dart';
+export 'src/parity/full_authoring_parity.dart';
 export 'src/registry/action_registry.dart';
 export 'src/registry/mutation_registry.dart';
 export 'src/registry/resource_kind_registry.dart';

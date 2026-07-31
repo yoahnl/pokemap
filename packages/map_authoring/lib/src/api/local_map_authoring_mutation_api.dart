@@ -11,6 +11,7 @@ import '../history/content_blob_store.dart';
 import '../history/file_history_store.dart';
 import '../history/history_store.dart';
 import '../history/undo_service.dart';
+import '../parity/full_authoring_parity.dart';
 import '../ports/idempotency_store.dart';
 import '../ports/artifact_store.dart';
 import '../ports/project_file_reader.dart';
@@ -86,6 +87,7 @@ final class LocalMapAuthoringMutationApi implements AuthoringMutationApiPort {
               descriptor.toJson(),
           ],
           'multiFileGuarantee': 'recoverable',
+          'fullParity': AuthoringFullParityCatalog.canonical().toJson(),
         },
         field: 'describeMutations',
       );

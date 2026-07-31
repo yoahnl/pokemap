@@ -69,7 +69,40 @@ export function registerReadOnlyTools(
           cursor: z.string().min(1).optional(),
           extensions: jsonRecordSchema.optional(),
         })
-        .strict(),
+        .strict()
+        .superRefine((input, context) => {
+          if (input.operation === "get" && input.ids.length !== 1) {
+            context.addIssue({
+              code: "custom",
+              path: ["ids"],
+              message: "get requires exactly one ID",
+            });
+          }
+          if (input.operation === "batch_get" && input.ids.length === 0) {
+            context.addIssue({
+              code: "custom",
+              path: ["ids"],
+              message: "batch_get requires at least one ID",
+            });
+          }
+          if (input.operation === "search" && !input.searchTerm) {
+            context.addIssue({
+              code: "custom",
+              path: ["searchTerm"],
+              message: "search requires a search term",
+            });
+          }
+          if (
+            (input.operation === "list" || input.operation === "summary") &&
+            input.ids.length > 0
+          ) {
+            context.addIssue({
+              code: "custom",
+              path: ["ids"],
+              message: `${input.operation} does not accept IDs`,
+            });
+          }
+        }),
       outputSchema: toolEnvelopeSchema,
       annotations: readOnlyAnnotations,
     },

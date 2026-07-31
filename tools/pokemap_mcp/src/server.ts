@@ -8,6 +8,12 @@ import {
   MCP_SERVER_VERSION,
   SUPPORTED_PROTOCOL_VERSIONS,
 } from "./protocol.js";
+import {
+  guardArtifactReader,
+  guardAuthoringGateway,
+  guardRuntimeGateway,
+  PokeMapRequestGuard,
+} from "./request_guard.js";
 import { registerReadOnlyResources } from "./resources/read_only.js";
 import { registerReadOnlyTools } from "./tools/read_only.js";
 import { registerMutationTools } from "./tools/mutations.js";
@@ -17,11 +23,18 @@ export interface PokeMapMcpServerDependencies {
   authoring: AuthoringGateway;
   artifacts: ArtifactReader;
   runtime?: RuntimeGateway;
+  guard?: PokeMapRequestGuard;
 }
 
 export function createPokeMapMcpServer(
   dependencies: PokeMapMcpServerDependencies,
 ): McpServer {
+  const guard = dependencies.guard ?? new PokeMapRequestGuard();
+  const authoring = guardAuthoringGateway(dependencies.authoring, guard);
+  const artifacts = guardArtifactReader(dependencies.artifacts, guard);
+  const runtime = dependencies.runtime
+    ? guardRuntimeGateway(dependencies.runtime, guard)
+    : undefined;
   const server = new McpServer(
     { name: MCP_SERVER_NAME, version: MCP_SERVER_VERSION },
     {
@@ -30,11 +43,11 @@ export function createPokeMapMcpServer(
         "Open only configured roots, plan before apply, keep opaque handles, use exact confirmations, follow nextCursor, and never invent artifact or resource URIs.",
     },
   );
-  registerReadOnlyTools(server, dependencies.authoring, dependencies.artifacts);
-  registerMutationTools(server, dependencies.authoring);
-  if (dependencies.runtime) {
-    registerRuntimeTools(server, dependencies.runtime);
+  registerReadOnlyTools(server, authoring, artifacts);
+  registerMutationTools(server, authoring);
+  if (runtime) {
+    registerRuntimeTools(server, runtime);
   }
-  registerReadOnlyResources(server, dependencies.authoring);
+  registerReadOnlyResources(server, authoring);
   return server;
 }
