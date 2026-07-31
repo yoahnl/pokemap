@@ -34,6 +34,7 @@ If instructions conflict, use the stricter safe rule and report the conflict.
 | `finishing-a-development-branch` | Wrapping up verified work and choosing merge/PR/cleanup options. | Never perform Git write operations unless the user explicitly asked. |
 | `using-git-worktrees` | Creating or using isolated worktrees. | In PokeMap, use only with explicit user permission because root `AGENTS.md` forbids silent worktree changes. |
 | `writing-skills` | Creating, editing, or validating skills. | Use when changing this directory or adding new skills. |
+| `using-pokemap-mcp` | Inspecting or modifying PokeMap projects, automating authoring, checking MCP parity, or diagnosing PokeMap MCP path errors. | Enforces canonical API use, narrow workspace roots, and live parity proof. |
 | `creating-pokemap-maps-from-reference` | Authoring, rebuilding, or reviewing an editable PokeMap map from a screenshot, bible, concept image, or full-map render. | Enforces scale boards, connected routes, modular bounds-safe assets, edge independence, runtime proof, and visual acceptance gates. |
 
 ## PokeMap-Specific Guidance
@@ -53,6 +54,7 @@ For visual/editor/runtime work, choose skills based on the task type:
 | Surface/Path/Environment/Shadow feature design | `brainstorming` | `writing-plans` |
 | Runtime or editor implementation lot | `writing-plans` or `executing-plans` | `verification-before-completion`, `requesting-code-review` |
 | Broken tests or regressions | `systematic-debugging` | `test-driven-development` |
+| PokeMap project authoring or MCP parity | `using-pokemap-mcp` | `verification-before-completion` |
 | Large multi-lot implementation | `subagent-driven-development` | `requesting-code-review` |
 | Final status/lot closure | `verification-before-completion` | `requesting-code-review` |
 

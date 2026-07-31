@@ -11,6 +11,10 @@ Translate visual intent into a coherent playable place, never into a pasted pict
 Require three truths at once: spatial logic, visual credibility at player scale, and
 native PokeMap editability.
 
+**REQUIRED SUB-SKILL:** Use `using-pokemap-mcp` for project inspection, authoring,
+validation, rendering, and MCP parity handling. Do not edit project JSON directly when
+the canonical MCP contract supports the operation.
+
 ## Required references
 
 Before authoring, read:
@@ -94,7 +98,10 @@ architecture and props, Environment for eligible natural masses, and separate
 foreground/occlusion layers. Keep every placement inside bounds. Build interiors from
 floors, walls, corners, openings, and foreground pieces instead of a room-sized shell.
 
-Implement deterministically and provide a check-only mode when using a generator.
+Use `pokemap_describe` before choosing resource kinds or actions, then use the canonical
+plan/apply workflow. If a required authoring feature is absent from the live catalog,
+record an MCP parity gap instead of writing around it. Implement deterministic asset
+generators with a check-only mode when a generator is required.
 
 ### 5. Validate before polishing
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Using PokeMap MCP"
+  short_description: "Author PokeMap projects safely through MCP"
+  default_prompt: "Use $using-pokemap-mcp to inspect or modify this PokeMap project through its canonical MCP API."

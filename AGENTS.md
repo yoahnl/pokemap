@@ -113,8 +113,26 @@ Common triggers:
 | Review feedback | `receiving-code-review` |
 | Branch/worktree flow explicitly requested | `using-git-worktrees` or `finishing-a-development-branch` |
 | Creating or editing skills | `writing-skills` |
+| PokeMap project authoring, MCP usage, or authoring parity | `using-pokemap-mcp` |
 
 For mechanics work, use both the relevant skill and `pokemap_roadmap_mecaniques_fangame.md`.
+
+### PokeMap MCP parity
+
+Any change that adds or alters user-visible authoring behavior, project data, an editor
+command, validation, import/export, rendering, or playtest behavior must assess PokeMap MCP
+parity before completion. Read `skills/using-pokemap-mcp/SKILL.md` and:
+
+- expose applicable semantics through the canonical `map_authoring` API, not editor internals;
+- register discoverable MCP resource and action contracts where applicable;
+- prove direct API, JSONL/CLI, editor, and MCP transports with focused tests or justify N/A;
+- rebuild and test `tools/pokemap_mcp`, then verify the live `pokemap_describe` catalog;
+- treat generic JSON persistence or whole-map save as insufficient proof of semantic support;
+- report missing exposure as `PARTIAL` or `BLOCKED`, never silently bypass it with file edits.
+
+For `workspace.path_outside_allowed_roots`, preserve the security boundary: use an absolute
+project path under a configured narrow root or request explicit authorization to add one.
+Do not broaden access to the home directory or filesystem root as a convenience fix.
 
 ---
 
