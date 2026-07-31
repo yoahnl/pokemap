@@ -46,43 +46,45 @@ class MapContextMenuHost extends ConsumerWidget {
     return Positioned.fill(
       child: switch (state) {
         MapContextMenuClosed() => const SizedBox.shrink(),
-        final MapContextMenuOpen open => LayoutBuilder(
-            builder: (context, constraints) {
-              final renderObject = context.findRenderObject();
-              final anchor = renderObject is RenderBox
-                  ? renderObject.globalToLocal(open.anchor)
-                  : open.anchor;
-              final dividerAfter = <int>{
-                for (var index = 1; index < open.entries.length; index += 1)
-                  if (open.entries[index].startsSection) index - 1,
-              };
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  PokeMapContextMenu<MapContextCommand>(
-                    anchor: anchor,
-                    items: <PokeMapMenuItem<MapContextCommand>>[
-                      for (final entry in open.entries)
-                        PokeMapMenuItem<MapContextCommand>(
-                          value: entry.command,
-                          label: entry.label,
-                          shortcutLabel: entry.shortcutLabel,
-                          enabled: entry.enabled,
-                          disabledReason: entry.disabledReason,
-                          destructive: entry.destructive,
-                        ),
-                    ],
-                    dividerAfter: dividerAfter,
-                    invokerFocusNode: controller.invokerFocusNode,
-                    semanticLabel: 'Actions contextuelles de la carte',
-                    onDismiss: controller.close,
-                    onSelected: (command) {
-                      unawaited(_runCommand(command, open));
-                    },
-                  ),
-                ],
-              );
-            },
+        final MapContextMenuOpen open => BlockSemantics(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final renderObject = context.findRenderObject();
+                final anchor = renderObject is RenderBox
+                    ? renderObject.globalToLocal(open.anchor)
+                    : open.anchor;
+                final dividerAfter = <int>{
+                  for (var index = 1; index < open.entries.length; index += 1)
+                    if (open.entries[index].startsSection) index - 1,
+                };
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    PokeMapContextMenu<MapContextCommand>(
+                      anchor: anchor,
+                      items: <PokeMapMenuItem<MapContextCommand>>[
+                        for (final entry in open.entries)
+                          PokeMapMenuItem<MapContextCommand>(
+                            value: entry.command,
+                            label: entry.label,
+                            shortcutLabel: entry.shortcutLabel,
+                            enabled: entry.enabled,
+                            disabledReason: entry.disabledReason,
+                            destructive: entry.destructive,
+                          ),
+                      ],
+                      dividerAfter: dividerAfter,
+                      invokerFocusNode: controller.invokerFocusNode,
+                      semanticLabel: 'Actions contextuelles de la carte',
+                      onDismiss: controller.close,
+                      onSelected: (command) {
+                        unawaited(_runCommand(command, open));
+                      },
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
       },
     );

@@ -241,6 +241,9 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
     return Positioned.fill(
       child: CallbackShortcuts(
         bindings: <ShortcutActivator, VoidCallback>{
+          const SingleActivator(LogicalKeyboardKey.tab): () => _moveFocus(1),
+          const SingleActivator(LogicalKeyboardKey.tab, shift: true): () =>
+              _moveFocus(-1),
           const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
               _moveFocus(1),
           const SingleActivator(LogicalKeyboardKey.arrowUp): () =>

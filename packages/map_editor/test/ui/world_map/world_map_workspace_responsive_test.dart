@@ -133,6 +133,106 @@ void main() {
     }
   }
 
+  for (final brightness in <Brightness>[
+    Brightness.light,
+    Brightness.dark,
+  ]) {
+    for (final size in <Size>[
+      const Size(800, 600),
+      const Size(1280, 800),
+    ]) {
+      testWidgets(
+        '${brightness.name} workspace remains usable at DPR 2 and '
+        '${size.width.toInt()}×${size.height.toInt()}',
+        (tester) async {
+          await _pumpWorkspace(
+            tester,
+            size: size,
+            brightness: brightness,
+            devicePixelRatio: 2,
+          );
+
+          expect(tester.takeException(), isNull);
+          final canvas = find.byKey(
+            const ValueKey<String>('world-map-canvas-region'),
+          );
+          expect(
+            MediaQuery.of(tester.element(canvas)).devicePixelRatio,
+            2,
+          );
+          _expectFullyOnScreen(
+            tester,
+            canvas,
+            Offset.zero & size,
+            reason: 'DPR 2 canvas at $size',
+          );
+          const lightPresetIds = <String>[
+            'neutral',
+            'noon',
+            'morning',
+            'evening',
+            'soft-night',
+          ];
+          for (final presetId in lightPresetIds) {
+            expect(
+              find.byKey(
+                ValueKey<String>('shadow-light-preview-$presetId-button'),
+              ),
+              findsOneWidget,
+            );
+          }
+          final inspectorOverlay = find.byKey(
+            const ValueKey<String>('world-map-inspector-overlay'),
+          );
+          if (inspectorOverlay.hitTestable().evaluate().isNotEmpty) {
+            await tester.tap(
+              find.byKey(
+                const ValueKey<String>('world-map-inspector-close'),
+              ),
+            );
+            await tester.pump();
+            final expandedExplorer = find.byKey(
+              const ValueKey<String>('responsive-explorer-collapse'),
+            );
+            if (expandedExplorer.hitTestable().evaluate().isNotEmpty) {
+              await tester.tap(expandedExplorer);
+              await tester.pump();
+            }
+          }
+          for (final presetId in lightPresetIds) {
+            _expectLightPreviewAction(
+              tester,
+              presetId: presetId,
+              viewport: Offset.zero & size,
+            );
+          }
+          await tester.tap(
+            find.byKey(
+              const ValueKey<String>(
+                'shadow-light-preview-evening-button',
+              ),
+            ),
+          );
+          await tester.pump();
+          expect(
+            find.descendant(
+              of: find.byKey(
+                const ValueKey<String>(
+                  'shadow-light-preview-evening-button',
+                ),
+              ),
+              matching: find.byWidgetPredicate(
+                (widget) =>
+                    widget is Semantics && widget.properties.selected == true,
+              ),
+            ),
+            findsWidgets,
+          );
+        },
+      );
+    }
+  }
+
   testWidgets(
     'context menu opened near the compact viewport edge stays visible '
     'and restores its canvas invoker',
@@ -247,6 +347,33 @@ void main() {
       expect(find.byTooltip('Ouvrir la gestion des calques'), findsOneWidget);
     },
   );
+}
+
+void _expectLightPreviewAction(
+  WidgetTester tester, {
+  required String presetId,
+  required Rect viewport,
+}) {
+  final finder = find.byKey(
+    ValueKey<String>('shadow-light-preview-$presetId-button'),
+  );
+  _expectFullyOnScreen(
+    tester,
+    finder,
+    viewport,
+    reason: 'light preview $presetId at DPR 2',
+  );
+  expect(finder.hitTestable(), findsOneWidget);
+  final semantics = find.descendant(
+    of: finder,
+    matching: find.byWidgetPredicate(
+      (widget) =>
+          widget is Semantics &&
+          widget.properties.button == true &&
+          widget.properties.enabled == true,
+    ),
+  );
+  expect(semantics, findsWidgets);
 }
 
 void _expectCriticalAction(
@@ -372,6 +499,7 @@ Future<ProviderContainer> _pumpWorkspace(
   required Size size,
   required Brightness brightness,
   double textScale = 1,
+  double devicePixelRatio = 1,
 }) async {
   final container = ProviderContainer();
   final subscription = container.listen<EditorState>(
@@ -387,7 +515,9 @@ Future<ProviderContainer> _pumpWorkspace(
   });
   container.read(editorNotifierProvider.notifier).state = _state;
   await tester.binding.setSurfaceSize(size);
+  tester.view.devicePixelRatio = devicePixelRatio;
   addTearDown(() => tester.binding.setSurfaceSize(null));
+  addTearDown(() => tester.view.resetDevicePixelRatio());
 
   final theme = brightness == Brightness.dark
       ? PokeMapTheme.dark()
@@ -400,6 +530,7 @@ Future<ProviderContainer> _pumpWorkspace(
         home: MediaQuery(
           data: MediaQueryData(
             size: size,
+            devicePixelRatio: devicePixelRatio,
             textScaler: TextScaler.linear(textScale),
           ),
           child: Material(

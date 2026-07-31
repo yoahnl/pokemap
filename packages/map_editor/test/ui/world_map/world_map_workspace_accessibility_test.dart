@@ -11,6 +11,7 @@ import 'package:map_editor/src/features/editor/presentation/world_map/world_map_
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
@@ -290,6 +291,258 @@ void main() {
       await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
       await tester.pump();
       expect(_contextMenu(), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'canvas arrows announce a cell cursor and Enter or Space applies the tool',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      final harness = await _pumpWorkspace(
+        tester,
+        size: const Size(1280, 800),
+        state: _collisionKeyboardState,
+      );
+      addTearDown(() => harness.dispose(tester));
+      harness.container
+          .read(worldMapWorkspaceSessionProvider.notifier)
+          .selectCell(
+            mapId: _map.id,
+            cell: const GridPos(x: 1, y: 1),
+          );
+      await tester.pump();
+      final mapFocus = tester
+          .widget<Focus>(
+            find.byKey(const ValueKey<String>('map-canvas-focus')),
+          )
+          .focusNode!;
+      mapFocus.requestFocus();
+      await tester.pump();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+
+      expect(
+        harness.container.read(worldMapWorkspaceSessionProvider).selectedCell,
+        const GridPos(x: 2, y: 2),
+      );
+      expect(
+        find.semantics.byLabel(
+          RegExp(r'Curseur cellule x 2, y 2'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      var collision = harness.notifier.state.activeMap!.layers
+          .whereType<CollisionLayer>()
+          .single;
+      expect(collision.collisions[2 + (2 * 8)], isTrue);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pump();
+      collision = harness.notifier.state.activeMap!.layers
+          .whereType<CollisionLayer>()
+          .single;
+      expect(collision.collisions[3 + (2 * 8)], isTrue);
+      semantics.dispose();
+    },
+  );
+
+  testWidgets(
+    'pointer selection resynchronizes the next keyboard arrow origin',
+    (tester) async {
+      final harness = await _pumpWorkspace(
+        tester,
+        size: const Size(1280, 800),
+      );
+      addTearDown(() => harness.dispose(tester));
+      harness.container
+          .read(worldMapWorkspaceSessionProvider.notifier)
+          .selectCell(
+            mapId: _map.id,
+            cell: const GridPos(x: 1, y: 1),
+          );
+      await tester.pump();
+      final mapFocus = tester
+          .widget<Focus>(
+            find.byKey(const ValueKey<String>('map-canvas-focus')),
+          )
+          .focusNode!;
+      mapFocus.requestFocus();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pump();
+      expect(
+        harness.container.read(worldMapWorkspaceSessionProvider).selectedCell,
+        const GridPos(x: 2, y: 1),
+      );
+
+      final canvas = find.byKey(
+        const ValueKey<String>('map-canvas-gesture-detector'),
+      );
+      final settings = _state.project!.settings;
+      final tileWidth = settings.tileWidth * settings.displayScale;
+      final tileHeight = settings.tileHeight * settings.displayScale;
+      await tester.tapAt(
+        tester.getTopLeft(canvas) + Offset(4.5 * tileWidth, 3.5 * tileHeight),
+      );
+      await tester.pump();
+      expect(
+        harness.container.read(worldMapWorkspaceSessionProvider).selectedCell,
+        const GridPos(x: 4, y: 3),
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pump();
+      expect(
+        harness.container.read(worldMapWorkspaceSessionProvider).selectedCell,
+        const GridPos(x: 5, y: 3),
+      );
+    },
+  );
+
+  testWidgets(
+    'Shift arrows move the selected placed element by exactly one cell',
+    (tester) async {
+      final harness = await _pumpWorkspace(
+        tester,
+        size: const Size(1280, 800),
+        state: _keyboardMoveState,
+      );
+      addTearDown(() => harness.dispose(tester));
+      final mapFocus = tester
+          .widget<Focus>(
+            find.byKey(const ValueKey<String>('map-canvas-focus')),
+          )
+          .focusNode!;
+      mapFocus.requestFocus();
+      await tester.pump();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+
+      expect(
+        harness.notifier.state.activeMap!.placedElements.single.pos,
+        const GridPos(x: 2, y: 1),
+        reason: harness.notifier.state.errorMessage,
+      );
+      expect(harness.notifier.state.mapUndoStack, hasLength(1));
+
+      harness.notifier.undoMap();
+      await tester.pump();
+      expect(
+        harness.notifier.state.activeMap!.placedElements.single.pos,
+        const GridPos(x: 1, y: 1),
+      );
+      expect(harness.notifier.state.mapRedoStack, hasLength(1));
+
+      harness.notifier.redoMap();
+      await tester.pump();
+      expect(
+        harness.notifier.state.activeMap!.placedElements.single.pos,
+        const GridPos(x: 2, y: 1),
+      );
+      expect(harness.notifier.state.mapUndoStack, hasLength(1));
+    },
+  );
+
+  testWidgets(
+    'Shift arrow outside the map rejects without creating history',
+    (tester) async {
+      final harness = await _pumpWorkspace(
+        tester,
+        size: const Size(1280, 800),
+        state: _keyboardMoveEdgeState,
+      );
+      addTearDown(() => harness.dispose(tester));
+      final mapFocus = tester
+          .widget<Focus>(
+            find.byKey(const ValueKey<String>('map-canvas-focus')),
+          )
+          .focusNode!;
+      mapFocus.requestFocus();
+      await tester.pump();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+
+      expect(
+        harness.notifier.state.activeMap!.placedElements.single.pos,
+        const GridPos(x: 7, y: 1),
+      );
+      expect(harness.notifier.state.mapUndoStack, isEmpty);
+      expect(harness.notifier.state.mapRedoStack, isEmpty);
+      expect(
+        harness.notifier.state.errorMessage,
+        contains('destination dépasse la carte'),
+      );
+    },
+  );
+
+  testWidgets(
+    'light preview presets are semantic buttons activatable with the keyboard',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      final harness = await _pumpWorkspace(
+        tester,
+        size: const Size(1280, 800),
+      );
+      addTearDown(() => harness.dispose(tester));
+      final evening = find.byKey(
+        const ValueKey<String>('shadow-light-preview-evening-button'),
+      );
+
+      expect(evening, findsOneWidget);
+      expect(
+        find.descendant(
+          of: evening,
+          matching: find.byWidgetPredicate(
+            (widget) => widget is Semantics && widget.properties.button == true,
+          ),
+        ),
+        findsWidgets,
+      );
+
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+      for (var index = 0; index < 80; index += 1) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+        final focus = FocusManager.instance.primaryFocus;
+        if (focus != null &&
+            _hasAncestorKey(
+              focus,
+              'shadow-light-preview-evening-button',
+            )) {
+          break;
+        }
+      }
+      expect(
+        _hasAncestorKey(
+          FocusManager.instance.primaryFocus!,
+          'shadow-light-preview-evening-button',
+        ),
+        isTrue,
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pump();
+      final selectedSemantics = find.descendant(
+        of: evening,
+        matching: find.byWidgetPredicate(
+          (widget) => widget is Semantics && widget.properties.selected == true,
+        ),
+      );
+      expect(selectedSemantics, findsWidgets);
+      semantics.dispose();
     },
   );
 
@@ -582,6 +835,22 @@ String? _focusTarget(FocusNode node) {
   return target;
 }
 
+bool _hasAncestorKey(FocusNode node, String value) {
+  final context = node.context;
+  if (context is! Element) return false;
+  var found = false;
+  void inspect(Element element) {
+    if (element.widget.key == ValueKey<String>(value)) found = true;
+  }
+
+  inspect(context);
+  context.visitAncestorElements((element) {
+    inspect(element);
+    return !found;
+  });
+  return found;
+}
+
 class _WorkspaceHarness {
   const _WorkspaceHarness({
     required this.container,
@@ -710,6 +979,151 @@ final _state = EditorState(
   savedMapSnapshot: _map,
   canUndoMap: true,
   canRedoMap: true,
+);
+
+final _collisionKeyboardState = _state.copyWith(
+  activeLayerId: 'collision',
+  activeTool: EditorToolType.collisionPaint,
+);
+
+const _keyboardMoveMap = MapData(
+  id: 'keyboard-move',
+  name: 'Déplacement clavier',
+  size: GridSize(width: 8, height: 8),
+  layers: <MapLayer>[
+    TileLayer(
+      id: 'objects',
+      name: 'Objets',
+      tilesetId: 'objects',
+      tiles: <int>[
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+      ],
+    ),
+  ],
+  placedElements: <MapPlacedElement>[
+    MapPlacedElement(
+      id: 'tree-instance',
+      layerId: 'objects',
+      elementId: 'tree',
+      pos: GridPos(x: 1, y: 1),
+    ),
+  ],
+);
+
+const _keyboardMoveState = EditorState(
+  project: ProjectManifest(
+    name: 'Déplacement clavier',
+    maps: <ProjectMapEntry>[
+      ProjectMapEntry(
+        id: 'keyboard-move',
+        name: 'Déplacement clavier',
+        relativePath: 'maps/keyboard-move.json',
+      ),
+    ],
+    tilesets: <ProjectTilesetEntry>[
+      ProjectTilesetEntry(
+        id: 'objects',
+        name: 'Objets',
+        relativePath: 'assets/objects.png',
+      ),
+    ],
+    elements: <ProjectElementEntry>[
+      ProjectElementEntry(
+        id: 'tree',
+        name: 'Arbre',
+        tilesetId: 'objects',
+        categoryId: 'decor',
+        frames: <TilesetVisualFrame>[
+          TilesetVisualFrame(
+            source: TilesetSourceRect(x: 0, y: 0),
+          ),
+        ],
+      ),
+    ],
+  ),
+  activeMap: _keyboardMoveMap,
+  activeLayerId: 'objects',
+  selectedPlacedElementInstanceId: 'tree-instance',
+  savedMapSnapshot: _keyboardMoveMap,
+);
+
+final _keyboardMoveEdgeMap = _keyboardMoveMap.copyWith(
+  placedElements: const <MapPlacedElement>[
+    MapPlacedElement(
+      id: 'tree-instance',
+      layerId: 'objects',
+      elementId: 'tree',
+      pos: GridPos(x: 7, y: 1),
+    ),
+  ],
+);
+
+final _keyboardMoveEdgeState = _keyboardMoveState.copyWith(
+  activeMap: _keyboardMoveEdgeMap,
+  savedMapSnapshot: _keyboardMoveEdgeMap,
 );
 
 const _incompatibleEraseMap = MapData(

@@ -101,6 +101,69 @@ void main() {
     expect(find.text('Copier les coordonnées'), findsNothing);
   });
 
+  testWidgets('open menu blocks the workspace behind it from semantics',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    final harness = await _pumpHarness(tester);
+    addTearDown(harness.dispose);
+
+    expect(find.semantics.byLabel('Canvas derrière le menu'), findsOneWidget);
+    harness.open(
+      target: const MapCellContextTarget(
+        position: GridPos(x: 1, y: 1),
+        layerId: 'ground',
+        isPainted: false,
+      ),
+      invocation: MapContextMenuInvocation.keyboard,
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.semantics.byLabel('Canvas derrière le menu'), findsNothing);
+    expect(
+      find.semantics.byLabel('Actions contextuelles de la carte'),
+      findsOneWidget,
+    );
+    semantics.dispose();
+  });
+
+  testWidgets('Tab and Shift Tab stay trapped and wrap inside the open menu',
+      (tester) async {
+    final harness = await _pumpHarness(tester);
+    addTearDown(harness.dispose);
+    harness.invoker.requestFocus();
+    await tester.pump();
+    harness.open(
+      target: const MapCellContextTarget(
+        position: GridPos(x: 1, y: 1),
+        layerId: 'ground',
+        isPainted: true,
+      ),
+      invocation: MapContextMenuInvocation.keyboard,
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+        FocusManager.instance.primaryFocus?.debugLabel, 'context menu item 0');
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pump();
+    expect(
+        FocusManager.instance.primaryFocus?.debugLabel, 'context menu item 2');
+
+    for (var index = 0; index < 6; index += 1) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      expect(harness.invoker.hasFocus, isFalse);
+      expect(
+        FocusManager.instance.primaryFocus?.debugLabel,
+        startsWith('context menu item '),
+      );
+    }
+  });
+
   testWidgets('selection, Escape and outside click close and restore invoker',
       (tester) async {
     final harness = await _pumpHarness(tester);
@@ -326,9 +389,12 @@ Future<_Harness> _pumpHarness(
             children: [
               Align(
                 alignment: Alignment.topLeft,
-                child: Focus(
-                  focusNode: invoker,
-                  child: const SizedBox(width: 32, height: 32),
+                child: Semantics(
+                  label: 'Canvas derrière le menu',
+                  child: Focus(
+                    focusNode: invoker,
+                    child: const SizedBox(width: 32, height: 32),
+                  ),
                 ),
               ),
               MapContextMenuHost(

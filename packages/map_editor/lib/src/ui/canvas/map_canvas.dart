@@ -74,6 +74,7 @@ import 'map_canvas/narrative_event_map_banner.dart';
 import 'narrative_studio/narrative_studio_navigation.dart';
 import 'shadow/editor_static_shadow_preview_painter.dart';
 import '../design_system/pokemap_badge.dart';
+import '../design_system/pokemap_button.dart';
 import '../design_system/pokemap_diagnostic_callout.dart';
 import '../shared/map_workspace_empty_state.dart';
 import '../../theme/theme.dart';
@@ -490,6 +491,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
   })? _trackpadGesture;
 
   bool _spacePressed = false;
+  bool _spaceKeyboardActivationPending = false;
+  String? _keyboardCursorMapId;
+  GridPos? _keyboardCursor;
+  ValueChanged<GridPos>? _keyboardCellActivation;
 
   /// Cellule de départ pour le tracé d'une zone par clic+glisser.
   GridPos? _zoneDragStart;
@@ -524,6 +529,13 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
   @override
   void didUpdateWidget(covariant MapCanvas oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.keyboardContextCell != widget.keyboardContextCell) {
+      final nextCell = widget.keyboardContextCell;
+      _keyboardCursor = nextCell;
+      _keyboardCursorMapId = nextCell == null
+          ? null
+          : ref.read(editorNotifierProvider).activeMap?.id;
+    }
     if (identical(
       oldWidget.repaintClockOverride,
       widget.repaintClockOverride,
@@ -856,8 +868,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
           _syncEditorEntityAnimationTicker(needsAnimation);
         });
 
+        final keyboardCursor = _resolveKeyboardCursor(state, activeMap);
+        final hoveredTile =
+            _hoveredTile ?? (_mapFocusNode.hasFocus ? keyboardCursor : null);
         final toolPreview = notifier.resolveMapToolPreview(
-          hoveredTile: _hoveredTile,
+          hoveredTile: hoveredTile,
           tilesetColumnsById: tilesPerRowById,
         );
         final eraserPreview =
@@ -865,7 +880,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
         final shadowLightPreviewPreset =
             editorShadowLightPreviewPresetById(_shadowLightPreviewPresetId) ??
                 neutralEditorShadowLightPreviewPreset;
-        final hoveredTile = _hoveredTile;
         final environmentGeneratedAddPreview =
             hoveredTile != null && state.project != null
                 ? switch (state.environmentMaskEditMode) {
@@ -1163,6 +1177,27 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
           borderPreviewController.finishDrawing();
           _borderStrokeEditingDraft = null;
         }
+
+        _keyboardCellActivation = (gridPos) {
+          if (isNarrativeEventGuidedNavigation) return;
+          if (state.activeTool == EditorToolType.selection &&
+              !isEnvironmentMaskEditing) {
+            widget.onCellSelected?.call(gridPos);
+            notifier.selectCanvasObjectAt(
+              gridPos,
+              editorAnimationTimeMs: _repaintClock.elapsedMs,
+            );
+            return;
+          }
+          if (!isTapEditingTool) return;
+          if (isLegacyStrokeEditingTool) notifier.beginMapStroke();
+          applyToolAt(gridPos, partOfStroke: isStrokeEditingTool);
+          if (isBorderEditing) {
+            finishBorderPreview();
+          } else if (isLegacyStrokeEditingTool) {
+            notifier.endMapStroke();
+          }
+        };
 
         final interactiveCanvas = Listener(
           behavior: HitTestBehavior.translucent,
@@ -1602,95 +1637,98 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                 key: _mapViewportKey,
                 child: Stack(
                   children: [
-                    Focus(
-                      key: const ValueKey<String>('map-canvas-focus'),
-                      focusNode: _mapFocusNode,
-                      skipTraversal: false,
-                      includeSemantics: false,
-                      onKeyEvent: _onMapKeyEvent,
-                      onFocusChange: _onMapFocusChanged,
-                      child: const SizedBox.shrink(),
-                    ),
                     Positioned.fill(
-                      child: Semantics(
-                        container: true,
-                        liveRegion: true,
-                        label: mapCanvasSelectionSemanticsLabel(
-                          state: state,
-                          map: activeMap,
-                          project: state.project,
-                          selectedBorderFeatureId:
-                              activeBorderFeature.activeFeatureId,
-                          editorAnimationTimeMs: _repaintClock.elapsedMs,
-                        ),
-                        child: CustomPaint(
-                          size: Size.infinite,
-                          painter: MapGridPainter(
+                      child: Focus(
+                        key: const ValueKey<String>('map-canvas-focus'),
+                        focusNode: _mapFocusNode,
+                        skipTraversal: false,
+                        includeSemantics: false,
+                        onKeyEvent: _onMapKeyEvent,
+                        onFocusChange: _onMapFocusChanged,
+                        child: Semantics(
+                          container: true,
+                          liveRegion: true,
+                          label: '${mapCanvasSelectionSemanticsLabel(
+                            state: state,
                             map: activeMap,
-                            zoom: state.zoom,
-                            offset: state.panOffset,
-                            hoveredTile: environmentBrushCursorOverlay ==
-                                        null &&
-                                    state.environmentMaskEditMode !=
-                                        EnvironmentMaskEditMode.generatedAdd &&
-                                    eraserPreview == null
-                                ? _hoveredTile
-                                : null,
-                            activeLayerId: state.activeLayerId,
-                            tileWidth: tileWidth,
-                            tileHeight: tileHeight,
-                            tilesetImagesById: tilesetImagesById,
-                            sourceTileWidth: settings.tileWidth,
-                            sourceTileHeight: settings.tileHeight,
-                            tilesPerRowById: tilesPerRowById,
-                            toolPreview: toolPreview,
-                            warps: activeMap.warps,
-                            gameplayZones: activeMap.gameplayZones,
-                            gameplayZoneDraftArea: state.gameplayZoneDraftArea,
-                            selectedEntityId: state.selectedEntityId,
-                            selectedMapEventId: state.selectedMapEventId,
-                            selectedWarpId: state.selectedWarpId,
-                            selectedTriggerId: state.selectedTriggerId,
-                            selectedGameplayZoneId:
-                                state.selectedGameplayZoneId,
-                            selectedPlacedElementInstanceId:
-                                state.selectedPlacedElementInstanceId,
-                            placedElementRotationPreview:
-                                widget.placedElementRotationPreview?.plan,
-                            narrativeEventFocusTarget:
-                                bridgeState.focusRequest?.focusTarget,
-                            narrativeEventSourceProposal:
-                                bridgeState.sourceCreationProposal,
-                            narrativeEventHighlightColor: colors.narrative,
-                            rotationPreviewAcceptedColor: colors.info,
-                            rotationPreviewRejectedColor: colors.error,
-                            connectionLabelsByDirection:
-                                connectionLabelsByDirection,
-                            selectedPathAutotileSet: selectedPathAutotileSet,
-                            pathAutotileSetsByPresetId:
-                                pathAutotileSetsByPresetId,
-                            terrainPresetsByType: terrainPresetsByType,
                             project: state.project,
-                            shadowLightPreviewPreset: shadowLightPreviewPreset,
-                            animationClock: _repaintClock,
-                            debugOnPaint: widget.debugOnPaint,
-                            showGrid: _showMapGrid,
-                            environmentMaskOverlay: environmentMaskOverlay,
-                            environmentBrushCursorOverlay:
-                                environmentBrushCursorOverlay,
-                            environmentGeneratedAddPreview:
-                                environmentGeneratedAddPreview,
-                            environmentGeneratedDeletePreviewId:
-                                environmentGeneratedDeleteTarget?.placed.id,
-                            borderPreview: borderPreviewState.transaction,
-                            borderDiagnosticOverlayPalette:
-                                EditorBorderDiagnosticOverlayPalette(
-                              warningFill:
-                                  colors.warningSoft.withValues(alpha: 0.72),
-                              warningStroke: colors.warningBorder,
-                              errorFill:
-                                  colors.errorSoft.withValues(alpha: 0.72),
-                              errorStroke: colors.errorBorder,
+                            selectedBorderFeatureId:
+                                activeBorderFeature.activeFeatureId,
+                            editorAnimationTimeMs: _repaintClock.elapsedMs,
+                          )} Curseur cellule x ${keyboardCursor.x}, '
+                              'y ${keyboardCursor.y}.',
+                          child: CustomPaint(
+                            size: Size.infinite,
+                            painter: MapGridPainter(
+                              map: activeMap,
+                              zoom: state.zoom,
+                              offset: state.panOffset,
+                              hoveredTile:
+                                  environmentBrushCursorOverlay == null &&
+                                          state.environmentMaskEditMode !=
+                                              EnvironmentMaskEditMode
+                                                  .generatedAdd &&
+                                          eraserPreview == null
+                                      ? hoveredTile
+                                      : null,
+                              activeLayerId: state.activeLayerId,
+                              tileWidth: tileWidth,
+                              tileHeight: tileHeight,
+                              tilesetImagesById: tilesetImagesById,
+                              sourceTileWidth: settings.tileWidth,
+                              sourceTileHeight: settings.tileHeight,
+                              tilesPerRowById: tilesPerRowById,
+                              toolPreview: toolPreview,
+                              warps: activeMap.warps,
+                              gameplayZones: activeMap.gameplayZones,
+                              gameplayZoneDraftArea:
+                                  state.gameplayZoneDraftArea,
+                              selectedEntityId: state.selectedEntityId,
+                              selectedMapEventId: state.selectedMapEventId,
+                              selectedWarpId: state.selectedWarpId,
+                              selectedTriggerId: state.selectedTriggerId,
+                              selectedGameplayZoneId:
+                                  state.selectedGameplayZoneId,
+                              selectedPlacedElementInstanceId:
+                                  state.selectedPlacedElementInstanceId,
+                              placedElementRotationPreview:
+                                  widget.placedElementRotationPreview?.plan,
+                              narrativeEventFocusTarget:
+                                  bridgeState.focusRequest?.focusTarget,
+                              narrativeEventSourceProposal:
+                                  bridgeState.sourceCreationProposal,
+                              narrativeEventHighlightColor: colors.narrative,
+                              rotationPreviewAcceptedColor: colors.info,
+                              rotationPreviewRejectedColor: colors.error,
+                              connectionLabelsByDirection:
+                                  connectionLabelsByDirection,
+                              selectedPathAutotileSet: selectedPathAutotileSet,
+                              pathAutotileSetsByPresetId:
+                                  pathAutotileSetsByPresetId,
+                              terrainPresetsByType: terrainPresetsByType,
+                              project: state.project,
+                              shadowLightPreviewPreset:
+                                  shadowLightPreviewPreset,
+                              animationClock: _repaintClock,
+                              debugOnPaint: widget.debugOnPaint,
+                              showGrid: _showMapGrid,
+                              environmentMaskOverlay: environmentMaskOverlay,
+                              environmentBrushCursorOverlay:
+                                  environmentBrushCursorOverlay,
+                              environmentGeneratedAddPreview:
+                                  environmentGeneratedAddPreview,
+                              environmentGeneratedDeletePreviewId:
+                                  environmentGeneratedDeleteTarget?.placed.id,
+                              borderPreview: borderPreviewState.transaction,
+                              borderDiagnosticOverlayPalette:
+                                  EditorBorderDiagnosticOverlayPalette(
+                                warningFill:
+                                    colors.warningSoft.withValues(alpha: 0.72),
+                                warningStroke: colors.warningBorder,
+                                errorFill:
+                                    colors.errorSoft.withValues(alpha: 0.72),
+                                errorStroke: colors.errorBorder,
+                              ),
                             ),
                           ),
                         ),
@@ -1791,16 +1829,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                           ),
                         ),
                       ),
-                    if (state.project != null)
-                      Positioned(
-                        right: 12,
-                        top: 12,
-                        child: _shadowLightPreviewSelector(
-                          context,
-                          colors,
-                          shadowLightPreviewPreset,
-                        ),
-                      ),
                     if (_hoveredTile != null && eraserPreview != null)
                       Positioned.fill(
                         child: IgnorePointer(
@@ -1879,57 +1907,71 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             ),
           ),
         );
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            interactiveCanvas,
-            if (tilesetImageFailures.isNotEmpty)
+        return FocusTraversalGroup(
+          policy: WidgetOrderTraversalPolicy(),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              interactiveCanvas,
+              if (tilesetImageFailures.isNotEmpty)
+                Positioned(
+                  left: 12,
+                  top: 12,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: PokeMapDiagnosticCallout(
+                      severity: PokeMapDiagnosticSeverity.warning,
+                      title: 'Assets de carte indisponibles',
+                      message: _mapCanvasImageFailureMessage(
+                        tilesetImageFailures,
+                        state.project,
+                      ),
+                      actionLabel:
+                          state.projectRootPath?.trim().isEmpty == false
+                              ? 'Actualiser'
+                              : null,
+                      onAction: state.projectRootPath?.trim().isEmpty == false
+                          ? () => ref.invalidate(
+                                editorImageCacheProvider(
+                                  state.projectRootPath!.trim(),
+                                ),
+                              )
+                          : null,
+                    ),
+                  ),
+                ),
               Positioned(
                 left: 12,
-                top: 12,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: PokeMapDiagnosticCallout(
-                    severity: PokeMapDiagnosticSeverity.warning,
-                    title: 'Assets de carte indisponibles',
-                    message: _mapCanvasImageFailureMessage(
-                      tilesetImageFailures,
-                      state.project,
+                right: 12,
+                bottom: 12,
+                child: Align(
+                  alignment: Alignment.bottomRight,
+                  child: Focus.withExternalFocusNode(
+                    focusNode: _mapNavigationControlsFocusNode,
+                    includeSemantics: false,
+                    child: MapCanvasNavigationControls(
+                      zoom: state.zoom,
+                      onZoomOut: _zoomOut,
+                      onZoomIn: _zoomIn,
+                      onFit: _fitActiveMap,
+                      onActualSize: _showActiveMapAtActualSize,
+                      onCenter: _centerActiveMap,
                     ),
-                    actionLabel: state.projectRootPath?.trim().isEmpty == false
-                        ? 'Actualiser'
-                        : null,
-                    onAction: state.projectRootPath?.trim().isEmpty == false
-                        ? () => ref.invalidate(
-                              editorImageCacheProvider(
-                                state.projectRootPath!.trim(),
-                              ),
-                            )
-                        : null,
                   ),
                 ),
               ),
-            Positioned(
-              left: 12,
-              right: 12,
-              bottom: 12,
-              child: Align(
-                alignment: Alignment.bottomRight,
-                child: Focus.withExternalFocusNode(
-                  focusNode: _mapNavigationControlsFocusNode,
-                  includeSemantics: false,
-                  child: MapCanvasNavigationControls(
-                    zoom: state.zoom,
-                    onZoomOut: _zoomOut,
-                    onZoomIn: _zoomIn,
-                    onFit: _fitActiveMap,
-                    onActualSize: _showActiveMapAtActualSize,
-                    onCenter: _centerActiveMap,
+              if (state.project != null)
+                Positioned(
+                  right: 12,
+                  top: 12,
+                  child: _shadowLightPreviewSelector(
+                    context,
+                    colors,
+                    shadowLightPreviewPreset,
                   ),
                 ),
-              ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -2030,7 +2072,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             const SizedBox(width: 4),
             for (final preset in presets) ...[
               _shadowLightPreviewPresetButton(
-                colors: colors,
                 preset: preset,
                 selected: preset.id == selectedPreset.id,
               ),
@@ -2043,14 +2084,16 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
   }
 
   Widget _shadowLightPreviewPresetButton({
-    required PokeMapColorTokens colors,
     required EditorShadowLightPreviewPreset preset,
     required bool selected,
   }) {
-    return GestureDetector(
+    return PokeMapButton(
       key: ValueKey('shadow-light-preview-${preset.id}-button'),
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
+      size: PokeMapButtonSize.small,
+      variant: PokeMapButtonVariant.secondary,
+      isSelected: selected,
+      semanticLabel: 'Aperçu lumière : ${preset.label}',
+      onPressed: () {
         if (_shadowLightPreviewPresetId == preset.id) {
           return;
         }
@@ -2058,26 +2101,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
           _shadowLightPreviewPresetId = preset.id;
         });
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: selected ? colors.brandPrimary : colors.surfaceSubtle,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: selected ? colors.brandPrimaryBorder : colors.borderSubtle,
-            width: 1,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Text(
-            preset.label,
-            style: TextStyle(
-              color: selected ? colors.textInverse : colors.textSecondary,
-              fontSize: 10,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              decoration: TextDecoration.none,
-            ),
-          ),
+      child: Text(
+        preset.label,
+        style: const TextStyle(
+          fontSize: 10,
+          decoration: TextDecoration.none,
         ),
       ),
     );
@@ -2218,6 +2246,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       _requestPointerContextMenu(event);
       return;
     }
+    if (_spacePressed) _spaceKeyboardActivationPending = false;
     _mapFocusNode.requestFocus();
     final anotherPointerIsPressed = _pressedMapPointers.isNotEmpty;
     _pressedMapPointers.add(event.pointer);
@@ -2429,10 +2458,39 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       widget.onContextMenuRequested!(request);
       return KeyEventResult.handled;
     }
+    if (event is KeyDownEvent && _isUnmodifiedActivationKey(event.logicalKey)) {
+      _activateKeyboardCursor();
+      return KeyEventResult.handled;
+    }
+    if (event is KeyDownEvent) {
+      final delta = _keyboardArrowDelta(event.logicalKey);
+      if (delta != null &&
+          !HardwareKeyboard.instance.isAltPressed &&
+          !HardwareKeyboard.instance.isControlPressed &&
+          !HardwareKeyboard.instance.isMetaPressed) {
+        if (HardwareKeyboard.instance.isShiftPressed) {
+          _moveSelectedPlacedElementBy(delta);
+        } else {
+          _moveKeyboardCursorBy(delta);
+        }
+        return KeyEventResult.handled;
+      }
+    }
     if (event.logicalKey == LogicalKeyboardKey.space) {
+      final wasPressed = _spacePressed;
       final nextPressed = event is! KeyUpEvent;
+      if (event is KeyDownEvent && !wasPressed) {
+        _spaceKeyboardActivationPending = true;
+      }
       if (_spacePressed != nextPressed) {
         setState(() => _spacePressed = nextPressed);
+      }
+      if (event is KeyUpEvent) {
+        final activate = _spaceKeyboardActivationPending &&
+            _pressedMapPointers.isEmpty &&
+            _interactionController.isIdle;
+        _spaceKeyboardActivationPending = false;
+        if (activate) _activateKeyboardCursor();
       }
       return KeyEventResult.handled;
     }
@@ -2478,6 +2536,107 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
+  }
+
+  bool _isUnmodifiedActivationKey(LogicalKeyboardKey key) {
+    return (key == LogicalKeyboardKey.enter ||
+            key == LogicalKeyboardKey.numpadEnter) &&
+        !HardwareKeyboard.instance.isShiftPressed &&
+        !HardwareKeyboard.instance.isAltPressed &&
+        !HardwareKeyboard.instance.isControlPressed &&
+        !HardwareKeyboard.instance.isMetaPressed;
+  }
+
+  GridPos? _keyboardArrowDelta(LogicalKeyboardKey key) => switch (key) {
+        LogicalKeyboardKey.arrowLeft => const GridPos(x: -1, y: 0),
+        LogicalKeyboardKey.arrowRight => const GridPos(x: 1, y: 0),
+        LogicalKeyboardKey.arrowUp => const GridPos(x: 0, y: -1),
+        LogicalKeyboardKey.arrowDown => const GridPos(x: 0, y: 1),
+        _ => null,
+      };
+
+  GridPos _resolveKeyboardCursor(EditorState state, MapData map) {
+    final local = _keyboardCursorMapId == map.id ? _keyboardCursor : null;
+    if (_isInMap(local, map.size)) return local!;
+    if (_isInMap(widget.keyboardContextCell, map.size)) {
+      return widget.keyboardContextCell!;
+    }
+    final selected = resolveSelectedCanvasObjectTarget(
+      map: map,
+      project: state.project,
+      selectedPlacedElementInstanceId: state.selectedPlacedElementInstanceId,
+      selectedEntityId: state.selectedEntityId,
+      selectedMapEventId: state.selectedMapEventId,
+      selectedWarpId: state.selectedWarpId,
+      selectedTriggerId: state.selectedTriggerId,
+      selectedGameplayZoneId: state.selectedGameplayZoneId,
+      editorAnimationTimeMs: _repaintClock.elapsedMs,
+    );
+    if (selected != null) return selected.anchor;
+    return GridPos(x: map.size.width ~/ 2, y: map.size.height ~/ 2);
+  }
+
+  void _setKeyboardCursor(MapData map, GridPos cell) {
+    _keyboardCursorMapId = map.id;
+    _keyboardCursor = cell;
+    widget.onCellSelected?.call(cell);
+    if (mounted) setState(() {});
+  }
+
+  void _moveKeyboardCursorBy(GridPos delta) {
+    final state = ref.read(editorNotifierProvider);
+    final map = state.activeMap;
+    if (map == null) return;
+    final current = _resolveKeyboardCursor(state, map);
+    _setKeyboardCursor(
+      map,
+      GridPos(
+        x: (current.x + delta.x).clamp(0, map.size.width - 1),
+        y: (current.y + delta.y).clamp(0, map.size.height - 1),
+      ),
+    );
+  }
+
+  void _activateKeyboardCursor() {
+    if (!_interactionController.isIdle) return;
+    final state = ref.read(editorNotifierProvider);
+    final map = state.activeMap;
+    if (map == null) return;
+    final cursor = _resolveKeyboardCursor(state, map);
+    _setKeyboardCursor(map, cursor);
+    _keyboardCellActivation?.call(cursor);
+  }
+
+  void _moveSelectedPlacedElementBy(GridPos delta) {
+    if (!_interactionController.isIdle) return;
+    final state = ref.read(editorNotifierProvider);
+    final map = state.activeMap;
+    if (map == null) return;
+    final target = resolveSelectedCanvasObjectTarget(
+      map: map,
+      project: state.project,
+      selectedPlacedElementInstanceId: state.selectedPlacedElementInstanceId,
+      selectedEntityId: null,
+      selectedMapEventId: null,
+      selectedWarpId: null,
+      selectedTriggerId: null,
+      selectedGameplayZoneId: null,
+      editorAnimationTimeMs: _repaintClock.elapsedMs,
+    );
+    if (target == null || target.kind != MapCanvasObjectKind.placedElement) {
+      return;
+    }
+    final destination = GridPos(
+      x: target.anchor.x + delta.x,
+      y: target.anchor.y + delta.y,
+    );
+    final moved =
+        ref.read(editorNotifierProvider.notifier).commitCanvasObjectMove(
+              sourceMap: map,
+              target: target,
+              destinationAnchor: destination,
+            );
+    if (moved) _setKeyboardCursor(map, destination);
   }
 
   void _requestPointerContextMenu(PointerDownEvent event) {
@@ -2639,10 +2798,14 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
   }
 
   void _onMapFocusChanged(bool hasFocus) {
-    if (hasFocus) return;
+    if (hasFocus) {
+      if (mounted) setState(() {});
+      return;
+    }
     final cancelled = _interactionController.cancelActive();
     final needsRebuild = _spacePressed || cancelled != null;
     _spacePressed = false;
+    _spaceKeyboardActivationPending = false;
     _pressedMapPointers.clear();
     _pressedContextMenuKeys.clear();
     _latestMapPointerLocalPositions.clear();
