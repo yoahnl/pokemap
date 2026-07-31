@@ -223,6 +223,12 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Campaign content',
         summary: 'Trainer, encounter, shop, badge, character or New Game data',
       ),
+      AuthoringResourceKindDescriptor(
+        id: 'sandboxPlayerState',
+        version: 1,
+        displayName: 'Sandbox player state',
+        summary: 'Detached non-production party, PC, bag and save state',
+      ),
     ]);
   }
 

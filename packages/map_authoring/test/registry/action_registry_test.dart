@@ -95,6 +95,7 @@ void main() {
           'pokemonDocument',
           'project',
           'region',
+          'sandboxPlayerState',
           'scenario',
           'scene',
           'script',
