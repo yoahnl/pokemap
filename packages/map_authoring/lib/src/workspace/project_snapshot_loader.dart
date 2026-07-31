@@ -9,6 +9,11 @@ import '../domains/narrative/dialogue_source_store.dart';
 import 'project_snapshot.dart';
 import 'workspace_handle_store.dart';
 
+enum ProjectSnapshotLoadPolicy {
+  strict,
+  editorReadProjection,
+}
+
 /// Loads every manifest-declared map and external dialogue source twice to
 /// reject mixed disk revisions.
 ///
@@ -22,7 +27,10 @@ final class ProjectSnapshotLoader {
 
   final WorkspaceHandleStore _handles;
 
-  Future<ProjectSnapshot> load(ProjectHandle projectHandle) async {
+  Future<ProjectSnapshot> load(
+    ProjectHandle projectHandle, {
+    ProjectSnapshotLoadPolicy policy = ProjectSnapshotLoadPolicy.strict,
+  }) async {
     final access = _handles.resolveProject(projectHandle);
     final manifestBytes = await access.readBytes('project.json');
     final manifest = _decodeManifest(manifestBytes);
@@ -35,6 +43,7 @@ final class ProjectSnapshotLoader {
       ),
     ];
     final maps = <MapData>[];
+    final loadDiagnostics = <ProjectSnapshotLoadDiagnostic>[];
     for (final entry in entries) {
       final bytes = await access.readBytes(entry.relativePath);
       final map = _decodeMap(bytes);
@@ -63,10 +72,26 @@ final class ProjectSnapshotLoader {
           'Two project resources resolve to the same storage path.',
         );
       }
-      final bytes = await _readRequiredDialogueSource(
-        access,
-        entry.relativePath,
-      );
+      late final List<int> bytes;
+      try {
+        bytes = await _readRequiredDialogueSource(
+          access,
+          entry.relativePath,
+        );
+      } on ProjectSnapshotException catch (error) {
+        if (policy != ProjectSnapshotLoadPolicy.editorReadProjection ||
+            error.code != 'project.dialogue_source_missing') {
+          rethrow;
+        }
+        loadDiagnostics.add(
+          ProjectSnapshotLoadDiagnostic(
+            code: error.code,
+            resourceKind: 'dialogueSource',
+            resourceId: entry.id,
+          ),
+        );
+        continue;
+      }
       resources.add(
         _LoadedProjectResource(
           relativePath: entry.relativePath,
@@ -157,6 +182,7 @@ final class ProjectSnapshotLoader {
         for (final resource in resources)
           resource.identity: resource.relativePath,
       },
+      loadDiagnostics: loadDiagnostics,
     );
   }
 }

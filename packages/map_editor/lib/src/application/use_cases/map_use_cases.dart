@@ -194,13 +194,21 @@ class LoadMapUseCase {
 
   Future<LoadedMapDocumentResult> executeDocument(
     ProjectWorkspace fs,
-    String relativePath,
-  ) async {
+    String relativePath, {
+    bool refreshSnapshot = false,
+  }) async {
     final path = fs.resolveMapPath(relativePath);
-    return executeAbsolutePath(path);
+    return executeAbsolutePath(path, refreshSnapshot: refreshSnapshot);
   }
 
-  Future<LoadedMapDocumentResult> executeAbsolutePath(String path) async {
+  Future<LoadedMapDocumentResult> executeAbsolutePath(
+    String path, {
+    bool refreshSnapshot = false,
+  }) async {
+    if (refreshSnapshot && _repo is RefreshableMapReadRepository) {
+      await (_repo as RefreshableMapReadRepository)
+          .refreshMapReadSnapshot(path);
+    }
     final loaded = await _loadMapDocument(_repo, path);
     return (
       map: _migrateLegacyLayerTilesets(loaded.map),

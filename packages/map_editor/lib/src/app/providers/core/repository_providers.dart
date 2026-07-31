@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../application/ports/narrative_event_registry_persistence_gateway.dart';
+import '../../../application/authoring_api/authoring_query_adapter.dart';
 import '../../../application/ports/narrative_event_migration_persistence_gateway.dart';
 import '../../../application/ports/narrative_event_spatial_source_creation_gateway.dart';
 import '../../../application/ports/narrative_authoring_persistence_gateway.dart';
@@ -22,6 +23,7 @@ import '../../../features/personalization/application/project_presentation_prefl
 import '../../../features/personalization/application/project_title_music_import_service.dart';
 import '../../../features/personalization/application/project_title_music_preview_controller.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
+import '../../../infrastructure/authoring_api/editor_project_file_reader.dart';
 import '../../../infrastructure/repositories/file_repositories.dart';
 import '../../../infrastructure/repositories/file_narrative_document_recovery_store.dart';
 import '../../../infrastructure/repositories/map_lifecycle_transaction_file_gateway.dart';
@@ -42,10 +44,23 @@ final mapLifecycleTransactionCoordinatorProvider =
   );
 });
 
+final editorProjectFileReaderProvider = Provider<EditorProjectFileReader>(
+  (ref) => const EditorProjectFileReader(),
+);
+
+final authoringQueryAdapterProvider = Provider<AuthoringQueryAdapter>((ref) {
+  final adapter = AuthoringQueryAdapter(
+    fileReader: ref.watch(editorProjectFileReaderProvider),
+  );
+  ref.onDispose(adapter.closeAll);
+  return adapter;
+});
+
 final fileProjectRepositoryProvider = Provider<FileProjectRepository>((ref) {
   return FileProjectRepository(
     mapLifecycleTransactions:
         ref.watch(mapLifecycleTransactionCoordinatorProvider),
+    authoringQueries: ref.watch(authoringQueryAdapterProvider),
   );
 });
 
@@ -240,7 +255,9 @@ ProjectRepository projectRepository(Ref ref) {
 
 @riverpod
 MapRepository mapRepository(Ref ref) {
-  return FileMapRepository();
+  return FileMapRepository(
+    authoringQueries: ref.watch(authoringQueryAdapterProvider),
+  );
 }
 
 @riverpod

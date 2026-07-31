@@ -259,7 +259,12 @@ final class MapLifecycleTransactionFileGateway
         'Map lifecycle refuses a non-regular map document: $path',
       );
     }
-    return _mapRepository.loadMapDocument(path);
+    final repository = _mapRepository;
+    if (repository is DurableMapDocumentRepository) {
+      return (repository as DurableMapDocumentRepository)
+          .loadDurableMapDocument(path);
+    }
+    return repository.loadMapDocument(path);
   }
 
   @override

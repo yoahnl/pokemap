@@ -12,6 +12,37 @@ final class ProjectSnapshotException implements Exception {
   String toString() => 'ProjectSnapshotException($code): $message';
 }
 
+/// Path-free problem encountered while building a non-mutating editor view.
+///
+/// Strict API and mutation sessions still throw immediately. The editor-only
+/// projection may retain primary project/map data so a creator can repair a
+/// missing supplemental source without losing access to the project.
+final class ProjectSnapshotLoadDiagnostic {
+  ProjectSnapshotLoadDiagnostic({
+    required String code,
+    required String resourceKind,
+    required String resourceId,
+    this.blocking = true,
+  })  : code = _requiredDiagnosticValue(code, 'code'),
+        resourceKind = _requiredDiagnosticValue(
+          resourceKind,
+          'resourceKind',
+        ),
+        resourceId = _requiredDiagnosticValue(resourceId, 'resourceId');
+
+  final String code;
+  final String resourceKind;
+  final String resourceId;
+  final bool blocking;
+
+  Map<String, Object?> toJson() => {
+        'code': code,
+        'resourceKind': resourceKind,
+        'resourceId': resourceId,
+        'blocking': blocking,
+      };
+}
+
 /// Immutable, path-free view of one coherently read PokeMap project revision.
 final class ProjectSnapshot {
   ProjectSnapshot({
@@ -22,6 +53,7 @@ final class ProjectSnapshot {
     required Map<String, String> resourceFingerprints,
     Map<String, List<int>> resourceBytes = const {},
     Map<String, String> resourceStorageKeys = const {},
+    Iterable<ProjectSnapshotLoadDiagnostic> loadDiagnostics = const [],
   })  : maps = List.unmodifiable(
           maps.toList()..sort((left, right) => left.id.compareTo(right.id)),
         ),
@@ -50,7 +82,8 @@ final class ProjectSnapshot {
                   ..sort((left, right) => left.key.compareTo(right.key)))
                 .map((entry) => MapEntry(entry.key, entry.value)),
           ),
-        ) {
+        ),
+        loadDiagnostics = List.unmodifiable(loadDiagnostics) {
     if (!RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(revision)) {
       throw ArgumentError.value(
         revision,
@@ -110,6 +143,7 @@ final class ProjectSnapshot {
   final List<MapData> maps;
   final Map<String, String> resourceFingerprints;
   final Map<String, String> resourceStorageKeys;
+  final List<ProjectSnapshotLoadDiagnostic> loadDiagnostics;
   final Map<String, List<int>> _resourceBytes;
   late final Map<String, MapData> _mapsById;
 
@@ -136,4 +170,12 @@ final class ProjectSnapshot {
     final bytes = _resourceBytes[identity];
     return bytes == null ? null : List<int>.unmodifiable(bytes);
   }
+}
+
+String _requiredDiagnosticValue(String value, String field) {
+  final normalized = value.trim();
+  if (normalized.isEmpty || normalized != value) {
+    throw ArgumentError.value(value, field, 'must be nonblank and trimmed');
+  }
+  return normalized;
 }

@@ -2214,7 +2214,11 @@ class EditorNotifier extends _$EditorNotifier
     try {
       final useCase = ref.read(loadMapUseCaseProvider);
       final project = state.project;
-      final loadedDocument = await useCase.executeDocument(fs, relativePath);
+      final loadedDocument = await useCase.executeDocument(
+        fs,
+        relativePath,
+        refreshSnapshot: forceReload,
+      );
       final loadedMap = loadedDocument.map;
       if (!_canAdoptMapDiskMutation(operationLease)) {
         return MapActivationOutcome.unavailable;
@@ -2856,7 +2860,7 @@ class EditorNotifier extends _$EditorNotifier
     try {
       diskDocument = await ref
           .read(loadMapUseCaseProvider)
-          .executeAbsolutePath(expectedMapPath);
+          .executeAbsolutePath(expectedMapPath, refreshSnapshot: true);
     } on Object {
       return false;
     }

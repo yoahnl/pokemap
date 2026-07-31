@@ -25,6 +25,8 @@ dependencies:
   pub_semver: ^2.2.0
   map_core:
     path: ../map_core
+  map_authoring:
+    path: ../map_authoring
   map_distribution:
     path: ../map_distribution
   map_gameplay:

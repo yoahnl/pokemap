@@ -200,6 +200,59 @@ void main() {
       );
     });
 
+    test('editor projection keeps maps readable and reports missing dialogue',
+        () async {
+      final sandbox = await Directory.systemTemp.createTemp(
+        'pokemap_snapshot_editor_projection_',
+      );
+      addTearDown(() => sandbox.delete(recursive: true));
+      final project = await _writeProject(
+        sandbox,
+        mapEntries: [_mapEntry('field', 'maps/field.json')],
+        maps: [_mapJson('field')],
+        dialogueEntries: const [
+          {
+            'id': 'missing',
+            'name': 'Missing',
+            'relativePath': 'dialogues/missing.yarn',
+          },
+        ],
+      );
+      final harness = await _SnapshotHarness.create(allowedRoot: sandbox);
+      final opened = await harness.openService.openProject(project.path);
+
+      await expectLater(
+        () => harness.loader.load(opened.projectHandle),
+        throwsA(
+          isA<ProjectSnapshotException>().having(
+            (error) => error.code,
+            'code',
+            'project.dialogue_source_missing',
+          ),
+        ),
+      );
+
+      final projected = await harness.loader.load(
+        opened.projectHandle,
+        policy: ProjectSnapshotLoadPolicy.editorReadProjection,
+      );
+
+      expect(projected.maps.single.id, 'field');
+      expect(
+        projected.loadDiagnostics.single.toJson(),
+        {
+          'code': 'project.dialogue_source_missing',
+          'resourceKind': 'dialogueSource',
+          'resourceId': 'missing',
+          'blocking': true,
+        },
+      );
+      expect(
+        projected.resourceFingerprints,
+        isNot(contains(dialogueSourceResourceIdentity('missing'))),
+      );
+    });
+
     test('rejects duplicate direct snapshot maps and invalid fingerprints', () {
       final map = MapData(
         id: 'same',

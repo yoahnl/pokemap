@@ -22,6 +22,24 @@ abstract class MapRepository {
   Future<void> renameMap(String oldPath, String newPath);
 }
 
+/// Optional capability for a repository whose reads are backed by a cached
+/// project-wide snapshot.
+///
+/// Ordinary project/map navigation deliberately shares that snapshot. An
+/// explicit user or recovery reload can request a fresh disk projection before
+/// loading so external edits are not hidden by the cache.
+abstract interface class RefreshableMapReadRepository {
+  Future<void> refreshMapReadSnapshot(String path);
+}
+
+/// Optional raw durable-read capability for transaction/recovery protocols.
+///
+/// These protocols must inspect a just-written file even while `project.json`
+/// still describes the previous multi-file transaction state.
+abstract interface class DurableMapDocumentRepository {
+  Future<RevisionedMapDocument> loadDurableMapDocument(String path);
+}
+
 /// Optional strict capability used by every product map-writing path.
 ///
 /// Keeping it separate preserves source compatibility for legacy in-memory

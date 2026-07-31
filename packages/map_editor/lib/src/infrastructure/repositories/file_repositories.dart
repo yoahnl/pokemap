@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../application/errors/application_errors.dart';
+import '../../application/authoring_api/authoring_query_adapter.dart';
 import '../../application/models/narrative_event_authoring_session.dart';
 import '../../application/models/narrative_event_registry_persistence_models.dart';
 import '../../application/models/pokemon_database_index.dart';
@@ -31,9 +32,11 @@ class FileProjectRepository
     NarrativeEventRegistryPersistence? eventRegistryPersistence,
     AtomicProjectManifestPersistence? narrativeAuthoringPersistence,
     MapLifecycleTransactionCoordinator? mapLifecycleTransactions,
+    AuthoringQueryAdapter? authoringQueries,
   })  : _eventRegistryPersistence =
             eventRegistryPersistence ?? NarrativeEventRegistryPersistence(),
-        _mapLifecycleTransactions = mapLifecycleTransactions {
+        _mapLifecycleTransactions = mapLifecycleTransactions,
+        _authoringQueries = authoringQueries {
     _narrativeAuthoringPersistence = narrativeAuthoringPersistence ??
         AtomicProjectManifestPersistence(
           eventRegistryPersistence: _eventRegistryPersistence,
@@ -42,6 +45,7 @@ class FileProjectRepository
 
   final NarrativeEventRegistryPersistence _eventRegistryPersistence;
   final MapLifecycleTransactionCoordinator? _mapLifecycleTransactions;
+  final AuthoringQueryAdapter? _authoringQueries;
   late final AtomicProjectManifestPersistence _narrativeAuthoringPersistence;
 
   AtomicProjectManifestPersistence get narrativeAuthoringPersistence =>
@@ -104,10 +108,12 @@ class FileProjectRepository
     ProjectValidator.validate(project);
     final lifecycle = _mapLifecycleTransactions;
     if (lifecycle == null) {
-      return _saveProjectWithLock(project, path);
+      await _saveProjectWithLock(project, path);
+      await _invalidateAuthoringSnapshot(path);
+      return;
     }
     final expectedProjectState = await _captureProjectFileState(path);
-    return lifecycle.runAfterRecovery(
+    await lifecycle.runAfterRecovery(
       path,
       (canonicalProjectPath) => _saveProjectWithLock(
         project,
@@ -115,6 +121,7 @@ class FileProjectRepository
         expectedProjectState: expectedProjectState,
       ),
     );
+    await _invalidateAuthoringSnapshot(path);
   }
 
   Future<void> _saveProjectWithLock(
@@ -248,6 +255,10 @@ class FileProjectRepository
     return withProjectManifestWriteLock(path, () async {
       await _ensureRecoveryGateClear(path);
       try {
+        final authoringQueries = _authoringQueries;
+        if (authoringQueries != null) {
+          return (await authoringQueries.open(p.dirname(path))).manifest;
+        }
         return decodeValidatedNarrativeEventAuthoringProject(
           await file.readAsBytes(),
         ).manifest;
@@ -255,6 +266,12 @@ class FileProjectRepository
         throw ProjectLoadException('Failed to load project: $e');
       }
     });
+  }
+
+  Future<void> _invalidateAuthoringSnapshot(String manifestPath) async {
+    final authoringQueries = _authoringQueries;
+    if (authoringQueries == null) return;
+    await authoringQueries.invalidate(p.dirname(manifestPath));
   }
 
   Future<void> _ensureRecoveryGateClear(String path) async {
@@ -319,12 +336,20 @@ bool _sameEventRegistry(
       canonicalizeNarrativeEventJson(right?.toJson());
 }
 
-class FileMapRepository implements RevisionedMapRepository {
+class FileMapRepository
+    implements
+        RevisionedMapRepository,
+        RefreshableMapReadRepository,
+        DurableMapDocumentRepository {
   FileMapRepository({
     AtomicMapDocumentPersistence? mapPersistence,
-  }) : _mapPersistence = mapPersistence ?? const AtomicMapDocumentPersistence();
+    AuthoringQueryAdapter? authoringQueries,
+  })  : _mapPersistence =
+            mapPersistence ?? const AtomicMapDocumentPersistence(),
+        _authoringQueries = authoringQueries;
 
   final AtomicMapDocumentPersistence _mapPersistence;
+  final AuthoringQueryAdapter? _authoringQueries;
 
   @override
   Future<void> saveMap(
@@ -339,6 +364,7 @@ class FileMapRepository implements RevisionedMapRepository {
       projectDialogueContext: projectDialogueContext,
     );
     await _mapPersistence.replaceLatest(path, encodeMapDocumentBytes(map));
+    await _invalidateAuthoringSnapshotForResource(path);
   }
 
   @override
@@ -359,7 +385,12 @@ class FileMapRepository implements RevisionedMapRepository {
       encodeMapDocumentBytes(map),
       precondition: precondition,
     );
-    final durable = await loadMapDocument(path);
+    await _invalidateAuthoringSnapshotForResource(path);
+    // A map lifecycle transaction writes the target document before updating
+    // project.json. Reading through the project snapshot here would reject a
+    // freshly created/renamed map because it is not declared *yet*. Verify the
+    // exact durable bytes directly at this persistence boundary instead.
+    final durable = await _loadMapDocumentFromPersistence(path);
     if (durable.revision != revision || durable.map != map) {
       throw const EditorPersistenceException(
         'The durable map does not match the requested document.',
@@ -376,6 +407,39 @@ class FileMapRepository implements RevisionedMapRepository {
   @override
   Future<RevisionedMapDocument> loadMapDocument(String path) async {
     debugPrint('FileMapRepository: Loading map from $path');
+    final authoringQueries = _authoringQueries;
+    if (authoringQueries != null) {
+      try {
+        final projectRoot = await _findProjectRootForResource(path);
+        final session = await authoringQueries.open(projectRoot);
+        final storageKey = p
+            .relative(path, from: projectRoot)
+            .replaceAll(Platform.pathSeparator, '/');
+        final map = session.mapByStorageKey(storageKey);
+        if (map == null) {
+          throw const MapLoadException(
+            'Map file is not declared by the Authoring snapshot',
+          );
+        }
+        final revision = session.resourceRevision('map:${map.id}');
+        if (revision == null) {
+          throw const MapLoadException(
+            'Map revision is missing from the Authoring snapshot',
+          );
+        }
+        return RevisionedMapDocument(map: map, revision: revision);
+      } on MapLoadException {
+        rethrow;
+      } on Object catch (error) {
+        throw MapLoadException('Failed to load map: $error');
+      }
+    }
+    return _loadMapDocumentFromPersistence(path);
+  }
+
+  Future<RevisionedMapDocument> _loadMapDocumentFromPersistence(
+    String path,
+  ) async {
     late final AtomicMapDocumentBytes snapshot;
     try {
       snapshot = await _mapPersistence.read(path);
@@ -396,9 +460,20 @@ class FileMapRepository implements RevisionedMapRepository {
   }
 
   @override
+  Future<RevisionedMapDocument> loadDurableMapDocument(String path) {
+    return _loadMapDocumentFromPersistence(path);
+  }
+
+  @override
+  Future<void> refreshMapReadSnapshot(String path) async {
+    await _invalidateAuthoringSnapshotForResource(path);
+  }
+
+  @override
   Future<void> deleteMap(String path) async {
     debugPrint('FileMapRepository: Deleting map at $path');
     await _mapPersistence.deleteLatest(path);
+    await _invalidateAuthoringSnapshotForResource(path);
   }
 
   @override
@@ -407,10 +482,21 @@ class FileMapRepository implements RevisionedMapRepository {
     required String expectedRevision,
   }) {
     debugPrint('FileMapRepository: CAS deleting map at $path');
-    return _mapPersistence.delete(
+    return _deleteMapDocumentAndInvalidate(
       path,
       expectedRevision: expectedRevision,
     );
+  }
+
+  Future<void> _deleteMapDocumentAndInvalidate(
+    String path, {
+    required String expectedRevision,
+  }) async {
+    await _mapPersistence.delete(
+      path,
+      expectedRevision: expectedRevision,
+    );
+    await _invalidateAuthoringSnapshotForResource(path);
   }
 
   @override
@@ -427,7 +513,31 @@ class FileMapRepository implements RevisionedMapRepository {
         await file.parent.create(recursive: true);
       }
       await file.rename(newPath);
+      await _invalidateAuthoringSnapshotForResource(oldPath);
     }
+  }
+
+  Future<void> _invalidateAuthoringSnapshotForResource(String path) async {
+    final authoringQueries = _authoringQueries;
+    if (authoringQueries == null) return;
+    final projectRoot = await _findProjectRootForResource(path);
+    await authoringQueries.invalidate(projectRoot);
+  }
+}
+
+Future<String> _findProjectRootForResource(String resourcePath) async {
+  var directory = File(resourcePath).absolute.parent;
+  while (true) {
+    if (await File(p.join(directory.path, 'project.json')).exists()) {
+      return directory.path;
+    }
+    final parent = directory.parent;
+    if (parent.path == directory.path) {
+      throw const MapLoadException(
+        'Map resource is not inside a PokeMap project',
+      );
+    }
+    directory = parent;
   }
 }
 
