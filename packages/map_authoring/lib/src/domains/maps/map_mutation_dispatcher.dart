@@ -3,13 +3,17 @@ import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'autotile_actions.dart';
 import 'border_actions.dart';
+import 'collision_actions.dart';
+import 'entity_actions.dart';
 import 'environment_actions.dart';
 import 'map_lifecycle_actions.dart';
 import 'map_lifecycle_adapter.dart';
 import 'map_operations_batch.dart';
 import 'path_actions.dart';
+import 'placed_element_actions.dart';
 import 'surface_actions.dart';
 import 'terrain_actions.dart';
+import 'trigger_zone_actions.dart';
 
 typedef MapMutationDraftBuilder = AuthoringMutationDraft Function(
   AuthoringPlanningContext context,
@@ -38,7 +42,11 @@ final class MapMutationDispatcher {
     const surface = SurfaceActions();
     const autotile = AutotileActions();
     const border = BorderActions();
+    const collision = CollisionActions();
+    const entity = EntityActions();
     const environment = EnvironmentActions();
+    const placedElement = PlacedElementActions();
+    const triggerZone = TriggerZoneActions();
     return MapMutationDispatcher([
       for (final descriptor in MapLifecycleActions.descriptors)
         MapMutationActionRegistration(
@@ -75,10 +83,30 @@ final class MapMutationDispatcher {
           descriptor: descriptor,
           build: border.build,
         ),
+      for (final descriptor in CollisionActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: collision.build,
+        ),
+      for (final descriptor in EntityActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: entity.build,
+        ),
       for (final descriptor in EnvironmentActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: environment.build,
+        ),
+      for (final descriptor in PlacedElementActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: placedElement.build,
+        ),
+      for (final descriptor in TriggerZoneActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: triggerZone.build,
         ),
     ]);
   }
