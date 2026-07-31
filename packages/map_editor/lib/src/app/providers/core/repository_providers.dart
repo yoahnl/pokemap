@@ -5,6 +5,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../application/ports/narrative_event_registry_persistence_gateway.dart';
 import '../../../application/authoring_api/authoring_query_adapter.dart';
+import '../../../application/authoring_api/authoring_mutation_adapter.dart';
+import '../../../application/authoring_api/editor_receipt_presenter.dart';
 import '../../../application/ports/narrative_event_migration_persistence_gateway.dart';
 import '../../../application/ports/narrative_event_spatial_source_creation_gateway.dart';
 import '../../../application/ports/narrative_authoring_persistence_gateway.dart';
@@ -55,6 +57,22 @@ final authoringQueryAdapterProvider = Provider<AuthoringQueryAdapter>((ref) {
   ref.onDispose(adapter.closeAll);
   return adapter;
 });
+
+final authoringMutationAdapterProvider =
+    Provider<AuthoringMutationAdapter>((ref) {
+  final projectFiles = ref.watch(editorProjectFileReaderProvider);
+  final adapter = AuthoringMutationAdapter(
+    fileReader: projectFiles,
+    queries: ref.watch(authoringQueryAdapterProvider),
+    projectRoots: projectFiles,
+  );
+  ref.onDispose(adapter.closeAll);
+  return adapter;
+});
+
+final editorReceiptPresenterProvider = Provider<EditorReceiptPresenter>(
+  (ref) => const EditorReceiptPresenter(),
+);
 
 final fileProjectRepositoryProvider = Provider<FileProjectRepository>((ref) {
   return FileProjectRepository(

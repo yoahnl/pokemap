@@ -236,7 +236,10 @@ SetMapLayerOpacityUseCase setMapLayerOpacityUseCase(Ref ref) {
 
 @riverpod
 SaveMapUseCase saveMapUseCase(Ref ref) {
-  return SaveMapUseCase(ref.watch(mapRepositoryProvider));
+  return SaveMapUseCase(
+    ref.watch(mapRepositoryProvider),
+    authoringMutations: ref.watch(authoringMutationAdapterProvider),
+  );
 }
 
 @riverpod

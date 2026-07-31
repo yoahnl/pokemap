@@ -1898,6 +1898,14 @@ class EditorNotifier extends _$EditorNotifier
         revision: savedRevision,
         sourceDocument: candidateMap,
       );
+      final authoringReceipt =
+          ref.read(authoringMutationAdapterProvider).lastAppliedReceipt;
+      final receiptMessage = authoringReceipt == null
+          ? null
+          : ref
+              .read(editorReceiptPresenterProvider)
+              .receipt(authoringReceipt)
+              .message;
       endMapStroke();
       switch (ready.postSaveAction) {
         case PendingBorderPostSaveAction.none:
@@ -1916,7 +1924,8 @@ class EditorNotifier extends _$EditorNotifier
       state = _projectSessionController.markMapSaved(
         current: state,
         map: candidateMap,
-        statusMessage: 'Carte « ${candidateMap.id} » enregistrée',
+        statusMessage:
+            receiptMessage ?? 'Carte « ${candidateMap.id} » enregistrée',
       );
       if (ready.postSaveAction != PendingBorderPostSaveAction.none) {
         ref.read(borderPreviewControllerProvider.notifier).cancel();

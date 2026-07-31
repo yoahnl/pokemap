@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 import '../../domain/repositories/repositories.dart';
 import '../../domain/models/map_document_persistence.dart';
 import '../errors/application_errors.dart';
+import '../authoring_api/authoring_mutation_adapter.dart';
 import '../ports/project_workspace.dart';
 import '../services/map_dependency_preflight_service.dart';
 import '../services/map_lifecycle_transaction_service.dart';
@@ -17,8 +18,12 @@ const ProjectMapManifestIntegrityPolicy _mapManifestIntegrityPolicy =
 
 class SaveMapUseCase {
   final MapRepository _repo;
+  final AuthoringMutationAdapter? _authoringMutations;
 
-  SaveMapUseCase(this._repo);
+  SaveMapUseCase(
+    this._repo, {
+    AuthoringMutationAdapter? authoringMutations,
+  }) : _authoringMutations = authoringMutations;
 
   Future<void> execute(
     MapData map,
@@ -40,6 +45,21 @@ class SaveMapUseCase {
     ProjectManifest? projectDialogueContext,
   }) async {
     _mapIdPolicy.requireValid(map.id);
+    final authoringMutations = _authoringMutations;
+    if (authoringMutations != null) {
+      if (expectedRevision == null) {
+        throw const EditorConflictException(
+          'Cette carte ne possède pas de révision disque attestée. '
+          'Rechargez-la avant de l’enregistrer.',
+        );
+      }
+      final result = await authoringMutations.saveMap(
+        map,
+        path,
+        expectedMapRevision: expectedRevision,
+      );
+      return result.resourceRevision;
+    }
     if (_repo case RevisionedMapRepository revisioned) {
       if (expectedRevision == null) {
         throw const EditorConflictException(
