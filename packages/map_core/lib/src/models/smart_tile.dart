@@ -36,6 +36,8 @@ enum SmartTileTemplateHint {
   edge16,
   @JsonValue('corner_16')
   corner16,
+  @JsonValue('corner_12')
+  corner12,
   @JsonValue('blob_47')
   blob47,
   @JsonValue('mixed_256')
@@ -105,6 +107,20 @@ enum SmartTileOffsetUnit {
   pixel,
   @JsonValue('cell')
   cell,
+}
+
+/// Controls how a visual part samples a frame larger than one atlas cell.
+///
+/// [fullFrame] preserves the native Smart Tile behavior: the complete frame is
+/// drawn for the resolved cell. The other modes exist so legacy terrain
+/// textures can migrate without being squashed into one map cell.
+enum SmartTileFrameSampling {
+  @JsonValue('full_frame')
+  fullFrame,
+  @JsonValue('tessellated')
+  tessellated,
+  @JsonValue('stable_random')
+  stableRandom,
 }
 
 @freezed
@@ -265,6 +281,8 @@ class SmartTileVisualPart with _$SmartTileVisualPart {
   const factory SmartTileVisualPart({
     required SmartTileVisualSource source,
     @Default(SmartTileRenderChannel.ground) SmartTileRenderChannel channel,
+    @Default(SmartTileFrameSampling.fullFrame)
+    SmartTileFrameSampling frameSampling,
     @Default(SmartTileOffsetUnit.pixel) SmartTileOffsetUnit offsetUnit,
     @Default(0) int offsetX,
     @Default(0) int offsetY,

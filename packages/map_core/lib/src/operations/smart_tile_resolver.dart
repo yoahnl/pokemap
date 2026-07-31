@@ -126,6 +126,12 @@ SmartTileResolution resolveSmartTile({
   final materialMap = <String, ProjectSmartTileMaterial>{
     for (final material in materials) material.id: material,
   };
+  if (materialMap[centerMaterialId]?.isEmpty ?? false) {
+    return const SmartTileResolution(
+      status: SmartTileResolutionStatus.noCenterMaterial,
+      message: 'The center cell uses an explicit empty material.',
+    );
+  }
   SmartTileRule? selectedRule;
   var selectedSpecificity = -1;
   for (final rule in preset.rules) {

@@ -18,6 +18,26 @@ void main() {
       );
     });
 
+    test('a complete ERW Corner 12 preset is publishable', () {
+      final preset = _corner12Preset();
+
+      expect(_diagnostics(preset).where((item) => item.isError), isEmpty);
+      expect(
+        _diagnostics(preset).map((item) => item.code),
+        isNot(contains('smart_tiles.coverage.incomplete')),
+      );
+
+      final incomplete = preset.copyWith(
+        rules: preset.rules.where((rule) => rule.id != 'mask_10').toList(),
+      );
+      final diagnostic = _diagnostics(incomplete).singleWhere(
+        (item) => item.code == 'smart_tiles.coverage.incomplete',
+      );
+
+      expect(diagnostic.severity, SmartTileDiagnosticSeverity.error);
+      expect(diagnostic.missingMasks, <int>[0x10]);
+    });
+
     test('incomplete drafts warn while incomplete published presets fail', () {
       final draft = _edgePreset(
         status: SmartTilePresetStatus.draft,
@@ -138,12 +158,34 @@ ProjectSmartTilePreset _edgePreset({
   );
 }
 
-SmartTileRule _rule(int mask, {String? id}) {
+ProjectSmartTilePreset _corner12Preset() {
+  return ProjectSmartTilePreset(
+    id: 'erw-corner-12',
+    name: 'ERW Corner 12',
+    usage: SmartTileUsage.path,
+    topology: SmartTileTopology.wangCorner4,
+    templateHint: SmartTileTemplateHint.corner12,
+    status: SmartTilePresetStatus.published,
+    defaultMaterialId: 'grass',
+    allowedMaterialIds: const <String>['grass'],
+    rules: <SmartTileRule>[
+      for (final mask
+          in smartTileCanonicalMasks(SmartTileTemplateHint.corner12))
+        _rule(mask, topology: SmartTileTopology.wangCorner4),
+    ],
+  );
+}
+
+SmartTileRule _rule(
+  int mask, {
+  String? id,
+  SmartTileTopology topology = SmartTileTopology.cardinal4,
+}) {
   return SmartTileRule(
     id: id ?? smartTileCanonicalRuleId(mask),
     signature: smartTileSignatureForMask(
       mask,
-      topology: SmartTileTopology.cardinal4,
+      topology: topology,
     ),
     candidates: const <SmartTileCandidate>[
       SmartTileCandidate(

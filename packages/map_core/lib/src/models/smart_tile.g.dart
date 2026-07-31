@@ -130,6 +130,9 @@ _$SmartTileVisualPartImpl _$$SmartTileVisualPartImplFromJson(
       channel: $enumDecodeNullable(
               _$SmartTileRenderChannelEnumMap, json['channel']) ??
           SmartTileRenderChannel.ground,
+      frameSampling: $enumDecodeNullable(
+              _$SmartTileFrameSamplingEnumMap, json['frameSampling']) ??
+          SmartTileFrameSampling.fullFrame,
       offsetUnit: $enumDecodeNullable(
               _$SmartTileOffsetUnitEnumMap, json['offsetUnit']) ??
           SmartTileOffsetUnit.pixel,
@@ -147,6 +150,7 @@ Map<String, dynamic> _$$SmartTileVisualPartImplToJson(
     <String, dynamic>{
       'source': instance.source.toJson(),
       'channel': _$SmartTileRenderChannelEnumMap[instance.channel]!,
+      'frameSampling': _$SmartTileFrameSamplingEnumMap[instance.frameSampling]!,
       'offsetUnit': _$SmartTileOffsetUnitEnumMap[instance.offsetUnit]!,
       'offsetX': instance.offsetX,
       'offsetY': instance.offsetY,
@@ -163,6 +167,12 @@ const _$SmartTileRenderChannelEnumMap = {
   SmartTileRenderChannel.canopy: 'canopy',
   SmartTileRenderChannel.foreground: 'foreground',
   SmartTileRenderChannel.shadow: 'shadow',
+};
+
+const _$SmartTileFrameSamplingEnumMap = {
+  SmartTileFrameSampling.fullFrame: 'full_frame',
+  SmartTileFrameSampling.tessellated: 'tessellated',
+  SmartTileFrameSampling.stableRandom: 'stable_random',
 };
 
 const _$SmartTileOffsetUnitEnumMap = {
@@ -429,6 +439,7 @@ const _$SmartTileTemplateHintEnumMap = {
   SmartTileTemplateHint.legacy20: 'legacy_20',
   SmartTileTemplateHint.edge16: 'edge_16',
   SmartTileTemplateHint.corner16: 'corner_16',
+  SmartTileTemplateHint.corner12: 'corner_12',
   SmartTileTemplateHint.blob47: 'blob_47',
   SmartTileTemplateHint.mixed256: 'mixed_256',
   SmartTileTemplateHint.free: 'free',

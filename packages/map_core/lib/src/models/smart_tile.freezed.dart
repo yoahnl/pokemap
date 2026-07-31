@@ -1206,6 +1206,8 @@ SmartTileVisualPart _$SmartTileVisualPartFromJson(Map<String, dynamic> json) {
 mixin _$SmartTileVisualPart {
   SmartTileVisualSource get source => throw _privateConstructorUsedError;
   SmartTileRenderChannel get channel => throw _privateConstructorUsedError;
+  SmartTileFrameSampling get frameSampling =>
+      throw _privateConstructorUsedError;
   SmartTileOffsetUnit get offsetUnit => throw _privateConstructorUsedError;
   int get offsetX => throw _privateConstructorUsedError;
   int get offsetY => throw _privateConstructorUsedError;
@@ -1234,6 +1236,7 @@ abstract class $SmartTileVisualPartCopyWith<$Res> {
   $Res call(
       {SmartTileVisualSource source,
       SmartTileRenderChannel channel,
+      SmartTileFrameSampling frameSampling,
       SmartTileOffsetUnit offsetUnit,
       int offsetX,
       int offsetY,
@@ -1263,6 +1266,7 @@ class _$SmartTileVisualPartCopyWithImpl<$Res, $Val extends SmartTileVisualPart>
   $Res call({
     Object? source = null,
     Object? channel = null,
+    Object? frameSampling = null,
     Object? offsetUnit = null,
     Object? offsetX = null,
     Object? offsetY = null,
@@ -1281,6 +1285,10 @@ class _$SmartTileVisualPartCopyWithImpl<$Res, $Val extends SmartTileVisualPart>
           ? _value.channel
           : channel // ignore: cast_nullable_to_non_nullable
               as SmartTileRenderChannel,
+      frameSampling: null == frameSampling
+          ? _value.frameSampling
+          : frameSampling // ignore: cast_nullable_to_non_nullable
+              as SmartTileFrameSampling,
       offsetUnit: null == offsetUnit
           ? _value.offsetUnit
           : offsetUnit // ignore: cast_nullable_to_non_nullable
@@ -1338,6 +1346,7 @@ abstract class _$$SmartTileVisualPartImplCopyWith<$Res>
   $Res call(
       {SmartTileVisualSource source,
       SmartTileRenderChannel channel,
+      SmartTileFrameSampling frameSampling,
       SmartTileOffsetUnit offsetUnit,
       int offsetX,
       int offsetY,
@@ -1366,6 +1375,7 @@ class __$$SmartTileVisualPartImplCopyWithImpl<$Res>
   $Res call({
     Object? source = null,
     Object? channel = null,
+    Object? frameSampling = null,
     Object? offsetUnit = null,
     Object? offsetX = null,
     Object? offsetY = null,
@@ -1384,6 +1394,10 @@ class __$$SmartTileVisualPartImplCopyWithImpl<$Res>
           ? _value.channel
           : channel // ignore: cast_nullable_to_non_nullable
               as SmartTileRenderChannel,
+      frameSampling: null == frameSampling
+          ? _value.frameSampling
+          : frameSampling // ignore: cast_nullable_to_non_nullable
+              as SmartTileFrameSampling,
       offsetUnit: null == offsetUnit
           ? _value.offsetUnit
           : offsetUnit // ignore: cast_nullable_to_non_nullable
@@ -1427,6 +1441,7 @@ class _$SmartTileVisualPartImpl implements _SmartTileVisualPart {
   const _$SmartTileVisualPartImpl(
       {required this.source,
       this.channel = SmartTileRenderChannel.ground,
+      this.frameSampling = SmartTileFrameSampling.fullFrame,
       this.offsetUnit = SmartTileOffsetUnit.pixel,
       this.offsetX = 0,
       this.offsetY = 0,
@@ -1446,6 +1461,9 @@ class _$SmartTileVisualPartImpl implements _SmartTileVisualPart {
   @override
   @JsonKey()
   final SmartTileRenderChannel channel;
+  @override
+  @JsonKey()
+  final SmartTileFrameSampling frameSampling;
   @override
   @JsonKey()
   final SmartTileOffsetUnit offsetUnit;
@@ -1473,7 +1491,7 @@ class _$SmartTileVisualPartImpl implements _SmartTileVisualPart {
 
   @override
   String toString() {
-    return 'SmartTileVisualPart(source: $source, channel: $channel, offsetUnit: $offsetUnit, offsetX: $offsetX, offsetY: $offsetY, footprintWidth: $footprintWidth, footprintHeight: $footprintHeight, anchorX: $anchorX, anchorY: $anchorY, drawOrder: $drawOrder)';
+    return 'SmartTileVisualPart(source: $source, channel: $channel, frameSampling: $frameSampling, offsetUnit: $offsetUnit, offsetX: $offsetX, offsetY: $offsetY, footprintWidth: $footprintWidth, footprintHeight: $footprintHeight, anchorX: $anchorX, anchorY: $anchorY, drawOrder: $drawOrder)';
   }
 
   @override
@@ -1483,6 +1501,8 @@ class _$SmartTileVisualPartImpl implements _SmartTileVisualPart {
             other is _$SmartTileVisualPartImpl &&
             (identical(other.source, source) || other.source == source) &&
             (identical(other.channel, channel) || other.channel == channel) &&
+            (identical(other.frameSampling, frameSampling) ||
+                other.frameSampling == frameSampling) &&
             (identical(other.offsetUnit, offsetUnit) ||
                 other.offsetUnit == offsetUnit) &&
             (identical(other.offsetX, offsetX) || other.offsetX == offsetX) &&
@@ -1503,6 +1523,7 @@ class _$SmartTileVisualPartImpl implements _SmartTileVisualPart {
       runtimeType,
       source,
       channel,
+      frameSampling,
       offsetUnit,
       offsetX,
       offsetY,
@@ -1533,6 +1554,7 @@ abstract class _SmartTileVisualPart implements SmartTileVisualPart {
   const factory _SmartTileVisualPart(
       {required final SmartTileVisualSource source,
       final SmartTileRenderChannel channel,
+      final SmartTileFrameSampling frameSampling,
       final SmartTileOffsetUnit offsetUnit,
       final int offsetX,
       final int offsetY,
@@ -1549,6 +1571,8 @@ abstract class _SmartTileVisualPart implements SmartTileVisualPart {
   SmartTileVisualSource get source;
   @override
   SmartTileRenderChannel get channel;
+  @override
+  SmartTileFrameSampling get frameSampling;
   @override
   SmartTileOffsetUnit get offsetUnit;
   @override

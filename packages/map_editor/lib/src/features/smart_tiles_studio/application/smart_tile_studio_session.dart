@@ -1,8 +1,10 @@
 import 'package:map_core/map_core.dart';
 
 import 'smart_tile_grid_detector.dart';
+import 'smart_tile_guide.dart';
+import 'smart_tile_guide_placement.dart';
 
-enum SmartTileStudioWizardStep { source, grid, usage, mapping, test }
+enum SmartTileStudioWizardStep { usage, guide, placement, test, publish }
 
 enum SmartTileStudioSourceChoice {
   projectImage,
@@ -10,43 +12,71 @@ enum SmartTileStudioSourceChoice {
   emptyPreset,
 }
 
+final class SmartTileAtlasAnchor {
+  const SmartTileAtlasAnchor({required this.column, required this.row});
+
+  final int column;
+  final int row;
+
+  @override
+  bool operator ==(Object other) =>
+      other is SmartTileAtlasAnchor &&
+      other.column == column &&
+      other.row == row;
+
+  @override
+  int get hashCode => Object.hash(column, row);
+}
+
 final class SmartTileStudioSessionState {
   const SmartTileStudioSessionState({
     this.isCreating = false,
-    this.wizardStep = SmartTileStudioWizardStep.source,
+    this.wizardStep = SmartTileStudioWizardStep.usage,
+    this.usage,
+    this.guideId,
     this.sourceChoice,
     this.gridGeometry,
-    this.usage,
+    this.anchor,
   });
 
   final bool isCreating;
   final SmartTileStudioWizardStep wizardStep;
+  final SmartTileUsage? usage;
+  final SmartTileGuideId? guideId;
   final SmartTileStudioSourceChoice? sourceChoice;
   final SmartTileGridGeometry? gridGeometry;
-  final SmartTileUsage? usage;
+  final SmartTileAtlasAnchor? anchor;
 
   SmartTileStudioSessionState copyWith({
     bool? isCreating,
     SmartTileStudioWizardStep? wizardStep,
+    SmartTileUsage? usage,
+    SmartTileGuideId? guideId,
     SmartTileStudioSourceChoice? sourceChoice,
     SmartTileGridGeometry? gridGeometry,
-    SmartTileUsage? usage,
-    bool clearSourceChoice = false,
-    bool clearGridGeometry = false,
+    SmartTileAtlasAnchor? anchor,
     bool clearUsage = false,
+    bool clearGuide = false,
+    bool clearSource = false,
+    bool clearGrid = false,
+    bool clearAnchor = false,
   }) {
     return SmartTileStudioSessionState(
       isCreating: isCreating ?? this.isCreating,
       wizardStep: wizardStep ?? this.wizardStep,
-      sourceChoice:
-          clearSourceChoice ? null : sourceChoice ?? this.sourceChoice,
-      gridGeometry:
-          clearGridGeometry ? null : gridGeometry ?? this.gridGeometry,
       usage: clearUsage ? null : usage ?? this.usage,
+      guideId: clearGuide ? null : guideId ?? this.guideId,
+      sourceChoice: clearSource ? null : sourceChoice ?? this.sourceChoice,
+      gridGeometry: clearGrid ? null : gridGeometry ?? this.gridGeometry,
+      anchor: clearAnchor ? null : anchor ?? this.anchor,
     );
   }
 }
 
+/// Pure state machine for the human-facing Smart Tile creation flow.
+///
+/// Source and grid are configuration details of Placement rather than wizard
+/// concepts of their own. The session performs no IO and no manifest mutation.
 final class SmartTileStudioSession {
   SmartTileStudioSession({
     SmartTileStudioSessionState state = const SmartTileStudioSessionState(),
@@ -64,56 +94,147 @@ final class SmartTileStudioSession {
     _state = const SmartTileStudioSessionState();
   }
 
-  void chooseSource(SmartTileStudioSourceChoice choice) {
-    _state = _state.copyWith(sourceChoice: choice);
-  }
-
-  void moveToGrid({
-    required SmartTileGridGeometry detectedGeometry,
-  }) {
-    if (!_state.isCreating || _state.sourceChoice == null) {
-      throw StateError('Choose a Smart Tile source before configuring grid.');
-    }
+  void chooseUsage(SmartTileUsage usage) {
+    _requireStep(SmartTileStudioWizardStep.usage, 'choisir l’usage');
     _state = _state.copyWith(
-      wizardStep: SmartTileStudioWizardStep.grid,
-      gridGeometry: detectedGeometry,
+      usage: usage,
+      clearGuide: true,
+      clearSource: true,
+      clearGrid: true,
+      clearAnchor: true,
     );
   }
 
-  void updateGrid(SmartTileGridGeometry geometry) {
-    if (_state.wizardStep != SmartTileStudioWizardStep.grid) {
-      throw StateError('Grid can only be edited during the Grid step.');
+  void moveToGuide() {
+    _requireStep(SmartTileStudioWizardStep.usage, 'ouvrir les guides');
+    if (_state.usage == null) {
+      throw StateError('Choisissez un usage avant le guide.');
     }
-    _state = _state.copyWith(gridGeometry: geometry);
+    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.guide);
   }
 
-  void moveToUsage() {
-    if (_state.wizardStep != SmartTileStudioWizardStep.grid ||
-        _state.gridGeometry == null) {
-      throw StateError('Configure the Smart Tile grid before choosing usage.');
+  void chooseGuide(SmartTileGuideId guideId) {
+    _requireStep(SmartTileStudioWizardStep.guide, 'choisir un guide');
+    final usage = _state.usage;
+    final guide = smartTileGuideById(guideId);
+    if (usage == null || !guide.supportedUsages.contains(usage)) {
+      throw StateError('Ce guide ne convient pas à l’usage choisi.');
     }
-    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.usage);
+    _state = _state.copyWith(
+      guideId: guideId,
+      clearSource: true,
+      clearGrid: true,
+      clearAnchor: true,
+    );
   }
 
-  void chooseUsage(SmartTileUsage usage) {
-    if (_state.wizardStep != SmartTileStudioWizardStep.usage) {
-      throw StateError('Usage can only be chosen during the Usage step.');
+  void moveToPlacement() {
+    _requireStep(SmartTileStudioWizardStep.guide, 'ouvrir le placement');
+    if (_state.guideId == null) {
+      throw StateError('Choisissez un guide avant son placement.');
     }
-    _state = _state.copyWith(usage: usage);
+    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.placement);
   }
 
-  void moveToMapping() {
-    if (_state.wizardStep != SmartTileStudioWizardStep.usage ||
-        _state.usage == null) {
-      throw StateError('Choose a Smart Tile usage before mapping.');
+  void chooseSource(SmartTileStudioSourceChoice choice) {
+    _requireStep(SmartTileStudioWizardStep.placement, 'choisir une source');
+    _state = _state.copyWith(
+      sourceChoice: choice,
+      clearGrid: true,
+      clearAnchor: true,
+    );
+  }
+
+  void configureGrid(SmartTileGridGeometry geometry) {
+    _requireStep(SmartTileStudioWizardStep.placement, 'configurer la grille');
+    if (_state.sourceChoice == null) {
+      throw StateError('Choisissez une image avant de configurer sa grille.');
     }
-    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.mapping);
+    if (geometry.columns <= 0 || geometry.rows <= 0) {
+      throw ArgumentError('La grille doit contenir au moins une cellule.');
+    }
+    _state = _state.copyWith(gridGeometry: geometry, clearAnchor: true);
+  }
+
+  void updateGrid(SmartTileGridGeometry geometry) => configureGrid(geometry);
+
+  void placeGuide({required int anchorColumn, required int anchorRow}) {
+    _requireStep(SmartTileStudioWizardStep.placement, 'placer le guide');
+    final guideId = _state.guideId;
+    final geometry = _state.gridGeometry;
+    if (guideId == null || geometry == null || _state.sourceChoice == null) {
+      throw StateError('Choisissez la source et confirmez sa grille.');
+    }
+    final placement = placeSmartTileGuide(
+      guide: smartTileGuideById(guideId),
+      geometry: geometry,
+      anchorColumn: anchorColumn,
+      anchorRow: anchorRow,
+    );
+    if (!placement.isValid) {
+      throw StateError(
+        'Le guide dépasse l’atlas pour les cellules '
+        '${placement.outOfBoundsNumbers.join(', ')}.',
+      );
+    }
+    _state = _state.copyWith(
+      anchor: SmartTileAtlasAnchor(
+        column: anchorColumn,
+        row: anchorRow,
+      ),
+    );
+  }
+
+  void clearAnchor() {
+    _requireStep(SmartTileStudioWizardStep.placement, 'effacer le placement');
+    _state = _state.copyWith(clearAnchor: true);
+  }
+
+  void resetPlacementSource() {
+    _requireStep(SmartTileStudioWizardStep.placement, 'changer de source');
+    _state = _state.copyWith(
+      clearSource: true,
+      clearGrid: true,
+      clearAnchor: true,
+    );
   }
 
   void moveToTest() {
-    if (_state.wizardStep != SmartTileStudioWizardStep.mapping) {
-      throw StateError('Configure Smart Tile mappings before testing.');
+    _requireStep(SmartTileStudioWizardStep.placement, 'ouvrir le banc d’essai');
+    if (_state.sourceChoice == null ||
+        _state.gridGeometry == null ||
+        _state.anchor == null) {
+      throw StateError('Placez entièrement le guide avant de le tester.');
     }
     _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.test);
+  }
+
+  void moveToPublish() {
+    _requireStep(SmartTileStudioWizardStep.test, 'ouvrir la publication');
+    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.publish);
+  }
+
+  void returnToUsage() {
+    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.usage);
+  }
+
+  void returnToGuide() {
+    if (_state.usage == null) {
+      throw StateError('Aucun usage à conserver.');
+    }
+    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.guide);
+  }
+
+  void returnToPlacement() {
+    if (_state.guideId == null) {
+      throw StateError('Aucun guide à replacer.');
+    }
+    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.placement);
+  }
+
+  void _requireStep(SmartTileStudioWizardStep expected, String action) {
+    if (!_state.isCreating || _state.wizardStep != expected) {
+      throw StateError('Impossible de $action pendant cette étape.');
+    }
   }
 }

@@ -26,6 +26,29 @@ void main() {
       );
     });
 
+    test('Corner 12 exposes the connected ERW corner signatures', () {
+      final masks = smartTileCanonicalMasks(SmartTileTemplateHint.corner12);
+
+      expect(
+        masks,
+        <int>[
+          0x10,
+          0x20,
+          0x30,
+          0x40,
+          0x60,
+          0x70,
+          0x80,
+          0x90,
+          0xB0,
+          0xC0,
+          0xD0,
+          0xE0,
+        ],
+      );
+      expect(masks, isNot(containsAll(<int>[0x00, 0x50, 0xA0, 0xF0])));
+    });
+
     test('Blob 47 normalizes all 256 neighborhoods into 47 signatures', () {
       final canonical = smartTileCanonicalMasks(
         SmartTileTemplateHint.blob47,

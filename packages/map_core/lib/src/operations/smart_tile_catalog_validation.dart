@@ -214,14 +214,17 @@ final class _SmartTileCatalogValidator {
             'the preset allowed-material list.',
       );
     }
+    final terrainVisualMaterials = preset.allowedMaterialIds
+        .where((id) => !(_materialsById[id]?.isEmpty ?? false))
+        .toList(growable: false);
     if (preset.usage == SmartTileUsage.terrain &&
-        (preset.allowedMaterialIds.length != 1 ||
-            preset.allowedMaterialIds.singleOrNull !=
-                preset.defaultMaterialId)) {
+        (terrainVisualMaterials.length != 1 ||
+            terrainVisualMaterials.singleOrNull != preset.defaultMaterialId)) {
       _error(
         code: 'smart_tiles.terrain.material_count',
         path: '$path.allowedMaterialIds',
-        message: 'Terrain presets require exactly their default material.',
+        message: 'Terrain presets require exactly their default visual '
+            'material; explicit empty materials are allowed.',
       );
     }
   }

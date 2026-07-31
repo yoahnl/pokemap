@@ -58,15 +58,16 @@ void main() {
     final worldMaps = find.text('World Maps');
     final borderCard =
         find.byKey(const ValueKey<String>('border-studio-module-card'));
-    final terrainLibrary = find.text('Terrain Library');
+    final smartTiles =
+        find.byKey(const ValueKey<String>('smart-tiles-studio-module-card'));
     expect(worldMaps, findsOneWidget);
     expect(borderCard, findsOneWidget);
-    expect(terrainLibrary, findsOneWidget);
+    expect(smartTiles, findsOneWidget);
     expect(tester.getTopLeft(worldMaps).dy,
         lessThan(tester.getTopLeft(borderCard).dy));
     expect(
       tester.getTopLeft(borderCard).dy,
-      lessThan(tester.getTopLeft(terrainLibrary).dy),
+      lessThan(tester.getTopLeft(smartTiles).dy),
     );
 
     await tester.tap(borderCard);

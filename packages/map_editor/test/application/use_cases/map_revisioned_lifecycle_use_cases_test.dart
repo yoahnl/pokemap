@@ -33,9 +33,8 @@ void main() {
           fixture.maps.revisionedSaves.single.path, '/project/maps/alpha.json');
       expect(
         fixture.maps.revisionedSaves.single.map.version,
-        ProjectVersion.v3,
-        reason:
-            'old readers must reject canonical visual-stack semantics safely',
+        ProjectVersion.v4,
+        reason: 'new maps are ready for native Smart Tile layers',
       );
       expect(
         fixture.maps.revisionedSaves.single.map.visualStack,

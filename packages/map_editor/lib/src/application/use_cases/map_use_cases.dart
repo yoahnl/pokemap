@@ -114,7 +114,7 @@ class CreateMapUseCase {
       id: canonicalMapId,
       name: canonicalMapId,
       size: GridSize(width: w, height: h),
-      version: ProjectVersion.v3,
+      version: ProjectVersion.v4,
       visualStack: MapVisualStackConfig.canonicalV1,
       tilesetId: defaultTilesetId ?? '',
       layers: [
@@ -123,15 +123,6 @@ class CreateMapUseCase {
           name: 'Base',
           tilesetId: defaultTilesetId,
           tiles: List.filled(w * h, 0),
-        ),
-        MapLayer.terrain(
-          id: 'l_terrain',
-          name: 'Terrain',
-          terrains: List<TerrainType>.filled(
-            w * h,
-            TerrainType.none,
-            growable: false,
-          ),
         ),
         MapLayer.collision(
           id: 'l_collisions',

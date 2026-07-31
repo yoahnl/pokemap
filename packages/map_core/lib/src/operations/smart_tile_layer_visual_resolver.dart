@@ -123,13 +123,20 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
         if (frame == null) continue;
         final atlas = atlases[frame.atlasId];
         if (atlas == null) continue;
+        final sampledFrame = _sampleVisualFrame(
+          frame: frame,
+          sampling: part.frameSampling,
+          cellX: x,
+          cellY: y,
+          deterministicHash: resolution.deterministicHash ?? 0,
+        );
         SmartTileSourceRect sourceRect;
         try {
           sourceRect = atlas.sourceRectFor(
-            column: frame.column,
-            row: frame.row,
-            columnSpan: frame.columnSpan,
-            rowSpan: frame.rowSpan,
+            column: sampledFrame.column,
+            row: sampledFrame.row,
+            columnSpan: sampledFrame.columnSpan,
+            rowSpan: sampledFrame.rowSpan,
           );
         } on RangeError {
           continue;
@@ -164,6 +171,44 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
     return a.cellX.compareTo(b.cellX);
   });
   return List<SmartTileLayerVisual>.unmodifiable(visuals);
+}
+
+SmartTileFrameRef _sampleVisualFrame({
+  required SmartTileFrameRef frame,
+  required SmartTileFrameSampling sampling,
+  required int cellX,
+  required int cellY,
+  required int deterministicHash,
+}) {
+  if (sampling == SmartTileFrameSampling.fullFrame ||
+      frame.columnSpan == 1 && frame.rowSpan == 1) {
+    return frame;
+  }
+  final (columnOffset, rowOffset) = switch (sampling) {
+    SmartTileFrameSampling.fullFrame => (0, 0),
+    SmartTileFrameSampling.tessellated => (
+        _positiveModulo(cellX, frame.columnSpan),
+        _positiveModulo(cellY, frame.rowSpan),
+      ),
+    SmartTileFrameSampling.stableRandom => () {
+        final index = _positiveModulo(
+          deterministicHash,
+          frame.columnSpan * frame.rowSpan,
+        );
+        return (index % frame.columnSpan, index ~/ frame.columnSpan);
+      }(),
+  };
+  return frame.copyWith(
+    column: frame.column + columnOffset,
+    row: frame.row + rowOffset,
+    columnSpan: 1,
+    rowSpan: 1,
+  );
+}
+
+int _positiveModulo(int value, int modulus) {
+  final result = value % modulus;
+  return result < 0 ? result + modulus : result;
 }
 
 SmartTileNeighborhood smartTileNeighborhoodForLayerCell({

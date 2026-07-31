@@ -9,9 +9,13 @@ import '../../../ui/design_system/design_system.dart';
 import '../application/smart_tile_atlas_image_loader.dart';
 import '../application/smart_tile_authoring_controller.dart';
 import '../application/smart_tile_grid_detector.dart';
+import '../application/smart_tile_guide.dart';
+import '../application/smart_tile_guide_placement.dart';
 import '../application/smart_tile_publication_service.dart';
 import '../application/smart_tile_studio_library.dart';
 import '../application/smart_tile_studio_session.dart';
+import 'smart_tile_guide_diagram.dart';
+import 'smart_tile_guide_overlay_painter.dart';
 
 enum SmartTilesStudioTab { atlas, rules, animations, testBench, validation }
 
@@ -55,6 +59,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   int? _selectedMask;
   SmartTileFrameRef? _lastMappedFrame;
   String? _lastCandidateId;
+  SmartTileGuidePlacementResult? _guidePlacement;
+  int? _correctionNumber;
+  String? _placementMessage;
   String? _draftMessage;
   String? _focusedRuleId;
   int? _focusedMask;
@@ -439,16 +446,17 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           }).toList(growable: false),
         ),
         const SizedBox(height: 22),
-        if (_session.state.wizardStep == SmartTileStudioWizardStep.source)
-          _buildSourceStep()
-        else if (_session.state.wizardStep == SmartTileStudioWizardStep.grid)
-          _buildGridStep()
-        else if (_session.state.wizardStep == SmartTileStudioWizardStep.usage)
+        if (_session.state.wizardStep == SmartTileStudioWizardStep.usage)
           _buildUsageStep()
-        else if (_session.state.wizardStep == SmartTileStudioWizardStep.mapping)
-          _buildMappingStep()
-        else
+        else if (_session.state.wizardStep == SmartTileStudioWizardStep.guide)
+          _buildGuideStep()
+        else if (_session.state.wizardStep ==
+            SmartTileStudioWizardStep.placement)
+          _buildPlacementStep()
+        else if (_session.state.wizardStep == SmartTileStudioWizardStep.test)
           _buildTestStep(),
+        if (_session.state.wizardStep == SmartTileStudioWizardStep.publish)
+          _buildPublishStep(),
       ],
     );
   }
@@ -466,7 +474,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
               'PokeMap référence une image du projet, jamais un chemin machine.',
         ),
         const SizedBox(height: 10),
-        for (final choice in SmartTileStudioSourceChoice.values) ...[
+        for (final choice in const <SmartTileStudioSourceChoice>[
+          SmartTileStudioSourceChoice.projectImage,
+          SmartTileStudioSourceChoice.registeredAtlas,
+        ]) ...[
           PokeMapAssetCard(
             thumbnail: Icon(_sourceChoiceIcon(choice), size: 22),
             label: _sourceChoiceLabel(choice),
@@ -533,7 +544,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
             key: const Key('smart-tiles-next-step'),
             onPressed: _canMoveToGrid ? _moveToGrid : null,
             trailing: const Icon(CupertinoIcons.chevron_right, size: 14),
-            child: const Text('Configurer la grille'),
+            child: const Text('Détecter la grille'),
           ),
         ),
       ],
@@ -654,14 +665,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           geometry: geometry,
           onChanged: _updateGridValue,
         ),
-        const SizedBox(height: 18),
-        Align(
+        const SizedBox(height: 12),
+        const Align(
           alignment: Alignment.centerRight,
-          child: PokeMapButton(
-            key: const Key('smart-tiles-grid-next-step'),
-            onPressed: _moveToUsage,
-            trailing: const Icon(CupertinoIcons.chevron_right, size: 14),
-            child: const Text('Choisir l’usage'),
+          child: PokeMapBadge(
+            label: 'Grille prête pour le placement',
+            variant: PokeMapBadgeVariant.success,
           ),
         ),
       ],
@@ -683,51 +692,215 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
             key: Key('smart-tiles-usage-${usage.name}'),
             thumbnail: Icon(_usageIcon(usage), size: 22),
             label: _usageLabel(usage),
-            description: _usageDescription(usage),
+            description: usage == SmartTileUsage.path
+                ? _usageDescription(usage)
+                : '${_usageDescription(usage)} Guide guidé à venir.',
             selected: _session.state.usage == usage,
-            onPressed: () => _selectUsage(usage),
+            onPressed:
+                usage == SmartTileUsage.path ? () => _selectUsage(usage) : null,
           ),
           const SizedBox(height: 8),
-        ],
-        if (_session.state.usage != null) ...[
-          const SizedBox(height: 8),
-          const PokeMapSectionHeader(
-            title: 'Gabarit natif',
-            description:
-                'Le layout de l’image reste libre : le gabarit décrit seulement les règles attendues.',
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: <Widget>[
-              for (final template in _templatesForUsage(_session.state.usage!))
-                PokeMapButton(
-                  key: Key('smart-tiles-template-${template.name}'),
-                  onPressed: () => _selectTemplate(template),
-                  variant: PokeMapButtonVariant.ghost,
-                  size: PokeMapButtonSize.small,
-                  isSelected: _authoring.state.templateHint == template,
-                  child: Text(_templateLabel(template)),
-                ),
-            ],
-          ),
         ],
         const SizedBox(height: 12),
         Align(
           alignment: Alignment.centerRight,
           child: PokeMapButton(
             key: const Key('smart-tiles-usage-next-step'),
-            onPressed: _session.state.usage == null ? null : _moveToMapping,
+            onPressed: _session.state.usage == null ? null : _moveToGuide,
             trailing: const Icon(CupertinoIcons.chevron_right, size: 14),
-            child: const Text('Configurer le mapping'),
+            child: const Text('Choisir un guide'),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildMappingStep() {
+  Widget _buildGuideStep() {
+    final usage = _session.state.usage!;
+    final guides = smartTileGuidesForUsage(usage);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const PokeMapSectionHeader(
+          title: 'Reconnaître la disposition',
+          description:
+              'Choisissez le dessin qui ressemble à l’organisation de votre atlas. Aucun code technique à saisir.',
+        ),
+        const SizedBox(height: 12),
+        if (guides.isEmpty)
+          const PokeMapEmptyState(
+            title: 'Aucun guide guidé pour cet usage',
+            description:
+                'Ce parcours sera ajouté dans un lot dédié ; PokeMap ne prétend pas deviner un format inconnu.',
+          )
+        else
+          for (final guide in guides) ...[
+            PokeMapAssetCard(
+              key: Key('smart-tiles-guide-${guide.id.name}'),
+              thumbnail: SmartTileGuideDiagram(
+                guide: guide,
+                compact: true,
+              ),
+              label: guide.name,
+              description: guide.description,
+              selected: _session.state.guideId == guide.id,
+              onPressed: () => _selectGuide(guide.id),
+            ),
+            const SizedBox(height: 8),
+          ],
+        const SizedBox(height: 14),
+        Align(
+          alignment: Alignment.centerRight,
+          child: PokeMapButton(
+            key: const Key('smart-tiles-guide-next-step'),
+            onPressed: _session.state.guideId == null ? null : _moveToPlacement,
+            trailing: const Icon(CupertinoIcons.chevron_right, size: 14),
+            child: const Text('Placer sur l’atlas'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlacementStep() {
+    if (_session.state.gridGeometry == null) {
+      return _buildSourceStep();
+    }
+    final guideId = _session.state.guideId;
+    if (guideId == null) {
+      return const PokeMapEmptyState(
+        title: 'Guide manquant',
+        description: 'Revenez à l’étape Guide avant de placer l’atlas.',
+      );
+    }
+    if (guideId != SmartTileGuideId.erwCorner16) {
+      return _buildLegacyMappingStep();
+    }
+    return _buildGuidedPlacementMapping(smartTileGuideById(guideId));
+  }
+
+  Widget _buildGuidedPlacementMapping(SmartTileGuideDefinition guide) {
+    final geometry = _session.state.gridGeometry!;
+    final placement = _guidePlacement;
+    final mappedCount = _authoring.state.mappings.length;
+    final placedCellCount = placement?.frames.length ?? 0;
+    final isComplete = placement?.isValid == true &&
+        placedCellCount == guide.cells.length &&
+        mappedCount == guide.requiredMasks.length &&
+        smartTileCanonicalMasks(guide.templateHint)
+            .every(_authoring.state.mappings.containsKey);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        PokeMapSectionHeader(
+          title: 'Placer ${guide.name}',
+          description:
+              'Cliquez sur la cellule nº 1 de votre atlas. Les quinze autres associations seront posées ensemble.',
+          trailing: PokeMapBadge(
+            label: '$placedCellCount cellules • $mappedCount raccords',
+            variant: isComplete
+                ? PokeMapBadgeVariant.success
+                : PokeMapBadgeVariant.warning,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 16,
+          runSpacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: <Widget>[
+            SmartTileGuideDiagram(guide: guide),
+            SizedBox(
+              width: 360,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    'La case 1 est l’ancre. Le contour numéroté apparaît sur l’image avant l’essai.',
+                    style: TextStyle(
+                      color: context.pokeMapColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  PokeMapButton(
+                    key: const Key('smart-tiles-change-source'),
+                    onPressed: _resetPlacementSource,
+                    variant: PokeMapButtonVariant.secondary,
+                    size: PokeMapButtonSize.small,
+                    child: const Text('Changer d’atlas'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        _buildGridStep(),
+        const SizedBox(height: 18),
+        _SmartTileAtlasMappingViewport(
+          geometry: geometry,
+          image: _sourceImageResult?.image,
+          selectedFrame: null,
+          enabled: true,
+          guide: guide,
+          placement: placement,
+          onCellSelected: (cell) => _selectGuideAtlasCell(
+            guide: guide,
+            column: cell.column,
+            row: cell.row,
+          ),
+        ),
+        if (_placementMessage != null) ...[
+          const SizedBox(height: 10),
+          PokeMapBadge(
+            label: _placementMessage!,
+            variant: isComplete
+                ? PokeMapBadgeVariant.success
+                : PokeMapBadgeVariant.warning,
+          ),
+        ],
+        if (placement?.isValid == true) ...[
+          const SizedBox(height: 16),
+          const PokeMapSectionHeader(
+            title: 'Corriger une cellule',
+            description:
+                'Optionnel : choisissez son numéro, puis cliquez sa vraie position dans l’atlas.',
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: <Widget>[
+              for (final cell in guide.cells)
+                PokeMapButton(
+                  key: Key('smart-tiles-correction-${cell.number}'),
+                  onPressed: () => setState(() {
+                    _correctionNumber =
+                        _correctionNumber == cell.number ? null : cell.number;
+                  }),
+                  variant: PokeMapButtonVariant.ghost,
+                  size: PokeMapButtonSize.small,
+                  isSelected: _correctionNumber == cell.number,
+                  child: Text('Case ${cell.number} — ${cell.roleLabel}'),
+                ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 18),
+        Align(
+          alignment: Alignment.centerRight,
+          child: PokeMapButton(
+            key: const Key('smart-tiles-mapping-next-step'),
+            onPressed: isComplete ? _moveToTest : null,
+            trailing: const Icon(CupertinoIcons.chevron_right, size: 14),
+            child: const Text('Ouvrir le banc d’essai'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLegacyMappingStep() {
     final geometry = _session.state.gridGeometry!;
     final template = _authoring.state.templateHint;
     final masks = smartTileCanonicalMasks(template);
@@ -819,35 +992,145 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   }
 
   Widget _buildTestStep() {
-    final mappedCount = _authoring.state.mappings.length;
-    final parts = _authoring.state.mappings.values
-        .expand((candidates) => candidates)
-        .expand((candidate) => candidate.parts)
+    final catalog = _authoring.compileCatalog();
+    final preset = catalog.presets.single;
+    final results = runSmartTileTemplateBench(
+      preset: preset,
+      materials: catalog.materials,
+      materialId: preset.defaultMaterialId,
+      mapId: 'guided-authoring-bench',
+      layerId: preset.id,
+    );
+    final resolved = results
+        .where(
+          (result) =>
+              result.resolution.status == SmartTileResolutionStatus.resolved,
+        )
         .length;
+    final isComplete = results.isNotEmpty && resolved == results.length;
+    final guide = smartTileGuideById(_session.state.guideId!);
+    final variantCount = guide.cells.length - guide.requiredMasks.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         PokeMapSectionHeader(
-          title: 'Brouillon prêt pour le banc d’essai',
+          title: 'Banc d’essai du chemin',
           description:
-              '$mappedCount signature(s), $parts partie(s) visuelle(s), '
-              '${_authoring.state.animations.length} animation(s).',
+              'PokeMap vérifie les mêmes raccords que ceux utilisés sur une vraie map.',
+          trailing: PokeMapBadge(
+            label: '$resolved / ${results.length} résolus',
+            variant: isComplete
+                ? PokeMapBadgeVariant.success
+                : PokeMapBadgeVariant.error,
+          ),
         ),
         const SizedBox(height: 14),
+        PokeMapBadge(
+          label: isComplete
+              ? 'Aucune forme manquante'
+              : '${results.length - resolved} forme(s) manquante(s)',
+          variant: isComplete
+              ? PokeMapBadgeVariant.success
+              : PokeMapBadgeVariant.error,
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: <Widget>[
+            const PokeMapBadge(label: '4 coins extérieurs'),
+            const PokeMapBadge(label: '4 bords'),
+            const PokeMapBadge(label: '4 coins intérieurs'),
+            PokeMapBadge(label: '$variantCount variantes supplémentaires'),
+          ],
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: PokeMapButton(
+            key: const Key('smart-tiles-go-to-publish'),
+            onPressed: isComplete ? _moveToPublish : null,
+            trailing: const Icon(CupertinoIcons.chevron_right, size: 14),
+            child: const Text('Vérifier avant publication'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPublishStep() {
+    final guide = smartTileGuideById(_session.state.guideId!);
+    final geometry = _session.state.gridGeometry!;
+    final staged = _authoring.applyToManifest(widget.manifest);
+    final result = _publicationService.publish(
+      manifest: staged,
+      presetId: _authoring.state.id,
+    );
+    final blocking = result.diagnostics.where((item) => item.isError).length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        PokeMapSectionHeader(
+          title: 'Publier le Smart Tile',
+          description:
+              'Dernière vérification humaine avant d’ajouter le preset au projet.',
+          trailing: PokeMapBadge(
+            label: blocking == 0
+                ? 'Publication autorisée'
+                : '$blocking erreur(s) bloquante(s)',
+            variant: blocking == 0
+                ? PokeMapBadgeVariant.success
+                : PokeMapBadgeVariant.error,
+          ),
+        ),
+        const SizedBox(height: 14),
+        PokeMapPanel(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _InspectorValue(label: 'Nom', value: _authoring.state.name),
+              const SizedBox(height: 8),
+              const _InspectorValue(label: 'Usage', value: 'Chemin'),
+              const SizedBox(height: 8),
+              _InspectorValue(
+                label: 'Atlas',
+                value: _authoring.state.atlasName,
+              ),
+              const SizedBox(height: 8),
+              _InspectorValue(
+                label: 'Grille',
+                value:
+                    '${geometry.cellWidth} × ${geometry.cellHeight} px — ${geometry.columns} × ${geometry.rows} cellules',
+              ),
+              const SizedBox(height: 8),
+              _InspectorValue(label: 'Guide', value: guide.name),
+              const SizedBox(height: 8),
+              _InspectorValue(
+                label: 'Associations',
+                value: '${guide.cells.length} cellules • '
+                    '${guide.requiredMasks.length} raccords • '
+                    '${guide.cells.length - guide.requiredMasks.length} variantes',
+              ),
+            ],
+          ),
+        ),
         if (_draftMessage != null) ...[
+          const SizedBox(height: 10),
           PokeMapBadge(
             label: _draftMessage!,
             variant: PokeMapBadgeVariant.warning,
           ),
-          const SizedBox(height: 12),
         ],
+        const SizedBox(height: 16),
         Align(
           alignment: Alignment.centerRight,
           child: PokeMapButton(
-            key: const Key('smart-tiles-save-draft'),
-            onPressed: widget.onManifestChanged == null ? null : _saveDraft,
-            leading: const Icon(CupertinoIcons.archivebox, size: 15),
-            child: const Text('Enregistrer le brouillon'),
+            key: const Key('smart-tiles-publish-guided'),
+            onPressed: blocking == 0 && widget.onManifestChanged != null
+                ? _publishDraft
+                : null,
+            leading: const Icon(CupertinoIcons.check_mark_circled, size: 15),
+            child: const Text('Publier et utiliser dans une map'),
           ),
         ),
       ],
@@ -1177,6 +1460,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _selectedMask = null;
       _lastMappedFrame = null;
       _lastCandidateId = null;
+      _guidePlacement = null;
+      _correctionNumber = null;
+      _placementMessage = null;
       _draftMessage = null;
       _clearSourceImageSelection();
       _selectedRegisteredAtlasId = null;
@@ -1349,7 +1635,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     };
     _setGridControllers(detected);
     _configureDraftAtlas(detected);
-    setState(() => _session.moveToGrid(detectedGeometry: detected));
+    setState(() => _session.configureGrid(detected));
   }
 
   void _setGridControllers(SmartTileGridGeometry geometry) {
@@ -1388,11 +1674,17 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _ => current,
     };
     _configureDraftAtlas(next);
-    setState(() => _session.updateGrid(next));
+    setState(() {
+      _session.updateGrid(next);
+      _guidePlacement = null;
+      _correctionNumber = null;
+      _placementMessage = 'Grille modifiée : replacez la cellule nº 1.';
+      _authoring.clearMappings();
+    });
   }
 
-  void _moveToUsage() {
-    setState(_session.moveToUsage);
+  void _moveToGuide() {
+    setState(_session.moveToGuide);
   }
 
   void _selectUsage(SmartTileUsage usage) {
@@ -1402,20 +1694,101 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _selectedMask = null;
       _lastMappedFrame = null;
       _lastCandidateId = null;
+      _guidePlacement = null;
+      _correctionNumber = null;
+      _placementMessage = null;
     });
   }
 
-  void _selectTemplate(SmartTileTemplateHint template) {
+  void _selectGuide(SmartTileGuideId guideId) {
     setState(() {
-      _authoring.selectTemplate(template);
-      _selectedMask = null;
-      _lastMappedFrame = null;
-      _lastCandidateId = null;
+      _session.chooseGuide(guideId);
+      _guidePlacement = null;
+      _correctionNumber = null;
+      _placementMessage = null;
+      _authoring.clearMappings();
     });
   }
 
-  void _moveToMapping() {
-    setState(_session.moveToMapping);
+  void _moveToPlacement() {
+    setState(_session.moveToPlacement);
+  }
+
+  void _resetPlacementSource() {
+    setState(() {
+      _session.resetPlacementSource();
+      _clearSourceImageSelection();
+      _selectedRegisteredAtlasId = null;
+      _guidePlacement = null;
+      _correctionNumber = null;
+      _placementMessage = null;
+      _authoring.clearMappings();
+    });
+  }
+
+  void _selectGuideAtlasCell({
+    required SmartTileGuideDefinition guide,
+    required int column,
+    required int row,
+  }) {
+    final correctionNumber = _correctionNumber;
+    final currentPlacement = _guidePlacement;
+    if (correctionNumber != null && currentPlacement?.isValid == true) {
+      final guideCell = guide.cellByNumber(correctionNumber);
+      _authoring.replaceAtlasCandidate(
+        mask: guideCell.mask,
+        column: column,
+        row: row,
+        candidateId: 'guide_cell_${guideCell.number}',
+      );
+      final correctedFrames = <SmartTileGuidePlacedFrame>[
+        for (final frame in currentPlacement!.frames)
+          if (frame.guideCell.number == correctionNumber)
+            SmartTileGuidePlacedFrame(
+              guideCell: frame.guideCell,
+              column: column,
+              row: row,
+            )
+          else
+            frame,
+      ];
+      setState(() {
+        _guidePlacement = SmartTileGuidePlacementResult(
+          frames: correctedFrames,
+          outOfBoundsNumbers: const <int>[],
+        );
+        _correctionNumber = null;
+        _placementMessage = 'Case $correctionNumber corrigée.';
+      });
+      return;
+    }
+
+    final placement = placeSmartTileGuide(
+      guide: guide,
+      geometry: _session.state.gridGeometry!,
+      anchorColumn: column,
+      anchorRow: row,
+    );
+    if (!placement.isValid) {
+      setState(() {
+        _guidePlacement = placement;
+        _correctionNumber = null;
+        _placementMessage =
+            'Le guide dépasse l’atlas (cases ${placement.outOfBoundsNumbers.join(', ')}). Choisissez la vraie case nº 1.';
+        _authoring.clearMappings();
+        _session.clearAnchor();
+      });
+      return;
+    }
+
+    _session.placeGuide(anchorColumn: column, anchorRow: row);
+    _authoring.applyGuidePlacement(guide: guide, placement: placement);
+    setState(() {
+      _guidePlacement = placement;
+      _correctionNumber = null;
+      _placementMessage =
+          '${placement.frames.length} cellules associées — prêt pour le banc d’essai.';
+    });
   }
 
   void _mapAtlasCell({
@@ -1477,16 +1850,34 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     setState(_session.moveToTest);
   }
 
-  void _saveDraft() {
+  void _moveToPublish() {
+    setState(_session.moveToPublish);
+  }
+
+  void _publishDraft() {
     try {
-      final next = _authoring.applyToManifest(widget.manifest);
-      widget.onManifestChanged?.call(next);
+      final staged = _authoring.applyToManifest(widget.manifest);
+      final result = _publicationService.publish(
+        manifest: staged,
+        presetId: _authoring.state.id,
+      );
+      if (!result.published) {
+        setState(() {
+          _draftMessage =
+              'Publication bloquée : ${result.diagnostics.where((item) => item.isError).length} erreur(s).';
+        });
+        return;
+      }
+      widget.onManifestChanged?.call(result.manifest);
+      final publishedPreset = result.manifest.smartTileCatalog.presets
+          .singleWhere((preset) => preset.id == _authoring.state.id);
+      widget.onAddToActiveMap?.call(publishedPreset);
       setState(() {
-        _draftMessage = 'Brouillon Smart Tile ajouté au projet en mémoire.';
+        _draftMessage = 'Smart Tile publié et prêt pour une map.';
       });
     } on Object catch (error) {
       setState(() {
-        _draftMessage = 'Brouillon non enregistré : $error';
+        _draftMessage = 'Publication impossible : $error';
       });
     }
   }
@@ -1780,6 +2171,8 @@ class _SmartTileAtlasMappingViewport extends StatelessWidget {
     required this.selectedFrame,
     required this.enabled,
     required this.onCellSelected,
+    this.guide,
+    this.placement,
   });
 
   final SmartTileGridGeometry geometry;
@@ -1787,6 +2180,8 @@ class _SmartTileAtlasMappingViewport extends StatelessWidget {
   final SmartTileFrameRef? selectedFrame;
   final bool enabled;
   final ValueChanged<_SmartTileAtlasCell> onCellSelected;
+  final SmartTileGuideDefinition? guide;
+  final SmartTileGuidePlacementResult? placement;
 
   @override
   Widget build(BuildContext context) {
@@ -1868,6 +2263,22 @@ class _SmartTileAtlasMappingViewport extends StatelessWidget {
                           selectionBorderColor: colors.brandPrimary,
                         ),
                       ),
+                      if (guide != null && placement?.isValid == true)
+                        IgnorePointer(
+                          child: CustomPaint(
+                            key: const Key('smart-tiles-guide-overlay'),
+                            painter: SmartTileGuideOverlayPainter(
+                              geometry: geometry,
+                              placement: placement!,
+                              fillColor: colors.brandPrimarySoft
+                                  .withValues(alpha: 0.58),
+                              borderColor: colors.brandPrimary,
+                              anchorColor:
+                                  colors.success.withValues(alpha: 0.58),
+                              textColor: colors.textPrimary,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -2152,34 +2563,18 @@ String _templateLabel(SmartTileTemplateHint template) => switch (template) {
       SmartTileTemplateHint.legacy20 => 'Legacy 20',
       SmartTileTemplateHint.edge16 => 'Edge 16',
       SmartTileTemplateHint.corner16 => 'Corner 16',
+      SmartTileTemplateHint.corner12 => 'Corner 12',
       SmartTileTemplateHint.blob47 => 'Blob 47',
       SmartTileTemplateHint.mixed256 => 'Mixed 256',
       SmartTileTemplateHint.free => 'Libre',
     };
 
-List<SmartTileTemplateHint> _templatesForUsage(SmartTileUsage usage) =>
-    switch (usage) {
-      SmartTileUsage.terrain => const <SmartTileTemplateHint>[
-          SmartTileTemplateHint.edge16,
-        ],
-      SmartTileUsage.path => const <SmartTileTemplateHint>[
-          SmartTileTemplateHint.edge16,
-          SmartTileTemplateHint.corner16,
-          SmartTileTemplateHint.blob47,
-          SmartTileTemplateHint.mixed256,
-        ],
-      SmartTileUsage.forestSurface => const <SmartTileTemplateHint>[
-          SmartTileTemplateHint.blob47,
-          SmartTileTemplateHint.mixed256,
-        ],
-    };
-
 String _wizardStepLabel(SmartTileStudioWizardStep step) => switch (step) {
-      SmartTileStudioWizardStep.source => 'Source',
-      SmartTileStudioWizardStep.grid => 'Grille',
       SmartTileStudioWizardStep.usage => 'Usage',
-      SmartTileStudioWizardStep.mapping => 'Mapping',
-      SmartTileStudioWizardStep.test => 'Test',
+      SmartTileStudioWizardStep.guide => 'Guide',
+      SmartTileStudioWizardStep.placement => 'Placement',
+      SmartTileStudioWizardStep.test => 'Essai',
+      SmartTileStudioWizardStep.publish => 'Publier',
     };
 
 String _sourceChoiceLabel(SmartTileStudioSourceChoice? choice) =>

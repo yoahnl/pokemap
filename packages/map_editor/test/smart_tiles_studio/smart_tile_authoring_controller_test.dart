@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_authoring_controller.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_grid_detector.dart';
+import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_guide.dart';
+import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_guide_placement.dart';
 
 void main() {
   group('SmartTileAuthoringController', () {
@@ -19,6 +21,113 @@ void main() {
       controller.selectUsage(SmartTileUsage.forestSurface);
       expect(controller.state.topology, SmartTileTopology.blob8);
       expect(controller.state.templateHint, SmartTileTemplateHint.blob47);
+    });
+
+    test('groups sixteen guide cells into twelve native rules', () {
+      final controller = _largeConfiguredController()
+        ..selectUsage(SmartTileUsage.path);
+      final placement = placeSmartTileGuide(
+        guide: erwCorner16Guide,
+        geometry: controller.state.gridGeometry!,
+        anchorColumn: 20,
+        anchorRow: 20,
+      );
+
+      controller.applyGuidePlacement(
+        guide: erwCorner16Guide,
+        placement: placement,
+      );
+
+      expect(controller.state.templateHint, SmartTileTemplateHint.corner12);
+      expect(controller.state.topology, SmartTileTopology.wangCorner4);
+      expect(controller.state.mappings, hasLength(12));
+      expect(controller.compilePreset().rules, hasLength(12));
+      expect(
+        controller.compilePreset().rules.map((rule) => rule.id).toSet(),
+        smartTileCanonicalMasks(SmartTileTemplateHint.corner12)
+            .map(smartTileCanonicalRuleId)
+            .toSet(),
+      );
+      expect(
+        controller.state.mappings.values
+            .expand((candidates) => candidates)
+            .length,
+        16,
+      );
+      expect(controller.state.mappings[0x10], hasLength(2));
+      expect(controller.state.mappings[0x20], hasLength(2));
+      expect(controller.state.mappings[0x40], hasLength(2));
+      expect(controller.state.mappings[0x80], hasLength(2));
+    });
+
+    test('manual correction preserves sibling variants for the same mask', () {
+      final controller = _largeConfiguredController()
+        ..selectUsage(SmartTileUsage.path);
+      final placement = placeSmartTileGuide(
+        guide: erwCorner16Guide,
+        geometry: controller.state.gridGeometry!,
+        anchorColumn: 20,
+        anchorRow: 20,
+      );
+      controller.applyGuidePlacement(
+        guide: erwCorner16Guide,
+        placement: placement,
+      );
+      final correctedCell = erwCorner16Guide.cellByNumber(7);
+      final siblingBefore = controller.state.mappings[correctedCell.mask]!
+          .singleWhere((candidate) => candidate.id == 'guide_cell_5');
+
+      controller.replaceAtlasCandidate(
+        mask: correctedCell.mask,
+        column: 42,
+        row: 51,
+        candidateId: 'guide_cell_7',
+      );
+
+      expect(controller.state.mappings, hasLength(12));
+      final variants = controller.state.mappings[correctedCell.mask]!;
+      expect(variants, hasLength(2));
+      expect(
+        variants.singleWhere((candidate) => candidate.id == 'guide_cell_5'),
+        siblingBefore,
+      );
+      final corrected =
+          variants.singleWhere((candidate) => candidate.id == 'guide_cell_7');
+      expect(
+        (corrected.parts.single.source as SmartTileFrameSource).frame,
+        const SmartTileFrameRef(
+          atlasId: 'atlas-erw',
+          column: 42,
+          row: 51,
+        ),
+      );
+    });
+
+    test('invalid guide placement leaves every existing mapping untouched', () {
+      final controller = _largeConfiguredController()
+        ..selectUsage(SmartTileUsage.path)
+        ..addAtlasVariant(
+          mask: 0,
+          column: 4,
+          row: 4,
+          candidateId: 'keep-me',
+        );
+      final before = controller.state.mappings;
+      final placement = placeSmartTileGuide(
+        guide: erwCorner16Guide,
+        geometry: controller.state.gridGeometry!,
+        anchorColumn: 0,
+        anchorRow: 0,
+      );
+
+      expect(
+        () => controller.applyGuidePlacement(
+          guide: erwCorner16Guide,
+          placement: placement,
+        ),
+        throwsStateError,
+      );
+      expect(controller.state.mappings, same(before));
     });
 
     test('maps arbitrary atlas cells to weighted canonical variants', () {
@@ -202,6 +311,29 @@ SmartTileAuthoringController _configuredController() {
       geometry: const SmartTileGridGeometry(
         imageWidth: 320,
         imageHeight: 192,
+        cellWidth: 32,
+        cellHeight: 32,
+      ),
+    );
+  return controller;
+}
+
+SmartTileAuthoringController _largeConfiguredController() {
+  final controller = SmartTileAuthoringController.blank();
+  controller
+    ..configureIdentity(
+      id: 'hanazuki-erw',
+      name: 'Chemin ERW Hanazuki',
+      materialId: 'dirt',
+      materialName: 'Terre Hanazuki',
+    )
+    ..configureAtlas(
+      atlasId: 'atlas-erw',
+      atlasName: 'Atlas ERW',
+      tilesetId: 'tileset-erw',
+      geometry: const SmartTileGridGeometry(
+        imageWidth: 1760,
+        imageHeight: 2304,
         cellWidth: 32,
         cellHeight: 32,
       ),

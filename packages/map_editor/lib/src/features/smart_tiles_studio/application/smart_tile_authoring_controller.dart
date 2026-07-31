@@ -3,6 +3,8 @@ import 'dart:collection';
 import 'package:map_core/map_core.dart';
 
 import 'smart_tile_grid_detector.dart';
+import 'smart_tile_guide.dart';
+import 'smart_tile_guide_placement.dart';
 
 final class SmartTileAuthoringDraft {
   SmartTileAuthoringDraft({
@@ -170,8 +172,110 @@ final class SmartTileAuthoringController {
     );
   }
 
+  /// Replaces the current mapping with every cell from a validated guide.
+  ///
+  /// Validation happens before building the replacement map, so a rejected
+  /// placement cannot leave the draft half-configured.
+  void applyGuidePlacement({
+    required SmartTileGuideDefinition guide,
+    required SmartTileGuidePlacementResult placement,
+  }) {
+    if (!placement.isValid) {
+      throw StateError(
+        'Le guide dépasse l’atlas pour les cellules '
+        '${placement.outOfBoundsNumbers.join(', ')}.',
+      );
+    }
+    if (placement.frames.length != guide.cells.length) {
+      throw StateError('Le placement du guide est incomplet.');
+    }
+    final usage = _state.usage;
+    if (usage == null || !guide.supportedUsages.contains(usage)) {
+      throw StateError('Le guide sélectionné ne convient pas à cet usage.');
+    }
+
+    final mappings = <int, List<SmartTileCandidate>>{};
+    for (final placed in placement.frames) {
+      final cell = placed.guideCell;
+      mappings.putIfAbsent(cell.mask, () => <SmartTileCandidate>[]).add(
+            SmartTileCandidate(
+              id: 'guide_cell_${cell.number}',
+              parts: <SmartTileVisualPart>[
+                SmartTileVisualPart(
+                  source: SmartTileVisualSource.frame(
+                    frame: SmartTileFrameRef(
+                      atlasId: _state.atlasId,
+                      column: placed.column,
+                      row: placed.row,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+    }
+
+    _state = _state.copyWith(
+      topology: guide.topology,
+      templateHint: guide.templateHint,
+      mappings: mappings,
+    );
+  }
+
+  /// Replaces one visual candidate without deleting sibling variants.
+  void replaceAtlasCandidate({
+    required int mask,
+    required int column,
+    required int row,
+    required String candidateId,
+    SmartTileRenderChannel channel = SmartTileRenderChannel.ground,
+  }) {
+    _ensureAtlasCell(
+      column: column,
+      row: row,
+      columnSpan: 1,
+      rowSpan: 1,
+    );
+    final normalized = _normalizeMask(mask);
+    final candidates = List<SmartTileCandidate>.from(
+      _state.mappings[normalized] ?? const <SmartTileCandidate>[],
+    );
+    final candidateIndex =
+        candidates.indexWhere((candidate) => candidate.id == candidateId);
+    if (candidateIndex < 0) {
+      throw ArgumentError('Unknown Smart Tile candidate "$candidateId".');
+    }
+    final current = candidates[candidateIndex];
+    candidates[candidateIndex] = current.copyWith(
+      parts: <SmartTileVisualPart>[
+        SmartTileVisualPart(
+          source: SmartTileVisualSource.frame(
+            frame: SmartTileFrameRef(
+              atlasId: _state.atlasId,
+              column: column,
+              row: row,
+            ),
+          ),
+          channel: channel,
+        ),
+      ],
+    );
+    _state = _state.copyWith(
+      mappings: <int, List<SmartTileCandidate>>{
+        ..._state.mappings,
+        normalized: candidates,
+      },
+    );
+  }
+
   void setStatus(SmartTilePresetStatus status) {
     _state = _state.copyWith(status: status);
+  }
+
+  void clearMappings() {
+    _state = _state.copyWith(
+      mappings: const <int, List<SmartTileCandidate>>{},
+    );
   }
 
   void addAtlasVariant({

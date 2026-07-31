@@ -25,6 +25,20 @@ List<int> smartTileCanonicalMasks(SmartTileTemplateHint template) {
     SmartTileTemplateHint.corner16 => List<int>.unmodifiable(
         <int>[for (var mask = 0; mask < 16; mask++) mask << 4],
       ),
+    SmartTileTemplateHint.corner12 => const <int>[
+        0x10,
+        0x20,
+        0x30,
+        0x40,
+        0x60,
+        0x70,
+        0x80,
+        0x90,
+        0xB0,
+        0xC0,
+        0xD0,
+        0xE0,
+      ],
     SmartTileTemplateHint.blob47 => List<int>.unmodifiable(
         (<int>{
           for (var mask = 0; mask < 256; mask++)
@@ -73,7 +87,9 @@ SmartTileTopology smartTileTopologyForTemplate(
 ) {
   return switch (template) {
     SmartTileTemplateHint.edge16 => SmartTileTopology.wangEdge4,
-    SmartTileTemplateHint.corner16 => SmartTileTopology.wangCorner4,
+    SmartTileTemplateHint.corner16 ||
+    SmartTileTemplateHint.corner12 =>
+      SmartTileTopology.wangCorner4,
     SmartTileTemplateHint.blob47 => SmartTileTopology.blob8,
     SmartTileTemplateHint.mixed256 => SmartTileTopology.wang8,
     SmartTileTemplateHint.legacy20 => SmartTileTopology.cardinal4,

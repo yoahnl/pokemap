@@ -47,6 +47,36 @@ void main() {
       );
     });
 
+    test('complete ERW Corner 12 resolves its twelve logical scenarios', () {
+      final masks = smartTileCanonicalMasks(SmartTileTemplateHint.corner12);
+      final preset = _preset(
+        topology: SmartTileTopology.wangCorner4,
+        template: SmartTileTemplateHint.corner12,
+        rules: <SmartTileRule>[
+          for (final mask in masks)
+            _rule(mask, topology: SmartTileTopology.wangCorner4),
+        ],
+      );
+
+      final results = runSmartTileTemplateBench(
+        preset: preset,
+        materials: _materials,
+        materialId: 'grass',
+        mapId: 'bench',
+        layerId: 'erw-corner-12',
+      );
+
+      expect(results, hasLength(12));
+      expect(results.map((item) => item.mask).toSet(), masks.toSet());
+      expect(
+        results.every(
+          (item) =>
+              item.resolution.status == SmartTileResolutionStatus.resolved,
+        ),
+        isTrue,
+      );
+    });
+
     test('manual grid delegates cell resolution to the production resolver',
         () {
       final preset = _preset(
@@ -120,11 +150,15 @@ ProjectSmartTilePreset _preset({
   );
 }
 
-SmartTileRule _rule(int mask) => SmartTileRule(
+SmartTileRule _rule(
+  int mask, {
+  SmartTileTopology topology = SmartTileTopology.cardinal4,
+}) =>
+    SmartTileRule(
       id: smartTileCanonicalRuleId(mask),
       signature: smartTileSignatureForMask(
         mask,
-        topology: SmartTileTopology.cardinal4,
+        topology: topology,
       ),
       candidates: const <SmartTileCandidate>[
         SmartTileCandidate(

@@ -74,6 +74,26 @@ void main() {
       expect(encoded['surfaceCatalog'], isA<Map<String, Object?>>());
       expect(encoded['smartTileCatalog'], _nonEmptyCatalog.toJson());
     });
+
+    test('Corner 12 template hint survives JSON round-trip', () {
+      const preset = ProjectSmartTilePreset(
+        id: 'erw-corner-12',
+        name: 'ERW Corner 12',
+        usage: SmartTileUsage.path,
+        topology: SmartTileTopology.wangCorner4,
+        templateHint: SmartTileTemplateHint.corner12,
+        defaultMaterialId: 'grass',
+        allowedMaterialIds: <String>['grass'],
+      );
+
+      final encoded = preset.toJson();
+      final decoded = ProjectSmartTilePreset.fromJson(
+        jsonDecode(jsonEncode(encoded)) as Map<String, dynamic>,
+      );
+
+      expect(encoded['templateHint'], 'corner_12');
+      expect(decoded, preset);
+    });
   });
 }
 

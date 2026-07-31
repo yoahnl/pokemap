@@ -430,32 +430,35 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
               snapshot.workspaceMode == EditorWorkspaceMode.smartTilesStudio,
           onTap: notifier.selectSmartTilesStudioWorkspace,
         ),
-        ProjectExplorerModuleCard(
-          title: 'Terrain Library',
-          description: 'Presets de terrain de base',
-          icon: CupertinoIcons.map,
-          accentColor: colors.success,
-          count: project.terrainPresets.length,
-          selected: false,
-          expanded: _expandTerrains,
-          onExpandToggle: () =>
-              setState(() => _expandTerrains = !_expandTerrains),
-          expandedHeight: hTerrains,
-          child: const TerrainLibraryPanel(embedded: true),
-        ),
-        ProjectExplorerModuleCard(
-          title: 'Path Library',
-          description: 'Chemins hérités et recettes Path Studio',
-          icon: CupertinoIcons.arrow_branch,
-          accentColor: colors.warning,
-          countLabel:
-              '${project.pathPresets.length}/${project.pathPatternPresets.length}',
-          selected: snapshot.workspaceMode == EditorWorkspaceMode.pathStudio,
-          expanded: _expandPaths,
-          onExpandToggle: () => setState(() => _expandPaths = !_expandPaths),
-          expandedHeight: hPaths,
-          child: _buildPathLibraryCard(context, project, snapshot, notifier),
-        ),
+        if (project.terrainPresets.isNotEmpty)
+          ProjectExplorerModuleCard(
+            title: 'Terrain Library',
+            description: 'Compatibilité des anciens presets de terrain',
+            icon: CupertinoIcons.map,
+            accentColor: colors.success,
+            count: project.terrainPresets.length,
+            selected: false,
+            expanded: _expandTerrains,
+            onExpandToggle: () =>
+                setState(() => _expandTerrains = !_expandTerrains),
+            expandedHeight: hTerrains,
+            child: const TerrainLibraryPanel(embedded: true),
+          ),
+        if (project.pathPresets.isNotEmpty ||
+            project.pathPatternPresets.isNotEmpty)
+          ProjectExplorerModuleCard(
+            title: 'Path Library',
+            description: 'Compatibilité des chemins et recettes historiques',
+            icon: CupertinoIcons.arrow_branch,
+            accentColor: colors.warning,
+            countLabel:
+                '${project.pathPresets.length}/${project.pathPatternPresets.length}',
+            selected: snapshot.workspaceMode == EditorWorkspaceMode.pathStudio,
+            expanded: _expandPaths,
+            onExpandToggle: () => setState(() => _expandPaths = !_expandPaths),
+            expandedHeight: hPaths,
+            child: _buildPathLibraryCard(context, project, snapshot, notifier),
+          ),
         ProjectExplorerModuleCard(
           title: 'Environment Studio',
           description: 'Presets d’environnements réutilisables',

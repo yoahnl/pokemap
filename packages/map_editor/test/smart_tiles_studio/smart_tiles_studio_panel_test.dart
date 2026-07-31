@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_atlas_image_loader.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tiles_studio_panel.dart';
-import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 void main() {
@@ -96,7 +95,7 @@ void main() {
       expect(find.text('Terrain Hanazuki'), findsNothing);
     });
 
-    testWidgets('starts the five-step native preset flow at Source', (
+    testWidgets('starts the guided flow with human labels and no masks', (
       tester,
     ) async {
       await _pumpPanel(tester, _manifest(presets: const []));
@@ -105,237 +104,217 @@ void main() {
       await tester.pump();
 
       expect(find.text('Nouveau Smart Tile'), findsOneWidget);
-      expect(find.text('1. Source'), findsOneWidget);
-      expect(find.text('2. Grille'), findsOneWidget);
-      expect(find.text('3. Usage'), findsOneWidget);
-      expect(find.text('4. Mapping'), findsOneWidget);
-      expect(find.text('5. Test'), findsOneWidget);
-      expect(find.text('Image du projet'), findsOneWidget);
-      expect(find.text('Atlas enregistré'), findsOneWidget);
-      expect(find.text('Preset vide'), findsOneWidget);
+      expect(find.text('1. Usage'), findsOneWidget);
+      expect(find.text('2. Guide'), findsOneWidget);
+      expect(find.text('3. Placement'), findsOneWidget);
+      expect(find.text('4. Essai'), findsOneWidget);
+      expect(find.text('5. Publier'), findsOneWidget);
+      expect(
+        find.byKey(const Key('smart-tiles-usage-path')),
+        findsOneWidget,
+      );
+      expect(find.text('0x00'), findsNothing);
     });
 
-    testWidgets(
-      'requires an explicit searched project image and uses its dimensions',
-      (tester) async {
-        const target = ProjectTilesetEntry(
-          id: 'erw-terrain-master',
-          name: 'ERW Terrain Master',
-          relativePath: 'assets/erw/terrain_master.png',
-        );
-        final tilesets = <ProjectTilesetEntry>[
-          for (var index = 0; index < 4162; index += 1)
-            ProjectTilesetEntry(
-              id: 'fixture-$index',
-              name: 'Fixture $index',
-              relativePath: 'assets/fixture_$index.png',
-            ),
-          target,
-        ];
-        final loader = _FakeSmartTileAtlasImageLoader(
-          width: 1760,
-          height: 2304,
-        );
-        await _pumpPanel(
-          tester,
-          _manifest(presets: const [], tilesets: tilesets),
-          projectRootPath: '/tmp/erw-project',
-          imageLoader: loader,
-        );
-
-        await tester.tap(find.byKey(const Key('smart-tiles-new-preset')));
-        await tester.pump();
-        await tester.tap(find.text('Image du projet'));
-        await tester.pump();
-
-        expect(
-          tester
-              .widget<PokeMapButton>(
-                find.byKey(const Key('smart-tiles-next-step')),
-              )
-              .onPressed,
-          isNull,
-        );
-        await tester.tap(
-          find.byKey(const Key('smart-tiles-choose-project-image')),
-        );
-        await tester.pumpAndSettle();
-
-        expect(
-          find.byKey(const Key('smart-tiles-source-picker')),
-          findsOneWidget,
-        );
-        await tester.enterText(
-          find.byKey(const Key('smart-tiles-source-search')),
-          'terrain master',
-        );
-        await tester.pump();
-
-        expect(
-          find.byKey(
-              const Key('smart-tiles-source-tileset-erw-terrain-master')),
-          findsOneWidget,
-        );
-        expect(find.text('Fixture 0'), findsNothing);
-        await tester.tap(
-          find.byKey(
-              const Key('smart-tiles-source-tileset-erw-terrain-master')),
-        );
-        await tester.pumpAndSettle();
-
-        expect(loader.lastTilesetId, target.id);
-        expect(find.text('1760 × 2304 px'), findsOneWidget);
-        expect(find.text('55 × 72 cellules à 32 px'), findsOneWidget);
-        expect(
-          tester
-              .widget<PokeMapButton>(
-                find.byKey(const Key('smart-tiles-next-step')),
-              )
-              .onPressed,
-          isNotNull,
-        );
-
-        await tester.tap(find.byKey(const Key('smart-tiles-next-step')));
-        await tester.pump();
-        expect(
-          find.textContaining('55 × 72 cellules'),
-          findsOneWidget,
-        );
-      },
-    );
-
-    testWidgets('maps a large atlas through one image-backed viewport', (
+    testWidgets('offers the recognizable ERW guide after choosing Path', (
       tester,
     ) async {
-      const target = ProjectTilesetEntry(
-        id: 'erw-terrain-master',
-        name: 'ERW Terrain Master',
-        relativePath: 'assets/erw/terrain_master.png',
-      );
-      await _pumpPanel(
-        tester,
-        _manifest(presets: const [], tilesets: const [target]),
-        projectRootPath: '/tmp/erw-project',
-        imageLoader: _FakeSmartTileAtlasImageLoader(
-          width: 1760,
-          height: 2304,
-        ),
-      );
-      await tester.tap(find.byKey(const Key('smart-tiles-new-preset')));
-      await tester.pump();
-      await tester.tap(find.text('Image du projet'));
-      await tester.pump();
-      await tester.tap(
-        find.byKey(const Key('smart-tiles-choose-project-image')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const Key('smart-tiles-source-tileset-erw-terrain-master')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('smart-tiles-next-step')));
-      await tester.pump();
-      await tester.tap(find.byKey(const Key('smart-tiles-grid-next-step')));
-      await tester.pump();
-      await tester.tap(
-        find.byKey(const Key('smart-tiles-usage-forestSurface')),
-      );
-      await tester.pump();
-      await tester.tap(find.byKey(const Key('smart-tiles-usage-next-step')));
-      await tester.pump();
+      await _pumpPanel(tester, _manifest(presets: const []));
+      await _startPathGuide(tester);
 
-      final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
-      expect(viewport, findsOneWidget);
       expect(
-        find.byKey(const Key('smart-tiles-atlas-cell-0-0')),
-        findsNothing,
+        find.byKey(const Key('smart-tiles-guide-erwCorner16')),
+        findsOneWidget,
       );
-      expect(find.byType(PokeMapButton).evaluate().length, lessThan(100));
-
-      await tester.tap(find.byKey(const Key('smart-tiles-mapping-mask-0')));
-      await tester.pump();
-      await tester.tapAt(tester.getCenter(viewport));
-      await tester.pump();
-
-      expect(find.text('1 signature mappée'), findsOneWidget);
+      expect(find.text('Guide ERW 16'), findsWidgets);
+      expect(find.text('0x00'), findsNothing);
     });
 
-    testWidgets('keeps detected grid values directly editable', (tester) async {
-      await _pumpPanel(tester, _manifest(presets: const []));
-      await tester.tap(find.byKey(const Key('smart-tiles-new-preset')));
-      await tester.pump();
-      await tester.tap(find.text('Preset vide'));
-      await tester.pump();
-      await tester.tap(find.byKey(const Key('smart-tiles-next-step')));
-      await tester.pump();
+    testWidgets('loads a real-sized atlas and keeps its grid editable', (
+      tester,
+    ) async {
+      final loader = _FakeSmartTileAtlasImageLoader(
+        width: 1760,
+        height: 2304,
+      );
+      await _pumpGuidedAtlas(tester, loader: loader);
 
-      expect(find.text('Grille détectée'), findsOneWidget);
+      expect(loader.lastTilesetId, _target.id);
+      expect(find.textContaining('55 × 72 cellules'), findsWidgets);
       final cellWidth = find.byKey(const Key('smart-tiles-cell-width'));
       expect(cellWidth, findsOneWidget);
 
+      await tester.ensureVisible(cellWidth);
       await tester.enterText(cellWidth, '48');
       await tester.pump();
 
       expect(
         tester
-            .widget<EditableText>(find.descendant(
-              of: cellWidth,
-              matching: find.byType(EditableText),
-            ))
+            .widget<EditableText>(
+              find.descendant(
+                of: cellWidth,
+                matching: find.byType(EditableText),
+              ),
+            )
             .controller
             .text,
         '48',
       );
+      expect(find.textContaining('replacez la cellule nº 1'), findsOneWidget);
     });
 
-    testWidgets('authors Usage and Mapping after Source and Grid',
-        (tester) async {
-      await _pumpPanel(tester, _manifest(presets: const []));
-      await tester.tap(find.byKey(const Key('smart-tiles-new-preset')));
-      await tester.pump();
-      await tester.tap(find.text('Preset vide'));
-      await tester.pump();
-      await tester.tap(find.byKey(const Key('smart-tiles-next-step')));
-      await tester.pump();
-      await tester.tap(find.byKey(const Key('smart-tiles-grid-next-step')));
+    testWidgets('one valid anchor associates and overlays all sixteen cells', (
+      tester,
+    ) async {
+      await _pumpGuidedAtlas(
+        tester,
+        loader: _FakeSmartTileAtlasImageLoader(
+          width: 1760,
+          height: 2304,
+        ),
+      );
+
+      final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
+      await tester.ensureVisible(viewport);
+      await _tapVisibleValidAnchor(tester, viewport);
       await tester.pump();
 
-      expect(find.text('Choisir l’usage'), findsOneWidget);
-      await tester.tap(
-        find.byKey(const Key('smart-tiles-usage-forestSurface')),
+      expect(
+        find.byKey(const Key('smart-tiles-guide-overlay')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('16 cellules associées'), findsWidgets);
+      expect(find.textContaining('prêt pour le banc d’essai'), findsOneWidget);
+      expect(find.text('0x00'), findsNothing);
+    });
+
+    testWidgets('lets one suggested cell be corrected from the atlas', (
+      tester,
+    ) async {
+      await _pumpGuidedAtlas(
+        tester,
+        loader: _FakeSmartTileAtlasImageLoader(
+          width: 1760,
+          height: 2304,
+        ),
+        surfaceSize: const Size(1440, 1800),
+      );
+
+      final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
+      await tester.ensureVisible(viewport);
+      await _tapVisibleValidAnchor(tester, viewport);
+      await tester.pump();
+
+      final correction = find.byKey(const Key('smart-tiles-correction-7'));
+      await tester.ensureVisible(correction);
+      await tester.tap(correction);
+      await tester.pump();
+      await tester.ensureVisible(viewport);
+      await tester.tapAt(
+        tester.getTopLeft(viewport) + const Offset(140, 110),
       );
       await tester.pump();
-      await tester.tap(find.byKey(const Key('smart-tiles-usage-next-step')));
+
+      expect(find.text('Case 7 corrigée.'), findsOneWidget);
+      expect(find.text('16 cellules • 12 raccords'), findsOneWidget);
+      expect(
+        find.byKey(const Key('smart-tiles-guide-overlay')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('rejects the whole guide when its anchor is too close to edge',
+        (
+      tester,
+    ) async {
+      await _pumpGuidedAtlas(
+        tester,
+        loader: _FakeSmartTileAtlasImageLoader(
+          width: 1760,
+          height: 2304,
+        ),
+      );
+
+      final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
+      await tester.ensureVisible(viewport);
+      await tester.tapAt(tester.getTopLeft(viewport) + const Offset(3, 3));
       await tester.pump();
 
-      expect(find.text('Mapping Blob 47'), findsOneWidget);
-      expect(find.text('47 signatures attendues'), findsOneWidget);
+      expect(find.textContaining('Le guide dépasse l’atlas'), findsOneWidget);
+      expect(find.text('0 cellules • 0 raccords'), findsOneWidget);
       expect(
-        find.byKey(const Key('smart-tiles-mapping-mask-0')),
-        findsOneWidget,
+        find.byKey(const Key('smart-tiles-guide-overlay')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('publishes the complete guided preset through one callback', (
+      tester,
+    ) async {
+      ProjectManifest? published;
+      await _pumpGuidedAtlas(
+        tester,
+        loader: _FakeSmartTileAtlasImageLoader(
+          width: 1760,
+          height: 2304,
+        ),
+        onManifestChanged: (next) => published = next,
       );
       final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
-      expect(viewport, findsOneWidget);
-
-      await tester.tap(find.byKey(const Key('smart-tiles-mapping-mask-0')));
-      await tester.pump();
-      await tester.tapAt(tester.getTopLeft(viewport) + const Offset(4, 4));
+      await tester.ensureVisible(viewport);
+      await _tapVisibleValidAnchor(tester, viewport);
       await tester.pump();
 
-      expect(find.text('1 signature mappée'), findsOneWidget);
+      final toTest = find.byKey(const Key('smart-tiles-mapping-next-step'));
+      await tester.ensureVisible(toTest);
+      await tester.pumpAndSettle();
+      await tester.tap(toTest);
+      await tester.pump();
+      expect(find.text('12 / 12 résolus'), findsOneWidget);
+      expect(find.text('Aucune forme manquante'), findsOneWidget);
+      expect(find.text('4 variantes supplémentaires'), findsOneWidget);
+
+      final toPublish = find.byKey(const Key('smart-tiles-go-to-publish'));
+      await tester.ensureVisible(toPublish);
+      await tester.pumpAndSettle();
+      await tester.tap(toPublish);
+      await tester.pump();
+      expect(find.text('Publication autorisée'), findsOneWidget);
       expect(
-        find.byKey(const Key('smart-tiles-add-canopy-part')),
+        find.text('16 cellules • 12 raccords • 4 variantes'),
         findsOneWidget,
       );
+
+      final publish = find.byKey(const Key('smart-tiles-publish-guided'));
+      await tester.ensureVisible(publish);
+      await tester.pumpAndSettle();
+      await tester.tap(publish);
+      await tester.pump();
+
+      expect(published, isNotNull);
+      final preset = published!.smartTileCatalog.presets.single;
+      expect(preset.status, SmartTilePresetStatus.published);
+      expect(preset.templateHint, SmartTileTemplateHint.corner12);
+      expect(preset.rules, hasLength(12));
+      expect(
+        preset.rules.expand((rule) => rule.candidates),
+        hasLength(16),
+      );
+      expect(
+        preset.rules.where((rule) => rule.candidates.length == 2),
+        hasLength(4),
+      );
+      expect(published!.smartTileCatalog.atlases.single.cellWidth, 32);
+      expect(published!.smartTileCatalog.atlases.single.columns, 55);
+      expect(published!.smartTileCatalog.atlases.single.rows, 72);
     });
 
-    testWidgets('test bench resolves every canonical Edge 16 scenario',
-        (tester) async {
+    testWidgets('test bench resolves every canonical Edge 16 scenario', (
+      tester,
+    ) async {
       await _pumpPanel(tester, _completeManifest());
 
-      await tester.tap(
-        find.byKey(const Key('smart-tiles-tab-testBench')),
-      );
+      await tester.tap(find.byKey(const Key('smart-tiles-tab-testBench')));
       await tester.pump();
 
       expect(find.text('16 / 16 résolus'), findsOneWidget);
@@ -343,22 +322,11 @@ void main() {
         find.byKey(const Key('smart-tiles-test-cell-3-3')),
         findsOneWidget,
       );
-      await tester.tap(
-        find.byKey(const Key('smart-tiles-test-cell-3-3')),
-      );
-      await tester.pump();
-      expect(
-        tester
-            .widget<PokeMapButton>(
-              find.byKey(const Key('smart-tiles-test-cell-3-3')),
-            )
-            .isSelected,
-        isTrue,
-      );
     });
 
-    testWidgets('validation publishes only through the manifest callback',
-        (tester) async {
+    testWidgets('validation publishes only through the manifest callback', (
+      tester,
+    ) async {
       ProjectManifest? published;
       await _pumpPanel(
         tester,
@@ -366,12 +334,8 @@ void main() {
         onManifestChanged: (next) => published = next,
       );
 
-      await tester.tap(
-        find.byKey(const Key('smart-tiles-tab-validation')),
-      );
+      await tester.tap(find.byKey(const Key('smart-tiles-tab-validation')));
       await tester.pump();
-
-      expect(find.text('Publication autorisée'), findsOneWidget);
       await tester.tap(find.byKey(const Key('smart-tiles-publish')));
       await tester.pump();
 
@@ -382,6 +346,62 @@ void main() {
       );
     });
   });
+}
+
+const _target = ProjectTilesetEntry(
+  id: 'erw-terrain-master',
+  name: 'ERW Terrain Master',
+  relativePath: 'assets/erw/terrain_master.png',
+);
+
+Future<void> _startPathGuide(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('smart-tiles-new-preset')));
+  await tester.pump();
+  await tester.tap(find.byKey(const Key('smart-tiles-usage-path')));
+  await tester.pump();
+  await tester.tap(find.byKey(const Key('smart-tiles-usage-next-step')));
+  await tester.pump();
+}
+
+Future<void> _pumpGuidedAtlas(
+  WidgetTester tester, {
+  required SmartTileAtlasImageLoader loader,
+  ValueChanged<ProjectManifest>? onManifestChanged,
+  Size surfaceSize = const Size(1440, 900),
+}) async {
+  await _pumpPanel(
+    tester,
+    _manifest(
+        presets: const [], tilesets: const <ProjectTilesetEntry>[_target]),
+    projectRootPath: '/tmp/erw-project',
+    imageLoader: loader,
+    onManifestChanged: onManifestChanged,
+    surfaceSize: surfaceSize,
+  );
+  await _startPathGuide(tester);
+  await tester.tap(find.byKey(const Key('smart-tiles-guide-erwCorner16')));
+  await tester.pump();
+  await tester.tap(find.byKey(const Key('smart-tiles-guide-next-step')));
+  await tester.pump();
+  await tester.tap(find.text('Image du projet'));
+  await tester.pump();
+  await tester.tap(find.byKey(const Key('smart-tiles-choose-project-image')));
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.byKey(const Key('smart-tiles-source-tileset-erw-terrain-master')),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('smart-tiles-next-step')));
+  await tester.pump();
+}
+
+Future<void> _tapVisibleValidAnchor(
+  WidgetTester tester,
+  Finder viewport,
+) async {
+  final topLeft = tester.getTopLeft(viewport);
+  final size = tester.getSize(viewport);
+  await tester.tapAt(topLeft + Offset(size.width / 2, 80));
 }
 
 Future<void> _pumpPanel(

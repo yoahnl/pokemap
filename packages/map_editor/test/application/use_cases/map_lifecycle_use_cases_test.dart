@@ -173,9 +173,10 @@ void main() {
       expect(created.size, const GridSize(width: 6, height: 5));
       expect(created.layers.map((layer) => layer.id), <String>[
         'l_base',
-        'l_terrain',
         'l_collisions',
       ]);
+      expect(created.version, ProjectVersion.v4);
+      expect(created.layers.whereType<TerrainLayer>(), isEmpty);
       expect(
           fixture.mapRepository.saved.single.path, '/project/maps/harbor.json');
       final savedProject = fixture.projectRepository.savedProjects.single;
