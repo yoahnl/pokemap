@@ -2688,5 +2688,3 @@ MapData _map() => MapData(
 List<int> _encode(Object? value) =>
     utf8.encode(const JsonEncoder.withIndent('  ').convert(value));
 ```
-
-

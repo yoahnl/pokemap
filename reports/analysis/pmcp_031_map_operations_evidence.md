@@ -1,8 +1,8 @@
 # PMCP-031 — Layers, Regions, and Atomic Operation Batches Evidence Pack
 
-Date: 2026-07-31  
-Lot: PMCP-031  
-Phase: 4 — Map authoring  
+Date: 2026-07-31
+Lot: PMCP-031
+Phase: 4 — Map authoring
 Baseline: `35bc8e0d6 feat(authoring): add canonical map lifecycle`
 
 ## Verdict
