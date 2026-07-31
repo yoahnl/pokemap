@@ -11,7 +11,9 @@ import '../../domains/narrative/dialogue_actions.dart';
 import '../../domains/narrative/event_actions.dart';
 import '../../domains/narrative/fact_rule_actions.dart';
 import '../../domains/narrative/scene_actions.dart';
+import '../../domains/narrative/scenario_actions.dart';
 import '../../domains/narrative/script_actions.dart';
+import '../../domains/narrative/storyline_actions.dart';
 import '../../ports/artifact_store.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
@@ -77,6 +79,8 @@ final class MapMutationDispatcher {
     const scenes = SceneActions();
     const events = EventV2Actions();
     const factsAndRules = FactRuleActions();
+    const storylines = StorylineActions();
+    const scenarios = ScenarioActions();
     return MapMutationDispatcher([
       for (final descriptor in MapLifecycleActions.descriptors)
         MapMutationActionRegistration(
@@ -197,6 +201,16 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: factsAndRules.build,
+        ),
+      for (final descriptor in StorylineActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: storylines.build,
+        ),
+      for (final descriptor in ScenarioActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: scenarios.build,
         ),
     ]);
   }

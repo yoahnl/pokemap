@@ -193,6 +193,18 @@ final class AuthoringResourceKindRegistry {
         displayName: 'World Rule',
         summary: 'Runtime-consumed world projection rule',
       ),
+      AuthoringResourceKindDescriptor(
+        id: 'storyline',
+        version: 1,
+        displayName: 'Storyline',
+        summary: 'Chapter, Step and progression graph aggregate',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'scenario',
+        version: 1,
+        displayName: 'Scenario',
+        summary: 'Legacy-readable local or global narrative flow',
+      ),
     ]);
   }
 

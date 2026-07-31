@@ -9,6 +9,8 @@ import '../domains/assets/asset_store.dart';
 import '../domains/narrative/dialogue_authoring_service.dart';
 import '../domains/narrative/dialogue_source_store.dart';
 import '../domains/narrative/script_authoring_service.dart';
+import '../domains/narrative/scenario_actions.dart';
+import '../domains/narrative/storyline_inspection.dart';
 import 'project_snapshot.dart';
 
 final class AuthoringQueryException implements Exception {
@@ -144,6 +146,38 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
           _QueryRecord(
             summary: _worldRuleSummary(rule),
             detail: {...rule.toJson(), 'resourceKind': 'worldRule'},
+          ),
+      ];
+    case 'storyline':
+      final inspection = const StorylineInspector().inspect(snapshot.manifest);
+      return [
+        for (final storyline in snapshot.manifest.storylines)
+          _QueryRecord(
+            summary: _storylineSummary(storyline),
+            detail: {
+              ...storyline.toJson(),
+              'resourceKind': 'storyline',
+              'progression': inspection.progression[storyline.id],
+              'diagnostics': [
+                for (final item in inspection.diagnostics)
+                  if (item.storylineId == storyline.id) item.toJson(),
+              ],
+            },
+          ),
+      ];
+    case 'scenario':
+      const actions = ScenarioActions();
+      final migration = actions.migrationPreviewJson(snapshot.manifest);
+      return [
+        for (final scenario in snapshot.manifest.scenarios)
+          _QueryRecord(
+            summary: _scenarioSummary(scenario),
+            detail: {
+              ...scenario.toJson(),
+              'resourceKind': 'scenario',
+              'simulation': actions.simulate(scenario).toJson(),
+              'migration': migration,
+            },
           ),
       ];
     default:
@@ -403,6 +437,26 @@ Map<String, Object?> _worldRuleSummary(WorldRuleDefinition rule) => {
       'sourceKind': rule.source.kind.name,
       'targetKind': rule.target.kind.name,
       'effectKind': rule.effect.kind.name,
+    };
+
+Map<String, Object?> _storylineSummary(StorylineAsset storyline) => {
+      'id': storyline.id,
+      'name': storyline.title,
+      'resourceKind': 'storyline',
+      'type': storyline.type.name,
+      'status': storyline.status.name,
+      'chapterCount': storyline.chapters.length,
+      'stepCount': storyline.chapters
+          .fold<int>(0, (count, chapter) => count + chapter.steps.length),
+    };
+
+Map<String, Object?> _scenarioSummary(ScenarioAsset scenario) => {
+      'id': scenario.id,
+      'name': scenario.name,
+      'resourceKind': 'scenario',
+      'scope': scenario.scope.name,
+      'nodeCount': scenario.nodes.length,
+      'edgeCount': scenario.edges.length,
     };
 
 AssetCatalog _decodeAssetCatalog(List<int> bytes) {

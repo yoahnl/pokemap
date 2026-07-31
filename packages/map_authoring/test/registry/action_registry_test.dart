@@ -92,8 +92,10 @@ void main() {
           'map',
           'project',
           'region',
+          'scenario',
           'scene',
           'script',
+          'storyline',
           'worldRule',
         ],
       );
