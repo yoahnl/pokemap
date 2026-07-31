@@ -8,6 +8,7 @@ import '../../domains/assets/presentation_actions.dart';
 import '../../domains/assets/preset_actions.dart';
 import '../../domains/assets/tileset_actions.dart';
 import '../../domains/gameplay/pokemon_catalog_actions.dart';
+import '../../domains/gameplay/campaign_content_actions.dart';
 import '../../domains/narrative/dialogue_actions.dart';
 import '../../domains/narrative/cinematic_actions.dart';
 import '../../domains/narrative/event_actions.dart';
@@ -77,6 +78,7 @@ final class MapMutationDispatcher {
     const presets = PresetActions();
     const presentation = PresentationActions();
     const pokemonCatalogs = PokemonCatalogActions();
+    const campaignContent = CampaignContentActions();
     const dialogues = DialogueActions();
     const cinematics = CinematicActions();
     const scripts = ScriptActions();
@@ -185,6 +187,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: pokemonCatalogs.build,
+        ),
+      for (final descriptor in CampaignContentActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: campaignContent.build,
         ),
       for (final descriptor in DialogueActions.descriptors)
         MapMutationActionRegistration(

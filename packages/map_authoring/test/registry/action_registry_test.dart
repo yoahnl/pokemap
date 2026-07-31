@@ -84,6 +84,7 @@ void main() {
           'asset',
           'assetBlob',
           'assetCatalog',
+          'campaignContent',
           'cinematic',
           'dialogue',
           'dialogueSource',

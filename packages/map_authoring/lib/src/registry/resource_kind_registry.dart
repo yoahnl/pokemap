@@ -217,6 +217,12 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Pokemon data document',
         summary: 'Catalog, species, learnset, evolution or media document',
       ),
+      AuthoringResourceKindDescriptor(
+        id: 'campaignContent',
+        version: 1,
+        displayName: 'Campaign content',
+        summary: 'Trainer, encounter, shop, badge, character or New Game data',
+      ),
     ]);
   }
 
