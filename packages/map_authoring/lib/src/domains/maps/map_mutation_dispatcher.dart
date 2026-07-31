@@ -2,6 +2,8 @@ import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'autotile_actions.dart';
+import 'border_actions.dart';
+import 'environment_actions.dart';
 import 'map_lifecycle_actions.dart';
 import 'map_lifecycle_adapter.dart';
 import 'map_operations_batch.dart';
@@ -35,6 +37,8 @@ final class MapMutationDispatcher {
     const path = PathActions();
     const surface = SurfaceActions();
     const autotile = AutotileActions();
+    const border = BorderActions();
+    const environment = EnvironmentActions();
     return MapMutationDispatcher([
       for (final descriptor in MapLifecycleActions.descriptors)
         MapMutationActionRegistration(
@@ -65,6 +69,16 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: autotile.build,
+        ),
+      for (final descriptor in BorderActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: border.build,
+        ),
+      for (final descriptor in EnvironmentActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: environment.build,
         ),
     ]);
   }

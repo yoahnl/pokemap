@@ -162,6 +162,65 @@ final class SemanticMapActionContext {
       },
     );
   }
+
+  /// Builds one atomic map-wide change for semantic operations that also
+  /// affect spatial collections (placements, entities, warps) or map size.
+  AuthoringMutationDraft draftMap({
+    required MapData after,
+    required String operation,
+    required int changedItems,
+    String? layerId,
+    Map<String, Object?> preview = const {},
+  }) {
+    try {
+      MapValidator.validate(
+        after,
+        projectDialogueContext: planning.snapshot.manifest,
+      );
+    } on Object catch (error) {
+      throw semanticFailure(
+        'map.semantic_projected_state_invalid',
+        'The semantic operation would produce invalid PokeMap data.',
+        details: {'validationType': error.runtimeType.toString()},
+      );
+    }
+    final afterBytes = encodeMapAuthoringDocument(after);
+    if (_sameBytes(beforeBytes, afterBytes)) {
+      throw semanticFailure(
+        'map.no_change',
+        'The semantic operation changes nothing.',
+      );
+    }
+    return AuthoringMutationDraft(
+      changeSet: AuthoringChangeSet(
+        changes: [
+          AuthoringResourceChange(
+            resource: resource,
+            storageKey: storageKey,
+            beforeBytes: beforeBytes,
+            afterBytes: afterBytes,
+          ),
+        ],
+        diff: AuthoringDiff([
+          AuthoringDiffEntry(
+            operation: AuthoringDiffOperation.replace,
+            resource: resource,
+            path: '/maps/${map.id}',
+            before: semanticMapSummary(map),
+            after: semanticMapSummary(after),
+          ),
+        ]),
+      ),
+      preview: {
+        'operation': operation,
+        'mapId': map.id,
+        if (layerId != null) 'layerId': layerId,
+        'seed': planning.seed,
+        'changedItemCount': changedItems,
+        ...preview,
+      },
+    );
+  }
 }
 
 final class SemanticParameters {
@@ -281,6 +340,19 @@ Map<String, Object?> semanticLayerSummary(MapLayer layer) => switch (layer) {
               value.materialCells.where((cell) => cell != 0).length,
         },
       _ => {'kind': layer.runtimeType.toString(), 'id': layer.id},
+    };
+
+Map<String, Object?> semanticMapSummary(MapData map) => {
+      'id': map.id,
+      'width': map.size.width,
+      'height': map.size.height,
+      'layerCount': map.layers.length,
+      'placedElementCount': map.placedElements.length,
+      'entityCount': map.entities.length,
+      'warpCount': map.warps.length,
+      'connectionCount': map.connections.length,
+      'triggerCount': map.triggers.length,
+      'gameplayZoneCount': map.gameplayZones.length,
     };
 
 MapAuthoringException invalidSemanticField(String field, String expected) =>

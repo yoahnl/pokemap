@@ -22,6 +22,8 @@ export 'src/contracts/query_page.dart';
 export 'src/contracts/query_request.dart';
 export 'src/domains/maps/map_region_query.dart';
 export 'src/domains/maps/autotile_actions.dart';
+export 'src/domains/maps/border_actions.dart';
+export 'src/domains/maps/environment_actions.dart';
 export 'src/domains/maps/map_lifecycle_actions.dart';
 export 'src/domains/maps/map_lifecycle_adapter.dart';
 export 'src/domains/maps/layer_actions.dart';
