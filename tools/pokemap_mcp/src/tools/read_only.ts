@@ -2,40 +2,22 @@ import { type McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
 import {
-  AuthoringClientError,
   type AuthoringGateway,
-  type AuthoringWorkerSuccess,
   type JsonRecord,
 } from "../authoring_client.js";
 import {
-  ArtifactReadError,
   type ArtifactReader,
   type ReadArtifact,
 } from "../artifacts.js";
+import {
+  authoringResult,
+  failureEnvelope,
+  readOnlyAnnotations,
+  successEnvelope,
+  toolEnvelopeSchema,
+} from "./result.js";
 
 const jsonRecordSchema = z.record(z.string(), z.unknown());
-const artifactReferenceSchema = z.record(z.string(), z.unknown());
-const errorSchema = z.object({
-  code: z.string(),
-  domainCode: z.string().optional(),
-  message: z.string(),
-  retryable: z.boolean(),
-  remediation: z.array(z.string()),
-  details: jsonRecordSchema,
-});
-const toolEnvelopeSchema = z.object({
-  ok: z.boolean(),
-  data: jsonRecordSchema,
-  artifacts: z.array(artifactReferenceSchema),
-  error: errorSchema.optional(),
-});
-
-const readOnlyAnnotations = {
-  readOnlyHint: true,
-  destructiveHint: false,
-  idempotentHint: true,
-  openWorldHint: false,
-} as const;
 
 export function registerReadOnlyTools(
   server: McpServer,
@@ -211,82 +193,11 @@ function registerArtifactTool(
   );
 }
 
-async function authoringResult(
-  operation: () => Promise<AuthoringWorkerSuccess>,
-) {
-  try {
-    const result = await operation();
-    const structuredContent = successEnvelope(result.data, result.artifacts);
-    return {
-      content: [{ type: "text" as const, text: JSON.stringify(result.data) }],
-      structuredContent,
-    };
-  } catch (error) {
-    return failureEnvelope(error);
-  }
-}
-
 function artifactData(artifact: ReadArtifact): JsonRecord {
   return {
     uri: artifact.uri,
     mediaType: artifact.mediaType,
     ...(artifact.text === undefined ? {} : { text: artifact.text }),
     ...(artifact.blob === undefined ? {} : { blob: artifact.blob }),
-  };
-}
-
-function successEnvelope(
-  data: JsonRecord,
-  artifacts: JsonRecord[],
-): JsonRecord {
-  return { ok: true, data, artifacts };
-}
-
-function failureEnvelope(error: unknown) {
-  const failure = normalizeError(error);
-  const structuredContent = {
-    ok: false,
-    data: {},
-    artifacts: [],
-    error: failure,
-  };
-  return {
-    isError: true,
-    content: [
-      {
-        type: "text" as const,
-        text: `${failure.code}: ${failure.message}`,
-      },
-    ],
-    structuredContent,
-  };
-}
-
-function normalizeError(error: unknown) {
-  if (error instanceof AuthoringClientError) {
-    return {
-      code: error.code,
-      ...(error.domainCode ? { domainCode: error.domainCode } : {}),
-      message: error.message,
-      retryable: error.retryable,
-      remediation: [...error.remediation],
-      details: error.details,
-    };
-  }
-  if (error instanceof ArtifactReadError) {
-    return {
-      code: error.code,
-      message: error.message,
-      retryable: false,
-      remediation: [],
-      details: {},
-    };
-  }
-  return {
-    code: "mcp.internal",
-    message: "The PokeMap MCP request failed unexpectedly.",
-    retryable: false,
-    remediation: [],
-    details: {},
   };
 }

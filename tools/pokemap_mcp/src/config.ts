@@ -5,6 +5,9 @@ import { fileURLToPath } from "node:url";
 export interface PokeMapMcpConfig {
   allowedRoots: string[];
   authoringPackageRoot: string;
+  repositoryRoot: string;
+  runtimePackageRoot: string;
+  runtimeHostRoot: string;
   dartExecutable: string;
 }
 
@@ -18,6 +21,9 @@ export class PokeMapMcpConfigError extends Error {
 export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
   const allowedRoots: string[] = [];
   let authoringPackageRoot: string | undefined;
+  let repositoryRoot: string | undefined;
+  let runtimePackageRoot: string | undefined;
+  let runtimeHostRoot: string | undefined;
   let dartExecutable = "dart";
   for (let index = 0; index < args.length; index += 1) {
     const option = args[index];
@@ -36,6 +42,15 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
       case "--dart":
         dartExecutable = value;
         break;
+      case "--repository-root":
+        repositoryRoot = resolve(value);
+        break;
+      case "--runtime-package":
+        runtimePackageRoot = resolve(value);
+        break;
+      case "--runtime-host":
+        runtimeHostRoot = resolve(value);
+        break;
       default:
         throw new PokeMapMcpConfigError("An unknown configuration option was provided.");
     }
@@ -47,9 +62,23 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
   if (!existsSync(resolve(packageRoot, "pubspec.yaml"))) {
     throw new PokeMapMcpConfigError("The map_authoring package is unavailable.");
   }
+  const repository = repositoryRoot ?? resolve(packageRoot, "../..");
+  const runtimePackage =
+    runtimePackageRoot ?? resolve(repository, "packages/map_runtime");
+  const runtimeHost =
+    runtimeHostRoot ?? resolve(repository, "examples/playable_runtime_host");
+  if (!existsSync(resolve(runtimePackage, "bin/pokemap_render.dart"))) {
+    throw new PokeMapMcpConfigError("The map_runtime render worker is unavailable.");
+  }
+  if (!existsSync(resolve(runtimeHost, "tool/pokemap_eval.dart"))) {
+    throw new PokeMapMcpConfigError("The playable runtime host is unavailable.");
+  }
   return {
     allowedRoots,
     authoringPackageRoot: packageRoot,
+    repositoryRoot: repository,
+    runtimePackageRoot: runtimePackage,
+    runtimeHostRoot: runtimeHost,
     dartExecutable,
   };
 }

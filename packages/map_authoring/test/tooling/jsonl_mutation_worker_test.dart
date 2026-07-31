@@ -55,6 +55,7 @@ void main() {
         'close',
         'confirm',
         'describe',
+        'history',
         'open',
         'plan',
         'query',
@@ -112,11 +113,32 @@ void main() {
     );
     expect(await File('${root.path}/maps/jsonl_map.json').exists(), isTrue);
 
+    final history = await _request(
+      worker,
+      'history',
+      args: {
+        'projectHandle': projectHandle,
+        'limit': 1,
+      },
+    );
+    expect(history.status, AuthoringResultStatus.success);
+    expect(history.data['entries'], hasLength(1));
+    expect(
+      ((history.data['entries']! as List).single as Map)['operationId'],
+      'operation_jsonl_map',
+    );
+    final directHistory = await mutations.history(
+      ProjectHandle(projectHandle),
+      limit: 1,
+    );
+    expect(history.data, directHistory);
+
     final transcript = jsonEncode({
       'describe': described.toJson(),
       'open': opened.toJson(),
       'plan': planned.toJson(),
       'apply': applied.toJson(),
+      'history': history.toJson(),
     });
     expect(transcript, isNot(contains(root.path)));
     expect(transcript, isNot(contains('/private/')));

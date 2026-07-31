@@ -139,6 +139,13 @@ test("the packaged stdio entrypoint completes a real modern client exchange", as
         "pokemap_query",
         "pokemap_validate",
         "pokemap_workspace",
+        "pokemap_plan",
+        "pokemap_apply",
+        "pokemap_history",
+        "pokemap_recovery",
+        "pokemap_render",
+        "pokemap_playtest",
+        "pokemap_job",
       ],
     );
     const described = await client.callTool({

@@ -36,6 +36,12 @@ abstract interface class AuthoringMutationApiPort {
     required String idempotencyKey,
   });
 
+  Future<Map<String, Object?>> history(
+    ProjectHandle projectHandle, {
+    required int limit,
+    String? cursor,
+  });
+
   Future<Map<String, Object?>> recover(
     ProjectHandle projectHandle, {
     required String operationId,

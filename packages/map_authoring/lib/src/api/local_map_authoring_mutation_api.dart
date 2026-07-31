@@ -76,6 +76,7 @@ final class LocalMapAuthoringMutationApi implements AuthoringMutationApiPort {
           'commands': const [
             {'id': 'apply', 'summary': 'Apply a frozen mutation plan.'},
             {'id': 'confirm', 'summary': 'Confirm one destructive plan.'},
+            {'id': 'history', 'summary': 'List committed history entries.'},
             {'id': 'plan', 'summary': 'Plan and preview a map mutation.'},
             {'id': 'recover', 'summary': 'Resume a recoverable transaction.'},
             {'id': 'undo', 'summary': 'Undo one committed history entry.'},
@@ -168,6 +169,14 @@ final class LocalMapAuthoringMutationApi implements AuthoringMutationApiPort {
       );
 
   @override
+  Future<Map<String, Object?>> history(
+    ProjectHandle projectHandle, {
+    required int limit,
+    String? cursor,
+  }) =>
+      _session(projectHandle).history(limit: limit, cursor: cursor);
+
+  @override
   Future<Map<String, Object?>> recover(
     ProjectHandle projectHandle, {
     required String operationId,
@@ -219,6 +228,7 @@ final class _LocalMapAuthoringSession {
     required AuthoringConfirmationStore confirmations,
     required SecureAuthoringMutationExecutor executor,
     required AuthoringUndoService undoService,
+    required AuthoringHistoryStore history,
     required AuthoringRecoveryService recovery,
   })  : _snapshotLoader = snapshotLoader,
         _dispatcher = dispatcher,
@@ -229,6 +239,7 @@ final class _LocalMapAuthoringSession {
         _confirmations = confirmations,
         _executor = executor,
         _undoService = undoService,
+        _history = history,
         _recovery = recovery;
 
   static Future<_LocalMapAuthoringSession> open({
@@ -316,6 +327,7 @@ final class _LocalMapAuthoringSession {
       confirmations: confirmations,
       executor: executor,
       undoService: undoService,
+      history: history,
       recovery: recovery,
     );
   }
@@ -332,7 +344,27 @@ final class _LocalMapAuthoringSession {
   final AuthoringConfirmationStore _confirmations;
   final SecureAuthoringMutationExecutor _executor;
   final AuthoringUndoService _undoService;
+  final AuthoringHistoryStore _history;
   final AuthoringRecoveryService _recovery;
+
+  Future<Map<String, Object?>> history({
+    required int limit,
+    String? cursor,
+  }) async {
+    final page = await _history.list(
+      projectId: projectId,
+      limit: limit,
+      cursor:
+          cursor == null ? null : AuthoringHistoryCursor.fromWireValue(cursor),
+    );
+    return freezeContractJsonObject(
+      {
+        'entries': [for (final entry in page.entries) entry.toJson()],
+        if (page.nextCursor case final next?) 'nextCursor': next.wireValue,
+      },
+      field: 'mutationHistory',
+    );
+  }
 
   Future<Map<String, Object?>> plan(AuthoringRequest request) async {
     _requireWorkspace(request.workspaceHandle);

@@ -357,6 +357,23 @@ final class JsonlWorker {
             'args.idempotencyKey',
           ),
         );
+      case 'history':
+        rejectUnknownContractKeys(
+          args,
+          const {'projectHandle', 'limit', 'cursor'},
+        );
+        final limit = args['limit'];
+        if (limit is! int) {
+          throw const FormatException('args.limit must be an integer');
+        }
+        return _mutationApi().history(
+          _projectHandle(args),
+          limit: limit,
+          cursor: readOptionalContractString(
+            args['cursor'],
+            'args.cursor',
+          ),
+        );
       case 'recover':
         rejectUnknownContractKeys(
           args,

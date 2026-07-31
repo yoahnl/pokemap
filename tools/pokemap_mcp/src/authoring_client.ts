@@ -1,4 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { resolve } from "node:path";
 import { createInterface, type Interface as ReadLineInterface } from "node:readline";
 
 export type JsonRecord = Record<string, unknown>;
@@ -21,6 +22,10 @@ export interface AuthoringWorkerSuccess {
 export interface AuthoringGateway {
   request(command: string, args?: JsonRecord): Promise<AuthoringWorkerSuccess>;
   close(): Promise<void>;
+}
+
+export interface ProjectRootResolver {
+  resolveProjectRoot(projectHandle: string): string;
 }
 
 export class AuthoringClientError extends Error {
@@ -57,9 +62,13 @@ interface PendingRequest {
   timer: NodeJS.Timeout;
 }
 
-export class LocalAuthoringClient implements AuthoringGateway {
+export class LocalAuthoringClient
+  implements AuthoringGateway, ProjectRootResolver
+{
   readonly #options: Required<LocalAuthoringClientOptions>;
   readonly #pending = new Map<string, PendingRequest>();
+  readonly #projectRoots = new Map<string, string>();
+  readonly #projectsByWorkspace = new Map<string, string>();
   #child: ChildProcessWithoutNullStreams | undefined;
   #stdout: ReadLineInterface | undefined;
   #nextRequestId = 0;
@@ -90,7 +99,7 @@ export class LocalAuthoringClient implements AuthoringGateway {
     const requestId = `mcp-${++this.#nextRequestId}`;
     const line = `${JSON.stringify({ id: requestId, command, args })}\n`;
 
-    return new Promise<AuthoringWorkerSuccess>((resolve, reject) => {
+    const result = await new Promise<AuthoringWorkerSuccess>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.#pending.delete(requestId);
         reject(
@@ -121,6 +130,19 @@ export class LocalAuthoringClient implements AuthoringGateway {
         );
       });
     });
+    this.#trackWorkspace(command, args, result.data);
+    return result;
+  }
+
+  resolveProjectRoot(projectHandle: string): string {
+    const root = this.#projectRoots.get(projectHandle);
+    if (!root) {
+      throw new AuthoringClientError(
+        "workspace.project_binding_unknown",
+        "The project handle has no active server-side root binding.",
+      );
+    }
+    return root;
   }
 
   async close(): Promise<void> {
@@ -253,6 +275,26 @@ export class LocalAuthoringClient implements AuthoringGateway {
       pending.reject(error);
     }
     this.#pending.clear();
+  }
+
+  #trackWorkspace(command: string, args: JsonRecord, data: JsonRecord): void {
+    if (
+      command === "open" &&
+      typeof args.projectRoot === "string" &&
+      typeof data.projectHandle === "string" &&
+      typeof data.workspaceHandle === "string"
+    ) {
+      this.#projectRoots.set(data.projectHandle, resolve(args.projectRoot));
+      this.#projectsByWorkspace.set(data.workspaceHandle, data.projectHandle);
+      return;
+    }
+    if (command === "close" && typeof args.workspaceHandle === "string") {
+      const projectHandle = this.#projectsByWorkspace.get(args.workspaceHandle);
+      if (projectHandle) {
+        this.#projectsByWorkspace.delete(args.workspaceHandle);
+        this.#projectRoots.delete(projectHandle);
+      }
+    }
   }
 
   async #closeChild(child: ChildProcessWithoutNullStreams): Promise<void> {

@@ -64,10 +64,14 @@ test("read-only MCP inspects a real project with cursor pagination", async () =>
         "pokemap_query",
         "pokemap_validate",
         "pokemap_workspace",
+        "pokemap_plan",
+        "pokemap_apply",
+        "pokemap_history",
+        "pokemap_recovery",
       ],
     );
-    assert.ok(tools.tools.every((tool) => tool.annotations?.readOnlyHint));
-    assert.ok(tools.tools.every((tool) => !tool.name.includes("apply")));
+    assert.ok(tools.tools.slice(0, 5).every((tool) => tool.annotations?.readOnlyHint));
+    assert.ok(tools.tools.slice(5).every((tool) => !tool.annotations?.readOnlyHint));
 
     const description = await toolData(fixture.client, "pokemap_describe");
     assert.equal(description.protocol, "pokemap.authoring.v1");

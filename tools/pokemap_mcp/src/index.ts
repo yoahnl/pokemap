@@ -8,6 +8,7 @@ import {
   type PokeMapMcpConfig,
 } from "./config.js";
 import { createPokeMapMcpServer } from "./server.js";
+import { LocalRuntimeGateway } from "./runtime_gateway.js";
 
 try {
   start(parseConfig(process.argv.slice(2)));
@@ -27,8 +28,16 @@ function start(config: PokeMapMcpConfig): void {
     dartExecutable: config.dartExecutable,
   });
   const artifacts = new MemoryArtifactReader();
+  const runtime = new LocalRuntimeGateway({
+    roots: authoring,
+    artifacts,
+    runtimePackageRoot: config.runtimePackageRoot,
+    runtimeHostRoot: config.runtimeHostRoot,
+    repositoryRoot: config.repositoryRoot,
+    dartExecutable: config.dartExecutable,
+  });
   const handle = serveStdio(
-    () => createPokeMapMcpServer({ authoring, artifacts }),
+    () => createPokeMapMcpServer({ authoring, artifacts, runtime }),
     {
       legacy: "serve",
       onerror: (error) => {
@@ -44,6 +53,7 @@ function start(config: PokeMapMcpConfig): void {
     }
     closing = true;
     await handle.close();
+    await runtime.close();
     await authoring.close();
   }
 
