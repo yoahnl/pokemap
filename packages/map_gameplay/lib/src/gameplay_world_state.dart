@@ -1020,6 +1020,22 @@ List<bool> _buildPixelCollisionCache(
             ? worldHeight - destinationTop
             : BigInt.from(destinationSize.height))
         .toInt();
+    if (transform.quarterTurns == 0 &&
+        destinationSize.width == mask.widthPx &&
+        destinationSize.height == mask.heightPx) {
+      for (var py = startY; py < endY; py++) {
+        final y = topPx + py;
+        for (var px = startX; px < endX; px++) {
+          final idx = py * mask.widthPx + px;
+          if (idx < 0 || idx >= decoded.length || !decoded[idx]) {
+            continue;
+          }
+          final x = leftPx + px;
+          cache[y * widthPx + x] = true;
+        }
+      }
+      return true;
+    }
     for (var py = startY; py < endY; py++) {
       final y = topPx + py;
       for (var px = startX; px < endX; px++) {
