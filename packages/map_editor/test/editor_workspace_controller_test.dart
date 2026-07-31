@@ -62,6 +62,21 @@ void main() {
       expect(next.statusMessage, current.statusMessage);
     });
 
+    test('selectSmartTilesStudioWorkspace keeps the project session intact',
+        () {
+      const current = EditorState(
+        projectRootPath: '/tmp/smart-tiles-project',
+        workspaceMode: EditorWorkspaceMode.pathStudio,
+        errorMessage: 'Old failure',
+      );
+
+      final next = controller.selectSmartTilesStudioWorkspace(current);
+
+      expect(next.workspaceMode, EditorWorkspaceMode.smartTilesStudio);
+      expect(next.projectRootPath, '/tmp/smart-tiles-project');
+      expect(next.errorMessage, isNull);
+    });
+
     test('selectBorderStudioWorkspace opens without an active map', () {
       const current = EditorState(
         projectRootPath: '/tmp/border-project',

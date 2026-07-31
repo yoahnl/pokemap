@@ -4318,6 +4318,11 @@ class EditorNotifier extends _$EditorNotifier
     state = _editorWorkspaceController.selectNarrativeValidatorWorkspace(state);
   }
 
+  /// Ouvre le studio natif unifié des terrains, chemins et forêts.
+  void selectSmartTilesStudioWorkspace() {
+    state = _editorWorkspaceController.selectSmartTilesStudioWorkspace(state);
+  }
+
   /// Bascule vers Path Studio.
   ///
   /// Navigation pure de shell : aucune mutation de manifest, aucune génération
@@ -5575,6 +5580,27 @@ class EditorNotifier extends _$EditorNotifier
       );
       return;
     }
+    if (activeLayer is SmartTileLayer) {
+      ProjectSmartTilePreset? preset;
+      for (final candidate in state.project?.smartTileCatalog.presets ??
+          const <ProjectSmartTilePreset>[]) {
+        if (candidate.id == activeLayer.presetId) {
+          preset = candidate;
+          break;
+        }
+      }
+      if (preset == null) {
+        _setPaintError(
+          'Smart Tile preset not found: ${activeLayer.presetId}',
+        );
+        return;
+      }
+      paintSmartTileMaterialAt(
+        pos,
+        materialId: preset.defaultMaterialId,
+      );
+      return;
+    }
     _setPaintError('Active layer "${activeLayer.name}" is not editable');
   }
 
@@ -5610,6 +5636,57 @@ class EditorNotifier extends _$EditorNotifier
       );
     } catch (e) {
       _setPaintError('Failed to paint surface: $e');
+    }
+  }
+
+  void paintSmartTileMaterialAt(
+    GridPos pos, {
+    required String? materialId,
+  }) {
+    final map = state.activeMap;
+    final layerId = state.activeLayerId;
+    if (map == null || layerId == null) {
+      _setPaintError('No active Smart Tile layer selected');
+      return;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer is! SmartTileLayer) {
+      _setPaintError('Active layer is not a Smart Tile layer');
+      return;
+    }
+    if (activeLayer.usage == SmartTileUsage.terrain &&
+        (materialId == null || materialId.trim().isEmpty)) {
+      _setPaintError('The Smart Tile terrain layer cannot contain empty cells');
+      return;
+    }
+    try {
+      final paintedLayer = setSmartTileCellMaterial(
+        activeLayer,
+        mapSize: map.size,
+        x: pos.x,
+        y: pos.y,
+        materialId: materialId,
+      );
+      if (paintedLayer == activeLayer) {
+        state = state.copyWith(errorMessage: null);
+        return;
+      }
+      final updated = replaceSmartTileLayer(map, layer: paintedLayer);
+      MapValidator.validate(
+        updated,
+        projectDialogueContext: state.project,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: layerId,
+        statusMessage: materialId == null || materialId.trim().isEmpty
+            ? 'Smart Tile cell erased'
+            : 'Smart Tile material painted',
+        partOfStroke: true,
+      );
+    } catch (e) {
+      _setPaintError('Failed to paint Smart Tile material: $e');
     }
   }
 
@@ -5744,6 +5821,47 @@ class EditorNotifier extends _$EditorNotifier
         );
       } catch (e) {
         _setPaintError('Failed to erase surface: $e');
+      }
+      return;
+    }
+    if (activeLayer is SmartTileLayer) {
+      if (activeLayer.usage == SmartTileUsage.terrain) {
+        _setPaintError(
+          'The Smart Tile terrain layer cannot contain empty cells',
+        );
+        return;
+      }
+      try {
+        var erasedLayer = activeLayer;
+        for (var y = 0; y < eraserFootprint.size.height; y++) {
+          for (var x = 0; x < eraserFootprint.size.width; x++) {
+            final targetX = pos.x + x;
+            final targetY = pos.y + y;
+            if (targetX < 0 ||
+                targetY < 0 ||
+                targetX >= map.size.width ||
+                targetY >= map.size.height) {
+              continue;
+            }
+            erasedLayer = setSmartTileCellMaterial(
+              erasedLayer,
+              mapSize: map.size,
+              x: targetX,
+              y: targetY,
+              materialId: null,
+            );
+          }
+        }
+        final updated = replaceSmartTileLayer(map, layer: erasedLayer);
+        _applyMapMutation(
+          previousMap: map,
+          updatedMap: updated,
+          preferredActiveLayerId: layerId,
+          statusMessage: 'Smart Tile cells erased',
+          partOfStroke: true,
+        );
+      } catch (e) {
+        _setPaintError('Failed to erase Smart Tile material: $e');
       }
       return;
     }
@@ -8011,6 +8129,13 @@ class EditorNotifier extends _$EditorNotifier
           validity: MapToolPreviewValidity.valid,
         );
       }
+      if (activeLayer is SmartTileLayer) {
+        return MapToolPreview.pathPaint(
+          origin: hoveredTile,
+          size: const GridSize(width: 1, height: 1),
+          validity: MapToolPreviewValidity.valid,
+        );
+      }
       return null;
     }
 
@@ -8060,6 +8185,15 @@ class EditorNotifier extends _$EditorNotifier
         origin: hoveredTile,
         size: eraserFootprint.size,
         validity: MapToolPreviewValidity.valid,
+      );
+    }
+    if (activeLayer is SmartTileLayer) {
+      return MapToolPreview.pathErase(
+        origin: hoveredTile,
+        size: eraserFootprint.size,
+        validity: activeLayer.usage == SmartTileUsage.terrain
+            ? MapToolPreviewValidity.invalid
+            : MapToolPreviewValidity.valid,
       );
     }
     return null;
@@ -8365,6 +8499,12 @@ class EditorNotifier extends _$EditorNotifier
       return const _ResolvedBrushFootprint(
         size: GridSize(width: 1, height: 1),
         failureLabel: 'surface placement',
+      );
+    }
+    if (activeLayer is SmartTileLayer) {
+      return const _ResolvedBrushFootprint(
+        size: GridSize(width: 1, height: 1),
+        failureLabel: 'Smart Tile cell',
       );
     }
     if (emitErrors) {
@@ -8975,6 +9115,49 @@ class EditorNotifier extends _$EditorNotifier
       );
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to add surface layer: $e');
+    }
+  }
+
+  void addSmartTileLayer({
+    required String presetId,
+    required SmartTileUsage usage,
+    required String defaultMaterialId,
+    required String name,
+    int layerSeed = 0,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final useCase = ref.read(addMapLayerUseCaseProvider);
+      int? insertIndex;
+      final activeId = state.activeLayerId;
+      if (activeId != null) {
+        final idx = map.layers.indexWhere((layer) => layer.id == activeId);
+        if (idx >= 0) insertIndex = idx;
+      }
+      final result = useCase.executeSmartTile(
+        map,
+        name: name,
+        presetId: presetId,
+        usage: usage,
+        defaultMaterialId: defaultMaterialId,
+        layerSeed: layerSeed,
+        insertIndex: insertIndex,
+      );
+      MapValidator.validate(
+        result.map,
+        projectDialogueContext: state.project,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: result.layer.id,
+        statusMessage: 'Smart Tile layer "${result.layer.name}" added',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to add Smart Tile layer: $e',
+      );
     }
   }
 

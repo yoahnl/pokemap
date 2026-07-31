@@ -416,6 +416,21 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           onTap: notifier.selectBorderStudioWorkspace,
         ),
         ProjectExplorerModuleCard(
+          key: const ValueKey<String>('smart-tiles-studio-module-card'),
+          title: 'Smart Tiles Studio',
+          description: 'Terrains, chemins et forêts — natif et historique',
+          icon: CupertinoIcons.square_grid_3x2,
+          accentColor: colors.mapAccent,
+          count: project.smartTileCatalog.presets.length +
+              project.terrainPresets.length +
+              project.pathPresets.length +
+              project.pathPatternPresets.length +
+              project.surfaceCatalog.presets.length,
+          selected:
+              snapshot.workspaceMode == EditorWorkspaceMode.smartTilesStudio,
+          onTap: notifier.selectSmartTilesStudioWorkspace,
+        ),
+        ProjectExplorerModuleCard(
           title: 'Terrain Library',
           description: 'Presets de terrain de base',
           icon: CupertinoIcons.map,

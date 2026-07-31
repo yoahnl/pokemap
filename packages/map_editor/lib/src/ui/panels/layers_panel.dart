@@ -770,6 +770,7 @@ class _LayerList extends StatelessWidget {
       terrain: (_) => CupertinoIcons.tree,
       path: (_) => CupertinoIcons.map,
       surface: (_) => CupertinoIcons.map,
+      smartTile: (_) => CupertinoIcons.square_grid_3x2,
       object: (_) => CupertinoIcons.square_stack_3d_up,
       environment: (_) => CupertinoIcons.cloud,
       border: (_) => CupertinoIcons.waveform_path,
@@ -784,6 +785,8 @@ class _LayerList extends StatelessWidget {
       path: (_) => 'chemin',
       surface: (surfaceLayer) =>
           'surface · ${surfaceLayer.placements.length} placement(s)',
+      smartTile: (smartLayer) =>
+          'smart tile · ${smartLayer.usage.name} · ${smartLayer.presetId}',
       object: (_) => 'objets',
       environment: (el) => 'environnement · ${el.content.areaCount} zone(s)',
       border: (borderLayer) =>

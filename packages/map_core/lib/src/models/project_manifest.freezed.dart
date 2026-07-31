@@ -108,6 +108,13 @@ mixin _$ProjectManifest {
   ProjectSurfaceCatalog get surfaceCatalog =>
       throw _privateConstructorUsedError;
   @JsonKey(
+      name: 'smartTileCatalog',
+      fromJson: _projectSmartTileCatalogFromJson,
+      toJson: _projectSmartTileCatalogToJson,
+      includeIfNull: false)
+  ProjectSmartTileCatalog get smartTileCatalog =>
+      throw _privateConstructorUsedError;
+  @JsonKey(
       name: 'borderCatalog',
       readValue: _readProjectBorderCatalog,
       fromJson: _projectBorderCatalogFromJson,
@@ -158,10 +165,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
           fromJson: decodeProjectPathPatternPresets,
           toJson: encodeProjectPathPatternPresets)
       List<ProjectPathPatternPreset> pathPatternPresets,
-      @JsonKey(
-          name: 'environmentPresets',
-          fromJson: decodeEnvironmentPresets,
-          toJson: encodeEnvironmentPresets)
+      @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)
       List<EnvironmentPreset> environmentPresets,
       List<ProjectEncounterTable> encounterTables,
       List<ProjectDialogueFolder> dialogueFolders,
@@ -183,10 +187,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
       @JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,
       @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
       List<SceneAsset> scenes,
-      @JsonKey(
-          name: 'storylines',
-          fromJson: _storylinesFromJson,
-          toJson: _storylinesToJson)
+      @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)
       List<StorylineAsset> storylines,
       List<ShopDefinition> shops,
       List<BadgeDefinition> badges,
@@ -197,11 +198,14 @@ abstract class $ProjectManifestCopyWith<$Res> {
       ProjectNewGameConfig newGame,
       @JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation,
       Map<String, dynamic> globalProperties,
-      @JsonKey(
-          name: 'surfaceCatalog',
-          fromJson: _projectSurfaceCatalogFromJson,
-          toJson: _projectSurfaceCatalogToJson)
+      @JsonKey(name: 'surfaceCatalog', fromJson: _projectSurfaceCatalogFromJson, toJson: _projectSurfaceCatalogToJson)
       ProjectSurfaceCatalog surfaceCatalog,
+      @JsonKey(
+          name: 'smartTileCatalog',
+          fromJson: _projectSmartTileCatalogFromJson,
+          toJson: _projectSmartTileCatalogToJson,
+          includeIfNull: false)
+      ProjectSmartTileCatalog smartTileCatalog,
       @JsonKey(
           name: 'borderCatalog',
           readValue: _readProjectBorderCatalog,
@@ -274,6 +278,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? presentation = freezed,
     Object? globalProperties = null,
     Object? surfaceCatalog = null,
+    Object? smartTileCatalog = null,
     Object? borderCatalog = null,
     Object? shadowCatalog = null,
     Object? projectedBuildingShadowCatalog = null,
@@ -427,6 +432,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.surfaceCatalog
           : surfaceCatalog // ignore: cast_nullable_to_non_nullable
               as ProjectSurfaceCatalog,
+      smartTileCatalog: null == smartTileCatalog
+          ? _value.smartTileCatalog
+          : smartTileCatalog // ignore: cast_nullable_to_non_nullable
+              as ProjectSmartTileCatalog,
       borderCatalog: null == borderCatalog
           ? _value.borderCatalog
           : borderCatalog // ignore: cast_nullable_to_non_nullable
@@ -504,10 +513,7 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
           fromJson: decodeProjectPathPatternPresets,
           toJson: encodeProjectPathPatternPresets)
       List<ProjectPathPatternPreset> pathPatternPresets,
-      @JsonKey(
-          name: 'environmentPresets',
-          fromJson: decodeEnvironmentPresets,
-          toJson: encodeEnvironmentPresets)
+      @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)
       List<EnvironmentPreset> environmentPresets,
       List<ProjectEncounterTable> encounterTables,
       List<ProjectDialogueFolder> dialogueFolders,
@@ -529,10 +535,7 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       @JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,
       @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
       List<SceneAsset> scenes,
-      @JsonKey(
-          name: 'storylines',
-          fromJson: _storylinesFromJson,
-          toJson: _storylinesToJson)
+      @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)
       List<StorylineAsset> storylines,
       List<ShopDefinition> shops,
       List<BadgeDefinition> badges,
@@ -543,11 +546,14 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       ProjectNewGameConfig newGame,
       @JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation,
       Map<String, dynamic> globalProperties,
-      @JsonKey(
-          name: 'surfaceCatalog',
-          fromJson: _projectSurfaceCatalogFromJson,
-          toJson: _projectSurfaceCatalogToJson)
+      @JsonKey(name: 'surfaceCatalog', fromJson: _projectSurfaceCatalogFromJson, toJson: _projectSurfaceCatalogToJson)
       ProjectSurfaceCatalog surfaceCatalog,
+      @JsonKey(
+          name: 'smartTileCatalog',
+          fromJson: _projectSmartTileCatalogFromJson,
+          toJson: _projectSmartTileCatalogToJson,
+          includeIfNull: false)
+      ProjectSmartTileCatalog smartTileCatalog,
       @JsonKey(
           name: 'borderCatalog',
           readValue: _readProjectBorderCatalog,
@@ -621,6 +627,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? presentation = freezed,
     Object? globalProperties = null,
     Object? surfaceCatalog = null,
+    Object? smartTileCatalog = null,
     Object? borderCatalog = null,
     Object? shadowCatalog = null,
     Object? projectedBuildingShadowCatalog = null,
@@ -774,6 +781,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value.surfaceCatalog
           : surfaceCatalog // ignore: cast_nullable_to_non_nullable
               as ProjectSurfaceCatalog,
+      smartTileCatalog: null == smartTileCatalog
+          ? _value.smartTileCatalog
+          : smartTileCatalog // ignore: cast_nullable_to_non_nullable
+              as ProjectSmartTileCatalog,
       borderCatalog: null == borderCatalog
           ? _value.borderCatalog
           : borderCatalog // ignore: cast_nullable_to_non_nullable
@@ -824,8 +835,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<NarrativeFactDefinition> facts = const [],
       @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)
       final List<WorldRuleDefinition> worldRules = const [],
-      final List<NarrativeDiagnosticSuppression>
-          narrativeDiagnosticSuppressions = const [],
+      final List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions =
+          const [],
       @JsonKey(includeIfNull: false) this.eventRegistry,
       @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
       final List<SceneAsset> scenes = const [],
@@ -842,6 +853,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final Map<String, dynamic> globalProperties = const {},
       @JsonKey(name: 'surfaceCatalog', fromJson: _projectSurfaceCatalogFromJson, toJson: _projectSurfaceCatalogToJson)
       this.surfaceCatalog = const ProjectSurfaceCatalog.empty(),
+      @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false)
+      this.smartTileCatalog = const ProjectSmartTileCatalog.empty(),
       @JsonKey(
           name: 'borderCatalog',
           readValue: _readProjectBorderCatalog,
@@ -1197,6 +1210,13 @@ class _$ProjectManifestImpl implements _ProjectManifest {
   final ProjectSurfaceCatalog surfaceCatalog;
   @override
   @JsonKey(
+      name: 'smartTileCatalog',
+      fromJson: _projectSmartTileCatalogFromJson,
+      toJson: _projectSmartTileCatalogToJson,
+      includeIfNull: false)
+  final ProjectSmartTileCatalog smartTileCatalog;
+  @override
+  @JsonKey(
       name: 'borderCatalog',
       readValue: _readProjectBorderCatalog,
       fromJson: _projectBorderCatalogFromJson,
@@ -1217,7 +1237,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, cinematicMediaAssets: $cinematicMediaAssets, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, shops: $shops, badges: $badges, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, presentation: $presentation, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, cinematicMediaAssets: $cinematicMediaAssets, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, shops: $shops, badges: $badges, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, presentation: $presentation, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, smartTileCatalog: $smartTileCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
   }
 
   @override
@@ -1286,6 +1306,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
                 .equals(other._globalProperties, _globalProperties) &&
             (identical(other.surfaceCatalog, surfaceCatalog) ||
                 other.surfaceCatalog == surfaceCatalog) &&
+            (identical(other.smartTileCatalog, smartTileCatalog) ||
+                other.smartTileCatalog == smartTileCatalog) &&
             (identical(other.borderCatalog, borderCatalog) ||
                 other.borderCatalog == borderCatalog) &&
             (identical(other.shadowCatalog, shadowCatalog) ||
@@ -1337,6 +1359,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         presentation,
         const DeepCollectionEquality().hash(_globalProperties),
         surfaceCatalog,
+        smartTileCatalog,
         borderCatalog,
         shadowCatalog,
         projectedBuildingShadowCatalog
@@ -1414,11 +1437,14 @@ abstract class _ProjectManifest implements ProjectManifest {
       @JsonKey(includeIfNull: false)
       final ProjectPresentationProfile? presentation,
       final Map<String, dynamic> globalProperties,
-      @JsonKey(
-          name: 'surfaceCatalog',
-          fromJson: _projectSurfaceCatalogFromJson,
-          toJson: _projectSurfaceCatalogToJson)
+      @JsonKey(name: 'surfaceCatalog', fromJson: _projectSurfaceCatalogFromJson, toJson: _projectSurfaceCatalogToJson)
       final ProjectSurfaceCatalog surfaceCatalog,
+      @JsonKey(
+          name: 'smartTileCatalog',
+          fromJson: _projectSmartTileCatalogFromJson,
+          toJson: _projectSmartTileCatalogToJson,
+          includeIfNull: false)
+      final ProjectSmartTileCatalog smartTileCatalog,
       @JsonKey(
           name: 'borderCatalog',
           readValue: _readProjectBorderCatalog,
@@ -1544,6 +1570,13 @@ abstract class _ProjectManifest implements ProjectManifest {
       fromJson: _projectSurfaceCatalogFromJson,
       toJson: _projectSurfaceCatalogToJson)
   ProjectSurfaceCatalog get surfaceCatalog;
+  @override
+  @JsonKey(
+      name: 'smartTileCatalog',
+      fromJson: _projectSmartTileCatalogFromJson,
+      toJson: _projectSmartTileCatalogToJson,
+      includeIfNull: false)
+  ProjectSmartTileCatalog get smartTileCatalog;
   @override
   @JsonKey(
       name: 'borderCatalog',

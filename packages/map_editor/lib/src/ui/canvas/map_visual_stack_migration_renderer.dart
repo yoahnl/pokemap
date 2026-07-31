@@ -291,6 +291,13 @@ Set<String> _collectRequiredAssetIds(
             collectSurfaceTilePreviewTilesetIds(map: map, catalog: catalog),
           );
         }
+      case SmartTileLayer(:final materialCells):
+        if (!materialCells.any((value) => value != 0)) continue;
+        for (final atlas in inputs.project?.smartTileCatalog.atlases ??
+            const <ProjectSmartTileAtlas>[]) {
+          final tilesetId = atlas.tilesetId.trim();
+          if (tilesetId.isNotEmpty) result.add(tilesetId);
+        }
       case BorderLayer(:final content):
         final catalog = inputs.project?.borderCatalog;
         if (catalog == null) continue;

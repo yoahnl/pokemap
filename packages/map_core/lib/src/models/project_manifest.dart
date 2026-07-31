@@ -23,6 +23,7 @@ import 'script_asset.dart';
 import 'script_conditions.dart';
 import 'shadow.dart';
 import 'shadow_catalog.dart';
+import 'smart_tile.dart';
 import 'storyline_asset.dart';
 import 'surface_catalog.dart';
 import 'tileset_transparent_color.dart';
@@ -86,6 +87,24 @@ Map<String, Object?> _projectSurfaceCatalogToJson(
   ProjectSurfaceCatalog catalog,
 ) {
   return encodeProjectSurfaceCatalog(catalog);
+}
+
+ProjectSmartTileCatalog _projectSmartTileCatalogFromJson(Object? json) {
+  if (json == null) {
+    return const ProjectSmartTileCatalog.empty();
+  }
+  if (json is! Map) {
+    throw const FormatException(r'$.smartTileCatalog: expected an object');
+  }
+  return ProjectSmartTileCatalog.fromJson(
+    Map<String, dynamic>.from(json),
+  );
+}
+
+Map<String, Object?>? _projectSmartTileCatalogToJson(
+  ProjectSmartTileCatalog catalog,
+) {
+  return catalog.isEmpty ? null : catalog.toJson();
 }
 
 /// JSON -> authoring Storylines.
@@ -448,8 +467,7 @@ class ProjectManifest with _$ProjectManifest {
     @Default(ProjectSettings()) ProjectSettings settings,
     @Default(ProjectPokemonConfig()) ProjectPokemonConfig pokemon,
     @Default(ProjectNewGameConfig()) ProjectNewGameConfig newGame,
-    @JsonKey(includeIfNull: false)
-    ProjectPresentationProfile? presentation,
+    @JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation,
     @Default({}) Map<String, dynamic> globalProperties,
     @Default(ProjectSurfaceCatalog.empty())
     @JsonKey(
@@ -458,6 +476,14 @@ class ProjectManifest with _$ProjectManifest {
       toJson: _projectSurfaceCatalogToJson,
     )
     ProjectSurfaceCatalog surfaceCatalog,
+    @Default(ProjectSmartTileCatalog.empty())
+    @JsonKey(
+      name: 'smartTileCatalog',
+      fromJson: _projectSmartTileCatalogFromJson,
+      toJson: _projectSmartTileCatalogToJson,
+      includeIfNull: false,
+    )
+    ProjectSmartTileCatalog smartTileCatalog,
     @Default(ProjectBorderCatalog.empty())
     @JsonKey(
       name: 'borderCatalog',
@@ -501,6 +527,13 @@ class ProjectManifest with _$ProjectManifest {
       throw const FormatException(
         r'$.borderCatalog: non-empty Border catalog requires '
         'ProjectVersion.v2',
+      );
+    }
+    if (manifest.version != ProjectVersion.v4 &&
+        manifest.smartTileCatalog.isNotEmpty) {
+      throw const FormatException(
+        r'$.smartTileCatalog: a non-empty Smart Tile catalog requires '
+        'ProjectVersion.v4',
       );
     }
     return manifest;

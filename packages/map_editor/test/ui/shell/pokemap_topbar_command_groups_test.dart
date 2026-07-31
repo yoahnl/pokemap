@@ -409,6 +409,9 @@ const _worldExplorerWorkspaceNavigationInventory =
       _WorldMapControlSignature.capsuleTooltip('Switch to Cutscene Studio'),
   'workspace.dialogue':
       _WorldMapControlSignature.capsuleTooltip('Switch to dialogue studio'),
+  'workspace.smartTiles': _WorldMapControlSignature.capsuleTooltip(
+    'Switch to Smart Tiles Studio',
+  ),
   'workspace.path':
       _WorldMapControlSignature.capsuleTooltip('Switch to Path Studio'),
   'workspace.environment': _WorldMapControlSignature.capsuleTooltip(

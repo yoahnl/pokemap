@@ -74,13 +74,15 @@ void main() {
       'project manifest': migrateProjectManifestJson,
       'map data': migrateMapDataJson,
     }.entries) {
-      test('${entry.key} accepts absent, null, V1, V2, and V3 by identity', () {
+      test('${entry.key} accepts absent, null, V1, V2, V3, and V4 by identity',
+          () {
         for (final version in <Object?>[
           _absentVersion,
           null,
           'v1',
           'v2',
           'v3',
+          'v4',
         ]) {
           final raw = <String, dynamic>{'name': 'identity'};
           if (!identical(version, _absentVersion)) {
@@ -95,7 +97,7 @@ void main() {
           () {
         for (final invalid in <Object?>[
           'v0',
-          'v4',
+          'v5',
           true,
           1,
           <String, Object?>{},

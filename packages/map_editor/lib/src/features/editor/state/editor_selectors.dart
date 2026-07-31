@@ -207,6 +207,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.shops => 'Boutique Builder',
     EditorWorkspaceMode.worldRules => 'World Rules Manager',
     EditorWorkspaceMode.narrativeValidator => 'Narrative Validator',
+    EditorWorkspaceMode.smartTilesStudio => 'Smart Tiles Studio',
     EditorWorkspaceMode.pathStudio => 'Path Studio',
     EditorWorkspaceMode.environmentStudio => 'Environment Studio',
     EditorWorkspaceMode.personalizationStudio => 'Personalization Studio',
@@ -246,6 +247,8 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
       'Règles visibles du monde basées sur des sources authorées et des cibles de carte.',
     EditorWorkspaceMode.narrativeValidator =>
       'Verdict de jouabilité, solvabilité et raccordements Event par map.',
+    EditorWorkspaceMode.smartTilesStudio =>
+      'Terrains, chemins et surfaces forestières dans un studio natif commun.',
     EditorWorkspaceMode.pathStudio =>
       'Créer des motifs de chemin à partir des presets PathPattern du projet.',
     EditorWorkspaceMode.environmentStudio =>

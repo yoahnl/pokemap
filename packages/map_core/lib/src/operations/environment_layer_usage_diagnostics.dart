@@ -184,6 +184,7 @@ String _mapLayerId(MapLayer layer) {
     TerrainLayer(:final id) => id,
     PathLayer(:final id) => id,
     SurfaceLayer(:final id) => id,
+    SmartTileLayer(:final id) => id,
     ObjectLayer(:final id) => id,
     EnvironmentLayer(:final id) => id,
     BorderLayer(:final id) => id,

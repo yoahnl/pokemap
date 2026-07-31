@@ -178,6 +178,11 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
           zOrder: zOrder,
           layerIndex: i,
         );
+      case SmartTileLayer():
+        // Cinematic backdrop export remains on its legacy bitmap contract.
+        // Native map/runtime rendering is handled by the shared Smart Tile
+        // resolver and must not be approximated by another family here.
+        break;
       case CollisionLayer():
       case ObjectLayer():
       case EnvironmentLayer():
@@ -235,8 +240,10 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
     }
 
     if (groupA == 5) {
-      final subPassA = a.renderPass == CinematicMapBackdropRenderPass.tileForeground ? 0 : 1;
-      final subPassB = b.renderPass == CinematicMapBackdropRenderPass.tileForeground ? 0 : 1;
+      final subPassA =
+          a.renderPass == CinematicMapBackdropRenderPass.tileForeground ? 0 : 1;
+      final subPassB =
+          b.renderPass == CinematicMapBackdropRenderPass.tileForeground ? 0 : 1;
       final subPassCompare = subPassA.compareTo(subPassB);
       if (subPassCompare != 0) {
         return subPassCompare;
@@ -253,7 +260,6 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
     }
     return a.zOrder.compareTo(b.zOrder);
   });
-
 
   if (instructions.isEmpty && diagnostics.isEmpty) {
     diagnostics.add(

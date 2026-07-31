@@ -38,6 +38,21 @@ Set<String> collectTilesetIdsReferencedOnMap(MapData map) {
       terrain: (id, name, isVisible, opacity, terrains) {},
       path: (id, name, isVisible, opacity, presetId, cells, properties,
           animationMode, animationTriggers) {},
+      smartTile: (
+        id,
+        name,
+        isVisible,
+        opacity,
+        presetId,
+        usage,
+        materialPalette,
+        materialCells,
+        horizontalEdges,
+        verticalEdges,
+        corners,
+        layerSeed,
+        properties,
+      ) {},
       // Surface layers are no-op in runtime V0; a later runtime Surface lot
       // will resolve placed preset ids into catalog atlas/tileset references.
       surface: (id, name, isVisible, opacity, placements, properties) {},
@@ -121,6 +136,21 @@ void addTerrainAndPathPresetTilesetIds(
           }
         }
       },
+      smartTile: (
+        id,
+        name,
+        isVisible,
+        opacity,
+        presetId,
+        usage,
+        materialPalette,
+        materialCells,
+        horizontalEdges,
+        verticalEdges,
+        corners,
+        layerSeed,
+        properties,
+      ) {},
       // Surface render work stays out of this file, but Lot 89 now collects the
       // atlas tilesets used by placed Surface presets below.
       surface: (id, name, isVisible, opacity, placements, properties) {},
@@ -130,6 +160,54 @@ void addTerrainAndPathPresetTilesetIds(
       // remain owned by the dedicated immutable snapshot cache.
       border: (id, name, isVisible, opacity, content, properties) {},
     );
+  }
+}
+
+void addSmartTileTilesetIds(
+  Set<String> ids,
+  MapData map,
+  ProjectManifest manifest,
+) {
+  final catalog = manifest.smartTileCatalog;
+  if (catalog.isEmpty) return;
+  final atlasById = <String, ProjectSmartTileAtlas>{
+    for (final atlas in catalog.atlases) atlas.id: atlas,
+  };
+  final animationById = <String, ProjectSmartTileAnimation>{
+    for (final animation in catalog.animations) animation.id: animation,
+  };
+  final presetById = <String, ProjectSmartTilePreset>{
+    for (final preset in catalog.presets) preset.id: preset,
+  };
+
+  void addFrame(SmartTileFrameRef frame) {
+    final tilesetId = atlasById[frame.atlasId]?.tilesetId.trim() ?? '';
+    if (tilesetId.isNotEmpty) ids.add(tilesetId);
+  }
+
+  void addSource(SmartTileVisualSource source) {
+    source.map(
+      frame: (source) => addFrame(source.frame),
+      animation: (source) {
+        final animation = animationById[source.animationId];
+        if (animation == null) return;
+        for (final frame in animation.frames) {
+          addFrame(frame.frame);
+        }
+      },
+    );
+  }
+
+  for (final layer in map.layers.whereType<SmartTileLayer>()) {
+    final preset = presetById[layer.presetId];
+    if (preset == null || preset.usage != layer.usage) continue;
+    for (final rule in preset.rules) {
+      for (final candidate in rule.candidates) {
+        for (final part in candidate.parts) {
+          addSource(part.source);
+        }
+      }
+    }
   }
 }
 
@@ -198,6 +276,7 @@ void addCharacterTilesetIds(
 Set<String> collectAllRuntimeTilesetIds(MapData map, ProjectManifest manifest) {
   final ids = collectTilesetIdsReferencedOnMap(map);
   addTerrainAndPathPresetTilesetIds(ids, map, manifest);
+  addSmartTileTilesetIds(ids, map, manifest);
   ids.addAll(
     collectSurfaceRuntimeTilesetIds(
       map: map,

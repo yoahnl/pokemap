@@ -340,6 +340,8 @@ class MapLayersComponent extends PositionComponent {
         if (renderPass == MapLayerRenderPass.background) {
           _paintSurfaceLayer(canvas, step.layer! as SurfaceLayer);
         }
+      case MapVisualCompositionStepKind.smartTileLayer:
+        _paintSmartTileLayer(canvas, step.layer! as SmartTileLayer);
       case MapVisualCompositionStepKind.tileBackgroundLayer:
         if (renderPass == MapLayerRenderPass.background) {
           final layer = step.layer! as TileLayer;
@@ -523,6 +525,66 @@ class MapLayersComponent extends PositionComponent {
         ch,
       );
       image.drawImageRect(canvas, src, dst, paint);
+    }
+  }
+
+  void _paintSmartTileLayer(Canvas canvas, SmartTileLayer layer) {
+    final catalog = bundle.manifest.smartTileCatalog;
+    if (catalog.isEmpty || layer.opacity <= 0) return;
+    final (:startX, :startY, :endX, :endY) = _visibleCellRange();
+    final visuals = resolveSmartTileLayerVisuals(
+      map: bundle.map,
+      layer: layer,
+      catalog: catalog,
+      pass: switch (renderPass) {
+        MapLayerRenderPass.background => SmartTileVisualPass.background,
+        MapLayerRenderPass.foreground => SmartTileVisualPass.foreground,
+      },
+      elapsedMs: (_animElapsed * 1000).toInt(),
+      startX: startX,
+      startY: startY,
+      endX: endX,
+      endY: endY,
+    );
+    if (visuals.isEmpty) return;
+
+    final cw = bundle.cellWidth;
+    final ch = bundle.cellHeight;
+    final sourceTileWidth = bundle.manifest.settings.tileWidth;
+    final sourceTileHeight = bundle.manifest.settings.tileHeight;
+    final pixelScaleX = sourceTileWidth > 0 ? cw / sourceTileWidth : 1.0;
+    final pixelScaleY = sourceTileHeight > 0 ? ch / sourceTileHeight : 1.0;
+    final paint = Paint()
+      ..isAntiAlias = false
+      ..filterQuality = FilterQuality.none
+      ..color = Colors.white.withValues(
+        alpha: layer.opacity.clamp(0.0, 1.0),
+      );
+
+    for (final visual in visuals) {
+      final image = tileImagesByTilesetId[visual.tilesetId];
+      if (image == null) continue;
+      final source = visual.sourceRect;
+      final sourceRect = Rect.fromLTWH(
+        source.x.toDouble(),
+        source.y.toDouble(),
+        source.width.toDouble(),
+        source.height.toDouble(),
+      );
+      if (!image.containsSourceRect(sourceRect)) continue;
+      final offsetX = visual.offsetUnit == SmartTileOffsetUnit.cell
+          ? visual.offsetX * cw
+          : visual.offsetX * pixelScaleX;
+      final offsetY = visual.offsetUnit == SmartTileOffsetUnit.cell
+          ? visual.offsetY * ch
+          : visual.offsetY * pixelScaleY;
+      final destination = Rect.fromLTWH(
+        visual.cellX * cw + offsetX - visual.anchorX * pixelScaleX,
+        visual.cellY * ch + offsetY - visual.anchorY * pixelScaleY,
+        visual.footprintWidth * cw,
+        visual.footprintHeight * ch,
+      );
+      image.drawImageRect(canvas, sourceRect, destination, paint);
     }
   }
 

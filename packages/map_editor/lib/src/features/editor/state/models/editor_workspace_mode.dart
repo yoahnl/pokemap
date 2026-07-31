@@ -52,6 +52,12 @@ enum EditorWorkspaceMode {
   /// Verdict global de jouabilité narrative et Map Events View.
   narrativeValidator,
 
+  /// Studio natif unifié pour terrains, chemins et surfaces forestières.
+  ///
+  /// Ce mode est ajouté parallèlement au Path Studio historique tant que la
+  /// parité de lecture, d'édition et de conversion n'est pas démontrée.
+  smartTilesStudio,
+
   /// Shell Path Studio V0.
   ///
   /// Ce mode expose une surface read-only pour les `ProjectPathPatternPreset` :

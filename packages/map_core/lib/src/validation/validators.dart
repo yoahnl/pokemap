@@ -10,9 +10,11 @@ import '../models/project_manifest.dart';
 import '../models/project_trainer.dart';
 import '../models/scenario_asset.dart';
 import '../models/script_conditions.dart';
+import '../models/smart_tile.dart';
 import '../operations/map_entities.dart';
 import '../operations/map_placed_element_footprint.dart';
 import '../operations/narrative_fact_runtime.dart';
+import '../operations/smart_tile_catalog_validation.dart';
 import 'dialogue_validation.dart';
 import 'entity_editor_visual_validation.dart';
 
@@ -82,6 +84,23 @@ class ProjectValidator {
       throw const ValidationException(
         'A non-empty Border catalog requires ProjectVersion.v2',
       );
+    }
+    if (manifest.version != ProjectVersion.v4 &&
+        manifest.smartTileCatalog.isNotEmpty) {
+      throw const ValidationException(
+        'A non-empty Smart Tile catalog requires ProjectVersion.v4',
+      );
+    }
+    final smartTileDiagnostics = validateProjectSmartTileCatalog(
+      catalog: manifest.smartTileCatalog,
+      projectTilesetIds: manifest.tilesets.map((tileset) => tileset.id),
+    );
+    for (final diagnostic in smartTileDiagnostics) {
+      if (diagnostic.isError) {
+        throw ValidationException(
+          '${diagnostic.path}: ${diagnostic.message}',
+        );
+      }
     }
     _validateUniqueness(manifest);
     _validateHierarchy(manifest);
@@ -1728,11 +1747,27 @@ class MapValidator {
         'Border layers require ProjectVersion.v2',
       );
     }
+    if (map.version != ProjectVersion.v4 &&
+        map.layers.any((layer) => layer is SmartTileLayer)) {
+      throw const ValidationException(
+        'Smart Tile layers require ProjectVersion.v4',
+      );
+    }
+    final smartTerrainLayerCount = map.layers
+        .whereType<SmartTileLayer>()
+        .where((layer) => layer.usage == SmartTileUsage.terrain)
+        .length;
+    if (smartTerrainLayerCount > 1) {
+      throw const ValidationException(
+        'A map can contain only one Smart Tile terrain layer',
+      );
+    }
     final visualStack = map.visualStack;
     if (visualStack != null) {
-      if (map.version != ProjectVersion.v3) {
+      if (map.version != ProjectVersion.v3 &&
+          map.version != ProjectVersion.v4) {
         throw const ValidationException(
-          'visualStack requires ProjectVersion.v3',
+          'visualStack requires ProjectVersion.v3 or ProjectVersion.v4',
         );
       }
     }
@@ -1743,6 +1778,7 @@ class MapValidator {
         layer,
         expectedCellCount,
         map: map,
+        projectContext: projectDialogueContext,
       );
     }
 
@@ -2512,6 +2548,7 @@ class MapValidator {
     MapLayer layer,
     int expectedCellCount, {
     required MapData map,
+    ProjectManifest? projectContext,
   }) {
     final mapWidth = map.size.width;
     final mapHeight = map.size.height;
@@ -2625,6 +2662,128 @@ class MapValidator {
           if (key.trim().isEmpty) {
             throw ValidationException(
                 'Surface layer $layerId has an empty property key');
+          }
+        }
+      },
+      smartTile: (smartTileLayer) {
+        final presetId = smartTileLayer.presetId.trim();
+        if (presetId.isEmpty) {
+          throw ValidationException(
+            'Smart Tile layer $layerId has an empty presetId',
+          );
+        }
+        final palette = smartTileLayer.materialPalette;
+        if (palette.isEmpty || palette.first.isNotEmpty) {
+          throw ValidationException(
+            'Smart Tile layer $layerId materialPalette must start with the empty material',
+          );
+        }
+        final materialIds = <String>{};
+        for (var i = 1; i < palette.length; i++) {
+          final materialId = palette[i].trim();
+          if (materialId.isEmpty) {
+            throw ValidationException(
+              'Smart Tile layer $layerId has an empty material at palette index $i',
+            );
+          }
+          if (!materialIds.add(materialId)) {
+            throw ValidationException(
+              'Smart Tile layer $layerId has duplicate material: $materialId',
+            );
+          }
+        }
+
+        void validateLattice(
+          String label,
+          List<int> values,
+          int expectedLength,
+        ) {
+          if (values.length != expectedLength) {
+            throw ValidationException(
+              'Smart Tile layer $layerId has invalid $label count: '
+              'expected $expectedLength, got ${values.length}',
+            );
+          }
+          for (var i = 0; i < values.length; i++) {
+            final materialIndex = values[i];
+            if (materialIndex < 0 || materialIndex >= palette.length) {
+              throw ValidationException(
+                'Smart Tile layer $layerId $label[$i] references invalid '
+                'material palette index $materialIndex',
+              );
+            }
+          }
+        }
+
+        validateLattice(
+          'materialCells',
+          smartTileLayer.materialCells,
+          expectedCellCount,
+        );
+        validateLattice(
+          'horizontalEdges',
+          smartTileLayer.horizontalEdges,
+          mapWidth * (mapHeight + 1),
+        );
+        validateLattice(
+          'verticalEdges',
+          smartTileLayer.verticalEdges,
+          (mapWidth + 1) * mapHeight,
+        );
+        validateLattice(
+          'corners',
+          smartTileLayer.corners,
+          (mapWidth + 1) * (mapHeight + 1),
+        );
+        if (smartTileLayer.usage == SmartTileUsage.terrain &&
+            smartTileLayer.materialCells.any((index) => index == 0)) {
+          throw ValidationException(
+            'Smart Tile terrain layer $layerId must fully cover the map',
+          );
+        }
+        for (final key in smartTileLayer.properties.keys) {
+          if (key.trim().isEmpty) {
+            throw ValidationException(
+              'Smart Tile layer $layerId has an empty property key',
+            );
+          }
+        }
+
+        final catalog = projectContext?.smartTileCatalog;
+        if (catalog != null) {
+          ProjectSmartTilePreset? preset;
+          for (final candidate in catalog.presets) {
+            if (candidate.id == presetId) {
+              preset = candidate;
+              break;
+            }
+          }
+          if (preset == null) {
+            throw ValidationException(
+              'Smart Tile layer $layerId references unknown presetId: $presetId',
+            );
+          }
+          if (preset.usage != smartTileLayer.usage) {
+            throw ValidationException(
+              'Smart Tile layer $layerId usage ${smartTileLayer.usage.name} '
+              'does not match preset $presetId usage ${preset.usage.name}',
+            );
+          }
+          final knownMaterialIds =
+              catalog.materials.map((material) => material.id).toSet();
+          for (final materialId in materialIds) {
+            if (!knownMaterialIds.contains(materialId)) {
+              throw ValidationException(
+                'Smart Tile layer $layerId references unknown material: '
+                '$materialId',
+              );
+            }
+            if (!preset.allowedMaterialIds.contains(materialId)) {
+              throw ValidationException(
+                'Smart Tile layer $layerId material $materialId is not '
+                'allowed by preset $presetId',
+              );
+            }
           }
         }
       },

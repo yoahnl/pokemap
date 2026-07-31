@@ -474,6 +474,7 @@ String _compositionStepLabel(MapVisualCompositionStep step) {
     MapVisualCompositionStepKind.terrainLayer => 'Terrain — $layerLabel',
     MapVisualCompositionStepKind.pathLayer => 'Chemin — $layerLabel',
     MapVisualCompositionStepKind.surfaceLayer => 'Surface — $layerLabel',
+    MapVisualCompositionStepKind.smartTileLayer => 'Smart Tile — $layerLabel',
     MapVisualCompositionStepKind.tileBackgroundLayer =>
       'Tuiles de fond — $layerLabel',
     MapVisualCompositionStepKind.borderLayer => 'Bordure — $layerLabel',

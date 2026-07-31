@@ -500,6 +500,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     final supportsRightInspector = switch (workspaceMode) {
       _ when isNarrativeWorkspace => false,
       EditorWorkspaceMode.pokedex => false,
+      EditorWorkspaceMode.smartTilesStudio => false,
       EditorWorkspaceMode.pathStudio => false,
       EditorWorkspaceMode.environmentStudio => false,
       EditorWorkspaceMode.personalizationStudio => false,
@@ -1363,6 +1364,10 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                               EditorChrome
                                                                   .islandCoolTint,
                                                             EditorWorkspaceMode
+                                                                  .smartTilesStudio =>
+                                                              EditorChrome
+                                                                  .islandCoolTint,
+                                                            EditorWorkspaceMode
                                                                   .pathStudio =>
                                                               EditorChrome
                                                                   .islandCoolTint,
@@ -1414,6 +1419,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
                                                                   .narrativeValidator =>
+                                                              const _EmptyWorkspaceInspector(),
+                                                            EditorWorkspaceMode
+                                                                  .smartTilesStudio =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
                                                                   .pathStudio =>
@@ -1801,6 +1809,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.worldRules ||
       EditorWorkspaceMode.narrativeValidator =>
         colors.narrative,
+      EditorWorkspaceMode.smartTilesStudio => colors.mapAccent,
       EditorWorkspaceMode.pathStudio => colors.brandPrimary,
       EditorWorkspaceMode.environmentStudio => colors.mapAccent,
       EditorWorkspaceMode.personalizationStudio => colors.reward,
@@ -1843,6 +1852,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.shops => 'Boutiques',
       EditorWorkspaceMode.worldRules => 'Règles',
       EditorWorkspaceMode.narrativeValidator => 'Validateur',
+      EditorWorkspaceMode.smartTilesStudio => 'Smart Tiles',
       EditorWorkspaceMode.pathStudio => 'Chemins',
       EditorWorkspaceMode.environmentStudio => 'Envs',
       EditorWorkspaceMode.personalizationStudio => 'Style',
@@ -2019,6 +2029,8 @@ class _WorkspaceStageHeader extends ConsumerWidget {
               EditorWorkspaceMode.worldRules => CupertinoIcons.checkmark_seal,
               EditorWorkspaceMode.narrativeValidator =>
                 CupertinoIcons.checkmark_shield,
+              EditorWorkspaceMode.smartTilesStudio =>
+                CupertinoIcons.square_grid_3x2,
               EditorWorkspaceMode.pathStudio => CupertinoIcons.arrow_branch,
               EditorWorkspaceMode.environmentStudio => CupertinoIcons.tree,
               EditorWorkspaceMode.personalizationStudio =>
@@ -2037,16 +2049,18 @@ class _WorkspaceStageHeader extends ConsumerWidget {
             children: [
               Text(
                 title,
-                key: workspaceMode == EditorWorkspaceMode.environmentStudio
-                    ? const Key('environment-studio-title')
-                    : (workspaceMode ==
-                            EditorWorkspaceMode.personalizationStudio
-                        ? const Key('personalization-studio-title')
-                        : (workspaceMode == EditorWorkspaceMode.borderStudio
-                            ? const Key('border-studio-title')
-                            : (workspaceMode == EditorWorkspaceMode.trainer
-                                ? const Key('trainer-studio-title')
-                                : null))),
+                key: workspaceMode == EditorWorkspaceMode.smartTilesStudio
+                    ? const Key('smart-tiles-studio-title')
+                    : (workspaceMode == EditorWorkspaceMode.environmentStudio
+                        ? const Key('environment-studio-title')
+                        : (workspaceMode ==
+                                EditorWorkspaceMode.personalizationStudio
+                            ? const Key('personalization-studio-title')
+                            : (workspaceMode == EditorWorkspaceMode.borderStudio
+                                ? const Key('border-studio-title')
+                                : (workspaceMode == EditorWorkspaceMode.trainer
+                                    ? const Key('trainer-studio-title')
+                                    : null)))),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(

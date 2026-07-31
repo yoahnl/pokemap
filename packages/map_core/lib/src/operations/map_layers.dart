@@ -52,6 +52,13 @@ MapData addMapLayer(
         name: normalizedName,
         cells: List<bool>.filled(cellCount, false, growable: false),
       ),
+    MapLayerKind.surface => MapLayer.surface(
+        id: normalizedId,
+        name: normalizedName,
+      ),
+    MapLayerKind.smartTile => throw const ValidationException(
+        'Use addSmartTileLayer to create a native Smart Tile layer',
+      ),
     MapLayerKind.object => MapLayer.object(
         id: normalizedId,
         name: normalizedName,
@@ -264,6 +271,11 @@ MapLayer _copyLayer(
       name: name ?? surfaceLayer.name,
       isVisible: isVisible ?? surfaceLayer.isVisible,
       opacity: opacity ?? surfaceLayer.opacity,
+    ),
+    smartTile: (smartTileLayer) => smartTileLayer.copyWith(
+      name: name ?? smartTileLayer.name,
+      isVisible: isVisible ?? smartTileLayer.isVisible,
+      opacity: opacity ?? smartTileLayer.opacity,
     ),
     object: (objectLayer) => objectLayer.copyWith(
       name: name ?? objectLayer.name,

@@ -183,6 +183,7 @@ final class MapCanvasObjectHitTest {
         case MapVisualCompositionStepKind.terrainLayer:
         case MapVisualCompositionStepKind.pathLayer:
         case MapVisualCompositionStepKind.surfaceLayer:
+        case MapVisualCompositionStepKind.smartTileLayer:
         case MapVisualCompositionStepKind.tileBackgroundLayer:
         case MapVisualCompositionStepKind.borderLayer:
         case MapVisualCompositionStepKind.shadows:

@@ -22,6 +22,7 @@ enum MapVisualCompositionStepKind {
   terrainLayer,
   pathLayer,
   surfaceLayer,
+  smartTileLayer,
   tileBackgroundLayer,
   borderLayer,
   objectNoop,
@@ -92,6 +93,7 @@ final class MapVisualCompositionPlan {
           MapVisualCompositionStepKind.terrainLayer ||
           MapVisualCompositionStepKind.pathLayer ||
           MapVisualCompositionStepKind.surfaceLayer ||
+          MapVisualCompositionStepKind.smartTileLayer ||
           MapVisualCompositionStepKind.tileBackgroundLayer ||
           MapVisualCompositionStepKind.borderLayer ||
           MapVisualCompositionStepKind.objectNoop ||
@@ -149,8 +151,10 @@ MapVisualCompositionPlanBuildResult buildMapVisualCompositionPlan(
       .whereType<CollisionLayer>()
       .toList(growable: false);
   final isCanonical = config != null;
-  final usesAuthoredStack =
-      isCanonical || map.layers.any((layer) => layer is BorderLayer);
+  final usesAuthoredStack = isCanonical ||
+      map.layers.any(
+        (layer) => layer is BorderLayer || layer is SmartTileLayer,
+      );
   final plan = usesAuthoredStack
       ? _buildAuthoredPlan(
           map,
@@ -342,6 +346,7 @@ MapVisualCompositionStep _authoredLayerStep(MapLayer layer) {
     TerrainLayer() => MapVisualCompositionStepKind.terrainLayer,
     PathLayer() => MapVisualCompositionStepKind.pathLayer,
     SurfaceLayer() => MapVisualCompositionStepKind.surfaceLayer,
+    SmartTileLayer() => MapVisualCompositionStepKind.smartTileLayer,
     TileLayer() => MapVisualCompositionStepKind.tileBackgroundLayer,
     BorderLayer() => MapVisualCompositionStepKind.borderLayer,
     ObjectLayer() => MapVisualCompositionStepKind.objectNoop,

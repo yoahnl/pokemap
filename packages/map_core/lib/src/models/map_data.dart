@@ -53,9 +53,12 @@ class MapData with _$MapData {
       }
     }
     final map = _$MapDataFromJson(json);
-    if (map.visualStack != null && map.version != ProjectVersion.v3) {
+    if (map.visualStack != null &&
+        map.version != ProjectVersion.v3 &&
+        map.version != ProjectVersion.v4) {
       throw const FormatException(
-        r'$.version: visualStack requires ProjectVersion.v3',
+        r'$.version: visualStack requires ProjectVersion.v3 or '
+        'ProjectVersion.v4',
       );
     }
     if (map.version == ProjectVersion.v1) {
@@ -66,6 +69,17 @@ class MapData with _$MapData {
           r'$.layers['
           '$borderIndex].runtimeType: Border layers require '
           'ProjectVersion.v2',
+        );
+      }
+    }
+    if (map.version != ProjectVersion.v4) {
+      final smartTileIndex =
+          map.layers.indexWhere((layer) => layer is SmartTileLayer);
+      if (smartTileIndex >= 0) {
+        throw FormatException(
+          r'$.layers['
+          '$smartTileIndex].runtimeType: Smart Tile layers require '
+          'ProjectVersion.v4',
         );
       }
     }

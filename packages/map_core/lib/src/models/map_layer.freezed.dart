@@ -215,6 +215,8 @@ MapLayer _$MapLayerFromJson(Map<String, dynamic> json) {
       return PathLayer.fromJson(json);
     case 'surface':
       return SurfaceLayer.fromJson(json);
+    case 'smart_tile':
+      return SmartTileLayer.fromJson(json);
     case 'object':
       return ObjectLayer.fromJson(json);
     case 'environment':
@@ -264,6 +266,21 @@ mixin _$MapLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)
         surface,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)
+        smartTile,
     required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
@@ -322,6 +339,21 @@ mixin _$MapLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult? Function(
@@ -379,6 +411,21 @@ mixin _$MapLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult Function(
@@ -414,6 +461,7 @@ mixin _$MapLayer {
     required TResult Function(TerrainLayer value) terrain,
     required TResult Function(PathLayer value) path,
     required TResult Function(SurfaceLayer value) surface,
+    required TResult Function(SmartTileLayer value) smartTile,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
     required TResult Function(BorderLayer value) border,
@@ -426,6 +474,7 @@ mixin _$MapLayer {
     TResult? Function(TerrainLayer value)? terrain,
     TResult? Function(PathLayer value)? path,
     TResult? Function(SurfaceLayer value)? surface,
+    TResult? Function(SmartTileLayer value)? smartTile,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
     TResult? Function(BorderLayer value)? border,
@@ -438,6 +487,7 @@ mixin _$MapLayer {
     TResult Function(TerrainLayer value)? terrain,
     TResult Function(PathLayer value)? path,
     TResult Function(SurfaceLayer value)? surface,
+    TResult Function(SmartTileLayer value)? smartTile,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
     TResult Function(BorderLayer value)? border,
@@ -677,6 +727,21 @@ class _$TileLayerImpl extends TileLayer {
             Map<String, String> properties)
         surface,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)
+        smartTile,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
     required TResult Function(
@@ -737,6 +802,21 @@ class _$TileLayerImpl extends TileLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult? Function(
@@ -797,6 +877,21 @@ class _$TileLayerImpl extends TileLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult Function(
@@ -838,6 +933,7 @@ class _$TileLayerImpl extends TileLayer {
     required TResult Function(TerrainLayer value) terrain,
     required TResult Function(PathLayer value) path,
     required TResult Function(SurfaceLayer value) surface,
+    required TResult Function(SmartTileLayer value) smartTile,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
     required TResult Function(BorderLayer value) border,
@@ -853,6 +949,7 @@ class _$TileLayerImpl extends TileLayer {
     TResult? Function(TerrainLayer value)? terrain,
     TResult? Function(PathLayer value)? path,
     TResult? Function(SurfaceLayer value)? surface,
+    TResult? Function(SmartTileLayer value)? smartTile,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
     TResult? Function(BorderLayer value)? border,
@@ -868,6 +965,7 @@ class _$TileLayerImpl extends TileLayer {
     TResult Function(TerrainLayer value)? terrain,
     TResult Function(PathLayer value)? path,
     TResult Function(SurfaceLayer value)? surface,
+    TResult Function(SmartTileLayer value)? smartTile,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
     TResult Function(BorderLayer value)? border,
@@ -1083,6 +1181,21 @@ class _$CollisionLayerImpl extends CollisionLayer {
             Map<String, String> properties)
         surface,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)
+        smartTile,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
     required TResult Function(
@@ -1143,6 +1256,21 @@ class _$CollisionLayerImpl extends CollisionLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult? Function(
@@ -1203,6 +1331,21 @@ class _$CollisionLayerImpl extends CollisionLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult Function(
@@ -1244,6 +1387,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
     required TResult Function(TerrainLayer value) terrain,
     required TResult Function(PathLayer value) path,
     required TResult Function(SurfaceLayer value) surface,
+    required TResult Function(SmartTileLayer value) smartTile,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
     required TResult Function(BorderLayer value) border,
@@ -1259,6 +1403,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
     TResult? Function(TerrainLayer value)? terrain,
     TResult? Function(PathLayer value)? path,
     TResult? Function(SurfaceLayer value)? surface,
+    TResult? Function(SmartTileLayer value)? smartTile,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
     TResult? Function(BorderLayer value)? border,
@@ -1274,6 +1419,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
     TResult Function(TerrainLayer value)? terrain,
     TResult Function(PathLayer value)? path,
     TResult Function(SurfaceLayer value)? surface,
+    TResult Function(SmartTileLayer value)? smartTile,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
     TResult Function(BorderLayer value)? border,
@@ -1485,6 +1631,21 @@ class _$TerrainLayerImpl extends TerrainLayer {
             Map<String, String> properties)
         surface,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)
+        smartTile,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
     required TResult Function(
@@ -1545,6 +1706,21 @@ class _$TerrainLayerImpl extends TerrainLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult? Function(
@@ -1605,6 +1781,21 @@ class _$TerrainLayerImpl extends TerrainLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult Function(
@@ -1646,6 +1837,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
     required TResult Function(TerrainLayer value) terrain,
     required TResult Function(PathLayer value) path,
     required TResult Function(SurfaceLayer value) surface,
+    required TResult Function(SmartTileLayer value) smartTile,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
     required TResult Function(BorderLayer value) border,
@@ -1661,6 +1853,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
     TResult? Function(TerrainLayer value)? terrain,
     TResult? Function(PathLayer value)? path,
     TResult? Function(SurfaceLayer value)? surface,
+    TResult? Function(SmartTileLayer value)? smartTile,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
     TResult? Function(BorderLayer value)? border,
@@ -1676,6 +1869,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
     TResult Function(TerrainLayer value)? terrain,
     TResult Function(PathLayer value)? path,
     TResult Function(SurfaceLayer value)? surface,
+    TResult Function(SmartTileLayer value)? smartTile,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
     TResult Function(BorderLayer value)? border,
@@ -1960,6 +2154,21 @@ class _$PathLayerImpl extends PathLayer {
             Map<String, String> properties)
         surface,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)
+        smartTile,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
     required TResult Function(
@@ -2021,6 +2230,21 @@ class _$PathLayerImpl extends PathLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult? Function(
@@ -2082,6 +2306,21 @@ class _$PathLayerImpl extends PathLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult Function(
@@ -2124,6 +2363,7 @@ class _$PathLayerImpl extends PathLayer {
     required TResult Function(TerrainLayer value) terrain,
     required TResult Function(PathLayer value) path,
     required TResult Function(SurfaceLayer value) surface,
+    required TResult Function(SmartTileLayer value) smartTile,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
     required TResult Function(BorderLayer value) border,
@@ -2139,6 +2379,7 @@ class _$PathLayerImpl extends PathLayer {
     TResult? Function(TerrainLayer value)? terrain,
     TResult? Function(PathLayer value)? path,
     TResult? Function(SurfaceLayer value)? surface,
+    TResult? Function(SmartTileLayer value)? smartTile,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
     TResult? Function(BorderLayer value)? border,
@@ -2154,6 +2395,7 @@ class _$PathLayerImpl extends PathLayer {
     TResult Function(TerrainLayer value)? terrain,
     TResult Function(PathLayer value)? path,
     TResult Function(SurfaceLayer value)? surface,
+    TResult Function(SmartTileLayer value)? smartTile,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
     TResult Function(BorderLayer value)? border,
@@ -2401,6 +2643,21 @@ class _$SurfaceLayerImpl extends SurfaceLayer {
             Map<String, String> properties)
         surface,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)
+        smartTile,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
     required TResult Function(
@@ -2461,6 +2718,21 @@ class _$SurfaceLayerImpl extends SurfaceLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult? Function(
@@ -2521,6 +2793,21 @@ class _$SurfaceLayerImpl extends SurfaceLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult Function(
@@ -2562,6 +2849,7 @@ class _$SurfaceLayerImpl extends SurfaceLayer {
     required TResult Function(TerrainLayer value) terrain,
     required TResult Function(PathLayer value) path,
     required TResult Function(SurfaceLayer value) surface,
+    required TResult Function(SmartTileLayer value) smartTile,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
     required TResult Function(BorderLayer value) border,
@@ -2577,6 +2865,7 @@ class _$SurfaceLayerImpl extends SurfaceLayer {
     TResult? Function(TerrainLayer value)? terrain,
     TResult? Function(PathLayer value)? path,
     TResult? Function(SurfaceLayer value)? surface,
+    TResult? Function(SmartTileLayer value)? smartTile,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
     TResult? Function(BorderLayer value)? border,
@@ -2592,6 +2881,7 @@ class _$SurfaceLayerImpl extends SurfaceLayer {
     TResult Function(TerrainLayer value)? terrain,
     TResult Function(PathLayer value)? path,
     TResult Function(SurfaceLayer value)? surface,
+    TResult Function(SmartTileLayer value)? smartTile,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
     TResult Function(BorderLayer value)? border,
@@ -2640,6 +2930,654 @@ abstract class SurfaceLayer extends MapLayer {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$SurfaceLayerImplCopyWith<_$SurfaceLayerImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$SmartTileLayerImplCopyWith<$Res>
+    implements $MapLayerCopyWith<$Res> {
+  factory _$$SmartTileLayerImplCopyWith(_$SmartTileLayerImpl value,
+          $Res Function(_$SmartTileLayerImpl) then) =
+      __$$SmartTileLayerImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      bool isVisible,
+      double opacity,
+      String presetId,
+      SmartTileUsage usage,
+      List<String> materialPalette,
+      List<int> materialCells,
+      List<int> horizontalEdges,
+      List<int> verticalEdges,
+      List<int> corners,
+      int layerSeed,
+      Map<String, String> properties});
+}
+
+/// @nodoc
+class __$$SmartTileLayerImplCopyWithImpl<$Res>
+    extends _$MapLayerCopyWithImpl<$Res, _$SmartTileLayerImpl>
+    implements _$$SmartTileLayerImplCopyWith<$Res> {
+  __$$SmartTileLayerImplCopyWithImpl(
+      _$SmartTileLayerImpl _value, $Res Function(_$SmartTileLayerImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MapLayer
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? isVisible = null,
+    Object? opacity = null,
+    Object? presetId = null,
+    Object? usage = null,
+    Object? materialPalette = null,
+    Object? materialCells = null,
+    Object? horizontalEdges = null,
+    Object? verticalEdges = null,
+    Object? corners = null,
+    Object? layerSeed = null,
+    Object? properties = null,
+  }) {
+    return _then(_$SmartTileLayerImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      isVisible: null == isVisible
+          ? _value.isVisible
+          : isVisible // ignore: cast_nullable_to_non_nullable
+              as bool,
+      opacity: null == opacity
+          ? _value.opacity
+          : opacity // ignore: cast_nullable_to_non_nullable
+              as double,
+      presetId: null == presetId
+          ? _value.presetId
+          : presetId // ignore: cast_nullable_to_non_nullable
+              as String,
+      usage: null == usage
+          ? _value.usage
+          : usage // ignore: cast_nullable_to_non_nullable
+              as SmartTileUsage,
+      materialPalette: null == materialPalette
+          ? _value._materialPalette
+          : materialPalette // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      materialCells: null == materialCells
+          ? _value._materialCells
+          : materialCells // ignore: cast_nullable_to_non_nullable
+              as List<int>,
+      horizontalEdges: null == horizontalEdges
+          ? _value._horizontalEdges
+          : horizontalEdges // ignore: cast_nullable_to_non_nullable
+              as List<int>,
+      verticalEdges: null == verticalEdges
+          ? _value._verticalEdges
+          : verticalEdges // ignore: cast_nullable_to_non_nullable
+              as List<int>,
+      corners: null == corners
+          ? _value._corners
+          : corners // ignore: cast_nullable_to_non_nullable
+              as List<int>,
+      layerSeed: null == layerSeed
+          ? _value.layerSeed
+          : layerSeed // ignore: cast_nullable_to_non_nullable
+              as int,
+      properties: null == properties
+          ? _value._properties
+          : properties // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$SmartTileLayerImpl extends SmartTileLayer {
+  const _$SmartTileLayerImpl(
+      {required this.id,
+      required this.name,
+      this.isVisible = true,
+      this.opacity = 1.0,
+      required this.presetId,
+      required this.usage,
+      final List<String> materialPalette = const <String>[''],
+      final List<int> materialCells = const <int>[],
+      final List<int> horizontalEdges = const <int>[],
+      final List<int> verticalEdges = const <int>[],
+      final List<int> corners = const <int>[],
+      this.layerSeed = 0,
+      final Map<String, String> properties = const <String, String>{},
+      final String? $type})
+      : _materialPalette = materialPalette,
+        _materialCells = materialCells,
+        _horizontalEdges = horizontalEdges,
+        _verticalEdges = verticalEdges,
+        _corners = corners,
+        _properties = properties,
+        $type = $type ?? 'smart_tile',
+        super._();
+
+  factory _$SmartTileLayerImpl.fromJson(Map<String, dynamic> json) =>
+      _$$SmartTileLayerImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String name;
+  @override
+  @JsonKey()
+  final bool isVisible;
+  @override
+  @JsonKey()
+  final double opacity;
+  @override
+  final String presetId;
+  @override
+  final SmartTileUsage usage;
+  final List<String> _materialPalette;
+  @override
+  @JsonKey()
+  List<String> get materialPalette {
+    if (_materialPalette is EqualUnmodifiableListView) return _materialPalette;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_materialPalette);
+  }
+
+  final List<int> _materialCells;
+  @override
+  @JsonKey()
+  List<int> get materialCells {
+    if (_materialCells is EqualUnmodifiableListView) return _materialCells;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_materialCells);
+  }
+
+  final List<int> _horizontalEdges;
+  @override
+  @JsonKey()
+  List<int> get horizontalEdges {
+    if (_horizontalEdges is EqualUnmodifiableListView) return _horizontalEdges;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_horizontalEdges);
+  }
+
+  final List<int> _verticalEdges;
+  @override
+  @JsonKey()
+  List<int> get verticalEdges {
+    if (_verticalEdges is EqualUnmodifiableListView) return _verticalEdges;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_verticalEdges);
+  }
+
+  final List<int> _corners;
+  @override
+  @JsonKey()
+  List<int> get corners {
+    if (_corners is EqualUnmodifiableListView) return _corners;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_corners);
+  }
+
+  @override
+  @JsonKey()
+  final int layerSeed;
+  final Map<String, String> _properties;
+  @override
+  @JsonKey()
+  Map<String, String> get properties {
+    if (_properties is EqualUnmodifiableMapView) return _properties;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_properties);
+  }
+
+  @JsonKey(name: 'runtimeType')
+  final String $type;
+
+  @override
+  String toString() {
+    return 'MapLayer.smartTile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, presetId: $presetId, usage: $usage, materialPalette: $materialPalette, materialCells: $materialCells, horizontalEdges: $horizontalEdges, verticalEdges: $verticalEdges, corners: $corners, layerSeed: $layerSeed, properties: $properties)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$SmartTileLayerImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.isVisible, isVisible) ||
+                other.isVisible == isVisible) &&
+            (identical(other.opacity, opacity) || other.opacity == opacity) &&
+            (identical(other.presetId, presetId) ||
+                other.presetId == presetId) &&
+            (identical(other.usage, usage) || other.usage == usage) &&
+            const DeepCollectionEquality()
+                .equals(other._materialPalette, _materialPalette) &&
+            const DeepCollectionEquality()
+                .equals(other._materialCells, _materialCells) &&
+            const DeepCollectionEquality()
+                .equals(other._horizontalEdges, _horizontalEdges) &&
+            const DeepCollectionEquality()
+                .equals(other._verticalEdges, _verticalEdges) &&
+            const DeepCollectionEquality().equals(other._corners, _corners) &&
+            (identical(other.layerSeed, layerSeed) ||
+                other.layerSeed == layerSeed) &&
+            const DeepCollectionEquality()
+                .equals(other._properties, _properties));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      isVisible,
+      opacity,
+      presetId,
+      usage,
+      const DeepCollectionEquality().hash(_materialPalette),
+      const DeepCollectionEquality().hash(_materialCells),
+      const DeepCollectionEquality().hash(_horizontalEdges),
+      const DeepCollectionEquality().hash(_verticalEdges),
+      const DeepCollectionEquality().hash(_corners),
+      layerSeed,
+      const DeepCollectionEquality().hash(_properties));
+
+  /// Create a copy of MapLayer
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$SmartTileLayerImplCopyWith<_$SmartTileLayerImpl> get copyWith =>
+      __$$SmartTileLayerImplCopyWithImpl<_$SmartTileLayerImpl>(
+          this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String id, String name, String? tilesetId,
+            bool isVisible, double opacity, List<int> tiles)
+        tile,
+    required TResult Function(String id, String name, bool isVisible,
+            double opacity, List<bool> collisions)
+        collision,
+    required TResult Function(String id, String name, bool isVisible,
+            double opacity, List<TerrainType> terrains)
+        terrain,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            List<bool> cells,
+            Map<String, String> properties,
+            PathAnimationMode animationMode,
+            List<PathAnimationTriggerRule> animationTriggers)
+        path,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)
+        surface,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)
+        smartTile,
+    required TResult Function(
+            String id, String name, bool isVisible, double opacity)
+        object,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                fromJson: decodeEnvironmentLayerContent,
+                toJson: encodeEnvironmentLayerContent)
+            EnvironmentLayerContent content,
+            Map<String, String> properties)
+        environment,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)
+        border,
+  }) {
+    return smartTile(
+        id,
+        name,
+        isVisible,
+        opacity,
+        presetId,
+        usage,
+        materialPalette,
+        materialCells,
+        horizontalEdges,
+        verticalEdges,
+        corners,
+        layerSeed,
+        properties);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String id, String name, String? tilesetId, bool isVisible,
+            double opacity, List<int> tiles)?
+        tile,
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<bool> collisions)?
+        collision,
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<TerrainType> terrains)?
+        terrain,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            List<bool> cells,
+            Map<String, String> properties,
+            PathAnimationMode animationMode,
+            List<PathAnimationTriggerRule> animationTriggers)?
+        path,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
+    TResult? Function(String id, String name, bool isVisible, double opacity)?
+        object,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                fromJson: decodeEnvironmentLayerContent,
+                toJson: encodeEnvironmentLayerContent)
+            EnvironmentLayerContent content,
+            Map<String, String> properties)?
+        environment,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
+  }) {
+    return smartTile?.call(
+        id,
+        name,
+        isVisible,
+        opacity,
+        presetId,
+        usage,
+        materialPalette,
+        materialCells,
+        horizontalEdges,
+        verticalEdges,
+        corners,
+        layerSeed,
+        properties);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String id, String name, String? tilesetId, bool isVisible,
+            double opacity, List<int> tiles)?
+        tile,
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<bool> collisions)?
+        collision,
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<TerrainType> terrains)?
+        terrain,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            List<bool> cells,
+            Map<String, String> properties,
+            PathAnimationMode animationMode,
+            List<PathAnimationTriggerRule> animationTriggers)?
+        path,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
+    TResult Function(String id, String name, bool isVisible, double opacity)?
+        object,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                fromJson: decodeEnvironmentLayerContent,
+                toJson: encodeEnvironmentLayerContent)
+            EnvironmentLayerContent content,
+            Map<String, String> properties)?
+        environment,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
+    required TResult orElse(),
+  }) {
+    if (smartTile != null) {
+      return smartTile(
+          id,
+          name,
+          isVisible,
+          opacity,
+          presetId,
+          usage,
+          materialPalette,
+          materialCells,
+          horizontalEdges,
+          verticalEdges,
+          corners,
+          layerSeed,
+          properties);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(TileLayer value) tile,
+    required TResult Function(CollisionLayer value) collision,
+    required TResult Function(TerrainLayer value) terrain,
+    required TResult Function(PathLayer value) path,
+    required TResult Function(SurfaceLayer value) surface,
+    required TResult Function(SmartTileLayer value) smartTile,
+    required TResult Function(ObjectLayer value) object,
+    required TResult Function(EnvironmentLayer value) environment,
+    required TResult Function(BorderLayer value) border,
+  }) {
+    return smartTile(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(TileLayer value)? tile,
+    TResult? Function(CollisionLayer value)? collision,
+    TResult? Function(TerrainLayer value)? terrain,
+    TResult? Function(PathLayer value)? path,
+    TResult? Function(SurfaceLayer value)? surface,
+    TResult? Function(SmartTileLayer value)? smartTile,
+    TResult? Function(ObjectLayer value)? object,
+    TResult? Function(EnvironmentLayer value)? environment,
+    TResult? Function(BorderLayer value)? border,
+  }) {
+    return smartTile?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(TileLayer value)? tile,
+    TResult Function(CollisionLayer value)? collision,
+    TResult Function(TerrainLayer value)? terrain,
+    TResult Function(PathLayer value)? path,
+    TResult Function(SurfaceLayer value)? surface,
+    TResult Function(SmartTileLayer value)? smartTile,
+    TResult Function(ObjectLayer value)? object,
+    TResult Function(EnvironmentLayer value)? environment,
+    TResult Function(BorderLayer value)? border,
+    required TResult orElse(),
+  }) {
+    if (smartTile != null) {
+      return smartTile(this);
+    }
+    return orElse();
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$SmartTileLayerImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class SmartTileLayer extends MapLayer {
+  const factory SmartTileLayer(
+      {required final String id,
+      required final String name,
+      final bool isVisible,
+      final double opacity,
+      required final String presetId,
+      required final SmartTileUsage usage,
+      final List<String> materialPalette,
+      final List<int> materialCells,
+      final List<int> horizontalEdges,
+      final List<int> verticalEdges,
+      final List<int> corners,
+      final int layerSeed,
+      final Map<String, String> properties}) = _$SmartTileLayerImpl;
+  const SmartTileLayer._() : super._();
+
+  factory SmartTileLayer.fromJson(Map<String, dynamic> json) =
+      _$SmartTileLayerImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  bool get isVisible;
+  @override
+  double get opacity;
+  String get presetId;
+  SmartTileUsage get usage;
+  List<String> get materialPalette;
+  List<int> get materialCells;
+  List<int> get horizontalEdges;
+  List<int> get verticalEdges;
+  List<int> get corners;
+  int get layerSeed;
+  Map<String, String> get properties;
+
+  /// Create a copy of MapLayer
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$SmartTileLayerImplCopyWith<_$SmartTileLayerImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
@@ -2783,6 +3721,21 @@ class _$ObjectLayerImpl extends ObjectLayer {
             Map<String, String> properties)
         surface,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)
+        smartTile,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
     required TResult Function(
@@ -2843,6 +3796,21 @@ class _$ObjectLayerImpl extends ObjectLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult? Function(
@@ -2903,6 +3871,21 @@ class _$ObjectLayerImpl extends ObjectLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult Function(
@@ -2944,6 +3927,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
     required TResult Function(TerrainLayer value) terrain,
     required TResult Function(PathLayer value) path,
     required TResult Function(SurfaceLayer value) surface,
+    required TResult Function(SmartTileLayer value) smartTile,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
     required TResult Function(BorderLayer value) border,
@@ -2959,6 +3943,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
     TResult? Function(TerrainLayer value)? terrain,
     TResult? Function(PathLayer value)? path,
     TResult? Function(SurfaceLayer value)? surface,
+    TResult? Function(SmartTileLayer value)? smartTile,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
     TResult? Function(BorderLayer value)? border,
@@ -2974,6 +3959,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
     TResult Function(TerrainLayer value)? terrain,
     TResult Function(PathLayer value)? path,
     TResult Function(SurfaceLayer value)? surface,
+    TResult Function(SmartTileLayer value)? smartTile,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
     TResult Function(BorderLayer value)? border,
@@ -3205,6 +4191,21 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             Map<String, String> properties)
         surface,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)
+        smartTile,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
     required TResult Function(
@@ -3265,6 +4266,21 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult? Function(
@@ -3325,6 +4341,21 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult Function(
@@ -3366,6 +4397,7 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
     required TResult Function(TerrainLayer value) terrain,
     required TResult Function(PathLayer value) path,
     required TResult Function(SurfaceLayer value) surface,
+    required TResult Function(SmartTileLayer value) smartTile,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
     required TResult Function(BorderLayer value) border,
@@ -3381,6 +4413,7 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
     TResult? Function(TerrainLayer value)? terrain,
     TResult? Function(PathLayer value)? path,
     TResult? Function(SurfaceLayer value)? surface,
+    TResult? Function(SmartTileLayer value)? smartTile,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
     TResult? Function(BorderLayer value)? border,
@@ -3396,6 +4429,7 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
     TResult Function(TerrainLayer value)? terrain,
     TResult Function(PathLayer value)? path,
     TResult Function(SurfaceLayer value)? surface,
+    TResult Function(SmartTileLayer value)? smartTile,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
     TResult Function(BorderLayer value)? border,
@@ -3639,6 +4673,21 @@ class _$BorderLayerImpl extends BorderLayer {
             Map<String, String> properties)
         surface,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)
+        smartTile,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
     required TResult Function(
@@ -3699,6 +4748,21 @@ class _$BorderLayerImpl extends BorderLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult? Function(
@@ -3759,6 +4823,21 @@ class _$BorderLayerImpl extends BorderLayer {
             List<SurfaceCellPlacement> placements,
             Map<String, String> properties)?
         surface,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            SmartTileUsage usage,
+            List<String> materialPalette,
+            List<int> materialCells,
+            List<int> horizontalEdges,
+            List<int> verticalEdges,
+            List<int> corners,
+            int layerSeed,
+            Map<String, String> properties)?
+        smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     TResult Function(
@@ -3800,6 +4879,7 @@ class _$BorderLayerImpl extends BorderLayer {
     required TResult Function(TerrainLayer value) terrain,
     required TResult Function(PathLayer value) path,
     required TResult Function(SurfaceLayer value) surface,
+    required TResult Function(SmartTileLayer value) smartTile,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
     required TResult Function(BorderLayer value) border,
@@ -3815,6 +4895,7 @@ class _$BorderLayerImpl extends BorderLayer {
     TResult? Function(TerrainLayer value)? terrain,
     TResult? Function(PathLayer value)? path,
     TResult? Function(SurfaceLayer value)? surface,
+    TResult? Function(SmartTileLayer value)? smartTile,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
     TResult? Function(BorderLayer value)? border,
@@ -3830,6 +4911,7 @@ class _$BorderLayerImpl extends BorderLayer {
     TResult Function(TerrainLayer value)? terrain,
     TResult Function(PathLayer value)? path,
     TResult Function(SurfaceLayer value)? surface,
+    TResult Function(SmartTileLayer value)? smartTile,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
     TResult Function(BorderLayer value)? border,

@@ -67,6 +67,39 @@ class AddMapLayerUseCase {
     return AddMapLayerResult(updated, layer);
   }
 
+  AddMapLayerResult executeSmartTile(
+    MapData map, {
+    required String name,
+    required String presetId,
+    required SmartTileUsage usage,
+    required String defaultMaterialId,
+    int layerSeed = 0,
+    int? insertIndex,
+  }) {
+    final normalizedName = name.trim();
+    if (normalizedName.isEmpty) {
+      throw const EditorValidationException('Layer name cannot be empty');
+    }
+    final layerId = _generateUniqueLayerId(
+      map,
+      kind: MapLayerKind.smartTile,
+      name: normalizedName,
+    );
+    final updated = addSmartTileLayer(
+      map,
+      id: layerId,
+      name: normalizedName,
+      presetId: presetId,
+      usage: usage,
+      defaultMaterialId: defaultMaterialId,
+      layerSeed: layerSeed,
+      insertIndex: insertIndex,
+    );
+    MapValidator.validate(updated);
+    final created = updated.layers.firstWhere((layer) => layer.id == layerId);
+    return AddMapLayerResult(updated, created);
+  }
+
   String _generateUniqueLayerId(
     MapData map, {
     required MapLayerKind kind,
@@ -78,6 +111,8 @@ class AddMapLayerUseCase {
       MapLayerKind.collision => 'l_collision',
       MapLayerKind.terrain => 'l_terrain',
       MapLayerKind.path => 'l_path',
+      MapLayerKind.surface => 'l_surface',
+      MapLayerKind.smartTile => 'l_smart',
       MapLayerKind.object => 'l_object',
       MapLayerKind.environment => 'l_environment',
       MapLayerKind.border => 'l_border',

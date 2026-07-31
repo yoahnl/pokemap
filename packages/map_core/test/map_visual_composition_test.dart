@@ -190,6 +190,37 @@ void main() {
       );
     });
 
+    test('a native v4 Smart Tile layer selects authored paint order', () {
+      final plan = buildMapVisualCompositionPlan(
+        const MapData(
+          id: 'smart-v4',
+          name: 'Smart v4',
+          version: ProjectVersion.v4,
+          size: GridSize(width: 1, height: 1),
+          layers: <MapLayer>[
+            TileLayer(id: 'top-tile', name: 'Top tile'),
+            SmartTileLayer(
+              id: 'smart-path',
+              name: 'Smart path',
+              presetId: 'path',
+              usage: SmartTileUsage.path,
+            ),
+            TileLayer(id: 'bottom-tile', name: 'Bottom tile'),
+          ],
+        ),
+      ).plan!;
+
+      expect(plan.strategy, MapVisualCompositionStrategy.authoredStack);
+      expect(
+        plan.authoredLayerSteps.map((step) => step.stableKey),
+        const <String>[
+          'tileBackgroundLayer:bottom-tile',
+          'smartTileLayer:smart-path',
+          'tileBackgroundLayer:top-tile',
+        ],
+      );
+    });
+
     test('legacy phased mode exposes Object and Environment as no-op steps',
         () {
       final plan = buildMapVisualCompositionPlan(

@@ -196,6 +196,7 @@ String _layerTypeLabel(MapLayer layer) {
     TerrainLayer() => 'Terrain',
     PathLayer() => 'Path',
     SurfaceLayer() => 'Surface',
+    SmartTileLayer() => 'Smart Tile',
     ObjectLayer() => 'Objets',
     EnvironmentLayer() => 'Environnement',
     BorderLayer() => 'Bordures',
@@ -231,6 +232,14 @@ String _cellValue({
         ? 'Donnée indisponible'
         : _pathValue(cells[index], presetId),
     SurfaceLayer(:final placements) => _surfaceValue(placements, cell),
+    SmartTileLayer(:final materialCells, :final materialPalette) =>
+      index >= materialCells.length
+          ? 'Donnée indisponible'
+          : materialCells[index] == 0
+              ? 'Vide'
+              : materialCells[index] < materialPalette.length
+                  ? materialPalette[materialCells[index]]
+                  : 'Index de matériau invalide',
     ObjectLayer() ||
     EnvironmentLayer() ||
     BorderLayer() =>

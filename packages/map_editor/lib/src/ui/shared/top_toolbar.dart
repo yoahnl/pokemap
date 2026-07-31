@@ -646,6 +646,15 @@ class TopToolbar extends ConsumerWidget {
               onPressed: notifier.selectDialogueWorkspace,
             ),
             ToolbarCapsuleButton(
+              icon: CupertinoIcons.square_grid_3x2,
+              tooltip: 'Switch to Smart Tiles Studio',
+              selected:
+                  toolbar.workspaceMode == EditorWorkspaceMode.smartTilesStudio,
+              onPressed: toolbar.project != null
+                  ? notifier.selectSmartTilesStudioWorkspace
+                  : null,
+            ),
+            ToolbarCapsuleButton(
               icon: CupertinoIcons.arrow_branch,
               tooltip: 'Switch to Path Studio',
               selected: toolbar.workspaceMode == EditorWorkspaceMode.pathStudio,
@@ -701,6 +710,7 @@ class TopToolbar extends ConsumerWidget {
                 EditorWorkspaceMode.shops => 'Boutique Builder',
                 EditorWorkspaceMode.worldRules => 'World Rules Manager',
                 EditorWorkspaceMode.narrativeValidator => 'Narrative Validator',
+                EditorWorkspaceMode.smartTilesStudio => 'Smart Tiles Studio',
                 EditorWorkspaceMode.pathStudio => 'Path Studio',
                 EditorWorkspaceMode.environmentStudio => 'Environment Studio',
                 EditorWorkspaceMode.personalizationStudio =>

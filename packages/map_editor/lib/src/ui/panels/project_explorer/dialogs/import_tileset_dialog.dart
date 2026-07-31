@@ -4,8 +4,10 @@ import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../../application/use_cases/project_tileset_batch_import_plan.dart';
 import '../../../../features/editor/state/editor_notifier.dart';
 import '../../../../features/editor/state/editor_selectors.dart';
+import '../../../../theme/theme.dart';
 import '../../../shared/cupertino_editor_widgets.dart';
 import 'tileset_library_dialogs.dart';
 
@@ -21,17 +23,22 @@ Future<void> showImportTilesetDialog(
     type: FileType.custom,
     allowedExtensions: const ['png', 'jpg', 'jpeg', 'webp', 'bmp'],
     withData: false,
+    allowMultiple: true,
   );
-  final sourcePath = picked?.files.single.path;
-  if (sourcePath == null) return;
+  final importItems = buildProjectTilesetBatchImportPlan(
+    picked?.files.map((file) => file.path ?? '') ?? const <String>[],
+  );
+  if (importItems.isEmpty) return;
   if (!context.mounted) return;
 
-  final defaultName = p.basenameWithoutExtension(sourcePath);
+  final isBatchImport = importItems.length > 1;
+  final defaultName = isBatchImport ? '' : importItems.single.suggestedName;
   final nameController = TextEditingController(text: defaultName);
   var scope = TilesetScope.global;
   String? selectedGroupId =
       project.groups.isNotEmpty ? project.groups.first.id : null;
-  var isWorld = project.tilesets.every((tileset) => !tileset.isWorldTileset);
+  var isWorld = !isBatchImport &&
+      project.tilesets.every((tileset) => !tileset.isWorldTileset);
   var shouldImport = false;
   String? importLibraryFolderId;
 
@@ -58,19 +65,37 @@ Future<void> showImportTilesetDialog(
             ),
             const SizedBox(height: 12),
             Text(
-              p.basename(sourcePath),
+              isBatchImport
+                  ? '${importItems.length} planches sélectionnées'
+                  : p.basename(importItems.single.sourcePath),
               style: TextStyle(
                 fontSize: 12,
-                color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                color: ctx.pokeMapColors.textSecondary,
               ),
               overflow: TextOverflow.ellipsis,
             ),
+            if (!isBatchImport) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Nom du jeu de tuiles',
+                style: editorMacosFormLabelStyle(ctx),
+              ),
+              const SizedBox(height: 6),
+              MacosTextField(controller: nameController),
+            ] else ...[
+              const SizedBox(height: 6),
+              Text(
+                'Chaque nom sera dérivé du nom du fichier. Les doublons '
+                'seront renommés sans écraser la bibliothèque.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: ctx.pokeMapColors.textSecondary,
+                ),
+              ),
+            ],
             const SizedBox(height: 10),
-            Text('Nom du jeu de tuiles', style: editorMacosFormLabelStyle(ctx)),
-            const SizedBox(height: 6),
-            MacosTextField(controller: nameController),
-            const SizedBox(height: 10),
-            Text('Dossier de destination', style: editorMacosFormLabelStyle(ctx)),
+            Text('Dossier de destination',
+                style: editorMacosFormLabelStyle(ctx)),
             const SizedBox(height: 6),
             Align(
               alignment: Alignment.centerLeft,
@@ -79,7 +104,8 @@ Future<void> showImportTilesetDialog(
                 secondary: true,
                 onPressed: () async {
                   final options = <ImportLibraryDestination>[
-                    const ImportLibraryDestination('Racine de la bibliothèque', null),
+                    const ImportLibraryDestination(
+                        'Racine de la bibliothèque', null),
                     ...flattenTilesetFoldersForPicker(project).map(
                       (row) => ImportLibraryDestination(row.label, row.id),
                     ),
@@ -147,7 +173,7 @@ Future<void> showImportTilesetDialog(
                 ),
               ),
             ],
-            if (scope == TilesetScope.global) ...[
+            if (scope == TilesetScope.global && !isBatchImport) ...[
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -160,6 +186,16 @@ Future<void> showImportTilesetDialog(
                     child: Text('Définir comme tileset mondial'),
                   ),
                 ],
+              ),
+            ] else if (scope == TilesetScope.global) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Un import multiple reste global sans remplacer le tileset '
+                'mondial du projet.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: ctx.pokeMapColors.textSecondary,
+                ),
               ),
             ],
             const SizedBox(height: 16),
@@ -176,7 +212,9 @@ Future<void> showImportTilesetDialog(
                 PushButton(
                   controlSize: ControlSize.large,
                   onPressed: () {
-                    if (nameController.text.trim().isEmpty) return;
+                    if (!isBatchImport && nameController.text.trim().isEmpty) {
+                      return;
+                    }
                     if (scope == TilesetScope.group &&
                         selectedGroupId == null) {
                       return;
@@ -184,7 +222,11 @@ Future<void> showImportTilesetDialog(
                     shouldImport = true;
                     Navigator.pop(ctx);
                   },
-                  child: const Text('Importer'),
+                  child: Text(
+                    isBatchImport
+                        ? 'Importer ${importItems.length} planches'
+                        : 'Importer',
+                  ),
                 ),
               ],
             ),
@@ -195,12 +237,15 @@ Future<void> showImportTilesetDialog(
   );
 
   if (!shouldImport) return;
-  await notifier.importProjectTileset(
-    sourcePath: sourcePath,
-    name: nameController.text.trim(),
-    scope: scope,
-    groupId: scope == TilesetScope.group ? selectedGroupId : null,
-    isWorldTileset: scope == TilesetScope.global ? isWorld : false,
-    libraryFolderId: importLibraryFolderId,
-  );
+  for (final item in importItems) {
+    await notifier.importProjectTileset(
+      sourcePath: item.sourcePath,
+      name: isBatchImport ? item.suggestedName : nameController.text.trim(),
+      scope: scope,
+      groupId: scope == TilesetScope.group ? selectedGroupId : null,
+      isWorldTileset:
+          scope == TilesetScope.global && !isBatchImport ? isWorld : false,
+      libraryFolderId: importLibraryFolderId,
+    );
+  }
 }

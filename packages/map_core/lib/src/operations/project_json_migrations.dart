@@ -1,10 +1,12 @@
 import 'project_border_catalog_json_codec.dart';
 import '../models/badge_definition.dart';
 import '../models/shop_definition.dart';
+import '../models/smart_tile.dart';
 
 Map<String, dynamic> migrateProjectManifestJson(Map<String, dynamic> raw) {
   _validateProjectVersion(raw);
   _validateManifestBorderVersion(raw);
+  _validateManifestSmartTileCatalogVersion(raw);
   _validateShops(raw);
   _validateBadges(raw);
   return raw;
@@ -71,9 +73,14 @@ void _validateProjectVersion(Map<String, dynamic> raw) {
 
   final version = raw['version'];
   if (version is! String) {
-    throw FormatException(r'$.version: expected null, "v1", "v2", or "v3"');
+    throw FormatException(
+      r'$.version: expected null, "v1", "v2", "v3", or "v4"',
+    );
   }
-  if (version != 'v1' && version != 'v2' && version != 'v3') {
+  if (version != 'v1' &&
+      version != 'v2' &&
+      version != 'v3' &&
+      version != 'v4') {
     throw FormatException(
       r'$.version: unsupported project format version "' '$version"',
     );
@@ -97,6 +104,28 @@ void _validateManifestBorderVersion(Map<String, dynamic> raw) {
     throw const FormatException(
       r'$.borderCatalog: non-empty Border catalog requires '
       'ProjectVersion.v2',
+    );
+  }
+}
+
+void _validateManifestSmartTileCatalogVersion(Map<String, dynamic> raw) {
+  if (_effectiveVersion(raw) == 'v4') {
+    return;
+  }
+  final catalogJson = raw['smartTileCatalog'];
+  if (catalogJson == null) {
+    return;
+  }
+  if (catalogJson is! Map) {
+    throw const FormatException(r'$.smartTileCatalog: expected an object');
+  }
+  final catalog = ProjectSmartTileCatalog.fromJson(
+    Map<String, dynamic>.from(catalogJson),
+  );
+  if (catalog.isNotEmpty) {
+    throw const FormatException(
+      r'$.smartTileCatalog: a non-empty Smart Tile catalog requires '
+      'ProjectVersion.v4',
     );
   }
 }

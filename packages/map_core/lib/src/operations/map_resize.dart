@@ -9,6 +9,7 @@ import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
+import '../models/smart_tile.dart';
 import 'border_resize.dart';
 import 'map_placed_element_footprint.dart';
 
@@ -23,6 +24,7 @@ enum MapResizeImpactKind {
   collisionLayer,
   terrainLayer,
   pathLayer,
+  smartTileLayer,
   surfaceLayer,
   environmentArea,
   borderLayer,
@@ -238,6 +240,19 @@ MapResizePlan planMapResize(
         sourceSize: sourceSize,
         targetSize: targetSize,
         isMeaningful: (value) => value,
+      );
+      continue;
+    }
+    if (layer is SmartTileLayer) {
+      _addClippedLayerImpact<int>(
+        impacts: impacts,
+        kind: MapResizeImpactKind.smartTileLayer,
+        layerId: layer.id,
+        layerName: layer.name,
+        values: layer.materialCells,
+        sourceSize: sourceSize,
+        targetSize: targetSize,
+        isMeaningful: (value) => value != 0,
       );
       continue;
     }
@@ -755,6 +770,44 @@ MapData _resizeMapDataLegacyLayers(
               srcSize: oldSize,
               dstSize: GridSize(width: width, height: height),
               defaultValue: false,
+            ),
+          ),
+          smartTile: (l) => l.copyWith(
+            materialCells: _resizeFlattened<int>(
+              src: l.materialCells,
+              srcSize: oldSize,
+              dstSize: GridSize(width: width, height: height),
+              defaultValue: l.usage == SmartTileUsage.terrain &&
+                      l.materialPalette.length > 1
+                  ? 1
+                  : 0,
+            ),
+            horizontalEdges: _resizeFlattened<int>(
+              src: l.horizontalEdges,
+              srcSize: GridSize(
+                width: oldSize.width,
+                height: oldSize.height + 1,
+              ),
+              dstSize: GridSize(width: width, height: height + 1),
+              defaultValue: 0,
+            ),
+            verticalEdges: _resizeFlattened<int>(
+              src: l.verticalEdges,
+              srcSize: GridSize(
+                width: oldSize.width + 1,
+                height: oldSize.height,
+              ),
+              dstSize: GridSize(width: width + 1, height: height),
+              defaultValue: 0,
+            ),
+            corners: _resizeFlattened<int>(
+              src: l.corners,
+              srcSize: GridSize(
+                width: oldSize.width + 1,
+                height: oldSize.height + 1,
+              ),
+              dstSize: GridSize(width: width + 1, height: height + 1),
+              defaultValue: 0,
             ),
           ),
           surface: (l) => l.copyWith(

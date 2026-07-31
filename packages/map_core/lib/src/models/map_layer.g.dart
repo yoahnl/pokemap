@@ -179,6 +179,67 @@ Map<String, dynamic> _$$SurfaceLayerImplToJson(_$SurfaceLayerImpl instance) =>
       'runtimeType': instance.$type,
     };
 
+_$SmartTileLayerImpl _$$SmartTileLayerImplFromJson(Map<String, dynamic> json) =>
+    _$SmartTileLayerImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      isVisible: json['isVisible'] as bool? ?? true,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      presetId: json['presetId'] as String,
+      usage: $enumDecode(_$SmartTileUsageEnumMap, json['usage']),
+      materialPalette: (json['materialPalette'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[''],
+      materialCells: (json['materialCells'] as List<dynamic>?)
+              ?.map((e) => (e as num).toInt())
+              .toList() ??
+          const <int>[],
+      horizontalEdges: (json['horizontalEdges'] as List<dynamic>?)
+              ?.map((e) => (e as num).toInt())
+              .toList() ??
+          const <int>[],
+      verticalEdges: (json['verticalEdges'] as List<dynamic>?)
+              ?.map((e) => (e as num).toInt())
+              .toList() ??
+          const <int>[],
+      corners: (json['corners'] as List<dynamic>?)
+              ?.map((e) => (e as num).toInt())
+              .toList() ??
+          const <int>[],
+      layerSeed: (json['layerSeed'] as num?)?.toInt() ?? 0,
+      properties: (json['properties'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as String),
+          ) ??
+          const <String, String>{},
+      $type: json['runtimeType'] as String?,
+    );
+
+Map<String, dynamic> _$$SmartTileLayerImplToJson(
+        _$SmartTileLayerImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'isVisible': instance.isVisible,
+      'opacity': instance.opacity,
+      'presetId': instance.presetId,
+      'usage': _$SmartTileUsageEnumMap[instance.usage]!,
+      'materialPalette': instance.materialPalette,
+      'materialCells': instance.materialCells,
+      'horizontalEdges': instance.horizontalEdges,
+      'verticalEdges': instance.verticalEdges,
+      'corners': instance.corners,
+      'layerSeed': instance.layerSeed,
+      'properties': instance.properties,
+      'runtimeType': instance.$type,
+    };
+
+const _$SmartTileUsageEnumMap = {
+  SmartTileUsage.terrain: 'terrain',
+  SmartTileUsage.path: 'path',
+  SmartTileUsage.forestSurface: 'forest_surface',
+};
+
 _$ObjectLayerImpl _$$ObjectLayerImplFromJson(Map<String, dynamic> json) =>
     _$ObjectLayerImpl(
       id: json['id'] as String,

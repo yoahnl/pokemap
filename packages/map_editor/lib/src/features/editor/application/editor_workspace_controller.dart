@@ -86,6 +86,10 @@ class EditorWorkspaceController {
     return _openWorkspace(current, EditorWorkspaceMode.narrativeValidator);
   }
 
+  EditorState selectSmartTilesStudioWorkspace(EditorState current) {
+    return _openWorkspace(current, EditorWorkspaceMode.smartTilesStudio);
+  }
+
   EditorState selectPathStudioWorkspace(EditorState current) {
     return _openWorkspace(current, EditorWorkspaceMode.pathStudio);
   }

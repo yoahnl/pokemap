@@ -346,6 +346,12 @@ class MapGridPainter extends CustomPainter {
             zoom: zoom,
             elapsedMs: editorEntityAnimationMs,
           );
+        case MapVisualCompositionStepKind.smartTileLayer:
+          _paintSmartTileLayer(
+            canvas,
+            step.layer! as SmartTileLayer,
+            pass: SmartTileVisualPass.background,
+          );
         case MapVisualCompositionStepKind.tileBackgroundLayer:
           _paintTileLayer(
             canvas,
@@ -403,6 +409,15 @@ class MapGridPainter extends CustomPainter {
               canvas,
               layer,
               renderPass: _EditorMapTileRenderPass.foreground,
+            );
+          }
+          for (final smartLayer in map.layers
+              .where((layer) => layer.isVisible)
+              .whereType<SmartTileLayer>()) {
+            _paintSmartTileLayer(
+              canvas,
+              smartLayer,
+              pass: SmartTileVisualPass.foreground,
             );
           }
         case MapVisualCompositionStepKind.foregroundEntities:
@@ -2437,6 +2452,64 @@ class MapGridPainter extends CustomPainter {
             ..strokeWidth = 1.0 / zoom,
         );
       }
+    }
+  }
+
+  void _paintSmartTileLayer(
+    Canvas canvas,
+    SmartTileLayer layer, {
+    required SmartTileVisualPass pass,
+  }) {
+    final catalog = project?.smartTileCatalog;
+    if (catalog == null || catalog.isEmpty) return;
+    final visuals = resolveSmartTileLayerVisuals(
+      map: map,
+      layer: layer,
+      catalog: catalog,
+      pass: pass,
+      elapsedMs: editorEntityAnimationMs,
+    );
+    final pixelScaleX = sourceTileWidth > 0 ? tileWidth / sourceTileWidth : 1.0;
+    final pixelScaleY =
+        sourceTileHeight > 0 ? tileHeight / sourceTileHeight : 1.0;
+    final paint = Paint()
+      ..filterQuality = FilterQuality.none
+      ..color = PokeMapLegacyColors.white.withValues(
+        alpha: layer.opacity.clamp(0.0, 1.0),
+      );
+    for (final visual in visuals) {
+      final image = tilesetImagesById[visual.tilesetId];
+      if (image == null) continue;
+      final source = visual.sourceRect;
+      if (source.x < 0 ||
+          source.y < 0 ||
+          source.x + source.width > image.width ||
+          source.y + source.height > image.height) {
+        continue;
+      }
+      final offsetX = visual.offsetUnit == SmartTileOffsetUnit.cell
+          ? visual.offsetX * tileWidth
+          : visual.offsetX * pixelScaleX;
+      final offsetY = visual.offsetUnit == SmartTileOffsetUnit.cell
+          ? visual.offsetY * tileHeight
+          : visual.offsetY * pixelScaleY;
+      final destination = Rect.fromLTWH(
+        visual.cellX * tileWidth + offsetX - visual.anchorX * pixelScaleX,
+        visual.cellY * tileHeight + offsetY - visual.anchorY * pixelScaleY,
+        visual.footprintWidth * tileWidth,
+        visual.footprintHeight * tileHeight,
+      );
+      canvas.drawImageRect(
+        image,
+        Rect.fromLTWH(
+          source.x.toDouble(),
+          source.y.toDouble(),
+          source.width.toDouble(),
+          source.height.toDouble(),
+        ),
+        destination,
+        paint,
+      );
     }
   }
 

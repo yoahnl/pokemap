@@ -455,5 +455,6 @@ IconData _layerIcon(MapLayer layer) {
     EnvironmentLayer() => Icons.park_outlined,
     BorderLayer() => Icons.border_outer_rounded,
     SurfaceLayer() => Icons.layers_outlined,
+    SmartTileLayer() => Icons.auto_awesome_mosaic_outlined,
   };
 }

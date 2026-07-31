@@ -6,6 +6,7 @@ import 'border_layer.dart';
 import 'enums.dart';
 import 'environment.dart';
 import 'project_manifest.dart';
+import 'smart_tile.dart';
 
 part 'map_layer.freezed.dart';
 part 'map_layer.g.dart';
@@ -97,6 +98,24 @@ sealed class MapLayer with _$MapLayer {
     @Default([]) List<SurfaceCellPlacement> placements,
     @Default(<String, String>{}) Map<String, String> properties,
   }) = SurfaceLayer;
+
+  @FreezedUnionValue('smart_tile')
+  @JsonSerializable(explicitToJson: true)
+  const factory MapLayer.smartTile({
+    required String id,
+    required String name,
+    @Default(true) bool isVisible,
+    @Default(1.0) double opacity,
+    required String presetId,
+    required SmartTileUsage usage,
+    @Default(<String>['']) List<String> materialPalette,
+    @Default(<int>[]) List<int> materialCells,
+    @Default(<int>[]) List<int> horizontalEdges,
+    @Default(<int>[]) List<int> verticalEdges,
+    @Default(<int>[]) List<int> corners,
+    @Default(0) int layerSeed,
+    @Default(<String, String>{}) Map<String, String> properties,
+  }) = SmartTileLayer;
 
   @FreezedUnionValue('object')
   const factory MapLayer.object({

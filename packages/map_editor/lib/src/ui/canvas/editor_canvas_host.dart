@@ -5,6 +5,7 @@ import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/environment_studio/environment_studio_workspace.dart';
 import '../../features/path_studio/path_studio_panel.dart';
+import '../../features/smart_tiles_studio/presentation/smart_tiles_studio_workspace.dart';
 import '../../features/border_studio/border_studio_workspace.dart';
 import '../../features/personalization/presentation/personalization_studio_workspace.dart';
 import 'map_canvas.dart';
@@ -38,6 +39,7 @@ class EditorCanvasHost extends ConsumerWidget {
         const NarrativeWorkspaceCanvas(),
       EditorWorkspaceMode.narrativeValidator =>
         const NarrativeWorkspaceCanvas(),
+      EditorWorkspaceMode.smartTilesStudio => const SmartTilesStudioWorkspace(),
       EditorWorkspaceMode.pathStudio => const PathStudioWorkspace(),
       EditorWorkspaceMode.environmentStudio =>
         const EnvironmentStudioWorkspace(),

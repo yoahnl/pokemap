@@ -230,7 +230,9 @@ class MapSelectionController {
       case EditorToolType.collisionPaint:
         return layer is CollisionLayer;
       case EditorToolType.terrainPaint:
-        return layer is TerrainLayer || layer is PathLayer;
+        return layer is TerrainLayer ||
+            layer is PathLayer ||
+            layer is SmartTileLayer;
       case EditorToolType.surfacePaint:
         return layer is SurfaceLayer;
       case EditorToolType.borderPaint:
@@ -241,7 +243,8 @@ class MapSelectionController {
             layer is CollisionLayer ||
             layer is TerrainLayer ||
             layer is PathLayer ||
-            layer is SurfaceLayer;
+            layer is SurfaceLayer ||
+            layer is SmartTileLayer;
     }
   }
 
