@@ -22,17 +22,30 @@ enum AuthoringRiskLevel {
 enum AuthoringPermission {
   projectRead('project.read'),
   projectWrite('project.write'),
+  projectDestructive('project.destructive'),
   assetRead('asset.read'),
   assetWrite('asset.write'),
-  render('render'),
-  playtest('playtest'),
-  recovery('recovery');
+  renderRun('render.run'),
+  playtestRun('playtest.run'),
+  playtestControl('playtest.control'),
+  importRun('import.run'),
+  exportRun('export.run'),
+  migrationRun('migration.run'),
+  networkExternal('network.external'),
+  processExecute('process.execute'),
+  secretUse('secret.use'),
+  recoveryApply('recovery.apply');
 
   const AuthoringPermission(this.wireName);
 
   final String wireName;
 
   static AuthoringPermission fromWireName(String value) {
+    // Phase-1 descriptors used three provisional short names. Accept them on
+    // input while every new serialization emits the canonical catalog scope.
+    if (value == 'render') return AuthoringPermission.renderRun;
+    if (value == 'playtest') return AuthoringPermission.playtestRun;
+    if (value == 'recovery') return AuthoringPermission.recoveryApply;
     return AuthoringPermission.values.firstWhere(
       (item) => item.wireName == value,
       orElse: () => throw FormatException('Unknown permission: $value'),
