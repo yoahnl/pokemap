@@ -2,6 +2,20 @@ library map_runtime;
 
 export 'package:map_core/map_core.dart'
     show PlayerPronounSet, ProjectTypographyRole;
+export 'package:map_authoring/map_authoring.dart'
+    show
+        AuthoringArtifactRef,
+        PlaytestCommand,
+        PlaytestCommandResult,
+        PlaytestEvent,
+        PlaytestPort,
+        PlaytestReceipt,
+        PlaytestSession,
+        PlaytestSessionState,
+        PlaytestSnapshot,
+        PlaytestStartRequest,
+        PlaytestStateChange,
+        PlaytestStateDiff;
 export 'src/player/runtime_project_typography_loader.dart'
     show
         FlutterRuntimeFontRegistrar,
@@ -90,6 +104,7 @@ export 'src/application/runtime_battle_authoring_capability_truth.dart'
         RuntimeBattleAuthoringSupportStatus,
         RuntimeBattleAuthoringCapability,
         RuntimeBattleAuthoringCapabilityTruth;
+export 'src/application/runtime_playtest_port.dart';
 export 'src/application/runtime_battle_progression_context_mapper.dart'
     show RuntimeBattleProgressionContextMapper;
 export 'src/application/runtime_battle_reward_resolver.dart'

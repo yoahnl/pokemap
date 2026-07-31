@@ -1,5 +1,9 @@
 import '../contracts/evaluation_state_snapshot.dart';
 
+/// Runtime authority shared by scenario runs and Authoring API playtests.
+///
+/// `EvaluationPlaytestDriver` deliberately wraps this interface instead of
+/// adding filesystem or API concerns to every concrete evaluator.
 abstract interface class EvaluationDriver {
   EvaluationStateSnapshot snapshot();
 

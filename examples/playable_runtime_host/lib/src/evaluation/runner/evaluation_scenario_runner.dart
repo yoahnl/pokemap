@@ -9,6 +9,7 @@ import '../driver/evaluation_driver.dart';
 import '../scenario/evaluation_command_catalog.dart';
 import '../scenario/evaluation_policy_validator.dart';
 import 'evaluation_assertion_evaluator.dart';
+import 'evaluation_command_dispatcher.dart';
 import 'evaluation_run_control.dart';
 import 'evaluation_state_diff.dart';
 
@@ -299,98 +300,13 @@ final class EvaluationScenarioRunner {
     required void Function(String, Map<String, Object?>) emit,
   }) async {
     final before = driver.snapshot();
-    final arguments = _EvaluationArguments(step.arguments);
-    await switch (step.operation) {
-      'game.new' => driver.startNewGame(),
-      'save.write' => driver.save(),
-      'save.reload' => driver.saveAndReload(),
-      'movement.navigate' => driver.navigateTo(
-          arguments.requireInt('x'),
-          arguments.requireInt('y'),
-        ),
-      'movement.crossConnection' => driver.crossConnection(
-          arguments.requireString('direction'),
-          preferredAxis: arguments.optionalInt('preferredAxis'),
-        ),
-      'movement.enterGameplayZone' => driver.enterGameplayZone(
-          arguments.requireString('zoneId'),
-        ),
-      'world.interact' => driver.interact(
-          arguments.requireString('entityId'),
-        ),
-      'world.enterTrigger' => driver.enterTrigger(
-          arguments.requireString('triggerId'),
-          expectBattle: arguments.optionalBool('expectBattle') ?? false,
-        ),
-      'world.enterWarp' => driver.enterWarp(
-          arguments.requireString('warpId'),
-        ),
-      'world.enterEncounter' => driver.enterWildEncounter(),
-      'world.waitForFact' => driver.waitForFact(
-          arguments.requireString('factId'),
-          timeout: arguments.optionalDuration('timeoutMilliseconds'),
-        ),
-      'dialogue.advance' => driver.advanceDialogue(),
-      'dialogue.choose' => driver.chooseDialogue(
-          arguments.requireNonNegativeInt('choiceIndex'),
-          linesBeforeChoice:
-              arguments.optionalNonNegativeInt('linesBeforeChoice'),
-        ),
-      'battle.chooseMove' => driver.chooseBattleMove(
-          arguments.requireNonNegativeInt('moveIndex'),
-        ),
-      'battle.useItem' => driver.useBattleItem(
-          arguments.requireString('itemId'),
-        ),
-      'battle.capture' => driver.attemptCapture(),
-      'battle.run' => driver.runFromBattle(),
-      'battle.completePostBattle' => driver.completePostBattle(),
-      'battle.resolve' => driver.resolveBattle(
-          arguments.requireString('strategy'),
-        ),
-      'service.shop.inspect' => driver.inspectShop(),
-      'service.shop.buy' => driver.buy(
-          arguments.requireString('itemId'),
-          arguments.requirePositiveInt('quantity'),
-        ),
-      'service.heal' => driver.healParty(),
-      'service.pc.withdraw' => driver.withdrawFromPc(
-          arguments.requireString('pokemonId'),
-        ),
-      'evidence.checkpoint' => driver.createCheckpoint(
-          arguments.requireString('checkpointId'),
-        ),
-      'evidence.snapshot' => evidenceCapture == null
-          ? Future<void>.value()
-          : evidenceCapture!(
-              stepId: step.id,
-              name: arguments.optionalString('name'),
-            ),
-      'probe.loadCheckpoint' => driver.probeLoadCheckpoint(
-          arguments.requireString('checkpointId'),
-        ),
-      'probe.goto' => driver.probeGoto(
-          arguments.requireString('mapId'),
-          arguments.requireInt('x'),
-          arguments.requireInt('y'),
-        ),
-      'probe.overrideFact' => driver.probeOverrideFact(
-          arguments.requireString('factId'),
-          arguments.requireBool('value'),
-        ),
-      'probe.setMoney' => driver.probeSetMoney(
-          arguments.requireNonNegativeInt('value'),
-        ),
-      'probe.seedBag' => driver.probeSeedBag(
-          arguments.requireIntMap('quantities'),
-        ),
-      'probe.seedParty' => driver.probeSeedParty(
-          arguments.requireMapList('pokemon'),
-        ),
-      final operation => throw EvaluationScenarioExecutionError(
-          'Operation "$operation" has no runtime dispatcher.',
-        ),
-    };
+    await const EvaluationCommandDispatcher().execute(
+      driver: driver,
+      commandId: step.id,
+      operation: step.operation,
+      arguments: step.arguments,
+      evidenceCapture: evidenceCapture,
+    );
     if (evaluationCommandCatalog[step.operation]?.probeOnly ?? false) {
       shortcutsUsed.add(step.operation);
     }
@@ -430,124 +346,6 @@ final class EvaluationScenarioRunner {
         ...assertion.toJson(),
       },
     );
-  }
-}
-
-final class EvaluationScenarioExecutionError implements Exception {
-  const EvaluationScenarioExecutionError(this.message);
-
-  final String message;
-
-  @override
-  String toString() => 'Invalid evaluation command: $message';
-}
-
-final class _EvaluationArguments {
-  const _EvaluationArguments(this.values);
-
-  final Map<String, Object?> values;
-
-  String requireString(String key) {
-    final value = values[key];
-    if (value is String && value.trim().isNotEmpty) return value;
-    throw EvaluationScenarioExecutionError(
-      'Argument "$key" must be a non-blank string.',
-    );
-  }
-
-  int requireInt(String key) {
-    final value = values[key];
-    if (value is int) return value;
-    throw EvaluationScenarioExecutionError(
-      'Argument "$key" must be an integer.',
-    );
-  }
-
-  int requireNonNegativeInt(String key) {
-    final value = requireInt(key);
-    if (value >= 0) return value;
-    throw EvaluationScenarioExecutionError(
-      'Argument "$key" must be non-negative.',
-    );
-  }
-
-  int requirePositiveInt(String key) {
-    final value = requireInt(key);
-    if (value > 0) return value;
-    throw EvaluationScenarioExecutionError(
-      'Argument "$key" must be positive.',
-    );
-  }
-
-  int? optionalInt(String key) {
-    if (!values.containsKey(key)) return null;
-    return requireInt(key);
-  }
-
-  String? optionalString(String key) {
-    if (!values.containsKey(key)) return null;
-    return requireString(key);
-  }
-
-  int? optionalNonNegativeInt(String key) {
-    if (!values.containsKey(key)) return null;
-    return requireNonNegativeInt(key);
-  }
-
-  Duration? optionalDuration(String key) {
-    if (!values.containsKey(key)) return null;
-    return Duration(milliseconds: requirePositiveInt(key));
-  }
-
-  bool requireBool(String key) {
-    final value = values[key];
-    if (value is bool) return value;
-    throw EvaluationScenarioExecutionError(
-      'Argument "$key" must be a boolean.',
-    );
-  }
-
-  bool? optionalBool(String key) {
-    if (!values.containsKey(key)) return null;
-    return requireBool(key);
-  }
-
-  Map<String, int> requireIntMap(String key) {
-    final value = values[key];
-    if (value is! Map) {
-      throw EvaluationScenarioExecutionError(
-        'Argument "$key" must be an integer map.',
-      );
-    }
-    final result = <String, int>{};
-    for (final entry in value.entries) {
-      if (entry.key is! String || entry.value is! int || entry.value < 0) {
-        throw EvaluationScenarioExecutionError(
-          'Argument "$key" must contain non-negative integer quantities.',
-        );
-      }
-      result[entry.key as String] = entry.value as int;
-    }
-    return result;
-  }
-
-  List<Map<String, Object?>> requireMapList(String key) {
-    final value = values[key];
-    if (value is! List) {
-      throw EvaluationScenarioExecutionError(
-        'Argument "$key" must be a list of objects.',
-      );
-    }
-    final result = <Map<String, Object?>>[];
-    for (final item in value) {
-      if (item is! Map) {
-        throw EvaluationScenarioExecutionError(
-          'Argument "$key" must contain only objects.',
-        );
-      }
-      result.add(Map<String, Object?>.from(item));
-    }
-    return result;
   }
 }
 
