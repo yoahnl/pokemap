@@ -9,7 +9,8 @@
 /docs/combat/*
 !/docs/combat/battle-canonical-state-v3.1.md
 !/docs/combat/battle-roadmap-canonical-v3.1.md
-/project_overview.txt
+**/project_overview.txt
+**/test_run.txt
 /review_bundle.sh
 /review_last_code.sh
 
@@ -26,7 +27,6 @@
 build/
 pubspec.lock
 /packages/generate_project_overview.sh
-/packages/project_overview.txt
 
 # Local OS/editor noise
 .DS_Store
