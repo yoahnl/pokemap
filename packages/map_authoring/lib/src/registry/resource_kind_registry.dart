@@ -229,6 +229,12 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Sandbox player state',
         summary: 'Detached non-production party, PC, bag and save state',
       ),
+      AuthoringResourceKindDescriptor(
+        id: 'battleProgression',
+        version: 1,
+        displayName: 'Battle progression',
+        summary: 'Deterministic battle, outcome and progression preview',
+      ),
     ]);
   }
 

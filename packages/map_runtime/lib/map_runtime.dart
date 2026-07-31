@@ -85,6 +85,11 @@ export 'src/application/runtime_battle_outcome_apply.dart'
         RuntimeBattleCaptureAttemptSubmission,
         submitRuntimeBattleCaptureAttempt,
         commitRuntimeBattleCaptureAttemptReceipt;
+export 'src/application/runtime_battle_authoring_capability_truth.dart'
+    show
+        RuntimeBattleAuthoringSupportStatus,
+        RuntimeBattleAuthoringCapability,
+        RuntimeBattleAuthoringCapabilityTruth;
 export 'src/application/runtime_battle_progression_context_mapper.dart'
     show RuntimeBattleProgressionContextMapper;
 export 'src/application/runtime_battle_reward_resolver.dart'

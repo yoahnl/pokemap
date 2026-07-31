@@ -69,6 +69,7 @@ export 'src/battle_progression_service.dart'
         BattleProgressionPartySlotMetadata,
         BattleProgressionContext,
         BattleProgressionService;
+export 'src/battle_progression_authoring_service.dart';
 export 'src/direction.dart' show Direction, DirectionX, EntityFacingX;
 export 'src/gameplay_exceptions.dart' show GameplaySpawnResolutionException;
 export 'src/player_spawn_resolver.dart' show resolveInitialPlayerSpawn;

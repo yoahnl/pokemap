@@ -78,6 +78,7 @@ export 'src/battle_action.dart';
 export 'src/battle_move.dart';
 export 'src/battle_opponent_policy.dart';
 export 'src/battle_resolution.dart';
+export 'src/battle_authoring_simulator.dart';
 export 'src/application/battle_engine.dart' show BattleEngine;
 export 'src/application/battle_session_facade.dart' show BattleSessionFacade;
 export 'src/application/battle_turn_runner.dart' show BattleEngineTurnResult;
