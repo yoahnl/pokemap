@@ -4,6 +4,7 @@ import '../../contracts/action_descriptor.dart';
 import '../../domains/assets/asset_actions.dart';
 import '../../domains/assets/element_actions.dart';
 import '../../domains/assets/palette_actions.dart';
+import '../../domains/assets/presentation_actions.dart';
 import '../../domains/assets/preset_actions.dart';
 import '../../domains/assets/tileset_actions.dart';
 import '../../ports/artifact_store.dart';
@@ -65,6 +66,7 @@ final class MapMutationDispatcher {
     const palettes = PaletteActions();
     const elements = ElementActions();
     const presets = PresetActions();
+    const presentation = PresentationActions();
     return MapMutationDispatcher([
       for (final descriptor in MapLifecycleActions.descriptors)
         MapMutationActionRegistration(
@@ -155,6 +157,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: presets.build,
+        ),
+      for (final descriptor in PresentationActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: presentation.build,
         ),
     ]);
   }
