@@ -26,6 +26,7 @@ enum _EditorMapTileRenderPass {
 Map<String, Set<int>> buildEditorForegroundTileCellIndicesByLayerId({
   required MapData map,
   required ProjectManifest? project,
+  Iterable<MapPlacedElement>? placedElements,
 }) {
   if (project == null || map.placedElements.isEmpty) {
     return const <String, Set<int>>{};
@@ -45,7 +46,7 @@ Map<String, Set<int>> buildEditorForegroundTileCellIndicesByLayerId({
   final mapWidth = map.size.width;
   final mapHeight = map.size.height;
 
-  for (final instance in map.placedElements) {
+  for (final instance in placedElements ?? map.placedElements) {
     final layer = tileLayerById[instance.layerId];
     if (layer == null) {
       continue;
@@ -186,6 +187,127 @@ final class EnvironmentMaskBrushCursorOverlay {
   int get hashCode => Object.hash(center, brushSize, mode);
 }
 
+@visibleForTesting
+@immutable
+final class EditorMapVisibleCellBounds {
+  const EditorMapVisibleCellBounds({
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+  });
+
+  final int left;
+  final int top;
+  final int right;
+  final int bottom;
+
+  int get width => math.max(0, right - left);
+  int get height => math.max(0, bottom - top);
+  int get cellCount => width * height;
+
+  bool intersectsCellArea({
+    required int x,
+    required int y,
+    required int width,
+    required int height,
+  }) {
+    if (width <= 0 || height <= 0 || cellCount == 0) return false;
+    return x < right && x + width > left && y < bottom && y + height > top;
+  }
+}
+
+@visibleForTesting
+EditorMapVisibleCellBounds resolveEditorMapVisibleCellBounds({
+  required Size viewportSize,
+  required GridSize mapSize,
+  required double zoom,
+  required Offset offset,
+  required double tileWidth,
+  required double tileHeight,
+  int marginCells = 1,
+}) {
+  if (!viewportSize.width.isFinite ||
+      !viewportSize.height.isFinite ||
+      viewportSize.isEmpty ||
+      mapSize.width <= 0 ||
+      mapSize.height <= 0 ||
+      !zoom.isFinite ||
+      zoom <= 0 ||
+      !offset.dx.isFinite ||
+      !offset.dy.isFinite ||
+      !tileWidth.isFinite ||
+      tileWidth <= 0 ||
+      !tileHeight.isFinite ||
+      tileHeight <= 0) {
+    return const EditorMapVisibleCellBounds(
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+    );
+  }
+  final margin = math.max(0, marginCells);
+  final worldLeft = -offset.dx / zoom;
+  final worldTop = -offset.dy / zoom;
+  final worldRight = (viewportSize.width - offset.dx) / zoom;
+  final worldBottom = (viewportSize.height - offset.dy) / zoom;
+  final left = ((worldLeft / tileWidth).floor() - margin)
+      .clamp(0, mapSize.width)
+      .toInt();
+  final top = ((worldTop / tileHeight).floor() - margin)
+      .clamp(0, mapSize.height)
+      .toInt();
+  final right = ((worldRight / tileWidth).ceil() + margin)
+      .clamp(0, mapSize.width)
+      .toInt();
+  final bottom = ((worldBottom / tileHeight).ceil() + margin)
+      .clamp(0, mapSize.height)
+      .toInt();
+  return EditorMapVisibleCellBounds(
+    left: left,
+    top: top,
+    right: right,
+    bottom: bottom,
+  );
+}
+
+@visibleForTesting
+@immutable
+final class MapGridCullingDebugSnapshot {
+  MapGridCullingDebugSnapshot({
+    required this.visibleBounds,
+    required this.totalMapCellCount,
+    required this.tileCellVisits,
+    required this.collisionCellVisits,
+    required this.terrainCellVisits,
+    required this.pathCellVisits,
+    required Set<String> placedElementIds,
+    required this.placedElementPassVisits,
+  }) : placedElementIds = Set<String>.unmodifiable(placedElementIds);
+
+  final EditorMapVisibleCellBounds visibleBounds;
+  final int totalMapCellCount;
+  final int tileCellVisits;
+  final int collisionCellVisits;
+  final int terrainCellVisits;
+  final int pathCellVisits;
+  final Set<String> placedElementIds;
+  final int placedElementPassVisits;
+}
+
+typedef MapGridCullingDebugObserver = void Function(
+  MapGridCullingDebugSnapshot snapshot,
+);
+
+final class _MapGridCullingDebugCounter {
+  int tileCellVisits = 0;
+  int collisionCellVisits = 0;
+  int terrainCellVisits = 0;
+  int pathCellVisits = 0;
+  int placedElementPassVisits = 0;
+}
+
 /// Painter massif extrait tel quel du shell `MapCanvas`.
 typedef MapGridPaintObserver = void Function();
 
@@ -230,6 +352,7 @@ class MapGridPainter extends CustomPainter {
   final EditorCanvasRepaintClock? _animationClock;
   final int _staticAnimationMs;
   final MapGridPaintObserver? debugOnPaint;
+  final MapGridCullingDebugObserver? debugOnCulling;
   final bool showGrid;
   final bool showEntityEditorChrome;
   final bool showEditorOverlays;
@@ -279,6 +402,7 @@ class MapGridPainter extends CustomPainter {
     EditorCanvasRepaintClock? animationClock,
     int editorEntityAnimationMs = 0,
     this.debugOnPaint,
+    this.debugOnCulling,
     this.showGrid = true,
     this.showEntityEditorChrome = true,
     this.showEditorOverlays = true,
@@ -307,6 +431,22 @@ class MapGridPainter extends CustomPainter {
 
     final gridWidth = map.size.width * tileWidth;
     final gridHeight = map.size.height * tileHeight;
+    final visibleBounds = resolveEditorMapVisibleCellBounds(
+      viewportSize: size,
+      mapSize: map.size,
+      zoom: zoom,
+      offset: offset,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+    );
+    final visiblePlacedElements = _visiblePlacedElements(visibleBounds);
+    final cullingObserver = debugOnCulling;
+    final cullingCounter =
+        cullingObserver == null ? null : _MapGridCullingDebugCounter();
+
+    // Cell-backed layers and placed-element footprints have bounded geometry
+    // and are safe to cull. Shadows and editor overlays deliberately keep the
+    // full map input below because their visual extents can escape an anchor.
 
     final layerPaintOrderResult = buildEditorMapLayerPaintOrderResult(map);
     final layerPaintOrder = layerPaintOrderResult.order;
@@ -321,6 +461,7 @@ class MapGridPainter extends CustomPainter {
         buildEditorForegroundTileCellIndicesByLayerId(
       map: map,
       project: project,
+      placedElements: visiblePlacedElements,
     );
     final projectContext = project;
     final projectedBuildingShadowPreviewInstructions = projectContext == null
@@ -345,9 +486,19 @@ class MapGridPainter extends CustomPainter {
     for (final step in compositionPlan.steps) {
       switch (step.kind) {
         case MapVisualCompositionStepKind.terrainLayer:
-          _paintTerrainLayer(canvas, step.layer! as TerrainLayer);
+          _paintTerrainLayer(
+            canvas,
+            step.layer! as TerrainLayer,
+            visibleBounds: visibleBounds,
+            cullingCounter: cullingCounter,
+          );
         case MapVisualCompositionStepKind.pathLayer:
-          _paintPathLayer(canvas, step.layer! as PathLayer);
+          _paintPathLayer(
+            canvas,
+            step.layer! as PathLayer,
+            visibleBounds: visibleBounds,
+            cullingCounter: cullingCounter,
+          );
         case MapVisualCompositionStepKind.surfaceLayer:
           final layer = step.layer! as SurfaceLayer;
           paintSurfaceLayerAtlasTilePreview(
@@ -374,6 +525,9 @@ class MapGridPainter extends CustomPainter {
             renderPass: _EditorMapTileRenderPass.background,
             foregroundTileCellIndicesByLayerId:
                 foregroundTileCellIndicesByLayerId,
+            visibleBounds: visibleBounds,
+            visiblePlacedElements: visiblePlacedElements,
+            cullingCounter: cullingCounter,
           );
         case MapVisualCompositionStepKind.borderLayer:
           if (borderCatalog != null) {
@@ -405,6 +559,8 @@ class MapGridPainter extends CustomPainter {
             canvas,
             step.layer! as TileLayer,
             renderPass: _EditorMapTileRenderPass.background,
+            visiblePlacedElements: visiblePlacedElements,
+            cullingCounter: cullingCounter,
           );
         case MapVisualCompositionStepKind.backgroundEntities:
           _paintEntities(
@@ -419,11 +575,16 @@ class MapGridPainter extends CustomPainter {
               renderPass: _EditorMapTileRenderPass.foreground,
               foregroundTileCellIndicesByLayerId:
                   foregroundTileCellIndicesByLayerId,
+              visibleBounds: visibleBounds,
+              visiblePlacedElements: visiblePlacedElements,
+              cullingCounter: cullingCounter,
             );
             _paintPlacedElementsForLayer(
               canvas,
               layer,
               renderPass: _EditorMapTileRenderPass.foreground,
+              visiblePlacedElements: visiblePlacedElements,
+              cullingCounter: cullingCounter,
             );
           }
           for (final smartLayer in map.layers
@@ -447,6 +608,8 @@ class MapGridPainter extends CustomPainter {
               canvas,
               layer,
               isActive: layer.id == activeLayerId,
+              visibleBounds: visibleBounds,
+              cullingCounter: cullingCounter,
             );
           }
         case MapVisualCompositionStepKind.objectNoop:
@@ -532,6 +695,51 @@ class MapGridPainter extends CustomPainter {
     }
 
     canvas.restore();
+    if (cullingObserver != null && cullingCounter != null) {
+      cullingObserver(
+        MapGridCullingDebugSnapshot(
+          visibleBounds: visibleBounds,
+          totalMapCellCount: map.size.width * map.size.height,
+          tileCellVisits: cullingCounter.tileCellVisits,
+          collisionCellVisits: cullingCounter.collisionCellVisits,
+          terrainCellVisits: cullingCounter.terrainCellVisits,
+          pathCellVisits: cullingCounter.pathCellVisits,
+          placedElementIds: {
+            for (final instance in visiblePlacedElements) instance.id,
+          },
+          placedElementPassVisits: cullingCounter.placedElementPassVisits,
+        ),
+      );
+    }
+  }
+
+  List<MapPlacedElement> _visiblePlacedElements(
+    EditorMapVisibleCellBounds visibleBounds,
+  ) {
+    final projectContext = project;
+    if (projectContext == null || visibleBounds.cellCount == 0) {
+      return const <MapPlacedElement>[];
+    }
+    final elementById = <String, ProjectElementEntry>{
+      for (final entry in projectContext.elements) entry.id: entry,
+    };
+    return <MapPlacedElement>[
+      for (final instance in map.placedElements)
+        if (elementById[instance.elementId] case final element?)
+          if (element.frames.isNotEmpty)
+            if (resolveMapPlacedElementFootprint(
+              instance: instance,
+              element: element,
+            ).destinationSize
+                case final footprint)
+              if (visibleBounds.intersectsCellArea(
+                x: instance.pos.x,
+                y: instance.pos.y,
+                width: footprint.width,
+                height: footprint.height,
+              ))
+                instance,
+    ];
   }
 
   void _paintNarrativeEventBridgeHighlight(
@@ -1834,6 +2042,9 @@ class MapGridPainter extends CustomPainter {
     TileLayer layer, {
     required _EditorMapTileRenderPass renderPass,
     required Map<String, Set<int>> foregroundTileCellIndicesByLayerId,
+    required EditorMapVisibleCellBounds visibleBounds,
+    required List<MapPlacedElement> visiblePlacedElements,
+    required _MapGridCullingDebugCounter? cullingCounter,
   }) {
     if (sourceTileWidth <= 0 || sourceTileHeight <= 0) {
       return;
@@ -1851,6 +2062,7 @@ class MapGridPainter extends CustomPainter {
       layer: layer,
       layerTilesetId: layerTilesetId,
       tilesPerRow: tilesPerRow,
+      placedElements: visiblePlacedElements,
     );
 
     final explicitForeground = _isExplicitForegroundTileLayerForEditor(
@@ -1877,9 +2089,10 @@ class MapGridPainter extends CustomPainter {
       );
     }
 
-    for (var y = 0; y < map.size.height; y++) {
+    cullingCounter?.tileCellVisits += visibleBounds.cellCount;
+    for (var y = visibleBounds.top; y < visibleBounds.bottom; y++) {
       final rowStart = y * map.size.width;
-      for (var x = 0; x < map.size.width; x++) {
+      for (var x = visibleBounds.left; x < visibleBounds.right; x++) {
         final tileIndex = rowStart + x;
         if (tileIndex < 0 || tileIndex >= layer.tiles.length) continue;
         final tileId = layer.tiles[tileIndex];
@@ -1926,6 +2139,7 @@ class MapGridPainter extends CustomPainter {
     required TileLayer layer,
     required String layerTilesetId,
     required int tilesPerRow,
+    required List<MapPlacedElement> placedElements,
   }) {
     final projectContext = project;
     if (projectContext == null || map.placedElements.isEmpty) {
@@ -1939,7 +2153,7 @@ class MapGridPainter extends CustomPainter {
     }
     final layerId = layer.id.trim();
     final out = <int>{};
-    for (final instance in map.placedElements) {
+    for (final instance in placedElements) {
       if (instance.layerId.trim() != layerId) {
         continue;
       }
@@ -1993,6 +2207,8 @@ class MapGridPainter extends CustomPainter {
     Canvas canvas,
     TileLayer layer, {
     required _EditorMapTileRenderPass renderPass,
+    required List<MapPlacedElement> visiblePlacedElements,
+    required _MapGridCullingDebugCounter? cullingCounter,
   }) {
     final projectContext = project;
     if (projectContext == null || map.placedElements.isEmpty) {
@@ -2016,10 +2232,11 @@ class MapGridPainter extends CustomPainter {
       return;
     }
     final layerId = layer.id.trim();
-    for (final instance in map.placedElements) {
+    for (final instance in visiblePlacedElements) {
       if (instance.layerId.trim() != layerId) {
         continue;
       }
+      cullingCounter?.placedElementPassVisits += 1;
       _paintPlacedElement(
         canvas,
         instance,
@@ -2349,6 +2566,8 @@ class MapGridPainter extends CustomPainter {
     Canvas canvas,
     CollisionLayer layer, {
     required bool isActive,
+    required EditorMapVisibleCellBounds visibleBounds,
+    required _MapGridCullingDebugCounter? cullingCounter,
   }) {
     if (layer.collisions.isEmpty) return;
     final fillAlpha = (isActive ? 0.34 : 0.24) * layer.opacity;
@@ -2362,9 +2581,10 @@ class MapGridPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2 / zoom;
 
-    for (var y = 0; y < map.size.height; y++) {
+    cullingCounter?.collisionCellVisits += visibleBounds.cellCount;
+    for (var y = visibleBounds.top; y < visibleBounds.bottom; y++) {
       final rowStart = y * map.size.width;
-      for (var x = 0; x < map.size.width; x++) {
+      for (var x = visibleBounds.left; x < visibleBounds.right; x++) {
         final index = rowStart + x;
         if (index < 0 || index >= layer.collisions.length) continue;
         if (!layer.collisions[index]) continue;
@@ -2380,11 +2600,17 @@ class MapGridPainter extends CustomPainter {
     }
   }
 
-  void _paintTerrainLayer(Canvas canvas, TerrainLayer layer) {
+  void _paintTerrainLayer(
+    Canvas canvas,
+    TerrainLayer layer, {
+    required EditorMapVisibleCellBounds visibleBounds,
+    required _MapGridCullingDebugCounter? cullingCounter,
+  }) {
     if (layer.terrains.isEmpty) return;
-    for (var y = 0; y < map.size.height; y++) {
+    cullingCounter?.terrainCellVisits += visibleBounds.cellCount;
+    for (var y = visibleBounds.top; y < visibleBounds.bottom; y++) {
       final rowStart = y * map.size.width;
-      for (var x = 0; x < map.size.width; x++) {
+      for (var x = visibleBounds.left; x < visibleBounds.right; x++) {
         final index = rowStart + x;
         if (index < 0 || index >= layer.terrains.length) continue;
         final terrain = layer.terrains[index];
@@ -2426,13 +2652,19 @@ class MapGridPainter extends CustomPainter {
     }
   }
 
-  void _paintPathLayer(Canvas canvas, PathLayer layer) {
+  void _paintPathLayer(
+    Canvas canvas,
+    PathLayer layer, {
+    required EditorMapVisibleCellBounds visibleBounds,
+    required _MapGridCullingDebugCounter? cullingCounter,
+  }) {
     if (layer.cells.isEmpty) return;
     final pathCellAlpha = layer.opacity;
     final autotileSet = _resolvePathAutotileSetForLayer(layer);
-    for (var y = 0; y < map.size.height; y++) {
+    cullingCounter?.pathCellVisits += visibleBounds.cellCount;
+    for (var y = visibleBounds.top; y < visibleBounds.bottom; y++) {
       final rowStart = y * map.size.width;
-      for (var x = 0; x < map.size.width; x++) {
+      for (var x = visibleBounds.left; x < visibleBounds.right; x++) {
         final index = rowStart + x;
         if (index < 0 || index >= layer.cells.length) continue;
         if (!layer.cells[index]) continue;
