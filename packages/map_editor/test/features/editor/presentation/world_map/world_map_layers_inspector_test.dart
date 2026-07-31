@@ -28,7 +28,7 @@ void main() {
     addTearDown(harness.dispose);
     await harness.pump(tester);
 
-    expect(find.byType(ListView), findsOneWidget);
+    expect(find.byType(CustomScrollView), findsOneWidget);
     final top = tester.getTopLeft(
       find.byKey(const ValueKey<String>('world-map-layer-row-top')),
     );
@@ -50,6 +50,30 @@ void main() {
     );
     await tester.pump();
     expect(harness.notifier.state.activeLayerId, 'top');
+  });
+
+  testWidgets('compact inspector keeps layer rows reachable by local scroll',
+      (tester) async {
+    final harness = _Harness(_threeLayerMap(), activeLayerId: 'middle');
+    addTearDown(harness.dispose);
+    await harness.pump(tester, size: const Size(380, 260));
+
+    final scrollable = find.descendant(
+      of: find.byKey(const ValueKey<String>('world-map-layer-list')),
+      matching: find.byType(Scrollable),
+    );
+    final before = tester.state<ScrollableState>(scrollable).position;
+    expect(before.maxScrollExtent, greaterThan(0));
+
+    await tester.drag(scrollable, const Offset(0, -600));
+    await tester.pumpAndSettle();
+
+    final after = tester.state<ScrollableState>(scrollable).position;
+    expect(after.pixels, greaterThan(0));
+    expect(
+      find.byKey(const ValueKey<String>('world-map-layer-row-bottom')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('labels the projected row count as layer groups', (tester) async {
@@ -468,6 +492,16 @@ void main() {
     expect(created.whereType<EnvironmentLayer>(), hasLength(1));
     expect(created.whereType<BorderLayer>(), hasLength(1));
     expect(created.whereType<SurfaceLayer>(), hasLength(1));
+    final layerScroll = tester.state<ScrollableState>(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('world-map-layer-list')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    for (var pass = 0; pass < 4; pass += 1) {
+      layerScroll.position.jumpTo(layerScroll.position.maxScrollExtent);
+      await tester.pump();
+    }
     expect(
       find.text(
         'Zone auteur pour environnements organiques : forêts, bosquets, '
@@ -1002,6 +1036,7 @@ final class _Harness {
 
   Future<void> pump(
     WidgetTester tester, {
+    Size size = const Size(380, 760),
     WorldMapLayerRenameRequested onRenameRequested =
         showWorldMapLayerRenameDialog,
     WorldMapLayerDeleteRequested onDeleteRequested =
@@ -1015,8 +1050,8 @@ final class _Harness {
           theme: PokeMapTheme.dark(),
           home: Scaffold(
             body: SizedBox(
-              width: 380,
-              height: 760,
+              width: size.width,
+              height: size.height,
               child: WorldMapLayersInspector(
                 onRenameRequested: onRenameRequested,
                 onDeleteRequested: onDeleteRequested,

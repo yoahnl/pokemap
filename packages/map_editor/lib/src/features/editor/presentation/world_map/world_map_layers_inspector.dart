@@ -81,65 +81,81 @@ class WorldMapLayersInspector extends ConsumerWidget {
     return Semantics(
       container: true,
       label: 'Calques de la carte, du premier plan vers l’arrière-plan',
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            PokeMapSectionHeader(
-              title: 'Calques',
-              description: rows.length == 1
-                  ? '1 groupe de calques'
-                  : '${rows.length} groupes de calques',
-              trailing: PokeMapSplitButton<WorldMapLayerCreationKind>(
-                key: const ValueKey<String>('world-map-layer-add'),
-                onPressed: () => _addLayer(
-                  notifier,
-                  WorldMapLayerCreationKind.tile,
-                ),
-                items: [
-                  for (final kind in WorldMapLayerCreationKind.values)
-                    PokeMapMenuItem<WorldMapLayerCreationKind>(
-                      value: kind,
-                      label: _creationKindLabel(kind),
+      child: CustomScrollView(
+        key: const ValueKey<String>('world-map-layer-list'),
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  PokeMapSectionHeader(
+                    title: 'Calques',
+                    description: rows.length == 1
+                        ? '1 groupe de calques'
+                        : '${rows.length} groupes de calques',
+                    trailing: PokeMapSplitButton<WorldMapLayerCreationKind>(
+                      key: const ValueKey<String>('world-map-layer-add'),
+                      onPressed: () => _addLayer(
+                        notifier,
+                        WorldMapLayerCreationKind.tile,
+                      ),
+                      items: [
+                        for (final kind in WorldMapLayerCreationKind.values)
+                          PokeMapMenuItem<WorldMapLayerCreationKind>(
+                            value: kind,
+                            label: _creationKindLabel(kind),
+                          ),
+                      ],
+                      onSelected: (kind) => _addLayer(notifier, kind),
+                      tooltip: 'Ajouter un calque de tuiles',
+                      menuTooltip: 'Choisir le type de calque',
+                      child: const Text('Ajouter'),
                     ),
-                ],
-                onSelected: (kind) => _addLayer(notifier, kind),
-                tooltip: 'Ajouter un calque de tuiles',
-                menuTooltip: 'Choisir le type de calque',
-                child: const Text('Ajouter'),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const PokeMapDiagnosticCallout(
-              severity: PokeMapDiagnosticSeverity.info,
-              title: 'Calque d’environnement',
-              message: 'Zone auteur pour environnements organiques : forêts, '
-                  'bosquets, prairies, côtes rocheuses.',
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: ListView.separated(
-                key: const ValueKey<String>('world-map-layer-list'),
-                itemCount: rows.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 8),
-                itemBuilder: (context, index) => _WorldMapLayerRow(
-                  key: ValueKey<String>(
-                    'world-map-layer-row-${rows[index].layer.id}',
                   ),
-                  row: rows[index],
-                  notifier: notifier,
-                  session: session,
-                  readActiveMap: () =>
-                      ref.read(editorNotifierProvider).activeMap,
-                  onRenameRequested: onRenameRequested,
-                  onDeleteRequested: onDeleteRequested,
-                  onContextMenuRequested: onContextMenuRequested,
-                ),
+                  const SizedBox(height: 8),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            sliver: SliverList.builder(
+              itemCount: rows.length,
+              itemBuilder: (context, index) {
+                final row = rows[index];
+                return Padding(
+                  padding: EdgeInsets.only(top: index == 0 ? 0 : 8),
+                  child: _WorldMapLayerRow(
+                    key: ValueKey<String>(
+                      'world-map-layer-row-${row.layer.id}',
+                    ),
+                    row: row,
+                    notifier: notifier,
+                    session: session,
+                    readActiveMap: () =>
+                        ref.read(editorNotifierProvider).activeMap,
+                    onRenameRequested: onRenameRequested,
+                    onDeleteRequested: onDeleteRequested,
+                    onContextMenuRequested: onContextMenuRequested,
+                  ),
+                );
+              },
+            ),
+          ),
+          const SliverPadding(
+            padding: EdgeInsets.all(10),
+            sliver: SliverToBoxAdapter(
+              child: PokeMapDiagnosticCallout(
+                severity: PokeMapDiagnosticSeverity.info,
+                title: 'Calque d’environnement',
+                message: 'Zone auteur pour environnements organiques : forêts, '
+                    'bosquets, prairies, côtes rocheuses.',
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
