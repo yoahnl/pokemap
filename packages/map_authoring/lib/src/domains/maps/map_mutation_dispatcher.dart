@@ -14,6 +14,7 @@ import 'placed_element_actions.dart';
 import 'surface_actions.dart';
 import 'terrain_actions.dart';
 import 'trigger_zone_actions.dart';
+import 'warp_connection_actions.dart';
 
 typedef MapMutationDraftBuilder = AuthoringMutationDraft Function(
   AuthoringPlanningContext context,
@@ -47,6 +48,7 @@ final class MapMutationDispatcher {
     const environment = EnvironmentActions();
     const placedElement = PlacedElementActions();
     const triggerZone = TriggerZoneActions();
+    const warpConnection = WarpConnectionActions();
     return MapMutationDispatcher([
       for (final descriptor in MapLifecycleActions.descriptors)
         MapMutationActionRegistration(
@@ -107,6 +109,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: triggerZone.build,
+        ),
+      for (final descriptor in WarpConnectionActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: warpConnection.build,
         ),
     ]);
   }

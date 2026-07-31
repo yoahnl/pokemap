@@ -28,6 +28,8 @@ dependencies:
   path_provider: ^2.1.2
   map_core:
     path: ../map_core
+  map_authoring:
+    path: ../map_authoring
   map_gameplay:
     path: ../map_gameplay
   map_battle:
