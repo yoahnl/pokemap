@@ -68,8 +68,39 @@ void main() {
         await _activateFamily(tester, harness, 'paint');
         expect(editor.state.activeTool, EditorToolType.collisionPaint);
         final paintCell = _cellCenter(tester, const GridPos(x: 0, y: 0));
+        final canvasGesture = find.byKey(
+          const ValueKey<String>('map-canvas-gesture-detector'),
+        );
+        final canvasRect = tester.getRect(canvasGesture);
+        final canvasRenderObject = tester.renderObject(canvasGesture);
+        final hitResult = tester.hitTestOnBinding(paintCell);
+        final hitPath = hitResult.path.take(12).map((entry) {
+          final target = entry.target;
+          return target is RenderObject
+              ? '${target.runtimeType}(${target.debugCreator})'
+              : target.runtimeType.toString();
+        }).join(' > ');
+        printOnFailure(
+          'paint target: surface=$size canvas=$canvasRect global=$paintCell '
+          'pan=${editor.state.panOffset} zoom=${editor.state.zoom} '
+          'hits=$hitPath',
+        );
+        expect(canvasRect.contains(paintCell), isTrue);
+        expect(
+          hitResult.path.any(
+            (entry) => identical(entry.target, canvasRenderObject),
+          ),
+          isTrue,
+          reason: 'the exact target cell must hit the map gesture surface',
+        );
         await tester.tapAt(paintCell);
         await tester.pump();
+        printOnFailure(
+          'paint result: collision00=${_collisionAt(editor.state, 0, 0)} '
+          'undo=${editor.state.mapUndoStack.length} '
+          'stroke=${editor.state.mapStrokeStart != null} '
+          'dirty=${editor.state.isDirty} error=${editor.state.errorMessage}',
+        );
         expect(_collisionAt(editor.state, 0, 0), isTrue);
         expect(_collisionAt(editor.state, 1, 0), isTrue);
         expect(_collisionAt(editor.state, 0, 1), isTrue);
@@ -179,6 +210,59 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'light preview label lets a valid canvas cell receive the pointer at '
+    '1280×800',
+    (tester) async {
+      final harness = await _pumpJourney(tester, const Size(1280, 800));
+      final editor = harness.notifier;
+      await _activateFamily(tester, harness, 'layers');
+      await _activateLayerIfNeeded(tester, 'collision');
+      await _activateFamily(tester, harness, 'paint');
+
+      final canvasGesture = find.byKey(
+        const ValueKey<String>('map-canvas-gesture-detector'),
+      );
+      final canvasRect = tester.getRect(canvasGesture);
+      final labelRect = tester.getRect(find.text('Aperçu lumière'));
+      final cellRect = Rect.fromLTWH(
+        canvasRect.left + editor.state.panOffset.dx,
+        canvasRect.top + editor.state.panOffset.dy,
+        32 * editor.state.zoom,
+        32 * editor.state.zoom,
+      );
+      final overlap = labelRect.intersect(cellRect);
+      expect(
+        overlap.isEmpty,
+        isFalse,
+        reason: 'the regression requires the light label to cover cell 0,0',
+      );
+      final target = overlap.center;
+      final canvasRenderObject = tester.renderObject(canvasGesture);
+      final hitResult = tester.hitTestOnBinding(target);
+      printOnFailure(
+        'label target: label=$labelRect cell00=$cellRect overlap=$overlap '
+        'global=$target hits=${hitResult.path.take(4).map(
+              (entry) => entry.target.runtimeType,
+            ).join(' > ')}',
+      );
+      expect(
+        hitResult.path.any(
+          (entry) => identical(entry.target, canvasRenderObject),
+        ),
+        isTrue,
+        reason: 'the exact point inside the label must hit the map canvas',
+      );
+
+      expect(_collisionAt(editor.state, 0, 0), isFalse);
+      await tester.tapAt(target);
+      await tester.pump();
+      expect(_collisionAt(editor.state, 0, 0), isTrue);
+      expect(editor.state.mapUndoStack, hasLength(1));
+      expect(editor.state.errorMessage, isNull);
+    },
+  );
 }
 
 Future<void> _rightClickCell(WidgetTester tester, GridPos cell) async {

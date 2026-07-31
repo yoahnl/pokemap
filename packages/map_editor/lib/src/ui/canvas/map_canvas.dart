@@ -2036,50 +2036,60 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     EditorShadowLightPreviewPreset selectedPreset,
   ) {
     final presets = createEditorShadowLightPreviewPresets();
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surfaceRaised.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: colors.borderSubtle,
-          width: 1,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1A000000),
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Text(
-                'Aperçu lumière',
-                style: TextStyle(
-                  color: colors.textSecondary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  decoration: TextDecoration.none,
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colors.surfaceRaised.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: colors.borderSubtle,
+                  width: 1,
                 ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x1A000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 4),
-            for (final preset in presets) ...[
-              _shadowLightPreviewPresetButton(
-                preset: preset,
-                selected: preset.id == selectedPreset.id,
-              ),
-              if (preset.id != presets.last.id) const SizedBox(width: 4),
-            ],
-          ],
+          ),
         ),
-      ),
+        Padding(
+          padding: const EdgeInsets.all(6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IgnorePointer(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Text(
+                    'Aperçu lumière',
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              for (final preset in presets) ...[
+                _shadowLightPreviewPresetButton(
+                  preset: preset,
+                  selected: preset.id == selectedPreset.id,
+                ),
+                if (preset.id != presets.last.id) const SizedBox(width: 4),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 
