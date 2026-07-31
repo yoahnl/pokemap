@@ -91,6 +91,7 @@ void main() {
           'fact',
           'layer',
           'map',
+          'pokemonDocument',
           'project',
           'region',
           'scenario',

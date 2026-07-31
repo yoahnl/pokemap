@@ -211,6 +211,12 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Cinematic',
         summary: 'Stage, actors and executable cinematic timeline',
       ),
+      AuthoringResourceKindDescriptor(
+        id: 'pokemonDocument',
+        version: 1,
+        displayName: 'Pokemon data document',
+        summary: 'Catalog, species, learnset, evolution or media document',
+      ),
     ]);
   }
 
