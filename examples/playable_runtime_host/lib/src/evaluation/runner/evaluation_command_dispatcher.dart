@@ -12,6 +12,57 @@ typedef EvaluationCommandEvidenceCapture = Future<void> Function({
 final class EvaluationCommandDispatcher {
   const EvaluationCommandDispatcher();
 
+  static const supportedOperations = <String>{
+    'game.new',
+    'save.write',
+    'save.reload',
+    'movement.navigate',
+    'movement.crossConnection',
+    'movement.enterGameplayZone',
+    'world.interact',
+    'world.enterTrigger',
+    'world.enterWarp',
+    'world.enterEncounter',
+    'world.waitForFact',
+    'dialogue.advance',
+    'dialogue.choose',
+    'battle.chooseMove',
+    'battle.useItem',
+    'battle.capture',
+    'battle.run',
+    'battle.completePostBattle',
+    'battle.resolve',
+    'battle.switch',
+    'battle.chooseProgression',
+    'battle.startTrainer',
+    'battle.startStatic',
+    'service.shop.inspect',
+    'service.shop.buy',
+    'service.shop.sell',
+    'service.heal',
+    'service.pc.withdraw',
+    'service.pc.deposit',
+    'service.pc.withdrawSlot',
+    'service.pc.swap',
+    'party.swap',
+    'party.setLead',
+    'bag.use',
+    'player.pause',
+    'player.resume',
+    'player.openOptions',
+    'player.openPokedex',
+    'player.saveSlot',
+    'player.loadSlot',
+    'evidence.checkpoint',
+    'evidence.snapshot',
+    'probe.loadCheckpoint',
+    'probe.goto',
+    'probe.overrideFact',
+    'probe.setMoney',
+    'probe.seedBag',
+    'probe.seedParty',
+  };
+
   Future<void> execute({
     required EvaluationDriver driver,
     required String commandId,
@@ -63,14 +114,70 @@ final class EvaluationCommandDispatcher {
       'battle.resolve' => driver.resolveBattle(
           values.requireString('strategy'),
         ),
+      'battle.switch' => _battle(driver, operation).switchBattlePokemon(
+          values.requireNonNegativeInt('partyIndex'),
+        ),
+      'battle.chooseProgression' =>
+        _battle(driver, operation).chooseBattleProgression(
+          values.requireNonNegativeInt('decisionIndex'),
+        ),
+      'battle.startTrainer' => _battle(driver, operation).startTrainerBattle(
+          values.requireString('trainerId'),
+          values.requireString('npcEntityId'),
+        ),
+      'battle.startStatic' => _battle(driver, operation).startStaticBattle(
+          values.requireString('battleId'),
+          values.requireString('opponentProfileId'),
+          values.requireString('entityId'),
+        ),
       'service.shop.inspect' => driver.inspectShop(),
       'service.shop.buy' => driver.buy(
+          values.requireString('itemId'),
+          values.requirePositiveInt('quantity'),
+        ),
+      'service.shop.sell' => _roster(driver, operation).sell(
+          values.requireString('shopId'),
+          values.requireString('expectedStateId'),
           values.requireString('itemId'),
           values.requirePositiveInt('quantity'),
         ),
       'service.heal' => driver.healParty(),
       'service.pc.withdraw' => driver.withdrawFromPc(
           values.requireString('pokemonId'),
+        ),
+      'service.pc.deposit' => _roster(driver, operation).depositPartyPokemon(
+          values.requireNonNegativeInt('partyIndex'),
+          boxId: values.optionalString('boxId'),
+        ),
+      'service.pc.withdrawSlot' => _roster(driver, operation).withdrawPcSlot(
+          values.requireString('boxId'),
+          values.requireNonNegativeInt('boxIndex'),
+        ),
+      'service.pc.swap' => _roster(driver, operation).swapPartyWithPc(
+          values.requireNonNegativeInt('partyIndex'),
+          values.requireString('boxId'),
+          values.requireNonNegativeInt('boxIndex'),
+        ),
+      'party.swap' => _roster(driver, operation).swapPartyMembers(
+          values.requireNonNegativeInt('firstIndex'),
+          values.requireNonNegativeInt('secondIndex'),
+        ),
+      'party.setLead' => _roster(driver, operation).setLeadPokemon(
+          values.requireNonNegativeInt('partyIndex'),
+        ),
+      'bag.use' => _roster(driver, operation).useBagItem(
+          values.requireString('itemId'),
+          values.requireNonNegativeInt('partyIndex'),
+          moveId: values.optionalString('moveId'),
+        ),
+      'player.pause' => _shell(driver, operation).pause(),
+      'player.resume' => _shell(driver, operation).resume(),
+      'player.openOptions' => _shell(driver, operation).openOptions(),
+      'player.openPokedex' => _shell(driver, operation).openPokedex(),
+      'player.saveSlot' => _shell(driver, operation).saveSlot(),
+      'player.loadSlot' => _shell(driver, operation).loadSlot(
+          values.requireString('profileId'),
+          values.requireString('slotId'),
         ),
       'evidence.checkpoint' => driver.createCheckpoint(
           values.requireString('checkpointId'),
@@ -106,6 +213,42 @@ final class EvaluationCommandDispatcher {
           'Operation "$unsupported" has no runtime dispatcher.',
         ),
     };
+  }
+
+  EvaluationRosterAutomation _roster(
+    EvaluationDriver driver,
+    String operation,
+  ) {
+    if (driver is EvaluationRosterAutomation) {
+      return driver as EvaluationRosterAutomation;
+    }
+    throw EvaluationScenarioExecutionError(
+      'Operation "$operation" requires roster runtime automation.',
+    );
+  }
+
+  EvaluationBattleAutomation _battle(
+    EvaluationDriver driver,
+    String operation,
+  ) {
+    if (driver is EvaluationBattleAutomation) {
+      return driver as EvaluationBattleAutomation;
+    }
+    throw EvaluationScenarioExecutionError(
+      'Operation "$operation" requires battle runtime automation.',
+    );
+  }
+
+  EvaluationPlayerShellAutomation _shell(
+    EvaluationDriver driver,
+    String operation,
+  ) {
+    if (driver case EvaluationPlayerShellProvider(:final playerShell?)) {
+      return playerShell;
+    }
+    throw EvaluationScenarioExecutionError(
+      'Operation "$operation" requires an attached player shell.',
+    );
   }
 }
 

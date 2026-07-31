@@ -23,6 +23,7 @@ final class EvaluationStateSnapshot {
     Map<String, Object?>? activeDialogue,
     Map<String, Object?>? activeScene,
     Map<String, Object?>? activeBattle,
+    Map<String, Object?> outcome = const <String, Object?>{},
     Map<String, Object?> saveMetadata = const <String, Object?>{},
   })  : projectId = _nonBlank(projectId, 'projectId'),
         runId = _nonBlank(runId, 'runId'),
@@ -41,6 +42,7 @@ final class EvaluationStateSnapshot {
             activeDialogue == null ? null : _freezeMap(activeDialogue),
         activeScene = activeScene == null ? null : _freezeMap(activeScene),
         activeBattle = activeBattle == null ? null : _freezeMap(activeBattle),
+        outcome = _freezeMap(outcome),
         saveMetadata = _freezeMap(saveMetadata);
 
   final String projectId;
@@ -62,6 +64,7 @@ final class EvaluationStateSnapshot {
   final Map<String, Object?>? activeDialogue;
   final Map<String, Object?>? activeScene;
   final Map<String, Object?>? activeBattle;
+  final Map<String, Object?> outcome;
   final Map<String, Object?> saveMetadata;
 
   String get currentMapId => mapId;
@@ -90,6 +93,7 @@ final class EvaluationStateSnapshot {
       'dialogue': activeDialogue,
       'scene': activeScene,
       'battle': activeBattle,
+      'outcome': outcome,
       'save': saveMetadata,
     };
   }

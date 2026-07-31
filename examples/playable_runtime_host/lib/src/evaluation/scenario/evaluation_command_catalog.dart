@@ -1,15 +1,32 @@
+enum EvaluationCommandAvailability {
+  runtime,
+  attachedPlayerShell,
+}
+
+enum EvaluationCommandSequenceKind {
+  explicitUserAction,
+  diagnosticProbe,
+}
+
 final class EvaluationCommandDefinition {
   const EvaluationCommandDefinition({
     required this.operation,
     required this.requiredKeys,
     this.optionalKeys = const <String>{},
     this.probeOnly = false,
-  });
+    this.availability = EvaluationCommandAvailability.runtime,
+    EvaluationCommandSequenceKind? sequenceKind,
+  }) : sequenceKind = sequenceKind ??
+            (probeOnly
+                ? EvaluationCommandSequenceKind.diagnosticProbe
+                : EvaluationCommandSequenceKind.explicitUserAction);
 
   final String operation;
   final Set<String> requiredKeys;
   final Set<String> optionalKeys;
   final bool probeOnly;
+  final EvaluationCommandAvailability availability;
+  final EvaluationCommandSequenceKind sequenceKind;
 
   Set<String> get allowedKeys => <String>{
         ...requiredKeys,
@@ -106,6 +123,15 @@ const evaluationCommandCatalog = <String, EvaluationCommandDefinition>{
     operation: 'service.shop.buy',
     requiredKeys: <String>{'itemId', 'quantity'},
   ),
+  'service.shop.sell': EvaluationCommandDefinition(
+    operation: 'service.shop.sell',
+    requiredKeys: <String>{
+      'shopId',
+      'expectedStateId',
+      'itemId',
+      'quantity',
+    },
+  ),
   'service.heal': EvaluationCommandDefinition(
     operation: 'service.heal',
     requiredKeys: <String>{},
@@ -113,6 +139,78 @@ const evaluationCommandCatalog = <String, EvaluationCommandDefinition>{
   'service.pc.withdraw': EvaluationCommandDefinition(
     operation: 'service.pc.withdraw',
     requiredKeys: <String>{'pokemonId'},
+  ),
+  'service.pc.deposit': EvaluationCommandDefinition(
+    operation: 'service.pc.deposit',
+    requiredKeys: <String>{'partyIndex'},
+    optionalKeys: <String>{'boxId'},
+  ),
+  'service.pc.withdrawSlot': EvaluationCommandDefinition(
+    operation: 'service.pc.withdrawSlot',
+    requiredKeys: <String>{'boxId', 'boxIndex'},
+  ),
+  'service.pc.swap': EvaluationCommandDefinition(
+    operation: 'service.pc.swap',
+    requiredKeys: <String>{'partyIndex', 'boxId', 'boxIndex'},
+  ),
+  'party.swap': EvaluationCommandDefinition(
+    operation: 'party.swap',
+    requiredKeys: <String>{'firstIndex', 'secondIndex'},
+  ),
+  'party.setLead': EvaluationCommandDefinition(
+    operation: 'party.setLead',
+    requiredKeys: <String>{'partyIndex'},
+  ),
+  'bag.use': EvaluationCommandDefinition(
+    operation: 'bag.use',
+    requiredKeys: <String>{'itemId', 'partyIndex'},
+    optionalKeys: <String>{'moveId'},
+  ),
+  'battle.switch': EvaluationCommandDefinition(
+    operation: 'battle.switch',
+    requiredKeys: <String>{'partyIndex'},
+  ),
+  'battle.chooseProgression': EvaluationCommandDefinition(
+    operation: 'battle.chooseProgression',
+    requiredKeys: <String>{'decisionIndex'},
+  ),
+  'battle.startTrainer': EvaluationCommandDefinition(
+    operation: 'battle.startTrainer',
+    requiredKeys: <String>{'trainerId', 'npcEntityId'},
+  ),
+  'battle.startStatic': EvaluationCommandDefinition(
+    operation: 'battle.startStatic',
+    requiredKeys: <String>{'battleId', 'opponentProfileId', 'entityId'},
+  ),
+  'player.pause': EvaluationCommandDefinition(
+    operation: 'player.pause',
+    requiredKeys: <String>{},
+    availability: EvaluationCommandAvailability.attachedPlayerShell,
+  ),
+  'player.resume': EvaluationCommandDefinition(
+    operation: 'player.resume',
+    requiredKeys: <String>{},
+    availability: EvaluationCommandAvailability.attachedPlayerShell,
+  ),
+  'player.openOptions': EvaluationCommandDefinition(
+    operation: 'player.openOptions',
+    requiredKeys: <String>{},
+    availability: EvaluationCommandAvailability.attachedPlayerShell,
+  ),
+  'player.openPokedex': EvaluationCommandDefinition(
+    operation: 'player.openPokedex',
+    requiredKeys: <String>{},
+    availability: EvaluationCommandAvailability.attachedPlayerShell,
+  ),
+  'player.saveSlot': EvaluationCommandDefinition(
+    operation: 'player.saveSlot',
+    requiredKeys: <String>{},
+    availability: EvaluationCommandAvailability.attachedPlayerShell,
+  ),
+  'player.loadSlot': EvaluationCommandDefinition(
+    operation: 'player.loadSlot',
+    requiredKeys: <String>{'profileId', 'slotId'},
+    availability: EvaluationCommandAvailability.attachedPlayerShell,
   ),
   'evidence.checkpoint': EvaluationCommandDefinition(
     operation: 'evidence.checkpoint',
@@ -152,5 +250,18 @@ const evaluationCommandCatalog = <String, EvaluationCommandDefinition>{
     operation: 'probe.seedParty',
     requiredKeys: <String>{'pokemon'},
     probeOnly: true,
+  ),
+};
+
+final class EvaluationUnavailableCommandCapability {
+  const EvaluationUnavailableCommandCapability({required this.reason});
+
+  final String reason;
+}
+
+const evaluationUnavailableCommandCapabilities =
+    <String, EvaluationUnavailableCommandCapability>{
+  'battle.chooseTarget': EvaluationUnavailableCommandCapability(
+    reason: 'Runtime V1 battles are single-target; no target choice exists.',
   ),
 };

@@ -56,6 +56,7 @@ final class InteractiveEvaluationBridge {
     required ProjectManifest project,
     required Directory projectRoot,
     required EvaluationPlayerServiceAutomation services,
+    EvaluationPlayerShellAutomation? playerShell,
     required InteractiveEvaluationSurfaceCapture captureSurface,
     InteractiveEvaluationEventSink? eventSink,
   }) async {
@@ -64,6 +65,7 @@ final class InteractiveEvaluationBridge {
       project: project,
       projectRoot: projectRoot,
       services: services,
+      playerShell: playerShell,
       playbackRate: config.playbackRate,
     );
     final bridge = InteractiveEvaluationBridge(

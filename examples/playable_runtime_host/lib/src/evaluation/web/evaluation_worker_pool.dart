@@ -173,6 +173,24 @@ final class EvaluationWorkerPool {
     await worker.control(runId, action);
   }
 
+  /// Removes and closes one project worker without waiting for its serialized
+  /// run tail. Used only after a cooperative cancellation exceeded its bound.
+  Future<bool> forceStopProject(
+    String projectId, {
+    required Duration timeout,
+  }) async {
+    _ensureOpen();
+    if (timeout <= Duration.zero) return false;
+    final worker = _workers.remove(projectId);
+    if (worker == null) return false;
+    try {
+      await worker.close().timeout(timeout);
+      return true;
+    } on Object {
+      return false;
+    }
+  }
+
   Future<void> close() async {
     if (_closed) return;
     _closed = true;

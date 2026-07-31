@@ -4,7 +4,17 @@ export 'package:map_core/map_core.dart'
     show PlayerPronounSet, ProjectTypographyRole;
 export 'package:map_authoring/map_authoring.dart'
     show
+        ArtifactAssertion,
+        ArtifactKind,
+        AuthoringArtifactManifest,
         AuthoringArtifactRef,
+        AuthoringJobArtifact,
+        AuthoringJobCancellation,
+        AuthoringJobEvent,
+        AuthoringJobPort,
+        AuthoringJobRequest,
+        AuthoringJobSnapshot,
+        AuthoringJobState,
         PlaytestCommand,
         PlaytestCommandResult,
         PlaytestEvent,

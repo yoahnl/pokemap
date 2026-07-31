@@ -19,13 +19,20 @@ import 'evaluation_game_fixtures.dart';
 import 'evaluation_player_service_host.dart';
 
 final class SelbrumeEvaluationDriver
-    implements EvaluationDriver, EvaluationPlayerServiceAutomation {
+    implements
+        EvaluationDriver,
+        EvaluationPlayerServiceAutomation,
+        EvaluationRosterAutomation,
+        EvaluationBattleAutomation,
+        EvaluationPlayerShellProvider {
   SelbrumeEvaluationDriver._({
     required this.game,
     required this.project,
     required this.projectRoot,
     required this.playerServices,
+    required PlayerServiceRuntimeController? playerServiceController,
     required EvaluationPlayerServiceAutomation? attachedServices,
+    required this.playerShell,
     required bool ownsGame,
     required double playbackRate,
     required this.runId,
@@ -33,6 +40,7 @@ final class SelbrumeEvaluationDriver
     required this.checkpointProvenance,
     required List<GameCompletionRequest> gameCompletionRequests,
   })  : _attachedServices = attachedServices,
+        _playerServiceController = playerServiceController,
         _ownsGame = ownsGame,
         _playbackRate = playbackRate,
         _gameCompletionRequests = gameCompletionRequests;
@@ -41,7 +49,10 @@ final class SelbrumeEvaluationDriver
   final ProjectManifest project;
   final Directory projectRoot;
   final EvaluationPlayerServiceHost? playerServices;
+  final PlayerServiceRuntimeController? _playerServiceController;
   final EvaluationPlayerServiceAutomation? _attachedServices;
+  @override
+  final EvaluationPlayerShellAutomation? playerShell;
   final bool _ownsGame;
   final double _playbackRate;
   final String runId;
@@ -97,6 +108,7 @@ final class SelbrumeEvaluationDriver
     required ProjectManifest project,
     required Directory projectRoot,
     required EvaluationPlayerServiceAutomation services,
+    EvaluationPlayerShellAutomation? playerShell,
     double playbackRate = 1,
     String runId = 'interactive-evaluation-run',
   }) {
@@ -112,7 +124,9 @@ final class SelbrumeEvaluationDriver
       project: project,
       projectRoot: projectRoot,
       playerServices: null,
+      playerServiceController: null,
       attachedServices: services,
+      playerShell: playerShell,
       ownsGame: false,
       playbackRate: playbackRate,
       runId: runId,
@@ -150,32 +164,33 @@ final class SelbrumeEvaluationDriver
         gameCompletionRequests.add(request);
       },
     );
-    game.setPlayerServiceRuntimeController(
-      PlayerServiceRuntimeController(
-        currentGameState: () => game.playerServiceGameStateSnapshot,
-        host: playerServices,
-        commitAndSave: game.commitAndSavePlayerServiceState,
-        setInputLocked: (locked) => game.setExternalInputLock(
-          RuntimeExternalInputLock.playerService,
-          locked: locked,
-        ),
-        loadRecoveryCaps: (state) => loadRuntimePlayerServiceRecoveryCaps(
-          gameState: state,
-          projectRootDirectory: bundle.projectRootDirectory,
-          pokemonConfig: bundle.manifest.pokemon,
-        ),
-        conditionContext: ScriptEvaluationContext(
-          narrativeFactResolver:
-              NarrativeFactRuntimeResolver.fromFacts(bundle.manifest.facts),
-        ),
+    final playerServiceController = PlayerServiceRuntimeController(
+      currentGameState: () => game.playerServiceGameStateSnapshot,
+      host: playerServices,
+      commitAndSave: game.commitAndSavePlayerServiceState,
+      setInputLocked: (locked) => game.setExternalInputLock(
+        RuntimeExternalInputLock.playerService,
+        locked: locked,
+      ),
+      loadRecoveryCaps: (state) => loadRuntimePlayerServiceRecoveryCaps(
+        gameState: state,
+        projectRootDirectory: bundle.projectRootDirectory,
+        pokemonConfig: bundle.manifest.pokemon,
+      ),
+      conditionContext: ScriptEvaluationContext(
+        narrativeFactResolver:
+            NarrativeFactRuntimeResolver.fromFacts(bundle.manifest.facts),
       ),
     );
+    game.setPlayerServiceRuntimeController(playerServiceController);
     final driver = SelbrumeEvaluationDriver._(
       game: game,
       project: bundle.manifest,
       projectRoot: projectRoot,
       playerServices: playerServices,
+      playerServiceController: playerServiceController,
       attachedServices: null,
+      playerShell: null,
       ownsGame: true,
       playbackRate: 1,
       runId: runId,
@@ -240,11 +255,27 @@ final class SelbrumeEvaluationDriver
           ? <String, Object?>{'active': true}
           : null,
       activeScene: game.debugFlowPhaseName == 'scene'
-          ? <String, Object?>{'active': true}
+          ? <String, Object?>{
+              'active': true,
+              'pendingBattle': game.debugHasPendingSceneBattle,
+              'outcomeWorkInFlight': game.debugIsNarrativeOutcomeWorkInFlight,
+              'spatialDispatchInFlight':
+                  game.debugIsNarrativeSpatialDispatchInFlight,
+            }
           : null,
       activeBattle: game.debugBattleSessionSnapshot == null
           ? null
           : <String, Object?>{'active': true},
+      outcome: <String, Object?>{
+        'flowPhase': game.debugFlowPhaseName,
+        'gameCompleted': _gameCompletionRequests.isNotEmpty,
+        if (_gameCompletionRequests.lastOrNull case final completion?) ...{
+          'endingId': completion.endingId,
+          'completionOutcome': completion.outcome.name,
+          'destination': completion.destination.name,
+          'allowPostGameContinue': completion.allowPostGameContinue,
+        },
+      },
       saveMetadata: Map<String, Object?>.from(current.metadata),
     );
   }
@@ -1032,6 +1063,249 @@ final class SelbrumeEvaluationDriver
   }
 
   @override
+  Future<void> swapPartyMembers(int firstIndex, int secondIndex) async {
+    await _commitStorageOperation(
+      const PlayerStorageOperations().swapPartyMembers(
+        state: state,
+        firstIndex: firstIndex,
+        secondIndex: secondIndex,
+      ),
+      operation: 'party.swap',
+    );
+  }
+
+  @override
+  Future<void> setLeadPokemon(int partyIndex) async {
+    await _commitStorageOperation(
+      const PlayerStorageOperations().setLead(
+        state: state,
+        partyIndex: partyIndex,
+      ),
+      operation: 'party.setLead',
+    );
+  }
+
+  @override
+  Future<void> useBagItem(
+    String itemId,
+    int partyIndex, {
+    String? moveId,
+  }) async {
+    final controller = _playerServiceController;
+    _require(
+      controller != null,
+      operation: 'bag.use',
+      message: 'Bag use requires the runtime player-service controller.',
+    );
+    final result = await controller!.useBagItemOutsideBattle(
+      RuntimePlayerPauseCommand.useBagItem(
+        itemTargetId: itemId,
+        partyTargetId: 'party.$partyIndex',
+        moveTargetId: moveId,
+      ),
+    );
+    _require(
+      result.status == RuntimePlayerPauseCommandStatus.accepted,
+      operation: 'bag.use',
+      message: result.safeMessage,
+    );
+  }
+
+  @override
+  Future<void> depositPartyPokemon(int partyIndex, {String? boxId}) async {
+    await _commitStorageOperation(
+      const PlayerStorageOperations().deposit(
+        state: state,
+        partyIndex: partyIndex,
+        boxId: boxId,
+      ),
+      operation: 'service.pc.deposit',
+    );
+  }
+
+  @override
+  Future<void> withdrawPcSlot(String boxId, int boxIndex) async {
+    await _commitStorageOperation(
+      const PlayerStorageOperations().withdraw(
+        state: state,
+        boxId: boxId,
+        boxIndex: boxIndex,
+      ),
+      operation: 'service.pc.withdrawSlot',
+    );
+  }
+
+  @override
+  Future<void> swapPartyWithPc(
+    int partyIndex,
+    String boxId,
+    int boxIndex,
+  ) async {
+    await _commitStorageOperation(
+      const PlayerStorageOperations().swapPartyWithBox(
+        state: state,
+        partyIndex: partyIndex,
+        boxId: boxId,
+        boxIndex: boxIndex,
+      ),
+      operation: 'service.pc.swap',
+    );
+  }
+
+  @override
+  Future<void> sell(
+    String shopId,
+    String expectedStateId,
+    String itemId,
+    int quantity,
+  ) async {
+    final shop =
+        project.shops.where((candidate) => candidate.id == shopId).firstOrNull;
+    _require(
+      shop != null,
+      operation: 'service.shop.sell',
+      message: 'Shop "$shopId" does not exist.',
+    );
+    final result = const GameStateMutations().sellToResolvedShop(
+      state,
+      shop: shop!,
+      expectedStateId: expectedStateId,
+      itemId: itemId,
+      quantity: quantity,
+      conditionContext: ScriptEvaluationContext(
+        narrativeFactResolver:
+            NarrativeFactRuntimeResolver.fromFacts(project.facts),
+      ),
+    );
+    _require(
+      result.isSuccess,
+      operation: 'service.shop.sell',
+      message: 'Shop sale failed: ${result.failure?.name ?? 'unknown'}.',
+    );
+    await game.commitAndSavePlayerServiceState(result.state);
+  }
+
+  @override
+  Future<void> switchBattlePokemon(int partyIndex) async {
+    _require(
+      partyIndex > 0 && partyIndex < state.party.members.length,
+      operation: 'battle.switch',
+      message: 'partyIndex must select a reserve party member.',
+    );
+    await _waitForBattleInputReady();
+    final overlay = game.debugBattleOverlayComponent;
+    _require(
+      overlay != null,
+      operation: 'battle.switch',
+      message: 'The battle overlay is not mounted.',
+    );
+    await _returnBattleMenuToRoot(operation: 'battle.switch');
+    await _pressBattleDirection(RuntimeInputControl.up);
+    await _pressBattleDirection(RuntimeInputControl.left);
+    await _pressBattleDirection(RuntimeInputControl.down);
+    _pressPrimary(operation: 'battle.switch');
+    await _microPump();
+    _require(
+      overlay!.currentMenuMode.name == 'pokemon',
+      operation: 'battle.switch',
+      message: 'The runtime did not open the party menu.',
+    );
+    for (var reset = 0; reset < 6; reset += 1) {
+      await _pressBattleDirection(RuntimeInputControl.up);
+      await _pressBattleDirection(RuntimeInputControl.left);
+    }
+    if (partyIndex >= 2) {
+      for (var row = 0; row < partyIndex ~/ 2; row += 1) {
+        await _pressBattleDirection(RuntimeInputControl.down);
+      }
+    }
+    await _pressBattleDirection(
+      partyIndex.isOdd ? RuntimeInputControl.right : RuntimeInputControl.left,
+    );
+    _pressPrimary(operation: 'battle.switch');
+    await _waitForBattleInputReady();
+    _require(
+      game.debugBattleSessionSnapshot?.state.player.lineupIndex == partyIndex,
+      operation: 'battle.switch',
+      message: 'The runtime did not switch to party slot $partyIndex.',
+    );
+  }
+
+  @override
+  Future<void> chooseBattleProgression(int decisionIndex) async {
+    _require(
+      game.debugPostBattleOverlayMounted,
+      operation: 'battle.chooseProgression',
+      message: 'No post-battle learning or evolution choice is active.',
+    );
+    final labels = game.debugPostBattleDecisionLabels;
+    _require(
+      decisionIndex >= 0 && decisionIndex < labels.length,
+      operation: 'battle.chooseProgression',
+      message: 'decisionIndex $decisionIndex is outside the visible choices.',
+    );
+    for (var reset = 0; reset < labels.length; reset += 1) {
+      await _pressBattleDirection(RuntimeInputControl.up);
+    }
+    for (var index = 0; index < decisionIndex; index += 1) {
+      await _pressBattleDirection(RuntimeInputControl.down);
+    }
+    _require(
+      game.debugValidatePostBattleChoice(),
+      operation: 'battle.chooseProgression',
+      message: 'The post-battle decision was rejected.',
+    );
+    await _microPump();
+  }
+
+  @override
+  Future<void> startTrainerBattle(String trainerId, String npcEntityId) async {
+    _require(
+      project.trainers.any((trainer) => trainer.id == trainerId),
+      operation: 'battle.startTrainer',
+      message: 'Trainer "$trainerId" does not exist.',
+    );
+    await _openExplicitBattle(
+      TrainerBattleStartRequest(
+        requestId: _nextBattleRequestId('trainer'),
+        createdAtEpochMs: DateTime.now().toUtc().millisecondsSinceEpoch,
+        returnContext: _returnContext,
+        trainerId: trainerId,
+        npcEntityId: npcEntityId,
+        mapId: state.currentMapId,
+        playerPos: state.playerPosition,
+      ),
+      operation: 'battle.startTrainer',
+    );
+  }
+
+  @override
+  Future<void> startStaticBattle(
+    String battleId,
+    String opponentProfileId,
+    String entityId,
+  ) async {
+    _require(
+      project.trainers.any((trainer) => trainer.id == opponentProfileId),
+      operation: 'battle.startStatic',
+      message: 'Opponent profile "$opponentProfileId" does not exist.',
+    );
+    await _openExplicitBattle(
+      StaticBattleStartRequest(
+        requestId: _nextBattleRequestId('static'),
+        createdAtEpochMs: DateTime.now().toUtc().millisecondsSinceEpoch,
+        returnContext: _returnContext,
+        battleId: battleId,
+        opponentProfileId: opponentProfileId,
+        entityId: entityId,
+        mapId: state.currentMapId,
+        playerPos: state.playerPosition,
+      ),
+      operation: 'battle.startStatic',
+    );
+  }
+
+  @override
   Future<void> save() async {
     final saved = await game.saveGame();
     _require(
@@ -1197,6 +1471,52 @@ final class SelbrumeEvaluationDriver
   int _bagQuantity(String itemId) => state.bag.entries
       .where((entry) => entry.itemId == itemId)
       .fold(0, (total, entry) => total + entry.quantity);
+
+  var _battleRequestSequence = 0;
+
+  String _nextBattleRequestId(String kind) =>
+      '$runId:$kind:${++_battleRequestSequence}';
+
+  OverworldReturnContext get _returnContext => OverworldReturnContext(
+        mapId: state.currentMapId,
+        playerPos: state.playerPosition,
+        playerFacing: switch (state.playerFacing) {
+          EntityFacing.north => Direction.north,
+          EntityFacing.south => Direction.south,
+          EntityFacing.east => Direction.east,
+          EntityFacing.west => Direction.west,
+        },
+      );
+
+  Future<void> _openExplicitBattle(
+    BattleStartRequest request, {
+    required String operation,
+  }) async {
+    _require(
+      game.debugFlowPhaseName == 'overworld',
+      operation: operation,
+      message: 'An explicit battle can only start from the overworld.',
+    );
+    await game.debugOpenBattleForTest(request);
+    await _pumpUntil(
+      () => game.debugFlowPhaseName == 'battle',
+      operation: operation,
+      allowTransitionClock: true,
+    );
+  }
+
+  Future<void> _commitStorageOperation(
+    PlayerStorageOperationResult result, {
+    required String operation,
+  }) async {
+    _require(
+      result.isSuccess,
+      operation: operation,
+      message:
+          'Storage operation failed: ${result.failure?.name ?? 'unknown'}.',
+    );
+    await game.commitAndSavePlayerServiceState(result.state);
+  }
 
   void _rememberShop(PlayerServiceShopRequest request) {
     _lastShop = <String, Object?>{

@@ -109,6 +109,7 @@ const _allowedRoots = <String>{
   'dialogue',
   'scene',
   'battle',
+  'outcome',
   'save',
 };
 

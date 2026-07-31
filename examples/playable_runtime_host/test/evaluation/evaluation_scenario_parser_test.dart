@@ -57,7 +57,7 @@ void main() {
   });
 
   test('catalog declares the complete V1 allowlist', () {
-    expect(evaluationCommandCatalog, hasLength(31));
+    expect(evaluationCommandCatalog, hasLength(48));
     expect(
       evaluationCommandCatalog['service.shop.buy']?.requiredKeys,
       <String>{'itemId', 'quantity'},

@@ -101,6 +101,71 @@ abstract interface class EvaluationVisiblePlayerServiceAutomation
   Future<void> closeActiveService();
 }
 
+/// Explicit party, Bag, PC and Shop actions backed by gameplay/runtime ports.
+abstract interface class EvaluationRosterAutomation {
+  Future<void> swapPartyMembers(int firstIndex, int secondIndex);
+
+  Future<void> setLeadPokemon(int partyIndex);
+
+  Future<void> useBagItem(
+    String itemId,
+    int partyIndex, {
+    String? moveId,
+  });
+
+  Future<void> depositPartyPokemon(int partyIndex, {String? boxId});
+
+  Future<void> withdrawPcSlot(String boxId, int boxIndex);
+
+  Future<void> swapPartyWithPc(
+    int partyIndex,
+    String boxId,
+    int boxIndex,
+  );
+
+  Future<void> sell(
+    String shopId,
+    String expectedStateId,
+    String itemId,
+    int quantity,
+  );
+}
+
+/// Explicit battle actions that cannot be represented by `battle.resolve`.
+abstract interface class EvaluationBattleAutomation {
+  Future<void> switchBattlePokemon(int partyIndex);
+
+  Future<void> chooseBattleProgression(int decisionIndex);
+
+  Future<void> startTrainerBattle(String trainerId, String npcEntityId);
+
+  Future<void> startStaticBattle(
+    String battleId,
+    String opponentProfileId,
+    String entityId,
+  );
+}
+
+/// Runtime-player-shell actions. A headless Flame driver does not pretend to
+/// own this surface; hosts attach this capability when a coordinator exists.
+abstract interface class EvaluationPlayerShellAutomation {
+  Future<void> pause();
+
+  Future<void> resume();
+
+  Future<void> openOptions();
+
+  Future<void> openPokedex();
+
+  Future<void> saveSlot();
+
+  Future<void> loadSlot(String profileId, String slotId);
+}
+
+abstract interface class EvaluationPlayerShellProvider {
+  EvaluationPlayerShellAutomation? get playerShell;
+}
+
 final class EvaluationDriverFailure implements Exception {
   const EvaluationDriverFailure({
     required this.operation,

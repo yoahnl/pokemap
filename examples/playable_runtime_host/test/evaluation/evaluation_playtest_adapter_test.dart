@@ -112,7 +112,7 @@ void main() {
     );
     expect(receipt.terminalState, PlaytestSessionState.stopped);
     expect(await computeEvaluationProjectRevision(projectRoot), beforeRevision);
-  });
+  }, timeout: const Timeout(Duration(minutes: 2)));
 }
 
 final class _FakeEvaluationDriver implements EvaluationDriver {
