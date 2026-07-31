@@ -1,9 +1,13 @@
 import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
+import 'autotile_actions.dart';
 import 'map_lifecycle_actions.dart';
 import 'map_lifecycle_adapter.dart';
 import 'map_operations_batch.dart';
+import 'path_actions.dart';
+import 'surface_actions.dart';
+import 'terrain_actions.dart';
 
 typedef MapMutationDraftBuilder = AuthoringMutationDraft Function(
   AuthoringPlanningContext context,
@@ -27,6 +31,10 @@ final class MapMutationDispatcher {
   factory MapMutationDispatcher.canonical() {
     const lifecycle = MapLifecycleActions();
     const operations = MapOperationsActions();
+    const terrain = TerrainActions();
+    const path = PathActions();
+    const surface = SurfaceActions();
+    const autotile = AutotileActions();
     return MapMutationDispatcher([
       for (final descriptor in MapLifecycleActions.descriptors)
         MapMutationActionRegistration(
@@ -37,6 +45,26 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: operations.build,
+        ),
+      for (final descriptor in TerrainActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: terrain.build,
+        ),
+      for (final descriptor in PathActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: path.build,
+        ),
+      for (final descriptor in SurfaceActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: surface.build,
+        ),
+      for (final descriptor in AutotileActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: autotile.build,
         ),
     ]);
   }
