@@ -154,8 +154,8 @@ examples/playable_runtime_host
 flutter test test/phase_7a_installed_golden_journey_test.dart --reporter compact
 Result: +0 -1 après 04:29.
 Cause: GamePackageExportException(gameplayReadinessFailed) sur le projet
-Selbrume courant — cible d'évolution porygon-z absente, duplications de
-learnsets, « … 452 autre(s) erreur(s) ».
+Selbrume courant — cible d'évolution porygon-z absente, plusieurs duplications
+de learnsets listées, puis « … 452 autre(s) erreur(s) ».
 ```
 
 ## Zones modifiées et invariants
@@ -182,8 +182,9 @@ learnsets, « … 452 autre(s) erreur(s) ».
 - `ProjectFormat` de l'identité de save ne reconnaît pas encore `v3`; la Slice
   utilise honnêtement `v2`. Étendre ce contrat est un lot de migration séparé.
 - Le parcours Selbrume Phase 7A ne peut actuellement pas produire de package à
-  cause de 453 diagnostics de données. Les corriger dépasse PMCP-072 et doit
-  rester une gate visible pour FG-185.
+  cause d'un grand volume de diagnostics de données (la sortie abrégée indique
+  « 452 autre(s) erreur(s) » après les exemples). Les corriger dépasse
+  PMCP-072 et doit rester une gate visible pour FG-185.
 - Aucun signing/notarization ni walkthrough humain n'est simulé.
 - Le lockfile hôte était déjà modifié avant le lot et reste non stagé; un
   `flutter pub get` frais a néanmoins résolu les dépendances et validé le code.
