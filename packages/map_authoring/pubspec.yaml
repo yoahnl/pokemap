@@ -4,6 +4,9 @@ description: >-
 version: 0.1.0
 publish_to: none
 
+executables:
+  pokemap_authoring: pokemap_authoring
+
 environment:
   sdk: '>=3.4.0 <4.0.0'
 

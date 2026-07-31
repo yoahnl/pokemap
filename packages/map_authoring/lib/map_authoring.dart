@@ -5,6 +5,7 @@
 /// architectural invariant tested by `package_boundary_test.dart`.
 library;
 
+export 'src/api/authoring_read_api.dart';
 export 'src/architecture/package_boundaries.dart';
 export 'src/contracts/action_descriptor.dart';
 export 'src/contracts/capability_descriptor.dart';
@@ -25,6 +26,8 @@ export 'src/registry/resource_kind_registry.dart';
 export 'src/references/project_reference_index.dart';
 export 'src/references/reference_impact.dart';
 export 'src/references/reference_queries.dart';
+export 'src/tooling/cli_exit_codes.dart';
+export 'src/tooling/jsonl_worker.dart';
 export 'src/tooling/registry_documentation.dart';
 export 'src/workspace/project_open_service.dart';
 export 'src/workspace/project_query_service.dart';
