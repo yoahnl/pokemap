@@ -420,11 +420,14 @@ void main() {
       expect(await fixture.artifacts(), isEmpty);
     });
 
-    test('prepared crash is completed when baseline still matches', () async {
+    test(
+        'fresh repository completes a prepared crash once and later recovery is clear',
+        () async {
       final fixture = await _Fixture.createWithBaseline();
       addTearDown(fixture.dispose);
       final baseline =
           await fixture.repository.loadMapDocument(fixture.mapPath);
+      final baselineBytes = await File(fixture.mapPath).readAsBytes();
       final crashingRepository = FileMapRepository(
         mapPersistence: AtomicMapDocumentPersistence(
           faultInjector: (checkpoint, _) {
@@ -445,10 +448,37 @@ void main() {
         ),
         throwsA(isA<AtomicMapDocumentSimulatedCrash>()),
       );
+
+      // A prepared crash happens before rename: only recovery artifacts may
+      // differ at this point, while the durable target remains the baseline.
+      expect(await File(fixture.mapPath).readAsBytes(), baselineBytes);
+      expect(await fixture.artifacts(), isNotEmpty);
+
+      final recoveryRepository = FileMapRepository();
+      final recovery =
+          await recoveryRepository.recoverMapDocument(fixture.mapPath);
       expect(
-        (await fixture.repository.loadMapDocument(fixture.mapPath)).map.name,
-        'Recovered',
+        recovery.status,
+        MapDocumentRecoveryStatus.completedInterruptedWrite,
       );
+      final recovered =
+          await recoveryRepository.loadMapDocument(fixture.mapPath);
+      expect(recovered.map.name, 'Recovered');
+      final recoveredBytes = await File(fixture.mapPath).readAsBytes();
+      expect(recovered.revision, recovery.revision);
+      expect(await fixture.artifacts(), isEmpty);
+
+      // A second fresh process must observe a stable document, not replay the
+      // prepared write a second time or manufacture another revision.
+      final verificationRepository = FileMapRepository();
+      final secondRecovery =
+          await verificationRepository.recoverMapDocument(fixture.mapPath);
+      expect(secondRecovery.status, MapDocumentRecoveryStatus.clear);
+      final reopened =
+          await verificationRepository.loadMapDocument(fixture.mapPath);
+      expect(reopened.map, recovered.map);
+      expect(reopened.revision, recovered.revision);
+      expect(await File(fixture.mapPath).readAsBytes(), recoveredBytes);
       expect(await fixture.artifacts(), isEmpty);
     });
 

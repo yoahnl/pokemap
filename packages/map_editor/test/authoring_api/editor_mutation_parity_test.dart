@@ -88,6 +88,43 @@ void main() {
       );
     });
 
+    test('saveMap accepts gameplay zones with nested geometry', () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      const zone = MapGameplayZone(
+        id: 'zone_port_entry',
+        name: 'zone_port_entry',
+        kind: GameplayZoneKind.special,
+        area: MapRect(
+          pos: GridPos(x: 1, y: 0),
+          size: GridSize(width: 1, height: 2),
+        ),
+        special: SpecialZonePayload(
+          properties: <String, String>{
+            'contractRole': 'navigation_anchor',
+            'inert': 'true',
+          },
+        ),
+      );
+      final updated = fixture.map.copyWith(
+        gameplayZones: const <MapGameplayZone>[zone],
+      );
+      final baseline =
+          await FileMapRepository().loadMapDocument(fixture.mapPath);
+
+      final result = await fixture.mutations.saveMap(
+        updated,
+        fixture.mapPath,
+        expectedMapRevision: baseline.revision,
+      );
+
+      expect(result.resourceRevision, isNotNull);
+      expect(
+        (await FileMapRepository().loadMap(fixture.mapPath)).gameplayZones,
+        const <MapGameplayZone>[zone],
+      );
+    });
+
     test('stale external bytes are visible and never overwritten', () async {
       final fixture = await _MutationFixture.create();
       addTearDown(fixture.dispose);

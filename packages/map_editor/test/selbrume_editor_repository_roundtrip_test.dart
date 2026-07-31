@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/editor/application/map_canvas_object_hit_test.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
@@ -21,9 +23,37 @@ const _canonicalMapRelativePaths = <String, String>{
   'map_maison_joueur': 'maps/map_maison_joueur.json',
 };
 
+const _canonicalDialogueRelativePaths = <String>[
+  'dialogues/g.yarn',
+  'dialogues/test.yarn',
+  'dialogues/lysa_port.yarn',
+  'dialogues/lysa_port_after_win.yarn',
+  'dialogues/lysa_port_after_loss.yarn',
+  'dialogues/mael_intro.yarn',
+  'dialogues/port_alert.yarn',
+  'dialogues/mado.yarn',
+  'dialogues/soline.yarn',
+  'dialogues/marais_clues.yarn',
+  'dialogues/lighthouse.yarn',
+  'dialogues/ending_port.yarn',
+  'dialogues/goelise_port.yarn',
+  'dialogues/yvon_cabin.yarn',
+  'dialogues/mael_after_mission.yarn',
+  'dialogues/mael_epilogue.yarn',
+  'dialogues/lysa_after_loss.yarn',
+  'dialogues/mado_after_crystals.yarn',
+  'dialogues/soline_after_passage.yarn',
+  'dialogues/soline_epilogue.yarn',
+  'dialogues/fisher_after_return.yarn',
+  'dialogues/fisher_after_keep.yarn',
+  'dialogues/yvon_after_cabin.yarn',
+  'dialogues/fisher_epilogue.yarn',
+];
+
 final _fixtureRelativePaths = <String>[
   'project.json',
   ..._canonicalMapRelativePaths.values,
+  ..._canonicalDialogueRelativePaths,
 ];
 
 const _canonicalPlacementCounts = <String, int>{
@@ -244,8 +274,194 @@ void main() {
         expect(await _snapshotFixtureFiles(sourceRoot), sourceSnapshot);
       },
     );
+
+    test(
+      'Gate 6 session saves and reopens exact layer collision move and rotation edits',
+      () async {
+        final sourceRoot = _resolveSelbrumeSourceRoot();
+        final sourceSnapshot = await _snapshotFixtureFiles(sourceRoot);
+        final fixture = await _copyRepositoryFixture(sourceRoot);
+        _protectSourceAndDeleteFixtureAfterTest(
+          sourceRoot: sourceRoot,
+          sourceSnapshot: sourceSnapshot,
+          fixture: fixture,
+        );
+
+        const mapId = 'map_port_brisants';
+        const collisionLayerId = 'l_collisions';
+        const collisionCell = GridPos(x: 6, y: 0);
+        const placementId = 'pe_port_rock_small_south_mid';
+        const placementLayerId = 'l_tile_port_ref_structures';
+        const placementElementId = 'el_port_ref_rock_small';
+        const destination = GridPos(x: 12, y: 30);
+        final projectPath = p.join(fixture.root.path, 'project.json');
+        final firstProjectRepository = FileProjectRepository();
+        final manifest = await firstProjectRepository.loadProject(projectPath);
+        final mapEntry = manifest.maps.singleWhere(
+          (entry) => entry.id == mapId,
+        );
+        final mapPath = p.join(fixture.root.path, mapEntry.relativePath);
+
+        // The first editor session owns every mutation. Repository-level
+        // rewrites would miss the real history/dirty/save transition that this
+        // Gate 6 journey is intended to certify.
+        final firstSession = ProviderContainer();
+        final editor = firstSession.read(editorNotifierProvider.notifier);
+        editor.state = EditorState(
+          projectRootPath: fixture.root.path,
+          project: manifest,
+        );
+        await editor.loadMap(mapEntry.relativePath);
+        final original = editor.state.activeMap!;
+        final originalLayerIds = _layerIds(original);
+        final originalCollision = _collisionLayer(
+          original,
+          collisionLayerId,
+        ).collisions;
+        final collisionIndex =
+            collisionCell.y * original.size.width + collisionCell.x;
+        expect(originalCollision[collisionIndex], isFalse);
+        final originalPlacement = _placedElement(original, placementId);
+        expect(originalPlacement.pos, const GridPos(x: 11, y: 31));
+        expect(originalPlacement.quarterTurns, 0);
+
+        editor.moveMapLayerGroupUp(collisionLayerId);
+        final reorderedLayerIds = _layerIds(editor.state.activeMap!);
+        final originalCollisionLayerIndex =
+            originalLayerIds.indexOf(collisionLayerId);
+        expect(originalCollisionLayerIndex, greaterThan(0));
+        expect(
+          reorderedLayerIds.indexOf(collisionLayerId),
+          originalCollisionLayerIndex - 1,
+        );
+        expect(
+          reorderedLayerIds[originalCollisionLayerIndex],
+          originalLayerIds[originalCollisionLayerIndex - 1],
+        );
+
+        // Explicit single-tile mode prevents an old palette brush footprint
+        // from turning this certification into a multi-cell collision edit.
+        editor.setActiveLayer(collisionLayerId);
+        editor.setCollisionBrushSizeMode(CollisionBrushSizeMode.singleTile);
+        editor.beginMapStroke();
+        editor.paintCollisionAt(collisionCell);
+        editor.endMapStroke();
+        final editedCollision = _collisionLayer(
+          editor.state.activeMap!,
+          collisionLayerId,
+        ).collisions;
+        expect(
+          <int>[
+            for (var index = 0; index < editedCollision.length; index += 1)
+              if (editedCollision[index] != originalCollision[index]) index,
+          ],
+          <int>[collisionIndex],
+        );
+        expect(editedCollision[collisionIndex], isTrue);
+
+        editor.selectPlacedElementInstance(
+          instanceId: placementId,
+          elementId: placementElementId,
+          layerId: placementLayerId,
+        );
+        final beforeMove = editor.state.activeMap!;
+        final moved = editor.commitCanvasObjectMove(
+          sourceMap: beforeMove,
+          target: const MapCanvasObjectTarget(
+            kind: MapCanvasObjectKind.placedElement,
+            id: placementId,
+            layerId: placementLayerId,
+            anchor: GridPos(x: 11, y: 31),
+            size: GridSize(width: 1, height: 1),
+          ),
+          destinationAnchor: destination,
+        );
+        expect(moved, isTrue);
+        expect(
+          editor.setPlacedElementInstanceQuarterTurns(
+            instanceId: placementId,
+            quarterTurns: 1,
+          ),
+          isTrue,
+        );
+
+        final expected = editor.state.activeMap!;
+        expect(editor.state.mapUndoStack, hasLength(4));
+        expect(editor.state.isDirty, isTrue);
+        expect(_layerIds(expected), reorderedLayerIds);
+        expect(_placedElement(expected, placementId).pos, destination);
+        expect(_placedElement(expected, placementId).quarterTurns, 1);
+
+        await editor.saveActiveMap();
+        expect(editor.state.errorMessage, isNull);
+        expect(editor.state.isDirty, isFalse);
+        expect(editor.state.savedMapSnapshot, expected);
+        firstSession.dispose();
+
+        // Closing the first session is material: both repositories below are
+        // fresh instances and therefore cannot satisfy the assertion from an
+        // in-memory editor snapshot or repository cache.
+        final reopenedProjectRepository = FileProjectRepository();
+        final reopenedMapRepository = FileMapRepository();
+        final reopenedManifest =
+            await reopenedProjectRepository.loadProject(projectPath);
+        final repositoryReopen = await reopenedMapRepository.loadMap(mapPath);
+        expect(repositoryReopen, expected);
+
+        final secondSession = ProviderContainer();
+        addTearDown(secondSession.dispose);
+        final reopenedEditor =
+            secondSession.read(editorNotifierProvider.notifier);
+        reopenedEditor.state = EditorState(
+          projectRootPath: fixture.root.path,
+          project: reopenedManifest,
+        );
+        await reopenedEditor.loadMap(mapEntry.relativePath);
+        final reopened = reopenedEditor.state.activeMap!;
+        expect(reopened, expected);
+        expect(reopenedEditor.state.savedMapSnapshot, expected);
+        expect(reopenedEditor.state.isDirty, isFalse);
+        expect(_layerIds(reopened), reorderedLayerIds);
+        expect(
+          _collisionLayer(reopened, collisionLayerId).collisions,
+          editedCollision,
+        );
+        expect(_placedElement(reopened, placementId).pos, destination);
+        expect(_placedElement(reopened, placementId).quarterTurns, 1);
+
+        // map_runtime's production file loader owns these same shared steps.
+        // Repeating that contract here proves the saved document is directly
+        // consumable without adding the forbidden map_editor -> map_runtime
+        // dependency or substituting a fake runtime.
+        final durableJson = jsonDecode(await File(mapPath).readAsString())
+            as Map<String, dynamic>;
+        final runtimeContractMap =
+            MapData.fromJson(migrateMapDataJson(durableJson));
+        MapValidator.validate(
+          runtimeContractMap,
+          projectDialogueContext: reopenedManifest,
+        );
+        expect(
+          buildMapVisualCompositionPlan(runtimeContractMap).canCompose,
+          isTrue,
+        );
+        expect(runtimeContractMap, expected);
+        expect(await _snapshotFixtureFiles(sourceRoot), sourceSnapshot);
+      },
+    );
   });
 }
+
+List<String> _layerIds(MapData map) =>
+    map.layers.map((layer) => layer.id).toList(growable: false);
+
+CollisionLayer _collisionLayer(MapData map, String id) =>
+    map.layers.whereType<CollisionLayer>().singleWhere(
+          (layer) => layer.id == id,
+        );
+
+MapPlacedElement _placedElement(MapData map, String id) =>
+    map.placedElements.singleWhere((placement) => placement.id == id);
 
 void _expectPromotedGoeliseNest(MapData map) {
   expect(
@@ -285,9 +501,9 @@ Future<_SelbrumeFixture> _copyRepositoryFixture(Directory sourceRoot) async {
   );
   final fixtureRoot = Directory(p.join(temporaryParent.path, 'selbrume'));
 
-  // Copy only the files consumed by FileProjectRepository/FileMapRepository.
-  // Keeping this fixture minimal makes the test fast without replacing the
-  // production repositories with mocks or weakening the ten-map contract.
+  // Copy only the files consumed by the production repositories and the
+  // snapshot-aware save path. Keeping this fixture minimal makes the test
+  // fast without replacing either persistence boundary with mocks.
   for (final relativePath in _fixtureRelativePaths) {
     final source = File(p.join(sourceRoot.path, relativePath));
     if (!await source.exists()) {

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
@@ -207,7 +209,7 @@ final class AuthoringMutationAdapter {
       final mutationPlan = await plan(
         session.canonicalRoot,
         actionId: 'map.save',
-        parameters: {'map': map.toJson()},
+        parameters: {'map': _strictJsonMap(map.toJson())},
         idempotencyKey: key,
         requestId: key,
         expectedRevision: before.revision,
@@ -265,6 +267,10 @@ final class AuthoringMutationAdapter {
         '$_identityCounter';
   }
 }
+
+Map<String, Object?> _strictJsonMap(Map<String, dynamic> value) =>
+    (jsonDecode(jsonEncode(value)) as Map<String, dynamic>)
+        .cast<String, Object?>();
 
 final class _EditorMutationSession {
   const _EditorMutationSession._({
