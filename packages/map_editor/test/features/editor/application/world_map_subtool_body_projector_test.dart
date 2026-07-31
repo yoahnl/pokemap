@@ -66,7 +66,7 @@ void main() {
         body: WorldMapSubtoolBodyKind.surfacePainter,
         access: WorldMapSubtoolBodyAccess.setup,
         available: false,
-        reason: 'Select an available surface before painting.',
+        reason: 'Sélectionnez une surface disponible avant de peindre.',
         tool: null,
         brush: null,
       ),

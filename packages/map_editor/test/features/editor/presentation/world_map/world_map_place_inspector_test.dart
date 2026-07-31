@@ -235,7 +235,8 @@ void main() {
 
       await harness.pump(tester);
 
-      const reason = 'Place/object requires an active editable tile layer.';
+      const reason =
+          'Sélectionnez un calque de tuiles modifiable pour placer cet objet.';
       final guidance = find.byKey(
         const ValueKey<String>('world-map-inspector-disabled-guidance'),
       );

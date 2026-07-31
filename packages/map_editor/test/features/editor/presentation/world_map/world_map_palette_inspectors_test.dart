@@ -151,7 +151,7 @@ void main() {
       await harness.pump(tester, const WorldMapPlaceInspector());
 
       expect(find.byType(MapLayerAssetPalette), findsNothing);
-      expect(find.textContaining('Entity'), findsWidgets);
+      expect(find.textContaining('Entité'), findsWidgets);
       expect(harness.notifier.state, before);
     },
   );
