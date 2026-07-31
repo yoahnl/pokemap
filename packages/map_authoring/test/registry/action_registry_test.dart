@@ -84,6 +84,7 @@ void main() {
           'asset',
           'assetBlob',
           'assetCatalog',
+          'cinematic',
           'dialogue',
           'dialogueSource',
           'eventV2',

@@ -285,6 +285,8 @@ export 'src/application/scene_runtime/cinematic_runtime_playback_controller.dart
         CinematicRuntimeSinkPreflightResult,
         CinematicRuntimeStepContext,
         CinematicRuntimeTermination;
+export 'src/application/scene_runtime/cinematic_runtime_preview_adapter.dart'
+    show CinematicRuntimePreview, CinematicRuntimePreviewAdapter;
 export 'src/application/scene_runtime/cinematic_media_playback_port.dart'
     show
         CinematicRuntimeMediaPlaybackPort,

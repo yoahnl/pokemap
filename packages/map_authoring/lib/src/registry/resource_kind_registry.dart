@@ -205,6 +205,12 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Scenario',
         summary: 'Legacy-readable local or global narrative flow',
       ),
+      AuthoringResourceKindDescriptor(
+        id: 'cinematic',
+        version: 1,
+        displayName: 'Cinematic',
+        summary: 'Stage, actors and executable cinematic timeline',
+      ),
     ]);
   }
 
