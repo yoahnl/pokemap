@@ -1,5 +1,3 @@
-import 'package:map_core/map_core.dart';
-
 import '../contracts/authoring_diff.dart';
 import '../contracts/resource_ref.dart';
 import '../support/authoring_fingerprint.dart';
@@ -13,34 +11,47 @@ final class AuthoringResourceChange {
   AuthoringResourceChange({
     required this.resource,
     required String storageKey,
-    required Iterable<int> beforeBytes,
-    required Iterable<int> afterBytes,
+    required Iterable<int>? beforeBytes,
+    required Iterable<int>? afterBytes,
     String? beforeRevision,
     String? afterRevision,
   })  : storageKey = _safeStorageKey(storageKey),
-        beforeBytes = _freezeBytes(beforeBytes, 'beforeBytes'),
-        afterBytes = _freezeBytes(afterBytes, 'afterBytes') {
-    if (_bytesEqual(this.beforeBytes, this.afterBytes)) {
+        beforeBytes = _freezeOptionalBytes(beforeBytes, 'beforeBytes'),
+        afterBytes = _freezeOptionalBytes(afterBytes, 'afterBytes') {
+    if (this.beforeBytes == null && this.afterBytes == null) {
+      throw ArgumentError.value(
+        null,
+        'beforeBytes/afterBytes',
+        'at least one resource image must exist',
+      );
+    }
+    if (this.beforeBytes != null &&
+        this.afterBytes != null &&
+        _bytesEqual(this.beforeBytes!, this.afterBytes!)) {
       throw ArgumentError.value(
         afterBytes,
         'afterBytes',
         'must differ from beforeBytes',
       );
     }
-    final computedBefore = computeAuthoringBytesFingerprint(
-      this.beforeBytes,
-      logicalName: this.storageKey,
-    );
-    final computedAfter = computeAuthoringBytesFingerprint(
-      this.afterBytes,
-      logicalName: this.storageKey,
-    );
-    this.beforeRevision = _verifiedRevision(
+    final computedBefore = this.beforeBytes == null
+        ? null
+        : computeAuthoringBytesFingerprint(
+            this.beforeBytes!,
+            logicalName: this.storageKey,
+          );
+    final computedAfter = this.afterBytes == null
+        ? null
+        : computeAuthoringBytesFingerprint(
+            this.afterBytes!,
+            logicalName: this.storageKey,
+          );
+    this.beforeRevision = _verifiedOptionalRevision(
       beforeRevision,
       computedBefore,
       'beforeRevision',
     );
-    this.afterRevision = _verifiedRevision(
+    this.afterRevision = _verifiedOptionalRevision(
       afterRevision,
       computedAfter,
       'afterRevision',
@@ -56,17 +67,17 @@ final class AuthoringResourceChange {
 
   final AuthoringResourceRef resource;
   final String storageKey;
-  final List<int> beforeBytes;
-  final List<int> afterBytes;
-  late final String beforeRevision;
-  late final String afterRevision;
+  final List<int>? beforeBytes;
+  final List<int>? afterBytes;
+  late final String? beforeRevision;
+  late final String? afterRevision;
 
   Map<String, Object?> toJson() => {
         'resource': resource.toJson(),
         'beforeRevision': beforeRevision,
         'afterRevision': afterRevision,
-        'beforeByteLength': beforeBytes.length,
-        'afterByteLength': afterBytes.length,
+        'beforeByteLength': beforeBytes?.length,
+        'afterByteLength': afterBytes?.length,
       };
 }
 
@@ -112,13 +123,16 @@ final class AuthoringChangeSet {
     ]);
     // This revision covers the post-images of touched resources. It is a
     // deterministic preview identity, not a claim of multi-file atomicity.
-    projectedRevision = computeNarrativeProjectFingerprint([
-      for (final change in this.changes)
-        NarrativeProjectFingerprintEntry(
-          relativePath: change.storageKey,
-          bytes: change.afterBytes,
-        ),
-    ]);
+    projectedRevision = computeAuthoringJsonFingerprint(
+      [
+        for (final change in this.changes)
+          {
+            'resource': change.resource.toJson(),
+            'afterRevision': change.afterRevision,
+          },
+      ],
+      logicalName: 'projected-change-set.json',
+    );
   }
 
   final List<AuthoringResourceChange> changes;
@@ -170,7 +184,8 @@ String _safeStorageKey(String value) {
   return normalized;
 }
 
-List<int> _freezeBytes(Iterable<int> values, String field) {
+List<int>? _freezeOptionalBytes(Iterable<int>? values, String field) {
+  if (values == null) return null;
   final bytes = values.toList(growable: false);
   if (bytes.any((value) => value < 0 || value > 255)) {
     throw ArgumentError.value(values, field, 'must contain bytes');
@@ -178,11 +193,18 @@ List<int> _freezeBytes(Iterable<int> values, String field) {
   return List.unmodifiable(bytes);
 }
 
-String _verifiedRevision(
+String? _verifiedOptionalRevision(
   String? supplied,
-  String computed,
+  String? computed,
   String field,
 ) {
+  if (computed == null && supplied != null) {
+    throw ArgumentError.value(
+      supplied,
+      field,
+      'must be null when the resource image is absent',
+    );
+  }
   if (supplied != null && supplied != computed) {
     throw ArgumentError.value(
       supplied,

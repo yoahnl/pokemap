@@ -1,0 +1,289 @@
+import 'dart:convert';
+import 'dart:io';
+
+import '../ports/idempotency_store.dart';
+import '../support/authoring_fingerprint.dart';
+
+final class IdempotencyStoreException implements Exception {
+  const IdempotencyStoreException(this.code, this.message);
+
+  final String code;
+  final String message;
+
+  @override
+  String toString() => 'IdempotencyStoreException($code): $message';
+}
+
+/// Locked append-only JSONL implementation of the durable idempotency port.
+///
+/// A reservation line is flushed before the caller can start applying. If a
+/// process stops after that point, the pending record survives and forces
+/// recovery instead of permitting a duplicate mutation. A truncated final
+/// line is ignored because it was never a fully flushed durable event.
+final class FileIdempotencyStore implements IdempotencyStore {
+  FileIdempotencyStore({required String filePath})
+      : _file = File(filePath),
+        _lockFile = File('$filePath.lock'),
+        _compactionFile = File('$filePath.compact'),
+        _backupFile = File('$filePath.backup');
+
+  final File _file;
+  final File _lockFile;
+  final File _compactionFile;
+  final File _backupFile;
+
+  @override
+  Future<AuthoringIdempotencyRecord?> read(
+    AuthoringIdempotencyScope scope,
+  ) {
+    return _withLock(() async {
+      final records = await _readUnlocked();
+      return records[scope.storageKey];
+    });
+  }
+
+  @override
+  Future<AuthoringIdempotencyReservation> reserve(
+    AuthoringIdempotencyRecord pendingRecord,
+  ) {
+    if (pendingRecord.status != AuthoringIdempotencyStatus.pending) {
+      throw ArgumentError.value(
+        pendingRecord.status,
+        'pendingRecord',
+        'reserve requires a pending record',
+      );
+    }
+    return _withLock(() async {
+      final records = await _readUnlocked();
+      final existing = records[pendingRecord.scope.storageKey];
+      if (existing != null) {
+        return AuthoringIdempotencyReservation(
+          acquired: false,
+          record: existing,
+        );
+      }
+      await _appendUnlocked([_putEvent(pendingRecord)]);
+      return AuthoringIdempotencyReservation(
+        acquired: true,
+        record: pendingRecord,
+      );
+    });
+  }
+
+  @override
+  Future<AuthoringIdempotencyRecord> complete(
+    AuthoringIdempotencyRecord completedRecord,
+  ) {
+    if (completedRecord.status != AuthoringIdempotencyStatus.completed) {
+      throw ArgumentError.value(
+        completedRecord.status,
+        'completedRecord',
+        'complete requires a completed record',
+      );
+    }
+    return _withLock(() async {
+      final records = await _readUnlocked();
+      final existing = records[completedRecord.scope.storageKey];
+      if (existing == null ||
+          existing.payloadFingerprint != completedRecord.payloadFingerprint ||
+          existing.operationId != completedRecord.operationId) {
+        throw const IdempotencyStoreException(
+          'idempotency.completion_conflict',
+          'The durable reservation cannot be completed safely.',
+        );
+      }
+      if (existing.status == AuthoringIdempotencyStatus.completed) {
+        if (canonicalAuthoringJson(existing.receipt!.toJson()) !=
+            canonicalAuthoringJson(completedRecord.receipt!.toJson())) {
+          throw const IdempotencyStoreException(
+            'idempotency.completion_conflict',
+            'A different receipt already completed this reservation.',
+          );
+        }
+        return existing;
+      }
+      await _appendUnlocked([_putEvent(completedRecord)]);
+      return completedRecord;
+    });
+  }
+
+  @override
+  Future<int> pruneExpired(DateTime now) {
+    return _withLock(() async {
+      final utcNow = now.toUtc();
+      final records = await _readUnlocked();
+      final expired = records.values
+          .where(
+            (record) =>
+                record.status == AuthoringIdempotencyStatus.completed &&
+                !utcNow.isBefore(record.expiresAt!),
+          )
+          .toList(growable: false);
+      if (expired.isNotEmpty) {
+        await _appendUnlocked([
+          for (final record in expired) _removeEvent(record.scope),
+        ]);
+        for (final record in expired) {
+          records.remove(record.scope.storageKey);
+        }
+        await _compactUnlocked(records);
+      }
+      return expired.length;
+    });
+  }
+
+  Future<T> _withLock<T>(Future<T> Function() operation) async {
+    RandomAccessFile? lock;
+    try {
+      await _file.parent.create(recursive: true);
+      lock = await _lockFile.open(mode: FileMode.append);
+      await lock.lock(FileLock.exclusive);
+      await _recoverCompactionUnlocked();
+      return await operation();
+    } on IdempotencyStoreException {
+      rethrow;
+    } on Object {
+      throw const IdempotencyStoreException(
+        'idempotency.store_io',
+        'The durable idempotency store could not be accessed safely.',
+      );
+    } finally {
+      if (lock != null) {
+        try {
+          await lock.unlock();
+        } on Object {
+          // Closing releases the OS lock even if explicit unlock fails.
+        }
+        await lock.close();
+      }
+    }
+  }
+
+  Future<Map<String, AuthoringIdempotencyRecord>> _readUnlocked() async {
+    if (!await _file.exists()) return {};
+    final bytes = await _file.readAsBytes();
+    final records = <String, AuthoringIdempotencyRecord>{};
+    var lineStart = 0;
+    for (var index = 0; index < bytes.length; index++) {
+      if (bytes[index] != 0x0a) continue;
+      final lineBytes = bytes.sublist(lineStart, index);
+      lineStart = index + 1;
+      if (lineBytes.isEmpty) continue;
+      try {
+        final decoded = jsonDecode(utf8.decode(lineBytes));
+        if (decoded is! Map) throw const FormatException();
+        _applyEvent(records, Map<String, dynamic>.from(decoded));
+      } on Object {
+        throw const IdempotencyStoreException(
+          'idempotency.store_corrupt',
+          'The durable idempotency store contains an invalid event.',
+        );
+      }
+    }
+    // Bytes after the final newline are an uncommitted partial append. They
+    // cannot authorize a replay and are deliberately ignored.
+    return records;
+  }
+
+  Future<void> _appendUnlocked(List<Map<String, Object?>> events) async {
+    final writer = await _file.open(mode: FileMode.append);
+    try {
+      await writer.writeString(
+        events.map(jsonEncode).map((line) => '$line\n').join(),
+      );
+      await writer.flush();
+    } finally {
+      await writer.close();
+    }
+  }
+
+  /// Rewrites only live records after durable tombstones have been flushed.
+  ///
+  /// The old log is renamed to a backup before the compacted log is promoted.
+  /// Recovery can therefore select a complete compacted file or restore the
+  /// tombstoned backup after a process stop at either rename boundary.
+  Future<void> _compactUnlocked(
+    Map<String, AuthoringIdempotencyRecord> records,
+  ) async {
+    await _deleteIfExists(_compactionFile);
+    final orderedKeys = records.keys.toList()..sort();
+    final writer = await _compactionFile.open(mode: FileMode.write);
+    try {
+      await writer.writeString(
+        orderedKeys
+            .map((key) => jsonEncode(_putEvent(records[key]!)))
+            .map((line) => '$line\n')
+            .join(),
+      );
+      await writer.flush();
+    } finally {
+      await writer.close();
+    }
+
+    await _deleteIfExists(_backupFile);
+    if (await _file.exists()) {
+      await _file.rename(_backupFile.path);
+    }
+    await _compactionFile.rename(_file.path);
+    await _deleteIfExists(_backupFile);
+  }
+
+  Future<void> _recoverCompactionUnlocked() async {
+    if (await _file.exists()) {
+      await _deleteIfExists(_compactionFile);
+      await _deleteIfExists(_backupFile);
+      return;
+    }
+    if (await _compactionFile.exists()) {
+      await _compactionFile.rename(_file.path);
+      await _deleteIfExists(_backupFile);
+      return;
+    }
+    if (await _backupFile.exists()) {
+      await _backupFile.rename(_file.path);
+    }
+  }
+}
+
+Future<void> _deleteIfExists(File file) async {
+  if (await file.exists()) await file.delete();
+}
+
+Map<String, Object?> _putEvent(AuthoringIdempotencyRecord record) => {
+      'schemaVersion': 1,
+      'event': 'put',
+      'record': record.toJson(),
+    };
+
+Map<String, Object?> _removeEvent(AuthoringIdempotencyScope scope) => {
+      'schemaVersion': 1,
+      'event': 'remove',
+      'scope': scope.toJson(),
+    };
+
+void _applyEvent(
+  Map<String, AuthoringIdempotencyRecord> records,
+  Map<String, dynamic> event,
+) {
+  if (event['schemaVersion'] != 1) throw const FormatException();
+  switch (event['event']) {
+    case 'put':
+      final rawRecord = event['record'];
+      if (rawRecord is! Map) throw const FormatException();
+      final record = AuthoringIdempotencyRecord.fromJson(
+        Map<String, dynamic>.from(rawRecord),
+      );
+      records[record.scope.storageKey] = record;
+      return;
+    case 'remove':
+      final rawScope = event['scope'];
+      if (rawScope is! Map) throw const FormatException();
+      final scope = AuthoringIdempotencyScope.fromJson(
+        Map<String, dynamic>.from(rawScope),
+      );
+      records.remove(scope.storageKey);
+      return;
+    default:
+      throw const FormatException();
+  }
+}
