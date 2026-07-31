@@ -84,10 +84,13 @@ void main() {
           'asset',
           'assetBlob',
           'assetCatalog',
+          'dialogue',
+          'dialogueSource',
           'layer',
           'map',
           'project',
           'region',
+          'script',
         ],
       );
       expect(registry.require('map').displayName, 'Map');

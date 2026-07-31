@@ -5,10 +5,12 @@ import 'package:map_core/map_core.dart';
 import '../contracts/artifact_ref.dart';
 import '../ports/project_file_reader.dart';
 import '../domains/assets/asset_store.dart';
+import '../domains/narrative/dialogue_source_store.dart';
 import 'project_snapshot.dart';
 import 'workspace_handle_store.dart';
 
-/// Loads every manifest-declared map twice to reject mixed disk revisions.
+/// Loads every manifest-declared map and external dialogue source twice to
+/// reject mixed disk revisions.
 ///
 /// The double read cannot make unrelated filesystem operations atomic, but it
 /// ensures this API never claims a coherent snapshot after observing a change
@@ -47,6 +49,28 @@ final class ProjectSnapshotLoader {
         _LoadedProjectResource(
           relativePath: entry.relativePath,
           identity: 'map:${entry.id}',
+          bytes: bytes,
+        ),
+      );
+    }
+    final occupiedPaths = <String>{
+      for (final resource in resources) resource.relativePath,
+    };
+    for (final entry in _validatedDialogueEntries(manifest.dialogues)) {
+      if (!occupiedPaths.add(entry.relativePath)) {
+        throw const ProjectSnapshotException(
+          'project.resource_path_conflict',
+          'Two project resources resolve to the same storage path.',
+        );
+      }
+      final bytes = await _readRequiredDialogueSource(
+        access,
+        entry.relativePath,
+      );
+      resources.add(
+        _LoadedProjectResource(
+          relativePath: entry.relativePath,
+          identity: dialogueSourceResourceIdentity(entry.id),
           bytes: bytes,
         ),
       );
@@ -137,6 +161,23 @@ final class ProjectSnapshotLoader {
   }
 }
 
+Future<List<int>> _readRequiredDialogueSource(
+  ProjectWorkspaceAccess access,
+  String relativePath,
+) async {
+  try {
+    return await access.readBytes(relativePath);
+  } on WorkspaceAccessException catch (error) {
+    if (error.code == 'workspace.file_unavailable') {
+      throw const ProjectSnapshotException(
+        'project.dialogue_source_missing',
+        'A dialogue manifest entry points to a missing source file.',
+      );
+    }
+    rethrow;
+  }
+}
+
 Future<List<int>?> _readOptional(
   ProjectWorkspaceAccess access,
   String relativePath,
@@ -210,6 +251,43 @@ List<ProjectMapEntry> _validatedMapEntries(List<ProjectMapEntry> entries) {
   validated.sort((left, right) {
     final pathOrder = left.relativePath.compareTo(right.relativePath);
     return pathOrder != 0 ? pathOrder : left.id.compareTo(right.id);
+  });
+  return List.unmodifiable(validated);
+}
+
+List<ProjectDialogueEntry> _validatedDialogueEntries(
+  List<ProjectDialogueEntry> entries,
+) {
+  final seenIds = <String>{};
+  final seenPaths = <String>{};
+  final validated = <ProjectDialogueEntry>[];
+  for (final entry in entries) {
+    final id = entry.id.trim();
+    if (id.isEmpty || id != entry.id) {
+      throw const ProjectSnapshotException(
+        'project.dialogue_id_invalid',
+        'Every dialogue entry requires a trimmed identity.',
+      );
+    }
+    if (!seenIds.add(id)) {
+      throw const ProjectSnapshotException(
+        'project.duplicate_dialogue_id',
+        'Manifest dialogue identities must be unique.',
+      );
+    }
+    final normalizedPath =
+        validateProjectRelativePath(entry.relativePath).join('/');
+    if (!seenPaths.add(normalizedPath)) {
+      throw const ProjectSnapshotException(
+        'project.duplicate_dialogue_path',
+        'Manifest dialogue source paths must be unique.',
+      );
+    }
+    validated.add(entry.copyWith(id: id, relativePath: normalizedPath));
+  }
+  validated.sort((left, right) {
+    final path = left.relativePath.compareTo(right.relativePath);
+    return path != 0 ? path : left.id.compareTo(right.id);
   });
   return List.unmodifiable(validated);
 }

@@ -159,6 +159,47 @@ void main() {
       );
     });
 
+    test('tracks external dialogue sources in the coherent revision', () async {
+      final sandbox = await Directory.systemTemp.createTemp(
+        'pokemap_snapshot_dialogue_',
+      );
+      addTearDown(() => sandbox.delete(recursive: true));
+      final project = await _writeProject(
+        sandbox,
+        mapEntries: const [],
+        maps: const [],
+        dialogueEntries: const [
+          {
+            'id': 'intro',
+            'name': 'Intro',
+            'relativePath': 'dialogues/intro.yarn',
+          },
+        ],
+        dialogueSources: const {
+          'dialogues/intro.yarn': 'title: Start\n---\nBonjour\n===\n',
+        },
+      );
+      final harness = await _SnapshotHarness.create(allowedRoot: sandbox);
+      final opened = await harness.openService.openProject(project.path);
+
+      final first = await harness.loader.load(opened.projectHandle);
+      await File(_join(project.path, 'dialogues', 'intro.yarn')).writeAsString(
+        'title: Start\n---\nBonjour encore\n===\n',
+      );
+      final second = await harness.loader.load(opened.projectHandle);
+
+      expect(
+        first.resourceFingerprints,
+        contains(dialogueSourceResourceIdentity('intro')),
+      );
+      expect(second.revision, isNot(first.revision));
+      expect(
+        utf8.decode(
+            second.resourceBytes(dialogueSourceResourceIdentity('intro'))),
+        contains('Bonjour encore'),
+      );
+    });
+
     test('rejects duplicate direct snapshot maps and invalid fingerprints', () {
       final map = MapData(
         id: 'same',
@@ -268,6 +309,8 @@ Future<Directory> _writeProject(
   Directory sandbox, {
   required List<Map<String, Object?>> mapEntries,
   required List<Map<String, Object?>> maps,
+  List<Map<String, Object?>> dialogueEntries = const [],
+  Map<String, String> dialogueSources = const {},
 }) async {
   final project = await Directory(_join(sandbox.path, 'project')).create();
   final mapsDirectory =
@@ -277,6 +320,7 @@ Future<Directory> _writeProject(
     'version': 'v1',
     'maps': mapEntries,
     'tilesets': <Object?>[],
+    'dialogues': dialogueEntries,
   };
   await File(_join(project.path, 'project.json'))
       .writeAsString(jsonEncode(manifest));
@@ -285,6 +329,11 @@ Future<Directory> _writeProject(
         (mapEntries[index]['relativePath']! as String).split('/').last;
     await File(_join(mapsDirectory.path, fileName))
         .writeAsString(jsonEncode(maps[index]));
+  }
+  for (final entry in dialogueSources.entries) {
+    final file = File(_join(project.path, entry.key));
+    await file.parent.create(recursive: true);
+    await file.writeAsString(entry.value);
   }
   return project;
 }

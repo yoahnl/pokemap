@@ -6,6 +6,9 @@ import '../contracts/json_contract_support.dart';
 import '../contracts/query_page.dart';
 import '../contracts/query_request.dart';
 import '../domains/assets/asset_store.dart';
+import '../domains/narrative/dialogue_authoring_service.dart';
+import '../domains/narrative/dialogue_source_store.dart';
+import '../domains/narrative/script_authoring_service.dart';
 import 'project_snapshot.dart';
 
 final class AuthoringQueryException implements Exception {
@@ -92,6 +95,22 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
           _QueryRecord(
             summary: _assetSummary(asset),
             detail: _assetDetail(asset),
+          ),
+      ];
+    case 'dialogue':
+      return [
+        for (final dialogue in snapshot.manifest.dialogues)
+          _QueryRecord(
+            summary: _dialogueSummary(dialogue),
+            detail: _dialogueDetail(snapshot, dialogue),
+          ),
+      ];
+    case 'script':
+      return [
+        for (final script in snapshot.manifest.scripts)
+          _QueryRecord(
+            summary: _scriptSummary(script),
+            detail: _scriptDetail(script),
           ),
       ];
     default:
@@ -206,6 +225,65 @@ Map<String, Object?> _assetDetail(AssetRecord asset) => {
         'artifactHandle': asset.artifact.handle,
         'mediaType': asset.artifact.mediaType,
       },
+    };
+
+Map<String, Object?> _dialogueSummary(ProjectDialogueEntry dialogue) => {
+      'id': dialogue.id,
+      'name': dialogue.name,
+      'resourceKind': 'dialogue',
+      'tagCount': dialogue.tags.length,
+      'declaredOutcomeCount': dialogue.declaredOutcomes.length,
+      'defaultStartNode': dialogue.defaultStartNode,
+    };
+
+Map<String, Object?> _dialogueDetail(
+  ProjectSnapshot snapshot,
+  ProjectDialogueEntry dialogue,
+) {
+  final bytes = snapshot.findResourceBytes(
+    dialogueSourceResourceIdentity(dialogue.id),
+  );
+  String? source;
+  if (bytes != null) {
+    try {
+      source = utf8.decode(bytes, allowMalformed: false);
+    } on Object {
+      source = null;
+    }
+  }
+  DialogueAuthoringCompileResult? compile;
+  if (source != null && dialogue.relativePath.toLowerCase().endsWith('.yarn')) {
+    compile = const DialogueAuthoringCompiler().compile(
+      entry: dialogue,
+      source: source,
+    );
+  }
+  return {
+    ...dialogue.toJson(),
+    'resourceKind': 'dialogue',
+    'source': {
+      'available': source != null,
+      'byteLength': bytes?.length,
+      if (source != null) 'text': source,
+    },
+    if (compile != null) 'compile': compile.toJson(),
+  };
+}
+
+Map<String, Object?> _scriptSummary(ProjectScriptEntry script) => {
+      'id': script.id,
+      'name': script.name,
+      'resourceKind': 'script',
+      'tagCount': script.tags.length,
+      'nodeCount': script.asset.nodes.length,
+      'defaultStartNode': script.asset.defaultStartNode,
+    };
+
+Map<String, Object?> _scriptDetail(ProjectScriptEntry script) => {
+      ...script.toJson(),
+      'resourceKind': 'script',
+      'simulation':
+          const ScriptAuthoringSimulator().simulate(script.asset).toJson(),
     };
 
 AssetCatalog _decodeAssetCatalog(List<int> bytes) {

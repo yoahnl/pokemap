@@ -7,6 +7,8 @@ import '../../domains/assets/palette_actions.dart';
 import '../../domains/assets/presentation_actions.dart';
 import '../../domains/assets/preset_actions.dart';
 import '../../domains/assets/tileset_actions.dart';
+import '../../domains/narrative/dialogue_actions.dart';
+import '../../domains/narrative/script_actions.dart';
 import '../../ports/artifact_store.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
@@ -67,6 +69,8 @@ final class MapMutationDispatcher {
     const elements = ElementActions();
     const presets = PresetActions();
     const presentation = PresentationActions();
+    const dialogues = DialogueActions();
+    const scripts = ScriptActions();
     return MapMutationDispatcher([
       for (final descriptor in MapLifecycleActions.descriptors)
         MapMutationActionRegistration(
@@ -163,6 +167,16 @@ final class MapMutationDispatcher {
           descriptor: descriptor,
           build: presentation.build,
         ),
+      for (final descriptor in DialogueActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: dialogues.build,
+        ),
+      for (final descriptor in ScriptActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: scripts.build,
+        ),
     ]);
   }
 
@@ -190,6 +204,12 @@ final class MapMutationDispatcher {
     return registration;
   }
 }
+
+/// Cross-domain names for new clients. The historical map-prefixed symbols
+/// remain source-compatible for Phase 1-4 integrations.
+typedef AuthoringMutationDraftBuilder = MapMutationDraftBuilder;
+typedef AuthoringMutationActionRegistration = MapMutationActionRegistration;
+typedef AuthoringMutationDispatcher = MapMutationDispatcher;
 
 Map<String, MapMutationActionRegistration> _validatedRegistrations(
   Iterable<MapMutationActionRegistration> values,

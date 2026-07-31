@@ -151,6 +151,24 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Asset blob',
         summary: 'Content-addressed immutable asset bytes',
       ),
+      AuthoringResourceKindDescriptor(
+        id: 'dialogue',
+        version: 1,
+        displayName: 'Dialogue',
+        summary: 'Project dialogue metadata and external source',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'dialogueSource',
+        version: 1,
+        displayName: 'Dialogue source',
+        summary: 'Revision-tracked external Yarn or legacy source',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'script',
+        version: 1,
+        displayName: 'Script',
+        summary: 'Embedded deterministic project script',
+      ),
     ]);
   }
 
