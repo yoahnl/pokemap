@@ -133,6 +133,24 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Region',
         summary: 'Named or bounded spatial region in a map',
       ),
+      AuthoringResourceKindDescriptor(
+        id: 'asset',
+        version: 1,
+        displayName: 'Asset',
+        summary: 'Content-addressed project asset',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'assetCatalog',
+        version: 1,
+        displayName: 'Asset catalog',
+        summary: 'Project-owned asset identity and usage registry',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'assetBlob',
+        version: 1,
+        displayName: 'Asset blob',
+        summary: 'Content-addressed immutable asset bytes',
+      ),
     ]);
   }
 

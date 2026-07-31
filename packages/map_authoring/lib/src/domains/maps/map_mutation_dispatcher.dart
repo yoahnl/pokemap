@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import '../../contracts/action_descriptor.dart';
+import '../../domains/assets/asset_actions.dart';
+import '../../ports/artifact_store.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'autotile_actions.dart';
@@ -16,7 +20,7 @@ import 'terrain_actions.dart';
 import 'trigger_zone_actions.dart';
 import 'warp_connection_actions.dart';
 
-typedef MapMutationDraftBuilder = AuthoringMutationDraft Function(
+typedef MapMutationDraftBuilder = FutureOr<AuthoringMutationDraft> Function(
   AuthoringPlanningContext context,
 );
 
@@ -35,7 +39,7 @@ final class MapMutationDispatcher {
   MapMutationDispatcher(Iterable<MapMutationActionRegistration> registrations)
       : _registrations = _validatedRegistrations(registrations);
 
-  factory MapMutationDispatcher.canonical() {
+  factory MapMutationDispatcher.canonical({ArtifactStore? artifactStore}) {
     const lifecycle = MapLifecycleActions();
     const operations = MapOperationsActions();
     const terrain = TerrainActions();
@@ -49,6 +53,10 @@ final class MapMutationDispatcher {
     const placedElement = PlacedElementActions();
     const triggerZone = TriggerZoneActions();
     const warpConnection = WarpConnectionActions();
+    final assets = AssetActions(
+      artifactStore:
+          artifactStore ?? MemoryArtifactStore(maximumArtifactBytes: 64 << 20),
+    );
     return MapMutationDispatcher([
       for (final descriptor in MapLifecycleActions.descriptors)
         MapMutationActionRegistration(
@@ -115,6 +123,11 @@ final class MapMutationDispatcher {
           descriptor: descriptor,
           build: warpConnection.build,
         ),
+      for (final descriptor in AssetActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: assets.build,
+        ),
     ]);
   }
 
@@ -127,7 +140,7 @@ final class MapMutationDispatcher {
   AuthoringActionDescriptor descriptor(String actionId) =>
       _registration(actionId).descriptor;
 
-  AuthoringMutationDraft build(AuthoringPlanningContext context) =>
+  FutureOr<AuthoringMutationDraft> build(AuthoringPlanningContext context) =>
       _registration(context.request.actionId).build(context);
 
   MapMutationActionRegistration _registration(String actionId) {

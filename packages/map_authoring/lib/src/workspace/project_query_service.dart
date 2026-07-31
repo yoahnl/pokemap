@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import '../contracts/json_contract_support.dart';
 import '../contracts/query_page.dart';
 import '../contracts/query_request.dart';
+import '../domains/assets/asset_store.dart';
 import 'project_snapshot.dart';
 
 final class AuthoringQueryException implements Exception {
@@ -80,6 +81,17 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
           _QueryRecord(
             summary: _mapSummary(map),
             detail: _mapDetail(map),
+          ),
+      ];
+    case 'asset':
+      final bytes = snapshot.findResourceBytes(assetCatalogResourceIdentity);
+      if (bytes == null) return const [];
+      final catalog = _decodeAssetCatalog(bytes);
+      return [
+        for (final asset in catalog.records)
+          _QueryRecord(
+            summary: _assetSummary(asset),
+            detail: _assetDetail(asset),
           ),
       ];
     default:
@@ -175,6 +187,39 @@ Map<String, Object?> _mapSummary(MapData map) => {
 
 Map<String, Object?> _mapDetail(MapData map) =>
     _jsonObject(map.toJson())..['resourceKind'] = 'map';
+
+Map<String, Object?> _assetSummary(AssetRecord asset) => {
+      'id': asset.id,
+      'name': asset.logicalPath,
+      'resourceKind': 'asset',
+      'mediaType': asset.artifact.mediaType,
+      'byteLength': asset.artifact.byteLength,
+      'unused': asset.usages.isEmpty,
+    };
+
+Map<String, Object?> _assetDetail(AssetRecord asset) => {
+      ...asset.toJson(),
+      'name': asset.logicalPath,
+      'resourceKind': 'asset',
+      'unused': asset.usages.isEmpty,
+      'preview': {
+        'artifactHandle': asset.artifact.handle,
+        'mediaType': asset.artifact.mediaType,
+      },
+    };
+
+AssetCatalog _decodeAssetCatalog(List<int> bytes) {
+  try {
+    final decoded = jsonDecode(utf8.decode(bytes));
+    if (decoded is! Map) throw const FormatException();
+    return AssetCatalog.fromJson(Map<String, dynamic>.from(decoded));
+  } on Object {
+    throw const AuthoringQueryException(
+      'query.asset_catalog_invalid',
+      'The project asset catalog cannot be queried safely.',
+    );
+  }
+}
 
 Map<String, Object?> _jsonObject(Map<String, dynamic> value) =>
     Map<String, Object?>.from(value);

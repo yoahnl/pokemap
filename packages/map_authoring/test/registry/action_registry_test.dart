@@ -80,7 +80,15 @@ void main() {
 
       expect(
         registry.resourceKinds.map((descriptor) => descriptor.id),
-        ['layer', 'map', 'project', 'region'],
+        [
+          'asset',
+          'assetBlob',
+          'assetCatalog',
+          'layer',
+          'map',
+          'project',
+          'region',
+        ],
       );
       expect(registry.require('map').displayName, 'Map');
       expect(registry.find('unknown'), isNull);

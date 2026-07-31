@@ -21,6 +21,7 @@ final class ProjectSnapshot {
     required Iterable<MapData> maps,
     required Map<String, String> resourceFingerprints,
     Map<String, List<int>> resourceBytes = const {},
+    Map<String, String> resourceStorageKeys = const {},
   })  : maps = List.unmodifiable(
           maps.toList()..sort((left, right) => left.id.compareTo(right.id)),
         ),
@@ -41,6 +42,13 @@ final class ProjectSnapshot {
                 List<int>.unmodifiable(entry.value),
               ),
             ),
+          ),
+        ),
+        resourceStorageKeys = Map.unmodifiable(
+          Map.fromEntries(
+            (resourceStorageKeys.entries.toList()
+                  ..sort((left, right) => left.key.compareTo(right.key)))
+                .map((entry) => MapEntry(entry.key, entry.value)),
           ),
         ) {
     if (!RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(revision)) {
@@ -80,6 +88,17 @@ final class ProjectSnapshot {
         );
       }
     }
+    for (final entry in this.resourceStorageKeys.entries) {
+      if (!this.resourceFingerprints.containsKey(entry.key) ||
+          entry.value.trim().isEmpty ||
+          entry.value != entry.value.trim()) {
+        throw ArgumentError.value(
+          entry,
+          'resourceStorageKeys',
+          'keys must identify fingerprinted resources and paths must be stable',
+        );
+      }
+    }
     _mapsById = Map.unmodifiable({
       for (final map in this.maps) map.id: map,
     });
@@ -90,6 +109,7 @@ final class ProjectSnapshot {
   final ProjectManifest manifest;
   final List<MapData> maps;
   final Map<String, String> resourceFingerprints;
+  final Map<String, String> resourceStorageKeys;
   final Map<String, List<int>> _resourceBytes;
   late final Map<String, MapData> _mapsById;
 
@@ -109,5 +129,11 @@ final class ProjectSnapshot {
       );
     }
     return List<int>.unmodifiable(bytes);
+  }
+
+  /// Optional exact pre-image for supplemental project resources.
+  List<int>? findResourceBytes(String identity) {
+    final bytes = _resourceBytes[identity];
+    return bytes == null ? null : List<int>.unmodifiable(bytes);
   }
 }

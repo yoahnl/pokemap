@@ -12,6 +12,7 @@ import '../history/file_history_store.dart';
 import '../history/history_store.dart';
 import '../history/undo_service.dart';
 import '../ports/idempotency_store.dart';
+import '../ports/artifact_store.dart';
 import '../ports/project_file_reader.dart';
 import '../security/audit_log.dart';
 import '../security/authoring_permission.dart';
@@ -41,19 +42,25 @@ final class LocalMapAuthoringMutationApi implements AuthoringMutationApiPort {
     required WorkspacePolicy policy,
     required ProjectSnapshotLoader snapshotLoader,
     MapMutationDispatcher? dispatcher,
+    ArtifactStore? artifactStore,
     AuthoringActor? actor,
     DateTime Function()? clock,
     AuthoringTransactionFaultInjector? faultInjector,
   })  : _policy = policy,
         _snapshotLoader = snapshotLoader,
-        _dispatcher = dispatcher ?? MapMutationDispatcher.canonical(),
         _actor = actor ?? _localActor,
         _clock = clock ?? _systemClock,
-        _faultInjector = faultInjector;
+        _faultInjector = faultInjector {
+    artifacts =
+        artifactStore ?? MemoryArtifactStore(maximumArtifactBytes: 64 << 20);
+    _dispatcher =
+        dispatcher ?? MapMutationDispatcher.canonical(artifactStore: artifacts);
+  }
 
   final WorkspacePolicy _policy;
   final ProjectSnapshotLoader _snapshotLoader;
-  final MapMutationDispatcher _dispatcher;
+  late final MapMutationDispatcher _dispatcher;
+  late final ArtifactStore artifacts;
   final AuthoringActor _actor;
   final DateTime Function() _clock;
   final AuthoringTransactionFaultInjector? _faultInjector;
@@ -183,22 +190,12 @@ final class LocalMapAuthoringMutationApi implements AuthoringMutationApiPort {
     ProjectSnapshot snapshot,
   ) async {
     const reader = LocalProjectFileReader();
-    final manifest = await reader.readBytes(
-      projectRoot: canonicalRoot,
-      relativePath: 'project.json',
-    );
-    if (!_bytesEqual(manifest, snapshot.resourceBytes('project'))) {
-      throw const WorkspaceHandleException(
-        'workspace.mutation_binding_mismatch',
-        'The mutation root does not match the opened project handle.',
-      );
-    }
-    for (final entry in snapshot.manifest.maps) {
+    for (final entry in snapshot.resourceStorageKeys.entries) {
       final bytes = await reader.readBytes(
         projectRoot: canonicalRoot,
-        relativePath: entry.relativePath,
+        relativePath: entry.value,
       );
-      if (!_bytesEqual(bytes, snapshot.resourceBytes('map:${entry.id}'))) {
+      if (!_bytesEqual(bytes, snapshot.resourceBytes(entry.key))) {
         throw const WorkspaceHandleException(
           'workspace.mutation_binding_mismatch',
           'The mutation root does not match the opened project handle.',
@@ -546,6 +543,9 @@ final AuthoringActor _localActor = AuthoringActor(
     AuthoringPermissionScope.projectRead,
     AuthoringPermissionScope.projectWrite,
     AuthoringPermissionScope.projectDestructive,
+    AuthoringPermissionScope.assetRead,
+    AuthoringPermissionScope.assetWrite,
+    AuthoringPermissionScope.importRun,
     AuthoringPermissionScope.recoveryApply,
     AuthoringPermissionScope.renderRun,
   ],

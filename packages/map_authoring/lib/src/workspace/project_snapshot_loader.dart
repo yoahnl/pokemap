@@ -2,7 +2,9 @@ import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
 
+import '../contracts/artifact_ref.dart';
 import '../ports/project_file_reader.dart';
+import '../domains/assets/asset_store.dart';
 import 'project_snapshot.dart';
 import 'workspace_handle_store.dart';
 
@@ -49,6 +51,47 @@ final class ProjectSnapshotLoader {
         ),
       );
     }
+    final assetCatalogBytes = await _readOptional(
+      access,
+      assetCatalogStorageKey,
+    );
+    if (assetCatalogBytes != null) {
+      final catalog = _decodeAssetCatalog(assetCatalogBytes);
+      resources.add(
+        _LoadedProjectResource(
+          relativePath: assetCatalogStorageKey,
+          identity: assetCatalogResourceIdentity,
+          bytes: assetCatalogBytes,
+        ),
+      );
+      final digests = catalog.records
+          .map((record) => record.artifact)
+          .toSet()
+          .toList()
+        ..sort((left, right) => left.digest.compareTo(right.digest));
+      for (final artifact in digests) {
+        final storageKey = assetBlobStorageKey(artifact);
+        final bytes = await _readRequiredAssetBlob(access, storageKey);
+        final inspected = ContentArtifactRef.fromBytes(
+          bytes,
+          mediaType: artifact.mediaType,
+        );
+        if (inspected.digest != artifact.digest ||
+            inspected.byteLength != artifact.byteLength) {
+          throw const ProjectSnapshotException(
+            'project.asset_blob_mismatch',
+            'An asset blob does not match its content-addressed catalog entry.',
+          );
+        }
+        resources.add(
+          _LoadedProjectResource(
+            relativePath: storageKey,
+            identity: assetBlobResourceIdentity(artifact.digest),
+            bytes: bytes,
+          ),
+        );
+      }
+    }
     resources.sort(
       (left, right) => left.relativePath.compareTo(right.relativePath),
     );
@@ -86,6 +129,52 @@ final class ProjectSnapshotLoader {
       resourceBytes: {
         for (final resource in resources) resource.identity: resource.bytes,
       },
+      resourceStorageKeys: {
+        for (final resource in resources)
+          resource.identity: resource.relativePath,
+      },
+    );
+  }
+}
+
+Future<List<int>?> _readOptional(
+  ProjectWorkspaceAccess access,
+  String relativePath,
+) async {
+  try {
+    return await access.readBytes(relativePath);
+  } on WorkspaceAccessException catch (error) {
+    if (error.code == 'workspace.file_unavailable') return null;
+    rethrow;
+  }
+}
+
+Future<List<int>> _readRequiredAssetBlob(
+  ProjectWorkspaceAccess access,
+  String relativePath,
+) async {
+  try {
+    return await access.readBytes(relativePath);
+  } on WorkspaceAccessException catch (error) {
+    if (error.code == 'workspace.file_unavailable') {
+      throw const ProjectSnapshotException(
+        'project.asset_blob_missing',
+        'An asset catalog entry points to a missing blob.',
+      );
+    }
+    rethrow;
+  }
+}
+
+AssetCatalog _decodeAssetCatalog(List<int> bytes) {
+  try {
+    final decoded = jsonDecode(utf8.decode(bytes));
+    if (decoded is! Map) throw const FormatException();
+    return AssetCatalog.fromJson(Map<String, dynamic>.from(decoded));
+  } on Object {
+    throw const ProjectSnapshotException(
+      'project.asset_catalog_invalid',
+      'The project asset catalog is invalid.',
     );
   }
 }

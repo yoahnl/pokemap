@@ -49,7 +49,12 @@ final class AuthoringReadApi implements AuthoringReadApiPort {
     final readableResourceKinds =
         AuthoringResourceKindRegistry.canonicalMinimal()
             .resourceKinds
-            .where((kind) => kind.id == 'map' || kind.id == 'project')
+            .where(
+              (kind) =>
+                  kind.id == 'map' ||
+                  kind.id == 'project' ||
+                  kind.id == 'asset',
+            )
             .map((kind) => kind.toJson())
             .toList(growable: false);
     return freezeContractJsonObject(
