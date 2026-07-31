@@ -303,6 +303,56 @@ void main() {
       semantics.dispose();
     });
 
+    testWidgets('Paint and Place menus expose their resolved subtool selection',
+        (tester) async {
+      final container = _containerWith(_paintState('path'));
+      final editor = container.read(editorNotifierProvider.notifier);
+      final session = container.read(worldMapWorkspaceSessionProvider.notifier);
+      expect(
+        session
+            .activateTool(
+              editor,
+              const ActivateWorldMapPaint(WorldMapPaintSubtool.path),
+            )
+            .accepted,
+        isTrue,
+      );
+      expect(
+        session
+            .activateTool(
+              editor,
+              const ActivateWorldMapPlacement(
+                WorldMapPlacementSubtool.event,
+              ),
+            )
+            .accepted,
+        isTrue,
+      );
+      expect(
+        session
+            .activateTool(editor, const ActivateWorldMapSelection())
+            .accepted,
+        isTrue,
+      );
+
+      await _pumpToolbelt(tester, container);
+
+      final paint = tester.widget<PokeMapSplitButton<WorldMapPaintSubtool>>(
+        find.byKey(const ValueKey<String>('world-map-tool-paint')),
+      );
+      final place = tester.widget<PokeMapSplitButton<WorldMapPlacementSubtool>>(
+        find.byKey(const ValueKey<String>('world-map-tool-place')),
+      );
+      expect(
+        paint.items.where((item) => item.selected).map((item) => item.value),
+        [WorldMapPaintSubtool.path],
+      );
+      expect(
+        place.items.where((item) => item.selected).map((item) => item.value),
+        [WorldMapPlacementSubtool.event],
+      );
+    });
+
     testWidgets('Paint main click replays the remembered layer subtool',
         (tester) async {
       final container = _containerWith(_paintState('path'));

@@ -18,6 +18,7 @@ class PokeMapMenuItem<T> {
     this.enabled = true,
     this.disabledReason,
     this.destructive = false,
+    this.selected = false,
   });
 
   final T value;
@@ -26,6 +27,7 @@ class PokeMapMenuItem<T> {
   final bool enabled;
   final String? disabledReason;
   final bool destructive;
+  final bool selected;
 }
 
 /// Controlled context-menu overlay with no knowledge of editor commands.
@@ -371,13 +373,22 @@ class _PokeMapContextMenuRowState<T> extends State<_PokeMapContextMenuRow<T>> {
   bool _hovered = false;
 
   @override
+  void didUpdateWidget(covariant _PokeMapContextMenuRow<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.item.enabled && !widget.item.enabled) {
+      _hovered = false;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final item = widget.item;
-    final highlighted = widget.focused || _hovered;
-    final background = item.destructive
-        ? (highlighted ? colors.errorSoft : colors.transparent)
-        : (highlighted ? colors.cardSelected : colors.transparent);
+    final background = item.selected
+        ? colors.cardSelected
+        : item.enabled && _hovered
+            ? colors.cardHover
+            : colors.transparent;
     final foreground = !item.enabled
         ? colors.textDisabled
         : item.destructive
@@ -392,6 +403,7 @@ class _PokeMapContextMenuRowState<T> extends State<_PokeMapContextMenuRow<T>> {
     Widget row = Semantics(
       button: true,
       enabled: item.enabled,
+      selected: item.selected ? true : null,
       label: semanticLabel,
       hint: item.shortcutLabel == null
           ? null
@@ -425,6 +437,14 @@ class _PokeMapContextMenuRowState<T> extends State<_PokeMapContextMenuRow<T>> {
               ),
               child: Row(
                 children: [
+                  if (item.selected) ...[
+                    Icon(
+                      Icons.check_rounded,
+                      color: foreground,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   Expanded(
                     child: Text(
                       item.label,
@@ -432,6 +452,7 @@ class _PokeMapContextMenuRowState<T> extends State<_PokeMapContextMenuRow<T>> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: foreground,
+                        decoration: TextDecoration.none,
                         fontSize: 12,
                         fontWeight: item.destructive
                             ? FontWeight.w700
@@ -447,6 +468,7 @@ class _PokeMapContextMenuRowState<T> extends State<_PokeMapContextMenuRow<T>> {
                         color: item.enabled
                             ? colors.textMuted
                             : colors.textDisabled,
+                        decoration: TextDecoration.none,
                         fontSize: 11,
                       ),
                     ),

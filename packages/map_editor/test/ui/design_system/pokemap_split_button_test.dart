@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/theme/theme.dart';
-import 'package:map_editor/src/ui/design_system/design_system.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_context_menu.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_panel.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_split_button.dart';
 
 void main() {
   Widget buildSubject({
@@ -13,34 +15,65 @@ void main() {
     required ValueChanged<String> onSelected,
     FocusNode? focusNode,
     List<PokeMapMenuItem<String>>? items,
+    TextStyle? inheritedTextStyle,
   }) {
+    Widget subject = PokeMapSplitButton<String>(
+      onPressed: onPressed,
+      items: items ??
+          const <PokeMapMenuItem<String>>[
+            PokeMapMenuItem(value: 'brush', label: 'Pinceau'),
+            PokeMapMenuItem(
+              value: 'fill',
+              label: 'Remplissage',
+              enabled: false,
+              disabledReason: 'Aucune zone fermée',
+            ),
+            PokeMapMenuItem(value: 'rectangle', label: 'Rectangle'),
+          ],
+      onSelected: onSelected,
+      tooltip: 'Utiliser le pinceau',
+      menuTooltip: 'Choisir un outil',
+      focusNode: focusNode,
+      child: const Text('Peindre'),
+    );
+    if (inheritedTextStyle != null) {
+      subject = DefaultTextStyle(
+        style: inheritedTextStyle,
+        child: subject,
+      );
+    }
     return MaterialApp(
       theme: PokeMapTheme.dark(),
       home: Scaffold(
         body: Center(
-          child: PokeMapSplitButton<String>(
-            onPressed: onPressed,
-            items: items ??
-                const <PokeMapMenuItem<String>>[
-                  PokeMapMenuItem(value: 'brush', label: 'Pinceau'),
-                  PokeMapMenuItem(
-                    value: 'fill',
-                    label: 'Remplissage',
-                    enabled: false,
-                    disabledReason: 'Aucune zone fermée',
-                  ),
-                  PokeMapMenuItem(value: 'rectangle', label: 'Rectangle'),
-                ],
-            onSelected: onSelected,
-            tooltip: 'Utiliser le pinceau',
-            menuTooltip: 'Choisir un outil',
-            focusNode: focusNode,
-            child: const Text('Peindre'),
-          ),
+          child: subject,
         ),
       ),
     );
   }
+
+  testWidgets('neutralizes hostile inherited decoration on its label',
+      (tester) async {
+    await tester.pumpWidget(
+      buildSubject(
+        onPressed: () {},
+        onSelected: (_) {},
+        inheritedTextStyle: const TextStyle(
+          color: Colors.yellow,
+          decoration: TextDecoration.underline,
+          decorationColor: Colors.yellow,
+        ),
+      ),
+    );
+
+    final labelFinder = find.text('Peindre');
+    final label = tester.widget<Text>(labelFinder);
+    final effectiveStyle = DefaultTextStyle.of(
+      tester.element(labelFinder),
+    ).style.merge(label.style);
+
+    expect(effectiveStyle.decoration, TextDecoration.none);
+  });
 
   testWidgets('keeps primary and menu pointer actions distinct',
       (tester) async {

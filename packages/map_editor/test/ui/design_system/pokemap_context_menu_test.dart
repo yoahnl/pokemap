@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/theme/theme.dart';
-import 'package:map_editor/src/ui/design_system/design_system.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_context_menu.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_panel.dart';
 
 void main() {
   const items = <PokeMapMenuItem<String>>[
@@ -203,6 +204,52 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('neutralizes hostile inherited decoration on row text',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: DefaultTextStyle(
+            style: const TextStyle(
+              color: Colors.yellow,
+              decoration: TextDecoration.underline,
+              decorationColor: Colors.yellow,
+            ),
+            child: Stack(
+              children: [
+                PokeMapContextMenu<String>(
+                  anchor: const Offset(120, 80),
+                  items: const [
+                    PokeMapMenuItem(
+                      value: 'open',
+                      label: 'Ouvrir hostile',
+                      shortcutLabel: 'Cmd+O',
+                    ),
+                  ],
+                  onSelected: (_) {},
+                  onDismiss: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    TextStyle effectiveStyle(String text) {
+      final finder = find.text(text);
+      final widget = tester.widget<Text>(finder);
+      return DefaultTextStyle.of(tester.element(finder)).style.merge(
+            widget.style,
+          );
+    }
+
+    expect(effectiveStyle('Ouvrir hostile').decoration, TextDecoration.none);
+    expect(effectiveStyle('Cmd+O').decoration, TextDecoration.none);
+  });
+
   testWidgets('uses destructive tokens and renders requested separators',
       (tester) async {
     await tester.pumpWidget(
@@ -226,6 +273,195 @@ void main() {
     );
     expect(divider.color, PokeMapColorTokens.dark.divider);
     expect(find.text('Entrée'), findsOneWidget);
+  });
+
+  testWidgets('renders real selection with token, check, and semantics',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+
+    await tester.pumpWidget(
+      _ContextMenuHarness(
+        items: const [
+          PokeMapMenuItem(value: 'plain', label: 'Action neutre'),
+          PokeMapMenuItem(
+            value: 'selected',
+            label: 'Action active',
+            selected: true,
+          ),
+        ],
+        onSelected: (_) {},
+      ),
+    );
+    await tester.tap(find.text('Afficher'));
+    await tester.pump();
+
+    final selectedRow = find.ancestor(
+      of: find.text('Action active'),
+      matching: find.byType(AnimatedContainer),
+    );
+    final decoration = tester.widget<AnimatedContainer>(selectedRow).decoration!
+        as BoxDecoration;
+
+    expect(decoration.color, PokeMapColorTokens.dark.cardSelected);
+    expect(
+      find.descendant(
+        of: selectedRow,
+        matching: find.byIcon(Icons.check_rounded),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'Action active' &&
+            widget.properties.selected == true,
+      ),
+      findsOneWidget,
+    );
+    semantics.dispose();
+  });
+
+  testWidgets('keeps initial keyboard focus distinct from selection',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+
+    await tester.pumpWidget(
+      _ContextMenuHarness(
+        items: const [
+          PokeMapMenuItem(value: 'focused', label: 'Action focus'),
+          PokeMapMenuItem(value: 'other', label: 'Autre action'),
+        ],
+        onSelected: (_) {},
+      ),
+    );
+    await tester.tap(find.text('Afficher'));
+    await tester.pump();
+    await tester.pump();
+
+    final focusedRow = find.ancestor(
+      of: find.text('Action focus'),
+      matching: find.byType(AnimatedContainer),
+    );
+    final decoration = tester.widget<AnimatedContainer>(focusedRow).decoration!
+        as BoxDecoration;
+    final focusDetector = tester.widget<FocusableActionDetector>(
+      find.ancestor(
+        of: find.text('Action focus'),
+        matching: find.byType(FocusableActionDetector),
+      ),
+    );
+
+    expect(focusDetector.focusNode!.hasFocus, isTrue);
+    expect(decoration.color, PokeMapColorTokens.dark.transparent);
+    expect((decoration.border! as Border).top.color,
+        PokeMapColorTokens.dark.focusRing);
+    expect(
+      find.descendant(
+        of: focusedRow,
+        matching: find.byIcon(Icons.check_rounded),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'Action focus' &&
+            widget.properties.selected == true,
+      ),
+      findsNothing,
+    );
+    final ordinarySemantics = tester.widget<Semantics>(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics && widget.properties.label == 'Action focus',
+      ),
+    );
+    expect(ordinarySemantics.properties.selected, isNull);
+    semantics.dispose();
+  });
+
+  testWidgets('uses the hover token without claiming selection',
+      (tester) async {
+    await tester.pumpWidget(
+      _ContextMenuHarness(
+        items: const [
+          PokeMapMenuItem(value: 'focused', label: 'Action focus'),
+          PokeMapMenuItem(value: 'hovered', label: 'Action survolée'),
+        ],
+        onSelected: (_) {},
+      ),
+    );
+    await tester.tap(find.text('Afficher'));
+    await tester.pump();
+
+    final hoveredRow = find.ancestor(
+      of: find.text('Action survolée'),
+      matching: find.byType(AnimatedContainer),
+    );
+    final hoverDetector = tester.widget<FocusableActionDetector>(
+      find.ancestor(
+        of: find.text('Action survolée'),
+        matching: find.byType(FocusableActionDetector),
+      ),
+    );
+    hoverDetector.onShowHoverHighlight!(true);
+    await tester.pump(const Duration(milliseconds: 150));
+
+    final decoration = tester.widget<AnimatedContainer>(hoveredRow).decoration!
+        as BoxDecoration;
+    expect(decoration.color, PokeMapColorTokens.dark.cardHover);
+    expect(
+      find.descendant(
+        of: hoveredRow,
+        matching: find.byIcon(Icons.check_rounded),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('clears hover when an item is disabled and re-enabled',
+      (tester) async {
+    final harnessKey = GlobalKey<_MutableContextMenuHarnessState>();
+
+    await tester.pumpWidget(
+      _MutableContextMenuHarness(
+        key: harnessKey,
+        onSelected: (_) {},
+      ),
+    );
+    await tester.tap(find.text('Afficher'));
+    await tester.pump();
+    harnessKey.currentState!.enableEntry();
+    await tester.pump();
+
+    final row = find.ancestor(
+      of: find.text('Ouvrir'),
+      matching: find.byType(AnimatedContainer),
+    );
+    final hoverDetector = tester.widget<FocusableActionDetector>(
+      find.ancestor(
+        of: find.text('Ouvrir'),
+        matching: find.byType(FocusableActionDetector),
+      ),
+    );
+    hoverDetector.onShowHoverHighlight!(true);
+    await tester.pump(const Duration(milliseconds: 150));
+
+    BoxDecoration decoration() {
+      return tester.widget<AnimatedContainer>(row).decoration! as BoxDecoration;
+    }
+
+    expect(decoration().color, PokeMapColorTokens.dark.cardHover);
+
+    harnessKey.currentState!.disableEntry();
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(decoration().color, PokeMapColorTokens.dark.transparent);
+
+    harnessKey.currentState!.enableEntry();
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(decoration().color, PokeMapColorTokens.dark.transparent);
   });
 
   testWidgets('keyboard navigation skips disabled entries', (tester) async {
@@ -527,6 +763,10 @@ class _MutableContextMenuHarnessState
 
   void enableEntry() {
     setState(() => _entryEnabled = true);
+  }
+
+  void disableEntry() {
+    setState(() => _entryEnabled = false);
   }
 
   @override

@@ -321,6 +321,7 @@ class _PokeMapSplitButtonSegmentState
                     child: DefaultTextStyle.merge(
                       style: TextStyle(
                         color: foreground,
+                        decoration: TextDecoration.none,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),

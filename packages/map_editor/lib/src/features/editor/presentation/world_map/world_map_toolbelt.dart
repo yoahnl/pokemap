@@ -264,6 +264,7 @@ class WorldMapToolbelt extends ConsumerWidget {
                     PokeMapMenuItem<WorldMapPaintSubtool>(
                       value: subtool,
                       label: _paintSubtoolLabel(subtool),
+                      selected: subtool == visualState.paintSubtool,
                     ),
                 ],
                 onSelected: (subtool) => activate(
@@ -306,6 +307,7 @@ class WorldMapToolbelt extends ConsumerWidget {
                     PokeMapMenuItem<WorldMapPlacementSubtool>(
                       value: subtool,
                       label: _placementSubtoolLabel(subtool),
+                      selected: subtool == visualState.placementSubtool,
                     ),
                 ],
                 onSelected: (subtool) => activate(
