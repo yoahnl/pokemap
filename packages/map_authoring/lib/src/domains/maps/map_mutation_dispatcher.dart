@@ -8,6 +8,9 @@ import '../../domains/assets/presentation_actions.dart';
 import '../../domains/assets/preset_actions.dart';
 import '../../domains/assets/tileset_actions.dart';
 import '../../domains/narrative/dialogue_actions.dart';
+import '../../domains/narrative/event_actions.dart';
+import '../../domains/narrative/fact_rule_actions.dart';
+import '../../domains/narrative/scene_actions.dart';
 import '../../domains/narrative/script_actions.dart';
 import '../../ports/artifact_store.dart';
 import '../../transactions/action_planner.dart';
@@ -71,6 +74,9 @@ final class MapMutationDispatcher {
     const presentation = PresentationActions();
     const dialogues = DialogueActions();
     const scripts = ScriptActions();
+    const scenes = SceneActions();
+    const events = EventV2Actions();
+    const factsAndRules = FactRuleActions();
     return MapMutationDispatcher([
       for (final descriptor in MapLifecycleActions.descriptors)
         MapMutationActionRegistration(
@@ -176,6 +182,21 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: scripts.build,
+        ),
+      for (final descriptor in SceneActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: scenes.build,
+        ),
+      for (final descriptor in EventV2Actions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: events.build,
+        ),
+      for (final descriptor in FactRuleActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: factsAndRules.build,
         ),
     ]);
   }

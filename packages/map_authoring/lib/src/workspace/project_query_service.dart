@@ -113,6 +113,39 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
             detail: _scriptDetail(script),
           ),
       ];
+    case 'scene':
+      return [
+        for (final scene in snapshot.manifest.scenes)
+          _QueryRecord(
+            summary: _sceneSummary(scene),
+            detail: _sceneDetail(snapshot, scene),
+          ),
+      ];
+    case 'eventV2':
+      return [
+        for (final record in snapshot.manifest.eventRegistry?.records ??
+            const <NarrativeEventRecord>[])
+          _QueryRecord(
+            summary: _eventV2Summary(record),
+            detail: _eventV2Detail(snapshot, record),
+          ),
+      ];
+    case 'fact':
+      return [
+        for (final fact in snapshot.manifest.facts)
+          _QueryRecord(
+            summary: _factSummary(fact),
+            detail: {...fact.toJson(), 'resourceKind': 'fact'},
+          ),
+      ];
+    case 'worldRule':
+      return [
+        for (final rule in snapshot.manifest.worldRules)
+          _QueryRecord(
+            summary: _worldRuleSummary(rule),
+            detail: {...rule.toJson(), 'resourceKind': 'worldRule'},
+          ),
+      ];
     default:
       throw const AuthoringQueryException(
         'query.resource_kind_unsupported',
@@ -284,6 +317,92 @@ Map<String, Object?> _scriptDetail(ProjectScriptEntry script) => {
       'resourceKind': 'script',
       'simulation':
           const ScriptAuthoringSimulator().simulate(script.asset).toJson(),
+    };
+
+Map<String, Object?> _sceneSummary(SceneAsset scene) => {
+      'id': scene.id,
+      'name': scene.name,
+      'resourceKind': 'scene',
+      'nodeCount': scene.graph.nodes.length,
+      'edgeCount': scene.graph.edges.length,
+    };
+
+Map<String, Object?> _sceneDetail(ProjectSnapshot snapshot, SceneAsset scene) {
+  final report = diagnoseSceneAgainstProject(
+    scene,
+    snapshot.manifest,
+    mapsById: {for (final map in snapshot.maps) map.id: map},
+  );
+  return {
+    ...scene.toJson(),
+    'resourceKind': 'scene',
+    'runtimeBuildable': buildSceneRuntimePlan(scene).canBuild,
+    'diagnostics': [
+      for (final item in report.diagnostics)
+        {
+          'code': item.code.name,
+          'severity': item.severity.name,
+          'message': item.message,
+          if (item.nodeId != null) 'nodeId': item.nodeId,
+          if (item.edgeId != null) 'edgeId': item.edgeId,
+        },
+    ],
+  };
+}
+
+Map<String, Object?> _eventV2Summary(NarrativeEventRecord record) => {
+      'id': record.id,
+      'name': record.when(
+        draft: (draft) => draft.name,
+        configured: (definition, _) => definition.name,
+      ),
+      'resourceKind': 'eventV2',
+      'state': record.draftOrNull == null ? 'configured' : 'draft',
+      if (record.enabledOrNull != null) 'enabled': record.enabledOrNull,
+    };
+
+Map<String, Object?> _eventV2Detail(
+  ProjectSnapshot snapshot,
+  NarrativeEventRecord record,
+) {
+  final registry = snapshot.manifest.eventRegistry!;
+  final catalog = buildNarrativeEventProjectCatalog(
+    project: snapshot.manifest,
+    maps: snapshot.maps,
+  );
+  final validation = buildNarrativeEventValidationReportSubset(
+    registry: registry,
+    catalog: catalog,
+    eventIds: {record.id},
+  );
+  return {
+    ...record.toJson(),
+    'id': record.id,
+    'name': record.when(
+      draft: (draft) => draft.name,
+      configured: (definition, _) => definition.name,
+    ),
+    'resourceKind': 'eventV2',
+    'validation': validation.toDebugJson(),
+  };
+}
+
+Map<String, Object?> _factSummary(NarrativeFactDefinition fact) => {
+      'id': fact.id,
+      'name': fact.label,
+      'resourceKind': 'fact',
+      'valueKind': fact.valueKind.wireName,
+      'category': fact.category,
+    };
+
+Map<String, Object?> _worldRuleSummary(WorldRuleDefinition rule) => {
+      'id': rule.id,
+      'name': rule.label,
+      'resourceKind': 'worldRule',
+      'enabled': rule.enabled,
+      'sourceKind': rule.source.kind.name,
+      'targetKind': rule.target.kind.name,
+      'effectKind': rule.effect.kind.name,
     };
 
 AssetCatalog _decodeAssetCatalog(List<int> bytes) {

@@ -169,6 +169,30 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Script',
         summary: 'Embedded deterministic project script',
       ),
+      AuthoringResourceKindDescriptor(
+        id: 'scene',
+        version: 1,
+        displayName: 'Scene',
+        summary: 'Project-owned executable narrative graph',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'eventV2',
+        version: 1,
+        displayName: 'Event V2',
+        summary: 'Revision-gated narrative event record',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'fact',
+        version: 1,
+        displayName: 'Fact',
+        summary: 'Typed narrative state definition',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'worldRule',
+        version: 1,
+        displayName: 'World Rule',
+        summary: 'Runtime-consumed world projection rule',
+      ),
     ]);
   }
 

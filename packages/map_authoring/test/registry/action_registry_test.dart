@@ -86,11 +86,15 @@ void main() {
           'assetCatalog',
           'dialogue',
           'dialogueSource',
+          'eventV2',
+          'fact',
           'layer',
           'map',
           'project',
           'region',
+          'scene',
           'script',
+          'worldRule',
         ],
       );
       expect(registry.require('map').displayName, 'Map');
