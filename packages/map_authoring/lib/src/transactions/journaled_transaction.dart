@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../contracts/authoring_receipt.dart';
 import '../contracts/authoring_request.dart';
+import '../history/authoring_history.dart';
 import '../ports/idempotency_store.dart';
 import '../ports/transaction_file_gateway.dart';
 import '../support/authoring_fingerprint.dart';
@@ -40,6 +41,7 @@ final class AuthoringTransactionCheckpointContext {
 typedef AuthoringTransactionFaultInjector = FutureOr<void> Function(
   AuthoringTransactionCheckpointContext context,
 );
+typedef AuthoringTransactionPrecondition = FutureOr<void> Function();
 
 final class AuthoringTransactionSimulatedCrash implements Exception {
   const AuthoringTransactionSimulatedCrash();
@@ -64,17 +66,20 @@ final class JournaledAuthoringTransaction {
     required AuthoringIdempotencyLedger idempotency,
     required DateTime Function() clock,
     AuthoringTransactionFaultInjector? faultInjector,
+    AuthoringTransactionCommitHook? commitHook,
   })  : _plans = plans,
         _gateway = gateway,
         _idempotency = idempotency,
         _clock = clock,
-        _faultInjector = faultInjector;
+        _faultInjector = faultInjector,
+        _commitHook = commitHook;
 
   final AuthoringPlanStore _plans;
   final TransactionFileGateway _gateway;
   final AuthoringIdempotencyLedger _idempotency;
   final DateTime Function() _clock;
   final AuthoringTransactionFaultInjector? _faultInjector;
+  final AuthoringTransactionCommitHook? _commitHook;
 
   Future<AuthoringReceipt> apply({
     required String planId,
@@ -82,6 +87,7 @@ final class JournaledAuthoringTransaction {
     required String currentProjectRevision,
     required AuthoringIdempotencyScope scope,
     required String operationId,
+    AuthoringTransactionPrecondition? precondition,
   }) {
     return _gateway.withExclusiveWriteLock(() async {
       final replay = await _idempotency.inspect(
@@ -89,6 +95,7 @@ final class JournaledAuthoringTransaction {
         request: request,
       );
       if (replay != null) return replay;
+      await precondition?.call();
 
       final plan = _plans.resolve(
         planId,
@@ -115,6 +122,9 @@ final class JournaledAuthoringTransaction {
       }
 
       final now = _clock().toUtc();
+      final historyContext = AuthoringHistoryContext.fromExtensions(
+        request.extensions,
+      );
       final afterRevisions =
           AuthoringRevisionSet.afterChangeSet(plan.changeSet);
       final intendedReceipt = AuthoringReceipt(
@@ -132,6 +142,7 @@ final class JournaledAuthoringTransaction {
           'planId': plan.planId,
           'operationId': operationId,
           'multiFileGuarantee': 'recoverable',
+          'history': historyContext.toJson(),
         },
       );
       var journal = AuthoringTransactionJournal(
@@ -272,6 +283,15 @@ final class JournaledAuthoringTransaction {
           await _checkpoint(
             AuthoringTransactionCheckpoint.afterJournalCommitted,
             operationId,
+          );
+          await _commitHook?.record(
+            AuthoringCommittedMutation(
+              scope: scope,
+              planId: plan.planId,
+              operationId: operationId,
+              receipt: intendedReceipt,
+              changes: plan.changeSet.changes,
+            ),
           );
           return intendedReceipt;
         },

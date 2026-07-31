@@ -1,6 +1,8 @@
 import '../contracts/authoring_receipt.dart';
+import '../history/authoring_history.dart';
 import '../ports/idempotency_store.dart';
 import '../ports/transaction_file_gateway.dart';
+import 'change_set.dart';
 import 'idempotency_ledger.dart';
 import 'revision_set.dart';
 import 'transaction_journal.dart';
@@ -49,13 +51,16 @@ final class AuthoringRecoveryService {
     required TransactionFileGateway gateway,
     required AuthoringIdempotencyLedger idempotency,
     required DateTime Function() clock,
+    AuthoringTransactionCommitHook? commitHook,
   })  : _gateway = gateway,
         _idempotency = idempotency,
-        _clock = clock;
+        _clock = clock,
+        _commitHook = commitHook;
 
   final TransactionFileGateway _gateway;
   final AuthoringIdempotencyLedger _idempotency;
   final DateTime Function() _clock;
+  final AuthoringTransactionCommitHook? _commitHook;
 
   Future<List<AuthoringRecoveryInspection>> inspect() {
     return _gateway.withExclusiveWriteLock(() async {
@@ -104,6 +109,7 @@ final class AuthoringRecoveryService {
           finalReceipt: recovered,
         );
         await _gateway.writeJournal(journal);
+        await _recordCommitted(journal);
         return _idempotency.completeRecovered(
           scope: journal.scope,
           operationId: operationId,
@@ -111,6 +117,14 @@ final class AuthoringRecoveryService {
         );
       }
 
+      final commitHook = _commitHook;
+      if (commitHook is AuthoringTransactionRecoveryGuard) {
+        await (commitHook as AuthoringTransactionRecoveryGuard)
+            .requireRecoveryAllowed(
+          intendedReceipt: journal.intendedReceipt,
+          scope: journal.scope,
+        );
+      }
       journal = journal.copyWith(
         status: AuthoringTransactionStatus.promoting,
         updatedAt: _clock().toUtc(),
@@ -158,6 +172,7 @@ final class AuthoringRecoveryService {
         finalReceipt: recovered,
       );
       await _gateway.writeJournal(journal);
+      await _recordCommitted(journal);
       return _idempotency.completeRecovered(
         scope: journal.scope,
         operationId: operationId,
@@ -451,6 +466,45 @@ final class AuthoringRecoveryService {
         ...intended.extensions,
         'recoveryOutcome': outcome,
       },
+    );
+  }
+
+  Future<void> _recordCommitted(AuthoringTransactionJournal journal) async {
+    final hook = _commitHook;
+    if (hook == null) return;
+    final changes = <AuthoringResourceChange>[];
+    for (final entry in journal.entries) {
+      final before = await _gateway.readStagedPayload(
+        operationId: journal.operationId,
+        storageKey: entry.storageKey,
+        kind: TransactionPayloadKind.before,
+      );
+      final after = await _gateway.readStagedPayload(
+        operationId: journal.operationId,
+        storageKey: entry.storageKey,
+        kind: TransactionPayloadKind.after,
+      );
+      changes.add(
+        AuthoringResourceChange(
+          resource: entry.resource,
+          storageKey: entry.storageKey,
+          beforeBytes: before.bytes,
+          afterBytes: after.bytes,
+          beforeRevision: entry.beforeRevision,
+          afterRevision: entry.afterRevision,
+        ),
+      );
+    }
+    await hook.record(
+      AuthoringCommittedMutation(
+        scope: journal.scope,
+        planId: journal.planId,
+        operationId: journal.operationId,
+        // Reuse the frozen receipt so a retry after the history hook but before
+        // idempotency completion remains byte-for-byte idempotent.
+        receipt: journal.intendedReceipt,
+        changes: changes,
+      ),
     );
   }
 }

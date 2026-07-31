@@ -45,6 +45,7 @@ final class SecureAuthoringMutationExecutor {
     required AuthoringIdempotencyScope scope,
     required String operationId,
     AuthoringConfirmationToken? confirmationToken,
+    AuthoringTransactionPrecondition? precondition,
   }) async {
     late final AuthoringAuthorizationDecision authorization;
     try {
@@ -104,6 +105,7 @@ final class SecureAuthoringMutationExecutor {
         currentProjectRevision: currentProjectRevision,
         scope: scope,
         operationId: operationId,
+        precondition: precondition,
       );
     } on Object catch (error, stackTrace) {
       await _appendAudit(
