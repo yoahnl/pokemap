@@ -3,6 +3,7 @@ import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'map_lifecycle_actions.dart';
 import 'map_lifecycle_adapter.dart';
+import 'map_operations_batch.dart';
 
 typedef MapMutationDraftBuilder = AuthoringMutationDraft Function(
   AuthoringPlanningContext context,
@@ -25,11 +26,17 @@ final class MapMutationDispatcher {
 
   factory MapMutationDispatcher.canonical() {
     const lifecycle = MapLifecycleActions();
+    const operations = MapOperationsActions();
     return MapMutationDispatcher([
       for (final descriptor in MapLifecycleActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: lifecycle.build,
+        ),
+      for (final descriptor in MapOperationsActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: operations.build,
         ),
     ]);
   }

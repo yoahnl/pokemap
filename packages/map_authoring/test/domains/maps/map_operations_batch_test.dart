@@ -1,0 +1,543 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('MapOperationsActions', () {
+    test('advertises one bounded atomic mutation action', () {
+      expect(MapOperationsActions.descriptors, hasLength(1));
+      final descriptor = MapOperationsActions.descriptors.single;
+      expect(descriptor.id, 'map.apply_operations');
+      expect(descriptor.guarantees, contains(AuthoringGuarantee.dryRun));
+      expect(descriptor.guarantees, contains(AuthoringGuarantee.undoable));
+      expect(descriptor.extensions['batchAtomicity'], 'all_or_nothing');
+    });
+
+    test('builds a complete map fixture as one compact map change', () {
+      final map = _map();
+      final snapshot = _snapshot(map);
+      final request = _request(snapshot, const [
+        {
+          'kind': 'layer.add',
+          'layerKind': 'collision',
+          'layerId': 'collision',
+          'name': 'Collision',
+        },
+        {
+          'kind': 'layer.add',
+          'layerKind': 'terrain',
+          'layerId': 'terrain',
+          'name': 'Terrain',
+        },
+        {
+          'kind': 'layer.add',
+          'layerKind': 'path',
+          'layerId': 'path',
+          'name': 'Path',
+        },
+        {
+          'kind': 'layer.add',
+          'layerKind': 'surface',
+          'layerId': 'surface',
+          'name': 'Surface',
+        },
+        {
+          'kind': 'layer.add',
+          'layerKind': 'object',
+          'layerId': 'objects',
+          'name': 'Objects',
+        },
+        {
+          'kind': 'layer.add',
+          'layerKind': 'environment',
+          'layerId': 'environment',
+          'name': 'Environment',
+        },
+        {
+          'kind': 'layer.add',
+          'layerKind': 'border',
+          'layerId': 'border',
+          'name': 'Border',
+        },
+        {
+          'kind': 'layer.add',
+          'layerKind': 'smart_tile',
+          'layerId': 'smart_path',
+          'name': 'Smart Path',
+          'presetId': 'smart_path',
+          'usage': 'path',
+          'defaultMaterialId': 'road',
+          'layerSeed': 7,
+        },
+        {
+          'kind': 'region.fill',
+          'layerId': 'tiles',
+          'x': 0,
+          'y': 0,
+          'width': 4,
+          'height': 3,
+          'value': 11,
+        },
+        {
+          'kind': 'shape.line',
+          'layerId': 'collision',
+          'from': {'x': 0, 'y': 0},
+          'to': {'x': 3, 'y': 2},
+          'value': true,
+        },
+      ]);
+
+      final draft = const MapOperationsActions().build(
+        _context(snapshot, request),
+      );
+
+      expect(draft.changeSet.changes, hasLength(1));
+      expect(draft.changeSet.diff.entries, hasLength(1));
+      final change = draft.changeSet.changes.single;
+      expect(change.storageKey, 'maps/fixture.json');
+      expect(change.beforeBytes, snapshot.resourceBytes('map:fixture'));
+      final updated = MapData.fromJson(
+        jsonDecode(utf8.decode(change.afterBytes!)) as Map<String, dynamic>,
+      );
+      expect(updated.layers, hasLength(9));
+      expect(updated.layers.map((layer) => layer.id), contains('smart_path'));
+      expect(updated.version, ProjectVersion.v4);
+      expect((updated.layers.first as TileLayer).tiles, everyElement(11));
+      expect(draft.preview['operationCount'], 10);
+      expect(draft.preview['changedCellCount'], lessThanOrEqualTo(24));
+      expect(
+        jsonEncode(draft.preview).length,
+        lessThan(4096),
+        reason: 'receipts/previews must summarize rather than embed cell data',
+      );
+    });
+
+    test('rejects the complete batch when one operation is invalid', () {
+      final map = _map();
+      final snapshot = _snapshot(map);
+      final request = _request(snapshot, const [
+        {
+          'kind': 'region.paint',
+          'layerId': 'tiles',
+          'x': 0,
+          'y': 0,
+          'value': 9,
+        },
+        {
+          'kind': 'region.paint',
+          'layerId': 'tiles',
+          'x': 99,
+          'y': 0,
+          'value': 8,
+        },
+      ]);
+
+      expect(
+        () => const MapOperationsActions().build(_context(snapshot, request)),
+        throwsA(
+          isA<MapAuthoringException>()
+              .having((error) => error.code, 'code', 'map.operation_invalid')
+              .having((error) => error.details['operationIndex'], 'index', 1),
+        ),
+      );
+      expect((map.layers.single as TileLayer).tiles, everyElement(0));
+      expect(
+        snapshot.resourceBytes('map:fixture'),
+        _encode(map.toJson()),
+      );
+    });
+
+    test('layer lifecycle supports all layer kinds and metadata changes', () {
+      var map = _map();
+      const operations = MapLayerOperations();
+      for (final operation in const [
+        {
+          'kind': 'layer.add',
+          'layerKind': 'collision',
+          'layerId': 'collision',
+          'name': 'Collision',
+        },
+        {
+          'kind': 'layer.add',
+          'layerKind': 'terrain',
+          'layerId': 'terrain',
+          'name': 'Terrain',
+        },
+        {
+          'kind': 'layer.add',
+          'layerKind': 'path',
+          'layerId': 'path',
+          'name': 'Path',
+        },
+        {
+          'kind': 'layer.add',
+          'layerKind': 'surface',
+          'layerId': 'surface',
+          'name': 'Surface',
+        },
+        {
+          'kind': 'layer.add',
+          'layerKind': 'smart_tile',
+          'layerId': 'smart',
+          'name': 'Smart',
+          'presetId': 'preset',
+          'usage': 'path',
+          'defaultMaterialId': 'road',
+        },
+        {
+          'kind': 'layer.add',
+          'layerKind': 'object',
+          'layerId': 'objects',
+          'name': 'Objects',
+        },
+        {
+          'kind': 'layer.add',
+          'layerKind': 'environment',
+          'layerId': 'environment',
+          'name': 'Environment',
+        },
+        {
+          'kind': 'layer.add',
+          'layerKind': 'border',
+          'layerId': 'border',
+          'name': 'Border',
+        },
+      ]) {
+        map = operations.apply(map, operation).map;
+      }
+      map = operations.apply(map, const {
+        'kind': 'layer.rename',
+        'layerId': 'collision',
+        'name': 'Walls',
+      }).map;
+      map = operations.apply(map, const {
+        'kind': 'layer.set_visibility',
+        'layerId': 'collision',
+        'isVisible': false,
+      }).map;
+      map = operations.apply(map, const {
+        'kind': 'layer.set_opacity',
+        'layerId': 'collision',
+        'opacity': 0.5,
+      }).map;
+      map = operations.apply(map, const {
+        'kind': 'layer.reorder',
+        'oldIndex': 8,
+        'newIndex': 1,
+      }).map;
+
+      expect(
+          map.layers.map((layer) => layer.runtimeType).toSet(), hasLength(9));
+      final collision = map.layers.whereType<CollisionLayer>().single;
+      expect(collision.name, 'Walls');
+      expect(collision.isVisible, isFalse);
+      expect(collision.opacity, 0.5);
+      expect(map.version, ProjectVersion.v4);
+    });
+
+    test('applies one transaction receipt and undoes the complete batch',
+        () async {
+      final setup = await _TransactionSetup.create();
+      addTearDown(setup.dispose);
+      final beforeBytes = await setup.mapFile.readAsBytes();
+      final snapshot = await setup.snapshots.load(setup.projectHandle);
+      final request = AuthoringRequest(
+        requestId: 'request_apply_batch',
+        actionId: 'map.apply_operations',
+        actionVersion: 1,
+        workspaceHandle: setup.workspaceHandle.value,
+        parameters: const {
+          'mapId': 'fixture',
+          'operations': [
+            {
+              'kind': 'region.fill',
+              'layerId': 'tiles',
+              'x': 0,
+              'y': 0,
+              'width': 4,
+              'height': 3,
+              'value': 6,
+            },
+            {
+              'kind': 'region.erase',
+              'layerId': 'tiles',
+              'x': 1,
+              'y': 1,
+            },
+          ],
+        },
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'idem_apply_batch',
+        dryRun: false,
+      );
+
+      final planned = await setup.mutations.plan(setup.projectHandle, request);
+      final applied = await setup.mutations.apply(
+        setup.projectHandle,
+        planId: planned['planId']! as String,
+        operationId: 'operation_apply_batch',
+      );
+
+      final receipt = applied['receipt']! as Map<String, Object?>;
+      expect(receipt['actionId'], 'map.apply_operations');
+      expect(receipt['status'], 'applied');
+      final updated = MapData.fromJson(
+        jsonDecode(await setup.mapFile.readAsString()) as Map<String, dynamic>,
+      );
+      expect((updated.layers.single as TileLayer).tiles[0], 6);
+      expect((updated.layers.single as TileLayer).tiles[5], 0);
+
+      final undone = await setup.mutations.undo(
+        setup.projectHandle,
+        entryId: receipt['receiptId']! as String,
+        idempotencyKey: 'idem_undo_batch',
+      );
+      expect(
+        (undone['receipt']! as Map<String, Object?>)['actionId'],
+        'history.undo',
+      );
+      expect(await setup.mapFile.readAsBytes(), beforeBytes);
+    });
+
+    test('invalid transaction batch never changes the map file', () async {
+      final setup = await _TransactionSetup.create();
+      addTearDown(setup.dispose);
+      final beforeBytes = await setup.mapFile.readAsBytes();
+      final snapshot = await setup.snapshots.load(setup.projectHandle);
+      final request = AuthoringRequest(
+        requestId: 'request_invalid_batch',
+        actionId: 'map.apply_operations',
+        actionVersion: 1,
+        workspaceHandle: setup.workspaceHandle.value,
+        parameters: const {
+          'mapId': 'fixture',
+          'operations': [
+            {
+              'kind': 'region.paint',
+              'layerId': 'tiles',
+              'x': 0,
+              'y': 0,
+              'value': 6,
+            },
+            {
+              'kind': 'region.paint',
+              'layerId': 'tiles',
+              'x': -1,
+              'y': 0,
+              'value': 7,
+            },
+          ],
+        },
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'idem_invalid_batch',
+        dryRun: false,
+      );
+
+      await expectLater(
+        () => setup.mutations.plan(setup.projectHandle, request),
+        throwsA(
+          isA<MapAuthoringException>().having(
+            (error) => error.code,
+            'code',
+            'map.operation_invalid',
+          ),
+        ),
+      );
+      expect(await setup.mapFile.readAsBytes(), beforeBytes);
+    });
+  });
+}
+
+final class _TransactionSetup {
+  _TransactionSetup._({
+    required this.root,
+    required this.mapFile,
+    required this.mutations,
+    required this.workspaceHandle,
+    required this.projectHandle,
+    required this.snapshots,
+  });
+
+  static Future<_TransactionSetup> create() async {
+    final root = await Directory.systemTemp.createTemp('map-batch-');
+    final map = _map();
+    final manifest = ProjectManifest(
+      name: 'Map Batch Transaction Fixture',
+      version: ProjectVersion.v3,
+      maps: const [
+        ProjectMapEntry(
+          id: 'fixture',
+          name: 'Fixture',
+          relativePath: 'maps/fixture.json',
+        ),
+      ],
+      tilesets: const [],
+    );
+    await File('${root.path}/project.json').writeAsBytes(
+      _encode(manifest.toJson()),
+      flush: true,
+    );
+    await Directory('${root.path}/maps').create();
+    final mapFile = File('${root.path}/maps/fixture.json');
+    await mapFile.writeAsBytes(_encode(map.toJson()), flush: true);
+    const reader = LocalProjectFileReader();
+    final policy = await WorkspacePolicy.create(
+      allowedRootPaths: [root.path],
+      fileReader: reader,
+    );
+    final handles = WorkspaceHandleStore(
+      tokenFactory: (prefix) => '${prefix}batchfixture',
+    );
+    final open = ProjectOpenService(
+      policy: policy,
+      fileReader: reader,
+      handles: handles,
+    );
+    final opened = await open.openProject(root.path);
+    final snapshots = ProjectSnapshotLoader(handles: handles);
+    final mutations = LocalMapAuthoringMutationApi(
+      policy: policy,
+      snapshotLoader: snapshots,
+    );
+    await mutations.attachProject(
+      projectRootPath: root.path,
+      workspaceHandle: opened.workspaceHandle,
+      projectHandle: opened.projectHandle,
+    );
+    return _TransactionSetup._(
+      root: root,
+      mapFile: mapFile,
+      mutations: mutations,
+      workspaceHandle: opened.workspaceHandle,
+      projectHandle: opened.projectHandle,
+      snapshots: snapshots,
+    );
+  }
+
+  final Directory root;
+  final File mapFile;
+  final LocalMapAuthoringMutationApi mutations;
+  final WorkspaceHandle workspaceHandle;
+  final ProjectHandle projectHandle;
+  final ProjectSnapshotLoader snapshots;
+
+  Future<void> dispose() async {
+    await mutations.detachWorkspace(workspaceHandle);
+    if (await root.exists()) await root.delete(recursive: true);
+  }
+}
+
+AuthoringPlanningContext _context(
+  ProjectSnapshot snapshot,
+  AuthoringRequest request,
+) =>
+    AuthoringPlanningContext(
+      snapshot: snapshot,
+      request: request,
+      planId: 'plan_batch',
+      seed: 123,
+    );
+
+AuthoringRequest _request(
+  ProjectSnapshot snapshot,
+  List<Map<String, Object?>> operations,
+) =>
+    AuthoringRequest(
+      requestId: 'request_batch',
+      actionId: 'map.apply_operations',
+      actionVersion: 1,
+      workspaceHandle: 'ws_fixture',
+      parameters: {'mapId': 'fixture', 'operations': operations},
+      expectedRevision: snapshot.revision,
+      idempotencyKey: 'idem_batch',
+      dryRun: true,
+    );
+
+ProjectSnapshot _snapshot(MapData map) {
+  final manifest = ProjectManifest(
+    name: 'Batch Fixture',
+    version: ProjectVersion.v4,
+    maps: const [
+      ProjectMapEntry(
+        id: 'fixture',
+        name: 'Fixture',
+        relativePath: 'maps/fixture.json',
+      ),
+    ],
+    tilesets: const [],
+    smartTileCatalog: ProjectSmartTileCatalog(
+      materials: const [
+        ProjectSmartTileMaterial(
+          id: 'road',
+          name: 'Road',
+          connectionGroupId: 'road',
+        ),
+      ],
+      presets: const [
+        ProjectSmartTilePreset(
+          id: 'smart_path',
+          name: 'Smart Path',
+          usage: SmartTileUsage.path,
+          topology: SmartTileTopology.cardinal4,
+          defaultMaterialId: 'road',
+          allowedMaterialIds: ['road'],
+        ),
+      ],
+    ),
+  );
+  final manifestBytes = _encode(manifest.toJson());
+  final mapBytes = _encode(map.toJson());
+  final mapRevision = computeNarrativeProjectFingerprint([
+    NarrativeProjectFingerprintEntry(
+      relativePath: 'maps/fixture.json',
+      bytes: mapBytes,
+    ),
+  ]);
+  final projectRevision = computeNarrativeProjectFingerprint([
+    NarrativeProjectFingerprintEntry(
+      relativePath: 'project.json',
+      bytes: manifestBytes,
+    ),
+  ]);
+  return ProjectSnapshot(
+    projectHandle: const ProjectHandle('prj_fixture'),
+    revision: computeNarrativeProjectFingerprint([
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'project.json',
+        bytes: manifestBytes,
+      ),
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'maps/fixture.json',
+        bytes: mapBytes,
+      ),
+    ]),
+    manifest: manifest,
+    maps: [map],
+    resourceFingerprints: {
+      'project': projectRevision,
+      'map:fixture': mapRevision
+    },
+    resourceBytes: {'project': manifestBytes, 'map:fixture': mapBytes},
+  );
+}
+
+MapData _map() => MapData(
+      id: 'fixture',
+      name: 'Fixture',
+      size: const GridSize(width: 4, height: 3),
+      version: ProjectVersion.v3,
+      visualStack: MapVisualStackConfig.canonicalV1,
+      layers: [
+        MapLayer.tile(
+          id: 'tiles',
+          name: 'Tiles',
+          tiles: List<int>.filled(12, 0),
+        ),
+      ],
+    );
+
+List<int> _encode(Object? value) =>
+    utf8.encode(const JsonEncoder.withIndent('  ').convert(value));
