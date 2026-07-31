@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { resolve } from "node:path";
 import { test } from "node:test";
 
 import { Client } from "@modelcontextprotocol/client";
@@ -109,9 +111,13 @@ test("unsupported pinned protocol fails closed", async () => {
 });
 
 test("the packaged stdio entrypoint completes a real modern client exchange", async () => {
+  const projectRoot = resolve(
+    process.cwd(),
+    "../../examples/playable_runtime_host/golden_fangame_slice",
+  );
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: ["dist/src/index.js"],
+    args: ["dist/src/index.js", "--root", projectRoot],
     cwd: process.cwd(),
     stderr: "pipe",
   });
@@ -124,7 +130,26 @@ test("the packaged stdio entrypoint completes a real modern client exchange", as
     await client.connect(transport);
     assert.equal(client.getProtocolEra(), "modern");
     assert.equal(client.getNegotiatedProtocolVersion(), PREFERRED_PROTOCOL_VERSION);
-    await assertDiscoveryAndStructuredContent(client);
+    const tools = await client.listTools();
+    assert.deepEqual(
+      tools.tools.map((tool) => tool.name),
+      [
+        "pokemap_artifact",
+        "pokemap_describe",
+        "pokemap_query",
+        "pokemap_validate",
+        "pokemap_workspace",
+      ],
+    );
+    const described = await client.callTool({
+      name: "pokemap_describe",
+      arguments: {},
+    });
+    assert.equal(described.isError, undefined);
+    assert.equal(
+      (described.structuredContent as { ok?: boolean } | undefined)?.ok,
+      true,
+    );
   } finally {
     await client.close();
   }
@@ -133,4 +158,17 @@ test("the packaged stdio entrypoint completes a real modern client exchange", as
 test("Tasks remain disabled until the official 2026 extension API is stable", () => {
   assert.equal(MCP_COMPATIBILITY.jobs.mode, "pokemap_job");
   assert.match(MCP_COMPATIBILITY.jobs.reason, /no stable.*Tasks extension/i);
+});
+
+test("the packaged entrypoint refuses missing roots without protocol noise", () => {
+  const result = spawnSync(process.execPath, ["dist/src/index.js"], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 64);
+  assert.equal(result.stdout, "");
+  assert.equal(
+    result.stderr,
+    "[pokemap-mcp] At least one --root option is required.\n",
+  );
 });
