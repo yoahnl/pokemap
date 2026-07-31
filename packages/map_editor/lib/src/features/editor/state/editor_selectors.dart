@@ -1,3 +1,5 @@
+import 'dart:ui' show Offset;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
@@ -72,6 +74,44 @@ typedef EditorWorldMapInspectorInputSnapshot = ({
   String? selectedGameplayZoneId,
   String? selectedPlacedElementInstanceId,
   String? assignedTilesetId,
+});
+
+typedef EditorMapDocumentSnapshot = ({
+  String? projectRootPath,
+  String? activeMapPath,
+  ProjectManifest? project,
+  MapData? activeMap,
+});
+
+typedef EditorMapViewportSnapshot = ({
+  double zoom,
+  Offset panOffset,
+});
+
+typedef EditorMapInteractionSnapshot = ({
+  EditorToolType activeTool,
+  String? activeLayerId,
+  EditorBrush activeBrush,
+  TerrainSelectionMode terrainSelectionMode,
+  TerrainType selectedTerrainType,
+  MapEntityKind selectedEntityKind,
+  String? selectedTerrainPresetId,
+  String? selectedPathPresetId,
+  String? selectedSurfacePresetId,
+  Map<TerrainType, String> selectedTerrainPresetByType,
+  EditorEraserFootprint eraserFootprint,
+  CollisionBrushSizeMode collisionBrushSizeMode,
+  String? selectedEntityId,
+  String? npcWaypointPlacementEntityId,
+  String? selectedMapEventId,
+  String? selectedWarpId,
+  String? selectedTriggerId,
+  String? selectedGameplayZoneId,
+  String? selectedEnvironmentAreaId,
+  EnvironmentMaskEditMode? environmentMaskEditMode,
+  MapRect? gameplayZoneDraftArea,
+  String? selectedPlacedElementInstanceId,
+  bool hasActiveMapStroke,
 });
 
 enum EditorWorldMapBrushKind {
@@ -169,6 +209,65 @@ final editorActiveLayerProvider = Provider<MapLayer?>((ref) {
       }
       return null;
     }),
+  );
+});
+
+final editorMapDocumentSnapshotProvider =
+    Provider<EditorMapDocumentSnapshot>((ref) {
+  return ref.watch(
+    editorNotifierProvider.select(
+      (state) => (
+        projectRootPath: state.projectRootPath,
+        activeMapPath: state.activeMapPath,
+        project: state.project,
+        activeMap: state.activeMap,
+      ),
+    ),
+  );
+});
+
+final editorMapViewportSnapshotProvider =
+    Provider<EditorMapViewportSnapshot>((ref) {
+  return ref.watch(
+    editorNotifierProvider.select(
+      (state) => (
+        zoom: state.zoom,
+        panOffset: state.panOffset,
+      ),
+    ),
+  );
+});
+
+final editorMapInteractionSnapshotProvider =
+    Provider<EditorMapInteractionSnapshot>((ref) {
+  return ref.watch(
+    editorNotifierProvider.select(
+      (state) => (
+        activeTool: state.activeTool,
+        activeLayerId: state.activeLayerId,
+        activeBrush: state.activeBrush,
+        terrainSelectionMode: state.terrainSelectionMode,
+        selectedTerrainType: state.selectedTerrainType,
+        selectedEntityKind: state.selectedEntityKind,
+        selectedTerrainPresetId: state.selectedTerrainPresetId,
+        selectedPathPresetId: state.selectedPathPresetId,
+        selectedSurfacePresetId: state.selectedSurfacePresetId,
+        selectedTerrainPresetByType: state.selectedTerrainPresetByType,
+        eraserFootprint: state.eraserFootprint,
+        collisionBrushSizeMode: state.collisionBrushSizeMode,
+        selectedEntityId: state.selectedEntityId,
+        npcWaypointPlacementEntityId: state.npcWaypointPlacementEntityId,
+        selectedMapEventId: state.selectedMapEventId,
+        selectedWarpId: state.selectedWarpId,
+        selectedTriggerId: state.selectedTriggerId,
+        selectedGameplayZoneId: state.selectedGameplayZoneId,
+        selectedEnvironmentAreaId: state.selectedEnvironmentAreaId,
+        environmentMaskEditMode: state.environmentMaskEditMode,
+        gameplayZoneDraftArea: state.gameplayZoneDraftArea,
+        selectedPlacedElementInstanceId: state.selectedPlacedElementInstanceId,
+        hasActiveMapStroke: state.mapStrokeStart != null,
+      ),
+    ),
   );
 });
 

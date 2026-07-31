@@ -6,11 +6,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart'
     show
         DragStartBehavior,
+        kSecondaryButton,
         PointerPanZoomEndEvent,
         PointerPanZoomStartEvent,
         PointerPanZoomUpdateEvent,
         PointerScrollEvent,
         PointerSignalEvent;
+import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter/services.dart'
     show
         HardwareKeyboard,
@@ -38,6 +40,7 @@ import '../../application/services/map_focus_viewport_resolver.dart';
 import '../../application/services/map_viewport_navigation.dart';
 import '../../application/services/tileset_transparent_color_processor.dart';
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/state/environment_generated_placement_add_element_provider.dart';
 import '../../features/editor/state/environment_mask_brush_size_provider.dart';
@@ -65,6 +68,8 @@ import '../../features/surface_painter/surface_tile_preview_resolver.dart';
 import 'entity_editor_element_visual.dart';
 import '../assets/editor_image_cache.dart';
 import 'map_canvas/map_canvas_navigation_controls.dart';
+import 'map_canvas/editor_canvas_animation_need_resolver.dart';
+import 'map_canvas/editor_canvas_repaint_clock.dart';
 import 'map_canvas/narrative_event_map_banner.dart';
 import 'narrative_studio/narrative_studio_navigation.dart';
 import 'shadow/editor_static_shadow_preview_painter.dart';
@@ -317,16 +322,64 @@ class MapCanvas extends ConsumerStatefulWidget {
     super.key,
     this.onEventBuilderPositionChosen,
     this.placedElementRotationPreview,
-  });
+    this.onContextMenuRequested,
+    this.onCellSelected,
+    this.keyboardContextCell,
+    @visibleForTesting EditorCanvasRepaintClock? repaintClock,
+    @visibleForTesting this.debugOnPaint,
+    @visibleForTesting this.debugOnBuild,
+    @visibleForTesting this.debugOnRepaintLifecycle,
+  }) : repaintClockOverride = repaintClock;
 
   /// Scoped Event Builder bridge: when supplied, a primary map tap selects a
   /// position for the Event Builder instead of applying the global map tool.
   final ValueChanged<GridPos>? onEventBuilderPositionChosen;
   final MapPlacedElementRotationPreviewState? placedElementRotationPreview;
+  final MapCanvasContextMenuRequested? onContextMenuRequested;
+  final ValueChanged<GridPos?>? onCellSelected;
+  final GridPos? keyboardContextCell;
+  @visibleForTesting
+  final EditorCanvasRepaintClock? repaintClockOverride;
+  @visibleForTesting
+  final MapGridPaintObserver? debugOnPaint;
+  @visibleForTesting
+  final VoidCallback? debugOnBuild;
+  @visibleForTesting
+  final ValueChanged<EditorCanvasRepaintLifecycleEvent>?
+      debugOnRepaintLifecycle;
 
   @override
   ConsumerState<MapCanvas> createState() => _MapCanvasState();
 }
+
+enum MapContextMenuInvocation { pointer, keyboard }
+
+@visibleForTesting
+enum EditorCanvasRepaintLifecycleEvent {
+  ownedClockCreated,
+  ownedTickerCreated,
+  ownedTickerStarted,
+  ownedTickerStopped,
+  ownedClockReset,
+  ownedTickerDisposed,
+  ownedClockDisposed,
+}
+
+@immutable
+final class MapCanvasContextMenuRequest {
+  const MapCanvasContextMenuRequest({
+    required this.globalPosition,
+    required this.gridPosition,
+    required this.invocation,
+  });
+
+  final Offset globalPosition;
+  final GridPos gridPosition;
+  final MapContextMenuInvocation invocation;
+}
+
+typedef MapCanvasContextMenuRequested
+    = ValueChanged<MapCanvasContextMenuRequest>;
 
 typedef _TilesetImageBatch = ({
   int generation,
@@ -402,7 +455,8 @@ String _mapCanvasObjectMovePreviewSemanticsLabel(
       '$destination.';
 }
 
-class _MapCanvasState extends ConsumerState<MapCanvas> {
+class _MapCanvasState extends ConsumerState<MapCanvas>
+    with SingleTickerProviderStateMixin {
   final GlobalKey _mapViewportKey = GlobalKey();
   final FocusNode _mapFocusNode = FocusNode(debugLabel: 'Map canvas');
   final FocusNode _mapNavigationControlsFocusNode = FocusNode(
@@ -413,6 +467,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   final MapCanvasInteractionController _interactionController =
       MapCanvasInteractionController();
   final Set<int> _pressedMapPointers = <int>{};
+  final Set<LogicalKeyboardKey> _pressedContextMenuKeys =
+      <LogicalKeyboardKey>{};
   final Map<int, Offset> _latestMapPointerLocalPositions = <int, Offset>{};
   int? _activeGestureInteractionId;
   int? _scheduledRollbackInteractionId;
@@ -451,33 +507,98 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   /// owning pointer ends; this transient guard never enters map/collision IO.
   bool _borderStrokeGestureRejected = false;
 
-  Timer? _entityEditorAnimTimer;
-  bool _entityEditorAnimTimerRunning = false;
-  int _editorEntityAnimationMs = 0;
+  Ticker? _entityEditorAnimTicker;
+  EditorCanvasRepaintClock? _ownedRepaintClock;
+  bool _entityEditorAnimationRunning = false;
   String _shadowLightPreviewPresetId = 'neutral';
 
-  void _syncEditorEntityAnimationTimer(bool needsAnimation) {
-    if (needsAnimation == _entityEditorAnimTimerRunning) {
+  EditorCanvasRepaintClock get _repaintClock =>
+      widget.repaintClockOverride ?? _ownedRepaintClock!;
+
+  @override
+  void initState() {
+    super.initState();
+    _createOwnedRepaintResourcesIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(covariant MapCanvas oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (identical(
+      oldWidget.repaintClockOverride,
+      widget.repaintClockOverride,
+    )) {
       return;
     }
-    _entityEditorAnimTimerRunning = needsAnimation;
+    _disposeOwnedRepaintResources();
+    _entityEditorAnimationRunning = false;
+    _createOwnedRepaintResourcesIfNeeded();
+  }
+
+  void _createOwnedRepaintResourcesIfNeeded() {
+    if (widget.repaintClockOverride != null) return;
+    final clock = EditorCanvasRepaintClock();
+    _ownedRepaintClock = clock;
+    _reportRepaintLifecycle(
+      EditorCanvasRepaintLifecycleEvent.ownedClockCreated,
+    );
+    _entityEditorAnimTicker = createTicker(clock.update);
+    _reportRepaintLifecycle(
+      EditorCanvasRepaintLifecycleEvent.ownedTickerCreated,
+    );
+  }
+
+  void _disposeOwnedRepaintResources() {
+    final ticker = _entityEditorAnimTicker;
+    if (ticker != null) {
+      ticker.dispose();
+      _reportRepaintLifecycle(
+        EditorCanvasRepaintLifecycleEvent.ownedTickerDisposed,
+      );
+    }
+    _entityEditorAnimTicker = null;
+    final clock = _ownedRepaintClock;
+    if (clock != null) {
+      clock.dispose();
+      _reportRepaintLifecycle(
+        EditorCanvasRepaintLifecycleEvent.ownedClockDisposed,
+      );
+    }
+    _ownedRepaintClock = null;
+  }
+
+  void _reportRepaintLifecycle(EditorCanvasRepaintLifecycleEvent event) {
+    assert(() {
+      widget.debugOnRepaintLifecycle?.call(event);
+      return true;
+    }());
+  }
+
+  void _syncEditorEntityAnimationTicker(bool needsAnimation) {
+    if (widget.repaintClockOverride != null ||
+        needsAnimation == _entityEditorAnimationRunning) {
+      return;
+    }
+    _entityEditorAnimationRunning = needsAnimation;
+    final ticker = _entityEditorAnimTicker!;
     if (needsAnimation) {
-      _entityEditorAnimTimer?.cancel();
-      _entityEditorAnimTimer =
-          Timer.periodic(const Duration(milliseconds: 110), (_) {
-        if (!mounted) {
-          return;
-        }
-        setState(() {
-          _editorEntityAnimationMs += 110;
-          if (_editorEntityAnimationMs > 2000000000) {
-            _editorEntityAnimationMs = 0;
-          }
-        });
-      });
+      if (!ticker.isActive) {
+        ticker.start();
+        _reportRepaintLifecycle(
+          EditorCanvasRepaintLifecycleEvent.ownedTickerStarted,
+        );
+      }
     } else {
-      _entityEditorAnimTimer?.cancel();
-      _entityEditorAnimTimer = null;
+      if (ticker.isActive) {
+        ticker.stop();
+        _reportRepaintLifecycle(
+          EditorCanvasRepaintLifecycleEvent.ownedTickerStopped,
+        );
+      }
+      _ownedRepaintClock!.reset();
+      _reportRepaintLifecycle(
+        EditorCanvasRepaintLifecycleEvent.ownedClockReset,
+      );
     }
   }
 
@@ -498,10 +619,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
 
   @override
   void dispose() {
-    _entityEditorAnimTimer?.cancel();
+    _disposeOwnedRepaintResources();
     _releaseTilesetImagesFuture(_tilesetImagesFuture);
     _tilesetImagesFuture = null;
     _pressedMapPointers.clear();
+    _pressedContextMenuKeys.clear();
     _latestMapPointerLocalPositions.clear();
     _clearTrackpadGesture();
     _mapFocusNode.dispose();
@@ -586,8 +708,45 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
 
   @override
   Widget build(BuildContext context) {
+    assert(() {
+      widget.debugOnBuild?.call();
+      return true;
+    }());
     final colors = context.pokeMapColors;
-    final state = ref.watch(editorNotifierProvider);
+    final document = ref.watch(editorMapDocumentSnapshotProvider);
+    final viewport = ref.watch(editorMapViewportSnapshotProvider);
+    final interaction = ref.watch(editorMapInteractionSnapshotProvider);
+    final state = EditorState(
+      projectRootPath: document.projectRootPath,
+      project: document.project,
+      activeMap: document.activeMap,
+      activeMapPath: document.activeMapPath,
+      activeTool: interaction.activeTool,
+      activeLayerId: interaction.activeLayerId,
+      activeBrush: interaction.activeBrush,
+      terrainSelectionMode: interaction.terrainSelectionMode,
+      selectedTerrainType: interaction.selectedTerrainType,
+      selectedEntityKind: interaction.selectedEntityKind,
+      selectedTerrainPresetId: interaction.selectedTerrainPresetId,
+      selectedPathPresetId: interaction.selectedPathPresetId,
+      selectedSurfacePresetId: interaction.selectedSurfacePresetId,
+      selectedTerrainPresetByType: interaction.selectedTerrainPresetByType,
+      eraserFootprint: interaction.eraserFootprint,
+      collisionBrushSizeMode: interaction.collisionBrushSizeMode,
+      selectedEntityId: interaction.selectedEntityId,
+      npcWaypointPlacementEntityId: interaction.npcWaypointPlacementEntityId,
+      selectedMapEventId: interaction.selectedMapEventId,
+      selectedWarpId: interaction.selectedWarpId,
+      selectedTriggerId: interaction.selectedTriggerId,
+      selectedGameplayZoneId: interaction.selectedGameplayZoneId,
+      selectedEnvironmentAreaId: interaction.selectedEnvironmentAreaId,
+      environmentMaskEditMode: interaction.environmentMaskEditMode,
+      gameplayZoneDraftArea: interaction.gameplayZoneDraftArea,
+      selectedPlacedElementInstanceId:
+          interaction.selectedPlacedElementInstanceId,
+      zoom: viewport.zoom,
+      panOffset: viewport.panOffset,
+    );
     final imageCache = switch (state.projectRootPath?.trim()) {
       final root? when root.isNotEmpty =>
         ref.watch(editorImageCacheProvider(root)),
@@ -636,12 +795,12 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       final cancelled = _interactionController.cancelActive();
       if (cancelled != null) {
         _scheduleMapInteractionRollback(cancelled.session);
-      } else if (state.mapStrokeStart != null) {
+      } else if (interaction.hasActiveMapStroke) {
         _scheduleOrphanedMapStrokeRollback();
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          _syncEditorEntityAnimationTimer(false);
+          _syncEditorEntityAnimationTicker(false);
         }
       });
       return const MapWorkspaceEmptyState();
@@ -683,21 +842,18 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             }
           });
         }
-        final needsEntityAnim = mapEntitiesNeedEditorFrameAnimation(
-          activeMap,
-          state.project,
-        );
-        final needsSurfaceAnim = _surfacePresetsNeedEditorFrameAnimation(
+        final needsAnimation = _hasAnimatedCanvasContent(
           map: activeMap,
           project: state.project,
           pathAutotileSetsByPresetId: pathAutotileSetsByPresetId,
           terrainPresetsByType: terrainPresetsByType,
+          borderPreview: borderPreviewState.transaction,
         );
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) {
             return;
           }
-          _syncEditorEntityAnimationTimer(needsEntityAnim || needsSurfaceAnim);
+          _syncEditorEntityAnimationTicker(needsAnimation);
         });
 
         final toolPreview = notifier.resolveMapToolPreview(
@@ -1133,9 +1289,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
 
                 if (state.activeTool == EditorToolType.selection &&
                     !isEnvironmentMaskEditing) {
+                  widget.onCellSelected?.call(gridPos);
                   final objectTarget = notifier.selectCanvasObjectAt(
                     gridPos,
-                    editorAnimationTimeMs: _editorEntityAnimationMs,
+                    editorAnimationTimeMs: _repaintClock.elapsedMs,
                   );
                   if (objectTarget == null && activeBorderLayer != null) {
                     final borderHit = hitTestBorderFeatureAtScreenPosition(
@@ -1210,7 +1367,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 }
                 final target = notifier.selectCanvasObjectForDragAt(
                   grabCell,
-                  editorAnimationTimeMs: _editorEntityAnimationMs,
+                  editorAnimationTimeMs: _repaintClock.elapsedMs,
                 );
                 if (target == null) {
                   _cancelAndRollbackPointer(interactionPointerId);
@@ -1448,7 +1605,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                     Focus(
                       key: const ValueKey<String>('map-canvas-focus'),
                       focusNode: _mapFocusNode,
-                      skipTraversal: true,
+                      skipTraversal: false,
                       includeSemantics: false,
                       onKeyEvent: _onMapKeyEvent,
                       onFocusChange: _onMapFocusChanged,
@@ -1464,7 +1621,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           project: state.project,
                           selectedBorderFeatureId:
                               activeBorderFeature.activeFeatureId,
-                          editorAnimationTimeMs: _editorEntityAnimationMs,
+                          editorAnimationTimeMs: _repaintClock.elapsedMs,
                         ),
                         child: CustomPaint(
                           size: Size.infinite,
@@ -1515,7 +1672,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                             terrainPresetsByType: terrainPresetsByType,
                             project: state.project,
                             shadowLightPreviewPreset: shadowLightPreviewPreset,
-                            editorEntityAnimationMs: _editorEntityAnimationMs,
+                            animationClock: _repaintClock,
+                            debugOnPaint: widget.debugOnPaint,
                             showGrid: _showMapGrid,
                             environmentMaskOverlay: environmentMaskOverlay,
                             environmentBrushCursorOverlay:
@@ -2056,6 +2214,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   }
 
   void _onMapPointerDown(PointerDownEvent event) {
+    if ((event.buttons & kSecondaryButton) != 0) {
+      _requestPointerContextMenu(event);
+      return;
+    }
     _mapFocusNode.requestFocus();
     final anotherPointerIsPressed = _pressedMapPointers.isNotEmpty;
     _pressedMapPointers.add(event.pointer);
@@ -2251,6 +2413,22 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   }
 
   KeyEventResult _onMapKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent &&
+        _pressedContextMenuKeys.remove(event.logicalKey)) {
+      return KeyEventResult.handled;
+    }
+    if (event is KeyDownEvent && _isKeyboardContextMenuEvent(event)) {
+      if (!_pressedContextMenuKeys.add(event.logicalKey)) {
+        return KeyEventResult.handled;
+      }
+      final request = _keyboardContextMenuRequest();
+      if (request == null || widget.onContextMenuRequested == null) {
+        _pressedContextMenuKeys.remove(event.logicalKey);
+        return KeyEventResult.ignored;
+      }
+      widget.onContextMenuRequested!(request);
+      return KeyEventResult.handled;
+    }
     if (event.logicalKey == LogicalKeyboardKey.space) {
       final nextPressed = event is! KeyUpEvent;
       if (_spacePressed != nextPressed) {
@@ -2302,12 +2480,171 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     return KeyEventResult.ignored;
   }
 
+  void _requestPointerContextMenu(PointerDownEvent event) {
+    _mapFocusNode.requestFocus();
+    final cancelled = _interactionController.cancelActive();
+    if (cancelled != null) {
+      _rollbackMapInteraction(cancelled.session);
+      if (mounted) {
+        setState(() {});
+      }
+    }
+    final callback = widget.onContextMenuRequested;
+    if (callback == null) {
+      return;
+    }
+    final state = ref.read(editorNotifierProvider);
+    final map = state.activeMap;
+    if (map == null) {
+      return;
+    }
+    final settings = state.project?.settings ?? const ProjectSettings();
+    final position = _screenToGrid(
+      event.localPosition,
+      state.panOffset,
+      state.zoom,
+      map.size,
+      settings.tileWidth * settings.displayScale,
+      settings.tileHeight * settings.displayScale,
+    );
+    if (position == null) {
+      return;
+    }
+    widget.onCellSelected?.call(position);
+    callback(
+      MapCanvasContextMenuRequest(
+        globalPosition: event.position,
+        gridPosition: position,
+        invocation: MapContextMenuInvocation.pointer,
+      ),
+    );
+  }
+
+  bool _isKeyboardContextMenuEvent(KeyDownEvent event) {
+    if (event.logicalKey == LogicalKeyboardKey.contextMenu) {
+      return true;
+    }
+    final keyboard = HardwareKeyboard.instance;
+    return event.logicalKey == LogicalKeyboardKey.f10 &&
+        keyboard.isShiftPressed &&
+        !keyboard.isAltPressed &&
+        !keyboard.isControlPressed &&
+        !keyboard.isMetaPressed;
+  }
+
+  MapCanvasContextMenuRequest? _keyboardContextMenuRequest() {
+    final callback = widget.onContextMenuRequested;
+    final state = ref.read(editorNotifierProvider);
+    final map = state.activeMap;
+    final viewportContext = _mapViewportKey.currentContext;
+    if (callback == null || map == null || viewportContext == null) {
+      return null;
+    }
+    final renderObject = viewportContext.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return null;
+    }
+    final settings = state.project?.settings ?? const ProjectSettings();
+    final tileWidth = settings.tileWidth * settings.displayScale;
+    final tileHeight = settings.tileHeight * settings.displayScale;
+    final selectedObject = resolveSelectedCanvasObjectTarget(
+      map: map,
+      project: state.project,
+      selectedPlacedElementInstanceId: state.selectedPlacedElementInstanceId,
+      selectedEntityId: state.selectedEntityId,
+      selectedMapEventId: state.selectedMapEventId,
+      selectedWarpId: state.selectedWarpId,
+      selectedTriggerId: state.selectedTriggerId,
+      selectedGameplayZoneId: state.selectedGameplayZoneId,
+      editorAnimationTimeMs: _repaintClock.elapsedMs,
+    );
+
+    late final GridPos gridPosition;
+    late final Offset preferredLocalAnchor;
+    if (selectedObject != null) {
+      gridPosition = selectedObject.anchor;
+      preferredLocalAnchor = _gridTargetCenterInViewport(
+        anchor: selectedObject.anchor,
+        size: selectedObject.size,
+        pan: state.panOffset,
+        zoom: state.zoom,
+        tileWidth: tileWidth,
+        tileHeight: tileHeight,
+      );
+    } else if (_isInMap(widget.keyboardContextCell, map.size)) {
+      gridPosition = widget.keyboardContextCell!;
+      preferredLocalAnchor = _gridTargetCenterInViewport(
+        anchor: gridPosition,
+        size: const GridSize(width: 1, height: 1),
+        pan: state.panOffset,
+        zoom: state.zoom,
+        tileWidth: tileWidth,
+        tileHeight: tileHeight,
+      );
+    } else {
+      final center = renderObject.size.center(Offset.zero);
+      final unbounded = _screenToUnboundedGrid(
+        center,
+        state.panOffset,
+        state.zoom,
+        tileWidth,
+        tileHeight,
+      );
+      gridPosition = GridPos(
+        x: unbounded.x.clamp(0, map.size.width - 1).toInt(),
+        y: unbounded.y.clamp(0, map.size.height - 1).toInt(),
+      );
+      preferredLocalAnchor = center;
+    }
+
+    final localAnchor = Offset(
+      _clampContextAnchor(preferredLocalAnchor.dx, renderObject.size.width),
+      _clampContextAnchor(preferredLocalAnchor.dy, renderObject.size.height),
+    );
+    return MapCanvasContextMenuRequest(
+      globalPosition: renderObject.localToGlobal(localAnchor),
+      gridPosition: gridPosition,
+      invocation: MapContextMenuInvocation.keyboard,
+    );
+  }
+
+  Offset _gridTargetCenterInViewport({
+    required GridPos anchor,
+    required GridSize size,
+    required Offset pan,
+    required double zoom,
+    required double tileWidth,
+    required double tileHeight,
+  }) {
+    return Offset(
+      pan.dx + (anchor.x + size.width / 2) * tileWidth * zoom,
+      pan.dy + (anchor.y + size.height / 2) * tileHeight * zoom,
+    );
+  }
+
+  bool _isInMap(GridPos? position, GridSize size) {
+    return position != null &&
+        position.x >= 0 &&
+        position.y >= 0 &&
+        position.x < size.width &&
+        position.y < size.height;
+  }
+
+  double _clampContextAnchor(double value, double extent) {
+    if (extent <= 0) {
+      return 0;
+    }
+    final inset = math.min(8.0, extent / 2);
+    return value.clamp(inset, extent - inset).toDouble();
+  }
+
   void _onMapFocusChanged(bool hasFocus) {
     if (hasFocus) return;
     final cancelled = _interactionController.cancelActive();
     final needsRebuild = _spacePressed || cancelled != null;
     _spacePressed = false;
     _pressedMapPointers.clear();
+    _pressedContextMenuKeys.clear();
     _latestMapPointerLocalPositions.clear();
     _clearTrackpadGesture();
     if (cancelled != null) {
@@ -2803,51 +3140,20 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     };
   }
 
-  bool _surfacePresetsNeedEditorFrameAnimation({
-    required MapData? map,
+  bool _hasAnimatedCanvasContent({
+    required MapData map,
     required ProjectManifest? project,
     required Map<String, PathAutotileSet> pathAutotileSetsByPresetId,
     required Map<TerrainType, ProjectTerrainPreset> terrainPresetsByType,
-  }) {
-    final surfaceCatalog = project?.surfaceCatalog;
-    if (map != null &&
-        surfaceCatalog != null &&
-        surfaceTilePreviewNeedsAnimation(
-          map: map,
-          catalog: surfaceCatalog,
-        )) {
-      return true;
-    }
-    for (final autotileSet in pathAutotileSetsByPresetId.values) {
-      for (final frames in autotileSet.variants.values) {
-        if (frames.length > 1) {
-          return true;
-        }
-      }
-    }
-    for (final preset in terrainPresetsByType.values) {
-      for (final variant in preset.variants) {
-        if (variant.frames.length > 1) {
-          return true;
-        }
-      }
-    }
-    if (project != null) {
-      if (project.borderCatalog.visualSnapshots.any(
-        (snapshot) => snapshot.frames.length > 1,
-      )) {
-        return true;
-      }
-      for (final preset in project.pathPatternPresets) {
-        for (final cell in preset.centerPattern.cells) {
-          if (cell.frames.length > 1) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
-  }
+    required BorderPreviewTransaction? borderPreview,
+  }) =>
+      editorCanvasNeedsAnimation(
+        map: map,
+        project: project,
+        pathAutotileSetsByPresetId: pathAutotileSetsByPresetId,
+        terrainPresetsByType: terrainPresetsByType,
+        borderPreview: borderPreview,
+      );
 
   Map<MapConnectionDirection, String> _resolveConnectionLabels(
     MapData? map,

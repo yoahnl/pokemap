@@ -1,0 +1,128 @@
+<h2>Smart Tiles Studio — éprouver le preset</h2>
+<p class="subtitle">Étape 5 : peindre comme dans une vraie map, provoquer les cas difficiles et valider uniquement un preset réellement robuste.</p>
+
+<div class="mockup" style="width:100%;max-width:100%;overflow:hidden">
+  <div class="mockup-header">Herbe principale ERW · Banc d’essai</div>
+  <div class="mockup-body" style="padding:0;overflow:hidden">
+    <div class="mock-nav" style="display:flex;flex-wrap:wrap;align-items:center;gap:18px;padding:12px 18px">
+      <strong style="margin-right:auto">Smart Tiles Studio</strong>
+      <span>Atlas</span>
+      <span>Règles</span>
+      <span style="opacity:.65">Animations</span>
+      <span style="color:#bfdbfe">Banc d’essai</span>
+      <span>Validation</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:minmax(155px,19%) minmax(430px,1fr) minmax(220px,24%);width:100%;min-height:370px">
+      <aside class="mock-sidebar" style="min-width:0;padding:13px 15px;overflow:hidden">
+        <strong>Outils de test</strong>
+        <div style="margin-top:10px;line-height:1.8;font-size:12px">
+          <div style="padding:5px 7px;border-radius:5px;background:rgba(59,130,246,.18);color:#bfdbfe">✎ Peindre</div>
+          <div style="padding:5px 7px">⌫ Effacer</div>
+          <div style="padding:5px 7px">▣ Remplir</div>
+          <div style="padding:5px 7px">⌖ Inspecter</div>
+        </div>
+
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.12)">
+          <strong>Scénarios automatiques</strong>
+          <div style="margin-top:7px;line-height:1.7;font-size:12px">
+            <div>○ Tous les coins</div>
+            <div>○ Îlots et cavités</div>
+            <div>○ Couloirs étroits</div>
+            <div>○ Formes aléatoires</div>
+          </div>
+          <button class="mock-button" style="width:100%;margin-top:9px">Lancer les 4 tests</button>
+        </div>
+      </aside>
+
+      <main class="mock-content" style="min-width:0;padding:11px 16px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-bottom:8px;text-align:center;font-size:12px">
+          <div style="padding:5px 4px;border-radius:6px;background:rgba(52,211,153,.13);color:#6ee7b7"><strong>✓</strong><br>Source</div>
+          <div style="padding:5px 4px;border-radius:6px;background:rgba(52,211,153,.13);color:#6ee7b7"><strong>✓</strong><br>Grille</div>
+          <div style="padding:5px 4px;border-radius:6px;background:rgba(52,211,153,.13);color:#6ee7b7"><strong>✓</strong><br>Usage</div>
+          <div style="padding:5px 4px;border-radius:6px;background:rgba(52,211,153,.13);color:#6ee7b7"><strong>✓</strong><br>Mapping</div>
+          <div style="padding:5px 4px;border-radius:6px;background:#3b82f6;color:white"><strong>5</strong><br>Test</div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <strong>5. Peindre et chercher les défauts</strong>
+          <div style="font-size:11px;opacity:.72">Grille ☑ &nbsp; Variantes ☑ &nbsp; Seed 128</div>
+        </div>
+
+        <div style="height:207px;margin-top:8px;position:relative;overflow:hidden;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:
+          linear-gradient(rgba(255,255,255,.075) 1px,transparent 1px),
+          linear-gradient(90deg,rgba(255,255,255,.075) 1px,transparent 1px),
+          radial-gradient(circle at 18% 73%,#85b94c 0 14%,transparent 15%),
+          radial-gradient(circle at 78% 22%,#8fc554 0 17%,transparent 18%),
+          linear-gradient(135deg,#73aa43 0 34%,#c0a15a 34% 46%,#ae8d4f 46% 55%,#75ac45 55%);
+          background-size:32px 32px,32px 32px,250px 190px,260px 190px,100% 100%">
+
+          <div style="position:absolute;left:7%;top:14%;width:34%;height:31%;border-radius:28px 15px 34px 18px;background:#c2a15a;box-shadow:
+            0 -5px 0 #598333,
+            5px 0 0 #598333,
+            0 5px 0 #49732e,
+            -5px 0 0 #598333"></div>
+          <div style="position:absolute;left:33%;top:35%;width:15%;height:51%;border-radius:12px 24px 18px 28px;background:#c2a15a;box-shadow:
+            0 -5px 0 #598333,
+            5px 0 0 #49732e,
+            0 5px 0 #49732e,
+            -5px 0 0 #598333"></div>
+          <div style="position:absolute;left:43%;top:61%;width:36%;height:18%;border-radius:17px 30px 15px 24px;background:#c2a15a;box-shadow:
+            0 -5px 0 #598333,
+            5px 0 0 #49732e,
+            0 5px 0 #49732e,
+            -5px 0 0 #598333"></div>
+          <div style="position:absolute;right:7%;top:12%;width:15%;height:34%;border-radius:40px;background:#c2a15a;box-shadow:
+            0 -5px 0 #598333,
+            5px 0 0 #49732e,
+            0 5px 0 #49732e,
+            -5px 0 0 #598333"></div>
+
+          <div style="position:absolute;left:9px;bottom:8px;padding:4px 7px;border-radius:5px;background:rgba(0,0,0,.64);font-size:10px">Peinture interactive · clic-glissé</div>
+          <div style="position:absolute;right:9px;bottom:8px;padding:4px 7px;border-radius:5px;background:rgba(16,185,129,.25);color:#a7f3d0;font-size:10px">Aucune couture détectée</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:8px;font-size:11px;text-align:center">
+          <div style="padding:6px;border-radius:6px;background:rgba(16,185,129,.12);color:#a7f3d0">✓ Coins</div>
+          <div style="padding:6px;border-radius:6px;background:rgba(16,185,129,.12);color:#a7f3d0">✓ Cavités</div>
+          <div style="padding:6px;border-radius:6px;background:rgba(16,185,129,.12);color:#a7f3d0">✓ Couloirs</div>
+          <div style="padding:6px;border-radius:6px;background:rgba(16,185,129,.12);color:#a7f3d0">✓ Aléatoire</div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:8px">
+          <button class="mock-button" style="opacity:.72">← Mapping</button>
+          <button class="mock-button">Enregistrer le preset</button>
+        </div>
+      </main>
+
+      <aside class="mock-sidebar" style="min-width:0;padding:13px 15px;overflow:hidden">
+        <strong>Validation en direct</strong>
+
+        <div style="margin-top:9px;line-height:1.55">
+          <div style="display:flex;justify-content:space-between"><span>Motifs</span><strong style="color:#6ee7b7">47 / 47</strong></div>
+          <div style="display:flex;justify-content:space-between"><span>Variantes</span><strong>126</strong></div>
+          <div style="display:flex;justify-content:space-between"><span>Cellules vides</span><strong style="color:#6ee7b7">0</strong></div>
+          <div style="display:flex;justify-content:space-between"><span>Coutures</span><strong style="color:#6ee7b7">0</strong></div>
+        </div>
+
+        <div style="margin-top:10px;padding:9px;border-radius:7px;background:rgba(16,185,129,.13)">
+          <strong style="color:#a7f3d0">Prêt pour la bibliothèque</strong>
+          <div style="margin-top:4px;font-size:11px;opacity:.75">Toutes les règles requises ont été exercées au moins une fois.</div>
+        </div>
+
+        <div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.12)">
+          <strong>Si un problème apparaît</strong>
+          <div style="margin-top:5px;font-size:11px;line-height:1.5;opacity:.72">Le canvas surligne la cellule fautive, indique le masque attendu et ouvre directement le motif à corriger.</div>
+        </div>
+
+        <div class="option" data-choice="test-bench-required-validation" onclick="toggleSelect(this)" style="margin-top:9px;padding:7px 9px;min-height:0">
+          <div class="letter" style="width:22px;height:22px;min-width:22px;font-size:12px">✓</div>
+          <div class="content">
+            <strong>Valider le banc d’essai</strong>
+            <p style="margin:2px 0 0;font-size:11px">Test manuel et scénarios automatiques</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>

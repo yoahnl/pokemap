@@ -8,6 +8,7 @@ import 'package:map_editor/src/application/models/narrative_event_map_bridge_mod
 import 'package:map_editor/src/application/models/narrative_event_spatial_source_creation_models.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_target_editor_navigation.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_event_builder_v2_providers.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_event_map_bridge_state.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_event_validation_state.dart';
@@ -155,6 +156,66 @@ void main() {
         expect(find.text('Bon'), findsNothing);
       });
     }
+
+    testWidgets(
+        'consumes one pre-mount Map compatibility key and focuses its exact row',
+        (tester) async {
+      final fixture = await createEventBuilderV2ProductRouteFixture(
+        tester,
+        mode: EventSystemMode.dualRead,
+      );
+      final compatibility = fixture.readModel.events.singleWhere(
+        (event) => event.readOnly && event.stableKey.startsWith('legacy:'),
+      );
+
+      final container = await pumpEventBuilderV2ProductRoute(
+        tester,
+        fixture: fixture,
+        pendingCompatibilityStableKey: compatibility.stableKey,
+      );
+
+      final workspace = tester.widget<EventBuilderV2Workspace>(
+        find.byType(EventBuilderV2Workspace),
+      );
+      expect(workspace.selectedStableKey, compatibility.stableKey);
+      expect(
+        container.read(worldMapTargetEditorNavigationProvider).pending,
+        isNull,
+      );
+      final row = tester.widget<PokeMapSidebarItem>(
+        find.byKey(
+          ValueKey('event-builder-v2-event-${compatibility.stableKey}'),
+        ),
+      );
+      expect(row.focusNode?.hasFocus, isTrue);
+      expect(
+        container
+            .read(narrativeEventMapBridgeControllerProvider)
+            .selectedNarrativeEventV2Id,
+        isNull,
+        reason: 'A compatibility key must never be guessed as a V2 Event id.',
+      );
+
+      container
+          .read(worldMapTargetEditorNavigationProvider.notifier)
+          .enqueue('legacy:missing:stale');
+      await pumpEventBuilderV2ProductRouteFrames(
+        tester,
+        container: container,
+      );
+      expect(
+        tester
+            .widget<EventBuilderV2Workspace>(
+              find.byType(EventBuilderV2Workspace),
+            )
+            .selectedStableKey,
+        compatibility.stableKey,
+      );
+      expect(
+        container.read(worldMapTargetEditorNavigationProvider).pending,
+        isNull,
+      );
+    });
 
     testWidgets('derives the Event save status from map or project dirtiness',
         (tester) async {

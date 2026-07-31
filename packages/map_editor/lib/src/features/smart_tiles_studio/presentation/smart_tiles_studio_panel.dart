@@ -244,8 +244,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                       final item = items[index];
                       return PokeMapAssetCard(
                         key: Key('smart-tiles-library-item-${item.key}'),
-                        semanticLabel:
-                            '${item.name}, ${item.usageLabel}, ${item.statusLabel}',
+                        thumbnail: const Icon(
+                          CupertinoIcons.square_grid_3x2,
+                          size: 20,
+                        ),
+                        label: item.name,
+                        description: '${item.usageLabel} • ${item.statusLabel}',
                         onPressed: () => setState(() {
                           _session.cancelDraft();
                           _selectedItemKey = item.key;
@@ -256,7 +260,6 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                         }),
                         selected: !_session.state.isCreating &&
                             _selectedItemKey == item.key,
-                        child: _LibraryItemContent(item: item),
                       );
                     },
                   ),
@@ -465,21 +468,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         const SizedBox(height: 10),
         for (final choice in SmartTileStudioSourceChoice.values) ...[
           PokeMapAssetCard(
-            semanticLabel: _sourceChoiceLabel(choice),
+            thumbnail: Icon(_sourceChoiceIcon(choice), size: 22),
+            label: _sourceChoiceLabel(choice),
             onPressed: () => _chooseSource(choice),
             selected: _session.state.sourceChoice == choice,
-            child: Row(
-              children: <Widget>[
-                Icon(_sourceChoiceIcon(choice), size: 22),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _sourceChoiceLabel(choice),
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ],
-            ),
           ),
           const SizedBox(height: 8),
         ],
@@ -689,28 +681,11 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         for (final usage in SmartTileUsage.values) ...[
           PokeMapAssetCard(
             key: Key('smart-tiles-usage-${usage.name}'),
-            semanticLabel: _usageLabel(usage),
+            thumbnail: Icon(_usageIcon(usage), size: 22),
+            label: _usageLabel(usage),
+            description: _usageDescription(usage),
             selected: _session.state.usage == usage,
             onPressed: () => _selectUsage(usage),
-            child: Row(
-              children: <Widget>[
-                Icon(_usageIcon(usage), size: 22),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      Text(
-                        _usageLabel(usage),
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(_usageDescription(usage)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
           ),
           const SizedBox(height: 8),
         ],
@@ -903,24 +878,13 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       itemBuilder: (context, index) {
         final atlas = atlases[index];
         return PokeMapAssetCard(
-          semanticLabel: atlas.name,
+          thumbnail: const Icon(CupertinoIcons.photo, size: 20),
+          label: atlas.name,
+          description: '${atlas.columns} × ${atlas.rows} cellules • '
+              '${atlas.cellWidth} × ${atlas.cellHeight} px • '
+              'origine ${atlas.originX},${atlas.originY} • '
+              'espacement ${atlas.spacingX},${atlas.spacingY}',
           onPressed: null,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Text(
-                atlas.name,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '${atlas.columns} × ${atlas.rows} cellules • '
-                '${atlas.cellWidth} × ${atlas.cellHeight} px • '
-                'origine ${atlas.originX},${atlas.originY} • '
-                'espacement ${atlas.spacingX},${atlas.spacingY}',
-              ),
-            ],
-          ),
         );
       },
     );
@@ -955,21 +919,17 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         );
         return PokeMapAssetCard(
           key: Key('smart-tiles-rule-${rule.id}'),
-          semanticLabel: rule.id,
+          thumbnail: const Icon(CupertinoIcons.arrow_branch, size: 20),
+          label: rule.id,
           selected: _focusedRuleId == rule.id ||
               (_focusedRuleId == null && _focusedMask == mask),
           onPressed: () => setState(() {
             _focusedRuleId = rule.id;
             _focusedMask = mask;
           }),
-          child: Row(
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Expanded(
-                child: Text(
-                  rule.id,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
               if (mask != null)
                 PokeMapBadge(
                   label:
@@ -1143,33 +1103,15 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
               key: Key(
                 'smart-tiles-diagnostic-${diagnostic.code}-${diagnostic.path}',
               ),
-              semanticLabel: diagnostic.message,
-              onPressed: () => _openDiagnostic(diagnostic),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Icon(
-                    diagnostic.isError
-                        ? CupertinoIcons.exclamationmark_triangle
-                        : CupertinoIcons.info_circle,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        Text(
-                          diagnostic.code,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(diagnostic.message),
-                      ],
-                    ),
-                  ),
-                ],
+              thumbnail: Icon(
+                diagnostic.isError
+                    ? CupertinoIcons.exclamationmark_triangle
+                    : CupertinoIcons.info_circle,
+                size: 18,
               ),
+              label: diagnostic.code,
+              description: diagnostic.message,
+              onPressed: () => _openDiagnostic(diagnostic),
             ),
             const SizedBox(height: 8),
           ],
@@ -1209,23 +1151,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           (sum, frame) => sum + frame.durationMs,
         );
         return PokeMapAssetCard(
-          semanticLabel: animation.name,
+          thumbnail: const Icon(CupertinoIcons.play_circle, size: 20),
+          label: animation.name,
           onPressed: null,
-          child: Row(
-            children: <Widget>[
-              const Icon(CupertinoIcons.play_circle, size: 20),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  animation.name,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-              PokeMapBadge(
-                label: '${animation.frames.length} frames • $duration ms',
-                variant: PokeMapBadgeVariant.info,
-              ),
-            ],
+          trailing: PokeMapBadge(
+            label: '${animation.frames.length} frames • $duration ms',
+            variant: PokeMapBadgeVariant.info,
           ),
         );
       },
@@ -1746,32 +1677,13 @@ class _SmartTileProjectImagePickerState
                           key: Key(
                             'smart-tiles-source-tileset-${tileset.id}',
                           ),
-                          semanticLabel: 'Choisir ${tileset.name}',
-                          onPressed: () => Navigator.of(context).pop(tileset),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: <Widget>[
-                              Text(
-                                tileset.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: colors.textPrimary,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                tileset.relativePath,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: colors.textMuted,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
+                          thumbnail: const Icon(
+                            CupertinoIcons.photo_on_rectangle,
+                            size: 20,
                           ),
+                          label: tileset.name,
+                          description: tileset.relativePath,
+                          onPressed: () => Navigator.of(context).pop(tileset),
                         ),
                       );
                     },
@@ -1799,7 +1711,6 @@ class _SmartTileRegisteredAtlasPickerState
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
     final normalizedQuery = _query.trim().toLowerCase();
     final visibleAtlases = widget.atlases.where((atlas) {
       return normalizedQuery.isEmpty ||
@@ -1839,26 +1750,15 @@ class _SmartTileRegisteredAtlasPickerState
                           key: Key(
                             'smart-tiles-registered-atlas-${atlas.id}',
                           ),
-                          semanticLabel: 'Choisir ${atlas.name}',
+                          thumbnail: const Icon(
+                            CupertinoIcons.square_grid_3x2,
+                            size: 20,
+                          ),
+                          label: atlas.name,
                           onPressed: () => Navigator.of(context).pop(atlas),
-                          child: Row(
-                            children: <Widget>[
-                              Expanded(
-                                child: Text(
-                                  atlas.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: colors.textPrimary,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                              PokeMapBadge(
-                                label: '${atlas.columns} × ${atlas.rows}',
-                                variant: PokeMapBadgeVariant.info,
-                              ),
-                            ],
+                          trailing: PokeMapBadge(
+                            label: '${atlas.columns} × ${atlas.rows}',
+                            variant: PokeMapBadgeVariant.info,
                           ),
                         ),
                       );
@@ -2113,51 +2013,6 @@ class _SmartTileAtlasGridPainter extends CustomPainter {
         oldDelegate.lineColor != lineColor ||
         oldDelegate.selectionColor != selectionColor ||
         oldDelegate.selectionBorderColor != selectionBorderColor;
-  }
-}
-
-class _LibraryItemContent extends StatelessWidget {
-  const _LibraryItemContent({required this.item});
-
-  final SmartTileLibraryItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Text(
-          item.name,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: colors.textPrimary,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 7),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: <Widget>[
-            PokeMapBadge(
-              label: item.usageLabel,
-              variant: PokeMapBadgeVariant.mapAccent,
-            ),
-            PokeMapBadge(
-              label: item.statusLabel,
-              variant: item.isLegacy
-                  ? PokeMapBadgeVariant.neutral
-                  : item.statusLabel == 'Publié'
-                      ? PokeMapBadgeVariant.success
-                      : PokeMapBadgeVariant.warning,
-            ),
-          ],
-        ),
-      ],
-    );
   }
 }
 

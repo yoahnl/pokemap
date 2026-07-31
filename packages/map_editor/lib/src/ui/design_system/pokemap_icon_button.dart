@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../theme/theme.dart';
 
 /// Available variants for PokeMap icon buttons.
@@ -26,6 +27,10 @@ class PokeMapIconButton extends StatefulWidget {
     this.variant = PokeMapIconButtonVariant.ghost,
     this.isSelected = false,
     this.size = 32.0,
+    this.focusNode,
+    this.autofocus = false,
+    this.semanticLabel,
+    this.disabledReason,
   });
 
   /// Action callback. If null, renders in a disabled state.
@@ -43,8 +48,13 @@ class PokeMapIconButton extends StatefulWidget {
   /// If true, applies active selection styling cues.
   final bool isSelected;
 
-  /// Custom size for the button width/height. Defaults to 32.0.
+  /// Custom size for the button width/height.
   final double size;
+
+  final FocusNode? focusNode;
+  final bool autofocus;
+  final String? semanticLabel;
+  final String? disabledReason;
 
   @override
   State<PokeMapIconButton> createState() => _PokeMapIconButtonState();
@@ -100,17 +110,44 @@ class _PokeMapIconButtonState extends State<PokeMapIconButton> {
       }
     }
 
+    void activate() {
+      if (isDisabled) return;
+      widget.focusNode?.requestFocus();
+      FocusManager.instance.applyFocusChangesIfNeeded();
+      widget.onPressed?.call();
+    }
+
+    final disabledReason = widget.disabledReason?.trim();
+    final accessibleName = (widget.semanticLabel?.trim().isNotEmpty ?? false)
+        ? widget.semanticLabel!.trim()
+        : widget.tooltip?.trim();
+    final semanticLabel = isDisabled &&
+            disabledReason != null &&
+            disabledReason.isNotEmpty &&
+            accessibleName != null &&
+            accessibleName.isNotEmpty
+        ? '$accessibleName. Désactivé. $disabledReason'
+        : accessibleName;
     Widget content = Semantics(
       button: true,
       enabled: !isDisabled,
-      label: widget.tooltip,
+      selected: widget.isSelected,
+      label: semanticLabel,
+      hint: semanticLabel == null && isDisabled ? disabledReason : null,
+      excludeSemantics: true,
+      onTap: isDisabled ? null : activate,
       child: FocusableActionDetector(
-        actions: {
+        focusNode: widget.focusNode,
+        autofocus: widget.autofocus,
+        enabled: !isDisabled,
+        shortcuts: const <ShortcutActivator, Intent>{
+          SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+        },
+        actions: <Type, Action<Intent>>{
           ActivateIntent: CallbackAction<ActivateIntent>(
             onInvoke: (intent) {
-              if (!isDisabled) {
-                widget.onPressed?.call();
-              }
+              activate();
               return null;
             },
           ),
@@ -122,7 +159,8 @@ class _PokeMapIconButtonState extends State<PokeMapIconButton> {
           if (!isDisabled) setState(() => _isFocused = val);
         },
         child: GestureDetector(
-          onTap: isDisabled ? null : widget.onPressed,
+          behavior: HitTestBehavior.opaque,
+          onTap: isDisabled ? null : activate,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 100),
             width: widget.size,
@@ -153,9 +191,14 @@ class _PokeMapIconButtonState extends State<PokeMapIconButton> {
       ),
     );
 
-    if (widget.tooltip != null && widget.tooltip!.isNotEmpty) {
+    final tooltip =
+        isDisabled && disabledReason != null && disabledReason.isNotEmpty
+            ? disabledReason
+            : widget.tooltip;
+    if (tooltip != null && tooltip.isNotEmpty) {
       content = Tooltip(
-        message: widget.tooltip!,
+        message: tooltip,
+        excludeFromSemantics: true,
         child: content,
       );
     }

@@ -1,4 +1,7 @@
+import 'dart:ui' show SemanticsAction, Tristate;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
@@ -244,5 +247,91 @@ void main() {
       expect(selectedButton, findsOneWidget);
       semantics.dispose();
     });
+
+    testWidgets(
+      'disabled buttons explain why and expose no semantic activation',
+      (tester) async {
+        final semantics = tester.ensureSemantics();
+        await tester.pumpWidget(
+          buildTestWidget(
+            theme: PokeMapTheme.light(),
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                PokeMapButton(
+                  semanticLabel: 'Enregistrer la carte',
+                  disabledReason: 'Aucune carte active.',
+                  onPressed: null,
+                  child: Text('Enregistrer'),
+                ),
+                PokeMapIconButton(
+                  semanticLabel: 'Tourner à droite',
+                  disabledReason:
+                      'Cet élément ne prend pas en charge la rotation.',
+                  onPressed: null,
+                  icon: Icon(Icons.rotate_right),
+                ),
+              ],
+            ),
+          ),
+        );
+
+        for (final reason in <String>[
+          'Aucune carte active',
+          'ne prend pas en charge',
+        ]) {
+          final finder = find.semantics.byLabel(RegExp(reason));
+          expect(finder, findsOneWidget);
+          final node = finder.evaluate().single;
+          expect(node.flagsCollection.isEnabled, Tristate.isFalse);
+          expect(node.label, contains(reason));
+          expect(
+            node.getSemanticsData().hasAction(SemanticsAction.tap),
+            isFalse,
+          );
+        }
+        expect(
+          tester
+              .widgetList<Tooltip>(find.byType(Tooltip))
+              .map((item) => item.message),
+          containsAll(<String>[
+            'Aucune carte active.',
+            'Cet élément ne prend pas en charge la rotation.',
+          ]),
+        );
+        semantics.dispose();
+      },
+    );
+
+    testWidgets(
+      'icon button owns a 36px keyboard target and activates with Enter Space',
+      (tester) async {
+        final focusNode = FocusNode(debugLabel: 'icon keyboard target');
+        addTearDown(focusNode.dispose);
+        var activations = 0;
+        await tester.pumpWidget(
+          buildTestWidget(
+            theme: PokeMapTheme.dark(),
+            child: PokeMapIconButton(
+              focusNode: focusNode,
+              size: 36,
+              semanticLabel: 'Ajouter',
+              onPressed: () => activations += 1,
+              icon: const Icon(Icons.add),
+            ),
+          ),
+        );
+
+        expect(
+          tester.getSize(find.byType(PokeMapIconButton)),
+          const Size.square(36),
+        );
+        focusNode.requestFocus();
+        await tester.pump();
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        expect(activations, 2);
+      },
+    );
   });
 }

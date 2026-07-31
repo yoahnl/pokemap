@@ -1,0 +1,108 @@
+<h2>Smart Tiles Studio — créer un preset</h2>
+<p class="subtitle">Le parcours natif proposé : partir de l’image, vérifier sa grille, définir son comportement, mapper les tuiles puis tester le résultat.</p>
+
+<div class="mockup" style="width:100%;max-width:100%;overflow:hidden">
+  <div class="mockup-header">Nouveau preset</div>
+  <div class="mockup-body" style="padding:0;overflow:hidden">
+    <div class="mock-nav" style="display:flex;flex-wrap:wrap;align-items:center;gap:18px;padding:14px 18px">
+      <strong style="margin-right:auto">Smart Tiles Studio</strong>
+      <span style="opacity:.65">Atlas</span>
+      <span style="opacity:.65">Règles</span>
+      <span style="opacity:.65">Animations</span>
+      <span style="opacity:.65">Banc d’essai</span>
+      <span style="opacity:.65">Validation</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:minmax(170px,21%) minmax(360px,1fr) minmax(210px,23%);width:100%;min-height:360px">
+      <aside class="mock-sidebar" style="min-width:0;padding:14px 16px;overflow:hidden">
+        <strong>Bibliothèque</strong>
+        <div style="margin:16px 0;line-height:1.9;opacity:.65">
+          <div>▸ Terrains</div>
+          <div>▸ Chemins</div>
+          <div>▸ Surfaces</div>
+        </div>
+        <button class="mock-button" style="width:100%;white-space:normal">+ Nouveau preset</button>
+        <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.12);line-height:1.55">
+          <strong>Principe</strong>
+          <p style="margin:8px 0 0;opacity:.72">Une image devient un preset PokeMap entièrement éditable, sans dépendance à Tiled.</p>
+        </div>
+      </aside>
+
+      <main class="mock-content" style="min-width:0;padding:14px 20px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-bottom:13px;text-align:center;font-size:12px">
+          <div style="padding:6px 4px;border-radius:6px;background:#3b82f6;color:white"><strong>1</strong><br>Source</div>
+          <div style="padding:6px 4px;border-radius:6px;background:rgba(255,255,255,.08)"><strong>2</strong><br>Grille</div>
+          <div style="padding:6px 4px;border-radius:6px;background:rgba(255,255,255,.08)"><strong>3</strong><br>Usage</div>
+          <div style="padding:6px 4px;border-radius:6px;background:rgba(255,255,255,.08)"><strong>4</strong><br>Mapping</div>
+          <div style="padding:6px 4px;border-radius:6px;background:rgba(255,255,255,.08)"><strong>5</strong><br>Test</div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap">
+          <div>
+            <strong style="font-size:16px">1. Choisir l’image source</strong>
+            <p style="margin:4px 0 0;opacity:.72">PNG conseillé · transparence conservée · image jamais redimensionnée</p>
+          </div>
+          <span style="padding:6px 10px;border-radius:14px;background:rgba(52,211,153,.14);color:#6ee7b7;font-size:12px">100 % natif PokeMap</span>
+        </div>
+
+        <div class="placeholder" style="height:108px;margin-top:10px;display:grid;place-items:center;text-align:center;padding:12px;border-style:dashed">
+          <div>
+            <strong>Déposer un tileset ou un atlas PNG</strong>
+            <p style="margin:4px 0 7px;opacity:.68">ou sélectionner un fichier sur l’ordinateur</p>
+            <button class="mock-button">Choisir une image</button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px">
+          <div style="padding:7px 9px;border-radius:7px;background:rgba(255,255,255,.055)">
+            <strong>Image brute</strong>
+            <div style="margin-top:2px;opacity:.65;font-size:11px">PNG, WebP</div>
+          </div>
+          <div style="padding:7px 9px;border-radius:7px;background:rgba(255,255,255,.055)">
+            <strong>Atlas existant</strong>
+            <div style="margin-top:2px;opacity:.65;font-size:11px">Réutiliser un asset</div>
+          </div>
+          <div style="padding:7px 9px;border-radius:7px;background:rgba(255,255,255,.055)">
+            <strong>Preset vierge</strong>
+            <div style="margin-top:2px;opacity:.65;font-size:11px">Associer plus tard</div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px">
+          <button class="mock-button" style="opacity:.6">Annuler</button>
+          <button class="mock-button">Continuer vers la grille →</button>
+        </div>
+      </main>
+
+      <aside class="mock-sidebar" style="min-width:0;padding:14px 16px;overflow:hidden">
+        <strong>Résumé du preset</strong>
+        <div style="margin-top:10px;line-height:1.5;overflow-wrap:anywhere">
+          <div>Nom : <span style="opacity:.55">à définir</span></div>
+          <div>Source : <span style="opacity:.55">aucune</span></div>
+          <div>Grille : <span style="opacity:.55">à détecter</span></div>
+          <div>Usage : <span style="opacity:.55">à choisir</span></div>
+          <div>Format : <span style="opacity:.55">à identifier</span></div>
+        </div>
+
+        <div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.12)">
+          <strong>Les cinq contrôles</strong>
+          <div style="margin-top:7px;line-height:1.55">
+            <div style="color:#93c5fd">● Source</div>
+            <div style="opacity:.55">○ Découpe de la grille</div>
+            <div style="opacity:.55">○ Terrain, chemin ou surface</div>
+            <div style="opacity:.55">○ Règles de connexion</div>
+            <div style="opacity:.55">○ Peinture sur carte test</div>
+          </div>
+        </div>
+
+        <div class="option" data-choice="new-preset-source-first" onclick="toggleSelect(this)" style="margin-top:7px;padding:7px 9px;min-height:0">
+          <div class="letter" style="width:22px;height:22px;min-width:22px;font-size:12px">✓</div>
+          <div class="content">
+            <strong>Valider ce parcours</strong>
+            <p style="margin:2px 0 0;font-size:11px">Les cinq étapes natives</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>

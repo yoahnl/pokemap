@@ -1,16 +1,24 @@
 import 'dart:ui' show SemanticsAction;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/application/map_layer_deletion_impact.dart';
+import 'package:map_editor/src/features/editor/application/map_context_target.dart';
+import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
+import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_layer_mutation_dialogs.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_layers_inspector.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/theme/theme.dart';
+import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
@@ -61,6 +69,160 @@ void main() {
     expect(find.text('3 groupes de calques'), findsOneWidget);
     expect(find.textContaining('calque(s) visible(s)'), findsNothing);
   });
+
+  testWidgets(
+    'layer row preserves a compatible Paint subtool through the session controller',
+    (tester) async {
+      final harness = _Harness(
+        const MapData(
+          id: 'map',
+          name: 'Map',
+          size: GridSize(width: 1, height: 1),
+          layers: <MapLayer>[
+            TerrainLayer(id: 'terrain-a', name: 'Terrain A'),
+            TerrainLayer(id: 'terrain-b', name: 'Terrain B'),
+          ],
+        ),
+        activeLayerId: 'terrain-a',
+      );
+      addTearDown(harness.dispose);
+      expect(
+        harness.session
+            .activateTool(
+              harness.notifier,
+              const ActivateWorldMapPaint(WorldMapPaintSubtool.terrain),
+            )
+            .accepted,
+        isTrue,
+      );
+      await harness.pump(tester);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('world-map-layer-activate-terrain-b'),
+        ),
+      );
+      await tester.pump();
+
+      expect(harness.notifier.state.activeLayerId, 'terrain-b');
+      expect(harness.notifier.state.activeTool, EditorToolType.terrainPaint);
+      expect(
+        harness.sessionState.activeFamily,
+        WorldMapToolFamily.paint,
+      );
+      expect(
+        harness.sessionState.lastPaintSubtool,
+        WorldMapPaintSubtool.terrain,
+      );
+      expect(harness.notifier.state.mapUndoStack, isEmpty);
+      expect(harness.notifier.state.isDirty, isFalse);
+    },
+  );
+
+  testWidgets(
+    'compatible layer row becomes the remembered Paint destination',
+    (tester) async {
+      final harness = _Harness(
+        const MapData(
+          id: 'map',
+          name: 'Map',
+          size: GridSize(width: 1, height: 1),
+          layers: <MapLayer>[
+            TileLayer(
+              id: 'tile',
+              name: 'Éléments',
+              tilesetId: 'world',
+              tiles: <int>[0],
+            ),
+            TerrainLayer(id: 'terrain-a', name: 'Terrain A'),
+            TerrainLayer(id: 'terrain-b', name: 'Terrain B'),
+          ],
+        ),
+        activeLayerId: 'tile',
+      );
+      addTearDown(harness.dispose);
+
+      final firstRouting = harness.session.routePaintSubtool(
+        harness.notifier,
+        WorldMapPaintSubtool.terrain,
+        chosenLayerId: 'terrain-a',
+      );
+      expect(firstRouting.outcome, WorldMapPaintRoutingOutcome.activated);
+      await harness.pump(tester);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('world-map-layer-activate-terrain-b'),
+        ),
+      );
+      await tester.pump();
+      expect(harness.notifier.state.activeLayerId, 'terrain-b');
+      expect(harness.notifier.state.activeTool, EditorToolType.terrainPaint);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('world-map-layer-activate-tile')),
+      );
+      await tester.pump();
+      expect(harness.notifier.state.activeLayerId, 'tile');
+      expect(harness.notifier.state.activeTool, EditorToolType.selection);
+
+      final replay = harness.session.routePaintSubtool(
+        harness.notifier,
+        WorldMapPaintSubtool.terrain,
+      );
+
+      expect(replay.outcome, WorldMapPaintRoutingOutcome.activated);
+      expect(replay.layerId, 'terrain-b');
+      expect(harness.notifier.state.activeLayerId, 'terrain-b');
+      expect(harness.notifier.state.mapUndoStack, isEmpty);
+      expect(harness.notifier.state.isDirty, isFalse);
+    },
+  );
+
+  testWidgets(
+    'layer row falls back cleanly to Selection for an incompatible subtool',
+    (tester) async {
+      final harness = _Harness(
+        const MapData(
+          id: 'map',
+          name: 'Map',
+          size: GridSize(width: 1, height: 1),
+          layers: <MapLayer>[
+            PathLayer(id: 'path', name: 'Chemin'),
+            TerrainLayer(id: 'terrain', name: 'Terrain'),
+          ],
+        ),
+        activeLayerId: 'path',
+      );
+      addTearDown(harness.dispose);
+      expect(
+        harness.session
+            .activateTool(
+              harness.notifier,
+              const ActivateWorldMapPaint(WorldMapPaintSubtool.path),
+            )
+            .accepted,
+        isTrue,
+      );
+      await harness.pump(tester);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('world-map-layer-activate-terrain'),
+        ),
+      );
+      await tester.pump();
+
+      expect(harness.notifier.state.activeLayerId, 'terrain');
+      expect(harness.notifier.state.activeTool, EditorToolType.selection);
+      expect(
+        harness.sessionState.activeFamily,
+        WorldMapToolFamily.selection,
+      );
+      expect(harness.notifier.state.mapUndoStack, isEmpty);
+      expect(harness.notifier.state.isDirty, isFalse);
+    },
+  );
 
   testWidgets(
       'explains an active technical environment visually and semantically',
@@ -727,6 +889,84 @@ void main() {
     expect(find.byIcon(Icons.lock), findsNothing);
     expect(find.byIcon(Icons.copy), findsNothing);
   });
+
+  testWidgets('secondary click on the whole layer card emits its typed target',
+      (tester) async {
+    final harness = _Harness(_threeLayerMap(), activeLayerId: 'middle');
+    addTearDown(harness.dispose);
+    final requests = <WorldMapLayerContextMenuRequest>[];
+    await harness.pump(
+      tester,
+      onContextMenuRequested: requests.add,
+    );
+
+    final row = find.byKey(
+      const ValueKey<String>('world-map-layer-row-top'),
+    );
+    final rowRect = tester.getRect(row);
+    final gesture = await tester.createGesture(
+      kind: PointerDeviceKind.mouse,
+      buttons: kSecondaryButton,
+    );
+    await gesture.down(
+      Offset(rowRect.left + 12, rowRect.bottom - 12),
+    );
+    await gesture.up();
+    await tester.pump();
+
+    expect(requests, hasLength(1));
+    expect(requests.single.target, const MapLayerContextTarget('top'));
+    expect(requests.single.invocation, MapContextMenuInvocation.pointer);
+    expect(requests.single.invokerFocusNode.hasFocus, isTrue);
+  });
+
+  testWidgets('Menu key from a nested layer control targets the whole card',
+      (tester) async {
+    final harness = _Harness(_threeLayerMap(), activeLayerId: 'middle');
+    addTearDown(harness.dispose);
+    final requests = <WorldMapLayerContextMenuRequest>[];
+    await harness.pump(
+      tester,
+      onContextMenuRequested: requests.add,
+    );
+
+    final rowFocus = tester.widget<Focus>(
+      find.byKey(
+        const ValueKey<String>('world-map-layer-context-focus-top'),
+      ),
+    );
+    rowFocus.focusNode!.requestFocus();
+    await tester.pump();
+    var visibilityHasPrimaryFocus = false;
+    for (var attempt = 0; attempt < 8; attempt += 1) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      final focusedContext = FocusManager.instance.primaryFocus?.context;
+      if (focusedContext == null) continue;
+      visibilityHasPrimaryFocus = find
+          .ancestor(
+            of: find.byElementPredicate(
+              (element) => identical(element, focusedContext),
+            ),
+            matching: find.byKey(
+              const ValueKey<String>('world-map-layer-visibility-top'),
+            ),
+          )
+          .evaluate()
+          .isNotEmpty;
+      if (visibilityHasPrimaryFocus) break;
+    }
+    expect(visibilityHasPrimaryFocus, isTrue);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.contextMenu);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.contextMenu);
+    await tester.pump();
+
+    expect(requests, hasLength(1));
+    expect(requests.single.target, const MapLayerContextTarget('top'));
+    expect(requests.single.invocation, MapContextMenuInvocation.keyboard);
+    expect(requests.single.invokerFocusNode, same(rowFocus.focusNode));
+    expect(requests.single.invokerFocusNode.hasFocus, isTrue);
+  });
 }
 
 final class _Harness {
@@ -754,12 +994,19 @@ final class _Harness {
   EditorNotifier get notifier =>
       container.read(editorNotifierProvider.notifier);
 
+  WorldMapWorkspaceSessionController get session =>
+      container.read(worldMapWorkspaceSessionProvider.notifier);
+
+  WorldMapWorkspaceSession get sessionState =>
+      container.read(worldMapWorkspaceSessionProvider);
+
   Future<void> pump(
     WidgetTester tester, {
     WorldMapLayerRenameRequested onRenameRequested =
         showWorldMapLayerRenameDialog,
     WorldMapLayerDeleteRequested onDeleteRequested =
         showWorldMapLayerDeleteDialog,
+    WorldMapLayerContextMenuRequested? onContextMenuRequested,
   }) {
     return tester.pumpWidget(
       UncontrolledProviderScope(
@@ -773,6 +1020,7 @@ final class _Harness {
               child: WorldMapLayersInspector(
                 onRenameRequested: onRenameRequested,
                 onDeleteRequested: onDeleteRequested,
+                onContextMenuRequested: onContextMenuRequested,
               ),
             ),
           ),

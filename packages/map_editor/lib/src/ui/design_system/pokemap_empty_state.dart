@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import '../../theme/theme.dart';
 
@@ -34,64 +36,86 @@ class PokeMapEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    final outerPadding = compact ? 12.0 : 24.0;
     final iconExtent = compact ? 40.0 : 64.0;
     final iconSize = compact ? 20.0 : 28.0;
 
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(outerPadding),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Container(
-                width: iconExtent,
-                height: iconExtent,
-                decoration: BoxDecoration(
-                  color: colors.surfaceSubtle,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: colors.borderSubtle, width: 1),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final padding = compact ||
+                constraints.hasBoundedHeight && constraints.maxHeight < 300
+            ? 12.0
+            : 24.0;
+        final content = ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: constraints.hasBoundedHeight
+                ? math.max(0, constraints.maxHeight - padding * 2)
+                : 0,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Container(
+                  width: iconExtent,
+                  height: iconExtent,
+                  decoration: BoxDecoration(
+                    color: colors.surfaceSubtle,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: colors.borderSubtle, width: 1),
+                  ),
+                  alignment: Alignment.center,
+                  child: IconTheme.merge(
+                    data: IconThemeData(
+                      color: colors.textMuted,
+                      size: iconSize,
+                    ),
+                    child: icon!,
+                  ),
                 ),
-                alignment: Alignment.center,
-                child: IconTheme.merge(
-                  data: IconThemeData(color: colors.textMuted, size: iconSize),
-                  child: icon!,
-                ),
-              ),
-              SizedBox(height: compact ? 8 : 16),
-            ],
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: colors.textPrimary,
-                fontSize: compact ? 13 : 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            if (description != null) ...[
-              SizedBox(height: compact ? 4 : 6),
+                SizedBox(height: compact ? 8 : 16),
+              ],
               Text(
-                description!,
+                title,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: colors.textSecondary,
-                  fontSize: compact ? 11 : 12,
-                  fontWeight: FontWeight.w400,
-                  height: 1.4,
+                  color: colors.textPrimary,
+                  fontSize: compact ? 13 : 14,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
+              if (description != null) ...[
+                SizedBox(height: compact ? 4 : 6),
+                Text(
+                  description!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: compact ? 11 : 12,
+                    fontWeight: FontWeight.w400,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+              if (action != null) ...[
+                SizedBox(height: compact ? 8 : 16),
+                action!,
+              ],
             ],
-            if (action != null) ...[
-              SizedBox(height: compact ? 8 : 16),
-              action!,
-            ],
-          ],
-        ),
-      ),
+          ),
+        );
+        if (!constraints.hasBoundedHeight) {
+          return Padding(
+            padding: EdgeInsets.all(padding),
+            child: content,
+          );
+        }
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(padding),
+          child: content,
+        );
+      },
     );
   }
 }

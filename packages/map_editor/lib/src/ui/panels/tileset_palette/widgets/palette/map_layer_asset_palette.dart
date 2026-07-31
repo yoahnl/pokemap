@@ -53,6 +53,7 @@ class MapLayerAssetPalette extends ConsumerStatefulWidget {
     this.sourceId,
     this.visibleElementIds,
     this.elementActionsBuilder,
+    this.debugOnBuild,
     super.key,
   });
 
@@ -60,6 +61,8 @@ class MapLayerAssetPalette extends ConsumerStatefulWidget {
   final String? sourceId;
   final Set<String>? visibleElementIds;
   final MapLayerElementActionsBuilder? elementActionsBuilder;
+  @visibleForTesting
+  final VoidCallback? debugOnBuild;
 
   @override
   ConsumerState<MapLayerAssetPalette> createState() =>
@@ -112,9 +115,31 @@ class _MapLayerAssetPaletteState extends ConsumerState<MapLayerAssetPalette> {
 
   @override
   Widget build(BuildContext context) {
-    final browserSnapshot =
-        ref.watch(editorMapPaletteAssetBrowserSnapshotProvider);
-    final paletteSnapshot = ref.watch(editorTilesetPaletteSnapshotProvider);
+    assert(() {
+      widget.debugOnBuild?.call();
+      return true;
+    }());
+    final browserSnapshot = ref.watch(
+      editorMapPaletteAssetBrowserSnapshotProvider.select(
+        (snapshot) => (
+          project: snapshot.project,
+          activeMap: snapshot.activeMap,
+          activeLayerId: snapshot.activeLayerId,
+          assignedTilesetId: snapshot.assignedTilesetId,
+          selectedTilesetId: snapshot.context.selectedTilesetId,
+          projectElementCategoryId: snapshot.context.projectElementCategoryId,
+        ),
+      ),
+    );
+    final paletteSnapshot = ref.watch(
+      editorTilesetPaletteSnapshotProvider.select(
+        (snapshot) => (
+          projectRootPath: snapshot.projectRootPath,
+          settings: snapshot.settings,
+          activeBrush: snapshot.activeBrush,
+        ),
+      ),
+    );
     final projector = MapPaletteAssetBrowserProjector(
       ref.watch(resolveAssignableTilesetsForMapUseCaseProvider),
       ref.watch(resolveVisibleProjectElementsUseCaseProvider),
@@ -123,17 +148,17 @@ class _MapLayerAssetPaletteState extends ConsumerState<MapLayerAssetPalette> {
       project: browserSnapshot.project,
       map: browserSnapshot.activeMap,
       activeLayerId: browserSnapshot.activeLayerId,
-      selectedTilesetId: browserSnapshot.context.selectedTilesetId,
+      selectedTilesetId: browserSnapshot.selectedTilesetId,
       query: '',
       folderId: null,
       elementCategoryId: null,
       collection: EditorPaletteAssetCollection.all,
       showIncompatible: true,
-      recentTilesetIds: browserSnapshot.recentTilesetIds,
-      favoriteTilesetIds: browserSnapshot.favoriteTilesetIds,
+      recentTilesetIds: const <String>[],
+      favoriteTilesetIds: const <String>[],
     );
     final sourceId = widget.sourceId ??
-        browserSnapshot.context.selectedTilesetId ??
+        browserSnapshot.selectedTilesetId ??
         browserSnapshot.assignedTilesetId;
     final project = browserSnapshot.project;
     final source = _findTileset(project, sourceId);
@@ -196,7 +221,7 @@ class _MapLayerAssetPaletteState extends ConsumerState<MapLayerAssetPalette> {
             selectedBrush: paletteSnapshot.activeBrush,
             availability: availability,
             categoryId: widget.visibleElementIds == null
-                ? browserSnapshot.context.projectElementCategoryId
+                ? browserSnapshot.projectElementCategoryId
                 : null,
             visibleElementIds: widget.visibleElementIds,
             elementActionsBuilder: widget.elementActionsBuilder,
@@ -376,80 +401,28 @@ class _ElementAssetList extends StatelessWidget {
                     final presetLabel = elementPresetLabel(element.presetKind);
                     final collisionCellCount =
                         element.collisionProfile?.cells.length ?? 0;
-                    final metadataStyle = TextStyle(
-                      color: context.pokeMapColors.textMuted,
-                      fontSize: 10,
-                    );
                     final card = PokeMapAssetCard(
                       key: MapLayerAssetPaletteKeys.elementCard(element.id),
-                      semanticLabel: '${element.name}, '
-                          '${_categoryPath(project, element.categoryId)}, '
-                          'Type : $presetLabel, '
+                      thumbnail: SizedBox.square(
+                        dimension: 48,
+                        child: _ElementPreview(
+                          image: image,
+                          source: element.frames.primarySource,
+                          tileWidth: settings.tileWidth,
+                          tileHeight: settings.tileHeight,
+                        ),
+                      ),
+                      label: element.name,
+                      description: '${_categoryPath(
+                        project,
+                        element.categoryId,
+                      )} · Type : $presetLabel · '
                           'Collision : $collisionCellCount',
                       selected: presentation.selected,
                       disabledReason: presentation.disabledReason,
                       onPressed: presentation.enabled
                           ? () => onSelected(presentation)
                           : null,
-                      child: Row(
-                        children: [
-                          SizedBox.square(
-                            dimension: 48,
-                            child: _ElementPreview(
-                              image: image,
-                              source: element.frames.primarySource,
-                              tileWidth: settings.tileWidth,
-                              tileHeight: settings.tileHeight,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  element.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: context.pokeMapColors.textPrimary,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  _categoryPath(
-                                    project,
-                                    element.categoryId,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: context.pokeMapColors.textSecondary,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 2,
-                                  children: [
-                                    Text(
-                                      'Type : $presetLabel',
-                                      style: metadataStyle,
-                                    ),
-                                    Text(
-                                      'Collision : $collisionCellCount',
-                                      style: metadataStyle,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
                     );
                     final actionsBuilder = elementActionsBuilder;
                     if (actionsBuilder == null) return card;

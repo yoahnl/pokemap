@@ -396,11 +396,14 @@ class PlacedElementPropertiesPanel extends ConsumerWidget {
                   children: [
                     Icon(CupertinoIcons.trash, size: 14),
                     SizedBox(width: 6),
-                    Text(
-                      'Supprimer cette instance',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
+                    Flexible(
+                      child: Text(
+                        'Supprimer cette instance',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ],

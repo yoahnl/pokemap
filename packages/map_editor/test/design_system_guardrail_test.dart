@@ -64,6 +64,20 @@ void main() {
       );
     });
 
+    test('Gate 5 world-map paths keep a strict zero-baseline ratchet', () {
+      final regressions = _gate5WorldMapRegressions();
+
+      expect(
+        regressions,
+        isEmpty,
+        reason: [
+          'Gate 5 paths must use semantic tokens and PokeMap primitives.',
+          'No historical baseline is accepted for these recomposed surfaces.',
+          ...regressions,
+        ].join('\n'),
+      );
+    });
+
     test('desktop source ratchet rejects imports from the editor perimeter',
         () {
       const syntheticPath =
@@ -221,6 +235,49 @@ final color = Color(
       });
     });
   });
+}
+
+List<String> _gate5WorldMapRegressions() {
+  const paths = <String>[
+    'lib/src/features/editor/presentation/world_map/world_map_workspace.dart',
+    'lib/src/features/editor/presentation/world_map/world_map_toolbelt.dart',
+    'lib/src/features/editor/presentation/world_map/adaptive_map_inspector.dart',
+    'lib/src/ui/panels/tileset_palette/widgets/palette/map_layer_asset_palette.dart',
+    'lib/src/ui/canvas/map_canvas/map_canvas_navigation_controls.dart',
+    'lib/src/ui/design_system/pokemap_asset_card.dart',
+    'lib/src/ui/design_system/pokemap_button.dart',
+    'lib/src/ui/design_system/pokemap_icon_button.dart',
+    'lib/src/ui/design_system/pokemap_split_button.dart',
+    'lib/src/ui/design_system/pokemap_context_menu.dart',
+    'lib/src/ui/design_system/pokemap_desktop_layout.dart',
+  ];
+  final forbidden = <RegExp, String>{
+    RegExp(r'\bColor\s*\(\s*0x'): 'hard-coded Color literal',
+    RegExp(r'\bColors\.'): 'Material Colors reference',
+    RegExp(r'\bCupertinoColors\b'): 'CupertinoColors reference',
+    RegExp(r'\bshowMacosEditorContextMenu\b'):
+        'legacy macOS context-menu helper',
+    RegExp(
+      r'\b(?:MacosButton|PushButton|ElevatedButton|TextButton|OutlinedButton|IconButton)\b',
+    ): 'legacy/ad-hoc interactive primitive',
+  };
+  final regressions = <String>[];
+  for (final relativePath in paths) {
+    final file = File(p.join(Directory.current.path, relativePath));
+    if (!file.existsSync()) {
+      regressions.add('$relativePath is missing');
+      continue;
+    }
+    final code = _scanDartSource(file.readAsStringSync()).code;
+    for (final entry in forbidden.entries) {
+      for (final match in entry.key.allMatches(code)) {
+        regressions.add(
+          '$relativePath:${_lineNumberAt(code, match.start)}: ${entry.value}',
+        );
+      }
+    }
+  }
+  return regressions;
 }
 
 List<String> _desktopInteractionPrimitiveRegressions() {

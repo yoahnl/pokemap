@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/path_autotile_set.dart';
 import 'package:map_editor/src/features/editor/application/map_placed_element_rotation_planner.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
+import 'package:map_editor/src/ui/canvas/map_canvas/editor_canvas_repaint_clock.dart';
 
 void main() {
   group('MapGridPainter foreground split helpers', () {
@@ -1592,6 +1593,109 @@ void main() {
       picture.dispose();
       image.dispose();
       tilesetImage.dispose();
+    });
+  });
+
+  group('EditorCanvasRepaintClock', () {
+    test('notifies once per crossed 110 ms bucket and ignores duplicates', () {
+      final clock = EditorCanvasRepaintClock();
+      var notifications = 0;
+      clock.addListener(() => notifications += 1);
+
+      clock.update(const Duration(milliseconds: 109));
+      expect((clock.elapsedMs, notifications), (0, 0));
+
+      clock.update(const Duration(milliseconds: 110));
+      expect((clock.elapsedMs, notifications), (110, 1));
+
+      clock.update(const Duration(milliseconds: 219));
+      expect((clock.elapsedMs, notifications), (110, 1));
+
+      clock.update(const Duration(milliseconds: 220));
+      expect((clock.elapsedMs, notifications), (220, 2));
+
+      clock.dispose();
+    });
+
+    test('a jump emits once and reset notifies only from a nonzero value', () {
+      final clock = EditorCanvasRepaintClock();
+      var notifications = 0;
+      clock.addListener(() => notifications += 1);
+
+      clock.update(const Duration(milliseconds: 330));
+      expect((clock.elapsedMs, notifications), (330, 1));
+
+      clock.reset();
+      expect((clock.elapsedMs, notifications), (0, 2));
+
+      clock.reset();
+      expect((clock.elapsedMs, notifications), (0, 2));
+
+      clock.dispose();
+    });
+
+    test('painter observes paints and prefers the injected clock value', () {
+      final clock = EditorCanvasRepaintClock()
+        ..update(const Duration(milliseconds: 330));
+      var paints = 0;
+      final painter = MapGridPainter(
+        map: const MapData(
+          id: 'clock',
+          name: 'Clock',
+          size: GridSize(width: 1, height: 1),
+        ),
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 32,
+        tileHeight: 32,
+        tilesetImagesById: const <String, ui.Image?>{},
+        sourceTileWidth: 32,
+        sourceTileHeight: 32,
+        tilesPerRowById: const <String, int>{},
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
+        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+        animationClock: clock,
+        editorEntityAnimationMs: 110,
+        debugOnPaint: () => paints += 1,
+      );
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+
+      painter.paint(canvas, const ui.Size(32, 32));
+
+      expect(painter.effectiveAnimationMs, 330);
+      expect(paints, 1);
+      recorder.endRecording().dispose();
+      clock.dispose();
+    });
+
+    test('legacy painter keeps its static animation value', () {
+      final painter = MapGridPainter(
+        map: const MapData(
+          id: 'legacy-clock',
+          name: 'Legacy clock',
+          size: GridSize(width: 1, height: 1),
+        ),
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 32,
+        tileHeight: 32,
+        tilesetImagesById: const <String, ui.Image?>{},
+        sourceTileWidth: 32,
+        sourceTileHeight: 32,
+        tilesPerRowById: const <String, int>{},
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
+        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+        editorEntityAnimationMs: 220,
+      );
+
+      expect(painter.effectiveAnimationMs, 220);
     });
   });
 }

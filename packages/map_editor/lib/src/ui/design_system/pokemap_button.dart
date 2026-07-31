@@ -61,6 +61,8 @@ class PokeMapButton extends StatefulWidget {
     this.isSelected = false,
     this.focusNode,
     this.autofocus = false,
+    this.semanticLabel,
+    this.disabledReason,
   });
 
   /// Action callback. If null, the button is rendered in a disabled state.
@@ -95,6 +97,12 @@ class PokeMapButton extends StatefulWidget {
 
   /// Requests initial focus without bypassing the shared focus styling.
   final bool autofocus;
+
+  /// Optional explicit accessible name, useful for icon-only compact variants.
+  final String? semanticLabel;
+
+  /// Plain-language explanation exposed when the action is disabled.
+  final String? disabledReason;
   @override
   State<PokeMapButton> createState() => _PokeMapButtonState();
 }
@@ -214,10 +222,21 @@ class _PokeMapButtonState extends State<PokeMapButton> {
       widget.onPressed?.call();
     }
 
-    return Semantics(
+    final disabledReason = widget.disabledReason?.trim();
+    final explicitLabel = widget.semanticLabel?.trim();
+    final semanticLabel = explicitLabel == null || explicitLabel.isEmpty
+        ? null
+        : isDisabled && disabledReason != null && disabledReason.isNotEmpty
+            ? '$explicitLabel. Désactivé. $disabledReason'
+            : explicitLabel;
+    Widget button = Semantics(
       button: true,
       enabled: !isDisabled,
       selected: widget.isSelected,
+      label: semanticLabel,
+      hint: semanticLabel == null && isDisabled ? disabledReason : null,
+      excludeSemantics: semanticLabel != null,
+      onTap: isDisabled ? null : activate,
       child: FocusableActionDetector(
         focusNode: widget.focusNode,
         autofocus: widget.autofocus,
@@ -305,5 +324,13 @@ class _PokeMapButtonState extends State<PokeMapButton> {
         ),
       ),
     );
+    if (isDisabled && disabledReason != null && disabledReason.isNotEmpty) {
+      button = Tooltip(
+        message: disabledReason,
+        excludeFromSemantics: true,
+        child: button,
+      );
+    }
+    return button;
   }
 }

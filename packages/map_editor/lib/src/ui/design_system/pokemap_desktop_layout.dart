@@ -5,7 +5,7 @@ enum PokeMapDesktopWindowClass { compact, medium, expanded }
 abstract final class PokeMapDesktopLayoutTokens {
   static const minSupportedWidth = 800.0;
   static const minSupportedHeight = 600.0;
-  static const mediumBreakpoint = 1024.0;
+  static const mediumBreakpoint = 1280.0;
   static const expandedBreakpoint = 1440.0;
   static const explorerRailWidth = 52.0;
   static const explorerExpandedWidth = 344.0;

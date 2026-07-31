@@ -56,14 +56,14 @@ void main() {
       expect(
         find.descendant(
           of: treeCard,
-          matching: find.text('Type : Arbre'),
+          matching: find.textContaining('Type : Arbre'),
         ),
         findsOneWidget,
       );
       expect(
         find.descendant(
           of: treeCard,
-          matching: find.text('Collision : 2'),
+          matching: find.textContaining('Collision : 2'),
         ),
         findsOneWidget,
       );

@@ -166,7 +166,8 @@ void main() {
 
       await harness.pump(tester);
 
-      const reason = 'Paint/terrain requires an active terrain layer.';
+      const reason =
+          'Sélectionnez un calque de terrain pour peindre le terrain.';
       final guidance = find.byKey(
         const ValueKey<String>('world-map-inspector-disabled-guidance'),
       );
@@ -208,6 +209,362 @@ void main() {
   );
 
   testWidgets(
+    'layer chooser is semantic, keyboard operable, and mutation-free until choice',
+    (tester) async {
+      final harness = _PaintHarness(
+        'tile',
+        map: _mapWithMultipleTerrain,
+      );
+      addTearDown(harness.dispose);
+      harness.showLayerChoice(
+        WorldMapPaintSubtool.terrain,
+        const <String>['terrain', 'terrain-secondary'],
+      );
+      final beforeEditor = harness.notifier.state;
+      final beforeSession = harness.sessionState;
+
+      await harness.pump(tester);
+
+      final guidance = find.byKey(
+        const ValueKey<String>('world-map-paint-layer-choice-guidance'),
+      );
+      final firstChoice = find.byKey(
+        const ValueKey<String>('world-map-paint-layer-choice-terrain'),
+      );
+      expect(guidance, findsOneWidget);
+      expect(find.text('Choisir un calque de terrain'), findsOneWidget);
+      expect(find.text('Terrain'), findsOneWidget);
+      expect(find.text('Terrain secondaire'), findsOneWidget);
+      expect(firstChoice, findsOneWidget);
+      expect(
+        tester.getSemantics(guidance).label,
+        contains('Choix du calque de terrain. 2 calques compatibles.'),
+      );
+      expect(
+        tester.getSemantics(firstChoice).flagsCollection.isButton,
+        isTrue,
+      );
+      expect(harness.notifier.state, same(beforeEditor));
+      expect(harness.sessionState, same(beforeSession));
+      expect(harness.notifier.state.mapUndoStack, isEmpty);
+      expect(harness.notifier.state.mapRedoStack, isEmpty);
+      expect(harness.notifier.state.isDirty, isFalse);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+
+      expect(harness.notifier.state.activeLayerId, 'terrain');
+      expect(harness.notifier.state.activeTool, EditorToolType.terrainPaint);
+      expect(harness.sessionState.activeFamily, WorldMapToolFamily.paint);
+      expect(harness.paintInspectionIntent, isNull);
+      expect(harness.notifier.state.mapUndoStack, isEmpty);
+      expect(harness.notifier.state.mapRedoStack, isEmpty);
+      expect(harness.notifier.state.isDirty, isFalse);
+    },
+  );
+
+  testWidgets(
+    'long layer chooser scrolls to its last accessible choice without overflow',
+    (tester) async {
+      final map = _mapWithManyTerrainLayers(20);
+      final harness = _PaintHarness('tile', map: map);
+      addTearDown(harness.dispose);
+      harness.showLayerChoice(
+        WorldMapPaintSubtool.terrain,
+        <String>[
+          for (final layer in map.layers.whereType<TerrainLayer>()) layer.id,
+        ],
+      );
+
+      await harness.pump(tester, height: 280);
+
+      expect(tester.takeException(), isNull);
+      final lastChoice = find.byKey(
+        const ValueKey<String>('world-map-paint-layer-choice-terrain-20'),
+      );
+      expect(lastChoice, findsOneWidget);
+      await tester.scrollUntilVisible(
+        lastChoice,
+        120,
+        scrollable: find.descendant(
+          of: find.byKey(
+            const ValueKey<String>('world-map-paint-layer-choice-scroll'),
+          ),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      expect(
+        tester.getSemantics(lastChoice).flagsCollection.isButton,
+        isTrue,
+      );
+
+      await tester.tap(lastChoice);
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(harness.notifier.state.activeLayerId, 'terrain-20');
+      expect(harness.notifier.state.activeTool, EditorToolType.terrainPaint);
+      expect(harness.paintInspectionIntent, isNull);
+    },
+  );
+
+  testWidgets('layer choice exposes a complete tooltip for a long name',
+      (tester) async {
+    const longName =
+        'Terrain principal extrêmement long pour un inspecteur étroit';
+    final map = _map.copyWith(
+      layers: <MapLayer>[
+        _map.layers.whereType<TileLayer>().single,
+        const TerrainLayer(id: 'terrain-long', name: longName),
+        const TerrainLayer(id: 'terrain-short', name: 'Terrain secondaire'),
+      ],
+    );
+    final harness = _PaintHarness('tile', map: map);
+    addTearDown(harness.dispose);
+    harness.showLayerChoice(
+      WorldMapPaintSubtool.terrain,
+      const <String>['terrain-long', 'terrain-short'],
+    );
+
+    await harness.pump(tester, width: 220);
+
+    final button = find.byKey(
+      const ValueKey<String>('world-map-paint-layer-choice-terrain-long'),
+    );
+    final tooltip = find.ancestor(
+      of: button,
+      matching: find.byType(Tooltip),
+    );
+    expect(tooltip, findsOneWidget);
+    expect(tester.widget<Tooltip>(tooltip).message, longName);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'stale layer choice cannot activate a homonymous layer in another document',
+    (tester) async {
+      final harness = _PaintHarness(
+        'tile',
+        map: _mapWithMultipleTerrain,
+        projectRootPath: '/projects/alpha',
+        activeMapPath: '/projects/alpha/maps/shared.json',
+      );
+      addTearDown(harness.dispose);
+      harness.showLayerChoice(
+        WorldMapPaintSubtool.terrain,
+        const <String>['terrain', 'terrain-secondary'],
+      );
+      await harness.pump(tester);
+      final staleCallback = tester
+          .widget<PokeMapButton>(
+            find.byKey(
+              const ValueKey<String>(
+                'world-map-paint-layer-choice-terrain-secondary',
+              ),
+            ),
+          )
+          .onPressed!;
+      final nextMap = _mapWithMultipleTerrain.copyWith(
+        name: 'Document homonyme B',
+      );
+      harness.notifier.state = harness.notifier.state.copyWith(
+        projectRootPath: '/projects/beta',
+        activeMapPath: '/projects/beta/maps/shared.json',
+        activeMap: nextMap,
+        activeLayerId: 'tile',
+        activeTool: EditorToolType.selection,
+        savedMapSnapshot: nextMap,
+      );
+      await tester.pump();
+      final before = harness.notifier.state;
+
+      staleCallback();
+      await tester.pump();
+
+      expect(harness.notifier.state, same(before));
+      expect(harness.notifier.state.activeLayerId, 'tile');
+      expect(harness.notifier.state.mapUndoStack, isEmpty);
+      expect(harness.notifier.state.isDirty, isFalse);
+      expect(harness.paintInspectionIntent, isNull);
+    },
+  );
+
+  testWidgets('path routing guidance uses only French visible labels',
+      (tester) async {
+    final harness = _PaintHarness('tile', map: _tileOnlyMap);
+    addTearDown(harness.dispose);
+    harness.showMissingLayer(WorldMapPaintSubtool.path);
+
+    await harness.pump(tester);
+
+    expect(
+      find.text(
+        'L’outil Chemin peint uniquement dans un calque de chemin.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Path'), findsNothing);
+    expect(find.textContaining('Paths'), findsNothing);
+  });
+
+  testWidgets(
+    'missing-layer guidance explains the required type and offers a safe add CTA',
+    (tester) async {
+      final harness = _PaintHarness(
+        'tile',
+        map: _tileOnlyMap,
+      );
+      addTearDown(harness.dispose);
+      harness.showMissingLayer(WorldMapPaintSubtool.collision);
+      final beforeEditor = harness.notifier.state;
+      final beforeSession = harness.sessionState;
+
+      await harness.pump(tester);
+
+      final guidance = find.byKey(
+        const ValueKey<String>('world-map-paint-missing-layer-guidance'),
+      );
+      final addButton = find.byKey(
+        const ValueKey<String>('world-map-paint-add-required-layer'),
+      );
+      expect(guidance, findsOneWidget);
+      expect(find.text('Calque de collision requis'), findsOneWidget);
+      expect(
+        find.text(
+          'L’outil Collision peint uniquement dans un calque de collision.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Ajouter un calque de collision'), findsOneWidget);
+      expect(
+        tester.getSemantics(guidance).label,
+        contains(
+          'Calque de collision requis. '
+          'L’outil Collision peint uniquement dans un calque de collision.',
+        ),
+      );
+      expect(
+        tester.getSemantics(addButton).flagsCollection.isButton,
+        isTrue,
+      );
+      expect(harness.notifier.state, same(beforeEditor));
+      expect(harness.sessionState, same(beforeSession));
+      expect(harness.notifier.state.mapUndoStack, isEmpty);
+      expect(harness.notifier.state.mapRedoStack, isEmpty);
+      expect(harness.notifier.state.isDirty, isFalse);
+
+      await tester.tap(addButton);
+      await tester.pump();
+
+      expect(
+        harness.notifier.state.activeMap!.layers.whereType<CollisionLayer>(),
+        hasLength(1),
+      );
+      expect(harness.notifier.state.activeTool, EditorToolType.collisionPaint);
+      expect(harness.sessionState.activeFamily, WorldMapToolFamily.paint);
+      expect(harness.paintInspectionIntent, isNull);
+      expect(harness.notifier.state.mapUndoStack, hasLength(1));
+      expect(harness.notifier.state.isDirty, isTrue);
+    },
+  );
+
+  testWidgets(
+    'stale add callback cannot mutate a homonymous map in another document',
+    (tester) async {
+      final harness = _PaintHarness(
+        'tile',
+        map: _tileOnlyMap,
+        projectRootPath: '/projects/alpha',
+        activeMapPath: '/projects/alpha/maps/shared.json',
+      );
+      addTearDown(harness.dispose);
+      harness.showMissingLayer(WorldMapPaintSubtool.collision);
+      await harness.pump(tester);
+      final staleCallback = tester
+          .widget<PokeMapButton>(
+            find.byKey(
+              const ValueKey<String>('world-map-paint-add-required-layer'),
+            ),
+          )
+          .onPressed!;
+      final nextMap = _tileOnlyMap.copyWith(name: 'Document homonyme B');
+      harness.notifier.state = harness.notifier.state.copyWith(
+        projectRootPath: '/projects/beta',
+        activeMapPath: '/projects/beta/maps/shared.json',
+        activeMap: nextMap,
+        activeLayerId: 'tile',
+        activeTool: EditorToolType.selection,
+        savedMapSnapshot: nextMap,
+      );
+      await tester.pump();
+      final before = harness.notifier.state;
+
+      staleCallback();
+      await tester.pump();
+
+      expect(harness.notifier.state, same(before));
+      expect(
+        harness.notifier.state.activeMap!.layers.whereType<CollisionLayer>(),
+        isEmpty,
+      );
+      expect(harness.notifier.state.mapUndoStack, isEmpty);
+      expect(harness.notifier.state.isDirty, isFalse);
+      expect(harness.paintInspectionIntent, isNull);
+    },
+  );
+
+  testWidgets(
+    'add callback rechecks missing routing before creating a layer',
+    (tester) async {
+      final harness = _PaintHarness('tile', map: _tileOnlyMap);
+      addTearDown(harness.dispose);
+      harness.showMissingLayer(WorldMapPaintSubtool.surface);
+      await harness.pump(tester);
+      final staleCallback = tester
+          .widget<PokeMapButton>(
+            find.byKey(
+              const ValueKey<String>('world-map-paint-add-required-layer'),
+            ),
+          )
+          .onPressed!;
+      final updatedMap = _tileOnlyMap.copyWith(
+        layers: <MapLayer>[
+          ..._tileOnlyMap.layers,
+          const SurfaceLayer(
+            id: 'surface-existing',
+            name: 'Surface existante',
+          ),
+        ],
+      );
+      harness.notifier.state = harness.notifier.state.copyWith(
+        activeMap: updatedMap,
+        activeLayerId: 'tile',
+        activeTool: EditorToolType.selection,
+        savedMapSnapshot: updatedMap,
+      );
+      await tester.pump();
+      final before = harness.notifier.state;
+
+      staleCallback();
+      await tester.pump();
+
+      expect(harness.notifier.state, same(before));
+      expect(
+        harness.notifier.state.activeMap!.layers.whereType<SurfaceLayer>(),
+        hasLength(1),
+      );
+      expect(harness.notifier.state.activeLayerId, 'tile');
+      expect(harness.notifier.state.activeTool, EditorToolType.selection);
+      expect(harness.notifier.state.mapUndoStack, isEmpty);
+      expect(harness.notifier.state.mapRedoStack, isEmpty);
+      expect(harness.notifier.state.isDirty, isFalse);
+      expect(harness.paintInspectionIntent, isNull);
+    },
+  );
+
+  testWidgets(
     'Surface setup is one real body and arms only from its explicit buttons',
     (tester) async {
       final harness = _PaintHarness(
@@ -224,7 +581,7 @@ void main() {
       expect(find.byType(SurfacePainterPanel), findsOneWidget);
       expect(_mountedPaintBodyCount(), 1);
       expect(
-        find.text('Select an available surface before painting.'),
+        find.text('Sélectionnez une surface disponible avant de peindre.'),
         findsOneWidget,
       );
       expect(harness.notifier.state, same(beforeEditor));
@@ -491,6 +848,8 @@ class _PaintHarness {
     WorldMapWorkspaceSession initialSession = const WorldMapWorkspaceSession(),
     MapData? map,
     String? selectedSurfacePresetId = 'water',
+    String projectRootPath = '/virtual/project',
+    String? activeMapPath,
   })  : map = map ?? _map,
         activeLayerId = activeLayerId,
         container = ProviderContainer(
@@ -502,10 +861,11 @@ class _PaintHarness {
         ) {
     keepAlive = container.listen(editorNotifierProvider, (_, __) {});
     notifier.state = EditorState(
-      projectRootPath: '/virtual/project',
+      projectRootPath: projectRootPath,
       project: _project,
       workspaceMode: EditorWorkspaceMode.map,
       activeMap: this.map,
+      activeMapPath: activeMapPath,
       activeLayerId: activeLayerId,
       activeBrush: const EditorBrush.tile(tileId: 1, tilesetId: 'world'),
       selectedTerrainType: TerrainType.grass,
@@ -540,6 +900,28 @@ class _PaintHarness {
         );
   }
 
+  void showLayerChoice(
+    WorldMapPaintSubtool subtool,
+    List<String> compatibleLayerIds,
+  ) {
+    container
+        .read(worldMapPaintInspectionIntentProvider.notifier)
+        .showLayerChoice(
+          mapId: map.id,
+          subtool: subtool,
+          compatibleLayerIds: compatibleLayerIds,
+        );
+  }
+
+  void showMissingLayer(WorldMapPaintSubtool subtool) {
+    container
+        .read(worldMapPaintInspectionIntentProvider.notifier)
+        .showMissingLayer(
+          mapId: map.id,
+          subtool: subtool,
+        );
+  }
+
   void selectBorderFeature() {
     container
         .read(activeBorderFeatureControllerProvider.notifier)
@@ -557,6 +939,8 @@ class _PaintHarness {
   Future<void> pump(
     WidgetTester tester, {
     Widget child = const WorldMapPaintInspector(),
+    double width = 440,
+    double height = 720,
   }) async {
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -566,8 +950,8 @@ class _PaintHarness {
           theme: PokeMapTheme.light(),
           home: Scaffold(
             body: SizedBox(
-              width: 440,
-              height: 720,
+              width: width,
+              height: height,
               child: child,
             ),
           ),
@@ -770,5 +1154,36 @@ final _mapWithEmptyBorder = _map.copyWith(
         const BorderLayer(id: 'border', name: 'Border')
       else
         layer,
+  ],
+);
+
+final _mapWithMultipleTerrain = _map.copyWith(
+  layers: <MapLayer>[
+    ..._map.layers,
+    const TerrainLayer(
+      id: 'terrain-secondary',
+      name: 'Terrain secondaire',
+    ),
+  ],
+);
+
+MapData _mapWithManyTerrainLayers(int count) {
+  return _map.copyWith(
+    layers: <MapLayer>[
+      _map.layers.whereType<TileLayer>().single,
+      for (var index = 1; index <= count; index += 1)
+        TerrainLayer(
+          id: 'terrain-$index',
+          name: 'Terrain $index',
+        ),
+    ],
+  );
+}
+
+final _tileOnlyMap = _map.copyWith(
+  id: 'tile-only',
+  name: 'Éléments uniquement',
+  layers: <MapLayer>[
+    _map.layers.whereType<TileLayer>().single,
   ],
 );

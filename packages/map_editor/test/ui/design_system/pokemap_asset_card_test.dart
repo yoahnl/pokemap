@@ -8,6 +8,62 @@ import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
   testWidgets(
+    'PokeMapAssetCard renders the complete asset contract with a 36px target',
+    (tester) async {
+      var activationCount = 0;
+      final focusNode = FocusNode();
+      addTearDown(focusNode.dispose);
+      final semantics = tester.ensureSemantics();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: PokeMapTheme.light(),
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: PokeMapAssetCard(
+                focusNode: focusNode,
+                thumbnail: const SizedBox.square(
+                  dimension: 24,
+                  child: Icon(Icons.park_outlined),
+                ),
+                label: 'Arbre centenaire',
+                description: 'Décoration extérieure réutilisable',
+                trailing: const Icon(Icons.chevron_right_rounded),
+                selected: true,
+                onPressed: () => activationCount += 1,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final card = find.byType(PokeMapAssetCard);
+      expect(find.text('Arbre centenaire'), findsOneWidget);
+      expect(
+        find.text('Décoration extérieure réutilisable'),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.park_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
+      expect(tester.getSize(card).height, greaterThanOrEqualTo(36));
+      final node = tester.getSemantics(card);
+      expect(node.flagsCollection.isEnabled, Tristate.isTrue);
+      expect(node.flagsCollection.isSelected, Tristate.isTrue);
+      expect(node.label, contains('Arbre centenaire'));
+      expect(node.label, contains('Décoration extérieure réutilisable'));
+
+      focusNode.requestFocus();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.tap(card);
+      expect(activationCount, 3);
+      semantics.dispose();
+    },
+  );
+
+  testWidgets(
     'PokeMapAssetCard exposes disabled reason and ignores all activation paths',
     (tester) async {
       var activationCount = 0;
@@ -21,11 +77,11 @@ void main() {
           home: Scaffold(
             body: PokeMapAssetCard(
               focusNode: focusNode,
-              semanticLabel: 'Tuile 1',
+              thumbnail: const Icon(Icons.grid_4x4_rounded),
+              label: 'Tuile 1',
               disabledReason:
                   'Assignez cette source au calque actif avant de peindre.',
               onPressed: null,
-              child: const Text('Tuile 1'),
             ),
           ),
         ),
@@ -64,11 +120,11 @@ void main() {
         theme: PokeMapTheme.light(),
         home: Scaffold(
           body: PokeMapAssetCard(
-            semanticLabel: 'Objet Arbre',
+            thumbnail: const Icon(Icons.park_outlined),
+            label: 'Objet Arbre',
             disabledReason:
                 onPressed == null ? 'Assignez d’abord cette source.' : null,
             onPressed: onPressed,
-            child: const Text('Arbre'),
           ),
         ),
       );
@@ -116,10 +172,10 @@ void main() {
         home: Scaffold(
           body: PokeMapAssetCard(
             focusNode: focusNode,
-            semanticLabel: 'Objet Arbre',
+            thumbnail: const Icon(Icons.park_outlined),
+            label: 'Objet Arbre',
             selected: true,
             onPressed: () => activationCount += 1,
-            child: const Text('Arbre'),
           ),
         ),
       ),
@@ -138,4 +194,56 @@ void main() {
     await tester.pump();
     expect(activationCount, 3);
   });
+
+  testWidgets(
+    'Tab follows card order and skips a disabled asset',
+    (tester) async {
+      final first = FocusNode(debugLabel: 'asset first');
+      final disabled = FocusNode(debugLabel: 'asset disabled');
+      final last = FocusNode(debugLabel: 'asset last');
+      addTearDown(first.dispose);
+      addTearDown(disabled.dispose);
+      addTearDown(last.dispose);
+
+      PokeMapAssetCard card(
+        String label,
+        FocusNode focusNode,
+        VoidCallback? onPressed,
+      ) {
+        return PokeMapAssetCard(
+          focusNode: focusNode,
+          thumbnail: const Icon(Icons.grid_4x4_rounded),
+          label: label,
+          disabledReason: onPressed == null ? 'Source incompatible.' : null,
+          onPressed: onPressed,
+        );
+      }
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: PokeMapTheme.light(),
+          home: Scaffold(
+            body: Column(
+              children: [
+                card('Premier', first, () {}),
+                card('Désactivé', disabled, null),
+                card('Dernier', last, () {}),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      expect(first.hasFocus, isTrue);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      expect(disabled.hasFocus, isFalse);
+      expect(last.hasFocus, isTrue);
+    },
+  );
 }

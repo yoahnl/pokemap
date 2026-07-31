@@ -667,6 +667,136 @@ void main() {
       );
       expect(plan.candidateMap, isNull);
     });
+
+    test('preflights a movable target without choosing a destination', () {
+      final capability = planner.canStartMove(
+        map: _mapWithEntity,
+        project: null,
+        target: _target(MapCanvasObjectKind.entity, 'entity'),
+      );
+
+      expect(capability.allowed, isTrue);
+      expect(capability.rejection, isNull);
+      expect(capability.reason, isNull);
+    });
+
+    test('preflight rejects Environment ownership with the canonical reason',
+        () {
+      const placed = MapPlacedElement(
+        id: 'generated',
+        layerId: 'decor',
+        elementId: 'element-2x2',
+        pos: GridPos(x: 1, y: 1),
+      );
+      final map = _emptyMap.copyWith(
+        layers: <MapLayer>[
+          EnvironmentLayer(
+            id: 'environment',
+            name: 'Environment',
+            content: EnvironmentLayerContent(
+              targetTileLayerId: 'decor',
+              areas: <EnvironmentArea>[
+                EnvironmentArea(
+                  id: 'area',
+                  name: 'Area',
+                  presetId: 'forest',
+                  mask: EnvironmentAreaMask(
+                    width: 8,
+                    height: 8,
+                    cells: List<bool>.filled(64, true),
+                  ),
+                  seed: 1,
+                  generatedPlacementIds: <String>['generated'],
+                ),
+              ],
+            ),
+          ),
+          ..._emptyMap.layers,
+        ],
+        placedElements: const <MapPlacedElement>[placed],
+      );
+
+      final capability = planner.canStartMove(
+        map: map,
+        project: _project,
+        target: _target(
+          MapCanvasObjectKind.placedElement,
+          placed.id,
+          size: const GridSize(width: 2, height: 2),
+        ),
+      );
+
+      expect(capability.allowed, isFalse);
+      expect(
+        capability.rejection,
+        MapCanvasObjectMoveRejection.environmentGeneratedPlacement,
+      );
+      expect(
+        capability.reason,
+        'Cet élément est généré par une zone Environment. '
+        'Modifiez ou régénérez cette zone pour le déplacer.',
+      );
+    });
+
+    test('preflight rejects a placement whose logical bounds are unavailable',
+        () {
+      final map = _emptyMap.copyWith(
+        placedElements: const <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'missing-frame',
+            layerId: 'decor',
+            elementId: 'missing',
+            pos: GridPos(x: 1, y: 1),
+          ),
+        ],
+      );
+
+      final capability = planner.canStartMove(
+        map: map,
+        project: _project,
+        target: _target(
+          MapCanvasObjectKind.placedElement,
+          'missing-frame',
+        ),
+      );
+
+      expect(capability.allowed, isFalse);
+      expect(
+        capability.rejection,
+        MapCanvasObjectMoveRejection.boundsUnavailable,
+      );
+      expect(
+        capability.reason,
+        'Déplacement impossible : l’empreinte de l’élément est inconnue.',
+      );
+    });
+
+    test('preflight rejects an invalid tile-index source projection', () {
+      final map = _tileIndexedMap(
+        source: const GridPos(x: 1, y: 1),
+        includeSourcePattern: false,
+      );
+
+      final capability = planner.canStartMove(
+        map: map,
+        project: _project,
+        target: _target(
+          MapCanvasObjectKind.placedElement,
+          map.placedElements.single.id,
+        ),
+      );
+
+      expect(capability.allowed, isFalse);
+      expect(
+        capability.rejection,
+        MapCanvasObjectMoveRejection.tileIndexedSourceInvalid,
+      );
+      expect(
+        capability.reason,
+        'Déplacement impossible : la projection de tuiles source '
+        'n’est plus cohérente.',
+      );
+    });
   });
 }
 

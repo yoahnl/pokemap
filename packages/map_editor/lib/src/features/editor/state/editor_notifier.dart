@@ -192,8 +192,13 @@ class EditorNotifier extends _$EditorNotifier
   EditorState get currentState => state;
 
   @override
+  MapData? get worldMapToolActivationMap => state.activeMap;
+
+  @override
   WorldMapToolActivationSessionSnapshot
       get worldMapToolActivationSessionSnapshot => (
+            projectRootPath: state.projectRootPath,
+            activeMapPath: state.activeMapPath,
             activeMapId: state.activeMap?.id,
             activeLayerId: state.activeLayerId,
             activeTool: state.activeTool,
@@ -5760,81 +5765,108 @@ class EditorNotifier extends _$EditorNotifier
     }
     final eraserFootprint = _resolveEraserFootprint(emitErrors: true);
     if (eraserFootprint == null) return;
-    if (activeLayer is TileLayer) {
+    _eraseLayerArea(
+      map: map,
+      layer: activeLayer,
+      pos: pos,
+      patternSize: eraserFootprint.size,
+      failureLabel: eraserFootprint.failureLabel,
+      partOfStroke: true,
+    );
+  }
+
+  /// Erases exactly one cell from an explicit compatible layer.
+  ///
+  /// Context actions use this command instead of [eraseAt], so the current
+  /// eraser footprint and active layer cannot widen or redirect the edit.
+  bool eraseCellAt({
+    required String layerId,
+    required GridPos pos,
+  }) {
+    final map = state.activeMap;
+    if (map == null ||
+        pos.x < 0 ||
+        pos.y < 0 ||
+        pos.x >= map.size.width ||
+        pos.y >= map.size.height) {
+      return false;
+    }
+    final layer = _findLayerById(map, layerId);
+    if (layer == null ||
+        layer is! TileLayer &&
+            layer is! CollisionLayer &&
+            layer is! TerrainLayer &&
+            layer is! PathLayer &&
+            layer is! SurfaceLayer &&
+            layer is! SmartTileLayer) {
+      return false;
+    }
+    return _eraseLayerArea(
+      map: map,
+      layer: layer,
+      pos: pos,
+      patternSize: const GridSize(width: 1, height: 1),
+      failureLabel: 'cell',
+      partOfStroke: false,
+    );
+  }
+
+  bool _eraseLayerArea({
+    required MapData map,
+    required MapLayer layer,
+    required GridPos pos,
+    required GridSize patternSize,
+    required String failureLabel,
+    required bool partOfStroke,
+  }) {
+    final layerId = layer.id;
+    if (layer is TileLayer) {
       _erasePattern(
         map: map,
         layerId: layerId,
         pos: pos,
-        patternSize: eraserFootprint.size,
-        failureLabel: eraserFootprint.failureLabel,
+        patternSize: patternSize,
+        failureLabel: failureLabel,
+        partOfStroke: partOfStroke,
       );
-      return;
-    }
-    if (activeLayer is CollisionLayer) {
+    } else if (layer is CollisionLayer) {
       _eraseCollisionPattern(
         map: map,
         layerId: layerId,
         pos: pos,
-        patternSize: eraserFootprint.size,
-        failureLabel: eraserFootprint.failureLabel,
+        patternSize: patternSize,
+        failureLabel: failureLabel,
+        partOfStroke: partOfStroke,
       );
-      return;
-    }
-    if (activeLayer is TerrainLayer) {
+    } else if (layer is TerrainLayer) {
       _eraseTerrainPattern(
         map: map,
         layerId: layerId,
         pos: pos,
-        patternSize: eraserFootprint.size,
-        failureLabel: eraserFootprint.failureLabel,
+        patternSize: patternSize,
+        failureLabel: failureLabel,
+        partOfStroke: partOfStroke,
       );
-      return;
-    }
-    if (activeLayer is PathLayer) {
+    } else if (layer is PathLayer) {
       _erasePathPattern(
         map: map,
         layerId: layerId,
         pos: pos,
-        patternSize: eraserFootprint.size,
-        failureLabel: eraserFootprint.failureLabel,
+        patternSize: patternSize,
+        failureLabel: failureLabel,
+        partOfStroke: partOfStroke,
       );
-      return;
-    }
-    if (activeLayer is SurfaceLayer) {
-      try {
-        final erased = _surfacePaintingController.eraseArea(
-          map: map,
-          targetLayerId: layerId,
-          pos: pos,
-          size: eraserFootprint.size,
-        );
-        if (!erased.changed) {
-          state = state.copyWith(errorMessage: null);
-          return;
-        }
-        _applyMapMutation(
-          previousMap: map,
-          updatedMap: erased.map,
-          preferredActiveLayerId: erased.layerId,
-          statusMessage: 'Surface placement erased',
-          partOfStroke: true,
-        );
-      } catch (e) {
-        _setPaintError('Failed to erase surface: $e');
-      }
-      return;
-    }
-    if (activeLayer is SmartTileLayer) {
-      if (activeLayer.usage == SmartTileUsage.terrain) {
+    } else if (layer is SmartTileLayer) {
+      if (layer.usage == SmartTileUsage.terrain) {
         _setPaintError(
           'The Smart Tile terrain layer cannot contain empty cells',
         );
-        return;
+        return false;
       }
       try {
-        var erasedLayer = activeLayer;
-        for (var y = 0; y < eraserFootprint.size.height; y++) {
-          for (var x = 0; x < eraserFootprint.size.width; x++) {
+        var erasedLayer = layer;
+        for (var y = 0; y < patternSize.height; y++) {
+          for (var x = 0; x < patternSize.width; x++) {
             final targetX = pos.x + x;
             final targetY = pos.y + y;
             if (targetX < 0 ||
@@ -5852,20 +5884,46 @@ class EditorNotifier extends _$EditorNotifier
             );
           }
         }
-        final updated = replaceSmartTileLayer(map, layer: erasedLayer);
         _applyMapMutation(
           previousMap: map,
-          updatedMap: updated,
+          updatedMap: replaceSmartTileLayer(map, layer: erasedLayer),
           preferredActiveLayerId: layerId,
           statusMessage: 'Smart Tile cells erased',
-          partOfStroke: true,
+          partOfStroke: partOfStroke,
         );
       } catch (e) {
         _setPaintError('Failed to erase Smart Tile material: $e');
       }
-      return;
+    } else if (layer is SurfaceLayer) {
+      try {
+        final erased = _surfacePaintingController.eraseArea(
+          map: map,
+          targetLayerId: layerId,
+          pos: pos,
+          size: patternSize,
+        );
+        if (!erased.changed) {
+          state = state.copyWith(errorMessage: null);
+          return false;
+        }
+        _applyMapMutation(
+          previousMap: map,
+          updatedMap: erased.map,
+          preferredActiveLayerId: erased.layerId,
+          statusMessage: 'Surface placement erased',
+          partOfStroke: partOfStroke,
+        );
+      } catch (e) {
+        _setPaintError('Failed to erase surface: $e');
+      }
+    } else {
+      _setPaintError('Active layer "${layer.name}" is not editable');
+      return false;
     }
-    _setPaintError('Active layer "${activeLayer.name}" is not editable');
+    final updatedMap = state.activeMap;
+    return updatedMap != null &&
+        !identical(updatedMap, map) &&
+        updatedMap != map;
   }
 
   MapWarp? getSelectedWarp() {
@@ -8647,6 +8705,7 @@ class EditorNotifier extends _$EditorNotifier
     required GridPos pos,
     required GridSize patternSize,
     required String failureLabel,
+    required bool partOfStroke,
   }) {
     try {
       final project = state.project;
@@ -8668,7 +8727,7 @@ class EditorNotifier extends _$EditorNotifier
           previousMap: map,
           updatedMap: committed,
           preferredActiveLayerId: layerId,
-          partOfStroke: true,
+          partOfStroke: partOfStroke,
         );
         return;
       }
@@ -8692,7 +8751,7 @@ class EditorNotifier extends _$EditorNotifier
         previousMap: map,
         updatedMap: committed,
         preferredActiveLayerId: layerId,
-        partOfStroke: true,
+        partOfStroke: partOfStroke,
       );
     } catch (e) {
       _setPaintError('Failed to erase $failureLabel: $e');
@@ -8747,6 +8806,7 @@ class EditorNotifier extends _$EditorNotifier
     required GridPos pos,
     required GridSize patternSize,
     required String failureLabel,
+    required bool partOfStroke,
   }) {
     try {
       if (patternSize.width == 1 && patternSize.height == 1) {
@@ -8760,7 +8820,7 @@ class EditorNotifier extends _$EditorNotifier
           previousMap: map,
           updatedMap: erased,
           preferredActiveLayerId: layerId,
-          partOfStroke: true,
+          partOfStroke: partOfStroke,
         );
         return;
       }
@@ -8776,7 +8836,7 @@ class EditorNotifier extends _$EditorNotifier
         previousMap: map,
         updatedMap: erased,
         preferredActiveLayerId: layerId,
-        partOfStroke: true,
+        partOfStroke: partOfStroke,
       );
     } catch (e) {
       _setPaintError('Failed to erase collision $failureLabel: $e');
@@ -8842,6 +8902,7 @@ class EditorNotifier extends _$EditorNotifier
     required GridPos pos,
     required GridSize patternSize,
     required String failureLabel,
+    required bool partOfStroke,
   }) {
     try {
       final erased = _terrainPaintingCoordinator.erase(
@@ -8854,7 +8915,7 @@ class EditorNotifier extends _$EditorNotifier
         previousMap: map,
         updatedMap: erased,
         preferredActiveLayerId: layerId,
-        partOfStroke: true,
+        partOfStroke: partOfStroke,
       );
     } catch (e) {
       _setPaintError('Failed to erase terrain $failureLabel: $e');
@@ -8867,6 +8928,7 @@ class EditorNotifier extends _$EditorNotifier
     required GridPos pos,
     required GridSize patternSize,
     required String failureLabel,
+    required bool partOfStroke,
   }) {
     try {
       final erased = _pathLayerEditingCoordinator.erase(
@@ -8879,7 +8941,7 @@ class EditorNotifier extends _$EditorNotifier
         previousMap: map,
         updatedMap: erased,
         preferredActiveLayerId: layerId,
-        partOfStroke: true,
+        partOfStroke: partOfStroke,
       );
     } catch (e) {
       _setPaintError('Failed to erase path $failureLabel: $e');
