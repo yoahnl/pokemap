@@ -72,6 +72,8 @@ export 'src/domains/narrative/script_authoring_service.dart';
 export 'src/domains/narrative/storyline_actions.dart';
 export 'src/domains/narrative/storyline_inspection.dart';
 export 'src/domains/project/capability_truth_adapter.dart';
+export 'src/domains/project/readiness_actions.dart';
+export 'src/domains/distribution/package_actions.dart';
 export 'src/history/authoring_history.dart';
 export 'src/history/content_blob_store.dart';
 export 'src/history/file_history_store.dart';

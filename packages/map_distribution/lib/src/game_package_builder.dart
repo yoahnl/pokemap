@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
+
 import 'canonical_json.dart';
 import 'deterministic_zip_encoder.dart';
 import 'game_package_format_exception.dart';
@@ -15,10 +17,14 @@ final class GamePackageBuildResult {
   GamePackageBuildResult({
     required this.manifest,
     required List<int> packageBytes,
-  }) : packageBytes = List.unmodifiable(packageBytes);
+  })  : packageBytes = List.unmodifiable(packageBytes),
+        packageSha256 = sha256.convert(packageBytes).toString(),
+        archiveBytes = packageBytes.length;
 
   final GamePackageManifest manifest;
   final List<int> packageBytes;
+  final String packageSha256;
+  final int archiveBytes;
 }
 
 /// Builds the deterministic ZIP representation of a `.pokemapgame` archive.

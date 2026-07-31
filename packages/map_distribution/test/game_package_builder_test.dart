@@ -34,6 +34,11 @@ void main() {
         sha256.convert(first.packageBytes).toString(),
         '17e0cedce4c4f15bd135d55c19dd05035a6c668b5c9db313d68de845c54c9b35',
       );
+      expect(
+        first.packageSha256,
+        '17e0cedce4c4f15bd135d55c19dd05035a6c668b5c9db313d68de845c54c9b35',
+      );
+      expect(first.archiveBytes, first.packageBytes.length);
       expect(first.manifest.content.fileCount, 2);
       expect(
         first.manifest.content.treeSha256,
