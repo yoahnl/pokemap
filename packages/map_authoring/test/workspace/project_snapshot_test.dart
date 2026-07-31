@@ -1,0 +1,330 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('ProjectSnapshotLoader', () {
+    test('loads the manifest and maps from the real fixture', () async {
+      final fixture = _realFixtureDirectory();
+      final harness = await _SnapshotHarness.create(
+        allowedRoot: fixture.parent,
+      );
+      final opened = await harness.openService.openProject(fixture.path);
+
+      final snapshot = await harness.loader.load(opened.projectHandle);
+
+      expect(snapshot.manifest.name, 'P3 Narrative Smoke Slice');
+      expect(snapshot.maps, hasLength(1));
+      expect(snapshot.maps.single.id, 'p3_narrative_smoke_map');
+      expect(
+          snapshot.mapById('p3_narrative_smoke_map'), same(snapshot.maps[0]));
+      expect(snapshot.revision, matches(r'^sha256:[0-9a-f]{64}$'));
+      expect(
+        snapshot.resourceFingerprints.keys,
+        ['map:p3_narrative_smoke_map', 'project'],
+      );
+      expect(
+        snapshot.resourceFingerprints.values,
+        everyElement(matches(r'^sha256:[0-9a-f]{64}$')),
+      );
+    });
+
+    test('returns the same revision and deterministic map order on reload',
+        () async {
+      final sandbox = await Directory.systemTemp.createTemp(
+        'pokemap_snapshot_order_',
+      );
+      addTearDown(() => sandbox.delete(recursive: true));
+      final project = await _writeProject(
+        sandbox,
+        mapEntries: [
+          _mapEntry('z-map', 'maps/z.json'),
+          _mapEntry('a-map', 'maps/a.json'),
+        ],
+        maps: [
+          _mapJson('z-map'),
+          _mapJson('a-map'),
+        ],
+      );
+      final harness = await _SnapshotHarness.create(allowedRoot: sandbox);
+      final opened = await harness.openService.openProject(project.path);
+
+      final first = await harness.loader.load(opened.projectHandle);
+      final second = await harness.loader.load(opened.projectHandle);
+
+      expect(second.revision, first.revision);
+      expect(first.maps.map((map) => map.id), ['a-map', 'z-map']);
+      expect(
+        () => first.maps.add(first.maps.first),
+        throwsUnsupportedError,
+      );
+      expect(
+        () => first.resourceFingerprints['project'] = 'changed',
+        throwsUnsupportedError,
+      );
+    });
+
+    test('rejects a resource changed during the two-pass load', () async {
+      final fixture = _realFixtureDirectory();
+      final reader = _ChangingProjectReader(
+        delegate: const LocalProjectFileReader(),
+        changeProjectJsonOnRead: 3,
+      );
+      final harness = await _SnapshotHarness.create(
+        allowedRoot: fixture.parent,
+        reader: reader,
+      );
+      final opened = await harness.openService.openProject(fixture.path);
+
+      await expectLater(
+        () => harness.loader.load(opened.projectHandle),
+        throwsA(
+          isA<ProjectSnapshotException>().having(
+            (error) => error.code,
+            'code',
+            'project.changed_during_snapshot',
+          ),
+        ),
+      );
+    });
+
+    test('rejects duplicate manifest map IDs', () async {
+      final sandbox = await Directory.systemTemp.createTemp(
+        'pokemap_snapshot_duplicate_',
+      );
+      addTearDown(() => sandbox.delete(recursive: true));
+      final project = await _writeProject(
+        sandbox,
+        mapEntries: [
+          _mapEntry('same', 'maps/first.json'),
+          _mapEntry('same', 'maps/second.json'),
+        ],
+        maps: [
+          _mapJson('same'),
+          _mapJson('same'),
+        ],
+      );
+      final harness = await _SnapshotHarness.create(allowedRoot: sandbox);
+      final opened = await harness.openService.openProject(project.path);
+
+      await expectLater(
+        () => harness.loader.load(opened.projectHandle),
+        throwsA(
+          isA<ProjectSnapshotException>().having(
+            (error) => error.code,
+            'code',
+            'project.duplicate_map_id',
+          ),
+        ),
+      );
+    });
+
+    test('rejects a map whose document ID differs from the manifest', () async {
+      final sandbox = await Directory.systemTemp.createTemp(
+        'pokemap_snapshot_mismatch_',
+      );
+      addTearDown(() => sandbox.delete(recursive: true));
+      final project = await _writeProject(
+        sandbox,
+        mapEntries: [_mapEntry('expected', 'maps/field.json')],
+        maps: [_mapJson('actual')],
+      );
+      final harness = await _SnapshotHarness.create(allowedRoot: sandbox);
+      final opened = await harness.openService.openProject(project.path);
+
+      await expectLater(
+        () => harness.loader.load(opened.projectHandle),
+        throwsA(
+          isA<ProjectSnapshotException>().having(
+            (error) => error.code,
+            'code',
+            'project.map_identity_mismatch',
+          ),
+        ),
+      );
+    });
+
+    test('rejects an unknown project handle', () async {
+      final fixture = _realFixtureDirectory();
+      final harness = await _SnapshotHarness.create(
+        allowedRoot: fixture.parent,
+      );
+
+      await expectLater(
+        () => harness.loader.load(const ProjectHandle('prj_unknown')),
+        throwsA(isA<WorkspaceHandleException>()),
+      );
+    });
+
+    test('rejects duplicate direct snapshot maps and invalid fingerprints', () {
+      final map = MapData(
+        id: 'same',
+        name: 'Same',
+        size: const GridSize(width: 1, height: 1),
+        layers: const [],
+      );
+      final manifest = ProjectManifest(
+        name: 'Direct Snapshot',
+        maps: const [],
+        tilesets: const [],
+      );
+
+      expect(
+        () => ProjectSnapshot(
+          projectHandle: const ProjectHandle('prj_direct'),
+          revision: 'sha256:${List.filled(64, 'a').join()}',
+          manifest: manifest,
+          maps: [map, map],
+          resourceFingerprints: {
+            'project': 'sha256:${List.filled(64, 'b').join()}',
+          },
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => ProjectSnapshot(
+          projectHandle: const ProjectHandle('prj_direct'),
+          revision: 'sha256:${List.filled(64, 'a').join()}',
+          manifest: manifest,
+          maps: const [],
+          resourceFingerprints: const {'project': 'not-a-fingerprint'},
+        ),
+        throwsArgumentError,
+      );
+    });
+  });
+}
+
+final class _SnapshotHarness {
+  const _SnapshotHarness({
+    required this.openService,
+    required this.loader,
+  });
+
+  static Future<_SnapshotHarness> create({
+    required Directory allowedRoot,
+    ProjectFileReader reader = const LocalProjectFileReader(),
+  }) async {
+    var token = 0;
+    final policy = await WorkspacePolicy.create(
+      allowedRootPaths: [allowedRoot.path],
+      fileReader: reader,
+    );
+    final handles = WorkspaceHandleStore(
+      clock: () => DateTime.utc(2026, 7, 31, 12),
+      tokenFactory: (prefix) => '$prefix${token++}',
+    );
+    return _SnapshotHarness(
+      openService: ProjectOpenService(
+        policy: policy,
+        fileReader: reader,
+        handles: handles,
+      ),
+      loader: ProjectSnapshotLoader(handles: handles),
+    );
+  }
+
+  final ProjectOpenService openService;
+  final ProjectSnapshotLoader loader;
+}
+
+final class _ChangingProjectReader implements ProjectFileReader {
+  _ChangingProjectReader({
+    required this.delegate,
+    required this.changeProjectJsonOnRead,
+  });
+
+  final ProjectFileReader delegate;
+  final int changeProjectJsonOnRead;
+  int _projectJsonReads = 0;
+
+  @override
+  Future<String> canonicalizeDirectory(String path) =>
+      delegate.canonicalizeDirectory(path);
+
+  @override
+  Future<List<int>> readBytes({
+    required String projectRoot,
+    required String relativePath,
+  }) async {
+    final bytes = await delegate.readBytes(
+      projectRoot: projectRoot,
+      relativePath: relativePath,
+    );
+    if (relativePath == 'project.json') {
+      _projectJsonReads++;
+      if (_projectJsonReads == changeProjectJsonOnRead) {
+        return [...bytes, ...utf8.encode(' ')];
+      }
+    }
+    return bytes;
+  }
+}
+
+Future<Directory> _writeProject(
+  Directory sandbox, {
+  required List<Map<String, Object?>> mapEntries,
+  required List<Map<String, Object?>> maps,
+}) async {
+  final project = await Directory(_join(sandbox.path, 'project')).create();
+  final mapsDirectory =
+      await Directory(_join(project.path, 'maps')).create(recursive: true);
+  final manifest = {
+    'name': 'Snapshot Test',
+    'version': 'v1',
+    'maps': mapEntries,
+    'tilesets': <Object?>[],
+  };
+  await File(_join(project.path, 'project.json'))
+      .writeAsString(jsonEncode(manifest));
+  for (var index = 0; index < mapEntries.length; index++) {
+    final fileName =
+        (mapEntries[index]['relativePath']! as String).split('/').last;
+    await File(_join(mapsDirectory.path, fileName))
+        .writeAsString(jsonEncode(maps[index]));
+  }
+  return project;
+}
+
+Map<String, Object?> _mapEntry(String id, String relativePath) => {
+      'id': id,
+      'name': id,
+      'relativePath': relativePath,
+      'role': 'exterior',
+      'sortOrder': 0,
+    };
+
+Map<String, Object?> _mapJson(String id) => {
+      'id': id,
+      'name': id,
+      'size': {'width': 2, 'height': 2},
+      'version': 'v1',
+      'layers': <Object?>[],
+    };
+
+Directory _realFixtureDirectory() {
+  return Directory(
+    _join(
+      Directory.current.parent.parent.path,
+      'examples',
+      'playable_runtime_host',
+      'p3_narrative_smoke_slice',
+    ),
+  );
+}
+
+String _join(
+  String first,
+  String second, [
+  String? third,
+  String? fourth,
+]) =>
+    [
+      first,
+      second,
+      if (third != null) third,
+      if (fourth != null) fourth,
+    ].join(Platform.pathSeparator);

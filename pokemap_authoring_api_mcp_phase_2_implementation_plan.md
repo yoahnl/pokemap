@@ -316,8 +316,9 @@ test('loads manifest and maps from the real fixture', () async {
   expect(snapshot.revision, matches(r'^sha256:[0-9a-f]{64}$'));
 });
 
-test('is deterministic independent of manifest map ordering', () async {
+test('is deterministic when the exact resource bytes are unchanged', () async {
   expect(first.revision, second.revision);
+  expect(first.maps.map((map) => map.id), orderedEquals(['a-map', 'z-map']));
 });
 
 test('rejects a resource changed during two-pass loading', () async {
@@ -368,7 +369,10 @@ filesystem paths.
 The loader reads `project.json` plus every declared map through the read-only
 port, validates typed models, then reads the same resource set again. If any
 exact byte payload differs, fail with `project.changed_during_snapshot`.
-Compute the global revision from sorted `(relativePath, bytes)` frames.
+Compute the global revision from sorted `(relativePath, bytes)` frames. The
+manifest's exact bytes contribute to the revision, so reordering persisted
+manifest data intentionally changes the revision even though exposed map
+resources are sorted deterministically.
 
 - [ ] **Step 5: Run focused tests**
 
