@@ -63,6 +63,24 @@ final class AuthoringPlanStore {
     String planId, {
     required String currentProjectRevision,
   }) {
+    final plan = resolveActive(planId);
+    if (currentProjectRevision != plan.baseRevision) {
+      throw AuthoringPlanException(
+        code: 'plan.stale',
+        message: 'The project changed after this plan was created.',
+        remediation: const [
+          'Create a new plan from the latest project revision.',
+        ],
+      );
+    }
+    return plan;
+  }
+
+  /// Resolves identity and expiry before an idempotent receipt preflight.
+  ///
+  /// A completed retry must be allowed to return its original receipt even
+  /// though the successful write necessarily changed the project revision.
+  AuthoringPlan resolveActive(String planId) {
     final plan = _plans[planId];
     if (plan == null) {
       throw AuthoringPlanException(
@@ -77,15 +95,6 @@ final class AuthoringPlanStore {
         message: 'The requested authoring plan has expired.',
         remediation: const [
           'Create a new plan before applying the mutation.',
-        ],
-      );
-    }
-    if (currentProjectRevision != plan.baseRevision) {
-      throw AuthoringPlanException(
-        code: 'plan.stale',
-        message: 'The project changed after this plan was created.',
-        remediation: const [
-          'Create a new plan from the latest project revision.',
         ],
       );
     }

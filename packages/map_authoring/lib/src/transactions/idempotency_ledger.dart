@@ -51,15 +51,7 @@ final class AuthoringIdempotencyLedger {
   }) async {
     _requireScopeMatchesRequest(scope, request);
     final now = _clock().toUtc();
-    final payloadFingerprint = computeAuthoringJsonFingerprint(
-      {
-        'parameters': request.parameters,
-        'expectedRevision': request.expectedRevision,
-        'dryRun': request.dryRun,
-        'extensions': request.extensions,
-      },
-      logicalName: 'idempotency-payload.json',
-    );
+    final payloadFingerprint = _payloadFingerprint(request);
     final pending = AuthoringIdempotencyRecord(
       scope: scope,
       payloadFingerprint: payloadFingerprint,
@@ -107,6 +99,80 @@ final class AuthoringIdempotencyLedger {
   }
 
   Future<int> pruneExpired() => _store.pruneExpired(_clock().toUtc());
+
+  /// Returns an already completed receipt before a transaction prepares new
+  /// artifacts. A pending record deliberately raises recovery-required.
+  Future<AuthoringReceipt?> inspect({
+    required AuthoringIdempotencyScope scope,
+    required AuthoringRequest request,
+  }) async {
+    _requireScopeMatchesRequest(scope, request);
+    final existing = await _store.read(scope);
+    if (existing == null) return null;
+    if (existing.payloadFingerprint != _payloadFingerprint(request)) {
+      throw AuthoringIdempotencyException(
+        code: 'idempotency.payload_conflict',
+        message: 'This idempotency key was used with another payload.',
+        remediation: const ['Use a new idempotency key for a new mutation.'],
+      );
+    }
+    if (existing.status == AuthoringIdempotencyStatus.completed) {
+      return existing.receipt;
+    }
+    throw AuthoringIdempotencyException(
+      code: 'idempotency.recovery_required',
+      message: 'A durable mutation reservation has no final receipt yet.',
+      remediation: const [
+        'Inspect and recover the pending transaction before retrying.',
+      ],
+    );
+  }
+
+  Future<AuthoringIdempotencyRecord?> recordForRecovery(
+    AuthoringIdempotencyScope scope,
+  ) =>
+      _store.read(scope);
+
+  /// Completes the existing pending record from a verified journal receipt.
+  Future<AuthoringReceipt> completeRecovered({
+    required AuthoringIdempotencyScope scope,
+    required String operationId,
+    required AuthoringReceipt receipt,
+  }) async {
+    final existing = await _store.read(scope);
+    if (existing == null || existing.operationId != operationId) {
+      throw AuthoringIdempotencyException(
+        code: 'idempotency.recovery_record_missing',
+        message: 'The matching durable reservation is unavailable.',
+      );
+    }
+    if (existing.status == AuthoringIdempotencyStatus.completed) {
+      return existing.receipt!;
+    }
+    _validateReceiptForScope(receipt, scope);
+    final completed = AuthoringIdempotencyRecord(
+      scope: scope,
+      payloadFingerprint: existing.payloadFingerprint,
+      operationId: operationId,
+      status: AuthoringIdempotencyStatus.completed,
+      createdAt: existing.createdAt,
+      expiresAt: _clock().toUtc().add(completedRetention),
+      receipt: receipt,
+    );
+    return (await _store.complete(completed)).receipt!;
+  }
+}
+
+String _payloadFingerprint(AuthoringRequest request) {
+  return computeAuthoringJsonFingerprint(
+    {
+      'parameters': request.parameters,
+      'expectedRevision': request.expectedRevision,
+      'dryRun': request.dryRun,
+      'extensions': request.extensions,
+    },
+    logicalName: 'idempotency-payload.json',
+  );
 }
 
 void _requireScopeMatchesRequest(
@@ -143,6 +209,20 @@ void _validateReceipt(AuthoringReceipt receipt, AuthoringRequest request) {
       remediation: const [
         'Recover the pending mutation and rebuild its canonical receipt.',
       ],
+    );
+  }
+}
+
+void _validateReceiptForScope(
+  AuthoringReceipt receipt,
+  AuthoringIdempotencyScope scope,
+) {
+  if (receipt.actionId != scope.actionId ||
+      receipt.actionVersion != scope.actionVersion ||
+      receipt.status == AuthoringReceiptStatus.planned) {
+    throw AuthoringIdempotencyException(
+      code: 'idempotency.receipt_invalid',
+      message: 'The recovery receipt is incompatible with its reservation.',
     );
   }
 }
