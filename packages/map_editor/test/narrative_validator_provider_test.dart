@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/services/narrative_validator_isolate_executor.dart';
 import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_validator_providers.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
@@ -208,6 +210,41 @@ void main() {
     expect(first.snapshotFingerprint, startsWith('sha256:'));
   });
 
+  test('snapshot fingerprint ignores JSON object insertion order', () {
+    final first = NarrativeValidatorSnapshotRequest.fromProject(
+      projectRootPath: '/virtual/project',
+      project: const ProjectManifest(
+        name: 'Stable order',
+        maps: [],
+        tilesets: [],
+        globalProperties: {
+          'alpha': {
+            'first': 1,
+            'second': 2,
+          },
+          'omega': true,
+        },
+      ),
+    );
+    final reordered = NarrativeValidatorSnapshotRequest.fromProject(
+      projectRootPath: '/virtual/project',
+      project: const ProjectManifest(
+        name: 'Stable order',
+        maps: [],
+        tilesets: [],
+        globalProperties: {
+          'omega': true,
+          'alpha': {
+            'second': 2,
+            'first': 1,
+          },
+        },
+      ),
+    );
+
+    expect(reordered, first);
+  });
+
   test('default loader validates Scene-only opponents against local catalogs',
       () async {
     final projectRoot = await Directory.systemTemp.createTemp(
@@ -345,6 +382,412 @@ void main() {
     expect(secondSnapshot.fingerprint, isNot(firstSnapshot.fingerprint));
     expect(secondReport.byCode('runtimeMissingPokemonMove'), isEmpty);
   });
+
+  test('listener disposal cancels only its own in-flight validation', () async {
+    final executor = _RecordingNarrativeValidatorExecutor();
+    final container = ProviderContainer(
+      overrides: [
+        narrativeValidatorExecutorProvider.overrideWithValue(executor),
+        narrativeValidatorPokemonCatalogLoaderProvider.overrideWithValue(
+          (_) async => NarrativeValidatorPokemonCatalogSnapshot(
+            speciesIds: const <String>{},
+            moveIds: const <String>{},
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    const project = ProjectManifest(
+      name: 'Lifecycle fixture',
+      maps: [],
+      tilesets: [],
+    );
+    final firstRequest = NarrativeValidatorSnapshotRequest.fromProject(
+      projectRootPath: '/virtual/project-a',
+      project: project,
+    );
+    final secondRequest = NarrativeValidatorSnapshotRequest.fromProject(
+      projectRootPath: '/virtual/project-b',
+      project: project,
+    );
+
+    final firstSubscription = container.listen(
+      narrativeValidatorReportProvider(firstRequest),
+      (_, __) {},
+      fireImmediately: true,
+    );
+    await executor.waitForExecutions(1);
+    final firstValidationId = executor.works.single.validationId;
+
+    final secondSubscription = container.listen(
+      narrativeValidatorReportProvider(secondRequest),
+      (_, __) {},
+      fireImmediately: true,
+    );
+    addTearDown(secondSubscription.close);
+    await executor.waitForExecutions(2);
+    final secondValidationId = executor.works.last.validationId;
+    expect(secondValidationId, isNot(firstValidationId));
+
+    firstSubscription.close();
+    await container.pump();
+
+    expect(executor.cancelledValidationIds, [firstValidationId]);
+    expect(
+        executor.cancelledValidationIds, isNot(contains(secondValidationId)));
+    executor.complete(
+      secondValidationId,
+      NarrativeProjectValidationReport(
+        diagnostics: const [],
+        mapEventViews: const [],
+      ),
+    );
+    await container.read(
+      narrativeValidatorReportProvider(secondRequest).future,
+    );
+  });
+
+  test('shared listeners coalesce and a same-frame resume stays alive',
+      () async {
+    final executor = _RecordingNarrativeValidatorExecutor();
+    final container = ProviderContainer(
+      overrides: [
+        narrativeValidatorExecutorProvider.overrideWithValue(executor),
+        narrativeValidatorPokemonCatalogLoaderProvider.overrideWithValue(
+          (_) async => NarrativeValidatorPokemonCatalogSnapshot(
+            speciesIds: const <String>{},
+            moveIds: const <String>{},
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    const project = ProjectManifest(
+      name: 'Coalescing fixture',
+      maps: [],
+      tilesets: [],
+    );
+    final request = NarrativeValidatorSnapshotRequest.fromProject(
+      projectRootPath: '/virtual/coalescing',
+      project: project,
+    );
+    final provider = narrativeValidatorReportProvider(request);
+
+    final first = container.listen(provider, (_, __) {}, fireImmediately: true);
+    final second =
+        container.listen(provider, (_, __) {}, fireImmediately: true);
+    await executor.waitForExecutions(1);
+    expect(executor.works, hasLength(1));
+
+    first.close();
+    await container.pump();
+    expect(executor.cancelledValidationIds, isEmpty);
+
+    second.close();
+    final resumed =
+        container.listen(provider, (_, __) {}, fireImmediately: true);
+    addTearDown(resumed.close);
+    await container.pump();
+    expect(executor.works, hasLength(1));
+    expect(executor.cancelledValidationIds, isEmpty);
+
+    final validationId = executor.works.single.validationId;
+    executor.complete(
+      validationId,
+      NarrativeProjectValidationReport(
+        diagnostics: const [],
+        mapEventViews: const [],
+      ),
+    );
+    await container.read(provider.future);
+  });
+
+  test('invalidation cannot launch the disposed pre-refresh validation',
+      () async {
+    final catalogs = Completer<NarrativeValidatorPokemonCatalogSnapshot>();
+    final executor = _RecordingNarrativeValidatorExecutor();
+    final container = ProviderContainer(
+      overrides: [
+        narrativeValidatorExecutorProvider.overrideWithValue(executor),
+        narrativeValidatorPokemonCatalogLoaderProvider.overrideWithValue(
+          (_) => catalogs.future,
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    const project = ProjectManifest(
+      name: 'Invalidation fixture',
+      maps: [],
+      tilesets: [],
+    );
+    final request = NarrativeValidatorSnapshotRequest.fromProject(
+      projectRootPath: '/virtual/invalidation',
+      project: project,
+    );
+    final provider = narrativeValidatorReportProvider(request);
+    final subscription = container.listen(
+      provider,
+      (_, __) {},
+      fireImmediately: true,
+    );
+    addTearDown(subscription.close);
+    await container.pump();
+
+    container.invalidate(narrativeValidatorExecutionProvider(request));
+    await container.pump();
+    catalogs.complete(
+      NarrativeValidatorPokemonCatalogSnapshot(
+        speciesIds: const <String>{},
+        moveIds: const <String>{},
+      ),
+    );
+
+    await executor.waitForExecutions(1);
+    await container.pump();
+    expect(executor.works, hasLength(1));
+    final validationId = executor.works.single.validationId;
+    executor.complete(
+      validationId,
+      NarrativeProjectValidationReport(
+        diagnostics: const [],
+        mapEventViews: const [],
+      ),
+    );
+    await container.read(provider.future);
+  });
+
+  test('base report does not start the multidimensional phase', () async {
+    final executor = _RecordingNarrativeValidatorExecutor();
+    final container = ProviderContainer(
+      overrides: [
+        narrativeValidatorExecutorProvider.overrideWithValue(executor),
+        narrativeValidatorPokemonCatalogLoaderProvider.overrideWithValue(
+          (_) async => NarrativeValidatorPokemonCatalogSnapshot(
+            speciesIds: const <String>{},
+            moveIds: const <String>{},
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    const project = ProjectManifest(
+      name: 'Base-only fixture',
+      maps: [],
+      tilesets: [],
+    );
+    final request = NarrativeValidatorSnapshotRequest.fromProject(
+      projectRootPath: '/virtual/base-only',
+      project: project,
+    );
+
+    final reportFuture =
+        container.read(narrativeValidatorReportProvider(request).future);
+    await executor.waitForExecutions(1);
+    final validationId = executor.works.single.validationId;
+    executor.complete(
+      validationId,
+      NarrativeProjectValidationReport(
+        diagnostics: const [],
+        mapEventViews: const [],
+      ),
+    );
+
+    await reportFuture;
+    expect(executor.works, hasLength(1));
+    expect(
+      executor.works.single.kind,
+      NarrativeValidatorWorkKind.projectReport,
+    );
+  });
+
+  test('multidimensional report reuses base then starts its own phase',
+      () async {
+    final executor = _RecordingNarrativeValidatorExecutor();
+    final container = ProviderContainer(
+      overrides: [
+        narrativeValidatorExecutorProvider.overrideWithValue(executor),
+        narrativeValidatorPokemonCatalogLoaderProvider.overrideWithValue(
+          (_) async => NarrativeValidatorPokemonCatalogSnapshot(
+            speciesIds: const <String>{},
+            moveIds: const <String>{},
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    const project = ProjectManifest(
+      name: 'Multidimensional fixture',
+      maps: [],
+      tilesets: [],
+    );
+    final request = NarrativeValidatorSnapshotRequest.fromProject(
+      projectRootPath: '/virtual/multidimensional',
+      project: project,
+    );
+
+    final reportFuture = container.read(
+      narrativeStudioValidationReportProvider(request).future,
+    );
+    await executor.waitForExecutions(1);
+    executor.complete(
+      executor.works.first.validationId,
+      NarrativeProjectValidationReport(
+        diagnostics: const [],
+        mapEventViews: const [],
+      ),
+    );
+    await executor.waitForExecutions(2);
+    executor.completeMultidimensional(executor.works.last.validationId);
+
+    expect((await reportFuture).overallStatus, NarrativeValidationStatus.pass);
+    expect(
+      executor.works.map((work) => work.kind),
+      [
+        NarrativeValidatorWorkKind.projectReport,
+        NarrativeValidatorWorkKind.multidimensionalReport,
+      ],
+    );
+  });
+
+  test('multidimensional failure leaves the completed base report available',
+      () async {
+    final executor = _RecordingNarrativeValidatorExecutor();
+    final container = ProviderContainer(
+      overrides: [
+        narrativeValidatorExecutorProvider.overrideWithValue(executor),
+        narrativeValidatorPokemonCatalogLoaderProvider.overrideWithValue(
+          (_) async => NarrativeValidatorPokemonCatalogSnapshot(
+            speciesIds: const <String>{},
+            moveIds: const <String>{},
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    const project = ProjectManifest(
+      name: 'Partial failure fixture',
+      maps: [],
+      tilesets: [],
+    );
+    final request = NarrativeValidatorSnapshotRequest.fromProject(
+      projectRootPath: '/virtual/partial-failure',
+      project: project,
+    );
+
+    final multidimensionalFuture = container.read(
+      narrativeStudioValidationReportProvider(request).future,
+    );
+    await executor.waitForExecutions(1);
+    executor.complete(
+      executor.works.first.validationId,
+      NarrativeProjectValidationReport(
+        diagnostics: const [],
+        mapEventViews: const [],
+      ),
+    );
+    final baseReport = await container.read(
+      narrativeValidatorReportProvider(request).future,
+    );
+    await executor.waitForExecutions(2);
+    executor.fail(
+      executor.works.last.validationId,
+      const NarrativeValidatorWorkerException(
+        message: 'publication failed',
+        workerStackTrace: 'worker stack',
+      ),
+    );
+
+    expect(baseReport.diagnostics, isEmpty);
+    await expectLater(
+      multidimensionalFuture,
+      throwsA(isA<NarrativeValidatorWorkerException>()),
+    );
+  });
+}
+
+final class _RecordingNarrativeValidatorExecutor
+    implements NarrativeValidatorExecutor {
+  final List<NarrativeValidatorWork> works = [];
+  final List<String> cancelledValidationIds = [];
+  final Map<String, Completer<NarrativeValidatorExecutionResult>> _completers =
+      {};
+  Completer<void> _executionChanged = Completer<void>();
+
+  @override
+  Future<NarrativeValidatorExecutionResult> execute(
+    NarrativeValidatorWork work,
+  ) {
+    works.add(work);
+    final completer = Completer<NarrativeValidatorExecutionResult>();
+    _completers[work.validationId] = completer;
+    _executionChanged.complete();
+    _executionChanged = Completer<void>();
+    return completer.future;
+  }
+
+  Future<void> waitForExecutions(int count) async {
+    while (works.length < count) {
+      await _executionChanged.future;
+    }
+  }
+
+  void complete(
+    String validationId,
+    NarrativeProjectValidationReport report,
+  ) {
+    _completers[validationId]!.complete(
+      NarrativeValidatorExecutionResult(
+        validationId: validationId,
+        report: report,
+        workerIsolateDebugName: 'fake-worker',
+        workerControlPort: null,
+      ),
+    );
+  }
+
+  void completeMultidimensional(String validationId) {
+    _completers[validationId]!.complete(
+      NarrativeValidatorExecutionResult(
+        validationId: validationId,
+        multidimensionalReport: _testMultidimensionalReport(),
+        workerIsolateDebugName: 'fake-worker',
+        workerControlPort: null,
+      ),
+    );
+  }
+
+  void fail(String validationId, Object error) {
+    _completers[validationId]!.completeError(error, StackTrace.current);
+  }
+
+  @override
+  void cancel(
+    String validationId, {
+    NarrativeValidatorCancellationReason reason =
+        NarrativeValidatorCancellationReason.providerDisposed,
+  }) {
+    cancelledValidationIds.add(validationId);
+  }
+
+  @override
+  void dispose() {}
+}
+
+NarrativeMultidimensionalValidationReport _testMultidimensionalReport() {
+  final pass = NarrativeValidationDimensionResult(
+    status: NarrativeValidationStatus.pass,
+  );
+  return NarrativeMultidimensionalValidationReport(
+    validatorVersion: 'test-validator',
+    profileId: 'test-profile',
+    profileVersion: 1,
+    projectFingerprint: 'sha256:test',
+    generatedAt: DateTime.utc(2026),
+    structurallyValid: pass,
+    narrativelySolvable: pass,
+    physicallyReachable: pass,
+    runtimeSmokeVerified: pass,
+  );
 }
 
 const _mapId = 'map_catalog_validation';

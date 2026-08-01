@@ -50,21 +50,56 @@ final class NarrativeRuntimeSmokeReceiptRepository {
     if (!await root.exists()) {
       throw FileSystemException('Project root does not exist.', root.path);
     }
-    final entries = <NarrativeProjectFingerprintEntry>[];
+    final files = <({File file, String relativePath})>[];
     await for (final entity in root.list(recursive: true, followLinks: false)) {
       if (entity is! File) continue;
       final relative = p.posix.normalize(
         p.relative(entity.path, from: root.path).replaceAll('\\', '/'),
       );
       if (_ignoredFingerprintPath(relative)) continue;
-      entries.add(
-        NarrativeProjectFingerprintEntry(
-          relativePath: relative,
-          bytes: await entity.readAsBytes(),
-        ),
-      );
+      files.add((file: entity, relativePath: relative));
     }
-    return computeNarrativeProjectFingerprint(entries);
+    files.sort(
+      (left, right) => left.relativePath.compareTo(right.relativePath),
+    );
+    final builder = NarrativeProjectFingerprintBuilder();
+    for (final entry in files) {
+      final handle = await entry.file.open();
+      try {
+        final byteLength = await handle.length();
+        builder.startEntry(
+          relativePath: entry.relativePath,
+          byteLength: byteLength,
+        );
+        var bytesRead = 0;
+        while (bytesRead < byteLength) {
+          final remaining = byteLength - bytesRead;
+          final chunk = await handle.read(
+            remaining < _fingerprintChunkSize
+                ? remaining
+                : _fingerprintChunkSize,
+          );
+          if (chunk.isEmpty) {
+            throw FileSystemException(
+              'Project file changed while its fingerprint was computed.',
+              entry.file.path,
+            );
+          }
+          builder.addBytes(chunk);
+          bytesRead += chunk.length;
+        }
+        if (await handle.length() != byteLength) {
+          throw FileSystemException(
+            'Project file changed while its fingerprint was computed.',
+            entry.file.path,
+          );
+        }
+        builder.endEntry();
+      } finally {
+        await handle.close();
+      }
+    }
+    return builder.close();
   }
 
   Future<NarrativeRuntimeSmokeReceiptResolution> read({
@@ -127,6 +162,8 @@ final class NarrativeRuntimeSmokeReceiptRepository {
     );
   }
 }
+
+const _fingerprintChunkSize = 64 * 1024;
 
 bool _ignoredFingerprintPath(String relativePath) {
   return relativePath ==

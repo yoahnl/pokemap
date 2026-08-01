@@ -124,7 +124,15 @@ final class NarrativeSymbolicState {
     return value?.kind == NarrativeValueKind.boolean && value!.boolValue;
   }
 
-  String get semanticKey {
+  static final Expando<String> _semanticKeyCache =
+      Expando<String>('narrative-symbolic-semantic-key');
+
+  /// Memoized only inside the isolate using this state. Keeping the cache in
+  /// an Expando avoids transferring every potentially large key with the
+  /// validation report when the worker isolate exits.
+  String get semanticKey => _semanticKeyCache[this] ??= _buildSemanticKey();
+
+  String _buildSemanticKey() {
     final facts = factValues.entries.toList()
       ..sort((left, right) => left.key.compareTo(right.key));
     return <String>[

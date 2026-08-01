@@ -17,9 +17,35 @@ void main() {
     await Directory(p.join(root.path, 'dialogues')).create();
     final yarn = File(p.join(root.path, 'dialogues', 'intro.yarn'));
     await yarn.writeAsString('title: Intro');
+    await Directory(p.join(root.path, 'assets')).create();
+    final media = File(p.join(root.path, 'assets', 'large.bin'));
+    await media.writeAsBytes(
+      List<int>.generate(200000, (index) => index % 251),
+    );
     const repository = NarrativeRuntimeSmokeReceiptRepository();
 
     final before = await repository.computeProjectFingerprint(root.path);
+    expect(
+      before,
+      computeNarrativeProjectFingerprint([
+        NarrativeProjectFingerprintEntry(
+          relativePath: 'assets/large.bin',
+          bytes: await media.readAsBytes(),
+        ),
+        NarrativeProjectFingerprintEntry(
+          relativePath: 'dialogues/intro.yarn',
+          bytes: await yarn.readAsBytes(),
+        ),
+        NarrativeProjectFingerprintEntry(
+          relativePath: 'maps/a.json',
+          bytes: await File(p.join(root.path, 'maps', 'a.json')).readAsBytes(),
+        ),
+        NarrativeProjectFingerprintEntry(
+          relativePath: 'project.json',
+          bytes: await File(p.join(root.path, 'project.json')).readAsBytes(),
+        ),
+      ]),
+    );
     await yarn.writeAsString('title: Changed');
     final afterYarn = await repository.computeProjectFingerprint(root.path);
     expect(afterYarn, isNot(before));

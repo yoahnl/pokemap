@@ -4,12 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
-import '../../../application/models/narrative_event_authoring_session.dart';
-import '../../../application/services/narrative_studio_validation_coordinator.dart';
 import '../../../application/services/narrative_diagnostic_suppression_service.dart';
+import '../../../application/services/narrative_validator_isolate_executor.dart';
 import '../../../application/services/pokemon_project_data_reader.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
-import '../../../infrastructure/repositories/narrative_runtime_smoke_receipt_repository.dart';
 
 class NarrativeValidatorPokemonCatalogSnapshot {
   NarrativeValidatorPokemonCatalogSnapshot({
@@ -75,9 +73,10 @@ class NarrativeValidatorPokemonCatalogRequest {
 }
 
 class NarrativeValidatorSnapshotRequest {
-  const NarrativeValidatorSnapshotRequest({
+  const NarrativeValidatorSnapshotRequest._({
     required this.projectRootPath,
     required this.snapshotFingerprint,
+    required this.contentFingerprint,
     required this.project,
     this.activeMap,
     this.pokemonCatalogFingerprint,
@@ -89,21 +88,17 @@ class NarrativeValidatorSnapshotRequest {
     MapData? activeMap,
     String? pokemonCatalogFingerprint,
   }) {
-    return NarrativeValidatorSnapshotRequest(
+    final contentFingerprint = _narrativeSnapshotContentFingerprint(
+      project,
+      activeMap,
+    );
+    return NarrativeValidatorSnapshotRequest._(
       projectRootPath: p.normalize(projectRootPath),
-      snapshotFingerprint: narrativeEventBytesFingerprint(
-        canonicalizeNarrativeEventJsonUtf8({
-          // Freezed's generated `toJson` methods are not uniformly
-          // `explicitToJson`: nested geometry can therefore still be a typed
-          // object here. Normalize through Dart's JSON encoder before the
-          // strict canonicalizer so real trigger maps and disk-loaded maps
-          // produce the same validator identity.
-          'project': _jsonTree(project.toJson()),
-          if (activeMap != null) 'activeMap': _jsonTree(activeMap.toJson()),
-          if (pokemonCatalogFingerprint != null)
-            'pokemonCatalogFingerprint': pokemonCatalogFingerprint,
-        }),
+      snapshotFingerprint: _narrativeSnapshotFingerprint(
+        contentFingerprint,
+        pokemonCatalogFingerprint,
       ),
+      contentFingerprint: contentFingerprint,
       project: project,
       activeMap: activeMap,
       pokemonCatalogFingerprint: pokemonCatalogFingerprint,
@@ -112,6 +107,7 @@ class NarrativeValidatorSnapshotRequest {
 
   final String projectRootPath;
   final String snapshotFingerprint;
+  final String contentFingerprint;
   final ProjectManifest project;
   final MapData? activeMap;
   final String? pokemonCatalogFingerprint;
@@ -119,8 +115,13 @@ class NarrativeValidatorSnapshotRequest {
   NarrativeValidatorSnapshotRequest withPokemonCatalogFingerprint(
     String fingerprint,
   ) {
-    return NarrativeValidatorSnapshotRequest.fromProject(
+    return NarrativeValidatorSnapshotRequest._(
       projectRootPath: projectRootPath,
+      snapshotFingerprint: _narrativeSnapshotFingerprint(
+        contentFingerprint,
+        fingerprint,
+      ),
+      contentFingerprint: contentFingerprint,
       project: project,
       activeMap: activeMap,
       pokemonCatalogFingerprint: fingerprint,
@@ -137,17 +138,110 @@ class NarrativeValidatorSnapshotRequest {
   int get hashCode => Object.hash(projectRootPath, snapshotFingerprint);
 }
 
-Object? _jsonTree(Object? value) => jsonDecode(jsonEncode(value));
+final Expando<String> _projectSnapshotFingerprintCache =
+    Expando<String>('narrative-validator-project-fingerprint');
+final Expando<String> _mapSnapshotFingerprintCache =
+    Expando<String>('narrative-validator-map-fingerprint');
+
+String _narrativeSnapshotContentFingerprint(
+  ProjectManifest project,
+  MapData? activeMap,
+) {
+  final projectFingerprint = _projectSnapshotFingerprintCache[project] ??=
+      _jsonFingerprint(project.toJson());
+  final activeMapFingerprint = activeMap == null
+      ? null
+      : _mapSnapshotFingerprintCache[activeMap] ??=
+          _jsonFingerprint(activeMap.toJson());
+  return narrativeEventBytesFingerprint(
+    utf8.encode(
+      'project=$projectFingerprint\nactiveMap=${activeMapFingerprint ?? ''}',
+    ),
+  );
+}
+
+String _narrativeSnapshotFingerprint(
+  String contentFingerprint,
+  String? pokemonCatalogFingerprint,
+) {
+  return narrativeEventBytesFingerprint(
+    utf8.encode(
+      'content=$contentFingerprint\n'
+      'pokemonCatalog=${pokemonCatalogFingerprint ?? ''}',
+    ),
+  );
+}
+
+String _jsonFingerprint(Object? value) {
+  // ProjectManifest and MapData are immutable editor snapshots: every edit
+  // must replace the root object. Caching that identity keeps rebuilds O(1).
+  // This lightweight canonical writer preserves map-order independence
+  // without the path construction and I-JSON validation cost of the durable
+  // RFC 8785 codec, which is unnecessary for already-validated model JSON.
+  final buffer = StringBuffer();
+  _writeStableSnapshotJson(value, buffer);
+  return narrativeEventBytesFingerprint(utf8.encode(buffer.toString()));
+}
+
+void _writeStableSnapshotJson(Object? value, StringBuffer buffer) {
+  switch (value) {
+    case null || bool() || num() || String():
+      buffer.write(jsonEncode(value));
+    case List():
+      buffer.write('[');
+      for (var index = 0; index < value.length; index++) {
+        if (index != 0) buffer.write(',');
+        _writeStableSnapshotJson(value[index], buffer);
+      }
+      buffer.write(']');
+    case Map():
+      final keys = <String>[];
+      for (final key in value.keys) {
+        if (key is! String) {
+          throw const FormatException('Snapshot JSON keys must be strings.');
+        }
+        keys.add(key);
+      }
+      keys.sort(compareNarrativeEventUtf16);
+      buffer.write('{');
+      for (var index = 0; index < keys.length; index++) {
+        if (index != 0) buffer.write(',');
+        final key = keys[index];
+        buffer
+          ..write(jsonEncode(key))
+          ..write(':');
+        _writeStableSnapshotJson(value[key], buffer);
+      }
+      buffer.write('}');
+    default:
+      Object? jsonValue;
+      try {
+        jsonValue = (value as dynamic).toJson();
+      } on NoSuchMethodError {
+        throw FormatException(
+          'Unsupported snapshot JSON value ${value.runtimeType}.',
+        );
+      }
+      _writeStableSnapshotJson(jsonValue, buffer);
+  }
+}
 
 typedef LoadNarrativeValidatorPokemonCatalogSnapshot
     = Future<NarrativeValidatorPokemonCatalogSnapshot> Function(
   NarrativeValidatorPokemonCatalogRequest request,
 );
 
-typedef LoadNarrativeValidatorReport = Future<NarrativeProjectValidationReport>
-    Function(
+typedef LoadNarrativeValidatorExecution
+    = Future<NarrativeValidatorExecutionResult> Function(
   NarrativeValidatorSnapshotRequest request,
   NarrativeValidatorPokemonCatalogSnapshot pokemonCatalogs,
+  String validationId,
+);
+
+typedef LoadNarrativeMultidimensionalExecution
+    = Future<NarrativeValidatorExecutionResult> Function(
+  NarrativeValidatorSnapshotRequest request,
+  NarrativeValidatorExecutionResult projectExecution,
 );
 
 final narrativeValidatorPokemonCatalogLoaderProvider =
@@ -177,68 +271,136 @@ final narrativeValidatorPokemonCatalogSnapshotProvider =
   return ref.watch(narrativeValidatorPokemonCatalogLoaderProvider)(request);
 });
 
+final narrativeValidatorExecutorProvider =
+    Provider<NarrativeValidatorExecutor>((ref) {
+  final executor = IsolateNarrativeValidatorExecutor();
+  ref.onDispose(executor.dispose);
+  return executor;
+});
+
 /// Replaceable I/O seam: maps are loaded through the attested project session,
 /// while the report deliberately validates the current in-memory manifest.
 /// The active map replaces its saved version so unsaved authoring changes are
 /// visible instead of making the Validator stale or unavailable.
-final narrativeValidatorReportLoaderProvider =
-    Provider<LoadNarrativeValidatorReport>((ref) {
-  return (request, pokemonCatalogs) async {
-    final session = await NarrativeEventAuthoringSession.prepare(
-      p.join(request.projectRootPath, 'project.json'),
-    );
-    final maps = session.maps.toList(growable: true);
-    final activeMap = request.activeMap;
-    if (activeMap != null) {
-      final index = maps.indexWhere((map) => map.id == activeMap.id);
-      if (index < 0) {
-        maps.add(activeMap);
-      } else {
-        maps[index] = activeMap;
-      }
-    }
-    return validateNarrativeProject(
-      request.project,
-      maps: maps,
-      knownSpeciesIds: pokemonCatalogs.speciesIds,
-      knownMoveIds: pokemonCatalogs.moveIds,
-      requirePokemonCatalogs: request.project.pokemon.enabled,
+final narrativeValidatorExecutionLoaderProvider =
+    Provider<LoadNarrativeValidatorExecution>((ref) {
+  final executor = ref.watch(narrativeValidatorExecutorProvider);
+  return (request, pokemonCatalogs, validationId) async {
+    return executor.execute(
+      NarrativeValidatorWork(
+        validationId: validationId,
+        projectRootPath: request.projectRootPath,
+        project: request.project,
+        activeMap: request.activeMap,
+        knownSpeciesIds: pokemonCatalogs.speciesIds,
+        knownMoveIds: pokemonCatalogs.moveIds,
+        requirePokemonCatalogs: request.project.pokemon.enabled,
+      ),
     );
   };
 });
 
-final narrativeValidatorReportProvider = FutureProvider.autoDispose.family<
-    NarrativeProjectValidationReport,
-    NarrativeValidatorSnapshotRequest>((ref, request) {
-  final catalogRequest =
-      NarrativeValidatorPokemonCatalogRequest.fromValidationRequest(request);
-  final loadReport = ref.watch(narrativeValidatorReportLoaderProvider);
-  return ref
-      .watch(narrativeValidatorPokemonCatalogSnapshotProvider(catalogRequest)
-          .future)
-      .then((pokemonCatalogs) {
-    final effectiveRequest =
-        request.withPokemonCatalogFingerprint(pokemonCatalogs.fingerprint);
-    return loadReport(
-      effectiveRequest,
-      pokemonCatalogs,
+final narrativeValidatorMultidimensionalExecutionLoaderProvider =
+    Provider<LoadNarrativeMultidimensionalExecution>((ref) {
+  final executor = ref.watch(narrativeValidatorExecutorProvider);
+  return (request, projectExecution) {
+    return executor.execute(
+      NarrativeValidatorWork.multidimensional(
+        validationId: _narrativeMultidimensionalValidationId(
+          projectExecution.validationId,
+        ),
+        projectValidationId: projectExecution.validationId,
+        projectRootPath: request.projectRootPath,
+        project: request.project,
+        activeMap: request.activeMap,
+        projectReport: projectExecution.report!,
+      ),
     );
-  });
+  };
 });
 
-final narrativeStudioValidationCoordinatorProvider =
-    Provider<NarrativeStudioValidationCoordinator>((ref) {
-  return const NarrativeStudioValidationCoordinator();
+final narrativeValidatorExecutionProvider = FutureProvider.autoDispose.family<
+    NarrativeValidatorExecutionResult,
+    NarrativeValidatorSnapshotRequest>((ref, request) async {
+  final catalogRequest =
+      NarrativeValidatorPokemonCatalogRequest.fromValidationRequest(request);
+  final executor = ref.watch(narrativeValidatorExecutorProvider);
+  final loadExecution = ref.watch(narrativeValidatorExecutionLoaderProvider);
+  final pokemonCatalogsFuture = ref.watch(
+    narrativeValidatorPokemonCatalogSnapshotProvider(catalogRequest).future,
+  );
+  final keepAliveLink = ref.keepAlive();
+  var disposed = false;
+  String? effectiveValidationId;
+  ref.onCancel(keepAliveLink.close);
+  ref.onDispose(() {
+    disposed = true;
+    final validationId = effectiveValidationId;
+    if (validationId != null) {
+      executor.cancel(validationId);
+    }
+  });
+
+  try {
+    final pokemonCatalogs = await pokemonCatalogsFuture;
+    if (disposed) {
+      throw NarrativeValidatorCancelledException(
+        validationId: request.snapshotFingerprint,
+        reason: NarrativeValidatorCancellationReason.providerDisposed,
+      );
+    }
+    final effectiveRequest =
+        request.withPokemonCatalogFingerprint(pokemonCatalogs.fingerprint);
+    effectiveValidationId = _nextNarrativeValidationId(effectiveRequest);
+    return await loadExecution(
+      effectiveRequest,
+      pokemonCatalogs,
+      effectiveValidationId,
+    );
+  } finally {
+    keepAliveLink.close();
+  }
 });
+
+final narrativeValidatorReportProvider = FutureProvider.autoDispose.family<
+    NarrativeProjectValidationReport,
+    NarrativeValidatorSnapshotRequest>((ref, request) async {
+  final keepAliveLink = ref.keepAlive();
+  ref.onCancel(keepAliveLink.close);
+  try {
+    final execution = await ref.watch(
+      narrativeValidatorExecutionProvider(request).future,
+    );
+    return execution.report ??
+        (throw StateError(
+          'The Narrative Validator worker returned the wrong phase.',
+        ));
+  } finally {
+    keepAliveLink.close();
+  }
+});
+
+var _narrativeValidationExecutionSequence = 0;
+
+String _nextNarrativeValidationId(NarrativeValidatorSnapshotRequest request) {
+  return narrativeEventBytesFingerprint(
+    canonicalizeNarrativeEventJsonUtf8({
+      'projectRootPath': request.projectRootPath,
+      'snapshotFingerprint': request.snapshotFingerprint,
+      'executionSequence': ++_narrativeValidationExecutionSequence,
+    }),
+  );
+}
+
+String _narrativeMultidimensionalValidationId(String projectValidationId) {
+  return narrativeEventBytesFingerprint(
+    utf8.encode('multidimensional=$projectValidationId'),
+  );
+}
 
 final narrativeDiagnosticSuppressionServiceProvider =
     Provider<NarrativeDiagnosticSuppressionService>((ref) {
   return const NarrativeDiagnosticSuppressionService();
-});
-
-final narrativeRuntimeSmokeReceiptRepositoryProvider =
-    Provider<NarrativeRuntimeSmokeReceiptRepository>((ref) {
-  return const NarrativeRuntimeSmokeReceiptRepository();
 });
 
 /// Publication-oriented report. The historical provider above remains the
@@ -246,41 +408,45 @@ final narrativeRuntimeSmokeReceiptRepositoryProvider =
 final narrativeStudioValidationReportProvider = FutureProvider.autoDispose
     .family<NarrativeMultidimensionalValidationReport,
         NarrativeValidatorSnapshotRequest>((ref, request) async {
-  final projectReport = await ref.watch(
-    narrativeValidatorReportProvider(request).future,
+  final executor = ref.watch(narrativeValidatorExecutorProvider);
+  final loadMultidimensional = ref.watch(
+    narrativeValidatorMultidimensionalExecutionLoaderProvider,
   );
-  final session = await NarrativeEventAuthoringSession.prepare(
-    p.join(request.projectRootPath, 'project.json'),
-  );
-  final maps = session.maps.toList(growable: true);
-  final activeMap = request.activeMap;
-  if (activeMap != null) {
-    final index = maps.indexWhere((map) => map.id == activeMap.id);
-    if (index < 0) {
-      maps.add(activeMap);
-    } else {
-      maps[index] = activeMap;
+  final keepAliveLink = ref.keepAlive();
+  var disposed = false;
+  String? validationId;
+  ref.onCancel(keepAliveLink.close);
+  ref.onDispose(() {
+    disposed = true;
+    final id = validationId;
+    if (id != null) {
+      executor.cancel(id);
     }
-  }
-  final repository = ref.watch(
-    narrativeRuntimeSmokeReceiptRepositoryProvider,
-  );
-  final fingerprint = await repository.computeProjectFingerprint(
-    request.projectRootPath,
-  );
-  final receipt = await repository.read(
-    projectRoot: request.projectRootPath,
-    expectedFingerprint: fingerprint,
-    profile: selbrumeReleaseV1Profile,
-  );
-  return ref.watch(narrativeStudioValidationCoordinatorProvider).coordinate(
-        project: request.project,
-        maps: maps,
-        projectReport: projectReport,
-        projectFingerprint: fingerprint,
-        profile: selbrumeReleaseV1Profile,
-        runtimeReceipt: receipt,
+  });
+  try {
+    final projectExecution = await ref.watch(
+      narrativeValidatorExecutionProvider(request).future,
+    );
+    if (disposed) {
+      throw NarrativeValidatorCancelledException(
+        validationId: request.snapshotFingerprint,
+        reason: NarrativeValidatorCancellationReason.providerDisposed,
       );
+    }
+    validationId = _narrativeMultidimensionalValidationId(
+      projectExecution.validationId,
+    );
+    final execution = await loadMultidimensional(
+      request,
+      projectExecution,
+    );
+    return execution.multidimensionalReport ??
+        (throw StateError(
+          'The Narrative Validator worker returned the wrong phase.',
+        ));
+  } finally {
+    keepAliveLink.close();
+  }
 });
 
 Future<Set<String>?> _loadSpeciesIds(

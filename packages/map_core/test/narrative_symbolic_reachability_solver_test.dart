@@ -3,6 +3,27 @@ import 'package:test/test.dart';
 
 void main() {
   group('Narrative symbolic reachability solver', () {
+    test('memoizes the semantic key of an immutable symbolic state', () {
+      final state = NarrativeSymbolicState(
+        factValues: {
+          'fact_started': NarrativeValue.boolean(true),
+          'fact_score': NarrativeValue.integer(7),
+        },
+        completedStepIds: const {'step_intro'},
+        consumedEventIds: const {'event_intro'},
+        badgeIds: const {'badge_first'},
+        unlockedFieldAbilities: const {FieldAbility.surf},
+        emittedOutcomeKeys: const {'scene_intro.completed'},
+        executedEventIds: const {'event_intro'},
+      );
+
+      final firstKey = state.semanticKey;
+      final secondKey = state.semanticKey;
+
+      expect(secondKey, firstKey);
+      expect(identical(secondKey, firstKey), isTrue);
+    });
+
     test('keeps mutually exclusive branches correlated', () {
       final report = solveNarrativeSceneSymbolically(
         _choiceScene(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/services/narrative_validator_isolate_executor.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_scene_focus_provider.dart';
@@ -78,8 +79,13 @@ void main() {
               moveIds: const <String>{},
             ),
           ),
-          narrativeValidatorReportLoaderProvider.overrideWithValue(
-            (_, __) async => report,
+          narrativeValidatorExecutionLoaderProvider.overrideWithValue(
+            (_, __, validationId) async =>
+                _executionResult(report, validationId),
+          ),
+          narrativeValidatorMultidimensionalExecutionLoaderProvider
+              .overrideWithValue(
+            (_, __) async => _multidimensionalExecutionResult(),
           ),
         ],
       );
@@ -545,13 +551,54 @@ Future<ProviderContainer> _pumpValidatorShell(
           moveIds: const <String>{},
         ),
       ),
-      narrativeValidatorReportLoaderProvider.overrideWithValue(
-        (_, __) async => NarrativeProjectValidationReport(
-          diagnostics: diagnostics,
-          mapEventViews: const [],
+      narrativeValidatorExecutionLoaderProvider.overrideWithValue(
+        (_, __, validationId) async => _executionResult(
+          NarrativeProjectValidationReport(
+            diagnostics: diagnostics,
+            mapEventViews: const [],
+          ),
+          validationId,
         ),
       ),
+      narrativeValidatorMultidimensionalExecutionLoaderProvider
+          .overrideWithValue(
+        (_, __) async => _multidimensionalExecutionResult(),
+      ),
     ],
+  );
+}
+
+NarrativeValidatorExecutionResult _executionResult(
+  NarrativeProjectValidationReport report,
+  String validationId,
+) {
+  return NarrativeValidatorExecutionResult(
+    validationId: validationId,
+    report: report,
+    workerIsolateDebugName: 'route-test-worker',
+    workerControlPort: null,
+  );
+}
+
+NarrativeValidatorExecutionResult _multidimensionalExecutionResult() {
+  final pass = NarrativeValidationDimensionResult(
+    status: NarrativeValidationStatus.pass,
+  );
+  return NarrativeValidatorExecutionResult(
+    validationId: 'route-test-validation-multidimensional',
+    multidimensionalReport: NarrativeMultidimensionalValidationReport(
+      validatorVersion: 'test-validator',
+      profileId: 'test-profile',
+      profileVersion: 1,
+      projectFingerprint: 'sha256:test',
+      generatedAt: DateTime.utc(2026),
+      structurallyValid: pass,
+      narrativelySolvable: pass,
+      physicallyReachable: pass,
+      runtimeSmokeVerified: pass,
+    ),
+    workerIsolateDebugName: 'route-test-worker',
+    workerControlPort: null,
   );
 }
 
