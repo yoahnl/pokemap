@@ -58,6 +58,47 @@ async function mutationFixture() {
   return { authoring, client, root, server };
 }
 
+async function applyMutation(
+  client: Client,
+  input: {
+    projectHandle: string;
+    workspaceHandle: string;
+    expectedRevision: string;
+    actionId: string;
+    parameters: JsonRecord;
+    sequence: string;
+  },
+): Promise<string> {
+  const planned = await toolData(client, "pokemap_plan", {
+    projectHandle: input.projectHandle,
+    request: {
+      requestId: `cold-start-${input.sequence}`,
+      actionId: input.actionId,
+      actionVersion: 1,
+      workspaceHandle: input.workspaceHandle,
+      parameters: input.parameters,
+      expectedRevision: input.expectedRevision,
+      idempotencyKey: `idem-cold-start-${input.sequence}`,
+      dryRun: false,
+    },
+  });
+  assert.equal(record(planned.receipt).status, "planned");
+  const applied = await toolData(client, "pokemap_apply", {
+    operation: "apply",
+    projectHandle: input.projectHandle,
+    planId: planned.planId,
+    operationId: `operation-cold-start-${input.sequence}`,
+  });
+  const receipt = record(applied.receipt);
+  assert.equal(receipt.status, "applied");
+  assert.equal(receipt.actionId, input.actionId);
+  assert.match(String(receipt.afterRevision), /^sha256:[0-9a-f]{64}$/);
+  const validation = await toolData(client, "pokemap_validate", {
+    projectHandle: input.projectHandle,
+  });
+  return String(validation.snapshotRevision);
+}
+
 test("MCP preserves CLI plan/apply parity for one complete map batch", async () => {
   const fixture = await mutationFixture();
   try {
@@ -181,7 +222,7 @@ test("MCP preserves CLI plan/apply parity for one complete map batch", async () 
   }
 });
 
-test("MCP stages an allowed local artifact for asset.import", async () => {
+test("MCP completes a cold-start 34-element visual import", async () => {
   const fixture = await mutationFixture();
   try {
     const sourcePath = join(fixture.root, "source.png");
@@ -200,27 +241,156 @@ test("MCP stages an allowed local artifact for asset.import", async () => {
       operation: "open",
       projectRoot: fixture.root,
     });
-    const validation = await toolData(fixture.client, "pokemap_validate", {
-      projectHandle: opened.projectHandle,
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    assert.ok(
+      (described.resourceKinds as JsonRecord[])
+        .map((kind) => kind.id)
+        .includes("tilesetFolder"),
+    );
+    assert.ok(
+      (described.resourceKinds as JsonRecord[])
+        .map((kind) => kind.id)
+        .includes("elementCategory"),
+    );
+    const actionIds = (described.mutationActions as JsonRecord[]).map(
+      (action) => action.id,
+    );
+    assert.ok(actionIds.includes("tileset_folder.upsert"));
+    assert.ok(actionIds.includes("element_category.upsert"));
+    assert.ok(
+      (described.commands as JsonRecord[])
+        .map((command) => command.id)
+        .includes("stage_artifact"),
+    );
+
+    const initial = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
     });
-    const planned = await toolData(fixture.client, "pokemap_plan", {
-      projectHandle: opened.projectHandle,
-      request: {
-        requestId: "mcp-asset-import",
-        actionId: "asset.import",
-        actionVersion: 1,
-        workspaceHandle: opened.workspaceHandle,
-        parameters: {
-          artifactHandle: staged.artifactHandle,
-          assetId: "staged-png",
-          logicalPath: "images/staged.png",
-        },
-        expectedRevision: validation.snapshotRevision,
-        idempotencyKey: "idem-mcp-asset-import",
-        dryRun: false,
+    let revision = String(initial.snapshotRevision);
+    revision = await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: revision,
+      actionId: "asset.import",
+      parameters: {
+        artifactHandle: staged.artifactHandle,
+        assetId: "m02-atlas",
+        logicalPath: "images/m02.png",
       },
+      sequence: "asset",
     });
-    assert.equal(record(planned.receipt).actionId, "asset.import");
+    revision = await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: revision,
+      actionId: "tileset_folder.upsert",
+      parameters: {
+        folder: { id: "m02", name: "M02", sortOrder: 2 },
+      },
+      sequence: "folder",
+    });
+    revision = await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: revision,
+      actionId: "element_category.upsert",
+      parameters: {
+        category: { id: "m02-elements", name: "M02", sortOrder: 2 },
+      },
+      sequence: "category",
+    });
+    revision = await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: revision,
+      actionId: "tileset.upsert",
+      parameters: {
+        tileset: {
+          id: "m02-tileset",
+          name: "M02",
+          relativePath: "images/m02.png",
+          folderId: "m02",
+          sortOrder: 2,
+        },
+        atlas: {
+          tilesetId: "m02-tileset",
+          assetId: "m02-atlas",
+          pixelWidth: 128,
+          pixelHeight: 80,
+          tileWidth: 16,
+          tileHeight: 16,
+          tileProperties: [],
+        },
+      },
+      sequence: "tileset",
+    });
+
+    for (let index = 0; index < 34; index += 1) {
+      const elementId = `m02-element-${String(index + 1).padStart(2, "0")}`;
+      revision = await applyMutation(fixture.client, {
+        projectHandle,
+        workspaceHandle,
+        expectedRevision: revision,
+        actionId: "element.upsert",
+        parameters: {
+          element: {
+            id: elementId,
+            name: `M02 Element ${index + 1}`,
+            tilesetId: "m02-tileset",
+            categoryId: "m02-elements",
+            frames: [
+              {
+                source: {
+                  x: index % 8,
+                  y: Math.floor(index / 8),
+                },
+              },
+            ],
+            sortOrder: index,
+          },
+        },
+        sequence: `element-${String(index + 1).padStart(2, "0")}`,
+      });
+    }
+
+    const folders = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "tilesetFolder",
+      operation: "get",
+      view: "detail",
+      ids: ["m02"],
+    });
+    assert.equal(record((folders.items as unknown[])[0]).name, "M02");
+    const categories = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "elementCategory",
+      operation: "get",
+      view: "detail",
+      ids: ["m02-elements"],
+    });
+    assert.equal(record((categories.items as unknown[])[0]).name, "M02");
+
+    const project = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "project",
+      operation: "get",
+      view: "detail",
+      ids: ["project"],
+    });
+    const projectDetail = record((project.items as unknown[])[0]);
+    assert.equal(
+      (projectDetail.elements as JsonRecord[]).filter((element) =>
+        String(element.id).startsWith("m02-element-"),
+      ).length,
+      34,
+    );
+
+    const validated = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    assert.equal(validated.snapshotRevision, revision);
   } finally {
     await fixture.client.close();
     await fixture.server.close();
