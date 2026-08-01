@@ -139,6 +139,7 @@ test("the packaged stdio entrypoint completes a real modern client exchange", as
         "pokemap_query",
         "pokemap_validate",
         "pokemap_workspace",
+        "pokemap_artifact_stage",
         "pokemap_plan",
         "pokemap_apply",
         "pokemap_history",

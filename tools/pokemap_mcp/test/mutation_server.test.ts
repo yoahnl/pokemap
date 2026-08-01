@@ -181,6 +181,54 @@ test("MCP preserves CLI plan/apply parity for one complete map batch", async () 
   }
 });
 
+test("MCP stages an allowed local artifact for asset.import", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const sourcePath = join(fixture.root, "source.png");
+    await writeFile(
+      sourcePath,
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]),
+    );
+    const staged = await toolData(fixture.client, "pokemap_artifact_stage", {
+      sourcePath,
+      declaredMediaType: "image/png",
+    });
+    assert.match(String(staged.artifactHandle), /^artifact:\/\/sha256\/[0-9a-f]{64}$/);
+    assert.equal(staged.mediaType, "image/png");
+
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const validation = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle: opened.projectHandle,
+    });
+    const planned = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle: opened.projectHandle,
+      request: {
+        requestId: "mcp-asset-import",
+        actionId: "asset.import",
+        actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle,
+        parameters: {
+          artifactHandle: staged.artifactHandle,
+          assetId: "staged-png",
+          logicalPath: "images/staged.png",
+        },
+        expectedRevision: validation.snapshotRevision,
+        idempotencyKey: "idem-mcp-asset-import",
+        dryRun: false,
+      },
+    });
+    assert.equal(record(planned.receipt).actionId, "asset.import");
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP returns a revision conflict without silently rebuilding the plan", async () => {
   const fixture = await mutationFixture();
   try {

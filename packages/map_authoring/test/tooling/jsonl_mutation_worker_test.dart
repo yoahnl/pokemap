@@ -60,6 +60,7 @@ void main() {
         'plan',
         'query',
         'recover',
+        'stage_artifact',
         'undo',
         'validate'
       ],

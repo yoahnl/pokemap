@@ -39,6 +39,14 @@ abstract interface class ArtifactStore {
   List<ContentArtifactRef> list();
 }
 
+/// Secure filesystem acquisition boundary exposed by local protocol adapters.
+abstract interface class ArtifactFileStager {
+  Future<StoredArtifact> importFile(
+    String sourcePath, {
+    String? declaredMediaType,
+  });
+}
+
 /// Deterministic in-memory store suitable for direct API clients and tests.
 ///
 /// Production protocol adapters may replace it with a durable store while
@@ -138,7 +146,7 @@ final class MemoryArtifactStore implements ArtifactStore {
 
 /// Filesystem acquisition adapter that rejects traversal and escaping links
 /// before delegating bytes to the same content-addressed store.
-final class LocalArtifactStore implements ArtifactStore {
+final class LocalArtifactStore implements ArtifactStore, ArtifactFileStager {
   LocalArtifactStore({
     required Iterable<String> allowedSourceRoots,
     required int maximumArtifactBytes,
@@ -159,6 +167,7 @@ final class LocalArtifactStore implements ArtifactStore {
   final List<String> _allowedSourceRoots;
   final MemoryArtifactStore _memory;
 
+  @override
   Future<StoredArtifact> importFile(
     String sourcePath, {
     String? declaredMediaType,

@@ -10,10 +10,12 @@ import '../contracts/authoring_request.dart';
 import '../contracts/authoring_result.dart';
 import '../contracts/json_contract_support.dart';
 import '../contracts/query_request.dart';
+import '../domains/assets/asset_actions.dart';
 import '../domains/maps/map_lifecycle_adapter.dart';
 import '../domains/maps/map_region_query.dart';
 import '../history/authoring_history.dart';
 import '../ports/project_file_reader.dart';
+import '../ports/artifact_store.dart';
 import '../security/authorization_policy.dart';
 import '../security/confirmation_token.dart';
 import '../security/output_redaction.dart';
@@ -147,6 +149,21 @@ final class JsonlWorker {
         code: AuthoringErrorCode.invalidRequest,
         domainCode: error.code,
         message: error.message,
+      );
+    } on ArtifactStoreException catch (error) {
+      result = _failure(
+        requestId,
+        code: _artifactDomainErrorCode(error.code),
+        domainCode: error.code,
+        message: error.message,
+      );
+    } on AssetActionException catch (error) {
+      result = _failure(
+        requestId,
+        code: _assetDomainErrorCode(error.code),
+        domainCode: error.code,
+        message: error.message,
+        details: _safeDetails(error.details),
       );
     } on MapAuthoringException catch (error) {
       result = _failure(
@@ -318,6 +335,21 @@ final class JsonlWorker {
           _projectHandle(args),
           AuthoringRequest.fromJson(request),
         );
+      case 'stage_artifact':
+        rejectUnknownContractKeys(
+          args,
+          const {'sourcePath', 'declaredMediaType'},
+        );
+        return _artifactStagingApi().stageArtifact(
+          sourcePath: requireContractString(
+            args['sourcePath'],
+            'args.sourcePath',
+          ),
+          declaredMediaType: readOptionalContractString(
+            args['declaredMediaType'],
+            'args.declaredMediaType',
+          ),
+        );
       case 'confirm':
         rejectUnknownContractKeys(args, const {'projectHandle', 'planId'});
         return _mutationApi().confirm(
@@ -391,6 +423,14 @@ final class JsonlWorker {
 
   AuthoringMutationApiPort _mutationApi() =>
       _mutations ?? (throw const _UnsupportedWorkerCommand());
+
+  AuthoringArtifactStagingPort _artifactStagingApi() {
+    final mutations = _mutations;
+    if (mutations is! AuthoringArtifactStagingPort) {
+      throw const _UnsupportedWorkerCommand();
+    }
+    return mutations as AuthoringArtifactStagingPort;
+  }
 
   ProjectHandle _projectHandle(Map<String, dynamic> args) => ProjectHandle(
         requireContractString(args['projectHandle'], 'args.projectHandle'),
@@ -595,6 +635,22 @@ AuthoringErrorCode _mapDomainErrorCode(String code) {
   }
   return AuthoringErrorCode.validationFailed;
 }
+
+AuthoringErrorCode _artifactDomainErrorCode(String code) => switch (code) {
+      'artifact.source_outside_allowed_roots' =>
+        AuthoringErrorCode.permissionDenied,
+      'artifact.source_unavailable' ||
+      'artifact.source_root_unavailable' =>
+        AuthoringErrorCode.notFound,
+      _ when code.endsWith('_unsupported') => AuthoringErrorCode.unsupported,
+      _ => AuthoringErrorCode.validationFailed,
+    };
+
+AuthoringErrorCode _assetDomainErrorCode(String code) => switch (code) {
+      'artifact.unknown' => AuthoringErrorCode.notFound,
+      _ when code.endsWith('_unsupported') => AuthoringErrorCode.unsupported,
+      _ => AuthoringErrorCode.validationFailed,
+    };
 
 Map<String, Object?> _safeDetails(Map<String, Object?> details) {
   final redacted = const AuthoringOutputRedactor().redact(details);

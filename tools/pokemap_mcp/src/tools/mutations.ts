@@ -17,6 +17,36 @@ export function registerMutationTools(
   authoring: AuthoringGateway,
 ): void {
   server.registerTool(
+    "pokemap_artifact_stage",
+    {
+      title: "Stage a local PokeMap artifact",
+      description:
+        "Securely stages a file from an allowed root and returns an opaque handle for asset.import.",
+      inputSchema: z
+        .object({
+          sourcePath: z.string().min(1),
+          declaredMediaType: z
+            .string()
+            .regex(/^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*$/i)
+            .optional(),
+        })
+        .strict(),
+      outputSchema: toolEnvelopeSchema,
+      annotations: {
+        ...mutationAnnotations,
+        destructiveHint: false,
+      },
+    },
+    async ({ sourcePath, declaredMediaType }) =>
+      authoringResult(() =>
+        authoring.request("stage_artifact", {
+          sourcePath,
+          ...(declaredMediaType ? { declaredMediaType } : {}),
+        }),
+      ),
+  );
+
+  server.registerTool(
     "pokemap_plan",
     {
       title: "Plan a PokeMap mutation",

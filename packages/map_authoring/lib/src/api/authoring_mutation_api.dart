@@ -47,3 +47,11 @@ abstract interface class AuthoringMutationApiPort {
     required String operationId,
   });
 }
+
+/// Optional local-file staging capability used by protocol adapters.
+abstract interface class AuthoringArtifactStagingPort {
+  Future<Map<String, Object?>> stageArtifact({
+    required String sourcePath,
+    String? declaredMediaType,
+  });
+}

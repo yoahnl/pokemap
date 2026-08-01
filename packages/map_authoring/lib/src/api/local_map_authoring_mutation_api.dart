@@ -38,7 +38,8 @@ import 'authoring_mutation_api.dart';
 ///
 /// Canonical roots are captured only by server-side adapters. They never enter
 /// action contracts, receipts, errors, audit records, or JSONL responses.
-final class LocalMapAuthoringMutationApi implements AuthoringMutationApiPort {
+final class LocalMapAuthoringMutationApi
+    implements AuthoringMutationApiPort, AuthoringArtifactStagingPort {
   LocalMapAuthoringMutationApi({
     required WorkspacePolicy policy,
     required ProjectSnapshotLoader snapshotLoader,
@@ -80,6 +81,10 @@ final class LocalMapAuthoringMutationApi implements AuthoringMutationApiPort {
             {'id': 'history', 'summary': 'List committed history entries.'},
             {'id': 'plan', 'summary': 'Plan and preview a map mutation.'},
             {'id': 'recover', 'summary': 'Resume a recoverable transaction.'},
+            {
+              'id': 'stage_artifact',
+              'summary': 'Securely stage a local file for an asset mutation.',
+            },
             {'id': 'undo', 'summary': 'Undo one committed history entry.'},
           ],
           'actions': [
@@ -91,6 +96,36 @@ final class LocalMapAuthoringMutationApi implements AuthoringMutationApiPort {
         },
         field: 'describeMutations',
       );
+
+  @override
+  Future<Map<String, Object?>> stageArtifact({
+    required String sourcePath,
+    String? declaredMediaType,
+  }) async {
+    final store = artifacts;
+    if (store is! ArtifactFileStager) {
+      throw const ArtifactStoreException(
+        'artifact.file_staging_unsupported',
+        'The configured artifact store cannot stage local files.',
+      );
+    }
+    final stager = store as ArtifactFileStager;
+    final stored = await stager.importFile(
+      sourcePath,
+      declaredMediaType: declaredMediaType,
+    );
+    final reference = stored.reference;
+    return freezeContractJsonObject(
+      {
+        'artifactHandle': reference.handle,
+        'digest': reference.digest,
+        'mediaType': reference.mediaType,
+        'byteLength': reference.byteLength,
+        'deduplicated': stored.deduplicated,
+      },
+      field: 'stageArtifact',
+    );
+  }
 
   @override
   Future<void> attachProject({

@@ -44,9 +44,14 @@ Future<void> main(List<String> arguments) async {
     ),
     snapshotLoader: snapshots,
   );
+  final artifacts = LocalArtifactStore(
+    allowedSourceRoots: options.allowedRoots,
+    maximumArtifactBytes: 64 << 20,
+  );
   final mutations = LocalMapAuthoringMutationApi(
     policy: policy,
     snapshotLoader: snapshots,
+    artifactStore: artifacts,
   );
   final worker = JsonlWorker(
     api: api,

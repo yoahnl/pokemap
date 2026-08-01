@@ -64,6 +64,7 @@ test("read-only MCP inspects a real project with cursor pagination", async () =>
         "pokemap_query",
         "pokemap_validate",
         "pokemap_workspace",
+        "pokemap_artifact_stage",
         "pokemap_plan",
         "pokemap_apply",
         "pokemap_history",
