@@ -40,9 +40,44 @@ async function toolData(
   return record(envelope.data);
 }
 
-async function mutationFixture() {
+async function mutationFixture(
+  options: { withLegacyAtlasGap?: boolean } = {},
+) {
   const root = await mkdtemp(join(tmpdir(), "pokemap-mcp-mutation-"));
-  await writeFile(join(root, "project.json"), await readFile(scaffold));
+  const scaffoldBytes = await readFile(scaffold);
+  if (options.withLegacyAtlasGap) {
+    const project = JSON.parse(scaffoldBytes.toString("utf8")) as JsonRecord;
+    const tilesets = Array.isArray(project.tilesets) ? project.tilesets : [];
+    const categories = Array.isArray(project.elementCategories)
+      ? project.elementCategories
+      : [];
+    const elements = Array.isArray(project.elements) ? project.elements : [];
+    project.tilesets = [
+      ...tilesets,
+      {
+        id: "tileset_m00_hanazuki_guesthouse_room",
+        name: "M00 Guesthouse",
+        relativePath: "images/m00.png",
+      },
+    ];
+    project.elementCategories = [
+      ...categories,
+      { id: "legacy-m00", name: "Legacy M00", sortOrder: 0 },
+    ];
+    project.elements = [
+      ...elements,
+      {
+        id: "legacy-m00-bed",
+        name: "Legacy M00 Bed",
+        tilesetId: "tileset_m00_hanazuki_guesthouse_room",
+        categoryId: "legacy-m00",
+        frames: [{ source: { x: 0, y: 0 } }],
+      },
+    ];
+    await writeFile(join(root, "project.json"), JSON.stringify(project));
+  } else {
+    await writeFile(join(root, "project.json"), scaffoldBytes);
+  }
   const authoring = new LocalAuthoringClient({
     allowedRoots: [root],
     authoringPackageRoot,
@@ -223,7 +258,7 @@ test("MCP preserves CLI plan/apply parity for one complete map batch", async () 
 });
 
 test("MCP completes a cold-start 34-element visual import", async () => {
-  const fixture = await mutationFixture();
+  const fixture = await mutationFixture({ withLegacyAtlasGap: true });
   try {
     const sourcePath = join(fixture.root, "source.png");
     await writeFile(

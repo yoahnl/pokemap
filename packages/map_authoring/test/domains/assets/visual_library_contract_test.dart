@@ -32,6 +32,110 @@ void main() {
       );
     });
 
+    test('tileset upsert supports progressive legacy atlas migration', () {
+      const legacyTilesetId = 'tileset_m00_hanazuki_guesthouse_room';
+      final legacy = ProjectManifest(
+        name: 'Legacy visual fixture',
+        maps: const [],
+        tilesets: const [
+          ProjectTilesetEntry(
+            id: legacyTilesetId,
+            name: 'M00 Guesthouse',
+            relativePath: 'images/m00.png',
+          ),
+        ],
+        elementCategories: const [
+          ProjectElementCategory(id: 'legacy', name: 'Legacy'),
+        ],
+        elements: const [
+          ProjectElementEntry(
+            id: 'legacy-bed',
+            name: 'Legacy Bed',
+            tilesetId: legacyTilesetId,
+            categoryId: 'legacy',
+            frames: [
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0),
+              ),
+            ],
+          ),
+        ],
+      );
+      const m02Atlas = TilesetAtlasSpec(
+        tilesetId: 'm02',
+        assetId: 'm02-atlas',
+        pixelWidth: 16,
+        pixelHeight: 16,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      const m02 = ProjectTilesetEntry(
+        id: 'm02',
+        name: 'M02',
+        relativePath: 'images/m02.png',
+        paletteEntries: [
+          TilesetPaletteEntry(
+            id: 'm02-tile',
+            frames: [
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0),
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final migrated = const TilesetActions().upsert(
+        legacy,
+        tileset: m02,
+        atlas: m02Atlas,
+      );
+      final atlases = readTilesetAtlases(migrated);
+
+      expect(atlases.keys, ['m02']);
+      expect(
+        () => validateManifestFrames(migrated, atlases),
+        throwsA(
+          isA<VisualLibraryException>()
+              .having(
+                (error) => error.code,
+                'code',
+                'tileset.atlas_missing',
+              )
+              .having(
+                (error) => error.details['tilesetId'],
+                'tilesetId',
+                legacyTilesetId,
+              ),
+        ),
+      );
+      expect(
+        () => const TilesetActions().upsert(
+          legacy,
+          tileset: m02.copyWith(
+            paletteEntries: const [
+              TilesetPaletteEntry(
+                id: 'invalid',
+                frames: [
+                  TilesetVisualFrame(
+                    source: TilesetSourceRect(x: 1, y: 0),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          atlas: m02Atlas,
+        ),
+        throwsA(
+          isA<VisualLibraryException>().having(
+            (error) => error.code,
+            'code',
+            'tileset.source_out_of_bounds',
+          ),
+        ),
+      );
+    });
+
     test('regrid preview reports every affected visual before apply', () {
       final preview = const TilesetActions().previewRegrid(
         _manifest(),

@@ -318,7 +318,7 @@ final class TilesetActions {
       tilesets: tilesets,
       globalProperties: writeTilesetAtlases(manifest.globalProperties, atlases),
     );
-    validateManifestFrames(next, atlases);
+    _validateManifestFramesForTileset(next, atlases, tileset.id);
     return next;
   }
 
@@ -584,6 +584,65 @@ void validateManifestFrames(
           owningTilesetId: preset.tilesetId,
           atlases: atlases,
         );
+      }
+    }
+  }
+}
+
+void _validateManifestFramesForTileset(
+  ProjectManifest manifest,
+  Map<String, TilesetAtlasSpec> atlases,
+  String tilesetId,
+) {
+  const actions = TilesetActions();
+  for (final tileset in manifest.tilesets) {
+    for (final entry in tileset.paletteEntries) {
+      for (final frame in entry.frames) {
+        if (tileset.id == tilesetId ||
+            _frameTargets(frame, tileset.id, tilesetId)) {
+          actions.validateFrame(
+            frame,
+            owningTilesetId: tileset.id,
+            atlases: atlases,
+          );
+        }
+      }
+    }
+  }
+  for (final element in manifest.elements) {
+    for (final frame in element.frames) {
+      if (_frameTargets(frame, element.tilesetId, tilesetId)) {
+        actions.validateFrame(
+          frame,
+          owningTilesetId: element.tilesetId,
+          atlases: atlases,
+        );
+      }
+    }
+  }
+  for (final preset in manifest.terrainPresets) {
+    for (final variant in preset.variants) {
+      for (final frame in variant.frames) {
+        if (_frameTargets(frame, preset.tilesetId, tilesetId)) {
+          actions.validateFrame(
+            frame,
+            owningTilesetId: preset.tilesetId,
+            atlases: atlases,
+          );
+        }
+      }
+    }
+  }
+  for (final preset in manifest.pathPresets) {
+    for (final variant in preset.variants) {
+      for (final frame in variant.frames) {
+        if (_frameTargets(frame, preset.tilesetId, tilesetId)) {
+          actions.validateFrame(
+            frame,
+            owningTilesetId: preset.tilesetId,
+            atlases: atlases,
+          );
+        }
       }
     }
   }
