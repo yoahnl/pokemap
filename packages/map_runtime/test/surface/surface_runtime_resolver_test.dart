@@ -303,6 +303,116 @@ void main() {
 
       expect(keys, ['0:0', '1:0', '2:1']);
     });
+
+    test('reuses a layer index and resolves only viewport placements', () {
+      const layer = SurfaceLayer(
+        id: 'surface',
+        name: 'Surfaces',
+        placements: [
+          SurfaceCellPlacement(x: 0, y: 1, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 2, y: 1, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 40, y: 40, surfacePresetId: 'water'),
+        ],
+      );
+      final index = SurfaceRuntimeLayerIndex.fromLayer(layer);
+
+      final instructions = resolveSurfaceRuntimeRenderInstructions(
+        layer: layer,
+        catalog: _simpleWaterCatalog(),
+        layerIndex: index,
+        viewport: const SurfaceRuntimeCellViewport(
+          left: 1,
+          top: 1,
+          right: 2,
+          bottom: 2,
+        ),
+      );
+
+      expect(instructions, hasLength(1));
+      expect(instructions.single.x, 1);
+      expect(instructions.single.y, 1);
+      expect(
+        instructions.single.resolvedRole,
+        SurfaceVariantRole.horizontal,
+        reason: 'Off-viewport neighbours must remain in topology.',
+      );
+      expect(index.indexedPlacementCount, layer.placements.length);
+    });
+
+    test('an empty viewport performs no placement resolution', () {
+      const layer = SurfaceLayer(
+        id: 'surface',
+        name: 'Surfaces',
+        placements: [
+          SurfaceCellPlacement(x: 0, y: 0, surfacePresetId: 'water'),
+        ],
+      );
+
+      expect(
+        resolveSurfaceRuntimeRenderInstructions(
+          layer: layer,
+          catalog: _simpleWaterCatalog(),
+          viewport: const SurfaceRuntimeCellViewport(
+            left: 2,
+            top: 2,
+            right: 2,
+            bottom: 2,
+          ),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('rejects an index built for another layer instance with the same id',
+        () {
+      const indexedLayer = SurfaceLayer(
+        id: 'surface',
+        name: 'Indexed',
+        placements: [
+          SurfaceCellPlacement(x: 0, y: 0, surfacePresetId: 'water'),
+        ],
+      );
+      const requestedLayer = SurfaceLayer(
+        id: 'surface',
+        name: 'Requested',
+        placements: [
+          SurfaceCellPlacement(x: 9, y: 9, surfacePresetId: 'water'),
+        ],
+      );
+
+      expect(
+        () => resolveSurfaceRuntimeRenderInstructions(
+          layer: requestedLayer,
+          catalog: _simpleWaterCatalog(),
+          layerIndex: SurfaceRuntimeLayerIndex.fromLayer(indexedLayer),
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('clamps a very large viewport to indexed rows', () {
+      const layer = SurfaceLayer(
+        id: 'surface',
+        name: 'Surfaces',
+        placements: [
+          SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water'),
+        ],
+      );
+
+      final instructions = resolveSurfaceRuntimeRenderInstructions(
+        layer: layer,
+        catalog: _simpleWaterCatalog(),
+        viewport: const SurfaceRuntimeCellViewport(
+          left: -1000000000,
+          top: -1000000000,
+          right: 1000000000,
+          bottom: 1000000000,
+        ),
+      );
+
+      expect(instructions, hasLength(1));
+    });
   });
 }
 

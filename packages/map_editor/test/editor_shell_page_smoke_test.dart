@@ -116,6 +116,28 @@ void main() {
       );
     });
 
+    testWidgets('keeps all active-map header information on one line',
+        (tester) async {
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/editor_shell_single_line_map_header',
+          project: buildShellChromeProject(),
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: buildShellChromeMap(),
+        ),
+      );
+
+      final titleCenter = tester.getCenter(find.text('Route 1'));
+      final subtitleCenter = tester.getCenter(
+        find.text('20 × 15 tuiles • 0 couches'),
+      );
+      final badgeCenter = tester.getCenter(find.text('Scène'));
+
+      expect(subtitleCenter.dy, closeTo(titleCenter.dy, 1));
+      expect(badgeCenter.dy, closeTo(titleCenter.dy, 1));
+    });
+
     testWidgets(
         'opening a non-Event target selects, pins and focuses its inspector',
         (tester) async {

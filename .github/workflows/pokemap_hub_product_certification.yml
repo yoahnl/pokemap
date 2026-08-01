@@ -12,11 +12,16 @@ on:
     paths:
       - "apps/pokemap_hub/**"
       - "packages/map_core/**"
+      - "packages/map_authoring/**"
+      - "packages/map_battle/**"
       - "packages/map_distribution/**"
       - "packages/map_editor/**"
       - "packages/map_gameplay/**"
       - "packages/map_player_ui/**"
       - "packages/map_runtime/**"
+      - "examples/playable_runtime_host/**"
+      - "reports/performance/**"
+      - "tool/performance/**"
       - "pokemap_roadmap_mecaniques_fangame.md"
       - "reports/gameplay/**"
       - "tool/pokemap_product_certification/**"
@@ -116,6 +121,125 @@ jobs:
               test/narrative_global_search_performance_test.dart \
               test/narrative_large_project_workspace_performance_test.dart
           done
+
+  performance-observation:
+    # PERF-RM-00 is collection-only until at least ten comparable historical
+    # observations exist. Failures stay visible without becoming release gates.
+    continue-on-error: true
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Collect bounded pure-Dart AOT receipts
+        continue-on-error: true
+        env:
+          POKEMAP_FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
+          POKEMAP_FLAME_VERSION: 1.37.0
+        run: |
+          mkdir -p packages/map_core/build/performance
+          cd packages/map_core
+          dart pub get
+          dart compile exe benchmark/surface_role_scaling.dart \
+            -o build/performance/surface_role_scaling
+          build/performance/surface_role_scaling \
+            --warmups 1 --samples 5 --sizes 400,2500 \
+            --fixtures dense,mixed --modes topology \
+            --output build/performance/surface_role_scaling.json
+          dart compile exe benchmark/map_paint_gesture.dart \
+            -o build/performance/map_paint_gesture
+          build/performance/map_paint_gesture \
+            --warmups 1 --samples 5 --sizes 256,1024 \
+            --stroke-lengths 1,100,1000 \
+            --output build/performance/map_paint_gesture.json
+          dart compile exe benchmark/group_hierarchy_scaling.dart \
+            -o build/performance/group_hierarchy_scaling
+          build/performance/group_hierarchy_scaling \
+            --warmups 1 --samples 5 --sizes 100,400 \
+            --output build/performance/group_hierarchy_scaling.json
+          dart compile exe benchmark/json_roundtrip_scaling.dart \
+            -o build/performance/json_roundtrip_scaling
+          build/performance/json_roundtrip_scaling \
+            --warmups 1 --samples 5 --bytes 1024,102400,2420033 \
+            --output build/performance/json_roundtrip_scaling.json
+          cd ../map_gameplay
+          dart pub get
+          mkdir -p build/performance
+          dart compile exe benchmark/world_collision_scaling.dart \
+            -o build/performance/world_collision_scaling
+          build/performance/world_collision_scaling \
+            --warmups 1 --samples 5 --sizes 32,128,256 \
+            --isolated-size 512 --isolated-runs 3 \
+            --output build/performance/world_collision_scaling.json
+          cd ../map_authoring
+          dart pub get
+          mkdir -p build/performance
+          dart compile exe benchmark/authoring_snapshot_open.dart \
+            -o build/performance/authoring_snapshot_open
+          build/performance/authoring_snapshot_open \
+            --warmups 1 --samples 5 --fixtures small,selbrume \
+            --roots 1,3 --cycles 1 \
+            --output build/performance/authoring_snapshot_open.json
+          cd ../map_battle
+          dart pub get
+          mkdir -p build/performance
+          dart compile exe benchmark/battle_turn_baseline.dart \
+            -o build/performance/battle_turn_baseline
+          build/performance/battle_turn_baseline \
+            --warmups 1 --samples 5 --turns 100,500 \
+            --output build/performance/battle_turn_baseline.json
+      - name: Verify the explicit collector test manifest
+        continue-on-error: true
+        run: |
+          cd packages/map_core
+          dart test \
+            test/benchmark/surface_role_scaling_cli_test.dart \
+            test/benchmark/map_paint_gesture_cli_test.dart \
+            test/benchmark/group_hierarchy_scaling_cli_test.dart \
+            test/benchmark/json_roundtrip_scaling_cli_test.dart
+          cd ../map_gameplay
+          dart test test/benchmark/world_collision_scaling_cli_test.dart
+          cd ../map_authoring
+          dart test test/benchmark/authoring_snapshot_open_cli_test.dart
+          cd ../map_battle
+          dart test test/benchmark/battle_turn_baseline_cli_test.dart
+          cd ../../examples/playable_runtime_host
+          flutter pub get
+          flutter test \
+            test/evaluation/interactive_frame_metrics_test.dart \
+            test/evaluation/interactive_worker_client_test.dart \
+            test/evaluation/pokemap_eval_cli_test.dart
+      - name: Collect editor profile journey
+        continue-on-error: true
+        working-directory: packages/map_editor
+        run: |
+          flutter pub get
+          flutter drive --profile -d macos \
+            --driver=test_driver/performance_driver.dart \
+            --target=integration_test/editor_project_journey_test.dart \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_project_journey.json
+      - name: Preserve performance observation receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pokemap-performance-observation-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            packages/map_core/build/performance/*.json
+            packages/map_gameplay/build/performance/*.json
+            packages/map_authoring/build/performance/*.json
+            packages/map_battle/build/performance/*.json
+            packages/map_editor/build/performance/*.json
+            examples/playable_runtime_host/build/performance/*.json
 
   windows-desktop-certification:
     runs-on: windows-2025

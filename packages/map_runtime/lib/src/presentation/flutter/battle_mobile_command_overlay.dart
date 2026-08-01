@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -7,6 +8,9 @@ import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'battle_command_overlay_snapshot.dart';
 
 typedef BattleMobileItemIconBuilder = Widget Function(String imagePath);
+typedef BattleMobileItemIconBytesLoader = Future<Uint8List?> Function(
+  String imagePath,
+);
 
 /// Chrome battle Flutter rendue au-dessus du `GameWidget`.
 ///
@@ -1542,7 +1546,9 @@ class _BattleBagTile extends StatelessWidget {
                       child: KeyedSubtree(
                         key: Key('battle-mobile-entry-icon-${entry.index}'),
                         child: itemIconBuilder?.call(entry.iconAssetPath!) ??
-                            _BattleItemIcon(imagePath: entry.iconAssetPath!),
+                            BattleMobileItemIcon(
+                              imagePath: entry.iconAssetPath!,
+                            ),
                       ),
                     ),
                   Expanded(
@@ -1688,7 +1694,7 @@ class _BattleEntryTile extends StatelessWidget {
                                   'battle-mobile-entry-icon-${entry.index}'),
                               child:
                                   itemIconBuilder?.call(entry.iconAssetPath!) ??
-                                      _BattleItemIcon(
+                                      BattleMobileItemIcon(
                                         imagePath: entry.iconAssetPath!,
                                       ),
                             ),
@@ -1844,12 +1850,43 @@ class _BattleEntryTile extends StatelessWidget {
   }
 }
 
-class _BattleItemIcon extends StatelessWidget {
-  const _BattleItemIcon({
+class BattleMobileItemIcon extends StatefulWidget {
+  const BattleMobileItemIcon({
+    super.key,
     required this.imagePath,
+    this.bytesLoader = _loadBattleMobileItemIconBytes,
   });
 
   final String imagePath;
+  final BattleMobileItemIconBytesLoader bytesLoader;
+
+  @override
+  State<BattleMobileItemIcon> createState() => _BattleMobileItemIconState();
+}
+
+class _BattleMobileItemIconState extends State<BattleMobileItemIcon> {
+  late Future<Uint8List?> _imageBytesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _imageBytesFuture = _loadImageBytes();
+  }
+
+  @override
+  void didUpdateWidget(covariant BattleMobileItemIcon oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.imagePath != widget.imagePath ||
+        !identical(oldWidget.bytesLoader, widget.bytesLoader)) {
+      _imageBytesFuture = _loadImageBytes();
+    }
+  }
+
+  Future<Uint8List?> _loadImageBytes() {
+    return Future<Uint8List?>.sync(
+      () => widget.bytesLoader(widget.imagePath),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1867,32 +1904,37 @@ class _BattleItemIcon extends StatelessWidget {
       );
     }
 
-    final imageBytes = () {
-      try {
-        final file = File(imagePath);
-        if (!file.existsSync()) {
-          return null;
-        }
-        return file.readAsBytesSync();
-      } catch (_) {
-        return null;
-      }
-    }();
-
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: SizedBox(
         width: 32,
         height: 32,
-        child: imageBytes == null
-            ? buildFallback()
-            : Image.memory(
-                imageBytes,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => buildFallback(),
-              ),
+        child: FutureBuilder<Uint8List?>(
+          future: _imageBytesFuture,
+          builder: (context, snapshot) {
+            final imageBytes = snapshot.data;
+            if (snapshot.connectionState != ConnectionState.done ||
+                snapshot.hasError ||
+                imageBytes == null) {
+              return buildFallback();
+            }
+            return Image.memory(
+              imageBytes,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => buildFallback(),
+            );
+          },
+        ),
       ),
     );
+  }
+}
+
+Future<Uint8List?> _loadBattleMobileItemIconBytes(String imagePath) async {
+  try {
+    return await File(imagePath).readAsBytes();
+  } catch (_) {
+    return null;
   }
 }
 

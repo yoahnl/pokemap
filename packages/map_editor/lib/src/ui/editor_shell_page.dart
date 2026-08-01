@@ -1913,133 +1913,122 @@ class _WorkspaceStageHeader extends ConsumerWidget {
     };
 
     if (workspaceMode == EditorWorkspaceMode.map && activeMap != null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      return Row(
+        key: const ValueKey<String>('active-map-stage-header'),
         children: [
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: colors.surfaceSubtle,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: colors.borderSubtle,
-                    width: 1,
-                  ),
-                ),
-                alignment: Alignment.center,
-                child: MacosIcon(
-                  CupertinoIcons.map,
-                  color: chipAccent,
-                  size: 18,
-                ),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: colors.surfaceSubtle,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: colors.borderSubtle,
+                width: 1,
               ),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
-                  decoration: TextDecoration.none,
-                ),
-              ),
-            ],
+            ),
+            alignment: Alignment.center,
+            child: MacosIcon(
+              CupertinoIcons.map,
+              color: chipAccent,
+              size: 18,
+            ),
           ),
-          const SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsets.only(left: 46),
+          const SizedBox(width: 10),
+          Flexible(
             child: Text(
-              subtitle,
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: colors.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+                color: colors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
                 decoration: TextDecoration.none,
               ),
             ),
           ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.only(left: 46),
-            child: Row(
-              children: [
-                const PokeMapBadge(
-                  label: 'Scène',
-                  variant: PokeMapBadgeVariant.mapAccent,
+          const SizedBox(width: 12),
+          Text(
+            subtitle,
+            maxLines: 1,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              decoration: TextDecoration.none,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const PokeMapBadge(
+            label: 'Scène',
+            variant: PokeMapBadgeVariant.mapAccent,
+          ),
+          const SizedBox(width: 8),
+          if (showRightPanelToggle) ...[
+            MacosTooltip(
+              message: rightPanelVisible
+                  ? 'Masquer le panneau'
+                  : 'Afficher le panneau',
+              child: MacosIconButton(
+                semanticLabel:
+                    rightPanelVisible ? 'Hide right panel' : 'Show right panel',
+                icon: MacosIcon(
+                  rightPanelVisible
+                      ? Icons.open_in_full
+                      : Icons.close_fullscreen,
+                  color: colors.textPrimary.withValues(alpha: 0.85),
+                  size: 14,
                 ),
-                const SizedBox(width: 8),
-                if (showRightPanelToggle) ...[
-                  MacosTooltip(
-                    message: rightPanelVisible
-                        ? 'Masquer le panneau'
-                        : 'Afficher le panneau',
-                    child: MacosIconButton(
-                      semanticLabel: rightPanelVisible
-                          ? 'Hide right panel'
-                          : 'Show right panel',
-                      icon: MacosIcon(
-                        rightPanelVisible
-                            ? Icons.open_in_full
-                            : Icons.close_fullscreen,
-                        color: colors.textPrimary.withValues(alpha: 0.85),
-                        size: 14,
-                      ),
-                      backgroundColor: colors.surfaceSubtle,
-                      hoverColor: colors.surfaceHover,
-                      onPressed: onToggleRightPanel,
-                      boxConstraints: const BoxConstraints(
-                        minWidth: 28,
-                        maxWidth: 28,
-                        minHeight: 28,
-                        maxHeight: 28,
-                      ),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
+                backgroundColor: colors.surfaceSubtle,
+                hoverColor: colors.surfaceHover,
+                onPressed: onToggleRightPanel,
+                boxConstraints: const BoxConstraints(
+                  minWidth: 28,
+                  maxWidth: 28,
+                  minHeight: 28,
+                  maxHeight: 28,
+                ),
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          MacosTooltip(
+            message: 'Options de carte',
+            child: MacosPulldownButton(
+              icon: CupertinoIcons.ellipsis,
+              items: [
+                MacosPulldownMenuItem(
+                  label: 'Redimensionner la carte',
+                  title: const Text('Redimensionner la carte'),
+                  onTap: () {
+                    showTopToolbarResizeMapDialog(
+                      context,
+                      notifier,
+                      currentWidth: activeMap.size.width,
+                      currentHeight: activeMap.size.height,
+                    );
+                  },
+                ),
+                if (activeMap.visualStack != MapVisualStackConfig.canonicalV1)
+                  MacosPulldownMenuItem(
+                    label: 'Migrer la pile visuelle',
+                    title: const Text('Migrer la pile visuelle'),
+                    onTap: () {
+                      showTopToolbarVisualStackMigrationDialog(
+                        context,
+                        notifier,
+                      );
+                    },
                   ),
-                  const SizedBox(width: 8),
-                ],
-                MacosTooltip(
-                  message: 'Options de carte',
-                  child: MacosPulldownButton(
-                    icon: CupertinoIcons.ellipsis,
-                    items: [
-                      MacosPulldownMenuItem(
-                        label: 'Redimensionner la carte',
-                        title: const Text('Redimensionner la carte'),
-                        onTap: () {
-                          showTopToolbarResizeMapDialog(
-                            context,
-                            notifier,
-                            currentWidth: activeMap.size.width,
-                            currentHeight: activeMap.size.height,
-                          );
-                        },
-                      ),
-                      if (activeMap.visualStack !=
-                          MapVisualStackConfig.canonicalV1)
-                        MacosPulldownMenuItem(
-                          label: 'Migrer la pile visuelle',
-                          title: const Text('Migrer la pile visuelle'),
-                          onTap: () {
-                            showTopToolbarVisualStackMigrationDialog(
-                              context,
-                              notifier,
-                            );
-                          },
-                        ),
-                      MacosPulldownMenuItem(
-                        label: 'Sauvegarder la carte',
-                        title: const Text('Sauvegarder la carte'),
-                        onTap: () => requestActiveMapSaveWithBorderPreviewGuard(
-                          context: context,
-                          notifier: notifier,
-                        ),
-                      ),
-                    ],
+                MacosPulldownMenuItem(
+                  label: 'Sauvegarder la carte',
+                  title: const Text('Sauvegarder la carte'),
+                  onTap: () => requestActiveMapSaveWithBorderPreviewGuard(
+                    context: context,
+                    notifier: notifier,
                   ),
                 ),
               ],

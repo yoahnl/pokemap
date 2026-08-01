@@ -10,33 +10,85 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
   PlacedElementOcclusionPatchComponent({
     required this.instruction,
     required this.tilesetImage,
+    this.visibleWorldRectProvider,
   })  : _currentDepthSortY = instruction.depthSortY,
         super(
           anchor: Anchor.topLeft,
           position: Vector2(instruction.worldLeft, instruction.worldTop),
           size: Vector2(instruction.visualWidth, instruction.visualHeight),
         ) {
-    _pixelTransform = _resolvePixelTransform(instruction);
-    _maskPixels = _decodeMask(instruction.occlusionMask);
-    _drawRuns = _buildDrawRuns(
-      instruction,
-      pixelTransform: _pixelTransform,
-      pixels: _maskPixels,
-    );
+    final maskPixels = _decodeMask(instruction.occlusionMask);
+    final mask = instruction.occlusionMask;
+    final canPrepare = instruction.opacity > 0 &&
+        instruction.visualWidth > 0 &&
+        instruction.visualHeight > 0 &&
+        mask.widthPx == instruction.sourceWidthPx &&
+        mask.heightPx == instruction.sourceHeightPx;
+    try {
+      if (!canPrepare) {
+        throw ArgumentError('Occlusion patch cannot produce a render plan.');
+      }
+      final paint = Paint()
+        ..isAntiAlias = false
+        ..filterQuality = FilterQuality.none;
+      if (instruction.opacity < 1) {
+        paint.color = Color.fromRGBO(255, 255, 255, instruction.opacity);
+      }
+      final sourceSize = GridSize(
+        width: instruction.sourceWidthPx,
+        height: instruction.sourceHeightPx,
+      );
+      final destinationSize = GridSize(
+        width: instruction.destinationWidthPx,
+        height: instruction.destinationHeightPx,
+      );
+      final sourceWidth = sourceSize.width;
+      _renderPlan = QuarterTurnPixelDrawPlan.record(
+        image: tilesetImage,
+        sourceRect: Rect.fromLTWH(
+          instruction.sourceLeftPx.toDouble(),
+          instruction.sourceTopPx.toDouble(),
+          sourceSize.width.toDouble(),
+          sourceSize.height.toDouble(),
+        ),
+        destinationRect: Rect.fromLTWH(
+          0,
+          0,
+          instruction.visualWidth,
+          instruction.visualHeight,
+        ),
+        sourcePixelSize: sourceSize,
+        destinationPixelSize: destinationSize,
+        quarterTurns: instruction.quarterTurns,
+        paint: paint,
+        includeSourcePixel: (source) {
+          final index = source.y * sourceWidth + source.x;
+          return index >= 0 && index < maskPixels.length && maskPixels[index];
+        },
+      );
+      _renderPlanPreparationCount = 1;
+    } on ArgumentError {
+      _renderPlan = null;
+    }
+    _drawRunCount = _renderPlan?.result.includedDestinationRunCount ?? 0;
     priority = instruction.flamePriority;
   }
 
   final StaticPlacedElementOcclusionPatchInstruction instruction;
   final RuntimeTilesetImage tilesetImage;
-  late final QuarterTurnPixelTransform? _pixelTransform;
-  late final List<bool> _maskPixels;
-  late final List<_OcclusionPixelRun> _drawRuns;
+  final Rect Function()? visibleWorldRectProvider;
+  QuarterTurnPixelDrawPlan? _renderPlan;
+  late final int _drawRunCount;
   double _currentDepthSortY;
   int _lastQuarterTurnDrawRunCount = 0;
   int _lastIncludedDestinationPixelCount = 0;
+  int _renderPlanPreparationCount = 0;
+  int _renderPlanDrawCount = 0;
+  int _culledRenderCount = 0;
+  bool _didRemove = false;
 
   @visibleForTesting
-  int get debugDrawRunCount => _drawRuns.length;
+  int get debugDrawRunCount => _drawRunCount;
 
   @visibleForTesting
   int get debugQuarterTurnDrawRunCount => _lastQuarterTurnDrawRunCount;
@@ -44,6 +96,26 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
   @visibleForTesting
   int get debugIncludedDestinationPixelCount =>
       _lastIncludedDestinationPixelCount;
+
+  @visibleForTesting
+  int get debugRenderPlanPreparationCount => _renderPlanPreparationCount;
+
+  @visibleForTesting
+  int get debugRenderPlanDrawCount => _renderPlanDrawCount;
+
+  @visibleForTesting
+  int get debugCulledRenderCount => _culledRenderCount;
+
+  @visibleForTesting
+  int get debugQuarterTurnResampleCount =>
+      _renderPlan?.sourcePixelSampleCount ?? 0;
+
+  @visibleForTesting
+  bool get debugRenderPlanDisposed => _renderPlan?.isDisposed ?? true;
+
+  @visibleForTesting
+  int get debugRenderPlanApproximateBytesUsed =>
+      _renderPlan?.approximateBytesUsed ?? 0;
 
   void translateByMapOriginDelta(Vector2 delta) {
     position = position + delta;
@@ -55,108 +127,35 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
   void render(Canvas canvas) {
     _lastQuarterTurnDrawRunCount = 0;
     _lastIncludedDestinationPixelCount = 0;
-    final transform = _pixelTransform;
-    if (instruction.opacity <= 0 || _drawRuns.isEmpty || transform == null) {
+    final plan = _renderPlan;
+    if (instruction.opacity <= 0 ||
+        _drawRunCount == 0 ||
+        plan == null ||
+        plan.isDisposed) {
       return;
     }
-    final paint = Paint()
-      ..isAntiAlias = false
-      ..filterQuality = FilterQuality.none;
-    if (instruction.opacity < 1) {
-      paint.color = Color.fromRGBO(255, 255, 255, instruction.opacity);
+    final visibleWorldRect = visibleWorldRectProvider?.call();
+    if (visibleWorldRect != null &&
+        !toAbsoluteRect().inflate(1).overlaps(visibleWorldRect)) {
+      _culledRenderCount += 1;
+      return;
     }
 
-    final sourceWidth = transform.sourcePixelSize.width;
-    final result = drawQuarterTurnPixels(
-      canvas,
-      image: tilesetImage,
-      sourceRect: Rect.fromLTWH(
-        instruction.sourceLeftPx.toDouble(),
-        instruction.sourceTopPx.toDouble(),
-        transform.sourcePixelSize.width.toDouble(),
-        transform.sourcePixelSize.height.toDouble(),
-      ),
-      destinationRect: Rect.fromLTWH(
-        0,
-        0,
-        instruction.visualWidth,
-        instruction.visualHeight,
-      ),
-      sourcePixelSize: transform.sourcePixelSize,
-      destinationPixelSize: transform.destinationPixelSize,
-      quarterTurns: transform.quarterTurns,
-      paint: paint,
-      includeSourcePixel: (source) {
-        final index = source.y * sourceWidth + source.x;
-        return index >= 0 && index < _maskPixels.length && _maskPixels[index];
-      },
-    );
+    plan.draw(canvas);
+    _renderPlanDrawCount += 1;
+    final result = plan.result;
     _lastQuarterTurnDrawRunCount = result.drawRunCount;
     _lastIncludedDestinationPixelCount = result.includedDestinationPixelCount;
   }
 
-  static List<_OcclusionPixelRun> _buildDrawRuns(
-    StaticPlacedElementOcclusionPatchInstruction instruction, {
-    required QuarterTurnPixelTransform? pixelTransform,
-    required List<bool> pixels,
-  }) {
-    final mask = instruction.occlusionMask;
-    if (pixelTransform == null ||
-        mask.widthPx <= 0 ||
-        mask.heightPx <= 0 ||
-        instruction.visualWidth <= 0 ||
-        instruction.visualHeight <= 0 ||
-        mask.widthPx != pixelTransform.sourcePixelSize.width ||
-        mask.heightPx != pixelTransform.sourcePixelSize.height) {
-      return const [];
-    }
-
-    if (pixels.isEmpty) {
-      return const [];
-    }
-
-    final destinationSize = pixelTransform.destinationPixelSize;
-    final sourceWidth = pixelTransform.sourcePixelSize.width;
-    final runs = <_OcclusionPixelRun>[];
-    for (var y = 0; y < destinationSize.height; y++) {
-      int? runStart;
-      for (var x = 0; x <= destinationSize.width; x++) {
-        var isSolid = false;
-        if (x < destinationSize.width) {
-          final source = pixelTransform.destinationPixelToSourcePixel(
-            GridPos(x: x, y: y),
-          );
-          isSolid = pixels[source.y * sourceWidth + source.x];
-        }
-        if (isSolid && runStart == null) {
-          runStart = x;
-        } else if (!isSolid && runStart != null) {
-          runs.add(_OcclusionPixelRun(x: runStart, y: y, width: x - runStart));
-          runStart = null;
-        }
-      }
-    }
-    return List<_OcclusionPixelRun>.unmodifiable(runs);
-  }
-
-  static QuarterTurnPixelTransform? _resolvePixelTransform(
-    StaticPlacedElementOcclusionPatchInstruction instruction,
-  ) {
-    try {
-      return QuarterTurnPixelTransform(
-        sourcePixelSize: GridSize(
-          width: instruction.sourceWidthPx,
-          height: instruction.sourceHeightPx,
-        ),
-        destinationPixelSize: GridSize(
-          width: instruction.destinationWidthPx,
-          height: instruction.destinationHeightPx,
-        ),
-        quarterTurns: instruction.quarterTurns,
-      );
-    } on ArgumentError {
-      return null;
-    }
+  /// A removed patch is terminal; Flame must construct a new component if the
+  /// same instruction is mounted again.
+  @override
+  void onRemove() {
+    if (_didRemove) return;
+    _didRemove = true;
+    _renderPlan?.dispose();
+    super.onRemove();
   }
 
   static List<bool> _decodeMask(ElementCollisionPixelMask mask) {
@@ -172,17 +171,4 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
       return const [];
     }
   }
-}
-
-@immutable
-final class _OcclusionPixelRun {
-  const _OcclusionPixelRun({
-    required this.x,
-    required this.y,
-    required this.width,
-  });
-
-  final int x;
-  final int y;
-  final int width;
 }

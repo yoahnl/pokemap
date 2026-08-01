@@ -177,6 +177,108 @@ void main() {
       expect(component.position.y, 200);
       expect(component.priority, 1216);
     });
+
+    test('prepares once and replays the same plan across steady-state renders',
+        () async {
+      final component = PlacedElementOcclusionPatchComponent(
+        instruction: _instruction(
+          mask: _mask(widthPx: 2, heightPx: 2, solidPixels: const {0, 3}),
+        ),
+        tilesetImage: await _runtimeTilesetImage2x2(),
+      );
+      addTearDown(component.onRemove);
+      final preparationSamples = component.debugQuarterTurnResampleCount;
+      final first = ui.PictureRecorder();
+      component.render(Canvas(first));
+      first.endRecording().dispose();
+      final second = ui.PictureRecorder();
+      component.render(Canvas(second));
+      second.endRecording().dispose();
+
+      expect(component.debugRenderPlanPreparationCount, 1);
+      expect(component.debugRenderPlanDrawCount, 2);
+      expect(preparationSamples, greaterThan(0));
+      expect(component.debugQuarterTurnResampleCount, preparationSamples);
+    });
+
+    test('culls outside the camera and keeps the one-pixel edge halo',
+        () async {
+      var visibleRect = const Rect.fromLTWH(20, 20, 2, 2);
+      final component = PlacedElementOcclusionPatchComponent(
+        instruction: _instruction(
+          worldLeft: 10,
+          worldTop: 10,
+          mask: _mask(widthPx: 2, heightPx: 2, solidPixels: const {0}),
+        ),
+        tilesetImage: await _runtimeTilesetImage2x2(),
+        visibleWorldRectProvider: () => visibleRect,
+      );
+      addTearDown(component.onRemove);
+      final outside = ui.PictureRecorder();
+      component.render(Canvas(outside));
+      outside.endRecording().dispose();
+
+      expect(component.debugRenderPlanDrawCount, 0);
+      expect(component.debugCulledRenderCount, 1);
+
+      visibleRect = const Rect.fromLTWH(8.5, 10, 0.75, 1);
+      final edge = ui.PictureRecorder();
+      component.render(Canvas(edge));
+      edge.endRecording().dispose();
+
+      expect(component.debugRenderPlanDrawCount, 1);
+      expect(component.debugCulledRenderCount, 1);
+    });
+
+    test('culling follows the current position after an origin translation',
+        () async {
+      final component = PlacedElementOcclusionPatchComponent(
+        instruction: _instruction(
+          worldLeft: 10,
+          worldTop: 10,
+          mask: _mask(widthPx: 2, heightPx: 2, solidPixels: const {0}),
+        ),
+        tilesetImage: await _runtimeTilesetImage2x2(),
+        visibleWorldRectProvider: () => const Rect.fromLTWH(109, 9, 4, 4),
+      );
+      addTearDown(component.onRemove);
+      final before = ui.PictureRecorder();
+      component.render(Canvas(before));
+      before.endRecording().dispose();
+      expect(component.debugRenderPlanDrawCount, 0);
+
+      component.translateByMapOriginDelta(Vector2(100, 0));
+      final after = ui.PictureRecorder();
+      component.render(Canvas(after));
+      after.endRecording().dispose();
+
+      expect(component.debugRenderPlanDrawCount, 1);
+      expect(component.debugCulledRenderCount, 1);
+    });
+
+    test('disposes its render plan idempotently without owning the tileset',
+        () async {
+      final tileset = await _runtimeTilesetImage2x2();
+      final component = PlacedElementOcclusionPatchComponent(
+        instruction: _instruction(),
+        tilesetImage: tileset,
+      );
+
+      component.onRemove();
+      component.onRemove();
+
+      expect(component.debugRenderPlanDisposed, isTrue);
+      final recorder = ui.PictureRecorder();
+      tileset.drawImageRect(
+        Canvas(recorder),
+        const Rect.fromLTWH(0, 0, 1, 1),
+        const Rect.fromLTWH(0, 0, 1, 1),
+        Paint(),
+      );
+      final image = await recorder.endRecording().toImage(1, 1);
+      addTearDown(image.dispose);
+      expect(await pixelAt(image, 0, 0), rgba(255, 0, 0, 255));
+    });
   });
 }
 

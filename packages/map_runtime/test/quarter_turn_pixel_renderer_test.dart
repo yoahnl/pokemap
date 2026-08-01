@@ -86,6 +86,26 @@ void main() {
     rendered.image.dispose();
   });
 
+  test('counts mask segments independently from non-pure sampling draws',
+      () async {
+    const sourceSize = GridSize(width: 6, height: 2);
+    const destinationSize = GridSize(width: 3, height: 4);
+    final atlas = await _atlas(sourceSize);
+    addTearDown(atlas.image.dispose);
+    final rendered = await _render(
+      atlas.runtimeImage,
+      sourceSize: sourceSize,
+      destinationSize: destinationSize,
+      quarterTurns: 1,
+      includeSourcePixel: (source) => source.x == 0,
+    );
+    addTearDown(rendered.image.dispose);
+
+    expect(rendered.result.includedDestinationPixelCount, 3);
+    expect(rendered.result.drawRunCount, 2);
+    expect(rendered.result.includedDestinationRunCount, 1);
+  });
+
   test('clips pure rotations with a source predicate and skips empty masks',
       () async {
     const sourceSize = GridSize(width: 3, height: 2);
@@ -141,6 +161,69 @@ void main() {
 
     filtered.image.dispose();
     empty.image.dispose();
+  });
+
+  test('records an immutable draw plan once and replays exact pixels',
+      () async {
+    const sourceSize = GridSize(width: 3, height: 2);
+    final atlas = await _atlas(sourceSize);
+    addTearDown(atlas.image.dispose);
+    final plan = QuarterTurnPixelDrawPlan.record(
+      image: atlas.runtimeImage,
+      sourceRect: const ui.Rect.fromLTWH(0, 0, 3, 2),
+      destinationRect: const ui.Rect.fromLTWH(0, 0, 3, 2),
+      sourcePixelSize: sourceSize,
+      destinationPixelSize: sourceSize,
+      quarterTurns: 0,
+      paint: ui.Paint()..filterQuality = ui.FilterQuality.none,
+      includeSourcePixel: (source) => source.x == source.y,
+    );
+    addTearDown(plan.dispose);
+
+    final first = ui.PictureRecorder();
+    plan.draw(ui.Canvas(first));
+    final firstImage = await first.endRecording().toImage(3, 2);
+    final second = ui.PictureRecorder();
+    plan.draw(ui.Canvas(second));
+    final secondImage = await second.endRecording().toImage(3, 2);
+    addTearDown(firstImage.dispose);
+    addTearDown(secondImage.dispose);
+
+    expect(plan.result.includedDestinationPixelCount, 2);
+    final firstBytes = (await firstImage.toByteData(
+      format: ui.ImageByteFormat.rawRgba,
+    ))!;
+    final secondBytes = (await secondImage.toByteData(
+      format: ui.ImageByteFormat.rawRgba,
+    ))!;
+    expect(
+      firstBytes.buffer.asUint8List(),
+      orderedEquals(secondBytes.buffer.asUint8List()),
+    );
+  });
+
+  test('disposes the partial picture when plan recording fails', () async {
+    const validSize = GridSize(width: 2, height: 2);
+    final atlas = await _atlas(validSize);
+    addTearDown(atlas.image.dispose);
+    ui.Picture? discarded;
+
+    expect(
+      () => QuarterTurnPixelDrawPlan.record(
+        image: atlas.runtimeImage,
+        sourceRect: const ui.Rect.fromLTWH(0, 0, 2, 2),
+        destinationRect: const ui.Rect.fromLTWH(0, 0, 2, 2),
+        sourcePixelSize: const GridSize(width: 0, height: 2),
+        destinationPixelSize: validSize,
+        quarterTurns: 0,
+        paint: ui.Paint(),
+        debugOnDiscardedPicture: (picture) => discarded = picture,
+      ),
+      throwsArgumentError,
+    );
+
+    expect(discarded, isNotNull);
+    expect(discarded!.debugDisposed, isTrue);
   });
 }
 

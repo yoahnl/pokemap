@@ -6,6 +6,8 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_policy.dart';
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_receipt.dart';
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_scenario.dart';
+import 'package:pokemap_loader/src/evaluation/interactive/interactive_frame_metrics.dart';
+import 'package:pokemap_loader/src/evaluation/interactive/interactive_worker_client.dart';
 import 'package:pokemap_loader/src/evaluation/scenario/evaluation_scenario_parser.dart';
 import 'package:pokemap_loader/src/evaluation/worker/evaluation_worker_protocol.dart';
 
@@ -21,6 +23,159 @@ void main() {
     expect(options.scenarioId, 'selbrume.shop.after-lysa');
     expect(options.jsonOnly, isTrue);
     expect(options.target, EvaluationTarget.headless);
+  });
+
+  test('profile run parses an explicit repeatable performance contract', () {
+    final options = PokeMapEvalCli.parse(
+      <String>[
+        'run',
+        'selbrume.shop.after-lysa',
+        '--target',
+        'interactive',
+        '--build-mode',
+        'profile',
+        '--runs',
+        '3',
+        '--json-output',
+        'build/performance/runtime.json',
+      ],
+    );
+
+    expect(options.buildMode, EvaluationBuildMode.profile);
+    expect(options.runs, 3);
+    expect(options.jsonOutput, 'build/performance/runtime.json');
+  });
+
+  test('profile run writes one V2 aggregate from isolated frame artifacts',
+      () async {
+    final fixture = await _CliFixture.create();
+    addTearDown(fixture.dispose);
+    await fixture.writeScenario();
+    var runIndex = 0;
+    fixture.interactiveWorker.onRun = (request, buildMode) async {
+      runIndex += 1;
+      expect(buildMode, EvaluationBuildMode.profile);
+      final output =
+          Directory(p.join(fixture.root.path, request.outputDirectory));
+      final frameFile =
+          File(p.join(output.path, 'artifacts', 'frame-metrics.json'));
+      await frameFile.create(recursive: true);
+      await frameFile.writeAsString(
+        jsonEncode(
+          InteractiveFrameMetricsSnapshot.fromMicrosecondSamples(
+            buildMicroseconds: <int>[1000 * runIndex, 2000 * runIndex],
+            rasterMicroseconds: <int>[3000 * runIndex, 4000 * runIndex],
+            frameSpanMicroseconds: <int>[5000 * runIndex, 20000 * runIndex],
+          ).toJson(),
+        ),
+      );
+      final receipt = File(p.join(output.path, 'receipt.json'));
+      await receipt.writeAsString(
+        jsonEncode(<String, Object?>{
+          'schemaVersion': 1,
+          'runId': request.runId,
+          'scenarioId': 'selbrume.test',
+          'target': 'interactive',
+          'status': 'succeeded',
+          'exitCode': 0,
+          'durationMilliseconds': 42,
+          'stepResults': <Object?>[
+            <String, Object?>{'passed': true},
+          ],
+          'diff': <String, Object?>{'changes': <Object?>[]},
+          'relativeReceiptPath': p.posix.join(
+            request.outputDirectory,
+            'receipt.json',
+          ),
+        }),
+      );
+      return EvaluationWorkerResult.completed(
+        runId: request.runId,
+        status: EvaluationRunStatus.succeeded,
+        exitCode: 0,
+        receiptPath: p.posix.join(request.outputDirectory, 'receipt.json'),
+      );
+    };
+
+    final result = await fixture.cli.execute(
+      <String>[
+        'run',
+        'selbrume.test',
+        '--target',
+        'interactive',
+        '--build-mode',
+        'profile',
+        '--runs',
+        '3',
+        '--json-output',
+        'build/performance/runtime.json',
+      ],
+    );
+
+    expect(result.exitCode, 0);
+    expect(fixture.interactiveWorker.requests, hasLength(3));
+    final output = File(p.join(
+      fixture.root.path,
+      'examples',
+      'playable_runtime_host',
+      'build',
+      'performance',
+      'runtime.json',
+    ));
+    final payload =
+        jsonDecode(await output.readAsString()) as Map<String, Object?>;
+    expect(payload['schemaVersion'], 2);
+    expect(payload['benchmark'], 'runtime_interactive_journey');
+    expect(payload['executionMode'], 'flutter-profile');
+    expect(payload['runCount'], 3);
+    expect(payload['runs'], hasLength(3));
+    final aggregate = payload['aggregateFrameMetrics']! as Map<String, Object?>;
+    expect(aggregate['frameCount'], 6);
+    expect(aggregate['framesOver16Point67Milliseconds'], 3);
+  });
+
+  test('performance options reject debug mode, zero runs, and output escape',
+      () async {
+    expect(
+      () => PokeMapEvalCli.parse(<String>[
+        'run',
+        'selbrume.test',
+        '--target',
+        'interactive',
+        '--runs',
+        '3',
+      ]),
+      throwsA(isA<PokeMapEvalUsageException>()),
+    );
+    expect(
+      () => PokeMapEvalCli.parse(<String>[
+        'run',
+        'selbrume.test',
+        '--target',
+        'interactive',
+        '--build-mode',
+        'profile',
+        '--runs',
+        '0',
+      ]),
+      throwsA(isA<PokeMapEvalUsageException>()),
+    );
+    final fixture = await _CliFixture.create();
+    addTearDown(fixture.dispose);
+    await fixture.writeScenario();
+    final escaped = await fixture.cli.execute(<String>[
+      'run',
+      'selbrume.test',
+      '--target',
+      'interactive',
+      '--build-mode',
+      'profile',
+      '--json-output',
+      '../runtime.json',
+    ]);
+    expect(escaped.exitCode, 2);
+    expect(fixture.interactiveWorker.requests, isEmpty);
+    expect(fixture.stderr.toString(), contains('must stay inside'));
   });
 
   test('run target selects the interactive worker without changing policy',
@@ -283,14 +438,23 @@ final class _CliFixture {
 
 final class _FakeWorker implements PokeMapEvalWorker {
   final List<EvaluationWorkerRequest> requests = <EvaluationWorkerRequest>[];
+  Future<EvaluationWorkerResult> Function(
+    EvaluationWorkerRequest request,
+    EvaluationBuildMode buildMode,
+  )? onRun;
   EvaluationWorkerResult result = EvaluationWorkerResult.infrastructureFailure(
     runId: 'run-test',
     message: 'Worker result was not configured.',
   );
 
   @override
-  Future<EvaluationWorkerResult> run(EvaluationWorkerRequest request) async {
+  Future<EvaluationWorkerResult> run(
+    EvaluationWorkerRequest request, {
+    EvaluationBuildMode buildMode = EvaluationBuildMode.debug,
+  }) async {
     requests.add(request);
+    final handler = onRun;
+    if (handler != null) return handler(request, buildMode);
     if (result.runId == request.runId) return result;
     return switch (result.status) {
       EvaluationRunStatus.infrastructureFailure =>

@@ -15,6 +15,7 @@ final class QuarterTurnPixelDrawResult {
   const QuarterTurnPixelDrawResult({
     required this.drawRunCount,
     required this.includedDestinationPixelCount,
+    this.includedDestinationRunCount = 0,
   });
 
   static const empty = QuarterTurnPixelDrawResult(
@@ -24,6 +25,98 @@ final class QuarterTurnPixelDrawResult {
 
   final int drawRunCount;
   final int includedDestinationPixelCount;
+
+  /// Horizontal mask segments encountered during the same sampling pass.
+  /// This remains distinct from [drawRunCount], because a pure rotation can
+  /// replay many clipped segments with one image draw.
+  final int includedDestinationRunCount;
+}
+
+/// Component-owned display list for static quarter-turn pixels.
+///
+/// Recording performs the exact discrete sampling once. Steady-state draws
+/// only replay the resulting local [ui.Picture]. The plan never owns or
+/// disposes the shared [RuntimeTilesetImage] used while it is recorded.
+final class QuarterTurnPixelDrawPlan {
+  QuarterTurnPixelDrawPlan._({
+    required ui.Picture picture,
+    required this.result,
+    required this.sourcePixelSampleCount,
+  }) : _picture = picture;
+
+  factory QuarterTurnPixelDrawPlan.record({
+    required RuntimeTilesetImage image,
+    required ui.Rect sourceRect,
+    required ui.Rect destinationRect,
+    required GridSize sourcePixelSize,
+    required GridSize destinationPixelSize,
+    required int quarterTurns,
+    required ui.Paint paint,
+    QuarterTurnSourcePixelPredicate? includeSourcePixel,
+    void Function(ui.Picture picture)? debugOnDiscardedPicture,
+  }) {
+    final recorder = ui.PictureRecorder();
+    var sourcePixelSampleCount = 0;
+    final trackedPredicate = includeSourcePixel == null
+        ? null
+        : (GridPos sourcePixel) {
+            sourcePixelSampleCount += 1;
+            return includeSourcePixel(sourcePixel);
+          };
+    ui.Picture? picture;
+    try {
+      final result = drawQuarterTurnPixels(
+        ui.Canvas(recorder),
+        image: image,
+        sourceRect: sourceRect,
+        destinationRect: destinationRect,
+        sourcePixelSize: sourcePixelSize,
+        destinationPixelSize: destinationPixelSize,
+        quarterTurns: quarterTurns,
+        paint: paint,
+        includeSourcePixel: trackedPredicate,
+      );
+      picture = recorder.endRecording();
+      return QuarterTurnPixelDrawPlan._(
+        picture: picture,
+        result: result,
+        sourcePixelSampleCount: sourcePixelSampleCount,
+      );
+    } catch (_) {
+      final discardedPicture = picture ?? recorder.endRecording();
+      try {
+        debugOnDiscardedPicture?.call(discardedPicture);
+      } finally {
+        discardedPicture.dispose();
+      }
+      rethrow;
+    }
+  }
+
+  final ui.Picture _picture;
+  final QuarterTurnPixelDrawResult result;
+
+  /// Number of source-mask predicate calls made during recording.
+  ///
+  /// Replaying the plan never increments this value.
+  final int sourcePixelSampleCount;
+  bool _isDisposed = false;
+
+  bool get isDisposed => _isDisposed;
+  int get approximateBytesUsed => _picture.approximateBytesUsed;
+
+  void draw(ui.Canvas canvas) {
+    if (_isDisposed) {
+      throw StateError('QuarterTurnPixelDrawPlan is disposed.');
+    }
+    canvas.drawPicture(_picture);
+  }
+
+  void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    _picture.dispose();
+  }
 }
 
 /// Draws a quarter-turned bitmap with the exact discrete sampling from core.
@@ -61,6 +154,7 @@ QuarterTurnPixelDrawResult drawQuarterTurnPixels(
       drawRunCount: 1,
       includedDestinationPixelCount:
           destinationPixelSize.width * destinationPixelSize.height,
+      includedDestinationRunCount: 1,
     );
   }
 
@@ -73,8 +167,10 @@ QuarterTurnPixelDrawResult drawQuarterTurnPixels(
   if (isPurePixelRotation) {
     var includedDestinationPixelCount =
         destinationPixelSize.width * destinationPixelSize.height;
+    var includedDestinationRunCount = 1;
     if (includeSourcePixel != null) {
       includedDestinationPixelCount = 0;
+      includedDestinationRunCount = 0;
       final destinationPixelWidth =
           destinationRect.width / destinationPixelSize.width;
       final destinationPixelHeight =
@@ -102,6 +198,7 @@ QuarterTurnPixelDrawResult drawQuarterTurnPixels(
                 destinationPixelHeight,
               ),
             );
+            includedDestinationRunCount += 1;
             runStart = null;
           }
         }
@@ -136,6 +233,7 @@ QuarterTurnPixelDrawResult drawQuarterTurnPixels(
     return QuarterTurnPixelDrawResult(
       drawRunCount: 1,
       includedDestinationPixelCount: includedDestinationPixelCount,
+      includedDestinationRunCount: includedDestinationRunCount,
     );
   }
 
@@ -147,19 +245,26 @@ QuarterTurnPixelDrawResult drawQuarterTurnPixels(
       destinationRect.height / destinationPixelSize.height;
   var drawRunCount = 0;
   var includedDestinationPixelCount = 0;
+  var includedDestinationRunCount = 0;
 
   for (var destinationY = 0;
       destinationY < destinationPixelSize.height;
       destinationY++) {
     var destinationX = 0;
+    var previousDestinationPixelIncluded = false;
     while (destinationX < destinationPixelSize.width) {
       final source = transform.destinationPixelToSourcePixel(
         GridPos(x: destinationX, y: destinationY),
       );
       if (includeSourcePixel != null && !includeSourcePixel(source)) {
+        previousDestinationPixelIncluded = false;
         destinationX += 1;
         continue;
       }
+      if (includeSourcePixel != null && !previousDestinationPixelIncluded) {
+        includedDestinationRunCount += 1;
+      }
+      previousDestinationPixelIncluded = true;
 
       var runEnd = destinationX + 1;
       while (runEnd < destinationPixelSize.width) {
@@ -216,6 +321,8 @@ QuarterTurnPixelDrawResult drawQuarterTurnPixels(
   return QuarterTurnPixelDrawResult(
     drawRunCount: drawRunCount,
     includedDestinationPixelCount: includedDestinationPixelCount,
+    includedDestinationRunCount:
+        includeSourcePixel == null ? drawRunCount : includedDestinationRunCount,
   );
 }
 

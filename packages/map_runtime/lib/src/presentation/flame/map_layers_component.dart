@@ -21,6 +21,16 @@ import 'runtime_path_autotile.dart';
 
 const int _kEntityFrameDurationFallbackMs = 200;
 
+Map<SurfaceLayer, SurfaceRuntimeLayerIndex> _buildSurfaceLayerIndices(
+  Iterable<MapLayer> layers,
+) {
+  final result = Map<SurfaceLayer, SurfaceRuntimeLayerIndex>.identity();
+  for (final layer in layers.whereType<SurfaceLayer>()) {
+    result[layer] = SurfaceRuntimeLayerIndex.fromLayer(layer);
+  }
+  return result;
+}
+
 enum MapLayerRenderPass {
   background,
   foreground,
@@ -96,6 +106,8 @@ class MapLayersComponent extends PositionComponent {
   final Map<String, Set<int>> _foregroundTileCellIndicesByLayerId;
   final Map<String, Map<int, _AnimatedPlacedCell>>
       _animatedPlacedCellsByLayerId;
+  late final Map<SurfaceLayer, SurfaceRuntimeLayerIndex>
+      _surfaceLayerIndexByLayer = _buildSurfaceLayerIndices(bundle.map.layers);
   late final Map<String, _AnimatedPlacedInstanceSpec> _animatedInstanceById;
   final Map<String, bool> _animationEnabledOverrideByInstanceId =
       <String, bool>{};
@@ -472,10 +484,18 @@ class MapLayersComponent extends PositionComponent {
   }
 
   void _paintSurfaceLayer(Canvas canvas, SurfaceLayer layer) {
+    final visibleCells = _visibleCellRange();
     final instructions = resolveSurfaceRuntimeRenderInstructions(
       layer: layer,
       catalog: bundle.manifest.surfaceCatalog,
       elapsedMs: (_animElapsed * 1000).toInt(),
+      layerIndex: _surfaceLayerIndexByLayer[layer],
+      viewport: SurfaceRuntimeCellViewport(
+        left: visibleCells.startX,
+        top: visibleCells.startY,
+        right: visibleCells.endX,
+        bottom: visibleCells.endY,
+      ),
     );
     if (instructions.isEmpty) {
       return;

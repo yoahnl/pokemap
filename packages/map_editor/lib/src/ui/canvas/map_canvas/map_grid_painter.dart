@@ -356,6 +356,7 @@ class MapGridPainter extends CustomPainter {
   final bool showGrid;
   final bool showEntityEditorChrome;
   final bool showEditorOverlays;
+  final Map<SurfaceLayer, SurfacePreviewLayerIndex> _surfaceIndexByLayer;
 
   /// Lot Environment-22 : surcouche semi-transparente des cellules masque actives.
   final EnvironmentAreaMask? environmentMaskOverlay;
@@ -367,6 +368,7 @@ class MapGridPainter extends CustomPainter {
 
   MapGridPainter({
     required this.map,
+    SurfacePreviewLayerIndexOwner? surfaceIndexOwner,
     required this.zoom,
     required this.offset,
     this.hoveredTile,
@@ -412,7 +414,10 @@ class MapGridPainter extends CustomPainter {
     this.environmentGeneratedDeletePreviewId,
     this.borderPreview,
     this.borderDiagnosticOverlayPalette,
-  })  : _animationClock = animationClock,
+  })  : _surfaceIndexByLayer =
+            (surfaceIndexOwner ?? SurfacePreviewLayerIndexOwner())
+                .indexesFor(map.layers),
+        _animationClock = animationClock,
         _staticAnimationMs = editorEntityAnimationMs,
         super(repaint: animationClock);
 
@@ -511,6 +516,13 @@ class MapGridPainter extends CustomPainter {
             tileHeight: tileHeight,
             zoom: zoom,
             elapsedMs: effectiveAnimationMs,
+            layerIndex: _surfaceIndexByLayer[layer],
+            viewport: SurfacePreviewCellViewport(
+              left: visibleBounds.left,
+              top: visibleBounds.top,
+              right: visibleBounds.right,
+              bottom: visibleBounds.bottom,
+            ),
           );
         case MapVisualCompositionStepKind.smartTileLayer:
           _paintSmartTileLayer(

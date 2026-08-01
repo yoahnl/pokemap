@@ -14,6 +14,11 @@ import '../worker/evaluation_worker_protocol.dart';
 
 const _interactiveProtocolVersion = 1;
 
+enum EvaluationBuildMode {
+  debug,
+  profile,
+}
+
 abstract interface class InteractiveProcessRunner {
   Future<InteractiveChildProcess> start(
     String executable,
@@ -58,7 +63,9 @@ final class InteractiveWorkerClient {
     Directory? packageRoot,
     InteractiveProcessRunner processRunner = const IoInteractiveProcessRunner(),
     String Function()? tokenGenerator,
-    this.readyTimeout = const Duration(seconds: 60),
+    // A cold macOS profile build can legitimately cross one minute before the
+    // bridge connects; envelope failures still use the same bounded timeout.
+    this.readyTimeout = const Duration(seconds: 120),
     void Function(String chunk)? stderrSink,
     this.flutterExecutable = 'flutter',
   })  : repositoryRoot = repositoryRoot.absolute,
@@ -86,6 +93,7 @@ final class InteractiveWorkerClient {
   Future<InteractiveWorkerLaunch> launch({
     required String projectFile,
     double playbackRate = 1,
+    EvaluationBuildMode buildMode = EvaluationBuildMode.debug,
   }) async {
     _validatePortablePath(projectFile, 'projectFile');
     if (!playbackRate.isFinite || playbackRate <= 0 || playbackRate > 4) {
@@ -113,7 +121,7 @@ final class InteractiveWorkerClient {
           'run',
           '-d',
           'macos',
-          '--debug',
+          '--${buildMode.name}',
           '--dart-define=POKEMAP_EVAL_INTERACTIVE=true',
           '--dart-define=POKEMAP_EVAL_HOST=127.0.0.1',
           '--dart-define=POKEMAP_EVAL_PORT=${listener.port}',
@@ -143,6 +151,7 @@ final class InteractiveWorkerClient {
     EvaluationWorkerRequest request, {
     double playbackRate = 1,
     void Function(EvaluationEvent event)? eventSink,
+    EvaluationBuildMode buildMode = EvaluationBuildMode.debug,
   }) async {
     InteractiveWorkerLaunch? session;
     try {
@@ -153,6 +162,7 @@ final class InteractiveWorkerClient {
       session = await launch(
         projectFile: '${request.projectRoot}/project.json',
         playbackRate: playbackRate,
+        buildMode: buildMode,
       );
       return await session.run(
         request: request,

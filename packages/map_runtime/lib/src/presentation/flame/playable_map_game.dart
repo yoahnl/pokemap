@@ -226,6 +226,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     @visibleForTesting this.afterNarrativeAuthorityPreparation,
     @visibleForTesting this.beforeBattleHandoffPreparation,
     @visibleForTesting this.beforeLoadCommitCompletion,
+    @visibleForTesting this.afterInitialTilesetImagesLoaded,
     GameCompletionRequestEmitter? gameCompletionEmitter,
     this.defeatRecoveryCheckpointEmitter,
     @visibleForTesting this.defeatRecoveryCapsLoader,
@@ -365,6 +366,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _cinematicRuntimeController = CinematicRuntimePlaybackController(
       sink: _cinematicRuntimeSink,
     );
+    _tilesetImageCache = RuntimeTilesetImageSingleFlightCache(
+      loader: _runtimeTilesetImageLoader,
+    );
   }
 
   final String projectFilePath;
@@ -390,6 +394,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final Future<void> Function()? beforeBattleHandoffPreparation;
   @visibleForTesting
   final Future<void> Function()? beforeLoadCommitCompletion;
+  @visibleForTesting
+  final Future<void> Function()? afterInitialTilesetImagesLoaded;
   @visibleForTesting
   final RuntimePostBattleOverlayMounter? postBattleOverlayMounter;
   @visibleForTesting
@@ -479,6 +485,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final RuntimeDialogueSessionLoader _dialogueSessionLoader;
   final RuntimeMapBundleLoader _runtimeMapBundleLoader;
   final RuntimeTilesetImageLoader _runtimeTilesetImageLoader;
+  late final RuntimeTilesetImageSingleFlightCache _tilesetImageCache;
+  bool _isRemoved = false;
+  bool _onLoadInProgress = false;
   final RuntimePlayerPokemonProgressionCatalogLoader
       _runtimePlayerPokemonProgressionCatalogLoader;
   final Map<String, RuntimeMapBundle> _runtimeBundleByMapId =
@@ -489,8 +498,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       <String, Future<void>>{};
   final Map<String, Future<void>> _prewarmedBattleDataFutureByKey =
       <String, Future<void>>{};
-  final Map<String, RuntimeTilesetImage> _cachedTilesetImagesByPath =
-      <String, RuntimeTilesetImage>{};
   final BorderRuntimeAssetCache _borderRuntimeAssetCache =
       BorderRuntimeAssetCache();
 
@@ -2985,50 +2992,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final transparentColors = _transparentColorByTilesetId(
       manifest ?? _bundle.manifest,
     );
-    final result = <String, RuntimeTilesetImage>{};
-    final missing = <String, String>{};
+    final result = await _tilesetImageCache.loadById(
+      absolutePathByTilesetId,
+      transparentColorByTilesetId: transparentColors,
+    );
     for (final entry in absolutePathByTilesetId.entries) {
-      final cacheKey = _tilesetImageCacheKey(
-        entry.value,
-        transparentColors[entry.key],
-      );
-      final cached = _cachedTilesetImagesByPath[cacheKey];
-      if (cached != null) {
-        debugPrint('[runtime_game] tileset cache hit id=${entry.key}');
-        result[entry.key] = cached;
-      } else {
+      if (!result.containsKey(entry.key)) {
         debugPrint(
-          '[runtime_game] tileset cache miss id=${entry.key} path=${entry.value}',
+          '[runtime_game] tileset image loader returned no image id=${entry.key} path=${entry.value}',
         );
-        missing[entry.key] = entry.value;
-      }
-    }
-    if (missing.isNotEmpty) {
-      debugPrint(
-        '[runtime_game] tileset image loader start missing=${missing.length}',
-      );
-      final loaded = await _runtimeTilesetImageLoader(
-        missing,
-        transparentColorByTilesetId: <String, TilesetTransparentColor>{
-          for (final tilesetId in missing.keys)
-            if (transparentColors[tilesetId] != null)
-              tilesetId: transparentColors[tilesetId]!,
-        },
-      );
-      for (final entry in missing.entries) {
-        final image = loaded[entry.key];
-        if (image == null) {
-          debugPrint(
-            '[runtime_game] tileset image loader returned no image id=${entry.key} path=${entry.value}',
-          );
-          continue;
-        }
-        debugPrint('[runtime_game] tileset image loaded id=${entry.key}');
-        _cachedTilesetImagesByPath[_tilesetImageCacheKey(
-          entry.value,
-          transparentColors[entry.key],
-        )] = image;
-        result[entry.key] = image;
       }
     }
     debugPrint(
@@ -3060,13 +3032,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         if (tileset.transparentColor != null)
           tileset.id: tileset.transparentColor!,
     };
-  }
-
-  String _tilesetImageCacheKey(
-    String path,
-    TilesetTransparentColor? transparentColor,
-  ) {
-    return '$path#${transparentColor?.toHexRgb() ?? ''}';
   }
 
   Future<T> _traceAsync<T>(
@@ -3390,111 +3355,80 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   @override
-  Future<void> onLoad() async {
-    if (initialMapActivationReason == MapActivationReason.saveRestore) {
-      final restoredMapId = _gameState.currentMapId.trim();
-      if (restoredMapId.isEmpty) {
-        throw StateError(
-          'An explicit saveRestore boot requires a non-empty saved map id.',
-        );
-      }
-      if (restoredMapId != _bundle.map.id) {
-        _bundle = await _loadRuntimeMapBundleCached(restoredMapId);
-      }
+  void onRemove() {
+    _isRemoved = true;
+    if (!_onLoadInProgress) {
+      _tilesetImageCache.dispose();
     }
-    _bundle = await prepareBorderRuntimeBundle(_bundle);
-    _runtimeBundleByMapId[_bundle.map.id] = _bundle;
-    final hydratedGameState = _hydrateOwnedPlayerPokemonProgression(_gameState);
-    final rootBorderAssets = _loadBorderRuntimeAssets(_bundle);
-    debugPrint('[runtime_game] tileset image load start map=${_bundle.map.id}');
-    final tilesetImages =
-        _loadTilesetImagesCached(_bundle.tilesetAbsolutePathsById);
-    final bootResources = await Future.wait<Object?>(
-      <Future<Object?>>[
-        hydratedGameState,
-        rootBorderAssets,
-        tilesetImages,
-      ],
-      eagerError: false,
-    );
-    _gameState = bootResources[0]! as GameState;
-    final loadedRootBorderAssets =
-        bootResources[1]! as BorderRuntimeAssetBundle;
-    final images = bootResources[2]! as Map<String, RuntimeTilesetImage>;
-    // The coordinator was constructed before asynchronous catalogue loading.
-    // Publish the hydrated snapshot before any map-enter dispatch can observe
-    // the game as playable.
-    await _narrativeStateTransactions.transact<void>((_) {
-      return NarrativeEventStateTransaction.commit(_gameState, null);
-    });
-    final activation = _createMapActivation(
-      mapId: _bundle.map.id,
-      reason: initialMapActivationReason,
-    );
-    debugPrint(
-      '[runtime_game] onLoad start map=${_bundle.map.id} projectFilePath=$projectFilePath tilesets=${_bundle.tilesetAbsolutePathsById.length}',
-    );
-    if (initialMapActivationReason == MapActivationReason.saveRestore) {
-      if (!_isWithinMapBounds(_bundle.map, _gameState.playerPosition)) {
-        throw StateError(
-          'Saved player position is outside map "${_bundle.map.id}".',
-        );
+    super.onRemove();
+  }
+
+  @override
+  Future<void> onLoad() async {
+    _onLoadInProgress = true;
+    try {
+      if (_isRemoved) return;
+      if (initialMapActivationReason == MapActivationReason.saveRestore) {
+        final restoredMapId = _gameState.currentMapId.trim();
+        if (restoredMapId.isEmpty) {
+          throw StateError(
+            'An explicit saveRestore boot requires a non-empty saved map id.',
+          );
+        }
+        if (restoredMapId != _bundle.map.id) {
+          _bundle = await _loadRuntimeMapBundleCached(restoredMapId);
+          if (_isRemoved) return;
+        }
       }
-      _world = GameplayWorldState.initial(
-        map: _bundle.map,
-        playerPos: _gameState.playerPosition,
-        playerFacing: _gameState.playerFacing.asDirection,
-        playerMovementMode: _gameState.playerMovementMode,
-        project: _bundle.manifest,
-        tileWidth: _bundle.manifest.settings.tileWidth,
-        tileHeight: _bundle.manifest.settings.tileHeight,
-        npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
-        mapEntityPresencePredicate:
-            _mapEntityPresencePredicateFor(_bundle.manifest),
+      _bundle = await prepareBorderRuntimeBundle(_bundle);
+      if (_isRemoved) return;
+      _runtimeBundleByMapId[_bundle.map.id] = _bundle;
+      final hydratedGameState =
+          _hydrateOwnedPlayerPokemonProgression(_gameState);
+      final rootBorderAssets = _loadBorderRuntimeAssets(_bundle);
+      debugPrint(
+          '[runtime_game] tileset image load start map=${_bundle.map.id}');
+      final tilesetImages =
+          _loadTilesetImagesCached(_bundle.tilesetAbsolutePathsById);
+      final bootResources = await Future.wait<Object?>(
+        <Future<Object?>>[
+          hydratedGameState,
+          rootBorderAssets,
+          tilesetImages,
+        ],
+        eagerError: false,
+      );
+      _gameState = bootResources[0]! as GameState;
+      final loadedRootBorderAssets =
+          bootResources[1]! as BorderRuntimeAssetBundle;
+      final images = bootResources[2]! as Map<String, RuntimeTilesetImage>;
+      await afterInitialTilesetImagesLoaded?.call();
+      if (_isRemoved) return;
+      // The coordinator was constructed before asynchronous catalogue loading.
+      // Publish the hydrated snapshot before any map-enter dispatch can observe
+      // the game as playable.
+      await _narrativeStateTransactions.transact<void>((_) {
+        return NarrativeEventStateTransaction.commit(_gameState, null);
+      });
+      if (_isRemoved) return;
+      final activation = _createMapActivation(
+        mapId: _bundle.map.id,
+        reason: initialMapActivationReason,
       );
       debugPrint(
-        '[runtime] Save restored on map ${_bundle.map.id} at '
-        '(${_world.player.pos.x}, ${_world.player.pos.y})',
+        '[runtime_game] onLoad start map=${_bundle.map.id} projectFilePath=$projectFilePath tilesets=${_bundle.tilesetAbsolutePathsById.length}',
       );
-    } else if (_isProjectNewGameBoot) {
-      _world = GameplayWorldState.initial(
-        map: _bundle.map,
-        playerPos: _gameState.playerPosition,
-        playerFacing: _gameState.playerFacing.asDirection,
-        playerMovementMode: _gameState.playerMovementMode,
-        project: _bundle.manifest,
-        tileWidth: _bundle.manifest.settings.tileWidth,
-        tileHeight: _bundle.manifest.settings.tileHeight,
-        npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
-        mapEntityPresencePredicate:
-            _mapEntityPresencePredicateFor(_bundle.manifest),
-      );
-      debugPrint(
-        '[runtime] New game created from project contract on '
-        '${_bundle.map.id} at '
-        '(${_world.player.pos.x}, ${_world.player.pos.y})',
-      );
-    } else {
-      try {
-        debugPrint('[runtime_game] world build start map=${_bundle.map.id}');
-        _world = GameplayWorldState.fromMap(
-          _bundle.map,
-          project: _bundle.manifest,
-          tileWidth: _bundle.manifest.settings.tileWidth,
-          tileHeight: _bundle.manifest.settings.tileHeight,
-          npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
-          mapEntityPresencePredicate:
-              _mapEntityPresencePredicateFor(_bundle.manifest),
-        );
-        debugPrint(
-          '[runtime] Map loaded: ${_bundle.map.id}, spawn at (${_world.player.pos.x}, ${_world.player.pos.y})',
-        );
-      } on GameplaySpawnResolutionException catch (e) {
-        debugPrint(
-            '[runtime] Spawn resolution failed ($e), falling back to (0,0)');
+      if (initialMapActivationReason == MapActivationReason.saveRestore) {
+        if (!_isWithinMapBounds(_bundle.map, _gameState.playerPosition)) {
+          throw StateError(
+            'Saved player position is outside map "${_bundle.map.id}".',
+          );
+        }
         _world = GameplayWorldState.initial(
           map: _bundle.map,
-          playerPos: const GridPos(x: 0, y: 0),
+          playerPos: _gameState.playerPosition,
+          playerFacing: _gameState.playerFacing.asDirection,
+          playerMovementMode: _gameState.playerMovementMode,
           project: _bundle.manifest,
           tileWidth: _bundle.manifest.settings.tileWidth,
           tileHeight: _bundle.manifest.settings.tileHeight,
@@ -3502,53 +3436,112 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           mapEntityPresencePredicate:
               _mapEntityPresencePredicateFor(_bundle.manifest),
         );
+        debugPrint(
+          '[runtime] Save restored on map ${_bundle.map.id} at '
+          '(${_world.player.pos.x}, ${_world.player.pos.y})',
+        );
+      } else if (_isProjectNewGameBoot) {
+        _world = GameplayWorldState.initial(
+          map: _bundle.map,
+          playerPos: _gameState.playerPosition,
+          playerFacing: _gameState.playerFacing.asDirection,
+          playerMovementMode: _gameState.playerMovementMode,
+          project: _bundle.manifest,
+          tileWidth: _bundle.manifest.settings.tileWidth,
+          tileHeight: _bundle.manifest.settings.tileHeight,
+          npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
+          mapEntityPresencePredicate:
+              _mapEntityPresencePredicateFor(_bundle.manifest),
+        );
+        debugPrint(
+          '[runtime] New game created from project contract on '
+          '${_bundle.map.id} at '
+          '(${_world.player.pos.x}, ${_world.player.pos.y})',
+        );
+      } else {
+        try {
+          debugPrint('[runtime_game] world build start map=${_bundle.map.id}');
+          _world = GameplayWorldState.fromMap(
+            _bundle.map,
+            project: _bundle.manifest,
+            tileWidth: _bundle.manifest.settings.tileWidth,
+            tileHeight: _bundle.manifest.settings.tileHeight,
+            npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
+            mapEntityPresencePredicate:
+                _mapEntityPresencePredicateFor(_bundle.manifest),
+          );
+          debugPrint(
+            '[runtime] Map loaded: ${_bundle.map.id}, spawn at (${_world.player.pos.x}, ${_world.player.pos.y})',
+          );
+        } on GameplaySpawnResolutionException catch (e) {
+          debugPrint(
+              '[runtime] Spawn resolution failed ($e), falling back to (0,0)');
+          _world = GameplayWorldState.initial(
+            map: _bundle.map,
+            playerPos: const GridPos(x: 0, y: 0),
+            project: _bundle.manifest,
+            tileWidth: _bundle.manifest.settings.tileWidth,
+            tileHeight: _bundle.manifest.settings.tileHeight,
+            npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
+            mapEntityPresencePredicate:
+                _mapEntityPresencePredicateFor(_bundle.manifest),
+          );
+        }
+      }
+      debugPrint(
+        '[runtime_game] tileset image load ok count=${images.length} map=${_bundle.map.id}',
+      );
+      _activeMapId = _bundle.map.id;
+      debugPrint('[runtime_game] mount root map start map=$_activeMapId');
+      final rootMap = await _mountLoadedMap(
+        bundle: _bundle,
+        tileImagesById: images,
+        borderAssets: loadedRootBorderAssets,
+        originCellX: 0,
+        originCellY: 0,
+      );
+      if (_isRemoved) return;
+      debugPrint('[runtime_game] mount root map ok map=$_activeMapId');
+      final playerChar = _resolvePlayerCharacter(_bundle);
+      _player = PlayerComponent(
+        bundle: _bundle,
+        state: _world.player,
+        characterEntry: playerChar,
+        tileImages: images,
+        mapOrigin: _originPixelsOf(rootMap),
+      );
+      await world.add(_player);
+      if (_isRemoved) return;
+      _actorContactShadowRuntimeReady = true;
+      _refreshActorContactShadowCollection();
+      _syncGameStateFromWorld();
+      _configureCameraViewport();
+      _syncCameraToPlayer();
+      _preloadActiveMapConnections();
+      _prewarmActiveMapWarpTargets();
+      _prewarmActiveMapBattleData();
+      _ensureBehaviorDebugOverlay();
+      _ensureFpsOverlay();
+      _applyDebugTileMarker();
+      _resetScriptedNpcMovementController();
+      _resetTriggerEnterOccupancy();
+      _setFlowPhase(_RuntimeFlowPhase.overworld);
+      _installMapActivation(activation);
+      await super.onLoad();
+      if (_isRemoved) return;
+      _runDetachedNarrativeTask(
+        operation: 'mapEnter.initialBoot',
+        task: () async {
+          await _dispatchCompletedMapActivation(activation);
+        },
+      );
+      debugPrint('[runtime_game] onLoad completed activeMapId=$_activeMapId');
+    } finally {
+      _onLoadInProgress = false;
+      if (_isRemoved) {
+        _tilesetImageCache.dispose();
       }
     }
-    debugPrint(
-      '[runtime_game] tileset image load ok count=${images.length} map=${_bundle.map.id}',
-    );
-    _activeMapId = _bundle.map.id;
-    debugPrint('[runtime_game] mount root map start map=$_activeMapId');
-    final rootMap = await _mountLoadedMap(
-      bundle: _bundle,
-      tileImagesById: images,
-      borderAssets: loadedRootBorderAssets,
-      originCellX: 0,
-      originCellY: 0,
-    );
-    debugPrint('[runtime_game] mount root map ok map=$_activeMapId');
-    final playerChar = _resolvePlayerCharacter(_bundle);
-    _player = PlayerComponent(
-      bundle: _bundle,
-      state: _world.player,
-      characterEntry: playerChar,
-      tileImages: images,
-      mapOrigin: _originPixelsOf(rootMap),
-    );
-    await world.add(_player);
-    _actorContactShadowRuntimeReady = true;
-    _refreshActorContactShadowCollection();
-    _syncGameStateFromWorld();
-    _configureCameraViewport();
-    _syncCameraToPlayer();
-    _preloadActiveMapConnections();
-    _prewarmActiveMapWarpTargets();
-    _prewarmActiveMapBattleData();
-    _ensureBehaviorDebugOverlay();
-    _ensureFpsOverlay();
-    _applyDebugTileMarker();
-    _resetScriptedNpcMovementController();
-    _resetTriggerEnterOccupancy();
-    _setFlowPhase(_RuntimeFlowPhase.overworld);
-    _installMapActivation(activation);
-    await super.onLoad();
-    _runDetachedNarrativeTask(
-      operation: 'mapEnter.initialBoot',
-      task: () async {
-        await _dispatchCompletedMapActivation(activation);
-      },
-    );
-    debugPrint('[runtime_game] onLoad completed activeMapId=$_activeMapId');
   }
 
   @override
@@ -12012,6 +12005,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final patch = PlacedElementOcclusionPatchComponent(
         instruction: instruction,
         tilesetImage: tilesetImage,
+        visibleWorldRectProvider: () => camera.visibleWorldRect,
       );
       occlusionPatches.add(patch);
       await world.add(patch);

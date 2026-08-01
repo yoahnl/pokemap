@@ -115,7 +115,14 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     _gamepadPresenceTimer?.cancel();
     _runtimeGamepadSubscription?.cancel();
     unawaited(_disposeInteractiveBridge());
+    _disposeCurrentGame();
     super.dispose();
+  }
+
+  void _disposeCurrentGame() {
+    final game = _game;
+    _game = null;
+    game?.dispose();
   }
 
   bool get _supportsTouchControls =>
@@ -570,10 +577,10 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     );
     await _disposeInteractiveBridge();
     if (!mounted) return;
+    _disposeCurrentGame();
     setState(() {
       _loading = true;
       _error = null;
-      _game = null;
     });
 
     try {
@@ -726,9 +733,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   Future<void> _reset() async {
     await _disposeInteractiveBridge();
     if (!mounted) return;
+    _disposeCurrentGame();
     setState(() {
       _stopRuntimeInfoTicker();
-      _game = null;
       _error = null;
       _saveLoadStatus = null;
       _saveLoadError = null;

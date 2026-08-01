@@ -358,6 +358,7 @@ final class SemanticAutotileResolver {
         }
       case SurfaceLayer surface:
         layerKind = 'surface';
+        final topology = SurfacePlacementTopology(surface.placements);
         final placements = surface.placements.toList()
           ..sort((left, right) {
             final y = left.y.compareTo(right.y);
@@ -379,8 +380,7 @@ final class SemanticAutotileResolver {
             );
             continue;
           }
-          final role = resolveSurfaceVariantRoleForPlacement(
-            placements: surface.placements,
+          final role = topology.roleAt(
             x: placement.x,
             y: placement.y,
             surfacePresetId: placement.surfacePresetId,

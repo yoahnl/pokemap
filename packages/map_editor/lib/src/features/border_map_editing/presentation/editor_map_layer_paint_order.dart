@@ -5,6 +5,7 @@ enum EditorMapAuthoredLayerPaintKind {
   terrain,
   path,
   surface,
+  smartTile,
   tileBackground,
   border,
   objectNoop,
@@ -79,6 +80,8 @@ EditorMapLayerPaintOrderBuildResult buildEditorMapLayerPaintOrderResult(
                 EditorMapAuthoredLayerPaintKind.path,
               MapVisualCompositionStepKind.surfaceLayer =>
                 EditorMapAuthoredLayerPaintKind.surface,
+              MapVisualCompositionStepKind.smartTileLayer =>
+                EditorMapAuthoredLayerPaintKind.smartTile,
               MapVisualCompositionStepKind.tileBackgroundLayer =>
                 EditorMapAuthoredLayerPaintKind.tileBackground,
               MapVisualCompositionStepKind.borderLayer =>

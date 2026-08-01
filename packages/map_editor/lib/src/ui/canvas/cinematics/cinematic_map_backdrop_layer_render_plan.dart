@@ -738,12 +738,14 @@ int _appendSurfaceInstructions({
     for (final entry in tilesets.entries)
       if (entry.value.isAvailable) entry.key,
   };
+  final topology = SurfacePlacementTopology(layer.placements);
   for (final placement in layer.placements) {
     final resolved = resolveSurfaceTilePreviewInstruction(
       layer: layer,
       placement: placement,
       catalog: manifest.surfaceCatalog,
       availableTilesetIds: availableTilesetIds,
+      topology: topology,
     );
     if (resolved == null) {
       _addDiagnostic(

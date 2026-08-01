@@ -181,4 +181,108 @@ void main() {
       expect(fromReversed, fromOrdered);
     });
   });
+
+  group('SurfacePlacementTopology', () {
+    test('legacy adapter validates a query before enumerating placements', () {
+      var enumerated = false;
+
+      Iterable<SurfaceCellPlacement> placements() sync* {
+        enumerated = true;
+        throw StateError('must not enumerate invalid queries');
+      }
+
+      expect(
+        () => resolveSurfaceVariantRoleForPlacement(
+          placements: placements(),
+          x: -1,
+          y: 0,
+          surfacePresetId: 'water',
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(enumerated, isFalse);
+    });
+
+    test('indexes its source once and reuses occupancy for every role lookup',
+        () {
+      var visitedPlacements = 0;
+      final placements = <SurfaceCellPlacement>[
+        for (var y = 0; y < 50; y++)
+          for (var x = 0; x < 50; x++)
+            SurfaceCellPlacement(
+              x: x,
+              y: y,
+              surfacePresetId: 'water',
+            ),
+      ];
+
+      Iterable<SurfaceCellPlacement> countedPlacements() sync* {
+        for (final placement in placements) {
+          visitedPlacements += 1;
+          yield placement;
+        }
+      }
+
+      final topology = SurfacePlacementTopology(countedPlacements());
+      expect(visitedPlacements, placements.length);
+
+      for (final placement in placements) {
+        expect(
+          topology.roleAt(
+            x: placement.x,
+            y: placement.y,
+            surfacePresetId: placement.surfacePresetId,
+          ),
+          isA<SurfaceVariantRole>(),
+        );
+      }
+
+      expect(
+        visitedPlacements,
+        placements.length,
+        reason: 'Role lookup must not enumerate the source placements again.',
+      );
+      expect(topology.occupiedCoordinateCount, placements.length);
+    });
+
+    test('keeps presets isolated and normalizes ids without changing roles',
+        () {
+      final topology = SurfacePlacementTopology(
+        const <SurfaceCellPlacement>[
+          SurfaceCellPlacement(x: 0, y: 1, surfacePresetId: ' water '),
+          SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 2, y: 1, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 1, y: 0, surfacePresetId: 'lava'),
+        ],
+      );
+
+      expect(
+        topology.roleAt(x: 1, y: 1, surfacePresetId: ' water '),
+        SurfaceVariantRole.horizontal,
+      );
+      expect(
+        topology.roleAt(x: 1, y: 0, surfacePresetId: 'lava'),
+        SurfaceVariantRole.isolated,
+      );
+    });
+
+    test('deduplicates occupancy and retains validation guards', () {
+      final topology = SurfacePlacementTopology(
+        const <SurfaceCellPlacement>[
+          SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water'),
+        ],
+      );
+
+      expect(topology.occupiedCoordinateCount, 1);
+      expect(
+        () => topology.roleAt(x: -1, y: 0, surfacePresetId: 'water'),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => topology.roleAt(x: 0, y: 0, surfacePresetId: '   '),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+  });
 }

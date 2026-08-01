@@ -119,6 +119,31 @@ void main() {
       );
     });
 
+    test('exposes Smart Tile layers without aborting the editor paint plan',
+        () {
+      final plan = buildEditorMapLayerPaintOrder(
+        const MapData(
+          id: 'smart-tiles',
+          name: 'Smart Tiles',
+          size: GridSize(width: 1, height: 1),
+          layers: <MapLayer>[
+            SmartTileLayer(
+              id: 'smart-terrain',
+              name: 'Smart terrain',
+              presetId: 'grass',
+              usage: SmartTileUsage.terrain,
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        plan.authoredLayers
+            .map((entry) => '${entry.kind.name}:${entry.layer.id}'),
+        const <String>['smartTile:smart-terrain'],
+      );
+    });
+
     test('preserves reverse visual order for legacy maps and skips hidden', () {
       final plan = buildEditorMapLayerPaintOrder(
         const MapData(

@@ -7,6 +7,59 @@ import 'package:map_editor/src/features/surface_painter/surface_layer_static_pre
 
 void main() {
   group('SurfaceLayer static preview', () {
+    test('owner reuses indexes for unchanged layer identities', () {
+      const layer = SurfaceLayer(
+        id: 'surface',
+        name: 'Surface',
+        placements: <SurfaceCellPlacement>[
+          SurfaceCellPlacement(
+            x: 1,
+            y: 1,
+            surfacePresetId: 'water',
+          ),
+        ],
+      );
+      final owner = SurfacePreviewLayerIndexOwner();
+
+      final first = owner.indexesFor(const <MapLayer>[layer]);
+      final second = owner.indexesFor(const <MapLayer>[layer]);
+
+      expect(identical(first[layer], second[layer]), isTrue);
+    });
+
+    test('owner rebuilds a replacement layer with the same id', () {
+      const original = SurfaceLayer(
+        id: 'surface',
+        name: 'Surface',
+        placements: <SurfaceCellPlacement>[
+          SurfaceCellPlacement(
+            x: 1,
+            y: 1,
+            surfacePresetId: 'water',
+          ),
+        ],
+      );
+      const replacement = SurfaceLayer(
+        id: 'surface',
+        name: 'Surface',
+        placements: <SurfaceCellPlacement>[
+          SurfaceCellPlacement(
+            x: 2,
+            y: 2,
+            surfacePresetId: 'water',
+          ),
+        ],
+      );
+      final owner = SurfacePreviewLayerIndexOwner();
+      final first = owner.indexesFor(const <MapLayer>[original]);
+
+      final second = owner.indexesFor(const <MapLayer>[replacement]);
+
+      expect(second.containsKey(original), isFalse);
+      expect(second[replacement], isNotNull);
+      expect(identical(first[original], second[replacement]), isFalse);
+    });
+
     test('builds preview cells for visible in-bounds placements', () {
       const layer = SurfaceLayer(
         id: 'surface-main',
@@ -88,6 +141,78 @@ void main() {
         (cell) => cell.placement.surfacePresetId == 'water',
       );
       expect(water.role, SurfaceVariantRole.isolated);
+    });
+
+    test('limits preview cells to the viewport without losing neighbour roles',
+        () {
+      const layer = SurfaceLayer(
+        id: 'surface-main',
+        name: 'Surfaces',
+        placements: [
+          SurfaceCellPlacement(x: 0, y: 1, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 2, y: 1, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 20, y: 20, surfacePresetId: 'water'),
+        ],
+      );
+
+      final cells = buildSurfaceLayerStaticPreviewCells(
+        layer: layer,
+        mapSize: const GridSize(width: 32, height: 32),
+        layerIndex: SurfacePreviewLayerIndex.fromLayer(layer),
+        viewport: const SurfacePreviewCellViewport(
+          left: 1,
+          top: 1,
+          right: 2,
+          bottom: 2,
+        ),
+      );
+
+      expect(cells, hasLength(1));
+      expect(cells.single.placement.x, 1);
+      expect(cells.single.role, SurfaceVariantRole.horizontal);
+    });
+
+    test('layer index preserves authoring order and rejects a stale layer', () {
+      const indexedLayer = SurfaceLayer(
+        id: 'surface-main',
+        name: 'Indexed',
+        placements: [
+          SurfaceCellPlacement(x: 2, y: 2, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water'),
+        ],
+      );
+      const staleLayer = SurfaceLayer(
+        id: 'surface-main',
+        name: 'Stale',
+        placements: [
+          SurfaceCellPlacement(x: 9, y: 9, surfacePresetId: 'water'),
+        ],
+      );
+      final index = SurfacePreviewLayerIndex.fromLayer(indexedLayer);
+
+      final cells = buildSurfaceLayerStaticPreviewCells(
+        layer: indexedLayer,
+        mapSize: const GridSize(width: 16, height: 16),
+        layerIndex: index,
+        viewport: const SurfacePreviewCellViewport(
+          left: -1000000000,
+          top: -1000000000,
+          right: 1000000000,
+          bottom: 1000000000,
+        ),
+      );
+
+      expect(cells.map((cell) => cell.placement).toList(),
+          indexedLayer.placements);
+      expect(
+        () => buildSurfaceLayerStaticPreviewCells(
+          layer: staleLayer,
+          mapSize: const GridSize(width: 16, height: 16),
+          layerIndex: index,
+        ),
+        throwsArgumentError,
+      );
     });
 
     test('uses deterministic colors per surfacePresetId', () {

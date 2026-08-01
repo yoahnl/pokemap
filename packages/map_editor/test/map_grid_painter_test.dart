@@ -11,6 +11,46 @@ import 'package:map_editor/src/ui/canvas/map_canvas/editor_canvas_repaint_clock.
 
 void main() {
   group('MapGridPainter foreground split helpers', () {
+    test('keeps painting maps that contain a Smart Tile layer', () {
+      const map = MapData(
+        id: 'smart-tile-map',
+        name: 'Smart Tile map',
+        size: GridSize(width: 2, height: 2),
+        layers: <MapLayer>[
+          SmartTileLayer(
+            id: 'smart-terrain',
+            name: 'Smart terrain',
+            presetId: 'grass',
+            usage: SmartTileUsage.terrain,
+          ),
+        ],
+      );
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+      final painter = MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 32,
+        tileHeight: 32,
+        tilesetImagesById: const <String, ui.Image?>{},
+        sourceTileWidth: 32,
+        sourceTileHeight: 32,
+        tilesPerRowById: const <String, int>{},
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
+        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+      );
+
+      expect(
+        () => painter.paint(canvas, const ui.Size(64, 64)),
+        returnsNormally,
+      );
+      recorder.endRecording().dispose();
+    });
+
     test('can hide the editor grid for clean visual QA captures', () async {
       const map = MapData(
         id: 'grid-qa',

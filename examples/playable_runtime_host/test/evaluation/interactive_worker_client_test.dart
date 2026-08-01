@@ -52,6 +52,27 @@ void main() {
     expect(process.workingDirectory, p.join(root.path, 'host'));
   });
 
+  test('client forwards profile mode to the Flutter process', () async {
+    final root = await Directory.systemTemp.createTemp('interactive-profile-');
+    addTearDown(() => root.delete(recursive: true));
+    final process = _RecordingProcessRunner();
+    final client = InteractiveWorkerClient(
+      repositoryRoot: root,
+      packageRoot: Directory(p.join(root.path, 'host')),
+      processRunner: process,
+      tokenGenerator: () => _token,
+    );
+
+    final launch = await client.launch(
+      projectFile: 'selbrume/project.json',
+      buildMode: EvaluationBuildMode.profile,
+    );
+    addTearDown(launch.close);
+
+    expect(process.arguments, contains('--profile'));
+    expect(process.arguments, isNot(contains('--debug')));
+  });
+
   test('client times out and terminates only its child process', () async {
     final root = await Directory.systemTemp.createTemp('interactive-timeout-');
     addTearDown(() => root.delete(recursive: true));

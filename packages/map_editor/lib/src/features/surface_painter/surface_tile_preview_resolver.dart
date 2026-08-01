@@ -43,6 +43,8 @@ SurfaceTilePreviewInstruction? resolveSurfaceTilePreviewInstruction({
   required ProjectSurfaceCatalog catalog,
   required Set<String> availableTilesetIds,
   int elapsedMs = 0,
+  SurfaceVariantRole? precomputedRole,
+  SurfacePlacementTopology? topology,
 }) {
   if (!layer.isVisible || layer.opacity <= 0) {
     return null;
@@ -57,12 +59,17 @@ SurfaceTilePreviewInstruction? resolveSurfaceTilePreviewInstruction({
     return null;
   }
 
-  final role = resolveSurfaceVariantRoleForPlacement(
-    placements: layer.placements,
-    x: placement.x,
-    y: placement.y,
-    surfacePresetId: presetId,
-  );
+  final role = precomputedRole ??
+      topology?.roleAt(
+        x: placement.x,
+        y: placement.y,
+        surfacePresetId: presetId,
+      ) ??
+      resolveSurfaceVariantRoleForPlacement(
+          placements: layer.placements,
+          x: placement.x,
+          y: placement.y,
+          surfacePresetId: presetId);
   final animationId = _resolveAnimationId(preset, role);
   if (animationId == null) {
     return null;

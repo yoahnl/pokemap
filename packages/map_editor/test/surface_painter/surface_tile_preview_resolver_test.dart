@@ -301,6 +301,7 @@ void main() {
           ),
           catalog: catalog,
           availableTilesetIds: const {'water-tileset'},
+          topology: SurfacePlacementTopology(layer.placements),
         ),
         isNull,
       );

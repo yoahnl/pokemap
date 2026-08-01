@@ -2,6 +2,65 @@ import '../exceptions/map_exceptions.dart';
 import '../models/map_layer.dart';
 import '../models/surface.dart';
 
+/// Immutable occupancy index for one Surface placement collection.
+///
+/// Building the index is O(P). Every subsequent role lookup probes at most the
+/// eight neighboring coordinates, so editor/runtime callers can resolve a
+/// whole layer without repeatedly enumerating the same placements.
+///
+/// The index deliberately owns no application cache or revision policy. Those
+/// concerns stay in the editor/runtime packages that know when a layer changes.
+final class SurfacePlacementTopology {
+  SurfacePlacementTopology(Iterable<SurfaceCellPlacement> placements) {
+    final mutableCoordinatesByPresetId = <String, Set<(int, int)>>{};
+    for (final placement in placements) {
+      final presetId = placement.surfacePresetId.trim();
+      if (presetId.isEmpty) {
+        // An empty preset never matched the validated query adapter before the
+        // optimization, so retaining it would only create unreachable state.
+        continue;
+      }
+      mutableCoordinatesByPresetId
+          .putIfAbsent(presetId, () => <(int, int)>{})
+          .add((placement.x, placement.y));
+    }
+
+    _coordinatesByPresetId = Map<String, Set<(int, int)>>.unmodifiable(
+      <String, Set<(int, int)>>{
+        for (final entry in mutableCoordinatesByPresetId.entries)
+          entry.key: Set<(int, int)>.unmodifiable(entry.value),
+      },
+    );
+    occupiedCoordinateCount = _coordinatesByPresetId.values.fold<int>(
+      0,
+      (total, coordinates) => total + coordinates.length,
+    );
+  }
+
+  late final Map<String, Set<(int, int)>> _coordinatesByPresetId;
+
+  /// Number of unique `(preset, x, y)` occupancy entries held by the index.
+  late final int occupiedCoordinateCount;
+
+  /// Resolves a role from the already-indexed occupancy domain.
+  SurfaceVariantRole roleAt({
+    required int x,
+    required int y,
+    required String surfacePresetId,
+  }) {
+    _requireNonNegativeCoordinate(x: x, y: y);
+    final normalizedPresetId = _requireSurfacePresetId(surfacePresetId);
+    final matchingCoordinates =
+        _coordinatesByPresetId[normalizedPresetId] ?? const <(int, int)>{};
+
+    return resolveSurfaceVariantRoleAt(
+      x: x,
+      y: y,
+      matchesAt: (nextX, nextY) => matchingCoordinates.contains((nextX, nextY)),
+    );
+  }
+}
+
 /// Resolves the V0 visual role for a sparse Surface placement.
 ///
 /// The resolver is deliberately pure and read-only: it computes a derived
@@ -17,20 +76,10 @@ SurfaceVariantRole resolveSurfaceVariantRoleForPlacement({
 }) {
   _requireNonNegativeCoordinate(x: x, y: y);
   final normalizedPresetId = _requireSurfacePresetId(surfacePresetId);
-  final matchingCoordinates = <String>{
-    for (final placement in placements)
-      if (placement.surfacePresetId.trim() == normalizedPresetId)
-        _coordinateKey(placement.x, placement.y),
-  };
-
-  bool matchesAt(int nextX, int nextY) {
-    return matchingCoordinates.contains(_coordinateKey(nextX, nextY));
-  }
-
-  return resolveSurfaceVariantRoleAt(
+  return SurfacePlacementTopology(placements).roleAt(
     x: x,
     y: y,
-    matchesAt: matchesAt,
+    surfacePresetId: normalizedPresetId,
   );
 }
 
@@ -134,5 +183,3 @@ String _requireSurfacePresetId(String surfacePresetId) {
   }
   return normalized;
 }
-
-String _coordinateKey(int x, int y) => '$x:$y';

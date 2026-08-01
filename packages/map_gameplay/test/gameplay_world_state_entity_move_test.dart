@@ -1,5 +1,7 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_gameplay/src/gameplay_world_state.dart'
+    show GameplayWorldStateCollisionStorageDiagnostics;
 import 'package:test/test.dart';
 
 void main() {
@@ -23,8 +25,11 @@ void main() {
       map: map,
       playerPos: const GridPos(x: 0, y: 0),
     );
-    expect(initial.isCellCenterBlockedLegacyForGridIndexedSystems(1, 1), isTrue);
-    expect(initial.isCellCenterBlockedLegacyForGridIndexedSystems(3, 1), isFalse);
+    expect(
+        initial.isCellCenterBlockedLegacyForGridIndexedSystems(1, 1), isTrue);
+    expect(
+        initial.isCellCenterBlockedLegacyForGridIndexedSystems(3, 1), isFalse);
+    final staticStorage = initial.debugStaticCollisionStorageToken;
 
     final moved =
         initial.withEntityPosition('npc_1', const GridPos(x: 3, y: 1));
@@ -32,5 +37,9 @@ void main() {
     expect(moved.isCellCenterBlockedLegacyForGridIndexedSystems(3, 1), isTrue);
     expect(moved.entityAt(3, 1)?.id, 'npc_1');
     expect(moved.entityAt(1, 1), isNull);
+    expect(
+      identical(moved.debugStaticCollisionStorageToken, staticStorage),
+      isTrue,
+    );
   });
 }

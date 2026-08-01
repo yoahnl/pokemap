@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:ui'
     show Canvas, Color, FilterQuality, Image, Paint, PaintingStyle, Rect;
 
@@ -5,6 +6,138 @@ import 'package:flutter/painting.dart' show HSVColor;
 import 'package:map_core/map_core.dart';
 
 import 'surface_tile_preview_resolver.dart';
+
+/// Half-open cell bounds for the editor Surface preview.
+///
+/// The full topology is still used for role resolution; these bounds only
+/// limit cells that reach the painter, avoiding seams at viewport edges.
+final class SurfacePreviewCellViewport {
+  const SurfacePreviewCellViewport({
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+  });
+
+  final int left;
+  final int top;
+  final int right;
+  final int bottom;
+
+  bool contains(SurfaceCellPlacement placement) =>
+      placement.x >= left &&
+      placement.x < right &&
+      placement.y >= top &&
+      placement.y < bottom;
+}
+
+/// Editor-owned row index for one immutable Surface layer.
+///
+/// The complete topology is retained for neighbour roles, while viewport
+/// queries enumerate only indexed rows and then restore authoring order for
+/// visually overlapping duplicate placements.
+final class SurfacePreviewLayerIndex {
+  SurfacePreviewLayerIndex._({
+    required SurfaceLayer sourceLayer,
+    required List<SurfaceCellPlacement> placements,
+  })  : _sourceLayer = sourceLayer,
+        _placements = placements,
+        topology = SurfacePlacementTopology(placements),
+        _placementsByRow = _indexPreviewPlacementsByRow(placements) {
+    if (placements.isEmpty) {
+      _firstIndexedRow = null;
+      _lastIndexedRow = null;
+    } else {
+      var first = placements.first.y;
+      var last = first;
+      for (final placement in placements.skip(1)) {
+        if (placement.y < first) first = placement.y;
+        if (placement.y > last) last = placement.y;
+      }
+      _firstIndexedRow = first;
+      _lastIndexedRow = last;
+    }
+  }
+
+  factory SurfacePreviewLayerIndex.fromLayer(SurfaceLayer layer) {
+    return SurfacePreviewLayerIndex._(
+      sourceLayer: layer,
+      placements: List<SurfaceCellPlacement>.unmodifiable(layer.placements),
+    );
+  }
+
+  final SurfaceLayer _sourceLayer;
+  final List<SurfaceCellPlacement> _placements;
+  final Map<int, List<_IndexedSurfacePreviewPlacement>> _placementsByRow;
+  final SurfacePlacementTopology topology;
+  late final int? _firstIndexedRow;
+  late final int? _lastIndexedRow;
+
+  bool belongsTo(SurfaceLayer layer) => identical(_sourceLayer, layer);
+
+  Iterable<SurfaceCellPlacement> placementsIn(
+    SurfacePreviewCellViewport? viewport,
+  ) sync* {
+    if (viewport == null) {
+      yield* _placements;
+      return;
+    }
+    if (_placements.isEmpty ||
+        viewport.right <= viewport.left ||
+        viewport.bottom <= viewport.top) {
+      return;
+    }
+    final firstIndexedRow = _firstIndexedRow!;
+    final lastIndexedRow = _lastIndexedRow!;
+    final startRow =
+        viewport.top > firstIndexedRow ? viewport.top : firstIndexedRow;
+    final endRowExclusive = viewport.bottom < lastIndexedRow + 1
+        ? viewport.bottom
+        : lastIndexedRow + 1;
+    final visible = <_IndexedSurfacePreviewPlacement>[];
+    for (var y = startRow; y < endRowExclusive; y += 1) {
+      final row = _placementsByRow[y];
+      if (row == null) continue;
+      for (final indexed in row) {
+        final x = indexed.placement.x;
+        if (x >= viewport.left && x < viewport.right) {
+          visible.add(indexed);
+        }
+      }
+    }
+    visible.sort((a, b) => a.authoringIndex.compareTo(b.authoringIndex));
+    for (final indexed in visible) {
+      yield indexed.placement;
+    }
+  }
+}
+
+/// Owns Surface preview indexes across editor rebuilds.
+///
+/// Surface layers are immutable value objects in the editor state. Reusing the
+/// exact layer instance therefore means its placements are unchanged; replacing
+/// it (including with the same authoring id) rebuilds only that layer's index.
+/// Stale layers are dropped on every synchronization.
+final class SurfacePreviewLayerIndexOwner {
+  Map<SurfaceLayer, SurfacePreviewLayerIndex> _indexes =
+      Map<SurfaceLayer, SurfacePreviewLayerIndex>.identity();
+
+  Map<SurfaceLayer, SurfacePreviewLayerIndex> indexesFor(
+    Iterable<MapLayer> layers,
+  ) {
+    final next = Map<SurfaceLayer, SurfacePreviewLayerIndex>.identity();
+    for (final layer in layers.whereType<SurfaceLayer>()) {
+      next[layer] =
+          _indexes[layer] ?? SurfacePreviewLayerIndex.fromLayer(layer);
+    }
+    _indexes = next;
+    return UnmodifiableMapView<SurfaceLayer, SurfacePreviewLayerIndex>(next);
+  }
+
+  void clear() {
+    _indexes = Map<SurfaceLayer, SurfacePreviewLayerIndex>.identity();
+  }
+}
 
 /// One editor-only preview cell for a sparse Surface placement.
 ///
@@ -30,6 +163,9 @@ final class SurfaceLayerStaticPreviewCell {
 List<SurfaceLayerStaticPreviewCell> buildSurfaceLayerStaticPreviewCells({
   required SurfaceLayer layer,
   required GridSize mapSize,
+  SurfacePlacementTopology? topology,
+  SurfacePreviewLayerIndex? layerIndex,
+  SurfacePreviewCellViewport? viewport,
 }) {
   if (!layer.isVisible ||
       layer.opacity <= 0 ||
@@ -39,19 +175,38 @@ List<SurfaceLayerStaticPreviewCell> buildSurfaceLayerStaticPreviewCells({
     return const <SurfaceLayerStaticPreviewCell>[];
   }
 
+  if (layerIndex != null && !layerIndex.belongsTo(layer)) {
+    throw ArgumentError.value(
+      layer.id,
+      'layerIndex',
+      'must belong to the provided SurfaceLayer instance',
+    );
+  }
+  if (topology != null && layerIndex != null) {
+    throw ArgumentError('Provide topology or layerIndex, not both.');
+  }
+
+  final resolvedTopology = topology ??
+      layerIndex?.topology ??
+      SurfacePlacementTopology(layer.placements);
   final cells = <SurfaceLayerStaticPreviewCell>[];
-  for (final placement in layer.placements) {
+  final placements = layerIndex?.placementsIn(viewport) ?? layer.placements;
+  for (final placement in placements) {
     if (placement.x < 0 ||
         placement.y < 0 ||
         placement.x >= mapSize.width ||
         placement.y >= mapSize.height) {
       continue;
     }
+    if (layerIndex == null &&
+        viewport != null &&
+        !viewport.contains(placement)) {
+      continue;
+    }
     cells.add(
       SurfaceLayerStaticPreviewCell(
         placement: placement,
-        role: resolveSurfaceVariantRoleForPlacement(
-          placements: layer.placements,
+        role: resolvedTopology.roleAt(
           x: placement.x,
           y: placement.y,
           surfacePresetId: placement.surfacePresetId,
@@ -88,6 +243,9 @@ void paintSurfaceLayerStaticPreview({
   required double tileWidth,
   required double tileHeight,
   required double zoom,
+  SurfacePlacementTopology? topology,
+  SurfacePreviewLayerIndex? layerIndex,
+  SurfacePreviewCellViewport? viewport,
 }) {
   if (tileWidth <= 0 || tileHeight <= 0 || zoom <= 0) {
     return;
@@ -96,6 +254,9 @@ void paintSurfaceLayerStaticPreview({
   final cells = buildSurfaceLayerStaticPreviewCells(
     layer: layer,
     mapSize: mapSize,
+    topology: topology,
+    layerIndex: layerIndex,
+    viewport: viewport,
   );
   if (cells.isEmpty) {
     return;
@@ -133,6 +294,9 @@ void paintSurfaceLayerAtlasTilePreview({
   required double tileHeight,
   required double zoom,
   int elapsedMs = 0,
+  SurfacePlacementTopology? topology,
+  SurfacePreviewLayerIndex? layerIndex,
+  SurfacePreviewCellViewport? viewport,
 }) {
   if (tileWidth <= 0 || tileHeight <= 0 || zoom <= 0) {
     return;
@@ -141,6 +305,9 @@ void paintSurfaceLayerAtlasTilePreview({
   final cells = buildSurfaceLayerStaticPreviewCells(
     layer: layer,
     mapSize: mapSize,
+    topology: topology,
+    layerIndex: layerIndex,
+    viewport: viewport,
   );
   if (cells.isEmpty) {
     return;
@@ -168,6 +335,7 @@ void paintSurfaceLayerAtlasTilePreview({
         catalog: catalog,
         availableTilesetIds: availableTilesetIds,
         elapsedMs: elapsedMs,
+        precomputedRole: cell.role,
       );
     }
     final image =
@@ -196,6 +364,39 @@ void paintSurfaceLayerAtlasTilePreview({
       tileHeight: tileHeight,
     );
   }
+}
+
+Map<int, List<_IndexedSurfacePreviewPlacement>> _indexPreviewPlacementsByRow(
+    List<SurfaceCellPlacement> placements) {
+  final rows = <int, List<_IndexedSurfacePreviewPlacement>>{};
+  for (var index = 0; index < placements.length; index += 1) {
+    final placement = placements[index];
+    rows
+        .putIfAbsent(placement.y, () => <_IndexedSurfacePreviewPlacement>[])
+        .add(
+          _IndexedSurfacePreviewPlacement(
+            authoringIndex: index,
+            placement: placement,
+          ),
+        );
+  }
+  return Map<int, List<_IndexedSurfacePreviewPlacement>>.unmodifiable(
+    <int, List<_IndexedSurfacePreviewPlacement>>{
+      for (final entry in rows.entries)
+        entry.key:
+            List<_IndexedSurfacePreviewPlacement>.unmodifiable(entry.value),
+    },
+  );
+}
+
+final class _IndexedSurfacePreviewPlacement {
+  const _IndexedSurfacePreviewPlacement({
+    required this.authoringIndex,
+    required this.placement,
+  });
+
+  final int authoringIndex;
+  final SurfaceCellPlacement placement;
 }
 
 Rect _surfaceCellRect(

@@ -467,6 +467,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
   );
   final MapCanvasInteractionController _interactionController =
       MapCanvasInteractionController();
+  final SurfacePreviewLayerIndexOwner _surfacePreviewLayerIndexOwner =
+      SurfacePreviewLayerIndexOwner();
   final Set<int> _pressedMapPointers = <int>{};
   final Set<LogicalKeyboardKey> _pressedContextMenuKeys =
       <LogicalKeyboardKey>{};
@@ -1661,6 +1663,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                             size: Size.infinite,
                             painter: MapGridPainter(
                               map: activeMap,
+                              surfaceIndexOwner: _surfacePreviewLayerIndexOwner,
                               zoom: state.zoom,
                               offset: state.panOffset,
                               hoveredTile:

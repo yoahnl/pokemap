@@ -121,7 +121,6 @@ List<RuntimeTilesetDrawSlice> resolveRuntimeTilesetDrawSlices({
   return slices;
 }
 
-@immutable
 final class RuntimeTilesetImage {
   RuntimeTilesetImage({
     required List<ui.Image> images,
@@ -137,9 +136,13 @@ final class RuntimeTilesetImage {
   final List<RuntimeTilesetChunk> chunks;
   final int width;
   final int height;
+  bool _isDisposed = false;
 
   @visibleForTesting
   int get chunkCount => chunks.length;
+
+  @visibleForTesting
+  bool get debugDisposed => _isDisposed;
 
   bool containsSourceRect(ui.Rect sourceRect) {
     return sourceRect.left >= 0 &&
@@ -156,6 +159,9 @@ final class RuntimeTilesetImage {
     ui.Rect destinationRect,
     ui.Paint paint,
   ) {
+    if (_isDisposed) {
+      throw StateError('RuntimeTilesetImage is disposed.');
+    }
     final slices = resolveRuntimeTilesetDrawSlices(
       sourceRect: sourceRect,
       destinationRect: destinationRect,
@@ -168,6 +174,18 @@ final class RuntimeTilesetImage {
         slice.destinationRect,
         paint,
       );
+    }
+  }
+
+  /// Releases every UI image owned by this tileset exactly once.
+  ///
+  /// Callers may share this wrapper through the runtime single-flight cache;
+  /// disposal therefore belongs to that cache's game-scoped lifecycle.
+  void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    for (final image in _images) {
+      image.dispose();
     }
   }
 }
