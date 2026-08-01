@@ -371,7 +371,14 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/assets/asset_security_test.dart',
   ),
   _ContractEvidenceRule(
-    ['tileset.', 'palette.', 'element.', 'preset.'],
+    [
+      'tileset.',
+      'tileset_folder.',
+      'palette.',
+      'element.',
+      'element_category.',
+      'preset.',
+    ],
     'test/domains/assets/visual_library_contract_test.dart',
   ),
   _ContractEvidenceRule(

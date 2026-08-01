@@ -53,7 +53,9 @@ final class AuthoringReadApi implements AuthoringReadApiPort {
               (kind) =>
                   kind.id == 'map' ||
                   kind.id == 'project' ||
-                  kind.id == 'asset',
+                  kind.id == 'asset' ||
+                  kind.id == 'tilesetFolder' ||
+                  kind.id == 'elementCategory',
             )
             .map((kind) => kind.toJson())
             .toList(growable: false);

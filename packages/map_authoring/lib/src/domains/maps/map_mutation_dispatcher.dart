@@ -7,6 +7,7 @@ import '../../domains/assets/palette_actions.dart';
 import '../../domains/assets/presentation_actions.dart';
 import '../../domains/assets/preset_actions.dart';
 import '../../domains/assets/tileset_actions.dart';
+import '../../domains/assets/visual_organization_actions.dart';
 import '../../domains/gameplay/pokemon_catalog_actions.dart';
 import '../../domains/gameplay/campaign_content_actions.dart';
 import '../../domains/narrative/dialogue_actions.dart';
@@ -73,6 +74,7 @@ final class MapMutationDispatcher {
           artifactStore ?? MemoryArtifactStore(maximumArtifactBytes: 64 << 20),
     );
     const tilesets = TilesetActions();
+    const visualOrganization = VisualOrganizationActions();
     const palettes = PaletteActions();
     const elements = ElementActions();
     const presets = PresetActions();
@@ -162,6 +164,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: tilesets.build,
+        ),
+      for (final descriptor in VisualOrganizationActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: visualOrganization.build,
         ),
       for (final descriptor in PaletteActions.descriptors)
         MapMutationActionRegistration(

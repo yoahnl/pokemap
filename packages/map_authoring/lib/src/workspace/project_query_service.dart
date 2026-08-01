@@ -99,6 +99,22 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
             detail: _assetDetail(asset),
           ),
       ];
+    case 'tilesetFolder':
+      return [
+        for (final folder in snapshot.manifest.tilesetFolders)
+          _QueryRecord(
+            summary: _tilesetFolderRecord(folder),
+            detail: _tilesetFolderRecord(folder),
+          ),
+      ];
+    case 'elementCategory':
+      return [
+        for (final category in snapshot.manifest.elementCategories)
+          _QueryRecord(
+            summary: _elementCategoryRecord(category),
+            detail: _elementCategoryRecord(category),
+          ),
+      ];
     case 'dialogue':
       return [
         for (final dialogue in snapshot.manifest.dialogues)
@@ -292,6 +308,17 @@ Map<String, Object?> _assetDetail(AssetRecord asset) => {
         'artifactHandle': asset.artifact.handle,
         'mediaType': asset.artifact.mediaType,
       },
+    };
+
+Map<String, Object?> _tilesetFolderRecord(ProjectTilesetFolder folder) => {
+      ...folder.toJson(),
+      'resourceKind': 'tilesetFolder',
+    };
+
+Map<String, Object?> _elementCategoryRecord(ProjectElementCategory category) =>
+    {
+      ...category.toJson(),
+      'resourceKind': 'elementCategory',
     };
 
 Map<String, Object?> _dialogueSummary(ProjectDialogueEntry dialogue) => {

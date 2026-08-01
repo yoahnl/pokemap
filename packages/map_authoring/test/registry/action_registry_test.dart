@@ -89,6 +89,7 @@ void main() {
           'cinematic',
           'dialogue',
           'dialogueSource',
+          'elementCategory',
           'eventV2',
           'fact',
           'layer',
@@ -101,6 +102,7 @@ void main() {
           'scene',
           'script',
           'storyline',
+          'tilesetFolder',
           'worldRule',
         ],
       );

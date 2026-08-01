@@ -164,6 +164,12 @@ final class AuthoringResourceKindRegistry {
         summary: 'Revision-tracked external Yarn or legacy source',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'elementCategory',
+        version: 1,
+        displayName: 'Element category',
+        summary: 'Hierarchical visual element category',
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'script',
         version: 1,
         displayName: 'Script',
@@ -234,6 +240,12 @@ final class AuthoringResourceKindRegistry {
         version: 1,
         displayName: 'Battle progression',
         summary: 'Deterministic battle, outcome and progression preview',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'tilesetFolder',
+        version: 1,
+        displayName: 'Tileset folder',
+        summary: 'Hierarchical tileset library folder',
       ),
     ]);
   }

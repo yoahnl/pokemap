@@ -420,6 +420,7 @@ AuthoringActionDescriptor visualLibraryDescriptor(
   String id,
   String summary, {
   AuthoringRiskLevel risk = AuthoringRiskLevel.medium,
+  Iterable<String> resourceKinds = const ['project', 'asset'],
 }) =>
     AuthoringActionDescriptor(
       id: id,
@@ -428,7 +429,7 @@ AuthoringActionDescriptor visualLibraryDescriptor(
       inputSchemaId: 'pokemap.authoring.$id.input.v1',
       outputSchemaId: 'pokemap.authoring.visual_library.mutation.v1',
       riskLevel: risk,
-      resourceKinds: const ['project', 'asset'],
+      resourceKinds: resourceKinds,
       capabilityIds: const ['authoring.visual_library'],
       requiredPermissions: const [AuthoringPermission.projectWrite],
       guarantees: const [

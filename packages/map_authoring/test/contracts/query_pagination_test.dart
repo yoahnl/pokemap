@@ -176,6 +176,36 @@ void main() {
   });
 
   group('ProjectQueryService operations', () {
+    test('lists visual folders and categories as first-class resources', () {
+      const service = ProjectQueryService();
+      final snapshot = _snapshot();
+      final folders = service.query(
+        snapshot,
+        AuthoringQueryRequest(
+          resourceKind: 'tilesetFolder',
+          operation: AuthoringQueryOperation.list,
+        ),
+      );
+      final categories = service.query(
+        snapshot,
+        AuthoringQueryRequest(
+          resourceKind: 'elementCategory',
+          operation: AuthoringQueryOperation.list,
+          view: AuthoringQueryView.detail,
+        ),
+      );
+
+      expect(folders.items.single, {
+        'id': 'm02',
+        'name': 'M02',
+        'resourceKind': 'tilesetFolder',
+        'parentFolderId': null,
+        'sortOrder': 2,
+      });
+      expect(categories.items.single['id'], 'nature');
+      expect(categories.items.single['parentCategoryId'], isNull);
+    });
+
     test('supports get, batch_get, search, and project summary', () {
       final snapshot = _snapshot();
       const service = ProjectQueryService();
@@ -377,6 +407,12 @@ ProjectSnapshot _snapshot({
         ),
     ],
     tilesets: const [],
+    tilesetFolders: const [
+      ProjectTilesetFolder(id: 'm02', name: 'M02', sortOrder: 2),
+    ],
+    elementCategories: const [
+      ProjectElementCategory(id: 'nature', name: 'Nature'),
+    ],
     settings: ProjectSettings(
       mistralApiKey: withApiKey ? 'super-secret' : null,
     ),

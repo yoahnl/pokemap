@@ -115,15 +115,65 @@ void main() {
       expect(
         ids,
         containsAll({
+          'tileset_folder.upsert',
+          'tileset_folder.delete',
           'tileset.upsert',
           'tileset.delete',
           'palette.upsert',
           'palette.delete',
           'element.upsert',
           'element.delete',
+          'element_category.upsert',
+          'element_category.delete',
           'preset.terrain_upsert',
           'preset.path_upsert',
         }),
+      );
+    });
+
+    test('visual organization upserts and protects referenced containers', () {
+      const actions = VisualOrganizationActions();
+      final organized = actions
+          .upsertTilesetFolder(
+        _manifest(),
+        folder: const ProjectTilesetFolder(
+          id: 'm02',
+          name: 'M02',
+          sortOrder: 2,
+        ),
+      )
+          .copyWith(
+        tilesets: [
+          _manifest().tilesets.single.copyWith(folderId: 'm02'),
+        ],
+      );
+
+      expect(organized.tilesetFolders.single.id, 'm02');
+      expect(
+        () => actions.deleteTilesetFolder(
+          organized,
+          folderId: 'm02',
+        ),
+        throwsA(
+          isA<VisualLibraryException>().having(
+            (error) => error.code,
+            'code',
+            'tileset_folder.references_blocking',
+          ),
+        ),
+      );
+      expect(
+        () => actions.deleteElementCategory(
+          organized,
+          categoryId: 'nature',
+        ),
+        throwsA(
+          isA<VisualLibraryException>().having(
+            (error) => error.code,
+            'code',
+            'element_category.references_blocking',
+          ),
+        ),
       );
     });
   });

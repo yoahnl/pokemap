@@ -11,6 +11,7 @@ import '../contracts/authoring_result.dart';
 import '../contracts/json_contract_support.dart';
 import '../contracts/query_request.dart';
 import '../domains/assets/asset_actions.dart';
+import '../domains/assets/tileset_actions.dart';
 import '../domains/maps/map_lifecycle_adapter.dart';
 import '../domains/maps/map_region_query.dart';
 import '../history/authoring_history.dart';
@@ -161,6 +162,14 @@ final class JsonlWorker {
       result = _failure(
         requestId,
         code: _assetDomainErrorCode(error.code),
+        domainCode: error.code,
+        message: error.message,
+        details: _safeDetails(error.details),
+      );
+    } on VisualLibraryException catch (error) {
+      result = _failure(
+        requestId,
+        code: _visualDomainErrorCode(error.code),
         domainCode: error.code,
         message: error.message,
         details: _safeDetails(error.details),
@@ -648,6 +657,14 @@ AuthoringErrorCode _artifactDomainErrorCode(String code) => switch (code) {
 
 AuthoringErrorCode _assetDomainErrorCode(String code) => switch (code) {
       'artifact.unknown' => AuthoringErrorCode.notFound,
+      _ when code.endsWith('_unsupported') => AuthoringErrorCode.unsupported,
+      _ => AuthoringErrorCode.validationFailed,
+    };
+
+AuthoringErrorCode _visualDomainErrorCode(String code) => switch (code) {
+      'tileset_folder.unknown' ||
+      'element_category.unknown' =>
+        AuthoringErrorCode.notFound,
       _ when code.endsWith('_unsupported') => AuthoringErrorCode.unsupported,
       _ => AuthoringErrorCode.validationFailed,
     };

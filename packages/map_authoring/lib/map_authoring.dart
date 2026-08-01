@@ -56,6 +56,7 @@ export 'src/domains/assets/palette_actions.dart';
 export 'src/domains/assets/presentation_actions.dart';
 export 'src/domains/assets/preset_actions.dart';
 export 'src/domains/assets/tileset_actions.dart';
+export 'src/domains/assets/visual_organization_actions.dart';
 export 'src/domains/narrative/dialogue_actions.dart';
 export 'src/domains/narrative/dialogue_authoring_service.dart';
 export 'src/domains/narrative/dialogue_source_store.dart';
