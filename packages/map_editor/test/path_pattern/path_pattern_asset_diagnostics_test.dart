@@ -161,7 +161,7 @@ void main() {
         ],
       );
 
-      final loaded = _loadFromDisk(tmp.path, manifest);
+      final loaded = await _loadFromDisk(tmp.path, manifest);
       final list = createPathPatternAssetDiagnostics(
         manifest: manifest,
         pathPatternPreset: manifest.pathPatternPresets.single,
@@ -215,7 +215,7 @@ void main() {
       File(abs).createSync(recursive: true);
       File(abs).writeAsBytesSync([0, 1, 2, 3, 4]);
 
-      final loaded = _loadFromDisk(tmp.path, manifest);
+      final loaded = await _loadFromDisk(tmp.path, manifest);
       final list = createPathPatternAssetDiagnostics(
         manifest: manifest,
         pathPatternPreset: manifest.pathPatternPresets.single,
@@ -512,7 +512,7 @@ void main() {
 }
 
 /// Réutilise le loader production pour les tests disque.
-Map<String, PathPatternTilesetImageInfo> _loadFromDisk(
+Future<Map<String, PathPatternTilesetImageInfo>> _loadFromDisk(
   String root,
   ProjectManifest manifest,
 ) {

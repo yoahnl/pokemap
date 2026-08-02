@@ -123,6 +123,34 @@ void main() {
         throwsFormatException,
       );
     });
+
+    test('strict decoding skips large values without weakening validation', () {
+      final largeValue = '${'x' * (1024 * 1024)}"\\tail';
+      final decoded = decodeNarrativeEventJsonStrict(
+        jsonEncode(<String, Object?>{
+          'payload': largeValue,
+          'tail': 1,
+        }),
+      ) as Map<String, Object?>;
+
+      expect(decoded['payload'], largeValue);
+      expect(
+        () => decodeNarrativeEventJsonStrict(
+          '{"payload":${jsonEncode(largeValue)},"tail":1,"tail":2}',
+        ),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'message',
+            contains(r'$.tail'),
+          ),
+        ),
+      );
+      expect(
+        () => decodeNarrativeEventJsonStrict(r'{"value":"\ud800"}'),
+        throwsFormatException,
+      );
+    });
   });
 
   group('canonical claim fingerprints', () {

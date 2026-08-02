@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -8,7 +7,9 @@ import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../../app/providers/editor/editor_asset_cache_providers.dart';
 import '../../theme/theme.dart';
+import '../assets/editor_image_cache.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
 import 'tileset_grid_metrics.dart';
@@ -25,6 +26,12 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
   GridPos? _selectionStart;
   GridPos? _selectionEnd;
   String? _lastTilesetId;
+  String? _requestedImagePath;
+  EditorImageCache? _requestedImageCache;
+  ProjectManifest? _requestedProject;
+  Future<EditorImageLoadResult>? _imageLoad;
+  EditorImageLoadResult? _ownedImage;
+  var _imageRequestEpoch = 0;
 
   TilesetSourceRect? get _selectionRect {
     final start = _selectionStart;
@@ -66,6 +73,8 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
     final settings = project?.settings ?? const ProjectSettings();
 
     if (project == null) {
+      _releaseImage();
+      _lastTilesetId = null;
       return const Center(
         child: Text('No project loaded'),
       );
@@ -74,6 +83,8 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
     final tileset = notifier.getSelectedTilesetEntry();
     final tilesetPath = notifier.getSelectedTilesetAbsolutePath();
     if (tileset == null || tilesetPath == null) {
+      _releaseImage();
+      _lastTilesetId = null;
       return const Center(
         child: Text('No tileset selected'),
       );
@@ -84,13 +95,25 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
       _selectionEnd = null;
     }
 
-    return FutureBuilder<ui.Image?>(
-      future: _TilesetEditorImageCache.load(tilesetPath),
+    final cacheScope = state.projectRootPath?.trim().isNotEmpty == true
+        ? state.projectRootPath!
+        : tilesetPath;
+    final imageCache = ref.watch(editorImageCacheProvider(cacheScope));
+    _ensureImageLoad(imageCache, tilesetPath, project);
+    return FutureBuilder<EditorImageLoadResult>(
+      future: _imageLoad,
       builder: (context, snapshot) {
-        final image = snapshot.data;
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CupertinoActivityIndicator());
+        }
+        final result = snapshot.data;
+        final image = result?.image;
         if (image == null) {
           return Center(
-            child: Text('Unable to load tileset: ${tileset.name}'),
+            child: Text(
+              result?.failure?.message ??
+                  'Unable to load tileset: ${tileset.name}',
+            ),
           );
         }
 
@@ -292,6 +315,56 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
         );
       },
     );
+  }
+
+  void _ensureImageLoad(
+    EditorImageCache cache,
+    String path,
+    ProjectManifest project,
+  ) {
+    if (_requestedImagePath == path &&
+        identical(_requestedImageCache, cache) &&
+        identical(_requestedProject, project)) {
+      return;
+    }
+    _requestedImagePath = path;
+    _requestedImageCache = cache;
+    _requestedProject = project;
+    final epoch = ++_imageRequestEpoch;
+    _ownedImage?.dispose();
+    _ownedImage = null;
+    _imageLoad = cache.load(path).then((result) {
+      if (!mounted || epoch != _imageRequestEpoch) {
+        result.dispose();
+        return result;
+      }
+      _ownedImage?.dispose();
+      _ownedImage = result;
+      return result;
+    });
+  }
+
+  void _releaseImage() {
+    if (_requestedImagePath == null &&
+        _requestedImageCache == null &&
+        _requestedProject == null &&
+        _imageLoad == null &&
+        _ownedImage == null) {
+      return;
+    }
+    _imageRequestEpoch++;
+    _requestedImagePath = null;
+    _requestedImageCache = null;
+    _requestedProject = null;
+    _imageLoad = null;
+    _ownedImage?.dispose();
+    _ownedImage = null;
+  }
+
+  @override
+  void dispose() {
+    _releaseImage();
+    super.dispose();
   }
 
   Future<void> _showCreateElementDialog(
@@ -759,26 +832,5 @@ class _TilesetCanvasPainter extends CustomPainter {
         oldDelegate.tileWidth != tileWidth ||
         oldDelegate.tileHeight != tileHeight ||
         oldDelegate.selection != selection;
-  }
-}
-
-class _TilesetEditorImageCache {
-  static final Map<String, Future<ui.Image?>> _cache = {};
-
-  static Future<ui.Image?> load(String? path) {
-    if (path == null || path.isEmpty) return Future.value(null);
-    return _cache.putIfAbsent(path, () async {
-      try {
-        final file = File(path);
-        if (!await file.exists()) return null;
-        final bytes = await file.readAsBytes();
-        if (bytes.isEmpty) return null;
-        final codec = await ui.instantiateImageCodec(bytes);
-        final frame = await codec.getNextFrame();
-        return frame.image;
-      } catch (_) {
-        return null;
-      }
-    });
   }
 }

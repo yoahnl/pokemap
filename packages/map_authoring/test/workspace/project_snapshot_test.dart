@@ -32,6 +32,61 @@ void main() {
       );
     });
 
+    test('optionally profiles snapshot phases without changing the result',
+        () async {
+      final fixture = _realFixtureDirectory();
+      final profiles = <ProjectSnapshotLoadProfile>[];
+      final profiledHarness = await _SnapshotHarness.create(
+        allowedRoot: fixture.parent,
+        profileSink: profiles.add,
+      );
+      final profiledOpen =
+          await profiledHarness.openService.openProject(fixture.path);
+
+      final profiled =
+          await profiledHarness.loader.load(profiledOpen.projectHandle);
+
+      expect(profiles, hasLength(1));
+      final profile = profiles.single;
+      final phaseMicroseconds = <int>[
+        profile.initialReadMicroseconds,
+        profile.decodeModelMicroseconds,
+        profile.secondObservationMicroseconds,
+        profile.fingerprintMicroseconds,
+        profile.projectionMicroseconds,
+      ];
+      expect(phaseMicroseconds, everyElement(greaterThanOrEqualTo(0)));
+      expect(profile.totalMicroseconds, greaterThanOrEqualTo(0));
+      expect(
+        phaseMicroseconds.fold<int>(0, (total, value) => total + value),
+        lessThanOrEqualTo(profile.totalMicroseconds),
+      );
+      expect(profile.resourceCount, profiled.resourceFingerprints.length);
+      expect(
+        profile.resourceBytes,
+        profiled.resourceFingerprints.keys.fold<int>(
+          0,
+          (total, identity) => total + profiled.resourceBytes(identity).length,
+        ),
+      );
+
+      final plainHarness = await _SnapshotHarness.create(
+        allowedRoot: fixture.parent,
+      );
+      final plainOpen =
+          await plainHarness.openService.openProject(fixture.path);
+      final plain = await plainHarness.loader.load(plainOpen.projectHandle);
+
+      expect(profiles, hasLength(1));
+      expect(plain.revision, profiled.revision);
+      expect(plain.manifest, profiled.manifest);
+      expect(plain.maps, profiled.maps);
+      expect(plain.resourceFingerprints, profiled.resourceFingerprints);
+      for (final identity in profiled.resourceFingerprints.keys) {
+        expect(plain.resourceBytes(identity), profiled.resourceBytes(identity));
+      }
+    });
+
     test('returns the same revision and deterministic map order on reload',
         () async {
       final sandbox = await Directory.systemTemp.createTemp(
@@ -301,6 +356,7 @@ final class _SnapshotHarness {
   static Future<_SnapshotHarness> create({
     required Directory allowedRoot,
     ProjectFileReader reader = const LocalProjectFileReader(),
+    ProjectSnapshotLoadProfileSink? profileSink,
   }) async {
     var token = 0;
     final policy = await WorkspacePolicy.create(
@@ -317,7 +373,10 @@ final class _SnapshotHarness {
         fileReader: reader,
         handles: handles,
       ),
-      loader: ProjectSnapshotLoader(handles: handles),
+      loader: ProjectSnapshotLoader(
+        handles: handles,
+        profileSink: profileSink,
+      ),
     );
   }
 

@@ -20,6 +20,7 @@ class EnvironmentPaletteItemDraftEditor extends StatefulWidget {
     required this.onChanged,
     required this.onRemove,
     this.manifest,
+    this.projectRootPath,
     this.resolveTilesetPathById,
   });
 
@@ -29,6 +30,7 @@ class EnvironmentPaletteItemDraftEditor extends StatefulWidget {
   /// Éléments du manifeste (`ProjectManifest.elements`) pour le picker.
   final List<ProjectElementEntry> projectElements;
   final ProjectManifest? manifest;
+  final String? projectRootPath;
   final EnvironmentTilesetPathResolver? resolveTilesetPathById;
 
   final ValueChanged<EnvironmentPaletteItemDraft> onChanged;
@@ -202,6 +204,7 @@ class _EnvironmentPaletteItemDraftEditorState
                       if (widget.manifest != null) ...[
                         EnvironmentElementThumbnail(
                           manifest: widget.manifest!,
+                          projectRootPath: widget.projectRootPath,
                           element: selectedElement,
                           elementId: widget.item.elementId,
                           resolveTilesetPathById: widget.resolveTilesetPathById,

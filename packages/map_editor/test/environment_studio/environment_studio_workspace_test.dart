@@ -4,6 +4,7 @@ import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/environment_studio/environment_preset_memory_write_kind.dart';
 import 'package:map_editor/src/features/environment_studio/environment_studio_panel.dart';
+import 'package:map_editor/src/features/environment_studio/widgets/environment_element_thumbnail.dart';
 
 void main() {
   group('EnvironmentStudioPanel', () {
@@ -111,6 +112,29 @@ void main() {
       expect(find.byKey(const Key('environment-studio-edit-as-draft')),
           findsOneWidget);
     });
+
+    testWidgets('propagates one project cache scope to rendered thumbnails',
+        (tester) async {
+      await _pumpPanel(
+        tester,
+        _manifest(
+          environmentPresets: [_preset(id: 'scoped')],
+          elements: [_element(id: 'elm')],
+        ),
+        projectRootPath: '/project/root',
+      );
+
+      final thumbnails = tester.widgetList<EnvironmentElementThumbnail>(
+        find.byType(EnvironmentElementThumbnail),
+      );
+      expect(thumbnails, isNotEmpty);
+      expect(
+        thumbnails.every(
+          (thumbnail) => thumbnail.projectRootPath == '/project/root',
+        ),
+        isTrue,
+      );
+    });
   });
 }
 
@@ -122,12 +146,14 @@ Future<void> _pumpPanel(
     EnvironmentPreset,
     EnvironmentPresetMemoryWriteKind,
   )? onEnvironmentPresetSaved,
+  String? projectRootPath,
 }) async {
   await tester.pumpWidget(
     MacosApp(
       home: CupertinoPageScaffold(
         child: EnvironmentStudioPanel(
           manifest: manifest,
+          projectRootPath: projectRootPath,
           onEnvironmentPresetSaved: onEnvironmentPresetSaved,
         ),
       ),

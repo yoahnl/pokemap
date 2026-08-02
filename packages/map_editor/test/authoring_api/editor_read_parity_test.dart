@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -5,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/authoring_api/authoring_query_adapter.dart';
+import 'package:map_editor/src/application/authoring_api/authoring_session_lifecycle.dart';
 import 'package:map_editor/src/infrastructure/authoring_api/editor_project_file_reader.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
 
@@ -151,8 +153,8 @@ void main() {
         () async {
       final stopwatch = Stopwatch()..start();
       final reader = _CountingReader(const EditorProjectFileReader());
-      final session =
-          await AuthoringQueryAdapter(fileReader: reader).open(_selbrume().path);
+      final session = await AuthoringQueryAdapter(fileReader: reader)
+          .open(_selbrume().path);
       stopwatch.stop();
       addTearDown(session.close);
       final readsAfterOpen = reader.readCount;
@@ -189,6 +191,69 @@ void main() {
       // ceiling guards an accidental workspace crawl without being a benchmark.
       expect(stopwatch.elapsed, lessThan(const Duration(seconds: 10)));
     });
+
+    test('retainOnly and closeProject retire real read sessions', () async {
+      const reader = EditorProjectFileReader();
+      final adapter = AuthoringQueryAdapter(fileReader: reader);
+      addTearDown(adapter.closeAll);
+      final first = await adapter.open(_goldenFangameFixture().path);
+      final second = await adapter.open(_selbrume().path);
+      final secondRoot = await reader.canonicalizeDirectory(_selbrume().path);
+
+      await adapter.retainOnly(secondRoot);
+
+      expect(() => first.maps, throwsStateError);
+      expect(second.maps, hasLength(10));
+      expect(adapter.diagnostics.retainedRoot, secondRoot);
+      expect(adapter.diagnostics.liveSessions, 1);
+      expect(adapter.diagnostics.openingSessions, 0);
+      expect(adapter.diagnostics.retiringSessions, 0);
+      expect(adapter.diagnostics.activeOperations, 0);
+      expect(adapter.diagnostics.closeCount, 1);
+      await expectLater(
+        adapter.open(_goldenFangameFixture().path),
+        throwsA(isA<EditorAuthoringStaleSessionException>()),
+      );
+
+      await adapter.closeProject(secondRoot);
+
+      expect(() => second.maps, throwsStateError);
+      expect(adapter.diagnostics.liveSessions, 0);
+      expect(adapter.diagnostics.closeCount, 2);
+    });
+
+    test('retirement waits for validation already in flight', () async {
+      final reader = _BlockingReader();
+      final adapter = AuthoringQueryAdapter(fileReader: reader);
+      addTearDown(adapter.closeAll);
+      final session = await adapter.open(_goldenFangameFixture().path);
+      reader.arm();
+
+      final validation = session.validateFresh();
+      await reader.entered.future;
+      final retainedRoot = await reader.canonicalizeDirectory(
+        _selbrume().path,
+      );
+      var retired = false;
+      final retiring = adapter.retainOnly(retainedRoot).whenComplete(() {
+        retired = true;
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      expect(retired, isFalse);
+      expect(adapter.diagnostics.activeOperations, 1);
+      expect(adapter.diagnostics.retiringSessions, 1);
+
+      reader.release();
+      await validation;
+      await retiring;
+
+      expect(retired, isTrue);
+      expect(adapter.diagnostics.activeOperations, 0);
+      expect(adapter.diagnostics.retiringSessions, 0);
+      expect(adapter.diagnostics.liveSessions, 0);
+      expect(adapter.diagnostics.closeCount, 1);
+    });
   });
 }
 
@@ -224,6 +289,43 @@ final class _CountingReader implements ProjectFileReader {
   }) {
     readCount++;
     return delegate.readBytes(
+      projectRoot: projectRoot,
+      relativePath: relativePath,
+    );
+  }
+}
+
+final class _BlockingReader implements ProjectFileReader {
+  static const _delegate = EditorProjectFileReader();
+  Completer<void>? _entered;
+  Completer<void>? _release;
+  var _armed = false;
+
+  Completer<void> get entered => _entered!;
+
+  void arm() {
+    _armed = true;
+    _entered = Completer<void>();
+    _release = Completer<void>();
+  }
+
+  void release() => _release!.complete();
+
+  @override
+  Future<String> canonicalizeDirectory(String path) =>
+      _delegate.canonicalizeDirectory(path);
+
+  @override
+  Future<List<int>> readBytes({
+    required String projectRoot,
+    required String relativePath,
+  }) async {
+    if (_armed) {
+      _armed = false;
+      _entered!.complete();
+      await _release!.future;
+    }
+    return _delegate.readBytes(
       projectRoot: projectRoot,
       relativePath: relativePath,
     );

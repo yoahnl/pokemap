@@ -42,6 +42,7 @@ class EnvironmentStudioPanel extends StatefulWidget {
     super.key,
     required this.manifest,
     this.knownTemplateIds = const <String>{},
+    this.projectRootPath,
     this.resolveTilesetPathById,
     this.onEnvironmentPresetSaved,
   });
@@ -50,6 +51,7 @@ class EnvironmentStudioPanel extends StatefulWidget {
 
   /// Quand non vide, restreint les templates reconnus (diagnostics auteur).
   final Set<String> knownTemplateIds;
+  final String? projectRootPath;
   final EnvironmentTilesetPathResolver? resolveTilesetPathById;
 
   /// Après validation sans erreur : manifest mis à jour + preset créé ou mis
@@ -380,6 +382,7 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                     child: EnvironmentPresetCreationWizard(
                       key: ValueKey<int>(_draftFormEpoch),
                       manifest: widget.manifest,
+                      projectRootPath: widget.projectRootPath,
                       knownTemplateIds: widget.knownTemplateIds,
                       resolveTilesetPathById: widget.resolveTilesetPathById,
                       draft: _draft,
@@ -407,6 +410,7 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                     child: EnvironmentPresetDraftForm(
                       key: ValueKey<int>(_draftFormEpoch),
                       manifest: widget.manifest,
+                      projectRootPath: widget.projectRootPath,
                       knownTemplateIds: widget.knownTemplateIds,
                       draft: _draft,
                       existingPresetId: _editingPresetId,
@@ -650,6 +654,7 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                                   labelColor: label,
                                   subtleColor: subtle,
                                   manifest: widget.manifest,
+                                  projectRootPath: widget.projectRootPath,
                                   resolveTilesetPathById:
                                       widget.resolveTilesetPathById,
                                   onEditAsDraft: widget
@@ -758,6 +763,7 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                         index: i,
                         item: _paletteDraft[i],
                         manifest: widget.manifest,
+                        projectRootPath: widget.projectRootPath,
                         resolveTilesetPathById: widget.resolveTilesetPathById,
                         projectElements:
                             compatibility.availableCompatibleElements,

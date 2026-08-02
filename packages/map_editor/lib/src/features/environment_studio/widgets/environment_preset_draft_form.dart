@@ -17,6 +17,7 @@ class EnvironmentPresetDraftForm extends StatefulWidget {
     super.key,
     required this.manifest,
     this.knownTemplateIds = const <String>{},
+    this.projectRootPath,
     required this.draft,
     this.existingPresetId,
     required this.validation,
@@ -30,6 +31,7 @@ class EnvironmentPresetDraftForm extends StatefulWidget {
 
   /// Manifest courant (validation + upsert avant callback).
   final ProjectManifest manifest;
+  final String? projectRootPath;
 
   /// Aligné sur [EnvironmentStudioPanel.knownTemplateIds].
   final Set<String> knownTemplateIds;
@@ -385,6 +387,7 @@ class _EnvironmentPresetDraftFormState
                   index: i,
                   item: widget.draft.palette[i],
                   manifest: widget.manifest,
+                  projectRootPath: widget.projectRootPath,
                   resolveTilesetPathById: widget.resolveTilesetPathById,
                   projectElements:
                       tilesetCompatibility.availableCompatibleElements,

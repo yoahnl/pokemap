@@ -475,6 +475,11 @@ export 'domain/repositories/game_save_repository.dart'
     show GameSaveRepository, GameSaveException;
 export 'src/infrastructure/file_game_save_repository.dart'
     show FileGameSaveRepository;
+export 'src/infrastructure/game_save_codec_executor.dart'
+    show
+        GameSaveCodecDiagnostics,
+        GameSaveCodecExecutor,
+        GameSaveCodecWorkerRunner;
 export 'src/application/save_game_use_case.dart' show SaveGameUseCase;
 export 'src/application/load_game_use_case.dart' show LoadGameUseCase;
 

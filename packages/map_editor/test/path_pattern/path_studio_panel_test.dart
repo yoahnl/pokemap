@@ -3,13 +3,16 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/editor/editor_asset_cache_providers.dart';
 import 'package:map_editor/src/features/path_studio/path_studio_panel.dart';
 import 'package:map_editor/src/features/path_studio/path_studio_edit_path_build_request.dart';
 import 'package:map_editor/src/features/path_studio/path_studio_new_path_build_request.dart';
 import 'package:map_editor/src/features/path_studio/path_studio_save_flow.dart';
+import 'package:map_editor/src/ui/assets/editor_image_cache.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -435,7 +438,8 @@ void main() {
           manifest: _manifest(),
         );
 
-        await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+        await tester
+            .tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
         await _pumpPathStudioAsync(tester);
 
         expect(
@@ -457,7 +461,8 @@ void main() {
           onEditPathSaveRequested: (_) => applyEditCount += 1,
         );
 
-        await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+        await tester
+            .tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
         await _pumpPathStudioAsync(tester);
 
         await tester.tap(
@@ -492,7 +497,8 @@ void main() {
           onNewPathSaveRequested: (_) => applyNewCount += 1,
         );
 
-        await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+        await tester
+            .tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
         await _pumpPathStudioAsync(tester);
 
         tester
@@ -645,7 +651,8 @@ void main() {
           ),
         );
 
-        await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+        await tester
+            .tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
         await _pumpPathStudioAsync(tester);
 
         tester
@@ -681,7 +688,8 @@ void main() {
     });
 
     group('PathPattern-41 asset / bounds diagnostics', () {
-      testWidgets('read-only detail lists missing tileset image', (tester) async {
+      testWidgets('read-only detail lists missing tileset image',
+          (tester) async {
         final temp = Directory.systemTemp.createTempSync('path41_ui_');
         addTearDown(() => temp.deleteSync(recursive: true));
 
@@ -843,7 +851,8 @@ void main() {
         );
       });
 
-      testWidgets('preset card shows Variants partiels when base missing variants',
+      testWidgets(
+          'preset card shows Variants partiels when base missing variants',
           (tester) async {
         await _pumpPathStudio(
           tester,
@@ -1070,8 +1079,8 @@ void main() {
         find.byKey(const Key('path-studio-new-path-center-animation-summary')),
         findsOneWidget,
       );
-      expect(find.textContaining('Centre : 1 cellule · 1 frame'),
-          findsOneWidget);
+      expect(
+          find.textContaining('Centre : 1 cellule · 1 frame'), findsOneWidget);
       expect(
         find.byKey(const Key('path-studio-new-path-active-frame-title')),
         findsOneWidget,
@@ -1091,8 +1100,8 @@ void main() {
       expect(find.text('Animé — 2 frames'), findsWidgets);
       expect(find.text('Ajouter une frame dupliquée'), findsWidgets);
       expect(find.text('Frame 2 / 2'), findsOneWidget);
-      expect(find.textContaining('Centre : 1 cellule · 2 frames'),
-          findsOneWidget);
+      expect(
+          find.textContaining('Centre : 1 cellule · 2 frames'), findsOneWidget);
 
       await tester.enterText(
         find.byKey(const Key('path-studio-new-path-frame-duration-1')),
@@ -1658,31 +1667,34 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
-        MacosApp(
-          theme: MacosThemeData.dark(),
-          home: MacosScaffold(
-            children: [
-              ContentArea(
-                builder: (context, scrollController) {
-                  return StatefulBuilder(
-                    builder: (context, setParentState) {
-                      return PathStudioPanel(
-                        manifest: parentManifest,
-                        onNewPathSaveRequested: (request) {
-                          callbackCount += 1;
-                          setParentState(() {
-                            parentManifest = applyNewPathBuildRequestToManifest(
-                              manifest: parentManifest,
-                              request: request,
-                            );
-                          });
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-            ],
+        ProviderScope(
+          child: MacosApp(
+            theme: MacosThemeData.dark(),
+            home: MacosScaffold(
+              children: [
+                ContentArea(
+                  builder: (context, scrollController) {
+                    return StatefulBuilder(
+                      builder: (context, setParentState) {
+                        return PathStudioPanel(
+                          manifest: parentManifest,
+                          onNewPathSaveRequested: (request) {
+                            callbackCount += 1;
+                            setParentState(() {
+                              parentManifest =
+                                  applyNewPathBuildRequestToManifest(
+                                manifest: parentManifest,
+                                request: request,
+                              );
+                            });
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -1732,7 +1744,8 @@ void main() {
       expect(find.text('nouveau-chemin-pattern'), findsWidgets);
     });
 
-    testWidgets('new path center sequence assistant bloc is wired', (tester) async {
+    testWidgets('new path center sequence assistant bloc is wired',
+        (tester) async {
       await _pumpPathStudio(
         tester,
         manifest: _manifest(
@@ -1780,11 +1793,14 @@ void main() {
         await _pumpPathStudio(
           tester,
           manifest: _manifest(
-            tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+            tilesets: [
+              _tileset(id: 'tileset-main', name: 'Chemins principaux')
+            ],
           ),
         );
 
-        await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+        await tester
+            .tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
         await _pumpPathStudioAsync(tester);
         tester
             .widget<MacosPopupButton<String>>(
@@ -1810,7 +1826,8 @@ void main() {
       },
     );
 
-    testWidgets('sequence assistant all-center target updates animation summary',
+    testWidgets(
+        'sequence assistant all-center target updates animation summary',
         (tester) async {
       await _pumpPathStudio(
         tester,
@@ -1829,7 +1846,8 @@ void main() {
           ?.call('tileset-main');
       await _pumpPathStudioAsync(tester);
 
-      await tester.ensureVisible(find.byKey(const Key('path-studio-new-path-size-2x2')));
+      await tester.ensureVisible(
+          find.byKey(const Key('path-studio-new-path-size-2x2')));
       await _pumpPathStudioAsync(tester);
       await tester.tap(find.byKey(const Key('path-studio-new-path-size-2x2')));
       await _pumpPathStudioAsync(tester);
@@ -1843,8 +1861,8 @@ void main() {
         const Key('path-studio-new-path-seq-target-all-center'),
       ));
       await _pumpPathStudioAsync(tester);
-      await tester
-          .tap(find.byKey(const Key('path-studio-new-path-seq-target-all-center')));
+      await tester.tap(
+          find.byKey(const Key('path-studio-new-path-seq-target-all-center')));
       await _pumpPathStudioAsync(tester);
 
       final generateBtn =
@@ -1908,12 +1926,15 @@ void main() {
         await _pumpPathStudio(
           tester,
           manifest: _manifest(
-            tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+            tilesets: [
+              _tileset(id: 'tileset-main', name: 'Chemins principaux')
+            ],
           ),
           onNewPathSaveRequested: (_) {},
         );
 
-        await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+        await tester
+            .tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
         await _pumpPathStudioAsync(tester);
         tester
             .widget<MacosPopupButton<String>>(
@@ -1972,31 +1993,33 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
-        MacosApp(
-          theme: MacosThemeData.dark(),
-          home: MacosScaffold(
-            children: [
-              ContentArea(
-                builder: (context, scrollController) {
-                  return StatefulBuilder(
-                    builder: (context, setParentState) {
-                      return PathStudioPanel(
-                        manifest: parentManifest,
-                        onEditPathSaveRequested: (request) {
-                          setParentState(() {
-                            parentManifest =
-                                applyPathPatternEditRequestToManifest(
-                              manifest: parentManifest,
-                              request: request,
-                            );
-                          });
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-            ],
+        ProviderScope(
+          child: MacosApp(
+            theme: MacosThemeData.dark(),
+            home: MacosScaffold(
+              children: [
+                ContentArea(
+                  builder: (context, scrollController) {
+                    return StatefulBuilder(
+                      builder: (context, setParentState) {
+                        return PathStudioPanel(
+                          manifest: parentManifest,
+                          onEditPathSaveRequested: (request) {
+                            setParentState(() {
+                              parentManifest =
+                                  applyPathPatternEditRequestToManifest(
+                                manifest: parentManifest,
+                                request: request,
+                              );
+                            });
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -2090,32 +2113,34 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
-        MacosApp(
-          theme: MacosThemeData.dark(),
-          home: MacosScaffold(
-            children: [
-              ContentArea(
-                builder: (context, scrollController) {
-                  return StatefulBuilder(
-                    builder: (context, setParentState) {
-                      return PathStudioPanel(
-                        manifest: parentManifest,
-                        onPathPatternPresetSaveRequested: (preset) {
-                          callbackCount += 1;
-                          setParentState(() {
-                            parentManifest =
-                                applyLegacyPathPatternSaveToManifest(
-                              manifest: parentManifest,
-                              preset: preset,
-                            );
-                          });
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-            ],
+        ProviderScope(
+          child: MacosApp(
+            theme: MacosThemeData.dark(),
+            home: MacosScaffold(
+              children: [
+                ContentArea(
+                  builder: (context, scrollController) {
+                    return StatefulBuilder(
+                      builder: (context, setParentState) {
+                        return PathStudioPanel(
+                          manifest: parentManifest,
+                          onPathPatternPresetSaveRequested: (preset) {
+                            callbackCount += 1;
+                            setParentState(() {
+                              parentManifest =
+                                  applyLegacyPathPatternSaveToManifest(
+                                manifest: parentManifest,
+                                preset: preset,
+                              );
+                            });
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -2373,25 +2398,36 @@ Future<void> _pumpPathStudio(
 }) async {
   await tester.binding.setSurfaceSize(const Size(1440, 920));
   addTearDown(() => tester.binding.setSurfaceSize(null));
+  final imageCache = await _preloadPathStudioImages(
+    tester,
+    manifest: manifest,
+    projectRootPath: projectRootPath,
+  );
+  addTearDown(imageCache.dispose);
 
   await tester.pumpWidget(
-    MacosApp(
-      theme: MacosThemeData.dark(),
-      home: MacosScaffold(
-        children: [
-          ContentArea(
-            builder: (context, scrollController) {
-              return PathStudioPanel(
-                manifest: manifest,
-                projectRootPath: projectRootPath,
-                onPathPatternPresetSaveRequested:
-                    onPathPatternPresetSaveRequested,
-                onNewPathSaveRequested: onNewPathSaveRequested,
-                onEditPathSaveRequested: onEditPathSaveRequested,
-              );
-            },
-          ),
-        ],
+    ProviderScope(
+      overrides: [
+        editorImageCacheProvider.overrideWith((ref, _) => imageCache),
+      ],
+      child: MacosApp(
+        theme: MacosThemeData.dark(),
+        home: MacosScaffold(
+          children: [
+            ContentArea(
+              builder: (context, scrollController) {
+                return PathStudioPanel(
+                  manifest: manifest,
+                  projectRootPath: projectRootPath,
+                  onPathPatternPresetSaveRequested:
+                      onPathPatternPresetSaveRequested,
+                  onNewPathSaveRequested: onNewPathSaveRequested,
+                  onEditPathSaveRequested: onEditPathSaveRequested,
+                );
+              },
+            ),
+          ],
+        ),
       ),
     ),
   );
@@ -2399,10 +2435,90 @@ Future<void> _pumpPathStudio(
 }
 
 Future<void> _pumpPathStudioAsync(WidgetTester tester) async {
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 250));
-  await tester.pump(const Duration(milliseconds: 250));
+  await tester.pumpAndSettle(const Duration(milliseconds: 50));
 }
+
+Future<_PreloadedPathStudioImageCache> _preloadPathStudioImages(
+  WidgetTester tester, {
+  required ProjectManifest manifest,
+  required String? projectRootPath,
+}) async {
+  final root = projectRootPath?.trim();
+  final images = <String, ui.Image>{};
+  if (root != null && root.isNotEmpty) {
+    final loaded = await tester.runAsync(() async {
+      final result = <String, ui.Image>{};
+      for (final tileset in manifest.tilesets) {
+        final file = File(p.normalize(p.join(root, tileset.relativePath)));
+        if (!await file.exists()) continue;
+        final codec = await ui.instantiateImageCodec(await file.readAsBytes());
+        try {
+          final frame = await codec.getNextFrame();
+          result[p.normalize(file.absolute.path)] = frame.image;
+        } finally {
+          codec.dispose();
+        }
+      }
+      return result;
+    });
+    images.addAll(loaded!);
+  }
+  return _PreloadedPathStudioImageCache(
+    sessionKey: root ?? 'path-studio-test',
+    images: images,
+  );
+}
+
+final class _PreloadedPathStudioImageCache extends EditorImageCache {
+  _PreloadedPathStudioImageCache({
+    required super.sessionKey,
+    required this.images,
+  }) : super(
+          retirementScheduler: _disposeImmediately,
+        );
+
+  final Map<String, ui.Image> images;
+  var _disposed = false;
+
+  @override
+  Future<EditorImageLoadResult> load(
+    String? path, {
+    String variantKey = 'original',
+    int? targetWidth,
+    int? targetHeight,
+    bool allowUpscaling = true,
+    EditorImageBytesTransform? transformBytes,
+  }) {
+    final rawPath = path?.trim() ?? '';
+    final image = images[p.normalize(File(rawPath).absolute.path)];
+    if (image == null || _disposed) {
+      return Future.value(
+        EditorImageLoadResult.failure(
+          EditorImageFailure(
+            kind: _disposed
+                ? EditorImageFailureKind.cacheDisposed
+                : EditorImageFailureKind.missingFile,
+            path: rawPath,
+            message: _disposed ? 'cache disposed' : 'missing test image',
+          ),
+        ),
+      );
+    }
+    return Future.value(EditorImageLoadResult.success(image.clone()));
+  }
+
+  @override
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    for (final image in images.values) {
+      image.dispose();
+    }
+    super.dispose();
+  }
+}
+
+void _disposeImmediately(void Function() disposeImage) => disposeImage();
 
 void _expectPathStudioZoomLabel(WidgetTester tester, String value) {
   final label = tester.widget<Text>(

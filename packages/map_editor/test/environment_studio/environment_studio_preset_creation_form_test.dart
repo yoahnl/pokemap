@@ -1,7 +1,11 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_editor/src/app/providers/editor/editor_asset_cache_providers.dart';
+import 'package:map_editor/src/ui/assets/editor_image_cache.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/environment_studio/authoring/environment_preset_draft.dart';
@@ -438,18 +442,65 @@ Future<void> _pump(
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();
   });
+  final decodedImage = await tester.runAsync(() => _testImage());
+  final imageCache = _ImmediateEditorImageCache(decodedImage!);
+  addTearDown(() {
+    imageCache.dispose();
+    decodedImage.dispose();
+  });
   await tester.pumpWidget(
-    MacosApp(
-      home: CupertinoPageScaffold(
-        child: EnvironmentStudioPanel(
-          manifest: manifest,
-          resolveTilesetPathById: resolveTilesetPathById,
-          onEnvironmentPresetSaved: onSaved ?? (_, __, ___) {},
+    ProviderScope(
+      overrides: [
+        editorImageCacheProvider.overrideWith((ref, _) => imageCache),
+      ],
+      child: MacosApp(
+        home: CupertinoPageScaffold(
+          child: EnvironmentStudioPanel(
+            manifest: manifest,
+            resolveTilesetPathById: resolveTilesetPathById,
+            onEnvironmentPresetSaved: onSaved ?? (_, __, ___) {},
+          ),
         ),
       ),
     ),
   );
   await tester.pumpAndSettle();
+}
+
+Future<ui.Image> _testImage() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(0, 0, 16, 16),
+    ui.Paint()..color = const ui.Color(0xff55aa55),
+  );
+  final picture = recorder.endRecording();
+  try {
+    return await picture.toImage(16, 16);
+  } finally {
+    picture.dispose();
+  }
+}
+
+final class _ImmediateEditorImageCache extends EditorImageCache {
+  _ImmediateEditorImageCache(this.image)
+      : super(
+          sessionKey: 'environment-form-test',
+          retirementScheduler: (disposeImage) => disposeImage(),
+        );
+
+  final ui.Image image;
+
+  @override
+  Future<EditorImageLoadResult> loadCrop(
+    String? path, {
+    required ui.Rect sourceRect,
+    String variantKey = 'original',
+    String sourceVariantKey = 'original',
+    EditorImageBytesTransform? transformBytes,
+  }) async {
+    return EditorImageLoadResult.success(image.clone());
+  }
 }
 
 Future<void> _openWizard(WidgetTester tester) async {

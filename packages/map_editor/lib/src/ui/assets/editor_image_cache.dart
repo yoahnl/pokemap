@@ -83,6 +83,11 @@ class EditorImageCacheDiagnostics {
     required this.readFailures,
     required this.decodeFailures,
     required this.disposedImages,
+    required this.maximumDecodedBytes,
+    required this.residentDecodedBytes,
+    required this.peakDecodedBytes,
+    required this.evictions,
+    required this.inFlightLoads,
     required this.isDisposed,
   });
 
@@ -95,6 +100,11 @@ class EditorImageCacheDiagnostics {
   final int readFailures;
   final int decodeFailures;
   final int disposedImages;
+  final int maximumDecodedBytes;
+  final int residentDecodedBytes;
+  final int peakDecodedBytes;
+  final int evictions;
+  final int inFlightLoads;
   final bool isDisposed;
 }
 
@@ -107,12 +117,25 @@ typedef EditorImageRetirementScheduler = void Function(
 );
 
 class EditorImageCache {
+  static const int defaultMaximumDecodedBytes = 32 * 1024 * 1024;
+
   EditorImageCache({
     required this.sessionKey,
+    this.maximumDecodedBytes = defaultMaximumDecodedBytes,
     EditorImageRetirementScheduler? retirementScheduler,
-  }) : _scheduleRetirement = retirementScheduler ?? _scheduleAfterConsumerFrame;
+  }) : _scheduleRetirement =
+            retirementScheduler ?? _scheduleAfterConsumerFrame {
+    if (maximumDecodedBytes <= 0) {
+      throw ArgumentError.value(
+        maximumDecodedBytes,
+        'maximumDecodedBytes',
+        'must be positive',
+      );
+    }
+  }
 
   final String sessionKey;
+  final int maximumDecodedBytes;
   final EditorImageRetirementScheduler _scheduleRetirement;
 
   final Map<_EditorImageSlot, _EditorImageCacheEntry> _entries =
@@ -127,6 +150,10 @@ class EditorImageCache {
   var _readFailures = 0;
   var _decodeFailures = 0;
   var _disposedImages = 0;
+  var _residentDecodedBytes = 0;
+  var _peakDecodedBytes = 0;
+  var _evictions = 0;
+  var _inFlightLoads = 0;
   var _disposed = false;
 
   EditorImageCacheDiagnostics get diagnostics => EditorImageCacheDiagnostics(
@@ -139,6 +166,11 @@ class EditorImageCache {
         readFailures: _readFailures,
         decodeFailures: _decodeFailures,
         disposedImages: _disposedImages,
+        maximumDecodedBytes: maximumDecodedBytes,
+        residentDecodedBytes: _residentDecodedBytes,
+        peakDecodedBytes: _peakDecodedBytes,
+        evictions: _evictions,
+        inFlightLoads: _inFlightLoads,
         isDisposed: _disposed,
       );
 
@@ -218,8 +250,9 @@ class EditorImageCache {
     final current = _entries[slot];
     if (current != null && current.fingerprint == fingerprint) {
       _hits += 1;
+      _touch(slot, current);
       return _acquireConsumer(
-        current.future,
+        current,
         canonicalPath: canonicalPath,
       );
     }
@@ -227,36 +260,104 @@ class EditorImageCache {
     _misses += 1;
     if (current != null) {
       _invalidations += 1;
-      _retire(current.future);
+      _removeEntry(slot, current);
     }
 
-    late final Future<_EditorImageMasterResult> future;
-    future = _decode(
+    final future = _decode(
       canonicalPath,
       targetWidth: targetWidth,
       targetHeight: targetHeight,
       allowUpscaling: allowUpscaling,
       transformBytes: transformBytes,
     );
-    _entries[slot] = _EditorImageCacheEntry(
+    final entry = _EditorImageCacheEntry(
       fingerprint: fingerprint,
       future: future,
     );
-    unawaited(
-      future.then((result) {
-        if (result.failure != null &&
-            identical(_entries[slot]?.future, future)) {
-          _entries.remove(slot);
-        }
-        if (_disposed && result.image != null) {
-          _scheduleImageDisposal(result.image!);
-        }
-      }),
-    );
+    _entries[slot] = entry;
+    _trackDecode(slot, entry);
     return _acquireConsumer(
-      future,
+      entry,
       canonicalPath: canonicalPath,
     );
+  }
+
+  Future<EditorImageLoadResult> loadCrop(
+    String? path, {
+    required ui.Rect sourceRect,
+    String variantKey = 'original',
+    String sourceVariantKey = 'original',
+    EditorImageBytesTransform? transformBytes,
+  }) async {
+    final source = await load(
+      path,
+      variantKey: 'crop-source:$sourceVariantKey',
+      transformBytes: transformBytes,
+    );
+    final sourceImage = source.image;
+    if (sourceImage == null) return source;
+
+    final rawPath = path?.trim() ?? '';
+    final unresolvedFile = File(rawPath).absolute;
+    late final String canonicalPath;
+    late final FileStat stat;
+    try {
+      canonicalPath = p.normalize(
+        await unresolvedFile.resolveSymbolicLinks(),
+      );
+      stat = await File(canonicalPath).stat();
+    } on Object catch (error) {
+      source.dispose();
+      _misses++;
+      _readFailures++;
+      return EditorImageLoadResult.failure(
+        EditorImageFailure(
+          kind: EditorImageFailureKind.readFailed,
+          path: p.normalize(unresolvedFile.path),
+          message: 'The image file metadata could not be read.',
+          cause: error,
+        ),
+      );
+    }
+
+    final slot = _EditorImageSlot(
+      canonicalPath: canonicalPath,
+      variantKey: 'crop:$variantKey:'
+          '${sourceRect.left},${sourceRect.top},'
+          '${sourceRect.width},${sourceRect.height}',
+      targetWidth: null,
+      targetHeight: null,
+      allowUpscaling: true,
+    );
+    final fingerprint = _EditorImageFingerprint(
+      byteLength: stat.size,
+      modifiedMicros: stat.modified.microsecondsSinceEpoch,
+    );
+    final current = _entries[slot];
+    if (current != null && current.fingerprint == fingerprint) {
+      source.dispose();
+      _hits++;
+      _touch(slot, current);
+      return _acquireConsumer(current, canonicalPath: canonicalPath);
+    }
+
+    _misses++;
+    if (current != null) {
+      _invalidations++;
+      _removeEntry(slot, current);
+    }
+    final future = _cropImage(
+      sourceImage,
+      sourceRect: sourceRect,
+      canonicalPath: canonicalPath,
+    ).whenComplete(source.dispose);
+    final entry = _EditorImageCacheEntry(
+      fingerprint: fingerprint,
+      future: future,
+    );
+    _entries[slot] = entry;
+    _trackDecode(slot, entry);
+    return _acquireConsumer(entry, canonicalPath: canonicalPath);
   }
 
   Future<Map<String, EditorImageLoadResult>> loadMany(
@@ -297,10 +398,10 @@ class EditorImageCache {
         .where((slot) => slot.canonicalPath == canonicalPath)
         .toList(growable: false);
     for (final slot in matchingSlots) {
-      final entry = _entries.remove(slot);
+      final entry = _entries[slot];
       if (entry != null) {
         _invalidations += 1;
-        _retire(entry.future);
+        _removeEntry(slot, entry);
       }
     }
   }
@@ -308,19 +409,11 @@ class EditorImageCache {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
-    final ownedFutures = <Future<_EditorImageMasterResult>>{
-      ..._entries.values.map((entry) => entry.future),
-    };
+    final ownedEntries = _entries.values.toSet();
     _entries.clear();
-    for (final future in ownedFutures) {
-      unawaited(
-        future.then((result) {
-          final image = result.image;
-          if (image != null) {
-            _scheduleImageDisposal(image);
-          }
-        }),
-      );
+    _residentDecodedBytes = 0;
+    for (final entry in ownedEntries) {
+      _requestRetirement(entry);
     }
   }
 
@@ -394,6 +487,70 @@ class EditorImageCache {
     }
   }
 
+  Future<_EditorImageMasterResult> _cropImage(
+    ui.Image source, {
+    required ui.Rect sourceRect,
+    required String canonicalPath,
+  }) async {
+    final width = sourceRect.width.round();
+    final height = sourceRect.height.round();
+    if (!sourceRect.left.isFinite ||
+        !sourceRect.top.isFinite ||
+        !sourceRect.width.isFinite ||
+        !sourceRect.height.isFinite ||
+        width <= 0 ||
+        height <= 0 ||
+        sourceRect.left < 0 ||
+        sourceRect.top < 0 ||
+        sourceRect.right > source.width ||
+        sourceRect.bottom > source.height) {
+      _decodeFailures++;
+      return _EditorImageMasterResult.failure(
+        EditorImageFailure(
+          kind: EditorImageFailureKind.decodeFailed,
+          path: canonicalPath,
+          message: 'The requested image crop is outside the decoded source.',
+        ),
+      );
+    }
+
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    canvas.drawImageRect(
+      source,
+      sourceRect,
+      ui.Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
+      ui.Paint(),
+    );
+    final picture = recorder.endRecording();
+    try {
+      final image = await picture.toImage(width, height);
+      if (_disposed) {
+        _disposeImage(image);
+        return _EditorImageMasterResult.failure(
+          EditorImageFailure(
+            kind: EditorImageFailureKind.cacheDisposed,
+            path: canonicalPath,
+            message: 'The project session closed while cropping an image.',
+          ),
+        );
+      }
+      return _EditorImageMasterResult.success(image);
+    } on Object catch (error) {
+      _decodeFailures++;
+      return _EditorImageMasterResult.failure(
+        EditorImageFailure(
+          kind: EditorImageFailureKind.decodeFailed,
+          path: canonicalPath,
+          message: 'The decoded image crop could not be created.',
+          cause: error,
+        ),
+      );
+    } finally {
+      picture.dispose();
+    }
+  }
+
   void _disposeImage(ui.Image image) {
     if (_disposedImageIdentities[image] == true) return;
     _disposedImageIdentities[image] = true;
@@ -402,53 +559,136 @@ class EditorImageCache {
   }
 
   Future<EditorImageLoadResult> _acquireConsumer(
-    Future<_EditorImageMasterResult> future, {
+    _EditorImageCacheEntry entry, {
     required String canonicalPath,
   }) async {
-    final result = await future;
-    final failure = result.failure;
-    if (failure != null) {
-      return EditorImageLoadResult.failure(failure);
-    }
-    if (_disposed) {
-      return EditorImageLoadResult.failure(
-        EditorImageFailure(
-          kind: EditorImageFailureKind.cacheDisposed,
-          path: canonicalPath,
-          message: 'The project session closed while the image was loading.',
-        ),
-      );
-    }
-    final image = result.image;
-    if (image == null) {
-      return EditorImageLoadResult.failure(
-        EditorImageFailure(
-          kind: EditorImageFailureKind.decodeFailed,
-          path: canonicalPath,
-          message: 'The decoded image is unavailable.',
-        ),
-      );
-    }
+    entry.pendingAcquisitions++;
     try {
-      return EditorImageLoadResult.success(image.clone());
-    } on Object catch (error) {
-      return EditorImageLoadResult.failure(
-        EditorImageFailure(
-          kind: EditorImageFailureKind.cacheDisposed,
-          path: canonicalPath,
-          message: 'The project image became unavailable before acquisition.',
-          cause: error,
-        ),
-      );
+      final result = await entry.future;
+      final failure = result.failure;
+      if (failure != null) {
+        return EditorImageLoadResult.failure(failure);
+      }
+      if (_disposed) {
+        return EditorImageLoadResult.failure(
+          EditorImageFailure(
+            kind: EditorImageFailureKind.cacheDisposed,
+            path: canonicalPath,
+            message: 'The project session closed while the image was loading.',
+          ),
+        );
+      }
+      final image = result.image;
+      if (image == null) {
+        return EditorImageLoadResult.failure(
+          EditorImageFailure(
+            kind: EditorImageFailureKind.decodeFailed,
+            path: canonicalPath,
+            message: 'The decoded image is unavailable.',
+          ),
+        );
+      }
+      try {
+        return EditorImageLoadResult.success(image.clone());
+      } on Object catch (error) {
+        return EditorImageLoadResult.failure(
+          EditorImageFailure(
+            kind: EditorImageFailureKind.cacheDisposed,
+            path: canonicalPath,
+            message: 'The project image became unavailable before acquisition.',
+            cause: error,
+          ),
+        );
+      }
+    } finally {
+      entry.pendingAcquisitions--;
+      if (entry.retirementRequested && entry.pendingAcquisitions == 0) {
+        _scheduleEntryRetirement(entry);
+      }
     }
   }
 
-  void _retire(Future<_EditorImageMasterResult> future) {
+  void _trackDecode(
+    _EditorImageSlot slot,
+    _EditorImageCacheEntry entry,
+  ) {
+    _inFlightLoads++;
     unawaited(
-      future.then((result) {
+      entry.future.then<void>((result) {
+        _inFlightLoads--;
+        if (result.failure != null) {
+          if (identical(_entries[slot], entry)) {
+            _entries.remove(slot);
+          }
+          return;
+        }
         final image = result.image;
         if (image == null) return;
-        _scheduleImageDisposal(image);
+        if (identical(_entries[slot], entry)) {
+          _admitDecodedEntry(slot, entry, image);
+        }
+        if (_disposed) _requestRetirement(entry);
+      }),
+    );
+  }
+
+  void _admitDecodedEntry(
+    _EditorImageSlot slot,
+    _EditorImageCacheEntry entry,
+    ui.Image image,
+  ) {
+    if (entry.decodedBytes == 0) {
+      entry.decodedBytes = image.width * image.height * 4;
+      _residentDecodedBytes += entry.decodedBytes;
+      if (_residentDecodedBytes > _peakDecodedBytes) {
+        _peakDecodedBytes = _residentDecodedBytes;
+      }
+    }
+    while (_residentDecodedBytes > maximumDecodedBytes) {
+      MapEntry<_EditorImageSlot, _EditorImageCacheEntry>? victim;
+      for (final candidate in _entries.entries) {
+        if (candidate.value.decodedBytes > 0) {
+          victim = candidate;
+          break;
+        }
+      }
+      if (victim == null) break;
+      _evictions++;
+      _removeEntry(victim.key, victim.value);
+      if (identical(victim.value, entry)) break;
+    }
+  }
+
+  void _touch(_EditorImageSlot slot, _EditorImageCacheEntry entry) {
+    if (!identical(_entries.remove(slot), entry)) return;
+    _entries[slot] = entry;
+  }
+
+  void _removeEntry(
+    _EditorImageSlot slot,
+    _EditorImageCacheEntry entry,
+  ) {
+    if (identical(_entries[slot], entry)) {
+      _entries.remove(slot);
+      _residentDecodedBytes -= entry.decodedBytes;
+    }
+    _requestRetirement(entry);
+  }
+
+  void _requestRetirement(_EditorImageCacheEntry entry) {
+    entry.retirementRequested = true;
+    if (entry.pendingAcquisitions == 0) {
+      _scheduleEntryRetirement(entry);
+    }
+  }
+
+  void _scheduleEntryRetirement(_EditorImageCacheEntry entry) {
+    if (entry.retirementScheduled) return;
+    entry.retirementScheduled = true;
+    unawaited(
+      entry.future.then<void>((result) {
+        final image = result.image;
+        if (image != null) _scheduleImageDisposal(image);
       }),
     );
   }
@@ -520,13 +760,17 @@ class _EditorImageFingerprint {
 }
 
 class _EditorImageCacheEntry {
-  const _EditorImageCacheEntry({
+  _EditorImageCacheEntry({
     required this.fingerprint,
     required this.future,
   });
 
   final _EditorImageFingerprint fingerprint;
   final Future<_EditorImageMasterResult> future;
+  int decodedBytes = 0;
+  int pendingAcquisitions = 0;
+  bool retirementRequested = false;
+  bool retirementScheduled = false;
 }
 
 class _EditorImageMasterResult {

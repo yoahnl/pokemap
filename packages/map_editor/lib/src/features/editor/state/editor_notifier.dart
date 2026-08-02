@@ -486,10 +486,14 @@ class EditorNotifier extends _$EditorNotifier
     debugPrint('EditorNotifier: createProject($name, $directory)');
     final lease = _beginMapDiskMutationLease();
     if (lease == null) return MapActivationOutcome.busy;
+    var authoringCandidatePrepared = false;
     try {
       final useCase = ref.read(createProjectUseCaseProvider);
       final manifest = await useCase.execute(name, directory);
+      await _prepareEditorAuthoringCandidate(directory);
+      authoringCandidatePrepared = true;
       if (!_canAdoptMapDiskMutation(lease)) {
+        await _discardEditorAuthoringSessions(directory);
         return MapActivationOutcome.unavailable;
       }
       state = _projectSessionController.openProjectSession(
@@ -503,12 +507,19 @@ class EditorNotifier extends _$EditorNotifier
       );
       _renewProjectSessionIdentity();
       _narrativeAuthoringSaveInterlock = null;
+      await _activateEditorAuthoringSessions(directory);
       await initializeNarrativeDocumentSession();
       await _rememberLastOpenedProjectManifest(
         p.join(directory, 'project.json'),
       );
       return MapActivationOutcome.activated;
     } catch (e) {
+      final visibleRoot = state.projectRootPath;
+      if (authoringCandidatePrepared &&
+          (visibleRoot == null ||
+              p.normalize(visibleRoot) != p.normalize(directory))) {
+        await _discardEditorAuthoringSessions(directory);
+      }
       debugPrint('EditorNotifier: Error creating project: $e');
       state =
           state.copyWith(errorMessage: 'Impossible de créer le projet : $e');
@@ -587,13 +598,15 @@ class EditorNotifier extends _$EditorNotifier
       debugPrint('EditorNotifier: loadProject($manifestPath)');
     }
     var didAdoptProject = false;
+    final projectDir = p.dirname(manifestPath);
     try {
+      await _prepareEditorAuthoringCandidate(projectDir);
       final useCase = ref.read(loadProjectUseCaseProvider);
       final manifest = await useCase.execute(manifestPath);
       if (!_canAdoptMapDiskMutation(operationLease)) {
+        await _discardEditorAuthoringSessions(projectDir);
         return MapActivationOutcome.unavailable;
       }
-      final projectDir = p.dirname(manifestPath);
       final nonCanonicalMapIds = _projectMapIdPolicy.nonCanonicalIds(
         manifest.maps.map((entry) => entry.id),
       );
@@ -619,6 +632,7 @@ class EditorNotifier extends _$EditorNotifier
       );
       _renewProjectSessionIdentity();
       _narrativeAuthoringSaveInterlock = null;
+      await _activateEditorAuthoringSessions(projectDir);
       await initializeNarrativeDocumentSession();
       didAdoptProject = true;
       _refreshMapDiskMutationLeaseBaseline(effectiveLeaseToken);
@@ -628,6 +642,12 @@ class EditorNotifier extends _$EditorNotifier
       }
       return MapActivationOutcome.activated;
     } catch (e) {
+      final visibleRoot = state.projectRootPath;
+      if (!didAdoptProject &&
+          (visibleRoot == null ||
+              p.normalize(visibleRoot) != p.normalize(projectDir))) {
+        await _discardEditorAuthoringSessions(projectDir);
+      }
       final canReportFailure = didAdoptProject
           ? _ownsMapDiskMutationLease(effectiveLeaseToken)
           : _canAdoptMapDiskMutation(operationLease);
@@ -651,6 +671,43 @@ class EditorNotifier extends _$EditorNotifier
     } finally {
       _republishNarrativeEventSourceMapWriteLease(effectiveLeaseToken);
       if (ownsLease) _endMapDiskMutationLease(operationLease);
+    }
+  }
+
+  Future<void> _activateEditorAuthoringSessions(String projectRootPath) async {
+    try {
+      await ref
+          .read(editorAuthoringSessionLifecycleProvider)
+          .activate(projectRootPath);
+    } on Object catch (error, stackTrace) {
+      debugPrint(
+        'EditorNotifier: Authoring session cleanup failed after activation: '
+        '$error\n$stackTrace',
+      );
+      state = state.copyWith(
+        statusMessage:
+            'Projet ouvert, mais certaines ressources de l’ancien projet '
+            'n’ont pas pu être libérées proprement.',
+      );
+    }
+  }
+
+  Future<void> _prepareEditorAuthoringCandidate(String projectRootPath) {
+    return ref
+        .read(editorAuthoringSessionLifecycleProvider)
+        .prepareCandidate(projectRootPath);
+  }
+
+  Future<void> _discardEditorAuthoringSessions(String projectRootPath) async {
+    try {
+      await ref
+          .read(editorAuthoringSessionLifecycleProvider)
+          .discard(projectRootPath);
+    } on Object catch (error, stackTrace) {
+      debugPrint(
+        'EditorNotifier: Authoring candidate cleanup failed: '
+        '$error\n$stackTrace',
+      );
     }
   }
 

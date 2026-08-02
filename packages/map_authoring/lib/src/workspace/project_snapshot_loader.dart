@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:isolate';
+import 'dart:typed_data';
 
 import 'package:map_core/map_core.dart';
 
@@ -14,6 +16,117 @@ enum ProjectSnapshotLoadPolicy {
   editorReadProjection,
 }
 
+typedef ProjectSnapshotLoadProfileSink = void Function(
+  ProjectSnapshotLoadProfile profile,
+);
+
+typedef ProjectSnapshotDecodeWorkerRunner = Future<T> Function<T>(
+  T Function() operation,
+);
+
+final class ProjectSnapshotDecodeDiagnostics {
+  const ProjectSnapshotDecodeDiagnostics({
+    required this.localOperations,
+    required this.workerOperations,
+    required this.workerFailures,
+  });
+
+  final int localOperations;
+  final int workerOperations;
+  final int workerFailures;
+}
+
+/// Thresholded executor for structured snapshot decoding.
+///
+/// Workspace authorization, file reads, double observation and snapshot
+/// assembly remain on the caller isolate. Only pure UTF-8/JSON/model work is
+/// eligible for an isolate worker.
+final class ProjectSnapshotDecodeExecutor {
+  ProjectSnapshotDecodeExecutor({
+    this.offloadThresholdBytes = defaultOffloadThresholdBytes,
+    ProjectSnapshotDecodeWorkerRunner? workerRunner,
+  }) : _workerRunner = workerRunner ?? _runProjectSnapshotDecodeWorker {
+    if (offloadThresholdBytes < 0) {
+      throw ArgumentError.value(
+        offloadThresholdBytes,
+        'offloadThresholdBytes',
+        'must not be negative',
+      );
+    }
+  }
+
+  static const int defaultOffloadThresholdBytes = 1024 * 1024;
+
+  final int offloadThresholdBytes;
+  final ProjectSnapshotDecodeWorkerRunner _workerRunner;
+
+  var _localOperations = 0;
+  var _workerOperations = 0;
+  var _workerFailures = 0;
+
+  ProjectSnapshotDecodeDiagnostics get diagnostics =>
+      ProjectSnapshotDecodeDiagnostics(
+        localOperations: _localOperations,
+        workerOperations: _workerOperations,
+        workerFailures: _workerFailures,
+      );
+
+  Future<ProjectManifest> decodeManifest(List<int> bytes) =>
+      _execute(bytes, _decodeManifest);
+
+  Future<MapData> decodeMap(List<int> bytes) => _execute(bytes, _decodeMap);
+
+  Future<AssetCatalog> decodeAssetCatalog(List<int> bytes) =>
+      _execute(bytes, _decodeAssetCatalog);
+
+  Future<T> _execute<T>(
+    List<int> bytes,
+    T Function(List<int>) decode,
+  ) async {
+    if (bytes.length < offloadThresholdBytes) {
+      _localOperations++;
+      return decode(bytes);
+    }
+    final ownedBytes = bytes is Uint8List ? bytes : Uint8List.fromList(bytes);
+    _workerOperations++;
+    try {
+      return await _workerRunner(() => decode(ownedBytes));
+    } on Object {
+      _workerFailures++;
+      rethrow;
+    }
+  }
+}
+
+Future<T> _runProjectSnapshotDecodeWorker<T>(T Function() operation) =>
+    Isolate.run(operation);
+
+/// Timing and resource-volume observation for one successful snapshot load.
+///
+/// Profiling is opt-in through [ProjectSnapshotLoader.profileSink]. Without a
+/// sink the loader does not create a profiler or any stage stopwatches.
+final class ProjectSnapshotLoadProfile {
+  const ProjectSnapshotLoadProfile({
+    required this.initialReadMicroseconds,
+    required this.decodeModelMicroseconds,
+    required this.secondObservationMicroseconds,
+    required this.fingerprintMicroseconds,
+    required this.projectionMicroseconds,
+    required this.totalMicroseconds,
+    required this.resourceCount,
+    required this.resourceBytes,
+  });
+
+  final int initialReadMicroseconds;
+  final int decodeModelMicroseconds;
+  final int secondObservationMicroseconds;
+  final int fingerprintMicroseconds;
+  final int projectionMicroseconds;
+  final int totalMicroseconds;
+  final int resourceCount;
+  final int resourceBytes;
+}
+
 /// Loads every manifest-declared map and external dialogue source twice to
 /// reject mixed disk revisions.
 ///
@@ -21,19 +134,33 @@ enum ProjectSnapshotLoadPolicy {
 /// ensures this API never claims a coherent snapshot after observing a change
 /// in any resource that contributes to the returned revision.
 final class ProjectSnapshotLoader {
-  const ProjectSnapshotLoader({
+  ProjectSnapshotLoader({
     required WorkspaceHandleStore handles,
-  }) : _handles = handles;
+    this.profileSink,
+    this.maxConcurrentSecondObservations = 8,
+    ProjectSnapshotDecodeExecutor? decodeExecutor,
+  })  : assert(maxConcurrentSecondObservations > 0),
+        _decodeExecutor = decodeExecutor ?? ProjectSnapshotDecodeExecutor(),
+        _handles = handles;
 
   final WorkspaceHandleStore _handles;
+  final ProjectSnapshotDecodeExecutor _decodeExecutor;
+  final ProjectSnapshotLoadProfileSink? profileSink;
+  final int maxConcurrentSecondObservations;
 
   Future<ProjectSnapshot> load(
     ProjectHandle projectHandle, {
     ProjectSnapshotLoadPolicy policy = ProjectSnapshotLoadPolicy.strict,
   }) async {
+    final profiler =
+        profileSink == null ? null : _ProjectSnapshotLoadProfiler();
     final access = _handles.resolveProject(projectHandle);
-    final manifestBytes = await access.readBytes('project.json');
-    final manifest = _decodeManifest(manifestBytes);
+    final manifestReadTimer = profiler?.startStage();
+    final manifestBytes = await access.readResourceBytes('project.json');
+    profiler?.recordInitialRead(manifestReadTimer!);
+
+    final manifestDecodeTimer = profiler?.startStage();
+    final manifest = await _decodeExecutor.decodeManifest(manifestBytes.bytes);
     final entries = _validatedMapEntries(manifest.maps);
     final resources = <_LoadedProjectResource>[
       _LoadedProjectResource(
@@ -44,9 +171,15 @@ final class ProjectSnapshotLoader {
     ];
     final maps = <MapData>[];
     final loadDiagnostics = <ProjectSnapshotLoadDiagnostic>[];
+    profiler?.recordDecodeModel(manifestDecodeTimer!);
+
     for (final entry in entries) {
-      final bytes = await access.readBytes(entry.relativePath);
-      final map = _decodeMap(bytes);
+      final mapReadTimer = profiler?.startStage();
+      final bytes = await access.readResourceBytes(entry.relativePath);
+      profiler?.recordInitialRead(mapReadTimer!);
+
+      final mapDecodeTimer = profiler?.startStage();
+      final map = await _decodeExecutor.decodeMap(bytes.bytes);
       if (map.id != entry.id) {
         throw const ProjectSnapshotException(
           'project.map_identity_mismatch',
@@ -61,23 +194,37 @@ final class ProjectSnapshotLoader {
           bytes: bytes,
         ),
       );
+      profiler?.recordDecodeModel(mapDecodeTimer!);
     }
+
+    final dialogueValidationTimer = profiler?.startStage();
     final occupiedPaths = <String>{
       for (final resource in resources) resource.relativePath,
     };
-    for (final entry in _validatedDialogueEntries(manifest.dialogues)) {
+    final dialogueEntries = _validatedDialogueEntries(manifest.dialogues);
+    profiler?.recordDecodeModel(dialogueValidationTimer!);
+
+    for (final entry in dialogueEntries) {
+      final dialoguePathTimer = profiler?.startStage();
       if (!occupiedPaths.add(entry.relativePath)) {
         throw const ProjectSnapshotException(
           'project.resource_path_conflict',
           'Two project resources resolve to the same storage path.',
         );
       }
-      late final List<int> bytes;
+      profiler?.recordDecodeModel(dialoguePathTimer!);
+
+      late final ProjectResourceBytes bytes;
       try {
-        bytes = await _readRequiredDialogueSource(
-          access,
-          entry.relativePath,
-        );
+        final dialogueReadTimer = profiler?.startStage();
+        try {
+          bytes = await _readRequiredDialogueSource(
+            access,
+            entry.relativePath,
+          );
+        } finally {
+          profiler?.recordInitialRead(dialogueReadTimer!);
+        }
       } on ProjectSnapshotException catch (error) {
         if (policy != ProjectSnapshotLoadPolicy.editorReadProjection ||
             error.code != 'project.dialogue_source_missing') {
@@ -92,6 +239,8 @@ final class ProjectSnapshotLoader {
         );
         continue;
       }
+
+      final dialogueDecodeTimer = profiler?.startStage();
       resources.add(
         _LoadedProjectResource(
           relativePath: entry.relativePath,
@@ -99,13 +248,20 @@ final class ProjectSnapshotLoader {
           bytes: bytes,
         ),
       );
+      profiler?.recordDecodeModel(dialogueDecodeTimer!);
     }
+
+    final assetCatalogReadTimer = profiler?.startStage();
     final assetCatalogBytes = await _readOptional(
       access,
       assetCatalogStorageKey,
     );
+    profiler?.recordInitialRead(assetCatalogReadTimer!);
     if (assetCatalogBytes != null) {
-      final catalog = _decodeAssetCatalog(assetCatalogBytes);
+      final assetCatalogDecodeTimer = profiler?.startStage();
+      final catalog = await _decodeExecutor.decodeAssetCatalog(
+        assetCatalogBytes.bytes,
+      );
       resources.add(
         _LoadedProjectResource(
           relativePath: assetCatalogStorageKey,
@@ -118,11 +274,17 @@ final class ProjectSnapshotLoader {
           .toSet()
           .toList()
         ..sort((left, right) => left.digest.compareTo(right.digest));
+      profiler?.recordDecodeModel(assetCatalogDecodeTimer!);
+
       for (final artifact in digests) {
         final storageKey = assetBlobStorageKey(artifact);
+        final assetBlobReadTimer = profiler?.startStage();
         final bytes = await _readRequiredAssetBlob(access, storageKey);
+        profiler?.recordInitialRead(assetBlobReadTimer!);
+
+        final assetBlobDecodeTimer = profiler?.startStage();
         final inspected = ContentArtifactRef.fromBytes(
-          bytes,
+          bytes.bytes,
           mediaType: artifact.mediaType,
         );
         if (inspected.digest != artifact.digest ||
@@ -139,43 +301,64 @@ final class ProjectSnapshotLoader {
             bytes: bytes,
           ),
         );
+        profiler?.recordDecodeModel(assetBlobDecodeTimer!);
       }
     }
+
+    final resourceOrderingTimer = profiler?.startStage();
     resources.sort(
       (left, right) => left.relativePath.compareTo(right.relativePath),
     );
-    for (final resource in resources) {
-      final reread = await access.readBytes(resource.relativePath);
-      if (!_bytesEqual(resource.bytes, reread)) {
+    profiler?.recordDecodeModel(resourceOrderingTimer!);
+
+    final secondObservationTimer = profiler?.startStage();
+    final matches = await _matchSecondObservations(
+      access,
+      resources,
+    );
+    for (var index = 0; index < resources.length; index += 1) {
+      if (!matches[index]) {
         throw const ProjectSnapshotException(
           'project.changed_during_snapshot',
           'A project resource changed while the snapshot was loading.',
         );
       }
     }
-    final revision = computeNarrativeProjectFingerprint([
-      for (final resource in resources)
-        NarrativeProjectFingerprintEntry(
+    profiler?.recordSecondObservation(secondObservationTimer!);
+
+    final fingerprintTimer = profiler?.startStage();
+    final revisionBuilder = NarrativeProjectFingerprintBuilder();
+    for (final resource in resources) {
+      revisionBuilder
+        ..startEntry(
           relativePath: resource.relativePath,
-          bytes: resource.bytes,
-        ),
-    ]);
-    final resourceFingerprints = <String, String>{
-      for (final resource in resources)
-        resource.identity: computeNarrativeProjectFingerprint([
-          NarrativeProjectFingerprintEntry(
-            relativePath: resource.relativePath,
-            bytes: resource.bytes,
-          ),
-        ]),
-    };
-    return ProjectSnapshot(
+          byteLength: resource.bytes.bytes.length,
+        )
+        ..addBytes(resource.bytes.bytes)
+        ..endEntry();
+    }
+    final revision = revisionBuilder.close();
+    final resourceFingerprints = <String, String>{};
+    for (final resource in resources) {
+      final builder = NarrativeProjectFingerprintBuilder()
+        ..startEntry(
+          relativePath: resource.relativePath,
+          byteLength: resource.bytes.bytes.length,
+        )
+        ..addBytes(resource.bytes.bytes)
+        ..endEntry();
+      resourceFingerprints[resource.identity] = builder.close();
+    }
+    profiler?.recordFingerprint(fingerprintTimer!);
+
+    final projectionTimer = profiler?.startStage();
+    final snapshot = ProjectSnapshot(
       projectHandle: projectHandle,
       revision: revision,
       manifest: manifest,
       maps: maps,
       resourceFingerprints: resourceFingerprints,
-      resourceBytes: {
+      ownedResourceBytes: {
         for (final resource in resources) resource.identity: resource.bytes,
       },
       resourceStorageKeys: {
@@ -184,15 +367,58 @@ final class ProjectSnapshotLoader {
       },
       loadDiagnostics: loadDiagnostics,
     );
+    profiler?.recordProjection(projectionTimer!);
+
+    if (profiler != null) {
+      profileSink!(
+        profiler.finish(
+          resourceCount: resources.length,
+          resourceBytes: resources.fold<int>(
+            0,
+            (total, resource) => total + resource.bytes.bytes.length,
+          ),
+        ),
+      );
+    }
+    return snapshot;
+  }
+
+  Future<List<bool>> _matchSecondObservations(
+    ProjectWorkspaceAccess access,
+    List<_LoadedProjectResource> resources,
+  ) async {
+    final matches = List<bool>.filled(resources.length, false);
+    var nextIndex = 0;
+
+    Future<void> observeNext() async {
+      while (true) {
+        final index = nextIndex;
+        if (index >= resources.length) return;
+        nextIndex = index + 1;
+        final resource = resources[index];
+        matches[index] = await access.matchesResourceBytes(
+          resource.relativePath,
+          resource.bytes.bytes,
+        );
+      }
+    }
+
+    final workerCount = resources.length < maxConcurrentSecondObservations
+        ? resources.length
+        : maxConcurrentSecondObservations;
+    await Future.wait<void>(
+      List<Future<void>>.generate(workerCount, (_) => observeNext()),
+    );
+    return matches;
   }
 }
 
-Future<List<int>> _readRequiredDialogueSource(
+Future<ProjectResourceBytes> _readRequiredDialogueSource(
   ProjectWorkspaceAccess access,
   String relativePath,
 ) async {
   try {
-    return await access.readBytes(relativePath);
+    return await access.readResourceBytes(relativePath);
   } on WorkspaceAccessException catch (error) {
     if (error.code == 'workspace.file_unavailable') {
       throw const ProjectSnapshotException(
@@ -204,24 +430,24 @@ Future<List<int>> _readRequiredDialogueSource(
   }
 }
 
-Future<List<int>?> _readOptional(
+Future<ProjectResourceBytes?> _readOptional(
   ProjectWorkspaceAccess access,
   String relativePath,
 ) async {
   try {
-    return await access.readBytes(relativePath);
+    return await access.readResourceBytes(relativePath);
   } on WorkspaceAccessException catch (error) {
     if (error.code == 'workspace.file_unavailable') return null;
     rethrow;
   }
 }
 
-Future<List<int>> _readRequiredAssetBlob(
+Future<ProjectResourceBytes> _readRequiredAssetBlob(
   ProjectWorkspaceAccess access,
   String relativePath,
 ) async {
   try {
-    return await access.readBytes(relativePath);
+    return await access.readResourceBytes(relativePath);
   } on WorkspaceAccessException catch (error) {
     if (error.code == 'workspace.file_unavailable') {
       throw const ProjectSnapshotException(
@@ -352,22 +578,69 @@ MapData _decodeMap(List<int> bytes) {
   }
 }
 
-bool _bytesEqual(List<int> left, List<int> right) {
-  if (left.length != right.length) return false;
-  for (var index = 0; index < left.length; index++) {
-    if (left[index] != right[index]) return false;
-  }
-  return true;
-}
-
 final class _LoadedProjectResource {
-  _LoadedProjectResource({
+  const _LoadedProjectResource({
     required this.relativePath,
     required this.identity,
-    required List<int> bytes,
-  }) : bytes = List.unmodifiable(bytes);
+    required this.bytes,
+  });
 
   final String relativePath;
   final String identity;
-  final List<int> bytes;
+  final ProjectResourceBytes bytes;
+}
+
+final class _ProjectSnapshotLoadProfiler {
+  _ProjectSnapshotLoadProfiler() : _total = Stopwatch()..start();
+
+  final Stopwatch _total;
+  var _initialReadMicroseconds = 0;
+  var _decodeModelMicroseconds = 0;
+  var _secondObservationMicroseconds = 0;
+  var _fingerprintMicroseconds = 0;
+  var _projectionMicroseconds = 0;
+
+  Stopwatch startStage() => Stopwatch()..start();
+
+  void recordInitialRead(Stopwatch stopwatch) {
+    _initialReadMicroseconds += _stop(stopwatch);
+  }
+
+  void recordDecodeModel(Stopwatch stopwatch) {
+    _decodeModelMicroseconds += _stop(stopwatch);
+  }
+
+  void recordSecondObservation(Stopwatch stopwatch) {
+    _secondObservationMicroseconds += _stop(stopwatch);
+  }
+
+  void recordFingerprint(Stopwatch stopwatch) {
+    _fingerprintMicroseconds += _stop(stopwatch);
+  }
+
+  void recordProjection(Stopwatch stopwatch) {
+    _projectionMicroseconds += _stop(stopwatch);
+  }
+
+  ProjectSnapshotLoadProfile finish({
+    required int resourceCount,
+    required int resourceBytes,
+  }) {
+    _total.stop();
+    return ProjectSnapshotLoadProfile(
+      initialReadMicroseconds: _initialReadMicroseconds,
+      decodeModelMicroseconds: _decodeModelMicroseconds,
+      secondObservationMicroseconds: _secondObservationMicroseconds,
+      fingerprintMicroseconds: _fingerprintMicroseconds,
+      projectionMicroseconds: _projectionMicroseconds,
+      totalMicroseconds: _total.elapsedMicroseconds,
+      resourceCount: resourceCount,
+      resourceBytes: resourceBytes,
+    );
+  }
+}
+
+int _stop(Stopwatch stopwatch) {
+  stopwatch.stop();
+  return stopwatch.elapsedMicroseconds;
 }

@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core_providers.dart';
 import 'package:map_editor/src/application/models/map_history_snapshot.dart';
 import 'package:map_editor/src/application/models/narrative_event_spatial_source_creation_models.dart';
+import 'package:map_editor/src/application/authoring_api/authoring_session_lifecycle.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/services/map_dependency_preflight_service.dart';
 import 'package:map_editor/src/domain/repositories/repositories.dart';
@@ -1125,6 +1127,11 @@ final class _ActivationFixture {
         projectWorkspaceFactoryProvider.overrideWith(
           (ref) => const _ActivationWorkspaceFactory(),
         ),
+        editorAuthoringSessionLifecycleProvider.overrideWith(
+          (ref) => EditorAuthoringSessionLifecycle(
+            fileReader: const _ActivationProjectFileReader(),
+          ),
+        ),
         borderPreviewControllerProvider.overrideWith((ref) => preview),
       ],
     );
@@ -1144,6 +1151,21 @@ final class _ActivationFixture {
     expect(repository.savedPaths, isEmpty);
     expect(repository.deletedPaths, isEmpty);
     expect(projectRepository.savedProjects, isEmpty);
+  }
+}
+
+final class _ActivationProjectFileReader implements ProjectFileReader {
+  const _ActivationProjectFileReader();
+
+  @override
+  Future<String> canonicalizeDirectory(String path) async => path;
+
+  @override
+  Future<List<int>> readBytes({
+    required String projectRoot,
+    required String relativePath,
+  }) {
+    throw UnsupportedError('Activation lifecycle tests do not read files.');
   }
 }
 

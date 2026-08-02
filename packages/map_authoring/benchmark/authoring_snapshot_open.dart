@@ -63,7 +63,19 @@ Future<void> main(List<String> arguments) async {
         for (var index = 0; index < warmups; index += 1) {
           await _measure(fixture, roots, cycles);
         }
-        final measured = <({int elapsedUs, String checksum, int maps})>[];
+        final measured = <({
+          int elapsedUs,
+          String checksum,
+          int maps,
+          int resourceCount,
+          int resourceBytes,
+          int initialReadUs,
+          int decodeModelUs,
+          int secondObservationUs,
+          int fingerprintUs,
+          int projectionUs,
+          int loaderTotalUs,
+        })>[];
         for (var index = 0; index < samples; index += 1) {
           measured.add(await _measure(fixture, roots, cycles));
         }
@@ -79,9 +91,43 @@ Future<void> main(List<String> arguments) async {
           'rootCount': rootCount,
           'cyclesPerSample': cycles,
           'mapCount': measured.first.maps,
+          'resourceCount': measured.first.resourceCount,
+          'resourceBytes': measured.first.resourceBytes,
           'datasetFingerprint': fingerprint,
           'snapshotChecksum': checksum,
           'rssBytesAfterSamples': ProcessInfo.currentRss,
+          'snapshotProfile': <String, Object?>{
+            'initialRead': percentileFields(
+              measured
+                  .map((sample) => sample.initialReadUs)
+                  .toList(growable: false),
+            ),
+            'decodeModel': percentileFields(
+              measured
+                  .map((sample) => sample.decodeModelUs)
+                  .toList(growable: false),
+            ),
+            'secondObservation': percentileFields(
+              measured
+                  .map((sample) => sample.secondObservationUs)
+                  .toList(growable: false),
+            ),
+            'fingerprint': percentileFields(
+              measured
+                  .map((sample) => sample.fingerprintUs)
+                  .toList(growable: false),
+            ),
+            'projection': percentileFields(
+              measured
+                  .map((sample) => sample.projectionUs)
+                  .toList(growable: false),
+            ),
+            'total': percentileFields(
+              measured
+                  .map((sample) => sample.loaderTotalUs)
+                  .toList(growable: false),
+            ),
+          },
           ...percentileFields(
             measured.map((sample) => sample.elapsedUs).toList(growable: false),
           ),
@@ -118,7 +164,20 @@ Future<void> main(List<String> arguments) async {
 
 // Exercise the production policy, handle store, open service and strict
 // snapshot loader. A JSON-only parse would under-report authoring open cost.
-Future<({int elapsedUs, String checksum, int maps})> _measure(
+Future<
+    ({
+      int elapsedUs,
+      String checksum,
+      int maps,
+      int resourceCount,
+      int resourceBytes,
+      int initialReadUs,
+      int decodeModelUs,
+      int secondObservationUs,
+      int fingerprintUs,
+      int projectionUs,
+      int loaderTotalUs,
+    })> _measure(
   Directory fixture,
   List<String> allowedRoots,
   int cycles,
@@ -126,6 +185,7 @@ Future<({int elapsedUs, String checksum, int maps})> _measure(
   var token = 0;
   var mapCount = 0;
   final revisions = <String>[];
+  final profiles = <ProjectSnapshotLoadProfile>[];
   const reader = LocalProjectFileReader();
   final stopwatch = Stopwatch()..start();
   for (var cycle = 0; cycle < cycles; cycle += 1) {
@@ -142,7 +202,10 @@ Future<({int elapsedUs, String checksum, int maps})> _measure(
       fileReader: reader,
       handles: handles,
     ).openProject(fixture.path);
-    final snapshot = await ProjectSnapshotLoader(handles: handles).load(
+    final snapshot = await ProjectSnapshotLoader(
+      handles: handles,
+      profileSink: profiles.add,
+    ).load(
       opened.projectHandle,
       policy: ProjectSnapshotLoadPolicy.strict,
     );
@@ -150,10 +213,49 @@ Future<({int elapsedUs, String checksum, int maps})> _measure(
     revisions.add(snapshot.revision);
   }
   stopwatch.stop();
+  if (profiles.length != cycles) {
+    throw StateError(
+      'Expected $cycles snapshot profiles, received ${profiles.length}.',
+    );
+  }
+  final resources = profiles.first;
+  if (profiles.any(
+    (profile) =>
+        profile.resourceCount != resources.resourceCount ||
+        profile.resourceBytes != resources.resourceBytes,
+  )) {
+    throw StateError('Snapshot resource volume changed between cycles.');
+  }
   return (
     elapsedUs: stopwatch.elapsedMicroseconds,
     checksum: stableFingerprint(revisions),
     maps: mapCount ~/ cycles,
+    resourceCount: resources.resourceCount,
+    resourceBytes: resources.resourceBytes,
+    initialReadUs: profiles.fold<int>(
+      0,
+      (total, profile) => total + profile.initialReadMicroseconds,
+    ),
+    decodeModelUs: profiles.fold<int>(
+      0,
+      (total, profile) => total + profile.decodeModelMicroseconds,
+    ),
+    secondObservationUs: profiles.fold<int>(
+      0,
+      (total, profile) => total + profile.secondObservationMicroseconds,
+    ),
+    fingerprintUs: profiles.fold<int>(
+      0,
+      (total, profile) => total + profile.fingerprintMicroseconds,
+    ),
+    projectionUs: profiles.fold<int>(
+      0,
+      (total, profile) => total + profile.projectionMicroseconds,
+    ),
+    loaderTotalUs: profiles.fold<int>(
+      0,
+      (total, profile) => total + profile.totalMicroseconds,
+    ),
   );
 }
 
@@ -169,10 +271,7 @@ Future<Directory> _resolveFixture(String name) async {
         '${repository.path}/examples/playable_runtime_host/golden_fangame_slice',
       );
     case 'selbrume':
-      return Directory(
-        '${repository.path}/examples/playable_runtime_host/'
-        'event_builder_v2_selbrume_slice',
-      );
+      return Directory('${repository.path}/selbrume');
     case 'synthetic-10mb':
       return _syntheticFixture();
   }
@@ -205,7 +304,7 @@ Future<Directory> _syntheticFixture() async {
 }
 
 Future<List<String>> _allowedRoots(Directory fixture, int count) async {
-  final roots = <String>[fixture.parent.resolveSymbolicLinksSync()];
+  final roots = <String>[fixture.resolveSymbolicLinksSync()];
   final dummyRoot = Directory('build/performance/roots');
   await dummyRoot.create(recursive: true);
   for (var index = 1; index < count; index += 1) {

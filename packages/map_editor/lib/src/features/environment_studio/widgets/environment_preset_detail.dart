@@ -17,6 +17,7 @@ class EnvironmentPresetDetail extends StatelessWidget {
     required this.labelColor,
     required this.subtleColor,
     required this.manifest,
+    this.projectRootPath,
     this.resolveTilesetPathById,
     this.onEditAsDraft,
     this.onEditPalette,
@@ -24,6 +25,7 @@ class EnvironmentPresetDetail extends StatelessWidget {
 
   final EnvironmentPreset preset;
   final ProjectManifest manifest;
+  final String? projectRootPath;
   final List<ProjectElementEntry> projectElements;
   final EnvironmentAuthoringDiagnosticsReport report;
   final Color labelColor;
@@ -617,6 +619,7 @@ class EnvironmentPresetDetail extends StatelessWidget {
                         item: item,
                         subtleColor: subtleColor,
                         manifest: manifest,
+                        projectRootPath: projectRootPath,
                         element: _projectElement(item.elementId),
                         resolveTilesetPathById: resolveTilesetPathById,
                         isIncompatibleTileset:

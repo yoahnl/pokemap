@@ -83,7 +83,11 @@ final class LocalProjectFileReader implements ProjectFileReader {
           'The requested project resource changed while it was read.',
         );
       }
-      return List<int>.unmodifiable(bytes);
+      // `readAsBytes` gives this reader exclusive ownership of the backing
+      // buffer. Expose an immutable zero-copy view; the workspace capability
+      // will establish its own immutable ownership boundary before returning
+      // bytes to callers.
+      return bytes.asUnmodifiableView();
     } on WorkspaceAccessException {
       rethrow;
     } on FileSystemException {

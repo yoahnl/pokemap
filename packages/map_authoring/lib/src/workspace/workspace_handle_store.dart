@@ -46,6 +46,18 @@ final class WorkspaceHandleException implements Exception {
   String toString() => 'WorkspaceHandleException($code): $message';
 }
 
+/// Immutable bytes whose backing storage is owned by the workspace boundary.
+///
+/// The wrapper lets internal snapshot construction transfer that immutable
+/// storage without copying it again. Callers can only obtain instances from an
+/// authorized [ProjectWorkspaceAccess].
+final class ProjectResourceBytes {
+  ProjectResourceBytes._(List<int> bytes)
+      : bytes = List<int>.unmodifiable(bytes);
+
+  final List<int> bytes;
+}
+
 /// Authorized read-only access associated with an opaque project handle.
 ///
 /// The canonical filesystem root remains captured privately by [readBytes].
@@ -64,8 +76,23 @@ final class ProjectWorkspaceAccess {
   final DateTime expiresAt;
   final ProjectResourceReader _readBytes;
 
+  Future<ProjectResourceBytes> readResourceBytes(String relativePath) async =>
+      ProjectResourceBytes._(await _readBytes(relativePath));
+
   Future<List<int>> readBytes(String relativePath) async =>
-      List<int>.unmodifiable(await _readBytes(relativePath));
+      (await readResourceBytes(relativePath)).bytes;
+
+  Future<bool> matchesResourceBytes(
+    String relativePath,
+    List<int> expected,
+  ) async {
+    final observed = await _readBytes(relativePath);
+    if (observed.length != expected.length) return false;
+    for (var index = 0; index < expected.length; index++) {
+      if (observed[index] != expected[index]) return false;
+    }
+    return true;
+  }
 }
 
 final class RegisteredProjectHandles {
@@ -165,7 +192,10 @@ final class WorkspaceHandleStore {
     final stored = _requireActive(handle);
     final bytes = await stored.readBytes(relativePath);
     _requireActive(handle);
-    return List<int>.unmodifiable(bytes);
+    // ProjectWorkspaceAccess.readBytes is the single public freeze boundary.
+    // Keeping this transfer owned avoids copying every resource twice inside
+    // the handle store while preserving the post-read expiry check above.
+    return bytes;
   }
 
   void _remove(ProjectHandle handle, _StoredProjectAccess stored) {

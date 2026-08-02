@@ -1,31 +1,68 @@
+import 'dart:async';
+
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+
+import 'authoring_session_lifecycle.dart';
 
 /// Opens one coherent Authoring snapshot for the editor's read projections.
 ///
 /// This adapter intentionally exposes typed PokeMap models to the editor while
 /// keeping handles, path authorization, revision calculation, query ordering,
 /// pagination, and reference diagnostics owned by `map_authoring`.
-final class AuthoringQueryAdapter {
+final class AuthoringQueryAdapter
+    implements EditorAuthoringLifecycleParticipant {
   AuthoringQueryAdapter({required ProjectFileReader fileReader})
       : _fileReader = fileReader;
 
   final ProjectFileReader _fileReader;
   final Map<String, Future<EditorAuthoringReadSession>> _sessions = {};
+  final Set<String> _openingRoots = {};
+  String? _retainedRoot;
+  String? _candidateRoot;
+  int _retiringSessions = 0;
+  int _activeOperations = 0;
+  int _closeCount = 0;
+
+  EditorAuthoringSessionDiagnostics get diagnostics =>
+      EditorAuthoringSessionDiagnostics(
+        retainedRoot: _retainedRoot,
+        candidateRoot: _candidateRoot,
+        liveSessions: _sessions.length,
+        openingSessions: _openingRoots.length,
+        retiringSessions: _retiringSessions,
+        activeOperations: _activeOperations,
+        closeCount: _closeCount,
+      );
 
   Future<EditorAuthoringReadSession> open(String projectRootPath) async {
     final canonicalRoot =
         await _fileReader.canonicalizeDirectory(projectRootPath);
+    _requireAllowedRoot(canonicalRoot);
     final existing = _sessions[canonicalRoot];
     if (existing != null) {
       final session = await existing;
-      if (!session.isClosed) return session;
-      _sessions.remove(canonicalRoot);
+      if (identical(_sessions[canonicalRoot], existing) &&
+          !session.isClosed &&
+          _isAllowedRoot(canonicalRoot)) {
+        return session;
+      }
+      await session.close();
+      if (identical(_sessions[canonicalRoot], existing)) {
+        _sessions.remove(canonicalRoot);
+      }
+      throw const EditorAuthoringStaleSessionException();
     }
-    final opening = _openCanonical(canonicalRoot);
+    final opening = _openTracked(canonicalRoot);
     _sessions[canonicalRoot] = opening;
     try {
-      return await opening;
+      final session = await opening;
+      if (!identical(_sessions[canonicalRoot], opening) ||
+          !_isAllowedRoot(canonicalRoot)) {
+        await session.close();
+        throw const EditorAuthoringStaleSessionException();
+      }
+      return session;
     } on Object {
       if (identical(_sessions[canonicalRoot], opening)) {
         _sessions.remove(canonicalRoot);
@@ -34,18 +71,84 @@ final class AuthoringQueryAdapter {
     }
   }
 
+  @override
+  Future<void> allowCandidate(String canonicalRoot) async {
+    _candidateRoot = canonicalRoot == _retainedRoot ? null : canonicalRoot;
+  }
+
   Future<void> invalidate(String projectRootPath) async {
     final canonicalRoot =
         await _fileReader.canonicalizeDirectory(projectRootPath);
-    final session = _sessions.remove(canonicalRoot);
-    if (session != null) await (await session).close();
+    await closeProject(canonicalRoot);
   }
 
+  @override
+  Future<void> retainOnly(String canonicalRoot) async {
+    _retainedRoot = canonicalRoot;
+    _candidateRoot = null;
+    final retired = <Future<EditorAuthoringReadSession>>[];
+    for (final entry in _sessions.entries.toList(growable: false)) {
+      if (entry.key == canonicalRoot) continue;
+      if (identical(_sessions.remove(entry.key), entry.value)) {
+        retired.add(entry.value);
+      }
+    }
+    _retiringSessions += retired.length;
+    try {
+      await _closeSessions(retired);
+    } finally {
+      _retiringSessions -= retired.length;
+    }
+  }
+
+  @override
+  Future<void> closeProject(String canonicalRoot) async {
+    if (_candidateRoot == canonicalRoot) _candidateRoot = null;
+    final session = _sessions.remove(canonicalRoot);
+    if (session == null) return;
+    _retiringSessions++;
+    try {
+      await (await session).close();
+    } finally {
+      _retiringSessions--;
+    }
+  }
+
+  @override
   Future<void> closeAll() async {
     final sessions = _sessions.values.toList(growable: false);
     _sessions.clear();
-    for (final session in sessions) {
-      await (await session).close();
+    _retainedRoot = null;
+    _candidateRoot = null;
+    _retiringSessions += sessions.length;
+    try {
+      await _closeSessions(sessions);
+    } finally {
+      _retiringSessions -= sessions.length;
+    }
+  }
+
+  bool _isAllowedRoot(String canonicalRoot) {
+    final retainedRoot = _retainedRoot;
+    final candidateRoot = _candidateRoot;
+    if (retainedRoot == null && candidateRoot == null) return true;
+    return canonicalRoot == retainedRoot || canonicalRoot == candidateRoot;
+  }
+
+  void _requireAllowedRoot(String canonicalRoot) {
+    if (!_isAllowedRoot(canonicalRoot)) {
+      throw const EditorAuthoringStaleSessionException();
+    }
+  }
+
+  Future<EditorAuthoringReadSession> _openTracked(
+    String canonicalRoot,
+  ) async {
+    _openingRoots.add(canonicalRoot);
+    try {
+      return await _openCanonical(canonicalRoot);
+    } finally {
+      _openingRoots.remove(canonicalRoot);
     }
   }
 
@@ -83,6 +186,8 @@ final class AuthoringQueryAdapter {
         workspaceHandle: workspaceHandle,
         projectHandle: projectHandle,
         snapshot: snapshot,
+        onOperationDelta: (delta) => _activeOperations += delta,
+        onClosed: () => _closeCount++,
       );
     } on Object {
       await api.close(workspaceHandle);
@@ -98,17 +203,26 @@ final class EditorAuthoringReadSession {
     required WorkspaceHandle workspaceHandle,
     required ProjectHandle projectHandle,
     required ProjectSnapshot snapshot,
+    required void Function(int delta) onOperationDelta,
+    required void Function() onClosed,
   })  : _api = api,
         _workspaceHandle = workspaceHandle,
         _projectHandle = projectHandle,
-        _snapshot = snapshot;
+        _snapshot = snapshot,
+        _onOperationDelta = onOperationDelta,
+        _onClosed = onClosed;
 
   final AuthoringReadApiPort _api;
   final WorkspaceHandle _workspaceHandle;
   final ProjectHandle _projectHandle;
   final ProjectSnapshot _snapshot;
+  final void Function(int delta) _onOperationDelta;
+  final void Function() _onClosed;
   final ProjectQueryService _queries = const ProjectQueryService();
   bool _closed = false;
+  int _activeOperations = 0;
+  Completer<void>? _operationsDrained;
+  Future<void>? _closing;
 
   bool get isClosed => _closed;
 
@@ -161,9 +275,13 @@ final class EditorAuthoringReadSession {
 
   /// Validation is deliberately fresh. It uses the canonical API again so an
   /// external edit is visible instead of being hidden by the UI snapshot.
-  Future<Map<String, Object?>> validateFresh() {
-    _requireOpen();
-    return _api.validate(_projectHandle);
+  Future<Map<String, Object?>> validateFresh() async {
+    _beginOperation();
+    try {
+      return await _api.validate(_projectHandle);
+    } finally {
+      _endOperation();
+    }
   }
 
   /// Snapshot-local diagnostics used by ordinary panels. This avoids I/O and
@@ -192,9 +310,37 @@ final class EditorAuthoringReadSession {
   }
 
   Future<void> close() async {
-    if (_closed) return;
+    final closing = _closing;
+    if (closing != null) return closing;
+    final operation = _close();
+    _closing = operation;
+    return operation;
+  }
+
+  Future<void> _close() async {
     _closed = true;
+    if (_activeOperations > 0) {
+      _operationsDrained ??= Completer<void>();
+      await _operationsDrained!.future;
+    }
     await _api.close(_workspaceHandle);
+    _onClosed();
+  }
+
+  void _beginOperation() {
+    _requireOpen();
+    _activeOperations++;
+    _onOperationDelta(1);
+  }
+
+  void _endOperation() {
+    _activeOperations--;
+    _onOperationDelta(-1);
+    if (_activeOperations == 0) {
+      final drained = _operationsDrained;
+      _operationsDrained = null;
+      if (drained != null && !drained.isCompleted) drained.complete();
+    }
   }
 
   void _requireOpen() {
@@ -202,4 +348,12 @@ final class EditorAuthoringReadSession {
       throw StateError('The editor Authoring read session is closed.');
     }
   }
+}
+
+Future<void> _closeSessions(
+  Iterable<Future<EditorAuthoringReadSession>> sessions,
+) async {
+  await Future.wait<void>(
+    sessions.map((opening) async => (await opening).close()),
+  );
 }

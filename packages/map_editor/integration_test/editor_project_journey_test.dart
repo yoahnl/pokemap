@@ -28,6 +28,7 @@ void main() {
     final notifier = container.read(editorNotifierProvider.notifier);
     final timings = <FrameTiming>[];
     void captureTimings(List<FrameTiming> batch) => timings.addAll(batch);
+    var timingsCallbackRegistered = false;
 
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -42,8 +43,13 @@ void main() {
     // FrameTiming.totalSpan is captured directly. Build+raster is not a valid
     // substitute because those pipeline phases can overlap.
     SchedulerBinding.instance.addTimingsCallback(captureTimings);
+    timingsCallbackRegistered = true;
     addTearDown(
-      () => SchedulerBinding.instance.removeTimingsCallback(captureTimings),
+      () {
+        if (!timingsCallbackRegistered) return;
+        SchedulerBinding.instance.removeTimingsCallback(captureTimings);
+        timingsCallbackRegistered = false;
+      },
     );
 
     final phases = <Map<String, Object?>>[];
@@ -100,6 +106,7 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 100));
 
     SchedulerBinding.instance.removeTimingsCallback(captureTimings);
+    timingsCallbackRegistered = false;
     final frameMetrics = _frameMetrics(timings);
     expect(frameMetrics['frameCount'], greaterThan(0));
     expect(tester.takeException(), isNull);
@@ -108,6 +115,7 @@ void main() {
       'schemaVersion': 2,
       'generatorVersion': 1,
       'benchmark': 'editor_project_journey',
+      'target': 'integration_test/editor_project_journey_test.dart',
       'requestedOutputPath': _requestedOutputPath,
       'executionMode': const bool.fromEnvironment('dart.vm.profile')
           ? 'flutter-profile'

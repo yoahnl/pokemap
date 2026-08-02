@@ -21,10 +21,11 @@ import '../../domain/models/map_document_persistence.dart';
 import '../../domain/repositories/repositories.dart';
 import 'atomic_map_document_persistence.dart';
 import 'atomic_project_manifest_persistence.dart';
+import 'editor_persistence_codec_executor.dart';
 import 'narrative_event_registry_persistence.dart';
 import 'project_manifest_write_lock.dart';
 
-typedef _ProjectFileState = ({bool exists, String? revision});
+typedef _ProjectFileState = ({bool exists, List<int>? bytes});
 
 class FileProjectRepository
     implements ProjectRepository, NarrativeEventRegistryPersistenceGateway {
@@ -33,10 +34,12 @@ class FileProjectRepository
     AtomicProjectManifestPersistence? narrativeAuthoringPersistence,
     MapLifecycleTransactionCoordinator? mapLifecycleTransactions,
     AuthoringQueryAdapter? authoringQueries,
+    EditorPersistenceCodecExecutor? codecExecutor,
   })  : _eventRegistryPersistence =
             eventRegistryPersistence ?? NarrativeEventRegistryPersistence(),
         _mapLifecycleTransactions = mapLifecycleTransactions,
-        _authoringQueries = authoringQueries {
+        _authoringQueries = authoringQueries,
+        _codecExecutor = codecExecutor ?? EditorPersistenceCodecExecutor() {
     _narrativeAuthoringPersistence = narrativeAuthoringPersistence ??
         AtomicProjectManifestPersistence(
           eventRegistryPersistence: _eventRegistryPersistence,
@@ -46,6 +49,7 @@ class FileProjectRepository
   final NarrativeEventRegistryPersistence _eventRegistryPersistence;
   final MapLifecycleTransactionCoordinator? _mapLifecycleTransactions;
   final AuthoringQueryAdapter? _authoringQueries;
+  final EditorPersistenceCodecExecutor _codecExecutor;
   late final AtomicProjectManifestPersistence _narrativeAuthoringPersistence;
 
   AtomicProjectManifestPersistence get narrativeAuthoringPersistence =>
@@ -131,112 +135,105 @@ class FileProjectRepository
   }) {
     return withProjectManifestWriteLock(path, () async {
       await _ensureRecoveryGateClear(path);
+      _ProjectFileState? verifiedProjectState;
       if (expectedProjectState != null) {
-        await _requireProjectFileState(path, expectedProjectState);
+        verifiedProjectState = await _requireProjectFileState(
+          path,
+          expectedProjectState,
+        );
       }
-      return _saveProjectLocked(project, path);
+      return _saveProjectLocked(
+        project,
+        path,
+        verifiedProjectState: verifiedProjectState,
+      );
     });
   }
 
   Future<_ProjectFileState> _captureProjectFileState(String path) async {
     final file = File(path);
     if (!await file.exists()) {
-      return (exists: false, revision: null);
+      return (exists: false, bytes: null);
     }
     return (
       exists: true,
-      revision: narrativeEventBytesFingerprint(await file.readAsBytes()),
+      bytes: await file.readAsBytes(),
     );
   }
 
-  Future<void> _requireProjectFileState(
+  Future<_ProjectFileState> _requireProjectFileState(
     String path,
     _ProjectFileState expected,
   ) async {
     final current = await _captureProjectFileState(path);
-    if (current != expected) {
+    final bytesMatch = !expected.exists ||
+        (current.exists &&
+            await _codecExecutor.projectBytesMatch(
+              expected.bytes!,
+              current.bytes!,
+            ));
+    if (current.exists != expected.exists || !bytesMatch) {
       throw const EditorConflictException(
         'The project changed while the generic save waited for map lifecycle '
         'recovery.',
       );
     }
+    return current;
   }
 
-  Future<void> _saveProjectLocked(ProjectManifest project, String path) async {
+  Future<void> _saveProjectLocked(
+    ProjectManifest project,
+    String path, {
+    _ProjectFileState? verifiedProjectState,
+  }) async {
     final file = File(path);
     if (!await file.parent.exists()) await file.parent.create(recursive: true);
-    if (!await file.exists()) {
-      final json = project.toJson();
-      await file.writeAsString(
-        const JsonEncoder.withIndent('  ').convert(json),
+    final projectExists = verifiedProjectState?.exists ?? await file.exists();
+    if (!projectExists) {
+      await file.writeAsBytes(
+        await _codecExecutor.encodeNewProject(project),
         flush: true,
       );
       return;
     }
-    final beforeBytes = await file.readAsBytes();
-    final beforeRevision = narrativeEventBytesFingerprint(beforeBytes);
-    late final Map<String, Object?> currentRoot;
+    final beforeBytes = verifiedProjectState?.bytes ?? await file.readAsBytes();
+    late final EditorPreparedProjectUpdate preparedUpdate;
     try {
-      currentRoot = _strictJsonObject(
-        decodeNarrativeEventJsonStrict(utf8.decode(beforeBytes)),
+      preparedUpdate = await _codecExecutor.prepareExistingProjectUpdate(
+        currentBytes: beforeBytes,
+        project: project,
       );
-    } on Object catch (error) {
-      throw EditorPersistenceException(
-        'Current project cannot be preserved safely: $error',
-      );
-    }
-    final currentRegistry = decodeNarrativeEventRegistry(
-      currentRoot['eventRegistry'],
-    );
-    if (!currentRegistry.writable) {
-      throw EditorPersistenceException(
-        'Current Event registry is read-only: '
-        '${currentRegistry.diagnostics.join(' ')}',
-      );
-    }
-    if (!_sameEventRegistry(
-        currentRegistry.registryOrNull, project.eventRegistry)) {
-      throw const EditorConflictException(
-        'The Event registry changed outside the generic project save.',
-      );
-    }
-    late final Map<String, Object?> serializedProject;
-    try {
-      serializedProject = _strictJsonObject(
-        jsonDecode(jsonEncode(project.toJson())),
-      );
+    } on EditorPersistenceCodecException catch (error) {
+      switch (error.kind) {
+        case EditorPersistenceCodecFailureKind.currentProjectInvalid:
+          throw EditorPersistenceException(
+            'Current project cannot be preserved safely: ${error.message}',
+          );
+        case EditorPersistenceCodecFailureKind.eventRegistryReadOnly:
+          throw EditorPersistenceException(
+            'Current Event registry is read-only: ${error.message}',
+          );
+        case EditorPersistenceCodecFailureKind.eventRegistryConflict:
+          throw const EditorConflictException(
+            'The Event registry changed outside the generic project save.',
+          );
+        case EditorPersistenceCodecFailureKind.updatedProjectInvalid:
+          throw EditorPersistenceException(
+            'Updated project cannot be encoded safely: ${error.message}',
+          );
+      }
     } on Object catch (error) {
       throw EditorPersistenceException(
         'Updated project cannot be encoded safely: $error',
       );
     }
-    final nextRoot = Map<String, Object?>.from(currentRoot)
-      ..addAll(serializedProject);
-    if (currentRoot.containsKey('eventRegistry')) {
-      nextRoot['eventRegistry'] = currentRoot['eventRegistry'];
-    } else {
-      nextRoot.remove('eventRegistry');
-    }
-    late final List<int> nextBytes;
-    try {
-      canonicalizeNarrativeEventJson(nextRoot);
-      nextBytes = utf8.encode(
-        const JsonEncoder.withIndent('  ').convert(nextRoot),
-      );
-    } on Object catch (error) {
-      throw EditorPersistenceException(
-        'Updated project cannot be encoded safely: $error',
-      );
-    }
-    final liveRevision = narrativeEventBytesFingerprint(
-      await file.readAsBytes(),
-    );
-    if (liveRevision != beforeRevision) {
+    final liveBytes = await file.readAsBytes();
+    if (!await _codecExecutor.projectBytesMatch(beforeBytes, liveBytes)) {
       throw const EditorConflictException(
         'The project changed during the generic save.',
       );
     }
-    await file.writeAsBytes(nextBytes, flush: true);
+    await file.writeAsBytes(preparedUpdate.bytes, flush: true);
   }
 
   @override
@@ -259,9 +256,9 @@ class FileProjectRepository
         if (authoringQueries != null) {
           return (await authoringQueries.open(p.dirname(path))).manifest;
         }
-        return decodeValidatedNarrativeEventAuthoringProject(
+        return await _codecExecutor.decodeValidatedProject(
           await file.readAsBytes(),
-        ).manifest;
+        );
       } catch (e) {
         throw ProjectLoadException('Failed to load project: $e');
       }
@@ -312,28 +309,6 @@ String _recoveryGateMessage(
 ) {
   final path = issue.path == null ? '' : ' Fichier: ${issue.path}.';
   return '$summary Cause: ${issue.code}. ${issue.message}$path';
-}
-
-Map<String, Object?> _strictJsonObject(Object? value) {
-  if (value is! Map) {
-    throw const FormatException('Project root must be an object.');
-  }
-  final result = <String, Object?>{};
-  for (final entry in value.entries) {
-    if (entry.key is! String) {
-      throw const FormatException('Project keys must be strings.');
-    }
-    result[entry.key as String] = entry.value;
-  }
-  return result;
-}
-
-bool _sameEventRegistry(
-  NarrativeEventRegistry? left,
-  NarrativeEventRegistry? right,
-) {
-  return canonicalizeNarrativeEventJson(left?.toJson()) ==
-      canonicalizeNarrativeEventJson(right?.toJson());
 }
 
 class FileMapRepository

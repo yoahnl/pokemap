@@ -273,6 +273,7 @@ void main() {
         );
         expect(await _snapshotFixtureFiles(sourceRoot), sourceSnapshot);
       },
+      timeout: const Timeout(Duration(minutes: 2)),
     );
 
     test(

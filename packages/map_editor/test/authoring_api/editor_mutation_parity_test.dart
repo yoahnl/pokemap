@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -5,6 +6,7 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/authoring_api/authoring_mutation_adapter.dart';
 import 'package:map_editor/src/application/authoring_api/authoring_query_adapter.dart';
+import 'package:map_editor/src/application/authoring_api/authoring_session_lifecycle.dart';
 import 'package:map_editor/src/application/authoring_api/editor_receipt_presenter.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/use_cases/map_use_cases.dart';
@@ -45,6 +47,128 @@ void main() {
       expect(applied.receipt.status, AuthoringReceiptStatus.applied);
       expect((await FileMapRepository().loadMap(fixture.mapPath)).name,
           'Edited through Authoring');
+    });
+
+    test('retainOnly retires old mutation plans and preserves the active root',
+        () async {
+      final first = await _MutationFixture.create();
+      final second = await _MutationFixture.create();
+      addTearDown(first.dispose);
+      addTearDown(second.dispose);
+      final firstPlan = await first.mutations.plan(
+        first.root.path,
+        actionId: 'map.save',
+        parameters: {
+          'map': first.map.copyWith(name: 'Retired plan').toJson(),
+        },
+        idempotencyKey: 'retired_root_plan',
+      );
+      final secondPlan = await first.mutations.plan(
+        second.root.path,
+        actionId: 'map.save',
+        parameters: {
+          'map': second.map.copyWith(name: 'Retained plan').toJson(),
+        },
+        idempotencyKey: 'retained_root_plan',
+      );
+      final activeRoot = await const EditorProjectFileReader()
+          .canonicalizeDirectory(second.root.path);
+
+      await first.mutations.retainOnly(activeRoot);
+
+      expect(first.mutations.diagnostics.retainedRoot, activeRoot);
+      expect(first.mutations.diagnostics.liveSessions, 1);
+      expect(first.mutations.diagnostics.openingSessions, 0);
+      expect(first.mutations.diagnostics.retiringSessions, 0);
+      expect(first.mutations.diagnostics.activeOperations, 0);
+      expect(first.mutations.diagnostics.closeCount, 1);
+      await expectLater(
+        () => first.mutations.confirm(firstPlan),
+        throwsA(isA<EditorAuthoringMutationFailure>()),
+      );
+      await expectLater(
+        () => first.mutations.plan(
+          first.root.path,
+          actionId: 'map.save',
+          parameters: {
+            'map': first.map.copyWith(name: 'Forbidden reopen').toJson(),
+          },
+          idempotencyKey: 'forbidden_reopen',
+        ),
+        throwsA(
+          isA<EditorAuthoringMutationFailure>().having(
+            (failure) => failure.original,
+            'original',
+            isA<EditorAuthoringStaleSessionException>(),
+          ),
+        ),
+      );
+      final applied = await first.mutations.apply(
+        secondPlan,
+        operationId: 'retained_root_apply',
+      );
+      expect(applied.receipt.status, AuthoringReceiptStatus.applied);
+      expect(
+        (await FileMapRepository().loadMap(second.mapPath)).name,
+        'Retained plan',
+      );
+    });
+
+    test('retirement waits for an in-flight mutation workflow', () async {
+      final fixture = await _MutationFixture.create();
+      final retained = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      addTearDown(retained.dispose);
+      final reader = _BlockingProjectReader();
+      final queries = AuthoringQueryAdapter(fileReader: reader);
+      final mutations = AuthoringMutationAdapter(
+        fileReader: reader,
+        queries: queries,
+        projectRoots: reader,
+      );
+      addTearDown(mutations.closeAll);
+      addTearDown(queries.closeAll);
+      await mutations.plan(
+        fixture.root.path,
+        actionId: 'map.save',
+        parameters: {
+          'map': fixture.map.copyWith(name: 'Lease warmup').toJson(),
+        },
+        idempotencyKey: 'lease_warmup',
+      );
+      reader.arm();
+
+      final planning = mutations.plan(
+        fixture.root.path,
+        actionId: 'map.save',
+        parameters: {
+          'map': fixture.map.copyWith(name: 'Lease in flight').toJson(),
+        },
+        idempotencyKey: 'lease_in_flight',
+      );
+      await reader.entered.future;
+      final retainedRoot = await reader.canonicalizeDirectory(
+        retained.root.path,
+      );
+      var retired = false;
+      final retiring = mutations.retainOnly(retainedRoot).whenComplete(() {
+        retired = true;
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      expect(retired, isFalse);
+      expect(mutations.diagnostics.activeOperations, 1);
+      expect(mutations.diagnostics.retiringSessions, 1);
+
+      reader.release();
+      await planning;
+      await retiring;
+
+      expect(retired, isTrue);
+      expect(mutations.diagnostics.activeOperations, 0);
+      expect(mutations.diagnostics.retiringSessions, 0);
+      expect(mutations.diagnostics.liveSessions, 0);
+      expect(mutations.diagnostics.closeCount, 1);
     });
 
     test('product SaveMapUseCase returns Authoring receipt parity', () async {
@@ -217,6 +341,48 @@ Map<String, Object?> _stableReceipt(AuthoringReceipt receipt) => {
           {'kind': resource.kind, 'id': resource.id},
       ],
     };
+
+final class _BlockingProjectReader
+    implements ProjectFileReader, EditorProjectRootLocator {
+  static const _delegate = EditorProjectFileReader();
+  Completer<void>? _entered;
+  Completer<void>? _release;
+  var _armed = false;
+
+  Completer<void> get entered => _entered!;
+
+  void arm() {
+    _armed = true;
+    _entered = Completer<void>();
+    _release = Completer<void>();
+  }
+
+  void release() => _release!.complete();
+
+  @override
+  Future<String> canonicalizeDirectory(String path) =>
+      _delegate.canonicalizeDirectory(path);
+
+  @override
+  Future<String> locateForResource(String resourcePath) =>
+      _delegate.locateForResource(resourcePath);
+
+  @override
+  Future<List<int>> readBytes({
+    required String projectRoot,
+    required String relativePath,
+  }) async {
+    if (_armed) {
+      _armed = false;
+      _entered!.complete();
+      await _release!.future;
+    }
+    return _delegate.readBytes(
+      projectRoot: projectRoot,
+      relativePath: relativePath,
+    );
+  }
+}
 
 final class _MutationFixture {
   _MutationFixture({

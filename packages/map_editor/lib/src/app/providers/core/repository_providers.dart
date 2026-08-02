@@ -6,6 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../application/ports/narrative_event_registry_persistence_gateway.dart';
 import '../../../application/authoring_api/authoring_query_adapter.dart';
 import '../../../application/authoring_api/authoring_mutation_adapter.dart';
+import '../../../application/authoring_api/authoring_session_lifecycle.dart';
 import '../../../application/authoring_api/editor_receipt_presenter.dart';
 import '../../../application/ports/narrative_event_migration_persistence_gateway.dart';
 import '../../../application/ports/narrative_event_spatial_source_creation_gateway.dart';
@@ -50,10 +51,20 @@ final editorProjectFileReaderProvider = Provider<EditorProjectFileReader>(
   (ref) => const EditorProjectFileReader(),
 );
 
+final editorAuthoringSessionLifecycleProvider =
+    Provider<EditorAuthoringSessionLifecycle>((ref) {
+  final lifecycle = EditorAuthoringSessionLifecycle(
+    fileReader: ref.watch(editorProjectFileReaderProvider),
+  );
+  ref.onDispose(lifecycle.closeAll);
+  return lifecycle;
+});
+
 final authoringQueryAdapterProvider = Provider<AuthoringQueryAdapter>((ref) {
   final adapter = AuthoringQueryAdapter(
     fileReader: ref.watch(editorProjectFileReaderProvider),
   );
+  ref.watch(editorAuthoringSessionLifecycleProvider).attach(adapter);
   ref.onDispose(adapter.closeAll);
   return adapter;
 });
@@ -66,6 +77,7 @@ final authoringMutationAdapterProvider =
     queries: ref.watch(authoringQueryAdapterProvider),
     projectRoots: projectFiles,
   );
+  ref.watch(editorAuthoringSessionLifecycleProvider).attach(adapter);
   ref.onDispose(adapter.closeAll);
   return adapter;
 });

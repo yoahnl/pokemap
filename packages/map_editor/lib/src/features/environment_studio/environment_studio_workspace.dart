@@ -20,8 +20,10 @@ class EnvironmentStudioWorkspace extends ConsumerWidget {
       return const _EnvironmentStudioProjectMissingState();
     }
     final notifier = ref.read(editorNotifierProvider.notifier);
+    final projectRootPath = ref.watch(editorProjectRootPathProvider);
     return EnvironmentStudioPanel(
       manifest: manifest,
+      projectRootPath: projectRootPath,
       resolveTilesetPathById: notifier.getTilesetAbsolutePathById,
       onEnvironmentPresetSaved: (nextManifest, preset, kind) {
         final msg = switch (kind) {

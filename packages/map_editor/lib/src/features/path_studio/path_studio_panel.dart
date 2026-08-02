@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../app/providers/editor/editor_asset_cache_providers.dart';
 import '../editor/state/editor_notifier.dart';
 import '../editor/state/editor_selectors.dart';
+import 'path_pattern_asset_diagnostics.dart';
 import 'path_pattern_draft.dart';
 import 'path_pattern_diagnostics.dart';
 import 'path_pattern_editor_read_model.dart';
@@ -85,7 +87,7 @@ class PathStudioWorkspace extends ConsumerWidget {
 /// dépendance à l'infrastructure éditeur. Toute l'information métier affichée
 /// passe par le read model du lot 12 : aucune logique de diagnostic PathPattern
 /// n'est recalculée ici.
-class PathStudioPanel extends StatefulWidget {
+class PathStudioPanel extends ConsumerStatefulWidget {
   const PathStudioPanel({
     super.key,
     required this.manifest,
@@ -103,10 +105,10 @@ class PathStudioPanel extends StatefulWidget {
   final ValueChanged<PathStudioEditPathBuildRequest>? onEditPathSaveRequested;
 
   @override
-  State<PathStudioPanel> createState() => _PathStudioPanelState();
+  ConsumerState<PathStudioPanel> createState() => _PathStudioPanelState();
 }
 
-class _PathStudioPanelState extends State<PathStudioPanel> {
+class _PathStudioPanelState extends ConsumerState<PathStudioPanel> {
   String _searchQuery = '';
   PathStudioNewPathDraft? _newPathDraft;
   bool _newPathDraftSelected = false;
@@ -122,6 +124,9 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
   bool _newPathCancelConfirmVisible = false;
   int? _selectionSourceIndexBeforeNewPathDraft;
   int? _editCancelRestoreSourceIndex;
+  Map<String, PathPatternTilesetImageInfo>? _tilesetImageInfos;
+  String? _tilesetImageInfoRequestKey;
+  var _tilesetImageInfoEpoch = 0;
 
   /// Index dans `readModel.presets`, pas id métier.
   ///
@@ -179,21 +184,48 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
   }
 
   PathPatternEditorReadModel _pathPatternReadModel() {
-    final infos = widget.projectRootPath != null &&
-            widget.projectRootPath!.trim().isNotEmpty
-        ? loadPathPatternTilesetImageInfoMap(
-            projectRootPath: widget.projectRootPath!,
-            manifest: widget.manifest,
-          )
-        : null;
     return createPathPatternEditorReadModel(
       manifest: widget.manifest,
-      tilesetImageInfoById: infos,
+      tilesetImageInfoById: _tilesetImageInfos,
     );
+  }
+
+  void _ensureTilesetImageInfoLoad() {
+    final root = widget.projectRootPath?.trim();
+    if (root == null || root.isEmpty) {
+      _tilesetImageInfoEpoch++;
+      _tilesetImageInfoRequestKey = null;
+      _tilesetImageInfos = null;
+      return;
+    }
+    final cache = ref.watch(editorImageCacheProvider(root));
+    final requestKey = <Object?>[
+      root,
+      widget.manifest.settings.tileWidth,
+      widget.manifest.settings.tileHeight,
+      for (final tileset in widget.manifest.tilesets) ...[
+        tileset.id,
+        tileset.relativePath,
+        tileset.transparentColor?.toHexRgb(),
+      ],
+    ].join('|');
+    if (_tilesetImageInfoRequestKey == requestKey) return;
+    _tilesetImageInfoRequestKey = requestKey;
+    _tilesetImageInfos = null;
+    final epoch = ++_tilesetImageInfoEpoch;
+    loadPathPatternTilesetImageInfoMap(
+      projectRootPath: root,
+      manifest: widget.manifest,
+      imageCache: cache,
+    ).then((infos) {
+      if (!mounted || epoch != _tilesetImageInfoEpoch) return;
+      setState(() => _tilesetImageInfos = infos);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    _ensureTilesetImageInfoLoad();
     final readModel = _pathPatternReadModel();
     final query = _searchQuery.trim().toLowerCase();
     final filtered = _filteredCards(readModel, query);
@@ -267,8 +299,8 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
                 hasEditPathSaveCallback: editPathSaveCallback != null,
                 hasLegacySaveCallback: legacySaveCallback != null,
               ),
-              showNewPathDraftCancel: selectedNewPathDraft != null &&
-                  _newPathDraftSelected,
+              showNewPathDraftCancel:
+                  selectedNewPathDraft != null && _newPathDraftSelected,
               cancelDraftLabel: selectedNewPathDraft?.isEditMode == true
                   ? 'Annuler les modifications'
                   : 'Annuler la création',
@@ -411,6 +443,12 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _tilesetImageInfoEpoch++;
+    super.dispose();
   }
 
   List<_IndexedPresetCard> _filteredCards(
@@ -864,7 +902,10 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     setState(() {
       _clearNewPathDraftTransientChrome();
       switch (result) {
-        case PathStudioCenterAnimationSequenceSuccess(:final draft, :final message):
+        case PathStudioCenterAnimationSequenceSuccess(
+            :final draft,
+            :final message
+          ):
           _newPathDraft = draft;
           _newPathCenterSeqFeedback = message;
         case PathStudioCenterAnimationSequenceFailure(:final message):
@@ -2779,4 +2820,3 @@ class _DraftBasePopup extends StatelessWidget {
     );
   }
 }
-

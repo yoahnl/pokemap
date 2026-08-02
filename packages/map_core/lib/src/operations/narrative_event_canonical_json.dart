@@ -22,7 +22,7 @@ Object? decodeNarrativeEventJsonStrict(String source) {
     );
   }
   final decoded = jsonDecode(source);
-  canonicalizeNarrativeEventJson(decoded);
+  _validateNarrativeEventJson(decoded, path: r'$');
   return decoded;
 }
 
@@ -113,6 +113,47 @@ void _writeCanonicalJson(
   }
 }
 
+void _validateNarrativeEventJson(
+  Object? value, {
+  required String path,
+}) {
+  switch (value) {
+    case null || bool() || String():
+      if (value is String) {
+        _validateUnicodeScalarSequence(value, path: path);
+      }
+    case num value:
+      _canonicalNumber(value, path: path);
+    case List value:
+      for (var index = 0; index < value.length; index++) {
+        _validateNarrativeEventJson(value[index], path: '$path[$index]');
+      }
+    case Map value:
+      final entries = <MapEntry<String, Object?>>[];
+      for (final entry in value.entries) {
+        final key = entry.key;
+        if (key is! String) {
+          throw FormatException('$path: JSON object keys must be strings.');
+        }
+        _validateUnicodeScalarSequence(key, path: '$path.<key>');
+        entries.add(MapEntry(key, entry.value));
+      }
+      entries.sort(
+        (left, right) => compareNarrativeEventUtf16(left.key, right.key),
+      );
+      for (final entry in entries) {
+        _validateNarrativeEventJson(
+          entry.value,
+          path: '$path.${entry.key}',
+        );
+      }
+    default:
+      throw FormatException(
+        '$path: Unsupported JSON value type ${value.runtimeType}.',
+      );
+  }
+}
+
 String _canonicalNumber(num value, {required String path}) {
   final doubleValue = value.toDouble();
   if (!doubleValue.isFinite) {
@@ -188,7 +229,7 @@ final class _JsonDuplicateKeyScanner {
       case 0x5b:
         _parseArray(path);
       case 0x22:
-        _parseString();
+        _skipString();
       default:
         _parsePrimitive();
     }
@@ -230,6 +271,21 @@ final class _JsonDuplicateKeyScanner {
   String _parseString() {
     _skipWhitespace();
     final start = _index;
+    _scanStringEnd(start);
+    final token = source.substring(start, _index);
+    final decoded = jsonDecode(token);
+    if (decoded is! String) {
+      throw FormatException('Invalid JSON string at offset $start.');
+    }
+    return decoded;
+  }
+
+  void _skipString() {
+    _skipWhitespace();
+    _scanStringEnd(_index);
+  }
+
+  void _scanStringEnd(int start) {
     _expect(0x22);
     var escaped = false;
     while (_index < source.length) {
@@ -241,12 +297,7 @@ final class _JsonDuplicateKeyScanner {
       if (unit == 0x5c) {
         escaped = true;
       } else if (unit == 0x22) {
-        final token = source.substring(start, _index);
-        final decoded = jsonDecode(token);
-        if (decoded is! String) {
-          throw FormatException('Invalid JSON string at offset $start.');
-        }
-        return decoded;
+        return;
       }
     }
     throw FormatException('Unterminated JSON string at offset $start.');

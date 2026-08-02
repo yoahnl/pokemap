@@ -14,6 +14,7 @@ class EnvironmentPresetCreationWizard extends StatefulWidget {
     super.key,
     required this.manifest,
     this.knownTemplateIds = const <String>{},
+    this.projectRootPath,
     required this.draft,
     required this.onChanged,
     required this.onCancel,
@@ -24,6 +25,7 @@ class EnvironmentPresetCreationWizard extends StatefulWidget {
 
   final ProjectManifest manifest;
   final Set<String> knownTemplateIds;
+  final String? projectRootPath;
   final EnvironmentPresetDraft draft;
   final ValueChanged<EnvironmentPresetDraft> onChanged;
   final VoidCallback onCancel;
@@ -1308,6 +1310,7 @@ class _EnvironmentPresetCreationWizardState
       key: Key('environment-creation-element-preview-${element.id}'),
       child: EnvironmentElementThumbnail(
         manifest: widget.manifest,
+        projectRootPath: widget.projectRootPath,
         element: element,
         elementId: element.id,
         resolveTilesetPathById: widget.resolveTilesetPathById,
@@ -1437,6 +1440,7 @@ class _EnvironmentPresetCreationWizardState
                           index: i,
                           item: widget.draft.palette[i],
                           manifest: widget.manifest,
+                          projectRootPath: widget.projectRootPath,
                           resolveTilesetPathById: widget.resolveTilesetPathById,
                           projectElements: compatibleElements,
                           onChanged: (item) => _replacePaletteItem(i, item),

@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/path_studio/path_studio_tileset_image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -34,6 +33,7 @@ void main() {
       expect(result.image!.imageHeightPx, 32);
       expect(result.image!.columns, 4);
       expect(result.image!.rows, 2);
+      result.dispose();
     });
 
     test('returns a fallback status when the image file is absent', () async {
@@ -74,8 +74,11 @@ void main() {
         settings: const ProjectSettings(tileWidth: 16, tileHeight: 16),
       );
 
-      final decoded = img.decodePng(result.image!.bytes)!;
-      expect(decoded.getPixel(0, 0).a.toInt(), 0);
+      final rgba = await result.image!.decodedImage.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      );
+      expect(rgba!.getUint8(3), 0);
+      result.dispose();
     });
 
     test('converts a local click position to tile coordinates', () {

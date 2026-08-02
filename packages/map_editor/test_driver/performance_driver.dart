@@ -13,6 +13,14 @@ Future<void> main() async {
           'Editor performance response must use schema V2.',
         );
       }
+      final target = data['target'];
+      if (target is! String ||
+          !RegExp(r'^integration_test/[a-z0-9_]+_test\.dart$')
+              .hasMatch(target)) {
+        throw const FormatException(
+          'Editor performance response must declare its integration target.',
+        );
+      }
       final requestedOutput = data['requestedOutputPath'];
       if (requestedOutput is! String || requestedOutput.trim().isEmpty) {
         throw const FormatException('POKEMAP_PERF_OUTPUT is required.');
@@ -64,7 +72,7 @@ Future<void> main() async {
           '-d',
           'macos',
           '--driver=test_driver/performance_driver.dart',
-          '--target=integration_test/editor_project_journey_test.dart',
+          '--target=$target',
           '--dart-define=POKEMAP_PERF_OUTPUT=$requestedOutput',
         ],
       };

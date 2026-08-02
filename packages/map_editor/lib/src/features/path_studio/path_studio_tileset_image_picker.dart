@@ -1,15 +1,15 @@
-import 'dart:io';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
-import 'package:image/image.dart' as img;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
+import '../../app/providers/editor/editor_asset_cache_providers.dart';
 import '../../application/services/tileset_transparent_color_processor.dart';
+import '../../ui/assets/editor_image_cache.dart';
 import 'path_studio_new_path_draft.dart';
 import 'path_studio_theme.dart';
 
@@ -25,7 +25,7 @@ enum PathStudioTilesetImageStatus {
 final class PathStudioResolvedTilesetImage {
   const PathStudioResolvedTilesetImage({
     required this.absolutePath,
-    required this.bytes,
+    required this.lease,
     required this.imageWidthPx,
     required this.imageHeightPx,
     required this.tileWidthPx,
@@ -35,13 +35,17 @@ final class PathStudioResolvedTilesetImage {
   });
 
   final String absolutePath;
-  final Uint8List bytes;
+  final EditorImageLoadResult lease;
   final int imageWidthPx;
   final int imageHeightPx;
   final int tileWidthPx;
   final int tileHeightPx;
   final int columns;
   final int rows;
+
+  ui.Image get decodedImage => lease.image!;
+
+  void dispose() => lease.dispose();
 }
 
 final class PathStudioTilesetImageLoadResult {
@@ -57,12 +61,15 @@ final class PathStudioTilesetImageLoadResult {
 
   bool get hasImage =>
       status == PathStudioTilesetImageStatus.loaded && image != null;
+
+  void dispose() => image?.dispose();
 }
 
 Future<PathStudioTilesetImageLoadResult> loadPathStudioTilesetImage({
   required String? projectRootPath,
   required ProjectTilesetEntry tileset,
   required ProjectSettings settings,
+  EditorImageCache? imageCache,
 }) async {
   final root = projectRootPath?.trim();
   if (root == null || root.isEmpty) {
@@ -82,48 +89,55 @@ Future<PathStudioTilesetImageLoadResult> loadPathStudioTilesetImage({
   }
 
   final absolutePath = p.normalize(p.join(root, tileset.relativePath));
-  final file = File(absolutePath);
-  if (!file.existsSync()) {
-    return const PathStudioTilesetImageLoadResult(
-      status: PathStudioTilesetImageStatus.missingFile,
-      message: 'Image du tileset introuvable',
+  final ownsCache = imageCache == null;
+  final cache = imageCache ??
+      EditorImageCache(
+        sessionKey: root,
+        retirementScheduler: (disposeImage) => disposeImage(),
+      );
+  final transparentColor = tileset.transparentColor;
+  final lease = await cache.load(
+    absolutePath,
+    variantKey: transparentColor == null
+        ? 'path-studio:original'
+        : 'path-studio:transparent:${transparentColor.toHexRgb()}',
+    transformBytes: transparentColor == null
+        ? null
+        : (bytes) => applyTilesetTransparentColorToPngBytes(
+              imageBytes: bytes,
+              transparentColor: transparentColor,
+            ),
+  );
+  if (ownsCache) cache.dispose();
+  final decoded = lease.image;
+  if (decoded == null) {
+    final failure = lease.failure;
+    lease.dispose();
+    return PathStudioTilesetImageLoadResult(
+      status: failure?.kind == EditorImageFailureKind.missingFile
+          ? PathStudioTilesetImageStatus.missingFile
+          : PathStudioTilesetImageStatus.invalidImage,
+      message: failure?.kind == EditorImageFailureKind.missingFile
+          ? 'Image du tileset introuvable'
+          : 'Image du tileset illisible',
     );
   }
-
   try {
-    final bytes = file.readAsBytesSync();
-    final decoded = img.decodeImage(bytes);
-    if (decoded == null) {
-      return const PathStudioTilesetImageLoadResult(
-        status: PathStudioTilesetImageStatus.invalidImage,
-        message: 'Image du tileset illisible',
-      );
-    }
     final columns = decoded.width ~/ tileWidth;
     final rows = decoded.height ~/ tileHeight;
     if (columns <= 0 || rows <= 0) {
+      lease.dispose();
       return const PathStudioTilesetImageLoadResult(
         status: PathStudioTilesetImageStatus.invalidGrid,
         message: 'Impossible de découper ce tileset',
       );
-    }
-    var displayBytes = bytes;
-    if (tileset.transparentColor != null) {
-      try {
-        displayBytes = applyTilesetTransparentColorToPngBytes(
-          imageBytes: bytes,
-          transparentColor: tileset.transparentColor,
-        );
-      } catch (_) {
-        displayBytes = bytes;
-      }
     }
     return PathStudioTilesetImageLoadResult(
       status: PathStudioTilesetImageStatus.loaded,
       message: 'Image du tileset chargée',
       image: PathStudioResolvedTilesetImage(
         absolutePath: absolutePath,
-        bytes: displayBytes,
+        lease: lease,
         imageWidthPx: decoded.width,
         imageHeightPx: decoded.height,
         tileWidthPx: tileWidth,
@@ -132,7 +146,8 @@ Future<PathStudioTilesetImageLoadResult> loadPathStudioTilesetImage({
         rows: rows,
       ),
     );
-  } catch (_) {
+  } on Object {
+    lease.dispose();
     return const PathStudioTilesetImageLoadResult(
       status: PathStudioTilesetImageStatus.invalidImage,
       message: 'Image du tileset illisible',
@@ -162,7 +177,7 @@ typedef PathStudioTilesetFallbackBuilder = Widget Function(
   PathStudioTilesetImageLoadResult result,
 );
 
-class PathStudioImageBackedTilesetPicker extends StatefulWidget {
+class PathStudioImageBackedTilesetPicker extends ConsumerStatefulWidget {
   const PathStudioImageBackedTilesetPicker({
     super.key,
     required this.projectRootPath,
@@ -181,18 +196,20 @@ class PathStudioImageBackedTilesetPicker extends StatefulWidget {
   final PathStudioTilesetFallbackBuilder fallbackBuilder;
 
   @override
-  State<PathStudioImageBackedTilesetPicker> createState() =>
+  ConsumerState<PathStudioImageBackedTilesetPicker> createState() =>
       _PathStudioImageBackedTilesetPickerState();
 }
 
 class _PathStudioImageBackedTilesetPickerState
-    extends State<PathStudioImageBackedTilesetPicker> {
+    extends ConsumerState<PathStudioImageBackedTilesetPicker> {
   late Future<PathStudioTilesetImageLoadResult> _loadFuture;
+  PathStudioTilesetImageLoadResult? _ownedResult;
+  var _loadEpoch = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadFuture = _load();
+    _startLoad();
   }
 
   @override
@@ -203,20 +220,42 @@ class _PathStudioImageBackedTilesetPickerState
         oldWidget.tileset.relativePath != widget.tileset.relativePath ||
         oldWidget.settings.tileWidth != widget.settings.tileWidth ||
         oldWidget.settings.tileHeight != widget.settings.tileHeight) {
-      _loadFuture = _load();
+      _startLoad();
     }
   }
 
   Future<PathStudioTilesetImageLoadResult> _load() {
+    final root = widget.projectRootPath?.trim();
+    final cache = root == null || root.isEmpty
+        ? null
+        : ref.read(editorImageCacheProvider(root));
     return loadPathStudioTilesetImage(
       projectRootPath: widget.projectRootPath,
       tileset: widget.tileset,
       settings: widget.settings,
+      imageCache: cache,
     );
+  }
+
+  void _startLoad() {
+    final epoch = ++_loadEpoch;
+    _loadFuture = _load().then((result) {
+      if (!mounted || epoch != _loadEpoch) {
+        result.dispose();
+        return result;
+      }
+      _ownedResult?.dispose();
+      _ownedResult = result;
+      return result;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final root = widget.projectRootPath?.trim();
+    if (root != null && root.isNotEmpty) {
+      ref.watch(editorImageCacheProvider(root));
+    }
     return FutureBuilder<PathStudioTilesetImageLoadResult>(
       future: _loadFuture,
       builder: (context, snapshot) {
@@ -243,9 +282,16 @@ class _PathStudioImageBackedTilesetPickerState
       },
     );
   }
+
+  @override
+  void dispose() {
+    _loadEpoch++;
+    _ownedResult?.dispose();
+    super.dispose();
+  }
 }
 
-class PathStudioTileSpritePreview extends StatefulWidget {
+class PathStudioTileSpritePreview extends ConsumerStatefulWidget {
   const PathStudioTileSpritePreview({
     super.key,
     required this.projectRootPath,
@@ -264,18 +310,20 @@ class PathStudioTileSpritePreview extends StatefulWidget {
   final Key? thumbnailKey;
 
   @override
-  State<PathStudioTileSpritePreview> createState() =>
+  ConsumerState<PathStudioTileSpritePreview> createState() =>
       _PathStudioTileSpritePreviewState();
 }
 
 class _PathStudioTileSpritePreviewState
-    extends State<PathStudioTileSpritePreview> {
+    extends ConsumerState<PathStudioTileSpritePreview> {
   late Future<PathStudioTilesetImageLoadResult>? _loadFuture;
+  PathStudioTilesetImageLoadResult? _ownedResult;
+  var _loadEpoch = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadFuture = _load();
+    _startLoad();
   }
 
   @override
@@ -287,7 +335,7 @@ class _PathStudioTileSpritePreviewState
             _tilesetFingerprint(widget.tilesets, widget.tile.tilesetId) ||
         oldWidget.settings.tileWidth != widget.settings.tileWidth ||
         oldWidget.settings.tileHeight != widget.settings.tileHeight) {
-      _loadFuture = _load();
+      _startLoad();
     }
   }
 
@@ -296,15 +344,44 @@ class _PathStudioTileSpritePreviewState
     if (tileset == null) {
       return null;
     }
+    final root = widget.projectRootPath?.trim();
+    final cache = root == null || root.isEmpty
+        ? null
+        : ref.read(editorImageCacheProvider(root));
     return loadPathStudioTilesetImage(
       projectRootPath: widget.projectRootPath,
       tileset: tileset,
       settings: widget.settings,
+      imageCache: cache,
     );
+  }
+
+  void _startLoad() {
+    final epoch = ++_loadEpoch;
+    final load = _load();
+    if (load == null) {
+      _ownedResult?.dispose();
+      _ownedResult = null;
+      _loadFuture = null;
+      return;
+    }
+    _loadFuture = load.then((result) {
+      if (!mounted || epoch != _loadEpoch) {
+        result.dispose();
+        return result;
+      }
+      _ownedResult?.dispose();
+      _ownedResult = result;
+      return result;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final root = widget.projectRootPath?.trim();
+    if (root != null && root.isNotEmpty) {
+      ref.watch(editorImageCacheProvider(root));
+    }
     final loadFuture = _loadFuture;
     if (loadFuture == null) {
       return widget.fallback;
@@ -328,6 +405,13 @@ class _PathStudioTileSpritePreviewState
       },
     );
   }
+
+  @override
+  void dispose() {
+    _loadEpoch++;
+    _ownedResult?.dispose();
+    super.dispose();
+  }
 }
 
 class _TileSpritePreview extends StatelessWidget {
@@ -343,7 +427,6 @@ class _TileSpritePreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const previewSize = 46.0;
-    final tileBytes = _extractTilePngBytes(image: image, tile: tile);
     return Container(
       width: previewSize,
       height: previewSize,
@@ -361,44 +444,46 @@ class _TileSpritePreview extends StatelessWidget {
           const _TilePreviewCheckerboard(
             key: Key('path-studio-tile-preview-checkerboard'),
           ),
-          if (tileBytes != null)
-            Image.memory(
-              tileBytes,
-              key: const Key('path-studio-tile-preview-image'),
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.none,
-              gaplessPlayback: true,
+          CustomPaint(
+            key: const Key('path-studio-tile-preview-image'),
+            painter: _PathStudioTileImagePainter(
+              image: image.decodedImage,
+              sourceRect: ui.Rect.fromLTWH(
+                (tile.sourceX * image.tileWidthPx).toDouble(),
+                (tile.sourceY * image.tileHeightPx).toDouble(),
+                image.tileWidthPx.toDouble(),
+                image.tileHeightPx.toDouble(),
+              ),
             ),
+          ),
         ],
       ),
     );
   }
 }
 
-Uint8List? _extractTilePngBytes({
-  required PathStudioResolvedTilesetImage image,
-  required PathStudioNewPathDraftTile tile,
-}) {
-  final decoded = img.decodePng(image.bytes);
-  if (decoded == null) {
-    return null;
+class _PathStudioTileImagePainter extends CustomPainter {
+  const _PathStudioTileImagePainter({
+    required this.image,
+    required this.sourceRect,
+  });
+
+  final ui.Image image;
+  final ui.Rect sourceRect;
+
+  @override
+  void paint(ui.Canvas canvas, ui.Size size) {
+    canvas.drawImageRect(
+      image,
+      sourceRect,
+      ui.Offset.zero & size,
+      ui.Paint()..filterQuality = ui.FilterQuality.none,
+    );
   }
-  final sourceX = tile.sourceX * image.tileWidthPx;
-  final sourceY = tile.sourceY * image.tileHeightPx;
-  if (sourceX < 0 ||
-      sourceY < 0 ||
-      sourceX + image.tileWidthPx > decoded.width ||
-      sourceY + image.tileHeightPx > decoded.height) {
-    return null;
-  }
-  final tileImage = img.copyCrop(
-    decoded,
-    x: sourceX,
-    y: sourceY,
-    width: image.tileWidthPx,
-    height: image.tileHeightPx,
-  );
-  return Uint8List.fromList(img.encodePng(tileImage));
+
+  @override
+  bool shouldRepaint(covariant _PathStudioTileImagePainter oldDelegate) =>
+      oldDelegate.image != image || oldDelegate.sourceRect != sourceRect;
 }
 
 class _TilePreviewCheckerboard extends StatelessWidget {
@@ -616,13 +701,12 @@ class _LoadedTilesetImagePickerState extends State<_LoadedTilesetImagePicker> {
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(14),
-                              child: Image.memory(
-                                image.bytes,
+                              child: RawImage(
+                                image: image.decodedImage,
                                 width: displayWidth,
                                 height: displayHeight,
                                 fit: BoxFit.fill,
                                 filterQuality: FilterQuality.none,
-                                gaplessPlayback: true,
                               ),
                             ),
                             CustomPaint(

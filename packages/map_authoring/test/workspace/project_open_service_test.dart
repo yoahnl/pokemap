@@ -24,8 +24,23 @@ void main() {
       expect(serialized, isNot(contains('/Users/')));
 
       final access = harness.handles.resolveProject(opened.projectHandle);
-      final manifestBytes = await access.readBytes('project.json');
+      final resourceBytes = await access.readResourceBytes('project.json');
+      final manifestBytes = resourceBytes.bytes;
       expect(manifestBytes, before);
+      expect(
+        () => manifestBytes[0] = manifestBytes[0],
+        throwsUnsupportedError,
+      );
+      expect(await access.readBytes('project.json'), before);
+      expect(
+        await access.matchesResourceBytes('project.json', before),
+        isTrue,
+      );
+      final changed = List<int>.of(before)..[before.length - 1] ^= 1;
+      expect(
+        await access.matchesResourceBytes('project.json', changed),
+        isFalse,
+      );
       expect(await projectFile.readAsBytes(), before);
     });
 

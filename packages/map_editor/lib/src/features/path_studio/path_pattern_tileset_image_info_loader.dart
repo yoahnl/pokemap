@@ -1,63 +1,71 @@
-import 'dart:io';
-
-import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
+import '../../ui/assets/editor_image_cache.dart';
 import 'path_pattern_asset_diagnostics.dart';
 
 /// Charge les dimensions et statuts d’image pour chaque [ProjectTilesetEntry] du manifest.
 ///
-/// Lot PathPattern-41 : adapter local synchrone, sans provider ni service global.
-Map<String, PathPatternTilesetImageInfo> loadPathPatternTilesetImageInfoMap({
+Future<Map<String, PathPatternTilesetImageInfo>>
+    loadPathPatternTilesetImageInfoMap({
   required String projectRootPath,
   required ProjectManifest manifest,
-}) {
+  EditorImageCache? imageCache,
+}) async {
   final root = projectRootPath.trim();
   if (root.isEmpty) {
     return {};
   }
 
-  final result = <String, PathPatternTilesetImageInfo>{};
-  for (final entry in manifest.tilesets) {
-    final id = entry.id.trim();
-    if (id.isEmpty) {
-      continue;
-    }
-    final absolutePath = p.normalize(p.join(root, entry.relativePath));
-    final file = File(absolutePath);
-    if (!file.existsSync()) {
-      result[id] = PathPatternTilesetImageInfo(
-        tilesetId: id,
-        status: PathPatternTilesetImageStatus.missingFile,
-        message: 'missing',
+  final ownsCache = imageCache == null;
+  final cache = imageCache ??
+      EditorImageCache(
+        sessionKey: root,
+        retirementScheduler: (disposeImage) => disposeImage(),
       );
-      continue;
-    }
-    try {
-      final bytes = file.readAsBytesSync();
-      final decoded = img.decodeImage(bytes);
-      if (decoded == null) {
-        result[id] = PathPatternTilesetImageInfo(
-          tilesetId: id,
-          status: PathPatternTilesetImageStatus.unreadable,
-          message: 'decode',
+  try {
+    final infos = await Future.wait(
+      manifest.tilesets.map((entry) async {
+        final id = entry.id.trim();
+        if (id.isEmpty) return null;
+        final absolutePath = p.normalize(p.join(root, entry.relativePath));
+        final loaded = await cache.load(
+          absolutePath,
+          variantKey: 'path-pattern:image-info',
         );
-      } else {
-        result[id] = PathPatternTilesetImageInfo(
-          tilesetId: id,
-          status: PathPatternTilesetImageStatus.ok,
-          widthPx: decoded.width,
-          heightPx: decoded.height,
-        );
-      }
-    } catch (_) {
-      result[id] = PathPatternTilesetImageInfo(
-        tilesetId: id,
-        status: PathPatternTilesetImageStatus.unreadable,
-        message: 'io',
-      );
-    }
+        try {
+          final image = loaded.image;
+          if (image != null) {
+            return MapEntry(
+              id,
+              PathPatternTilesetImageInfo(
+                tilesetId: id,
+                status: PathPatternTilesetImageStatus.ok,
+                widthPx: image.width,
+                heightPx: image.height,
+              ),
+            );
+          }
+          final missing =
+              loaded.failure?.kind == EditorImageFailureKind.missingFile;
+          return MapEntry(
+            id,
+            PathPatternTilesetImageInfo(
+              tilesetId: id,
+              status: missing
+                  ? PathPatternTilesetImageStatus.missingFile
+                  : PathPatternTilesetImageStatus.unreadable,
+              message: missing ? 'missing' : 'decode',
+            ),
+          );
+        } finally {
+          loaded.dispose();
+        }
+      }),
+    );
+    return Map.fromEntries(
+        infos.whereType<MapEntry<String, PathPatternTilesetImageInfo>>());
+  } finally {
+    if (ownsCache) cache.dispose();
   }
-  return result;
 }

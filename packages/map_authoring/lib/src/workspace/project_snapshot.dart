@@ -52,6 +52,7 @@ final class ProjectSnapshot {
     required Iterable<MapData> maps,
     required Map<String, String> resourceFingerprints,
     Map<String, List<int>> resourceBytes = const {},
+    Map<String, ProjectResourceBytes> ownedResourceBytes = const {},
     Map<String, String> resourceStorageKeys = const {},
     Iterable<ProjectSnapshotLoadDiagnostic> loadDiagnostics = const [],
   })  : maps = List.unmodifiable(
@@ -64,17 +65,9 @@ final class ProjectSnapshot {
                 .map((entry) => MapEntry(entry.key, entry.value)),
           ),
         ),
-        _resourceBytes = Map.unmodifiable(
-          Map.fromEntries(
-            (resourceBytes.entries.toList()
-                  ..sort((left, right) => left.key.compareTo(right.key)))
-                .map(
-              (entry) => MapEntry(
-                entry.key,
-                List<int>.unmodifiable(entry.value),
-              ),
-            ),
-          ),
+        _resourceBytes = _freezeResourceBytes(
+          resourceBytes: resourceBytes,
+          ownedResourceBytes: ownedResourceBytes,
         ),
         resourceStorageKeys = Map.unmodifiable(
           Map.fromEntries(
@@ -162,14 +155,38 @@ final class ProjectSnapshot {
         'The exact resource pre-image is unavailable in this snapshot.',
       );
     }
-    return List<int>.unmodifiable(bytes);
+    return bytes;
   }
 
   /// Optional exact pre-image for supplemental project resources.
   List<int>? findResourceBytes(String identity) {
     final bytes = _resourceBytes[identity];
-    return bytes == null ? null : List<int>.unmodifiable(bytes);
+    return bytes;
   }
+}
+
+Map<String, List<int>> _freezeResourceBytes({
+  required Map<String, List<int>> resourceBytes,
+  required Map<String, ProjectResourceBytes> ownedResourceBytes,
+}) {
+  if (resourceBytes.isNotEmpty && ownedResourceBytes.isNotEmpty) {
+    throw ArgumentError(
+      'resourceBytes and ownedResourceBytes cannot both be populated.',
+    );
+  }
+  final entries = resourceBytes.isNotEmpty
+      ? resourceBytes.entries.map(
+          (entry) => MapEntry(
+            entry.key,
+            List<int>.unmodifiable(entry.value),
+          ),
+        )
+      : ownedResourceBytes.entries.map(
+          (entry) => MapEntry(entry.key, entry.value.bytes),
+        );
+  final sorted = entries.toList()
+    ..sort((left, right) => left.key.compareTo(right.key));
+  return Map.unmodifiable(Map.fromEntries(sorted));
 }
 
 String _requiredDiagnosticValue(String value, String field) {

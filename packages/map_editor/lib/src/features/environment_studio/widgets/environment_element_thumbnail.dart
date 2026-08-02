@@ -1,15 +1,18 @@
-import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
-import 'package:image/image.dart' as img;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../app/providers/editor/editor_asset_cache_providers.dart';
+import '../../../theme/theme.dart';
+import '../../../ui/assets/editor_image_cache.dart';
 import '../../../ui/shared/cupertino_editor_widgets.dart';
 
 typedef EnvironmentTilesetPathResolver = String? Function(String tilesetId);
 
-class EnvironmentElementThumbnail extends StatelessWidget {
+class EnvironmentElementThumbnail extends ConsumerStatefulWidget {
   const EnvironmentElementThumbnail({
     super.key,
     required this.manifest,
@@ -20,6 +23,8 @@ class EnvironmentElementThumbnail extends StatelessWidget {
     this.previewKey,
     this.fallbackKey,
     this.fallbackAccent,
+    this.projectRootPath,
+    this.imageCache,
   });
 
   final ProjectManifest manifest;
@@ -30,48 +35,161 @@ class EnvironmentElementThumbnail extends StatelessWidget {
   final Key? previewKey;
   final Key? fallbackKey;
   final Color? fallbackAccent;
+  final String? projectRootPath;
+  final EditorImageCache? imageCache;
+
+  @override
+  ConsumerState<EnvironmentElementThumbnail> createState() =>
+      _EnvironmentElementThumbnailState();
+}
+
+class _EnvironmentElementThumbnailState
+    extends ConsumerState<EnvironmentElementThumbnail> {
+  EditorImageLoadResult? _result;
+  String? _requestedKey;
+  EditorImageCache? _requestedCache;
+  EditorImageCache? _localCache;
+  String? _localCacheScope;
+  var _requestEpoch = 0;
+
+  @override
+  void didUpdateWidget(covariant EnvironmentElementThumbnail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.manifest, widget.manifest) ||
+        !identical(oldWidget.element, widget.element) ||
+        oldWidget.resolveTilesetPathById != widget.resolveTilesetPathById ||
+        oldWidget.projectRootPath != widget.projectRootPath ||
+        !identical(oldWidget.imageCache, widget.imageCache)) {
+      _releaseCurrent();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final resolved = _ResolvedEnvironmentElementThumbnail.resolve(
-      manifest: manifest,
-      element: element,
-      resolveTilesetPathById: resolveTilesetPathById,
+      manifest: widget.manifest,
+      element: widget.element,
+      resolveTilesetPathById: widget.resolveTilesetPathById,
     );
     if (resolved == null) {
+      _releaseCurrent();
       return _fallback(context);
     }
 
-    final croppedImage = _EnvironmentElementThumbnailImageCache.crop(resolved);
-    if (croppedImage == null) {
+    final projectRoot = widget.projectRootPath?.trim();
+    final scope = projectRoot == null || projectRoot.isEmpty
+        ? p.dirname(resolved.path)
+        : projectRoot;
+    final cache = _cacheFor(scope);
+    _ensureLoad(cache, resolved);
+    final result = _result;
+    if (result == null) {
+      return _loading(context);
+    }
+    final image = result.image;
+    if (image == null) {
       return _fallback(context);
     }
     return Container(
-      key: previewKey,
-      width: size,
-      height: size,
+      key: widget.previewKey,
+      width: widget.size,
+      height: widget.size,
       decoration: BoxDecoration(
         color: EditorChrome.badgeFill(context),
         borderRadius: BorderRadius.circular(9),
         border: Border.all(
-          color: CupertinoColors.separator.resolveFrom(context),
+          color: context.pokeMapColors.divider,
         ),
       ),
       clipBehavior: Clip.antiAlias,
-      child: CustomPaint(
-        painter: _EnvironmentElementThumbnailRasterPainter(croppedImage),
-        child: const SizedBox.expand(),
+      child: RawImage(
+        image: image,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.none,
+      ),
+    );
+  }
+
+  void _ensureLoad(
+    EditorImageCache cache,
+    _ResolvedEnvironmentElementThumbnail resolved,
+  ) {
+    if (_requestedKey == resolved.cacheKey &&
+        identical(_requestedCache, cache)) {
+      return;
+    }
+    _requestedKey = resolved.cacheKey;
+    _requestedCache = cache;
+    final epoch = ++_requestEpoch;
+    _result?.dispose();
+    _result = null;
+    unawaited(() async {
+      final result = await cache.loadCrop(
+        resolved.path,
+        sourceRect: Rect.fromLTWH(
+          (resolved.source.x * resolved.tileWidth).toDouble(),
+          (resolved.source.y * resolved.tileHeight).toDouble(),
+          (resolved.source.width * resolved.tileWidth).toDouble(),
+          (resolved.source.height * resolved.tileHeight).toDouble(),
+        ),
+        variantKey: 'environment-thumbnail',
+        sourceVariantKey: 'environment-tileset',
+      );
+      if (!mounted || epoch != _requestEpoch) {
+        result.dispose();
+        return;
+      }
+      setState(() => _result = result);
+    }());
+  }
+
+  EditorImageCache _cacheFor(String scope) {
+    final provided = widget.imageCache;
+    if (provided != null) return provided;
+    try {
+      ProviderScope.containerOf(context, listen: false);
+      return ref.watch(editorImageCacheProvider(scope));
+    } on StateError {
+      if (_localCache == null || _localCacheScope != scope) {
+        _localCache?.dispose();
+        _localCacheScope = scope;
+        _localCache = EditorImageCache(sessionKey: scope);
+      }
+      return _localCache!;
+    }
+  }
+
+  Widget _loading(BuildContext context) {
+    return Semantics(
+      label: 'Chargement de la vignette d’environnement',
+      child: Container(
+        key: const Key('environment-element-thumbnail-loading'),
+        width: widget.size,
+        height: widget.size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: EditorChrome.badgeFill(context),
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(
+            color: context.pokeMapColors.divider,
+          ),
+        ),
+        child: Icon(
+          CupertinoIcons.hourglass,
+          size: 14,
+          color: EditorChrome.subtleLabel(context),
+        ),
       ),
     );
   }
 
   Widget _fallback(BuildContext context) {
-    final accent = fallbackAccent ?? EditorChrome.accentJade;
-    final id = elementId.trim();
+    final accent = widget.fallbackAccent ?? EditorChrome.accentJade;
+    final id = widget.elementId.trim();
     return Container(
-      key: fallbackKey,
-      width: size,
-      height: size,
+      key: widget.fallbackKey,
+      width: widget.size,
+      height: widget.size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.15),
@@ -82,12 +200,27 @@ class EnvironmentElementThumbnail extends StatelessWidget {
         id.isEmpty ? '?' : id.characters.first.toUpperCase(),
         style: TextStyle(
           color: accent,
-          fontSize: size <= 30 ? 13 : 16,
+          fontSize: widget.size <= 30 ? 13 : 16,
           fontWeight: FontWeight.w900,
           letterSpacing: 0,
         ),
       ),
     );
+  }
+
+  void _releaseCurrent() {
+    _requestEpoch++;
+    _requestedKey = null;
+    _requestedCache = null;
+    _result?.dispose();
+    _result = null;
+  }
+
+  @override
+  void dispose() {
+    _releaseCurrent();
+    _localCache?.dispose();
+    super.dispose();
   }
 }
 
@@ -176,100 +309,5 @@ class _ResolvedEnvironmentElementThumbnail {
       tileWidth,
       tileHeight,
     ].join('|');
-  }
-
-  img.Image? crop() {
-    try {
-      final file = File(path);
-      if (!file.existsSync()) {
-        return null;
-      }
-      final bytes = file.readAsBytesSync();
-      if (bytes.isEmpty) {
-        return null;
-      }
-      final image = img.decodeImage(bytes);
-      if (image == null || !fits(image.width, image.height)) {
-        return null;
-      }
-      final cropped = img.copyCrop(
-        image,
-        x: source.x * tileWidth,
-        y: source.y * tileHeight,
-        width: source.width * tileWidth,
-        height: source.height * tileHeight,
-      );
-      return cropped;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  bool fits(int imageWidth, int imageHeight) {
-    final left = source.x * tileWidth;
-    final top = source.y * tileHeight;
-    final width = source.width * tileWidth;
-    final height = source.height * tileHeight;
-    return left >= 0 &&
-        top >= 0 &&
-        width > 0 &&
-        height > 0 &&
-        left + width <= imageWidth &&
-        top + height <= imageHeight;
-  }
-}
-
-class _EnvironmentElementThumbnailRasterPainter extends CustomPainter {
-  _EnvironmentElementThumbnailRasterPainter(this.image);
-
-  final img.Image image;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final scale = _scaleToFit(size);
-    final drawWidth = image.width * scale;
-    final drawHeight = image.height * scale;
-    final left = (size.width - drawWidth) / 2;
-    final top = (size.height - drawHeight) / 2;
-    final paint = Paint();
-    for (var y = 0; y < image.height; y += 1) {
-      for (var x = 0; x < image.width; x += 1) {
-        final pixel = image.getPixel(x, y);
-        paint.color = Color.fromARGB(
-          pixel.a.toInt(),
-          pixel.r.toInt(),
-          pixel.g.toInt(),
-          pixel.b.toInt(),
-        );
-        canvas.drawRect(
-          Rect.fromLTWH(
-            left + x * scale,
-            top + y * scale,
-            scale.ceilToDouble(),
-            scale.ceilToDouble(),
-          ),
-          paint,
-        );
-      }
-    }
-  }
-
-  double _scaleToFit(Size size) {
-    final widthScale = size.width / image.width;
-    final heightScale = size.height / image.height;
-    return widthScale < heightScale ? widthScale : heightScale;
-  }
-
-  @override
-  bool shouldRepaint(covariant _EnvironmentElementThumbnailRasterPainter old) {
-    return old.image != image;
-  }
-}
-
-class _EnvironmentElementThumbnailImageCache {
-  static final Map<String, img.Image?> _cache = {};
-
-  static img.Image? crop(_ResolvedEnvironmentElementThumbnail resolved) {
-    return _cache.putIfAbsent(resolved.cacheKey, resolved.crop);
   }
 }

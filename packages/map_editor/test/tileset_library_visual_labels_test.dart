@@ -32,6 +32,14 @@ void main() {
       expect(source, isNot(contains("Text('Create Element')")));
       expect(source, isNot(contains("Text('Cancel')")));
       expect(source, isNot(contains("Text('Create')")));
+
+      // Asset ownership stays project-scoped and asynchronous. The canvas must
+      // not regress to its former static path-only decode cache.
+      expect(source, contains('editorImageCacheProvider'));
+      expect(source, contains('EditorImageLoadResult'));
+      expect(source, isNot(contains('_TilesetEditorImageCache')));
+      expect(source, isNot(contains('readAsBytesSync')));
+      expect(source, isNot(contains('instantiateImageCodec')));
     });
 
     test('TilesetPalettePanel uses French labels and semantic colors', () {

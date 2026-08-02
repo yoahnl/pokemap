@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -7,18 +6,23 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../domain/repositories/game_save_repository.dart';
 import '../application/narrative_runtime_activity_gate.dart';
+import 'game_save_codec_executor.dart';
 
 /// Implémentation fichier de [GameSaveRepository].
 ///
 /// Stocke les sauvegardes dans le répertoire de support de l'application.
 /// Chemin : `<ApplicationSupportDirectory>/pokemonProject/game_save.json`
 class FileGameSaveRepository implements GameSaveRepository {
-  FileGameSaveRepository({NarrativeRuntimeActivityGate? activityGate})
-      : _activityGate = activityGate ?? NarrativeRuntimeActivityGate();
+  FileGameSaveRepository({
+    NarrativeRuntimeActivityGate? activityGate,
+    GameSaveCodecExecutor? codecExecutor,
+  })  : _activityGate = activityGate ?? NarrativeRuntimeActivityGate(),
+        _codecExecutor = codecExecutor ?? GameSaveCodecExecutor();
 
   static const String _saveFileName = 'game_save.json';
   static const String _subDirectory = 'pokemonProject';
   final NarrativeRuntimeActivityGate _activityGate;
+  final GameSaveCodecExecutor _codecExecutor;
 
   /// Retourne le chemin complet du fichier de sauvegarde.
   @protected
@@ -53,13 +57,12 @@ class FileGameSaveRepository implements GameSaveRepository {
               metadata: normalizedSaveData.properties,
             );
             final json = normalizedState.toJson();
+            final encoded = await _codecExecutor.encodeJson(json);
             final file = File(filePath);
             debugPrint(
               '[step_studio_trace] save_repo_write_start path=$filePath completedStepIds=${normalizedState.progression.completedStepIds}',
             );
-            await file.writeAsString(
-              const JsonEncoder.withIndent('  ').convert(json),
-            );
+            await file.writeAsString(encoded);
             debugPrint('[save] game saved to $filePath');
             debugPrint(
               '[step_studio_trace] save_repo_write_done path=$filePath completedStepIds=${normalizedState.progression.completedStepIds}',
@@ -82,9 +85,9 @@ class FileGameSaveRepository implements GameSaveRepository {
               debugPrint('[load] no save file found at $filePath');
               return null;
             }
-            final content = await file.readAsString();
-            final json = jsonDecode(content) as Map<String, dynamic>;
-            final state = normalizeLoadedGameState(GameState.fromJson(json));
+            final state = await _codecExecutor.decode(
+              await file.readAsBytes(),
+            );
             debugPrint('[load] game loaded from $filePath');
             return state;
           } catch (e, st) {

@@ -13,6 +13,7 @@ class EnvironmentPaletteItemView extends StatelessWidget {
     this.isIncompatibleTileset = false,
     this.manifest,
     this.element,
+    this.projectRootPath,
     this.resolveTilesetPathById,
   });
 
@@ -21,6 +22,7 @@ class EnvironmentPaletteItemView extends StatelessWidget {
   final bool isIncompatibleTileset;
   final ProjectManifest? manifest;
   final ProjectElementEntry? element;
+  final String? projectRootPath;
   final EnvironmentTilesetPathResolver? resolveTilesetPathById;
 
   @override
@@ -52,6 +54,7 @@ class EnvironmentPaletteItemView extends StatelessWidget {
                       ? _legacyIcon()
                       : EnvironmentElementThumbnail(
                           manifest: manifest!,
+                          projectRootPath: projectRootPath,
                           element: element,
                           elementId: item.elementId,
                           resolveTilesetPathById: resolveTilesetPathById,
