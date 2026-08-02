@@ -59,7 +59,8 @@ Le rapport final doit inclure le verdict de chaque sub-agent.
 création d'un fichier. Un fichier Markdown persistant n'est autorisé que si le
 prompt demande explicitement un rapport, un audit, une review, un Evidence Pack,
 une roadmap ou un plan persistant. Dans ce cas, produire un seul document
-consolidé sous `reports/<domain>/`, jamais un fichier par sub-agent ou par passe.
+consolidé sous `documentation/reports/<domain>/`, jamais un fichier par
+sub-agent ou par passe.
 
    Le rapport doit obligatoirement inclure :
 - nom exact du lot ;
@@ -93,7 +94,7 @@ rapport : les fichiers source et le diff Git sont les preuves canoniques. Pour
 un petit fichier créé, inclure son diff utile si cela aide la review ; pour un
 fichier volumineux, donner le chemin, les zones et leur rôle.
 
-Avant de terminer, lancer `bash scripts/check_markdown_hygiene.sh`. La valeur par
+Avant de terminer, lancer `bash tools/scripts/check_markdown_hygiene.sh`. La valeur par
 défaut est zéro nouveau Markdown hors livrable explicitement demandé ; ne pas
 contourner le garde-fou avec `POKEMAP_MARKDOWN_MAX_NEW` sauf demande humaine
 explicite et bornée.

@@ -13,14 +13,15 @@
 ## Rapports
 
 - Passes structurantes ou refontes : bilan détaillé dans la réponse finale par
-  défaut. Créer un unique Markdown sous `reports/editor/` seulement si le
+  défaut. Créer un unique Markdown sous `documentation/reports/editor/` seulement si le
   mainteneur demande explicitement un rapport persistant.
 
 ## Interdits
 
 - **Opérations Git d’écriture** (commit, push, rebase, etc.) sauf demande explicite du mainteneur.
 - Fichiers **parasites** (`.vscode/` ajouté pour l’IA, tmp, dumps).
-- Docs **creuses** : préférer peu de fichiers **denses** dans `.cursor/` et `reports/`.
+- Docs **creuses** : préférer peu de fichiers **denses** dans `.cursor/` et
+  `documentation/reports/`.
 
 ## Tests
 

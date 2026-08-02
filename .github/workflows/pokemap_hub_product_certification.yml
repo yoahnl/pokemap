@@ -20,10 +20,10 @@ on:
       - "packages/map_player_ui/**"
       - "packages/map_runtime/**"
       - "examples/playable_runtime_host/**"
-      - "reports/performance/**"
+      - "documentation/reports/performance/**"
       - "tool/performance/**"
       - "pokemap_roadmap_mecaniques_fangame.md"
-      - "reports/gameplay/**"
+      - "documentation/reports/gameplay/**"
       - "tool/pokemap_product_certification/**"
       - ".github/workflows/pokemap_hub_product_certification.yml"
   push:

@@ -31,7 +31,8 @@
 - The default budget is zero new Markdown files. A final chat report does not
   authorize a persistent report file.
 - Persistent plans, reports, or evidence require an explicit user request and
-  must be consolidated in the appropriate `reports/<domain>/` directory.
+  must be consolidated in the appropriate `documentation/reports/<domain>/`
+  directory.
 - Never create Markdown at the repository root. The only allowed root Markdown
   files are `AGENTS.md`, `agent_rules.md`, `codex_rule.md`, and
   `pokemap_roadmap_mecaniques_fangame.md`. The existing
@@ -40,7 +41,7 @@
 - Do not create duplicate architecture files by guessing names.
 - Do not create `*_created_files_full_content.md`, one report per sub-agent, or
   temporary persistent plans. Use Git diffs and the final response as evidence.
-- Run `bash scripts/check_markdown_hygiene.sh` before completion.
+- Run `bash tools/scripts/check_markdown_hygiene.sh` before completion.
 
 ## 4. Git discipline
 
@@ -99,8 +100,8 @@
 - Final reports must be complete and self-contained.
 - Include: changed files, created files, deleted files, commands run, exact test totals, known limitations, remaining risks.
 - Final reports live in the chat response by default. Only an explicitly
-  requested persistent report goes in `reports/<domain>/`, as one consolidated
-  file with a descriptive name.
+  requested persistent report goes in `documentation/reports/<domain>/`, as one
+  consolidated file with a descriptive name.
 - Use Evidence Pack format for lot reports.
 
 ## 12. PathPattern-specific guidance

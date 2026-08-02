@@ -17,7 +17,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Test the hygiene guard
-        run: bash scripts/test_check_markdown_hygiene.sh
+        run: bash tools/scripts/test_check_markdown_hygiene.sh
       - name: Check changed Markdown
         env:
           # CI is a coarse safety net. AGENTS.md keeps Codex's semantic default
@@ -26,7 +26,7 @@ jobs:
           BASE_REF: ${{ github.event.pull_request.base.sha }}
         run: |
           if [[ -n "$BASE_REF" ]]; then
-            bash scripts/check_markdown_hygiene.sh --base "$BASE_REF"
+            bash tools/scripts/check_markdown_hygiene.sh --base "$BASE_REF"
           else
-            bash scripts/check_markdown_hygiene.sh
+            bash tools/scripts/check_markdown_hygiene.sh
           fi

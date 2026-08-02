@@ -42,5 +42,5 @@ La règle Cursor **`.cursor/rules/repository-instructions.mdc`** (`alwaysApply: 
 Le découpage réel du domaine Cutscene Studio vit sous  
 `packages/map_editor/lib/src/features/narrative/application/cutscene_studio/`.  
 Les règles `.cursor/` décrivent l’intention. Les faits persistants demandés
-explicitement sont consolidés sous `reports/editor/`; sinon le bilan reste dans
+explicitement sont consolidés sous `documentation/reports/editor/`; sinon le bilan reste dans
 la réponse finale.

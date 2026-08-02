@@ -27,4 +27,4 @@ Créateurs de jeu **non développeurs** en priorité. Tout écran doit être dé
 
 ## Relation code
 
-- Si une contrainte UX impose une structure de données, la **documenter** dans `.cursor/cutscene_studio_rules.md` ou dans un rapport `reports/` plutôt que de laisser la complexité dans un seul widget géant.
+- Si une contrainte UX impose une structure de données, la **documenter** dans `.cursor/cutscene_studio_rules.md` ou dans un rapport `documentation/reports/` plutôt que de laisser la complexité dans un seul widget géant.

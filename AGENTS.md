@@ -71,7 +71,7 @@ After mechanics work: report whether each relevant lot remains `TODO`, `PARTIAL`
 Update the roadmap only when the task explicitly asks. Otherwise, propose the status update in the final report. Prefer gameplay reports under:
 
 ```text
-reports/gameplay/fg_<id>_<slug>.md
+documentation/reports/gameplay/fg_<id>_<slug>.md
 ```
 
 When the user asks about fangame readiness, mechanics beat visual polish unless the current mechanic directly depends on visuals.
@@ -278,7 +278,7 @@ Roadmap lots, implementation reports, reviews, or audits should also include: re
 
 Do not invent measurements, memory guarantees, coverage percentages, or test totals. For large outputs, summarize the useful signal and preserve the exact command.
 
-Reports under `reports/` are tracked engineering artifacts. Modify them only when the task asks for a report, audit, review, lot closure, or roadmap/status evidence.
+Reports under `documentation/reports/` are tracked engineering artifacts. Modify them only when the task asks for a report, audit, review, lot closure, or roadmap/status evidence.
 
 ### Markdown hygiene (mandatory)
 
@@ -291,10 +291,11 @@ When a persistent Markdown artifact is explicitly required:
 - update an existing canonical document when that is sufficient;
 - otherwise create one consolidated file, not one file per agent, pass, test,
   phase, or command;
-- place durable product/architecture documentation under `docs/`, audit and
-  execution evidence under `reports/<domain>/`, persistent implementation plans
-  under `reports/<domain>/plans/`, cross-domain roadmaps under
-  `reports/roadmap/<domain>/`, and reusable workflows under `skills/<skill-name>/`;
+- place durable product/architecture documentation under `documentation/<domain>/`,
+  audit and execution evidence under `documentation/reports/<domain>/`, persistent
+  implementation plans under `documentation/reports/<domain>/plans/`, cross-domain
+  roadmaps under `documentation/reports/roadmap/<domain>/`, and reusable workflows
+  under `skills/<skill-name>/`;
 - never create plans under `docs/superpowers/` unless the user explicitly asks
   for that exact persistent plan; use the in-session plan mechanism by default;
 - never create `*_created_files_full_content.md` or similar source snapshots:
@@ -304,7 +305,7 @@ When a persistent Markdown artifact is explicitly required:
   `pokemap_roadmap_mecaniques_fangame.md`; the existing
   `pokemap_authoring_api_mcp_action_catalog.md` is also retained at root because
   `map_core` consumes that exact repository path;
-- run `bash scripts/check_markdown_hygiene.sh` before completion. A
+- run `bash tools/scripts/check_markdown_hygiene.sh` before completion. A
   `POKEMAP_MARKDOWN_MAX_NEW` override is allowed only when the user's request
   explicitly approves a bounded multi-document deliverable.
 
@@ -346,8 +347,8 @@ packages/
 examples/playable_runtime_host/
 examples/playable_runtime_host/golden_battle_slice/
 packages/map_editor/test/fixtures/
-reports/
-docs/combat/
+documentation/reports/
+documentation/
 skills/
 ```
 

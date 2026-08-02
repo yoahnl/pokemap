@@ -45,13 +45,13 @@ Un lot ne passe en `✅ DONE` que si le rapport final contient au minimum :
 Pour les lots mécaniques, le rapport recommandé est :
 
 ```text
-reports/gameplay/fg_<id>_<slug>.md
+documentation/reports/gameplay/fg_<id>_<slug>.md
 ```
 
 Exemple :
 
 ```text
-reports/gameplay/fg_024_capture_destination_party_or_box.md
+documentation/reports/gameplay/fg_024_capture_destination_party_or_box.md
 ```
 
 ### 0.3 Règles d’architecture à respecter
@@ -1955,7 +1955,8 @@ Consulte d’abord :
 
 - `AGENTS.md` à la racine ;
 - les éventuels `AGENTS.md` plus profonds ;
-- `docs/gameplay/fangame_mechanics_roadmap.md` ou `reports/gameplay/fangame_mechanics_roadmap.md` ;
+- `documentation/gameplay/fangame_mechanics_roadmap.md` ou
+  `documentation/reports/gameplay/fangame_mechanics_roadmap.md` ;
 - le rapport du lot précédent si disponible.
 
 # Périmètre
@@ -1975,7 +1976,7 @@ Interdits :
 
 - Code minimal si le lot est un lot d’implémentation.
 - Tests ciblés.
-- Rapport : `reports/gameplay/fg_xxx_<slug>.md`.
+- Rapport : `documentation/reports/gameplay/fg_xxx_<slug>.md`.
 - Mise à jour du statut de la roadmap si demandé explicitement.
 
 # Vérification attendue
