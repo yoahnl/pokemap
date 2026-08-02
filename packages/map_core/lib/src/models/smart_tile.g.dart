@@ -184,6 +184,20 @@ Map<String, dynamic> _$$SmartTileTransformPolicyImplToJson(
       'preferUntransformed': instance.preferUntransformed,
     };
 
+_$SmartTileSpriteTransformImpl _$$SmartTileSpriteTransformImplFromJson(
+        Map<String, dynamic> json) =>
+    _$SmartTileSpriteTransformImpl(
+      quarterTurns: (json['quarterTurns'] as num?)?.toInt() ?? 0,
+      flipX: json['flipX'] as bool? ?? false,
+    );
+
+Map<String, dynamic> _$$SmartTileSpriteTransformImplToJson(
+        _$SmartTileSpriteTransformImpl instance) =>
+    <String, dynamic>{
+      'quarterTurns': instance.quarterTurns,
+      'flipX': instance.flipX,
+    };
+
 _$SmartTileFrameSourceImpl _$$SmartTileFrameSourceImplFromJson(
         Map<String, dynamic> json) =>
     _$SmartTileFrameSourceImpl(
@@ -217,6 +231,10 @@ _$SmartTileVisualPartImpl _$$SmartTileVisualPartImplFromJson(
     _$SmartTileVisualPartImpl(
       source: SmartTileVisualSource.fromJson(
           json['source'] as Map<String, dynamic>),
+      transform: json['transform'] == null
+          ? const SmartTileSpriteTransform()
+          : SmartTileSpriteTransform.fromJson(
+              json['transform'] as Map<String, dynamic>),
       channel: $enumDecodeNullable(
               _$SmartTileRenderChannelEnumMap, json['channel']) ??
           SmartTileRenderChannel.ground,
@@ -239,6 +257,7 @@ Map<String, dynamic> _$$SmartTileVisualPartImplToJson(
         _$SmartTileVisualPartImpl instance) =>
     <String, dynamic>{
       'source': instance.source.toJson(),
+      'transform': instance.transform.toJson(),
       'channel': _$SmartTileRenderChannelEnumMap[instance.channel]!,
       'frameSampling': _$SmartTileFrameSamplingEnumMap[instance.frameSampling]!,
       'offsetUnit': _$SmartTileOffsetUnitEnumMap[instance.offsetUnit]!,

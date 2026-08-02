@@ -5,6 +5,7 @@ import '../models/map_layer.dart';
 import '../models/smart_tile.dart';
 import 'smart_tile_layer_context.dart';
 import 'smart_tile_resolver.dart';
+import 'smart_tile_sprite_geometry.dart';
 
 enum SmartTileVisualPass { background, foreground }
 
@@ -18,6 +19,8 @@ final class SmartTileLayerVisual {
     required this.channel,
     required this.tilesetId,
     required this.sourceRect,
+    required this.transform,
+    required this.geometry,
     required this.offsetUnit,
     required this.offsetX,
     required this.offsetY,
@@ -35,6 +38,8 @@ final class SmartTileLayerVisual {
   final SmartTileRenderChannel channel;
   final String tilesetId;
   final SmartTileSourceRect sourceRect;
+  final SmartTileSpriteTransform transform;
+  final SmartTileSpriteGeometry geometry;
   final SmartTileOffsetUnit offsetUnit;
   final int offsetX;
   final int offsetY;
@@ -61,6 +66,11 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
   int startY = 0,
   int? endX,
   int? endY,
+  double destinationCellWidth = 1,
+  double destinationCellHeight = 1,
+  double sourceCellWidth = 32,
+  double sourceCellHeight = 32,
+  SmartTileGeometryRect? viewportBounds,
 }) {
   ProjectSmartTilePreset? preset;
   for (final candidate in catalog.presets) {
@@ -72,6 +82,12 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
   if (preset == null || preset.usage != layer.usage) {
     return const <SmartTileLayerVisual>[];
   }
+  if (destinationCellWidth <= 0 ||
+      destinationCellHeight <= 0 ||
+      sourceCellWidth <= 0 ||
+      sourceCellHeight <= 0) {
+    return const <SmartTileLayerVisual>[];
+  }
 
   final atlases = <String, ProjectSmartTileAtlas>{
     for (final atlas in catalog.atlases) atlas.id: atlas,
@@ -80,18 +96,45 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
     for (final animation in catalog.animations) animation.id: animation,
   };
   final visuals = <SmartTileLayerVisual>[];
-  final resolvedStartX = startX.clamp(0, map.size.width);
-  final resolvedStartY = startY.clamp(0, map.size.height);
-  final resolvedEndX = (endX ?? map.size.width).clamp(
-    resolvedStartX,
+  final requestedStartX = startX.clamp(0, map.size.width);
+  final requestedStartY = startY.clamp(0, map.size.height);
+  final requestedEndX = (endX ?? map.size.width).clamp(
+    requestedStartX,
     map.size.width,
   );
-  final resolvedEndY = (endY ?? map.size.height).clamp(
-    resolvedStartY,
+  final requestedEndY = (endY ?? map.size.height).clamp(
+    requestedStartY,
     map.size.height,
   );
-  for (var y = resolvedStartY; y < resolvedEndY; y++) {
-    for (var x = resolvedStartX; x < resolvedEndX; x++) {
+  final hasRequestedViewport = viewportBounds != null ||
+      startX != 0 ||
+      startY != 0 ||
+      endX != null ||
+      endY != null;
+  final requestedViewport = viewportBounds ??
+      (hasRequestedViewport
+          ? SmartTileGeometryRect(
+              left: requestedStartX * destinationCellWidth,
+              top: requestedStartY * destinationCellHeight,
+              width: (requestedEndX - requestedStartX) * destinationCellWidth,
+              height: (requestedEndY - requestedStartY) * destinationCellHeight,
+            )
+          : null);
+  final scan = _resolveOwnerScanRange(
+    mapWidth: map.size.width,
+    mapHeight: map.size.height,
+    preset: preset,
+    pass: pass,
+    atlases: atlases,
+    animations: animations,
+    destinationCellWidth: destinationCellWidth,
+    destinationCellHeight: destinationCellHeight,
+    sourceCellWidth: sourceCellWidth,
+    sourceCellHeight: sourceCellHeight,
+    viewport: requestedViewport,
+  );
+  for (var y = scan.startY; y < scan.endY; y++) {
+    for (var x = scan.startX; x < scan.endX; x++) {
       final context = smartTileCellContextForLayerCell(
         layer: layer,
         map: map,
@@ -141,6 +184,32 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
         } on RangeError {
           continue;
         }
+        final transform = composeSmartTileSpriteTransforms(
+          first: part.transform,
+          second: resolution.transform,
+        );
+        final geometry = resolveSmartTileSpriteGeometry(
+          cellX: x,
+          cellY: y,
+          destinationCellWidth: destinationCellWidth,
+          destinationCellHeight: destinationCellHeight,
+          sourceCellWidth: sourceCellWidth,
+          sourceCellHeight: sourceCellHeight,
+          offsetUnit: part.offsetUnit,
+          offsetX: part.offsetX,
+          offsetY: part.offsetY,
+          atlasPixelOffsetX: atlas.pixelOffsetX,
+          atlasPixelOffsetY: atlas.pixelOffsetY,
+          footprintWidth: part.footprintWidth,
+          footprintHeight: part.footprintHeight,
+          anchorX: part.anchorX,
+          anchorY: part.anchorY,
+          transform: transform,
+        );
+        if (requestedViewport != null &&
+            !geometry.visualBounds.intersects(requestedViewport)) {
+          continue;
+        }
         visuals.add(
           SmartTileLayerVisual(
             cellX: x,
@@ -150,9 +219,11 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
             channel: part.channel,
             tilesetId: atlas.tilesetId,
             sourceRect: sourceRect,
+            transform: transform,
+            geometry: geometry,
             offsetUnit: part.offsetUnit,
-            offsetX: part.offsetX + atlas.pixelOffsetX,
-            offsetY: part.offsetY + atlas.pixelOffsetY,
+            offsetX: part.offsetX,
+            offsetY: part.offsetY,
             footprintWidth: part.footprintWidth,
             footprintHeight: part.footprintHeight,
             anchorX: part.anchorX,
@@ -171,6 +242,132 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
     return a.cellX.compareTo(b.cellX);
   });
   return List<SmartTileLayerVisual>.unmodifiable(visuals);
+}
+
+({int startX, int startY, int endX, int endY}) _resolveOwnerScanRange({
+  required int mapWidth,
+  required int mapHeight,
+  required ProjectSmartTilePreset preset,
+  required SmartTileVisualPass pass,
+  required Map<String, ProjectSmartTileAtlas> atlases,
+  required Map<String, ProjectSmartTileAnimation> animations,
+  required double destinationCellWidth,
+  required double destinationCellHeight,
+  required double sourceCellWidth,
+  required double sourceCellHeight,
+  required SmartTileGeometryRect? viewport,
+}) {
+  if (viewport == null) {
+    return (startX: 0, startY: 0, endX: mapWidth, endY: mapHeight);
+  }
+  final envelope = _presetVisualEnvelope(
+    preset: preset,
+    pass: pass,
+    atlases: atlases,
+    animations: animations,
+    destinationCellWidth: destinationCellWidth,
+    destinationCellHeight: destinationCellHeight,
+    sourceCellWidth: sourceCellWidth,
+    sourceCellHeight: sourceCellHeight,
+  );
+  return (
+    startX: ((viewport.left - envelope.right) / destinationCellWidth)
+        .floor()
+        .clamp(0, mapWidth),
+    startY: ((viewport.top - envelope.bottom) / destinationCellHeight)
+        .floor()
+        .clamp(0, mapHeight),
+    endX: ((viewport.right - envelope.left) / destinationCellWidth)
+        .ceil()
+        .clamp(0, mapWidth),
+    endY: ((viewport.bottom - envelope.top) / destinationCellHeight)
+        .ceil()
+        .clamp(0, mapHeight),
+  );
+}
+
+SmartTileGeometryRect _presetVisualEnvelope({
+  required ProjectSmartTilePreset preset,
+  required SmartTileVisualPass pass,
+  required Map<String, ProjectSmartTileAtlas> atlases,
+  required Map<String, ProjectSmartTileAnimation> animations,
+  required double destinationCellWidth,
+  required double destinationCellHeight,
+  required double sourceCellWidth,
+  required double sourceCellHeight,
+}) {
+  SmartTileGeometryRect? envelope;
+  final generatedTransforms = smartTileAllowedTransforms(
+    preset.transformPolicy,
+  );
+  for (final rule in preset.rules) {
+    for (final candidate in rule.candidates) {
+      for (final part in candidate.parts) {
+        if (!_channelBelongsToPass(part.channel, pass)) continue;
+        final atlasIds = part.source.when(
+          frame: (frame) => <String>{frame.atlasId},
+          animation: (animationId) => <String>{
+            for (final frame in animations[animationId]?.frames ??
+                const <ProjectSmartTileAnimationFrame>[])
+              frame.frame.atlasId,
+          },
+        );
+        for (final atlasId in atlasIds) {
+          final atlas = atlases[atlasId];
+          if (atlas == null) continue;
+          for (final generatedTransform in generatedTransforms) {
+            final transform = composeSmartTileSpriteTransforms(
+              first: part.transform,
+              second: generatedTransform,
+            );
+            final bounds = resolveSmartTileSpriteGeometry(
+              cellX: 0,
+              cellY: 0,
+              destinationCellWidth: destinationCellWidth,
+              destinationCellHeight: destinationCellHeight,
+              sourceCellWidth: sourceCellWidth,
+              sourceCellHeight: sourceCellHeight,
+              offsetUnit: part.offsetUnit,
+              offsetX: part.offsetX,
+              offsetY: part.offsetY,
+              atlasPixelOffsetX: atlas.pixelOffsetX,
+              atlasPixelOffsetY: atlas.pixelOffsetY,
+              footprintWidth: part.footprintWidth,
+              footprintHeight: part.footprintHeight,
+              anchorX: part.anchorX,
+              anchorY: part.anchorY,
+              transform: transform,
+            ).visualBounds;
+            envelope = envelope == null
+                ? bounds
+                : SmartTileGeometryRect(
+                    left: envelope.left < bounds.left
+                        ? envelope.left
+                        : bounds.left,
+                    top: envelope.top < bounds.top ? envelope.top : bounds.top,
+                    width: (envelope.right > bounds.right
+                            ? envelope.right
+                            : bounds.right) -
+                        (envelope.left < bounds.left
+                            ? envelope.left
+                            : bounds.left),
+                    height: (envelope.bottom > bounds.bottom
+                            ? envelope.bottom
+                            : bounds.bottom) -
+                        (envelope.top < bounds.top ? envelope.top : bounds.top),
+                  );
+          }
+        }
+      }
+    }
+  }
+  return envelope ??
+      SmartTileGeometryRect(
+        left: 0,
+        top: 0,
+        width: destinationCellWidth,
+        height: destinationCellHeight,
+      );
 }
 
 SmartTileFrameRef _sampleVisualFrame({

@@ -121,6 +121,7 @@ export 'src/operations/smart_tile_layer_operations.dart';
 export 'src/operations/smart_tile_layer_creation.dart';
 export 'src/operations/smart_tile_layer_readiness.dart';
 export 'src/operations/smart_tile_layer_visual_resolver.dart';
+export 'src/operations/smart_tile_sprite_geometry.dart';
 export 'src/operations/legacy_smart_tile_migration.dart';
 export 'src/operations/border_linear_lattice.dart';
 export 'src/operations/border_locality.dart';

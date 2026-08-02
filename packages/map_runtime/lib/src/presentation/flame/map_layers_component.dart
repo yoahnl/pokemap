@@ -551,7 +551,11 @@ class MapLayersComponent extends PositionComponent {
   void _paintSmartTileLayer(Canvas canvas, SmartTileLayer layer) {
     final catalog = bundle.manifest.smartTileCatalog;
     if (catalog.isEmpty || layer.opacity <= 0) return;
-    final (:startX, :startY, :endX, :endY) = _visibleCellRange();
+    final cw = bundle.cellWidth;
+    final ch = bundle.cellHeight;
+    final sourceTileWidth = bundle.manifest.settings.tileWidth;
+    final sourceTileHeight = bundle.manifest.settings.tileHeight;
+    final visibleRect = _visibleLocalRect;
     final visuals = resolveSmartTileLayerVisuals(
       map: bundle.map,
       layer: layer,
@@ -561,19 +565,21 @@ class MapLayersComponent extends PositionComponent {
         MapLayerRenderPass.foreground => SmartTileVisualPass.foreground,
       },
       elapsedMs: (_animElapsed * 1000).toInt(),
-      startX: startX,
-      startY: startY,
-      endX: endX,
-      endY: endY,
+      destinationCellWidth: cw,
+      destinationCellHeight: ch,
+      sourceCellWidth: sourceTileWidth > 0 ? sourceTileWidth.toDouble() : cw,
+      sourceCellHeight: sourceTileHeight > 0 ? sourceTileHeight.toDouble() : ch,
+      viewportBounds: visibleRect == null
+          ? null
+          : SmartTileGeometryRect(
+              left: visibleRect.left,
+              top: visibleRect.top,
+              width: visibleRect.width,
+              height: visibleRect.height,
+            ),
     );
     if (visuals.isEmpty) return;
 
-    final cw = bundle.cellWidth;
-    final ch = bundle.cellHeight;
-    final sourceTileWidth = bundle.manifest.settings.tileWidth;
-    final sourceTileHeight = bundle.manifest.settings.tileHeight;
-    final pixelScaleX = sourceTileWidth > 0 ? cw / sourceTileWidth : 1.0;
-    final pixelScaleY = sourceTileHeight > 0 ? ch / sourceTileHeight : 1.0;
     final paint = Paint()
       ..isAntiAlias = false
       ..filterQuality = FilterQuality.none
@@ -592,19 +598,53 @@ class MapLayersComponent extends PositionComponent {
         source.height.toDouble(),
       );
       if (!image.containsSourceRect(sourceRect)) continue;
-      final offsetX = visual.offsetUnit == SmartTileOffsetUnit.cell
-          ? visual.offsetX * cw
-          : visual.offsetX * pixelScaleX;
-      final offsetY = visual.offsetUnit == SmartTileOffsetUnit.cell
-          ? visual.offsetY * ch
-          : visual.offsetY * pixelScaleY;
-      final destination = Rect.fromLTWH(
-        visual.cellX * cw + offsetX - visual.anchorX * pixelScaleX,
-        visual.cellY * ch + offsetY - visual.anchorY * pixelScaleY,
-        visual.footprintWidth * cw,
-        visual.footprintHeight * ch,
+      _drawSmartTileImage(
+        canvas: canvas,
+        image: image,
+        sourceRect: sourceRect,
+        visual: visual,
+        paint: paint,
       );
-      image.drawImageRect(canvas, sourceRect, destination, paint);
+    }
+  }
+
+  void _drawSmartTileImage({
+    required Canvas canvas,
+    required RuntimeTilesetImage image,
+    required Rect sourceRect,
+    required SmartTileLayerVisual visual,
+    required Paint paint,
+  }) {
+    final destination = visual.geometry.destinationRect;
+    final transform = visual.transform;
+    canvas.save();
+    try {
+      canvas.translate(destination.left, destination.top);
+      switch (transform.quarterTurns) {
+        case 0:
+          break;
+        case 1:
+          canvas.translate(destination.height, 0);
+          canvas.rotate(math.pi / 2);
+        case 2:
+          canvas.translate(destination.width, destination.height);
+          canvas.rotate(math.pi);
+        case 3:
+          canvas.translate(0, destination.width);
+          canvas.rotate(3 * math.pi / 2);
+      }
+      if (transform.flipX) {
+        canvas.translate(destination.width, 0);
+        canvas.scale(-1, 1);
+      }
+      image.drawImageRect(
+        canvas,
+        sourceRect,
+        Rect.fromLTWH(0, 0, destination.width, destination.height),
+        paint,
+      );
+    } finally {
+      canvas.restore();
     }
   }
 

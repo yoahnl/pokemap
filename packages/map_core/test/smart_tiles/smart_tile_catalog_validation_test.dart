@@ -374,34 +374,67 @@ void main() {
       );
     });
 
-    test('blocks non-default transforms from publication until STN-02', () {
+    test('accepts transform generators once STN-02 is available', () {
       final draft = _pathPreset().copyWith(
-        transformPolicy: const SmartTileTransformPolicy(allowHFlip: true),
-      );
-      final published = draft.copyWith(
+        transformPolicy: const SmartTileTransformPolicy(
+          allowHFlip: true,
+          allowQuarterTurns: true,
+        ),
         status: SmartTilePresetStatus.published,
       );
 
-      final draftDiagnostic = validateProjectSmartTileCatalog(
+      final diagnostics = validateProjectSmartTileCatalog(
         catalog: _catalog(preset: draft),
         projectTilesetIds: const <String>['tileset'],
-      ).singleWhere(
-        (diagnostic) =>
-            diagnostic.code == 'smart_tiles.transforms.requires_stn02',
-      );
-      final publishedDiagnostic = validateProjectSmartTileCatalog(
-        catalog: _catalog(preset: published),
-        projectTilesetIds: const <String>['tileset'],
-      ).singleWhere(
-        (diagnostic) =>
-            diagnostic.code == 'smart_tiles.transforms.requires_stn02',
       );
 
-      expect(draftDiagnostic.severity, SmartTileDiagnosticSeverity.warning);
       expect(
-        publishedDiagnostic.severity,
-        SmartTileDiagnosticSeverity.error,
+        diagnostics.where(
+          (diagnostic) => diagnostic.code.startsWith('smart_tiles.transforms'),
+        ),
+        isEmpty,
       );
+    });
+
+    test('blocks a visual transform outside the preset policy', () {
+      final preset = _pathPreset(
+        rules: const <SmartTileRule>[
+          SmartTileRule(
+            id: 'rule',
+            centerMatch: SmartTileSlotMatch.any(),
+            candidates: <SmartTileCandidate>[
+              SmartTileCandidate(
+                id: 'candidate',
+                parts: <SmartTileVisualPart>[
+                  SmartTileVisualPart(
+                    source: SmartTileVisualSource.frame(
+                      frame: SmartTileFrameRef(
+                        atlasId: 'atlas',
+                        column: 0,
+                        row: 0,
+                      ),
+                    ),
+                    transform: SmartTileSpriteTransform(quarterTurns: 1),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ).copyWith(
+        transformPolicy: const SmartTileTransformPolicy(allowHFlip: true),
+        status: SmartTilePresetStatus.published,
+      );
+
+      final diagnostic = validateProjectSmartTileCatalog(
+        catalog: _catalog(preset: preset),
+        projectTilesetIds: const <String>['tileset'],
+      ).singleWhere(
+        (diagnostic) => diagnostic.code == 'smart_tiles.transforms.not_allowed',
+      );
+
+      expect(diagnostic.severity, SmartTileDiagnosticSeverity.error);
+      expect(diagnostic.path, endsWith('candidates[0].parts[0].transform'));
     });
 
     test('accepts a valid Terrain preset and Wang Path preset', () {

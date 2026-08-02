@@ -2744,11 +2744,14 @@ class MapGridPainter extends CustomPainter {
       startY: visibleBounds.top,
       endX: visibleBounds.right,
       endY: visibleBounds.bottom,
+      destinationCellWidth: tileWidth,
+      destinationCellHeight: tileHeight,
+      sourceCellWidth:
+          sourceTileWidth > 0 ? sourceTileWidth.toDouble() : tileWidth,
+      sourceCellHeight:
+          sourceTileHeight > 0 ? sourceTileHeight.toDouble() : tileHeight,
     );
     cullingCounter?.smartTileVisualVisits += visuals.length;
-    final pixelScaleX = sourceTileWidth > 0 ? tileWidth / sourceTileWidth : 1.0;
-    final pixelScaleY =
-        sourceTileHeight > 0 ? tileHeight / sourceTileHeight : 1.0;
     final paint = Paint()
       ..filterQuality = FilterQuality.none
       ..color = PokeMapLegacyColors.white.withValues(
@@ -2764,19 +2767,8 @@ class MapGridPainter extends CustomPainter {
           source.y + source.height > image.height) {
         continue;
       }
-      final offsetX = visual.offsetUnit == SmartTileOffsetUnit.cell
-          ? visual.offsetX * tileWidth
-          : visual.offsetX * pixelScaleX;
-      final offsetY = visual.offsetUnit == SmartTileOffsetUnit.cell
-          ? visual.offsetY * tileHeight
-          : visual.offsetY * pixelScaleY;
-      final destination = Rect.fromLTWH(
-        visual.cellX * tileWidth + offsetX - visual.anchorX * pixelScaleX,
-        visual.cellY * tileHeight + offsetY - visual.anchorY * pixelScaleY,
-        visual.footprintWidth * tileWidth,
-        visual.footprintHeight * tileHeight,
-      );
-      canvas.drawImageRect(
+      _drawSmartTileImage(
+        canvas,
         image,
         Rect.fromLTWH(
           source.x.toDouble(),
@@ -2784,9 +2776,49 @@ class MapGridPainter extends CustomPainter {
           source.width.toDouble(),
           source.height.toDouble(),
         ),
-        destination,
+        visual,
         paint,
       );
+    }
+  }
+
+  void _drawSmartTileImage(
+    Canvas canvas,
+    ui.Image image,
+    Rect sourceRect,
+    SmartTileLayerVisual visual,
+    Paint paint,
+  ) {
+    final destination = visual.geometry.destinationRect;
+    final transform = visual.transform;
+    canvas.save();
+    try {
+      canvas.translate(destination.left, destination.top);
+      switch (transform.quarterTurns) {
+        case 0:
+          break;
+        case 1:
+          canvas.translate(destination.height, 0);
+          canvas.rotate(math.pi / 2);
+        case 2:
+          canvas.translate(destination.width, destination.height);
+          canvas.rotate(math.pi);
+        case 3:
+          canvas.translate(0, destination.width);
+          canvas.rotate(3 * math.pi / 2);
+      }
+      if (transform.flipX) {
+        canvas.translate(destination.width, 0);
+        canvas.scale(-1, 1);
+      }
+      canvas.drawImageRect(
+        image,
+        sourceRect,
+        Rect.fromLTWH(0, 0, destination.width, destination.height),
+        paint,
+      );
+    } finally {
+      canvas.restore();
     }
   }
 

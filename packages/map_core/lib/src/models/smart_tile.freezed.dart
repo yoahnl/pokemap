@@ -1752,6 +1752,185 @@ abstract class _SmartTileTransformPolicy implements SmartTileTransformPolicy {
       get copyWith => throw _privateConstructorUsedError;
 }
 
+SmartTileSpriteTransform _$SmartTileSpriteTransformFromJson(
+    Map<String, dynamic> json) {
+  return _SmartTileSpriteTransform.fromJson(json);
+}
+
+/// @nodoc
+mixin _$SmartTileSpriteTransform {
+  int get quarterTurns => throw _privateConstructorUsedError;
+  bool get flipX => throw _privateConstructorUsedError;
+
+  /// Serializes this SmartTileSpriteTransform to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of SmartTileSpriteTransform
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $SmartTileSpriteTransformCopyWith<SmartTileSpriteTransform> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $SmartTileSpriteTransformCopyWith<$Res> {
+  factory $SmartTileSpriteTransformCopyWith(SmartTileSpriteTransform value,
+          $Res Function(SmartTileSpriteTransform) then) =
+      _$SmartTileSpriteTransformCopyWithImpl<$Res, SmartTileSpriteTransform>;
+  @useResult
+  $Res call({int quarterTurns, bool flipX});
+}
+
+/// @nodoc
+class _$SmartTileSpriteTransformCopyWithImpl<$Res,
+        $Val extends SmartTileSpriteTransform>
+    implements $SmartTileSpriteTransformCopyWith<$Res> {
+  _$SmartTileSpriteTransformCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of SmartTileSpriteTransform
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? quarterTurns = null,
+    Object? flipX = null,
+  }) {
+    return _then(_value.copyWith(
+      quarterTurns: null == quarterTurns
+          ? _value.quarterTurns
+          : quarterTurns // ignore: cast_nullable_to_non_nullable
+              as int,
+      flipX: null == flipX
+          ? _value.flipX
+          : flipX // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$SmartTileSpriteTransformImplCopyWith<$Res>
+    implements $SmartTileSpriteTransformCopyWith<$Res> {
+  factory _$$SmartTileSpriteTransformImplCopyWith(
+          _$SmartTileSpriteTransformImpl value,
+          $Res Function(_$SmartTileSpriteTransformImpl) then) =
+      __$$SmartTileSpriteTransformImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({int quarterTurns, bool flipX});
+}
+
+/// @nodoc
+class __$$SmartTileSpriteTransformImplCopyWithImpl<$Res>
+    extends _$SmartTileSpriteTransformCopyWithImpl<$Res,
+        _$SmartTileSpriteTransformImpl>
+    implements _$$SmartTileSpriteTransformImplCopyWith<$Res> {
+  __$$SmartTileSpriteTransformImplCopyWithImpl(
+      _$SmartTileSpriteTransformImpl _value,
+      $Res Function(_$SmartTileSpriteTransformImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of SmartTileSpriteTransform
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? quarterTurns = null,
+    Object? flipX = null,
+  }) {
+    return _then(_$SmartTileSpriteTransformImpl(
+      quarterTurns: null == quarterTurns
+          ? _value.quarterTurns
+          : quarterTurns // ignore: cast_nullable_to_non_nullable
+              as int,
+      flipX: null == flipX
+          ? _value.flipX
+          : flipX // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$SmartTileSpriteTransformImpl implements _SmartTileSpriteTransform {
+  const _$SmartTileSpriteTransformImpl(
+      {this.quarterTurns = 0, this.flipX = false})
+      : assert(quarterTurns >= 0 && quarterTurns <= 3,
+            'quarterTurns must be between 0 and 3');
+
+  factory _$SmartTileSpriteTransformImpl.fromJson(Map<String, dynamic> json) =>
+      _$$SmartTileSpriteTransformImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final int quarterTurns;
+  @override
+  @JsonKey()
+  final bool flipX;
+
+  @override
+  String toString() {
+    return 'SmartTileSpriteTransform(quarterTurns: $quarterTurns, flipX: $flipX)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$SmartTileSpriteTransformImpl &&
+            (identical(other.quarterTurns, quarterTurns) ||
+                other.quarterTurns == quarterTurns) &&
+            (identical(other.flipX, flipX) || other.flipX == flipX));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, quarterTurns, flipX);
+
+  /// Create a copy of SmartTileSpriteTransform
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$SmartTileSpriteTransformImplCopyWith<_$SmartTileSpriteTransformImpl>
+      get copyWith => __$$SmartTileSpriteTransformImplCopyWithImpl<
+          _$SmartTileSpriteTransformImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$SmartTileSpriteTransformImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _SmartTileSpriteTransform implements SmartTileSpriteTransform {
+  const factory _SmartTileSpriteTransform(
+      {final int quarterTurns,
+      final bool flipX}) = _$SmartTileSpriteTransformImpl;
+
+  factory _SmartTileSpriteTransform.fromJson(Map<String, dynamic> json) =
+      _$SmartTileSpriteTransformImpl.fromJson;
+
+  @override
+  int get quarterTurns;
+  @override
+  bool get flipX;
+
+  /// Create a copy of SmartTileSpriteTransform
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$SmartTileSpriteTransformImplCopyWith<_$SmartTileSpriteTransformImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 SmartTileVisualSource _$SmartTileVisualSourceFromJson(
     Map<String, dynamic> json) {
   switch (json['kind']) {
@@ -2180,6 +2359,7 @@ SmartTileVisualPart _$SmartTileVisualPartFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$SmartTileVisualPart {
   SmartTileVisualSource get source => throw _privateConstructorUsedError;
+  SmartTileSpriteTransform get transform => throw _privateConstructorUsedError;
   SmartTileRenderChannel get channel => throw _privateConstructorUsedError;
   SmartTileFrameSampling get frameSampling =>
       throw _privateConstructorUsedError;
@@ -2210,6 +2390,7 @@ abstract class $SmartTileVisualPartCopyWith<$Res> {
   @useResult
   $Res call(
       {SmartTileVisualSource source,
+      SmartTileSpriteTransform transform,
       SmartTileRenderChannel channel,
       SmartTileFrameSampling frameSampling,
       SmartTileOffsetUnit offsetUnit,
@@ -2222,6 +2403,7 @@ abstract class $SmartTileVisualPartCopyWith<$Res> {
       int drawOrder});
 
   $SmartTileVisualSourceCopyWith<$Res> get source;
+  $SmartTileSpriteTransformCopyWith<$Res> get transform;
 }
 
 /// @nodoc
@@ -2240,6 +2422,7 @@ class _$SmartTileVisualPartCopyWithImpl<$Res, $Val extends SmartTileVisualPart>
   @override
   $Res call({
     Object? source = null,
+    Object? transform = null,
     Object? channel = null,
     Object? frameSampling = null,
     Object? offsetUnit = null,
@@ -2256,6 +2439,10 @@ class _$SmartTileVisualPartCopyWithImpl<$Res, $Val extends SmartTileVisualPart>
           ? _value.source
           : source // ignore: cast_nullable_to_non_nullable
               as SmartTileVisualSource,
+      transform: null == transform
+          ? _value.transform
+          : transform // ignore: cast_nullable_to_non_nullable
+              as SmartTileSpriteTransform,
       channel: null == channel
           ? _value.channel
           : channel // ignore: cast_nullable_to_non_nullable
@@ -2308,6 +2495,16 @@ class _$SmartTileVisualPartCopyWithImpl<$Res, $Val extends SmartTileVisualPart>
       return _then(_value.copyWith(source: value) as $Val);
     });
   }
+
+  /// Create a copy of SmartTileVisualPart
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $SmartTileSpriteTransformCopyWith<$Res> get transform {
+    return $SmartTileSpriteTransformCopyWith<$Res>(_value.transform, (value) {
+      return _then(_value.copyWith(transform: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -2320,6 +2517,7 @@ abstract class _$$SmartTileVisualPartImplCopyWith<$Res>
   @useResult
   $Res call(
       {SmartTileVisualSource source,
+      SmartTileSpriteTransform transform,
       SmartTileRenderChannel channel,
       SmartTileFrameSampling frameSampling,
       SmartTileOffsetUnit offsetUnit,
@@ -2333,6 +2531,8 @@ abstract class _$$SmartTileVisualPartImplCopyWith<$Res>
 
   @override
   $SmartTileVisualSourceCopyWith<$Res> get source;
+  @override
+  $SmartTileSpriteTransformCopyWith<$Res> get transform;
 }
 
 /// @nodoc
@@ -2349,6 +2549,7 @@ class __$$SmartTileVisualPartImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? source = null,
+    Object? transform = null,
     Object? channel = null,
     Object? frameSampling = null,
     Object? offsetUnit = null,
@@ -2365,6 +2566,10 @@ class __$$SmartTileVisualPartImplCopyWithImpl<$Res>
           ? _value.source
           : source // ignore: cast_nullable_to_non_nullable
               as SmartTileVisualSource,
+      transform: null == transform
+          ? _value.transform
+          : transform // ignore: cast_nullable_to_non_nullable
+              as SmartTileSpriteTransform,
       channel: null == channel
           ? _value.channel
           : channel // ignore: cast_nullable_to_non_nullable
@@ -2415,6 +2620,7 @@ class __$$SmartTileVisualPartImplCopyWithImpl<$Res>
 class _$SmartTileVisualPartImpl implements _SmartTileVisualPart {
   const _$SmartTileVisualPartImpl(
       {required this.source,
+      this.transform = const SmartTileSpriteTransform(),
       this.channel = SmartTileRenderChannel.ground,
       this.frameSampling = SmartTileFrameSampling.fullFrame,
       this.offsetUnit = SmartTileOffsetUnit.pixel,
@@ -2433,6 +2639,9 @@ class _$SmartTileVisualPartImpl implements _SmartTileVisualPart {
 
   @override
   final SmartTileVisualSource source;
+  @override
+  @JsonKey()
+  final SmartTileSpriteTransform transform;
   @override
   @JsonKey()
   final SmartTileRenderChannel channel;
@@ -2466,7 +2675,7 @@ class _$SmartTileVisualPartImpl implements _SmartTileVisualPart {
 
   @override
   String toString() {
-    return 'SmartTileVisualPart(source: $source, channel: $channel, frameSampling: $frameSampling, offsetUnit: $offsetUnit, offsetX: $offsetX, offsetY: $offsetY, footprintWidth: $footprintWidth, footprintHeight: $footprintHeight, anchorX: $anchorX, anchorY: $anchorY, drawOrder: $drawOrder)';
+    return 'SmartTileVisualPart(source: $source, transform: $transform, channel: $channel, frameSampling: $frameSampling, offsetUnit: $offsetUnit, offsetX: $offsetX, offsetY: $offsetY, footprintWidth: $footprintWidth, footprintHeight: $footprintHeight, anchorX: $anchorX, anchorY: $anchorY, drawOrder: $drawOrder)';
   }
 
   @override
@@ -2475,6 +2684,8 @@ class _$SmartTileVisualPartImpl implements _SmartTileVisualPart {
         (other.runtimeType == runtimeType &&
             other is _$SmartTileVisualPartImpl &&
             (identical(other.source, source) || other.source == source) &&
+            (identical(other.transform, transform) ||
+                other.transform == transform) &&
             (identical(other.channel, channel) || other.channel == channel) &&
             (identical(other.frameSampling, frameSampling) ||
                 other.frameSampling == frameSampling) &&
@@ -2497,6 +2708,7 @@ class _$SmartTileVisualPartImpl implements _SmartTileVisualPart {
   int get hashCode => Object.hash(
       runtimeType,
       source,
+      transform,
       channel,
       frameSampling,
       offsetUnit,
@@ -2528,6 +2740,7 @@ class _$SmartTileVisualPartImpl implements _SmartTileVisualPart {
 abstract class _SmartTileVisualPart implements SmartTileVisualPart {
   const factory _SmartTileVisualPart(
       {required final SmartTileVisualSource source,
+      final SmartTileSpriteTransform transform,
       final SmartTileRenderChannel channel,
       final SmartTileFrameSampling frameSampling,
       final SmartTileOffsetUnit offsetUnit,
@@ -2544,6 +2757,8 @@ abstract class _SmartTileVisualPart implements SmartTileVisualPart {
 
   @override
   SmartTileVisualSource get source;
+  @override
+  SmartTileSpriteTransform get transform;
   @override
   SmartTileRenderChannel get channel;
   @override

@@ -404,6 +404,28 @@ class SmartTileTransformPolicy with _$SmartTileTransformPolicy {
       _$SmartTileTransformPolicyFromJson(json);
 }
 
+@freezed
+class SmartTileSpriteTransform with _$SmartTileSpriteTransform {
+  @Assert(
+    'quarterTurns >= 0 && quarterTurns <= 3',
+    'quarterTurns must be between 0 and 3',
+  )
+  const factory SmartTileSpriteTransform({
+    @Default(0) int quarterTurns,
+    @Default(false) bool flipX,
+  }) = _SmartTileSpriteTransform;
+
+  factory SmartTileSpriteTransform.fromJson(Map<String, dynamic> json) =>
+      _smartTileSpriteTransformFromJson(json);
+}
+
+SmartTileSpriteTransform _smartTileSpriteTransformFromJson(
+  Map<String, dynamic> json,
+) {
+  _requireStrictJsonIntegers(json, const <String>['quarterTurns']);
+  return _$SmartTileSpriteTransformFromJson(json);
+}
+
 @Freezed(unionKey: 'kind', unionValueCase: FreezedUnionCase.snake)
 sealed class SmartTileVisualSource with _$SmartTileVisualSource {
   @JsonSerializable(explicitToJson: true)
@@ -426,6 +448,7 @@ class SmartTileVisualPart with _$SmartTileVisualPart {
   @JsonSerializable(explicitToJson: true)
   const factory SmartTileVisualPart({
     required SmartTileVisualSource source,
+    @Default(SmartTileSpriteTransform()) SmartTileSpriteTransform transform,
     @Default(SmartTileRenderChannel.ground) SmartTileRenderChannel channel,
     @Default(SmartTileFrameSampling.fullFrame)
     SmartTileFrameSampling frameSampling,

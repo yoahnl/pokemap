@@ -3,6 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 import '../models/smart_tile.dart';
 import 'smart_tile_coverage.dart';
 import 'smart_tile_resolver.dart';
+import 'smart_tile_sprite_geometry.dart';
 import 'smart_tile_templates.dart';
 
 enum SmartTileDiagnosticSeverity { info, warning, error }
@@ -283,18 +284,6 @@ final class _SmartTileCatalogValidator {
         presetId: preset.id,
       );
     }
-    final transforms = preset.transformPolicy;
-    if (transforms.allowHFlip ||
-        transforms.allowVFlip ||
-        transforms.allowQuarterTurns) {
-      _publicationDiagnostic(
-        preset: preset,
-        code: 'smart_tiles.transforms.requires_stn02',
-        path: '$path.transformPolicy',
-        message: 'Visual transforms cannot be published before STN-02 '
-            'applies them in resolver and renderer plans.',
-      );
-    }
     _validateCoverageProfile(preset, path);
   }
 
@@ -424,6 +413,20 @@ final class _SmartTileCatalogValidator {
             partIndex += 1) {
           final part = candidate.parts[partIndex];
           final partPath = '$candidatePath.parts[$partIndex]';
+          if (!smartTileTransformPolicyAllows(
+            preset.transformPolicy,
+            part.transform,
+          )) {
+            _publicationDiagnostic(
+              preset: preset,
+              code: 'smart_tiles.transforms.not_allowed',
+              path: '$partPath.transform',
+              message: 'Visual transform (${part.transform.quarterTurns}, '
+                  '${part.transform.flipX}) is outside the preset transform '
+                  'policy.',
+              ruleId: rule.id,
+            );
+          }
           if (part.footprintWidth <= 0 || part.footprintHeight <= 0) {
             _error(
               code: 'smart_tiles.visual.footprint_invalid',
@@ -540,6 +543,7 @@ final class _SmartTileCatalogValidator {
         SmartTileCoverageStatus.outOfAtlasGrid =>
           'smart_tiles.visual.out_of_atlas_grid',
         SmartTileCoverageStatus.exact ||
+        SmartTileCoverageStatus.transformed ||
         SmartTileCoverageStatus.fallback ||
         SmartTileCoverageStatus.missing =>
           null,

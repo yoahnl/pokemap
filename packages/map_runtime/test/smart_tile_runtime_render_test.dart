@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/application/runtime_manifest_tilesets.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
+import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 import 'package:map_runtime/src/presentation/flame/map_layers_component.dart';
 
 import 'surface/surface_runtime_test_support.dart';
@@ -47,12 +48,69 @@ void main() {
     backgroundImage.dispose();
     foregroundImage.dispose();
   });
+
+  test('runtime applies flipX before clockwise rotation with nearest filtering',
+      () async {
+    final image = await _asymmetricRuntimeImage();
+    addTearDown(image.dispose);
+    final component = MapLayersComponent(
+      bundle: RuntimeMapBundle(
+        manifest: _manifest,
+        map: _map,
+        projectRootDirectory: '/tmp/smart-runtime-transform-test',
+        tilesetAbsolutePathsById: const <String, String>{},
+      ),
+      tileImagesByTilesetId: <String, RuntimeTilesetImage>{'smart': image},
+    );
+
+    final rendered = await _render(component);
+
+    expect(await pixelAt(rendered, 8, 8), rgba(255, 255, 0, 255));
+    expect(await pixelAt(rendered, 24, 8), rgba(0, 255, 0, 255));
+    expect(await pixelAt(rendered, 8, 24), rgba(0, 0, 255, 255));
+    expect(await pixelAt(rendered, 24, 24), rgba(255, 0, 0, 255));
+    rendered.dispose();
+  });
 }
 
 Future<ui.Image> _render(MapLayersComponent component) {
   final recorder = ui.PictureRecorder();
   component.render(Canvas(recorder));
   return recorder.endRecording().toImage(32, 32);
+}
+
+Future<RuntimeTilesetImage> _asymmetricRuntimeImage() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  canvas.drawRect(
+    const Rect.fromLTWH(0, 0, 16, 16),
+    Paint()..color = const Color(0xFFFF0000),
+  );
+  canvas.drawRect(
+    const Rect.fromLTWH(16, 0, 16, 16),
+    Paint()..color = const Color(0xFF00FF00),
+  );
+  canvas.drawRect(
+    const Rect.fromLTWH(0, 16, 16, 16),
+    Paint()..color = const Color(0xFF0000FF),
+  );
+  canvas.drawRect(
+    const Rect.fromLTWH(16, 16, 16, 16),
+    Paint()..color = const Color(0xFFFFFF00),
+  );
+  canvas.drawRect(
+    const Rect.fromLTWH(32, 0, 32, 32),
+    Paint()..color = const Color(0xFF0000FF),
+  );
+  final image = await recorder.endRecording().toImage(64, 32);
+  return RuntimeTilesetImage(
+    images: <ui.Image>[image],
+    chunks: const <RuntimeTilesetChunk>[
+      RuntimeTilesetChunk(top: 0, height: 32, width: 64),
+    ],
+    width: 64,
+    height: 32,
+  );
 }
 
 const _map = MapData(
@@ -115,7 +173,10 @@ final _manifest = ProjectManifest(
         coverageProfile: SmartTileCoverageProfile(
           mode: SmartTileCoverageMode.explicit,
         ),
-        transformPolicy: SmartTileTransformPolicy(),
+        transformPolicy: SmartTileTransformPolicy(
+          allowHFlip: true,
+          allowQuarterTurns: true,
+        ),
         defaultMaterialId: 'grass',
         allowedMaterialIds: <String>['grass'],
         rules: <SmartTileRule>[
@@ -133,6 +194,10 @@ final _manifest = ProjectManifest(
                         column: 0,
                         row: 0,
                       ),
+                    ),
+                    transform: SmartTileSpriteTransform(
+                      quarterTurns: 1,
+                      flipX: true,
                     ),
                     channel: SmartTileRenderChannel.ground,
                   ),

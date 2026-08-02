@@ -4,6 +4,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../models/smart_tile.dart';
 import 'smart_tile_cell_context.dart';
+import 'smart_tile_sprite_geometry.dart';
 
 enum SmartTileResolutionStatus {
   resolved,
@@ -23,6 +24,7 @@ final class SmartTileResolution {
     this.deterministicHash,
     this.matchingRuleIds = const <String>[],
     this.usedFallback = false,
+    this.transform = const SmartTileSpriteTransform(),
     this.message = '',
   });
 
@@ -32,6 +34,7 @@ final class SmartTileResolution {
   final int? deterministicHash;
   final List<String> matchingRuleIds;
   final bool usedFallback;
+  final SmartTileSpriteTransform transform;
   final String message;
 
   List<SmartTileVisualPart> get parts =>
@@ -75,16 +78,32 @@ SmartTileResolution resolveSmartTile({
   }
 
   final matches = <_MatchedRule>[];
+  final allowedTransforms = smartTileAllowedTransforms(preset.transformPolicy);
   for (final rule in preset.rules) {
     if (rule.id == preset.fallbackRuleId) continue;
-    final match = _ruleMatches(
-      rule: rule,
-      preset: preset,
-      materials: materialMap,
-      context: context,
-    );
-    if (match.matches) {
-      matches.add(_MatchedRule(rule, match.specificity));
+    final transformedMatches = <SmartTileSpriteTransform>[];
+    var specificity = 0;
+    for (final transform in allowedTransforms) {
+      final match = _ruleMatches(
+        rule: rule,
+        signature: transformSmartTileSignature(rule.signature, transform),
+        preset: preset,
+        materials: materialMap,
+        context: context,
+      );
+      if (match.matches) {
+        transformedMatches.add(transform);
+        specificity = match.specificity;
+      }
+    }
+    if (transformedMatches.isNotEmpty) {
+      matches.add(
+        _MatchedRule(
+          rule,
+          specificity,
+          List<SmartTileSpriteTransform>.unmodifiable(transformedMatches),
+        ),
+      );
     }
   }
 
@@ -112,6 +131,9 @@ SmartTileResolution resolveSmartTile({
     return _resolveCandidate(
       preset: preset,
       rule: fallback,
+      transforms: const <SmartTileSpriteTransform>[
+        SmartTileSpriteTransform(),
+      ],
       usedFallback: true,
       x: x,
       y: y,
@@ -145,6 +167,7 @@ SmartTileResolution resolveSmartTile({
   return _resolveCandidate(
     preset: preset,
     rule: best.single.rule,
+    transforms: best.single.transforms,
     usedFallback: false,
     x: x,
     y: y,
@@ -220,6 +243,7 @@ int smartTileFnv1a64(Iterable<int> bytes) {
 SmartTileResolution _resolveCandidate({
   required ProjectSmartTilePreset preset,
   required SmartTileRule rule,
+  required List<SmartTileSpriteTransform> transforms,
   required bool usedFallback,
   required int x,
   required int y,
@@ -228,21 +252,6 @@ SmartTileResolution _resolveCandidate({
   required int projectSeed,
   required int layerSeed,
 }) {
-  final candidates = rule.candidates
-      .where((candidate) => candidate.weight > 0)
-      .toList(growable: false)
-    ..sort(_compareCandidateIdsByUtf8);
-  final matchingRuleIds = List<String>.unmodifiable(<String>[rule.id]);
-  if (candidates.isEmpty) {
-    return SmartTileResolution(
-      status: SmartTileResolutionStatus.noCandidate,
-      ruleId: rule.id,
-      matchingRuleIds: matchingRuleIds,
-      usedFallback: usedFallback,
-      message: 'The selected Smart Tile rule has no positive candidate.',
-    );
-  }
-
   final hash = _resolutionHash(
     projectSeed: projectSeed,
     layerSeed: layerSeed,
@@ -254,6 +263,27 @@ SmartTileResolution _resolveCandidate({
     x: x,
     y: y,
   );
+  final transform = _selectTransform(
+    transforms,
+    hash: hash,
+    preferUntransformed: preset.transformPolicy.preferUntransformed,
+  );
+  final candidates = rule.candidates
+      .where((candidate) => candidate.weight > 0)
+      .toList(growable: false)
+    ..sort(_compareCandidateIdsByUtf8);
+  final matchingRuleIds = List<String>.unmodifiable(<String>[rule.id]);
+  if (candidates.isEmpty) {
+    return SmartTileResolution(
+      status: SmartTileResolutionStatus.noCandidate,
+      ruleId: rule.id,
+      matchingRuleIds: matchingRuleIds,
+      usedFallback: usedFallback,
+      transform: transform,
+      message: 'The selected Smart Tile rule has no positive candidate.',
+    );
+  }
+
   final totalWeight = candidates.fold<int>(
     0,
     (sum, candidate) => sum + candidate.weight,
@@ -275,7 +305,22 @@ SmartTileResolution _resolveCandidate({
     deterministicHash: hash,
     matchingRuleIds: matchingRuleIds,
     usedFallback: usedFallback,
+    transform: transform,
   );
+}
+
+SmartTileSpriteTransform _selectTransform(
+  List<SmartTileSpriteTransform> transforms, {
+  required int hash,
+  required bool preferUntransformed,
+}) {
+  if (transforms.isEmpty) return const SmartTileSpriteTransform();
+  if (preferUntransformed) {
+    for (final transform in transforms) {
+      if (isIdentitySmartTileTransform(transform)) return transform;
+    }
+  }
+  return transforms[hash % transforms.length];
 }
 
 final class _InvalidRule {
@@ -359,19 +404,30 @@ bool _hasExplicitSignatureMaterialIntent(
   if (materialId == null || materialId.isEmpty) return false;
   return preset.rules.any((rule) {
     if (rule.id == preset.fallbackRuleId) return false;
-    final match = switch (slotName) {
-      'northWestCorner' => rule.signature.northWestCorner,
-      'northEdge' => rule.signature.northEdge,
-      'northEastCorner' => rule.signature.northEastCorner,
-      'eastEdge' => rule.signature.eastEdge,
-      'southEastCorner' => rule.signature.southEastCorner,
-      'southEdge' => rule.signature.southEdge,
-      'southWestCorner' => rule.signature.southWestCorner,
-      'westEdge' => rule.signature.westEdge,
-      _ => const SmartTileSlotMatch.any(),
-    };
-    return match.kind == SmartTileMatchKind.material &&
-        match.materialId == materialId;
+    for (final transform in smartTileAllowedTransforms(
+      preset.transformPolicy,
+    )) {
+      final signature = transformSmartTileSignature(
+        rule.signature,
+        transform,
+      );
+      final match = switch (slotName) {
+        'northWestCorner' => signature.northWestCorner,
+        'northEdge' => signature.northEdge,
+        'northEastCorner' => signature.northEastCorner,
+        'eastEdge' => signature.eastEdge,
+        'southEastCorner' => signature.southEastCorner,
+        'southEdge' => signature.southEdge,
+        'southWestCorner' => signature.southWestCorner,
+        'westEdge' => signature.westEdge,
+        _ => const SmartTileSlotMatch.any(),
+      };
+      if (match.kind == SmartTileMatchKind.material &&
+          match.materialId == materialId) {
+        return true;
+      }
+    }
+    return false;
   });
 }
 
@@ -383,14 +439,16 @@ final class _RuleMatch {
 }
 
 final class _MatchedRule {
-  const _MatchedRule(this.rule, this.specificity);
+  const _MatchedRule(this.rule, this.specificity, this.transforms);
 
   final SmartTileRule rule;
   final int specificity;
+  final List<SmartTileSpriteTransform> transforms;
 }
 
 _RuleMatch _ruleMatches({
   required SmartTileRule rule,
+  required SmartTileSignature signature,
   required ProjectSmartTilePreset preset,
   required Map<String, ProjectSmartTileMaterial> materials,
   required SmartTileCellContext context,
@@ -406,7 +464,7 @@ _RuleMatch _ruleMatches({
 
   var specificity = rule.centerMatch.kind == SmartTileMatchKind.any ? 0 : 1;
   for (final slot in _resolvedActiveSlots(
-    signature: rule.signature,
+    signature: signature,
     topology: preset.topology,
     observed: context.observed,
     boundaryPolicy: preset.boundaryPolicy,

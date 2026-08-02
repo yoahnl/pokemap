@@ -3,12 +3,14 @@ import 'package:meta/meta.dart' show immutable;
 import '../models/smart_tile.dart';
 import 'smart_tile_cell_context.dart';
 import 'smart_tile_resolver.dart';
+import 'smart_tile_sprite_geometry.dart';
 import 'smart_tile_templates.dart';
 
 const int _maximumCoverageScenarioCount = 4096;
 
 enum SmartTileCoverageStatus {
   exact,
+  transformed,
   fallback,
   missing,
   ambiguous,
@@ -57,6 +59,9 @@ final class SmartTileCoverageReport {
 
   int get exactCount => cases
       .where((item) => item.status == SmartTileCoverageStatus.exact)
+      .length;
+  int get transformedCount => cases
+      .where((item) => item.status == SmartTileCoverageStatus.transformed)
       .length;
   int get fallbackCount => cases
       .where((item) => item.status == SmartTileCoverageStatus.fallback)
@@ -584,9 +589,10 @@ SmartTileCoverageStatus _coverageStatus(
     }
   }
   if (outOfAtlasGrid) return SmartTileCoverageStatus.outOfAtlasGrid;
-  return resolution.usedFallback
-      ? SmartTileCoverageStatus.fallback
-      : SmartTileCoverageStatus.exact;
+  if (resolution.usedFallback) return SmartTileCoverageStatus.fallback;
+  return isIdentitySmartTileTransform(resolution.transform)
+      ? SmartTileCoverageStatus.exact
+      : SmartTileCoverageStatus.transformed;
 }
 
 enum _VisualValidation { valid, missingSource, outOfAtlasGrid }
@@ -613,7 +619,9 @@ String? _diagnosticCode(
   required bool allowFallback,
 }) {
   return switch (status) {
-    SmartTileCoverageStatus.exact => null,
+    SmartTileCoverageStatus.exact ||
+    SmartTileCoverageStatus.transformed =>
+      null,
     SmartTileCoverageStatus.fallback =>
       allowFallback ? null : 'smart_tiles.coverage.fallback_only',
     SmartTileCoverageStatus.missing => 'smart_tiles.coverage.incomplete',
@@ -630,6 +638,9 @@ String _diagnosticMessage(SmartTileCoverageStatus status, String scenarioId) {
   return switch (status) {
     SmartTileCoverageStatus.exact =>
       'Coverage scenario "$scenarioId" resolves exactly.',
+    SmartTileCoverageStatus.transformed =>
+      'Coverage scenario "$scenarioId" resolves through an allowed '
+          'transform.',
     SmartTileCoverageStatus.fallback =>
       'Coverage scenario "$scenarioId" resolves only through fallback.',
     SmartTileCoverageStatus.missing =>

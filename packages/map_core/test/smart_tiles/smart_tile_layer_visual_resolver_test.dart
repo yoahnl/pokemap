@@ -128,7 +128,7 @@ void main() {
       coverageProfile: SmartTileCoverageProfile(
         mode: SmartTileCoverageMode.template,
       ),
-      transformPolicy: SmartTileTransformPolicy(),
+      transformPolicy: SmartTileTransformPolicy(allowQuarterTurns: true),
       defaultMaterialId: 'grass',
       allowedMaterialIds: <String>['grass'],
       rules: <SmartTileRule>[
@@ -148,6 +148,7 @@ void main() {
                     ),
                   ),
                   channel: SmartTileRenderChannel.ground,
+                  transform: SmartTileSpriteTransform(quarterTurns: 1),
                   footprintWidth: 2,
                   footprintHeight: 3,
                 ),
@@ -205,7 +206,195 @@ void main() {
     expect(background.single.channel, SmartTileRenderChannel.ground);
     expect(background.single.footprintWidth, 2);
     expect(background.single.footprintHeight, 3);
+    expect(
+      background.single.transform,
+      const SmartTileSpriteTransform(quarterTurns: 1),
+    );
+    expect(background.single.geometry.destinationRect.width, 2);
+    expect(background.single.geometry.destinationRect.height, 3);
+    expect(background.single.geometry.visualBounds.width, 3);
+    expect(background.single.geometry.visualBounds.height, 2);
     expect(foreground.single.channel, SmartTileRenderChannel.canopy);
+  });
+
+  test('composes the generated rule transform with the visual transform', () {
+    const preset = ProjectSmartTilePreset(
+      id: 'transformed-wang',
+      name: 'Transformed Wang',
+      usage: SmartTileUsage.path,
+      topology: SmartTileTopology.wangEdge4,
+      coveragePolicy: SmartTileCoveragePolicy.sparse,
+      coverageProfile: SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.explicit,
+      ),
+      transformPolicy: SmartTileTransformPolicy(
+        allowQuarterTurns: true,
+      ),
+      defaultMaterialId: 'dirt',
+      allowedMaterialIds: <String>['dirt', 'grass'],
+      rules: <SmartTileRule>[
+        SmartTileRule(
+          id: 'north-grass',
+          centerMatch: SmartTileSlotMatch.material('dirt'),
+          signature: SmartTileSignature(
+            northEdge: SmartTileSlotMatch.material('grass'),
+          ),
+          candidates: <SmartTileCandidate>[
+            SmartTileCandidate(
+              id: 'north-grass',
+              parts: <SmartTileVisualPart>[
+                SmartTileVisualPart(
+                  source: SmartTileVisualSource.frame(
+                    frame: SmartTileFrameRef(
+                      atlasId: 'atlas',
+                      column: 0,
+                      row: 0,
+                    ),
+                  ),
+                  transform: SmartTileSpriteTransform(quarterTurns: 2),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    const layer = SmartTileLayer(
+      id: 'path',
+      name: 'Path',
+      presetId: 'transformed-wang',
+      usage: SmartTileUsage.path,
+      materialPalette: <String>['', 'dirt', 'grass'],
+      field: SmartTileField.edge(
+        semanticCells: <int>[1],
+        horizontalEdges: <int>[0, 0],
+        verticalEdges: <int>[0, 2],
+      ),
+    );
+    const map = MapData(
+      id: 'map',
+      name: 'Map',
+      version: ProjectVersion.v5,
+      size: GridSize(width: 1, height: 1),
+      layers: <MapLayer>[layer],
+    );
+
+    final visual = resolveSmartTileLayerVisuals(
+      map: map,
+      layer: layer,
+      catalog: ProjectSmartTileCatalog(
+        atlases: const <ProjectSmartTileAtlas>[atlas],
+        materials: materials,
+        presets: const <ProjectSmartTilePreset>[preset],
+      ),
+      pass: SmartTileVisualPass.background,
+    ).single;
+
+    expect(
+      visual.transform,
+      const SmartTileSpriteTransform(quarterTurns: 3),
+    );
+    expect(visual.geometry.transform, visual.transform);
+  });
+
+  test('keeps the same transform when an animation advances frames', () {
+    const preset = ProjectSmartTilePreset(
+      id: 'animated',
+      name: 'Animated',
+      usage: SmartTileUsage.terrain,
+      topology: SmartTileTopology.uniform,
+      coveragePolicy: SmartTileCoveragePolicy.sparse,
+      coverageProfile: SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.explicit,
+      ),
+      transformPolicy: SmartTileTransformPolicy(allowQuarterTurns: true),
+      defaultMaterialId: 'grass',
+      allowedMaterialIds: <String>['grass'],
+      rules: <SmartTileRule>[
+        SmartTileRule(
+          id: 'grass',
+          centerMatch: SmartTileSlotMatch.material('grass'),
+          candidates: <SmartTileCandidate>[
+            SmartTileCandidate(
+              id: 'animated',
+              parts: <SmartTileVisualPart>[
+                SmartTileVisualPart(
+                  source: SmartTileVisualSource.animation(
+                    animationId: 'breeze',
+                  ),
+                  transform: SmartTileSpriteTransform(quarterTurns: 1),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    const layer = SmartTileLayer(
+      id: 'animated',
+      name: 'Animated',
+      presetId: 'animated',
+      usage: SmartTileUsage.terrain,
+      materialPalette: <String>['', 'grass'],
+      field: SmartTileField.cell(semanticCells: <int>[1]),
+    );
+    const map = MapData(
+      id: 'animated-map',
+      name: 'Animated map',
+      version: ProjectVersion.v5,
+      size: GridSize(width: 1, height: 1),
+      layers: <MapLayer>[layer],
+    );
+    final catalog = ProjectSmartTileCatalog(
+      atlases: const <ProjectSmartTileAtlas>[atlas],
+      materials: materials,
+      animations: const <ProjectSmartTileAnimation>[
+        ProjectSmartTileAnimation(
+          id: 'breeze',
+          name: 'Breeze',
+          frames: <ProjectSmartTileAnimationFrame>[
+            ProjectSmartTileAnimationFrame(
+              frame: SmartTileFrameRef(
+                atlasId: 'atlas',
+                column: 0,
+                row: 0,
+              ),
+              durationMs: 100,
+            ),
+            ProjectSmartTileAnimationFrame(
+              frame: SmartTileFrameRef(
+                atlasId: 'atlas',
+                column: 1,
+                row: 0,
+              ),
+              durationMs: 100,
+            ),
+          ],
+        ),
+      ],
+      presets: const <ProjectSmartTilePreset>[preset],
+    );
+
+    final first = resolveSmartTileLayerVisuals(
+      map: map,
+      layer: layer,
+      catalog: catalog,
+      pass: SmartTileVisualPass.background,
+      elapsedMs: 0,
+    ).single;
+    final second = resolveSmartTileLayerVisuals(
+      map: map,
+      layer: layer,
+      catalog: catalog,
+      pass: SmartTileVisualPass.background,
+      elapsedMs: 100,
+    ).single;
+
+    expect(first.sourceRect.x, 0);
+    expect(second.sourceRect.x, 32);
+    expect(first.transform, const SmartTileSpriteTransform(quarterTurns: 1));
+    expect(second.transform, first.transform);
+    expect(second.geometry.visualBounds, first.geometry.visualBounds);
   });
 
   test('large-map resolution is bounded to the requested viewport', () {
@@ -284,5 +473,85 @@ void main() {
         everyElement(inInclusiveRange(37, 42)));
     expect(visuals.map((visual) => visual.cellY),
         everyElement(inInclusiveRange(41, 45)));
+  });
+
+  test('keeps an owner outside the viewport when its visual bounds intersect',
+      () {
+    const preset = ProjectSmartTilePreset(
+      id: 'overhang',
+      name: 'Overhang',
+      usage: SmartTileUsage.terrain,
+      topology: SmartTileTopology.uniform,
+      coveragePolicy: SmartTileCoveragePolicy.sparse,
+      coverageProfile: SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.explicit,
+      ),
+      transformPolicy: SmartTileTransformPolicy(),
+      defaultMaterialId: 'grass',
+      allowedMaterialIds: <String>['grass'],
+      rules: <SmartTileRule>[
+        SmartTileRule(
+          id: 'ground',
+          centerMatch: SmartTileSlotMatch.material('grass'),
+          candidates: <SmartTileCandidate>[
+            SmartTileCandidate(
+              id: 'wide',
+              parts: <SmartTileVisualPart>[
+                SmartTileVisualPart(
+                  source: SmartTileVisualSource.frame(
+                    frame: SmartTileFrameRef(
+                      atlasId: 'atlas',
+                      column: 0,
+                      row: 0,
+                    ),
+                  ),
+                  footprintWidth: 6,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    const layer = SmartTileLayer(
+      id: 'overhang',
+      name: 'Overhang',
+      presetId: 'overhang',
+      usage: SmartTileUsage.terrain,
+      materialPalette: <String>['', 'grass'],
+      field: SmartTileField.cell(
+        semanticCells: <int>[0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+      ),
+    );
+    const map = MapData(
+      id: 'overhang-map',
+      name: 'Overhang map',
+      version: ProjectVersion.v5,
+      size: GridSize(width: 10, height: 1),
+      layers: <MapLayer>[layer],
+    );
+
+    final visuals = resolveSmartTileLayerVisuals(
+      map: map,
+      layer: layer,
+      catalog: ProjectSmartTileCatalog(
+        atlases: const <ProjectSmartTileAtlas>[atlas],
+        materials: materials,
+        presets: const <ProjectSmartTilePreset>[preset],
+      ),
+      pass: SmartTileVisualPass.background,
+      destinationCellWidth: 32,
+      destinationCellHeight: 32,
+      sourceCellWidth: 32,
+      sourceCellHeight: 32,
+      startX: 6,
+      endX: 7,
+      startY: 0,
+      endY: 1,
+    );
+
+    expect(visuals, hasLength(1));
+    expect(visuals.single.cellX, 1);
+    expect(visuals.single.geometry.visualBounds.right, 224);
   });
 }
