@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:map_core/map_core.dart';
 
-import '../../../tool/performance/benchmark_support.dart';
+import '../../../tools/performance/benchmark_support.dart';
 
 Future<void> main(List<String> arguments) async {
   try {

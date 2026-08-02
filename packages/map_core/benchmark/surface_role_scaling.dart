@@ -5,7 +5,7 @@ import 'dart:math' as math;
 import 'package:crypto/crypto.dart';
 import 'package:map_core/map_core.dart';
 
-import '../../../tool/performance/benchmark_support.dart'
+import '../../../tools/performance/benchmark_support.dart'
     show sourceTreeFingerprint;
 
 const _schemaVersion = 2;

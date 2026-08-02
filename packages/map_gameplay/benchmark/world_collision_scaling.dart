@@ -7,7 +7,7 @@ import 'package:map_gameplay/src/collision/world_collision_storage.dart';
 import 'package:map_gameplay/src/gameplay_world_state.dart'
     show GameplayWorldStateCollisionStorageDiagnostics;
 
-import '../../../tool/performance/benchmark_support.dart'
+import '../../../tools/performance/benchmark_support.dart'
     show sourceTreeFingerprint;
 
 const _schemaVersion = 2;

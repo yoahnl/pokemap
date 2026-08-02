@@ -21,7 +21,7 @@ on:
       - "packages/map_runtime/**"
       - "examples/playable_runtime_host/**"
       - "documentation/reports/performance/**"
-      - "tool/performance/**"
+      - "tools/performance/**"
       - "pokemap_roadmap_mecaniques_fangame.md"
       - "documentation/reports/gameplay/**"
       - "tool/pokemap_product_certification/**"

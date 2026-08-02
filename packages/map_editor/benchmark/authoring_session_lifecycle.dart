@@ -8,7 +8,7 @@ import 'package:map_editor/src/application/authoring_api/authoring_session_lifec
 import 'package:map_editor/src/infrastructure/authoring_api/editor_project_file_reader.dart';
 import 'package:path/path.dart' as p;
 
-import '../../../tool/performance/benchmark_support.dart';
+import '../../../tools/performance/benchmark_support.dart';
 
 Future<void> main(List<String> arguments) async {
   try {

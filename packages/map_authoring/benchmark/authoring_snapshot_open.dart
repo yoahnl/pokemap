@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
 
-import '../../../tool/performance/benchmark_support.dart';
+import '../../../tools/performance/benchmark_support.dart';
 
 const _knownFixtures = <String>{
   'small',
