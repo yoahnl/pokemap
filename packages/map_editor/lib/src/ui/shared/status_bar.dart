@@ -5,6 +5,7 @@ import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/models/editor_workspace_mode.dart';
+import '../../features/editor_updates/application/editor_update_providers.dart';
 import '../../theme/theme.dart';
 
 class StatusBar extends ConsumerStatefulWidget {
@@ -65,6 +66,12 @@ class _StatusBarState extends ConsumerState<StatusBar> {
     );
 
     final state = ref.watch(editorNotifierProvider);
+    final installedVersionLabel =
+        ref.watch(editorInstalledVersionProvider).when(
+              data: (version) => 'v$version',
+              error: (_, __) => 'v…',
+              loading: () => 'v…',
+            );
     final colors = context.pokeMapColors;
     final activeMap = state.activeMap;
     final isNarrativeOverview =
@@ -278,7 +285,7 @@ class _StatusBarState extends ConsumerState<StatusBar> {
                 const SizedBox(width: 16),
                 _rightSegment(
                   colors,
-                  'v0.3.0',
+                  installedVersionLabel,
                   CupertinoIcons.info,
                 ),
               ],

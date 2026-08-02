@@ -38,4 +38,28 @@ void main() {
     expect(workflow, contains('permissions:'));
     expect(workflow, contains('contents: write'));
   });
+
+  test('stable release validates its tag and build before signing', () async {
+    final workflow = await File(
+      '../../.github/workflows/pokemap_desktop_release.yml',
+    ).readAsString();
+
+    expect(workflow, contains('validate-release:'));
+    expect(
+      workflow,
+      contains(
+        r'dart run tool/release/validate_release_version.dart '
+        r'--tag "$GITHUB_REF_NAME" --pubspec pubspec.yaml',
+      ),
+    );
+    expect(workflow, contains('- validate-release'));
+    expect(
+      workflow.indexOf('validate-release:'),
+      lessThan(workflow.indexOf('macos-release:')),
+    );
+    expect(
+      workflow.indexOf('validate-release:'),
+      lessThan(workflow.indexOf('Import ephemeral Developer ID identity')),
+    );
+  });
 }

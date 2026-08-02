@@ -6,11 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor_updates/application/editor_update_providers.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/editor_shell_page.dart';
 import 'package:map_editor/src/ui/shared/status_bar.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar.dart';
+import 'package:pub_semver/pub_semver.dart';
 
 const _appkitUiElementColorsChannel = MethodChannel('appkit_ui_element_colors');
 
@@ -278,7 +280,13 @@ Future<ProviderContainer> pumpStatusBarHarness(
   Size surfaceSize = const Size(900, 180),
 }) async {
   _installMacosAccentColorMock();
-  final container = ProviderContainer();
+  final container = ProviderContainer(
+    overrides: [
+      editorInstalledVersionProvider.overrideWith(
+        (ref) async => Version.parse('0.3.0'),
+      ),
+    ],
+  );
   final editorStateSubscription = container.listen<EditorState>(
     editorNotifierProvider,
     (_, __) {},

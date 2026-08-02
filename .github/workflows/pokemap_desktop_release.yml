@@ -23,6 +23,27 @@ env:
   FLUTTER_REVISION: 677d472756f83c14371dd8cc624387065f3d32a7
 
 jobs:
+  validate-release:
+    if: startsWith(github.ref, 'refs/tags/pokemap-v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Validate release tag and build
+        working-directory: packages/map_editor
+        run: |
+          flutter pub get
+          dart run tool/release/validate_release_version.dart --tag "$GITHUB_REF_NAME" --pubspec pubspec.yaml
+
   macos-preview:
     if: ${{ !startsWith(github.ref, 'refs/tags/pokemap-v') }}
     runs-on: macos-15
@@ -146,6 +167,7 @@ jobs:
   macos-release:
     if: ${{ startsWith(github.ref, 'refs/tags/pokemap-v') }}
     needs:
+      - validate-release
       - windows
       - linux
     runs-on: macos-15

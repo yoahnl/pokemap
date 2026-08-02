@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'l10n/app_localizations.dart';
+import 'src/features/editor_updates/presentation/editor_update_host.dart';
 import 'src/theme/theme.dart';
 import 'src/ui/editor_shell_page.dart';
 
@@ -35,7 +36,9 @@ class MapEditorApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       theme: PokeMapTheme.light(),
       darkTheme: PokeMapTheme.dark(),
-      home: const EditorShellPage(),
+      home: const EditorUpdateHost(
+        child: EditorShellPage(),
+      ),
     );
   }
 }
