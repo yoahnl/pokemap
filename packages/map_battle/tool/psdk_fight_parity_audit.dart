@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:map_battle/src/data/psdk_fight_parity_audit.dart';
 import 'package:map_battle/src/data/psdk_golden_fixture.dart';
 import 'package:map_battle/src/data/psdk_parity_gate.dart';
+import 'package:map_battle/src/data/psdk_source_locator.dart';
 
 Future<void> main(List<String> args) async {
   final options = _AuditCliOptions.parse(args);
@@ -12,14 +13,14 @@ Future<void> main(List<String> args) async {
     return;
   }
 
-  final movesDirectory = await _resolveAuditDirectory(
-    options.movesDirectory,
-    fallbackFromGitRoot: _defaultMovesDirectoryFromGitRoot,
-  );
-  final psdkBattleDirectory = await _resolveAuditDirectory(
-    options.psdkBattleDirectory,
-    fallbackFromGitRoot: _defaultPsdkBattleDirectoryFromGitRoot,
-  );
+  final defaultSources = resolvePsdkSourceDirectories();
+  final movesDirectory = options.movesDirectory == _defaultMovesDirectory
+      ? defaultSources.movesDirectory
+      : Directory(options.movesDirectory);
+  final psdkBattleDirectory =
+      options.psdkBattleDirectory == _defaultPsdkBattleDirectory
+          ? defaultSources.psdkBattleDirectory
+          : Directory(options.psdkBattleDirectory);
   final audit = await buildPsdkFightParityAudit(
     movesDirectory: movesDirectory,
     psdkBattleDirectory: psdkBattleDirectory,
@@ -213,45 +214,3 @@ const _defaultMovesDirectory =
     '../../pokémon_sdk_test_project/Data/Studio/moves';
 const _defaultPsdkBattleDirectory =
     '../../pokemonsdk-development/scripts/5 Battle';
-const _defaultMovesDirectoryFromGitRoot =
-    'pokémon_sdk_test_project/Data/Studio/moves';
-const _defaultPsdkBattleDirectoryFromGitRoot =
-    'pokemonsdk-development/scripts/5 Battle';
-
-Future<Directory> _resolveAuditDirectory(
-  String path, {
-  required String fallbackFromGitRoot,
-}) async {
-  final direct = Directory(path);
-  if (await direct.exists()) {
-    return direct;
-  }
-  final gitRoot = await _gitCommonRoot();
-  if (gitRoot == null) {
-    return direct;
-  }
-  final fallback = Directory.fromUri(gitRoot.uri.resolve(fallbackFromGitRoot));
-  if (await fallback.exists()) {
-    return fallback;
-  }
-  return direct;
-}
-
-Future<Directory?> _gitCommonRoot() async {
-  final result = await Process.run(
-    'git',
-    <String>['rev-parse', '--git-common-dir'],
-  );
-  if (result.exitCode != 0) {
-    return null;
-  }
-  final commonDir = '${result.stdout}'.trim();
-  if (commonDir.isEmpty) {
-    return null;
-  }
-  final commonDirectory = Directory(commonDir);
-  if (commonDirectory.absolute.path.endsWith('${Platform.pathSeparator}.git')) {
-    return commonDirectory.parent;
-  }
-  return null;
-}

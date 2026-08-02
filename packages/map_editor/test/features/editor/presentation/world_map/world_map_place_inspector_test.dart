@@ -26,6 +26,151 @@ import 'package:map_editor/src/ui/panels/tileset_palette/widgets/palette/map_lay
 
 void main() {
   testWidgets(
+    'keeps all placement families visible and activates them in one click',
+    (tester) async {
+      final harness = _PlaceHarness(
+        activeLayerId: 'tile',
+        initialSession: const WorldMapWorkspaceSession(
+          activeFamily: WorldMapToolFamily.place,
+          lastPlacementSubtool: WorldMapPlacementSubtool.object,
+        ),
+      );
+      addTearDown(harness.dispose);
+
+      await harness.pump(tester);
+
+      expect(find.text('Que voulez-vous placer ?'), findsOneWidget);
+      for (final subtool in WorldMapPlacementSubtool.values) {
+        expect(
+          find.byKey(
+            ValueKey<String>('world-map-placement-family-${subtool.name}'),
+          ),
+          findsOneWidget,
+          reason: subtool.name,
+        );
+      }
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('world-map-placement-family-entity'),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        harness.sessionState.lastPlacementSubtool,
+        WorldMapPlacementSubtool.entity,
+      );
+      expect(harness.sessionState.activeFamily, WorldMapToolFamily.place);
+      expect(
+        harness.notifier.state.activeTool,
+        EditorToolType.entityPlacement,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'world-map-placement-guidance-entityPlacement',
+          ),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('entity family exposes every real entity kind without a menu',
+      (tester) async {
+    final harness = _PlaceHarness(
+      activeLayerId: 'tile',
+      initialSession: const WorldMapWorkspaceSession(
+        activeFamily: WorldMapToolFamily.place,
+        lastPlacementSubtool: WorldMapPlacementSubtool.entity,
+      ),
+    );
+    addTearDown(harness.dispose);
+
+    await harness.pump(tester);
+
+    for (final kind in MapEntityKind.values) {
+      expect(
+        find.byKey(
+          ValueKey<String>('world-map-entity-kind-${kind.name}'),
+        ),
+        findsOneWidget,
+        reason: kind.name,
+      );
+    }
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('world-map-entity-kind-item'),
+      ),
+    );
+    await tester.pump();
+
+    expect(harness.notifier.state.selectedEntityKind, MapEntityKind.item);
+  });
+
+  testWidgets('hub disables a canonically unavailable placement family',
+      (tester) async {
+    final harness = _PlaceHarness(
+      activeLayerId: 'tile',
+      project: _v2OnlyProject,
+      initialSession: const WorldMapWorkspaceSession(
+        activeFamily: WorldMapToolFamily.place,
+        lastPlacementSubtool: WorldMapPlacementSubtool.entity,
+      ),
+    );
+    addTearDown(harness.dispose);
+    final beforeEditor = harness.notifier.state;
+    final beforeSession = harness.sessionState;
+    final canonicalReason = narrativeEventLegacyAuthoringBlockReason(
+      beforeEditor.project,
+      kind: NarrativeEventLegacyAuthoringKind.mapEvent,
+    );
+
+    await harness.pump(tester);
+
+    final eventTile = find.byKey(
+      const ValueKey<String>('world-map-placement-family-event'),
+    );
+    final tile = tester.widget<PokeMapActionTile>(eventTile);
+    expect(canonicalReason, isNotNull);
+    expect(tile.onPressed, isNull);
+    expect(tile.disabledReason, canonicalReason);
+
+    await tester.tap(eventTile);
+    await tester.pump();
+
+    expect(harness.notifier.state, same(beforeEditor));
+    expect(harness.sessionState, same(beforeSession));
+  });
+
+  testWidgets('hub remains overflow-free at doubled text scaling',
+      (tester) async {
+    final harness = _PlaceHarness(
+      activeLayerId: 'tile',
+      initialSession: const WorldMapWorkspaceSession(
+        activeFamily: WorldMapToolFamily.place,
+        lastPlacementSubtool: WorldMapPlacementSubtool.entity,
+      ),
+    );
+    addTearDown(harness.dispose);
+
+    await harness.pump(
+      tester,
+      textScaler: const TextScaler.linear(2),
+    );
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('world-map-placement-family-gameplayZone'),
+      ),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
     'projects all six Place subtools to palette or typed placement guidance',
     (tester) async {
       const objectBrush = EditorBrush.projectElement(elementId: 'lamp');
@@ -110,8 +255,13 @@ void main() {
           );
           expect(_mountedPropertyPanelCount(), 0);
           if (testCase.subtool == WorldMapPlacementSubtool.entity) {
-            expect(find.byType(EntityPlacementKindPicker), findsOneWidget);
-            expect(find.text('Type à placer'), findsOneWidget);
+            expect(
+              find.byKey(
+                const ValueKey<String>('world-map-entity-kind-npc'),
+              ),
+              findsOneWidget,
+            );
+            expect(find.byType(EntityPlacementKindPicker), findsNothing);
           } else {
             expect(find.byType(EntityPlacementKindPicker), findsNothing);
           }
@@ -209,7 +359,13 @@ void main() {
     await harness.pump(tester);
 
     expect(find.byType(EntityPropertiesPanel), findsNothing);
-    expect(find.byType(EntityPlacementKindPicker), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('world-map-entity-kind-npc'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(EntityPlacementKindPicker), findsNothing);
     expect(
       find.byKey(
         const ValueKey<String>(
@@ -445,6 +601,7 @@ class _PlaceHarness {
   Future<void> pump(
     WidgetTester tester, {
     Widget child = const WorldMapPlaceInspector(),
+    TextScaler textScaler = TextScaler.noScaling,
   }) async {
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -452,6 +609,10 @@ class _PlaceHarness {
         container: container,
         child: MaterialApp(
           theme: PokeMapTheme.light(),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+            child: child!,
+          ),
           home: Scaffold(
             body: SizedBox(
               width: 440,

@@ -9,6 +9,36 @@
 
 ---
 
+## 0. Addendum de cadrage produit — combat et catalogue Générations I à IX
+
+Une décision produit postérieure à la passe d'audit précise la cible :
+
+- **l'aventure** reste classique, structurée et inspirée de la Génération V ;
+- **la première surface joueur** reste centrée sur les combats singles ;
+- **le moteur de combat** doit être aussi complet, data-driven et extensible que
+  possible, sans être limité aux règles ou au contenu de la Génération V ;
+- **toutes les espèces de Pokémon des Générations I à IX** doivent pouvoir être
+  présentes dans un projet et utilisées en combat ;
+- les formes standards, les 18 types standards — Fairy compris —, les moves, talents
+  et objets de combat nécessaires à ces Pokémon entrent dans la cible moteur ;
+- Stellar et les transformations dépendant exclusivement de Mega, Z-Moves, Dynamax,
+  Gigamax ou Téracristallisation restent indisponibles tant que ces gimmicks sont
+  explicitement au parking ;
+- fournir tous les Pokémon en combat ne rend pas immédiatement obligatoires toutes
+  leurs méthodes canoniques d'obtention ou d'évolution postérieures à la Génération V ;
+- reproduction, saisons et Dive rejoignent également le parking explicite ;
+- doubles, Triple et Rotation restent à traiter après la première boucle singles
+  stable.
+
+Cet addendum remplace toute formulation plus bas qui limiterait le **catalogue Pokémon
+ou le moteur de combat** aux Générations I à V. Les limitations I–V restantes doivent
+être comprises comme le périmètre initial de l'aventure, de la progression et des
+méthodes d'obtention. Le gap proposé `FG-208` doit donc séparer un **Battle Ruleset
+I–IX** d'un **Adventure Scope classique**, et non figer tout le moteur sur la
+Génération V.
+
+---
+
 ## 1. Résumé exécutif
 
 Oui, il manque encore beaucoup de mécaniques Pokémon.

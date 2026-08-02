@@ -4,6 +4,7 @@ import 'package:map_battle/src/data/generated/psdk_move_registry_manifest.dart';
 import 'package:map_battle/src/data/psdk_attack_coverage_report.dart';
 import 'package:map_battle/src/data/psdk_fight_parity_audit.dart';
 import 'package:map_battle/src/data/psdk_parity_gate.dart';
+import 'package:map_battle/src/data/psdk_source_locator.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -100,39 +101,9 @@ void main() {
 
 ({Directory movesDirectory, Directory psdkBattleDirectory})
     _resolvePsdkSourceDirectories() {
-  final directMoves =
-      Directory('../../pokémon_sdk_test_project/Data/Studio/moves');
-  final directBattle =
-      Directory('../../pokemonsdk-development/scripts/5 Battle');
-  if (directMoves.existsSync() && directBattle.existsSync()) {
-    return (
-      movesDirectory: directMoves,
-      psdkBattleDirectory: directBattle,
-    );
-  }
-
-  final result = Process.runSync(
-    'git',
-    <String>['rev-parse', '--git-common-dir'],
-  );
-  if (result.exitCode == 0) {
-    final root = Directory('${result.stdout}'.trim()).parent;
-    final moves = Directory.fromUri(
-      root.uri.resolve('pokémon_sdk_test_project/Data/Studio/moves'),
-    );
-    final battle = Directory.fromUri(
-      root.uri.resolve('pokemonsdk-development/scripts/5 Battle'),
-    );
-    if (moves.existsSync() && battle.existsSync()) {
-      return (
-        movesDirectory: moves,
-        psdkBattleDirectory: battle,
-      );
-    }
-  }
-
+  final sources = resolvePsdkSourceDirectories();
   return (
-    movesDirectory: directMoves,
-    psdkBattleDirectory: directBattle,
+    movesDirectory: sources.movesDirectory,
+    psdkBattleDirectory: sources.psdkBattleDirectory,
   );
 }

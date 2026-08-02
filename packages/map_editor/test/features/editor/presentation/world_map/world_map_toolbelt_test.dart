@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
-import 'package:map_editor/src/application/services/narrative_event_legacy_authoring_guard.dart';
 import 'package:map_editor/src/features/border_map_editing/state/border_map_editing_providers.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
@@ -313,20 +312,11 @@ void main() {
       semantics.dispose();
     });
 
-    testWidgets('Paint menu and stable Place button expose resolved selection',
+    testWidgets('Place is a stable one-click button without a hidden menu',
         (tester) async {
-      final container = _containerWith(_paintState('path'));
+      final container = _containerWith(_tileState());
       final editor = container.read(editorNotifierProvider.notifier);
       final session = container.read(worldMapWorkspaceSessionProvider.notifier);
-      expect(
-        session
-            .activateTool(
-              editor,
-              const ActivateWorldMapPaint(WorldMapPaintSubtool.path),
-            )
-            .accepted,
-        isTrue,
-      );
       expect(
         session
             .activateTool(
@@ -344,23 +334,40 @@ void main() {
             .accepted,
         isTrue,
       );
+      session.setInspectorVisible(false);
 
       await _pumpToolbelt(tester, container);
 
-      final paint = tester.widget<PokeMapSplitButton<WorldMapPaintSubtool>>(
-        find.byKey(const ValueKey<String>('world-map-tool-paint')),
-      );
-      final place = tester.widget<PokeMapButton>(
+      final place = tester.widget<Widget>(
         find.byKey(const ValueKey<String>('world-map-tool-place')),
       );
-      expect(
-        paint.items.where((item) => item.selected).map((item) => item.value),
-        [WorldMapPaintSubtool.path],
-      );
-      expect(place.isSelected, isFalse);
+      expect(place, isA<PokeMapButton>());
+      expect((place as PokeMapButton).isSelected, isFalse);
       expect(
         find.bySemanticsLabel('Choisir un outil de placement'),
         findsNothing,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('world-map-tool-place')),
+      );
+      await tester.pump();
+
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).activeFamily,
+        WorldMapToolFamily.place,
+      );
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).lastPlacementSubtool,
+        WorldMapPlacementSubtool.event,
+      );
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).inspectorVisible,
+        isTrue,
+      );
+      expect(
+        container.read(editorNotifierProvider).activeTool,
+        EditorToolType.eventPlacement,
       );
     });
 
@@ -603,9 +610,12 @@ void main() {
           activeMap: _paintMap.copyWith(
             layers: <MapLayer>[
               ..._paintMap.layers,
-              const TerrainLayer(
+              const SmartTileLayer(
                 id: 'terrain-secondary',
                 name: 'Terrain secondaire',
+                presetId: 'terrain-secondary-preset',
+                usage: SmartTileUsage.terrain,
+                field: SmartTileField.cell(),
               ),
             ],
           ),
@@ -675,129 +685,6 @@ void main() {
           isEmpty,
         );
         expect(container.read(editorNotifierProvider).isDirty, isFalse);
-      },
-    );
-
-    testWidgets('Place menu exposes only French placement labels',
-        (tester) async {
-      final container = _containerWith(_tileState());
-      await _pumpToolbelt(tester, container);
-
-      await tester.tap(
-        find.bySemanticsLabel('Choisir un outil de placement'),
-      );
-      await tester.pump();
-
-      for (final label in const <String>[
-        'Objet',
-        'Entité',
-        'Événement',
-        'Déclencheur',
-        'Téléporteur',
-        'Zone de gameplay',
-      ]) {
-        expect(find.text(label), findsOneWidget, reason: label);
-      }
-      for (final label in const <String>[
-        'Entity',
-        'Event',
-        'Trigger',
-        'Warp',
-        'Gameplay zone',
-      ]) {
-        expect(find.text(label), findsNothing, reason: label);
-      }
-    });
-
-    for (final entry
-        in <WorldMapPlacementSubtool, ({String label, EditorToolType tool})>{
-      WorldMapPlacementSubtool.object: (
-        label: 'Objet',
-        tool: EditorToolType.tilePaint,
-      ),
-      WorldMapPlacementSubtool.entity: (
-        label: 'Entité',
-        tool: EditorToolType.entityPlacement,
-      ),
-      WorldMapPlacementSubtool.event: (
-        label: 'Événement',
-        tool: EditorToolType.eventPlacement,
-      ),
-      WorldMapPlacementSubtool.trigger: (
-        label: 'Déclencheur',
-        tool: EditorToolType.triggerPlacement,
-      ),
-      WorldMapPlacementSubtool.warp: (
-        label: 'Téléporteur',
-        tool: EditorToolType.warpPlacement,
-      ),
-      WorldMapPlacementSubtool.gameplayZone: (
-        label: 'Zone de gameplay',
-        tool: EditorToolType.gameplayZonePlacement,
-      ),
-    }.entries) {
-      testWidgets('Place menu maps ${entry.key.name} canonically',
-          (tester) async {
-        final container = _containerWith(_tileState());
-        await _pumpToolbelt(tester, container);
-
-        await tester.tap(
-          find.bySemanticsLabel('Choisir un outil de placement'),
-        );
-        await tester.pump();
-        await tester.tap(find.text(entry.value.label));
-        await tester.pump();
-
-        expect(
-          container.read(editorNotifierProvider).activeTool,
-          entry.value.tool,
-        );
-        expect(
-          container.read(worldMapWorkspaceSessionProvider).lastPlacementSubtool,
-          entry.key,
-        );
-      });
-    }
-
-    testWidgets(
-      'v2Only Event click rejects canonically without arming fake guidance',
-      (tester) async {
-        final container = _containerWith(_v2OnlyTileState());
-        final beforeEditor = container.read(editorNotifierProvider);
-        final beforeSession = container.read(worldMapWorkspaceSessionProvider);
-        final canonicalReason = narrativeEventLegacyAuthoringBlockReason(
-          beforeEditor.project,
-          kind: NarrativeEventLegacyAuthoringKind.mapEvent,
-        );
-        String? rejectionReason;
-        await _pumpToolbelt(
-          tester,
-          container,
-          onActivationRejected: (reason) => rejectionReason = reason,
-        );
-
-        await tester.tap(
-          find.bySemanticsLabel('Choisir un outil de placement'),
-        );
-        await tester.pump();
-        await tester.tap(find.text('Événement'));
-        await tester.pump();
-
-        expect(canonicalReason, isNotNull);
-        expect(rejectionReason, canonicalReason);
-        expect(container.read(editorNotifierProvider), same(beforeEditor));
-        expect(
-          container.read(worldMapWorkspaceSessionProvider),
-          same(beforeSession),
-        );
-        expect(
-          container.read(worldMapWorkspaceSessionProvider).activeFamily,
-          isNot(WorldMapToolFamily.place),
-        );
-        expect(
-          container.read(editorNotifierProvider).activeTool,
-          isNot(EditorToolType.eventPlacement),
-        );
       },
     );
 
@@ -1362,7 +1249,7 @@ void main() {
         find.byWidgetPredicate(
           (widget) =>
               widget is Semantics &&
-              widget.properties.label == 'Placer · Objet' &&
+              widget.properties.label == 'Ouvrir le hub de placement' &&
               widget.properties.selected == true,
         ),
         findsOneWidget,
@@ -1639,23 +1526,6 @@ EditorState _tileState() {
   );
 }
 
-EditorState _v2OnlyTileState() {
-  return _tileState().copyWith(
-    project: ProjectManifest(
-      name: 'World map toolbelt V2 only',
-      maps: const <ProjectMapEntry>[],
-      tilesets: const <ProjectTilesetEntry>[],
-      surfaceCatalog: const ProjectSurfaceCatalog.empty(),
-      eventRegistry: NarrativeEventRegistry(
-        schemaVersion: 1,
-        mode: EventSystemMode.v2Only,
-        records: const [],
-        legacyClaims: const [],
-      ),
-    ),
-  );
-}
-
 EditorState _paintState(String activeLayerId) {
   return EditorState(
     project: _paintProject,
@@ -1700,8 +1570,20 @@ const _paintMap = MapData(
       tilesetId: 'world',
       tiles: <int>[],
     ),
-    TerrainLayer(id: 'terrain', name: 'Terrain'),
-    PathLayer(id: 'path', name: 'Path'),
+    SmartTileLayer(
+      id: 'terrain',
+      name: 'Terrain',
+      presetId: 'terrain-preset',
+      usage: SmartTileUsage.terrain,
+      field: SmartTileField.cell(),
+    ),
+    SmartTileLayer(
+      id: 'path',
+      name: 'Path',
+      presetId: 'path-preset',
+      usage: SmartTileUsage.path,
+      field: SmartTileField.cell(),
+    ),
     SurfaceLayer(id: 'surface', name: 'Surface'),
     CollisionLayer(id: 'collision', name: 'Collision'),
   ],
@@ -1715,7 +1597,13 @@ EditorState _sameIdPathState() {
       name: 'Map A',
       size: GridSize(width: 8, height: 8),
       layers: <MapLayer>[
-        PathLayer(id: 'shared-layer', name: 'Shared path'),
+        SmartTileLayer(
+          id: 'shared-layer',
+          name: 'Shared path',
+          presetId: 'shared-path-preset',
+          usage: SmartTileUsage.path,
+          field: SmartTileField.cell(),
+        ),
       ],
     ),
     activeLayerId: 'shared-layer',

@@ -14,8 +14,8 @@ Il ne contient volontairement ni lots, ni estimations, ni détails de code.
 
 **Dernière mise à jour :** 2 août 2026  
 **Périmètre :** moteur PokeMap générique, sans dépendance à un fangame particulier  
-**Objectif actuel :** aventure Pokémon classique et structurée, inspirée des jeux
-principaux jusqu'à la Génération V, en combats simples
+**Objectif actuel :** aventure Pokémon classique et structurée, inspirée de la
+Génération V, avec un moteur de combat et un catalogue couvrant les Générations I à IX
 
 Pour les preuves et l'analyse détaillée, consulter :
 
@@ -49,14 +49,18 @@ Un statut `✅ PRÊT` ne doit être utilisé que si la mécanique est :
 
 ## 3. Cible produit actuelle
 
-La première cible n'est pas « toutes les générations ». Elle est volontairement plus
-simple et plus mesurable :
+La structure de la première aventure n'est pas « toutes les générations ». Elle reste
+volontairement classique et mesurable. Le moteur de combat et le catalogue constituent
+cependant une exception : ils doivent être aussi complets et extensibles que possible.
 
 - une aventure linéaire ou semi-linéaire avec routes, villes et donjons ;
 - des rencontres sauvages aléatoires et des rencontres statiques scénarisées ;
-- des combats **simples** au tour par tour ;
-- les types, talents, objets, natures, IV, EV, moves et évolutions disponibles jusqu'à
-  la Génération V ;
+- une première interface joueur centrée sur les combats **simples** au tour par tour ;
+- toutes les espèces de Pokémon des Générations I à IX, utilisables en combat ;
+- les formes standards, types, statistiques, moves, talents et objets de combat
+  nécessaires à ces Pokémon jusqu'à la Génération IX ;
+- un moteur de combat data-driven qui ne soit pas artificiellement limité à la
+  Génération V ;
 - le split physique/spécial par attaque ;
 - des TM réutilisables comme en Génération V, sans crafting ;
 - une équipe de six Pokémon, un sac, des boîtes PC et un Pokédex ;
@@ -66,7 +70,20 @@ simple et plus mesurable :
 - une création entièrement no-code dans PokeMap ;
 - un test rapide dans la runtime puis un export jouable.
 
-Le profil par défaut comporte **17 types** : Fairy et Stellar n'en font pas partie.
+Le moteur doit gérer les **18 types standards**, Fairy compris. Stellar et les formes
+qui dépendent exclusivement de la Téracristallisation restent au parking avec cette
+mécanique.
+
+Cette cible distingue deux notions :
+
+- **disponible en combat** : Pokémon, forme standard, move, talent ou objet utilisable
+  par le moteur ;
+- **obtenable par sa méthode canonique** : rencontre, évolution, échange ou autre
+  système permettant de l'obtenir dans l'aventure.
+
+Tous les Pokémon I–IX doivent être disponibles en combat. Reproduire immédiatement
+toutes leurs méthodes d'obtention postérieures à la Génération V n'est pas un prérequis
+pour la première aventure jouable.
 
 ---
 
@@ -78,9 +95,9 @@ Le profil par défaut comporte **17 types** : Fairy et Stellar n'en font pas par
 | Nouvelle partie et sauvegarde | `🟡 PARTIEL` | Plusieurs contrats existent ; le parcours complet New Game → starter → sauvegarde → reprise reste à prouver |
 | Exploration | `🟡 PARTIEL` | Cartes, collisions, interactions, warps et PNJ existent ; certaines actions de terrain restent incomplètes |
 | Événements et narration | `🟡 PARTIEL` | Dialogues, choix, faits et conditions existent ; il manque encore des commandes générales et des parcours entièrement prouvés |
-| Données Pokémon | `🟡 PARTIEL` | Espèces, moves, talents, objets et évolutions sont largement modélisés, mais les contrats restent dispersés |
+| Données Pokémon I–IX | `🟡 PARTIEL` | Espèces, formes, moves, talents et objets sont largement modélisés, mais couverture et contrats restent à certifier |
 | Rencontres et capture | `🟡 PARTIEL` | Les fondations sont présentes ; les règles Génération V et la boucle runtime complète doivent être fermées |
-| Combat singles | `🟡 PARTIEL` | Le moteur est avancé, mais utilise encore des règles hybrides et manque d'une certification Génération V |
+| Moteur de combat I–IX | `🟡 PARTIEL` | Le moteur est avancé ; couverture des contenus, effets et règles doit être certifiée sans réactiver les gimmicks garées |
 | Progression Pokémon | `🟡 PARTIEL` | XP, niveaux, apprentissage et évolution existent partiellement ; plusieurs règles I–V manquent |
 | Équipe, PC, sac et Pokédex | `🟡 PARTIEL` | Les surfaces principales existent, mais leurs opérations et leur identité persistante sont incomplètes |
 | Monde, services et progression | `🟡 PARTIEL` | Centres, boutiques, argent, badges et monde vivant existent à des niveaux variables |
@@ -88,7 +105,8 @@ Le profil par défaut comporte **17 types** : Fairy et Stellar n'en font pas par
 | Export et partie de référence | `🟠 À REVALIDER` | La chaîne existe, mais aucun parcours Génération V complet n'est actuellement certifié de bout en bout |
 
 **État global : `🟡 EN CONSTRUCTION`.** PokeMap possède une base importante, mais ne
-peut pas encore être présenté comme un moteur Génération V complet et certifié.
+peut pas encore être présenté comme un moteur de fangame classique avec combat I–IX
+complet et certifié.
 
 ---
 
@@ -98,14 +116,14 @@ Ces objectifs sont rangés dans l'ordre le plus utile. Ils ne représentent pas 
 
 | Ordre | Objectif observable | Statut |
 |---:|---|---|
-| 1 | Définir et versionner un profil de règles Génération V singles | `⬜ À FAIRE` |
+| 1 | Séparer et versionner le profil d'aventure classique et le moteur de combat I–IX | `⬜ À FAIRE` |
 | 2 | Rétablir une runtime compilable et recertifier les parcours joueur existants | `🟠 À REVALIDER` |
 | 3 | Jouer New Game → choix du starter → arrivée sur la première carte | `🟡 PARTIEL` |
 | 4 | Sauvegarder manuellement, quitter et reprendre exactement le même état | `🟡 PARTIEL` |
 | 5 | Stabiliser l'identité persistante de chaque Pokémon et les catalogues partagés | `🟡 PARTIEL` |
 | 6 | Explorer, dialoguer, déclencher des événements et progresser sans commande de développement | `🟡 PARTIEL` |
 | 7 | Déclencher une rencontre sauvage, générer le Pokémon et terminer la capture | `🟡 PARTIEL` |
-| 8 | Fermer les règles du combat singles selon le profil Génération V | `🟡 PARTIEL` |
+| 8 | Certifier le moteur de combat singles et les contenus nécessaires aux Pokémon I–IX | `🟡 PARTIEL` |
 | 9 | Fermer XP, EV, niveaux, apprentissage, amitié, obéissance et évolutions I–V | `🟡 PARTIEL` |
 | 10 | Finaliser les boucles équipe, sac, objets tenus, PC et Pokédex | `🟡 PARTIEL` |
 | 11 | Finaliser dresseurs, récompenses, badges, Arènes, Ligue et défaite | `🟡 PARTIEL` |
@@ -149,16 +167,17 @@ Ces objectifs sont rangés dans l'ordre le plus utile. Ils ne représentent pas 
 
 | Mécanique | Statut | Ce qu'il reste principalement à obtenir |
 |---|---|---|
-| Catalogue des espèces I–V | `🟡 PARTIEL` | Unifier propriétaire, validation et contenu réellement distribué |
-| Catalogue des moves I–V | `🟡 PARTIEL` | Fermer effets, learnsets et parité du contenu |
-| Catalogue des talents I–V | `🟡 PARTIEL` | Fermer triggers, ordre et authoring |
+| Catalogue des espèces et formes I–IX | `🟡 PARTIEL` | Unifier propriétaire, validation et contenu réellement distribué |
+| Catalogue des moves I–IX | `🟡 PARTIEL` | Fermer effets, learnsets et parité du contenu |
+| Catalogue des talents I–IX | `🟡 PARTIEL` | Fermer triggers, ordre et authoring |
+| Catalogue des objets de combat I–IX | `🟡 PARTIEL` | Unifier métadonnées, effets et distribution |
 | Identité individuelle d'un Pokémon | `🟡 PARTIEL` | ID stable, forme, OT, IDs, langue, provenance et migration |
 | Nature, IV et EV | `🟡 PARTIEL` | Fermer calculs, gains, caps et présentation joueur |
 | Shiny | `🟡 PARTIEL` | Identité, génération, locks, rendu et persistance |
 | Équipe de six | `🟡 PARTIEL` | Finaliser toutes les opérations et cas limites |
 | Résumé d'un Pokémon | `🟡 PARTIEL` | Présenter toutes les données utiles de manière cohérente |
 | Boîtes PC | `🟡 PARTIEL` | Release, organisation, recherche, œufs et objets tenus |
-| Pokédex vu/capturé | `🟡 PARTIEL` | Formes I–V, Dex régional/national, recherche et complétion |
+| Pokédex vu/capturé | `🟡 PARTIEL` | Espèces et formes standards I–IX, Dex régional/national, recherche et complétion |
 
 ### 6.4 Rencontres et capture
 
@@ -183,15 +202,15 @@ Ces objectifs sont rangés dans l'ordre le plus utile. Ils ne représentent pas 
 | Mécanique | Statut | Ce qu'il reste principalement à obtenir |
 |---|---|---|
 | Boucle de combat simple | `🟡 PARTIEL` | Certifier tous les chemins joueur et IA |
-| Profil de types à 17 types | `⬜ À FAIRE` | Versionner et appliquer partout le profil Génération V |
-| Dégâts et arrondis Génération V | `🟡 PARTIEL` | Remplacer la cible hybride actuelle et prouver les cas limites |
-| Ordre des tours et égalités de Vitesse | `🟡 PARTIEL` | RNG seedée et comportement Génération V |
+| Profil des 18 types standards | `🟡 PARTIEL` | Inclure Fairy et garantir une table cohérente dans toutes les surfaces |
+| Dégâts et arrondis versionnés | `🟡 PARTIEL` | Définir la cible moderne du moteur et prouver les cas limites |
+| Ordre des tours et égalités de Vitesse | `🟡 PARTIEL` | RNG seedée, règles explicites et tests reproductibles |
 | Catégories physique/spécial/statut | `🟡 PARTIEL` | Fermer les exceptions de moves |
 | Statuts majeurs et volatiles | `🟡 PARTIEL` | Fermer durée, immunités, ordre et persistance |
 | Changements de statistiques | `🟡 PARTIEL` | Fermer caps, reset et effets secondaires |
-| Talents | `🟡 PARTIEL` | Fermer ordre des triggers et catalogue I–V |
-| Objets tenus et baies | `🟡 PARTIEL` | Équipement, consommation et write-back |
-| Météo, terrains et hazards I–V | `🟡 PARTIEL` | Fermer ordre, durée et interactions |
+| Talents I–IX | `🟡 PARTIEL` | Fermer ordre des triggers et couverture du catalogue |
+| Objets tenus et baies I–IX | `🟡 PARTIEL` | Effets, équipement, consommation et write-back |
+| Météo, terrains et hazards I–IX | `🟡 PARTIEL` | Fermer ordre, durée et interactions |
 | Switch, K.O. et remplacement | `🟡 PARTIEL` | Fermer tous les enchaînements et fins de tour |
 | Objets utilisés en combat | `🟡 PARTIEL` | Unifier effets, validation et consommation |
 | Fuite | `🟡 PARTIEL` | Fermer formule, interdictions et feedback |

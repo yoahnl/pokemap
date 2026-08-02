@@ -4,6 +4,7 @@ import 'package:map_battle/src/data/generated/psdk_ability_effect_manifest.dart'
 import 'package:map_battle/src/data/generated/psdk_item_effect_manifest.dart';
 import 'package:map_battle/src/data/generated/psdk_move_registry_manifest.dart';
 import 'package:map_battle/src/data/psdk_fight_parity_audit.dart';
+import 'package:map_battle/src/data/psdk_source_locator.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -3159,53 +3160,13 @@ bool _psdkSourceExists(String rubyPath) {
 }
 
 Iterable<Directory> _psdkSourceRoots() sync* {
-  yield Directory('../..');
-  final gitRoot = _gitCommonRoot();
-  if (gitRoot != null) {
-    yield gitRoot;
-  }
-  yield _psdkBattleRoot();
+  final sources = resolvePsdkSourceDirectories();
+  yield sources.containerDirectory;
+  yield sources.psdkBattleDirectory;
 }
 
 Directory _psdkBattleRoot() {
-  final direct = Directory('../../pokemonsdk-development/scripts/5 Battle');
-  if (direct.existsSync()) {
-    return direct;
-  }
-
-  final gitRoot = _gitCommonRoot();
-  if (gitRoot == null) {
-    return direct;
-  }
-
-  final fallback = Directory.fromUri(
-    gitRoot.uri.resolve('pokemonsdk-development/scripts/5 Battle'),
-  );
-  if (fallback.existsSync()) {
-    return fallback;
-  }
-  return direct;
-}
-
-Directory? _gitCommonRoot() {
-  final result = Process.runSync(
-    'git',
-    <String>['rev-parse', '--git-common-dir'],
-  );
-  if (result.exitCode != 0) {
-    return null;
-  }
-
-  final commonPath = '${result.stdout}'.trim();
-  if (commonPath.isEmpty) {
-    return null;
-  }
-
-  final commonDirectory = Directory(commonPath);
-  if (commonDirectory.absolute.path.endsWith('${Platform.pathSeparator}.git')) {
-    return commonDirectory.parent;
-  }
-  return null;
+  return resolvePsdkSourceDirectories().psdkBattleDirectory;
 }
 
 String _snakeCase(String value) {

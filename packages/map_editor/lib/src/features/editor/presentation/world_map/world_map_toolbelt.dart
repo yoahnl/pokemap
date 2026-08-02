@@ -134,6 +134,9 @@ class WorldMapToolbelt extends ConsumerWidget {
       final result = sessionController.activateTool(editor, request);
       if (result.accepted) {
         paintInspectionIntent.clear();
+        if (request is ActivateWorldMapPlacement) {
+          sessionController.setInspectorVisible(true);
+        }
       }
       reportResult(result);
     }
@@ -159,9 +162,6 @@ class WorldMapToolbelt extends ConsumerWidget {
       brushKind: brushKind,
     );
     final paintLabel = _paintSubtoolLabel(visualState.paintSubtool);
-    final placementLabel = _placementSubtoolLabel(
-      visualState.placementSubtool,
-    );
     final condensed = MediaQuery.sizeOf(context).width < 1024 ||
         MediaQuery.textScalerOf(context).scale(1) > 1.5;
     if (accessibilityAnnouncement != null) {
@@ -295,30 +295,26 @@ class WorldMapToolbelt extends ConsumerWidget {
                       : const Text('Effacer'),
                 ),
               ),
-              PokeMapSplitButton<WorldMapPlacementSubtool>(
-                key: const ValueKey<String>('world-map-tool-place'),
-                onPressed: () => activate(
-                  ActivateWorldMapPlacement(
-                    visualState.placementSubtool,
-                  ),
-                ),
-                items: [
-                  for (final subtool in WorldMapPlacementSubtool.values)
-                    PokeMapMenuItem<WorldMapPlacementSubtool>(
-                      value: subtool,
-                      label: _placementSubtoolLabel(subtool),
-                      selected: subtool == visualState.placementSubtool,
+              Tooltip(
+                message: 'Ouvrir le hub de placement',
+                child: PokeMapButton(
+                  key: const ValueKey<String>('world-map-tool-place'),
+                  onPressed: () => activate(
+                    ActivateWorldMapPlacement(
+                      visualState.placementSubtool,
                     ),
-                ],
-                onSelected: (subtool) => activate(
-                  ActivateWorldMapPlacement(subtool),
+                  ),
+                  semanticLabel: 'Ouvrir le hub de placement',
+                  isSelected: visualState.family == WorldMapToolFamily.place,
+                  size: PokeMapButtonSize.compact,
+                  variant: PokeMapButtonVariant.secondary,
+                  leading: condensed
+                      ? null
+                      : const Icon(Icons.add_location_alt_outlined),
+                  child: condensed
+                      ? const Icon(Icons.add_location_alt_outlined)
+                      : const Text('Placer'),
                 ),
-                tooltip: 'Placer · $placementLabel',
-                menuTooltip: 'Choisir un outil de placement',
-                isSelected: visualState.family == WorldMapToolFamily.place,
-                child: condensed
-                    ? const Icon(Icons.add_location_alt_outlined)
-                    : const Text('Placer'),
               ),
               Tooltip(
                 message: 'Ouvrir la gestion des calques',
@@ -728,17 +724,6 @@ String _paintSubtoolLabel(WorldMapPaintSubtool subtool) {
     WorldMapPaintSubtool.surface => 'Surfaces',
     WorldMapPaintSubtool.border => 'Bordures',
     WorldMapPaintSubtool.collision => 'Collision',
-  };
-}
-
-String _placementSubtoolLabel(WorldMapPlacementSubtool subtool) {
-  return switch (subtool) {
-    WorldMapPlacementSubtool.object => 'Objet',
-    WorldMapPlacementSubtool.entity => 'Entité',
-    WorldMapPlacementSubtool.event => 'Événement',
-    WorldMapPlacementSubtool.trigger => 'Déclencheur',
-    WorldMapPlacementSubtool.warp => 'Téléporteur',
-    WorldMapPlacementSubtool.gameplayZone => 'Zone de gameplay',
   };
 }
 

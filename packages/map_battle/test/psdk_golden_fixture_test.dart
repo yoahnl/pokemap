@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:map_battle/map_battle.dart';
 import 'package:map_battle/src/data/psdk_golden_fixture.dart';
+import 'package:map_battle/src/data/psdk_source_locator.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -244,38 +245,5 @@ void _deepMerge(Map<String, Object?> target, Map<String, Object?> source) {
 }
 
 Directory _psdkBattleRoot() {
-  final direct = Directory('../../pokemonsdk-development/scripts/5 Battle');
-  if (direct.existsSync()) {
-    return direct;
-  }
-  final gitRoot = _gitCommonRoot();
-  if (gitRoot == null) {
-    return direct;
-  }
-  final fallback = Directory.fromUri(
-    gitRoot.uri.resolve('pokemonsdk-development/scripts/5 Battle'),
-  );
-  if (fallback.existsSync()) {
-    return fallback;
-  }
-  return direct;
-}
-
-Directory? _gitCommonRoot() {
-  final result = Process.runSync(
-    'git',
-    <String>['rev-parse', '--git-common-dir'],
-  );
-  if (result.exitCode != 0) {
-    return null;
-  }
-  final commonPath = '${result.stdout}'.trim();
-  if (commonPath.isEmpty) {
-    return null;
-  }
-  final commonDirectory = Directory(commonPath);
-  if (commonDirectory.absolute.path.endsWith('${Platform.pathSeparator}.git')) {
-    return commonDirectory.parent;
-  }
-  return null;
+  return resolvePsdkSourceDirectories().psdkBattleDirectory;
 }
