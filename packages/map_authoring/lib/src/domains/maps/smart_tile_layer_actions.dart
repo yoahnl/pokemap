@@ -1,10 +1,14 @@
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
+import '../../contracts/authoring_diff.dart';
+import '../../contracts/resource_ref.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
+import '../../transactions/change_set.dart';
+import 'map_lifecycle_adapter.dart';
 import 'semantic_map_action_support.dart';
-import 'smart_tile_transition_guards.dart';
+import 'smart_tile_native_transition_guard.dart';
 
 /// Canonical Smart Tile maintenance actions shared by direct, JSONL, editor,
 /// and MCP transports. These actions operate on semantic materials only; they
@@ -13,18 +17,46 @@ final class SmartTileLayerActions {
   const SmartTileLayerActions();
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
-    semanticActionDescriptor(
+    _smartTileLayerDescriptor(
+      'smart_tile.layer.create',
+      'Create a Smart Tile layer from one published preset',
+      resourceKinds: const <String>[
+        'map',
+        'project',
+        'smartTileLayer',
+        'smartTilePreset',
+      ],
+    ),
+    _smartTileLayerDescriptor(
+      'smart_tile.layer.delete',
+      'Delete one revision-checked Smart Tile layer',
+      resourceKinds: const <String>['map', 'smartTileLayer'],
+      risk: AuthoringRiskLevel.high,
+    ),
+    _smartTileLayerDescriptor(
       'smart_tile.layer.merge',
       'Union compatible Smart Tile layers into one target layer',
+      resourceKinds: const <String>[
+        'map',
+        'smartTileLayer',
+        'smartTilePreset',
+      ],
     ),
-    semanticActionDescriptor(
+    _smartTileLayerDescriptor(
       'smart_tile.layer.normalize',
       'Remove unused Smart Tile palette entries without changing geometry',
+      resourceKinds: const <String>[
+        'map',
+        'smartTileLayer',
+        'smartTileMaterial',
+      ],
     ),
   ]);
 
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     return switch (planning.request.actionId) {
+      'smart_tile.layer.create' => _create(planning),
+      'smart_tile.layer.delete' => _delete(planning),
       'smart_tile.layer.normalize' => _normalize(planning),
       'smart_tile.layer.merge' => _merge(planning),
       _ => throw semanticFailure(
@@ -33,6 +65,84 @@ final class SmartTileLayerActions {
           details: {'actionId': planning.request.actionId},
         ),
     };
+  }
+
+  AuthoringMutationDraft _create(AuthoringPlanningContext planning) {
+    final context = SemanticMapActionContext.read(
+      planning,
+      allowedParameters: const <String>{'presetId', 'layerId', 'name'},
+    );
+    final presetId = context.parameters.string('presetId');
+    final layerId = context.parameters.string('layerId');
+    final preset = _smartTilePreset(context.manifest, presetId);
+    if (preset.status != SmartTilePresetStatus.published) {
+      throw semanticFailure(
+        'smart_tile.preset_not_published',
+        'A Smart Tile layer can only be created from a published preset.',
+        details: <String, Object?>{
+          'presetId': presetId,
+          'status': preset.status.name,
+        },
+        remediation: const <String>[
+          'Publish the preset through smart_tile.preset.publish first.',
+        ],
+      );
+    }
+    final result = planNativeSmartTileLayerCreation(
+      projectMaps: planning.snapshot.maps,
+      targetMapId: context.map.id,
+      manifest: context.manifest,
+      preset: preset,
+      layerId: layerId,
+      layerName: context.parameters.string('name'),
+    );
+    if (result case final SmartTileLayerCreationFailure failure) {
+      throw semanticFailure(failure.code, failure.message);
+    }
+    final success = result as SmartTileLayerCreationSuccess;
+    preflightNativeSmartTileMutation(
+      snapshot: planning.snapshot,
+      projectedManifest: success.manifest,
+      projectedMaps: <String, MapData>{context.map.id: success.map},
+    );
+    return _creationDraft(
+      context,
+      manifest: success.manifest,
+      map: success.map,
+      preset: preset,
+      layerId: success.layerId,
+    );
+  }
+
+  AuthoringMutationDraft _delete(AuthoringPlanningContext planning) {
+    final context = SemanticMapActionContext.read(
+      planning,
+      allowedParameters: const <String>{'layerId'},
+    );
+    final layerId = context.parameters.string('layerId');
+    final layer = _smartTileLayer(context.map, layerId);
+    final projected = context.map.copyWith(
+      layers: <MapLayer>[
+        for (final candidate in context.map.layers)
+          if (candidate.id != layerId) candidate,
+      ],
+    );
+    preflightNativeSmartTileMutation(
+      snapshot: planning.snapshot,
+      projectedManifest: context.manifest,
+      projectedMaps: <String, MapData>{context.map.id: projected},
+    );
+    return context.draftMap(
+      after: projected,
+      operation: 'smart_tile.layer.delete',
+      changedItems: smartTileAuthoredValueCount(layer) + 1,
+      layerId: layerId,
+      preview: <String, Object?>{
+        'presetId': layer.presetId,
+        'usage': layer.usage.name,
+        'deletedLayer': true,
+      },
+    );
   }
 
   AuthoringMutationDraft _normalize(AuthoringPlanningContext planning) {
@@ -209,15 +319,134 @@ void _requireNativeSmartTileProject(
   required String operation,
   required String layerId,
 }) {
-  if (context.map.version == ProjectVersion.v5 &&
-      context.manifest.version == ProjectVersion.v5) {
-    return;
-  }
-  throw nativeSmartTileAuthoringRequiresStn03(
-    map: context.map,
+  requireExistingNativeSmartTileProject(
+    context.planning.snapshot,
     operation: operation,
     layerId: layerId,
   );
+}
+
+AuthoringActionDescriptor _smartTileLayerDescriptor(
+  String id,
+  String summary, {
+  required List<String> resourceKinds,
+  AuthoringRiskLevel risk = AuthoringRiskLevel.low,
+}) =>
+    AuthoringActionDescriptor(
+      id: id,
+      version: 1,
+      summary: summary,
+      inputSchemaId: 'pokemap.authoring.$id.input.v1',
+      outputSchemaId: 'pokemap.authoring.smart_tile.mutation.v1',
+      riskLevel: risk,
+      resourceKinds: resourceKinds,
+      capabilityIds: const <String>['authoring.smart_tiles'],
+      requiredPermissions: const <AuthoringPermission>[
+        AuthoringPermission.projectWrite,
+      ],
+      guarantees: const <AuthoringGuarantee>[
+        AuthoringGuarantee.dryRun,
+        AuthoringGuarantee.idempotent,
+        AuthoringGuarantee.atomic,
+        AuthoringGuarantee.revisionChecked,
+        AuthoringGuarantee.undoable,
+      ],
+      extensions: const <String, Object?>{
+        'semanticIds': true,
+        'rawTilesetRequired': false,
+        'projectWidePreflight': true,
+      },
+    );
+
+AuthoringMutationDraft _creationDraft(
+  SemanticMapActionContext context, {
+  required ProjectManifest manifest,
+  required MapData map,
+  required ProjectSmartTilePreset preset,
+  required String layerId,
+}) {
+  final mapAfter = encodeMapAuthoringDocument(map);
+  final manifestBefore = context.planning.snapshot.resourceBytes('project');
+  final manifestAfter = encodeProjectAuthoringDocument(
+    context.planning.snapshot,
+    manifest,
+  );
+  final manifestChanged = !_sameByteLists(manifestBefore, manifestAfter);
+  final projectRevision =
+      context.planning.snapshot.resourceFingerprints['project'];
+  if (manifestChanged && projectRevision == null) {
+    throw semanticFailure(
+      'smart_tile.resource_preimage_missing',
+      'The project manifest revision is unavailable.',
+    );
+  }
+  final changes = <AuthoringResourceChange>[
+    AuthoringResourceChange(
+      resource: context.resource,
+      storageKey: context.storageKey,
+      beforeBytes: context.beforeBytes,
+      afterBytes: mapAfter,
+    ),
+    if (manifestChanged)
+      AuthoringResourceChange(
+        resource: AuthoringResourceRef(
+          kind: 'project',
+          id: 'project',
+          revision: projectRevision,
+        ),
+        storageKey: 'project.json',
+        beforeBytes: manifestBefore,
+        afterBytes: manifestAfter,
+      ),
+  ];
+  final diffEntries = <AuthoringDiffEntry>[
+    AuthoringDiffEntry(
+      operation: AuthoringDiffOperation.add,
+      resource: context.resource,
+      path: '/layers/$layerId',
+      after: <String, Object?>{
+        'id': layerId,
+        'presetId': preset.id,
+        'usage': preset.usage.name,
+      },
+    ),
+    if (manifestChanged)
+      AuthoringDiffEntry(
+        operation: AuthoringDiffOperation.replace,
+        resource: AuthoringResourceRef(
+          kind: 'project',
+          id: 'project',
+          revision: projectRevision,
+        ),
+        path: '/smartTileCatalog',
+        before: context.manifest.smartTileCatalog.toJson(),
+        after: manifest.smartTileCatalog.toJson(),
+      ),
+  ];
+  return AuthoringMutationDraft(
+    changeSet: AuthoringChangeSet(
+      changes: changes,
+      diff: AuthoringDiff(diffEntries),
+    ),
+    preview: <String, Object?>{
+      'operation': 'smart_tile.layer.create',
+      'mapId': context.map.id,
+      'layerId': layerId,
+      'presetId': preset.id,
+      'usage': preset.usage.name,
+      'manifestChanged': manifestChanged,
+      'batchAtomicity': 'all_or_nothing',
+      'projectWidePreflight': 'passed',
+    },
+  );
+}
+
+bool _sameByteLists(List<int> left, List<int> right) {
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
 }
 
 SmartTileLayer _smartTileLayer(MapData map, String layerId) {

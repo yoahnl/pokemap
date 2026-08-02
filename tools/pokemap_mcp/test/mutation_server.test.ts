@@ -266,11 +266,25 @@ function smartTileM01Project(): JsonRecord {
         relativePath: "maps/map_hanazuki_village.json",
       },
     ],
-    tilesets: [],
+    tilesets: [
+      {
+        id: "smart_tileset",
+        name: "Smart Tileset",
+        relativePath: "assets/smart_tileset.png",
+      },
+    ],
     smartTileCatalog: {
       formatVersion: 2,
       categories: [],
-      atlases: [],
+      atlases: [
+        {
+          id: "atlas",
+          name: "Atlas",
+          tilesetId: "smart_tileset",
+          columns: 1,
+          rows: 1,
+        },
+      ],
       animations: [],
       materials: [
         { id: "grass", name: "Grass", connectionGroupId: "ground" },
@@ -574,7 +588,7 @@ test("MCP preserves CLI plan/apply parity for one complete map batch", async () 
   }
 });
 
-test("MCP relays the canonical STN-03 Smart Tile authoring rejection", async () => {
+test("MCP routes Smart Tile layer creation to its canonical action", async () => {
   const fixture = await mutationFixture({ withNativeSmartTileV5: true });
   try {
     const opened = await toolData(fixture.client, "pokemap_workspace", {
@@ -619,10 +633,7 @@ test("MCP relays the canonical STN-03 Smart Tile authoring rejection", async () 
 
     assert.equal(rejected.isError, true);
     const error = record(record(rejected.structuredContent).error);
-    assert.equal(
-      error.domainCode,
-      "smart_tile_native_authoring_requires_stn03",
-    );
+    assert.equal(error.domainCode, "smart_tile_canonical_layer_action_required");
     const after = await toolData(fixture.client, "pokemap_validate", {
       projectHandle,
     });
@@ -836,8 +847,32 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
     const actionIds = (described.mutationActions as JsonRecord[]).map(
       (action) => action.id,
     );
-    assert.ok(actionIds.includes("smart_tile.layer.normalize"));
-    assert.ok(actionIds.includes("smart_tile.layer.merge"));
+    for (const actionId of [
+      "smart_tile.animation.delete",
+      "smart_tile.animation.upsert",
+      "smart_tile.atlas.upsert",
+      "smart_tile.layer.create",
+      "smart_tile.layer.delete",
+      "smart_tile.layer.merge",
+      "smart_tile.layer.normalize",
+      "smart_tile.material.upsert",
+      "smart_tile.preset.delete",
+      "smart_tile.preset.publish",
+    ]) {
+      assert.ok(actionIds.includes(actionId), actionId);
+    }
+    const resourceKindIds = (described.resourceKinds as JsonRecord[]).map(
+      (resource) => resource.id,
+    );
+    for (const resourceKind of [
+      "smartTileAnimation",
+      "smartTileAtlas",
+      "smartTileLayer",
+      "smartTileMaterial",
+      "smartTilePreset",
+    ]) {
+      assert.ok(resourceKindIds.includes(resourceKind), resourceKind);
+    }
 
     const opened = await toolData(fixture.client, "pokemap_workspace", {
       operation: "open",
@@ -946,6 +981,38 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       },
       "merge",
     );
+    await applyAction(
+      "smart_tile.animation.upsert",
+      {
+        animation: {
+          id: "wind",
+          name: "Wind",
+          frames: [
+            {
+              frame: { atlasId: "atlas", column: 0, row: 0 },
+              durationMs: 120,
+            },
+          ],
+          sync: "global",
+          loop: "repeat",
+        },
+      },
+      "animation",
+    );
+
+    const queriedAnimations = await toolData(
+      fixture.client,
+      "pokemap_query",
+      {
+        projectHandle,
+        resourceKind: "smartTileAnimation",
+        operation: "list",
+      },
+    );
+    assert.deepEqual(
+      (queriedAnimations.items as JsonRecord[]).map((item) => item.id),
+      ["wind"],
+    );
 
     assert.equal(validation.valid, true);
     assert.equal(record(validation.structure).valid, true);
@@ -1000,6 +1067,28 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
     await toolData(fixture.client, "pokemap_workspace", {
       operation: "close",
       workspaceHandle,
+    });
+
+    const reopened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const reopenedAnimations = await toolData(
+      fixture.client,
+      "pokemap_query",
+      {
+        projectHandle: String(reopened.projectHandle),
+        resourceKind: "smartTileAnimation",
+        operation: "list",
+      },
+    );
+    assert.deepEqual(
+      (reopenedAnimations.items as JsonRecord[]).map((item) => item.id),
+      ["wind"],
+    );
+    await toolData(fixture.client, "pokemap_workspace", {
+      operation: "close",
+      workspaceHandle: String(reopened.workspaceHandle),
     });
   } finally {
     await fixture.client.close();

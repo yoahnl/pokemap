@@ -152,6 +152,36 @@ final class AuthoringResourceKindRegistry {
         summary: 'Content-addressed immutable asset bytes',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'smartTileAtlas',
+        version: 1,
+        displayName: 'Smart Tile atlas',
+        summary: 'Decoded-image-bounded atlas geometry for Smart Tiles',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'smartTileMaterial',
+        version: 1,
+        displayName: 'Smart Tile material',
+        summary: 'Semantic terrain, path, or surface material',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'smartTileAnimation',
+        version: 1,
+        displayName: 'Smart Tile animation',
+        summary: 'Reusable ordered Smart Tile animation frames',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'smartTilePreset',
+        version: 1,
+        displayName: 'Smart Tile preset',
+        summary: 'Topology, rules, candidates, and coverage contract',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'smartTileLayer',
+        version: 1,
+        displayName: 'Smart Tile layer',
+        summary: 'Map-owned semantic field derived from a published preset',
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'dialogue',
         version: 1,
         displayName: 'Dialogue',

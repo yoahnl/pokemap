@@ -244,6 +244,10 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
   return List<SmartTileLayerVisual>.unmodifiable(visuals);
 }
 
+/// Expands a viewport to every owner cell whose visual could intersect it.
+///
+/// This derives a conservative envelope from the preset itself, so an
+/// overhang is never lost merely because its semantic owner is offscreen.
 ({int startX, int startY, int endX, int endY}) _resolveOwnerScanRange({
   required int mapWidth,
   required int mapHeight,

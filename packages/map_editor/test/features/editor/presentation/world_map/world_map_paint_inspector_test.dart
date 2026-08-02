@@ -165,7 +165,7 @@ void main() {
   );
 
   testWidgets(
-    'terrain preset creation stays disabled and explained before STN-03',
+    'terrain preset creation stays disabled until STN-04 UI wiring',
     (tester) async {
       final harness = _PaintHarness('tile', map: _tileOnlyMap);
       addTearDown(harness.dispose);
@@ -180,7 +180,7 @@ void main() {
       );
       expect(prairie, findsOneWidget);
       expect(
-        find.text(smartTileNativeAuthoringRequiresStn03Code),
+        find.text(smartTileCanonicalLayerActionRequiredCode),
         findsOneWidget,
       );
 

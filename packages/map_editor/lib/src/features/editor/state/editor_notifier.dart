@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:map_authoring/map_authoring.dart'
     show
-        smartTileNativeAuthoringRequiresStn03Code,
+        smartTileCanonicalLayerActionRequiredCode,
         smartTileWangPaintCompilerRequiredCode;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
@@ -9282,7 +9282,7 @@ class EditorNotifier extends _$EditorNotifier
     final map = state.activeMap;
     if (map == null) return;
     state = state.copyWith(
-      errorMessage: smartTileNativeAuthoringRequiresStn03Code,
+      errorMessage: smartTileCanonicalLayerActionRequiredCode,
     );
   }
 

@@ -2793,6 +2793,8 @@ class MapGridPainter extends CustomPainter {
     final transform = visual.transform;
     canvas.save();
     try {
+      // The resulting source-space order is flipX, then clockwise rotation.
+      // Asymmetric-quadrant tests pin this order against accidental reversal.
       canvas.translate(destination.left, destination.top);
       switch (transform.quarterTurns) {
         case 0:

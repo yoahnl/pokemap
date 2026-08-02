@@ -568,10 +568,10 @@ final class AutotileActions {
       if (targetsNativeLayer ||
           declaresNativeLayer ||
           semanticActionId.startsWith('smart_tile.')) {
-        throw nativeSmartTileAuthoringRequiresStn03(
+        throw smartTileWangPaintCompilerRequired(
           map: map,
           operation: 'autotile.apply',
-          layerId: layerId is String ? layerId : null,
+          layerId: layerId is String ? layerId : '<smart-tile-layer>',
         );
       }
     }

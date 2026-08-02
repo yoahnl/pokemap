@@ -6,8 +6,8 @@ import 'smart_tile_grid_detector.dart';
 import 'smart_tile_guide.dart';
 import 'smart_tile_guide_placement.dart';
 
-const String smartTileNativeCatalogAuthoringRequiresStn03Code =
-    'smart_tile_native_catalog_authoring_requires_stn03';
+const String smartTileStudioAuthoringRequiresStn04Code =
+    'smart_tile_studio_authoring_requires_stn04';
 
 final class SmartTileAuthoringDraft {
   SmartTileAuthoringDraft({
@@ -92,8 +92,8 @@ final class SmartTileAuthoringDraft {
 /// Pure in-memory authoring controller for one native Smart Tile preset.
 ///
 /// The controller never reads or writes disk. Draft compilation remains
-/// available in memory, but persistence is blocked until the canonical STN-03
-/// authoring contract exists.
+/// available in memory, but persistence is delegated to the canonical API and
+/// remains blocked here until the STN-04 no-code adapter is wired.
 final class SmartTileAuthoringController {
   SmartTileAuthoringController({
     SmartTileAuthoringDraft? initialState,
@@ -483,7 +483,7 @@ final class SmartTileAuthoringController {
 
   ProjectManifest applyToManifest(ProjectManifest manifest) {
     throw StateError(
-      smartTileNativeCatalogAuthoringRequiresStn03Code,
+      smartTileStudioAuthoringRequiresStn04Code,
     );
   }
 

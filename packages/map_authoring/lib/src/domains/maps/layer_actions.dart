@@ -89,7 +89,7 @@ final class MapLayerOperations {
     final layerId = _string(operation, 'layerId');
     final layerKind = _layerKind(_string(operation, 'layerKind'));
     if (layerKind == MapLayerKind.smartTile) {
-      throw nativeSmartTileAuthoringRequiresStn03(
+      throw canonicalSmartTileLayerActionRequired(
         map: map,
         operation: 'layer.add',
         layerId: layerId,

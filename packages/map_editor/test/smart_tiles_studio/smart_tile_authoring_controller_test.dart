@@ -301,7 +301,7 @@ void main() {
       );
     });
 
-    test('blocks native catalog persistence before STN-03', () {
+    test('keeps private Studio persistence blocked until STN-04 wiring', () {
       final controller = _configuredController();
       controller
         ..selectUsage(SmartTileUsage.path)
@@ -332,7 +332,7 @@ void main() {
           isA<StateError>().having(
             (error) => error.message,
             'diagnostic',
-            'smart_tile_native_catalog_authoring_requires_stn03',
+            'smart_tile_studio_authoring_requires_stn04',
           ),
         ),
       );

@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 void main() {
   const mapSize = GridSize(width: 2, height: 2);
 
-  test('map-only Smart Tile creation is deferred until STN-03', () {
+  test('map-only Smart Tile creation requires the canonical action', () {
     const map = MapData(
       id: 'map',
       name: 'Map',
@@ -25,7 +25,7 @@ void main() {
         isA<ValidationException>().having(
           (error) => error.code,
           'code',
-          'smart_tile_native_authoring_requires_stn03',
+          'smart_tile_canonical_layer_action_required',
         ),
       ),
     );
@@ -51,7 +51,7 @@ void main() {
           isA<ValidationException>().having(
             (error) => error.code,
             'code',
-            'smart_tile_native_authoring_requires_stn03',
+            'smart_tile_native_project_version_required',
           ),
         ),
       );

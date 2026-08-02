@@ -315,6 +315,9 @@ SmartTileSpriteGeometry resolveSmartTileSpriteGeometry({
   );
   final width = footprintWidth * destinationCellWidth;
   final height = footprintHeight * destinationCellHeight;
+  // Anchor the positive transformed bounds to the owner cell. Rotating around
+  // the source-space origin would push an ordinary 1x1 autotile outside its
+  // cell; [transformedAnchorOffset] still exposes the anchor in output space.
   final left = cellX * destinationCellWidth +
       resolvedOffsetX +
       atlasPixelOffsetX * scaleX -

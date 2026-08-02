@@ -932,7 +932,7 @@ void main() {
     );
   });
 
-  testWidgets('disables Smart Tile terrain creation with the STN-03 diagnostic',
+  testWidgets('requires the canonical action for Smart Tile terrain creation',
       (tester) async {
     final harness = _Harness(
       _threeLayerMap(),
@@ -952,13 +952,13 @@ void main() {
     expect(smartTerrain.enabled, isFalse);
     expect(
       smartTerrain.disabledReason,
-      smartTileNativeAuthoringRequiresStn03Code,
+      smartTileCanonicalLayerActionRequiredCode,
     );
     expect(harness.notifier.state.activeMap!.layers.whereType<SmartTileLayer>(),
         isEmpty);
   });
 
-  testWidgets('disables Smart Tile path creation with the STN-03 diagnostic',
+  testWidgets('requires the canonical action for Smart Tile path creation',
       (tester) async {
     final harness = _Harness(
       _threeLayerMap(),
@@ -978,7 +978,7 @@ void main() {
     expect(smartPath.enabled, isFalse);
     expect(
       smartPath.disabledReason,
-      smartTileNativeAuthoringRequiresStn03Code,
+      smartTileCanonicalLayerActionRequiredCode,
     );
     expect(harness.notifier.state.activeMap!.layers.whereType<SmartTileLayer>(),
         isEmpty);

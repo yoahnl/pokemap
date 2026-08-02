@@ -12,7 +12,12 @@ void main() {
 
       expect(
         descriptors.map((descriptor) => descriptor.id),
-        ['smart_tile.layer.merge', 'smart_tile.layer.normalize'],
+        [
+          'smart_tile.layer.create',
+          'smart_tile.layer.delete',
+          'smart_tile.layer.merge',
+          'smart_tile.layer.normalize',
+        ],
       );
       for (final descriptor in descriptors) {
         expect(descriptor.guarantees, contains(AuthoringGuarantee.dryRun));
@@ -61,7 +66,7 @@ void main() {
                 .having(
                   (error) => error.code,
                   'code',
-                  smartTileNativeAuthoringRequiresStn03Code,
+                  'smart_tile_native_project_version_required',
                 )
                 .having(
                   (error) => error.details['operation'],
@@ -113,7 +118,7 @@ void main() {
           sequence: 'reject_${testCase.slug}',
         );
 
-        expect(result.code, smartTileNativeAuthoringRequiresStn03Code);
+        expect(result.code, 'smart_tile_native_project_version_required');
         expect(result.afterRevision, result.beforeRevision);
         expect(result.afterMapBytes, result.beforeMapBytes);
       }

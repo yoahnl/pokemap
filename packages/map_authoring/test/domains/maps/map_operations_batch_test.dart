@@ -179,7 +179,7 @@ void main() {
       );
     });
 
-    test('rejects native v5 Smart Tile layer creation before STN-03', () {
+    test('routes native v5 Smart Tile creation to its canonical action', () {
       final map = _map().copyWith(version: ProjectVersion.v5);
       final snapshot = _snapshot(map);
       final beforeBytes = snapshot.resourceBytes('map:fixture');
@@ -201,7 +201,7 @@ void main() {
           isA<MapAuthoringException>().having(
             (error) => error.code,
             'code',
-            'smart_tile_native_authoring_requires_stn03',
+            'smart_tile_canonical_layer_action_required',
           ),
         ),
       );
@@ -209,7 +209,7 @@ void main() {
       expect(map.layers.whereType<SmartTileLayer>(), isEmpty);
     });
 
-    test('keeps the canonical STN-03 rejection on a pre-v5 map', () {
+    test('keeps the canonical action boundary on a pre-v5 map', () {
       final map = _map().copyWith(version: ProjectVersion.v4);
       final snapshot = _snapshot(map);
       final beforeBytes = snapshot.resourceBytes('map:fixture');
@@ -231,7 +231,7 @@ void main() {
           isA<MapAuthoringException>().having(
             (error) => error.code,
             'code',
-            'smart_tile_native_authoring_requires_stn03',
+            'smart_tile_canonical_layer_action_required',
           ),
         ),
       );

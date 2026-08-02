@@ -336,7 +336,20 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/maps/semantic_painting_test.dart',
   ),
   _ContractEvidenceRule(
-    ['smart_tile.'],
+    [
+      'smart_tile.animation.',
+      'smart_tile.atlas.',
+      'smart_tile.material.',
+      'smart_tile.preset.',
+    ],
+    'test/domains/maps/smart_tile_catalog_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['smart_tile.layer.create', 'smart_tile.layer.delete'],
+    'test/domains/maps/smart_tile_layer_editing_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['smart_tile.layer.'],
     'test/domains/maps/smart_tile_layer_actions_test.dart',
   ),
   _ContractEvidenceRule(
@@ -444,6 +457,11 @@ const _semanticOwners = <String, String>{
   'pathPatternPreset': 'project',
   'surfacePreset': 'project',
   'surfaceAtlas': 'project',
+  'smartTileAtlas': 'project',
+  'smartTileMaterial': 'project',
+  'smartTileAnimation': 'project',
+  'smartTilePreset': 'project',
+  'smartTileLayer': 'map',
   'environmentPreset': 'project',
   'borderBlueprint': 'project',
   'borderFeature': 'map',
@@ -496,6 +514,9 @@ const _visualResources = <String>{
   'pathPatternPreset',
   'surfacePreset',
   'surfaceAtlas',
+  'smartTileAtlas',
+  'smartTilePreset',
+  'smartTileLayer',
   'environmentPreset',
   'borderBlueprint',
   'borderFeature',

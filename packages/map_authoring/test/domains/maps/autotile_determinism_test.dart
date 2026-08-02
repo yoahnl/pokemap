@@ -168,7 +168,7 @@ void main() {
               .having(
                 (error) => error.code,
                 'code',
-                'smart_tile_native_authoring_requires_stn03',
+                'smart_tile_wang_paint_compiler_required',
               )
               .having(
                 (error) => error.details['operation'],

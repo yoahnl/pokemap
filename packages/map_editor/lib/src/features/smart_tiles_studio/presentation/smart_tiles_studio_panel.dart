@@ -393,19 +393,18 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
               const PokeMapButton(
                 key: Key('smart-tiles-add-to-active-map'),
                 onPressed: null,
-                disabledReason:
-                    smartTileNativeCatalogAuthoringRequiresStn03Code,
+                disabledReason: smartTileStudioAuthoringRequiresStn04Code,
                 leading: Icon(CupertinoIcons.square_grid_3x2, size: 15),
                 child: Text('Ajouter à la map active'),
               ),
               const SizedBox(height: 8),
               const PokeMapBadge(
-                label: smartTileNativeCatalogAuthoringRequiresStn03Code,
+                label: smartTileStudioAuthoringRequiresStn04Code,
                 variant: PokeMapBadgeVariant.warning,
               ),
               const SizedBox(height: 6),
               Text(
-                'L’ajout à une map sera disponible avec le contrat natif STN-03.',
+                'L’ajout guidé à une map sera câblé dans STN-04.',
                 style: TextStyle(color: context.pokeMapColors.textSecondary),
               ),
             ],
@@ -1081,7 +1080,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
               'Dernière vérification humaine avant d’ajouter le preset au projet.',
           trailing: PokeMapBadge(
             label: blocking == 0
-                ? 'Publication après STN-03'
+                ? 'Publication dans STN-04'
                 : '$blocking erreur(s) bloquante(s)',
             variant: blocking == 0
                 ? PokeMapBadgeVariant.warning
@@ -1129,12 +1128,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         ],
         const SizedBox(height: 10),
         const PokeMapBadge(
-          label: smartTileNativeCatalogAuthoringRequiresStn03Code,
+          label: smartTileStudioAuthoringRequiresStn04Code,
           variant: PokeMapBadgeVariant.warning,
         ),
         const SizedBox(height: 6),
         Text(
-          'La publication dans le catalogue sera activée par STN-03.',
+          'La publication guidée sera câblée dans STN-04.',
           style: TextStyle(color: context.pokeMapColors.textSecondary),
         ),
         const SizedBox(height: 16),
@@ -1143,7 +1142,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           child: PokeMapButton(
             key: Key('smart-tiles-publish-guided'),
             onPressed: null,
-            disabledReason: smartTileNativeCatalogAuthoringRequiresStn03Code,
+            disabledReason: smartTileStudioAuthoringRequiresStn04Code,
             leading: Icon(CupertinoIcons.check_mark_circled, size: 15),
             child: Text('Publier et utiliser dans une map'),
           ),
@@ -1392,7 +1391,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
               'Couverture, ambiguïtés, références, poids, durées et limites d’atlas.',
           trailing: PokeMapBadge(
             label: blocking == 0
-                ? 'Publication après STN-03'
+                ? 'Publication dans STN-04'
                 : '$blocking erreur(s) bloquante(s)',
             variant: blocking == 0
                 ? PokeMapBadgeVariant.warning
@@ -1408,12 +1407,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         ],
         const SizedBox(height: 10),
         const PokeMapBadge(
-          label: smartTileNativeCatalogAuthoringRequiresStn03Code,
+          label: smartTileStudioAuthoringRequiresStn04Code,
           variant: PokeMapBadgeVariant.warning,
         ),
         const SizedBox(height: 6),
         Text(
-          'La publication dans le catalogue sera activée par STN-03.',
+          'La publication guidée sera câblée dans STN-04.',
           style: TextStyle(color: context.pokeMapColors.textSecondary),
         ),
         const SizedBox(height: 12),
@@ -1447,7 +1446,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           child: PokeMapButton(
             key: Key('smart-tiles-publish'),
             onPressed: null,
-            disabledReason: smartTileNativeCatalogAuthoringRequiresStn03Code,
+            disabledReason: smartTileStudioAuthoringRequiresStn04Code,
             leading: Icon(CupertinoIcons.check_mark_circled, size: 15),
             child: Text('Publier'),
           ),

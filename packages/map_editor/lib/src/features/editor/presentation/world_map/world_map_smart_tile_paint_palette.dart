@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_authoring/map_authoring.dart'
     show
-        smartTileNativeAuthoringRequiresStn03Code,
+        smartTileCanonicalLayerActionRequiredCode,
         smartTileWangPaintCompilerRequiredCode;
 import 'package:map_core/map_core.dart';
 
@@ -17,7 +17,7 @@ import 'world_map_workspace_session.dart';
 /// Direct, no-code access to the published Smart Tile presets used by Paint.
 ///
 /// Choosing a preset selects an existing cell-field layer, then arms the
-/// matching paint tool. Atomic layer creation remains deferred to STN-03.
+/// matching paint tool. UI-driven layer creation is wired in STN-04.
 class WorldMapSmartTilePaintPalette extends ConsumerWidget {
   const WorldMapSmartTilePaintPalette({
     super.key,
@@ -108,7 +108,7 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
     final blockedCode = activeLayer != null && !canEdit
         ? smartTileWangPaintCompilerRequiredCode
         : activeLayer == null && !hasReusableCellLayer
-            ? smartTileNativeAuthoringRequiresStn03Code
+            ? smartTileCanonicalLayerActionRequiredCode
             : null;
     final isPainting =
         canEdit && snapshot.activeTool == EditorToolType.terrainPaint;
@@ -130,8 +130,8 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
               description: activeLayer == null
                   ? hasReusableCellLayer
                       ? 'Choisissez un preset déjà présent sur cette carte.'
-                      : 'Aucun calque compatible. Création disponible après '
-                          'STN-03.'
+                      : 'Aucun calque compatible. Création guidée dans '
+                          'STN-04.'
                   : 'Actif : ${activeLayer.name}',
             ),
             if (blockedCode != null) ...[
@@ -245,7 +245,7 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                                       ? 'Cliquer pour utiliser'
                                       : matchingLayer != null
                                           ? 'Peinture disponible après STN-05'
-                                          : 'Création disponible après STN-03',
+                                          : 'Création guidée dans STN-04',
                               selected: selected,
                               onPressed: reusableCellLayer == null
                                   ? null

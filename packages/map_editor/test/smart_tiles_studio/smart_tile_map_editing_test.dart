@@ -8,7 +8,7 @@ import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 
 void main() {
-  test('EditorNotifier rejects Smart Tile layer creation before STN-03', () {
+  test('EditorNotifier requires the canonical Smart Tile layer action', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     final notifier = container.read(editorNotifierProvider.notifier);
@@ -38,7 +38,7 @@ void main() {
     expect(notifier.state.isDirty, isFalse);
     expect(
       notifier.state.errorMessage,
-      smartTileNativeAuthoringRequiresStn03Code,
+      smartTileCanonicalLayerActionRequiredCode,
     );
   });
 

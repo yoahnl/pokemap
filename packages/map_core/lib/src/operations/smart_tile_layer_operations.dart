@@ -6,7 +6,7 @@ import '../models/map_layer.dart';
 import '../models/smart_tile.dart';
 import '../models/smart_tile_field.dart';
 
-/// Legacy map-only creation cannot atomically update the v5 manifest catalog.
+/// Map-only creation cannot atomically update the v5 manifest catalog.
 MapData addSmartTileLayer(
   MapData map, {
   required String id,
@@ -18,8 +18,8 @@ MapData addSmartTileLayer(
   int? insertIndex,
 }) {
   throw const ValidationException(
-    'Native Smart Tile authoring requires an atomic map and manifest change',
-    code: 'smart_tile_native_authoring_requires_stn03',
+    'Use the canonical smart_tile.layer.create authoring action',
+    code: 'smart_tile_canonical_layer_action_required',
   );
 }
 
@@ -238,11 +238,11 @@ MapData replaceSmartTileLayer(
 }) {
   // Replacement is deliberately map-only: it may maintain an already-native
   // v5 layer, but it must never manufacture the project-wide v5 transition
-  // that STN-03 owns together with the manifest catalog.
+  // owned by the canonical authoring action together with the manifest.
   if (map.version != ProjectVersion.v5) {
     throw const ValidationException(
-      'Native Smart Tile authoring requires an atomic map and manifest change',
-      code: 'smart_tile_native_authoring_requires_stn03',
+      'Native Smart Tile replacement requires a ProjectVersion.v5 map',
+      code: 'smart_tile_native_project_version_required',
     );
   }
   if (map.layers.any(

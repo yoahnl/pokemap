@@ -115,6 +115,76 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
             detail: _elementCategoryRecord(category),
           ),
       ];
+    case 'smartTileAtlas':
+      return <_QueryRecord>[
+        for (final atlas in snapshot.manifest.smartTileCatalog.atlases)
+          _QueryRecord(
+            summary: _smartTileAtlasSummary(atlas),
+            detail: <String, Object?>{
+              ...atlas.toJson(),
+              'resourceKind': 'smartTileAtlas',
+            },
+          ),
+      ];
+    case 'smartTileMaterial':
+      return <_QueryRecord>[
+        for (final material in snapshot.manifest.smartTileCatalog.materials)
+          _QueryRecord(
+            summary: _smartTileMaterialSummary(material),
+            detail: <String, Object?>{
+              ...material.toJson(),
+              'resourceKind': 'smartTileMaterial',
+            },
+          ),
+      ];
+    case 'smartTileAnimation':
+      return <_QueryRecord>[
+        for (final animation in snapshot.manifest.smartTileCatalog.animations)
+          _QueryRecord(
+            summary: _smartTileAnimationSummary(animation),
+            detail: <String, Object?>{
+              ...animation.toJson(),
+              'resourceKind': 'smartTileAnimation',
+            },
+          ),
+      ];
+    case 'smartTilePreset':
+      final catalog = snapshot.manifest.smartTileCatalog;
+      return <_QueryRecord>[
+        for (final preset in catalog.presets)
+          _QueryRecord(
+            summary: _smartTilePresetSummary(preset),
+            detail: <String, Object?>{
+              ...preset.toJson(),
+              'resourceKind': 'smartTilePreset',
+              'coverage': _smartTileCoverageDetail(
+                analyzeSmartTileCoverage(
+                  preset: preset,
+                  materials: catalog.materials,
+                  atlases: catalog.atlases,
+                  animations: catalog.animations,
+                ),
+              ),
+            },
+          ),
+      ];
+    case 'smartTileLayer':
+      return <_QueryRecord>[
+        for (final map in snapshot.maps)
+          for (final layer in map.layers.whereType<SmartTileLayer>())
+            _QueryRecord(
+              summary: _smartTileLayerSummary(map, layer),
+              detail: <String, Object?>{
+                ...layer.toJson(),
+                'id': '${map.id}:${layer.id}',
+                'name': layer.name,
+                'resourceKind': 'smartTileLayer',
+                'mapId': map.id,
+                'layerId': layer.id,
+                'authoredValueCount': smartTileAuthoredValueCount(layer),
+              },
+            ),
+      ];
     case 'dialogue':
       return [
         for (final dialogue in snapshot.manifest.dialogues)
@@ -319,6 +389,101 @@ Map<String, Object?> _elementCategoryRecord(ProjectElementCategory category) =>
     {
       ...category.toJson(),
       'resourceKind': 'elementCategory',
+    };
+
+Map<String, Object?> _smartTileAtlasSummary(ProjectSmartTileAtlas atlas) =>
+    <String, Object?>{
+      'id': atlas.id,
+      'name': atlas.name,
+      'resourceKind': 'smartTileAtlas',
+      'tilesetId': atlas.tilesetId,
+      'columns': atlas.columns,
+      'rows': atlas.rows,
+      'cellWidth': atlas.cellWidth,
+      'cellHeight': atlas.cellHeight,
+    };
+
+Map<String, Object?> _smartTileMaterialSummary(
+  ProjectSmartTileMaterial material,
+) =>
+    <String, Object?>{
+      'id': material.id,
+      'name': material.name,
+      'resourceKind': 'smartTileMaterial',
+      'connectionGroupId': material.connectionGroupId,
+      'isEmpty': material.isEmpty,
+    };
+
+Map<String, Object?> _smartTileAnimationSummary(
+  ProjectSmartTileAnimation animation,
+) =>
+    <String, Object?>{
+      'id': animation.id,
+      'name': animation.name,
+      'resourceKind': 'smartTileAnimation',
+      'frameCount': animation.frames.length,
+      'sync': animation.sync.name,
+      'loop': animation.loop.name,
+    };
+
+Map<String, Object?> _smartTilePresetSummary(ProjectSmartTilePreset preset) =>
+    <String, Object?>{
+      'id': preset.id,
+      'name': preset.name,
+      'resourceKind': 'smartTilePreset',
+      'usage': preset.usage.name,
+      'topology': preset.topology.name,
+      'templateHint': preset.templateHint.name,
+      'status': preset.status.name,
+      'ruleCount': preset.rules.length,
+    };
+
+Map<String, Object?> _smartTileLayerSummary(
+  MapData map,
+  SmartTileLayer layer,
+) =>
+    <String, Object?>{
+      'id': '${map.id}:${layer.id}',
+      'name': layer.name,
+      'resourceKind': 'smartTileLayer',
+      'mapId': map.id,
+      'layerId': layer.id,
+      'presetId': layer.presetId,
+      'usage': layer.usage.name,
+      'authoredValueCount': smartTileAuthoredValueCount(layer),
+    };
+
+Map<String, Object?> _smartTileCoverageDetail(
+  SmartTileCoverageReport report,
+) =>
+    <String, Object?>{
+      'caseCount': report.cases.length,
+      'exactCount': report.exactCount,
+      'transformedCount': report.transformedCount,
+      'fallbackCount': report.fallbackCount,
+      'missingCount': report.missingCount,
+      'ambiguousCount': report.ambiguousCount,
+      'noCandidateCount': report.noCandidateCount,
+      'missingVisualSourceCount': report.missingVisualSourceCount,
+      'outOfAtlasGridCount': report.outOfAtlasGridCount,
+      'isExact': report.isExact,
+      'diagnostics': <Map<String, Object?>>[
+        for (final diagnostic in report.diagnostics)
+          <String, Object?>{
+            'code': diagnostic.code,
+            'message': diagnostic.message,
+            if (diagnostic.scenarioId != null)
+              'scenarioId': diagnostic.scenarioId,
+          },
+      ],
+      'cases': <Map<String, Object?>>[
+        for (final coverageCase in report.cases)
+          <String, Object?>{
+            'id': coverageCase.id,
+            'status': coverageCase.status.name,
+            'ruleIds': coverageCase.ruleIds,
+          },
+      ],
     };
 
 Map<String, Object?> _dialogueSummary(ProjectDialogueEntry dialogue) => {

@@ -108,7 +108,7 @@ void main() {
       expect(find.text('Terrain Hanazuki'), findsNothing);
     });
 
-    testWidgets('keeps add-to-active-map disabled until STN-03',
+    testWidgets('keeps add-to-active-map disabled until STN-04 wiring',
         (tester) async {
       ProjectSmartTilePreset? addedToMap;
       await _pumpPanel(
@@ -122,10 +122,10 @@ void main() {
       expect(button.onPressed, isNull);
       expect(
         button.disabledReason,
-        smartTileNativeCatalogAuthoringRequiresStn03Code,
+        smartTileStudioAuthoringRequiresStn04Code,
       );
       expect(
-        find.text(smartTileNativeCatalogAuthoringRequiresStn03Code),
+        find.text(smartTileStudioAuthoringRequiresStn04Code),
         findsWidgets,
       );
 
@@ -287,7 +287,7 @@ void main() {
       );
     });
 
-    testWidgets('keeps the guided preset in memory until STN-03', (
+    testWidgets('keeps the guided preset in memory until STN-04 wiring', (
       tester,
     ) async {
       ProjectManifest? published;
@@ -320,7 +320,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(toPublish);
       await tester.pump();
-      expect(find.text('Publication après STN-03'), findsOneWidget);
+      expect(find.text('Publication dans STN-04'), findsOneWidget);
       expect(
         find.text('16 cellules • 12 raccords • 4 variantes'),
         findsOneWidget,
@@ -333,7 +333,7 @@ void main() {
       expect(publishButton.onPressed, isNull);
       expect(
         publishButton.disabledReason,
-        smartTileNativeCatalogAuthoringRequiresStn03Code,
+        smartTileStudioAuthoringRequiresStn04Code,
       );
       await tester.tap(publish);
       await tester.pump();
@@ -341,7 +341,7 @@ void main() {
       expect(published, isNull);
       expect(addedToMap, isNull);
       expect(
-        find.text(smartTileNativeCatalogAuthoringRequiresStn03Code),
+        find.text(smartTileStudioAuthoringRequiresStn04Code),
         findsWidgets,
       );
     });
@@ -399,7 +399,7 @@ void main() {
       );
     });
 
-    testWidgets('validation does not persist a preset before STN-03', (
+    testWidgets('validation does not persist a preset before STN-04 wiring', (
       tester,
     ) async {
       ProjectManifest? published;
@@ -416,14 +416,14 @@ void main() {
       expect(publishButton.onPressed, isNull);
       expect(
         publishButton.disabledReason,
-        smartTileNativeCatalogAuthoringRequiresStn03Code,
+        smartTileStudioAuthoringRequiresStn04Code,
       );
       await tester.tap(publish);
       await tester.pump();
 
       expect(published, isNull);
       expect(
-        find.text(smartTileNativeCatalogAuthoringRequiresStn03Code),
+        find.text(smartTileStudioAuthoringRequiresStn04Code),
         findsWidgets,
       );
     });

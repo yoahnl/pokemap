@@ -278,7 +278,7 @@ void main() {
     expect(rejected.data, isEmpty);
     expect(
       rejected.error?.details['domainCode'],
-      smartTileNativeAuthoringRequiresStn03Code,
+      smartTileCanonicalLayerActionRequiredCode,
     );
     final after = await snapshots.load(ProjectHandle(projectHandle));
     expect(after.revision, before.revision);

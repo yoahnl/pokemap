@@ -2,25 +2,24 @@ import 'package:map_core/map_core.dart';
 
 import 'map_lifecycle_adapter.dart';
 
-const String smartTileNativeAuthoringRequiresStn03Code =
-    'smart_tile_native_authoring_requires_stn03';
+const String smartTileCanonicalLayerActionRequiredCode =
+    'smart_tile_canonical_layer_action_required';
 const String smartTileWangPaintCompilerRequiredCode =
     'smart_tile_wang_paint_compiler_required';
 
 bool isSmartTileTransitionGuardCode(String code) =>
-    code == smartTileNativeAuthoringRequiresStn03Code ||
+    code == smartTileCanonicalLayerActionRequiredCode ||
     code == smartTileWangPaintCompilerRequiredCode;
 
-MapAuthoringException nativeSmartTileAuthoringRequiresStn03({
+MapAuthoringException canonicalSmartTileLayerActionRequired({
   required MapData map,
   required String operation,
   String? layerId,
 }) =>
     MapAuthoringException(
-      code: smartTileNativeAuthoringRequiresStn03Code,
-      message:
-          'Native Smart Tile authoring is unavailable until STN-03 exposes '
-          'the canonical atomic authoring contract.',
+      code: smartTileCanonicalLayerActionRequiredCode,
+      message: 'Smart Tile layer creation must use the canonical atomic '
+          'smart_tile.layer.create action.',
       details: {
         'mapId': map.id,
         'mapVersion': map.version.name,
@@ -28,7 +27,7 @@ MapAuthoringException nativeSmartTileAuthoringRequiresStn03({
         if (layerId != null) 'layerId': layerId,
       },
       remediation: const [
-        'Keep the Smart Tile draft in memory until STN-03 is available.',
+        'Plan smart_tile.layer.create against the current project revision.',
       ],
     );
 

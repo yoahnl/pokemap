@@ -104,6 +104,66 @@ void main() {
       expect(target.properties, {'keep': 'yes'});
     });
 
+    test('upserts and queries Smart Tile animations through the editor adapter',
+        () async {
+      final fixture = await _MutationFixture.createSmartTiles();
+      addTearDown(fixture.dispose);
+      const animation = ProjectSmartTileAnimation(
+        id: 'wind',
+        name: 'Wind',
+        frames: <ProjectSmartTileAnimationFrame>[
+          ProjectSmartTileAnimationFrame(
+            frame: SmartTileFrameRef(
+              atlasId: 'atlas',
+              column: 0,
+              row: 0,
+            ),
+            durationMs: 120,
+          ),
+        ],
+      );
+
+      final normalizationPlan = await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'smart_tile.layer.normalize',
+        parameters: const <String, Object?>{
+          'mapId': 'm01',
+          'layerId': 'terrain',
+        },
+        idempotencyKey: 'editor_smart_tile_animation_preflight',
+      );
+      await fixture.mutations.apply(
+        normalizationPlan,
+        operationId: 'editor_smart_tile_animation_preflight',
+      );
+
+      final plan = await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'smart_tile.animation.upsert',
+        parameters: <String, Object?>{
+          'animation': animation.toJson(),
+        },
+        idempotencyKey: 'editor_smart_tile_animation',
+      );
+      final applied = await fixture.mutations.apply(
+        plan,
+        operationId: 'editor_smart_tile_animation',
+      );
+      final session = await fixture.queries.open(fixture.root.path);
+      final queried = session.query(
+        AuthoringQueryRequest(
+          resourceKind: 'smartTileAnimation',
+          operation: AuthoringQueryOperation.list,
+        ),
+      );
+      final items = queried['items']! as List<Object?>;
+
+      expect(applied.receipt.actionId, 'smart_tile.animation.upsert');
+      expect(applied.receipt.status, AuthoringReceiptStatus.applied);
+      expect(items, hasLength(1));
+      expect((items.single! as Map<String, Object?>)['id'], 'wind');
+    });
+
     test('retainOnly retires old mutation plans and preserves the active root',
         () async {
       final first = await _MutationFixture.create();
@@ -525,8 +585,23 @@ final class _MutationFixture {
           relativePath: 'maps/m01.json',
         ),
       ],
-      tilesets: [],
+      tilesets: const [
+        ProjectTilesetEntry(
+          id: 'tileset',
+          name: 'Tileset',
+          relativePath: 'assets/tileset.png',
+        ),
+      ],
       smartTileCatalog: ProjectSmartTileCatalog(
+        atlases: const [
+          ProjectSmartTileAtlas(
+            id: 'atlas',
+            name: 'Atlas',
+            tilesetId: 'tileset',
+            columns: 1,
+            rows: 1,
+          ),
+        ],
         materials: const [
           ProjectSmartTileMaterial(
             id: 'grass',
@@ -551,6 +626,7 @@ final class _MutationFixture {
             name: 'Terrain',
             usage: SmartTileUsage.terrain,
             topology: SmartTileTopology.cardinal4,
+            templateHint: SmartTileTemplateHint.edge16,
             coveragePolicy: SmartTileCoveragePolicy.complete,
             coverageProfile: SmartTileCoverageProfile(
               mode: SmartTileCoverageMode.template,
@@ -564,6 +640,7 @@ final class _MutationFixture {
             name: 'Path',
             usage: SmartTileUsage.path,
             topology: SmartTileTopology.cardinal4,
+            templateHint: SmartTileTemplateHint.edge16,
             coveragePolicy: SmartTileCoveragePolicy.complete,
             coverageProfile: SmartTileCoverageProfile(
               mode: SmartTileCoverageMode.template,

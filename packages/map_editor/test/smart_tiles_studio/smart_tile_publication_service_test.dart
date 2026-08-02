@@ -7,7 +7,7 @@ void main() {
   group('SmartTilePublicationService', () {
     const service = SmartTilePublicationService();
 
-    test('blocks every publication before STN-03 without mutation', () {
+    test('blocks private Studio publication until STN-04 without mutation', () {
       final manifest = _manifest(
         _preset(rules: <SmartTileRule>[_rule(0)]),
       );
@@ -18,7 +18,7 @@ void main() {
       expect(result.manifest, same(manifest));
       expect(
         result.diagnostics.map((item) => item.code),
-        contains(smartTileNativeCatalogAuthoringRequiresStn03Code),
+        contains(smartTileStudioAuthoringRequiresStn04Code),
       );
       expect(
         manifest.smartTileCatalog.presets.single.status,
@@ -26,7 +26,7 @@ void main() {
       );
     });
 
-    test('keeps a complete preset as a draft before STN-03', () {
+    test('keeps a complete preset as a draft until STN-04 wiring', () {
       final manifest = _manifest(
         _preset(
           rules: <SmartTileRule>[
@@ -41,7 +41,7 @@ void main() {
       expect(result.manifest, same(manifest));
       expect(
         result.diagnostics.map((item) => item.code),
-        contains(smartTileNativeCatalogAuthoringRequiresStn03Code),
+        contains(smartTileStudioAuthoringRequiresStn04Code),
       );
       expect(result.manifest.version, ProjectVersion.v5);
       expect(

@@ -619,6 +619,8 @@ class MapLayersComponent extends PositionComponent {
     final transform = visual.transform;
     canvas.save();
     try {
+      // Keep this transform sequence identical to the editor consumer. The
+      // neutral Core plan is authoritative; runtime adds no Wang decisions.
       canvas.translate(destination.left, destination.top);
       switch (transform.quarterTurns) {
         case 0:

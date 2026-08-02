@@ -55,7 +55,12 @@ final class AuthoringReadApi implements AuthoringReadApiPort {
                   kind.id == 'project' ||
                   kind.id == 'asset' ||
                   kind.id == 'tilesetFolder' ||
-                  kind.id == 'elementCategory',
+                  kind.id == 'elementCategory' ||
+                  kind.id == 'smartTileAtlas' ||
+                  kind.id == 'smartTileMaterial' ||
+                  kind.id == 'smartTileAnimation' ||
+                  kind.id == 'smartTilePreset' ||
+                  kind.id == 'smartTileLayer',
             )
             .map((kind) => kind.toJson())
             .toList(growable: false);
