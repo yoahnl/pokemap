@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -47,6 +48,60 @@ void main() {
       expect(applied.receipt.status, AuthoringReceiptStatus.applied);
       expect((await FileMapRepository().loadMap(fixture.mapPath)).name,
           'Edited through Authoring');
+    });
+
+    test('normalizes and merges Smart Tile layers through the canonical API',
+        () async {
+      final fixture = await _MutationFixture.createSmartTiles();
+      addTearDown(fixture.dispose);
+
+      final normalizePlan = await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'smart_tile.layer.normalize',
+        parameters: const {
+          'mapId': 'm01',
+          'layerId': 'terrain',
+        },
+        idempotencyKey: 'editor_smart_tile_normalize',
+      );
+      final normalized = await fixture.mutations.apply(
+        normalizePlan,
+        operationId: 'editor_smart_tile_normalize',
+      );
+      final mergePlan = await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'smart_tile.layer.merge',
+        parameters: const {
+          'mapId': 'm01',
+          'sourceLayerIds': ['path_target', 'path_source'],
+          'targetLayerId': 'path_target',
+          'mode': 'union',
+          'removeSources': true,
+          'conflictPolicy': 'reject',
+        },
+        idempotencyKey: 'editor_smart_tile_merge',
+      );
+      final merged = await fixture.mutations.apply(
+        mergePlan,
+        operationId: 'editor_smart_tile_merge',
+      );
+      final map = await FileMapRepository().loadMap(fixture.mapPath);
+      final target = map.layers[2] as SmartTileLayer;
+
+      expect(normalized.receipt.actionId, 'smart_tile.layer.normalize');
+      expect(merged.receipt.actionId, 'smart_tile.layer.merge');
+      expect(map.layers.map((layer) => layer.id), [
+        'base',
+        'terrain',
+        'path_target',
+        'collisions',
+      ]);
+      expect(target.materialCells, [0, 1, 0, 1, 1, 1, 0, 1, 0]);
+      expect(target.name, 'Target metadata');
+      expect(target.isVisible, isFalse);
+      expect(target.opacity, 0.5);
+      expect(target.layerSeed, 17);
+      expect(target.properties, {'keep': 'yes'});
     });
 
     test('retainOnly retires old mutation plans and preserves the active root',
@@ -458,13 +513,156 @@ final class _MutationFixture {
     );
   }
 
+  static Future<_MutationFixture> createSmartTiles() async {
+    final root = await Directory.systemTemp.createTemp('pmcp_smart_editor_');
+    final project = ProjectManifest(
+      name: 'Smart Tile editor fixture',
+      version: ProjectVersion.v4,
+      maps: const [
+        ProjectMapEntry(
+          id: 'm01',
+          name: 'M01',
+          relativePath: 'maps/m01.json',
+        ),
+      ],
+      tilesets: [],
+      smartTileCatalog: ProjectSmartTileCatalog(
+        materials: const [
+          ProjectSmartTileMaterial(
+            id: 'grass',
+            name: 'Grass',
+            connectionGroupId: 'ground',
+          ),
+          ProjectSmartTileMaterial(
+            id: 'smart_material_empty',
+            name: 'Legacy empty',
+            connectionGroupId: 'empty',
+            isEmpty: true,
+          ),
+          ProjectSmartTileMaterial(
+            id: 'dirt',
+            name: 'Dirt',
+            connectionGroupId: 'path',
+          ),
+        ],
+        presets: const [
+          ProjectSmartTilePreset(
+            id: 'terrain',
+            name: 'Terrain',
+            usage: SmartTileUsage.terrain,
+            topology: SmartTileTopology.cardinal4,
+            defaultMaterialId: 'grass',
+            allowedMaterialIds: ['grass'],
+          ),
+          ProjectSmartTilePreset(
+            id: 'path',
+            name: 'Path',
+            usage: SmartTileUsage.path,
+            topology: SmartTileTopology.cardinal4,
+            defaultMaterialId: 'dirt',
+            allowedMaterialIds: ['dirt'],
+          ),
+        ],
+      ),
+    );
+    const map = MapData(
+      id: 'm01',
+      name: 'M01',
+      size: GridSize(width: 3, height: 3),
+      version: ProjectVersion.v4,
+      visualStack: MapVisualStackConfig.canonicalV1,
+      layers: [
+        MapLayer.tile(
+          id: 'base',
+          name: 'Base',
+          tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ),
+        MapLayer.smartTile(
+          id: 'terrain',
+          name: 'Terrain',
+          presetId: 'terrain',
+          usage: SmartTileUsage.terrain,
+          materialPalette: ['', 'grass', 'smart_material_empty'],
+          materialCells: [1, 1, 1, 1, 1, 1, 1, 1, 1],
+          horizontalEdges: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          verticalEdges: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          corners: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ),
+        MapLayer.smartTile(
+          id: 'path_target',
+          name: 'Target metadata',
+          isVisible: false,
+          opacity: 0.5,
+          presetId: 'path',
+          usage: SmartTileUsage.path,
+          materialPalette: ['', 'dirt'],
+          materialCells: [0, 0, 0, 1, 1, 1, 0, 0, 0],
+          horizontalEdges: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          verticalEdges: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          corners: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          layerSeed: 17,
+          properties: {'keep': 'yes'},
+        ),
+        MapLayer.smartTile(
+          id: 'path_source',
+          name: 'Source',
+          presetId: 'path',
+          usage: SmartTileUsage.path,
+          materialPalette: ['', 'dirt'],
+          materialCells: [0, 1, 0, 0, 1, 0, 0, 1, 0],
+          horizontalEdges: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          verticalEdges: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          corners: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ),
+        MapLayer.collision(
+          id: 'collisions',
+          name: 'Collisions',
+          collisions: [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+        ),
+      ],
+    );
+    await Directory(p.join(root.path, 'maps')).create(recursive: true);
+    await File(p.join(root.path, 'project.json')).writeAsString(
+      const JsonEncoder.withIndent('  ').convert(project.toJson()),
+      flush: true,
+    );
+    await File(p.join(root.path, 'maps', 'm01.json')).writeAsString(
+      const JsonEncoder.withIndent('  ').convert(map.toJson()),
+      flush: true,
+    );
+    const reader = EditorProjectFileReader();
+    final queries = AuthoringQueryAdapter(fileReader: reader);
+    final mutations = AuthoringMutationAdapter(
+      fileReader: reader,
+      queries: queries,
+      projectRoots: reader,
+    );
+    return _MutationFixture(
+      root: root,
+      project: project,
+      map: map,
+      queries: queries,
+      mutations: mutations,
+    );
+  }
+
   final Directory root;
   final ProjectManifest project;
   final MapData map;
   final AuthoringQueryAdapter queries;
   final AuthoringMutationAdapter mutations;
 
-  String get mapPath => p.join(root.path, 'maps', 'alpha.json');
+  String get mapPath => p.join(root.path, project.maps.single.relativePath);
 
   Future<void> dispose() async {
     await mutations.closeAll();

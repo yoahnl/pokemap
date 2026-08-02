@@ -32,6 +32,7 @@ import 'map_operations_batch.dart';
 import 'path_actions.dart';
 import 'placed_element_actions.dart';
 import 'surface_actions.dart';
+import 'smart_tile_layer_actions.dart';
 import 'terrain_actions.dart';
 import 'trigger_zone_actions.dart';
 import 'warp_connection_actions.dart';
@@ -61,6 +62,7 @@ final class MapMutationDispatcher {
     const terrain = TerrainActions();
     const path = PathActions();
     const surface = SurfaceActions();
+    const smartTileLayers = SmartTileLayerActions();
     const autotile = AutotileActions();
     const border = BorderActions();
     const collision = CollisionActions();
@@ -114,6 +116,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: surface.build,
+        ),
+      for (final descriptor in SmartTileLayerActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: smartTileLayers.build,
         ),
       for (final descriptor in AutotileActions.descriptors)
         MapMutationActionRegistration(

@@ -117,7 +117,7 @@ export function registerReadOnlyTools(
     {
       title: "Validate a PokeMap project",
       description:
-        "Checks references and explicit capability truth on an immutable snapshot.",
+        "Separately checks project structure, references, and optional capability certification on an immutable snapshot.",
       inputSchema: z
         .object({
           projectHandle: z.string().min(1),

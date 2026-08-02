@@ -6,7 +6,18 @@ sealed class MapException implements Exception {
 }
 
 class ValidationException extends MapException {
-  const ValidationException(super.message);
+  const ValidationException(
+    super.message, {
+    this.code,
+    this.details = const {},
+    this.remediation = const [],
+  });
+
+  /// Optional stable metadata lets protocol adapters expose actionable domain
+  /// diagnostics without parsing or leaking arbitrary exception strings.
+  final String? code;
+  final Map<String, Object?> details;
+  final List<String> remediation;
 }
 
 class ProjectLoadException extends MapException {

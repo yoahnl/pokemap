@@ -336,6 +336,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/maps/semantic_painting_test.dart',
   ),
   _ContractEvidenceRule(
+    ['smart_tile.'],
+    'test/domains/maps/smart_tile_layer_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['autotile.'],
     'test/domains/maps/autotile_determinism_test.dart',
   ),

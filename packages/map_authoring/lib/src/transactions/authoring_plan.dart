@@ -53,6 +53,8 @@ final class AuthoringPlan {
   final List<AuthoringArtifactRef> artifacts;
 
   String get projectedRevision => changeSet.projectedRevision;
+  bool get applicable => !request.dryRun;
+  String? get nonApplicableReason => applicable ? null : 'dry_run';
 
   AuthoringReceipt toPlannedReceipt() {
     return AuthoringReceipt(
@@ -69,6 +71,9 @@ final class AuthoringPlan {
       extensions: {
         'planId': planId,
         'seed': seed,
+        'applicable': applicable,
+        if (nonApplicableReason case final reason?)
+          'nonApplicableReason': reason,
         if (preview.isNotEmpty) 'preview': preview,
         if (referenceImpact.isNotEmpty) 'referenceImpact': referenceImpact,
       },
@@ -87,6 +92,9 @@ final class AuthoringPlan {
         'seed': seed,
         'createdAtUtc': createdAt.toIso8601String(),
         'expiresAtUtc': expiresAt.toIso8601String(),
+        'applicable': applicable,
+        if (nonApplicableReason case final reason?)
+          'nonApplicableReason': reason,
         'changeSet': changeSet.toJson(),
         'preview': preview,
         'referenceImpact': referenceImpact,

@@ -48,7 +48,7 @@ export function registerReadOnlyResources(
     ),
     projectMetadata(
       "PokeMap diagnostics",
-      "Reference validation and explicit capability truth for one snapshot.",
+      "Structural, reference, and optional capability certification results for one snapshot.",
     ),
     async (uri, variables) => {
       const result = await authoring.request("validate", {

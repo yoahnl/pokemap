@@ -83,6 +83,9 @@ void main() {
         command: 'validate',
         args: {'projectHandle': projectHandle},
       );
+      final directlyValidated = await setup.api.validate(
+        ProjectHandle(projectHandle),
+      );
       final closed = await _request(
         setup.worker,
         id: 'close-1',
@@ -99,8 +102,34 @@ void main() {
       );
       expect(validated.status, AuthoringResultStatus.success);
       expect(validated.data['snapshotRevision'], startsWith('sha256:'));
-      expect(validated.data['references'], isA<Map<String, Object?>>());
+      expect(
+        validated.data['valid'],
+        isFalse,
+        reason: validated.data.toString(),
+      );
+      expect(validated.data['structure'], {
+        'valid': true,
+        'diagnostics': <Object?>[],
+      });
+      expect(
+        validated.data['references'],
+        containsPair('valid', false),
+      );
+      expect(
+        validated.data['references'],
+        containsPair('hasErrors', true),
+      );
+      expect(validated.data['capabilityCertification'], {
+        'requested': false,
+        'status': 'not_requested',
+        'valid': null,
+        'requiredCapabilityCount': 0,
+        'providedCapabilityCount': 0,
+      });
       expect(validated.data['capabilityTruth'], isA<Map<String, Object?>>());
+      expect(directlyValidated, validated.data,
+          reason:
+              'direct and JSONL validation projections must stay identical');
       expect(closed.data, {'closed': true});
 
       final afterClose = await _request(
@@ -116,6 +145,44 @@ void main() {
       expect(afterClose.error?.code, AuthoringErrorCode.notFound);
       expect(
           jsonEncode(afterClose.toJson()), isNot(contains(setup.fixture.path)));
+    });
+
+    test('does not fail a clean project for unrequested capabilities',
+        () async {
+      final setup = await _TestSetup.create(clean: true);
+      addTearDown(setup.dispose);
+      final opened = await _request(
+        setup.worker,
+        id: 'open-clean-validation',
+        command: 'open',
+        args: {'projectRoot': setup.fixture.path},
+      );
+      final projectHandle = opened.data['projectHandle']! as String;
+
+      final validated = await _request(
+        setup.worker,
+        id: 'validate-clean',
+        command: 'validate',
+        args: {'projectHandle': projectHandle},
+      );
+
+      expect(validated.data['valid'], isTrue);
+      expect(validated.data['structure'], {
+        'valid': true,
+        'diagnostics': <Object?>[],
+      });
+      expect(validated.data['references'], containsPair('valid', true));
+      expect(validated.data['capabilityCertification'], {
+        'requested': false,
+        'status': 'not_requested',
+        'valid': null,
+        'requiredCapabilityCount': 0,
+        'providedCapabilityCount': 0,
+      });
+      expect(
+        await setup.api.validate(ProjectHandle(projectHandle)),
+        validated.data,
+      );
     });
 
     test('malformed and unknown requests do not terminate the worker',
@@ -241,7 +308,8 @@ void main() {
     });
 
     test('adapts explicit capability records during validation', () async {
-      final setup = await _TestSetup.create();
+      final setup = await _TestSetup.create(clean: true);
+      addTearDown(setup.dispose);
       final opened = await _request(
         setup.worker,
         id: 'open-capability',
@@ -276,11 +344,57 @@ void main() {
 
       final capabilityTruth =
           validated.data['capabilityTruth']! as Map<String, Object?>;
+      expect(validated.data['valid'], isTrue);
+      expect(validated.data['structure'], containsPair('valid', true));
+      expect(validated.data['references'], containsPair('valid', true));
+      expect(validated.data['capabilityCertification'], {
+        'requested': true,
+        'status': 'pass',
+        'valid': true,
+        'requiredCapabilityCount': 1,
+        'providedCapabilityCount': 1,
+      });
       expect(capabilityTruth['status'], 'pass');
       expect(
         (capabilityTruth['capabilities']! as List).single,
         containsPair('status', 'promoted'),
       );
+    });
+
+    test('separates a failed requested capability certification', () async {
+      final setup = await _TestSetup.create(clean: true);
+      addTearDown(setup.dispose);
+      final opened = await _request(
+        setup.worker,
+        id: 'open-missing-capability',
+        command: 'open',
+        args: {'projectRoot': setup.fixture.path},
+      );
+
+      final validated = await _request(
+        setup.worker,
+        id: 'validate-missing-capability',
+        command: 'validate',
+        args: {
+          'projectHandle': opened.data['projectHandle'],
+          'capabilityTruth': {
+            'requiredCapabilityIds': ['narrative.command.dialogue'],
+            'records': <Object?>[],
+          },
+        },
+      );
+
+      expect(validated.status, AuthoringResultStatus.success);
+      expect(validated.data['valid'], isFalse);
+      expect(validated.data['structure'], containsPair('valid', true));
+      expect(validated.data['references'], containsPair('valid', true));
+      expect(validated.data['capabilityCertification'], {
+        'requested': true,
+        'status': 'fail',
+        'valid': false,
+        'requiredCapabilityCount': 1,
+        'providedCapabilityCount': 0,
+      });
     });
 
     test('rejects contradictory capability status fields', () async {
@@ -328,21 +442,39 @@ final class _TestSetup {
     required this.fixture,
     required this.api,
     required this.worker,
+    required this.deleteFixtureOnDispose,
   });
 
   final Directory fixture;
   final AuthoringReadApi api;
   final JsonlWorker worker;
+  final bool deleteFixtureOnDispose;
 
-  static Future<_TestSetup> create({int maxInputBytes = 64 * 1024}) async {
-    final fixture = Directory(
-      [
-        Directory.current.parent.parent.path,
-        'examples',
-        'playable_runtime_host',
-        'p3_narrative_smoke_slice',
-      ].join(Platform.pathSeparator),
-    );
+  static Future<_TestSetup> create({
+    int maxInputBytes = 64 * 1024,
+    bool clean = false,
+  }) async {
+    final fixture = clean
+        ? await Directory.systemTemp.createTemp('pokemap_read_validation_')
+        : Directory(
+            [
+              Directory.current.parent.parent.path,
+              'examples',
+              'playable_runtime_host',
+              'p3_narrative_smoke_slice',
+            ].join(Platform.pathSeparator),
+          );
+    if (clean) {
+      final manifest = ProjectManifest(
+        name: 'Clean validation fixture',
+        maps: const [],
+        tilesets: const [],
+      );
+      await File('${fixture.path}/project.json').writeAsString(
+        const JsonEncoder.withIndent('  ').convert(manifest.toJson()),
+        flush: true,
+      );
+    }
     var token = 0;
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
@@ -364,12 +496,19 @@ final class _TestSetup {
     return _TestSetup(
       fixture: fixture,
       api: api,
+      deleteFixtureOnDispose: clean,
       worker: JsonlWorker(
         api: api,
         maxInputBytes: maxInputBytes,
         commandTimeout: const Duration(seconds: 5),
       ),
     );
+  }
+
+  Future<void> dispose() async {
+    if (deleteFixtureOnDispose && await fixture.exists()) {
+      await fixture.delete(recursive: true);
+    }
   }
 }
 

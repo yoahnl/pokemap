@@ -22,6 +22,7 @@ import '../security/confirmation_token.dart';
 import '../security/secure_mutation_executor.dart';
 import '../support/authoring_fingerprint.dart';
 import '../transactions/action_planner.dart';
+import '../transactions/authoring_plan.dart';
 import '../transactions/file_idempotency_store.dart';
 import '../transactions/idempotency_ledger.dart';
 import '../transactions/journaled_transaction.dart';
@@ -443,6 +444,9 @@ final class _LocalMapAuthoringSession {
     return freezeContractJsonObject(
       {
         'planId': plan.planId,
+        'applicable': plan.applicable,
+        if (plan.nonApplicableReason case final reason?)
+          'nonApplicableReason': reason,
         'snapshotRevision': snapshot.revision,
         'plan': plan.toJson(),
         'receipt': plan.toPlannedReceipt().toJson(),
@@ -457,6 +461,7 @@ final class _LocalMapAuthoringSession {
       _safeIdentity(planId, 'planId'),
       currentProjectRevision: snapshot.revision,
     );
+    _requireApplicablePlan(plan);
     final token = _confirmations.issue(
       AuthoringConfirmationBinding.forPlan(
         actorId: _actor.actorId,
@@ -479,6 +484,7 @@ final class _LocalMapAuthoringSession {
     final safePlanId = _safeIdentity(planId, 'planId');
     final safeOperationId = _safeIdentity(operationId, 'operationId');
     final plan = _plans.resolveActive(safePlanId);
+    _requireApplicablePlan(plan);
     _requireWorkspace(plan.request.workspaceHandle);
     final key = plan.request.idempotencyKey;
     if (key == null) {
@@ -564,6 +570,18 @@ final class _LocalMapAuthoringSession {
       );
     }
   }
+}
+
+void _requireApplicablePlan(AuthoringPlan plan) {
+  if (plan.applicable) return;
+  throw AuthoringPlanException(
+    code: 'plan.dry_run_not_applicable',
+    message:
+        'This plan is a dry-run preview and cannot be confirmed or applied.',
+    remediation: const [
+      'Create a new plan with dryRun set to false before requesting apply.',
+    ],
+  );
 }
 
 AuthoringPermissionScope _permissionScope(AuthoringPermission permission) =>

@@ -83,7 +83,8 @@ final class AuthoringReadApi implements AuthoringReadApiPort {
           },
           {
             'id': 'validate',
-            'summary': 'Inspect references and explicit capability truth.',
+            'summary':
+                'Inspect project structure, references, and optional capability certification.',
           },
         ],
         'queryOperations': [
@@ -92,8 +93,10 @@ final class AuthoringReadApi implements AuthoringReadApiPort {
         ],
         'resourceKinds': readableResourceKinds,
         'validation': const {
+          'structure': true,
           'references': true,
           'capabilityTruth': 'explicit_only',
+          'capabilityCertification': 'requested_only',
         },
       },
       field: 'describe',
@@ -125,25 +128,79 @@ final class AuthoringReadApi implements AuthoringReadApiPort {
     Set<String> requiredCapabilityIds = const {},
   }) async {
     final snapshot = await _snapshotLoader.load(projectHandle);
+    final records = capabilityRecords.toList(growable: false);
+    final requiredIds = {
+      for (final capabilityId in requiredCapabilityIds)
+        if (capabilityId.trim().isNotEmpty) capabilityId.trim(),
+    };
     final references = ProjectReferenceIndex.fromSnapshot(snapshot);
     final capabilityTruth = ProjectCapabilityTruthAdapter.evaluate(
-      records: capabilityRecords,
-      requiredCapabilityIds: requiredCapabilityIds,
+      records: records,
+      requiredCapabilityIds: requiredIds,
     );
+    final structureDiagnostics = <Map<String, Object?>>[];
+    try {
+      ProjectValidator.validate(snapshot.manifest);
+      for (final map in snapshot.maps) {
+        MapValidator.validate(
+          map,
+          projectDialogueContext: snapshot.manifest,
+        );
+      }
+    } on ValidationException catch (error) {
+      structureDiagnostics.add({
+        'code': error.code ?? 'project.structure_invalid',
+        'message': error.message,
+        'details': error.details,
+        'remediation': error.remediation,
+      });
+    } on Object catch (error) {
+      structureDiagnostics.add({
+        'code': 'project.structure_invalid',
+        'message': 'The project snapshot contains invalid structural data.',
+        'details': {'validationType': error.runtimeType.toString()},
+        'remediation': const <String>[],
+      });
+    }
+    final structureValid = structureDiagnostics.isEmpty;
     final referenceHasErrors = references.diagnostics.any(
       (diagnostic) => diagnostic.severity == ProjectReferenceSeverity.error,
     );
+    final referencesValid = !referenceHasErrors;
+    final certificationRequested = requiredIds.isNotEmpty || records.isNotEmpty;
+    final certificationValid =
+        certificationRequested ? capabilityTruth.isPassing : null;
+    final valid = structureValid &&
+        referencesValid &&
+        (!certificationRequested || capabilityTruth.isPassing);
     return freezeContractJsonObject(
       {
         'snapshotRevision': snapshot.revision,
-        'valid': !referenceHasErrors && capabilityTruth.isPassing,
+        // Kept for compatibility, but now follows only dimensions actually
+        // requested by the caller. An absent capability certification cannot
+        // make an otherwise healthy project appear invalid.
+        'valid': valid,
+        'structure': {
+          'valid': structureValid,
+          'diagnostics': structureDiagnostics,
+        },
         'references': {
+          'valid': referencesValid,
           'nodeCount': references.nodes.length,
           'edgeCount': references.edges.length,
           'hasErrors': referenceHasErrors,
           'diagnostics': references.diagnostics
               .map((diagnostic) => diagnostic.toJson())
               .toList(growable: false),
+        },
+        'capabilityCertification': {
+          'requested': certificationRequested,
+          'status': certificationRequested
+              ? (capabilityTruth.isPassing ? 'pass' : 'fail')
+              : 'not_requested',
+          'valid': certificationValid,
+          'requiredCapabilityCount': requiredIds.length,
+          'providedCapabilityCount': records.length,
         },
         'capabilityTruth': capabilityTruth.toJson(),
       },

@@ -150,6 +150,95 @@ void main() {
       );
     });
 
+    test('preserves a precise forbidden Smart Tile material diagnostic', () {
+      final map = _legacyPaletteMap();
+      final snapshot = _snapshot(map);
+      final request = _request(snapshot, const [
+        {
+          'kind': 'layer.rename',
+          'layerId': 'smart_path',
+          'name': 'Renamed path',
+        },
+      ]);
+
+      expect(
+        () => const MapOperationsActions().build(_context(snapshot, request)),
+        throwsA(
+          isA<MapAuthoringException>()
+              .having(
+                (error) => error.code,
+                'code',
+                'map.smart_tile_material_not_allowed',
+              )
+              .having(
+                (error) => error.message,
+                'message',
+                allOf(
+                  contains('smart_material_empty'),
+                  contains('smart_path'),
+                ),
+              )
+              .having(
+                (error) => error.details['layerId'],
+                'layerId',
+                'smart_path',
+              )
+              .having(
+                (error) => error.details['field'],
+                'field',
+                'materialPalette',
+              )
+              .having(
+                (error) => error.details['materialId'],
+                'materialId',
+                'smart_material_empty',
+              )
+              .having(
+                (error) => error.details['presetId'],
+                'presetId',
+                'smart_path',
+              )
+              .having(
+                (error) => error.details['validationState'],
+                'validationState',
+                'pre_existing',
+              )
+              .having(
+                (error) => error.remediation,
+                'remediation',
+                contains('Run smart_tile.layer.normalize for smart_path.'),
+              ),
+        ),
+      );
+    });
+
+    test('reports an initial Smart Tile issue repaired by the projected batch',
+        () {
+      final map = _legacyPaletteMap();
+      final snapshot = _snapshot(map);
+      final request = _request(snapshot, const [
+        {'kind': 'layer.delete', 'layerId': 'smart_path'},
+      ]);
+
+      final draft = const MapOperationsActions().build(
+        _context(snapshot, request),
+      );
+      final validation = draft.preview['validation']! as Map<String, Object?>;
+
+      expect(validation['initialStatus'], 'invalid');
+      expect(validation['projectedStatus'], 'valid');
+      expect(validation['repaired'], isTrue);
+      expect(
+        (validation['initialIssue']! as Map<String, Object?>)['code'],
+        'map.smart_tile_material_not_allowed',
+      );
+      expect(
+        snapshot.resourceBytes('map:fixture'),
+        _encode(map.toJson()),
+        reason: 'planning and validation must not mutate the source snapshot',
+      );
+    });
+
     test('layer lifecycle supports all layer kinds and metadata changes', () {
       var map = _map();
       const operations = MapLayerOperations();
@@ -475,6 +564,12 @@ ProjectSnapshot _snapshot(MapData map) {
           name: 'Road',
           connectionGroupId: 'road',
         ),
+        ProjectSmartTileMaterial(
+          id: 'smart_material_empty',
+          name: 'Legacy empty',
+          connectionGroupId: 'empty',
+          isEmpty: true,
+        ),
       ],
       presets: const [
         ProjectSmartTilePreset(
@@ -535,6 +630,32 @@ MapData _map() => MapData(
           id: 'tiles',
           name: 'Tiles',
           tiles: List<int>.filled(12, 0),
+        ),
+      ],
+    );
+
+MapData _legacyPaletteMap() => MapData(
+      id: 'fixture',
+      name: 'Fixture',
+      size: const GridSize(width: 4, height: 3),
+      version: ProjectVersion.v4,
+      visualStack: MapVisualStackConfig.canonicalV1,
+      layers: [
+        MapLayer.tile(
+          id: 'tiles',
+          name: 'Tiles',
+          tiles: List<int>.filled(12, 0),
+        ),
+        MapLayer.smartTile(
+          id: 'smart_path',
+          name: 'Smart path',
+          presetId: 'smart_path',
+          usage: SmartTileUsage.path,
+          materialPalette: const ['', 'road', 'smart_material_empty'],
+          materialCells: List<int>.filled(12, 0),
+          horizontalEdges: List<int>.filled(16, 0),
+          verticalEdges: List<int>.filled(15, 0),
+          corners: List<int>.filled(20, 0),
         ),
       ],
     );

@@ -76,6 +76,59 @@ void main() {
       );
     });
 
+    test('marks dry-run plans non-applicable before confirm or apply',
+        () async {
+      final setup = await _Setup.create();
+      addTearDown(setup.dispose);
+      final request = await setup.requestAsync(
+        actionId: 'map.create',
+        parameters: const {
+          'mapId': 'dry_run_map',
+          'width': 2,
+          'height': 2,
+        },
+        dryRun: true,
+      );
+
+      final planned = await setup.mutations.plan(setup.projectHandle, request);
+      expect(planned['applicable'], isFalse);
+      expect(
+        (planned['plan']! as Map<String, Object?>)['applicable'],
+        isFalse,
+      );
+      expect(
+        (planned['plan']! as Map<String, Object?>)['nonApplicableReason'],
+        'dry_run',
+      );
+
+      for (final attempt in <Future<Object?> Function()>[
+        () => setup.mutations.confirm(
+              setup.projectHandle,
+              planId: planned['planId']! as String,
+            ),
+        () => setup.mutations.apply(
+              setup.projectHandle,
+              planId: planned['planId']! as String,
+              operationId: 'operation_dry_run_must_not_apply',
+            ),
+      ]) {
+        await expectLater(
+          attempt,
+          throwsA(
+            isA<AuthoringPlanException>().having(
+              (error) => error.code,
+              'code',
+              'plan.dry_run_not_applicable',
+            ),
+          ),
+        );
+      }
+      expect(
+        await File('${setup.root.path}/maps/dry_run_map.json').exists(),
+        isFalse,
+      );
+    });
+
     test('requires one-use confirmation for destructive deletion', () async {
       final setup = await _Setup.create(
         maps: [_map('town')],
@@ -284,6 +337,7 @@ final class _Setup {
   Future<AuthoringRequest> requestAsync({
     required String actionId,
     required Map<String, Object?> parameters,
+    bool dryRun = false,
   }) async {
     final snapshot = await snapshots.load(projectHandle);
     return AuthoringRequest(
@@ -294,7 +348,7 @@ final class _Setup {
       parameters: parameters,
       expectedRevision: snapshot.revision,
       idempotencyKey: 'idem_${actionId.replaceAll('.', '_')}',
-      dryRun: false,
+      dryRun: dryRun,
     );
   }
 

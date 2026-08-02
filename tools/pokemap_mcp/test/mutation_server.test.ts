@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
@@ -41,11 +41,21 @@ async function toolData(
 }
 
 async function mutationFixture(
-  options: { withLegacyAtlasGap?: boolean } = {},
+  options: { withLegacyAtlasGap?: boolean; withSmartTileM01?: boolean } = {},
 ) {
   const root = await mkdtemp(join(tmpdir(), "pokemap-mcp-mutation-"));
   const scaffoldBytes = await readFile(scaffold);
-  if (options.withLegacyAtlasGap) {
+  if (options.withSmartTileM01) {
+    await mkdir(join(root, "maps"), { recursive: true });
+    await writeFile(
+      join(root, "project.json"),
+      JSON.stringify(smartTileM01Project()),
+    );
+    await writeFile(
+      join(root, "maps/map_hanazuki_village.json"),
+      JSON.stringify(smartTileM01Map()),
+    );
+  } else if (options.withLegacyAtlasGap) {
     const project = JSON.parse(scaffoldBytes.toString("utf8")) as JsonRecord;
     const tilesets = Array.isArray(project.tilesets) ? project.tilesets : [];
     const categories = Array.isArray(project.elementCategories)
@@ -91,6 +101,126 @@ async function mutationFixture(
   await server.connect(serverTransport);
   await client.connect(clientTransport);
   return { authoring, client, root, server };
+}
+
+function smartTileM01Project(): JsonRecord {
+  return {
+    name: "M01 Smart Tile MCP fixture",
+    version: "v4",
+    maps: [
+      {
+        id: "map_hanazuki_village",
+        name: "Hanazuki Village",
+        relativePath: "maps/map_hanazuki_village.json",
+      },
+    ],
+    tilesets: [],
+    smartTileCatalog: {
+      formatVersion: 1,
+      categories: [],
+      atlases: [],
+      animations: [],
+      materials: [
+        { id: "grass", name: "Grass", connectionGroupId: "ground" },
+        {
+          id: "smart_material_empty",
+          name: "Legacy empty",
+          connectionGroupId: "empty",
+          isEmpty: true,
+        },
+        { id: "dirt", name: "Dirt", connectionGroupId: "path" },
+      ],
+      presets: [
+        {
+          id: "terrain",
+          name: "Terrain",
+          usage: "terrain",
+          topology: "cardinal_4",
+          defaultMaterialId: "grass",
+          allowedMaterialIds: ["grass"],
+        },
+        {
+          id: "path",
+          name: "Path",
+          usage: "path",
+          topology: "cardinal_4",
+          defaultMaterialId: "dirt",
+          allowedMaterialIds: ["dirt"],
+        },
+      ],
+    },
+  };
+}
+
+function smartTileM01Map(): JsonRecord {
+  const zeros12 = Array<number>(12).fill(0);
+  const zeros16 = Array<number>(16).fill(0);
+  return {
+    id: "map_hanazuki_village",
+    name: "Hanazuki Village",
+    size: { width: 3, height: 3 },
+    version: "v4",
+    layers: [
+      {
+        id: "base",
+        name: "Base",
+        tiles: Array<number>(9).fill(0),
+        runtimeType: "tile",
+      },
+      {
+        id: "terrain",
+        name: "Terrain metadata",
+        isVisible: false,
+        opacity: 0.75,
+        presetId: "terrain",
+        usage: "terrain",
+        materialPalette: ["", "grass", "smart_material_empty"],
+        materialCells: Array<number>(9).fill(1),
+        horizontalEdges: zeros12,
+        verticalEdges: zeros12,
+        corners: zeros16,
+        layerSeed: 71,
+        properties: { keep: "terrain" },
+        runtimeType: "smart_tile",
+      },
+      {
+        id: "path_target",
+        name: "Target metadata",
+        isVisible: false,
+        opacity: 0.55,
+        presetId: "path",
+        usage: "path",
+        materialPalette: ["", "dirt"],
+        materialCells: [0, 0, 0, 1, 1, 1, 0, 0, 0],
+        horizontalEdges: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        verticalEdges: zeros12,
+        corners: zeros16,
+        layerSeed: 29,
+        properties: { keep: "yes" },
+        runtimeType: "smart_tile",
+      },
+      {
+        id: "path_source",
+        name: "Source",
+        presetId: "path",
+        usage: "path",
+        materialPalette: ["", "dirt"],
+        materialCells: [0, 1, 0, 0, 1, 0, 0, 1, 0],
+        horizontalEdges: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+        verticalEdges: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        corners: [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        layerSeed: 0,
+        properties: {},
+        runtimeType: "smart_tile",
+      },
+      {
+        id: "collisions",
+        name: "Collisions",
+        collisions: Array<boolean>(9).fill(false),
+        runtimeType: "collision",
+      },
+    ],
+  };
 }
 
 async function applyMutation(
@@ -249,6 +379,243 @@ test("MCP preserves CLI plan/apply parity for one complete map batch", async () 
       (batchHistory.entries as JsonRecord[]).map((entry) => entry.operationId),
       ["operation-mcp-map-batch", "operation-mcp-map-create"],
     );
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("MCP marks dry-run plans non-applicable before confirmation or apply", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const validation = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    const planned = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "mcp-dry-run",
+        actionId: "map.create",
+        actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle,
+        parameters: { mapId: "dry_run_map", width: 2, height: 2 },
+        expectedRevision: validation.snapshotRevision,
+        idempotencyKey: "idem-mcp-dry-run",
+        dryRun: true,
+      },
+    });
+    assert.equal(planned.applicable, false);
+    assert.equal(record(planned.plan).applicable, false);
+    assert.equal(record(planned.plan).nonApplicableReason, "dry_run");
+
+    for (const arguments_ of [
+      {
+        operation: "confirm",
+        projectHandle,
+        planId: planned.planId,
+      },
+      {
+        operation: "apply",
+        projectHandle,
+        planId: planned.planId,
+        operationId: "operation-mcp-dry-run",
+      },
+    ]) {
+      const result = await fixture.client.callTool({
+        name: "pokemap_apply",
+        arguments: arguments_,
+      });
+      assert.equal(result.isError, true);
+      const error = record(record(result.structuredContent).error);
+      assert.equal(error.domainCode, "plan.dry_run_not_applicable");
+      assert.match(String(error.message), /dry-run preview/i);
+      assert.notEqual(error.domainCode, "idempotency.apply_required");
+    }
+    await assert.rejects(readFile(join(fixture.root, "maps/dry_run_map.json")));
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture", async () => {
+  const fixture = await mutationFixture({ withSmartTileM01: true });
+  try {
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const actionIds = (described.mutationActions as JsonRecord[]).map(
+      (action) => action.id,
+    );
+    assert.ok(actionIds.includes("smart_tile.layer.normalize"));
+    assert.ok(actionIds.includes("smart_tile.layer.merge"));
+
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    let validation = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+
+    const rejectedBatch = await fixture.client.callTool({
+      name: "pokemap_plan",
+      arguments: {
+        projectHandle,
+        request: {
+          requestId: "m01-precise-diagnostic",
+          actionId: "map.apply_operations",
+          actionVersion: 1,
+          workspaceHandle,
+          parameters: {
+            mapId: "map_hanazuki_village",
+            operations: [
+              { kind: "layer.rename", layerId: "path_target", name: "Path" },
+            ],
+          },
+          expectedRevision: validation.snapshotRevision,
+          idempotencyKey: "idem-m01-precise-diagnostic",
+          dryRun: false,
+        },
+      },
+    });
+    assert.equal(rejectedBatch.isError, true);
+    const diagnostic = record(record(rejectedBatch.structuredContent).error);
+    assert.equal(
+      diagnostic.domainCode,
+      "map.smart_tile_material_not_allowed",
+    );
+    assert.match(String(diagnostic.message), /smart_material_empty/);
+    assert.equal(record(diagnostic.details).layerId, "terrain");
+    assert.equal(record(diagnostic.details).field, "materialPalette");
+    assert.equal(
+      record(diagnostic.details).materialId,
+      "smart_material_empty",
+    );
+    assert.equal(record(diagnostic.details).presetId, "terrain");
+    assert.equal(record(diagnostic.details).validationState, "pre_existing");
+    assert.ok(
+      (diagnostic.remediation as string[]).includes(
+        "Run smart_tile.layer.normalize for terrain.",
+      ),
+    );
+
+    async function applyAction(
+      actionId: string,
+      parameters: JsonRecord,
+      sequence: string,
+    ): Promise<JsonRecord> {
+      const planned = await toolData(fixture.client, "pokemap_plan", {
+        projectHandle,
+        request: {
+          requestId: `m01-${sequence}`,
+          actionId,
+          actionVersion: 1,
+          workspaceHandle,
+          parameters,
+          expectedRevision: validation.snapshotRevision,
+          idempotencyKey: `idem-m01-${sequence}`,
+          dryRun: false,
+        },
+      });
+      if (sequence === "normalize") {
+        const preview = record(record(planned.plan).preview);
+        assert.equal(preview.removedMaterialCount, 1);
+        assert.deepEqual(preview.removedMaterials, [
+          { materialId: "smart_material_empty", oldIndex: 2 },
+        ]);
+      }
+      const applied = await toolData(fixture.client, "pokemap_apply", {
+        operation: "apply",
+        projectHandle,
+        planId: planned.planId,
+        operationId: `operation-m01-${sequence}`,
+      });
+      assert.equal(record(applied.receipt).actionId, actionId);
+      validation = await toolData(fixture.client, "pokemap_validate", {
+        projectHandle,
+      });
+      return applied;
+    }
+
+    await applyAction(
+      "smart_tile.layer.normalize",
+      { mapId: "map_hanazuki_village", layerId: "terrain" },
+      "normalize",
+    );
+    await applyAction(
+      "smart_tile.layer.merge",
+      {
+        mapId: "map_hanazuki_village",
+        sourceLayerIds: ["path_target", "path_source"],
+        targetLayerId: "path_target",
+        mode: "union",
+        removeSources: true,
+        conflictPolicy: "reject",
+      },
+      "merge",
+    );
+
+    assert.equal(validation.valid, true);
+    assert.equal(record(validation.structure).valid, true);
+    assert.equal(record(validation.references).valid, true);
+    assert.equal(
+      record(validation.capabilityCertification).status,
+      "not_requested",
+    );
+    const map = JSON.parse(
+      await readFile(
+        join(fixture.root, "maps/map_hanazuki_village.json"),
+        "utf8",
+      ),
+    ) as JsonRecord;
+    const layers = map.layers as JsonRecord[];
+    assert.deepEqual(
+      layers.map((layer) => layer.id),
+      ["base", "terrain", "path_target", "collisions"],
+    );
+    const terrain = layers[1];
+    const target = layers[2];
+    assert.ok(terrain);
+    assert.ok(target);
+    assert.deepEqual(terrain.materialPalette, ["", "grass"]);
+    assert.deepEqual(target.materialCells, [0, 1, 0, 1, 1, 1, 0, 1, 0]);
+    assert.deepEqual(target.horizontalEdges, [
+      1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+    ]);
+    assert.deepEqual(target.verticalEdges, [
+      0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+    ]);
+    assert.deepEqual(target.corners, [
+      0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    ]);
+    assert.equal(target.name, "Target metadata");
+    assert.equal(target.isVisible, false);
+    assert.equal(target.opacity, 0.55);
+    assert.equal(target.layerSeed, 29);
+    assert.deepEqual(target.properties, { keep: "yes" });
+
+    const queried = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "map",
+      operation: "get",
+      view: "detail",
+      ids: ["map_hanazuki_village"],
+    });
+    assert.equal(record((queried.items as unknown[])[0]).id, "map_hanazuki_village");
+    await toolData(fixture.client, "pokemap_workspace", {
+      operation: "close",
+      workspaceHandle,
+    });
   } finally {
     await fixture.client.close();
     await fixture.server.close();

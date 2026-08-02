@@ -139,6 +139,176 @@ void main() {
     });
   });
 
+  group('Smart Tile palette normalization', () {
+    test('removes unused materials and preserves all four semantic lattices',
+        () {
+      final layer = _smartLayer(
+        id: 'path',
+        name: 'Path metadata',
+        isVisible: false,
+        opacity: 0.35,
+        presetId: 'han_path',
+        usage: SmartTileUsage.path,
+        materialPalette: const ['', 'dirt', 'unused', 'stone'],
+        materialCells: const [3, 0, 1, 3],
+        horizontalEdges: const [0, 3, 0, 1, 0, 3],
+        verticalEdges: const [3, 0, 0, 1, 3, 0],
+        corners: const [0, 3, 0, 0, 1, 0, 3, 0, 0],
+        layerSeed: 97,
+        properties: const {'role': 'main_path', 'note': 'keep'},
+      );
+      final semanticBefore = _semanticLattices(layer);
+
+      final result = normalizeSmartTileLayer(layer);
+
+      expect(result.layer.materialPalette, ['', 'dirt', 'stone']);
+      expect(result.layer.materialCells, [2, 0, 1, 2]);
+      expect(result.layer.horizontalEdges, [0, 2, 0, 1, 0, 2]);
+      expect(result.layer.verticalEdges, [2, 0, 0, 1, 2, 0]);
+      expect(result.layer.corners, [0, 2, 0, 0, 1, 0, 2, 0, 0]);
+      expect(_semanticLattices(result.layer), semanticBefore);
+      expect(
+        result.removedPaletteEntries.map((entry) => entry.toJson()).toList(),
+        [
+          {'materialId': 'unused', 'oldIndex': 2},
+        ],
+      );
+      expect(result.reindexedEntryCounts, {
+        'materialCells': 2,
+        'horizontalEdges': 2,
+        'verticalEdges': 2,
+        'corners': 2,
+      });
+      expect(result.reindexedEntryCount, 8);
+
+      expect(result.layer.id, layer.id);
+      expect(result.layer.name, layer.name);
+      expect(result.layer.isVisible, layer.isVisible);
+      expect(result.layer.opacity, layer.opacity);
+      expect(result.layer.presetId, layer.presetId);
+      expect(result.layer.usage, layer.usage);
+      expect(result.layer.layerSeed, layer.layerSeed);
+      expect(result.layer.properties, layer.properties);
+    });
+
+    test('is idempotent once the palette is canonical', () {
+      final layer = _smartLayer(
+        id: 'path',
+        name: 'Path',
+        presetId: 'han_path',
+        usage: SmartTileUsage.path,
+        materialPalette: const ['', 'dirt', 'unused'],
+        materialCells: const [1, 0, 0, 0],
+        horizontalEdges: const [0, 0, 0, 0, 0, 0],
+        verticalEdges: const [0, 0, 0, 0, 0, 0],
+        corners: const [0, 0, 0, 0, 0, 0, 0, 0, 0],
+      );
+
+      final once = normalizeSmartTileLayer(layer).layer;
+      final twice = normalizeSmartTileLayer(once);
+
+      expect(twice.layer, once);
+      expect(twice.removedPaletteEntries, isEmpty);
+      expect(twice.reindexedEntryCount, 0);
+    });
+  });
+
+  group('Smart Tile layer union', () {
+    test('unites crossing paths and every edge/corner lattice', () {
+      final target = _smartLayer(
+        id: 'path_dirt',
+        name: 'Target metadata',
+        isVisible: false,
+        opacity: 0.6,
+        presetId: 'path_preset',
+        usage: SmartTileUsage.path,
+        materialPalette: const ['', 'dirt'],
+        materialCells: const [0, 0, 0, 1, 1, 1, 0, 0, 0],
+        horizontalEdges: const [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        verticalEdges: const [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        corners: const [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        layerSeed: 11,
+        properties: const {'role': 'primary'},
+      );
+      final source = _smartLayer(
+        id: 'path_compacted',
+        name: 'Source',
+        presetId: 'path_preset',
+        usage: SmartTileUsage.path,
+        materialPalette: const ['', 'dirt'],
+        materialCells: const [0, 1, 0, 0, 1, 0, 0, 1, 0],
+        horizontalEdges: const [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+        verticalEdges: const [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        corners: const [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      );
+
+      final result = unionSmartTileLayers(
+        target: target,
+        sources: [source],
+      );
+
+      expect(result.layer.materialPalette, ['', 'dirt']);
+      expect(result.layer.materialCells, [0, 1, 0, 1, 1, 1, 0, 1, 0]);
+      expect(result.layer.horizontalEdges[1], 1);
+      expect(result.layer.horizontalEdges[9], 1);
+      expect(result.layer.verticalEdges[4], 1);
+      expect(result.layer.corners[5], 1);
+      expect(result.layer.corners[15], 1);
+      expect(result.mergedEntryCounts, {
+        'materialCells': 2,
+        'horizontalEdges': 1,
+        'verticalEdges': 1,
+        'corners': 2,
+      });
+      expect(result.mergedEntryCount, 6);
+
+      expect(result.layer.id, target.id);
+      expect(result.layer.name, target.name);
+      expect(result.layer.isVisible, target.isVisible);
+      expect(result.layer.opacity, target.opacity);
+      expect(result.layer.presetId, target.presetId);
+      expect(result.layer.usage, target.usage);
+      expect(result.layer.layerSeed, target.layerSeed);
+      expect(result.layer.properties, target.properties);
+    });
+
+    test('rejects an ambiguous non-empty material conflict', () {
+      final target = _smartLayer(
+        id: 'target',
+        name: 'Target',
+        presetId: 'path_preset',
+        usage: SmartTileUsage.path,
+        materialPalette: const ['', 'dirt'],
+        materialCells: const [1],
+        horizontalEdges: const [0, 0],
+        verticalEdges: const [0, 0],
+        corners: const [0, 0, 0, 0],
+      );
+      final source = _smartLayer(
+        id: 'source',
+        name: 'Source',
+        presetId: 'path_preset',
+        usage: SmartTileUsage.path,
+        materialPalette: const ['', 'stone'],
+        materialCells: const [1],
+        horizontalEdges: const [0, 0],
+        verticalEdges: const [0, 0],
+        corners: const [0, 0, 0, 0],
+      );
+
+      expect(
+        () => unionSmartTileLayers(target: target, sources: [source]),
+        throwsA(
+          isA<ValidationException>().having(
+            (error) => error.message,
+            'message',
+            allOf(contains('materialCells[0]'), contains('source')),
+          ),
+        ),
+      );
+    });
+  });
+
   test('resizeMapData preserves the overlapping Smart Tile lattices', () {
     var layer = (addSmartTileLayer(
       emptyMap,
@@ -303,3 +473,46 @@ void main() {
     });
   });
 }
+
+SmartTileLayer _smartLayer({
+  required String id,
+  required String name,
+  bool isVisible = true,
+  double opacity = 1,
+  required String presetId,
+  required SmartTileUsage usage,
+  required List<String> materialPalette,
+  required List<int> materialCells,
+  required List<int> horizontalEdges,
+  required List<int> verticalEdges,
+  required List<int> corners,
+  int layerSeed = 0,
+  Map<String, String> properties = const {},
+}) =>
+    MapLayer.smartTile(
+      id: id,
+      name: name,
+      isVisible: isVisible,
+      opacity: opacity,
+      presetId: presetId,
+      usage: usage,
+      materialPalette: materialPalette,
+      materialCells: materialCells,
+      horizontalEdges: horizontalEdges,
+      verticalEdges: verticalEdges,
+      corners: corners,
+      layerSeed: layerSeed,
+      properties: properties,
+    ) as SmartTileLayer;
+
+Map<String, List<String?>> _semanticLattices(SmartTileLayer layer) => {
+      'materialCells': _semanticValues(layer, layer.materialCells),
+      'horizontalEdges': _semanticValues(layer, layer.horizontalEdges),
+      'verticalEdges': _semanticValues(layer, layer.verticalEdges),
+      'corners': _semanticValues(layer, layer.corners),
+    };
+
+List<String?> _semanticValues(SmartTileLayer layer, List<int> values) => [
+      for (final index in values)
+        if (index == 0) null else layer.materialPalette[index],
+    ];

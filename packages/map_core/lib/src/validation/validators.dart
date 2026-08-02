@@ -2782,6 +2782,16 @@ class MapValidator {
               throw ValidationException(
                 'Smart Tile layer $layerId material $materialId is not '
                 'allowed by preset $presetId',
+                code: 'map.smart_tile_material_not_allowed',
+                details: {
+                  'layerId': layerId,
+                  'field': 'materialPalette',
+                  'materialId': materialId,
+                  'presetId': presetId,
+                },
+                remediation: [
+                  'Run smart_tile.layer.normalize for $layerId.',
+                ],
               );
             }
           }

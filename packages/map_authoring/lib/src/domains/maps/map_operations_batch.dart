@@ -8,6 +8,7 @@ import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
 import 'layer_actions.dart';
 import 'map_lifecycle_adapter.dart';
+import 'map_validation_diagnostics.dart';
 import 'region_operations.dart';
 
 /// Canonical compact batch action for layer and bounded region authoring.
@@ -99,6 +100,17 @@ final class MapOperationsActions {
       );
     }
 
+    // Initial invalidity is evidence, not permission to persist invalid data.
+    // Capturing it lets the final diagnostic distinguish a pre-existing issue
+    // from one introduced by the projected batch, while the final validation
+    // remains strictly fail-closed.
+    final initialValidation = inspectMapValidation(
+      before,
+      manifest: context.snapshot.manifest,
+      fallbackCode: 'map.batch_initial_state_invalid',
+      fallbackMessage: 'The initial map state is invalid PokeMap data.',
+    );
+
     var current = before;
     var changedCells = 0;
     final touchedLayers = <String>{};
@@ -160,16 +172,22 @@ final class MapOperationsActions {
       }
     }
 
-    try {
-      MapValidator.validate(
-        current,
-        projectDialogueContext: context.snapshot.manifest,
-      );
-    } on Object catch (error) {
-      throw _failure(
-        'map.batch_projected_state_invalid',
-        'The complete operation batch would produce invalid PokeMap data.',
-        details: {'validationType': error.runtimeType.toString()},
+    final projectedValidation = inspectMapValidation(
+      current,
+      manifest: context.snapshot.manifest,
+      fallbackCode: 'map.batch_projected_state_invalid',
+      fallbackMessage:
+          'The complete operation batch would produce invalid PokeMap data.',
+    );
+    if (projectedValidation != null) {
+      final state = initialValidation == null
+          ? 'introduced'
+          : projectedValidation.equivalentTo(initialValidation)
+              ? 'pre_existing'
+              : 'changed';
+      throw projectedValidation.toFailure(
+        validationState: state,
+        initialIssue: initialValidation,
       );
     }
     final beforeBytes = context.snapshot.resourceBytes('map:$mapId');
@@ -233,6 +251,13 @@ final class MapOperationsActions {
         'operationSummaries': summaries,
         'summariesTruncated': rawOperations.length > summaries.length,
         'batchAtomicity': 'all_or_nothing',
+        'validation': {
+          'initialStatus': initialValidation == null ? 'valid' : 'invalid',
+          'projectedStatus': 'valid',
+          'repaired': initialValidation != null,
+          if (initialValidation != null)
+            'initialIssue': initialValidation.toJson(),
+        },
       },
     );
   }

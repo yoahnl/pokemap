@@ -111,7 +111,20 @@ test("read-only MCP inspects a real project with cursor pagination", async () =>
       projectHandle,
     });
     assert.match(String(validation.snapshotRevision), /^sha256:[0-9a-f]{64}$/);
-    assert.ok(record(validation.references));
+    const structure = record(validation.structure);
+    const references = record(validation.references);
+    const capabilityCertification = record(
+      validation.capabilityCertification,
+    );
+    assert.equal(structure.valid, true);
+    assert.equal(typeof references.valid, "boolean");
+    assert.equal(capabilityCertification.requested, false);
+    assert.equal(capabilityCertification.status, "not_requested");
+    assert.equal(capabilityCertification.valid, null);
+    assert.equal(
+      validation.valid,
+      Boolean(structure.valid) && Boolean(references.valid),
+    );
 
     const closed = await toolData(fixture.client, "pokemap_workspace", {
       operation: "close",

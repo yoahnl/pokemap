@@ -7,6 +7,7 @@ import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
 import 'map_lifecycle_adapter.dart';
+import 'map_validation_diagnostics.dart';
 
 final class SemanticMapEdit {
   SemanticMapEdit({
@@ -107,17 +108,15 @@ final class SemanticMapActionContext {
         details: {'layerId': edit.layerId},
       );
     }
-    try {
-      MapValidator.validate(
-        edit.map,
-        projectDialogueContext: planning.snapshot.manifest,
-      );
-    } on Object catch (error) {
-      throw semanticFailure(
-        'map.semantic_projected_state_invalid',
-        'The semantic operation would produce invalid PokeMap data.',
-        details: {'validationType': error.runtimeType.toString()},
-      );
+    final validation = inspectMapValidation(
+      edit.map,
+      manifest: planning.snapshot.manifest,
+      fallbackCode: 'map.semantic_projected_state_invalid',
+      fallbackMessage:
+          'The semantic operation would produce invalid PokeMap data.',
+    );
+    if (validation != null) {
+      throw validation.toFailure(validationState: 'projected');
     }
     final afterBytes = encodeMapAuthoringDocument(edit.map);
     if (_sameBytes(beforeBytes, afterBytes)) {
@@ -172,17 +171,15 @@ final class SemanticMapActionContext {
     String? layerId,
     Map<String, Object?> preview = const {},
   }) {
-    try {
-      MapValidator.validate(
-        after,
-        projectDialogueContext: planning.snapshot.manifest,
-      );
-    } on Object catch (error) {
-      throw semanticFailure(
-        'map.semantic_projected_state_invalid',
-        'The semantic operation would produce invalid PokeMap data.',
-        details: {'validationType': error.runtimeType.toString()},
-      );
+    final validation = inspectMapValidation(
+      after,
+      manifest: planning.snapshot.manifest,
+      fallbackCode: 'map.semantic_projected_state_invalid',
+      fallbackMessage:
+          'The semantic operation would produce invalid PokeMap data.',
+    );
+    if (validation != null) {
+      throw validation.toFailure(validationState: 'projected');
     }
     final afterBytes = encodeMapAuthoringDocument(after);
     if (_sameBytes(beforeBytes, afterBytes)) {
