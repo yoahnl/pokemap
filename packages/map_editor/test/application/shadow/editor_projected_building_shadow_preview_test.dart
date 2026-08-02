@@ -38,6 +38,54 @@ void main() {
       _expectPointClose(instruction.polygonPoints[3], x: 101.38, y: 147.36);
     });
 
+    test('filters exact shadow bounds after the caster leaves the viewport',
+        () {
+      final manifest = _manifest(
+        catalog: _catalog([_preset()]),
+        elements: [_element(projectedBuildingShadow: _config())],
+      );
+      final map = _map(placedElements: [_placed()]);
+      final unfiltered = buildEditorProjectedBuildingShadowPreviewInstructions(
+        manifest: manifest,
+        map: map,
+        tileWidth: 32,
+        tileHeight: 32,
+      ).single;
+      final viewport = EditorShadowPreviewViewport(
+        left: unfiltered.left + 1,
+        top: unfiltered.top + unfiltered.height - 1,
+        right: unfiltered.left + 2,
+        bottom: unfiltered.top + unfiltered.height + 1,
+      );
+
+      expect(viewport.top, greaterThan(160), reason: 'caster bottom edge');
+      expect(
+        buildEditorProjectedBuildingShadowPreviewInstructions(
+          manifest: manifest,
+          map: map,
+          tileWidth: 32,
+          tileHeight: 32,
+          viewport: viewport,
+        ),
+        hasLength(1),
+      );
+      expect(
+        buildEditorProjectedBuildingShadowPreviewInstructions(
+          manifest: manifest,
+          map: map,
+          tileWidth: 32,
+          tileHeight: 32,
+          viewport: EditorShadowPreviewViewport(
+            left: unfiltered.left + unfiltered.width,
+            top: unfiltered.top,
+            right: unfiltered.left + unfiltered.width + 8,
+            bottom: unfiltered.top + unfiltered.height,
+          ),
+        ),
+        isEmpty,
+      );
+    });
+
     test('uses rotated destination dimensions while preserving world direction',
         () {
       final manifest = _manifest(

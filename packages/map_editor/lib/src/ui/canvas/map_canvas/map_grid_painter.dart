@@ -282,6 +282,9 @@ final class MapGridCullingDebugSnapshot {
     required this.collisionCellVisits,
     required this.terrainCellVisits,
     required this.pathCellVisits,
+    required this.smartTileVisualVisits,
+    required this.staticShadowInstructionVisits,
+    required this.projectedBuildingShadowInstructionVisits,
     required Set<String> placedElementIds,
     required this.placedElementPassVisits,
   }) : placedElementIds = Set<String>.unmodifiable(placedElementIds);
@@ -292,6 +295,9 @@ final class MapGridCullingDebugSnapshot {
   final int collisionCellVisits;
   final int terrainCellVisits;
   final int pathCellVisits;
+  final int smartTileVisualVisits;
+  final int staticShadowInstructionVisits;
+  final int projectedBuildingShadowInstructionVisits;
   final Set<String> placedElementIds;
   final int placedElementPassVisits;
 }
@@ -305,6 +311,9 @@ final class _MapGridCullingDebugCounter {
   int collisionCellVisits = 0;
   int terrainCellVisits = 0;
   int pathCellVisits = 0;
+  int smartTileVisualVisits = 0;
+  int staticShadowInstructionVisits = 0;
+  int projectedBuildingShadowInstructionVisits = 0;
   int placedElementPassVisits = 0;
 }
 
@@ -357,6 +366,7 @@ class MapGridPainter extends CustomPainter {
   final bool showEntityEditorChrome;
   final bool showEditorOverlays;
   final Map<SurfaceLayer, SurfacePreviewLayerIndex> _surfaceIndexByLayer;
+  final EditorShadowPreviewProjectionOwner _shadowProjectionOwner;
 
   /// Lot Environment-22 : surcouche semi-transparente des cellules masque actives.
   final EnvironmentAreaMask? environmentMaskOverlay;
@@ -369,6 +379,7 @@ class MapGridPainter extends CustomPainter {
   MapGridPainter({
     required this.map,
     SurfacePreviewLayerIndexOwner? surfaceIndexOwner,
+    EditorShadowPreviewProjectionOwner? shadowProjectionOwner,
     required this.zoom,
     required this.offset,
     this.hoveredTile,
@@ -417,6 +428,8 @@ class MapGridPainter extends CustomPainter {
   })  : _surfaceIndexByLayer =
             (surfaceIndexOwner ?? SurfacePreviewLayerIndexOwner())
                 .indexesFor(map.layers),
+        _shadowProjectionOwner =
+            shadowProjectionOwner ?? EditorShadowPreviewProjectionOwner(),
         _animationClock = animationClock,
         _staticAnimationMs = editorEntityAnimationMs,
         super(repaint: animationClock);
@@ -444,14 +457,32 @@ class MapGridPainter extends CustomPainter {
       tileWidth: tileWidth,
       tileHeight: tileHeight,
     );
-    final visiblePlacedElements = _visiblePlacedElements(visibleBounds);
     final cullingObserver = debugOnCulling;
     final cullingCounter =
         cullingObserver == null ? null : _MapGridCullingDebugCounter();
+    final projectContext = project;
+    final shadowProjection = projectContext == null
+        ? null
+        : _shadowProjectionOwner.projectionFor(
+            manifest: projectContext,
+            map: map,
+            tileWidth: tileWidth,
+            tileHeight: tileHeight,
+            lightPreviewPreset: shadowLightPreviewPreset,
+          );
+    final visiblePlacedElements = shadowProjection?.placedElementsIn(
+          EditorShadowPreviewCellViewport(
+            left: visibleBounds.left,
+            top: visibleBounds.top,
+            right: visibleBounds.right,
+            bottom: visibleBounds.bottom,
+          ),
+        ) ??
+        const <MapPlacedElement>[];
 
-    // Cell-backed layers and placed-element footprints have bounded geometry
-    // and are safe to cull. Shadows and editor overlays deliberately keep the
-    // full map input below because their visual extents can escape an anchor.
+    // Cell-backed layers and placed-element footprints use cell bounds. Shadow
+    // projections use their cached exact world-pixel geometry because their
+    // visual extents can escape the placed element anchor.
 
     final layerPaintOrderResult = buildEditorMapLayerPaintOrderResult(map);
     final layerPaintOrder = layerPaintOrderResult.order;
@@ -468,24 +499,24 @@ class MapGridPainter extends CustomPainter {
       project: project,
       placedElements: visiblePlacedElements,
     );
-    final projectContext = project;
-    final projectedBuildingShadowPreviewInstructions = projectContext == null
-        ? const <EditorStaticShadowPreviewInstruction>[]
-        : buildEditorProjectedBuildingShadowPreviewInstructions(
-            manifest: projectContext,
-            map: map,
-            tileWidth: tileWidth,
-            tileHeight: tileHeight,
-          );
-    final staticShadowPreviewInstructions = projectContext == null
-        ? const <EditorStaticShadowPreviewInstruction>[]
-        : buildEditorStaticShadowPreviewInstructions(
-            manifest: projectContext,
-            map: map,
-            tileWidth: tileWidth,
-            tileHeight: tileHeight,
-            lightPreviewPreset: shadowLightPreviewPreset,
-          );
+    final shadowViewport = EditorShadowPreviewViewport(
+      left: visibleBounds.left * tileWidth,
+      top: visibleBounds.top * tileHeight,
+      right: visibleBounds.right * tileWidth,
+      bottom: visibleBounds.bottom * tileHeight,
+    );
+    final projectedBuildingShadowPreviewInstructions =
+        shadowProjection?.projectedBuildingInstructionsIn(shadowViewport) ??
+            const <EditorStaticShadowPreviewInstruction>[];
+    final staticShadowPreviewInstructions =
+        shadowProjection?.staticInstructionsIn(shadowViewport) ??
+            const <EditorStaticShadowPreviewInstruction>[];
+    if (cullingCounter != null) {
+      cullingCounter.projectedBuildingShadowInstructionVisits +=
+          projectedBuildingShadowPreviewInstructions.length;
+      cullingCounter.staticShadowInstructionVisits +=
+          staticShadowPreviewInstructions.length;
+    }
 
     final borderCatalog = project?.borderCatalog;
     for (final step in compositionPlan.steps) {
@@ -529,6 +560,8 @@ class MapGridPainter extends CustomPainter {
             canvas,
             step.layer! as SmartTileLayer,
             pass: SmartTileVisualPass.background,
+            visibleBounds: visibleBounds,
+            cullingCounter: cullingCounter,
           );
         case MapVisualCompositionStepKind.tileBackgroundLayer:
           _paintTileLayer(
@@ -606,6 +639,8 @@ class MapGridPainter extends CustomPainter {
               canvas,
               smartLayer,
               pass: SmartTileVisualPass.foreground,
+              visibleBounds: visibleBounds,
+              cullingCounter: cullingCounter,
             );
           }
         case MapVisualCompositionStepKind.foregroundEntities:
@@ -716,6 +751,11 @@ class MapGridPainter extends CustomPainter {
           collisionCellVisits: cullingCounter.collisionCellVisits,
           terrainCellVisits: cullingCounter.terrainCellVisits,
           pathCellVisits: cullingCounter.pathCellVisits,
+          smartTileVisualVisits: cullingCounter.smartTileVisualVisits,
+          staticShadowInstructionVisits:
+              cullingCounter.staticShadowInstructionVisits,
+          projectedBuildingShadowInstructionVisits:
+              cullingCounter.projectedBuildingShadowInstructionVisits,
           placedElementIds: {
             for (final instance in visiblePlacedElements) instance.id,
           },
@@ -723,35 +763,6 @@ class MapGridPainter extends CustomPainter {
         ),
       );
     }
-  }
-
-  List<MapPlacedElement> _visiblePlacedElements(
-    EditorMapVisibleCellBounds visibleBounds,
-  ) {
-    final projectContext = project;
-    if (projectContext == null || visibleBounds.cellCount == 0) {
-      return const <MapPlacedElement>[];
-    }
-    final elementById = <String, ProjectElementEntry>{
-      for (final entry in projectContext.elements) entry.id: entry,
-    };
-    return <MapPlacedElement>[
-      for (final instance in map.placedElements)
-        if (elementById[instance.elementId] case final element?)
-          if (element.frames.isNotEmpty)
-            if (resolveMapPlacedElementFootprint(
-              instance: instance,
-              element: element,
-            ).destinationSize
-                case final footprint)
-              if (visibleBounds.intersectsCellArea(
-                x: instance.pos.x,
-                y: instance.pos.y,
-                width: footprint.width,
-                height: footprint.height,
-              ))
-                instance,
-    ];
   }
 
   void _paintNarrativeEventBridgeHighlight(
@@ -2718,6 +2729,8 @@ class MapGridPainter extends CustomPainter {
     Canvas canvas,
     SmartTileLayer layer, {
     required SmartTileVisualPass pass,
+    required EditorMapVisibleCellBounds visibleBounds,
+    _MapGridCullingDebugCounter? cullingCounter,
   }) {
     final catalog = project?.smartTileCatalog;
     if (catalog == null || catalog.isEmpty) return;
@@ -2727,7 +2740,12 @@ class MapGridPainter extends CustomPainter {
       catalog: catalog,
       pass: pass,
       elapsedMs: effectiveAnimationMs,
+      startX: visibleBounds.left,
+      startY: visibleBounds.top,
+      endX: visibleBounds.right,
+      endY: visibleBounds.bottom,
     );
+    cullingCounter?.smartTileVisualVisits += visuals.length;
     final pixelScaleX = sourceTileWidth > 0 ? tileWidth / sourceTileWidth : 1.0;
     final pixelScaleY =
         sourceTileHeight > 0 ? tileHeight / sourceTileHeight : 1.0;

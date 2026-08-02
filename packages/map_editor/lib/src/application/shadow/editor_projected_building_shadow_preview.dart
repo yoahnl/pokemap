@@ -8,11 +8,13 @@ List<EditorStaticShadowPreviewInstruction>
   required MapData map,
   required double tileWidth,
   required double tileHeight,
+  EditorShadowPreviewViewport? viewport,
 }) {
   if (!tileWidth.isFinite ||
       !tileHeight.isFinite ||
       tileWidth <= 0 ||
       tileHeight <= 0 ||
+      (viewport?.isEmpty ?? false) ||
       map.placedElements.isEmpty) {
     return const <EditorStaticShadowPreviewInstruction>[];
   }
@@ -84,6 +86,15 @@ List<EditorStaticShadowPreviewInstruction>
             ))
         .toList(growable: false);
     final bounds = _boundsFromEditorPreviewPoints(points);
+    if (viewport != null &&
+        !viewport.intersects(
+          left: bounds.left,
+          top: bounds.top,
+          width: bounds.width,
+          height: bounds.height,
+        )) {
+      continue;
+    }
 
     instructions.add(
       EditorStaticShadowPreviewInstruction(

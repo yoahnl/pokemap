@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/shadow/editor_shadow_light_preview.dart';
+import 'package:map_editor/src/application/shadow/editor_shadow_preview_projection_index.dart';
 import 'package:map_editor/src/application/shadow/editor_static_shadow_preview.dart';
 
 void main() {
@@ -23,6 +24,146 @@ void main() {
         shadowConfig: _resolvedConfig(),
         metrics: _defaultMetrics(),
       );
+    });
+
+    test(
+        'filters by exact projected bounds and keeps an off-viewport caster shadow',
+        () {
+      final map = _map(
+        shadowOverride: MapPlacedElementShadowOverride(
+          mode: ShadowOverrideMode.custom,
+          offsetX: 128,
+        ),
+      );
+      final unfiltered = buildEditorStaticShadowPreviewInstructions(
+        manifest: _manifest(),
+        map: map,
+        tileWidth: 16,
+        tileHeight: 16,
+      ).single;
+      final viewport = EditorShadowPreviewViewport(
+        left: unfiltered.left + unfiltered.width - 1,
+        top: unfiltered.top + 1,
+        right: unfiltered.left + unfiltered.width + 1,
+        bottom: unfiltered.top + 2,
+      );
+
+      expect(viewport.left, greaterThan(48), reason: 'caster right edge');
+      expect(
+        buildEditorStaticShadowPreviewInstructions(
+          manifest: _manifest(),
+          map: map,
+          tileWidth: 16,
+          tileHeight: 16,
+          viewport: viewport,
+        ),
+        hasLength(1),
+      );
+      expect(
+        buildEditorStaticShadowPreviewInstructions(
+          manifest: _manifest(),
+          map: map,
+          tileWidth: 16,
+          tileHeight: 16,
+          viewport: EditorShadowPreviewViewport(
+            left: unfiltered.left + unfiltered.width,
+            top: unfiltered.top,
+            right: unfiltered.left + unfiltered.width + 8,
+            bottom: unfiltered.top + unfiltered.height,
+          ),
+        ),
+        isEmpty,
+        reason: 'touching the exact right edge is not an intersection',
+      );
+    });
+
+    test('returns no instructions for an empty viewport', () {
+      expect(
+        buildEditorStaticShadowPreviewInstructions(
+          manifest: _manifest(),
+          map: _map(),
+          tileWidth: 16,
+          tileHeight: 16,
+          viewport: const EditorShadowPreviewViewport(
+            left: 32,
+            top: 32,
+            right: 32,
+            bottom: 64,
+          ),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('projection owner reuses revisions and indexes visible source order',
+        () {
+      final owner = EditorShadowPreviewProjectionOwner();
+      final map = _map(
+        placedElements: const <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'near',
+            layerId: 'layer',
+            elementId: 'stand',
+            pos: GridPos(x: 1, y: 2),
+          ),
+          MapPlacedElement(
+            id: 'far',
+            layerId: 'layer',
+            elementId: 'stand',
+            pos: GridPos(x: 7, y: 7),
+          ),
+        ],
+      );
+      final manifest = _manifest();
+      final first = owner.projectionFor(
+        manifest: manifest,
+        map: map,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      final cached = owner.projectionFor(
+        manifest: manifest,
+        map: map,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+
+      expect(identical(cached, first), isTrue);
+      expect(first.staticInstructionCount, 2);
+      expect(
+        first
+            .placedElementsIn(
+              const EditorShadowPreviewCellViewport(
+                left: 0,
+                top: 0,
+                right: 4,
+                bottom: 6,
+              ),
+            )
+            .map((element) => element.id),
+        <String>['near'],
+      );
+      expect(
+        first
+            .staticInstructionsIn(
+              const EditorShadowPreviewViewport(
+                left: 0,
+                top: 0,
+                right: 64,
+                bottom: 96,
+              ),
+            )
+            .map((instruction) => instruction.instanceId),
+        <String>['near'],
+      );
+
+      final refreshed = owner.projectionFor(
+        manifest: manifest,
+        map: map.copyWith(name: 'Changed identity'),
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      expect(identical(refreshed, first), isFalse);
     });
 
     test('uses the rotated destination footprint without rotating world light',

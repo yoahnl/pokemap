@@ -30,8 +30,8 @@ import '../../application/models/map_tool_preview.dart';
 import '../../application/models/path_autotile_set.dart';
 import '../../application/models/narrative_event_map_bridge_models.dart';
 import '../../application/models/narrative_event_spatial_source_creation_models.dart';
-import '../../application/shadow/editor_projected_building_shadow_preview.dart';
 import '../../application/shadow/editor_shadow_light_preview.dart';
+import '../../application/shadow/editor_shadow_preview_projection_index.dart';
 import '../../application/shadow/editor_static_shadow_preview.dart';
 import '../../application/services/environment_generated_placement_hover_resolver.dart';
 import '../../application/services/environment_mask_brush_footprint_resolver.dart';
@@ -469,6 +469,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       MapCanvasInteractionController();
   final SurfacePreviewLayerIndexOwner _surfacePreviewLayerIndexOwner =
       SurfacePreviewLayerIndexOwner();
+  final EditorShadowPreviewProjectionOwner _shadowPreviewProjectionOwner =
+      EditorShadowPreviewProjectionOwner();
   final Set<int> _pressedMapPointers = <int>{};
   final Set<LogicalKeyboardKey> _pressedContextMenuKeys =
       <LogicalKeyboardKey>{};
@@ -634,6 +636,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
   @override
   void dispose() {
     _disposeOwnedRepaintResources();
+    _shadowPreviewProjectionOwner.clear();
     _releaseTilesetImagesFuture(_tilesetImagesFuture);
     _tilesetImagesFuture = null;
     _pressedMapPointers.clear();
@@ -1664,6 +1667,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                             painter: MapGridPainter(
                               map: activeMap,
                               surfaceIndexOwner: _surfacePreviewLayerIndexOwner,
+                              shadowProjectionOwner:
+                                  _shadowPreviewProjectionOwner,
                               zoom: state.zoom,
                               offset: state.panOffset,
                               hoveredTile:

@@ -386,6 +386,18 @@ void main() {
       committedPosition,
     );
   });
+
+  test('smart tile work stays bounded to the same viewport from 128² to 1024²',
+      () {
+    final small = _paintSmartTileCullingFixture(mapExtent: 128);
+    final large = _paintSmartTileCullingFixture(mapExtent: 1024);
+
+    expect(
+        _boundsTuple(large.visibleBounds), _boundsTuple(small.visibleBounds));
+    expect(large.smartTileVisualVisits, small.smartTileVisualVisits);
+    expect(large.smartTileVisualVisits, large.visibleBounds.cellCount);
+    expect(large.smartTileVisualVisits, lessThan(large.totalMapCellCount));
+  });
 }
 
 EditorMapVisibleCellBounds _visibleBounds({
@@ -433,6 +445,61 @@ MapGridCullingDebugSnapshot _paintCullingFixture({
     pathAutotileSetsByPresetId: const {},
     terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
     project: _cullingProject,
+    showGrid: false,
+    showEditorOverlays: false,
+    debugOnCulling: (value) => snapshot = value,
+  ).paint(canvas, const Size(96, 96));
+  recorder.endRecording().dispose();
+  return snapshot!;
+}
+
+MapGridCullingDebugSnapshot _paintSmartTileCullingFixture({
+  required int mapExtent,
+}) {
+  final cellCount = mapExtent * mapExtent;
+  final layer = SmartTileLayer(
+    id: 'smart-terrain',
+    name: 'Smart terrain',
+    presetId: 'smart-terrain',
+    usage: SmartTileUsage.terrain,
+    materialPalette: const <String>['', 'grass'],
+    materialCells: List<int>.filled(cellCount, 1, growable: false),
+    horizontalEdges:
+        List<int>.filled(mapExtent * (mapExtent + 1), 0, growable: false),
+    verticalEdges:
+        List<int>.filled((mapExtent + 1) * mapExtent, 0, growable: false),
+    corners: List<int>.filled(
+      (mapExtent + 1) * (mapExtent + 1),
+      0,
+      growable: false,
+    ),
+  );
+  final map = MapData(
+    id: 'smart-$mapExtent',
+    name: 'Smart $mapExtent',
+    version: ProjectVersion.v4,
+    size: GridSize(width: mapExtent, height: mapExtent),
+    layers: <MapLayer>[layer],
+  );
+  MapGridCullingDebugSnapshot? snapshot;
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  MapGridPainter(
+    map: map,
+    zoom: 1,
+    offset: Offset.zero,
+    tileWidth: 32,
+    tileHeight: 32,
+    tilesetImagesById: const <String, ui.Image?>{},
+    sourceTileWidth: 32,
+    sourceTileHeight: 32,
+    tilesPerRowById: const <String, int>{},
+    warps: const <MapWarp>[],
+    gameplayZones: const <MapGameplayZone>[],
+    connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+    pathAutotileSetsByPresetId: const {},
+    terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+    project: _smartTileProject,
     showGrid: false,
     showEditorOverlays: false,
     debugOnCulling: (value) => snapshot = value,
@@ -659,6 +726,62 @@ const _project = ProjectManifest(
     ),
   ],
   surfaceCatalog: ProjectSurfaceCatalog.empty(),
+);
+
+final _smartTileProject = ProjectManifest(
+  name: 'Smart tile performance',
+  maps: <ProjectMapEntry>[],
+  tilesets: <ProjectTilesetEntry>[],
+  surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+  smartTileCatalog: ProjectSmartTileCatalog(
+    atlases: const <ProjectSmartTileAtlas>[
+      ProjectSmartTileAtlas(
+        id: 'smart-atlas',
+        name: 'Smart atlas',
+        tilesetId: 'tiles',
+        columns: 1,
+        rows: 1,
+      ),
+    ],
+    materials: const <ProjectSmartTileMaterial>[
+      ProjectSmartTileMaterial(
+        id: 'grass',
+        name: 'Grass',
+        connectionGroupId: 'grass',
+      ),
+    ],
+    presets: const <ProjectSmartTilePreset>[
+      ProjectSmartTilePreset(
+        id: 'smart-terrain',
+        name: 'Smart terrain',
+        usage: SmartTileUsage.terrain,
+        topology: SmartTileTopology.cardinal4,
+        defaultMaterialId: 'grass',
+        allowedMaterialIds: <String>['grass'],
+        rules: <SmartTileRule>[
+          SmartTileRule(
+            id: 'ground',
+            candidates: <SmartTileCandidate>[
+              SmartTileCandidate(
+                id: 'ground',
+                parts: <SmartTileVisualPart>[
+                  SmartTileVisualPart(
+                    source: SmartTileVisualSource.frame(
+                      frame: SmartTileFrameRef(
+                        atlasId: 'smart-atlas',
+                        column: 0,
+                        row: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  ),
 );
 
 MapData _largeMap() {

@@ -108,6 +108,58 @@ final class EditorStaticShadowPreviewInstruction {
       );
 }
 
+/// Half-open world-pixel bounds used to select editor shadow previews.
+///
+/// The intersection is evaluated against the resolved shadow geometry rather
+/// than the placed element anchor, so projected shadows remain visible at a
+/// viewport edge without relying on an arbitrary halo.
+final class EditorShadowPreviewViewport {
+  const EditorShadowPreviewViewport({
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+  });
+
+  final double left;
+  final double top;
+  final double right;
+  final double bottom;
+
+  bool get isEmpty =>
+      !left.isFinite ||
+      !top.isFinite ||
+      !right.isFinite ||
+      !bottom.isFinite ||
+      right <= left ||
+      bottom <= top;
+
+  bool intersects({
+    required double left,
+    required double top,
+    required double width,
+    required double height,
+  }) {
+    if (isEmpty || width <= 0 || height <= 0) {
+      return false;
+    }
+    final candidateRight = left + width;
+    final candidateBottom = top + height;
+    return candidateRight > this.left &&
+        left < right &&
+        candidateBottom > this.top &&
+        top < bottom;
+  }
+
+  bool intersectsInstruction(EditorStaticShadowPreviewInstruction value) =>
+      intersects(
+        left: value.left,
+        top: value.top,
+        width: value.width,
+        height: value.height,
+      );
+}
+
 List<EditorStaticShadowPreviewInstruction>
     buildEditorStaticShadowPreviewInstructions({
   required ProjectManifest manifest,
@@ -115,11 +167,13 @@ List<EditorStaticShadowPreviewInstruction>
   required double tileWidth,
   required double tileHeight,
   EditorShadowLightPreviewPreset? lightPreviewPreset,
+  EditorShadowPreviewViewport? viewport,
 }) {
   if (!tileWidth.isFinite ||
       !tileHeight.isFinite ||
       tileWidth <= 0 ||
       tileHeight <= 0 ||
+      (viewport?.isEmpty ?? false) ||
       map.placedElements.isEmpty) {
     return const <EditorStaticShadowPreviewInstruction>[];
   }
@@ -212,6 +266,15 @@ List<EditorStaticShadowPreviewInstruction>
           );
     final points = _editorPreviewPointsFromProjection(projectedGeometry);
     final bounds = _boundsFromEditorPreviewPoints(points);
+    if (viewport != null &&
+        !viewport.intersects(
+          left: bounds.left,
+          top: bounds.top,
+          width: bounds.width,
+          height: bounds.height,
+        )) {
+      continue;
+    }
 
     instructions.add(
       EditorStaticShadowPreviewInstruction(
