@@ -180,8 +180,10 @@ bool isWorldMapPaintLayerCompatible(
 ) {
   return switch (subtool) {
     WorldMapPaintSubtool.tile => layer is TileLayer,
-    WorldMapPaintSubtool.terrain => layer is TerrainLayer,
-    WorldMapPaintSubtool.path => layer is PathLayer,
+    WorldMapPaintSubtool.terrain =>
+      layer is SmartTileLayer && layer.usage == SmartTileUsage.terrain,
+    WorldMapPaintSubtool.path =>
+      layer is SmartTileLayer && layer.usage == SmartTileUsage.path,
     WorldMapPaintSubtool.surface => layer is SurfaceLayer,
     WorldMapPaintSubtool.border => layer is BorderLayer,
     WorldMapPaintSubtool.collision => layer is CollisionLayer,
@@ -294,8 +296,7 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
     }
     final canErase = layer is TileLayer ||
         layer is CollisionLayer ||
-        layer is TerrainLayer ||
-        layer is PathLayer ||
+        layer is SmartTileLayer ||
         layer is SurfaceLayer;
     return (
       resultingTool: canErase ? EditorToolType.eraser : null,
@@ -318,8 +319,9 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
       WorldMapPaintSubtool.tile =>
         'Paint/tile requires an active editable tile layer.',
       WorldMapPaintSubtool.terrain =>
-        'Paint/terrain requires an active terrain layer.',
-      WorldMapPaintSubtool.path => 'Paint/path requires an active path layer.',
+        'Paint/terrain requires an active Smart Tile terrain layer.',
+      WorldMapPaintSubtool.path =>
+        'Paint/path requires an active Smart Tile path layer.',
       WorldMapPaintSubtool.surface =>
         'Paint/surface requires an active surface layer.',
       WorldMapPaintSubtool.border => assessBorderToolAvailability(

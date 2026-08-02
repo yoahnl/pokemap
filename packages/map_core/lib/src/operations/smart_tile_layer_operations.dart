@@ -37,18 +37,8 @@ MapData addSmartTileLayer(
   if (map.layers.any((layer) => layer.id == normalizedId)) {
     throw ValidationException('Layer ID already exists: $normalizedId');
   }
-  if (usage == SmartTileUsage.terrain &&
-      map.layers
-          .whereType<SmartTileLayer>()
-          .any((layer) => layer.usage == SmartTileUsage.terrain)) {
-    throw const ValidationException(
-      'A map can contain only one Smart Tile terrain layer',
-    );
-  }
-
   final width = map.size.width;
   final height = map.size.height;
-  final defaultIndex = usage == SmartTileUsage.terrain ? 1 : 0;
   final layer = MapLayer.smartTile(
     id: normalizedId,
     name: normalizedName,
@@ -57,7 +47,7 @@ MapData addSmartTileLayer(
     materialPalette: <String>['', normalizedMaterialId],
     materialCells: List<int>.filled(
       width * height,
-      defaultIndex,
+      0,
       growable: false,
     ),
     horizontalEdges: List<int>.filled(

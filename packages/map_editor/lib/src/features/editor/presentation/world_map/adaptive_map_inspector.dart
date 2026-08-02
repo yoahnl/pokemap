@@ -6,9 +6,11 @@ import '../../../../ui/design_system/design_system.dart';
 import '../../application/map_canvas_object_hit_test.dart';
 import '../../application/world_map_inspector_projector.dart';
 import '../../application/world_map_tool_family.dart';
+import '../../state/editor_notifier.dart';
 import 'world_map_cell_inspector.dart';
 import 'world_map_erase_inspector.dart';
 import 'world_map_layers_inspector.dart';
+import 'world_map_paint_inspection_intent.dart';
 import 'world_map_paint_inspector.dart';
 import 'world_map_place_inspector.dart';
 import 'world_map_selection_inspector.dart';
@@ -46,6 +48,16 @@ class AdaptiveMapInspector extends ConsumerWidget {
     final canPin = ref.watch(worldMapInspectorCanPinProvider);
     final session = ref.read(worldMapWorkspaceSessionProvider.notifier);
 
+    void returnToLayers() {
+      final result = session.activateLayers(
+        ref.read(editorNotifierProvider.notifier),
+      );
+      if (!result.accepted) return;
+      session.pinInspector(null);
+      ref.read(worldMapPaintInspectionIntentProvider.notifier).clear();
+      session.setInspectorVisible(true);
+    }
+
     final inspector = Semantics(
       container: true,
       label: 'Inspecteur de carte : $title',
@@ -56,41 +68,65 @@ class AdaptiveMapInspector extends ConsumerWidget {
         padding: EdgeInsets.zero,
         header: Padding(
           padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
-          child: PokeMapSectionHeader(
-            title: title,
-            description: snapshot.activeLayerId == null
-                ? null
-                : 'Calque : ${snapshot.activeLayerId}',
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+          child: Row(
+            children: [
+              if (snapshot.kind == WorldMapInspectorKind.paint) ...[
                 PokeMapIconButton(
-                  key: const ValueKey<String>('world-map-inspector-pin'),
-                  size: 36,
-                  tooltip: snapshot.pinned
-                      ? 'Désépingler l’inspecteur'
-                      : 'Épingler l’inspecteur',
-                  isSelected: snapshot.pinned,
-                  onPressed: canPin
-                      ? () => session.pinInspector(
-                            snapshot.pinned ? null : snapshot.kind,
-                          )
-                      : null,
-                  icon: Icon(
-                    snapshot.pinned ? Icons.push_pin : Icons.push_pin_outlined,
+                  key: const ValueKey<String>(
+                    'world-map-inspector-back-to-layers',
                   ),
+                  size: 36,
+                  tooltip: 'Retour à la liste des calques',
+                  onPressed: returnToLayers,
+                  icon: const Icon(Icons.arrow_back_rounded),
                 ),
                 const SizedBox(width: 4),
-                PokeMapIconButton(
-                  key: const ValueKey<String>('world-map-inspector-close'),
-                  size: 36,
-                  tooltip: 'Fermer l’inspecteur',
-                  onPressed:
-                      onClose ?? () => session.setInspectorVisible(false),
-                  icon: const Icon(Icons.close),
-                ),
               ],
-            ),
+              Expanded(
+                child: PokeMapSectionHeader(
+                  title: title,
+                  description: snapshot.activeLayerId == null
+                      ? null
+                      : 'Calque : ${snapshot.activeLayerId}',
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      PokeMapIconButton(
+                        key: const ValueKey<String>(
+                          'world-map-inspector-pin',
+                        ),
+                        size: 36,
+                        tooltip: snapshot.pinned
+                            ? 'Désépingler l’inspecteur'
+                            : 'Épingler l’inspecteur',
+                        isSelected: snapshot.pinned,
+                        onPressed: canPin
+                            ? () => session.pinInspector(
+                                  snapshot.pinned ? null : snapshot.kind,
+                                )
+                            : null,
+                        icon: Icon(
+                          snapshot.pinned
+                              ? Icons.push_pin
+                              : Icons.push_pin_outlined,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      PokeMapIconButton(
+                        key: const ValueKey<String>(
+                          'world-map-inspector-close',
+                        ),
+                        size: 36,
+                        tooltip: 'Fermer l’inspecteur',
+                        onPressed:
+                            onClose ?? () => session.setInspectorVisible(false),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         child: KeyedSubtree(

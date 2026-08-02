@@ -6,7 +6,6 @@ import '../../../border_map_editing/presentation/border_layer_inspector_panel.da
 import '../../../border_map_editing/state/border_map_editing_providers.dart';
 import '../../../surface_painter/surface_palette_panel.dart';
 import '../../../../ui/design_system/design_system.dart';
-import '../../../../ui/panels/terrain_map_panel.dart';
 import '../../../../ui/panels/tileset_palette/widgets/browser/map_palette_asset_browser.dart';
 import '../../../../ui/panels/tileset_palette/widgets/palette/map_layer_asset_palette.dart';
 import '../../application/world_map_subtool_body_projector.dart';
@@ -16,6 +15,7 @@ import '../../state/editor_notifier.dart';
 import 'world_map_collision_inspector.dart';
 import 'world_map_paint_inspection_intent.dart';
 import 'world_map_subtool_disabled_guidance.dart';
+import 'world_map_smart_tile_paint_palette.dart';
 import 'world_map_workspace_session.dart';
 
 class WorldMapPaintInspector extends ConsumerWidget {
@@ -96,6 +96,16 @@ class WorldMapPaintInspector extends ConsumerWidget {
       );
       return currentScope == expected.scope &&
           ref.read(worldMapPaintInspectionIntentProvider) == expected;
+    }
+
+    if (subtool == WorldMapPaintSubtool.terrain ||
+        subtool == WorldMapPaintSubtool.path) {
+      return KeyedSubtree(
+        key: ValueKey<String>(
+          'world-map-paint-body-${projection.bodyKind.name}',
+        ),
+        child: WorldMapSmartTilePaintPalette(subtool: subtool),
+      );
     }
 
     if (inspectionIntent?.kind ==
@@ -188,21 +198,9 @@ class WorldMapPaintInspector extends ConsumerWidget {
             ),
           ),
         ),
-      WorldMapSubtoolBodyKind.terrainPainter => TerrainMapPanel(
-          embedded: true,
-          mode: TerrainMapPanelMode.groundOnly,
-          onTerrainPaintRequested: () => activate(
-            const ActivateWorldMapPaint(WorldMapPaintSubtool.terrain),
-          ),
-        ),
-      WorldMapSubtoolBodyKind.pathPainter => TerrainMapPanel(
-          embedded: true,
-          mode: TerrainMapPanelMode.surfaceOnly,
-          onPathPaintRequested: () => activate(
-            const ActivateWorldMapPaint(WorldMapPaintSubtool.path),
-          ),
-          onEraseRequested: () => activate(const ActivateWorldMapErase()),
-        ),
+      WorldMapSubtoolBodyKind.terrainPainter ||
+      WorldMapSubtoolBodyKind.pathPainter =>
+        throw StateError('Smart Tile paint bodies are routed above.'),
       WorldMapSubtoolBodyKind.surfacePainter => SurfacePainterPanel(
           embedded: true,
           onSurfacePresetSelected: notifier.selectSurfacePresetForSetup,
@@ -378,22 +376,24 @@ void _addRequiredPaintLayer(
       notifier.addSurfaceLayer(name: _requiredLayerDefaultName(subtool));
       return;
     case WorldMapPaintSubtool.tile:
-    case WorldMapPaintSubtool.terrain:
-    case WorldMapPaintSubtool.path:
     case WorldMapPaintSubtool.border:
     case WorldMapPaintSubtool.collision:
       notifier.addMapLayer(
         kind: switch (subtool) {
           WorldMapPaintSubtool.tile => MapLayerKind.tile,
-          WorldMapPaintSubtool.terrain => MapLayerKind.terrain,
-          WorldMapPaintSubtool.path => MapLayerKind.path,
           WorldMapPaintSubtool.border => MapLayerKind.border,
           WorldMapPaintSubtool.collision => MapLayerKind.collision,
           WorldMapPaintSubtool.surface => throw StateError('unreachable'),
+          WorldMapPaintSubtool.terrain ||
+          WorldMapPaintSubtool.path =>
+            throw StateError('Smart Tile presets are selected in Paint.'),
         },
         name: _requiredLayerDefaultName(subtool),
       );
       return;
+    case WorldMapPaintSubtool.terrain:
+    case WorldMapPaintSubtool.path:
+      throw StateError('Smart Tile presets are selected in Paint.');
   }
 }
 

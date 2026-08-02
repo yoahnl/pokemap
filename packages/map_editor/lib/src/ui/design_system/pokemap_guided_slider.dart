@@ -3,6 +3,11 @@ import 'package:flutter/services.dart';
 
 import '../../theme/theme.dart';
 
+enum PokeMapGuidedSliderLayout {
+  stacked,
+  inline,
+}
+
 /// Integer-only guided control for authoring values presented as percentages.
 ///
 /// Product screens keep their domain conversion outside this primitive. The
@@ -18,6 +23,7 @@ class PokeMapGuidedSlider extends StatefulWidget {
     this.description,
     this.min = 0,
     this.max = 100,
+    this.layout = PokeMapGuidedSliderLayout.stacked,
   }) : assert(min < max);
 
   final String label;
@@ -25,6 +31,7 @@ class PokeMapGuidedSlider extends StatefulWidget {
   final int value;
   final int min;
   final int max;
+  final PokeMapGuidedSliderLayout layout;
   final ValueChanged<int> onChanged;
   final ValueChanged<int>? onChangeStart;
   final ValueChanged<int>? onChangeEnd;
@@ -144,131 +151,151 @@ class _PokeMapGuidedSliderState extends State<PokeMapGuidedSlider> {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final clampedValue = _clampedValue;
-    return Semantics(
-      slider: true,
-      label: widget.label,
-      value: '$clampedValue %',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.label,
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    if (widget.description case final description?) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        description,
-                        style: TextStyle(
-                          color: colors.textMuted,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '$clampedValue %',
-                style: TextStyle(
-                  color: colors.brandPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
+    final label = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
           ),
-          const SizedBox(height: 4),
-          FocusableActionDetector(
-            focusNode: _focusNode,
-            onFocusChange: _handleFocusChange,
-            onShowFocusHighlight: (show) {
-              if (_focusHighlightRequested == show) {
-                return;
-              }
-              setState(() => _focusHighlightRequested = show);
-            },
-            shortcuts: const <ShortcutActivator, Intent>{
-              SingleActivator(LogicalKeyboardKey.arrowLeft):
-                  _AdjustGuidedSliderIntent(-1),
-              SingleActivator(LogicalKeyboardKey.arrowDown):
-                  _AdjustGuidedSliderIntent(-1),
-              SingleActivator(LogicalKeyboardKey.arrowRight):
-                  _AdjustGuidedSliderIntent(1),
-              SingleActivator(LogicalKeyboardKey.arrowUp):
-                  _AdjustGuidedSliderIntent(1),
-            },
-            actions: <Type, Action<Intent>>{
-              _AdjustGuidedSliderIntent:
-                  CallbackAction<_AdjustGuidedSliderIntent>(
-                onInvoke: (intent) {
-                  _adjustWithKeyboard(intent.delta);
-                  return null;
-                },
-              ),
-            },
-            child: Stack(
-              fit: StackFit.passthrough,
-              children: [
-                Listener(
-                  onPointerDown: _handlePointerDown,
-                  onPointerUp: (_) => _endInteraction(),
-                  onPointerCancel: (_) => _endInteraction(),
-                  child: CupertinoSlider(
-                    value: clampedValue.toDouble(),
-                    min: widget.min.toDouble(),
-                    max: widget.max.toDouble(),
-                    divisions: widget.max - widget.min,
-                    activeColor: colors.brandPrimary,
-                    thumbColor: colors.surfaceBase,
-                    onChangeStart: _handleChangeStart,
-                    onChanged: _handleChanged,
-                    onChangeEnd: _handleChangeEnd,
-                  ),
+        ),
+        if (widget.description case final description?) ...[
+          const SizedBox(height: 2),
+          Text(
+            description,
+            maxLines:
+                widget.layout == PokeMapGuidedSliderLayout.inline ? 1 : null,
+            overflow: widget.layout == PokeMapGuidedSliderLayout.inline
+                ? TextOverflow.ellipsis
+                : null,
+            style: TextStyle(
+              color: colors.textMuted,
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ],
+    );
+    final valueLabel = Text(
+      '$clampedValue %',
+      style: TextStyle(
+        color: colors.brandPrimary,
+        fontSize: 12,
+        fontWeight: FontWeight.w800,
+      ),
+    );
+    final slider = FocusableActionDetector(
+      focusNode: _focusNode,
+      onFocusChange: _handleFocusChange,
+      onShowFocusHighlight: (show) {
+        if (_focusHighlightRequested == show) {
+          return;
+        }
+        setState(() => _focusHighlightRequested = show);
+      },
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.arrowLeft):
+            _AdjustGuidedSliderIntent(-1),
+        SingleActivator(LogicalKeyboardKey.arrowDown):
+            _AdjustGuidedSliderIntent(-1),
+        SingleActivator(LogicalKeyboardKey.arrowRight):
+            _AdjustGuidedSliderIntent(1),
+        SingleActivator(LogicalKeyboardKey.arrowUp):
+            _AdjustGuidedSliderIntent(1),
+      },
+      actions: <Type, Action<Intent>>{
+        _AdjustGuidedSliderIntent: CallbackAction<_AdjustGuidedSliderIntent>(
+          onInvoke: (intent) {
+            _adjustWithKeyboard(intent.delta);
+            return null;
+          },
+        ),
+      },
+      child: Stack(
+        fit: StackFit.passthrough,
+        children: [
+          Listener(
+            onPointerDown: _handlePointerDown,
+            onPointerUp: (_) => _endInteraction(),
+            onPointerCancel: (_) => _endInteraction(),
+            child: CupertinoSlider(
+              value: clampedValue.toDouble(),
+              min: widget.min.toDouble(),
+              max: widget.max.toDouble(),
+              divisions: widget.max - widget.min,
+              activeColor: colors.brandPrimary,
+              thumbColor: colors.surfaceBase,
+              onChangeStart: _handleChangeStart,
+              onChanged: _handleChanged,
+              onChangeEnd: _handleChangeEnd,
+            ),
+          ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: TweenAnimationBuilder<double>(
+                duration: const Duration(milliseconds: 100),
+                tween: Tween<double>(
+                  begin: 0,
+                  end: _showFocusHighlight ? 1 : 0,
                 ),
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: TweenAnimationBuilder<double>(
-                      duration: const Duration(milliseconds: 100),
-                      tween: Tween<double>(
-                        begin: 0,
-                        end: _showFocusHighlight ? 1 : 0,
-                      ),
-                      builder: (context, progress, child) => DecoratedBox(
-                        key: const ValueKey<String>(
-                          'pokemap-guided-slider-focus-indicator',
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Color.lerp(
-                              colors.brandPrimary.withValues(alpha: 0),
-                              colors.brandPrimary,
-                              progress,
-                            )!,
-                            width: 2,
-                          ),
-                        ),
-                      ),
+                builder: (context, progress, child) => DecoratedBox(
+                  key: const ValueKey<String>(
+                    'pokemap-guided-slider-focus-indicator',
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Color.lerp(
+                        colors.brandPrimary.withValues(alpha: 0),
+                        colors.brandPrimary,
+                        progress,
+                      )!,
+                      width: 2,
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ],
       ),
+    );
+    final content = switch (widget.layout) {
+      PokeMapGuidedSliderLayout.stacked => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(child: label),
+                const SizedBox(width: 12),
+                valueLabel,
+              ],
+            ),
+            const SizedBox(height: 4),
+            slider,
+          ],
+        ),
+      PokeMapGuidedSliderLayout.inline => Row(
+          children: [
+            Flexible(child: label),
+            const SizedBox(width: 8),
+            Expanded(flex: 2, child: slider),
+            const SizedBox(width: 8),
+            valueLabel,
+          ],
+        ),
+    };
+    return Semantics(
+      slider: true,
+      label: widget.label,
+      value: '$clampedValue %',
+      child: content,
     );
   }
 }

@@ -17,7 +17,9 @@ void main() {
       );
     }
 
-    testWidgets('PokeMapCard & PokeMapPanel pump correctly under light & dark theme', (tester) async {
+    testWidgets(
+        'PokeMapCard & PokeMapPanel pump correctly under light & dark theme',
+        (tester) async {
       // PokeMapCard
       await tester.pumpWidget(
         buildTestWidget(
@@ -55,7 +57,9 @@ void main() {
       expect(find.text('Footer'), findsOneWidget);
     });
 
-    testWidgets('PokeMapPanel layout constraints and expandChild configurations', (tester) async {
+    testWidgets(
+        'PokeMapPanel layout constraints and expandChild configurations',
+        (tester) async {
       // 1. Default (expandChild = false) renders fine in unbounded height (Column)
       await tester.pumpWidget(
         MaterialApp(
@@ -123,8 +127,10 @@ void main() {
       final cardFinder = find.byType(PokeMapCard);
       expect(cardFinder, findsOneWidget);
 
-      final containerWidgetUnselected = tester.widget<AnimatedContainer>(find.byType(AnimatedContainer));
-      final decorationUnselected = containerWidgetUnselected.decoration as BoxDecoration;
+      final containerWidgetUnselected =
+          tester.widget<AnimatedContainer>(find.byType(AnimatedContainer));
+      final decorationUnselected =
+          containerWidgetUnselected.decoration as BoxDecoration;
       final borderUnselected = decorationUnselected.border as Border;
 
       // Selected card
@@ -144,12 +150,16 @@ void main() {
         ),
       );
 
-      final containerWidgetSelected = tester.widget<AnimatedContainer>(find.byType(AnimatedContainer));
-      final decorationSelected = containerWidgetSelected.decoration as BoxDecoration;
+      final containerWidgetSelected =
+          tester.widget<AnimatedContainer>(find.byType(AnimatedContainer));
+      final decorationSelected =
+          containerWidgetSelected.decoration as BoxDecoration;
       final borderSelected = decorationSelected.border as Border;
 
-      expect(borderUnselected.top.color, isNot(equals(borderSelected.top.color)));
-      expect(borderSelected.top.color, equals(capturedContext.pokeMapColors.brandPrimaryBorder));
+      expect(
+          borderUnselected.top.color, isNot(equals(borderSelected.top.color)));
+      expect(borderSelected.top.color,
+          equals(capturedContext.pokeMapColors.brandPrimaryBorder));
     });
 
     testWidgets('PokeMapStatusLabel stays compact in dense list rows',
@@ -172,7 +182,40 @@ void main() {
       expect(tester.getSize(find.byType(PokeMapStatusLabel)).width, 64);
     });
 
-    testWidgets('PokeMapToolbarSurface & PokeMapSectionHeader pump correctly', (tester) async {
+    testWidgets('PokeMapPanel resolves a semantic leading accent rail',
+        (tester) async {
+      late BuildContext panelContext;
+      await tester.pumpWidget(
+        buildTestWidget(
+          theme: PokeMapTheme.dark(),
+          child: Builder(
+            builder: (context) {
+              panelContext = context;
+              return const SizedBox(
+                width: 200,
+                child: PokeMapPanel(
+                  accentTone: PokeMapTone.success,
+                  child: Text('Terrain'),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      final rail = find.byKey(
+        const ValueKey<String>('pokemap-panel-accent-rail'),
+      );
+      expect(rail, findsOneWidget);
+      expect(tester.getSize(rail).width, 3);
+      expect(
+        tester.widget<ColoredBox>(rail).color,
+        PokeMapTone.success.resolve(panelContext).icon,
+      );
+    });
+
+    testWidgets('PokeMapToolbarSurface & PokeMapSectionHeader pump correctly',
+        (tester) async {
       await tester.pumpWidget(
         buildTestWidget(
           theme: PokeMapTheme.light(),
@@ -198,7 +241,9 @@ void main() {
       expect(find.byType(Icon), findsOneWidget);
     });
 
-    testWidgets('PokeMapEmptyState displays title, description and action if provided', (tester) async {
+    testWidgets(
+        'PokeMapEmptyState displays title, description and action if provided',
+        (tester) async {
       bool actionTriggered = false;
 
       await tester.pumpWidget(
@@ -217,7 +262,8 @@ void main() {
       );
 
       expect(find.text('No Items Found'), findsOneWidget);
-      expect(find.text('Please add some items to get started.'), findsOneWidget);
+      expect(
+          find.text('Please add some items to get started.'), findsOneWidget);
       expect(find.byType(Icon), findsOneWidget);
       expect(find.text('Add Now'), findsOneWidget);
 

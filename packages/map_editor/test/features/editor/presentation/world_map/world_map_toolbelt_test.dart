@@ -43,6 +43,16 @@ void main() {
       for (final key in orderedKeys) {
         expect(find.byKey(key), findsOneWidget);
       }
+      expect(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey<String>('world-map-tool-paint'),
+          ),
+          matching: find.text('Éléments'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Peindre'), findsNothing);
     });
 
     testWidgets('keeps Save Undo Redo and Plus one click above the workspace',
@@ -303,7 +313,7 @@ void main() {
       semantics.dispose();
     });
 
-    testWidgets('Paint and Place menus expose their resolved subtool selection',
+    testWidgets('Paint menu and stable Place button expose resolved selection',
         (tester) async {
       final container = _containerWith(_paintState('path'));
       final editor = container.read(editorNotifierProvider.notifier);
@@ -340,16 +350,17 @@ void main() {
       final paint = tester.widget<PokeMapSplitButton<WorldMapPaintSubtool>>(
         find.byKey(const ValueKey<String>('world-map-tool-paint')),
       );
-      final place = tester.widget<PokeMapSplitButton<WorldMapPlacementSubtool>>(
+      final place = tester.widget<PokeMapButton>(
         find.byKey(const ValueKey<String>('world-map-tool-place')),
       );
       expect(
         paint.items.where((item) => item.selected).map((item) => item.value),
         [WorldMapPaintSubtool.path],
       );
+      expect(place.isSelected, isFalse);
       expect(
-        place.items.where((item) => item.selected).map((item) => item.value),
-        [WorldMapPlacementSubtool.event],
+        find.bySemanticsLabel('Choisir un outil de placement'),
+        findsNothing,
       );
     });
 

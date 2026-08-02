@@ -153,6 +153,37 @@ void main() {
     );
     expect(tester.getRect(slider), restingSliderRect);
   });
+
+  testWidgets('inline layout stays compact without losing its accessible value',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 220,
+            child: PokeMapGuidedSlider(
+              key: const ValueKey<String>('inline-guided-slider'),
+              label: 'Opacité',
+              value: 75,
+              layout: PokeMapGuidedSliderLayout.inline,
+              onChanged: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final slider = find.byKey(
+      const ValueKey<String>('inline-guided-slider'),
+    );
+    expect(tester.getSize(slider).height, lessThanOrEqualTo(44));
+    final semantics = tester.getSemantics(slider);
+    expect(semantics.label, contains('Opacité'));
+    expect(semantics.label, contains('75 %'));
+    expect(tester.takeException(), isNull);
+  });
 }
 
 Color _paintedFocusBorderColor(WidgetTester tester, Finder indicator) {

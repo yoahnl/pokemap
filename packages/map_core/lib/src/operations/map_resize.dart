@@ -9,7 +9,6 @@ import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
-import '../models/smart_tile.dart';
 import 'border_resize.dart';
 import 'map_placed_element_footprint.dart';
 
@@ -777,10 +776,7 @@ MapData _resizeMapDataLegacyLayers(
               src: l.materialCells,
               srcSize: oldSize,
               dstSize: GridSize(width: width, height: height),
-              defaultValue: l.usage == SmartTileUsage.terrain &&
-                      l.materialPalette.length > 1
-                  ? 1
-                  : 0,
+              defaultValue: 0,
             ),
             horizontalEdges: _resizeFlattened<int>(
               src: l.horizontalEdges,

@@ -21,11 +21,11 @@ void main() {
       ),
       (
         subtool: WorldMapPaintSubtool.terrain,
-        compatibleLayerId: 'terrain',
+        compatibleLayerId: 'smart-terrain',
       ),
       (
         subtool: WorldMapPaintSubtool.path,
-        compatibleLayerId: 'path',
+        compatibleLayerId: 'smart-path',
       ),
       (
         subtool: WorldMapPaintSubtool.surface,
@@ -60,6 +60,30 @@ void main() {
         },
       );
     }
+
+    test('terrain keeps the current published Smart Tile terrain layer', () {
+      final result = resolveWorldMapPaintLayerRouting(
+        map: _smartTileTerrainMap,
+        activeLayerId: 'smart-terrain',
+        subtool: WorldMapPaintSubtool.terrain,
+      );
+
+      expect(result.kind, WorldMapPaintLayerRoutingKind.current);
+      expect(result.targetLayerId, 'smart-terrain');
+      expect(result.compatibleLayerIds, <String>['smart-terrain']);
+    });
+
+    test('path keeps the current published Smart Tile path layer', () {
+      final result = resolveWorldMapPaintLayerRouting(
+        map: _smartTilePathMap,
+        activeLayerId: 'smart-path',
+        subtool: WorldMapPaintSubtool.path,
+      );
+
+      expect(result.kind, WorldMapPaintLayerRoutingKind.current);
+      expect(result.targetLayerId, 'smart-path');
+      expect(result.compatibleLayerIds, <String>['smart-path']);
+    });
 
     test('uses a remembered compatible layer before asking the user', () {
       final result = resolveWorldMapPaintLayerRouting(
@@ -101,8 +125,8 @@ void main() {
       );
 
       expect(result.kind, WorldMapPaintLayerRoutingKind.unique);
-      expect(result.targetLayerId, 'path');
-      expect(result.compatibleLayerIds, <String>['path']);
+      expect(result.targetLayerId, 'smart-path');
+      expect(result.compatibleLayerIds, <String>['smart-path']);
     });
 
     test('does not choose when several compatible layers exist', () {
@@ -497,6 +521,7 @@ ProviderContainer _createContainer(EditorState initial) {
 const _allLayerKindsMap = MapData(
   id: 'all-layer-kinds',
   name: 'Tous les calques',
+  version: ProjectVersion.v4,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(
@@ -505,8 +530,18 @@ const _allLayerKindsMap = MapData(
       tilesetId: 'world',
       tiles: <int>[],
     ),
-    TerrainLayer(id: 'terrain', name: 'Terrain'),
-    PathLayer(id: 'path', name: 'Chemin'),
+    SmartTileLayer(
+      id: 'smart-terrain',
+      name: 'Terrain',
+      presetId: 'terrain',
+      usage: SmartTileUsage.terrain,
+    ),
+    SmartTileLayer(
+      id: 'smart-path',
+      name: 'Chemin',
+      presetId: 'path',
+      usage: SmartTileUsage.path,
+    ),
     SurfaceLayer(id: 'surface', name: 'Surface'),
     BorderLayer(id: 'border', name: 'Bordures'),
     CollisionLayer(id: 'collision', name: 'Collision'),
@@ -516,6 +551,7 @@ const _allLayerKindsMap = MapData(
 const _multipleTerrainMap = MapData(
   id: 'multiple-terrain',
   name: 'Plusieurs terrains',
+  version: ProjectVersion.v4,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(
@@ -524,8 +560,18 @@ const _multipleTerrainMap = MapData(
       tilesetId: 'world',
       tiles: <int>[],
     ),
-    TerrainLayer(id: 'terrain-a', name: 'Terrain A'),
-    TerrainLayer(id: 'terrain-b', name: 'Terrain B'),
+    SmartTileLayer(
+      id: 'terrain-a',
+      name: 'Terrain A',
+      presetId: 'terrain-a',
+      usage: SmartTileUsage.terrain,
+    ),
+    SmartTileLayer(
+      id: 'terrain-b',
+      name: 'Terrain B',
+      presetId: 'terrain-b',
+      usage: SmartTileUsage.terrain,
+    ),
   ],
 );
 
@@ -543,6 +589,34 @@ const _tileOnlyMap = MapData(
   ],
 );
 
+const _smartTileTerrainMap = MapData(
+  id: 'smart-tile-terrain',
+  name: 'Terrain intelligent',
+  size: GridSize(width: 4, height: 4),
+  layers: <MapLayer>[
+    SmartTileLayer(
+      id: 'smart-terrain',
+      name: 'Prairie intelligente',
+      presetId: 'prairie',
+      usage: SmartTileUsage.terrain,
+    ),
+  ],
+);
+
+const _smartTilePathMap = MapData(
+  id: 'smart-tile-path',
+  name: 'Chemin intelligent',
+  size: GridSize(width: 4, height: 4),
+  layers: <MapLayer>[
+    SmartTileLayer(
+      id: 'smart-path',
+      name: 'Chemin intelligent',
+      presetId: 'path',
+      usage: SmartTileUsage.path,
+    ),
+  ],
+);
+
 const _routingMapA = MapData(
   id: 'map-a',
   name: 'Map A',
@@ -554,8 +628,18 @@ const _routingMapA = MapData(
       tilesetId: 'world',
       tiles: <int>[],
     ),
-    TerrainLayer(id: 'terrain-a', name: 'Terrain A'),
-    TerrainLayer(id: 'terrain-b', name: 'Terrain B'),
+    SmartTileLayer(
+      id: 'terrain-a',
+      name: 'Terrain A',
+      presetId: 'terrain-a',
+      usage: SmartTileUsage.terrain,
+    ),
+    SmartTileLayer(
+      id: 'terrain-b',
+      name: 'Terrain B',
+      presetId: 'terrain-b',
+      usage: SmartTileUsage.terrain,
+    ),
   ],
 );
 
@@ -570,8 +654,18 @@ const _routingMapB = MapData(
       tilesetId: 'world',
       tiles: <int>[],
     ),
-    TerrainLayer(id: 'terrain-c', name: 'Terrain C'),
-    TerrainLayer(id: 'terrain-d', name: 'Terrain D'),
+    SmartTileLayer(
+      id: 'terrain-c',
+      name: 'Terrain C',
+      presetId: 'terrain-c',
+      usage: SmartTileUsage.terrain,
+    ),
+    SmartTileLayer(
+      id: 'terrain-d',
+      name: 'Terrain D',
+      presetId: 'terrain-d',
+      usage: SmartTileUsage.terrain,
+    ),
   ],
 );
 
@@ -586,8 +680,18 @@ const _sharedProjectMap = MapData(
       tilesetId: 'world',
       tiles: <int>[],
     ),
-    TerrainLayer(id: 'terrain-a', name: 'Terrain A'),
-    TerrainLayer(id: 'terrain-b', name: 'Terrain B'),
+    SmartTileLayer(
+      id: 'terrain-a',
+      name: 'Terrain A',
+      presetId: 'terrain-a',
+      usage: SmartTileUsage.terrain,
+    ),
+    SmartTileLayer(
+      id: 'terrain-b',
+      name: 'Terrain B',
+      presetId: 'terrain-b',
+      usage: SmartTileUsage.terrain,
+    ),
   ],
 );
 
@@ -602,7 +706,12 @@ const _uniquePathRoutingMap = MapData(
       tilesetId: 'world',
       tiles: <int>[],
     ),
-    PathLayer(id: 'path', name: 'Chemin'),
+    SmartTileLayer(
+      id: 'path',
+      name: 'Chemin',
+      presetId: 'path',
+      usage: SmartTileUsage.path,
+    ),
   ],
 );
 

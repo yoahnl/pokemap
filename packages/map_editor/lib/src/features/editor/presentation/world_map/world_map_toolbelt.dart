@@ -275,7 +275,7 @@ class WorldMapToolbelt extends ConsumerWidget {
                 isSelected: visualState.family == WorldMapToolFamily.paint,
                 child: condensed
                     ? const Icon(Icons.format_paint_outlined)
-                    : const Text('Peindre'),
+                    : Text(paintLabel),
               ),
               Tooltip(
                 message: 'Effacer sur le calque actif',

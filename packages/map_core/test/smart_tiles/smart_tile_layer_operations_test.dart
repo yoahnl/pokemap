@@ -10,8 +10,7 @@ void main() {
   );
 
   group('addSmartTileLayer', () {
-    test('creates the single fully-covered terrain provider and upgrades to v4',
-        () {
+    test('creates a sparse terrain paint layer and upgrades to v4', () {
       final updated = addSmartTileLayer(
         emptyMap,
         id: 'base',
@@ -25,22 +24,24 @@ void main() {
 
       expect(updated.version, ProjectVersion.v4);
       expect(layer.materialPalette, <String>['', 'grass']);
-      expect(layer.materialCells, <int>[1, 1, 1, 1]);
+      expect(layer.materialCells, <int>[0, 0, 0, 0]);
       expect(layer.horizontalEdges, hasLength(6));
       expect(layer.verticalEdges, hasLength(6));
       expect(layer.corners, hasLength(9));
       expect(layer.layerSeed, 7);
 
+      final withSecondTerrain = addSmartTileLayer(
+        updated,
+        id: 'base_2',
+        name: 'Terrain 2',
+        presetId: 'han_grass',
+        usage: SmartTileUsage.terrain,
+        defaultMaterialId: 'grass',
+      );
+      expect(withSecondTerrain.layers, hasLength(2));
       expect(
-        () => addSmartTileLayer(
-          updated,
-          id: 'base_2',
-          name: 'Terrain 2',
-          presetId: 'han_grass',
-          usage: SmartTileUsage.terrain,
-          defaultMaterialId: 'grass',
-        ),
-        throwsA(isA<ValidationException>()),
+        (withSecondTerrain.layers.last as SmartTileLayer).materialCells,
+        everyElement(0),
       );
     });
 
@@ -364,6 +365,34 @@ void main() {
     expect(result.corners[5], 1);
   });
 
+  test('resizeMapData keeps new Smart Tile terrain cells empty', () {
+    var layer = (addSmartTileLayer(
+      emptyMap,
+      id: 'terrain',
+      name: 'Terrain',
+      presetId: 'han_grass',
+      usage: SmartTileUsage.terrain,
+      defaultMaterialId: 'grass',
+    ).layers.single as SmartTileLayer);
+    layer = setSmartTileCellMaterial(
+      layer,
+      mapSize: emptyMap.size,
+      x: 1,
+      y: 1,
+      materialId: 'grass',
+    );
+    final source = emptyMap.copyWith(
+      version: ProjectVersion.v4,
+      layers: <MapLayer>[layer],
+    );
+
+    final resized = resizeMapData(source, width: 3, height: 3);
+    final result = resized.layers.single as SmartTileLayer;
+
+    expect(result.materialCells, <int>[0, 0, 0, 0, 1, 0, 0, 0, 0]);
+    expect(() => MapValidator.validate(resized), returnsNormally);
+  });
+
   group('SmartTileLayer validation', () {
     MapData mapWith(SmartTileLayer layer) => emptyMap.copyWith(
           version: ProjectVersion.v4,
@@ -397,7 +426,7 @@ void main() {
       );
     });
 
-    test('rejects empty terrain coverage and duplicate terrain providers', () {
+    test('accepts sparse and multiple terrain paint layers', () {
       final terrain = addSmartTileLayer(
         emptyMap,
         id: 'terrain',
@@ -413,7 +442,7 @@ void main() {
             terrain.copyWith(materialCells: const <int>[1, 1, 0, 1]),
           ),
         ),
-        throwsA(isA<ValidationException>()),
+        returnsNormally,
       );
       expect(
         () => MapValidator.validate(
@@ -425,7 +454,7 @@ void main() {
             ],
           ),
         ),
-        throwsA(isA<ValidationException>()),
+        returnsNormally,
       );
     });
 

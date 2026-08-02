@@ -126,3 +126,10 @@ Les deux revues indépendantes finales valident l’architecture, le responsive,
 les états honnêtes, la fonte portable et l’absence de couleurs locales.
 
 final result: passed
+
+## Addendum — World Map, inspecteur compact des calques (2026-08-02)
+
+La QA détaillée de ce lot est conservée dans
+`reports/editor/world_map_layer_inspector_design_qa_2026-08-02.md`.
+
+final result: passed

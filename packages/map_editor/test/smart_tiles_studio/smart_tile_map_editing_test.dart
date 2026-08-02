@@ -106,8 +106,7 @@ void main() {
     expect(erased.materialCells[12], 0);
   });
 
-  test('painting can erase sparse layers but not the base terrain provider',
-      () {
+  test('terrain paint layers start empty and painted cells can be erased', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     final notifier = container.read(editorNotifierProvider.notifier);
@@ -129,14 +128,24 @@ void main() {
       name: 'Terrain',
     );
 
+    var layer = notifier.state.activeMap!.layers.single as SmartTileLayer;
+    expect(layer.materialCells, <int>[0]);
+
+    notifier.paintSmartTileMaterialAt(
+      const GridPos(x: 0, y: 0),
+      materialId: 'grass',
+    );
+    layer = notifier.state.activeMap!.layers.single as SmartTileLayer;
+    expect(layer.materialCells, <int>[1]);
+
     notifier.paintSmartTileMaterialAt(
       const GridPos(x: 0, y: 0),
       materialId: null,
     );
 
-    final layer = notifier.state.activeMap!.layers.single as SmartTileLayer;
-    expect(layer.materialCells, <int>[1]);
-    expect(notifier.state.errorMessage, contains('terrain'));
+    layer = notifier.state.activeMap!.layers.single as SmartTileLayer;
+    expect(layer.materialCells, <int>[0]);
+    expect(notifier.state.errorMessage, isNull);
   });
 }
 

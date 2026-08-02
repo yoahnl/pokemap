@@ -115,6 +115,70 @@ void main() {
       );
     });
 
+    test('adds sparse terrain layers and paints only requested cells', () {
+      final map = _map();
+      final snapshot = _snapshot(map);
+      final request = _request(snapshot, const [
+        {
+          'kind': 'layer.add',
+          'layerKind': 'smart_tile',
+          'layerId': 'terrain_a',
+          'name': 'Prairie A',
+          'presetId': 'smart_terrain',
+          'usage': 'terrain',
+          'defaultMaterialId': 'grass',
+        },
+        {
+          'kind': 'layer.add',
+          'layerKind': 'smart_tile',
+          'layerId': 'terrain_b',
+          'name': 'Prairie B',
+          'presetId': 'smart_terrain',
+          'usage': 'terrain',
+          'defaultMaterialId': 'grass',
+        },
+        {
+          'kind': 'region.paint',
+          'layerId': 'terrain_a',
+          'x': 1,
+          'y': 1,
+          'value': 'grass',
+        },
+        {
+          'kind': 'region.paint',
+          'layerId': 'terrain_a',
+          'x': 2,
+          'y': 1,
+          'value': 'grass',
+        },
+        {
+          'kind': 'region.paint',
+          'layerId': 'terrain_a',
+          'x': 2,
+          'y': 1,
+          'value': null,
+        },
+      ]);
+
+      final draft = const MapOperationsActions().build(
+        _context(snapshot, request),
+      );
+      final change = draft.changeSet.changes.single;
+      final updated = MapData.fromJson(
+        jsonDecode(utf8.decode(change.afterBytes!)) as Map<String, dynamic>,
+      );
+      final terrainLayers = updated.layers.whereType<SmartTileLayer>().toList();
+
+      expect(terrainLayers, hasLength(2));
+      expect(terrainLayers[0].materialCells[5], 1);
+      expect(terrainLayers[0].materialCells[6], 0);
+      expect(
+        terrainLayers[0].materialCells.where((cell) => cell != 0),
+        hasLength(1),
+      );
+      expect(terrainLayers[1].materialCells, everyElement(0));
+    });
+
     test('rejects the complete batch when one operation is invalid', () {
       final map = _map();
       final snapshot = _snapshot(map);
@@ -570,6 +634,11 @@ ProjectSnapshot _snapshot(MapData map) {
           connectionGroupId: 'empty',
           isEmpty: true,
         ),
+        ProjectSmartTileMaterial(
+          id: 'grass',
+          name: 'Grass',
+          connectionGroupId: 'grass',
+        ),
       ],
       presets: const [
         ProjectSmartTilePreset(
@@ -579,6 +648,14 @@ ProjectSnapshot _snapshot(MapData map) {
           topology: SmartTileTopology.cardinal4,
           defaultMaterialId: 'road',
           allowedMaterialIds: ['road'],
+        ),
+        ProjectSmartTilePreset(
+          id: 'smart_terrain',
+          name: 'Smart Terrain',
+          usage: SmartTileUsage.terrain,
+          topology: SmartTileTopology.cardinal4,
+          defaultMaterialId: 'grass',
+          allowedMaterialIds: ['grass'],
         ),
       ],
     ),

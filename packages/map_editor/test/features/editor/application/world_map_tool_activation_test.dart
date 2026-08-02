@@ -44,13 +44,13 @@ void main() {
           terrainMode: null,
         ),
         (
-          layerId: 'terrain',
+          layerId: 'smart-terrain',
           subtool: WorldMapPaintSubtool.terrain,
           tool: EditorToolType.terrainPaint,
           terrainMode: TerrainSelectionMode.terrain,
         ),
         (
-          layerId: 'path',
+          layerId: 'smart-path',
           subtool: WorldMapPaintSubtool.path,
           tool: EditorToolType.terrainPaint,
           terrainMode: TerrainSelectionMode.path,
@@ -121,6 +121,28 @@ void main() {
               'project-element brush',
         );
       }
+
+      notifier.state = _stateForLayer('smart-terrain');
+      result = notifier.activateWorldMapTool(
+        const ActivateWorldMapPaint(WorldMapPaintSubtool.terrain),
+      );
+      expect(result.accepted, isTrue);
+      expect(result.resultingTool, EditorToolType.terrainPaint);
+      expect(
+        notifier.state.terrainSelectionMode,
+        TerrainSelectionMode.terrain,
+      );
+
+      notifier.state = _stateForLayer('smart-path');
+      result = notifier.activateWorldMapTool(
+        const ActivateWorldMapPaint(WorldMapPaintSubtool.path),
+      );
+      expect(result.accepted, isTrue);
+      expect(result.resultingTool, EditorToolType.terrainPaint);
+      expect(
+        notifier.state.terrainSelectionMode,
+        TerrainSelectionMode.path,
+      );
     });
 
     test(
@@ -175,10 +197,10 @@ void main() {
 
       for (final layerId in <String>[
         'tile',
-        'terrain',
-        'path',
         'surface',
         'collision',
+        'smart-terrain',
+        'smart-path',
       ]) {
         notifier.state = _stateForLayer(layerId).copyWith(
           activeBrush: const EditorBrush.tile(
@@ -891,6 +913,18 @@ final _map = MapData(
       tiles: <int>[],
     ),
     const TerrainLayer(id: 'terrain', name: 'Terrain'),
+    const SmartTileLayer(
+      id: 'smart-terrain',
+      name: 'Smart Terrain',
+      presetId: 'smart-terrain-preset',
+      usage: SmartTileUsage.terrain,
+    ),
+    const SmartTileLayer(
+      id: 'smart-path',
+      name: 'Smart Path',
+      presetId: 'smart-path-preset',
+      usage: SmartTileUsage.path,
+    ),
     const PathLayer(id: 'path', name: 'Path'),
     const SurfaceLayer(id: 'surface', name: 'Surface'),
     const CollisionLayer(id: 'collision', name: 'Collision'),

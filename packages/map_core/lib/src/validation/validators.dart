@@ -1753,15 +1753,6 @@ class MapValidator {
         'Smart Tile layers require ProjectVersion.v4',
       );
     }
-    final smartTerrainLayerCount = map.layers
-        .whereType<SmartTileLayer>()
-        .where((layer) => layer.usage == SmartTileUsage.terrain)
-        .length;
-    if (smartTerrainLayerCount > 1) {
-      throw const ValidationException(
-        'A map can contain only one Smart Tile terrain layer',
-      );
-    }
     final visualStack = map.visualStack;
     if (visualStack != null) {
       if (map.version != ProjectVersion.v3 &&
@@ -2735,12 +2726,6 @@ class MapValidator {
           smartTileLayer.corners,
           (mapWidth + 1) * (mapHeight + 1),
         );
-        if (smartTileLayer.usage == SmartTileUsage.terrain &&
-            smartTileLayer.materialCells.any((index) => index == 0)) {
-          throw ValidationException(
-            'Smart Tile terrain layer $layerId must fully cover the map',
-          );
-        }
         for (final key in smartTileLayer.properties.keys) {
           if (key.trim().isEmpty) {
             throw ValidationException(

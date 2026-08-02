@@ -5729,11 +5729,6 @@ class EditorNotifier extends _$EditorNotifier
       _setPaintError('Active layer is not a Smart Tile layer');
       return;
     }
-    if (activeLayer.usage == SmartTileUsage.terrain &&
-        (materialId == null || materialId.trim().isEmpty)) {
-      _setPaintError('The Smart Tile terrain layer cannot contain empty cells');
-      return;
-    }
     try {
       final paintedLayer = setSmartTileCellMaterial(
         activeLayer,
@@ -5927,12 +5922,6 @@ class EditorNotifier extends _$EditorNotifier
         partOfStroke: partOfStroke,
       );
     } else if (layer is SmartTileLayer) {
-      if (layer.usage == SmartTileUsage.terrain) {
-        _setPaintError(
-          'The Smart Tile terrain layer cannot contain empty cells',
-        );
-        return false;
-      }
       try {
         var erasedLayer = layer;
         for (var y = 0; y < patternSize.height; y++) {
@@ -8319,9 +8308,7 @@ class EditorNotifier extends _$EditorNotifier
       return MapToolPreview.pathErase(
         origin: hoveredTile,
         size: eraserFootprint.size,
-        validity: activeLayer.usage == SmartTileUsage.terrain
-            ? MapToolPreviewValidity.invalid
-            : MapToolPreviewValidity.valid,
+        validity: MapToolPreviewValidity.valid,
       );
     }
     return null;
