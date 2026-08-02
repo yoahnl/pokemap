@@ -1,56 +1,52 @@
-import 'dart:io';
-
+import 'package:map_battle/src/data/generated/psdk_move_registry_manifest.dart';
+import 'package:map_battle/src/data/psdk_fight_parity_audit.dart';
+import 'package:map_battle/src/data/psdk_source_locator.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('effect matrix exposes hook families for PSDK migration gates', () {
-    final matrix = File('../../reports/previous/psdk-effect-porting-matrix.md');
-
-    expect(matrix.existsSync(), isTrue);
-    final content = matrix.readAsStringSync();
-
-    expect(content, contains('| Hook families |'));
-    expect(content, contains('`Attract`'));
-    expect(content, contains('`HealBlock`'));
-    expect(content, contains('`Imprison`'));
-    expect(content, contains('`Protect`'));
-    expect(content, contains('`Nightmare`'));
-    expect(content, contains('`PerishSong`'));
-    expect(content, contains('`Disable`'));
-    expect(content, contains('`Encore`'));
-    expect(content, contains('`Taunt`'));
-    expect(content, contains('`Torment`'));
-    expect(content, contains('`move_prevention`'));
-    expect(content, contains('`ability_immunity`'));
-    expect(content, contains('`accuracy`'));
-    expect(content, contains('`two_turn_shortcut`'));
-    expect(content, contains('Object-backed ProtectEffect'));
-    expect(content, contains('Object-backed AttractEffect'));
-    expect(content, contains('Object-backed DisableEffect'));
-    expect(content, contains('Object-backed EncoreEffect'));
-    expect(content, contains('Object-backed HealBlockEffect'));
-    expect(content, contains('Object-backed ImprisonEffect'));
-    expect(content, contains('Object-backed TauntEffect'));
-    expect(content, contains('Object-backed TormentEffect'));
-    expect(content, contains('Object-backed NightmareEffect'));
-    expect(content, contains('Object-backed PerishSongEffect'));
-    expect(content, matches(RegExp(r'\| `Imposter` \|.*\| `ported` \|')));
-    expect(content, matches(RegExp(r'\| `Leftovers` \|.*\| `ported` \|')));
-    expect(content, matches(RegExp(r'\| `BlackSludge` \|.*\| `ported` \|')));
-    expect(content, matches(RegExp(r'\| `AirBalloon` \|.*\| `ported` \|')));
-    expect(
-      content,
-      matches(RegExp(r'\| `ChoiceItemMultiplier` \|.*\| `ported` \|')),
+  test('effect parity exposes hook families for PSDK migration gates',
+      () async {
+    final sources = resolvePsdkSourceDirectories();
+    final effects = await loadPsdkEffectParityEntries(
+      sources.psdkBattleDirectory,
     );
-    expect(content, matches(RegExp(r'\| `ExpertBelt` \|.*\| `ported` \|')));
-    expect(content, matches(RegExp(r'\| `StatusBerry` \|.*\| `ported` \|')));
-    expect(content, matches(RegExp(r'\| `Burn` \|.*\| `ported` \|')));
-    expect(content, matches(RegExp(r'\| `Disable` \|.*\| `ported` \|')));
-    expect(content, matches(RegExp(r'\| `Embargo` \|.*\| `ported` \|')));
-    expect(content, matches(RegExp(r'\| `Torment` \|.*\| `ported` \|')));
-    expect(content, matches(RegExp(r'\| `Nightmare` \|.*\| `ported` \|')));
-    expect(content, matches(RegExp(r'\| `PerishSong` \|.*\| `ported` \|')));
-    for (final effectName in <String>[
+    final effectsByName = <String, List<PsdkEffectParityEntry>>{};
+    for (final effect in effects) {
+      effectsByName.putIfAbsent(effect.effectName, () => []).add(effect);
+    }
+
+    final hookFamilies =
+        effects.expand((effect) => effect.hookFamilies).toSet();
+    expect(
+      hookFamilies,
+      containsAll(<String>{
+        'move_prevention',
+        'ability_immunity',
+        'accuracy',
+        'two_turn_shortcut',
+      }),
+    );
+
+    for (final effectName in <String>{
+      'Attract',
+      'HealBlock',
+      'Imprison',
+      'Protect',
+      'Nightmare',
+      'PerishSong',
+      'Disable',
+      'Encore',
+      'Taunt',
+      'Torment',
+      'Imposter',
+      'Leftovers',
+      'BlackSludge',
+      'AirBalloon',
+      'ChoiceItemMultiplier',
+      'ExpertBelt',
+      'StatusBerry',
+      'Burn',
+      'Embargo',
       'Autotomize',
       'AuroraVeil',
       'BurnUp',
@@ -85,12 +81,21 @@ void main() {
       'TrickRoom',
       'UpRoar',
       'WaterSport',
-    ]) {
+      'WonderRoom',
+    }) {
+      final matchingEffects = effectsByName[effectName];
+      expect(matchingEffects, isNotNull, reason: effectName);
       expect(
-        content,
-        matches(RegExp('\\| `$effectName` \\|.*\\| `ported` \\|')),
+        matchingEffects,
+        everyElement(
+          isA<PsdkEffectParityEntry>().having(
+            (effect) => effect.status,
+            'status',
+            PsdkPortStatus.ported,
+          ),
+        ),
+        reason: effectName,
       );
     }
-    expect(content, matches(RegExp(r'\| `WonderRoom` \|.*\| `partial` \|')));
   });
 }

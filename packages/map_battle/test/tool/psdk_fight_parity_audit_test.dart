@@ -423,8 +423,8 @@ void main() {
       );
     });
 
-    test('CLI imports the default runtime bridge diagnostics when present',
-        () async {
+    test('CLI imports explicit runtime bridge diagnostics', () async {
+      final runtimeBridgeFile = await _completeRuntimeBridgeDiagnostics();
       final outputFile = File(
         '${Directory.systemTemp.path}/psdk-fight-audit-runtime-'
         '${DateTime.now().microsecondsSinceEpoch}.json',
@@ -440,6 +440,8 @@ void main() {
         <String>[
           'run',
           'tool/psdk_fight_parity_audit.dart',
+          '--runtime-bridge',
+          runtimeBridgeFile.path,
           '--json',
           outputFile.path,
         ],
@@ -455,11 +457,14 @@ void main() {
     });
 
     test('CLI final gate reports golden corpus evidence', () async {
+      final runtimeBridgeFile = await _completeRuntimeBridgeDiagnostics();
       final result = await Process.run(
         Platform.resolvedExecutable,
         <String>[
           'run',
           'tool/psdk_fight_parity_audit.dart',
+          '--runtime-bridge',
+          runtimeBridgeFile.path,
           '--final-gate',
         ],
       );
@@ -480,4 +485,34 @@ void main() {
       );
     });
   });
+}
+
+Future<File> _completeRuntimeBridgeDiagnostics() async {
+  final directory = await Directory.systemTemp.createTemp(
+    'psdk-runtime-bridge-diagnostics-',
+  );
+  addTearDown(() => directory.delete(recursive: true));
+  final file = File('${directory.path}/runtime_bridge.json');
+  await file.writeAsString(
+    jsonEncode(<String, Object?>{
+      'status': 'complete',
+      'reason': 'All fixture moves are runtime bridgeable.',
+      'totalMoves': 1,
+      'bridgeableMoves': 1,
+      'rejectedMoves': 0,
+      'explainedRejectedMoves': 0,
+      'unexplainedRejectedMoves': 0,
+      'moves': <Object?>[
+        <String, Object?>{
+          'moveId': 'tackle',
+          'bridgeable': true,
+          'reason': 'bridgeable',
+          'battleEngineMethod': 's_basic',
+          'psdkRegistryStatus': 'ported',
+          'unsupportedReasons': <Object?>[],
+        },
+      ],
+    }),
+  );
+  return file;
 }

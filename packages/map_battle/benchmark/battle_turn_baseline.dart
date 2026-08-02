@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:map_battle/map_battle.dart';
 
-import '../../../tool/performance/benchmark_support.dart';
+import '../../../tools/performance/benchmark_support.dart';
 
 const _fixtureDescriptor = <String, Object?>{
   'kind': 'deterministic-singles-independent-turn',
