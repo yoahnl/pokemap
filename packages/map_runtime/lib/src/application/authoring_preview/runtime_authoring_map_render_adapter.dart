@@ -108,7 +108,7 @@ int _layerCellValue(MapData map, MapLayer layer, int x, int y) {
       )
           ? 1
           : 0,
-    SmartTileLayer value => _intCell(value.materialCells, index),
+    SmartTileLayer value => _intCell(smartTileSemanticCells(value), index),
     ObjectLayer _ => 0,
     EnvironmentLayer _ => 0,
     BorderLayer _ => 0,

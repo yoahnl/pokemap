@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import 'layer_actions.dart';
 import 'map_lifecycle_adapter.dart';
+import 'smart_tile_transition_guards.dart';
 
 /// Request-local clipboard used by copy/cut/paste operations in one batch.
 final class MapRegionClipboard {
@@ -64,6 +65,7 @@ final class MapRegionOperations {
         details: {'kind': kind},
       );
     }
+    _rejectNativeSmartTileMutation(map, operation, kind);
     try {
       return switch (kind) {
         'region.copy' =>
@@ -93,6 +95,27 @@ final class MapRegionOperations {
         'map.region_operation_invalid',
         'The region operation is invalid for the current map.',
         details: {'kind': kind, 'validationType': error.runtimeType.toString()},
+      );
+    }
+  }
+
+  void _rejectNativeSmartTileMutation(
+    MapData map,
+    Map<String, Object?> operation,
+    String kind,
+  ) {
+    if (kind == 'region.copy' || map.version != ProjectVersion.v5) return;
+    final layerId = operation['layerId'];
+    if (layerId is! String || layerId.trim() != layerId || layerId.isEmpty) {
+      return;
+    }
+    final layer =
+        map.layers.where((candidate) => candidate.id == layerId).firstOrNull;
+    if (layer is SmartTileLayer && layer.field is! SmartTileCellField) {
+      throw smartTileWangPaintCompilerRequired(
+        map: map,
+        operation: kind,
+        layerId: layerId,
       );
     }
   }
@@ -671,7 +694,7 @@ final class _DenseLayerGrid {
         kind = 'smart_tile';
         empty = null;
         values = [
-          for (final materialIndex in value.materialCells)
+          for (final materialIndex in smartTileSemanticCells(value))
             _smartMaterial(value, materialIndex),
         ];
       case ObjectLayer() || EnvironmentLayer() || BorderLayer():
@@ -859,7 +882,35 @@ final class _DenseLayerGrid {
         }
         updated = value.copyWith(
           materialPalette: palette,
-          materialCells: indexes,
+          field: switch (value.field) {
+            SmartTileCellField() => SmartTileField.cell(
+                semanticCells: indexes,
+              ),
+            SmartTileCornerField(:final corners) => SmartTileField.corner(
+                semanticCells: indexes,
+                corners: corners,
+              ),
+            SmartTileEdgeField(
+              :final horizontalEdges,
+              :final verticalEdges,
+            ) =>
+              SmartTileField.edge(
+                semanticCells: indexes,
+                horizontalEdges: horizontalEdges,
+                verticalEdges: verticalEdges,
+              ),
+            SmartTileMixedField(
+              :final horizontalEdges,
+              :final verticalEdges,
+              :final corners,
+            ) =>
+              SmartTileField.mixed(
+                semanticCells: indexes,
+                horizontalEdges: horizontalEdges,
+                verticalEdges: verticalEdges,
+                corners: corners,
+              ),
+          },
         );
       case ObjectLayer() || EnvironmentLayer() || BorderLayer():
         throw StateError('non-cell layer cannot be rebuilt as a grid');

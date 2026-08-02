@@ -168,6 +168,51 @@ void main() {
       expect(incompatible.layerId, isNull);
       expect(incompatible.isPainted, isFalse);
     });
+
+    test('dedicated Wang edge and corner lattices count as painted cells', () {
+      final fields = <SmartTileField>[
+        const SmartTileField.edge(
+          semanticCells: <int>[0],
+          horizontalEdges: <int>[1, 0],
+          verticalEdges: <int>[0, 0],
+        ),
+        const SmartTileField.corner(
+          semanticCells: <int>[0],
+          corners: <int>[1, 0, 0, 0],
+        ),
+      ];
+
+      for (final field in fields) {
+        final map = MapData(
+          id: 'wang',
+          name: 'Wang',
+          version: ProjectVersion.v5,
+          visualStack: MapVisualStackConfig.canonicalV1,
+          size: const GridSize(width: 1, height: 1),
+          layers: <MapLayer>[
+            SmartTileLayer(
+              id: 'wang',
+              name: 'Wang',
+              presetId: 'wang',
+              usage: SmartTileUsage.path,
+              materialPalette: const <String>['', 'road'],
+              field: field,
+            ),
+          ],
+        );
+
+        final resolved = resolver.resolveCanvasTarget(
+          map: map,
+          project: null,
+          position: const GridPos(x: 0, y: 0),
+          activeLayerId: null,
+        ) as MapCellContextTarget;
+
+        expect(resolved.layerId, 'wang', reason: field.runtimeType.toString());
+        expect(resolved.isPainted, isTrue,
+            reason: field.runtimeType.toString());
+      }
+    });
   });
 
   group('MapContextTargetResolver selected object', () {

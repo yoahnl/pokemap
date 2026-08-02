@@ -805,6 +805,7 @@ EditorState _stateForLayer(String layerId) {
 
 final _project = ProjectManifest(
   name: 'World map tools',
+  version: ProjectVersion.v5,
   maps: const <ProjectMapEntry>[
     ProjectMapEntry(
       id: 'map-a',
@@ -889,6 +890,50 @@ final _project = ProjectManifest(
       ),
     ],
   ),
+  smartTileCatalog: ProjectSmartTileCatalog(
+    materials: const <ProjectSmartTileMaterial>[
+      ProjectSmartTileMaterial(
+        id: 'grass',
+        name: 'Grass',
+        connectionGroupId: 'ground',
+      ),
+      ProjectSmartTileMaterial(
+        id: 'road',
+        name: 'Road',
+        connectionGroupId: 'road',
+      ),
+    ],
+    presets: const <ProjectSmartTilePreset>[
+      ProjectSmartTilePreset(
+        id: 'smart-terrain-preset',
+        name: 'Smart Terrain',
+        usage: SmartTileUsage.terrain,
+        topology: SmartTileTopology.cardinal4,
+        templateHint: SmartTileTemplateHint.edge16,
+        coveragePolicy: SmartTileCoveragePolicy.sparse,
+        coverageProfile: SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.template,
+        ),
+        transformPolicy: SmartTileTransformPolicy(),
+        defaultMaterialId: 'grass',
+        allowedMaterialIds: <String>['grass'],
+      ),
+      ProjectSmartTilePreset(
+        id: 'smart-path-preset',
+        name: 'Smart Path',
+        usage: SmartTileUsage.path,
+        topology: SmartTileTopology.uniform,
+        templateHint: SmartTileTemplateHint.simple,
+        coveragePolicy: SmartTileCoveragePolicy.sparse,
+        coverageProfile: SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.template,
+        ),
+        transformPolicy: SmartTileTransformPolicy(),
+        defaultMaterialId: 'road',
+        allowedMaterialIds: <String>['road'],
+      ),
+    ],
+  ),
 );
 
 final _borderParams = BorderGenerationParams(
@@ -903,7 +948,7 @@ final _borderParams = BorderGenerationParams(
 final _map = MapData(
   id: 'map-a',
   name: 'Map A',
-  version: ProjectVersion.v2,
+  version: ProjectVersion.v5,
   size: const GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     const TileLayer(
@@ -912,22 +957,84 @@ final _map = MapData(
       tilesetId: 'world',
       tiles: <int>[],
     ),
-    const TerrainLayer(id: 'terrain', name: 'Terrain'),
+    const ObjectLayer(id: 'terrain', name: 'Non-paint layer'),
     const SmartTileLayer(
       id: 'smart-terrain',
       name: 'Smart Terrain',
       presetId: 'smart-terrain-preset',
       usage: SmartTileUsage.terrain,
+      materialPalette: <String>['', 'grass'],
+      field: SmartTileField.cell(
+        semanticCells: <int>[
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+        ],
+      ),
     ),
     const SmartTileLayer(
       id: 'smart-path',
       name: 'Smart Path',
       presetId: 'smart-path-preset',
       usage: SmartTileUsage.path,
+      materialPalette: <String>['', 'road'],
+      field: SmartTileField.cell(
+        semanticCells: <int>[
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+        ],
+      ),
     ),
-    const PathLayer(id: 'path', name: 'Path'),
     const SurfaceLayer(id: 'surface', name: 'Surface'),
-    const CollisionLayer(id: 'collision', name: 'Collision'),
+    const CollisionLayer(
+      id: 'collision',
+      name: 'Collision',
+      collisions: <bool>[
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+      ],
+    ),
     MapLayer.border(
       id: 'border',
       name: 'Border',

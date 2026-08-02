@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:map_authoring/map_authoring.dart'
+    show smartTileNativeAuthoringRequiresStn03Code;
 import 'package:map_core/map_core.dart';
 
 import '../../../../theme/theme.dart';
@@ -219,6 +221,15 @@ final class _WorldMapLayersInspectorState
                           PokeMapMenuItem<WorldMapLayerCreationKind>(
                             value: kind,
                             label: _creationKindLabel(kind),
+                            enabled: kind !=
+                                    WorldMapLayerCreationKind.smartTerrain &&
+                                kind != WorldMapLayerCreationKind.smartPath,
+                            disabledReason: kind ==
+                                        WorldMapLayerCreationKind
+                                            .smartTerrain ||
+                                    kind == WorldMapLayerCreationKind.smartPath
+                                ? smartTileNativeAuthoringRequiresStn03Code
+                                : null,
                           ),
                       ],
                       onSelected: (kind) {

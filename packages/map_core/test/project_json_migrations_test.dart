@@ -97,7 +97,7 @@ void main() {
           () {
         for (final invalid in <Object?>[
           'v0',
-          'v5',
+          'v6',
           true,
           1,
           <String, Object?>{},

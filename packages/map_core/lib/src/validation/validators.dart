@@ -11,6 +11,7 @@ import '../models/project_trainer.dart';
 import '../models/scenario_asset.dart';
 import '../models/script_conditions.dart';
 import '../models/smart_tile.dart';
+import '../models/smart_tile_field.dart';
 import '../operations/map_entities.dart';
 import '../operations/map_placed_element_footprint.dart';
 import '../operations/narrative_fact_runtime.dart';
@@ -85,10 +86,21 @@ class ProjectValidator {
         'A non-empty Border catalog requires ProjectVersion.v2',
       );
     }
-    if (manifest.version != ProjectVersion.v4 &&
+    if (manifest.version != ProjectVersion.v5 &&
         manifest.smartTileCatalog.isNotEmpty) {
       throw const ValidationException(
-        'A non-empty Smart Tile catalog requires ProjectVersion.v4',
+        'A non-empty Smart Tile catalog requires ProjectVersion.v5',
+      );
+    }
+    if (manifest.version == ProjectVersion.v5 &&
+        (manifest.terrainCategories.isNotEmpty ||
+            manifest.pathCategories.isNotEmpty ||
+            manifest.terrainPresets.isNotEmpty ||
+            manifest.pathPresets.isNotEmpty ||
+            manifest.pathPatternPresets.isNotEmpty)) {
+      throw const ValidationException(
+        'ProjectVersion.v5 rejects legacy terrain/path definitions',
+        code: 'smart_tile_v5_legacy_manifest_unsupported',
       );
     }
     final smartTileDiagnostics = validateProjectSmartTileCatalog(
@@ -99,6 +111,15 @@ class ProjectValidator {
       if (diagnostic.isError) {
         throw ValidationException(
           '${diagnostic.path}: ${diagnostic.message}',
+          code: diagnostic.code,
+          details: <String, Object?>{
+            'path': diagnostic.path,
+            if (diagnostic.presetId case final presetId?) 'presetId': presetId,
+            if (diagnostic.ruleId case final ruleId?) 'ruleId': ruleId,
+            if (diagnostic.mask case final mask?) 'mask': mask,
+            if (diagnostic.missingMasks.isNotEmpty)
+              'missingMasks': diagnostic.missingMasks,
+          },
         );
       }
     }
@@ -1747,18 +1768,43 @@ class MapValidator {
         'Border layers require ProjectVersion.v2',
       );
     }
-    if (map.version != ProjectVersion.v4 &&
+    if (map.version != ProjectVersion.v5 &&
         map.layers.any((layer) => layer is SmartTileLayer)) {
       throw const ValidationException(
-        'Smart Tile layers require ProjectVersion.v4',
+        'Smart Tile layers require ProjectVersion.v5',
+      );
+    }
+    if (map.version == ProjectVersion.v5 &&
+        map.layers
+            .any((layer) => layer is TerrainLayer || layer is PathLayer)) {
+      throw const ValidationException(
+        'ProjectVersion.v5 rejects legacy TerrainLayer/PathLayer',
+        code: 'smart_tile_v5_legacy_layer_unsupported',
+      );
+    }
+    final smartTileTerrainProviderIds = map.layers
+        .whereType<SmartTileLayer>()
+        .where((layer) => layer.usage == SmartTileUsage.terrain)
+        .map((layer) => layer.id)
+        .toList(growable: false);
+    if (smartTileTerrainProviderIds.length > 1) {
+      throw ValidationException(
+        'A map can contain only one Smart Tile terrain provider; found: '
+        '${smartTileTerrainProviderIds.join(', ')}',
+        code: 'smart_tile_terrain_provider_already_exists',
+        details: <String, Object?>{
+          'layerIds': smartTileTerrainProviderIds,
+        },
       );
     }
     final visualStack = map.visualStack;
     if (visualStack != null) {
       if (map.version != ProjectVersion.v3 &&
-          map.version != ProjectVersion.v4) {
+          map.version != ProjectVersion.v4 &&
+          map.version != ProjectVersion.v5) {
         throw const ValidationException(
-          'visualStack requires ProjectVersion.v3 or ProjectVersion.v4',
+          'visualStack requires ProjectVersion.v3, ProjectVersion.v4, or '
+          'ProjectVersion.v5',
         );
       }
     }
@@ -2657,10 +2703,22 @@ class MapValidator {
         }
       },
       smartTile: (smartTileLayer) {
-        final presetId = smartTileLayer.presetId.trim();
+        final rawPresetId = smartTileLayer.presetId;
+        final presetId = rawPresetId.trim();
         if (presetId.isEmpty) {
           throw ValidationException(
             'Smart Tile layer $layerId has an empty presetId',
+          );
+        }
+        if (rawPresetId != presetId) {
+          throw ValidationException(
+            'Smart Tile layer $layerId presetId must be canonical',
+            code: 'smart_tile_layer_identifier_not_canonical',
+            details: <String, Object?>{
+              'layerId': layerId,
+              'field': 'presetId',
+              'value': rawPresetId,
+            },
           );
         }
         final palette = smartTileLayer.materialPalette;
@@ -2671,10 +2729,24 @@ class MapValidator {
         }
         final materialIds = <String>{};
         for (var i = 1; i < palette.length; i++) {
-          final materialId = palette[i].trim();
+          final rawMaterialId = palette[i];
+          final materialId = rawMaterialId.trim();
           if (materialId.isEmpty) {
             throw ValidationException(
               'Smart Tile layer $layerId has an empty material at palette index $i',
+            );
+          }
+          if (rawMaterialId != materialId) {
+            throw ValidationException(
+              'Smart Tile layer $layerId materialPalette[$i] must be '
+              'canonical',
+              code: 'smart_tile_layer_identifier_not_canonical',
+              details: <String, Object?>{
+                'layerId': layerId,
+                'field': 'materialPalette',
+                'index': i,
+                'value': rawMaterialId,
+              },
             );
           }
           if (!materialIds.add(materialId)) {
@@ -2706,26 +2778,55 @@ class MapValidator {
           }
         }
 
-        validateLattice(
-          'materialCells',
-          smartTileLayer.materialCells,
-          expectedCellCount,
-        );
-        validateLattice(
-          'horizontalEdges',
-          smartTileLayer.horizontalEdges,
-          mapWidth * (mapHeight + 1),
-        );
-        validateLattice(
-          'verticalEdges',
-          smartTileLayer.verticalEdges,
-          (mapWidth + 1) * mapHeight,
-        );
-        validateLattice(
-          'corners',
-          smartTileLayer.corners,
-          (mapWidth + 1) * (mapHeight + 1),
-        );
+        switch (smartTileLayer.field) {
+          case SmartTileCellField(:final semanticCells):
+            validateLattice('semanticCells', semanticCells, expectedCellCount);
+          case SmartTileCornerField(:final semanticCells, :final corners):
+            validateLattice('semanticCells', semanticCells, expectedCellCount);
+            validateLattice(
+              'corners',
+              corners,
+              (mapWidth + 1) * (mapHeight + 1),
+            );
+          case SmartTileEdgeField(
+              :final semanticCells,
+              :final horizontalEdges,
+              :final verticalEdges,
+            ):
+            validateLattice('semanticCells', semanticCells, expectedCellCount);
+            validateLattice(
+              'horizontalEdges',
+              horizontalEdges,
+              mapWidth * (mapHeight + 1),
+            );
+            validateLattice(
+              'verticalEdges',
+              verticalEdges,
+              (mapWidth + 1) * mapHeight,
+            );
+          case SmartTileMixedField(
+              :final semanticCells,
+              :final horizontalEdges,
+              :final verticalEdges,
+              :final corners,
+            ):
+            validateLattice('semanticCells', semanticCells, expectedCellCount);
+            validateLattice(
+              'horizontalEdges',
+              horizontalEdges,
+              mapWidth * (mapHeight + 1),
+            );
+            validateLattice(
+              'verticalEdges',
+              verticalEdges,
+              (mapWidth + 1) * mapHeight,
+            );
+            validateLattice(
+              'corners',
+              corners,
+              (mapWidth + 1) * (mapHeight + 1),
+            );
+        }
         for (final key in smartTileLayer.properties.keys) {
           if (key.trim().isEmpty) {
             throw ValidationException(
@@ -2752,6 +2853,16 @@ class MapValidator {
             throw ValidationException(
               'Smart Tile layer $layerId usage ${smartTileLayer.usage.name} '
               'does not match preset $presetId usage ${preset.usage.name}',
+            );
+          }
+          if (!isSmartTileFieldCompatibleWithTopology(
+            preset.topology,
+            smartTileLayer.field,
+          )) {
+            throw ValidationException(
+              'Smart Tile layer $layerId field is incompatible with preset '
+              '$presetId topology ${preset.topology.name}',
+              code: 'smart_tile_topology_field_incompatible',
             );
           }
           final knownMaterialIds =

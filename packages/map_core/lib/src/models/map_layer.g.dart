@@ -191,22 +191,7 @@ _$SmartTileLayerImpl _$$SmartTileLayerImplFromJson(Map<String, dynamic> json) =>
               ?.map((e) => e as String)
               .toList() ??
           const <String>[''],
-      materialCells: (json['materialCells'] as List<dynamic>?)
-              ?.map((e) => (e as num).toInt())
-              .toList() ??
-          const <int>[],
-      horizontalEdges: (json['horizontalEdges'] as List<dynamic>?)
-              ?.map((e) => (e as num).toInt())
-              .toList() ??
-          const <int>[],
-      verticalEdges: (json['verticalEdges'] as List<dynamic>?)
-              ?.map((e) => (e as num).toInt())
-              .toList() ??
-          const <int>[],
-      corners: (json['corners'] as List<dynamic>?)
-              ?.map((e) => (e as num).toInt())
-              .toList() ??
-          const <int>[],
+      field: SmartTileField.fromJson(json['field'] as Map<String, dynamic>),
       layerSeed: (json['layerSeed'] as num?)?.toInt() ?? 0,
       properties: (json['properties'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
@@ -225,10 +210,7 @@ Map<String, dynamic> _$$SmartTileLayerImplToJson(
       'presetId': instance.presetId,
       'usage': _$SmartTileUsageEnumMap[instance.usage]!,
       'materialPalette': instance.materialPalette,
-      'materialCells': instance.materialCells,
-      'horizontalEdges': instance.horizontalEdges,
-      'verticalEdges': instance.verticalEdges,
-      'corners': instance.corners,
+      'field': instance.field.toJson(),
       'layerSeed': instance.layerSeed,
       'properties': instance.properties,
       'runtimeType': instance.$type,

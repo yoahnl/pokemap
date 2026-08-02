@@ -291,8 +291,8 @@ Set<String> _collectRequiredAssetIds(
             collectSurfaceTilePreviewTilesetIds(map: map, catalog: catalog),
           );
         }
-      case SmartTileLayer(:final materialCells):
-        if (!materialCells.any((value) => value != 0)) continue;
+      case final SmartTileLayer layer:
+        if (smartTileAuthoredValueCount(layer) == 0) continue;
         for (final atlas in inputs.project?.smartTileCatalog.atlases ??
             const <ProjectSmartTileAtlas>[]) {
           final tilesetId = atlas.tilesetId.trim();

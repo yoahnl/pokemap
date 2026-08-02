@@ -5,6 +5,7 @@ import '../models/smart_tile.dart';
 
 Map<String, dynamic> migrateProjectManifestJson(Map<String, dynamic> raw) {
   _validateProjectVersion(raw);
+  _validateManifestV5LegacyFields(raw);
   _validateManifestBorderVersion(raw);
   _validateManifestSmartTileCatalogVersion(raw);
   _validateShops(raw);
@@ -62,6 +63,7 @@ void _validateBadges(Map<String, dynamic> raw) {
 
 Map<String, dynamic> migrateMapDataJson(Map<String, dynamic> raw) {
   _validateProjectVersion(raw);
+  _validateMapSmartTileVersion(raw);
   _validateMapBorderVersion(raw);
   return raw;
 }
@@ -74,13 +76,14 @@ void _validateProjectVersion(Map<String, dynamic> raw) {
   final version = raw['version'];
   if (version is! String) {
     throw FormatException(
-      r'$.version: expected null, "v1", "v2", "v3", or "v4"',
+      r'$.version: expected null, "v1", "v2", "v3", "v4", or "v5"',
     );
   }
   if (version != 'v1' &&
       version != 'v2' &&
       version != 'v3' &&
-      version != 'v4') {
+      version != 'v4' &&
+      version != 'v5') {
     throw FormatException(
       r'$.version: unsupported project format version "' '$version"',
     );
@@ -109,7 +112,7 @@ void _validateManifestBorderVersion(Map<String, dynamic> raw) {
 }
 
 void _validateManifestSmartTileCatalogVersion(Map<String, dynamic> raw) {
-  if (_effectiveVersion(raw) == 'v4') {
+  if (_effectiveVersion(raw) == 'v5') {
     return;
   }
   final catalogJson = raw['smartTileCatalog'];
@@ -125,8 +128,80 @@ void _validateManifestSmartTileCatalogVersion(Map<String, dynamic> raw) {
   if (catalog.isNotEmpty) {
     throw const FormatException(
       r'$.smartTileCatalog: a non-empty Smart Tile catalog requires '
-      'ProjectVersion.v4',
+      'ProjectVersion.v5',
     );
+  }
+}
+
+void _validateManifestV5LegacyFields(Map<String, dynamic> raw) {
+  if (_effectiveVersion(raw) != 'v5') {
+    return;
+  }
+  for (final key in const <String>[
+    'terrainCategories',
+    'pathCategories',
+    'terrainPresets',
+    'pathPresets',
+    'pathPatternPresets',
+  ]) {
+    final value = raw[key];
+    if (value is List && value.isNotEmpty) {
+      throw FormatException(
+        '\$.$key: smart_tile_v5_legacy_manifest_unsupported '
+        '(version=v5, field=$key)',
+      );
+    }
+  }
+}
+
+void _validateMapSmartTileVersion(Map<String, dynamic> raw) {
+  final version = _effectiveVersion(raw);
+  final layers = raw['layers'];
+  if (layers is! List) {
+    return;
+  }
+  for (var index = 0; index < layers.length; index++) {
+    final layer = layers[index];
+    if (layer is! Map) {
+      continue;
+    }
+    final runtimeType = layer['runtimeType'];
+    if (version == 'v4' &&
+        runtimeType == 'smart_tile' &&
+        const <String>{
+          'materialCells',
+          'horizontalEdges',
+          'verticalEdges',
+          'corners',
+        }.any(layer.containsKey)) {
+      throw FormatException(
+        r'$.layers['
+        '$index]: smart_tile_v4_unsupported '
+        '(version=v4, variant=smart_tile)',
+      );
+    }
+    if (version == 'v5' &&
+        runtimeType == 'smart_tile' &&
+        const <String>{
+          'materialCells',
+          'horizontalEdges',
+          'verticalEdges',
+          'corners',
+        }.any(layer.containsKey)) {
+      throw FormatException(
+        r'$.layers['
+        '$index]: smart_tile_v5_legacy_payload_unsupported '
+        '(version=v5, variant=smart_tile)',
+      );
+    }
+    if (version == 'v5' &&
+        (runtimeType == 'terrain' || runtimeType == 'path')) {
+      throw FormatException(
+        r'$.layers['
+        '$index].runtimeType: smart_tile_v5_legacy_layer_unsupported '
+        '(version=v5, variant=$runtimeType)',
+      );
+    }
   }
 }
 

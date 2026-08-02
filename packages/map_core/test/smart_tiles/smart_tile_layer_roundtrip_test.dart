@@ -8,19 +8,21 @@ void main() {
     presetId: 'han_path',
     usage: SmartTileUsage.path,
     materialPalette: <String>['', 'dirt', 'grass'],
-    materialCells: <int>[1, 0],
-    horizontalEdges: <int>[2, 2, 1, 1],
-    verticalEdges: <int>[2, 1, 2],
-    corners: <int>[2, 2, 2, 1, 1, 1],
+    field: SmartTileField.mixed(
+      semanticCells: <int>[1, 0],
+      horizontalEdges: <int>[2, 2, 1, 1],
+      verticalEdges: <int>[2, 1, 2],
+      corners: <int>[2, 2, 2, 1, 1, 1],
+    ),
     layerSeed: 42,
     properties: <String, String>{'biome': 'hanazuki'},
   );
 
-  test('SmartTileLayer round-trips only as a v4 map layer', () {
+  test('SmartTileLayer round-trips only as a v5 map layer', () {
     const map = MapData(
       id: 'hanazuki',
       name: 'Hanazuki',
-      version: ProjectVersion.v4,
+      version: ProjectVersion.v5,
       size: GridSize(width: 2, height: 1),
       layers: <MapLayer>[layer],
     );
@@ -31,11 +33,11 @@ void main() {
     expect(decoded.layers.single, isA<SmartTileLayer>());
   });
 
-  test('MapData.fromJson rejects SmartTileLayer in a v3 map', () {
+  test('MapData.fromJson rejects SmartTileLayer in a v4 map', () {
     final json = <String, dynamic>{
       'id': 'hanazuki',
       'name': 'Hanazuki',
-      'version': 'v3',
+      'version': 'v4',
       'size': const GridSize(width: 2, height: 1).toJson(),
       'layers': <Map<String, dynamic>>[layer.toJson()],
     };
@@ -46,17 +48,17 @@ void main() {
         isA<FormatException>().having(
           (error) => error.message,
           'message',
-          contains('Smart Tile layers require ProjectVersion.v4'),
+          contains('Smart Tile layers require ProjectVersion.v5'),
         ),
       ),
     );
   });
 
-  test('MapValidator rejects SmartTileLayer in a pre-v4 map', () {
+  test('MapValidator rejects SmartTileLayer in a pre-v5 map', () {
     const map = MapData(
       id: 'hanazuki',
       name: 'Hanazuki',
-      version: ProjectVersion.v3,
+      version: ProjectVersion.v4,
       size: GridSize(width: 2, height: 1),
       layers: <MapLayer>[layer],
     );
@@ -67,9 +69,59 @@ void main() {
         isA<ValidationException>().having(
           (error) => error.message,
           'message',
-          contains('Smart Tile layers require ProjectVersion.v4'),
+          contains('Smart Tile layers require ProjectVersion.v5'),
         ),
       ),
     );
+  });
+
+  test('v5 round-trip preserves an unassigned complete terrain draft', () {
+    const terrain = SmartTileLayer(
+      id: 'terrain',
+      name: 'Terrain',
+      presetId: 'terrain',
+      usage: SmartTileUsage.terrain,
+      materialPalette: <String>['', 'grass'],
+      field: SmartTileField.cell(semanticCells: <int>[0]),
+    );
+    const map = MapData(
+      id: 'draft',
+      name: 'Draft',
+      version: ProjectVersion.v5,
+      size: GridSize(width: 1, height: 1),
+      layers: <MapLayer>[terrain],
+    );
+
+    final decoded = MapData.fromJson(map.toJson());
+    final decodedLayer = decoded.layers.single as SmartTileLayer;
+
+    expect(decodedLayer.field, const SmartTileField.cell(semanticCells: [0]));
+    expect(() => MapValidator.validate(decoded), returnsNormally);
+    final readiness = analyzeSmartTileLayerReadiness(
+      map: decoded,
+      layer: decodedLayer,
+      preset: const ProjectSmartTilePreset(
+        id: 'terrain',
+        name: 'Terrain',
+        usage: SmartTileUsage.terrain,
+        topology: SmartTileTopology.uniform,
+        coveragePolicy: SmartTileCoveragePolicy.complete,
+        coverageProfile: SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.explicit,
+        ),
+        transformPolicy: SmartTileTransformPolicy(),
+        defaultMaterialId: 'grass',
+        allowedMaterialIds: <String>['grass'],
+      ),
+      materials: const <ProjectSmartTileMaterial>[
+        ProjectSmartTileMaterial(
+          id: 'grass',
+          name: 'Grass',
+          connectionGroupId: 'grass',
+        ),
+      ],
+    );
+    expect(readiness.unassignedCellCount, 1);
+    expect(readiness.hasErrors, isTrue);
   });
 }

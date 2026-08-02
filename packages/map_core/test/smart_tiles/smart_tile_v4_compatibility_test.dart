@@ -82,5 +82,40 @@ void main() {
         contains('smartTile'),
       );
     });
+
+    test('v4 old four-list Smart Tile payload is rejected structurally', () {
+      final raw = <String, dynamic>{
+        'id': 'v4-smart-tile',
+        'name': 'V4 Smart Tile',
+        'size': <String, dynamic>{'width': 1, 'height': 1},
+        'version': 'v4',
+        'layers': <Object?>[
+          <String, Object?>{
+            'runtimeType': 'smart_tile',
+            'id': 'terrain',
+            'name': 'Terrain',
+            'presetId': 'grass',
+            'usage': 'terrain',
+            'materialPalette': <String>['', 'grass'],
+            'materialCells': <int>[1],
+            'horizontalEdges': <int>[1, 1],
+            'verticalEdges': <int>[1, 1],
+            'corners': <int>[1, 1, 1, 1],
+          },
+        ],
+      };
+
+      expect(
+        () => MapData.fromJson(raw),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'message',
+            allOf(contains('smart_tile_v4_unsupported'),
+                contains(r'$.layers[0]')),
+          ),
+        ),
+      );
+    });
   });
 }

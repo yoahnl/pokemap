@@ -9,6 +9,7 @@ import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
+import '../models/smart_tile_field.dart';
 import 'border_resize.dart';
 import 'map_placed_element_footprint.dart';
 
@@ -243,15 +244,11 @@ MapResizePlan planMapResize(
       continue;
     }
     if (layer is SmartTileLayer) {
-      _addClippedLayerImpact<int>(
+      _addClippedSmartTileLayerImpact(
         impacts: impacts,
-        kind: MapResizeImpactKind.smartTileLayer,
-        layerId: layer.id,
-        layerName: layer.name,
-        values: layer.materialCells,
+        layer: layer,
         sourceSize: sourceSize,
         targetSize: targetSize,
-        isMeaningful: (value) => value != 0,
       );
       continue;
     }
@@ -772,38 +769,10 @@ MapData _resizeMapDataLegacyLayers(
             ),
           ),
           smartTile: (l) => l.copyWith(
-            materialCells: _resizeFlattened<int>(
-              src: l.materialCells,
-              srcSize: oldSize,
-              dstSize: GridSize(width: width, height: height),
-              defaultValue: 0,
-            ),
-            horizontalEdges: _resizeFlattened<int>(
-              src: l.horizontalEdges,
-              srcSize: GridSize(
-                width: oldSize.width,
-                height: oldSize.height + 1,
-              ),
-              dstSize: GridSize(width: width, height: height + 1),
-              defaultValue: 0,
-            ),
-            verticalEdges: _resizeFlattened<int>(
-              src: l.verticalEdges,
-              srcSize: GridSize(
-                width: oldSize.width + 1,
-                height: oldSize.height,
-              ),
-              dstSize: GridSize(width: width + 1, height: height),
-              defaultValue: 0,
-            ),
-            corners: _resizeFlattened<int>(
-              src: l.corners,
-              srcSize: GridSize(
-                width: oldSize.width + 1,
-                height: oldSize.height + 1,
-              ),
-              dstSize: GridSize(width: width + 1, height: height + 1),
-              defaultValue: 0,
+            field: _resizeSmartTileField(
+              l.field,
+              oldSize: oldSize,
+              newSize: GridSize(width: width, height: height),
             ),
           ),
           surface: (l) => l.copyWith(
@@ -894,6 +863,114 @@ void _addClippedLayerImpact<T>({
       layerId: layerId,
       affectedCount: clipped.count,
       positions: clipped.positions,
+    ),
+  );
+}
+
+void _addClippedSmartTileLayerImpact({
+  required List<MapResizeImpact> impacts,
+  required SmartTileLayer layer,
+  required GridSize sourceSize,
+  required GridSize targetSize,
+}) {
+  final clippedLattices = <_ResizePositionSummary>[];
+
+  void collect(
+    List<int> values,
+    GridSize latticeSourceSize,
+    GridSize latticeTargetSize,
+  ) {
+    final clipped = _clippedMeaningfulPositions<int>(
+      values: values,
+      sourceSize: latticeSourceSize,
+      targetSize: latticeTargetSize,
+      isMeaningful: (value) => value != 0,
+    );
+    if (clipped.isNotEmpty) clippedLattices.add(clipped);
+  }
+
+  void collectSemantic(List<int> values) {
+    collect(values, sourceSize, targetSize);
+  }
+
+  void collectHorizontal(List<int> values) {
+    collect(
+      values,
+      GridSize(width: sourceSize.width, height: sourceSize.height + 1),
+      GridSize(width: targetSize.width, height: targetSize.height + 1),
+    );
+  }
+
+  void collectVertical(List<int> values) {
+    collect(
+      values,
+      GridSize(width: sourceSize.width + 1, height: sourceSize.height),
+      GridSize(width: targetSize.width + 1, height: targetSize.height),
+    );
+  }
+
+  void collectCorners(List<int> values) {
+    collect(
+      values,
+      GridSize(
+        width: sourceSize.width + 1,
+        height: sourceSize.height + 1,
+      ),
+      GridSize(
+        width: targetSize.width + 1,
+        height: targetSize.height + 1,
+      ),
+    );
+  }
+
+  switch (layer.field) {
+    case SmartTileCellField(:final semanticCells):
+      collectSemantic(semanticCells);
+    case SmartTileCornerField(
+        :final semanticCells,
+        corners: final cornerValues,
+      ):
+      collectSemantic(semanticCells);
+      collectCorners(cornerValues);
+    case SmartTileEdgeField(
+        :final semanticCells,
+        :final horizontalEdges,
+        :final verticalEdges,
+      ):
+      collectSemantic(semanticCells);
+      collectHorizontal(horizontalEdges);
+      collectVertical(verticalEdges);
+    case SmartTileMixedField(
+        :final semanticCells,
+        :final horizontalEdges,
+        :final verticalEdges,
+        corners: final cornerValues,
+      ):
+      collectSemantic(semanticCells);
+      collectHorizontal(horizontalEdges);
+      collectVertical(verticalEdges);
+      collectCorners(cornerValues);
+  }
+
+  if (clippedLattices.isEmpty) return;
+  final positions = <GridPos>[];
+  var affectedCount = 0;
+  for (final clipped in clippedLattices) {
+    affectedCount += clipped.count;
+    for (final position in clipped.positions) {
+      if (positions.length >= _maximumResizeImpactPositionSamples) break;
+      positions.add(position);
+    }
+  }
+  impacts.add(
+    MapResizeImpact(
+      kind: MapResizeImpactKind.smartTileLayer,
+      reason: MapResizeImpactReason.clippedCells,
+      subjectId: layer.id,
+      subjectLabel: _labelOrId(layer.name, layer.id),
+      layerId: layer.id,
+      affectedCount: affectedCount,
+      positions: positions,
     ),
   );
 }
@@ -1027,6 +1104,88 @@ int _borderDiagnosticAffectedCount(BorderDiagnostic diagnostic) {
     if (value is int && value > 0) return value;
   }
   return 1;
+}
+
+SmartTileField _resizeSmartTileField(
+  SmartTileField field, {
+  required GridSize oldSize,
+  required GridSize newSize,
+}) {
+  List<int> cells(List<int> values) => _resizeFlattened<int>(
+        src: values,
+        srcSize: oldSize,
+        dstSize: newSize,
+        defaultValue: 0,
+      );
+  List<int> horizontal(List<int> values) => _resizeFlattened<int>(
+        src: values,
+        srcSize: GridSize(
+          width: oldSize.width,
+          height: oldSize.height + 1,
+        ),
+        dstSize: GridSize(
+          width: newSize.width,
+          height: newSize.height + 1,
+        ),
+        defaultValue: 0,
+      );
+  List<int> vertical(List<int> values) => _resizeFlattened<int>(
+        src: values,
+        srcSize: GridSize(
+          width: oldSize.width + 1,
+          height: oldSize.height,
+        ),
+        dstSize: GridSize(
+          width: newSize.width + 1,
+          height: newSize.height,
+        ),
+        defaultValue: 0,
+      );
+  List<int> corners(List<int> values) => _resizeFlattened<int>(
+        src: values,
+        srcSize: GridSize(
+          width: oldSize.width + 1,
+          height: oldSize.height + 1,
+        ),
+        dstSize: GridSize(
+          width: newSize.width + 1,
+          height: newSize.height + 1,
+        ),
+        defaultValue: 0,
+      );
+
+  return switch (field) {
+    SmartTileCellField(:final semanticCells) => SmartTileField.cell(
+        semanticCells: cells(semanticCells),
+      ),
+    SmartTileCornerField(:final semanticCells, corners: final sourceCorners) =>
+      SmartTileField.corner(
+        semanticCells: cells(semanticCells),
+        corners: corners(sourceCorners),
+      ),
+    SmartTileEdgeField(
+      :final semanticCells,
+      :final horizontalEdges,
+      :final verticalEdges,
+    ) =>
+      SmartTileField.edge(
+        semanticCells: cells(semanticCells),
+        horizontalEdges: horizontal(horizontalEdges),
+        verticalEdges: vertical(verticalEdges),
+      ),
+    SmartTileMixedField(
+      :final semanticCells,
+      :final horizontalEdges,
+      :final verticalEdges,
+      corners: final sourceCorners,
+    ) =>
+      SmartTileField.mixed(
+        semanticCells: cells(semanticCells),
+        horizontalEdges: horizontal(horizontalEdges),
+        verticalEdges: vertical(verticalEdges),
+        corners: corners(sourceCorners),
+      ),
+  };
 }
 
 List<T> _resizeFlattened<T>({

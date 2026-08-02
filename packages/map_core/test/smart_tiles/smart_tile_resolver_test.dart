@@ -13,12 +13,18 @@ void main() {
         name: 'Cardinal path',
         usage: SmartTileUsage.path,
         topology: SmartTileTopology.cardinal4,
+        coveragePolicy: SmartTileCoveragePolicy.complete,
+        coverageProfile: const SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.template,
+        ),
+        transformPolicy: const SmartTileTransformPolicy(),
         defaultMaterialId: 'dirt',
         allowedMaterialIds: const <String>['dirt'],
         rules: <SmartTileRule>[
           for (var mask = 0; mask < 16; mask += 1)
             SmartTileRule(
               id: 'mask-$mask',
+              centerMatch: const SmartTileSlotMatch.any(),
               signature: _cardinalSignature(mask),
               candidates: <SmartTileCandidate>[
                 SmartTileCandidate(
@@ -44,7 +50,7 @@ void main() {
         final result = resolveSmartTile(
           preset: preset,
           materials: _materials,
-          neighborhood: _cardinalNeighborhood(mask),
+          context: _cardinalContext(mask),
           mapId: 'map',
           layerId: 'path',
           x: 4,
@@ -59,16 +65,18 @@ void main() {
 
     test('Blob topology gates diagonal connectivity through cardinal sides',
         () {
-      const neighborhood = SmartTileNeighborhood(
+      const context = SmartTileCellContext(
         centerMaterialId: 'dirt',
-        north: SmartTileCellSample.inside(materialId: null),
-        east: SmartTileCellSample.inside(materialId: null),
-        south: SmartTileCellSample.inside(materialId: null),
-        west: SmartTileCellSample.inside(materialId: null),
-        northWest: SmartTileCellSample.inside(materialId: 'dirt'),
-        northEast: SmartTileCellSample.inside(materialId: 'dirt'),
-        southEast: SmartTileCellSample.inside(materialId: 'dirt'),
-        southWest: SmartTileCellSample.inside(materialId: 'dirt'),
+        observed: SmartTileObservedSignature(
+          northEdge: SmartTileObservedSlot.inside(materialId: null),
+          eastEdge: SmartTileObservedSlot.inside(materialId: null),
+          southEdge: SmartTileObservedSlot.inside(materialId: null),
+          westEdge: SmartTileObservedSlot.inside(materialId: null),
+          northWestCorner: SmartTileObservedSlot.inside(materialId: 'dirt'),
+          northEastCorner: SmartTileObservedSlot.inside(materialId: 'dirt'),
+          southEastCorner: SmartTileObservedSlot.inside(materialId: 'dirt'),
+          southWestCorner: SmartTileObservedSlot.inside(materialId: 'dirt'),
+        ),
       );
 
       expect(
@@ -76,7 +84,7 @@ void main() {
           topology: SmartTileTopology.blob8,
           boundaryPolicy: SmartTileBoundaryPolicy.empty,
           materials: _materials,
-          neighborhood: neighborhood,
+          context: context,
         ),
         0,
       );
@@ -85,7 +93,7 @@ void main() {
           topology: SmartTileTopology.wang8,
           boundaryPolicy: SmartTileBoundaryPolicy.empty,
           materials: _materials,
-          neighborhood: neighborhood,
+          context: context,
         ),
         0xf0,
       );
@@ -98,6 +106,7 @@ void main() {
         rules: const <SmartTileRule>[
           SmartTileRule(
             id: 'water-north',
+            centerMatch: SmartTileSlotMatch.any(),
             signature: SmartTileSignature(
               northEdge: SmartTileSlotMatch.material('water'),
             ),
@@ -110,16 +119,18 @@ void main() {
           ),
         ],
       );
-      const neighborhood = SmartTileNeighborhood(
+      const context = SmartTileCellContext(
         centerMaterialId: 'dirt',
-        north: SmartTileCellSample.inside(materialId: 'water'),
+        observed: SmartTileObservedSignature(
+          northEdge: SmartTileObservedSlot.inside(materialId: 'water'),
+        ),
       );
 
       expect(
         resolveSmartTile(
           preset: preset,
           materials: _materials,
-          neighborhood: neighborhood,
+          context: context,
           x: 0,
           y: 0,
         ).ruleId,
@@ -129,13 +140,17 @@ void main() {
 
     test('applies each map-boundary policy without changing in-map emptiness',
         () {
-      const outside = SmartTileNeighborhood(
+      const outside = SmartTileCellContext(
         centerMaterialId: 'dirt',
-        north: SmartTileCellSample.outside(),
+        observed: SmartTileObservedSignature(
+          northEdge: SmartTileObservedSlot.outside(),
+        ),
       );
-      const emptyInside = SmartTileNeighborhood(
+      const emptyInside = SmartTileCellContext(
         centerMaterialId: 'dirt',
-        north: SmartTileCellSample.inside(),
+        observed: SmartTileObservedSignature(
+          northEdge: SmartTileObservedSlot.inside(),
+        ),
       );
 
       expect(
@@ -161,6 +176,7 @@ void main() {
         rules: const <SmartTileRule>[
           SmartTileRule(
             id: 'any',
+            centerMatch: SmartTileSlotMatch.any(),
             candidates: <SmartTileCandidate>[
               SmartTileCandidate(
                 id: 'common',
@@ -194,12 +210,12 @@ void main() {
           ),
         ],
       );
-      const neighborhood = SmartTileNeighborhood(centerMaterialId: 'dirt');
+      const context = SmartTileCellContext(centerMaterialId: 'dirt');
 
       final first = resolveSmartTile(
         preset: preset,
         materials: _materials,
-        neighborhood: neighborhood,
+        context: context,
         mapId: 'hanazuki',
         layerId: 'path',
         x: 12,
@@ -209,7 +225,7 @@ void main() {
       final repeated = resolveSmartTile(
         preset: preset,
         materials: _materials,
-        neighborhood: neighborhood,
+        context: context,
         mapId: 'hanazuki',
         layerId: 'path',
         x: 12,
@@ -226,7 +242,7 @@ void main() {
       final reordered = resolveSmartTile(
         preset: reorderedPreset,
         materials: _materials,
-        neighborhood: neighborhood,
+        context: context,
         mapId: 'hanazuki',
         layerId: 'path',
         x: 12,
@@ -236,7 +252,7 @@ void main() {
       final anotherLayerSeed = resolveSmartTile(
         preset: preset,
         materials: _materials,
-        neighborhood: neighborhood,
+        context: context,
         mapId: 'hanazuki',
         layerId: 'path',
         x: 12,
@@ -249,7 +265,7 @@ void main() {
           resolveSmartTile(
             preset: preset,
             materials: _materials,
-            neighborhood: neighborhood,
+            context: context,
             mapId: 'hanazuki',
             layerId: 'path',
             x: x,
@@ -303,6 +319,11 @@ ProjectSmartTilePreset _preset({
     usage: SmartTileUsage.path,
     topology: topology,
     boundaryPolicy: boundaryPolicy,
+    coveragePolicy: SmartTileCoveragePolicy.complete,
+    coverageProfile: const SmartTileCoverageProfile(
+      mode: SmartTileCoverageMode.template,
+    ),
+    transformPolicy: const SmartTileTransformPolicy(),
     defaultMaterialId: 'dirt',
     allowedMaterialIds: const <String>['dirt', 'grass', 'water'],
     rules: rules,
@@ -322,29 +343,31 @@ SmartTileSlotMatch _sameOrDifferent(bool same) => same
     ? const SmartTileSlotMatch.same()
     : const SmartTileSlotMatch.different();
 
-SmartTileNeighborhood _cardinalNeighborhood(int mask) {
-  SmartTileCellSample sample(int bit) => SmartTileCellSample.inside(
+SmartTileCellContext _cardinalContext(int mask) {
+  SmartTileObservedSlot sample(int bit) => SmartTileObservedSlot.inside(
         materialId: mask & bit == 0 ? null : 'dirt',
       );
 
-  return SmartTileNeighborhood(
+  return SmartTileCellContext(
     centerMaterialId: 'dirt',
-    north: sample(0x1),
-    east: sample(0x2),
-    south: sample(0x4),
-    west: sample(0x8),
+    observed: SmartTileObservedSignature(
+      northEdge: sample(0x1),
+      eastEdge: sample(0x2),
+      southEdge: sample(0x4),
+      westEdge: sample(0x8),
+    ),
   );
 }
 
 bool _northConnected(
-  SmartTileNeighborhood neighborhood,
+  SmartTileCellContext context,
   SmartTileBoundaryPolicy policy,
 ) {
   return smartTileConnectivityMask(
             topology: SmartTileTopology.cardinal4,
             boundaryPolicy: policy,
             materials: _materials,
-            neighborhood: neighborhood,
+            context: context,
           ) &
           0x1 !=
       0;

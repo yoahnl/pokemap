@@ -40,6 +40,7 @@ export 'src/domains/maps/placed_element_actions.dart';
 export 'src/domains/maps/region_operations.dart';
 export 'src/domains/maps/semantic_map_action_support.dart';
 export 'src/domains/maps/smart_tile_layer_actions.dart';
+export 'src/domains/maps/smart_tile_transition_guards.dart';
 export 'src/domains/maps/surface_actions.dart';
 export 'src/domains/maps/terrain_actions.dart';
 export 'src/domains/maps/trigger_zone_actions.dart';

@@ -4,6 +4,10 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:map_authoring/map_authoring.dart'
+    show
+        smartTileNativeAuthoringRequiresStn03Code,
+        smartTileWangPaintCompilerRequiredCode;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -5729,6 +5733,10 @@ class EditorNotifier extends _$EditorNotifier
       _setPaintError('Active layer is not a Smart Tile layer');
       return;
     }
+    if (activeLayer.field is! SmartTileCellField) {
+      _setPaintError(smartTileWangPaintCompilerRequiredCode);
+      return;
+    }
     try {
       final paintedLayer = setSmartTileCellMaterial(
         activeLayer,
@@ -5922,6 +5930,10 @@ class EditorNotifier extends _$EditorNotifier
         partOfStroke: partOfStroke,
       );
     } else if (layer is SmartTileLayer) {
+      if (layer.field is! SmartTileCellField) {
+        _setPaintError(smartTileWangPaintCompilerRequiredCode);
+        return false;
+      }
       try {
         var erasedLayer = layer;
         for (var y = 0; y < patternSize.height; y++) {
@@ -5943,9 +5955,18 @@ class EditorNotifier extends _$EditorNotifier
             );
           }
         }
+        if (erasedLayer == layer) {
+          state = state.copyWith(errorMessage: null);
+          return false;
+        }
+        final updated = replaceSmartTileLayer(map, layer: erasedLayer);
+        MapValidator.validate(
+          updated,
+          projectDialogueContext: state.project,
+        );
         _applyMapMutation(
           previousMap: map,
-          updatedMap: replaceSmartTileLayer(map, layer: erasedLayer),
+          updatedMap: updated,
           preferredActiveLayerId: layerId,
           statusMessage: 'Smart Tile cells erased',
           partOfStroke: partOfStroke,
@@ -8247,10 +8268,14 @@ class EditorNotifier extends _$EditorNotifier
         );
       }
       if (activeLayer is SmartTileLayer) {
+        final editable = activeLayer.field is SmartTileCellField;
         return MapToolPreview.pathPaint(
           origin: hoveredTile,
           size: const GridSize(width: 1, height: 1),
-          validity: MapToolPreviewValidity.valid,
+          validity: editable
+              ? MapToolPreviewValidity.valid
+              : MapToolPreviewValidity.invalid,
+          reason: editable ? null : smartTileWangPaintCompilerRequiredCode,
         );
       }
       return null;
@@ -8305,10 +8330,14 @@ class EditorNotifier extends _$EditorNotifier
       );
     }
     if (activeLayer is SmartTileLayer) {
+      final editable = activeLayer.field is SmartTileCellField;
       return MapToolPreview.pathErase(
         origin: hoveredTile,
         size: eraserFootprint.size,
-        validity: MapToolPreviewValidity.valid,
+        validity: editable
+            ? MapToolPreviewValidity.valid
+            : MapToolPreviewValidity.invalid,
+        reason: editable ? null : smartTileWangPaintCompilerRequiredCode,
       );
     }
     return null;
@@ -8617,6 +8646,12 @@ class EditorNotifier extends _$EditorNotifier
       );
     }
     if (activeLayer is SmartTileLayer) {
+      if (activeLayer.field is! SmartTileCellField) {
+        if (emitErrors) {
+          _setPaintError(smartTileWangPaintCompilerRequiredCode);
+        }
+        return null;
+      }
       return const _ResolvedBrushFootprint(
         size: GridSize(width: 1, height: 1),
         failureLabel: 'Smart Tile cell',
@@ -9246,38 +9281,9 @@ class EditorNotifier extends _$EditorNotifier
   }) {
     final map = state.activeMap;
     if (map == null) return;
-    try {
-      final useCase = ref.read(addMapLayerUseCaseProvider);
-      int? insertIndex;
-      final activeId = state.activeLayerId;
-      if (activeId != null) {
-        final idx = map.layers.indexWhere((layer) => layer.id == activeId);
-        if (idx >= 0) insertIndex = idx;
-      }
-      final result = useCase.executeSmartTile(
-        map,
-        name: name,
-        presetId: presetId,
-        usage: usage,
-        defaultMaterialId: defaultMaterialId,
-        layerSeed: layerSeed,
-        insertIndex: insertIndex,
-      );
-      MapValidator.validate(
-        result.map,
-        projectDialogueContext: state.project,
-      );
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: result.map,
-        preferredActiveLayerId: result.layer.id,
-        statusMessage: 'Smart Tile layer "${result.layer.name}" added',
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to add Smart Tile layer: $e',
-      );
-    }
+    state = state.copyWith(
+      errorMessage: smartTileNativeAuthoringRequiresStn03Code,
+    );
   }
 
   /// Lot Environment-20 : [EnvironmentLayerContent.targetTileLayerId] uniquement.

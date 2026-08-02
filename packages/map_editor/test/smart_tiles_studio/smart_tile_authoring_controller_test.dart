@@ -23,6 +23,48 @@ void main() {
       expect(controller.state.templateHint, SmartTileTemplateHint.blob47);
     });
 
+    test('compiles complete terrain and sparse overlay coverage policies', () {
+      for (final entry in const <(SmartTileUsage, SmartTileCoveragePolicy)>[
+        (SmartTileUsage.terrain, SmartTileCoveragePolicy.complete),
+        (SmartTileUsage.path, SmartTileCoveragePolicy.sparse),
+        (SmartTileUsage.forestSurface, SmartTileCoveragePolicy.sparse),
+      ]) {
+        final controller = _configuredController()
+          ..selectUsage(entry.$1)
+          ..addAtlasVariant(
+            mask: 0,
+            column: 0,
+            row: 0,
+            candidateId: 'base',
+          );
+
+        expect(
+          controller.compilePreset().coveragePolicy,
+          entry.$2,
+          reason: entry.$1.name,
+        );
+      }
+    });
+
+    test('Simple compiles an explicit center-material rule', () {
+      final controller = _configuredController()
+        ..selectUsage(SmartTileUsage.terrain)
+        ..selectTemplate(SmartTileTemplateHint.simple)
+        ..addAtlasVariant(
+          mask: 0,
+          column: 0,
+          row: 0,
+          candidateId: 'base',
+        );
+
+      final preset = controller.compilePreset();
+
+      expect(preset.topology, SmartTileTopology.uniform);
+      expect(preset.rules, hasLength(1));
+      expect(preset.rules.single.centerMatch.kind, SmartTileMatchKind.material);
+      expect(preset.rules.single.centerMatch.materialId, 'grass');
+    });
+
     test('groups sixteen guide cells into twelve native rules', () {
       final controller = _largeConfiguredController()
         ..selectUsage(SmartTileUsage.path);
@@ -259,7 +301,7 @@ void main() {
       );
     });
 
-    test('applying a draft is an explicit v4 in-memory upsert', () {
+    test('blocks native catalog persistence before STN-03', () {
       final controller = _configuredController();
       controller
         ..selectUsage(SmartTileUsage.path)
@@ -284,13 +326,19 @@ void main() {
         surfaceCatalog: ProjectSurfaceCatalog.empty(),
       );
 
-      final next = controller.applyToManifest(manifest);
-
-      expect(next.version, ProjectVersion.v4);
-      expect(next.terrainPresets, [legacy]);
-      expect(next.smartTileCatalog.presets.single.id, 'hanazuki');
-      expect(next.smartTileCatalog.atlases.single.id, 'atlas-hanazuki');
-      expect(next.smartTileCatalog.materials.single.id, 'grass');
+      expect(
+        () => controller.applyToManifest(manifest),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'diagnostic',
+            'smart_tile_native_catalog_authoring_requires_stn03',
+          ),
+        ),
+      );
+      expect(manifest.version, ProjectVersion.v3);
+      expect(manifest.terrainPresets, [legacy]);
+      expect(manifest.smartTileCatalog.presets, isEmpty);
     });
   });
 }

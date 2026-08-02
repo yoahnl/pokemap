@@ -111,8 +111,12 @@ bool _isPaintedAt(MapLayer layer, GridSize mapSize, GridPos position) {
     SurfaceLayer(:final placements) => placements.any(
         (placement) => placement.x == position.x && placement.y == position.y,
       ),
-    SmartTileLayer(:final materialCells) =>
-      index < materialCells.length && materialCells[index] > 0,
+    SmartTileLayer smartTileLayer => smartTileCellHasAuthoredValue(
+        smartTileLayer,
+        mapSize: mapSize,
+        x: position.x,
+        y: position.y,
+      ),
     ObjectLayer() || EnvironmentLayer() || BorderLayer() => false,
   };
 }

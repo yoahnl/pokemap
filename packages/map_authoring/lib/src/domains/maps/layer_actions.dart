@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import 'map_lifecycle_adapter.dart';
+import 'smart_tile_transition_guards.dart';
 
 /// One immutable in-memory map-operation result.
 final class MapOperationStepResult {
@@ -87,6 +88,13 @@ final class MapLayerOperations {
     });
     final layerId = _string(operation, 'layerId');
     final layerKind = _layerKind(_string(operation, 'layerKind'));
+    if (layerKind == MapLayerKind.smartTile) {
+      throw nativeSmartTileAuthoringRequiresStn03(
+        map: map,
+        operation: 'layer.add',
+        layerId: layerId,
+      );
+    }
     final insertIndex = _optionalInt(operation, 'insertIndex');
     late final MapData updated;
     if (layerKind == MapLayerKind.smartTile) {
@@ -251,11 +259,44 @@ final class MapLayerOperations {
       PathLayer value => value.copyWith(cells: List.filled(cellCount, false)),
       SurfaceLayer value => value.copyWith(placements: const []),
       SmartTileLayer value => value.copyWith(
-          materialCells: List.filled(cellCount, 0),
-          horizontalEdges:
-              List.filled(map.size.width * (map.size.height + 1), 0),
-          verticalEdges: List.filled((map.size.width + 1) * map.size.height, 0),
-          corners: List.filled((map.size.width + 1) * (map.size.height + 1), 0),
+          field: switch (value.field) {
+            SmartTileCellField() => SmartTileField.cell(
+                semanticCells: List.filled(cellCount, 0),
+              ),
+            SmartTileCornerField() => SmartTileField.corner(
+                semanticCells: List.filled(cellCount, 0),
+                corners: List.filled(
+                  (map.size.width + 1) * (map.size.height + 1),
+                  0,
+                ),
+              ),
+            SmartTileEdgeField() => SmartTileField.edge(
+                semanticCells: List.filled(cellCount, 0),
+                horizontalEdges: List.filled(
+                  map.size.width * (map.size.height + 1),
+                  0,
+                ),
+                verticalEdges: List.filled(
+                  (map.size.width + 1) * map.size.height,
+                  0,
+                ),
+              ),
+            SmartTileMixedField() => SmartTileField.mixed(
+                semanticCells: List.filled(cellCount, 0),
+                horizontalEdges: List.filled(
+                  map.size.width * (map.size.height + 1),
+                  0,
+                ),
+                verticalEdges: List.filled(
+                  (map.size.width + 1) * map.size.height,
+                  0,
+                ),
+                corners: List.filled(
+                  (map.size.width + 1) * (map.size.height + 1),
+                  0,
+                ),
+              ),
+          },
         ),
       ObjectLayer value => value,
       EnvironmentLayer value => value.copyWith(
@@ -296,11 +337,7 @@ int _authoredCellCount(MapLayer layer) => switch (layer) {
         value.terrains.where((cell) => cell != TerrainType.none).length,
       PathLayer value => value.cells.where((cell) => cell).length,
       SurfaceLayer value => value.placements.length,
-      SmartTileLayer value =>
-        value.materialCells.where((cell) => cell != 0).length +
-            value.horizontalEdges.where((cell) => cell != 0).length +
-            value.verticalEdges.where((cell) => cell != 0).length +
-            value.corners.where((cell) => cell != 0).length,
+      SmartTileLayer value => smartTileAuthoredValueCount(value),
       ObjectLayer() || EnvironmentLayer() || BorderLayer() => 0,
     };
 

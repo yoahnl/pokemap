@@ -1,6 +1,8 @@
 import 'package:meta/meta.dart' show immutable;
 
 import '../models/smart_tile.dart';
+import 'smart_tile_coverage.dart';
+import 'smart_tile_resolver.dart';
 import 'smart_tile_templates.dart';
 
 enum SmartTileDiagnosticSeverity { info, warning, error }
@@ -61,11 +63,85 @@ final class _SmartTileCatalogValidator {
       catalog.categories.map((item) => item.id).toSet();
 
   List<SmartTileDiagnostic> validate() {
+    _validateFormatVersion();
+    _validateCanonicalTopLevelFields();
     _validateDuplicateIds();
     _validateAtlases();
     _validateAnimations();
     _validatePresets();
     return List<SmartTileDiagnostic>.unmodifiable(_diagnostics);
+  }
+
+  void _validateCanonicalTopLevelFields() {
+    for (var index = 0; index < catalog.categories.length; index += 1) {
+      final category = catalog.categories[index];
+      final path = r'$.smartTileCatalog.categories[' '$index]';
+      _validateCanonicalId(category.id, '$path.id');
+      _validateCanonicalName(category.name, '$path.name');
+    }
+    for (var index = 0; index < catalog.atlases.length; index += 1) {
+      final atlas = catalog.atlases[index];
+      final path = r'$.smartTileCatalog.atlases[' '$index]';
+      _validateCanonicalId(atlas.id, '$path.id');
+      _validateCanonicalName(atlas.name, '$path.name');
+      _validateCanonicalId(atlas.tilesetId, '$path.tilesetId');
+      if (atlas.cellWidth <= 0 ||
+          atlas.cellHeight <= 0 ||
+          atlas.originX < 0 ||
+          atlas.originY < 0 ||
+          atlas.marginX < 0 ||
+          atlas.marginY < 0 ||
+          atlas.spacingX < 0 ||
+          atlas.spacingY < 0 ||
+          atlas.columns <= 0 ||
+          atlas.rows <= 0) {
+        _error(
+          code: 'smart_tiles.atlas.invalid',
+          path: path,
+          message: 'Atlas geometry must use positive cells/grid dimensions '
+              'and non-negative origins, margins, and spacing.',
+        );
+      }
+    }
+    for (var index = 0; index < catalog.materials.length; index += 1) {
+      final material = catalog.materials[index];
+      final path = r'$.smartTileCatalog.materials[' '$index]';
+      _validateCanonicalId(material.id, '$path.id');
+      _validateCanonicalName(material.name, '$path.name');
+      _validateCanonicalId(
+        material.connectionGroupId,
+        '$path.connectionGroupId',
+      );
+      if (material.categoryId.isNotEmpty) {
+        _validateCanonicalId(material.categoryId, '$path.categoryId');
+        if (!_categoryIds.contains(material.categoryId)) {
+          _error(
+            code: 'smart_tiles.reference.category_missing',
+            path: '$path.categoryId',
+            message: 'Material "${material.id}" references missing category '
+                '"${material.categoryId}".',
+          );
+        }
+      }
+    }
+    for (var index = 0; index < catalog.animations.length; index += 1) {
+      final animation = catalog.animations[index];
+      final path = r'$.smartTileCatalog.animations[' '$index]';
+      _validateCanonicalId(animation.id, '$path.id');
+      _validateCanonicalName(animation.name, '$path.name');
+    }
+  }
+
+  void _validateFormatVersion() {
+    if (catalog.formatVersion != ProjectSmartTileCatalog.currentFormatVersion) {
+      _error(
+        code: 'smart_tile_catalog_version_unsupported',
+        path: r'$.smartTileCatalog.formatVersion',
+        message: 'Smart Tile catalog format ${catalog.formatVersion} is not '
+            'the current format '
+            '${ProjectSmartTileCatalog.currentFormatVersion}.',
+      );
+    }
   }
 
   void _validateDuplicateIds() {
@@ -148,6 +224,23 @@ final class _SmartTileCatalogValidator {
         presetIndex += 1) {
       final preset = catalog.presets[presetIndex];
       final presetPath = r'$.smartTileCatalog.presets[' '$presetIndex]';
+      _validateCanonicalId(preset.id, '$presetPath.id');
+      _validateCanonicalName(preset.name, '$presetPath.name');
+      _validateCanonicalId(
+        preset.defaultMaterialId,
+        '$presetPath.defaultMaterialId',
+      );
+      for (var materialIndex = 0;
+          materialIndex < preset.allowedMaterialIds.length;
+          materialIndex += 1) {
+        _validateCanonicalId(
+          preset.allowedMaterialIds[materialIndex],
+          '$presetPath.allowedMaterialIds[$materialIndex]',
+        );
+      }
+      if (preset.fallbackRuleId case final fallbackRuleId?) {
+        _validateCanonicalId(fallbackRuleId, '$presetPath.fallbackRuleId');
+      }
       _validatePresetCategory(preset, presetPath);
       _validatePresetTopology(preset, presetPath);
       _validatePresetMaterials(preset, presetPath);
@@ -159,6 +252,9 @@ final class _SmartTileCatalogValidator {
     ProjectSmartTilePreset preset,
     String path,
   ) {
+    if (preset.categoryId.isNotEmpty) {
+      _validateCanonicalId(preset.categoryId, '$path.categoryId');
+    }
     if (preset.categoryId.isNotEmpty &&
         !_categoryIds.contains(preset.categoryId)) {
       _error(
@@ -174,18 +270,32 @@ final class _SmartTileCatalogValidator {
     ProjectSmartTilePreset preset,
     String path,
   ) {
-    final compatible = switch (preset.usage) {
-      SmartTileUsage.terrain => preset.topology == SmartTileTopology.cardinal4,
-      SmartTileUsage.path || SmartTileUsage.forestSurface => true,
-    };
-    if (!compatible) {
+    if (!_templateMatchesTopology(preset)) {
+      final expected = smartTileTopologyForTemplate(preset.templateHint);
+      final expectedLabel = preset.templateHint == SmartTileTemplateHint.edge16
+          ? 'cardinal4 or wangEdge4'
+          : expected.name;
       _error(
-        code: 'smart_tiles.topology.usage_mismatch',
+        code: 'smart_tiles.topology.template_mismatch',
         path: '$path.topology',
-        message: 'Topology "${preset.topology.name}" is incompatible with '
-            '"${preset.usage.name}".',
+        message: 'Template ${preset.templateHint.name} requires topology '
+            '$expectedLabel, not ${preset.topology.name}.',
+        presetId: preset.id,
       );
     }
+    final transforms = preset.transformPolicy;
+    if (transforms.allowHFlip ||
+        transforms.allowVFlip ||
+        transforms.allowQuarterTurns) {
+      _publicationDiagnostic(
+        preset: preset,
+        code: 'smart_tiles.transforms.requires_stn02',
+        path: '$path.transformPolicy',
+        message: 'Visual transforms cannot be published before STN-02 '
+            'applies them in resolver and renderer plans.',
+      );
+    }
+    _validateCoverageProfile(preset, path);
   }
 
   void _validatePresetMaterials(
@@ -214,28 +324,15 @@ final class _SmartTileCatalogValidator {
             'the preset allowed-material list.',
       );
     }
-    final terrainVisualMaterials = preset.allowedMaterialIds
-        .where((id) => !(_materialsById[id]?.isEmpty ?? false))
-        .toList(growable: false);
-    if (preset.usage == SmartTileUsage.terrain &&
-        (terrainVisualMaterials.length != 1 ||
-            terrainVisualMaterials.singleOrNull != preset.defaultMaterialId)) {
-      _error(
-        code: 'smart_tiles.terrain.material_count',
-        path: '$path.allowedMaterialIds',
-        message: 'Terrain presets require exactly their default visual '
-            'material; explicit empty materials are allowed.',
-      );
-    }
   }
 
   void _validateRules(ProjectSmartTilePreset preset, String presetPath) {
+    final allowedMaterialIds = preset.allowedMaterialIds.toSet();
     _duplicates(
       preset.rules,
       (item) => item.id,
       '$presetPath.rules',
     );
-    _validateRuleCoverage(preset, presetPath);
     final fallbackRuleId = preset.fallbackRuleId;
     if (fallbackRuleId != null &&
         !preset.rules.any((rule) => rule.id == fallbackRuleId)) {
@@ -250,7 +347,20 @@ final class _SmartTileCatalogValidator {
     for (var ruleIndex = 0; ruleIndex < preset.rules.length; ruleIndex += 1) {
       final rule = preset.rules[ruleIndex];
       final rulePath = '$presetPath.rules[$ruleIndex]';
-      _validateSignature(rule.signature, '$rulePath.signature');
+      _validateCanonicalId(rule.id, '$rulePath.id');
+      _validateCenterMatch(
+        rule.centerMatch,
+        '$rulePath.centerMatch',
+        allowedMaterialIds: allowedMaterialIds,
+        presetId: preset.id,
+      );
+      _validateSignature(
+        rule.signature,
+        '$rulePath.signature',
+        topology: preset.topology,
+        allowedMaterialIds: allowedMaterialIds,
+        presetId: preset.id,
+      );
       _duplicates(
         rule.candidates,
         (item) => item.id,
@@ -265,16 +375,39 @@ final class _SmartTileCatalogValidator {
           ruleId: rule.id,
         );
       }
+      if (!rule.candidates.any((candidate) => candidate.weight > 0)) {
+        final isFallback = rule.id == preset.fallbackRuleId;
+        if (isFallback) {
+          _error(
+            code: 'smart_tiles.rule.no_positive_candidate',
+            path: '$rulePath.candidates',
+            message: 'Fallback rule "${rule.id}" must contain at least one '
+                'positive-weight candidate.',
+            presetId: preset.id,
+            ruleId: rule.id,
+          );
+        } else {
+          _publicationDiagnostic(
+            preset: preset,
+            code: 'smart_tiles.rule.no_positive_candidate',
+            path: '$rulePath.candidates',
+            message: 'Published rule "${rule.id}" must contain at least one '
+                'positive-weight candidate.',
+            ruleId: rule.id,
+          );
+        }
+      }
       for (var candidateIndex = 0;
           candidateIndex < rule.candidates.length;
           candidateIndex += 1) {
         final candidate = rule.candidates[candidateIndex];
         final candidatePath = '$rulePath.candidates[$candidateIndex]';
-        if (candidate.weight <= 0) {
+        _validateCanonicalId(candidate.id, '$candidatePath.id');
+        if (candidate.weight < 0) {
           _error(
-            code: 'smart_tiles.weight.invalid',
+            code: 'smart_tiles.candidate.negative_weight',
             path: '$candidatePath.weight',
-            message: 'Candidate weight must be positive.',
+            message: 'Candidate weight must not be negative.',
           );
         }
         if (candidate.parts.isEmpty) {
@@ -290,13 +423,22 @@ final class _SmartTileCatalogValidator {
             partIndex < candidate.parts.length;
             partIndex += 1) {
           final part = candidate.parts[partIndex];
-          final sourcePath = '$candidatePath.parts[$partIndex].source';
+          final partPath = '$candidatePath.parts[$partIndex]';
+          if (part.footprintWidth <= 0 || part.footprintHeight <= 0) {
+            _error(
+              code: 'smart_tiles.visual.footprint_invalid',
+              path: partPath,
+              message: 'Visual part footprints must be positive.',
+            );
+          }
+          final sourcePath = '$partPath.source';
           part.source.when(
             frame: (frame) => _validateFrameRef(
               frame,
               path: '$sourcePath.frame',
             ),
             animation: (animationId) {
+              _validateCanonicalId(animationId, '$sourcePath.animationId');
               if (!_animationsById.containsKey(animationId)) {
                 _error(
                   code: 'smart_tiles.reference.animation_missing',
@@ -309,58 +451,185 @@ final class _SmartTileCatalogValidator {
         }
       }
     }
+    if (_templateMatchesTopology(preset)) {
+      _validateNativeCoverage(preset, presetPath);
+    }
   }
 
-  void _validateRuleCoverage(
+  void _validateCoverageProfile(
     ProjectSmartTilePreset preset,
     String presetPath,
   ) {
-    final expected = smartTileCanonicalMasks(preset.templateHint);
-    if (expected.isEmpty) {
-      return;
-    }
-    final firstRuleByMask = <int, SmartTileRule>{};
-    for (var ruleIndex = 0; ruleIndex < preset.rules.length; ruleIndex += 1) {
-      final rule = preset.rules[ruleIndex];
-      final mask = smartTileMaskForSignature(
-        rule.signature,
-        topology: preset.topology,
-      );
-      if (mask == null) {
-        continue;
-      }
-      final previous = firstRuleByMask[mask];
-      if (previous != null) {
-        _publicationDiagnostic(
-          preset: preset,
-          code: 'smart_tiles.rules.ambiguous',
-          path: '$presetPath.rules[$ruleIndex].signature',
-          message: 'Rules "${previous.id}" and "${rule.id}" both map to '
-              'canonical mask $mask.',
-          ruleId: rule.id,
-          mask: mask,
+    final allowedMaterialIds = preset.allowedMaterialIds.toSet();
+    final scenarios = preset.coverageProfile.requiredScenarios;
+    for (var index = 0; index < scenarios.length; index++) {
+      final scenario = scenarios[index];
+      final path = '$presetPath.coverageProfile.requiredScenarios[$index]';
+      _validateCanonicalId(scenario.id, '$path.id');
+      if (scenario.id.trim().isEmpty) {
+        _error(
+          code: 'smart_tiles.coverage.scenario_id_invalid',
+          path: '$path.id',
+          message: 'Coverage scenario ids must be non-empty.',
         );
-      } else {
-        firstRuleByMask[mask] = rule;
       }
+      final centerMaterialId = scenario.centerMaterialId;
+      if (centerMaterialId != null) {
+        _validateAllowedMaterialReference(
+          centerMaterialId,
+          '$path.centerMaterialId',
+          allowedMaterialIds: allowedMaterialIds,
+          presetId: preset.id,
+        );
+      }
+      _validateExactSignature(
+        scenario.signature,
+        '$path.signature',
+        topology: preset.topology,
+        allowedMaterialIds: allowedMaterialIds,
+        presetId: preset.id,
+      );
     }
-    final missing = <int>[
-      for (final mask in expected)
-        if (!firstRuleByMask.containsKey(mask)) mask,
-    ];
-    if (missing.isNotEmpty) {
+  }
+
+  void _validateNativeCoverage(
+    ProjectSmartTilePreset preset,
+    String presetPath,
+  ) {
+    final report = analyzeSmartTileCoverage(
+      preset: preset,
+      materials: catalog.materials,
+      atlases: catalog.atlases,
+      animations: catalog.animations,
+    );
+    final codes = report.diagnostics.map((item) => item.code).toSet();
+
+    if (codes.contains('smart_tiles.coverage.incomplete')) {
+      final missingCases = report.cases
+          .where((item) => item.status == SmartTileCoverageStatus.missing)
+          .toList(growable: false);
       _publicationDiagnostic(
         preset: preset,
         code: 'smart_tiles.coverage.incomplete',
         path: '$presetPath.rules',
-        message: 'Preset "${preset.id}" is missing ${missing.length} '
-            'canonical mapping(s).',
-        missingMasks: missing,
+        message: 'Preset "${preset.id}" does not resolve '
+            '${missingCases.length} required coverage scenario(s).',
+        missingMasks: _coverageMasks(preset, missingCases),
+      );
+    }
+    if (codes.contains('smart_tiles.coverage.fallback_only')) {
+      final fallbackCases = report.cases
+          .where((item) => item.status == SmartTileCoverageStatus.fallback)
+          .toList(growable: false);
+      _publicationDiagnostic(
+        preset: preset,
+        code: 'smart_tiles.coverage.fallback_only',
+        path: '$presetPath.rules',
+        message: 'Preset "${preset.id}" resolves '
+            '${fallbackCases.length} required scenario(s) only through its '
+            'fallback rule.',
+      );
+    }
+    for (final coverageCase in report.cases) {
+      final code = switch (coverageCase.status) {
+        SmartTileCoverageStatus.ambiguous => 'smart_tiles.rules.ambiguous',
+        SmartTileCoverageStatus.noCandidate =>
+          'smart_tiles.visual.no_candidate',
+        SmartTileCoverageStatus.missingVisualSource =>
+          'smart_tiles.visual.source_missing',
+        SmartTileCoverageStatus.outOfAtlasGrid =>
+          'smart_tiles.visual.out_of_atlas_grid',
+        SmartTileCoverageStatus.exact ||
+        SmartTileCoverageStatus.fallback ||
+        SmartTileCoverageStatus.missing =>
+          null,
+      };
+      if (code == null) continue;
+      _publicationDiagnostic(
+        preset: preset,
+        code: code,
+        path: '$presetPath.rules',
+        message: 'Coverage scenario "${coverageCase.id}" has status '
+            '${coverageCase.status.name}.',
+        ruleId: coverageCase.ruleIds.isEmpty ? null : coverageCase.ruleIds.last,
+        mask: _coverageMask(preset, coverageCase),
+      );
+    }
+
+    const structuralCodes = <String>{
+      'smart_tiles.coverage.explicit_scenarios_required',
+      'smart_tiles.coverage.too_many_scenarios',
+      'smart_tiles.coverage.duplicate_scenario_id',
+      'smart_tiles.coverage.scenario_id_collision',
+      'smart_tiles.coverage.legacy20_unsupported',
+    };
+    for (final diagnostic in report.diagnostics) {
+      if (!structuralCodes.contains(diagnostic.code)) continue;
+      _error(
+        code: diagnostic.code,
+        path: '$presetPath.coverageProfile',
+        message: diagnostic.message,
+        presetId: preset.id,
       );
     }
   }
 
-  void _validateSignature(SmartTileSignature signature, String path) {
+  List<int> _coverageMasks(
+    ProjectSmartTilePreset preset,
+    Iterable<SmartTileCoverageCase> cases,
+  ) {
+    final masks = <int>{
+      for (final coverageCase in cases) _coverageMask(preset, coverageCase),
+    }.toList(growable: false)
+      ..sort();
+    return masks;
+  }
+
+  int _coverageMask(
+    ProjectSmartTilePreset preset,
+    SmartTileCoverageCase coverageCase,
+  ) {
+    return smartTileConnectivityMask(
+      topology: preset.topology,
+      boundaryPolicy: preset.boundaryPolicy,
+      materials: catalog.materials,
+      context: coverageCase.context,
+    );
+  }
+
+  void _validateCenterMatch(
+    SmartTileSlotMatch match,
+    String path, {
+    required Set<String> allowedMaterialIds,
+    required String presetId,
+  }) {
+    _validateSlotMatchShape(match, path);
+    if (match.kind == SmartTileMatchKind.same ||
+        match.kind == SmartTileMatchKind.different) {
+      _error(
+        code: 'smart_tiles.rules.center_match_invalid',
+        path: path,
+        message: 'Center matches cannot use same/different.',
+      );
+    }
+    final materialId = match.materialId;
+    if (materialId != null) {
+      _validateAllowedMaterialReference(
+        materialId,
+        '$path.materialId',
+        allowedMaterialIds: allowedMaterialIds,
+        presetId: presetId,
+      );
+    }
+  }
+
+  void _validateSignature(
+    SmartTileSignature signature,
+    String path, {
+    required SmartTileTopology topology,
+    required Set<String> allowedMaterialIds,
+    required String presetId,
+  }) {
     final slots = <MapEntry<String, SmartTileSlotMatch>>[
       MapEntry<String, SmartTileSlotMatch>(
         'northWestCorner',
@@ -384,14 +653,112 @@ final class _SmartTileCatalogValidator {
       MapEntry<String, SmartTileSlotMatch>('westEdge', signature.westEdge),
     ];
     for (final slot in slots) {
+      _validateSlotMatchShape(slot.value, '$path.${slot.key}');
+      if (!_slotIsActive(topology, slot.key) &&
+          slot.value.kind != SmartTileMatchKind.any) {
+        _error(
+          code: 'smart_tiles.rules.inactive_slot',
+          path: '$path.${slot.key}',
+          message: 'Inactive topology slots must use any.',
+        );
+      }
       final materialId = slot.value.materialId;
-      if (materialId != null && !_materialsById.containsKey(materialId)) {
-        _missingMaterial(materialId, '$path.${slot.key}.materialId');
+      if (materialId != null) {
+        _validateAllowedMaterialReference(
+          materialId,
+          '$path.${slot.key}.materialId',
+          allowedMaterialIds: allowedMaterialIds,
+          presetId: presetId,
+        );
       }
     }
   }
 
+  void _validateExactSignature(
+    SmartTileExactSignature signature,
+    String path, {
+    required SmartTileTopology topology,
+    required Set<String> allowedMaterialIds,
+    required String presetId,
+  }) {
+    final slots = <MapEntry<String, String?>>[
+      MapEntry<String, String?>('northEdge', signature.northEdge),
+      MapEntry<String, String?>(
+        'northEastCorner',
+        signature.northEastCorner,
+      ),
+      MapEntry<String, String?>('eastEdge', signature.eastEdge),
+      MapEntry<String, String?>(
+        'southEastCorner',
+        signature.southEastCorner,
+      ),
+      MapEntry<String, String?>('southEdge', signature.southEdge),
+      MapEntry<String, String?>(
+        'southWestCorner',
+        signature.southWestCorner,
+      ),
+      MapEntry<String, String?>('westEdge', signature.westEdge),
+      MapEntry<String, String?>(
+        'northWestCorner',
+        signature.northWestCorner,
+      ),
+    ];
+    for (final slot in slots) {
+      final materialId = slot.value;
+      if (!_slotIsActive(topology, slot.key) && materialId != null) {
+        _error(
+          code: 'smart_tiles.coverage.inactive_slot',
+          path: '$path.${slot.key}',
+          message: 'Inactive topology slots must be absent.',
+        );
+      }
+      if (materialId != null) {
+        _validateAllowedMaterialReference(
+          materialId,
+          '$path.${slot.key}',
+          allowedMaterialIds: allowedMaterialIds,
+          presetId: presetId,
+        );
+      }
+    }
+  }
+
+  void _validateAllowedMaterialReference(
+    String materialId,
+    String path, {
+    required Set<String> allowedMaterialIds,
+    required String presetId,
+  }) {
+    _validateCanonicalId(materialId, path);
+    if (!_materialsById.containsKey(materialId)) {
+      _missingMaterial(materialId, path);
+      return;
+    }
+    if (!allowedMaterialIds.contains(materialId)) {
+      _error(
+        code: 'smart_tiles.reference.material_not_allowed',
+        path: path,
+        message: 'Material "$materialId" is not allowed by preset '
+            '"$presetId".',
+        presetId: presetId,
+      );
+    }
+  }
+
   void _validateFrameRef(SmartTileFrameRef frame, {required String path}) {
+    _validateCanonicalId(frame.atlasId, '$path.atlasId');
+    if (frame.column < 0 ||
+        frame.row < 0 ||
+        frame.columnSpan <= 0 ||
+        frame.rowSpan <= 0) {
+      _error(
+        code: 'smart_tiles.frame.invalid',
+        path: path,
+        message: 'Frame coordinates must be non-negative and spans must be '
+            'positive.',
+      );
+      return;
+    }
     final atlas = _atlasesById[frame.atlasId];
     if (atlas == null) {
       _error(
@@ -407,6 +774,43 @@ final class _SmartTileCatalogValidator {
         code: 'smart_tiles.atlas.frame_out_of_bounds',
         path: path,
         message: 'Frame exceeds atlas "${atlas.id}" bounds.',
+      );
+    }
+  }
+
+  void _validateSlotMatchShape(SmartTileSlotMatch match, String path) {
+    final materialId = match.materialId;
+    final valid = match.kind == SmartTileMatchKind.material
+        ? materialId != null &&
+            materialId.isNotEmpty &&
+            materialId == materialId.trim()
+        : materialId == null;
+    if (!valid) {
+      _error(
+        code: 'smart_tiles.rules.match_invalid',
+        path: path,
+        message: 'materialId is required only for a canonical material '
+            'match.',
+      );
+    }
+  }
+
+  void _validateCanonicalId(String value, String path) {
+    if (value.trim().isEmpty || value != value.trim()) {
+      _error(
+        code: 'smart_tiles.id.invalid',
+        path: path,
+        message: 'Smart Tile identifiers must be non-blank and canonical.',
+      );
+    }
+  }
+
+  void _validateCanonicalName(String value, String path) {
+    if (value.trim().isEmpty || value != value.trim()) {
+      _error(
+        code: 'smart_tiles.name.invalid',
+        path: path,
+        message: 'Smart Tile names must be non-blank and canonical.',
       );
     }
   }
@@ -486,6 +890,19 @@ final class _SmartTileCatalogValidator {
   }
 }
 
+bool _templateMatchesTopology(ProjectSmartTilePreset preset) {
+  final template = preset.templateHint;
+  if (template == SmartTileTemplateHint.free ||
+      template == SmartTileTemplateHint.legacy20) {
+    return true;
+  }
+  if (template == SmartTileTemplateHint.edge16) {
+    return preset.topology == SmartTileTopology.cardinal4 ||
+        preset.topology == SmartTileTopology.wangEdge4;
+  }
+  return preset.topology == smartTileTopologyForTemplate(template);
+}
+
 Map<String, T> _firstById<T>(
   Iterable<T> items,
   String Function(T) idOf,
@@ -497,6 +914,12 @@ Map<String, T> _firstById<T>(
   return result;
 }
 
-extension<T> on List<T> {
-  T? get singleOrNull => length == 1 ? single : null;
+bool _slotIsActive(SmartTileTopology topology, String slotName) {
+  final isCorner = slotName.endsWith('Corner');
+  return switch (topology) {
+    SmartTileTopology.uniform => false,
+    SmartTileTopology.cardinal4 || SmartTileTopology.wangEdge4 => !isCorner,
+    SmartTileTopology.wangCorner4 => isCorner,
+    SmartTileTopology.blob8 || SmartTileTopology.wang8 => true,
+  };
 }

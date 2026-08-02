@@ -1,12 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_authoring_controller.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_publication_service.dart';
 
 void main() {
   group('SmartTilePublicationService', () {
     const service = SmartTilePublicationService();
 
-    test('blocks an incomplete preset without mutating the manifest', () {
+    test('blocks every publication before STN-03 without mutation', () {
       final manifest = _manifest(
         _preset(rules: <SmartTileRule>[_rule(0)]),
       );
@@ -17,7 +18,7 @@ void main() {
       expect(result.manifest, same(manifest));
       expect(
         result.diagnostics.map((item) => item.code),
-        contains('smart_tiles.coverage.incomplete'),
+        contains(smartTileNativeCatalogAuthoringRequiresStn03Code),
       );
       expect(
         manifest.smartTileCatalog.presets.single.status,
@@ -25,24 +26,27 @@ void main() {
       );
     });
 
-    test('publishes a complete preset as an explicit v4 transaction', () {
+    test('keeps a complete preset as a draft before STN-03', () {
       final manifest = _manifest(
         _preset(
           rules: <SmartTileRule>[
             for (var mask = 0; mask < 16; mask++) _rule(mask),
           ],
         ),
-        version: ProjectVersion.v3,
       );
 
       final result = service.publish(manifest: manifest, presetId: 'edge');
 
-      expect(result.published, isTrue);
-      expect(result.diagnostics.where((item) => item.isError), isEmpty);
-      expect(result.manifest.version, ProjectVersion.v4);
+      expect(result.published, isFalse);
+      expect(result.manifest, same(manifest));
+      expect(
+        result.diagnostics.map((item) => item.code),
+        contains(smartTileNativeCatalogAuthoringRequiresStn03Code),
+      );
+      expect(result.manifest.version, ProjectVersion.v5);
       expect(
         result.manifest.smartTileCatalog.presets.single.status,
-        SmartTilePresetStatus.published,
+        SmartTilePresetStatus.draft,
       );
       expect(
         manifest.smartTileCatalog.presets.single.status,
@@ -55,7 +59,7 @@ void main() {
 
 ProjectManifest _manifest(
   ProjectSmartTilePreset preset, {
-  ProjectVersion version = ProjectVersion.v4,
+  ProjectVersion version = ProjectVersion.v5,
 }) {
   return ProjectManifest(
     name: 'Publication test',
@@ -99,6 +103,11 @@ ProjectSmartTilePreset _preset({required List<SmartTileRule> rules}) {
     topology: SmartTileTopology.cardinal4,
     templateHint: SmartTileTemplateHint.edge16,
     status: SmartTilePresetStatus.draft,
+    coveragePolicy: SmartTileCoveragePolicy.complete,
+    coverageProfile: const SmartTileCoverageProfile(
+      mode: SmartTileCoverageMode.template,
+    ),
+    transformPolicy: const SmartTileTransformPolicy(),
     defaultMaterialId: 'grass',
     allowedMaterialIds: const <String>['grass'],
     rules: rules,
@@ -107,6 +116,7 @@ ProjectSmartTilePreset _preset({required List<SmartTileRule> rules}) {
 
 SmartTileRule _rule(int mask) => SmartTileRule(
       id: smartTileCanonicalRuleId(mask),
+      centerMatch: const SmartTileSlotMatch.any(),
       signature: smartTileSignatureForMask(
         mask,
         topology: SmartTileTopology.cardinal4,

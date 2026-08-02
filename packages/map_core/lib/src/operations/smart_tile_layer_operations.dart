@@ -4,8 +4,9 @@ import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/smart_tile.dart';
+import '../models/smart_tile_field.dart';
 
-/// Adds a native v4 Smart Tile layer with all paint lattices materialized.
+/// Legacy map-only creation cannot atomically update the v5 manifest catalog.
 MapData addSmartTileLayer(
   MapData map, {
   required String id,
@@ -16,64 +17,87 @@ MapData addSmartTileLayer(
   int layerSeed = 0,
   int? insertIndex,
 }) {
-  final normalizedId = id.trim();
-  final normalizedName = name.trim();
-  final normalizedPresetId = presetId.trim();
-  final normalizedMaterialId = defaultMaterialId.trim();
-  if (normalizedId.isEmpty) {
-    throw const ValidationException('Layer ID cannot be empty');
-  }
-  if (normalizedName.isEmpty) {
-    throw const ValidationException('Layer name cannot be empty');
-  }
-  if (normalizedPresetId.isEmpty) {
-    throw const ValidationException('Smart Tile presetId cannot be empty');
-  }
-  if (normalizedMaterialId.isEmpty) {
-    throw const ValidationException(
-      'Smart Tile defaultMaterialId cannot be empty',
-    );
-  }
-  if (map.layers.any((layer) => layer.id == normalizedId)) {
-    throw ValidationException('Layer ID already exists: $normalizedId');
-  }
-  final width = map.size.width;
-  final height = map.size.height;
-  final layer = MapLayer.smartTile(
-    id: normalizedId,
-    name: normalizedName,
-    presetId: normalizedPresetId,
-    usage: usage,
-    materialPalette: <String>['', normalizedMaterialId],
-    materialCells: List<int>.filled(
-      width * height,
-      0,
-      growable: false,
-    ),
-    horizontalEdges: List<int>.filled(
-      width * (height + 1),
-      0,
-      growable: false,
-    ),
-    verticalEdges: List<int>.filled(
-      (width + 1) * height,
-      0,
-      growable: false,
-    ),
-    corners: List<int>.filled(
-      (width + 1) * (height + 1),
-      0,
-      growable: false,
-    ),
-    layerSeed: layerSeed,
+  throw const ValidationException(
+    'Native Smart Tile authoring requires an atomic map and manifest change',
+    code: 'smart_tile_native_authoring_requires_stn03',
   );
-  final layers = List<MapLayer>.from(map.layers);
-  var targetIndex = insertIndex ?? layers.length;
-  if (targetIndex < 0) targetIndex = 0;
-  if (targetIndex > layers.length) targetIndex = layers.length;
-  layers.insert(targetIndex, layer);
-  return map.copyWith(version: ProjectVersion.v4, layers: layers);
 }
+
+List<int> smartTileSemanticCells(SmartTileLayer layer) => switch (layer.field) {
+      SmartTileCellField(:final semanticCells) => semanticCells,
+      SmartTileCornerField(:final semanticCells) => semanticCells,
+      SmartTileEdgeField(:final semanticCells) => semanticCells,
+      SmartTileMixedField(:final semanticCells) => semanticCells,
+    };
+
+List<int> smartTileHorizontalEdges(SmartTileLayer layer) =>
+    switch (layer.field) {
+      SmartTileEdgeField(:final horizontalEdges) => horizontalEdges,
+      SmartTileMixedField(:final horizontalEdges) => horizontalEdges,
+      SmartTileCellField() || SmartTileCornerField() => const <int>[],
+    };
+
+List<int> smartTileVerticalEdges(SmartTileLayer layer) => switch (layer.field) {
+      SmartTileEdgeField(:final verticalEdges) => verticalEdges,
+      SmartTileMixedField(:final verticalEdges) => verticalEdges,
+      SmartTileCellField() || SmartTileCornerField() => const <int>[],
+    };
+
+List<int> smartTileCorners(SmartTileLayer layer) => switch (layer.field) {
+      SmartTileCornerField(:final corners) => corners,
+      SmartTileMixedField(:final corners) => corners,
+      SmartTileCellField() || SmartTileEdgeField() => const <int>[],
+    };
+
+/// Counts authored palette references across every active native lattice.
+int smartTileAuthoredValueCount(SmartTileLayer layer) => <List<int>>[
+      smartTileSemanticCells(layer),
+      smartTileHorizontalEdges(layer),
+      smartTileVerticalEdges(layer),
+      smartTileCorners(layer),
+    ].fold<int>(
+      0,
+      (total, values) =>
+          total + values.where((materialIndex) => materialIndex != 0).length,
+    );
+
+/// Whether a map cell is touched by semantic, edge, or corner authored data.
+///
+/// Edge and corner fields live between cells. A cell therefore owns the two
+/// horizontal edges, two vertical edges, and four corners surrounding it.
+bool smartTileCellHasAuthoredValue(
+  SmartTileLayer layer, {
+  required GridSize mapSize,
+  required int x,
+  required int y,
+}) {
+  _checkCoordinate(x, y, mapSize.width, mapSize.height, 'cell');
+  final semantic = smartTileSemanticCells(layer);
+  if (_isAuthoredAt(semantic, y * mapSize.width + x)) return true;
+
+  final horizontal = smartTileHorizontalEdges(layer);
+  if (_isAuthoredAt(horizontal, y * mapSize.width + x) ||
+      _isAuthoredAt(horizontal, (y + 1) * mapSize.width + x)) {
+    return true;
+  }
+
+  final vertical = smartTileVerticalEdges(layer);
+  final verticalStride = mapSize.width + 1;
+  if (_isAuthoredAt(vertical, y * verticalStride + x) ||
+      _isAuthoredAt(vertical, y * verticalStride + x + 1)) {
+    return true;
+  }
+
+  final corners = smartTileCorners(layer);
+  final cornerStride = mapSize.width + 1;
+  return _isAuthoredAt(corners, y * cornerStride + x) ||
+      _isAuthoredAt(corners, y * cornerStride + x + 1) ||
+      _isAuthoredAt(corners, (y + 1) * cornerStride + x) ||
+      _isAuthoredAt(corners, (y + 1) * cornerStride + x + 1);
+}
+
+bool _isAuthoredAt(List<int> values, int index) =>
+    index >= 0 && index < values.length && values[index] != 0;
 
 String? smartTileMaterialIdAt(
   SmartTileLayer layer, {
@@ -84,7 +108,7 @@ String? smartTileMaterialIdAt(
   _checkCoordinate(x, y, mapSize.width, mapSize.height, 'cell');
   return _materialIdForIndex(
     layer,
-    layer.materialCells[y * mapSize.width + x],
+    smartTileSemanticCells(layer)[y * mapSize.width + x],
   );
 }
 
@@ -97,7 +121,7 @@ String? smartTileHorizontalEdgeMaterialIdAt(
   _checkCoordinate(x, y, mapSize.width, mapSize.height + 1, 'horizontal edge');
   return _materialIdForIndex(
     layer,
-    layer.horizontalEdges[y * mapSize.width + x],
+    smartTileHorizontalEdges(layer)[y * mapSize.width + x],
   );
 }
 
@@ -110,7 +134,7 @@ String? smartTileVerticalEdgeMaterialIdAt(
   _checkCoordinate(x, y, mapSize.width + 1, mapSize.height, 'vertical edge');
   return _materialIdForIndex(
     layer,
-    layer.verticalEdges[y * (mapSize.width + 1) + x],
+    smartTileVerticalEdges(layer)[y * (mapSize.width + 1) + x],
   );
 }
 
@@ -123,7 +147,7 @@ String? smartTileCornerMaterialIdAt(
   _checkCoordinate(x, y, mapSize.width + 1, mapSize.height + 1, 'corner');
   return _materialIdForIndex(
     layer,
-    layer.corners[y * (mapSize.width + 1) + x],
+    smartTileCorners(layer)[y * (mapSize.width + 1) + x],
   );
 }
 
@@ -136,11 +160,11 @@ SmartTileLayer setSmartTileCellMaterial(
 }) {
   _checkCoordinate(x, y, mapSize.width, mapSize.height, 'cell');
   final interned = _internMaterial(layer, materialId);
-  final values = List<int>.of(layer.materialCells);
+  final values = List<int>.of(smartTileSemanticCells(layer));
   values[y * mapSize.width + x] = interned.index;
   return layer.copyWith(
     materialPalette: interned.palette,
-    materialCells: values,
+    field: _withSemanticCells(layer.field, values),
   );
 }
 
@@ -153,11 +177,16 @@ SmartTileLayer setSmartTileHorizontalEdgeMaterial(
 }) {
   _checkCoordinate(x, y, mapSize.width, mapSize.height + 1, 'horizontal edge');
   final interned = _internMaterial(layer, materialId);
-  final values = List<int>.of(layer.horizontalEdges);
+  final values = List<int>.of(smartTileHorizontalEdges(layer));
+  if (values.isEmpty) {
+    throw const ValidationException(
+      'Smart Tile field has no horizontal edge lattice',
+    );
+  }
   values[y * mapSize.width + x] = interned.index;
   return layer.copyWith(
     materialPalette: interned.palette,
-    horizontalEdges: values,
+    field: _withHorizontalEdges(layer.field, values),
   );
 }
 
@@ -170,11 +199,16 @@ SmartTileLayer setSmartTileVerticalEdgeMaterial(
 }) {
   _checkCoordinate(x, y, mapSize.width + 1, mapSize.height, 'vertical edge');
   final interned = _internMaterial(layer, materialId);
-  final values = List<int>.of(layer.verticalEdges);
+  final values = List<int>.of(smartTileVerticalEdges(layer));
+  if (values.isEmpty) {
+    throw const ValidationException(
+      'Smart Tile field has no vertical edge lattice',
+    );
+  }
   values[y * (mapSize.width + 1) + x] = interned.index;
   return layer.copyWith(
     materialPalette: interned.palette,
-    verticalEdges: values,
+    field: _withVerticalEdges(layer.field, values),
   );
 }
 
@@ -187,11 +221,14 @@ SmartTileLayer setSmartTileCornerMaterial(
 }) {
   _checkCoordinate(x, y, mapSize.width + 1, mapSize.height + 1, 'corner');
   final interned = _internMaterial(layer, materialId);
-  final values = List<int>.of(layer.corners);
+  final values = List<int>.of(smartTileCorners(layer));
+  if (values.isEmpty) {
+    throw const ValidationException('Smart Tile field has no corner lattice');
+  }
   values[y * (mapSize.width + 1) + x] = interned.index;
   return layer.copyWith(
     materialPalette: interned.palette,
-    corners: values,
+    field: _withCorners(layer.field, values),
   );
 }
 
@@ -199,6 +236,23 @@ MapData replaceSmartTileLayer(
   MapData map, {
   required SmartTileLayer layer,
 }) {
+  // Replacement is deliberately map-only: it may maintain an already-native
+  // v5 layer, but it must never manufacture the project-wide v5 transition
+  // that STN-03 owns together with the manifest catalog.
+  if (map.version != ProjectVersion.v5) {
+    throw const ValidationException(
+      'Native Smart Tile authoring requires an atomic map and manifest change',
+      code: 'smart_tile_native_authoring_requires_stn03',
+    );
+  }
+  if (map.layers.any(
+    (candidate) => candidate is TerrainLayer || candidate is PathLayer,
+  )) {
+    throw const ValidationException(
+      'ProjectVersion.v5 rejects legacy TerrainLayer/PathLayer',
+      code: 'smart_tile_v5_legacy_layer_unsupported',
+    );
+  }
   final index = map.layers.indexWhere((candidate) => candidate.id == layer.id);
   if (index < 0) {
     throw ValidationException('Layer not found: ${layer.id}');
@@ -206,12 +260,10 @@ MapData replaceSmartTileLayer(
   if (map.layers[index] is! SmartTileLayer) {
     throw ValidationException('Layer is not a Smart Tile layer: ${layer.id}');
   }
-  final layers = List<MapLayer>.of(map.layers);
-  layers[index] = layer;
-  return map.copyWith(version: ProjectVersion.v4, layers: layers);
+  final layers = List<MapLayer>.of(map.layers)..[index] = layer;
+  return map.copyWith(layers: layers);
 }
 
-/// One palette entry removed while canonicalizing a Smart Tile layer.
 final class SmartTileRemovedPaletteEntry {
   const SmartTileRemovedPaletteEntry({
     required this.materialId,
@@ -221,13 +273,12 @@ final class SmartTileRemovedPaletteEntry {
   final String materialId;
   final int oldIndex;
 
-  Map<String, Object?> toJson() => {
+  Map<String, Object?> toJson() => <String, Object?>{
         'materialId': materialId,
         'oldIndex': oldIndex,
       };
 }
 
-/// Result of a render-preserving Smart Tile palette normalization.
 final class SmartTileLayerNormalizationResult {
   SmartTileLayerNormalizationResult({
     required this.layer,
@@ -244,7 +295,6 @@ final class SmartTileLayerNormalizationResult {
       reindexedEntryCounts.values.fold(0, (sum, value) => sum + value);
 }
 
-/// Result of a non-destructive union into the target Smart Tile layer.
 final class SmartTileLayerUnionResult {
   SmartTileLayerUnionResult({
     required this.layer,
@@ -258,10 +308,6 @@ final class SmartTileLayerUnionResult {
       mergedEntryCounts.values.fold(0, (sum, value) => sum + value);
 }
 
-/// Removes palette entries that are not referenced by any of the four Smart
-/// Tile lattices. Retained materials keep their original order, so only the
-/// integer indirection changes; every resolved material and all metadata stay
-/// identical.
 SmartTileLayerNormalizationResult normalizeSmartTileLayer(
   SmartTileLayer layer,
 ) {
@@ -271,12 +317,7 @@ SmartTileLayerNormalizationResult normalizeSmartTileLayer(
       'Smart Tile materialPalette must start with the empty material',
     );
   }
-  final lattices = <String, List<int>>{
-    'materialCells': layer.materialCells,
-    'horizontalEdges': layer.horizontalEdges,
-    'verticalEdges': layer.verticalEdges,
-    'corners': layer.corners,
-  };
+  final lattices = _activeLattices(layer);
   final usedIndices = <int>{0};
   for (final entry in lattices.entries) {
     for (var offset = 0; offset < entry.value.length; offset++) {
@@ -315,19 +356,10 @@ SmartTileLayerNormalizationResult normalizeSmartTileLayer(
     retainedOldIndices.add(oldIndex);
   }
 
-  List<int> reindex(String label) {
-    final source = lattices[label]!;
-    return List<int>.generate(
-      source.length,
-      (offset) => oldToNew[source[offset]]!,
-      growable: false,
-    );
-  }
-
-  final materialCells = reindex('materialCells');
-  final horizontalEdges = reindex('horizontalEdges');
-  final verticalEdges = reindex('verticalEdges');
-  final corners = reindex('corners');
+  final reindexed = <String, List<int>>{
+    for (final entry in lattices.entries)
+      entry.key: <int>[for (final index in entry.value) oldToNew[index]!],
+  };
   int changedCount(List<int> before, List<int> after) {
     var count = 0;
     for (var index = 0; index < before.length; index++) {
@@ -339,12 +371,9 @@ SmartTileLayerNormalizationResult normalizeSmartTileLayer(
   return SmartTileLayerNormalizationResult(
     layer: layer.copyWith(
       materialPalette: List.unmodifiable(normalizedPalette),
-      materialCells: materialCells,
-      horizontalEdges: horizontalEdges,
-      verticalEdges: verticalEdges,
-      corners: corners,
+      field: _fieldFromLattices(layer.field, reindexed),
     ),
-    removedPaletteEntries: [
+    removedPaletteEntries: <SmartTileRemovedPaletteEntry>[
       for (var oldIndex = 1; oldIndex < palette.length; oldIndex++)
         if (!retainedOldIndices.contains(oldIndex))
           SmartTileRemovedPaletteEntry(
@@ -352,28 +381,23 @@ SmartTileLayerNormalizationResult normalizeSmartTileLayer(
             oldIndex: oldIndex,
           ),
     ],
-    reindexedEntryCounts: {
-      'materialCells': changedCount(layer.materialCells, materialCells),
-      'horizontalEdges': changedCount(layer.horizontalEdges, horizontalEdges),
-      'verticalEdges': changedCount(layer.verticalEdges, verticalEdges),
-      'corners': changedCount(layer.corners, corners),
+    reindexedEntryCounts: <String, int>{
+      for (final entry in lattices.entries)
+        entry.key: changedCount(entry.value, reindexed[entry.key]!),
     },
   );
 }
 
-/// Unites compatible Smart Tile geometry into [target]. A non-empty overlap is
-/// accepted only when both layers resolve to the same material (after an
-/// optional explicit source mapping); otherwise the union is ambiguous and is
-/// rejected before any caller can remove a source layer.
 SmartTileLayerUnionResult unionSmartTileLayers({
   required SmartTileLayer target,
   required Iterable<SmartTileLayer> sources,
   Map<String, Map<String, String>> materialMappings = const {},
 }) {
   final normalizedTarget = normalizeSmartTileLayer(target).layer;
-  final normalizedSources = [
+  final normalizedSources = <SmartTileLayer>[
     for (final source in sources) normalizeSmartTileLayer(source).layer,
   ];
+  final targetLattices = _activeLattices(normalizedTarget);
   for (final source in normalizedSources) {
     if (source.usage != normalizedTarget.usage) {
       throw ValidationException(
@@ -381,15 +405,29 @@ SmartTileLayerUnionResult unionSmartTileLayers({
         '${normalizedTarget.id}',
       );
     }
-    _requireSameSmartTileLatticeLengths(normalizedTarget, source);
+    final sourceLattices = _activeLattices(source);
+    if (source.field.runtimeType != normalizedTarget.field.runtimeType ||
+        sourceLattices.keys
+            .toSet()
+            .difference(targetLattices.keys.toSet())
+            .isNotEmpty ||
+        targetLattices.keys
+            .toSet()
+            .difference(sourceLattices.keys.toSet())
+            .isNotEmpty) {
+      throw ValidationException(
+        'Smart Tile source ${source.id} has an incompatible field kind',
+      );
+    }
+    for (final entry in targetLattices.entries) {
+      if (sourceLattices[entry.key]!.length != entry.value.length) {
+        throw ValidationException(
+          'Smart Tile source ${source.id} has incompatible ${entry.key} length',
+        );
+      }
+    }
   }
 
-  final targetLattices = <String, List<int>>{
-    'materialCells': normalizedTarget.materialCells,
-    'horizontalEdges': normalizedTarget.horizontalEdges,
-    'verticalEdges': normalizedTarget.verticalEdges,
-    'corners': normalizedTarget.corners,
-  };
   final mergedMaterials = <String, List<String?>>{
     for (final entry in targetLattices.entries)
       entry.key: _resolvedSmartTileMaterials(
@@ -404,13 +442,7 @@ SmartTileLayerUnionResult unionSmartTileLayers({
 
   for (final source in normalizedSources) {
     final mapping = materialMappings[source.id] ?? const <String, String>{};
-    final sourceLattices = <String, List<int>>{
-      'materialCells': source.materialCells,
-      'horizontalEdges': source.horizontalEdges,
-      'verticalEdges': source.verticalEdges,
-      'corners': source.corners,
-    };
-    for (final entry in sourceLattices.entries) {
+    for (final entry in _activeLattices(source).entries) {
       final sourceMaterials = _resolvedSmartTileMaterials(
         source,
         entry.value,
@@ -431,26 +463,20 @@ SmartTileLayerUnionResult unionSmartTileLayers({
         if (targetMaterial == null) {
           targetMaterials[offset] = sourceMaterial;
           mergedEntryCounts[entry.key] = mergedEntryCounts[entry.key]! + 1;
-          continue;
-        }
-        if (targetMaterial != sourceMaterial) {
+        } else if (targetMaterial != sourceMaterial) {
           throw ValidationException(
             'Smart Tile ${entry.key}[$offset] has an ambiguous material '
             'conflict between target ${normalizedTarget.id} '
             '($targetMaterial) and source ${source.id} ($sourceMaterial)',
             code: 'smart_tile.layer_merge_conflict',
-            details: {
-              'targetLayerId': normalizedTarget.id,
-              'sourceLayerId': source.id,
+            details: <String, Object?>{
               'lattice': entry.key,
               'offset': offset,
+              'targetLayerId': normalizedTarget.id,
               'targetMaterialId': targetMaterial,
+              'sourceLayerId': source.id,
               'sourceMaterialId': sourceMaterial,
             },
-            remediation: const [
-              'Provide an explicit materialMappings entry or remove the '
-                  'overlap before retrying.',
-            ],
           );
         }
       }
@@ -465,62 +491,190 @@ SmartTileLayerUnionResult unionSmartTileLayers({
     palette.add(materialId);
   }
 
-  // Retaining target order first makes repeated merges deterministic; source
-  // materials are then discovered in caller-provided source/lattice order.
   for (final materialId in normalizedTarget.materialPalette.skip(1)) {
     retain(materialId);
   }
-  for (final label in const [
-    'materialCells',
-    'horizontalEdges',
-    'verticalEdges',
-    'corners',
-  ]) {
-    for (final materialId in mergedMaterials[label]!) {
+  for (final values in mergedMaterials.values) {
+    for (final materialId in values) {
       if (materialId != null) retain(materialId);
     }
   }
-  List<int> encode(String label) => [
-        for (final materialId in mergedMaterials[label]!)
+  final encoded = <String, List<int>>{
+    for (final entry in mergedMaterials.entries)
+      entry.key: <int>[
+        for (final materialId in entry.value)
           materialId == null ? 0 : paletteIndex[materialId]!,
-      ];
+      ],
+  };
 
   return SmartTileLayerUnionResult(
     layer: normalizedTarget.copyWith(
       materialPalette: List.unmodifiable(palette),
-      materialCells: encode('materialCells'),
-      horizontalEdges: encode('horizontalEdges'),
-      verticalEdges: encode('verticalEdges'),
-      corners: encode('corners'),
+      field: _fieldFromLattices(normalizedTarget.field, encoded),
     ),
     mergedEntryCounts: mergedEntryCounts,
   );
 }
 
-void _requireSameSmartTileLatticeLengths(
-  SmartTileLayer target,
-  SmartTileLayer source,
-) {
-  final targetLengths = <String, int>{
-    'materialCells': target.materialCells.length,
-    'horizontalEdges': target.horizontalEdges.length,
-    'verticalEdges': target.verticalEdges.length,
-    'corners': target.corners.length,
-  };
-  final sourceLengths = <String, int>{
-    'materialCells': source.materialCells.length,
-    'horizontalEdges': source.horizontalEdges.length,
-    'verticalEdges': source.verticalEdges.length,
-    'corners': source.corners.length,
-  };
-  for (final entry in targetLengths.entries) {
-    if (sourceLengths[entry.key] == entry.value) continue;
-    throw ValidationException(
-      'Smart Tile source ${source.id} has incompatible ${entry.key} length '
-      '${sourceLengths[entry.key]} (target ${entry.value})',
-    );
-  }
-}
+Map<String, List<int>> _activeLattices(SmartTileLayer layer) =>
+    switch (layer.field) {
+      SmartTileCellField(:final semanticCells) => <String, List<int>>{
+          'semanticCells': semanticCells,
+        },
+      SmartTileCornerField(:final semanticCells, :final corners) =>
+        <String, List<int>>{
+          'semanticCells': semanticCells,
+          'corners': corners,
+        },
+      SmartTileEdgeField(
+        :final semanticCells,
+        :final horizontalEdges,
+        :final verticalEdges,
+      ) =>
+        <String, List<int>>{
+          'semanticCells': semanticCells,
+          'horizontalEdges': horizontalEdges,
+          'verticalEdges': verticalEdges,
+        },
+      SmartTileMixedField(
+        :final semanticCells,
+        :final horizontalEdges,
+        :final verticalEdges,
+        :final corners,
+      ) =>
+        <String, List<int>>{
+          'semanticCells': semanticCells,
+          'horizontalEdges': horizontalEdges,
+          'verticalEdges': verticalEdges,
+          'corners': corners,
+        },
+    };
+
+SmartTileField _fieldFromLattices(
+  SmartTileField field,
+  Map<String, List<int>> lattices,
+) =>
+    switch (field) {
+      SmartTileCellField() => SmartTileField.cell(
+          semanticCells: lattices['semanticCells']!,
+        ),
+      SmartTileCornerField() => SmartTileField.corner(
+          semanticCells: lattices['semanticCells']!,
+          corners: lattices['corners']!,
+        ),
+      SmartTileEdgeField() => SmartTileField.edge(
+          semanticCells: lattices['semanticCells']!,
+          horizontalEdges: lattices['horizontalEdges']!,
+          verticalEdges: lattices['verticalEdges']!,
+        ),
+      SmartTileMixedField() => SmartTileField.mixed(
+          semanticCells: lattices['semanticCells']!,
+          horizontalEdges: lattices['horizontalEdges']!,
+          verticalEdges: lattices['verticalEdges']!,
+          corners: lattices['corners']!,
+        ),
+    };
+
+SmartTileField _withSemanticCells(SmartTileField field, List<int> values) =>
+    switch (field) {
+      SmartTileCellField() => SmartTileField.cell(semanticCells: values),
+      SmartTileCornerField(:final corners) => SmartTileField.corner(
+          semanticCells: values,
+          corners: corners,
+        ),
+      SmartTileEdgeField(:final horizontalEdges, :final verticalEdges) =>
+        SmartTileField.edge(
+          semanticCells: values,
+          horizontalEdges: horizontalEdges,
+          verticalEdges: verticalEdges,
+        ),
+      SmartTileMixedField(
+        :final horizontalEdges,
+        :final verticalEdges,
+        :final corners,
+      ) =>
+        SmartTileField.mixed(
+          semanticCells: values,
+          horizontalEdges: horizontalEdges,
+          verticalEdges: verticalEdges,
+          corners: corners,
+        ),
+    };
+
+SmartTileField _withHorizontalEdges(SmartTileField field, List<int> values) =>
+    switch (field) {
+      SmartTileEdgeField(:final semanticCells, :final verticalEdges) =>
+        SmartTileField.edge(
+          semanticCells: semanticCells,
+          horizontalEdges: values,
+          verticalEdges: verticalEdges,
+        ),
+      SmartTileMixedField(
+        :final semanticCells,
+        :final verticalEdges,
+        :final corners,
+      ) =>
+        SmartTileField.mixed(
+          semanticCells: semanticCells,
+          horizontalEdges: values,
+          verticalEdges: verticalEdges,
+          corners: corners,
+        ),
+      SmartTileCellField() ||
+      SmartTileCornerField() =>
+        throw const ValidationException(
+          'Smart Tile field has no horizontal edge lattice',
+        ),
+    };
+
+SmartTileField _withVerticalEdges(SmartTileField field, List<int> values) =>
+    switch (field) {
+      SmartTileEdgeField(:final semanticCells, :final horizontalEdges) =>
+        SmartTileField.edge(
+          semanticCells: semanticCells,
+          horizontalEdges: horizontalEdges,
+          verticalEdges: values,
+        ),
+      SmartTileMixedField(
+        :final semanticCells,
+        :final horizontalEdges,
+        :final corners,
+      ) =>
+        SmartTileField.mixed(
+          semanticCells: semanticCells,
+          horizontalEdges: horizontalEdges,
+          verticalEdges: values,
+          corners: corners,
+        ),
+      SmartTileCellField() ||
+      SmartTileCornerField() =>
+        throw const ValidationException(
+          'Smart Tile field has no vertical edge lattice',
+        ),
+    };
+
+SmartTileField _withCorners(SmartTileField field, List<int> values) =>
+    switch (field) {
+      SmartTileCornerField(:final semanticCells) => SmartTileField.corner(
+          semanticCells: semanticCells,
+          corners: values,
+        ),
+      SmartTileMixedField(
+        :final semanticCells,
+        :final horizontalEdges,
+        :final verticalEdges,
+      ) =>
+        SmartTileField.mixed(
+          semanticCells: semanticCells,
+          horizontalEdges: horizontalEdges,
+          verticalEdges: verticalEdges,
+          corners: values,
+        ),
+      SmartTileCellField() ||
+      SmartTileEdgeField() =>
+        throw const ValidationException(
+            'Smart Tile field has no corner lattice'),
+    };
 
 List<String?> _resolvedSmartTileMaterials(
   SmartTileLayer layer,

@@ -28,11 +28,17 @@ void main() {
       name: 'Wang',
       usage: SmartTileUsage.path,
       topology: SmartTileTopology.wangEdge4,
+      coveragePolicy: SmartTileCoveragePolicy.sparse,
+      coverageProfile: SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.template,
+      ),
+      transformPolicy: SmartTileTransformPolicy(),
       defaultMaterialId: 'dirt',
       allowedMaterialIds: <String>['dirt', 'grass'],
       rules: <SmartTileRule>[
         SmartTileRule(
           id: 'fallback',
+          centerMatch: SmartTileSlotMatch.any(),
           candidates: <SmartTileCandidate>[
             SmartTileCandidate(
               id: 'fallback',
@@ -52,6 +58,7 @@ void main() {
         ),
         SmartTileRule(
           id: 'grass_north',
+          centerMatch: SmartTileSlotMatch.any(),
           signature: SmartTileSignature(
             northEdge: SmartTileSlotMatch.material('grass'),
           ),
@@ -80,15 +87,16 @@ void main() {
       presetId: 'wang',
       usage: SmartTileUsage.path,
       materialPalette: <String>['', 'dirt', 'grass'],
-      materialCells: <int>[1],
-      horizontalEdges: <int>[2, 0],
-      verticalEdges: <int>[0, 0],
-      corners: <int>[0, 0, 0, 0],
+      field: SmartTileField.edge(
+        semanticCells: <int>[1],
+        horizontalEdges: <int>[2, 0],
+        verticalEdges: <int>[0, 0],
+      ),
     );
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v4,
+      version: ProjectVersion.v5,
       size: GridSize(width: 1, height: 1),
       layers: <MapLayer>[layer],
     );
@@ -116,11 +124,17 @@ void main() {
       name: 'Forest',
       usage: SmartTileUsage.forestSurface,
       topology: SmartTileTopology.cardinal4,
+      coveragePolicy: SmartTileCoveragePolicy.sparse,
+      coverageProfile: SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.template,
+      ),
+      transformPolicy: SmartTileTransformPolicy(),
       defaultMaterialId: 'grass',
       allowedMaterialIds: <String>['grass'],
       rules: <SmartTileRule>[
         SmartTileRule(
           id: 'any',
+          centerMatch: SmartTileSlotMatch.any(),
           candidates: <SmartTileCandidate>[
             SmartTileCandidate(
               id: 'forest',
@@ -134,6 +148,8 @@ void main() {
                     ),
                   ),
                   channel: SmartTileRenderChannel.ground,
+                  footprintWidth: 2,
+                  footprintHeight: 3,
                 ),
                 SmartTileVisualPart(
                   source: SmartTileVisualSource.frame(
@@ -158,15 +174,12 @@ void main() {
       presetId: 'forest',
       usage: SmartTileUsage.forestSurface,
       materialPalette: <String>['', 'grass'],
-      materialCells: <int>[1],
-      horizontalEdges: <int>[0, 0],
-      verticalEdges: <int>[0, 0],
-      corners: <int>[0, 0, 0, 0],
+      field: SmartTileField.cell(semanticCells: <int>[1]),
     );
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v4,
+      version: ProjectVersion.v5,
       size: GridSize(width: 1, height: 1),
       layers: <MapLayer>[layer],
     );
@@ -190,6 +203,8 @@ void main() {
     );
 
     expect(background.single.channel, SmartTileRenderChannel.ground);
+    expect(background.single.footprintWidth, 2);
+    expect(background.single.footprintHeight, 3);
     expect(foreground.single.channel, SmartTileRenderChannel.canopy);
   });
 
@@ -201,11 +216,17 @@ void main() {
       name: 'Large terrain',
       usage: SmartTileUsage.terrain,
       topology: SmartTileTopology.cardinal4,
+      coveragePolicy: SmartTileCoveragePolicy.complete,
+      coverageProfile: SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.template,
+      ),
+      transformPolicy: SmartTileTransformPolicy(),
       defaultMaterialId: 'grass',
       allowedMaterialIds: <String>['grass'],
       rules: <SmartTileRule>[
         SmartTileRule(
           id: 'any',
+          centerMatch: SmartTileSlotMatch.any(),
           candidates: <SmartTileCandidate>[
             SmartTileCandidate(
               id: 'ground',
@@ -231,15 +252,14 @@ void main() {
       presetId: preset.id,
       usage: SmartTileUsage.terrain,
       materialPalette: const <String>['', 'grass'],
-      materialCells: List<int>.filled(width * height, 1),
-      horizontalEdges: List<int>.filled(width * (height + 1), 0),
-      verticalEdges: List<int>.filled((width + 1) * height, 0),
-      corners: List<int>.filled((width + 1) * (height + 1), 0),
+      field: SmartTileField.cell(
+        semanticCells: List<int>.filled(width * height, 1),
+      ),
     );
     final map = MapData(
       id: 'large-map',
       name: 'Large map',
-      version: ProjectVersion.v4,
+      version: ProjectVersion.v5,
       size: const GridSize(width: width, height: height),
       layers: <MapLayer>[layer],
     );

@@ -205,7 +205,7 @@ Map<String, Object?> _sliceLayer(
         'encoding': 'grid_rows',
         'presetId': layer.presetId,
         'rows': _sliceFlat(
-          layer.materialCells,
+          smartTileSemanticCells(layer),
           mapWidth: mapWidth,
           query: query,
           encode: (value) => value,

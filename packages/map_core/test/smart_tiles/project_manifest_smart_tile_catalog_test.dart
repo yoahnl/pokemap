@@ -29,8 +29,8 @@ void main() {
       expect(roundTripped.smartTileCatalog.isEmpty, isTrue);
     });
 
-    test('non-empty catalog requires v4', () {
-      for (final version in <String>['v1', 'v2', 'v3']) {
+    test('non-empty catalog requires v5', () {
+      for (final version in <String>['v1', 'v2', 'v3', 'v4']) {
         final json = _minimalManifestJson(version: version)
           ..['smartTileCatalog'] = _nonEmptyCatalog.toJson();
 
@@ -48,8 +48,8 @@ void main() {
       }
     });
 
-    test('v4 persists a native catalog beside legacy authoring fields', () {
-      final json = _minimalManifestJson(version: 'v4')
+    test('v5 persists a native catalog beside empty legacy fields', () {
+      final json = _minimalManifestJson(version: 'v5')
         ..addAll(<String, Object?>{
           'terrainCategories': <Object?>[],
           'pathCategories': <Object?>[],
@@ -82,6 +82,11 @@ void main() {
         usage: SmartTileUsage.path,
         topology: SmartTileTopology.wangCorner4,
         templateHint: SmartTileTemplateHint.corner12,
+        coveragePolicy: SmartTileCoveragePolicy.complete,
+        coverageProfile: SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.template,
+        ),
+        transformPolicy: SmartTileTransformPolicy(),
         defaultMaterialId: 'grass',
         allowedMaterialIds: <String>['grass'],
       );

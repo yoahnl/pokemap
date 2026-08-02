@@ -275,15 +275,8 @@ final class _CanvasProfileFixture {
           presetId: 'smart-terrain',
           usage: SmartTileUsage.terrain,
           materialPalette: const <String>['', 'grass'],
-          materialCells: List<int>.filled(cellCount, 1, growable: false),
-          horizontalEdges:
-              List<int>.filled(extent * (extent + 1), 0, growable: false),
-          verticalEdges:
-              List<int>.filled((extent + 1) * extent, 0, growable: false),
-          corners: List<int>.filled(
-            (extent + 1) * (extent + 1),
-            0,
-            growable: false,
+          field: SmartTileField.cell(
+            semanticCells: List<int>.filled(cellCount, 1, growable: false),
           ),
         ),
       );
@@ -323,7 +316,7 @@ final class _CanvasProfileFixture {
       map: MapData(
         id: '${mode.name}-$extent',
         name: '${mode.name} $extent',
-        version: ProjectVersion.v4,
+        version: ProjectVersion.v5,
         size: GridSize(width: extent, height: extent),
         layers: layers,
         placedElements: placedElements,
@@ -334,6 +327,7 @@ final class _CanvasProfileFixture {
 
 final _profileProject = ProjectManifest(
   name: 'Canvas projection profile',
+  version: ProjectVersion.v5,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[],
   surfaceCatalog: const ProjectSurfaceCatalog.empty(),
@@ -360,11 +354,17 @@ final _profileProject = ProjectManifest(
         name: 'Smart terrain',
         usage: SmartTileUsage.terrain,
         topology: SmartTileTopology.cardinal4,
+        coveragePolicy: SmartTileCoveragePolicy.complete,
+        coverageProfile: SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.template,
+        ),
+        transformPolicy: SmartTileTransformPolicy(),
         defaultMaterialId: 'grass',
         allowedMaterialIds: <String>['grass'],
         rules: <SmartTileRule>[
           SmartTileRule(
             id: 'ground',
+            centerMatch: SmartTileSlotMatch.any(),
             candidates: <SmartTileCandidate>[
               SmartTileCandidate(
                 id: 'ground',

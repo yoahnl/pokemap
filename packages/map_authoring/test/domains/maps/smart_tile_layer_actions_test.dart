@@ -25,6 +25,100 @@ void main() {
       }
     });
 
+    test('rejects pre-v5 normalize and merge without a partial transition', () {
+      final fixture = _m01Fixture(version: ProjectVersion.v4);
+      final beforeMap = fixture.map.toJson();
+      final beforeManifest = fixture.manifest.toJson();
+      final beforeBytes = fixture.snapshot.resourceBytes(
+        'map:map_hanazuki_village',
+      );
+      final beforeRevision = fixture.snapshot.revision;
+      final cases = <({String actionId, Map<String, Object?> parameters})>[
+        (
+          actionId: 'smart_tile.layer.normalize',
+          parameters: const {
+            'mapId': 'map_hanazuki_village',
+            'layerId': 'l_qc02_terrain',
+          },
+        ),
+        (
+          actionId: 'smart_tile.layer.merge',
+          parameters: _mergeParameters,
+        ),
+      ];
+
+      for (final testCase in cases) {
+        expect(
+          () => const SmartTileLayerActions().build(
+            _context(
+              fixture.snapshot,
+              actionId: testCase.actionId,
+              parameters: testCase.parameters,
+            ),
+          ),
+          throwsA(
+            isA<MapAuthoringException>()
+                .having(
+                  (error) => error.code,
+                  'code',
+                  smartTileNativeAuthoringRequiresStn03Code,
+                )
+                .having(
+                  (error) => error.details['operation'],
+                  'operation',
+                  testCase.actionId,
+                ),
+          ),
+        );
+        expect(fixture.map.toJson(), beforeMap);
+        expect(fixture.manifest.toJson(), beforeManifest);
+        expect(
+          fixture.snapshot.resourceBytes('map:map_hanazuki_village'),
+          beforeBytes,
+        );
+        expect(fixture.snapshot.revision, beforeRevision);
+      }
+    });
+
+    test('JSONL rejects pre-v5 maintenance without revision or file changes',
+        () async {
+      for (final testCase in <({
+        String slug,
+        String actionId,
+        Map<String, Object?> parameters,
+      })>[
+        (
+          slug: 'normalize',
+          actionId: 'smart_tile.layer.normalize',
+          parameters: const {
+            'mapId': 'map_hanazuki_village',
+            'layerId': 'l_qc02_terrain',
+          },
+        ),
+        (
+          slug: 'merge',
+          actionId: 'smart_tile.layer.merge',
+          parameters: _mergeParameters,
+        ),
+      ]) {
+        final harness = await _M01TransportHarness.create(
+          'pre_v5_${testCase.slug}',
+          version: ProjectVersion.v4,
+        );
+        addTearDown(harness.dispose);
+
+        final result = await harness.rejectJsonl(
+          actionId: testCase.actionId,
+          parameters: testCase.parameters,
+          sequence: 'reject_${testCase.slug}',
+        );
+
+        expect(result.code, smartTileNativeAuthoringRequiresStn03Code);
+        expect(result.afterRevision, result.beforeRevision);
+        expect(result.afterMapBytes, result.beforeMapBytes);
+      }
+    });
+
     test('normalizes the M01 terrain without losing metadata or layer order',
         () {
       final fixture = _m01Fixture();
@@ -48,10 +142,17 @@ void main() {
         fixture.map.layers.map((layer) => layer.id),
       );
       expect(normalized.materialPalette, ['', 'grass']);
-      expect(normalized.materialCells, beforeLayer.materialCells);
-      expect(normalized.horizontalEdges, beforeLayer.horizontalEdges);
-      expect(normalized.verticalEdges, beforeLayer.verticalEdges);
-      expect(normalized.corners, beforeLayer.corners);
+      expect(smartTileSemanticCells(normalized),
+          smartTileSemanticCells(beforeLayer));
+      expect(
+        smartTileHorizontalEdges(normalized),
+        smartTileHorizontalEdges(beforeLayer),
+      );
+      expect(
+        smartTileVerticalEdges(normalized),
+        smartTileVerticalEdges(beforeLayer),
+      );
+      expect(smartTileCorners(normalized), smartTileCorners(beforeLayer));
       expect(normalized.id, beforeLayer.id);
       expect(normalized.name, beforeLayer.name);
       expect(normalized.isVisible, beforeLayer.isVisible);
@@ -121,11 +222,17 @@ void main() {
         ],
       );
       expect(target.materialPalette, ['', 'dirt']);
-      expect(target.materialCells, [0, 1, 0, 1, 1, 1, 0, 1, 0]);
-      expect(target.horizontalEdges, [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]);
-      expect(target.verticalEdges, [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]);
+      expect(smartTileSemanticCells(target), [0, 1, 0, 1, 1, 1, 0, 1, 0]);
       expect(
-        target.corners,
+        smartTileHorizontalEdges(target),
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+      );
+      expect(
+        smartTileVerticalEdges(target),
+        [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+      );
+      expect(
+        smartTileCorners(target),
         [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
       );
       expect(target.id, targetBefore.id);
@@ -188,7 +295,7 @@ void main() {
       final target = _projectedMap(draft).layers[2] as SmartTileLayer;
 
       expect(target.materialPalette, ['', 'dirt']);
-      expect(target.materialCells, [0, 1, 0, 1, 1, 1, 0, 1, 0]);
+      expect(smartTileSemanticCells(target), [0, 1, 0, 1, 1, 1, 0, 1, 0]);
       expect(draft.preview['materialMappingsApplied'], 1);
     });
 
@@ -238,7 +345,12 @@ void main() {
         layers: [
           ...fixture.map.layers.take(3),
           source.copyWith(
-            materialCells: source.materialCells.take(8).toList(),
+            field: SmartTileField.mixed(
+              semanticCells: smartTileSemanticCells(source).take(8).toList(),
+              horizontalEdges: smartTileHorizontalEdges(source),
+              verticalEdges: smartTileVerticalEdges(source),
+              corners: smartTileCorners(source),
+            ),
           ),
           fixture.map.layers[4],
         ],
@@ -269,7 +381,7 @@ void main() {
               .having(
                 (error) => error.details['field'],
                 'field',
-                'materialCells',
+                'semanticCells',
               ),
         ),
       );
@@ -292,6 +404,12 @@ void main() {
               name: 'Blob path',
               usage: SmartTileUsage.path,
               topology: SmartTileTopology.blob8,
+              templateHint: SmartTileTemplateHint.blob47,
+              coveragePolicy: SmartTileCoveragePolicy.complete,
+              coverageProfile: SmartTileCoverageProfile(
+                mode: SmartTileCoverageMode.template,
+              ),
+              transformPolicy: SmartTileTransformPolicy(),
               defaultMaterialId: 'dirt',
               allowedMaterialIds: ['dirt'],
             ),
@@ -361,7 +479,7 @@ void main() {
               .having(
                 (error) => error.details['lattice'],
                 'lattice',
-                'materialCells',
+                'semanticCells',
               )
               .having((error) => error.details['offset'], 'offset', 4),
         ),
@@ -378,6 +496,8 @@ void main() {
       final jsonlResult = await jsonl.applyJsonl();
 
       expect(jsonlResult.map.toJson(), directResult.map.toJson());
+      expect(directResult.map.version, ProjectVersion.v5);
+      expect(jsonlResult.map.version, ProjectVersion.v5);
       expect(directResult.actionIds, [
         'smart_tile.layer.normalize',
         'smart_tile.layer.merge',
@@ -387,7 +507,11 @@ void main() {
         directResult.validation,
         jsonlResult.validation,
       ]) {
-        expect(validation['valid'], isTrue);
+        expect(
+          validation['valid'],
+          isTrue,
+          reason: validation.toString(),
+        );
         expect(validation['structure'], containsPair('valid', true));
         expect(validation['references'], containsPair('valid', true));
         expect(
@@ -405,7 +529,7 @@ void main() {
         ],
       );
       final merged = directResult.map.layers[2] as SmartTileLayer;
-      expect(merged.materialCells, [0, 1, 0, 1, 1, 1, 0, 1, 0]);
+      expect(smartTileSemanticCells(merged), [0, 1, 0, 1, 1, 1, 0, 1, 0]);
       expect(merged.name, 'Target path metadata');
       expect(merged.properties, {'role': 'main', 'keep': 'yes'});
     });
@@ -421,16 +545,29 @@ final class _M01TransportHarness {
     required this.worker,
   });
 
-  static Future<_M01TransportHarness> create(String label) async {
+  static Future<_M01TransportHarness> create(
+    String label, {
+    ProjectVersion version = ProjectVersion.v5,
+  }) async {
     final root = await Directory.systemTemp.createTemp('m01_$label');
-    final fixture = _m01Fixture();
+    final fixture = _m01Fixture(version: version);
+    final persistedManifest = version == ProjectVersion.v5
+        ? fixture.manifest
+        : fixture.manifest.copyWith(
+            smartTileCatalog: ProjectSmartTileCatalog(),
+          );
+    final persistedMap = version == ProjectVersion.v5
+        ? fixture.map
+        : fixture.map.copyWith(
+            layers: [fixture.map.layers.first, fixture.map.layers.last],
+          );
     await Directory('${root.path}/maps').create();
     await File('${root.path}/project.json').writeAsString(
-      const JsonEncoder.withIndent('  ').convert(fixture.manifest.toJson()),
+      const JsonEncoder.withIndent('  ').convert(persistedManifest.toJson()),
       flush: true,
     );
     await File('${root.path}/maps/map_hanazuki_village.json').writeAsString(
-      const JsonEncoder.withIndent('  ').convert(fixture.map.toJson()),
+      const JsonEncoder.withIndent('  ').convert(persistedMap.toJson()),
       flush: true,
     );
     const reader = LocalProjectFileReader();
@@ -466,6 +603,46 @@ final class _M01TransportHarness {
   final LocalMapAuthoringMutationApi mutations;
   final ProjectSnapshotLoader snapshots;
   final JsonlWorker worker;
+
+  Future<
+      ({
+        String code,
+        String beforeRevision,
+        String afterRevision,
+        List<int> beforeMapBytes,
+        List<int> afterMapBytes,
+      })> rejectJsonl({
+    required String actionId,
+    required Map<String, Object?> parameters,
+    required String sequence,
+  }) async {
+    final opened = await _jsonl('open', {'projectRoot': root.path});
+    final projectHandle = opened['projectHandle']! as String;
+    final workspaceHandle = opened['workspaceHandle']! as String;
+    final project = ProjectHandle(projectHandle);
+    final before = await snapshots.load(project);
+    final mapFile = File('${root.path}/maps/map_hanazuki_village.json');
+    final beforeMapBytes = await mapFile.readAsBytes();
+    final rejected = await _jsonlResult('plan', {
+      'projectHandle': projectHandle,
+      'request': _transportRequest(
+        actionId: actionId,
+        parameters: parameters,
+        sequence: sequence,
+        workspaceHandle: workspaceHandle,
+        revision: before.revision,
+      ).toJson(),
+    });
+    expect(rejected.status, AuthoringResultStatus.failure);
+    final after = await snapshots.load(project);
+    return (
+      code: rejected.error?.details['domainCode']! as String,
+      beforeRevision: before.revision,
+      afterRevision: after.revision,
+      beforeMapBytes: beforeMapBytes,
+      afterMapBytes: await mapFile.readAsBytes(),
+    );
+  }
 
   Future<
       ({
@@ -592,17 +769,7 @@ final class _M01TransportHarness {
     String command,
     Map<String, Object?> args,
   ) async {
-    final decoded = AuthoringResult.fromJson(
-      jsonDecode(
-        await worker.processLine(
-          jsonEncode({
-            'id': 'm01_$command',
-            'command': command,
-            'args': args,
-          }),
-        ),
-      ) as Map<String, dynamic>,
-    );
+    final decoded = await _jsonlResult(command, args);
     expect(
       decoded.status,
       AuthoringResultStatus.success,
@@ -610,6 +777,22 @@ final class _M01TransportHarness {
     );
     return decoded.data;
   }
+
+  Future<AuthoringResult> _jsonlResult(
+    String command,
+    Map<String, Object?> args,
+  ) async =>
+      AuthoringResult.fromJson(
+        jsonDecode(
+          await worker.processLine(
+            jsonEncode({
+              'id': 'm01_$command',
+              'command': command,
+              'args': args,
+            }),
+          ),
+        ) as Map<String, dynamic>,
+      );
 
   Future<MapData> _readMap() async => MapData.fromJson(
         jsonDecode(
@@ -684,6 +867,7 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
   MapData map,
   ProjectSnapshot snapshot,
 }) _m01Fixture({
+  ProjectVersion version = ProjectVersion.v5,
   String sourceMaterialId = 'dirt',
   String sourcePresetId = 'path',
   SmartTileUsage sourceUsage = SmartTileUsage.path,
@@ -692,7 +876,7 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
   final sourceMaterial = conflictingSourceMaterial ?? sourceMaterialId;
   final manifest = ProjectManifest(
     name: 'M01 Smart Tile fixture',
-    version: ProjectVersion.v4,
+    version: version,
     maps: const [
       ProjectMapEntry(
         id: 'map_hanazuki_village',
@@ -735,7 +919,13 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
           id: 'terrain',
           name: 'Terrain',
           usage: SmartTileUsage.terrain,
-          topology: SmartTileTopology.cardinal4,
+          topology: SmartTileTopology.wang8,
+          templateHint: SmartTileTemplateHint.mixed256,
+          coveragePolicy: SmartTileCoveragePolicy.complete,
+          coverageProfile: SmartTileCoverageProfile(
+            mode: SmartTileCoverageMode.template,
+          ),
+          transformPolicy: SmartTileTransformPolicy(),
           defaultMaterialId: 'grass',
           allowedMaterialIds: ['grass'],
         ),
@@ -743,7 +933,13 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
           id: 'path',
           name: 'Path',
           usage: SmartTileUsage.path,
-          topology: SmartTileTopology.cardinal4,
+          topology: SmartTileTopology.wang8,
+          templateHint: SmartTileTemplateHint.mixed256,
+          coveragePolicy: SmartTileCoveragePolicy.complete,
+          coverageProfile: SmartTileCoverageProfile(
+            mode: SmartTileCoverageMode.template,
+          ),
+          transformPolicy: SmartTileTransformPolicy(),
           defaultMaterialId: 'dirt',
           allowedMaterialIds: ['dirt', 'stone'],
         ),
@@ -751,7 +947,13 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
           id: 'path_compacted',
           name: 'Compacted path',
           usage: SmartTileUsage.path,
-          topology: SmartTileTopology.cardinal4,
+          topology: SmartTileTopology.wang8,
+          templateHint: SmartTileTemplateHint.mixed256,
+          coveragePolicy: SmartTileCoveragePolicy.complete,
+          coverageProfile: SmartTileCoverageProfile(
+            mode: SmartTileCoverageMode.template,
+          ),
+          transformPolicy: SmartTileTransformPolicy(),
           defaultMaterialId: 'compacted',
           allowedMaterialIds: ['compacted'],
         ),
@@ -760,7 +962,13 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
             id: 'forest',
             name: 'Forest',
             usage: SmartTileUsage.forestSurface,
-            topology: SmartTileTopology.cardinal4,
+            topology: SmartTileTopology.wang8,
+            templateHint: SmartTileTemplateHint.mixed256,
+            coveragePolicy: SmartTileCoveragePolicy.complete,
+            coverageProfile: SmartTileCoverageProfile(
+              mode: SmartTileCoverageMode.template,
+            ),
+            transformPolicy: SmartTileTransformPolicy(),
             defaultMaterialId: 'dirt',
             allowedMaterialIds: ['dirt'],
           ),
@@ -773,7 +981,7 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
     id: 'map_hanazuki_village',
     name: 'Hanazuki Village',
     size: const GridSize(width: 3, height: 3),
-    version: ProjectVersion.v4,
+    version: version,
     visualStack: MapVisualStackConfig.canonicalV1,
     layers: [
       MapLayer.tile(
@@ -789,10 +997,12 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
         presetId: 'terrain',
         usage: SmartTileUsage.terrain,
         materialPalette: const ['', 'grass', 'smart_material_empty'],
-        materialCells: List<int>.filled(9, 1),
-        horizontalEdges: List<int>.filled(12, 0),
-        verticalEdges: List<int>.filled(12, 0),
-        corners: List<int>.filled(16, 0),
+        field: SmartTileField.mixed(
+          semanticCells: List<int>.filled(9, 1),
+          horizontalEdges: List<int>.filled(12, 0),
+          verticalEdges: List<int>.filled(12, 0),
+          corners: List<int>.filled(16, 0),
+        ),
         layerSeed: 71,
         properties: const {'role': 'terrain', 'biome': 'village'},
       ),
@@ -804,10 +1014,12 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
         presetId: 'path',
         usage: SmartTileUsage.path,
         materialPalette: const ['', 'dirt'],
-        materialCells: const [0, 0, 0, 1, 1, 1, 0, 0, 0],
-        horizontalEdges: const [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        verticalEdges: List<int>.filled(12, 0),
-        corners: List<int>.filled(16, 0),
+        field: SmartTileField.mixed(
+          semanticCells: const [0, 0, 0, 1, 1, 1, 0, 0, 0],
+          horizontalEdges: const [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          verticalEdges: List<int>.filled(12, 0),
+          corners: List<int>.filled(16, 0),
+        ),
         layerSeed: 29,
         properties: const {'role': 'main', 'keep': 'yes'},
       ),
@@ -817,10 +1029,12 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
         presetId: resolvedSourcePreset,
         usage: sourceUsage,
         materialPalette: ['', sourceMaterial],
-        materialCells: const [0, 1, 0, 0, 1, 0, 0, 1, 0],
-        horizontalEdges: const [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
-        verticalEdges: const [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-        corners: const [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        field: const SmartTileField.mixed(
+          semanticCells: [0, 1, 0, 0, 1, 0, 0, 1, 0],
+          horizontalEdges: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+          verticalEdges: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+          corners: [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        ),
       ),
       MapLayer.collision(
         id: 'l_collisions',

@@ -80,6 +80,7 @@ void main() {
       final rules = <SmartTileRule>[
         SmartTileRule(
           id: 'empty-parts',
+          centerMatch: SmartTileSlotMatch.any(),
           signature: smartTileSignatureForMask(
             0,
             topology: SmartTileTopology.cardinal4,
@@ -100,8 +101,30 @@ void main() {
         _diagnostics(preset).map((item) => item.code),
         containsAll(<String>[
           'smart_tiles.visual.parts_missing',
+          'smart_tiles.visual.no_candidate',
           'smart_tiles.reference.fallback_rule_missing',
         ]),
+      );
+    });
+
+    test('fallback-only publication follows the persisted allowance', () {
+      final forbidden = _edgePreset(
+        rules: <SmartTileRule>[_rule(0, id: 'fallback')],
+        fallbackRuleId: 'fallback',
+      );
+      final allowed = _edgePreset(
+        rules: <SmartTileRule>[_rule(0, id: 'fallback')],
+        fallbackRuleId: 'fallback',
+        allowFallback: true,
+      );
+
+      expect(
+        _diagnostics(forbidden).map((item) => item.code),
+        contains('smart_tiles.coverage.fallback_only'),
+      );
+      expect(
+        _diagnostics(allowed).map((item) => item.code),
+        isNot(contains('smart_tiles.coverage.fallback_only')),
       );
     });
   });
@@ -140,6 +163,7 @@ ProjectSmartTilePreset _edgePreset({
   SmartTilePresetStatus status = SmartTilePresetStatus.published,
   List<SmartTileRule>? rules,
   String? fallbackRuleId,
+  bool allowFallback = false,
 }) {
   return ProjectSmartTilePreset(
     id: 'edge',
@@ -148,6 +172,12 @@ ProjectSmartTilePreset _edgePreset({
     topology: SmartTileTopology.cardinal4,
     templateHint: SmartTileTemplateHint.edge16,
     status: status,
+    coveragePolicy: SmartTileCoveragePolicy.complete,
+    coverageProfile: SmartTileCoverageProfile(
+      mode: SmartTileCoverageMode.template,
+      allowFallback: allowFallback,
+    ),
+    transformPolicy: const SmartTileTransformPolicy(),
     defaultMaterialId: 'grass',
     allowedMaterialIds: const <String>['grass'],
     fallbackRuleId: fallbackRuleId,
@@ -166,6 +196,11 @@ ProjectSmartTilePreset _corner12Preset() {
     topology: SmartTileTopology.wangCorner4,
     templateHint: SmartTileTemplateHint.corner12,
     status: SmartTilePresetStatus.published,
+    coveragePolicy: SmartTileCoveragePolicy.complete,
+    coverageProfile: const SmartTileCoverageProfile(
+      mode: SmartTileCoverageMode.template,
+    ),
+    transformPolicy: const SmartTileTransformPolicy(),
     defaultMaterialId: 'grass',
     allowedMaterialIds: const <String>['grass'],
     rules: <SmartTileRule>[
@@ -183,6 +218,7 @@ SmartTileRule _rule(
 }) {
   return SmartTileRule(
     id: id ?? smartTileCanonicalRuleId(mask),
+    centerMatch: const SmartTileSlotMatch.any(),
     signature: smartTileSignatureForMask(
       mask,
       topology: topology,

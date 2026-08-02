@@ -10,6 +10,7 @@ import 'path_actions.dart';
 import 'semantic_map_action_support.dart';
 import 'surface_actions.dart';
 import 'terrain_actions.dart';
+import 'smart_tile_transition_guards.dart';
 
 final class SemanticAutotileRegion {
   const SemanticAutotileRegion({
@@ -435,7 +436,7 @@ final class SemanticAutotileResolver {
         } else {
           for (var y = resolution.y; y < resolution.bottom; y++) {
             for (var x = resolution.x; x < resolution.right; x++) {
-              final neighborhood = smartTileNeighborhoodForLayerCell(
+              final context = smartTileCellContextForLayerCell(
                 layer: smart,
                 map: map,
                 preset: preset,
@@ -445,7 +446,7 @@ final class SemanticAutotileResolver {
               final resolved = resolveSmartTile(
                 preset: preset,
                 materials: manifest.smartTileCatalog.materials,
-                neighborhood: neighborhood,
+                context: context,
                 x: x,
                 y: y,
                 mapId: map.id,
@@ -453,8 +454,7 @@ final class SemanticAutotileResolver {
                 projectSeed: seed,
                 layerSeed: smart.layerSeed,
               );
-              if (resolved.status ==
-                  SmartTileResolutionStatus.noCenterMaterial) {
+              if (resolved.status == SmartTileResolutionStatus.noIntent) {
                 continue;
               }
               if (resolved.status != SmartTileResolutionStatus.resolved) {
@@ -555,6 +555,25 @@ final class AutotileActions {
         'map.request_invalid',
         'semanticParameters must not override the outer mapId.',
       );
+    }
+    final map = planning.snapshot.mapById(mapId);
+    if (map != null && map.version == ProjectVersion.v5) {
+      final layerId = semanticParameters['layerId'];
+      final targetsNativeLayer = layerId is String &&
+          map.layers.any(
+            (layer) => layer.id == layerId && layer is SmartTileLayer,
+          );
+      final declaresNativeLayer =
+          semanticParameters['layerKind'] == 'smart_tile';
+      if (targetsNativeLayer ||
+          declaresNativeLayer ||
+          semanticActionId.startsWith('smart_tile.')) {
+        throw nativeSmartTileAuthoringRequiresStn03(
+          map: map,
+          operation: 'autotile.apply',
+          layerId: layerId is String ? layerId : null,
+        );
+      }
     }
     final innerRequest = AuthoringRequest(
       requestId: '${planning.request.requestId}_semantic',

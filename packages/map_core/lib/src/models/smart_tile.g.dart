@@ -94,6 +94,96 @@ Map<String, dynamic> _$$SmartTileSignatureImplToJson(
       'westEdge': instance.westEdge.toJson(),
     };
 
+_$SmartTileExactSignatureImpl _$$SmartTileExactSignatureImplFromJson(
+        Map<String, dynamic> json) =>
+    _$SmartTileExactSignatureImpl(
+      northEdge: json['northEdge'] as String?,
+      northEastCorner: json['northEastCorner'] as String?,
+      eastEdge: json['eastEdge'] as String?,
+      southEastCorner: json['southEastCorner'] as String?,
+      southEdge: json['southEdge'] as String?,
+      southWestCorner: json['southWestCorner'] as String?,
+      westEdge: json['westEdge'] as String?,
+      northWestCorner: json['northWestCorner'] as String?,
+    );
+
+Map<String, dynamic> _$$SmartTileExactSignatureImplToJson(
+        _$SmartTileExactSignatureImpl instance) =>
+    <String, dynamic>{
+      'northEdge': instance.northEdge,
+      'northEastCorner': instance.northEastCorner,
+      'eastEdge': instance.eastEdge,
+      'southEastCorner': instance.southEastCorner,
+      'southEdge': instance.southEdge,
+      'southWestCorner': instance.southWestCorner,
+      'westEdge': instance.westEdge,
+      'northWestCorner': instance.northWestCorner,
+    };
+
+_$SmartTileCoverageScenarioImpl _$$SmartTileCoverageScenarioImplFromJson(
+        Map<String, dynamic> json) =>
+    _$SmartTileCoverageScenarioImpl(
+      id: json['id'] as String,
+      centerMaterialId: json['centerMaterialId'] as String?,
+      signature: json['signature'] == null
+          ? const SmartTileExactSignature()
+          : SmartTileExactSignature.fromJson(
+              json['signature'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$$SmartTileCoverageScenarioImplToJson(
+        _$SmartTileCoverageScenarioImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'centerMaterialId': instance.centerMaterialId,
+      'signature': instance.signature.toJson(),
+    };
+
+_$SmartTileCoverageProfileImpl _$$SmartTileCoverageProfileImplFromJson(
+        Map<String, dynamic> json) =>
+    _$SmartTileCoverageProfileImpl(
+      mode: $enumDecode(_$SmartTileCoverageModeEnumMap, json['mode']),
+      requiredScenarios: (json['requiredScenarios'] as List<dynamic>?)
+              ?.map((e) =>
+                  SmartTileCoverageScenario.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <SmartTileCoverageScenario>[],
+      allowFallback: json['allowFallback'] as bool? ?? false,
+    );
+
+Map<String, dynamic> _$$SmartTileCoverageProfileImplToJson(
+        _$SmartTileCoverageProfileImpl instance) =>
+    <String, dynamic>{
+      'mode': _$SmartTileCoverageModeEnumMap[instance.mode]!,
+      'requiredScenarios':
+          instance.requiredScenarios.map((e) => e.toJson()).toList(),
+      'allowFallback': instance.allowFallback,
+    };
+
+const _$SmartTileCoverageModeEnumMap = {
+  SmartTileCoverageMode.template: 'template',
+  SmartTileCoverageMode.explicit: 'explicit',
+  SmartTileCoverageMode.templateAndExplicit: 'template_and_explicit',
+};
+
+_$SmartTileTransformPolicyImpl _$$SmartTileTransformPolicyImplFromJson(
+        Map<String, dynamic> json) =>
+    _$SmartTileTransformPolicyImpl(
+      allowHFlip: json['allowHFlip'] as bool? ?? false,
+      allowVFlip: json['allowVFlip'] as bool? ?? false,
+      allowQuarterTurns: json['allowQuarterTurns'] as bool? ?? false,
+      preferUntransformed: json['preferUntransformed'] as bool? ?? true,
+    );
+
+Map<String, dynamic> _$$SmartTileTransformPolicyImplToJson(
+        _$SmartTileTransformPolicyImpl instance) =>
+    <String, dynamic>{
+      'allowHFlip': instance.allowHFlip,
+      'allowVFlip': instance.allowVFlip,
+      'allowQuarterTurns': instance.allowQuarterTurns,
+      'preferUntransformed': instance.preferUntransformed,
+    };
+
 _$SmartTileFrameSourceImpl _$$SmartTileFrameSourceImplFromJson(
         Map<String, dynamic> json) =>
     _$SmartTileFrameSourceImpl(
@@ -203,6 +293,8 @@ Map<String, dynamic> _$$SmartTileCandidateImplToJson(
 _$SmartTileRuleImpl _$$SmartTileRuleImplFromJson(Map<String, dynamic> json) =>
     _$SmartTileRuleImpl(
       id: json['id'] as String,
+      centerMatch: SmartTileSlotMatch.fromJson(
+          json['centerMatch'] as Map<String, dynamic>),
       signature: json['signature'] == null
           ? const SmartTileSignature()
           : SmartTileSignature.fromJson(
@@ -217,6 +309,7 @@ _$SmartTileRuleImpl _$$SmartTileRuleImplFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$$SmartTileRuleImplToJson(_$SmartTileRuleImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'centerMatch': instance.centerMatch.toJson(),
       'signature': instance.signature.toJson(),
       'candidates': instance.candidates.map((e) => e.toJson()).toList(),
     };
@@ -286,6 +379,8 @@ _$ProjectSmartTileMaterialImpl _$$ProjectSmartTileMaterialImplFromJson(
       categoryId: json['categoryId'] as String? ?? '',
       terrainType:
           $enumDecodeNullable(_$TerrainTypeEnumMap, json['terrainType']),
+      pathSurfaceKind: $enumDecodeNullable(
+          _$PathSurfaceKindEnumMap, json['pathSurfaceKind']),
       isEmpty: json['isEmpty'] as bool? ?? false,
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
       editorColorArgb: (json['editorColorArgb'] as num?)?.toInt(),
@@ -299,6 +394,7 @@ Map<String, dynamic> _$$ProjectSmartTileMaterialImplToJson(
       'connectionGroupId': instance.connectionGroupId,
       'categoryId': instance.categoryId,
       'terrainType': _$TerrainTypeEnumMap[instance.terrainType],
+      'pathSurfaceKind': _$PathSurfaceKindEnumMap[instance.pathSurfaceKind],
       'isEmpty': instance.isEmpty,
       'sortOrder': instance.sortOrder,
       'editorColorArgb': instance.editorColorArgb,
@@ -312,6 +408,20 @@ const _$TerrainTypeEnumMap = {
   TerrainType.rock: 'rock',
   TerrainType.stone: 'stone',
   TerrainType.indoor: 'indoor',
+};
+
+const _$PathSurfaceKindEnumMap = {
+  PathSurfaceKind.path: 'path',
+  PathSurfaceKind.road: 'road',
+  PathSurfaceKind.water: 'water',
+  PathSurfaceKind.tallGrass: 'tall_grass',
+  PathSurfaceKind.ice: 'ice',
+  PathSurfaceKind.lava: 'lava',
+  PathSurfaceKind.swamp: 'swamp',
+  PathSurfaceKind.rails: 'rails',
+  PathSurfaceKind.bridge: 'bridge',
+  PathSurfaceKind.special: 'special',
+  PathSurfaceKind.custom: 'custom',
 };
 
 _$ProjectSmartTileAnimationFrameImpl
@@ -384,6 +494,12 @@ _$ProjectSmartTilePresetImpl _$$ProjectSmartTilePresetImplFromJson(
       status:
           $enumDecodeNullable(_$SmartTilePresetStatusEnumMap, json['status']) ??
               SmartTilePresetStatus.draft,
+      coveragePolicy:
+          $enumDecode(_$SmartTileCoveragePolicyEnumMap, json['coveragePolicy']),
+      coverageProfile: SmartTileCoverageProfile.fromJson(
+          json['coverageProfile'] as Map<String, dynamic>),
+      transformPolicy: SmartTileTransformPolicy.fromJson(
+          json['transformPolicy'] as Map<String, dynamic>),
       defaultMaterialId: json['defaultMaterialId'] as String,
       allowedMaterialIds: (json['allowedMaterialIds'] as List<dynamic>)
           .map((e) => e as String)
@@ -412,6 +528,10 @@ Map<String, dynamic> _$$ProjectSmartTilePresetImplToJson(
       'boundaryPolicy':
           _$SmartTileBoundaryPolicyEnumMap[instance.boundaryPolicy]!,
       'status': _$SmartTilePresetStatusEnumMap[instance.status]!,
+      'coveragePolicy':
+          _$SmartTileCoveragePolicyEnumMap[instance.coveragePolicy]!,
+      'coverageProfile': instance.coverageProfile.toJson(),
+      'transformPolicy': instance.transformPolicy.toJson(),
       'defaultMaterialId': instance.defaultMaterialId,
       'allowedMaterialIds': instance.allowedMaterialIds,
       'rules': instance.rules.map((e) => e.toJson()).toList(),
@@ -428,6 +548,7 @@ const _$SmartTileUsageEnumMap = {
 };
 
 const _$SmartTileTopologyEnumMap = {
+  SmartTileTopology.uniform: 'uniform',
   SmartTileTopology.cardinal4: 'cardinal_4',
   SmartTileTopology.blob8: 'blob_8',
   SmartTileTopology.wangEdge4: 'wang_edge_4',
@@ -436,6 +557,7 @@ const _$SmartTileTopologyEnumMap = {
 };
 
 const _$SmartTileTemplateHintEnumMap = {
+  SmartTileTemplateHint.simple: 'simple',
   SmartTileTemplateHint.legacy20: 'legacy_20',
   SmartTileTemplateHint.edge16: 'edge_16',
   SmartTileTemplateHint.corner16: 'corner_16',
@@ -453,4 +575,9 @@ const _$SmartTileBoundaryPolicyEnumMap = {
 const _$SmartTilePresetStatusEnumMap = {
   SmartTilePresetStatus.draft: 'draft',
   SmartTilePresetStatus.published: 'published',
+};
+
+const _$SmartTileCoveragePolicyEnumMap = {
+  SmartTileCoveragePolicy.complete: 'complete',
+  SmartTileCoveragePolicy.sparse: 'sparse',
 };

@@ -10,6 +10,7 @@ import 'layer_actions.dart';
 import 'map_lifecycle_adapter.dart';
 import 'map_validation_diagnostics.dart';
 import 'region_operations.dart';
+import 'smart_tile_transition_guards.dart';
 
 /// Canonical compact batch action for layer and bounded region authoring.
 final class MapOperationsActions {
@@ -168,6 +169,7 @@ final class MapOperationsActions {
           });
         }
       } on MapAuthoringException catch (error) {
+        if (isSmartTileTransitionGuardCode(error.code)) rethrow;
         throw _operationFailure(index, kind, error);
       }
     }

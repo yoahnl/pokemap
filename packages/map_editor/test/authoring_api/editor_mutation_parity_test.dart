@@ -96,7 +96,7 @@ void main() {
         'path_target',
         'collisions',
       ]);
-      expect(target.materialCells, [0, 1, 0, 1, 1, 1, 0, 1, 0]);
+      expect(smartTileSemanticCells(target), [0, 1, 0, 1, 1, 1, 0, 1, 0]);
       expect(target.name, 'Target metadata');
       expect(target.isVisible, isFalse);
       expect(target.opacity, 0.5);
@@ -517,7 +517,7 @@ final class _MutationFixture {
     final root = await Directory.systemTemp.createTemp('pmcp_smart_editor_');
     final project = ProjectManifest(
       name: 'Smart Tile editor fixture',
-      version: ProjectVersion.v4,
+      version: ProjectVersion.v5,
       maps: const [
         ProjectMapEntry(
           id: 'm01',
@@ -551,6 +551,11 @@ final class _MutationFixture {
             name: 'Terrain',
             usage: SmartTileUsage.terrain,
             topology: SmartTileTopology.cardinal4,
+            coveragePolicy: SmartTileCoveragePolicy.complete,
+            coverageProfile: SmartTileCoverageProfile(
+              mode: SmartTileCoverageMode.template,
+            ),
+            transformPolicy: SmartTileTransformPolicy(),
             defaultMaterialId: 'grass',
             allowedMaterialIds: ['grass'],
           ),
@@ -559,6 +564,11 @@ final class _MutationFixture {
             name: 'Path',
             usage: SmartTileUsage.path,
             topology: SmartTileTopology.cardinal4,
+            coveragePolicy: SmartTileCoveragePolicy.complete,
+            coverageProfile: SmartTileCoverageProfile(
+              mode: SmartTileCoverageMode.template,
+            ),
+            transformPolicy: SmartTileTransformPolicy(),
             defaultMaterialId: 'dirt',
             allowedMaterialIds: ['dirt'],
           ),
@@ -569,7 +579,7 @@ final class _MutationFixture {
       id: 'm01',
       name: 'M01',
       size: GridSize(width: 3, height: 3),
-      version: ProjectVersion.v4,
+      version: ProjectVersion.v5,
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: [
         MapLayer.tile(
@@ -583,10 +593,9 @@ final class _MutationFixture {
           presetId: 'terrain',
           usage: SmartTileUsage.terrain,
           materialPalette: ['', 'grass', 'smart_material_empty'],
-          materialCells: [1, 1, 1, 1, 1, 1, 1, 1, 1],
-          horizontalEdges: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          verticalEdges: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          corners: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          field: SmartTileField.cell(
+            semanticCells: [1, 1, 1, 1, 1, 1, 1, 1, 1],
+          ),
         ),
         MapLayer.smartTile(
           id: 'path_target',
@@ -596,10 +605,9 @@ final class _MutationFixture {
           presetId: 'path',
           usage: SmartTileUsage.path,
           materialPalette: ['', 'dirt'],
-          materialCells: [0, 0, 0, 1, 1, 1, 0, 0, 0],
-          horizontalEdges: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          verticalEdges: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          corners: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          field: SmartTileField.cell(
+            semanticCells: [0, 0, 0, 1, 1, 1, 0, 0, 0],
+          ),
           layerSeed: 17,
           properties: {'keep': 'yes'},
         ),
@@ -609,10 +617,9 @@ final class _MutationFixture {
           presetId: 'path',
           usage: SmartTileUsage.path,
           materialPalette: ['', 'dirt'],
-          materialCells: [0, 1, 0, 0, 1, 0, 0, 1, 0],
-          horizontalEdges: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          verticalEdges: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          corners: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          field: SmartTileField.cell(
+            semanticCells: [0, 1, 0, 0, 1, 0, 0, 1, 0],
+          ),
         ),
         MapLayer.collision(
           id: 'collisions',

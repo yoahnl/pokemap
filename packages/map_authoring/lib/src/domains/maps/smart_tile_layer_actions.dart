@@ -4,6 +4,7 @@ import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'semantic_map_action_support.dart';
+import 'smart_tile_transition_guards.dart';
 
 /// Canonical Smart Tile maintenance actions shared by direct, JSONL, editor,
 /// and MCP transports. These actions operate on semantic materials only; they
@@ -40,6 +41,11 @@ final class SmartTileLayerActions {
       allowedParameters: const {'layerId'},
     );
     final layerId = context.parameters.string('layerId');
+    _requireNativeSmartTileProject(
+      context,
+      operation: 'smart_tile.layer.normalize',
+      layerId: layerId,
+    );
     final layer = _smartTileLayer(context.map, layerId);
     final result = normalizeSmartTileLayer(layer);
     final projected = replaceSmartTileLayer(context.map, layer: result.layer);
@@ -79,6 +85,11 @@ final class SmartTileLayerActions {
     );
     final parameters = context.parameters;
     final targetLayerId = parameters.string('targetLayerId');
+    _requireNativeSmartTileProject(
+      context,
+      operation: 'smart_tile.layer.merge',
+      layerId: targetLayerId,
+    );
     if (parameters.string('mode') != 'union') {
       throw invalidSemanticField('mode', '"union"');
     }
@@ -168,10 +179,7 @@ final class SmartTileLayerActions {
       if (removedSourceIds.contains(layer.id)) continue;
       layers.add(layer.id == targetLayerId ? union.layer : layer);
     }
-    final projected = context.map.copyWith(
-      version: ProjectVersion.v4,
-      layers: layers,
-    );
+    final projected = context.map.copyWith(layers: layers);
     return context.draftMap(
       after: projected,
       operation: 'smart_tile.layer.merge',
@@ -194,6 +202,22 @@ final class SmartTileLayerActions {
       },
     );
   }
+}
+
+void _requireNativeSmartTileProject(
+  SemanticMapActionContext context, {
+  required String operation,
+  required String layerId,
+}) {
+  if (context.map.version == ProjectVersion.v5 &&
+      context.manifest.version == ProjectVersion.v5) {
+    return;
+  }
+  throw nativeSmartTileAuthoringRequiresStn03(
+    map: context.map,
+    operation: operation,
+    layerId: layerId,
+  );
 }
 
 SmartTileLayer _smartTileLayer(MapData map, String layerId) {
@@ -235,16 +259,24 @@ List<String> _uniqueLayerIds(List<Object?> values, {required String field}) {
 
 void _requireExpectedDimensions(MapData map, SmartTileLayer layer) {
   final expected = <String, int>{
-    'materialCells': map.size.width * map.size.height,
-    'horizontalEdges': map.size.width * (map.size.height + 1),
-    'verticalEdges': (map.size.width + 1) * map.size.height,
-    'corners': (map.size.width + 1) * (map.size.height + 1),
+    'semanticCells': map.size.width * map.size.height,
+    if (layer.field is SmartTileEdgeField || layer.field is SmartTileMixedField)
+      'horizontalEdges': map.size.width * (map.size.height + 1),
+    if (layer.field is SmartTileEdgeField || layer.field is SmartTileMixedField)
+      'verticalEdges': (map.size.width + 1) * map.size.height,
+    if (layer.field is SmartTileCornerField ||
+        layer.field is SmartTileMixedField)
+      'corners': (map.size.width + 1) * (map.size.height + 1),
   };
   final actual = <String, int>{
-    'materialCells': layer.materialCells.length,
-    'horizontalEdges': layer.horizontalEdges.length,
-    'verticalEdges': layer.verticalEdges.length,
-    'corners': layer.corners.length,
+    'semanticCells': smartTileSemanticCells(layer).length,
+    if (layer.field is SmartTileEdgeField || layer.field is SmartTileMixedField)
+      'horizontalEdges': smartTileHorizontalEdges(layer).length,
+    if (layer.field is SmartTileEdgeField || layer.field is SmartTileMixedField)
+      'verticalEdges': smartTileVerticalEdges(layer).length,
+    if (layer.field is SmartTileCornerField ||
+        layer.field is SmartTileMixedField)
+      'corners': smartTileCorners(layer).length,
   };
   for (final entry in expected.entries) {
     if (actual[entry.key] == entry.value) continue;

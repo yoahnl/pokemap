@@ -1,5 +1,8 @@
 import 'package:map_core/map_core.dart';
 
+import 'smart_tile_authoring_controller.dart'
+    show smartTileNativeCatalogAuthoringRequiresStn03Code;
+
 final class SmartTilePublicationResult {
   const SmartTilePublicationResult({
     required this.published,
@@ -22,56 +25,23 @@ class SmartTilePublicationService {
     required ProjectManifest manifest,
     required String presetId,
   }) {
-    final catalog = manifest.smartTileCatalog;
-    final presetIndex =
-        catalog.presets.indexWhere((preset) => preset.id == presetId);
-    if (presetIndex < 0) {
-      return SmartTilePublicationResult(
-        published: false,
-        manifest: manifest,
-        diagnostics: <SmartTileDiagnostic>[
-          SmartTileDiagnostic(
-            code: 'smart_tiles.reference.preset_missing',
-            severity: SmartTileDiagnosticSeverity.error,
-            path: r'$.smartTileCatalog.presets',
-            message: 'Missing Smart Tile preset "$presetId".',
-            presetId: presetId,
-          ),
-        ],
-      );
-    }
-
-    final presets = List<ProjectSmartTilePreset>.from(catalog.presets);
-    presets[presetIndex] = presets[presetIndex].copyWith(
-      status: SmartTilePresetStatus.published,
-    );
-    final publishedCatalog = ProjectSmartTileCatalog(
-      formatVersion: catalog.formatVersion,
-      categories: catalog.categories,
-      atlases: catalog.atlases,
-      materials: catalog.materials,
-      animations: catalog.animations,
-      presets: presets,
-    );
-    final diagnostics = validateProjectSmartTileCatalog(
-      catalog: publishedCatalog,
-      projectTilesetIds: manifest.tilesets.map((tileset) => tileset.id),
-    );
-    if (diagnostics.any((item) => item.isError)) {
-      return SmartTilePublicationResult(
-        published: false,
-        manifest: manifest,
-        diagnostics: diagnostics,
-      );
-    }
-
+    // STN-01 can compile and validate in-memory drafts, but publication must
+    // remain atomic with the map/catalog transition introduced by STN-03.
+    // Returning the original object makes accidental persistence observable
+    // and guarantees that no partial v4/v5 manifest can escape this service.
     return SmartTilePublicationResult(
-      published: true,
-      manifest: manifest.copyWith(
-        version: ProjectVersion.v4,
-        smartTileCatalog: publishedCatalog,
-      ),
-      diagnostics: diagnostics,
+      published: false,
+      manifest: manifest,
+      diagnostics: <SmartTileDiagnostic>[
+        SmartTileDiagnostic(
+          code: smartTileNativeCatalogAuthoringRequiresStn03Code,
+          severity: SmartTileDiagnosticSeverity.error,
+          path: r'$.smartTileCatalog.presets',
+          message: 'Native Smart Tile catalog publication is deferred until '
+              'STN-03 can update the manifest and maps atomically.',
+          presetId: presetId,
+        ),
+      ],
     );
   }
 }

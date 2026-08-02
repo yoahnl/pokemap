@@ -1,4 +1,5 @@
 import '../models/smart_tile.dart';
+import 'smart_tile_cell_context.dart';
 
 const int smartTileNorthBit = 0x01;
 const int smartTileEastBit = 0x02;
@@ -20,6 +21,7 @@ const int smartTileEightNeighborMask = 0xff;
 /// signature. Free mappings are authored directly and have no generated set.
 List<int> smartTileCanonicalMasks(SmartTileTemplateHint template) {
   return switch (template) {
+    SmartTileTemplateHint.simple => const <int>[0],
     SmartTileTemplateHint.edge16 =>
       List<int>.unmodifiable(<int>[for (var mask = 0; mask < 16; mask++) mask]),
     SmartTileTemplateHint.corner16 => List<int>.unmodifiable(
@@ -86,6 +88,7 @@ SmartTileTopology smartTileTopologyForTemplate(
   SmartTileTemplateHint template,
 ) {
   return switch (template) {
+    SmartTileTemplateHint.simple => SmartTileTopology.uniform,
     SmartTileTemplateHint.edge16 => SmartTileTopology.wangEdge4,
     SmartTileTemplateHint.corner16 ||
     SmartTileTemplateHint.corner12 =>
@@ -111,6 +114,7 @@ SmartTileSignature smartTileSignatureForMask(
       : const SmartTileSlotMatch.different();
 
   return switch (topology) {
+    SmartTileTopology.uniform => const SmartTileSignature(),
     SmartTileTopology.cardinal4 ||
     SmartTileTopology.wangEdge4 =>
       SmartTileSignature(
@@ -136,6 +140,69 @@ SmartTileSignature smartTileSignatureForMask(
         westEdge: edge(smartTileWestBit),
       ),
   };
+}
+
+final class SmartTileTemplateCase {
+  const SmartTileTemplateCase({
+    required this.mask,
+    required this.topology,
+    required this.signature,
+    required this.context,
+  });
+
+  final int mask;
+  final SmartTileTopology topology;
+  final SmartTileSignature signature;
+  final SmartTileCellContext context;
+}
+
+/// Decodes one canonical template mask into its rule and observed context.
+///
+/// This is the sole mask-to-slot projection used by the test bench and future
+/// coverage analysis. It derives observed slots from the canonical signature,
+/// so bit positions are defined only by [smartTileSignatureForMask].
+SmartTileTemplateCase smartTileTemplateCaseForMask({
+  required int mask,
+  required SmartTileTopology topology,
+  required String materialId,
+}) {
+  final signature = smartTileSignatureForMask(mask, topology: topology);
+
+  SmartTileObservedSlot observed(SmartTileSlotMatch match) {
+    return switch (match.kind) {
+      SmartTileMatchKind.same => SmartTileObservedSlot.inside(
+          materialId: materialId,
+        ),
+      SmartTileMatchKind.different ||
+      SmartTileMatchKind.any ||
+      SmartTileMatchKind.empty =>
+        const SmartTileObservedSlot.inside(),
+      SmartTileMatchKind.material => SmartTileObservedSlot.inside(
+          materialId: match.materialId,
+        ),
+    };
+  }
+
+  return SmartTileTemplateCase(
+    mask: topology == SmartTileTopology.blob8
+        ? normalizeSmartTileBlobMask(mask)
+        : mask & smartTileEightNeighborMask,
+    topology: topology,
+    signature: signature,
+    context: SmartTileCellContext(
+      centerMaterialId: materialId,
+      observed: SmartTileObservedSignature(
+        northWestCorner: observed(signature.northWestCorner),
+        northEdge: observed(signature.northEdge),
+        northEastCorner: observed(signature.northEastCorner),
+        eastEdge: observed(signature.eastEdge),
+        southEastCorner: observed(signature.southEastCorner),
+        southEdge: observed(signature.southEdge),
+        southWestCorner: observed(signature.southWestCorner),
+        westEdge: observed(signature.westEdge),
+      ),
+    ),
+  );
 }
 
 /// Returns the canonical connectivity mask encoded by [signature].
@@ -170,6 +237,7 @@ int? smartTileMaskForSignature(
   }
 
   final mask = switch (topology) {
+    SmartTileTopology.uniform => _signatureUsesOnlyAny(signature) ? 0 : null,
     SmartTileTopology.cardinal4 || SmartTileTopology.wangEdge4 => combine(
         <(SmartTileSlotMatch, int)>[
           (signature.northEdge, smartTileNorthBit),
@@ -202,9 +270,77 @@ int? smartTileMaskForSignature(
   if (mask == null) {
     return null;
   }
-  return topology == SmartTileTopology.blob8
+  final canonicalMask = topology == SmartTileTopology.blob8
       ? normalizeSmartTileBlobMask(mask)
       : mask;
+  return smartTileSignatureForMask(canonicalMask, topology: topology) ==
+          signature
+      ? canonicalMask
+      : null;
+}
+
+bool _signatureUsesOnlyAny(SmartTileSignature signature) =>
+    <SmartTileSlotMatch>[
+      signature.northWestCorner,
+      signature.northEdge,
+      signature.northEastCorner,
+      signature.eastEdge,
+      signature.southEastCorner,
+      signature.southEdge,
+      signature.southWestCorner,
+      signature.westEdge,
+    ].every((match) => match.kind == SmartTileMatchKind.any);
+
+/// Generates the canonical rule skeleton for a native template.
+///
+/// Simple presets deliberately get one center-material rule per allowed
+/// material. Explicit empty materials are excluded unless the caller names
+/// them in [explicitEmptyMaterialIds].
+List<SmartTileRule> generateSmartTileTemplateRules({
+  required ProjectSmartTilePreset preset,
+  required Map<String, List<SmartTileCandidate>> candidatesByMaterialId,
+  required Iterable<ProjectSmartTileMaterial> materials,
+  Set<String> explicitEmptyMaterialIds = const <String>{},
+}) {
+  if (preset.templateHint == SmartTileTemplateHint.simple) {
+    final materialById = <String, ProjectSmartTileMaterial>{
+      for (final material in materials) material.id: material,
+    };
+    final ids = preset.allowedMaterialIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .where(
+          (id) =>
+              !(materialById[id]?.isEmpty ?? false) ||
+              explicitEmptyMaterialIds.contains(id),
+        )
+        .toList(growable: false)
+      ..sort();
+    return List<SmartTileRule>.unmodifiable(<SmartTileRule>[
+      for (final materialId in ids)
+        SmartTileRule(
+          id: 'material_$materialId',
+          centerMatch: SmartTileSlotMatch.material(materialId),
+          candidates: List<SmartTileCandidate>.unmodifiable(
+            candidatesByMaterialId[materialId] ?? const <SmartTileCandidate>[],
+          ),
+        ),
+    ]);
+  }
+
+  return List<SmartTileRule>.unmodifiable(<SmartTileRule>[
+    for (final mask in smartTileCanonicalMasks(preset.templateHint))
+      SmartTileRule(
+        id: smartTileCanonicalRuleId(mask),
+        centerMatch: const SmartTileSlotMatch.any(),
+        signature: smartTileTemplateCaseForMask(
+          mask: mask,
+          topology: preset.topology,
+          materialId: preset.defaultMaterialId,
+        ).signature,
+      ),
+  ]);
 }
 
 String smartTileCanonicalRuleId(int mask) =>

@@ -281,7 +281,13 @@ Future<int> _activateLayerIfNeeded(
 ) async {
   final scrollable = find.descendant(
     of: find.byKey(const ValueKey<String>('world-map-layer-list')),
-    matching: find.byType(Scrollable),
+    // The layer filter contains an EditableText with its own horizontal
+    // Scrollable. Gate 6 must exercise the inspector's vertical viewport,
+    // never depend on the number of nested implementation scrollables.
+    matching: find.byWidgetPredicate(
+      (widget) =>
+          widget is Scrollable && widget.axisDirection == AxisDirection.down,
+    ),
   );
   final position = tester.state<ScrollableState>(scrollable).position;
   final beforeOffset = position.pixels;

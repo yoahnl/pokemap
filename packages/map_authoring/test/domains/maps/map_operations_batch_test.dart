@@ -63,16 +63,6 @@ void main() {
           'name': 'Border',
         },
         {
-          'kind': 'layer.add',
-          'layerKind': 'smart_tile',
-          'layerId': 'smart_path',
-          'name': 'Smart Path',
-          'presetId': 'smart_path',
-          'usage': 'path',
-          'defaultMaterialId': 'road',
-          'layerSeed': 7,
-        },
-        {
           'kind': 'region.fill',
           'layerId': 'tiles',
           'x': 0,
@@ -102,11 +92,10 @@ void main() {
       final updated = MapData.fromJson(
         jsonDecode(utf8.decode(change.afterBytes!)) as Map<String, dynamic>,
       );
-      expect(updated.layers, hasLength(9));
-      expect(updated.layers.map((layer) => layer.id), contains('smart_path'));
-      expect(updated.version, ProjectVersion.v4);
+      expect(updated.layers, hasLength(8));
+      expect(updated.version, ProjectVersion.v3);
       expect((updated.layers.first as TileLayer).tiles, everyElement(11));
-      expect(draft.preview['operationCount'], 10);
+      expect(draft.preview['operationCount'], 9);
       expect(draft.preview['changedCellCount'], lessThanOrEqualTo(24));
       expect(
         jsonEncode(draft.preview).length,
@@ -115,48 +104,29 @@ void main() {
       );
     });
 
-    test('adds sparse terrain layers and paints only requested cells', () {
+    test('paints only requested cells on a regular tile layer', () {
       final map = _map();
       final snapshot = _snapshot(map);
       final request = _request(snapshot, const [
         {
-          'kind': 'layer.add',
-          'layerKind': 'smart_tile',
-          'layerId': 'terrain_a',
-          'name': 'Prairie A',
-          'presetId': 'smart_terrain',
-          'usage': 'terrain',
-          'defaultMaterialId': 'grass',
-        },
-        {
-          'kind': 'layer.add',
-          'layerKind': 'smart_tile',
-          'layerId': 'terrain_b',
-          'name': 'Prairie B',
-          'presetId': 'smart_terrain',
-          'usage': 'terrain',
-          'defaultMaterialId': 'grass',
-        },
-        {
           'kind': 'region.paint',
-          'layerId': 'terrain_a',
+          'layerId': 'tiles',
           'x': 1,
           'y': 1,
-          'value': 'grass',
+          'value': 6,
         },
         {
           'kind': 'region.paint',
-          'layerId': 'terrain_a',
+          'layerId': 'tiles',
           'x': 2,
           'y': 1,
-          'value': 'grass',
+          'value': 6,
         },
         {
-          'kind': 'region.paint',
-          'layerId': 'terrain_a',
+          'kind': 'region.erase',
+          'layerId': 'tiles',
           'x': 2,
           'y': 1,
-          'value': null,
         },
       ]);
 
@@ -167,16 +137,11 @@ void main() {
       final updated = MapData.fromJson(
         jsonDecode(utf8.decode(change.afterBytes!)) as Map<String, dynamic>,
       );
-      final terrainLayers = updated.layers.whereType<SmartTileLayer>().toList();
+      final tiles = (updated.layers.single as TileLayer).tiles;
 
-      expect(terrainLayers, hasLength(2));
-      expect(terrainLayers[0].materialCells[5], 1);
-      expect(terrainLayers[0].materialCells[6], 0);
-      expect(
-        terrainLayers[0].materialCells.where((cell) => cell != 0),
-        hasLength(1),
-      );
-      expect(terrainLayers[1].materialCells, everyElement(0));
+      expect(tiles[5], 6);
+      expect(tiles[6], 0);
+      expect(tiles.where((cell) => cell != 0), hasLength(1));
     });
 
     test('rejects the complete batch when one operation is invalid', () {
@@ -212,6 +177,124 @@ void main() {
         snapshot.resourceBytes('map:fixture'),
         _encode(map.toJson()),
       );
+    });
+
+    test('rejects native v5 Smart Tile layer creation before STN-03', () {
+      final map = _map().copyWith(version: ProjectVersion.v5);
+      final snapshot = _snapshot(map);
+      final beforeBytes = snapshot.resourceBytes('map:fixture');
+      final request = _request(snapshot, const [
+        {
+          'kind': 'layer.add',
+          'layerKind': 'smart_tile',
+          'layerId': 'smart_path',
+          'name': 'Smart Path',
+          'presetId': 'smart_path',
+          'usage': 'path',
+          'defaultMaterialId': 'road',
+        },
+      ]);
+
+      expect(
+        () => const MapOperationsActions().build(_context(snapshot, request)),
+        throwsA(
+          isA<MapAuthoringException>().having(
+            (error) => error.code,
+            'code',
+            'smart_tile_native_authoring_requires_stn03',
+          ),
+        ),
+      );
+      expect(snapshot.resourceBytes('map:fixture'), beforeBytes);
+      expect(map.layers.whereType<SmartTileLayer>(), isEmpty);
+    });
+
+    test('keeps the canonical STN-03 rejection on a pre-v5 map', () {
+      final map = _map().copyWith(version: ProjectVersion.v4);
+      final snapshot = _snapshot(map);
+      final beforeBytes = snapshot.resourceBytes('map:fixture');
+      final request = _request(snapshot, const [
+        {
+          'kind': 'layer.add',
+          'layerKind': 'smart_tile',
+          'layerId': 'smart_path',
+          'name': 'Smart Path',
+          'presetId': 'smart_path',
+          'usage': 'path',
+          'defaultMaterialId': 'road',
+        },
+      ]);
+
+      expect(
+        () => const MapOperationsActions().build(_context(snapshot, request)),
+        throwsA(
+          isA<MapAuthoringException>().having(
+            (error) => error.code,
+            'code',
+            'smart_tile_native_authoring_requires_stn03',
+          ),
+        ),
+      );
+      expect(snapshot.resourceBytes('map:fixture'), beforeBytes);
+      expect(map.layers.whereType<SmartTileLayer>(), isEmpty);
+    });
+
+    test('clears every active Smart Tile field lattice exhaustively', () {
+      final fields = <({String name, SmartTileField field})>[
+        (
+          name: 'cell',
+          field: const SmartTileField.cell(semanticCells: [1, 0, 0, 0]),
+        ),
+        (
+          name: 'corner',
+          field: const SmartTileField.corner(
+            semanticCells: [1, 0, 0, 0],
+            corners: [1, 0, 0, 0, 0, 0, 0, 0, 0],
+          ),
+        ),
+        (
+          name: 'edge',
+          field: const SmartTileField.edge(
+            semanticCells: [1, 0, 0, 0],
+            horizontalEdges: [1, 0, 0, 0, 0, 0],
+            verticalEdges: [1, 0, 0, 0, 0, 0],
+          ),
+        ),
+        (
+          name: 'mixed',
+          field: const SmartTileField.mixed(
+            semanticCells: [1, 0, 0, 0],
+            horizontalEdges: [1, 0, 0, 0, 0, 0],
+            verticalEdges: [1, 0, 0, 0, 0, 0],
+            corners: [1, 0, 0, 0, 0, 0, 0, 0, 0],
+          ),
+        ),
+      ];
+
+      for (final testCase in fields) {
+        final map = _nativeSmartTileV5Map(testCase.field);
+        final snapshot = _snapshot(map);
+        final beforeBytes = snapshot.resourceBytes('map:fixture');
+        final request = _request(snapshot, const [
+          {'kind': 'layer.clear', 'layerId': 'smart'},
+        ]);
+
+        final draft = const MapOperationsActions().build(
+          _context(snapshot, request),
+        );
+        final change = draft.changeSet.changes.single;
+        final updated = MapData.fromJson(
+          jsonDecode(utf8.decode(change.afterBytes!)) as Map<String, dynamic>,
+        );
+        final cleared = updated.layers.last as SmartTileLayer;
+
+        expect(cleared.field.runtimeType, testCase.field.runtimeType);
+        expect(smartTileSemanticCells(cleared), everyElement(0));
+        expect(smartTileHorizontalEdges(cleared), everyElement(0));
+        expect(smartTileVerticalEdges(cleared), everyElement(0));
+        expect(smartTileCorners(cleared), everyElement(0));
+        expect(snapshot.resourceBytes('map:fixture'), beforeBytes);
+      }
     });
 
     test('preserves a precise forbidden Smart Tile material diagnostic', () {
@@ -333,15 +416,6 @@ void main() {
         },
         {
           'kind': 'layer.add',
-          'layerKind': 'smart_tile',
-          'layerId': 'smart',
-          'name': 'Smart',
-          'presetId': 'preset',
-          'usage': 'path',
-          'defaultMaterialId': 'road',
-        },
-        {
-          'kind': 'layer.add',
           'layerKind': 'object',
           'layerId': 'objects',
           'name': 'Objects',
@@ -378,17 +452,17 @@ void main() {
       }).map;
       map = operations.apply(map, const {
         'kind': 'layer.reorder',
-        'oldIndex': 8,
+        'oldIndex': 7,
         'newIndex': 1,
       }).map;
 
       expect(
-          map.layers.map((layer) => layer.runtimeType).toSet(), hasLength(9));
+          map.layers.map((layer) => layer.runtimeType).toSet(), hasLength(8));
       final collision = map.layers.whereType<CollisionLayer>().single;
       expect(collision.name, 'Walls');
       expect(collision.isVisible, isFalse);
       expect(collision.opacity, 0.5);
-      expect(map.version, ProjectVersion.v4);
+      expect(map.version, ProjectVersion.v3);
     });
 
     test('applies one transaction receipt and undoes the complete batch',
@@ -610,9 +684,17 @@ AuthoringRequest _request(
     );
 
 ProjectSnapshot _snapshot(MapData map) {
+  final smartPathTopology =
+      switch (map.layers.whereType<SmartTileLayer>().firstOrNull?.field) {
+    SmartTileCornerField() => SmartTileTopology.wangCorner4,
+    SmartTileEdgeField() => SmartTileTopology.wangEdge4,
+    SmartTileMixedField() => SmartTileTopology.wang8,
+    SmartTileCellField() || null => SmartTileTopology.cardinal4,
+  };
+  final isNativeSmartTileProject = map.version == ProjectVersion.v5;
   final manifest = ProjectManifest(
     name: 'Batch Fixture',
-    version: ProjectVersion.v4,
+    version: isNativeSmartTileProject ? ProjectVersion.v5 : ProjectVersion.v4,
     maps: const [
       ProjectMapEntry(
         id: 'fixture',
@@ -621,44 +703,56 @@ ProjectSnapshot _snapshot(MapData map) {
       ),
     ],
     tilesets: const [],
-    smartTileCatalog: ProjectSmartTileCatalog(
-      materials: const [
-        ProjectSmartTileMaterial(
-          id: 'road',
-          name: 'Road',
-          connectionGroupId: 'road',
-        ),
-        ProjectSmartTileMaterial(
-          id: 'smart_material_empty',
-          name: 'Legacy empty',
-          connectionGroupId: 'empty',
-          isEmpty: true,
-        ),
-        ProjectSmartTileMaterial(
-          id: 'grass',
-          name: 'Grass',
-          connectionGroupId: 'grass',
-        ),
-      ],
-      presets: const [
-        ProjectSmartTilePreset(
-          id: 'smart_path',
-          name: 'Smart Path',
-          usage: SmartTileUsage.path,
-          topology: SmartTileTopology.cardinal4,
-          defaultMaterialId: 'road',
-          allowedMaterialIds: ['road'],
-        ),
-        ProjectSmartTilePreset(
-          id: 'smart_terrain',
-          name: 'Smart Terrain',
-          usage: SmartTileUsage.terrain,
-          topology: SmartTileTopology.cardinal4,
-          defaultMaterialId: 'grass',
-          allowedMaterialIds: ['grass'],
-        ),
-      ],
-    ),
+    smartTileCatalog: isNativeSmartTileProject
+        ? ProjectSmartTileCatalog(
+            materials: const [
+              ProjectSmartTileMaterial(
+                id: 'road',
+                name: 'Road',
+                connectionGroupId: 'road',
+              ),
+              ProjectSmartTileMaterial(
+                id: 'smart_material_empty',
+                name: 'Legacy empty',
+                connectionGroupId: 'empty',
+                isEmpty: true,
+              ),
+              ProjectSmartTileMaterial(
+                id: 'grass',
+                name: 'Grass',
+                connectionGroupId: 'grass',
+              ),
+            ],
+            presets: [
+              ProjectSmartTilePreset(
+                id: 'smart_path',
+                name: 'Smart Path',
+                usage: SmartTileUsage.path,
+                topology: smartPathTopology,
+                coveragePolicy: SmartTileCoveragePolicy.complete,
+                coverageProfile: const SmartTileCoverageProfile(
+                  mode: SmartTileCoverageMode.template,
+                ),
+                transformPolicy: const SmartTileTransformPolicy(),
+                defaultMaterialId: 'road',
+                allowedMaterialIds: const ['road'],
+              ),
+              const ProjectSmartTilePreset(
+                id: 'smart_terrain',
+                name: 'Smart Terrain',
+                usage: SmartTileUsage.terrain,
+                topology: SmartTileTopology.cardinal4,
+                coveragePolicy: SmartTileCoveragePolicy.complete,
+                coverageProfile: SmartTileCoverageProfile(
+                  mode: SmartTileCoverageMode.template,
+                ),
+                transformPolicy: SmartTileTransformPolicy(),
+                defaultMaterialId: 'grass',
+                allowedMaterialIds: ['grass'],
+              ),
+            ],
+          )
+        : const ProjectSmartTileCatalog.empty(),
   );
   final manifestBytes = _encode(manifest.toJson());
   final mapBytes = _encode(map.toJson());
@@ -711,11 +805,34 @@ MapData _map() => MapData(
       ],
     );
 
+MapData _nativeSmartTileV5Map(SmartTileField field) => MapData(
+      id: 'fixture',
+      name: 'Fixture',
+      size: const GridSize(width: 2, height: 2),
+      version: ProjectVersion.v5,
+      visualStack: MapVisualStackConfig.canonicalV1,
+      layers: [
+        const MapLayer.tile(
+          id: 'base',
+          name: 'Base',
+          tiles: [0, 0, 0, 0],
+        ),
+        SmartTileLayer(
+          id: 'smart',
+          name: 'Smart',
+          presetId: 'smart_path',
+          usage: SmartTileUsage.path,
+          materialPalette: const ['', 'road'],
+          field: field,
+        ),
+      ],
+    );
+
 MapData _legacyPaletteMap() => MapData(
       id: 'fixture',
       name: 'Fixture',
       size: const GridSize(width: 4, height: 3),
-      version: ProjectVersion.v4,
+      version: ProjectVersion.v5,
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: [
         MapLayer.tile(
@@ -729,10 +846,9 @@ MapData _legacyPaletteMap() => MapData(
           presetId: 'smart_path',
           usage: SmartTileUsage.path,
           materialPalette: const ['', 'road', 'smart_material_empty'],
-          materialCells: List<int>.filled(12, 0),
-          horizontalEdges: List<int>.filled(16, 0),
-          verticalEdges: List<int>.filled(15, 0),
-          corners: List<int>.filled(20, 0),
+          field: SmartTileField.cell(
+            semanticCells: List<int>.filled(12, 0),
+          ),
         ),
       ],
     );

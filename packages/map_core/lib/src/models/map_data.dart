@@ -44,6 +44,7 @@ class MapData with _$MapData {
   }) = _MapData;
 
   factory MapData.fromJson(Map<String, dynamic> json) {
+    _preflightSmartTileMapJson(json);
     if (json.containsKey('visualStack')) {
       final visualStack = json['visualStack'];
       if (visualStack is! Map<String, dynamic>) {
@@ -55,10 +56,11 @@ class MapData with _$MapData {
     final map = _$MapDataFromJson(json);
     if (map.visualStack != null &&
         map.version != ProjectVersion.v3 &&
-        map.version != ProjectVersion.v4) {
+        map.version != ProjectVersion.v4 &&
+        map.version != ProjectVersion.v5) {
       throw const FormatException(
         r'$.version: visualStack requires ProjectVersion.v3 or '
-        'ProjectVersion.v4',
+        'ProjectVersion.v4 or ProjectVersion.v5',
       );
     }
     if (map.version == ProjectVersion.v1) {
@@ -72,18 +74,78 @@ class MapData with _$MapData {
         );
       }
     }
-    if (map.version != ProjectVersion.v4) {
+    if (map.version != ProjectVersion.v5) {
       final smartTileIndex =
           map.layers.indexWhere((layer) => layer is SmartTileLayer);
       if (smartTileIndex >= 0) {
         throw FormatException(
           r'$.layers['
           '$smartTileIndex].runtimeType: Smart Tile layers require '
-          'ProjectVersion.v4',
+          'ProjectVersion.v5',
         );
       }
     }
     return map;
+  }
+}
+
+void _preflightSmartTileMapJson(Map<String, dynamic> json) {
+  final version = json['version'] ?? 'v1';
+  final layers = json['layers'];
+  if (layers is! List) {
+    return;
+  }
+  for (var index = 0; index < layers.length; index++) {
+    final rawLayer = layers[index];
+    if (rawLayer is! Map) {
+      continue;
+    }
+    final runtimeType = rawLayer['runtimeType'];
+    if (version == 'v4' &&
+        runtimeType == 'smart_tile' &&
+        const <String>{
+          'materialCells',
+          'horizontalEdges',
+          'verticalEdges',
+          'corners',
+        }.any(rawLayer.containsKey)) {
+      throw FormatException(
+        r'$.layers['
+        '$index]: smart_tile_v4_unsupported '
+        '(version=v4, variant=smart_tile)',
+      );
+    }
+    if (version == 'v5' &&
+        runtimeType == 'smart_tile' &&
+        const <String>{
+          'materialCells',
+          'horizontalEdges',
+          'verticalEdges',
+          'corners',
+        }.any(rawLayer.containsKey)) {
+      throw FormatException(
+        r'$.layers['
+        '$index]: smart_tile_v5_legacy_payload_unsupported '
+        '(version=v5, variant=smart_tile)',
+      );
+    }
+    if (version == 'v5' &&
+        (runtimeType == 'terrain' || runtimeType == 'path')) {
+      throw FormatException(
+        r'$.layers['
+        '$index].runtimeType: smart_tile_v5_legacy_layer_unsupported '
+        '(version=v5, variant=$runtimeType)',
+      );
+    }
+    if (version == 'v5' &&
+        runtimeType == 'smart_tile' &&
+        rawLayer['field'] is! Map) {
+      throw FormatException(
+        r'$.layers['
+        '$index].field: smart_tile_v5_field_required '
+        '(version=v5, variant=smart_tile)',
+      );
+    }
   }
 }
 

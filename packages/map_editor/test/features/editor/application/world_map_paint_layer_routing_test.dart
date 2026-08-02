@@ -10,6 +10,25 @@ import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 
 void main() {
+  test('Smart Tile routing fixtures are valid native v5 maps', () {
+    for (final map in const <MapData>[
+      _allLayerKindsMap,
+      _multiplePathMap,
+      _smartTileTerrainMap,
+      _smartTilePathMap,
+      _routingMapA,
+      _routingMapB,
+      _sharedProjectMap,
+      _uniquePathRoutingMap,
+    ]) {
+      expect(
+        () => MapValidator.validate(map),
+        returnsNormally,
+        reason: map.id,
+      );
+    }
+  });
+
   group('resolveWorldMapPaintLayerRouting', () {
     final cases = <({
       WorldMapPaintSubtool subtool,
@@ -87,33 +106,33 @@ void main() {
 
     test('uses a remembered compatible layer before asking the user', () {
       final result = resolveWorldMapPaintLayerRouting(
-        map: _multipleTerrainMap,
+        map: _multiplePathMap,
         activeLayerId: 'tile',
-        subtool: WorldMapPaintSubtool.terrain,
-        rememberedLayerId: 'terrain-b',
+        subtool: WorldMapPaintSubtool.path,
+        rememberedLayerId: 'path-b',
       );
 
       expect(result.kind, WorldMapPaintLayerRoutingKind.remembered);
-      expect(result.targetLayerId, 'terrain-b');
+      expect(result.targetLayerId, 'path-b');
       expect(
         result.compatibleLayerIds,
-        <String>['terrain-a', 'terrain-b'],
+        <String>['path-a', 'path-b'],
       );
     });
 
     test('ignores stale memory and returns every compatible choice', () {
       final result = resolveWorldMapPaintLayerRouting(
-        map: _multipleTerrainMap,
+        map: _multiplePathMap,
         activeLayerId: 'tile',
-        subtool: WorldMapPaintSubtool.terrain,
-        rememberedLayerId: 'terrain-deleted',
+        subtool: WorldMapPaintSubtool.path,
+        rememberedLayerId: 'path-deleted',
       );
 
       expect(result.kind, WorldMapPaintLayerRoutingKind.choice);
       expect(result.targetLayerId, isNull);
       expect(
         result.compatibleLayerIds,
-        <String>['terrain-a', 'terrain-b'],
+        <String>['path-a', 'path-b'],
       );
     });
 
@@ -131,16 +150,16 @@ void main() {
 
     test('does not choose when several compatible layers exist', () {
       final result = resolveWorldMapPaintLayerRouting(
-        map: _multipleTerrainMap,
+        map: _multiplePathMap,
         activeLayerId: 'tile',
-        subtool: WorldMapPaintSubtool.terrain,
+        subtool: WorldMapPaintSubtool.path,
       );
 
       expect(result.kind, WorldMapPaintLayerRoutingKind.choice);
       expect(result.targetLayerId, isNull);
       expect(
         result.compatibleLayerIds,
-        <String>['terrain-a', 'terrain-b'],
+        <String>['path-a', 'path-b'],
       );
     });
 
@@ -162,7 +181,7 @@ void main() {
       final container = _createContainer(
         const EditorState(
           activeMap: _routingMapA,
-          activeLayerId: 'terrain-a',
+          activeLayerId: 'path-a',
         ),
       );
       final editor = container.read(editorNotifierProvider.notifier);
@@ -176,13 +195,13 @@ void main() {
 
       final result = session.routePaintSubtool(
         editor,
-        WorldMapPaintSubtool.terrain,
+        WorldMapPaintSubtool.path,
       );
 
       expect(result.outcome, WorldMapPaintRoutingOutcome.activated);
-      expect(result.layerId, 'terrain-a');
+      expect(result.layerId, 'path-a');
       expect(emissions, hasLength(1));
-      expect(editor.state.activeLayerId, 'terrain-a');
+      expect(editor.state.activeLayerId, 'path-a');
       expect(editor.state.activeTool, EditorToolType.terrainPaint);
       expect(
         container.read(worldMapWorkspaceSessionProvider).activeFamily,
@@ -245,12 +264,12 @@ void main() {
 
       final result = session.routePaintSubtool(
         editor,
-        WorldMapPaintSubtool.terrain,
+        WorldMapPaintSubtool.path,
       );
 
       expect(result.outcome, WorldMapPaintRoutingOutcome.choiceRequired);
       expect(result.layerId, isNull);
-      expect(result.compatibleLayerIds, <String>['terrain-a', 'terrain-b']);
+      expect(result.compatibleLayerIds, <String>['path-a', 'path-b']);
       expect(editor.state, same(initial));
       expect(
         container.read(worldMapWorkspaceSessionProvider),
@@ -296,11 +315,11 @@ void main() {
 
       var result = session.routePaintSubtool(
         editor,
-        WorldMapPaintSubtool.terrain,
-        chosenLayerId: 'terrain-b',
+        WorldMapPaintSubtool.path,
+        chosenLayerId: 'path-b',
       );
       expect(result.outcome, WorldMapPaintRoutingOutcome.activated);
-      expect(editor.state.activeLayerId, 'terrain-b');
+      expect(editor.state.activeLayerId, 'path-b');
 
       editor.state = const EditorState(
         activeMap: _routingMapB,
@@ -308,11 +327,11 @@ void main() {
       );
       result = session.routePaintSubtool(
         editor,
-        WorldMapPaintSubtool.terrain,
-        chosenLayerId: 'terrain-d',
+        WorldMapPaintSubtool.path,
+        chosenLayerId: 'path-d',
       );
       expect(result.outcome, WorldMapPaintRoutingOutcome.activated);
-      expect(editor.state.activeLayerId, 'terrain-d');
+      expect(editor.state.activeLayerId, 'path-d');
 
       editor.state = const EditorState(
         activeMap: _routingMapA,
@@ -320,10 +339,10 @@ void main() {
       );
       result = session.routePaintSubtool(
         editor,
-        WorldMapPaintSubtool.terrain,
+        WorldMapPaintSubtool.path,
       );
       expect(result.outcome, WorldMapPaintRoutingOutcome.activated);
-      expect(editor.state.activeLayerId, 'terrain-b');
+      expect(editor.state.activeLayerId, 'path-b');
 
       editor.state = const EditorState(
         activeMap: _routingMapB,
@@ -331,10 +350,10 @@ void main() {
       );
       result = session.routePaintSubtool(
         editor,
-        WorldMapPaintSubtool.terrain,
+        WorldMapPaintSubtool.path,
       );
       expect(result.outcome, WorldMapPaintRoutingOutcome.activated);
-      expect(editor.state.activeLayerId, 'terrain-d');
+      expect(editor.state.activeLayerId, 'path-d');
     });
 
     test(
@@ -354,14 +373,14 @@ void main() {
 
         var result = session.routePaintSubtool(
           editor,
-          WorldMapPaintSubtool.terrain,
-          chosenLayerId: 'terrain-b',
+          WorldMapPaintSubtool.path,
+          chosenLayerId: 'path-b',
         );
         expect(result.outcome, WorldMapPaintRoutingOutcome.activated);
-        expect(editor.state.activeLayerId, 'terrain-b');
+        expect(editor.state.activeLayerId, 'path-b');
         expect(
           container.read(worldMapWorkspaceSessionProvider).lastPaintSubtool,
-          WorldMapPaintSubtool.terrain,
+          WorldMapPaintSubtool.path,
         );
 
         editor.state = const EditorState(
@@ -383,14 +402,14 @@ void main() {
         );
         result = session.routePaintSubtool(
           editor,
-          WorldMapPaintSubtool.terrain,
+          WorldMapPaintSubtool.path,
         );
         expect(result.outcome, WorldMapPaintRoutingOutcome.choiceRequired);
 
         result = session.routePaintSubtool(
           editor,
-          WorldMapPaintSubtool.terrain,
-          chosenLayerId: 'terrain-a',
+          WorldMapPaintSubtool.path,
+          chosenLayerId: 'path-a',
         );
         expect(result.outcome, WorldMapPaintRoutingOutcome.activated);
 
@@ -402,10 +421,10 @@ void main() {
         );
         result = session.routePaintSubtool(
           editor,
-          WorldMapPaintSubtool.terrain,
+          WorldMapPaintSubtool.path,
         );
         expect(result.outcome, WorldMapPaintRoutingOutcome.activated);
-        expect(editor.state.activeLayerId, 'terrain-b');
+        expect(editor.state.activeLayerId, 'path-b');
 
         editor.state = const EditorState(
           projectRootPath: '/projects/beta',
@@ -415,10 +434,10 @@ void main() {
         );
         result = session.routePaintSubtool(
           editor,
-          WorldMapPaintSubtool.terrain,
+          WorldMapPaintSubtool.path,
         );
         expect(result.outcome, WorldMapPaintRoutingOutcome.activated);
-        expect(editor.state.activeLayerId, 'terrain-a');
+        expect(editor.state.activeLayerId, 'path-a');
       },
     );
 
@@ -443,8 +462,8 @@ void main() {
         );
         final remembered = session.routePaintSubtool(
           editor,
-          WorldMapPaintSubtool.terrain,
-          chosenLayerId: 'terrain-b',
+          WorldMapPaintSubtool.path,
+          chosenLayerId: 'path-b',
         );
         expect(remembered.outcome, WorldMapPaintRoutingOutcome.activated);
       }
@@ -457,10 +476,10 @@ void main() {
       );
       var result = session.routePaintSubtool(
         editor,
-        WorldMapPaintSubtool.terrain,
+        WorldMapPaintSubtool.path,
       );
       expect(result.outcome, WorldMapPaintRoutingOutcome.activated);
-      expect(result.layerId, 'terrain-b');
+      expect(result.layerId, 'path-b');
 
       editor.state = const EditorState(
         projectRootPath: '/projects/32',
@@ -470,8 +489,8 @@ void main() {
       );
       result = session.routePaintSubtool(
         editor,
-        WorldMapPaintSubtool.terrain,
-        chosenLayerId: 'terrain-a',
+        WorldMapPaintSubtool.path,
+        chosenLayerId: 'path-a',
       );
       expect(result.outcome, WorldMapPaintRoutingOutcome.activated);
 
@@ -483,7 +502,7 @@ void main() {
       );
       result = session.routePaintSubtool(
         editor,
-        WorldMapPaintSubtool.terrain,
+        WorldMapPaintSubtool.path,
       );
       expect(result.outcome, WorldMapPaintRoutingOutcome.choiceRequired);
 
@@ -495,10 +514,10 @@ void main() {
       );
       result = session.routePaintSubtool(
         editor,
-        WorldMapPaintSubtool.terrain,
+        WorldMapPaintSubtool.path,
       );
       expect(result.outcome, WorldMapPaintRoutingOutcome.activated);
-      expect(result.layerId, 'terrain-b');
+      expect(result.layerId, 'path-b');
     });
   });
 }
@@ -521,56 +540,64 @@ ProviderContainer _createContainer(EditorState initial) {
 const _allLayerKindsMap = MapData(
   id: 'all-layer-kinds',
   name: 'Tous les calques',
-  version: ProjectVersion.v4,
+  version: ProjectVersion.v5,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(
       id: 'tile',
       name: 'Éléments',
       tilesetId: 'world',
-      tiles: <int>[],
+      tiles: _sixteenCells,
     ),
     SmartTileLayer(
       id: 'smart-terrain',
       name: 'Terrain',
       presetId: 'terrain',
       usage: SmartTileUsage.terrain,
+      field: SmartTileField.cell(semanticCells: _sixteenCells),
     ),
     SmartTileLayer(
       id: 'smart-path',
       name: 'Chemin',
       presetId: 'path',
       usage: SmartTileUsage.path,
+      field: SmartTileField.cell(semanticCells: _sixteenCells),
     ),
     SurfaceLayer(id: 'surface', name: 'Surface'),
     BorderLayer(id: 'border', name: 'Bordures'),
-    CollisionLayer(id: 'collision', name: 'Collision'),
+    CollisionLayer(
+      id: 'collision',
+      name: 'Collision',
+      collisions: _sixteenCollisions,
+    ),
   ],
 );
 
-const _multipleTerrainMap = MapData(
-  id: 'multiple-terrain',
-  name: 'Plusieurs terrains',
-  version: ProjectVersion.v4,
+const _multiplePathMap = MapData(
+  id: 'multiple-path',
+  name: 'Plusieurs chemins',
+  version: ProjectVersion.v5,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(
       id: 'tile',
       name: 'Éléments',
       tilesetId: 'world',
-      tiles: <int>[],
+      tiles: _sixteenCells,
     ),
     SmartTileLayer(
-      id: 'terrain-a',
-      name: 'Terrain A',
-      presetId: 'terrain-a',
-      usage: SmartTileUsage.terrain,
+      id: 'path-a',
+      name: 'Chemin A',
+      presetId: 'path-a',
+      usage: SmartTileUsage.path,
+      field: SmartTileField.cell(semanticCells: _sixteenCells),
     ),
     SmartTileLayer(
-      id: 'terrain-b',
-      name: 'Terrain B',
-      presetId: 'terrain-b',
-      usage: SmartTileUsage.terrain,
+      id: 'path-b',
+      name: 'Chemin B',
+      presetId: 'path-b',
+      usage: SmartTileUsage.path,
+      field: SmartTileField.cell(semanticCells: _sixteenCells),
     ),
   ],
 );
@@ -584,7 +611,7 @@ const _tileOnlyMap = MapData(
       id: 'tile',
       name: 'Éléments',
       tilesetId: 'world',
-      tiles: <int>[],
+      tiles: _sixteenCells,
     ),
   ],
 );
@@ -592,6 +619,7 @@ const _tileOnlyMap = MapData(
 const _smartTileTerrainMap = MapData(
   id: 'smart-tile-terrain',
   name: 'Terrain intelligent',
+  version: ProjectVersion.v5,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     SmartTileLayer(
@@ -599,6 +627,7 @@ const _smartTileTerrainMap = MapData(
       name: 'Prairie intelligente',
       presetId: 'prairie',
       usage: SmartTileUsage.terrain,
+      field: SmartTileField.cell(semanticCells: _sixteenCells),
     ),
   ],
 );
@@ -606,6 +635,7 @@ const _smartTileTerrainMap = MapData(
 const _smartTilePathMap = MapData(
   id: 'smart-tile-path',
   name: 'Chemin intelligent',
+  version: ProjectVersion.v5,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     SmartTileLayer(
@@ -613,6 +643,7 @@ const _smartTilePathMap = MapData(
       name: 'Chemin intelligent',
       presetId: 'path',
       usage: SmartTileUsage.path,
+      field: SmartTileField.cell(semanticCells: _sixteenCells),
     ),
   ],
 );
@@ -620,25 +651,28 @@ const _smartTilePathMap = MapData(
 const _routingMapA = MapData(
   id: 'map-a',
   name: 'Map A',
+  version: ProjectVersion.v5,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(
       id: 'tile-a',
       name: 'Éléments A',
       tilesetId: 'world',
-      tiles: <int>[],
+      tiles: _sixteenCells,
     ),
     SmartTileLayer(
-      id: 'terrain-a',
-      name: 'Terrain A',
-      presetId: 'terrain-a',
-      usage: SmartTileUsage.terrain,
+      id: 'path-a',
+      name: 'Chemin A',
+      presetId: 'path-a',
+      usage: SmartTileUsage.path,
+      field: SmartTileField.cell(semanticCells: _sixteenCells),
     ),
     SmartTileLayer(
-      id: 'terrain-b',
-      name: 'Terrain B',
-      presetId: 'terrain-b',
-      usage: SmartTileUsage.terrain,
+      id: 'path-b',
+      name: 'Chemin B',
+      presetId: 'path-b',
+      usage: SmartTileUsage.path,
+      field: SmartTileField.cell(semanticCells: _sixteenCells),
     ),
   ],
 );
@@ -646,25 +680,28 @@ const _routingMapA = MapData(
 const _routingMapB = MapData(
   id: 'map-b',
   name: 'Map B',
+  version: ProjectVersion.v5,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(
       id: 'tile-b',
       name: 'Éléments B',
       tilesetId: 'world',
-      tiles: <int>[],
+      tiles: _sixteenCells,
     ),
     SmartTileLayer(
-      id: 'terrain-c',
-      name: 'Terrain C',
-      presetId: 'terrain-c',
-      usage: SmartTileUsage.terrain,
+      id: 'path-c',
+      name: 'Chemin C',
+      presetId: 'path-c',
+      usage: SmartTileUsage.path,
+      field: SmartTileField.cell(semanticCells: _sixteenCells),
     ),
     SmartTileLayer(
-      id: 'terrain-d',
-      name: 'Terrain D',
-      presetId: 'terrain-d',
-      usage: SmartTileUsage.terrain,
+      id: 'path-d',
+      name: 'Chemin D',
+      presetId: 'path-d',
+      usage: SmartTileUsage.path,
+      field: SmartTileField.cell(semanticCells: _sixteenCells),
     ),
   ],
 );
@@ -672,25 +709,28 @@ const _routingMapB = MapData(
 const _sharedProjectMap = MapData(
   id: 'shared-map',
   name: 'Carte partagée',
+  version: ProjectVersion.v5,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(
       id: 'tile',
       name: 'Éléments',
       tilesetId: 'world',
-      tiles: <int>[],
+      tiles: _sixteenCells,
     ),
     SmartTileLayer(
-      id: 'terrain-a',
-      name: 'Terrain A',
-      presetId: 'terrain-a',
-      usage: SmartTileUsage.terrain,
+      id: 'path-a',
+      name: 'Chemin A',
+      presetId: 'path-a',
+      usage: SmartTileUsage.path,
+      field: SmartTileField.cell(semanticCells: _sixteenCells),
     ),
     SmartTileLayer(
-      id: 'terrain-b',
-      name: 'Terrain B',
-      presetId: 'terrain-b',
-      usage: SmartTileUsage.terrain,
+      id: 'path-b',
+      name: 'Chemin B',
+      presetId: 'path-b',
+      usage: SmartTileUsage.path,
+      field: SmartTileField.cell(semanticCells: _sixteenCells),
     ),
   ],
 );
@@ -698,19 +738,21 @@ const _sharedProjectMap = MapData(
 const _uniquePathRoutingMap = MapData(
   id: 'unique-path',
   name: 'Chemin unique',
+  version: ProjectVersion.v5,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(
       id: 'tile',
       name: 'Éléments',
       tilesetId: 'world',
-      tiles: <int>[],
+      tiles: _sixteenCells,
     ),
     SmartTileLayer(
       id: 'path',
       name: 'Chemin',
       presetId: 'path',
       usage: SmartTileUsage.path,
+      field: SmartTileField.cell(semanticCells: _sixteenCells),
     ),
   ],
 );
@@ -736,3 +778,41 @@ const _redo = MapHistorySnapshot(
   map: _redoMap,
   activeLayerId: 'redo-layer',
 );
+
+const _sixteenCells = <int>[
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+];
+
+const _sixteenCollisions = <bool>[
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+];

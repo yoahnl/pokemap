@@ -11,7 +11,6 @@ import '../application/smart_tile_authoring_controller.dart';
 import '../application/smart_tile_grid_detector.dart';
 import '../application/smart_tile_guide.dart';
 import '../application/smart_tile_guide_placement.dart';
-import '../application/smart_tile_publication_service.dart';
 import '../application/smart_tile_studio_library.dart';
 import '../application/smart_tile_studio_session.dart';
 import 'smart_tile_guide_diagram.dart';
@@ -44,8 +43,6 @@ class SmartTilesStudioPanel extends StatefulWidget {
 class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   final SmartTileStudioSession _session = SmartTileStudioSession();
   final SmartTileGridDetector _gridDetector = const SmartTileGridDetector();
-  final SmartTilePublicationService _publicationService =
-      const SmartTilePublicationService();
   final TextEditingController _searchController = TextEditingController();
   final Map<String, TextEditingController> _gridControllers =
       <String, TextEditingController>{};
@@ -389,18 +386,27 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
             _InspectorValue(label: 'Usage', value: selectedItem.usageLabel),
             _InspectorValue(
               label: 'Origine',
-              value: selectedItem.isLegacy ? 'Historique' : 'Native v4',
+              value: selectedItem.isLegacy ? 'Historique' : 'Natif v5',
             ),
-            if (selectedItem.nativePreset case final preset?) ...[
+            if (selectedItem.nativePreset != null) ...[
               const SizedBox(height: 12),
-              PokeMapButton(
-                key: const Key('smart-tiles-add-to-active-map'),
-                onPressed: widget.onAddToActiveMap == null ||
-                        preset.status != SmartTilePresetStatus.published
-                    ? null
-                    : () => widget.onAddToActiveMap!(preset),
-                leading: const Icon(CupertinoIcons.square_grid_3x2, size: 15),
-                child: const Text('Ajouter à la map active'),
+              const PokeMapButton(
+                key: Key('smart-tiles-add-to-active-map'),
+                onPressed: null,
+                disabledReason:
+                    smartTileNativeCatalogAuthoringRequiresStn03Code,
+                leading: Icon(CupertinoIcons.square_grid_3x2, size: 15),
+                child: Text('Ajouter à la map active'),
+              ),
+              const SizedBox(height: 8),
+              const PokeMapBadge(
+                label: smartTileNativeCatalogAuthoringRequiresStn03Code,
+                variant: PokeMapBadgeVariant.warning,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'L’ajout à une map sera disponible avec le contrat natif STN-03.',
+                style: TextStyle(color: context.pokeMapColors.textSecondary),
               ),
             ],
           ] else
@@ -1060,12 +1066,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   Widget _buildPublishStep() {
     final guide = smartTileGuideById(_session.state.guideId!);
     final geometry = _session.state.gridGeometry!;
-    final staged = _authoring.applyToManifest(widget.manifest);
-    final result = _publicationService.publish(
-      manifest: staged,
-      presetId: _authoring.state.id,
+    final compiled = _authoring.compileCatalog();
+    final diagnostics = validateProjectSmartTileCatalog(
+      catalog: compiled,
+      projectTilesetIds: widget.manifest.tilesets.map((tileset) => tileset.id),
     );
-    final blocking = result.diagnostics.where((item) => item.isError).length;
+    final blocking = diagnostics.where((item) => item.isError).length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -1075,10 +1081,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
               'Dernière vérification humaine avant d’ajouter le preset au projet.',
           trailing: PokeMapBadge(
             label: blocking == 0
-                ? 'Publication autorisée'
+                ? 'Publication après STN-03'
                 : '$blocking erreur(s) bloquante(s)',
             variant: blocking == 0
-                ? PokeMapBadgeVariant.success
+                ? PokeMapBadgeVariant.warning
                 : PokeMapBadgeVariant.error,
           ),
         ),
@@ -1121,16 +1127,25 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
             variant: PokeMapBadgeVariant.warning,
           ),
         ],
+        const SizedBox(height: 10),
+        const PokeMapBadge(
+          label: smartTileNativeCatalogAuthoringRequiresStn03Code,
+          variant: PokeMapBadgeVariant.warning,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'La publication dans le catalogue sera activée par STN-03.',
+          style: TextStyle(color: context.pokeMapColors.textSecondary),
+        ),
         const SizedBox(height: 16),
-        Align(
+        const Align(
           alignment: Alignment.centerRight,
           child: PokeMapButton(
-            key: const Key('smart-tiles-publish-guided'),
-            onPressed: blocking == 0 && widget.onManifestChanged != null
-                ? _publishDraft
-                : null,
-            leading: const Icon(CupertinoIcons.check_mark_circled, size: 15),
-            child: const Text('Publier et utiliser dans une map'),
+            key: Key('smart-tiles-publish-guided'),
+            onPressed: null,
+            disabledReason: smartTileNativeCatalogAuthoringRequiresStn03Code,
+            leading: Icon(CupertinoIcons.check_mark_circled, size: 15),
+            child: Text('Publier et utiliser dans une map'),
           ),
         ),
       ],
@@ -1254,6 +1269,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
               item.resolution.status == SmartTileResolutionStatus.resolved,
         )
         .length;
+    final supportsManualGrid =
+        smartTileTestGridSupportsTopology(preset.topology);
     return ListView(
       padding: const EdgeInsets.all(18),
       children: <Widget>[
@@ -1267,39 +1284,48 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           ),
         ),
         const SizedBox(height: 10),
-        Center(
-          child: SizedBox(
-            width: 7 * 38,
-            child: Wrap(
-              spacing: 2,
-              runSpacing: 2,
-              children: <Widget>[
-                for (var y = 0; y < _testGrid.height; y += 1)
-                  for (var x = 0; x < _testGrid.width; x += 1)
-                    SizedBox(
-                      width: 36,
-                      height: 36,
-                      child: PokeMapButton(
-                        key: Key('smart-tiles-test-cell-$x-$y'),
-                        onPressed: () => _paintTestCell(
-                          x: x,
-                          y: y,
-                          materialId: preset.defaultMaterialId,
+        if (!supportsManualGrid)
+          const PokeMapEmptyState(
+            key: Key('smart-tiles-wang-manual-bench-deferred'),
+            title: 'Grille Wang dédiée',
+            description:
+                'Cette topologie utilise ses propres arêtes et coins. Les scénarios canoniques ci-dessous sont exacts ; la peinture libre arrivera avec le compilateur Wang STN-05.',
+            icon: Icon(CupertinoIcons.square_grid_3x2),
+          )
+        else
+          Center(
+            child: SizedBox(
+              width: 7 * 38,
+              child: Wrap(
+                spacing: 2,
+                runSpacing: 2,
+                children: <Widget>[
+                  for (var y = 0; y < _testGrid.height; y += 1)
+                    for (var x = 0; x < _testGrid.width; x += 1)
+                      SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: PokeMapButton(
+                          key: Key('smart-tiles-test-cell-$x-$y'),
+                          onPressed: () => _paintTestCell(
+                            x: x,
+                            y: y,
+                            materialId: preset.defaultMaterialId,
+                          ),
+                          variant: PokeMapButtonVariant.ghost,
+                          size: PokeMapButtonSize.small,
+                          isSelected: _testGrid.materialAt(x, y) != null,
+                          child: Text(_testCellLabel(
+                            x: x,
+                            y: y,
+                            preset: preset,
+                          )),
                         ),
-                        variant: PokeMapButtonVariant.ghost,
-                        size: PokeMapButtonSize.small,
-                        isSelected: _testGrid.materialAt(x, y) != null,
-                        child: Text(_testCellLabel(
-                          x: x,
-                          y: y,
-                          preset: preset,
-                        )),
                       ),
-                    ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
         const SizedBox(height: 20),
         PokeMapSectionHeader(
           title: 'Scénarios générés',
@@ -1366,12 +1392,29 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
               'Couverture, ambiguïtés, références, poids, durées et limites d’atlas.',
           trailing: PokeMapBadge(
             label: blocking == 0
-                ? 'Publication autorisée'
+                ? 'Publication après STN-03'
                 : '$blocking erreur(s) bloquante(s)',
             variant: blocking == 0
-                ? PokeMapBadgeVariant.success
+                ? PokeMapBadgeVariant.warning
                 : PokeMapBadgeVariant.error,
           ),
+        ),
+        if (_draftMessage != null) ...[
+          const SizedBox(height: 10),
+          PokeMapBadge(
+            label: _draftMessage!,
+            variant: PokeMapBadgeVariant.warning,
+          ),
+        ],
+        const SizedBox(height: 10),
+        const PokeMapBadge(
+          label: smartTileNativeCatalogAuthoringRequiresStn03Code,
+          variant: PokeMapBadgeVariant.warning,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'La publication dans le catalogue sera activée par STN-03.',
+          style: TextStyle(color: context.pokeMapColors.textSecondary),
         ),
         const SizedBox(height: 12),
         if (diagnostics.isEmpty)
@@ -1399,14 +1442,14 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
             const SizedBox(height: 8),
           ],
         const SizedBox(height: 14),
-        Align(
+        const Align(
           alignment: Alignment.centerRight,
           child: PokeMapButton(
-            key: const Key('smart-tiles-publish'),
-            onPressed:
-                widget.onManifestChanged == null ? null : _publishSelected,
-            leading: const Icon(CupertinoIcons.check_mark_circled, size: 15),
-            child: const Text('Publier'),
+            key: Key('smart-tiles-publish'),
+            onPressed: null,
+            disabledReason: smartTileNativeCatalogAuthoringRequiresStn03Code,
+            leading: Icon(CupertinoIcons.check_mark_circled, size: 15),
+            child: Text('Publier'),
           ),
         ),
       ],
@@ -1854,34 +1897,6 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     setState(_session.moveToPublish);
   }
 
-  void _publishDraft() {
-    try {
-      final staged = _authoring.applyToManifest(widget.manifest);
-      final result = _publicationService.publish(
-        manifest: staged,
-        presetId: _authoring.state.id,
-      );
-      if (!result.published) {
-        setState(() {
-          _draftMessage =
-              'Publication bloquée : ${result.diagnostics.where((item) => item.isError).length} erreur(s).';
-        });
-        return;
-      }
-      widget.onManifestChanged?.call(result.manifest);
-      final publishedPreset = result.manifest.smartTileCatalog.presets
-          .singleWhere((preset) => preset.id == _authoring.state.id);
-      widget.onAddToActiveMap?.call(publishedPreset);
-      setState(() {
-        _draftMessage = 'Smart Tile publié et prêt pour une map.';
-      });
-    } on Object catch (error) {
-      setState(() {
-        _draftMessage = 'Publication impossible : $error';
-      });
-    }
-  }
-
   void _paintTestCell({
     required int x,
     required int y,
@@ -1928,28 +1943,6 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _focusedMask = diagnostic.mask ?? diagnostic.missingMasks.firstOrNull;
       _focusedRuleId = diagnostic.ruleId;
       _tab = SmartTilesStudioTab.rules;
-    });
-  }
-
-  void _publishSelected() {
-    final selected = buildSmartTileStudioLibrary(widget.manifest)
-        .where((item) => item.key == _selectedItemKey)
-        .firstOrNull;
-    final preset = selected?.nativePreset;
-    if (preset == null) {
-      return;
-    }
-    final result = _publicationService.publish(
-      manifest: widget.manifest,
-      presetId: preset.id,
-    );
-    if (result.published) {
-      widget.onManifestChanged?.call(result.manifest);
-    }
-    setState(() {
-      _draftMessage = result.published
-          ? 'Preset publié.'
-          : 'Publication bloquée par ${result.diagnostics.where((item) => item.isError).length} erreur(s).';
     });
   }
 
@@ -2560,6 +2553,7 @@ IconData _usageIcon(SmartTileUsage usage) => switch (usage) {
     };
 
 String _templateLabel(SmartTileTemplateHint template) => switch (template) {
+      SmartTileTemplateHint.simple => 'Simple',
       SmartTileTemplateHint.legacy20 => 'Legacy 20',
       SmartTileTemplateHint.edge16 => 'Edge 16',
       SmartTileTemplateHint.corner16 => 'Corner 16',

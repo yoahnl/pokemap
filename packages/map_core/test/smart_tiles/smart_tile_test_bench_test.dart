@@ -14,9 +14,12 @@ void main() {
 
       expect(scenarios, hasLength(47));
       expect(
-        scenarios.map((item) => item.mask).toSet(),
-        smartTileCanonicalMasks(SmartTileTemplateHint.blob47).toSet(),
+        scenarios.map((item) => item.id).toSet(),
+        smartTileCanonicalMasks(SmartTileTemplateHint.blob47)
+            .map(smartTileCanonicalRuleId)
+            .toSet(),
       );
+      expect(scenarios, everyElement(isA<SmartTileTestBenchCase>()));
     });
 
     test('complete Edge 16 resolves every generated scenario', () {
@@ -104,7 +107,7 @@ void main() {
       final direct = resolveSmartTile(
         preset: preset,
         materials: _materials,
-        neighborhood: SmartTileNeighborhood.fromGrid(
+        context: SmartTileCellContext.fromCellGrid(
           width: 3,
           height: 3,
           x: 1,
@@ -121,6 +124,31 @@ void main() {
       expect(fromBench.ruleId, direct.ruleId);
       expect(fromBench.candidate, direct.candidate);
       expect(fromBench.deterministicHash, direct.deterministicHash);
+    });
+
+    test('manual grid fails closed for dedicated Wang lattices', () {
+      final grid = SmartTileTestGrid.empty(width: 3, height: 3)
+          .paint(x: 1, y: 1, materialId: 'grass');
+
+      for (final topology in const <SmartTileTopology>[
+        SmartTileTopology.wangEdge4,
+        SmartTileTopology.wangCorner4,
+        SmartTileTopology.wang8,
+      ]) {
+        expect(smartTileTestGridSupportsTopology(topology), isFalse);
+        expect(
+          () => grid.resolveAt(
+            x: 1,
+            y: 1,
+            preset: _preset(
+              topology: topology,
+              template: SmartTileTemplateHint.free,
+            ),
+            materials: _materials,
+          ),
+          throwsUnsupportedError,
+        );
+      }
     });
   });
 }
@@ -144,6 +172,11 @@ ProjectSmartTilePreset _preset({
     usage: SmartTileUsage.path,
     topology: topology,
     templateHint: template,
+    coveragePolicy: SmartTileCoveragePolicy.complete,
+    coverageProfile: const SmartTileCoverageProfile(
+      mode: SmartTileCoverageMode.template,
+    ),
+    transformPolicy: const SmartTileTransformPolicy(),
     defaultMaterialId: 'grass',
     allowedMaterialIds: const <String>['grass'],
     rules: rules,
@@ -156,6 +189,7 @@ SmartTileRule _rule(
 }) =>
     SmartTileRule(
       id: smartTileCanonicalRuleId(mask),
+      centerMatch: const SmartTileSlotMatch.any(),
       signature: smartTileSignatureForMask(
         mask,
         topology: topology,

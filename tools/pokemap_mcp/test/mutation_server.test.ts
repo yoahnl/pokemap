@@ -41,11 +41,29 @@ async function toolData(
 }
 
 async function mutationFixture(
-  options: { withLegacyAtlasGap?: boolean; withSmartTileM01?: boolean } = {},
+  options: {
+    withLegacyAtlasGap?: boolean;
+    withSmartTileM01?: boolean;
+    withNativeSmartTileV5?: boolean | "mixed";
+  } = {},
 ) {
   const root = await mkdtemp(join(tmpdir(), "pokemap-mcp-mutation-"));
   const scaffoldBytes = await readFile(scaffold);
-  if (options.withSmartTileM01) {
+  if (options.withNativeSmartTileV5) {
+    await mkdir(join(root, "maps"), { recursive: true });
+    await writeFile(
+      join(root, "project.json"),
+      JSON.stringify(
+        nativeSmartTileV5Project(options.withNativeSmartTileV5 === "mixed"),
+      ),
+    );
+    await writeFile(
+      join(root, "maps/native_v5.json"),
+      JSON.stringify(
+        nativeSmartTileV5Map(options.withNativeSmartTileV5 === "mixed"),
+      ),
+    );
+  } else if (options.withSmartTileM01) {
     await mkdir(join(root, "maps"), { recursive: true });
     await writeFile(
       join(root, "project.json"),
@@ -103,10 +121,144 @@ async function mutationFixture(
   return { authoring, client, root, server };
 }
 
+function nativeSmartTileV5Project(mixed = false): JsonRecord {
+  return {
+    name: "Native Smart Tile v5 MCP fixture",
+    version: "v5",
+    maps: [
+      {
+        id: "native_v5",
+        name: "Native v5",
+        relativePath: "maps/native_v5.json",
+      },
+    ],
+    tilesets: [],
+    smartTileCatalog: {
+      formatVersion: 2,
+      categories: [],
+      atlases: [],
+      animations: [],
+      materials: [
+        {
+          id: "grass",
+          name: "Grass",
+          connectionGroupId: "ground",
+        },
+        {
+          id: "road",
+          name: "Road",
+          connectionGroupId: "road",
+        },
+      ],
+      presets: [
+        {
+          id: "terrain",
+          name: "Terrain",
+          usage: "terrain",
+          topology: "uniform",
+          templateHint: "simple",
+          status: "draft",
+          coveragePolicy: "sparse",
+          coverageProfile: {
+            mode: "template",
+            requiredScenarios: [],
+            allowFallback: false,
+          },
+          transformPolicy: {
+            allowHFlip: false,
+            allowVFlip: false,
+            allowQuarterTurns: false,
+          },
+          defaultMaterialId: "grass",
+          allowedMaterialIds: ["grass"],
+          rules: [],
+          tags: [],
+          sortOrder: 0,
+          seedSalt: 0,
+        },
+        {
+          id: "path",
+          name: "Path",
+          usage: "path",
+          topology: mixed ? "wang_8" : "uniform",
+          templateHint: mixed ? "mixed_256" : "simple",
+          status: "draft",
+          coveragePolicy: "sparse",
+          coverageProfile: {
+            mode: "template",
+            requiredScenarios: [],
+            allowFallback: false,
+          },
+          transformPolicy: {
+            allowHFlip: false,
+            allowVFlip: false,
+            allowQuarterTurns: false,
+          },
+          defaultMaterialId: "road",
+          allowedMaterialIds: ["road"],
+          rules: [],
+          tags: [],
+          sortOrder: 0,
+          seedSalt: 0,
+        },
+      ],
+    },
+  };
+}
+
+function nativeSmartTileV5Map(mixed = false): JsonRecord {
+  return {
+    id: "native_v5",
+    name: "Native v5",
+    size: { width: 2, height: 2 },
+    version: "v5",
+    layers: [
+      {
+        id: "base",
+        name: "Base",
+        tiles: [0, 0, 0, 0],
+        runtimeType: "tile",
+      },
+      {
+        id: "terrain",
+        name: "Terrain",
+        presetId: "terrain",
+        usage: "terrain",
+        materialPalette: ["", "grass"],
+        field: {
+          kind: "cell",
+          semanticCells: [1, 1, 1, 1],
+        },
+        runtimeType: "smart_tile",
+      },
+      {
+        id: "smart",
+        name: "Smart",
+        presetId: "path",
+        usage: "path",
+        materialPalette: ["", "road"],
+        field: mixed
+          ? {
+              kind: "mixed",
+              semanticCells: [0, 0, 0, 0],
+              horizontalEdges: [0, 0, 0, 0, 0, 0],
+              verticalEdges: [0, 0, 0, 0, 0, 0],
+              corners: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            }
+          : {
+              kind: "cell",
+              semanticCells: [1, 0, 0, 0],
+            },
+        runtimeType: "smart_tile",
+      },
+    ],
+  };
+}
+
 function smartTileM01Project(): JsonRecord {
   return {
     name: "M01 Smart Tile MCP fixture",
-    version: "v4",
+    version: "v5",
     maps: [
       {
         id: "map_hanazuki_village",
@@ -116,7 +268,7 @@ function smartTileM01Project(): JsonRecord {
     ],
     tilesets: [],
     smartTileCatalog: {
-      formatVersion: 1,
+      formatVersion: 2,
       categories: [],
       atlases: [],
       animations: [],
@@ -135,7 +287,20 @@ function smartTileM01Project(): JsonRecord {
           id: "terrain",
           name: "Terrain",
           usage: "terrain",
-          topology: "cardinal_4",
+          topology: "wang_8",
+          templateHint: "mixed_256",
+          coveragePolicy: "complete",
+          coverageProfile: {
+            mode: "template",
+            requiredScenarios: [],
+            allowFallback: false,
+          },
+          transformPolicy: {
+            allowHFlip: false,
+            allowVFlip: false,
+            allowQuarterTurns: false,
+            preferUntransformed: true,
+          },
           defaultMaterialId: "grass",
           allowedMaterialIds: ["grass"],
         },
@@ -143,7 +308,20 @@ function smartTileM01Project(): JsonRecord {
           id: "path",
           name: "Path",
           usage: "path",
-          topology: "cardinal_4",
+          topology: "wang_8",
+          templateHint: "mixed_256",
+          coveragePolicy: "complete",
+          coverageProfile: {
+            mode: "template",
+            requiredScenarios: [],
+            allowFallback: false,
+          },
+          transformPolicy: {
+            allowHFlip: false,
+            allowVFlip: false,
+            allowQuarterTurns: false,
+            preferUntransformed: true,
+          },
           defaultMaterialId: "dirt",
           allowedMaterialIds: ["dirt"],
         },
@@ -159,7 +337,7 @@ function smartTileM01Map(): JsonRecord {
     id: "map_hanazuki_village",
     name: "Hanazuki Village",
     size: { width: 3, height: 3 },
-    version: "v4",
+    version: "v5",
     layers: [
       {
         id: "base",
@@ -175,10 +353,13 @@ function smartTileM01Map(): JsonRecord {
         presetId: "terrain",
         usage: "terrain",
         materialPalette: ["", "grass", "smart_material_empty"],
-        materialCells: Array<number>(9).fill(1),
-        horizontalEdges: zeros12,
-        verticalEdges: zeros12,
-        corners: zeros16,
+        field: {
+          kind: "mixed",
+          semanticCells: Array<number>(9).fill(1),
+          horizontalEdges: zeros12,
+          verticalEdges: zeros12,
+          corners: zeros16,
+        },
         layerSeed: 71,
         properties: { keep: "terrain" },
         runtimeType: "smart_tile",
@@ -191,10 +372,13 @@ function smartTileM01Map(): JsonRecord {
         presetId: "path",
         usage: "path",
         materialPalette: ["", "dirt"],
-        materialCells: [0, 0, 0, 1, 1, 1, 0, 0, 0],
-        horizontalEdges: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        verticalEdges: zeros12,
-        corners: zeros16,
+        field: {
+          kind: "mixed",
+          semanticCells: [0, 0, 0, 1, 1, 1, 0, 0, 0],
+          horizontalEdges: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          verticalEdges: zeros12,
+          corners: zeros16,
+        },
         layerSeed: 29,
         properties: { keep: "yes" },
         runtimeType: "smart_tile",
@@ -205,10 +389,13 @@ function smartTileM01Map(): JsonRecord {
         presetId: "path",
         usage: "path",
         materialPalette: ["", "dirt"],
-        materialCells: [0, 1, 0, 0, 1, 0, 0, 1, 0],
-        horizontalEdges: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
-        verticalEdges: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-        corners: [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        field: {
+          kind: "mixed",
+          semanticCells: [0, 1, 0, 0, 1, 0, 0, 1, 0],
+          horizontalEdges: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+          verticalEdges: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+          corners: [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        },
         layerSeed: 0,
         properties: {},
         runtimeType: "smart_tile",
@@ -379,6 +566,201 @@ test("MCP preserves CLI plan/apply parity for one complete map batch", async () 
       (batchHistory.entries as JsonRecord[]).map((entry) => entry.operationId),
       ["operation-mcp-map-batch", "operation-mcp-map-create"],
     );
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("MCP relays the canonical STN-03 Smart Tile authoring rejection", async () => {
+  const fixture = await mutationFixture({ withNativeSmartTileV5: true });
+  try {
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const before = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    const beforeMap = await readFile(join(fixture.root, "maps/native_v5.json"));
+
+    const rejected = await fixture.client.callTool({
+      name: "pokemap_plan",
+      arguments: {
+        projectHandle,
+        request: {
+          requestId: "native-v5-layer-add-rejected",
+          actionId: "map.apply_operations",
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle,
+          parameters: {
+            mapId: "native_v5",
+            operations: [
+              {
+                kind: "layer.add",
+                layerKind: "smart_tile",
+                layerId: "smart_path",
+                name: "Smart Path",
+                presetId: "path",
+                usage: "path",
+                defaultMaterialId: "road",
+              },
+            ],
+          },
+          expectedRevision: before.snapshotRevision,
+          idempotencyKey: "idem-native-v5-layer-add-rejected",
+          dryRun: false,
+        },
+      },
+    });
+
+    assert.equal(rejected.isError, true);
+    const error = record(record(rejected.structuredContent).error);
+    assert.equal(
+      error.domainCode,
+      "smart_tile_native_authoring_requires_stn03",
+    );
+    const after = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    assert.equal(after.snapshotRevision, before.snapshotRevision);
+    assert.deepEqual(
+      await readFile(join(fixture.root, "maps/native_v5.json")),
+      beforeMap,
+    );
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("MCP relays the canonical STN-05 Smart Tile paint rejection", async () => {
+  const fixture = await mutationFixture({ withNativeSmartTileV5: "mixed" });
+  try {
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const before = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    const beforeMap = await readFile(join(fixture.root, "maps/native_v5.json"));
+
+    const rejected = await fixture.client.callTool({
+      name: "pokemap_plan",
+      arguments: {
+        projectHandle,
+        request: {
+          requestId: "native-v5-paint-rejected",
+          actionId: "map.apply_operations",
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle,
+          parameters: {
+            mapId: "native_v5",
+            operations: [
+              {
+                kind: "region.paint",
+                layerId: "smart",
+                x: 0,
+                y: 0,
+                value: "road",
+              },
+            ],
+          },
+          expectedRevision: before.snapshotRevision,
+          idempotencyKey: "idem-native-v5-paint-rejected",
+          dryRun: false,
+        },
+      },
+    });
+
+    assert.equal(rejected.isError, true);
+    const error = record(record(rejected.structuredContent).error);
+    assert.equal(
+      error.domainCode,
+      "smart_tile_wang_paint_compiler_required",
+    );
+    const after = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    assert.equal(after.snapshotRevision, before.snapshotRevision);
+    assert.deepEqual(
+      await readFile(join(fixture.root, "maps/native_v5.json")),
+      beforeMap,
+    );
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("MCP applies Smart Tile cell edits through the canonical transport", async () => {
+  const fixture = await mutationFixture({ withNativeSmartTileV5: true });
+  try {
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const before = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    const planned = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "native-v5-clear",
+        actionId: "map.apply_operations",
+        actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle,
+        parameters: {
+          mapId: "native_v5",
+          operations: [
+            { kind: "layer.clear", layerId: "smart" },
+            {
+              kind: "region.paint",
+              layerId: "smart",
+              x: 1,
+              y: 1,
+              value: "road",
+            },
+          ],
+        },
+        expectedRevision: before.snapshotRevision,
+        idempotencyKey: "idem-native-v5-clear",
+        dryRun: false,
+      },
+    });
+    const applied = await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: planned.planId,
+      operationId: "operation-native-v5-clear",
+    });
+    assert.equal(record(applied.receipt).actionId, "map.apply_operations");
+    const after = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    assert.notEqual(after.snapshotRevision, before.snapshotRevision);
+    const persisted = record(
+      JSON.parse(
+        await readFile(join(fixture.root, "maps/native_v5.json"), "utf8"),
+      ),
+    );
+    const smartLayerValue = (persisted.layers as unknown[]).find(
+      (layer) => record(layer).id === "smart",
+    );
+    assert.ok(smartLayerValue);
+    const smartLayer = record(smartLayerValue);
+    const field = record(smartLayer.field);
+    assert.deepEqual(field.semanticCells, [0, 0, 0, 1]);
   } finally {
     await fixture.client.close();
     await fixture.server.close();
@@ -578,6 +960,7 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
         "utf8",
       ),
     ) as JsonRecord;
+    assert.equal(map.version, "v5");
     const layers = map.layers as JsonRecord[];
     assert.deepEqual(
       layers.map((layer) => layer.id),
@@ -588,14 +971,16 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
     assert.ok(terrain);
     assert.ok(target);
     assert.deepEqual(terrain.materialPalette, ["", "grass"]);
-    assert.deepEqual(target.materialCells, [0, 1, 0, 1, 1, 1, 0, 1, 0]);
-    assert.deepEqual(target.horizontalEdges, [
+    const targetField = record(target.field);
+    assert.equal(targetField.kind, "mixed");
+    assert.deepEqual(targetField.semanticCells, [0, 1, 0, 1, 1, 1, 0, 1, 0]);
+    assert.deepEqual(targetField.horizontalEdges, [
       1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
     ]);
-    assert.deepEqual(target.verticalEdges, [
+    assert.deepEqual(targetField.verticalEdges, [
       0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
     ]);
-    assert.deepEqual(target.corners, [
+    assert.deepEqual(targetField.corners, [
       0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
     ]);
     assert.equal(target.name, "Target metadata");

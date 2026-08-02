@@ -15,6 +15,7 @@ void main() {
       const map = MapData(
         id: 'smart-tile-map',
         name: 'Smart Tile map',
+        version: ProjectVersion.v5,
         size: GridSize(width: 2, height: 2),
         layers: <MapLayer>[
           SmartTileLayer(
@@ -22,6 +23,9 @@ void main() {
             name: 'Smart terrain',
             presetId: 'grass',
             usage: SmartTileUsage.terrain,
+            field: SmartTileField.cell(
+              semanticCells: <int>[0, 0, 0, 0],
+            ),
           ),
         ],
       );

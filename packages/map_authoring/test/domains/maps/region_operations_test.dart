@@ -230,7 +230,8 @@ void main() {
       expect(clipboard.contains('cut'), isTrue);
     });
 
-    test('normalizes values for every cell-addressable layer kind', () {
+    test('normalizes values for every non-SmartTile addressable layer kind',
+        () {
       var map = _map(width: 2, height: 2).copyWith(
         version: ProjectVersion.v4,
         layers: [
@@ -247,17 +248,6 @@ void main() {
           ),
           MapLayer.path(id: 'path', name: 'Path', cells: List.filled(4, false)),
           const MapLayer.surface(id: 'surface', name: 'Surface'),
-          const MapLayer.smartTile(
-            id: 'smart',
-            name: 'Smart',
-            presetId: 'preset',
-            usage: SmartTileUsage.path,
-            materialPalette: ['', 'road'],
-            materialCells: [0, 0, 0, 0],
-            horizontalEdges: [0, 0, 0, 0, 0, 0],
-            verticalEdges: [0, 0, 0, 0, 0, 0],
-            corners: [0, 0, 0, 0, 0, 0, 0, 0, 0],
-          ),
         ],
       );
       const operations = MapRegionOperations();
@@ -267,7 +257,6 @@ void main() {
         'terrain': 'grass',
         'path': true,
         'surface': 'surface_grass',
-        'smart': 'road',
       }.entries) {
         map = operations.apply(map, {
           'kind': 'region.paint',
@@ -283,15 +272,6 @@ void main() {
       expect((map.layers[2] as TerrainLayer).terrains.last, TerrainType.grass);
       expect((map.layers[3] as PathLayer).cells.last, isTrue);
       expect((map.layers[4] as SurfaceLayer).placements.single.x, 1);
-      expect(
-        smartTileMaterialIdAt(
-          map.layers[5] as SmartTileLayer,
-          mapSize: map.size,
-          x: 1,
-          y: 1,
-        ),
-        'road',
-      );
     });
 
     test('rejects out-of-bounds and non-square odd rotations', () {
@@ -320,6 +300,261 @@ void main() {
           () => operations.apply(map, operation),
           throwsA(isA<MapAuthoringException>()),
         );
+      }
+    });
+
+    test('cell Smart Tile fields keep paint, fill, and erase authoring', () {
+      final map = _map(width: 2, height: 2).copyWith(
+        version: ProjectVersion.v5,
+        layers: const [
+          MapLayer.smartTile(
+            id: 'smart',
+            name: 'Smart',
+            presetId: 'preset',
+            usage: SmartTileUsage.path,
+            materialPalette: ['', 'road'],
+            field: SmartTileField.cell(
+              semanticCells: [0, 0, 0, 0],
+            ),
+          ),
+        ],
+      );
+
+      const operations = MapRegionOperations();
+      final painted = operations.apply(map, const {
+        'kind': 'region.paint',
+        'layerId': 'smart',
+        'x': 0,
+        'y': 0,
+        'value': 'road',
+      }).map;
+      expect(
+        smartTileSemanticCells(painted.layers.single as SmartTileLayer),
+        [1, 0, 0, 0],
+      );
+
+      final filled = operations.apply(painted, const {
+        'kind': 'region.fill',
+        'layerId': 'smart',
+        'x': 0,
+        'y': 0,
+        'width': 2,
+        'height': 2,
+        'value': 'road',
+      }).map;
+      expect(
+        smartTileSemanticCells(filled.layers.single as SmartTileLayer),
+        [1, 1, 1, 1],
+      );
+
+      final erased = operations.apply(filled, const {
+        'kind': 'region.erase',
+        'layerId': 'smart',
+        'x': 0,
+        'y': 0,
+      }).map;
+      expect(
+        smartTileSemanticCells(erased.layers.single as SmartTileLayer),
+        [0, 1, 1, 1],
+      );
+    });
+
+    test(
+        'rejects every v5 Smart Tile mutator for edge, corner, and mixed fields',
+        () {
+      final fields = <SmartTileField>[
+        const SmartTileField.corner(
+          semanticCells: [0, 0, 0, 0],
+          corners: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ),
+        const SmartTileField.edge(
+          semanticCells: [0, 0, 0, 0],
+          horizontalEdges: [0, 0, 0, 0, 0, 0],
+          verticalEdges: [0, 0, 0, 0, 0, 0],
+        ),
+        const SmartTileField.mixed(
+          semanticCells: [0, 0, 0, 0],
+          horizontalEdges: [0, 0, 0, 0, 0, 0],
+          verticalEdges: [0, 0, 0, 0, 0, 0],
+          corners: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ),
+      ];
+      final mutators = <Map<String, Object?>>[
+        {
+          'kind': 'region.paint',
+          'layerId': 'smart',
+          'x': 0,
+          'y': 0,
+          'value': 'road'
+        },
+        {
+          'kind': 'region.fill',
+          'layerId': 'smart',
+          'x': 0,
+          'y': 0,
+          'width': 1,
+          'height': 1,
+          'value': 'road'
+        },
+        {'kind': 'region.erase', 'layerId': 'smart', 'x': 0, 'y': 0},
+        {
+          'kind': 'region.cut',
+          'layerId': 'smart',
+          'clipboardId': 'cut',
+          'x': 0,
+          'y': 0,
+          'width': 1,
+          'height': 1
+        },
+        {
+          'kind': 'region.flip',
+          'layerId': 'smart',
+          'x': 0,
+          'y': 0,
+          'width': 1,
+          'height': 1,
+          'axis': 'horizontal'
+        },
+        {
+          'kind': 'region.flood_fill',
+          'layerId': 'smart',
+          'x': 0,
+          'y': 0,
+          'value': 'road'
+        },
+        {
+          'kind': 'region.move',
+          'layerId': 'smart',
+          'source': {'x': 0, 'y': 0, 'width': 1, 'height': 1},
+          'target': {'x': 1, 'y': 1}
+        },
+        {
+          'kind': 'region.paste',
+          'layerId': 'smart',
+          'clipboardId': 'paste',
+          'x': 0,
+          'y': 0
+        },
+        {
+          'kind': 'region.replace',
+          'layerId': 'smart',
+          'from': null,
+          'to': 'road'
+        },
+        {
+          'kind': 'region.rotate',
+          'layerId': 'smart',
+          'x': 0,
+          'y': 0,
+          'width': 1,
+          'height': 1,
+          'quarterTurns': 1
+        },
+        {
+          'kind': 'region.stamp',
+          'layerId': 'smart',
+          'x': 0,
+          'y': 0,
+          'width': 1,
+          'height': 1,
+          'values': ['road']
+        },
+        {
+          'kind': 'shape.line',
+          'layerId': 'smart',
+          'from': {'x': 0, 'y': 0},
+          'to': {'x': 1, 'y': 1},
+          'value': 'road'
+        },
+        {
+          'kind': 'shape.polygon',
+          'layerId': 'smart',
+          'points': [
+            {'x': 0, 'y': 0},
+            {'x': 1, 'y': 0},
+            {'x': 0, 'y': 1}
+          ],
+          'value': 'road',
+          'filled': true
+        },
+        {
+          'kind': 'shape.polyline',
+          'layerId': 'smart',
+          'points': [
+            {'x': 0, 'y': 0},
+            {'x': 1, 'y': 1}
+          ],
+          'value': 'road'
+        },
+        {
+          'kind': 'shape.rectangle',
+          'layerId': 'smart',
+          'x': 0,
+          'y': 0,
+          'width': 1,
+          'height': 1,
+          'value': 'road',
+          'filled': true
+        },
+      ];
+
+      for (final field in fields) {
+        final map = _map(width: 2, height: 2).copyWith(
+          version: ProjectVersion.v5,
+          layers: [
+            MapLayer.smartTile(
+              id: 'smart',
+              name: 'Smart',
+              presetId: 'preset',
+              usage: SmartTileUsage.path,
+              materialPalette: const ['', 'road'],
+              field: field,
+            ),
+          ],
+        );
+        final before = map.toJson();
+        for (final operation in mutators) {
+          expect(
+            () => const MapRegionOperations().apply(
+              map,
+              operation,
+              clipboard: MapRegionClipboard(),
+            ),
+            throwsA(
+              isA<MapAuthoringException>()
+                  .having(
+                    (error) => error.code,
+                    'code',
+                    'smart_tile_wang_paint_compiler_required',
+                  )
+                  .having(
+                    (error) => error.details['operation'],
+                    'operation',
+                    operation['kind'],
+                  ),
+            ),
+            reason: '${field.runtimeType} ${operation['kind']}',
+          );
+          expect(map.toJson(), before);
+        }
+
+        final clipboard = MapRegionClipboard();
+        final copied = const MapRegionOperations().apply(
+          map,
+          const {
+            'kind': 'region.copy',
+            'layerId': 'smart',
+            'clipboardId': 'read-only',
+            'x': 0,
+            'y': 0,
+            'width': 1,
+            'height': 1,
+          },
+          clipboard: clipboard,
+        );
+        expect(copied.map.toJson(), before);
+        expect(copied.changedCells, 0);
+        expect(clipboard.contains('read-only'), isTrue);
       }
     });
   });

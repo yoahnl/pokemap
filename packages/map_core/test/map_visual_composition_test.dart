@@ -190,12 +190,12 @@ void main() {
       );
     });
 
-    test('a native v4 Smart Tile layer selects authored paint order', () {
+    test('a native v5 Smart Tile layer selects authored paint order', () {
       final plan = buildMapVisualCompositionPlan(
         const MapData(
-          id: 'smart-v4',
-          name: 'Smart v4',
-          version: ProjectVersion.v4,
+          id: 'smart-v5',
+          name: 'Smart v5',
+          version: ProjectVersion.v5,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             TileLayer(id: 'top-tile', name: 'Top tile'),
@@ -203,7 +203,8 @@ void main() {
               id: 'smart-path',
               name: 'Smart path',
               presetId: 'path',
-              usage: SmartTileUsage.path,
+              usage: SmartTileUsage.terrain,
+              field: SmartTileField.cell(semanticCells: <int>[0]),
             ),
             TileLayer(id: 'bottom-tile', name: 'Bottom tile'),
           ],

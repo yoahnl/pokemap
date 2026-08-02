@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
 import 'package:map_editor/src/features/editor/application/map_layer_deletion_impact.dart';
@@ -61,7 +62,7 @@ void main() {
         const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v4,
+          version: ProjectVersion.v5,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             TileLayer(id: 'tiles', name: 'Tuiles', tiles: <int>[0]),
@@ -70,14 +71,20 @@ void main() {
               name: 'Terrain',
               presetId: 'grass',
               usage: SmartTileUsage.terrain,
+              field: SmartTileField.cell(semanticCells: _oneCell),
             ),
             SmartTileLayer(
               id: 'path',
               name: 'Chemin',
               presetId: 'road',
               usage: SmartTileUsage.path,
+              field: SmartTileField.cell(semanticCells: _oneCell),
             ),
-            CollisionLayer(id: 'collision', name: 'Collision'),
+            CollisionLayer(
+              id: 'collision',
+              name: 'Collision',
+              collisions: <bool>[false],
+            ),
           ],
         ),
         activeLayerId: 'tiles',
@@ -273,7 +280,7 @@ void main() {
       const MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v4,
+        version: ProjectVersion.v5,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[
           TileLayer(id: 'tiles', name: 'Sol', tiles: <int>[0]),
@@ -282,12 +289,14 @@ void main() {
             name: 'Herbe',
             presetId: 'grass',
             usage: SmartTileUsage.terrain,
+            field: SmartTileField.cell(semanticCells: _oneCell),
           ),
           SmartTileLayer(
             id: 'path',
             name: 'Sentier',
             presetId: 'path',
             usage: SmartTileUsage.path,
+            field: SmartTileField.cell(semanticCells: _oneCell),
           ),
         ],
       ),
@@ -358,7 +367,7 @@ void main() {
       const MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v4,
+        version: ProjectVersion.v5,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[
           TileLayer(id: 'tiles', name: 'Sol principal', tiles: <int>[0]),
@@ -367,8 +376,13 @@ void main() {
             name: 'Herbe sombre',
             presetId: 'grass',
             usage: SmartTileUsage.terrain,
+            field: SmartTileField.cell(semanticCells: _oneCell),
           ),
-          CollisionLayer(id: 'collision', name: 'Blocages'),
+          CollisionLayer(
+            id: 'collision',
+            name: 'Blocages',
+            collisions: <bool>[false],
+          ),
           ObjectLayer(id: 'objects', name: 'Décor'),
         ],
       ),
@@ -443,31 +457,33 @@ void main() {
         const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v4,
+          version: ProjectVersion.v5,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             SmartTileLayer(
-              id: 'terrain-a',
-              name: 'Terrain A',
-              presetId: 'terrain-a',
-              usage: SmartTileUsage.terrain,
+              id: 'path-a',
+              name: 'Chemin A',
+              presetId: 'path-a',
+              usage: SmartTileUsage.path,
+              field: SmartTileField.cell(semanticCells: _oneCell),
             ),
             SmartTileLayer(
-              id: 'terrain-b',
-              name: 'Terrain B',
-              presetId: 'terrain-b',
-              usage: SmartTileUsage.terrain,
+              id: 'path-b',
+              name: 'Chemin B',
+              presetId: 'path-b',
+              usage: SmartTileUsage.path,
+              field: SmartTileField.cell(semanticCells: _oneCell),
             ),
           ],
         ),
-        activeLayerId: 'terrain-a',
+        activeLayerId: 'path-a',
       );
       addTearDown(harness.dispose);
       expect(
         harness.session
             .activateTool(
               harness.notifier,
-              const ActivateWorldMapPaint(WorldMapPaintSubtool.terrain),
+              const ActivateWorldMapPaint(WorldMapPaintSubtool.path),
             )
             .accepted,
         isTrue,
@@ -476,12 +492,12 @@ void main() {
 
       await tester.tap(
         find.byKey(
-          const ValueKey<String>('world-map-layer-activate-terrain-b'),
+          const ValueKey<String>('world-map-layer-activate-path-b'),
         ),
       );
       await tester.pump();
 
-      expect(harness.notifier.state.activeLayerId, 'terrain-b');
+      expect(harness.notifier.state.activeLayerId, 'path-b');
       expect(harness.notifier.state.activeTool, EditorToolType.terrainPaint);
       expect(
         harness.sessionState.activeFamily,
@@ -489,7 +505,7 @@ void main() {
       );
       expect(
         harness.sessionState.lastPaintSubtool,
-        WorldMapPaintSubtool.terrain,
+        WorldMapPaintSubtool.path,
       );
       expect(harness.notifier.state.mapUndoStack, isEmpty);
       expect(harness.notifier.state.isDirty, isFalse);
@@ -503,7 +519,7 @@ void main() {
         const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v4,
+          version: ProjectVersion.v5,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             TileLayer(
@@ -513,16 +529,18 @@ void main() {
               tiles: <int>[0],
             ),
             SmartTileLayer(
-              id: 'terrain-a',
-              name: 'Terrain A',
-              presetId: 'terrain-a',
-              usage: SmartTileUsage.terrain,
+              id: 'path-a',
+              name: 'Chemin A',
+              presetId: 'path-a',
+              usage: SmartTileUsage.path,
+              field: SmartTileField.cell(semanticCells: _oneCell),
             ),
             SmartTileLayer(
-              id: 'terrain-b',
-              name: 'Terrain B',
-              presetId: 'terrain-b',
-              usage: SmartTileUsage.terrain,
+              id: 'path-b',
+              name: 'Chemin B',
+              presetId: 'path-b',
+              usage: SmartTileUsage.path,
+              field: SmartTileField.cell(semanticCells: _oneCell),
             ),
           ],
         ),
@@ -532,19 +550,19 @@ void main() {
 
       final firstRouting = harness.session.routePaintSubtool(
         harness.notifier,
-        WorldMapPaintSubtool.terrain,
-        chosenLayerId: 'terrain-a',
+        WorldMapPaintSubtool.path,
+        chosenLayerId: 'path-a',
       );
       expect(firstRouting.outcome, WorldMapPaintRoutingOutcome.activated);
       await harness.pump(tester);
 
       await tester.tap(
         find.byKey(
-          const ValueKey<String>('world-map-layer-activate-terrain-b'),
+          const ValueKey<String>('world-map-layer-activate-path-b'),
         ),
       );
       await tester.pump();
-      expect(harness.notifier.state.activeLayerId, 'terrain-b');
+      expect(harness.notifier.state.activeLayerId, 'path-b');
       expect(harness.notifier.state.activeTool, EditorToolType.terrainPaint);
 
       await tester.tap(
@@ -564,12 +582,12 @@ void main() {
 
       final replay = harness.session.routePaintSubtool(
         harness.notifier,
-        WorldMapPaintSubtool.terrain,
+        WorldMapPaintSubtool.path,
       );
 
       expect(replay.outcome, WorldMapPaintRoutingOutcome.activated);
-      expect(replay.layerId, 'terrain-b');
-      expect(harness.notifier.state.activeLayerId, 'terrain-b');
+      expect(replay.layerId, 'path-b');
+      expect(harness.notifier.state.activeLayerId, 'path-b');
       expect(harness.notifier.state.mapUndoStack, isEmpty);
       expect(harness.notifier.state.isDirty, isFalse);
     },
@@ -582,7 +600,7 @@ void main() {
         const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v4,
+          version: ProjectVersion.v5,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             SmartTileLayer(
@@ -590,12 +608,14 @@ void main() {
               name: 'Chemin',
               presetId: 'path',
               usage: SmartTileUsage.path,
+              field: SmartTileField.cell(semanticCells: _oneCell),
             ),
             SmartTileLayer(
               id: 'terrain',
               name: 'Terrain',
               presetId: 'terrain',
               usage: SmartTileUsage.terrain,
+              field: SmartTileField.cell(semanticCells: _oneCell),
             ),
           ],
         ),
@@ -912,8 +932,7 @@ void main() {
     );
   });
 
-  testWidgets(
-      'adds a published Smart Tile terrain from Layers and arms painting',
+  testWidgets('disables Smart Tile terrain creation with the STN-03 diagnostic',
       (tester) async {
     final harness = _Harness(
       _threeLayerMap(),
@@ -930,47 +949,16 @@ void main() {
       (item) => item.label == 'Terrain',
     );
 
-    add.onSelected(smartTerrain.value);
-    await tester.pumpAndSettle();
-    expect(find.text('Prairie'), findsOneWidget);
-    expect(find.text('Brouillon'), findsNothing);
-    expect(find.text('Chemin'), findsNothing);
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('world-map-smart-terrain-preset-prairie'),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    final activeLayer = _layer(
-      harness,
-      harness.notifier.state.activeLayerId!,
-    );
-    expect(activeLayer, isA<SmartTileLayer>());
-    expect((activeLayer as SmartTileLayer).presetId, 'prairie');
-    expect(activeLayer.usage, SmartTileUsage.terrain);
-    expect(activeLayer.materialCells, const <int>[0]);
-    expect(harness.notifier.state.activeTool, EditorToolType.terrainPaint);
+    expect(smartTerrain.enabled, isFalse);
     expect(
-      harness.sessionState.activeFamily,
-      WorldMapToolFamily.paint,
+      smartTerrain.disabledReason,
+      smartTileNativeAuthoringRequiresStn03Code,
     );
-    expect(
-      harness.sessionState.lastPaintSubtool,
-      WorldMapPaintSubtool.terrain,
-    );
-
-    harness.notifier.paintTerrainAt(const GridPos(x: 0, y: 0));
-    final paintedLayer = _layer(
-      harness,
-      harness.notifier.state.activeLayerId!,
-    ) as SmartTileLayer;
-    expect(paintedLayer.materialPalette, const <String>['', 'grass']);
-    expect(paintedLayer.materialCells, const <int>[1]);
+    expect(harness.notifier.state.activeMap!.layers.whereType<SmartTileLayer>(),
+        isEmpty);
   });
 
-  testWidgets(
-      'adds a published Smart Tile path then paints and erases it from Layers',
+  testWidgets('disables Smart Tile path creation with the STN-03 diagnostic',
       (tester) async {
     final harness = _Harness(
       _threeLayerMap(),
@@ -987,42 +975,13 @@ void main() {
       (item) => item.label == 'Chemin',
     );
 
-    add.onSelected(smartPath.value);
-    await tester.pumpAndSettle();
-    expect(find.text('Chemin'), findsOneWidget);
-    expect(find.text('Prairie'), findsNothing);
-    expect(find.text('Brouillon'), findsNothing);
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('world-map-smart-path-preset-path'),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    final layerId = harness.notifier.state.activeLayerId!;
-    final activeLayer = _layer(harness, layerId) as SmartTileLayer;
-    expect(activeLayer.presetId, 'path');
-    expect(activeLayer.usage, SmartTileUsage.path);
-    expect(harness.notifier.state.activeTool, EditorToolType.terrainPaint);
+    expect(smartPath.enabled, isFalse);
     expect(
-      harness.sessionState.lastPaintSubtool,
-      WorldMapPaintSubtool.path,
+      smartPath.disabledReason,
+      smartTileNativeAuthoringRequiresStn03Code,
     );
-
-    harness.notifier.paintTerrainAt(const GridPos(x: 0, y: 0));
-    expect(
-      (_layer(harness, layerId) as SmartTileLayer).materialCells,
-      const <int>[1],
-    );
-    final erase = harness.notifier.activateWorldMapTool(
-      const ActivateWorldMapErase(),
-    );
-    expect(erase.accepted, isTrue);
-    harness.notifier.eraseAt(const GridPos(x: 0, y: 0));
-    expect(
-      (_layer(harness, layerId) as SmartTileLayer).materialCells,
-      const <int>[0],
-    );
+    expect(harness.notifier.state.activeMap!.layers.whereType<SmartTileLayer>(),
+        isEmpty);
   });
 
   testWidgets('rename cancellation leaves map and history untouched',
@@ -1586,6 +1545,8 @@ final class _Harness {
   }
 }
 
+const _oneCell = <int>[0];
+
 MapLayer _layer(_Harness harness, String id) {
   return harness.notifier.state.activeMap!.layers
       .firstWhere((layer) => layer.id == id);
@@ -1614,6 +1575,7 @@ TileLayer _tile(String id, String name) {
 
 final _smartTileProject = ProjectManifest(
   name: 'Smart project',
+  version: ProjectVersion.v5,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[],
   smartTileCatalog: ProjectSmartTileCatalog(
@@ -1630,6 +1592,11 @@ final _smartTileProject = ProjectManifest(
         name: 'Prairie',
         usage: SmartTileUsage.terrain,
         topology: SmartTileTopology.cardinal4,
+        coveragePolicy: SmartTileCoveragePolicy.complete,
+        coverageProfile: SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.template,
+        ),
+        transformPolicy: SmartTileTransformPolicy(),
         status: SmartTilePresetStatus.published,
         defaultMaterialId: 'grass',
         allowedMaterialIds: <String>['grass'],
@@ -1639,6 +1606,11 @@ final _smartTileProject = ProjectManifest(
         name: 'Brouillon',
         usage: SmartTileUsage.terrain,
         topology: SmartTileTopology.cardinal4,
+        coveragePolicy: SmartTileCoveragePolicy.complete,
+        coverageProfile: SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.template,
+        ),
+        transformPolicy: SmartTileTransformPolicy(),
         defaultMaterialId: 'grass',
         allowedMaterialIds: <String>['grass'],
       ),
@@ -1647,6 +1619,11 @@ final _smartTileProject = ProjectManifest(
         name: 'Chemin',
         usage: SmartTileUsage.path,
         topology: SmartTileTopology.cardinal4,
+        coveragePolicy: SmartTileCoveragePolicy.complete,
+        coverageProfile: SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.template,
+        ),
+        transformPolicy: SmartTileTransformPolicy(),
         status: SmartTilePresetStatus.published,
         defaultMaterialId: 'grass',
         allowedMaterialIds: <String>['grass'],

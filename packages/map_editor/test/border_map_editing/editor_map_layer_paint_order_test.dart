@@ -119,19 +119,28 @@ void main() {
       );
     });
 
-    test('exposes Smart Tile layers without aborting the editor paint plan',
-        () {
+    test('exposes Smart Tile layers in authored bottom-to-top paint order', () {
       final plan = buildEditorMapLayerPaintOrder(
         const MapData(
           id: 'smart-tiles',
           name: 'Smart Tiles',
+          version: ProjectVersion.v5,
+          visualStack: MapVisualStackConfig.canonicalV1,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             SmartTileLayer(
-              id: 'smart-terrain',
-              name: 'Smart terrain',
+              id: 'smart-top',
+              name: 'Smart top',
               presetId: 'grass',
               usage: SmartTileUsage.terrain,
+              field: SmartTileField.cell(semanticCells: <int>[0]),
+            ),
+            SmartTileLayer(
+              id: 'smart-bottom',
+              name: 'Smart bottom',
+              presetId: 'path',
+              usage: SmartTileUsage.path,
+              field: SmartTileField.cell(semanticCells: <int>[0]),
             ),
           ],
         ),
@@ -140,7 +149,10 @@ void main() {
       expect(
         plan.authoredLayers
             .map((entry) => '${entry.kind.name}:${entry.layer.id}'),
-        const <String>['smartTile:smart-terrain'],
+        const <String>[
+          'smartTile:smart-bottom',
+          'smartTile:smart-top',
+        ],
       );
     });
 

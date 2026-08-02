@@ -777,6 +777,981 @@ abstract class _SmartTileSignature implements SmartTileSignature {
       throw _privateConstructorUsedError;
 }
 
+SmartTileExactSignature _$SmartTileExactSignatureFromJson(
+    Map<String, dynamic> json) {
+  return _SmartTileExactSignature.fromJson(json);
+}
+
+/// @nodoc
+mixin _$SmartTileExactSignature {
+  String? get northEdge => throw _privateConstructorUsedError;
+  String? get northEastCorner => throw _privateConstructorUsedError;
+  String? get eastEdge => throw _privateConstructorUsedError;
+  String? get southEastCorner => throw _privateConstructorUsedError;
+  String? get southEdge => throw _privateConstructorUsedError;
+  String? get southWestCorner => throw _privateConstructorUsedError;
+  String? get westEdge => throw _privateConstructorUsedError;
+  String? get northWestCorner => throw _privateConstructorUsedError;
+
+  /// Serializes this SmartTileExactSignature to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of SmartTileExactSignature
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $SmartTileExactSignatureCopyWith<SmartTileExactSignature> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $SmartTileExactSignatureCopyWith<$Res> {
+  factory $SmartTileExactSignatureCopyWith(SmartTileExactSignature value,
+          $Res Function(SmartTileExactSignature) then) =
+      _$SmartTileExactSignatureCopyWithImpl<$Res, SmartTileExactSignature>;
+  @useResult
+  $Res call(
+      {String? northEdge,
+      String? northEastCorner,
+      String? eastEdge,
+      String? southEastCorner,
+      String? southEdge,
+      String? southWestCorner,
+      String? westEdge,
+      String? northWestCorner});
+}
+
+/// @nodoc
+class _$SmartTileExactSignatureCopyWithImpl<$Res,
+        $Val extends SmartTileExactSignature>
+    implements $SmartTileExactSignatureCopyWith<$Res> {
+  _$SmartTileExactSignatureCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of SmartTileExactSignature
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? northEdge = freezed,
+    Object? northEastCorner = freezed,
+    Object? eastEdge = freezed,
+    Object? southEastCorner = freezed,
+    Object? southEdge = freezed,
+    Object? southWestCorner = freezed,
+    Object? westEdge = freezed,
+    Object? northWestCorner = freezed,
+  }) {
+    return _then(_value.copyWith(
+      northEdge: freezed == northEdge
+          ? _value.northEdge
+          : northEdge // ignore: cast_nullable_to_non_nullable
+              as String?,
+      northEastCorner: freezed == northEastCorner
+          ? _value.northEastCorner
+          : northEastCorner // ignore: cast_nullable_to_non_nullable
+              as String?,
+      eastEdge: freezed == eastEdge
+          ? _value.eastEdge
+          : eastEdge // ignore: cast_nullable_to_non_nullable
+              as String?,
+      southEastCorner: freezed == southEastCorner
+          ? _value.southEastCorner
+          : southEastCorner // ignore: cast_nullable_to_non_nullable
+              as String?,
+      southEdge: freezed == southEdge
+          ? _value.southEdge
+          : southEdge // ignore: cast_nullable_to_non_nullable
+              as String?,
+      southWestCorner: freezed == southWestCorner
+          ? _value.southWestCorner
+          : southWestCorner // ignore: cast_nullable_to_non_nullable
+              as String?,
+      westEdge: freezed == westEdge
+          ? _value.westEdge
+          : westEdge // ignore: cast_nullable_to_non_nullable
+              as String?,
+      northWestCorner: freezed == northWestCorner
+          ? _value.northWestCorner
+          : northWestCorner // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$SmartTileExactSignatureImplCopyWith<$Res>
+    implements $SmartTileExactSignatureCopyWith<$Res> {
+  factory _$$SmartTileExactSignatureImplCopyWith(
+          _$SmartTileExactSignatureImpl value,
+          $Res Function(_$SmartTileExactSignatureImpl) then) =
+      __$$SmartTileExactSignatureImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String? northEdge,
+      String? northEastCorner,
+      String? eastEdge,
+      String? southEastCorner,
+      String? southEdge,
+      String? southWestCorner,
+      String? westEdge,
+      String? northWestCorner});
+}
+
+/// @nodoc
+class __$$SmartTileExactSignatureImplCopyWithImpl<$Res>
+    extends _$SmartTileExactSignatureCopyWithImpl<$Res,
+        _$SmartTileExactSignatureImpl>
+    implements _$$SmartTileExactSignatureImplCopyWith<$Res> {
+  __$$SmartTileExactSignatureImplCopyWithImpl(
+      _$SmartTileExactSignatureImpl _value,
+      $Res Function(_$SmartTileExactSignatureImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of SmartTileExactSignature
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? northEdge = freezed,
+    Object? northEastCorner = freezed,
+    Object? eastEdge = freezed,
+    Object? southEastCorner = freezed,
+    Object? southEdge = freezed,
+    Object? southWestCorner = freezed,
+    Object? westEdge = freezed,
+    Object? northWestCorner = freezed,
+  }) {
+    return _then(_$SmartTileExactSignatureImpl(
+      northEdge: freezed == northEdge
+          ? _value.northEdge
+          : northEdge // ignore: cast_nullable_to_non_nullable
+              as String?,
+      northEastCorner: freezed == northEastCorner
+          ? _value.northEastCorner
+          : northEastCorner // ignore: cast_nullable_to_non_nullable
+              as String?,
+      eastEdge: freezed == eastEdge
+          ? _value.eastEdge
+          : eastEdge // ignore: cast_nullable_to_non_nullable
+              as String?,
+      southEastCorner: freezed == southEastCorner
+          ? _value.southEastCorner
+          : southEastCorner // ignore: cast_nullable_to_non_nullable
+              as String?,
+      southEdge: freezed == southEdge
+          ? _value.southEdge
+          : southEdge // ignore: cast_nullable_to_non_nullable
+              as String?,
+      southWestCorner: freezed == southWestCorner
+          ? _value.southWestCorner
+          : southWestCorner // ignore: cast_nullable_to_non_nullable
+              as String?,
+      westEdge: freezed == westEdge
+          ? _value.westEdge
+          : westEdge // ignore: cast_nullable_to_non_nullable
+              as String?,
+      northWestCorner: freezed == northWestCorner
+          ? _value.northWestCorner
+          : northWestCorner // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$SmartTileExactSignatureImpl implements _SmartTileExactSignature {
+  const _$SmartTileExactSignatureImpl(
+      {this.northEdge,
+      this.northEastCorner,
+      this.eastEdge,
+      this.southEastCorner,
+      this.southEdge,
+      this.southWestCorner,
+      this.westEdge,
+      this.northWestCorner});
+
+  factory _$SmartTileExactSignatureImpl.fromJson(Map<String, dynamic> json) =>
+      _$$SmartTileExactSignatureImplFromJson(json);
+
+  @override
+  final String? northEdge;
+  @override
+  final String? northEastCorner;
+  @override
+  final String? eastEdge;
+  @override
+  final String? southEastCorner;
+  @override
+  final String? southEdge;
+  @override
+  final String? southWestCorner;
+  @override
+  final String? westEdge;
+  @override
+  final String? northWestCorner;
+
+  @override
+  String toString() {
+    return 'SmartTileExactSignature(northEdge: $northEdge, northEastCorner: $northEastCorner, eastEdge: $eastEdge, southEastCorner: $southEastCorner, southEdge: $southEdge, southWestCorner: $southWestCorner, westEdge: $westEdge, northWestCorner: $northWestCorner)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$SmartTileExactSignatureImpl &&
+            (identical(other.northEdge, northEdge) ||
+                other.northEdge == northEdge) &&
+            (identical(other.northEastCorner, northEastCorner) ||
+                other.northEastCorner == northEastCorner) &&
+            (identical(other.eastEdge, eastEdge) ||
+                other.eastEdge == eastEdge) &&
+            (identical(other.southEastCorner, southEastCorner) ||
+                other.southEastCorner == southEastCorner) &&
+            (identical(other.southEdge, southEdge) ||
+                other.southEdge == southEdge) &&
+            (identical(other.southWestCorner, southWestCorner) ||
+                other.southWestCorner == southWestCorner) &&
+            (identical(other.westEdge, westEdge) ||
+                other.westEdge == westEdge) &&
+            (identical(other.northWestCorner, northWestCorner) ||
+                other.northWestCorner == northWestCorner));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      northEdge,
+      northEastCorner,
+      eastEdge,
+      southEastCorner,
+      southEdge,
+      southWestCorner,
+      westEdge,
+      northWestCorner);
+
+  /// Create a copy of SmartTileExactSignature
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$SmartTileExactSignatureImplCopyWith<_$SmartTileExactSignatureImpl>
+      get copyWith => __$$SmartTileExactSignatureImplCopyWithImpl<
+          _$SmartTileExactSignatureImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$SmartTileExactSignatureImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _SmartTileExactSignature implements SmartTileExactSignature {
+  const factory _SmartTileExactSignature(
+      {final String? northEdge,
+      final String? northEastCorner,
+      final String? eastEdge,
+      final String? southEastCorner,
+      final String? southEdge,
+      final String? southWestCorner,
+      final String? westEdge,
+      final String? northWestCorner}) = _$SmartTileExactSignatureImpl;
+
+  factory _SmartTileExactSignature.fromJson(Map<String, dynamic> json) =
+      _$SmartTileExactSignatureImpl.fromJson;
+
+  @override
+  String? get northEdge;
+  @override
+  String? get northEastCorner;
+  @override
+  String? get eastEdge;
+  @override
+  String? get southEastCorner;
+  @override
+  String? get southEdge;
+  @override
+  String? get southWestCorner;
+  @override
+  String? get westEdge;
+  @override
+  String? get northWestCorner;
+
+  /// Create a copy of SmartTileExactSignature
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$SmartTileExactSignatureImplCopyWith<_$SmartTileExactSignatureImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+SmartTileCoverageScenario _$SmartTileCoverageScenarioFromJson(
+    Map<String, dynamic> json) {
+  return _SmartTileCoverageScenario.fromJson(json);
+}
+
+/// @nodoc
+mixin _$SmartTileCoverageScenario {
+  String get id => throw _privateConstructorUsedError;
+  String? get centerMaterialId => throw _privateConstructorUsedError;
+  SmartTileExactSignature get signature => throw _privateConstructorUsedError;
+
+  /// Serializes this SmartTileCoverageScenario to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of SmartTileCoverageScenario
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $SmartTileCoverageScenarioCopyWith<SmartTileCoverageScenario> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $SmartTileCoverageScenarioCopyWith<$Res> {
+  factory $SmartTileCoverageScenarioCopyWith(SmartTileCoverageScenario value,
+          $Res Function(SmartTileCoverageScenario) then) =
+      _$SmartTileCoverageScenarioCopyWithImpl<$Res, SmartTileCoverageScenario>;
+  @useResult
+  $Res call(
+      {String id, String? centerMaterialId, SmartTileExactSignature signature});
+
+  $SmartTileExactSignatureCopyWith<$Res> get signature;
+}
+
+/// @nodoc
+class _$SmartTileCoverageScenarioCopyWithImpl<$Res,
+        $Val extends SmartTileCoverageScenario>
+    implements $SmartTileCoverageScenarioCopyWith<$Res> {
+  _$SmartTileCoverageScenarioCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of SmartTileCoverageScenario
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? centerMaterialId = freezed,
+    Object? signature = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      centerMaterialId: freezed == centerMaterialId
+          ? _value.centerMaterialId
+          : centerMaterialId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      signature: null == signature
+          ? _value.signature
+          : signature // ignore: cast_nullable_to_non_nullable
+              as SmartTileExactSignature,
+    ) as $Val);
+  }
+
+  /// Create a copy of SmartTileCoverageScenario
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $SmartTileExactSignatureCopyWith<$Res> get signature {
+    return $SmartTileExactSignatureCopyWith<$Res>(_value.signature, (value) {
+      return _then(_value.copyWith(signature: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$SmartTileCoverageScenarioImplCopyWith<$Res>
+    implements $SmartTileCoverageScenarioCopyWith<$Res> {
+  factory _$$SmartTileCoverageScenarioImplCopyWith(
+          _$SmartTileCoverageScenarioImpl value,
+          $Res Function(_$SmartTileCoverageScenarioImpl) then) =
+      __$$SmartTileCoverageScenarioImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id, String? centerMaterialId, SmartTileExactSignature signature});
+
+  @override
+  $SmartTileExactSignatureCopyWith<$Res> get signature;
+}
+
+/// @nodoc
+class __$$SmartTileCoverageScenarioImplCopyWithImpl<$Res>
+    extends _$SmartTileCoverageScenarioCopyWithImpl<$Res,
+        _$SmartTileCoverageScenarioImpl>
+    implements _$$SmartTileCoverageScenarioImplCopyWith<$Res> {
+  __$$SmartTileCoverageScenarioImplCopyWithImpl(
+      _$SmartTileCoverageScenarioImpl _value,
+      $Res Function(_$SmartTileCoverageScenarioImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of SmartTileCoverageScenario
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? centerMaterialId = freezed,
+    Object? signature = null,
+  }) {
+    return _then(_$SmartTileCoverageScenarioImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      centerMaterialId: freezed == centerMaterialId
+          ? _value.centerMaterialId
+          : centerMaterialId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      signature: null == signature
+          ? _value.signature
+          : signature // ignore: cast_nullable_to_non_nullable
+              as SmartTileExactSignature,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$SmartTileCoverageScenarioImpl implements _SmartTileCoverageScenario {
+  const _$SmartTileCoverageScenarioImpl(
+      {required this.id,
+      this.centerMaterialId,
+      this.signature = const SmartTileExactSignature()});
+
+  factory _$SmartTileCoverageScenarioImpl.fromJson(Map<String, dynamic> json) =>
+      _$$SmartTileCoverageScenarioImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String? centerMaterialId;
+  @override
+  @JsonKey()
+  final SmartTileExactSignature signature;
+
+  @override
+  String toString() {
+    return 'SmartTileCoverageScenario(id: $id, centerMaterialId: $centerMaterialId, signature: $signature)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$SmartTileCoverageScenarioImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.centerMaterialId, centerMaterialId) ||
+                other.centerMaterialId == centerMaterialId) &&
+            (identical(other.signature, signature) ||
+                other.signature == signature));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, id, centerMaterialId, signature);
+
+  /// Create a copy of SmartTileCoverageScenario
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$SmartTileCoverageScenarioImplCopyWith<_$SmartTileCoverageScenarioImpl>
+      get copyWith => __$$SmartTileCoverageScenarioImplCopyWithImpl<
+          _$SmartTileCoverageScenarioImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$SmartTileCoverageScenarioImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _SmartTileCoverageScenario implements SmartTileCoverageScenario {
+  const factory _SmartTileCoverageScenario(
+          {required final String id,
+          final String? centerMaterialId,
+          final SmartTileExactSignature signature}) =
+      _$SmartTileCoverageScenarioImpl;
+
+  factory _SmartTileCoverageScenario.fromJson(Map<String, dynamic> json) =
+      _$SmartTileCoverageScenarioImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String? get centerMaterialId;
+  @override
+  SmartTileExactSignature get signature;
+
+  /// Create a copy of SmartTileCoverageScenario
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$SmartTileCoverageScenarioImplCopyWith<_$SmartTileCoverageScenarioImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+SmartTileCoverageProfile _$SmartTileCoverageProfileFromJson(
+    Map<String, dynamic> json) {
+  return _SmartTileCoverageProfile.fromJson(json);
+}
+
+/// @nodoc
+mixin _$SmartTileCoverageProfile {
+  SmartTileCoverageMode get mode => throw _privateConstructorUsedError;
+  List<SmartTileCoverageScenario> get requiredScenarios =>
+      throw _privateConstructorUsedError;
+  bool get allowFallback => throw _privateConstructorUsedError;
+
+  /// Serializes this SmartTileCoverageProfile to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of SmartTileCoverageProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $SmartTileCoverageProfileCopyWith<SmartTileCoverageProfile> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $SmartTileCoverageProfileCopyWith<$Res> {
+  factory $SmartTileCoverageProfileCopyWith(SmartTileCoverageProfile value,
+          $Res Function(SmartTileCoverageProfile) then) =
+      _$SmartTileCoverageProfileCopyWithImpl<$Res, SmartTileCoverageProfile>;
+  @useResult
+  $Res call(
+      {SmartTileCoverageMode mode,
+      List<SmartTileCoverageScenario> requiredScenarios,
+      bool allowFallback});
+}
+
+/// @nodoc
+class _$SmartTileCoverageProfileCopyWithImpl<$Res,
+        $Val extends SmartTileCoverageProfile>
+    implements $SmartTileCoverageProfileCopyWith<$Res> {
+  _$SmartTileCoverageProfileCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of SmartTileCoverageProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? mode = null,
+    Object? requiredScenarios = null,
+    Object? allowFallback = null,
+  }) {
+    return _then(_value.copyWith(
+      mode: null == mode
+          ? _value.mode
+          : mode // ignore: cast_nullable_to_non_nullable
+              as SmartTileCoverageMode,
+      requiredScenarios: null == requiredScenarios
+          ? _value.requiredScenarios
+          : requiredScenarios // ignore: cast_nullable_to_non_nullable
+              as List<SmartTileCoverageScenario>,
+      allowFallback: null == allowFallback
+          ? _value.allowFallback
+          : allowFallback // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$SmartTileCoverageProfileImplCopyWith<$Res>
+    implements $SmartTileCoverageProfileCopyWith<$Res> {
+  factory _$$SmartTileCoverageProfileImplCopyWith(
+          _$SmartTileCoverageProfileImpl value,
+          $Res Function(_$SmartTileCoverageProfileImpl) then) =
+      __$$SmartTileCoverageProfileImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {SmartTileCoverageMode mode,
+      List<SmartTileCoverageScenario> requiredScenarios,
+      bool allowFallback});
+}
+
+/// @nodoc
+class __$$SmartTileCoverageProfileImplCopyWithImpl<$Res>
+    extends _$SmartTileCoverageProfileCopyWithImpl<$Res,
+        _$SmartTileCoverageProfileImpl>
+    implements _$$SmartTileCoverageProfileImplCopyWith<$Res> {
+  __$$SmartTileCoverageProfileImplCopyWithImpl(
+      _$SmartTileCoverageProfileImpl _value,
+      $Res Function(_$SmartTileCoverageProfileImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of SmartTileCoverageProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? mode = null,
+    Object? requiredScenarios = null,
+    Object? allowFallback = null,
+  }) {
+    return _then(_$SmartTileCoverageProfileImpl(
+      mode: null == mode
+          ? _value.mode
+          : mode // ignore: cast_nullable_to_non_nullable
+              as SmartTileCoverageMode,
+      requiredScenarios: null == requiredScenarios
+          ? _value._requiredScenarios
+          : requiredScenarios // ignore: cast_nullable_to_non_nullable
+              as List<SmartTileCoverageScenario>,
+      allowFallback: null == allowFallback
+          ? _value.allowFallback
+          : allowFallback // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$SmartTileCoverageProfileImpl implements _SmartTileCoverageProfile {
+  const _$SmartTileCoverageProfileImpl(
+      {required this.mode,
+      final List<SmartTileCoverageScenario> requiredScenarios =
+          const <SmartTileCoverageScenario>[],
+      this.allowFallback = false})
+      : _requiredScenarios = requiredScenarios;
+
+  factory _$SmartTileCoverageProfileImpl.fromJson(Map<String, dynamic> json) =>
+      _$$SmartTileCoverageProfileImplFromJson(json);
+
+  @override
+  final SmartTileCoverageMode mode;
+  final List<SmartTileCoverageScenario> _requiredScenarios;
+  @override
+  @JsonKey()
+  List<SmartTileCoverageScenario> get requiredScenarios {
+    if (_requiredScenarios is EqualUnmodifiableListView)
+      return _requiredScenarios;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_requiredScenarios);
+  }
+
+  @override
+  @JsonKey()
+  final bool allowFallback;
+
+  @override
+  String toString() {
+    return 'SmartTileCoverageProfile(mode: $mode, requiredScenarios: $requiredScenarios, allowFallback: $allowFallback)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$SmartTileCoverageProfileImpl &&
+            (identical(other.mode, mode) || other.mode == mode) &&
+            const DeepCollectionEquality()
+                .equals(other._requiredScenarios, _requiredScenarios) &&
+            (identical(other.allowFallback, allowFallback) ||
+                other.allowFallback == allowFallback));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, mode,
+      const DeepCollectionEquality().hash(_requiredScenarios), allowFallback);
+
+  /// Create a copy of SmartTileCoverageProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$SmartTileCoverageProfileImplCopyWith<_$SmartTileCoverageProfileImpl>
+      get copyWith => __$$SmartTileCoverageProfileImplCopyWithImpl<
+          _$SmartTileCoverageProfileImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$SmartTileCoverageProfileImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _SmartTileCoverageProfile implements SmartTileCoverageProfile {
+  const factory _SmartTileCoverageProfile(
+      {required final SmartTileCoverageMode mode,
+      final List<SmartTileCoverageScenario> requiredScenarios,
+      final bool allowFallback}) = _$SmartTileCoverageProfileImpl;
+
+  factory _SmartTileCoverageProfile.fromJson(Map<String, dynamic> json) =
+      _$SmartTileCoverageProfileImpl.fromJson;
+
+  @override
+  SmartTileCoverageMode get mode;
+  @override
+  List<SmartTileCoverageScenario> get requiredScenarios;
+  @override
+  bool get allowFallback;
+
+  /// Create a copy of SmartTileCoverageProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$SmartTileCoverageProfileImplCopyWith<_$SmartTileCoverageProfileImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+SmartTileTransformPolicy _$SmartTileTransformPolicyFromJson(
+    Map<String, dynamic> json) {
+  return _SmartTileTransformPolicy.fromJson(json);
+}
+
+/// @nodoc
+mixin _$SmartTileTransformPolicy {
+  bool get allowHFlip => throw _privateConstructorUsedError;
+  bool get allowVFlip => throw _privateConstructorUsedError;
+  bool get allowQuarterTurns => throw _privateConstructorUsedError;
+  bool get preferUntransformed => throw _privateConstructorUsedError;
+
+  /// Serializes this SmartTileTransformPolicy to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of SmartTileTransformPolicy
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $SmartTileTransformPolicyCopyWith<SmartTileTransformPolicy> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $SmartTileTransformPolicyCopyWith<$Res> {
+  factory $SmartTileTransformPolicyCopyWith(SmartTileTransformPolicy value,
+          $Res Function(SmartTileTransformPolicy) then) =
+      _$SmartTileTransformPolicyCopyWithImpl<$Res, SmartTileTransformPolicy>;
+  @useResult
+  $Res call(
+      {bool allowHFlip,
+      bool allowVFlip,
+      bool allowQuarterTurns,
+      bool preferUntransformed});
+}
+
+/// @nodoc
+class _$SmartTileTransformPolicyCopyWithImpl<$Res,
+        $Val extends SmartTileTransformPolicy>
+    implements $SmartTileTransformPolicyCopyWith<$Res> {
+  _$SmartTileTransformPolicyCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of SmartTileTransformPolicy
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? allowHFlip = null,
+    Object? allowVFlip = null,
+    Object? allowQuarterTurns = null,
+    Object? preferUntransformed = null,
+  }) {
+    return _then(_value.copyWith(
+      allowHFlip: null == allowHFlip
+          ? _value.allowHFlip
+          : allowHFlip // ignore: cast_nullable_to_non_nullable
+              as bool,
+      allowVFlip: null == allowVFlip
+          ? _value.allowVFlip
+          : allowVFlip // ignore: cast_nullable_to_non_nullable
+              as bool,
+      allowQuarterTurns: null == allowQuarterTurns
+          ? _value.allowQuarterTurns
+          : allowQuarterTurns // ignore: cast_nullable_to_non_nullable
+              as bool,
+      preferUntransformed: null == preferUntransformed
+          ? _value.preferUntransformed
+          : preferUntransformed // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$SmartTileTransformPolicyImplCopyWith<$Res>
+    implements $SmartTileTransformPolicyCopyWith<$Res> {
+  factory _$$SmartTileTransformPolicyImplCopyWith(
+          _$SmartTileTransformPolicyImpl value,
+          $Res Function(_$SmartTileTransformPolicyImpl) then) =
+      __$$SmartTileTransformPolicyImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {bool allowHFlip,
+      bool allowVFlip,
+      bool allowQuarterTurns,
+      bool preferUntransformed});
+}
+
+/// @nodoc
+class __$$SmartTileTransformPolicyImplCopyWithImpl<$Res>
+    extends _$SmartTileTransformPolicyCopyWithImpl<$Res,
+        _$SmartTileTransformPolicyImpl>
+    implements _$$SmartTileTransformPolicyImplCopyWith<$Res> {
+  __$$SmartTileTransformPolicyImplCopyWithImpl(
+      _$SmartTileTransformPolicyImpl _value,
+      $Res Function(_$SmartTileTransformPolicyImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of SmartTileTransformPolicy
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? allowHFlip = null,
+    Object? allowVFlip = null,
+    Object? allowQuarterTurns = null,
+    Object? preferUntransformed = null,
+  }) {
+    return _then(_$SmartTileTransformPolicyImpl(
+      allowHFlip: null == allowHFlip
+          ? _value.allowHFlip
+          : allowHFlip // ignore: cast_nullable_to_non_nullable
+              as bool,
+      allowVFlip: null == allowVFlip
+          ? _value.allowVFlip
+          : allowVFlip // ignore: cast_nullable_to_non_nullable
+              as bool,
+      allowQuarterTurns: null == allowQuarterTurns
+          ? _value.allowQuarterTurns
+          : allowQuarterTurns // ignore: cast_nullable_to_non_nullable
+              as bool,
+      preferUntransformed: null == preferUntransformed
+          ? _value.preferUntransformed
+          : preferUntransformed // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$SmartTileTransformPolicyImpl implements _SmartTileTransformPolicy {
+  const _$SmartTileTransformPolicyImpl(
+      {this.allowHFlip = false,
+      this.allowVFlip = false,
+      this.allowQuarterTurns = false,
+      this.preferUntransformed = true});
+
+  factory _$SmartTileTransformPolicyImpl.fromJson(Map<String, dynamic> json) =>
+      _$$SmartTileTransformPolicyImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final bool allowHFlip;
+  @override
+  @JsonKey()
+  final bool allowVFlip;
+  @override
+  @JsonKey()
+  final bool allowQuarterTurns;
+  @override
+  @JsonKey()
+  final bool preferUntransformed;
+
+  @override
+  String toString() {
+    return 'SmartTileTransformPolicy(allowHFlip: $allowHFlip, allowVFlip: $allowVFlip, allowQuarterTurns: $allowQuarterTurns, preferUntransformed: $preferUntransformed)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$SmartTileTransformPolicyImpl &&
+            (identical(other.allowHFlip, allowHFlip) ||
+                other.allowHFlip == allowHFlip) &&
+            (identical(other.allowVFlip, allowVFlip) ||
+                other.allowVFlip == allowVFlip) &&
+            (identical(other.allowQuarterTurns, allowQuarterTurns) ||
+                other.allowQuarterTurns == allowQuarterTurns) &&
+            (identical(other.preferUntransformed, preferUntransformed) ||
+                other.preferUntransformed == preferUntransformed));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, allowHFlip, allowVFlip,
+      allowQuarterTurns, preferUntransformed);
+
+  /// Create a copy of SmartTileTransformPolicy
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$SmartTileTransformPolicyImplCopyWith<_$SmartTileTransformPolicyImpl>
+      get copyWith => __$$SmartTileTransformPolicyImplCopyWithImpl<
+          _$SmartTileTransformPolicyImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$SmartTileTransformPolicyImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _SmartTileTransformPolicy implements SmartTileTransformPolicy {
+  const factory _SmartTileTransformPolicy(
+      {final bool allowHFlip,
+      final bool allowVFlip,
+      final bool allowQuarterTurns,
+      final bool preferUntransformed}) = _$SmartTileTransformPolicyImpl;
+
+  factory _SmartTileTransformPolicy.fromJson(Map<String, dynamic> json) =
+      _$SmartTileTransformPolicyImpl.fromJson;
+
+  @override
+  bool get allowHFlip;
+  @override
+  bool get allowVFlip;
+  @override
+  bool get allowQuarterTurns;
+  @override
+  bool get preferUntransformed;
+
+  /// Create a copy of SmartTileTransformPolicy
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$SmartTileTransformPolicyImplCopyWith<_$SmartTileTransformPolicyImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 SmartTileVisualSource _$SmartTileVisualSourceFromJson(
     Map<String, dynamic> json) {
   switch (json['kind']) {
@@ -1804,6 +2779,7 @@ SmartTileRule _$SmartTileRuleFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$SmartTileRule {
   String get id => throw _privateConstructorUsedError;
+  SmartTileSlotMatch get centerMatch => throw _privateConstructorUsedError;
   SmartTileSignature get signature => throw _privateConstructorUsedError;
   List<SmartTileCandidate> get candidates => throw _privateConstructorUsedError;
 
@@ -1825,6 +2801,7 @@ abstract class $SmartTileRuleCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
+      SmartTileSlotMatch centerMatch,
       SmartTileSignature signature,
       List<SmartTileCandidate> candidates});
 
@@ -1847,6 +2824,7 @@ class _$SmartTileRuleCopyWithImpl<$Res, $Val extends SmartTileRule>
   @override
   $Res call({
     Object? id = null,
+    Object? centerMatch = null,
     Object? signature = null,
     Object? candidates = null,
   }) {
@@ -1855,6 +2833,10 @@ class _$SmartTileRuleCopyWithImpl<$Res, $Val extends SmartTileRule>
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
+      centerMatch: null == centerMatch
+          ? _value.centerMatch
+          : centerMatch // ignore: cast_nullable_to_non_nullable
+              as SmartTileSlotMatch,
       signature: null == signature
           ? _value.signature
           : signature // ignore: cast_nullable_to_non_nullable
@@ -1887,6 +2869,7 @@ abstract class _$$SmartTileRuleImplCopyWith<$Res>
   @useResult
   $Res call(
       {String id,
+      SmartTileSlotMatch centerMatch,
       SmartTileSignature signature,
       List<SmartTileCandidate> candidates});
 
@@ -1908,6 +2891,7 @@ class __$$SmartTileRuleImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
+    Object? centerMatch = null,
     Object? signature = null,
     Object? candidates = null,
   }) {
@@ -1916,6 +2900,10 @@ class __$$SmartTileRuleImplCopyWithImpl<$Res>
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
+      centerMatch: null == centerMatch
+          ? _value.centerMatch
+          : centerMatch // ignore: cast_nullable_to_non_nullable
+              as SmartTileSlotMatch,
       signature: null == signature
           ? _value.signature
           : signature // ignore: cast_nullable_to_non_nullable
@@ -1934,6 +2922,7 @@ class __$$SmartTileRuleImplCopyWithImpl<$Res>
 class _$SmartTileRuleImpl implements _SmartTileRule {
   const _$SmartTileRuleImpl(
       {required this.id,
+      required this.centerMatch,
       this.signature = const SmartTileSignature(),
       final List<SmartTileCandidate> candidates = const <SmartTileCandidate>[]})
       : assert(id != "", 'id must not be blank'),
@@ -1944,6 +2933,8 @@ class _$SmartTileRuleImpl implements _SmartTileRule {
 
   @override
   final String id;
+  @override
+  final SmartTileSlotMatch centerMatch;
   @override
   @JsonKey()
   final SmartTileSignature signature;
@@ -1958,7 +2949,7 @@ class _$SmartTileRuleImpl implements _SmartTileRule {
 
   @override
   String toString() {
-    return 'SmartTileRule(id: $id, signature: $signature, candidates: $candidates)';
+    return 'SmartTileRule(id: $id, centerMatch: $centerMatch, signature: $signature, candidates: $candidates)';
   }
 
   @override
@@ -1967,6 +2958,8 @@ class _$SmartTileRuleImpl implements _SmartTileRule {
         (other.runtimeType == runtimeType &&
             other is _$SmartTileRuleImpl &&
             (identical(other.id, id) || other.id == id) &&
+            (identical(other.centerMatch, centerMatch) ||
+                other.centerMatch == centerMatch) &&
             (identical(other.signature, signature) ||
                 other.signature == signature) &&
             const DeepCollectionEquality()
@@ -1975,7 +2968,7 @@ class _$SmartTileRuleImpl implements _SmartTileRule {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, signature,
+  int get hashCode => Object.hash(runtimeType, id, centerMatch, signature,
       const DeepCollectionEquality().hash(_candidates));
 
   /// Create a copy of SmartTileRule
@@ -1997,6 +2990,7 @@ class _$SmartTileRuleImpl implements _SmartTileRule {
 abstract class _SmartTileRule implements SmartTileRule {
   const factory _SmartTileRule(
       {required final String id,
+      required final SmartTileSlotMatch centerMatch,
       final SmartTileSignature signature,
       final List<SmartTileCandidate> candidates}) = _$SmartTileRuleImpl;
 
@@ -2005,6 +2999,8 @@ abstract class _SmartTileRule implements SmartTileRule {
 
   @override
   String get id;
+  @override
+  SmartTileSlotMatch get centerMatch;
   @override
   SmartTileSignature get signature;
   @override
@@ -2711,6 +3707,7 @@ mixin _$ProjectSmartTileMaterial {
   String get connectionGroupId => throw _privateConstructorUsedError;
   String get categoryId => throw _privateConstructorUsedError;
   TerrainType? get terrainType => throw _privateConstructorUsedError;
+  PathSurfaceKind? get pathSurfaceKind => throw _privateConstructorUsedError;
   bool get isEmpty => throw _privateConstructorUsedError;
   int get sortOrder => throw _privateConstructorUsedError;
   int? get editorColorArgb => throw _privateConstructorUsedError;
@@ -2737,6 +3734,7 @@ abstract class $ProjectSmartTileMaterialCopyWith<$Res> {
       String connectionGroupId,
       String categoryId,
       TerrainType? terrainType,
+      PathSurfaceKind? pathSurfaceKind,
       bool isEmpty,
       int sortOrder,
       int? editorColorArgb});
@@ -2763,6 +3761,7 @@ class _$ProjectSmartTileMaterialCopyWithImpl<$Res,
     Object? connectionGroupId = null,
     Object? categoryId = null,
     Object? terrainType = freezed,
+    Object? pathSurfaceKind = freezed,
     Object? isEmpty = null,
     Object? sortOrder = null,
     Object? editorColorArgb = freezed,
@@ -2788,6 +3787,10 @@ class _$ProjectSmartTileMaterialCopyWithImpl<$Res,
           ? _value.terrainType
           : terrainType // ignore: cast_nullable_to_non_nullable
               as TerrainType?,
+      pathSurfaceKind: freezed == pathSurfaceKind
+          ? _value.pathSurfaceKind
+          : pathSurfaceKind // ignore: cast_nullable_to_non_nullable
+              as PathSurfaceKind?,
       isEmpty: null == isEmpty
           ? _value.isEmpty
           : isEmpty // ignore: cast_nullable_to_non_nullable
@@ -2819,6 +3822,7 @@ abstract class _$$ProjectSmartTileMaterialImplCopyWith<$Res>
       String connectionGroupId,
       String categoryId,
       TerrainType? terrainType,
+      PathSurfaceKind? pathSurfaceKind,
       bool isEmpty,
       int sortOrder,
       int? editorColorArgb});
@@ -2844,6 +3848,7 @@ class __$$ProjectSmartTileMaterialImplCopyWithImpl<$Res>
     Object? connectionGroupId = null,
     Object? categoryId = null,
     Object? terrainType = freezed,
+    Object? pathSurfaceKind = freezed,
     Object? isEmpty = null,
     Object? sortOrder = null,
     Object? editorColorArgb = freezed,
@@ -2869,6 +3874,10 @@ class __$$ProjectSmartTileMaterialImplCopyWithImpl<$Res>
           ? _value.terrainType
           : terrainType // ignore: cast_nullable_to_non_nullable
               as TerrainType?,
+      pathSurfaceKind: freezed == pathSurfaceKind
+          ? _value.pathSurfaceKind
+          : pathSurfaceKind // ignore: cast_nullable_to_non_nullable
+              as PathSurfaceKind?,
       isEmpty: null == isEmpty
           ? _value.isEmpty
           : isEmpty // ignore: cast_nullable_to_non_nullable
@@ -2894,6 +3903,7 @@ class _$ProjectSmartTileMaterialImpl implements _ProjectSmartTileMaterial {
       required this.connectionGroupId,
       this.categoryId = '',
       this.terrainType,
+      this.pathSurfaceKind,
       this.isEmpty = false,
       this.sortOrder = 0,
       this.editorColorArgb})
@@ -2916,6 +3926,8 @@ class _$ProjectSmartTileMaterialImpl implements _ProjectSmartTileMaterial {
   @override
   final TerrainType? terrainType;
   @override
+  final PathSurfaceKind? pathSurfaceKind;
+  @override
   @JsonKey()
   final bool isEmpty;
   @override
@@ -2926,7 +3938,7 @@ class _$ProjectSmartTileMaterialImpl implements _ProjectSmartTileMaterial {
 
   @override
   String toString() {
-    return 'ProjectSmartTileMaterial(id: $id, name: $name, connectionGroupId: $connectionGroupId, categoryId: $categoryId, terrainType: $terrainType, isEmpty: $isEmpty, sortOrder: $sortOrder, editorColorArgb: $editorColorArgb)';
+    return 'ProjectSmartTileMaterial(id: $id, name: $name, connectionGroupId: $connectionGroupId, categoryId: $categoryId, terrainType: $terrainType, pathSurfaceKind: $pathSurfaceKind, isEmpty: $isEmpty, sortOrder: $sortOrder, editorColorArgb: $editorColorArgb)';
   }
 
   @override
@@ -2942,6 +3954,8 @@ class _$ProjectSmartTileMaterialImpl implements _ProjectSmartTileMaterial {
                 other.categoryId == categoryId) &&
             (identical(other.terrainType, terrainType) ||
                 other.terrainType == terrainType) &&
+            (identical(other.pathSurfaceKind, pathSurfaceKind) ||
+                other.pathSurfaceKind == pathSurfaceKind) &&
             (identical(other.isEmpty, isEmpty) || other.isEmpty == isEmpty) &&
             (identical(other.sortOrder, sortOrder) ||
                 other.sortOrder == sortOrder) &&
@@ -2951,8 +3965,17 @@ class _$ProjectSmartTileMaterialImpl implements _ProjectSmartTileMaterial {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, name, connectionGroupId,
-      categoryId, terrainType, isEmpty, sortOrder, editorColorArgb);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      connectionGroupId,
+      categoryId,
+      terrainType,
+      pathSurfaceKind,
+      isEmpty,
+      sortOrder,
+      editorColorArgb);
 
   /// Create a copy of ProjectSmartTileMaterial
   /// with the given fields replaced by the non-null parameter values.
@@ -2978,6 +4001,7 @@ abstract class _ProjectSmartTileMaterial implements ProjectSmartTileMaterial {
       required final String connectionGroupId,
       final String categoryId,
       final TerrainType? terrainType,
+      final PathSurfaceKind? pathSurfaceKind,
       final bool isEmpty,
       final int sortOrder,
       final int? editorColorArgb}) = _$ProjectSmartTileMaterialImpl;
@@ -2995,6 +4019,8 @@ abstract class _ProjectSmartTileMaterial implements ProjectSmartTileMaterial {
   String get categoryId;
   @override
   TerrainType? get terrainType;
+  @override
+  PathSurfaceKind? get pathSurfaceKind;
   @override
   bool get isEmpty;
   @override
@@ -3477,6 +4503,12 @@ mixin _$ProjectSmartTilePreset {
   SmartTileBoundaryPolicy get boundaryPolicy =>
       throw _privateConstructorUsedError;
   SmartTilePresetStatus get status => throw _privateConstructorUsedError;
+  SmartTileCoveragePolicy get coveragePolicy =>
+      throw _privateConstructorUsedError;
+  SmartTileCoverageProfile get coverageProfile =>
+      throw _privateConstructorUsedError;
+  SmartTileTransformPolicy get transformPolicy =>
+      throw _privateConstructorUsedError;
   String get defaultMaterialId => throw _privateConstructorUsedError;
   List<String> get allowedMaterialIds => throw _privateConstructorUsedError;
   List<SmartTileRule> get rules => throw _privateConstructorUsedError;
@@ -3510,6 +4542,9 @@ abstract class $ProjectSmartTilePresetCopyWith<$Res> {
       SmartTileTemplateHint templateHint,
       SmartTileBoundaryPolicy boundaryPolicy,
       SmartTilePresetStatus status,
+      SmartTileCoveragePolicy coveragePolicy,
+      SmartTileCoverageProfile coverageProfile,
+      SmartTileTransformPolicy transformPolicy,
       String defaultMaterialId,
       List<String> allowedMaterialIds,
       List<SmartTileRule> rules,
@@ -3517,6 +4552,9 @@ abstract class $ProjectSmartTilePresetCopyWith<$Res> {
       int sortOrder,
       int seedSalt,
       String? fallbackRuleId});
+
+  $SmartTileCoverageProfileCopyWith<$Res> get coverageProfile;
+  $SmartTileTransformPolicyCopyWith<$Res> get transformPolicy;
 }
 
 /// @nodoc
@@ -3543,6 +4581,9 @@ class _$ProjectSmartTilePresetCopyWithImpl<$Res,
     Object? templateHint = null,
     Object? boundaryPolicy = null,
     Object? status = null,
+    Object? coveragePolicy = null,
+    Object? coverageProfile = null,
+    Object? transformPolicy = null,
     Object? defaultMaterialId = null,
     Object? allowedMaterialIds = null,
     Object? rules = null,
@@ -3584,6 +4625,18 @@ class _$ProjectSmartTilePresetCopyWithImpl<$Res,
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
               as SmartTilePresetStatus,
+      coveragePolicy: null == coveragePolicy
+          ? _value.coveragePolicy
+          : coveragePolicy // ignore: cast_nullable_to_non_nullable
+              as SmartTileCoveragePolicy,
+      coverageProfile: null == coverageProfile
+          ? _value.coverageProfile
+          : coverageProfile // ignore: cast_nullable_to_non_nullable
+              as SmartTileCoverageProfile,
+      transformPolicy: null == transformPolicy
+          ? _value.transformPolicy
+          : transformPolicy // ignore: cast_nullable_to_non_nullable
+              as SmartTileTransformPolicy,
       defaultMaterialId: null == defaultMaterialId
           ? _value.defaultMaterialId
           : defaultMaterialId // ignore: cast_nullable_to_non_nullable
@@ -3614,6 +4667,28 @@ class _$ProjectSmartTilePresetCopyWithImpl<$Res,
               as String?,
     ) as $Val);
   }
+
+  /// Create a copy of ProjectSmartTilePreset
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $SmartTileCoverageProfileCopyWith<$Res> get coverageProfile {
+    return $SmartTileCoverageProfileCopyWith<$Res>(_value.coverageProfile,
+        (value) {
+      return _then(_value.copyWith(coverageProfile: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ProjectSmartTilePreset
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $SmartTileTransformPolicyCopyWith<$Res> get transformPolicy {
+    return $SmartTileTransformPolicyCopyWith<$Res>(_value.transformPolicy,
+        (value) {
+      return _then(_value.copyWith(transformPolicy: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -3634,6 +4709,9 @@ abstract class _$$ProjectSmartTilePresetImplCopyWith<$Res>
       SmartTileTemplateHint templateHint,
       SmartTileBoundaryPolicy boundaryPolicy,
       SmartTilePresetStatus status,
+      SmartTileCoveragePolicy coveragePolicy,
+      SmartTileCoverageProfile coverageProfile,
+      SmartTileTransformPolicy transformPolicy,
       String defaultMaterialId,
       List<String> allowedMaterialIds,
       List<SmartTileRule> rules,
@@ -3641,6 +4719,11 @@ abstract class _$$ProjectSmartTilePresetImplCopyWith<$Res>
       int sortOrder,
       int seedSalt,
       String? fallbackRuleId});
+
+  @override
+  $SmartTileCoverageProfileCopyWith<$Res> get coverageProfile;
+  @override
+  $SmartTileTransformPolicyCopyWith<$Res> get transformPolicy;
 }
 
 /// @nodoc
@@ -3666,6 +4749,9 @@ class __$$ProjectSmartTilePresetImplCopyWithImpl<$Res>
     Object? templateHint = null,
     Object? boundaryPolicy = null,
     Object? status = null,
+    Object? coveragePolicy = null,
+    Object? coverageProfile = null,
+    Object? transformPolicy = null,
     Object? defaultMaterialId = null,
     Object? allowedMaterialIds = null,
     Object? rules = null,
@@ -3707,6 +4793,18 @@ class __$$ProjectSmartTilePresetImplCopyWithImpl<$Res>
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
               as SmartTilePresetStatus,
+      coveragePolicy: null == coveragePolicy
+          ? _value.coveragePolicy
+          : coveragePolicy // ignore: cast_nullable_to_non_nullable
+              as SmartTileCoveragePolicy,
+      coverageProfile: null == coverageProfile
+          ? _value.coverageProfile
+          : coverageProfile // ignore: cast_nullable_to_non_nullable
+              as SmartTileCoverageProfile,
+      transformPolicy: null == transformPolicy
+          ? _value.transformPolicy
+          : transformPolicy // ignore: cast_nullable_to_non_nullable
+              as SmartTileTransformPolicy,
       defaultMaterialId: null == defaultMaterialId
           ? _value.defaultMaterialId
           : defaultMaterialId // ignore: cast_nullable_to_non_nullable
@@ -3752,6 +4850,9 @@ class _$ProjectSmartTilePresetImpl implements _ProjectSmartTilePreset {
       this.templateHint = SmartTileTemplateHint.free,
       this.boundaryPolicy = SmartTileBoundaryPolicy.empty,
       this.status = SmartTilePresetStatus.draft,
+      required this.coveragePolicy,
+      required this.coverageProfile,
+      required this.transformPolicy,
       required this.defaultMaterialId,
       required final List<String> allowedMaterialIds,
       final List<SmartTileRule> rules = const <SmartTileRule>[],
@@ -3789,6 +4890,12 @@ class _$ProjectSmartTilePresetImpl implements _ProjectSmartTilePreset {
   @override
   @JsonKey()
   final SmartTilePresetStatus status;
+  @override
+  final SmartTileCoveragePolicy coveragePolicy;
+  @override
+  final SmartTileCoverageProfile coverageProfile;
+  @override
+  final SmartTileTransformPolicy transformPolicy;
   @override
   final String defaultMaterialId;
   final List<String> _allowedMaterialIds;
@@ -3829,7 +4936,7 @@ class _$ProjectSmartTilePresetImpl implements _ProjectSmartTilePreset {
 
   @override
   String toString() {
-    return 'ProjectSmartTilePreset(id: $id, name: $name, categoryId: $categoryId, usage: $usage, topology: $topology, templateHint: $templateHint, boundaryPolicy: $boundaryPolicy, status: $status, defaultMaterialId: $defaultMaterialId, allowedMaterialIds: $allowedMaterialIds, rules: $rules, tags: $tags, sortOrder: $sortOrder, seedSalt: $seedSalt, fallbackRuleId: $fallbackRuleId)';
+    return 'ProjectSmartTilePreset(id: $id, name: $name, categoryId: $categoryId, usage: $usage, topology: $topology, templateHint: $templateHint, boundaryPolicy: $boundaryPolicy, status: $status, coveragePolicy: $coveragePolicy, coverageProfile: $coverageProfile, transformPolicy: $transformPolicy, defaultMaterialId: $defaultMaterialId, allowedMaterialIds: $allowedMaterialIds, rules: $rules, tags: $tags, sortOrder: $sortOrder, seedSalt: $seedSalt, fallbackRuleId: $fallbackRuleId)';
   }
 
   @override
@@ -3849,6 +4956,12 @@ class _$ProjectSmartTilePresetImpl implements _ProjectSmartTilePreset {
             (identical(other.boundaryPolicy, boundaryPolicy) ||
                 other.boundaryPolicy == boundaryPolicy) &&
             (identical(other.status, status) || other.status == status) &&
+            (identical(other.coveragePolicy, coveragePolicy) ||
+                other.coveragePolicy == coveragePolicy) &&
+            (identical(other.coverageProfile, coverageProfile) ||
+                other.coverageProfile == coverageProfile) &&
+            (identical(other.transformPolicy, transformPolicy) ||
+                other.transformPolicy == transformPolicy) &&
             (identical(other.defaultMaterialId, defaultMaterialId) ||
                 other.defaultMaterialId == defaultMaterialId) &&
             const DeepCollectionEquality()
@@ -3875,6 +4988,9 @@ class _$ProjectSmartTilePresetImpl implements _ProjectSmartTilePreset {
       templateHint,
       boundaryPolicy,
       status,
+      coveragePolicy,
+      coverageProfile,
+      transformPolicy,
       defaultMaterialId,
       const DeepCollectionEquality().hash(_allowedMaterialIds),
       const DeepCollectionEquality().hash(_rules),
@@ -3910,6 +5026,9 @@ abstract class _ProjectSmartTilePreset implements ProjectSmartTilePreset {
       final SmartTileTemplateHint templateHint,
       final SmartTileBoundaryPolicy boundaryPolicy,
       final SmartTilePresetStatus status,
+      required final SmartTileCoveragePolicy coveragePolicy,
+      required final SmartTileCoverageProfile coverageProfile,
+      required final SmartTileTransformPolicy transformPolicy,
       required final String defaultMaterialId,
       required final List<String> allowedMaterialIds,
       final List<SmartTileRule> rules,
@@ -3937,6 +5056,12 @@ abstract class _ProjectSmartTilePreset implements ProjectSmartTilePreset {
   SmartTileBoundaryPolicy get boundaryPolicy;
   @override
   SmartTilePresetStatus get status;
+  @override
+  SmartTileCoveragePolicy get coveragePolicy;
+  @override
+  SmartTileCoverageProfile get coverageProfile;
+  @override
+  SmartTileTransformPolicy get transformPolicy;
   @override
   String get defaultMaterialId;
   @override

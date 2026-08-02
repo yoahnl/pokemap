@@ -232,14 +232,14 @@ String _cellValue({
         ? 'Donnée indisponible'
         : _pathValue(cells[index], presetId),
     SurfaceLayer(:final placements) => _surfaceValue(placements, cell),
-    SmartTileLayer(:final materialCells, :final materialPalette) =>
-      index >= materialCells.length
-          ? 'Donnée indisponible'
-          : materialCells[index] == 0
-              ? 'Vide'
-              : materialCells[index] < materialPalette.length
-                  ? materialPalette[materialCells[index]]
-                  : 'Index de matériau invalide',
+    final SmartTileLayer smart => index >= smartTileSemanticCells(smart).length
+        ? 'Donnée indisponible'
+        : smartTileSemanticCells(smart)[index] == 0
+            ? 'Vide'
+            : smartTileSemanticCells(smart)[index] <
+                    smart.materialPalette.length
+                ? smart.materialPalette[smartTileSemanticCells(smart)[index]]
+                : 'Index de matériau invalide',
     ObjectLayer() ||
     EnvironmentLayer() ||
     BorderLayer() =>

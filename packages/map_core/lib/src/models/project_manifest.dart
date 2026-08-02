@@ -507,6 +507,7 @@ class ProjectManifest with _$ProjectManifest {
   }) = _ProjectManifest;
 
   factory ProjectManifest.fromJson(Map<String, dynamic> json) {
+    _preflightSmartTileManifestJson(json);
     final decoded = _$ProjectManifestFromJson(json);
     final shops =
         decoded.shops.map((shop) => shop.normalized()).toList(growable: false);
@@ -529,14 +530,35 @@ class ProjectManifest with _$ProjectManifest {
         'ProjectVersion.v2',
       );
     }
-    if (manifest.version != ProjectVersion.v4 &&
+    if (manifest.version != ProjectVersion.v5 &&
         manifest.smartTileCatalog.isNotEmpty) {
       throw const FormatException(
         r'$.smartTileCatalog: a non-empty Smart Tile catalog requires '
-        'ProjectVersion.v4',
+        'ProjectVersion.v5',
       );
     }
     return manifest;
+  }
+}
+
+void _preflightSmartTileManifestJson(Map<String, dynamic> json) {
+  if (json['version'] != 'v5') {
+    return;
+  }
+  for (final key in const <String>[
+    'terrainCategories',
+    'pathCategories',
+    'terrainPresets',
+    'pathPresets',
+    'pathPatternPresets',
+  ]) {
+    final value = json[key];
+    if (value is List && value.isNotEmpty) {
+      throw FormatException(
+        '\$.$key: smart_tile_v5_legacy_manifest_unsupported '
+        '(version=v5, field=$key)',
+      );
+    }
   }
 }
 

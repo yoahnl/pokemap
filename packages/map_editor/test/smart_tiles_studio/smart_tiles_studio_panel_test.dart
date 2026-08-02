@@ -5,7 +5,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_atlas_image_loader.dart';
+import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_authoring_controller.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tiles_studio_panel.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 void main() {
@@ -39,6 +41,7 @@ void main() {
       }
       expect(find.text('Chemin Hanazuki'), findsWidgets);
       expect(find.text('Publié'), findsWidgets);
+      expect(find.text('Natif v5'), findsOneWidget);
     });
 
     testWidgets('adapts the studio shell without overflowing when narrow', (
@@ -71,6 +74,11 @@ void main() {
               name: 'Terrain Hanazuki',
               usage: SmartTileUsage.terrain,
               topology: SmartTileTopology.cardinal4,
+              coveragePolicy: SmartTileCoveragePolicy.complete,
+              coverageProfile: SmartTileCoverageProfile(
+                mode: SmartTileCoverageMode.template,
+              ),
+              transformPolicy: SmartTileTransformPolicy(),
               defaultMaterialId: 'grass',
               allowedMaterialIds: <String>['grass'],
             ),
@@ -79,6 +87,11 @@ void main() {
               name: 'Forêt Hanazuki',
               usage: SmartTileUsage.forestSurface,
               topology: SmartTileTopology.blob8,
+              coveragePolicy: SmartTileCoveragePolicy.complete,
+              coverageProfile: SmartTileCoverageProfile(
+                mode: SmartTileCoverageMode.template,
+              ),
+              transformPolicy: SmartTileTransformPolicy(),
               defaultMaterialId: 'forest',
               allowedMaterialIds: <String>['forest'],
             ),
@@ -93,6 +106,32 @@ void main() {
 
       expect(find.text('Forêt Hanazuki'), findsWidgets);
       expect(find.text('Terrain Hanazuki'), findsNothing);
+    });
+
+    testWidgets('keeps add-to-active-map disabled until STN-03',
+        (tester) async {
+      ProjectSmartTilePreset? addedToMap;
+      await _pumpPanel(
+        tester,
+        _manifest(),
+        onAddToActiveMap: (preset) => addedToMap = preset,
+      );
+
+      final finder = find.byKey(const Key('smart-tiles-add-to-active-map'));
+      final button = tester.widget<PokeMapButton>(finder);
+      expect(button.onPressed, isNull);
+      expect(
+        button.disabledReason,
+        smartTileNativeCatalogAuthoringRequiresStn03Code,
+      );
+      expect(
+        find.text(smartTileNativeCatalogAuthoringRequiresStn03Code),
+        findsWidgets,
+      );
+
+      await tester.tap(finder);
+      await tester.pump();
+      expect(addedToMap, isNull);
     });
 
     testWidgets('starts the guided flow with human labels and no masks', (
@@ -248,10 +287,11 @@ void main() {
       );
     });
 
-    testWidgets('publishes the complete guided preset through one callback', (
+    testWidgets('keeps the guided preset in memory until STN-03', (
       tester,
     ) async {
       ProjectManifest? published;
+      ProjectSmartTilePreset? addedToMap;
       await _pumpGuidedAtlas(
         tester,
         loader: _FakeSmartTileAtlasImageLoader(
@@ -259,6 +299,7 @@ void main() {
           height: 2304,
         ),
         onManifestChanged: (next) => published = next,
+        onAddToActiveMap: (preset) => addedToMap = preset,
       );
       final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
       await tester.ensureVisible(viewport);
@@ -279,7 +320,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(toPublish);
       await tester.pump();
-      expect(find.text('Publication autorisée'), findsOneWidget);
+      expect(find.text('Publication après STN-03'), findsOneWidget);
       expect(
         find.text('16 cellules • 12 raccords • 4 variantes'),
         findsOneWidget,
@@ -288,25 +329,21 @@ void main() {
       final publish = find.byKey(const Key('smart-tiles-publish-guided'));
       await tester.ensureVisible(publish);
       await tester.pumpAndSettle();
+      final publishButton = tester.widget<PokeMapButton>(publish);
+      expect(publishButton.onPressed, isNull);
+      expect(
+        publishButton.disabledReason,
+        smartTileNativeCatalogAuthoringRequiresStn03Code,
+      );
       await tester.tap(publish);
       await tester.pump();
 
-      expect(published, isNotNull);
-      final preset = published!.smartTileCatalog.presets.single;
-      expect(preset.status, SmartTilePresetStatus.published);
-      expect(preset.templateHint, SmartTileTemplateHint.corner12);
-      expect(preset.rules, hasLength(12));
+      expect(published, isNull);
+      expect(addedToMap, isNull);
       expect(
-        preset.rules.expand((rule) => rule.candidates),
-        hasLength(16),
+        find.text(smartTileNativeCatalogAuthoringRequiresStn03Code),
+        findsWidgets,
       );
-      expect(
-        preset.rules.where((rule) => rule.candidates.length == 2),
-        hasLength(4),
-      );
-      expect(published!.smartTileCatalog.atlases.single.cellWidth, 32);
-      expect(published!.smartTileCatalog.atlases.single.columns, 55);
-      expect(published!.smartTileCatalog.atlases.single.rows, 72);
     });
 
     testWidgets('test bench resolves every canonical Edge 16 scenario', (
@@ -324,7 +361,45 @@ void main() {
       );
     });
 
-    testWidgets('validation publishes only through the manifest callback', (
+    testWidgets('manual bench fails closed for dedicated Wang lattices', (
+      tester,
+    ) async {
+      await _pumpPanel(
+        tester,
+        _manifest(
+          presets: const <ProjectSmartTilePreset>[
+            ProjectSmartTilePreset(
+              id: 'wang-path',
+              name: 'Wang path',
+              usage: SmartTileUsage.path,
+              topology: SmartTileTopology.wangEdge4,
+              templateHint: SmartTileTemplateHint.edge16,
+              coveragePolicy: SmartTileCoveragePolicy.sparse,
+              coverageProfile: SmartTileCoverageProfile(
+                mode: SmartTileCoverageMode.template,
+              ),
+              transformPolicy: SmartTileTransformPolicy(),
+              defaultMaterialId: 'dirt',
+              allowedMaterialIds: <String>['dirt'],
+            ),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('smart-tiles-tab-testBench')));
+      await tester.pump();
+
+      expect(
+        find.byKey(const Key('smart-tiles-wang-manual-bench-deferred')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('smart-tiles-test-cell-3-3')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('validation does not persist a preset before STN-03', (
       tester,
     ) async {
       ProjectManifest? published;
@@ -336,13 +411,20 @@ void main() {
 
       await tester.tap(find.byKey(const Key('smart-tiles-tab-validation')));
       await tester.pump();
-      await tester.tap(find.byKey(const Key('smart-tiles-publish')));
+      final publish = find.byKey(const Key('smart-tiles-publish'));
+      final publishButton = tester.widget<PokeMapButton>(publish);
+      expect(publishButton.onPressed, isNull);
+      expect(
+        publishButton.disabledReason,
+        smartTileNativeCatalogAuthoringRequiresStn03Code,
+      );
+      await tester.tap(publish);
       await tester.pump();
 
-      expect(published, isNotNull);
+      expect(published, isNull);
       expect(
-        published!.smartTileCatalog.presets.single.status,
-        SmartTilePresetStatus.published,
+        find.text(smartTileNativeCatalogAuthoringRequiresStn03Code),
+        findsWidgets,
       );
     });
   });
@@ -367,6 +449,7 @@ Future<void> _pumpGuidedAtlas(
   WidgetTester tester, {
   required SmartTileAtlasImageLoader loader,
   ValueChanged<ProjectManifest>? onManifestChanged,
+  ValueChanged<ProjectSmartTilePreset>? onAddToActiveMap,
   Size surfaceSize = const Size(1440, 900),
 }) async {
   await _pumpPanel(
@@ -376,6 +459,7 @@ Future<void> _pumpGuidedAtlas(
     projectRootPath: '/tmp/erw-project',
     imageLoader: loader,
     onManifestChanged: onManifestChanged,
+    onAddToActiveMap: onAddToActiveMap,
     surfaceSize: surfaceSize,
   );
   await _startPathGuide(tester);
@@ -408,6 +492,7 @@ Future<void> _pumpPanel(
   WidgetTester tester,
   ProjectManifest manifest, {
   ValueChanged<ProjectManifest>? onManifestChanged,
+  ValueChanged<ProjectSmartTilePreset>? onAddToActiveMap,
   String? projectRootPath,
   SmartTileAtlasImageLoader imageLoader = const FileSmartTileAtlasImageLoader(),
   Size surfaceSize = const Size(1440, 900),
@@ -422,6 +507,7 @@ Future<void> _pumpPanel(
           projectRootPath: projectRootPath,
           imageLoader: imageLoader,
           onManifestChanged: onManifestChanged,
+          onAddToActiveMap: onAddToActiveMap,
         ),
       ),
     ),
@@ -437,12 +523,18 @@ ProjectManifest _completeManifest() {
     topology: SmartTileTopology.cardinal4,
     templateHint: SmartTileTemplateHint.edge16,
     status: SmartTilePresetStatus.draft,
+    coveragePolicy: SmartTileCoveragePolicy.complete,
+    coverageProfile: const SmartTileCoverageProfile(
+      mode: SmartTileCoverageMode.template,
+    ),
+    transformPolicy: const SmartTileTransformPolicy(),
     defaultMaterialId: 'grass',
     allowedMaterialIds: const <String>['grass'],
     rules: <SmartTileRule>[
       for (var mask = 0; mask < 16; mask++)
         SmartTileRule(
           id: smartTileCanonicalRuleId(mask),
+          centerMatch: const SmartTileSlotMatch.any(),
           signature: smartTileSignatureForMask(
             mask,
             topology: SmartTileTopology.cardinal4,
@@ -468,7 +560,7 @@ ProjectManifest _completeManifest() {
   );
   return ProjectManifest(
     name: 'Complete Smart Tiles test',
-    version: ProjectVersion.v4,
+    version: ProjectVersion.v5,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[
       ProjectTilesetEntry(
@@ -507,6 +599,11 @@ ProjectManifest _manifest({
       name: 'Chemin Hanazuki',
       usage: SmartTileUsage.path,
       topology: SmartTileTopology.blob8,
+      coveragePolicy: SmartTileCoveragePolicy.complete,
+      coverageProfile: SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.template,
+      ),
+      transformPolicy: SmartTileTransformPolicy(),
       defaultMaterialId: 'dirt',
       allowedMaterialIds: <String>['dirt'],
       status: SmartTilePresetStatus.published,
@@ -516,7 +613,7 @@ ProjectManifest _manifest({
 }) {
   return ProjectManifest(
     name: 'Smart Tiles test',
-    version: ProjectVersion.v4,
+    version: ProjectVersion.v5,
     maps: const <ProjectMapEntry>[],
     tilesets: tilesets,
     surfaceCatalog: const ProjectSurfaceCatalog.empty(),

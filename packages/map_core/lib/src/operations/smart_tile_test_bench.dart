@@ -1,47 +1,66 @@
 import 'package:meta/meta.dart' show immutable;
 
 import '../models/smart_tile.dart';
+import 'smart_tile_cell_context.dart';
 import 'smart_tile_resolver.dart';
 import 'smart_tile_templates.dart';
 
+/// Whether the manual cell-grid bench can reproduce this topology exactly.
+///
+/// Wang topologies read dedicated edge/corner lattices in production. A cell
+/// grid cannot represent those values without running the region compiler
+/// planned for STN-05, so the manual bench fails closed for them.
+bool smartTileTestGridSupportsTopology(SmartTileTopology topology) =>
+    switch (topology) {
+      SmartTileTopology.uniform ||
+      SmartTileTopology.cardinal4 ||
+      SmartTileTopology.blob8 =>
+        true,
+      SmartTileTopology.wangEdge4 ||
+      SmartTileTopology.wangCorner4 ||
+      SmartTileTopology.wang8 =>
+        false,
+    };
+
 @immutable
-final class SmartTileTemplateScenario {
-  const SmartTileTemplateScenario({
-    required this.mask,
-    required this.neighborhood,
+final class SmartTileTestBenchCase {
+  const SmartTileTestBenchCase({
+    required this.id,
+    required this.context,
   });
 
-  final int mask;
-  final SmartTileNeighborhood neighborhood;
+  final String id;
+  final SmartTileCellContext context;
 }
 
 @immutable
 final class SmartTileTemplateBenchResult {
   const SmartTileTemplateBenchResult({
     required this.mask,
-    required this.neighborhood,
+    required this.context,
     required this.resolution,
   });
 
   final int mask;
-  final SmartTileNeighborhood neighborhood;
+  final SmartTileCellContext context;
   final SmartTileResolution resolution;
 }
 
-List<SmartTileTemplateScenario> generateSmartTileTemplateScenarios({
+List<SmartTileTestBenchCase> generateSmartTileTemplateScenarios({
   required ProjectSmartTilePreset preset,
   required String materialId,
 }) {
   final masks = smartTileCanonicalMasks(preset.templateHint);
-  return List<SmartTileTemplateScenario>.unmodifiable(
-    <SmartTileTemplateScenario>[
+  return List<SmartTileTestBenchCase>.unmodifiable(
+    <SmartTileTestBenchCase>[
       for (final mask in masks)
-        SmartTileTemplateScenario(
-          mask: mask,
-          neighborhood: _neighborhoodForMask(
+        SmartTileTestBenchCase(
+          id: smartTileCanonicalRuleId(mask),
+          context: smartTileTemplateCaseForMask(
             mask: mask,
+            topology: preset.topology,
             materialId: materialId,
-          ),
+          ).context,
         ),
     ],
   );
@@ -60,17 +79,18 @@ List<SmartTileTemplateBenchResult> runSmartTileTemplateBench({
     preset: preset,
     materialId: materialId,
   );
+  final masks = smartTileCanonicalMasks(preset.templateHint);
   return List<SmartTileTemplateBenchResult>.unmodifiable(
     <SmartTileTemplateBenchResult>[
-      for (final scenario in scenarios)
+      for (var index = 0; index < scenarios.length; index++)
         SmartTileTemplateBenchResult(
-          mask: scenario.mask,
-          neighborhood: scenario.neighborhood,
+          mask: masks[index],
+          context: scenarios[index].context,
           resolution: resolveSmartTile(
             preset: preset,
             materials: materials,
-            neighborhood: scenario.neighborhood,
-            x: scenario.mask,
+            context: scenarios[index].context,
+            x: masks[index],
             y: 0,
             mapId: mapId,
             layerId: layerId,
@@ -141,10 +161,16 @@ final class SmartTileTestGrid {
     int layerSeed = 0,
   }) {
     _checkCell(x, y);
+    if (!smartTileTestGridSupportsTopology(preset.topology)) {
+      throw UnsupportedError(
+        'The manual Smart Tile cell grid cannot represent '
+        '${preset.topology.name} lattices exactly.',
+      );
+    }
     return resolveSmartTile(
       preset: preset,
       materials: materials,
-      neighborhood: SmartTileNeighborhood.fromGrid(
+      context: SmartTileCellContext.fromCellGrid(
         width: width,
         height: height,
         x: x,
@@ -165,24 +191,4 @@ final class SmartTileTestGrid {
       throw RangeError('Smart Tile test-grid cell is outside the grid.');
     }
   }
-}
-
-SmartTileNeighborhood _neighborhoodForMask({
-  required int mask,
-  required String materialId,
-}) {
-  SmartTileCellSample sample(int bit) => SmartTileCellSample.inside(
-        materialId: mask & bit == 0 ? null : materialId,
-      );
-  return SmartTileNeighborhood(
-    centerMaterialId: materialId,
-    northWest: sample(smartTileNorthWestBit),
-    north: sample(smartTileNorthBit),
-    northEast: sample(smartTileNorthEastBit),
-    east: sample(smartTileEastBit),
-    southEast: sample(smartTileSouthEastBit),
-    south: sample(smartTileSouthBit),
-    southWest: sample(smartTileSouthWestBit),
-    west: sample(smartTileWestBit),
-  );
 }

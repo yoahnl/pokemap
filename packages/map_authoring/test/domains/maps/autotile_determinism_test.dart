@@ -140,7 +140,116 @@ void main() {
       expect(artifact['fingerprint'], startsWith('sha256:'));
       expect(jsonEncode(artifact), isNot(contains('tilesetId')));
     });
+
+    test('rejects a v5 Smart Tile target before building a legacy preview', () {
+      final fixture = _nativeSmartTileFixture();
+      final beforeBytes = fixture.snapshot.resourceBytes('map:fixture');
+
+      expect(
+        () => const AutotileActions().build(
+          _context(
+            fixture.snapshot,
+            actionId: 'autotile.apply',
+            parameters: const {
+              'mapId': 'fixture',
+              'semanticActionId': 'path.paint',
+              'semanticParameters': {
+                'layerId': 'smart',
+                'presetId': 'legacy-path',
+                'x': 0,
+                'y': 0,
+              },
+            },
+            seed: 99,
+          ),
+        ),
+        throwsA(
+          isA<MapAuthoringException>()
+              .having(
+                (error) => error.code,
+                'code',
+                'smart_tile_native_authoring_requires_stn03',
+              )
+              .having(
+                (error) => error.details['operation'],
+                'operation',
+                'autotile.apply',
+              ),
+        ),
+      );
+      expect(fixture.snapshot.resourceBytes('map:fixture'), beforeBytes);
+      expect(
+        smartTileSemanticCells(fixture.map.layers.single as SmartTileLayer),
+        everyElement(0),
+      );
+    });
   });
+}
+
+({ProjectSnapshot snapshot, MapData map}) _nativeSmartTileFixture() {
+  const map = MapData(
+    id: 'fixture',
+    name: 'Fixture',
+    size: GridSize(width: 2, height: 2),
+    version: ProjectVersion.v5,
+    visualStack: MapVisualStackConfig.canonicalV1,
+    layers: [
+      MapLayer.smartTile(
+        id: 'smart',
+        name: 'Smart',
+        presetId: 'native-path',
+        usage: SmartTileUsage.path,
+        materialPalette: ['', 'road'],
+        field: SmartTileField.cell(semanticCells: [0, 0, 0, 0]),
+      ),
+    ],
+  );
+  final manifest = ProjectManifest(
+    name: 'Native Smart Tile fixture',
+    version: ProjectVersion.v5,
+    maps: [
+      ProjectMapEntry(
+        id: 'fixture',
+        name: 'Fixture',
+        relativePath: 'maps/fixture.json',
+      ),
+    ],
+    tilesets: [],
+    smartTileCatalog: ProjectSmartTileCatalog(formatVersion: 2),
+  );
+  final projectBytes = _encode(manifest.toJson());
+  final mapBytes = _encode(map.toJson());
+  final snapshot = ProjectSnapshot(
+    projectHandle: const ProjectHandle('prj_fixture'),
+    revision: computeNarrativeProjectFingerprint([
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'project.json',
+        bytes: projectBytes,
+      ),
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'maps/fixture.json',
+        bytes: mapBytes,
+      ),
+    ]),
+    manifest: manifest,
+    maps: const [map],
+    resourceFingerprints: {
+      'project': computeNarrativeProjectFingerprint([
+        NarrativeProjectFingerprintEntry(
+          relativePath: 'project.json',
+          bytes: projectBytes,
+        ),
+      ]),
+      'map:fixture': computeNarrativeProjectFingerprint([
+        NarrativeProjectFingerprintEntry(
+          relativePath: 'maps/fixture.json',
+          bytes: mapBytes,
+        ),
+      ]),
+    },
+    resourceBytes: {'project': projectBytes, 'map:fixture': mapBytes},
+  );
+  return (snapshot: snapshot, map: map);
 }
 
 ({ProjectSnapshot snapshot, MapData map}) _fixture({

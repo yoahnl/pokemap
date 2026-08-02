@@ -7,6 +7,7 @@ import 'enums.dart';
 import 'environment.dart';
 import 'project_manifest.dart';
 import 'smart_tile.dart';
+import 'smart_tile_field.dart';
 
 part 'map_layer.freezed.dart';
 part 'map_layer.g.dart';
@@ -109,10 +110,7 @@ sealed class MapLayer with _$MapLayer {
     required String presetId,
     required SmartTileUsage usage,
     @Default(<String>['']) List<String> materialPalette,
-    @Default(<int>[]) List<int> materialCells,
-    @Default(<int>[]) List<int> horizontalEdges,
-    @Default(<int>[]) List<int> verticalEdges,
-    @Default(<int>[]) List<int> corners,
+    required SmartTileField field,
     @Default(0) int layerSeed,
     @Default(<String, String>{}) Map<String, String> properties,
   }) = SmartTileLayer;
@@ -159,5 +157,16 @@ sealed class MapLayer with _$MapLayer {
   }) = BorderLayer;
 
   factory MapLayer.fromJson(Map<String, dynamic> json) =>
-      _$MapLayerFromJson(json);
+      _mapLayerFromJson(json);
+}
+
+MapLayer _mapLayerFromJson(Map<String, dynamic> json) {
+  if (json['runtimeType'] == 'smart_tile' &&
+      json.containsKey('layerSeed') &&
+      json['layerSeed'] is! int) {
+    throw const FormatException(
+      'smart_tile_integer_invalid: layerSeed must be an exact JSON integer',
+    );
+  }
+  return _$MapLayerFromJson(json);
 }

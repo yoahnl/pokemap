@@ -83,6 +83,7 @@ const _$ProjectVersionEnumMap = {
   ProjectVersion.v2: 'v2',
   ProjectVersion.v3: 'v3',
   ProjectVersion.v4: 'v4',
+  ProjectVersion.v5: 'v5',
 };
 
 _$MapGameplayZoneImpl _$$MapGameplayZoneImplFromJson(

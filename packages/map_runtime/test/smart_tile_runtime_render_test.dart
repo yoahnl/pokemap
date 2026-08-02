@@ -58,7 +58,7 @@ Future<ui.Image> _render(MapLayersComponent component) {
 const _map = MapData(
   id: 'smart-map',
   name: 'Smart Map',
-  version: ProjectVersion.v4,
+  version: ProjectVersion.v5,
   size: GridSize(width: 1, height: 1),
   layers: <MapLayer>[
     SmartTileLayer(
@@ -67,17 +67,14 @@ const _map = MapData(
       presetId: 'forest',
       usage: SmartTileUsage.forestSurface,
       materialPalette: <String>['', 'grass'],
-      materialCells: <int>[1],
-      horizontalEdges: <int>[0, 0],
-      verticalEdges: <int>[0, 0],
-      corners: <int>[0, 0, 0, 0],
+      field: SmartTileField.cell(semanticCells: <int>[1]),
     ),
   ],
 );
 
 final _manifest = ProjectManifest(
   name: 'Smart Runtime',
-  version: ProjectVersion.v4,
+  version: ProjectVersion.v5,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[
     ProjectTilesetEntry(
@@ -114,11 +111,17 @@ final _manifest = ProjectManifest(
         name: 'Forest',
         usage: SmartTileUsage.forestSurface,
         topology: SmartTileTopology.cardinal4,
+        coveragePolicy: SmartTileCoveragePolicy.sparse,
+        coverageProfile: SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.explicit,
+        ),
+        transformPolicy: SmartTileTransformPolicy(),
         defaultMaterialId: 'grass',
         allowedMaterialIds: <String>['grass'],
         rules: <SmartTileRule>[
           SmartTileRule(
             id: 'any',
+            centerMatch: SmartTileSlotMatch.any(),
             candidates: <SmartTileCandidate>[
               SmartTileCandidate(
                 id: 'forest',

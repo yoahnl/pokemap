@@ -6,6 +6,9 @@ import 'smart_tile_grid_detector.dart';
 import 'smart_tile_guide.dart';
 import 'smart_tile_guide_placement.dart';
 
+const String smartTileNativeCatalogAuthoringRequiresStn03Code =
+    'smart_tile_native_catalog_authoring_requires_stn03';
+
 final class SmartTileAuthoringDraft {
   SmartTileAuthoringDraft({
     this.id = '',
@@ -88,8 +91,9 @@ final class SmartTileAuthoringDraft {
 
 /// Pure in-memory authoring controller for one native Smart Tile preset.
 ///
-/// The controller never reads or writes disk. Calling [applyToManifest] is an
-/// explicit v4 transaction that preserves every unrelated legacy record.
+/// The controller never reads or writes disk. Draft compilation remains
+/// available in memory, but persistence is blocked until the canonical STN-03
+/// authoring contract exists.
 final class SmartTileAuthoringController {
   SmartTileAuthoringController({
     SmartTileAuthoringDraft? initialState,
@@ -431,12 +435,28 @@ final class SmartTileAuthoringController {
       topology: topology,
       templateHint: _state.templateHint,
       status: _state.status,
+      coveragePolicy: switch (usage) {
+        SmartTileUsage.terrain => SmartTileCoveragePolicy.complete,
+        SmartTileUsage.path ||
+        SmartTileUsage.forestSurface =>
+          SmartTileCoveragePolicy.sparse,
+      },
+      coverageProfile: const SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.template,
+      ),
+      transformPolicy: const SmartTileTransformPolicy(),
       defaultMaterialId: _state.materialId,
       allowedMaterialIds: <String>[_state.materialId],
       rules: <SmartTileRule>[
         for (final mask in masks)
           SmartTileRule(
             id: smartTileCanonicalRuleId(mask),
+            // Simple owns a center texture, not a universal neighborhood rule.
+            // Keeping the material explicit prevents a future multi-material
+            // draft from resolving the same visual for every center.
+            centerMatch: _state.templateHint == SmartTileTemplateHint.simple
+                ? SmartTileSlotMatch.material(_state.materialId)
+                : const SmartTileSlotMatch.any(),
             signature: smartTileSignatureForMask(mask, topology: topology),
             candidates: _state.mappings[mask]!,
           ),
@@ -462,36 +482,8 @@ final class SmartTileAuthoringController {
   }
 
   ProjectManifest applyToManifest(ProjectManifest manifest) {
-    final compiled = compileCatalog();
-    final current = manifest.smartTileCatalog;
-    final nextCatalog = ProjectSmartTileCatalog(
-      formatVersion: current.formatVersion,
-      categories: current.categories,
-      atlases: _upsertById(
-        current.atlases,
-        compiled.atlases.single,
-        (item) => item.id,
-      ),
-      materials: _upsertById(
-        current.materials,
-        compiled.materials.single,
-        (item) => item.id,
-      ),
-      animations: <ProjectSmartTileAnimation>[
-        for (final animation in current.animations)
-          if (!compiled.animations.any((item) => item.id == animation.id))
-            animation,
-        ...compiled.animations,
-      ],
-      presets: _upsertById(
-        current.presets,
-        compiled.presets.single,
-        (item) => item.id,
-      ),
-    );
-    return manifest.copyWith(
-      version: ProjectVersion.v4,
-      smartTileCatalog: nextCatalog,
+    throw StateError(
+      smartTileNativeCatalogAuthoringRequiresStn03Code,
     );
   }
 
@@ -557,16 +549,4 @@ void _requireText(String value, String label) {
   if (value.trim().isEmpty) {
     throw StateError('Smart Tile $label is required.');
   }
-}
-
-List<T> _upsertById<T>(
-  List<T> current,
-  T replacement,
-  String Function(T item) idOf,
-) {
-  return <T>[
-    for (final item in current)
-      if (idOf(item) != idOf(replacement)) item,
-    replacement,
-  ];
 }

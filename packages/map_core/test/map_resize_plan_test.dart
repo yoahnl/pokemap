@@ -181,6 +181,39 @@ void main() {
       expect(impact.positions.last, const GridPos(x: 8, y: 0));
     });
 
+    test('reports clipped values from active Smart Tile edge lattices', () {
+      const map = MapData(
+        id: 'wang-map',
+        name: 'Wang map',
+        version: ProjectVersion.v5,
+        size: GridSize(width: 2, height: 2),
+        layers: <MapLayer>[
+          MapLayer.smartTile(
+            id: 'wang-path',
+            name: 'Wang path',
+            presetId: 'path',
+            usage: SmartTileUsage.path,
+            materialPalette: <String>['', 'dirt'],
+            field: SmartTileField.edge(
+              semanticCells: <int>[0, 0, 0, 0],
+              horizontalEdges: <int>[0, 0, 0, 0, 0, 1],
+              verticalEdges: <int>[0, 0, 0, 0, 0, 0],
+            ),
+          ),
+        ],
+      );
+
+      final plan = planMapResize(map, width: 1, height: 1);
+
+      expect(plan.canApply, isFalse);
+      expect(plan.hasDestructiveImpacts, isTrue);
+      final impact = plan.impacts.single;
+      expect(impact.kind, MapResizeImpactKind.smartTileLayer);
+      expect(impact.subjectId, 'wang-path');
+      expect(impact.affectedCount, 1);
+      expect(impact.positions, const <GridPos>[GridPos(x: 1, y: 2)]);
+    });
+
     test('fails closed when a Border layer has no project tile size', () {
       final map = MapData(
         id: 'border-map',

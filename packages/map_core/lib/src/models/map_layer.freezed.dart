@@ -274,10 +274,7 @@ mixin _$MapLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -347,10 +344,7 @@ mixin _$MapLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -419,10 +413,7 @@ mixin _$MapLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -734,10 +725,7 @@ class _$TileLayerImpl extends TileLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -810,10 +798,7 @@ class _$TileLayerImpl extends TileLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -885,10 +870,7 @@ class _$TileLayerImpl extends TileLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -1188,10 +1170,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -1264,10 +1243,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -1339,10 +1315,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -1638,10 +1611,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -1714,10 +1684,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -1789,10 +1756,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -2161,10 +2125,7 @@ class _$PathLayerImpl extends PathLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -2238,10 +2199,7 @@ class _$PathLayerImpl extends PathLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -2314,10 +2272,7 @@ class _$PathLayerImpl extends PathLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -2650,10 +2605,7 @@ class _$SurfaceLayerImpl extends SurfaceLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -2726,10 +2678,7 @@ class _$SurfaceLayerImpl extends SurfaceLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -2801,10 +2750,7 @@ class _$SurfaceLayerImpl extends SurfaceLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -2949,12 +2895,11 @@ abstract class _$$SmartTileLayerImplCopyWith<$Res>
       String presetId,
       SmartTileUsage usage,
       List<String> materialPalette,
-      List<int> materialCells,
-      List<int> horizontalEdges,
-      List<int> verticalEdges,
-      List<int> corners,
+      SmartTileField field,
       int layerSeed,
       Map<String, String> properties});
+
+  $SmartTileFieldCopyWith<$Res> get field;
 }
 
 /// @nodoc
@@ -2977,10 +2922,7 @@ class __$$SmartTileLayerImplCopyWithImpl<$Res>
     Object? presetId = null,
     Object? usage = null,
     Object? materialPalette = null,
-    Object? materialCells = null,
-    Object? horizontalEdges = null,
-    Object? verticalEdges = null,
-    Object? corners = null,
+    Object? field = null,
     Object? layerSeed = null,
     Object? properties = null,
   }) {
@@ -3013,22 +2955,10 @@ class __$$SmartTileLayerImplCopyWithImpl<$Res>
           ? _value._materialPalette
           : materialPalette // ignore: cast_nullable_to_non_nullable
               as List<String>,
-      materialCells: null == materialCells
-          ? _value._materialCells
-          : materialCells // ignore: cast_nullable_to_non_nullable
-              as List<int>,
-      horizontalEdges: null == horizontalEdges
-          ? _value._horizontalEdges
-          : horizontalEdges // ignore: cast_nullable_to_non_nullable
-              as List<int>,
-      verticalEdges: null == verticalEdges
-          ? _value._verticalEdges
-          : verticalEdges // ignore: cast_nullable_to_non_nullable
-              as List<int>,
-      corners: null == corners
-          ? _value._corners
-          : corners // ignore: cast_nullable_to_non_nullable
-              as List<int>,
+      field: null == field
+          ? _value.field
+          : field // ignore: cast_nullable_to_non_nullable
+              as SmartTileField,
       layerSeed: null == layerSeed
           ? _value.layerSeed
           : layerSeed // ignore: cast_nullable_to_non_nullable
@@ -3038,6 +2968,16 @@ class __$$SmartTileLayerImplCopyWithImpl<$Res>
           : properties // ignore: cast_nullable_to_non_nullable
               as Map<String, String>,
     ));
+  }
+
+  /// Create a copy of MapLayer
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $SmartTileFieldCopyWith<$Res> get field {
+    return $SmartTileFieldCopyWith<$Res>(_value.field, (value) {
+      return _then(_value.copyWith(field: value));
+    });
   }
 }
 
@@ -3053,18 +2993,11 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
       required this.presetId,
       required this.usage,
       final List<String> materialPalette = const <String>[''],
-      final List<int> materialCells = const <int>[],
-      final List<int> horizontalEdges = const <int>[],
-      final List<int> verticalEdges = const <int>[],
-      final List<int> corners = const <int>[],
+      required this.field,
       this.layerSeed = 0,
       final Map<String, String> properties = const <String, String>{},
       final String? $type})
       : _materialPalette = materialPalette,
-        _materialCells = materialCells,
-        _horizontalEdges = horizontalEdges,
-        _verticalEdges = verticalEdges,
-        _corners = corners,
         _properties = properties,
         $type = $type ?? 'smart_tile',
         super._();
@@ -3095,42 +3028,8 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
     return EqualUnmodifiableListView(_materialPalette);
   }
 
-  final List<int> _materialCells;
   @override
-  @JsonKey()
-  List<int> get materialCells {
-    if (_materialCells is EqualUnmodifiableListView) return _materialCells;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_materialCells);
-  }
-
-  final List<int> _horizontalEdges;
-  @override
-  @JsonKey()
-  List<int> get horizontalEdges {
-    if (_horizontalEdges is EqualUnmodifiableListView) return _horizontalEdges;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_horizontalEdges);
-  }
-
-  final List<int> _verticalEdges;
-  @override
-  @JsonKey()
-  List<int> get verticalEdges {
-    if (_verticalEdges is EqualUnmodifiableListView) return _verticalEdges;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_verticalEdges);
-  }
-
-  final List<int> _corners;
-  @override
-  @JsonKey()
-  List<int> get corners {
-    if (_corners is EqualUnmodifiableListView) return _corners;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_corners);
-  }
-
+  final SmartTileField field;
   @override
   @JsonKey()
   final int layerSeed;
@@ -3148,7 +3047,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
 
   @override
   String toString() {
-    return 'MapLayer.smartTile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, presetId: $presetId, usage: $usage, materialPalette: $materialPalette, materialCells: $materialCells, horizontalEdges: $horizontalEdges, verticalEdges: $verticalEdges, corners: $corners, layerSeed: $layerSeed, properties: $properties)';
+    return 'MapLayer.smartTile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, presetId: $presetId, usage: $usage, materialPalette: $materialPalette, field: $field, layerSeed: $layerSeed, properties: $properties)';
   }
 
   @override
@@ -3166,13 +3065,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             (identical(other.usage, usage) || other.usage == usage) &&
             const DeepCollectionEquality()
                 .equals(other._materialPalette, _materialPalette) &&
-            const DeepCollectionEquality()
-                .equals(other._materialCells, _materialCells) &&
-            const DeepCollectionEquality()
-                .equals(other._horizontalEdges, _horizontalEdges) &&
-            const DeepCollectionEquality()
-                .equals(other._verticalEdges, _verticalEdges) &&
-            const DeepCollectionEquality().equals(other._corners, _corners) &&
+            (identical(other.field, field) || other.field == field) &&
             (identical(other.layerSeed, layerSeed) ||
                 other.layerSeed == layerSeed) &&
             const DeepCollectionEquality()
@@ -3190,10 +3083,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
       presetId,
       usage,
       const DeepCollectionEquality().hash(_materialPalette),
-      const DeepCollectionEquality().hash(_materialCells),
-      const DeepCollectionEquality().hash(_horizontalEdges),
-      const DeepCollectionEquality().hash(_verticalEdges),
-      const DeepCollectionEquality().hash(_corners),
+      field,
       layerSeed,
       const DeepCollectionEquality().hash(_properties));
 
@@ -3245,10 +3135,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -3279,20 +3166,8 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             Map<String, String> properties)
         border,
   }) {
-    return smartTile(
-        id,
-        name,
-        isVisible,
-        opacity,
-        presetId,
-        usage,
-        materialPalette,
-        materialCells,
-        horizontalEdges,
-        verticalEdges,
-        corners,
-        layerSeed,
-        properties);
+    return smartTile(id, name, isVisible, opacity, presetId, usage,
+        materialPalette, field, layerSeed, properties);
   }
 
   @override
@@ -3334,10 +3209,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -3367,20 +3239,8 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             Map<String, String> properties)?
         border,
   }) {
-    return smartTile?.call(
-        id,
-        name,
-        isVisible,
-        opacity,
-        presetId,
-        usage,
-        materialPalette,
-        materialCells,
-        horizontalEdges,
-        verticalEdges,
-        corners,
-        layerSeed,
-        properties);
+    return smartTile?.call(id, name, isVisible, opacity, presetId, usage,
+        materialPalette, field, layerSeed, properties);
   }
 
   @override
@@ -3422,10 +3282,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -3457,20 +3314,8 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
     required TResult orElse(),
   }) {
     if (smartTile != null) {
-      return smartTile(
-          id,
-          name,
-          isVisible,
-          opacity,
-          presetId,
-          usage,
-          materialPalette,
-          materialCells,
-          horizontalEdges,
-          verticalEdges,
-          corners,
-          layerSeed,
-          properties);
+      return smartTile(id, name, isVisible, opacity, presetId, usage,
+          materialPalette, field, layerSeed, properties);
     }
     return orElse();
   }
@@ -3544,10 +3389,7 @@ abstract class SmartTileLayer extends MapLayer {
       required final String presetId,
       required final SmartTileUsage usage,
       final List<String> materialPalette,
-      final List<int> materialCells,
-      final List<int> horizontalEdges,
-      final List<int> verticalEdges,
-      final List<int> corners,
+      required final SmartTileField field,
       final int layerSeed,
       final Map<String, String> properties}) = _$SmartTileLayerImpl;
   const SmartTileLayer._() : super._();
@@ -3566,10 +3408,7 @@ abstract class SmartTileLayer extends MapLayer {
   String get presetId;
   SmartTileUsage get usage;
   List<String> get materialPalette;
-  List<int> get materialCells;
-  List<int> get horizontalEdges;
-  List<int> get verticalEdges;
-  List<int> get corners;
+  SmartTileField get field;
   int get layerSeed;
   Map<String, String> get properties;
 
@@ -3728,10 +3567,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -3804,10 +3640,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -3879,10 +3712,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -4198,10 +4028,7 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -4274,10 +4101,7 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -4349,10 +4173,7 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -4680,10 +4501,7 @@ class _$BorderLayerImpl extends BorderLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -4756,10 +4574,7 @@ class _$BorderLayerImpl extends BorderLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -4831,10 +4646,7 @@ class _$BorderLayerImpl extends BorderLayer {
             String presetId,
             SmartTileUsage usage,
             List<String> materialPalette,
-            List<int> materialCells,
-            List<int> horizontalEdges,
-            List<int> verticalEdges,
-            List<int> corners,
+            SmartTileField field,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,

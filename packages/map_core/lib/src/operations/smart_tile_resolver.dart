@@ -3,85 +3,15 @@ import 'dart:convert';
 import 'package:meta/meta.dart' show immutable;
 
 import '../models/smart_tile.dart';
-
-@immutable
-final class SmartTileCellSample {
-  const SmartTileCellSample.inside({this.materialId}) : isInsideMap = true;
-
-  const SmartTileCellSample.outside()
-      : isInsideMap = false,
-        materialId = null;
-
-  final bool isInsideMap;
-  final String? materialId;
-}
-
-@immutable
-final class SmartTileNeighborhood {
-  const SmartTileNeighborhood({
-    required this.centerMaterialId,
-    this.northWest = const SmartTileCellSample.outside(),
-    this.north = const SmartTileCellSample.outside(),
-    this.northEast = const SmartTileCellSample.outside(),
-    this.east = const SmartTileCellSample.outside(),
-    this.southEast = const SmartTileCellSample.outside(),
-    this.south = const SmartTileCellSample.outside(),
-    this.southWest = const SmartTileCellSample.outside(),
-    this.west = const SmartTileCellSample.outside(),
-  });
-
-  factory SmartTileNeighborhood.fromGrid({
-    required int width,
-    required int height,
-    required int x,
-    required int y,
-    required String? Function(int x, int y) materialAt,
-  }) {
-    if (width <= 0 || height <= 0) {
-      throw ArgumentError('Smart Tile grid dimensions must be positive.');
-    }
-    if (x < 0 || y < 0 || x >= width || y >= height) {
-      throw RangeError('Smart Tile center is outside the grid.');
-    }
-
-    SmartTileCellSample read(int sampleX, int sampleY) {
-      if (sampleX < 0 || sampleY < 0 || sampleX >= width || sampleY >= height) {
-        return const SmartTileCellSample.outside();
-      }
-      return SmartTileCellSample.inside(
-        materialId: materialAt(sampleX, sampleY),
-      );
-    }
-
-    return SmartTileNeighborhood(
-      centerMaterialId: materialAt(x, y),
-      northWest: read(x - 1, y - 1),
-      north: read(x, y - 1),
-      northEast: read(x + 1, y - 1),
-      east: read(x + 1, y),
-      southEast: read(x + 1, y + 1),
-      south: read(x, y + 1),
-      southWest: read(x - 1, y + 1),
-      west: read(x - 1, y),
-    );
-  }
-
-  final String? centerMaterialId;
-  final SmartTileCellSample northWest;
-  final SmartTileCellSample north;
-  final SmartTileCellSample northEast;
-  final SmartTileCellSample east;
-  final SmartTileCellSample southEast;
-  final SmartTileCellSample south;
-  final SmartTileCellSample southWest;
-  final SmartTileCellSample west;
-}
+import 'smart_tile_cell_context.dart';
 
 enum SmartTileResolutionStatus {
   resolved,
-  noCenterMaterial,
+  noIntent,
   noMatchingRule,
+  ambiguousRule,
   noCandidate,
+  invalidRule,
 }
 
 @immutable
@@ -91,6 +21,8 @@ final class SmartTileResolution {
     this.ruleId,
     this.candidate,
     this.deterministicHash,
+    this.matchingRuleIds = const <String>[],
+    this.usedFallback = false,
     this.message = '',
   });
 
@@ -98,6 +30,8 @@ final class SmartTileResolution {
   final String? ruleId;
   final SmartTileCandidate? candidate;
   final int? deterministicHash;
+  final List<String> matchingRuleIds;
+  final bool usedFallback;
   final String message;
 
   List<SmartTileVisualPart> get parts =>
@@ -107,7 +41,7 @@ final class SmartTileResolution {
 SmartTileResolution resolveSmartTile({
   required ProjectSmartTilePreset preset,
   required Iterable<ProjectSmartTileMaterial> materials,
-  required SmartTileNeighborhood neighborhood,
+  required SmartTileCellContext context,
   required int x,
   required int y,
   String mapId = '',
@@ -115,87 +49,109 @@ SmartTileResolution resolveSmartTile({
   int projectSeed = 0,
   int layerSeed = 0,
 }) {
-  final centerMaterialId = neighborhood.centerMaterialId;
-  if (centerMaterialId == null || centerMaterialId.isEmpty) {
-    return const SmartTileResolution(
-      status: SmartTileResolutionStatus.noCenterMaterial,
-      message: 'The center cell has no Smart Tile material.',
-    );
-  }
-
   final materialMap = <String, ProjectSmartTileMaterial>{
     for (final material in materials) material.id: material,
   };
-  if (materialMap[centerMaterialId]?.isEmpty ?? false) {
-    return const SmartTileResolution(
-      status: SmartTileResolutionStatus.noCenterMaterial,
-      message: 'The center cell uses an explicit empty material.',
+  final invalidRule = _firstInvalidRule(preset);
+  if (invalidRule != null) {
+    return SmartTileResolution(
+      status: SmartTileResolutionStatus.invalidRule,
+      ruleId: invalidRule.ruleId,
+      matchingRuleIds: List<String>.unmodifiable(<String>[
+        invalidRule.ruleId,
+      ]),
+      message: invalidRule.message,
     );
   }
-  SmartTileRule? selectedRule;
-  var selectedSpecificity = -1;
+  if (!_hasIntent(
+    preset: preset,
+    context: context,
+    materials: materialMap,
+  )) {
+    return const SmartTileResolution(
+      status: SmartTileResolutionStatus.noIntent,
+      message: 'The Smart Tile cell has no semantic or Wang intent.',
+    );
+  }
+
+  final matches = <_MatchedRule>[];
   for (final rule in preset.rules) {
+    if (rule.id == preset.fallbackRuleId) continue;
     final match = _ruleMatches(
       rule: rule,
       preset: preset,
       materials: materialMap,
-      neighborhood: neighborhood,
+      context: context,
     );
-    if (match.matches && match.specificity > selectedSpecificity) {
-      selectedRule = rule;
-      selectedSpecificity = match.specificity;
+    if (match.matches) {
+      matches.add(_MatchedRule(rule, match.specificity));
     }
   }
 
-  if (selectedRule == null) {
-    return const SmartTileResolution(
-      status: SmartTileResolutionStatus.noMatchingRule,
-      message: 'No Smart Tile rule matches this neighborhood.',
+  if (matches.isEmpty) {
+    final fallbackRuleId = preset.fallbackRuleId;
+    if (fallbackRuleId == null) {
+      return const SmartTileResolution(
+        status: SmartTileResolutionStatus.noMatchingRule,
+        message: 'No primary Smart Tile rule matches this context.',
+      );
+    }
+    SmartTileRule? fallback;
+    for (final rule in preset.rules) {
+      if (rule.id == fallbackRuleId) {
+        fallback = rule;
+        break;
+      }
+    }
+    if (fallback == null) {
+      return SmartTileResolution(
+        status: SmartTileResolutionStatus.noMatchingRule,
+        message: 'Smart Tile fallback rule "$fallbackRuleId" is missing.',
+      );
+    }
+    return _resolveCandidate(
+      preset: preset,
+      rule: fallback,
+      usedFallback: true,
+      x: x,
+      y: y,
+      mapId: mapId,
+      layerId: layerId,
+      projectSeed: projectSeed,
+      layerSeed: layerSeed,
     );
   }
 
-  final candidates = selectedRule.candidates
-      .where((candidate) => candidate.weight > 0)
+  var maximumSpecificity = matches.first.specificity;
+  for (final match in matches.skip(1)) {
+    if (match.specificity > maximumSpecificity) {
+      maximumSpecificity = match.specificity;
+    }
+  }
+  final best = matches
+      .where((match) => match.specificity == maximumSpecificity)
       .toList(growable: false);
-  candidates.sort(_compareCandidateIdsByUtf8);
-  if (candidates.isEmpty) {
+  if (best.length > 1) {
+    final matchingRuleIds = <String>[
+      for (final match in best) match.rule.id,
+    ]..sort(_compareStringsByUtf8);
     return SmartTileResolution(
-      status: SmartTileResolutionStatus.noCandidate,
-      ruleId: selectedRule.id,
-      message: 'The matching Smart Tile rule has no valid candidate.',
+      status: SmartTileResolutionStatus.ambiguousRule,
+      matchingRuleIds: List<String>.unmodifiable(matchingRuleIds),
+      message: 'Several Smart Tile rules have the same maximum specificity.',
     );
   }
 
-  final hash = _resolutionHash(
-    projectSeed: projectSeed,
-    layerSeed: layerSeed,
-    mapId: mapId,
-    layerId: layerId,
-    presetId: preset.id,
-    ruleId: selectedRule.id,
-    presetSeedSalt: preset.seedSalt,
+  return _resolveCandidate(
+    preset: preset,
+    rule: best.single.rule,
+    usedFallback: false,
     x: x,
     y: y,
-  );
-  final totalWeight = candidates.fold<int>(
-    0,
-    (sum, candidate) => sum + candidate.weight,
-  );
-  var ticket = hash % totalWeight;
-  SmartTileCandidate selectedCandidate = candidates.first;
-  for (final candidate in candidates) {
-    if (ticket < candidate.weight) {
-      selectedCandidate = candidate;
-      break;
-    }
-    ticket -= candidate.weight;
-  }
-
-  return SmartTileResolution(
-    status: SmartTileResolutionStatus.resolved,
-    ruleId: selectedRule.id,
-    candidate: selectedCandidate,
-    deterministicHash: hash,
+    mapId: mapId,
+    layerId: layerId,
+    projectSeed: projectSeed,
+    layerSeed: layerSeed,
   );
 }
 
@@ -203,32 +159,32 @@ int smartTileConnectivityMask({
   required SmartTileTopology topology,
   required SmartTileBoundaryPolicy boundaryPolicy,
   required Iterable<ProjectSmartTileMaterial> materials,
-  required SmartTileNeighborhood neighborhood,
+  required SmartTileCellContext context,
 }) {
-  final center = neighborhood.centerMaterialId;
-  if (center == null || center.isEmpty) {
-    return 0;
-  }
+  if (topology == SmartTileTopology.uniform) return 0;
   final materialMap = <String, ProjectSmartTileMaterial>{
     for (final material in materials) material.id: material,
   };
-  bool connected(SmartTileCellSample sample) {
+  final center = context.centerMaterialId;
+  if (_isEmptyMaterial(center, materialMap)) return 0;
+
+  bool connected(SmartTileObservedSlot slot) {
     final neighbor = _effectiveMaterialId(
-      sample: sample,
+      slot: slot,
       policy: boundaryPolicy,
       centerMaterialId: center,
     );
-    return _sameConnectionGroup(center, neighbor, materialMap);
+    return _sameConnectionGroup(center!, neighbor, materialMap);
   }
 
-  final north = connected(neighborhood.north);
-  final east = connected(neighborhood.east);
-  final south = connected(neighborhood.south);
-  final west = connected(neighborhood.west);
-  final northWest = connected(neighborhood.northWest);
-  final northEast = connected(neighborhood.northEast);
-  final southEast = connected(neighborhood.southEast);
-  final southWest = connected(neighborhood.southWest);
+  final north = connected(context.observed.northEdge);
+  final east = connected(context.observed.eastEdge);
+  final south = connected(context.observed.southEdge);
+  final west = connected(context.observed.westEdge);
+  final northWest = connected(context.observed.northWestCorner);
+  final northEast = connected(context.observed.northEastCorner);
+  final southEast = connected(context.observed.southEastCorner);
+  final southWest = connected(context.observed.southWestCorner);
 
   var mask = 0;
   if (topology != SmartTileTopology.wangCorner4) {
@@ -261,6 +217,164 @@ int smartTileFnv1a64(Iterable<int> bytes) {
   return hash;
 }
 
+SmartTileResolution _resolveCandidate({
+  required ProjectSmartTilePreset preset,
+  required SmartTileRule rule,
+  required bool usedFallback,
+  required int x,
+  required int y,
+  required String mapId,
+  required String layerId,
+  required int projectSeed,
+  required int layerSeed,
+}) {
+  final candidates = rule.candidates
+      .where((candidate) => candidate.weight > 0)
+      .toList(growable: false)
+    ..sort(_compareCandidateIdsByUtf8);
+  final matchingRuleIds = List<String>.unmodifiable(<String>[rule.id]);
+  if (candidates.isEmpty) {
+    return SmartTileResolution(
+      status: SmartTileResolutionStatus.noCandidate,
+      ruleId: rule.id,
+      matchingRuleIds: matchingRuleIds,
+      usedFallback: usedFallback,
+      message: 'The selected Smart Tile rule has no positive candidate.',
+    );
+  }
+
+  final hash = _resolutionHash(
+    projectSeed: projectSeed,
+    layerSeed: layerSeed,
+    mapId: mapId,
+    layerId: layerId,
+    presetId: preset.id,
+    ruleId: rule.id,
+    presetSeedSalt: preset.seedSalt,
+    x: x,
+    y: y,
+  );
+  final totalWeight = candidates.fold<int>(
+    0,
+    (sum, candidate) => sum + candidate.weight,
+  );
+  var ticket = hash % totalWeight;
+  var selectedCandidate = candidates.first;
+  for (final candidate in candidates) {
+    if (ticket < candidate.weight) {
+      selectedCandidate = candidate;
+      break;
+    }
+    ticket -= candidate.weight;
+  }
+
+  return SmartTileResolution(
+    status: SmartTileResolutionStatus.resolved,
+    ruleId: rule.id,
+    candidate: selectedCandidate,
+    deterministicHash: hash,
+    matchingRuleIds: matchingRuleIds,
+    usedFallback: usedFallback,
+  );
+}
+
+final class _InvalidRule {
+  const _InvalidRule(this.ruleId, this.message);
+
+  final String ruleId;
+  final String message;
+}
+
+_InvalidRule? _firstInvalidRule(ProjectSmartTilePreset preset) {
+  for (final rule in preset.rules) {
+    if (rule.centerMatch.kind == SmartTileMatchKind.same ||
+        rule.centerMatch.kind == SmartTileMatchKind.different) {
+      return _InvalidRule(
+        rule.id,
+        'Rule "${rule.id}" has an invalid relative center match.',
+      );
+    }
+    for (final slot in _allSignatureSlots(rule.signature)) {
+      if (!_slotIsActive(preset.topology, slot.name) &&
+          slot.match.kind != SmartTileMatchKind.any) {
+        return _InvalidRule(
+          rule.id,
+          'Rule "${rule.id}" constrains inactive slot ${slot.name}.',
+        );
+      }
+    }
+    if (rule.candidates.any((candidate) => candidate.weight < 0)) {
+      return _InvalidRule(
+        rule.id,
+        'Rule "${rule.id}" has a negative candidate weight.',
+      );
+    }
+  }
+  return null;
+}
+
+bool _hasIntent({
+  required ProjectSmartTilePreset preset,
+  required SmartTileCellContext context,
+  required Map<String, ProjectSmartTileMaterial> materials,
+}) {
+  final centerMaterialId = context.centerMaterialId;
+  if (!_isEmptyMaterial(centerMaterialId, materials)) return true;
+  if (_hasExplicitCenterMaterialIntent(preset, centerMaterialId)) return true;
+  if (preset.topology != SmartTileTopology.wangEdge4 &&
+      preset.topology != SmartTileTopology.wangCorner4 &&
+      preset.topology != SmartTileTopology.wang8) {
+    return false;
+  }
+  return _allObservedSlots(context.observed).any(
+    (slot) =>
+        _slotIsActive(preset.topology, slot.name) &&
+        (!_isEmptyMaterial(slot.value.materialId, materials) ||
+            _hasExplicitSignatureMaterialIntent(
+              preset,
+              slot.name,
+              slot.value.materialId,
+            )),
+  );
+}
+
+bool _hasExplicitCenterMaterialIntent(
+  ProjectSmartTilePreset preset,
+  String? materialId,
+) {
+  if (materialId == null || materialId.isEmpty) return false;
+  return preset.rules.any(
+    (rule) =>
+        rule.id != preset.fallbackRuleId &&
+        rule.centerMatch.kind == SmartTileMatchKind.material &&
+        rule.centerMatch.materialId == materialId,
+  );
+}
+
+bool _hasExplicitSignatureMaterialIntent(
+  ProjectSmartTilePreset preset,
+  String slotName,
+  String? materialId,
+) {
+  if (materialId == null || materialId.isEmpty) return false;
+  return preset.rules.any((rule) {
+    if (rule.id == preset.fallbackRuleId) return false;
+    final match = switch (slotName) {
+      'northWestCorner' => rule.signature.northWestCorner,
+      'northEdge' => rule.signature.northEdge,
+      'northEastCorner' => rule.signature.northEastCorner,
+      'eastEdge' => rule.signature.eastEdge,
+      'southEastCorner' => rule.signature.southEastCorner,
+      'southEdge' => rule.signature.southEdge,
+      'southWestCorner' => rule.signature.southWestCorner,
+      'westEdge' => rule.signature.westEdge,
+      _ => const SmartTileSlotMatch.any(),
+    };
+    return match.kind == SmartTileMatchKind.material &&
+        match.materialId == materialId;
+  });
+}
+
 final class _RuleMatch {
   const _RuleMatch(this.matches, this.specificity);
 
@@ -268,26 +382,38 @@ final class _RuleMatch {
   final int specificity;
 }
 
+final class _MatchedRule {
+  const _MatchedRule(this.rule, this.specificity);
+
+  final SmartTileRule rule;
+  final int specificity;
+}
+
 _RuleMatch _ruleMatches({
   required SmartTileRule rule,
   required ProjectSmartTilePreset preset,
   required Map<String, ProjectSmartTileMaterial> materials,
-  required SmartTileNeighborhood neighborhood,
+  required SmartTileCellContext context,
 }) {
-  final center = neighborhood.centerMaterialId!;
-  final slots = _activeSlots(
+  final center = context.centerMaterialId;
+  if (!_centerMatches(
+    match: rule.centerMatch,
+    centerMaterialId: center,
+    materials: materials,
+  )) {
+    return const _RuleMatch(false, 0);
+  }
+
+  var specificity = rule.centerMatch.kind == SmartTileMatchKind.any ? 0 : 1;
+  for (final slot in _resolvedActiveSlots(
     signature: rule.signature,
     topology: preset.topology,
-    neighborhood: neighborhood,
+    observed: context.observed,
     boundaryPolicy: preset.boundaryPolicy,
     centerMaterialId: center,
     materials: materials,
-  );
-  var specificity = 0;
-  for (final slot in slots) {
-    if (slot.match.kind != SmartTileMatchKind.any) {
-      specificity += 1;
-    }
+  )) {
+    if (slot.match.kind != SmartTileMatchKind.any) specificity += 1;
     if (!_slotMatches(
       match: slot.match,
       neighborMaterialId: slot.materialId,
@@ -300,6 +426,57 @@ _RuleMatch _ruleMatches({
   return _RuleMatch(true, specificity);
 }
 
+bool _centerMatches({
+  required SmartTileSlotMatch match,
+  required String? centerMaterialId,
+  required Map<String, ProjectSmartTileMaterial> materials,
+}) {
+  return switch (match.kind) {
+    SmartTileMatchKind.any => true,
+    SmartTileMatchKind.empty => _isEmptyMaterial(centerMaterialId, materials),
+    SmartTileMatchKind.material => centerMaterialId == match.materialId,
+    SmartTileMatchKind.same || SmartTileMatchKind.different => false,
+  };
+}
+
+final class _SignatureSlot {
+  const _SignatureSlot(this.name, this.match);
+
+  final String name;
+  final SmartTileSlotMatch match;
+}
+
+final class _ObservedSlot {
+  const _ObservedSlot(this.name, this.value);
+
+  final String name;
+  final SmartTileObservedSlot value;
+}
+
+List<_ObservedSlot> _allObservedSlots(SmartTileObservedSignature observed) =>
+    <_ObservedSlot>[
+      _ObservedSlot('northEdge', observed.northEdge),
+      _ObservedSlot('northEastCorner', observed.northEastCorner),
+      _ObservedSlot('eastEdge', observed.eastEdge),
+      _ObservedSlot('southEastCorner', observed.southEastCorner),
+      _ObservedSlot('southEdge', observed.southEdge),
+      _ObservedSlot('southWestCorner', observed.southWestCorner),
+      _ObservedSlot('westEdge', observed.westEdge),
+      _ObservedSlot('northWestCorner', observed.northWestCorner),
+    ];
+
+List<_SignatureSlot> _allSignatureSlots(SmartTileSignature signature) =>
+    <_SignatureSlot>[
+      _SignatureSlot('northEdge', signature.northEdge),
+      _SignatureSlot('northEastCorner', signature.northEastCorner),
+      _SignatureSlot('eastEdge', signature.eastEdge),
+      _SignatureSlot('southEastCorner', signature.southEastCorner),
+      _SignatureSlot('southEdge', signature.southEdge),
+      _SignatureSlot('southWestCorner', signature.southWestCorner),
+      _SignatureSlot('westEdge', signature.westEdge),
+      _SignatureSlot('northWestCorner', signature.northWestCorner),
+    ];
+
 final class _ResolvedSlot {
   const _ResolvedSlot(this.match, this.materialId);
 
@@ -307,39 +484,49 @@ final class _ResolvedSlot {
   final String? materialId;
 }
 
-List<_ResolvedSlot> _activeSlots({
+List<_ResolvedSlot> _resolvedActiveSlots({
   required SmartTileSignature signature,
   required SmartTileTopology topology,
-  required SmartTileNeighborhood neighborhood,
+  required SmartTileObservedSignature observed,
   required SmartTileBoundaryPolicy boundaryPolicy,
-  required String centerMaterialId,
+  required String? centerMaterialId,
   required Map<String, ProjectSmartTileMaterial> materials,
 }) {
-  String? effective(SmartTileCellSample sample) => _effectiveMaterialId(
-        sample: sample,
+  String? effective(SmartTileObservedSlot slot) => _effectiveMaterialId(
+        slot: slot,
         policy: boundaryPolicy,
         centerMaterialId: centerMaterialId,
       );
 
-  final north = effective(neighborhood.north);
-  final east = effective(neighborhood.east);
-  final south = effective(neighborhood.south);
-  final west = effective(neighborhood.west);
+  final north = effective(observed.northEdge);
+  final east = effective(observed.eastEdge);
+  final south = effective(observed.southEdge);
+  final west = effective(observed.westEdge);
 
   String? blobCorner(
-    SmartTileCellSample sample,
+    SmartTileObservedSlot slot,
     String? firstSide,
     String? secondSide,
   ) {
     if (topology == SmartTileTopology.blob8 &&
-        (!_sameConnectionGroup(centerMaterialId, firstSide, materials) ||
-            !_sameConnectionGroup(centerMaterialId, secondSide, materials))) {
+        (centerMaterialId == null ||
+            !_sameConnectionGroup(
+              centerMaterialId,
+              firstSide,
+              materials,
+            ) ||
+            !_sameConnectionGroup(
+              centerMaterialId,
+              secondSide,
+              materials,
+            ))) {
       return null;
     }
-    return effective(sample);
+    return effective(slot);
   }
 
   return switch (topology) {
+    SmartTileTopology.uniform => const <_ResolvedSlot>[],
     SmartTileTopology.cardinal4 ||
     SmartTileTopology.wangEdge4 =>
       <_ResolvedSlot>[
@@ -350,35 +537,43 @@ List<_ResolvedSlot> _activeSlots({
       ],
     SmartTileTopology.wangCorner4 => <_ResolvedSlot>[
         _ResolvedSlot(
-            signature.northWestCorner, effective(neighborhood.northWest)),
+          signature.northEastCorner,
+          effective(observed.northEastCorner),
+        ),
         _ResolvedSlot(
-            signature.northEastCorner, effective(neighborhood.northEast)),
+          signature.southEastCorner,
+          effective(observed.southEastCorner),
+        ),
         _ResolvedSlot(
-            signature.southEastCorner, effective(neighborhood.southEast)),
-        _ResolvedSlot(
-            signature.southWestCorner, effective(neighborhood.southWest)),
-      ],
-    SmartTileTopology.blob8 || SmartTileTopology.wang8 => <_ResolvedSlot>[
+          signature.southWestCorner,
+          effective(observed.southWestCorner),
+        ),
         _ResolvedSlot(
           signature.northWestCorner,
-          blobCorner(neighborhood.northWest, north, west),
+          effective(observed.northWestCorner),
         ),
+      ],
+    SmartTileTopology.blob8 || SmartTileTopology.wang8 => <_ResolvedSlot>[
         _ResolvedSlot(signature.northEdge, north),
         _ResolvedSlot(
           signature.northEastCorner,
-          blobCorner(neighborhood.northEast, north, east),
+          blobCorner(observed.northEastCorner, north, east),
         ),
         _ResolvedSlot(signature.eastEdge, east),
         _ResolvedSlot(
           signature.southEastCorner,
-          blobCorner(neighborhood.southEast, south, east),
+          blobCorner(observed.southEastCorner, south, east),
         ),
         _ResolvedSlot(signature.southEdge, south),
         _ResolvedSlot(
           signature.southWestCorner,
-          blobCorner(neighborhood.southWest, south, west),
+          blobCorner(observed.southWestCorner, south, west),
         ),
         _ResolvedSlot(signature.westEdge, west),
+        _ResolvedSlot(
+          signature.northWestCorner,
+          blobCorner(observed.northWestCorner, north, west),
+        ),
       ],
   };
 }
@@ -386,38 +581,48 @@ List<_ResolvedSlot> _activeSlots({
 bool _slotMatches({
   required SmartTileSlotMatch match,
   required String? neighborMaterialId,
-  required String centerMaterialId,
+  required String? centerMaterialId,
   required Map<String, ProjectSmartTileMaterial> materials,
 }) {
+  final centerHasMaterial = !_isEmptyMaterial(centerMaterialId, materials);
   return switch (match.kind) {
     SmartTileMatchKind.any => true,
-    SmartTileMatchKind.same => _sameConnectionGroup(
-        centerMaterialId,
-        neighborMaterialId,
-        materials,
-      ),
-    SmartTileMatchKind.different => !_sameConnectionGroup(
-        centerMaterialId,
-        neighborMaterialId,
-        materials,
-      ),
-    SmartTileMatchKind.empty => neighborMaterialId == null,
+    SmartTileMatchKind.same => centerHasMaterial &&
+        _sameConnectionGroup(
+          centerMaterialId!,
+          neighborMaterialId,
+          materials,
+        ),
+    SmartTileMatchKind.different => centerHasMaterial &&
+        !_sameConnectionGroup(
+          centerMaterialId!,
+          neighborMaterialId,
+          materials,
+        ),
+    SmartTileMatchKind.empty => _isEmptyMaterial(neighborMaterialId, materials),
     SmartTileMatchKind.material => neighborMaterialId == match.materialId,
   };
 }
 
 String? _effectiveMaterialId({
-  required SmartTileCellSample sample,
+  required SmartTileObservedSlot slot,
   required SmartTileBoundaryPolicy policy,
-  required String centerMaterialId,
+  required String? centerMaterialId,
 }) {
-  if (sample.isInsideMap) {
-    return sample.materialId;
-  }
+  if (slot.isInsideMap) return slot.materialId;
   return switch (policy) {
     SmartTileBoundaryPolicy.empty => null,
     SmartTileBoundaryPolicy.connected => centerMaterialId,
   };
+}
+
+bool _isEmptyMaterial(
+  String? materialId,
+  Map<String, ProjectSmartTileMaterial> materials,
+) {
+  return materialId == null ||
+      materialId.isEmpty ||
+      (materials[materialId]?.isEmpty ?? false);
 }
 
 bool _sameConnectionGroup(
@@ -425,7 +630,8 @@ bool _sameConnectionGroup(
   String? neighborMaterialId,
   Map<String, ProjectSmartTileMaterial> materials,
 ) {
-  if (neighborMaterialId == null || neighborMaterialId.isEmpty) {
+  if (_isEmptyMaterial(centerMaterialId, materials) ||
+      _isEmptyMaterial(neighborMaterialId, materials)) {
     return false;
   }
   final centerGroup = materials[centerMaterialId]?.connectionGroupId;
@@ -434,6 +640,16 @@ bool _sameConnectionGroup(
     return centerMaterialId == neighborMaterialId;
   }
   return centerGroup == neighborGroup;
+}
+
+bool _slotIsActive(SmartTileTopology topology, String slotName) {
+  final isCorner = slotName.endsWith('Corner');
+  return switch (topology) {
+    SmartTileTopology.uniform => false,
+    SmartTileTopology.cardinal4 || SmartTileTopology.wangEdge4 => !isCorner,
+    SmartTileTopology.wangCorner4 => isCorner,
+    SmartTileTopology.blob8 || SmartTileTopology.wang8 => true,
+  };
 }
 
 int _resolutionHash({
@@ -488,17 +704,18 @@ int _resolutionHash({
 int _compareCandidateIdsByUtf8(
   SmartTileCandidate left,
   SmartTileCandidate right,
-) {
-  final leftBytes = utf8.encode(left.id);
-  final rightBytes = utf8.encode(right.id);
+) =>
+    _compareStringsByUtf8(left.id, right.id);
+
+int _compareStringsByUtf8(String left, String right) {
+  final leftBytes = utf8.encode(left);
+  final rightBytes = utf8.encode(right);
   final sharedLength = leftBytes.length < rightBytes.length
       ? leftBytes.length
       : rightBytes.length;
   for (var index = 0; index < sharedLength; index += 1) {
     final comparison = leftBytes[index].compareTo(rightBytes[index]);
-    if (comparison != 0) {
-      return comparison;
-    }
+    if (comparison != 0) return comparison;
   }
   return leftBytes.length.compareTo(rightBytes.length);
 }

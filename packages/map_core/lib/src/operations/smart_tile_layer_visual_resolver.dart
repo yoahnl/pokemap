@@ -3,7 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/smart_tile.dart';
-import 'smart_tile_layer_operations.dart';
+import 'smart_tile_layer_context.dart';
 import 'smart_tile_resolver.dart';
 
 enum SmartTileVisualPass { background, foreground }
@@ -92,7 +92,7 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
   );
   for (var y = resolvedStartY; y < resolvedEndY; y++) {
     for (var x = resolvedStartX; x < resolvedEndX; x++) {
-      final neighborhood = smartTileNeighborhoodForLayerCell(
+      final context = smartTileCellContextForLayerCell(
         layer: layer,
         map: map,
         preset: preset,
@@ -102,7 +102,7 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
       final resolution = resolveSmartTile(
         preset: preset,
         materials: catalog.materials,
-        neighborhood: neighborhood,
+        context: context,
         x: x,
         y: y,
         mapId: map.id,
@@ -209,98 +209,6 @@ SmartTileFrameRef _sampleVisualFrame({
 int _positiveModulo(int value, int modulus) {
   final result = value % modulus;
   return result < 0 ? result + modulus : result;
-}
-
-SmartTileNeighborhood smartTileNeighborhoodForLayerCell({
-  required SmartTileLayer layer,
-  required MapData map,
-  required ProjectSmartTilePreset preset,
-  required int x,
-  required int y,
-}) {
-  final center = smartTileMaterialIdAt(
-    layer,
-    mapSize: map.size,
-    x: x,
-    y: y,
-  );
-  if (preset.topology == SmartTileTopology.cardinal4 ||
-      preset.topology == SmartTileTopology.blob8) {
-    return SmartTileNeighborhood.fromGrid(
-      width: map.size.width,
-      height: map.size.height,
-      x: x,
-      y: y,
-      materialAt: (sampleX, sampleY) => smartTileMaterialIdAt(
-        layer,
-        mapSize: map.size,
-        x: sampleX,
-        y: sampleY,
-      ),
-    );
-  }
-
-  SmartTileCellSample edge(String? materialId) =>
-      SmartTileCellSample.inside(materialId: materialId);
-  final north = smartTileHorizontalEdgeMaterialIdAt(
-    layer,
-    mapSize: map.size,
-    x: x,
-    y: y,
-  );
-  final south = smartTileHorizontalEdgeMaterialIdAt(
-    layer,
-    mapSize: map.size,
-    x: x,
-    y: y + 1,
-  );
-  final west = smartTileVerticalEdgeMaterialIdAt(
-    layer,
-    mapSize: map.size,
-    x: x,
-    y: y,
-  );
-  final east = smartTileVerticalEdgeMaterialIdAt(
-    layer,
-    mapSize: map.size,
-    x: x + 1,
-    y: y,
-  );
-  final northWest = smartTileCornerMaterialIdAt(
-    layer,
-    mapSize: map.size,
-    x: x,
-    y: y,
-  );
-  final northEast = smartTileCornerMaterialIdAt(
-    layer,
-    mapSize: map.size,
-    x: x + 1,
-    y: y,
-  );
-  final southWest = smartTileCornerMaterialIdAt(
-    layer,
-    mapSize: map.size,
-    x: x,
-    y: y + 1,
-  );
-  final southEast = smartTileCornerMaterialIdAt(
-    layer,
-    mapSize: map.size,
-    x: x + 1,
-    y: y + 1,
-  );
-  return SmartTileNeighborhood(
-    centerMaterialId: center,
-    north: edge(north),
-    east: edge(east),
-    south: edge(south),
-    west: edge(west),
-    northWest: edge(northWest),
-    northEast: edge(northEast),
-    southWest: edge(southWest),
-    southEast: edge(southEast),
-  );
 }
 
 bool _channelBelongsToPass(

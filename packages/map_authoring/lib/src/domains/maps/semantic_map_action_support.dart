@@ -333,8 +333,7 @@ Map<String, Object?> semanticLayerSummary(MapLayer layer) => switch (layer) {
           'kind': 'smart_tile',
           'id': value.id,
           'presetId': value.presetId,
-          'authoredCellCount':
-              value.materialCells.where((cell) => cell != 0).length,
+          'authoredCellCount': smartTileAuthoredValueCount(value),
         },
       _ => {'kind': layer.runtimeType.toString(), 'id': layer.id},
     };
