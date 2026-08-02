@@ -280,11 +280,39 @@ Do not invent measurements, memory guarantees, coverage percentages, or test tot
 
 Reports under `reports/` are tracked engineering artifacts. Modify them only when the task asks for a report, audit, review, lot closure, or roadmap/status evidence.
 
+### Markdown hygiene (mandatory)
+
+The default documentation budget for a task is **zero new Markdown files**. A
+"final report" means the final chat response unless the user explicitly asks
+for a persistent report, audit, review, Evidence Pack, roadmap, or plan.
+
+When a persistent Markdown artifact is explicitly required:
+
+- update an existing canonical document when that is sufficient;
+- otherwise create one consolidated file, not one file per agent, pass, test,
+  phase, or command;
+- place durable product/architecture documentation under `docs/`, audit and
+  execution evidence under `reports/<domain>/`, persistent implementation plans
+  under `reports/<domain>/plans/`, cross-domain roadmaps under
+  `reports/roadmap/<domain>/`, and reusable workflows under `skills/<skill-name>/`;
+- never create plans under `docs/superpowers/` unless the user explicitly asks
+  for that exact persistent plan; use the in-session plan mechanism by default;
+- never create `*_created_files_full_content.md` or similar source snapshots:
+  Git diffs and the source files are the canonical evidence;
+- do not create Markdown at the repository root. The root allowlist is
+  `AGENTS.md`, `agent_rules.md`, `codex_rule.md`, and
+  `pokemap_roadmap_mecaniques_fangame.md`; the existing
+  `pokemap_authoring_api_mcp_action_catalog.md` is also retained at root because
+  `map_core` consumes that exact repository path;
+- run `bash scripts/check_markdown_hygiene.sh` before completion. A
+  `POKEMAP_MARKDOWN_MAX_NEW` override is allowed only when the user's request
+  explicitly approves a bounded multi-document deliverable.
+
 Quand un prompt demande un rapport, un Evidence Pack, une review, un audit ou une clôture de lot, l'agent doit lire le fichier de règles Codex du repo avant d'écrire le rapport.
 Fichier attendu : `codex_rule.md`.
 Le rapport doit respecter ces règles, notamment :
 - inclure l'audit initial et le verdict des sub-agents/passes ;
-- lister tous les fichiers modifiés et donner le contenu complet des fichiers créés ;
+- lister tous les fichiers modifiés et les zones pertinentes des fichiers créés ;
 - inclure les diffs/zones précises modifiées ;
 - documenter les commandes lancées, les résultats exacts de tests et d'analyses ;
 - fournir l'état git initial et final ;

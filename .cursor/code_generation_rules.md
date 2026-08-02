@@ -12,7 +12,9 @@
 
 ## Rapports
 
-- Passes structurantes ou refontes : **rapport markdown détaillé** dans `packages/map_editor/reports/` (nom explicite, date ou version dans le titre si utile).
+- Passes structurantes ou refontes : bilan détaillé dans la réponse finale par
+  défaut. Créer un unique Markdown sous `reports/editor/` seulement si le
+  mainteneur demande explicitement un rapport persistant.
 
 ## Interdits
 

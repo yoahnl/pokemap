@@ -284,7 +284,7 @@ real fixture proof, symlink/traversal proof, limitations, and critical review.
 ```bash
 git add -- \
   packages/map_authoring \
-  pokemap_authoring_api_mcp_phase_2_implementation_plan.md \
+  reports/roadmap/authoring_api_mcp/pokemap_authoring_api_mcp_phase_2_implementation_plan.md \
   reports/analysis/pmcp_010_secure_workspace_evidence.md
 git commit -m "feat(authoring): add secure read-only workspaces"
 ```

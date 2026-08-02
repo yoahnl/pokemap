@@ -55,6 +55,12 @@ Le rapport final doit inclure le verdict de chaque sub-agent.
 - les garde-fous contre les faux comportements.
 
 4. Rapport final obligatoire et détaillé
+   Par défaut, "rapport final" désigne la réponse finale dans le chat, pas la
+création d'un fichier. Un fichier Markdown persistant n'est autorisé que si le
+prompt demande explicitement un rapport, un audit, une review, un Evidence Pack,
+une roadmap ou un plan persistant. Dans ce cas, produire un seul document
+consolidé sous `reports/<domain>/`, jamais un fichier par sub-agent ou par passe.
+
    Le rapport doit obligatoirement inclure :
 - nom exact du lot ;
 - résumé exécutif ;
@@ -80,8 +86,17 @@ Le rapport final doit inclure le verdict de chaque sub-agent.
 - éventuels risques restants ;
 - prochaines étapes proposées sans les implémenter.
 
-Le rapport doit aussi contenir le contenu complet de tous les fichiers créés.
-Pour les fichiers modifiés, il doit montrer précisément où le code a été changé, avec diff ou découpage par zones modifiées.
+Le rapport doit montrer précisément où le code a été changé, avec diff ou
+découpage par zones pertinentes. Ne jamais créer de fichier
+`*_created_files_full_content.md` ni recopier intégralement les sources dans un
+rapport : les fichiers source et le diff Git sont les preuves canoniques. Pour
+un petit fichier créé, inclure son diff utile si cela aide la review ; pour un
+fichier volumineux, donner le chemin, les zones et leur rôle.
+
+Avant de terminer, lancer `bash scripts/check_markdown_hygiene.sh`. La valeur par
+défaut est zéro nouveau Markdown hors livrable explicitement demandé ; ne pas
+contourner le garde-fou avec `POKEMAP_MARKDOWN_MAX_NEW` sauf demande humaine
+explicite et bornée.
 
 5. Tests obligatoires
    Tu dois toujours créer ou modifier des tests pour couvrir le lot.

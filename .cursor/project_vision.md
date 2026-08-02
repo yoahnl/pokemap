@@ -21,5 +21,6 @@ PokeMap n’est **pas** « un éditeur de maps » seul. C’est un **outil de cr
 ## Références dans le repo
 
 - `AGENTS.md` — périmètre packages et validation.
-- `packages/map_editor/reports/` — rapports d’ingénierie après passes structurantes.
+- `reports/editor/` — rapports d’ingénierie persistants uniquement lorsqu'ils
+  sont explicitement demandés.
 - Cutscene Studio — module sous `application/cutscene_studio/` (voir `cutscene_studio_rules.md`).

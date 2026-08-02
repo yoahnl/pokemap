@@ -1,0 +1,32 @@
+name: Markdown hygiene
+
+on:
+  # Running on every PR avoids case-sensitive path-filter gaps such as FOO.MD.
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Test the hygiene guard
+        run: bash scripts/test_check_markdown_hygiene.sh
+      - name: Check changed Markdown
+        env:
+          # CI is a coarse safety net. AGENTS.md keeps Codex's semantic default
+          # at zero and permits persistent documents only on explicit request.
+          POKEMAP_MARKDOWN_MAX_NEW: 3
+          BASE_REF: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [[ -n "$BASE_REF" ]]; then
+            bash scripts/check_markdown_hygiene.sh --base "$BASE_REF"
+          else
+            bash scripts/check_markdown_hygiene.sh
+          fi

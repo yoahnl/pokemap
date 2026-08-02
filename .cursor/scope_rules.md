@@ -30,4 +30,6 @@ Uniquement si :
 
 ## Documentation post-passe
 
-- Les passes structurantes produisent un **rapport** dans `packages/map_editor/reports/` (ou équivalent convenu), pas seulement du chat.
+- Le bilan reste dans la réponse finale par défaut. Si un rapport persistant est
+  explicitement demandé, consolider la passe dans un seul fichier sous
+  `reports/editor/`; ne pas créer un rapport par sous-passe.

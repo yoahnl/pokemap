@@ -154,7 +154,7 @@ independent named passes as required by `codex_rule.md`:
 
   ```bash
   git add -- packages/map_authoring \
-    pokemap_authoring_api_mcp_phase_3_implementation_plan.md \
+    reports/roadmap/authoring_api_mcp/pokemap_authoring_api_mcp_phase_3_implementation_plan.md \
     reports/analysis/pmcp_020_authoring_plan_evidence.md
   git commit -m "feat(authoring): add safe mutation planning"
   ```
@@ -203,7 +203,7 @@ independent named passes as required by `codex_rule.md`:
 
   ```bash
   git add -- packages/map_authoring \
-    pokemap_authoring_api_mcp_phase_3_implementation_plan.md \
+    reports/roadmap/authoring_api_mcp/pokemap_authoring_api_mcp_phase_3_implementation_plan.md \
     reports/analysis/pmcp_021_revision_idempotency_evidence.md
   git commit -m "feat(authoring): add revision and idempotency guards"
   ```
@@ -258,7 +258,7 @@ independent named passes as required by `codex_rule.md`:
 
   ```bash
   git add -- packages/map_authoring \
-    pokemap_authoring_api_mcp_phase_3_implementation_plan.md \
+    reports/roadmap/authoring_api_mcp/pokemap_authoring_api_mcp_phase_3_implementation_plan.md \
     reports/analysis/pmcp_022_recoverable_transaction_evidence.md
   git commit -m "feat(authoring): add recoverable write transactions"
   ```
@@ -310,7 +310,7 @@ independent named passes as required by `codex_rule.md`:
 
   ```bash
   git add -- packages/map_authoring \
-    pokemap_authoring_api_mcp_phase_3_implementation_plan.md \
+    reports/roadmap/authoring_api_mcp/pokemap_authoring_api_mcp_phase_3_implementation_plan.md \
     reports/analysis/pmcp_023_authorization_audit_evidence.md
   git commit -m "feat(authoring): add mutation authorization and audit"
   ```
@@ -379,7 +379,7 @@ independent named passes as required by `codex_rule.md`:
 
   ```bash
   git add -- packages/map_authoring \
-    pokemap_authoring_api_mcp_phase_3_implementation_plan.md \
+    reports/roadmap/authoring_api_mcp/pokemap_authoring_api_mcp_phase_3_implementation_plan.md \
     reports/analysis/pmcp_024_history_undo_evidence.md
   git commit -m "feat(authoring): add mutation history and undo"
   ```

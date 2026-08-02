@@ -28,9 +28,19 @@
 ## 3. Repository discipline
 
 - **Do not leave temporary files at the repository root.**
-- Plans, reports and evidence files must go into the appropriate `reports/` directory unless the file is a deliberate project-level document.
+- The default budget is zero new Markdown files. A final chat report does not
+  authorize a persistent report file.
+- Persistent plans, reports, or evidence require an explicit user request and
+  must be consolidated in the appropriate `reports/<domain>/` directory.
+- Never create Markdown at the repository root. The only allowed root Markdown
+  files are `AGENTS.md`, `agent_rules.md`, `codex_rule.md`, and
+  `pokemap_roadmap_mecaniques_fangame.md`. The existing
+  `pokemap_authoring_api_mcp_action_catalog.md` remains there because
+  `map_core` consumes that exact path.
 - Do not create duplicate architecture files by guessing names.
-- Temporary analysis files (e.g., `mistralplan.md`, `mistral_lot20_plan.md`) belong in `reports/pathPattern/` or should be removed.
+- Do not create `*_created_files_full_content.md`, one report per sub-agent, or
+  temporary persistent plans. Use Git diffs and the final response as evidence.
+- Run `bash scripts/check_markdown_hygiene.sh` before completion.
 
 ## 4. Git discipline
 
@@ -88,7 +98,9 @@
 
 - Final reports must be complete and self-contained.
 - Include: changed files, created files, deleted files, commands run, exact test totals, known limitations, remaining risks.
-- Reports go in `reports/<domain>/` with descriptive names including lot number and version.
+- Final reports live in the chat response by default. Only an explicitly
+  requested persistent report goes in `reports/<domain>/`, as one consolidated
+  file with a descriptive name.
 - Use Evidence Pack format for lot reports.
 
 ## 12. PathPattern-specific guidance

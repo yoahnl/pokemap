@@ -13,10 +13,13 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
-**Context:** This should be run in a dedicated worktree (created by brainstorming skill).
+**Context:** Respect the repository's Git safety rules. Do not create a worktree
+unless the user explicitly authorizes it.
 
-**Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
-- (User preferences for plan location override this default)
+**Persistence:** Keep the plan in the session by default. Save a persistent
+Markdown plan only when the user explicitly asks for one, and then use the
+repository's canonical report/plan directory. Never default to
+`docs/superpowers/plans/` or create one plan file per agent/pass.
 
 ## Scope Check
 
@@ -133,9 +136,10 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 ## Execution Handoff
 
-After saving the plan, offer execution choice:
+After completing the plan, offer the execution choice. Mention a file path only
+when the user explicitly requested a persistent plan:
 
-**"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Two execution options:**
+**"Plan complete. Two execution options:**
 
 **1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
 
