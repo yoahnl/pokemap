@@ -83,6 +83,17 @@ typedef EditorMapDocumentSnapshot = ({
   MapData? activeMap,
 });
 
+/// Inputs that can change Narrative Studio projections.
+///
+/// This remains a read-only projection of [EditorState]. The shell subscribes
+/// to it only while a Narrative Studio product workspace is visible, so a
+/// dense tile edit cannot wake project-wide narrative indexes in World Map.
+typedef EditorNarrativeProjectionSnapshot = ({
+  String? projectRootPath,
+  MapData? activeMap,
+  bool projectIsDirty,
+});
+
 typedef EditorMapViewportSnapshot = ({
   double zoom,
   Offset panOffset,
@@ -221,6 +232,19 @@ final editorMapDocumentSnapshotProvider =
         activeMapPath: state.activeMapPath,
         project: state.project,
         activeMap: state.activeMap,
+      ),
+    ),
+  );
+});
+
+final editorNarrativeProjectionSnapshotProvider =
+    Provider<EditorNarrativeProjectionSnapshot>((ref) {
+  return ref.watch(
+    editorNotifierProvider.select(
+      (state) => (
+        projectRootPath: state.projectRootPath,
+        activeMap: state.activeMap,
+        projectIsDirty: state.isDirty || state.isProjectDirty,
       ),
     ),
   );

@@ -17,6 +17,7 @@ import 'package:map_editor/src/features/editor/application/world_map_tool_family
 import 'package:map_editor/src/features/editor/presentation/world_map/adaptive_map_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_toolbelt.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
+import 'package:map_editor/src/ui/editor_shell_page.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
@@ -138,6 +139,75 @@ void main() {
       expect(badgeCenter.dy, closeTo(titleCenter.dy, 1));
     });
 
+    testWidgets('tile-only map edits do not dirty the editor shell',
+        (tester) async {
+      final map = buildShellChromeMap(
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'ground',
+            name: 'Ground',
+            tilesetId: 'tiles',
+            tiles: List<int>.filled(20 * 15, 0, growable: false),
+          ),
+        ],
+      );
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/perf_rm_07a_tile_isolation',
+          project: buildShellChromeProject(),
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: map,
+          activeLayerId: 'ground',
+        ),
+        settleInitialFrame: false,
+      );
+      final shellElement = tester.element(find.byType(EditorShellPage));
+
+      container.read(editorNotifierProvider.notifier).state =
+          container.read(editorNotifierProvider).copyWith(
+                activeMap: paintTileOnLayer(
+                  map,
+                  layerId: 'ground',
+                  pos: const GridPos(x: 1, y: 1),
+                  tileId: 1,
+                ),
+              );
+
+      expect(
+        shellElement.dirty,
+        isFalse,
+        reason: 'A tile cell is consumed by focused World Map projections; '
+            'it must not invalidate the application shell.',
+      );
+    });
+
+    testWidgets('map metadata changes still refresh the editor shell',
+        (tester) async {
+      final map = buildShellChromeMap();
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/perf_rm_07a_metadata',
+          project: buildShellChromeProject(),
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: map,
+        ),
+        settleInitialFrame: false,
+      );
+      container.read(editorNotifierProvider.notifier).state =
+          container.read(editorNotifierProvider).copyWith(
+                activeMap: map.copyWith(name: 'Route 1 renommée'),
+              );
+      await tester.pump();
+
+      expect(
+        find.text('Route 1 renommée'),
+        findsOneWidget,
+        reason: 'Map metadata feeds the shell title and must stay fresh.',
+      );
+    });
+
     testWidgets(
         'opening a non-Event target selects, pins and focuses its inspector',
         (tester) async {
@@ -242,20 +312,23 @@ void main() {
       final worldMaps = find.text('World Maps');
       await tester.ensureVisible(worldMaps);
       await tester.tap(worldMaps);
-      await tester.pumpAndSettle();
+      // The production canvas may own a repaint ticker; waiting for global
+      // quiescence would make this shell-state test depend on unrelated paint
+      // activity. The explorer transition itself is bounded.
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('CARTES NON GROUPÉES'), findsOneWidget);
 
       container
           .read(editorNotifierProvider.notifier)
           .selectTilesetWorkspace('explorer_state_tileset');
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(
         container.read(editorNotifierProvider).workspaceMode,
         EditorWorkspaceMode.tileset,
       );
 
       container.read(editorNotifierProvider.notifier).selectMapWorkspace();
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(
         container.read(editorNotifierProvider).workspaceMode,
         EditorWorkspaceMode.map,
@@ -328,6 +401,9 @@ void main() {
           workspaceMode: EditorWorkspaceMode.tileset,
           selectedTilesetEditorId: 'indoor',
         ),
+        // Tileset Studio owns ongoing preview activity; this test only needs
+        // the bounded initial shell frame, not global animation quiescence.
+        settleInitialFrame: false,
       );
 
       expect(find.text('Indoor'), findsAtLeastNWidgets(1));

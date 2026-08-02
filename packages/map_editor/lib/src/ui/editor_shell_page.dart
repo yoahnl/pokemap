@@ -170,18 +170,26 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
   @override
   Widget build(BuildContext context) {
     final shell = ref.watch(editorShellSnapshotProvider);
-    final project = ref.watch(editorProjectManifestProvider);
-    final projectRootPath = ref.watch(
-      editorNotifierProvider.select((state) => state.projectRootPath),
-    );
-    final projectIsDirty = ref.watch(
-      editorNotifierProvider.select(
-        (state) => state.isDirty || state.isProjectDirty,
-      ),
-    );
-    final activeMap =
-        ref.watch(editorNotifierProvider.select((s) => s.activeMap));
     final workspaceMode = shell.workspaceMode;
+    final project = ref.watch(editorProjectManifestProvider);
+    final eventSystemMode =
+        project?.eventRegistry?.mode ?? EventSystemMode.legacyOnly;
+    final usesNarrativeStudioProductShell =
+        NarrativeStudioShellPolicy.shouldUseProductShell(
+      workspaceMode: workspaceMode,
+      eventSystemMode: eventSystemMode,
+    );
+    final narrativeProjection = usesNarrativeStudioProductShell
+        ? ref.watch(editorNarrativeProjectionSnapshotProvider)
+        : null;
+    // World Map children own their focused map subscriptions. Reading the
+    // current values here avoids turning every tile sample into a shell build;
+    // switching to Narrative Studio installs the semantic subscription above.
+    final editorState = ref.read(editorNotifierProvider);
+    final projectRootPath =
+        narrativeProjection?.projectRootPath ?? editorState.projectRootPath;
+    final projectIsDirty = narrativeProjection?.projectIsDirty ?? false;
+    final activeMap = narrativeProjection?.activeMap ?? editorState.activeMap;
     final navigationState =
         ref.watch(narrativeStudioNavigationControllerProvider);
     final workspaceLocation = narrativeStudioRouteLocationFor(workspaceMode);
@@ -222,13 +230,6 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       }
     }
 
-    final eventSystemMode =
-        project?.eventRegistry?.mode ?? EventSystemMode.legacyOnly;
-    final usesNarrativeStudioProductShell =
-        NarrativeStudioShellPolicy.shouldUseProductShell(
-      workspaceMode: workspaceMode,
-      eventSystemMode: eventSystemMode,
-    );
     final canRevalidateEventProject =
         project != null && (projectRootPath?.trim().isNotEmpty ?? false);
     final narrativeValidatorRequest = usesNarrativeStudioProductShell &&
@@ -250,13 +251,14 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                 ?.value
                 .diagnostics ??
             const <NarrativeProjectDiagnostic>[];
-    final narrativeSearchIndex = project == null
-        ? null
-        : _globalSearchIndexFor(
-            project: project,
-            activeMap: activeMap,
-            diagnostics: narrativeDiagnostics,
-          );
+    final narrativeSearchIndex =
+        !usesNarrativeStudioProductShell || project == null
+            ? null
+            : _globalSearchIndexFor(
+                project: project,
+                activeMap: activeMap,
+                diagnostics: narrativeDiagnostics,
+              );
 
     void revalidateEventProject() {
       final root = projectRootPath?.trim();

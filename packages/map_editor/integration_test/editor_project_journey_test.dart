@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' show Size;
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/scheduler.dart';
@@ -21,6 +22,11 @@ void main() {
   testWidgets('profiles a real open-paint-undo-save editor journey', (
     tester,
   ) async {
+    // The benchmark must not inherit the host window's transient launch size:
+    // the production desktop layout intentionally rejects viewports below its
+    // 800x600 contract, which would measure an error screen instead of edits.
+    await tester.binding.setSurfaceSize(const Size(1280, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     final fixture = await _EditorPerformanceFixture.create();
     addTearDown(fixture.dispose);
     final container = ProviderContainer();

@@ -7,6 +7,7 @@ import 'package:map_editor/src/features/editor/application/world_map_tool_family
 import 'package:map_editor/src/features/editor/presentation/world_map/adaptive_map_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_toolbelt.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
+import 'package:map_editor/src/features/editor/state/editor_selectors.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
@@ -14,6 +15,63 @@ import 'package:map_editor/src/ui/canvas/map_canvas/editor_canvas_repaint_clock.
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 void main() {
+  test('document and viewport projections notify only their owned domain',
+      () async {
+    final container = _container();
+    const map = MapData(
+      id: 'semantic-projections',
+      name: 'Semantic projections',
+      size: GridSize(width: 2, height: 2),
+      layers: <MapLayer>[
+        TileLayer(
+          id: 'ground',
+          name: 'Ground',
+          tilesetId: 'tiles',
+          tiles: <int>[0, 0, 0, 0],
+        ),
+      ],
+    );
+    final notifier = container.read(editorNotifierProvider.notifier)
+      ..state = const EditorState(
+        activeMap: map,
+        activeLayerId: 'ground',
+      );
+    var documentNotifications = 0;
+    var viewportNotifications = 0;
+    final documentSubscription = container.listen(
+      editorMapDocumentSnapshotProvider,
+      (_, __) => documentNotifications += 1,
+    );
+    final viewportSubscription = container.listen(
+      editorMapViewportSnapshotProvider,
+      (_, __) => viewportNotifications += 1,
+    );
+    addTearDown(() {
+      documentSubscription.close();
+      viewportSubscription.close();
+    });
+
+    notifier.state = notifier.state.copyWith(
+      zoom: 1.25,
+      panOffset: const Offset(8, 12),
+    );
+    await container.pump();
+    expect(documentNotifications, 0);
+    expect(viewportNotifications, 1);
+
+    notifier.state = notifier.state.copyWith(
+      activeMap: paintTileOnLayer(
+        map,
+        layerId: 'ground',
+        pos: const GridPos(x: 1, y: 1),
+        tileId: 7,
+      ),
+    );
+    await container.pump();
+    expect(documentNotifications, 1);
+    expect(viewportNotifications, 1);
+  });
+
   testWidgets(
       'three 110 ms animation frames repaint without rebuilding canvas or inspector',
       (tester) async {
