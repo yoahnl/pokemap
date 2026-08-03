@@ -5602,6 +5602,15 @@ class EditorNotifier extends _$EditorNotifier
     _setActivePaletteSelectedTileset(element.tilesetId);
   }
 
+  bool cancelProjectElementPlacement() {
+    if (state.activeTool != EditorToolType.tilePaint ||
+        state.activeBrush is! ProjectElementEditorBrush) {
+      return false;
+    }
+    state = state.copyWith(activeBrush: const EditorBrush.none());
+    return true;
+  }
+
   Future<void> createPaletteEntry({
     required String name,
     required PaletteCategory category,

@@ -17,7 +17,6 @@ import '../../application/world_map_rejection_message.dart';
 import '../../application/world_map_tool_activation.dart';
 import '../../state/editor_notifier.dart';
 import '../../state/editor_state.dart';
-import '../../tools/editor_tool.dart';
 import '../../../narrative/state/narrative_event_builder_v2_providers.dart';
 import 'adaptive_map_inspector.dart';
 import 'map_context_menu_controller.dart';
@@ -520,13 +519,7 @@ class _WorldMapWorkspaceState extends ConsumerState<WorldMapWorkspace> {
 
         void handleEscape() {
           closeCompactInspector();
-          final editor = ref.read(editorNotifierProvider);
-          if (editor.activeTool == EditorToolType.tilePaint &&
-              editor.activeBrush is ProjectElementEditorBrush) {
-            editorNotifier.activateWorldMapTool(
-              const ActivateWorldMapSelection(),
-            );
-          }
+          editorNotifier.cancelProjectElementPlacement();
         }
 
         final inspector = FocusTraversalOrder(

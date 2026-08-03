@@ -49,7 +49,6 @@ import '../../features/editor/application/map_canvas_object_hit_test.dart';
 import '../../features/editor/application/map_canvas_object_move_planner.dart';
 import '../../features/editor/application/map_placed_element_rotation_planner.dart';
 import '../../features/editor/application/project_element_frame_resolver.dart';
-import '../../features/editor/application/world_map_tool_activation.dart';
 import '../../features/editor/presentation/world_map/map_placed_element_rotation_preview_controller.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/narrative/state/narrative_event_map_bridge_state.dart';
@@ -2552,13 +2551,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       } else if (ref.read(editorNotifierProvider).mapStrokeStart != null) {
         ref.read(editorNotifierProvider.notifier).cancelMapStroke();
       }
-      final editor = ref.read(editorNotifierProvider);
-      if (editor.activeTool == EditorToolType.tilePaint &&
-          editor.activeBrush is ProjectElementEditorBrush) {
-        ref.read(editorNotifierProvider.notifier).activateWorldMapTool(
-              const ActivateWorldMapSelection(),
-            );
-      }
+      ref
+          .read(editorNotifierProvider.notifier)
+          .cancelProjectElementPlacement();
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;

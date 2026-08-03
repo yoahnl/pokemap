@@ -394,11 +394,9 @@ void main() {
       await tester.pump();
 
       final cancelled = container.read(editorNotifierProvider);
-      expect(cancelled.activeTool, EditorToolType.selection);
-      expect(
-        cancelled.activeBrush,
-        const EditorBrush.projectElement(elementId: 'fridge'),
-      );
+      expect(cancelled.activeTool, EditorToolType.tilePaint);
+      expect(cancelled.activeBrush, const EditorBrush.none());
+      expect(cancelled.activeLayerId, 'decor');
       expect(cancelled.activeMap, map);
       expect(cancelled.mapUndoStack, isEmpty);
       expect(cancelled.isDirty, isFalse);

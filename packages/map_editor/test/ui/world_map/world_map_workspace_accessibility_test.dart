@@ -168,11 +168,9 @@ void main() {
       await tester.pump();
 
       final cancelled = harness.container.read(editorNotifierProvider);
-      expect(cancelled.activeTool, EditorToolType.selection);
-      expect(
-        cancelled.activeBrush,
-        const EditorBrush.projectElement(elementId: 'fridge'),
-      );
+      expect(cancelled.activeTool, EditorToolType.tilePaint);
+      expect(cancelled.activeBrush, const EditorBrush.none());
+      expect(cancelled.activeLayerId, 'ground');
       expect(cancelled.activeMap, _map);
       expect(cancelled.isDirty, isFalse);
     },
