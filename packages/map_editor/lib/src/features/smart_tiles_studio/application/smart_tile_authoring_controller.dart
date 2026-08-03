@@ -3,19 +3,38 @@ import 'dart:collection';
 import 'package:map_core/map_core.dart';
 
 import 'smart_tile_grid_detector.dart';
+import 'smart_tile_connection_profile.dart';
 import 'smart_tile_guide.dart';
 import 'smart_tile_guide_placement.dart';
 
 const String smartTileStudioAuthoringRequiresStn04Code =
     'smart_tile_studio_authoring_requires_stn04';
 
+enum SmartTileMaterialRemovalBlocker {
+  defaultMaterial,
+  activeMaterial,
+  mappedMaterial,
+}
+
+final class SmartTileMaterialInUseException implements Exception {
+  const SmartTileMaterialInUseException(this.materialId, this.blocker);
+
+  final String materialId;
+  final SmartTileMaterialRemovalBlocker blocker;
+
+  @override
+  String toString() =>
+      'SmartTileMaterialInUseException($materialId, ${blocker.name})';
+}
+
 final class SmartTileAuthoringDraft {
   SmartTileAuthoringDraft({
     this.id = '',
     this.name = '',
-    this.materialId = '',
-    this.materialName = '',
-    this.connectionGroupId = '',
+    List<ProjectSmartTileMaterial> materials =
+        const <ProjectSmartTileMaterial>[],
+    this.defaultMaterialId = '',
+    this.activeMaterialId = '',
     this.atlasId = '',
     this.atlasName = '',
     this.tilesetId = '',
@@ -23,12 +42,15 @@ final class SmartTileAuthoringDraft {
     this.usage,
     this.topology,
     this.templateHint = SmartTileTemplateHint.free,
+    this.boundaryPolicy = SmartTileBoundaryPolicy.empty,
+    this.coveragePolicy = SmartTileCoveragePolicy.complete,
     this.status = SmartTilePresetStatus.draft,
     Map<int, List<SmartTileCandidate>> mappings =
         const <int, List<SmartTileCandidate>>{},
     List<ProjectSmartTileAnimation> animations =
         const <ProjectSmartTileAnimation>[],
-  })  : mappings = UnmodifiableMapView<int, List<SmartTileCandidate>>(
+  })  : materials = List<ProjectSmartTileMaterial>.unmodifiable(materials),
+        mappings = UnmodifiableMapView<int, List<SmartTileCandidate>>(
           <int, List<SmartTileCandidate>>{
             for (final entry in mappings.entries)
               entry.key: List<SmartTileCandidate>.unmodifiable(entry.value),
@@ -38,9 +60,9 @@ final class SmartTileAuthoringDraft {
 
   final String id;
   final String name;
-  final String materialId;
-  final String materialName;
-  final String connectionGroupId;
+  final List<ProjectSmartTileMaterial> materials;
+  final String defaultMaterialId;
+  final String activeMaterialId;
   final String atlasId;
   final String atlasName;
   final String tilesetId;
@@ -48,6 +70,8 @@ final class SmartTileAuthoringDraft {
   final SmartTileUsage? usage;
   final SmartTileTopology? topology;
   final SmartTileTemplateHint templateHint;
+  final SmartTileBoundaryPolicy boundaryPolicy;
+  final SmartTileCoveragePolicy coveragePolicy;
   final SmartTilePresetStatus status;
   final Map<int, List<SmartTileCandidate>> mappings;
   final List<ProjectSmartTileAnimation> animations;
@@ -55,9 +79,9 @@ final class SmartTileAuthoringDraft {
   SmartTileAuthoringDraft copyWith({
     String? id,
     String? name,
-    String? materialId,
-    String? materialName,
-    String? connectionGroupId,
+    List<ProjectSmartTileMaterial>? materials,
+    String? defaultMaterialId,
+    String? activeMaterialId,
     String? atlasId,
     String? atlasName,
     String? tilesetId,
@@ -65,6 +89,8 @@ final class SmartTileAuthoringDraft {
     SmartTileUsage? usage,
     SmartTileTopology? topology,
     SmartTileTemplateHint? templateHint,
+    SmartTileBoundaryPolicy? boundaryPolicy,
+    SmartTileCoveragePolicy? coveragePolicy,
     SmartTilePresetStatus? status,
     Map<int, List<SmartTileCandidate>>? mappings,
     List<ProjectSmartTileAnimation>? animations,
@@ -72,9 +98,9 @@ final class SmartTileAuthoringDraft {
     return SmartTileAuthoringDraft(
       id: id ?? this.id,
       name: name ?? this.name,
-      materialId: materialId ?? this.materialId,
-      materialName: materialName ?? this.materialName,
-      connectionGroupId: connectionGroupId ?? this.connectionGroupId,
+      materials: materials ?? this.materials,
+      defaultMaterialId: defaultMaterialId ?? this.defaultMaterialId,
+      activeMaterialId: activeMaterialId ?? this.activeMaterialId,
       atlasId: atlasId ?? this.atlasId,
       atlasName: atlasName ?? this.atlasName,
       tilesetId: tilesetId ?? this.tilesetId,
@@ -82,6 +108,8 @@ final class SmartTileAuthoringDraft {
       usage: usage ?? this.usage,
       topology: topology ?? this.topology,
       templateHint: templateHint ?? this.templateHint,
+      boundaryPolicy: boundaryPolicy ?? this.boundaryPolicy,
+      coveragePolicy: coveragePolicy ?? this.coveragePolicy,
       status: status ?? this.status,
       mappings: mappings ?? this.mappings,
       animations: animations ?? this.animations,
@@ -104,10 +132,15 @@ final class SmartTileAuthoringController {
       SmartTileAuthoringController();
 
   factory SmartTileAuthoringController.fromCanonicalDraft(
-    ProjectSmartTileAuthoringDraft draft,
-  ) {
+    ProjectSmartTileAuthoringDraft draft, {
+    Iterable<ProjectSmartTileMaterial> catalogMaterials =
+        const <ProjectSmartTileMaterial>[],
+  }) {
     final controller = SmartTileAuthoringController.blank();
-    controller.replaceFromCanonicalDraft(draft);
+    controller.replaceFromCanonicalDraft(
+      draft,
+      catalogMaterials: catalogMaterials,
+    );
     return controller;
   }
 
@@ -117,13 +150,22 @@ final class SmartTileAuthoringController {
   SmartTileAuthoringDraft get state => _state;
 
   /// Replaces local editable state with the canonical post-apply snapshot.
-  void replaceFromCanonicalDraft(ProjectSmartTileAuthoringDraft draft) {
+  void replaceFromCanonicalDraft(
+    ProjectSmartTileAuthoringDraft draft, {
+    Iterable<ProjectSmartTileMaterial> catalogMaterials =
+        const <ProjectSmartTileMaterial>[],
+  }) {
     final atlas = draft.atlases
         .where((candidate) => candidate.id == draft.primaryAtlasId)
         .firstOrNull;
-    final material = draft.materials
-        .where((candidate) => candidate.id == draft.defaultMaterialId)
-        .firstOrNull;
+    final materialsById = <String, ProjectSmartTileMaterial>{
+      for (final material in catalogMaterials) material.id: material,
+      for (final material in draft.materials) material.id: material,
+    };
+    final materials = <ProjectSmartTileMaterial>[
+      for (final id in draft.allowedMaterialIds)
+        if (materialsById[id] case final material?) material,
+    ];
     final mappings = <int, List<SmartTileCandidate>>{};
     for (final rule in draft.rules) {
       final mask = smartTileMaskForSignature(
@@ -136,9 +178,9 @@ final class SmartTileAuthoringController {
     _state = SmartTileAuthoringDraft(
       id: draft.targetPresetId,
       name: draft.name,
-      materialId: material?.id ?? draft.defaultMaterialId ?? '',
-      materialName: material?.name ?? '',
-      connectionGroupId: material?.connectionGroupId ?? '',
+      materials: materials,
+      defaultMaterialId: draft.defaultMaterialId ?? '',
+      activeMaterialId: draft.defaultMaterialId ?? '',
       atlasId: atlas?.id ?? draft.primaryAtlasId ?? '',
       atlasName: atlas?.name ?? '',
       tilesetId: atlas?.tilesetId ?? draft.sourceTilesetIds.firstOrNull ?? '',
@@ -146,6 +188,8 @@ final class SmartTileAuthoringController {
       usage: draft.usage,
       topology: draft.topology,
       templateHint: draft.templateHint,
+      boundaryPolicy: draft.boundaryPolicy,
+      coveragePolicy: draft.coveragePolicy,
       status: SmartTilePresetStatus.draft,
       mappings: mappings,
       animations: draft.animations,
@@ -164,7 +208,6 @@ final class SmartTileAuthoringController {
     }
     final base = _canonicalBase;
     final atlas = _tryCompileAtlas();
-    final material = _tryCompileMaterial();
     final topology =
         _state.topology ?? base?.topology ?? SmartTileTopology.uniform;
     final rules = _compileRules(topology);
@@ -190,16 +233,17 @@ final class SmartTileAuthoringController {
           ? base?.atlases ?? const <ProjectSmartTileAtlas>[]
           : <ProjectSmartTileAtlas>[atlas],
       primaryAtlasId: atlas?.id ?? base?.primaryAtlasId,
-      materials: material == null
-          ? base?.materials ?? const <ProjectSmartTileMaterial>[]
-          : <ProjectSmartTileMaterial>[material],
+      materials: _state.materials,
       animations: _state.animations,
-      defaultMaterialId: material?.id ?? base?.defaultMaterialId,
-      allowedMaterialIds: material == null
-          ? base?.allowedMaterialIds ?? const <String>[]
-          : <String>[material.id],
+      defaultMaterialId: _state.defaultMaterialId.trim().isEmpty
+          ? null
+          : _state.defaultMaterialId,
+      allowedMaterialIds:
+          _state.materials.map((material) => material.id).toList(),
       topology: topology,
       templateHint: _state.templateHint,
+      boundaryPolicy: _state.boundaryPolicy,
+      coveragePolicy: _state.coveragePolicy,
       rules: rules,
     );
     _canonicalBase = draft;
@@ -209,16 +253,137 @@ final class SmartTileAuthoringController {
   void configureIdentity({
     required String id,
     required String name,
-    required String materialId,
-    required String materialName,
+    String materialId = '',
+    String materialName = '',
     String? connectionGroupId,
   }) {
+    final normalizedMaterialId = materialId.trim();
+    final normalizedMaterialName = materialName.trim();
+    final initialMaterials =
+        normalizedMaterialId.isEmpty || normalizedMaterialName.isEmpty
+            ? const <ProjectSmartTileMaterial>[]
+            : <ProjectSmartTileMaterial>[
+                ProjectSmartTileMaterial(
+                  id: normalizedMaterialId,
+                  name: normalizedMaterialName,
+                  connectionGroupId:
+                      (connectionGroupId ?? normalizedMaterialId).trim(),
+                ),
+              ];
     _state = _state.copyWith(
       id: id.trim(),
       name: name.trim(),
-      materialId: materialId.trim(),
-      materialName: materialName.trim(),
-      connectionGroupId: (connectionGroupId ?? materialId).trim(),
+      materials: initialMaterials,
+      defaultMaterialId: initialMaterials.firstOrNull?.id ?? '',
+      activeMaterialId: initialMaterials.firstOrNull?.id ?? '',
+    );
+  }
+
+  void addMaterial(
+    ProjectSmartTileMaterial material, {
+    bool makeActive = true,
+  }) {
+    final materials = List<ProjectSmartTileMaterial>.from(_state.materials);
+    final index =
+        materials.indexWhere((candidate) => candidate.id == material.id);
+    if (index < 0) {
+      materials.add(material);
+    } else {
+      materials[index] = material;
+    }
+    final firstId = materials.first.id;
+    _state = _state.copyWith(
+      materials: materials,
+      defaultMaterialId:
+          _state.defaultMaterialId.isEmpty ? firstId : _state.defaultMaterialId,
+      activeMaterialId: makeActive
+          ? material.id
+          : (_state.activeMaterialId.isEmpty
+              ? firstId
+              : _state.activeMaterialId),
+    );
+  }
+
+  ProjectSmartTileMaterial createMaterial({required String name}) {
+    final normalizedName = name.trim();
+    if (normalizedName.isEmpty) {
+      throw ArgumentError.value(name, 'name', 'Material name is required.');
+    }
+    final idBase = '${_state.id}-material-${_slugify(normalizedName)}';
+    var id = idBase;
+    var suffix = 2;
+    final occupied = _state.materials.map((material) => material.id).toSet();
+    while (occupied.contains(id)) {
+      id = '$idBase-$suffix';
+      suffix += 1;
+    }
+    final material = ProjectSmartTileMaterial(
+      id: id,
+      name: normalizedName,
+      connectionGroupId: id,
+      sortOrder: _state.materials.length,
+    );
+    addMaterial(material);
+    return material;
+  }
+
+  void setDefaultMaterial(String materialId) {
+    _requireMaterial(materialId);
+    _state = _state.copyWith(defaultMaterialId: materialId);
+  }
+
+  void setActiveMaterial(String materialId) {
+    _requireMaterial(materialId);
+    _state = _state.copyWith(activeMaterialId: materialId);
+  }
+
+  SmartTileMaterialRemovalBlocker? materialRemovalBlocker(String materialId) {
+    _requireMaterial(materialId);
+    if (_state.defaultMaterialId == materialId) {
+      return SmartTileMaterialRemovalBlocker.defaultMaterial;
+    }
+    if (_state.activeMaterialId == materialId) {
+      return SmartTileMaterialRemovalBlocker.activeMaterial;
+    }
+    final base = _canonicalBase;
+    if (base != null &&
+        base.rules.any((rule) => _ruleUsesMaterial(rule, materialId))) {
+      return SmartTileMaterialRemovalBlocker.mappedMaterial;
+    }
+    return null;
+  }
+
+  void removeMaterial(String materialId) {
+    final blocker = materialRemovalBlocker(materialId);
+    if (blocker != null) {
+      throw SmartTileMaterialInUseException(materialId, blocker);
+    }
+    _state = _state.copyWith(
+      materials: _state.materials
+          .where((material) => material.id != materialId)
+          .toList(),
+    );
+  }
+
+  void configureConnections(
+    SmartTileConnectionConfiguration configuration, {
+    required bool clearMappings,
+  }) {
+    final changesContract = _state.topology != configuration.topology ||
+        _state.templateHint != configuration.templateHint;
+    if (changesContract && _state.mappings.isNotEmpty && !clearMappings) {
+      throw StateError(
+        'Changing a Smart Tile connection contract requires mapping confirmation.',
+      );
+    }
+    _state = _state.copyWith(
+      topology: configuration.topology,
+      templateHint: configuration.templateHint,
+      boundaryPolicy: configuration.boundaryPolicy,
+      coveragePolicy: configuration.coveragePolicy,
+      mappings: changesContract && clearMappings
+          ? const <int, List<SmartTileCandidate>>{}
+          : _state.mappings,
     );
   }
 
@@ -254,6 +419,9 @@ final class SmartTileAuthoringController {
       usage: usage,
       topology: topology,
       templateHint: template,
+      coveragePolicy: usage == SmartTileUsage.terrain
+          ? SmartTileCoveragePolicy.complete
+          : SmartTileCoveragePolicy.sparse,
       mappings: const <int, List<SmartTileCandidate>>{},
     );
   }
@@ -521,7 +689,7 @@ final class SmartTileAuthoringController {
   ProjectSmartTilePreset compilePreset() {
     _requireText(_state.id, 'preset id');
     _requireText(_state.name, 'preset name');
-    _requireText(_state.materialId, 'material id');
+    _requireText(_state.defaultMaterialId, 'default material id');
     final usage = _state.usage;
     final topology = _state.topology;
     if (usage == null || topology == null) {
@@ -535,18 +703,15 @@ final class SmartTileAuthoringController {
       topology: topology,
       templateHint: _state.templateHint,
       status: _state.status,
-      coveragePolicy: switch (usage) {
-        SmartTileUsage.terrain => SmartTileCoveragePolicy.complete,
-        SmartTileUsage.path ||
-        SmartTileUsage.forestSurface =>
-          SmartTileCoveragePolicy.sparse,
-      },
+      coveragePolicy: _state.coveragePolicy,
       coverageProfile: const SmartTileCoverageProfile(
         mode: SmartTileCoverageMode.template,
       ),
       transformPolicy: const SmartTileTransformPolicy(),
-      defaultMaterialId: _state.materialId,
-      allowedMaterialIds: <String>[_state.materialId],
+      boundaryPolicy: _state.boundaryPolicy,
+      defaultMaterialId: _state.defaultMaterialId,
+      allowedMaterialIds:
+          _state.materials.map((material) => material.id).toList(),
       rules: <SmartTileRule>[
         for (final mask in masks)
           SmartTileRule(
@@ -555,7 +720,7 @@ final class SmartTileAuthoringController {
             // Keeping the material explicit prevents a future multi-material
             // draft from resolving the same visual for every center.
             centerMatch: _state.templateHint == SmartTileTemplateHint.simple
-                ? SmartTileSlotMatch.material(_state.materialId)
+                ? SmartTileSlotMatch.material(_state.defaultMaterialId)
                 : const SmartTileSlotMatch.any(),
             signature: smartTileSignatureForMask(mask, topology: topology),
             candidates: _state.mappings[mask]!,
@@ -565,17 +730,12 @@ final class SmartTileAuthoringController {
   }
 
   ProjectSmartTileCatalog compileCatalog() {
-    _requireText(_state.materialName, 'material name');
-    _requireText(_state.connectionGroupId, 'connection group id');
+    if (_state.materials.isEmpty) {
+      throw StateError('At least one Smart Tile material is required.');
+    }
     return ProjectSmartTileCatalog(
       atlases: <ProjectSmartTileAtlas>[compileAtlas()],
-      materials: <ProjectSmartTileMaterial>[
-        ProjectSmartTileMaterial(
-          id: _state.materialId,
-          name: _state.materialName,
-          connectionGroupId: _state.connectionGroupId,
-        ),
-      ],
+      materials: _state.materials,
       animations: _state.animations,
       presets: <ProjectSmartTilePreset>[compilePreset()],
     );
@@ -598,19 +758,6 @@ final class SmartTileAuthoringController {
     return compileAtlas();
   }
 
-  ProjectSmartTileMaterial? _tryCompileMaterial() {
-    if (_state.materialId.trim().isEmpty ||
-        _state.materialName.trim().isEmpty ||
-        _state.connectionGroupId.trim().isEmpty) {
-      return null;
-    }
-    return ProjectSmartTileMaterial(
-      id: _state.materialId,
-      name: _state.materialName,
-      connectionGroupId: _state.connectionGroupId,
-    );
-  }
-
   List<SmartTileRule> _compileRules(SmartTileTopology topology) {
     final masks = _state.mappings.keys.toList()..sort();
     return <SmartTileRule>[
@@ -618,7 +765,7 @@ final class SmartTileAuthoringController {
         SmartTileRule(
           id: smartTileCanonicalRuleId(mask),
           centerMatch: _state.templateHint == SmartTileTemplateHint.simple
-              ? SmartTileSlotMatch.material(_state.materialId)
+              ? SmartTileSlotMatch.material(_state.defaultMaterialId)
               : const SmartTileSlotMatch.any(),
           signature: smartTileSignatureForMask(mask, topology: topology),
           candidates: _state.mappings[mask]!,
@@ -658,6 +805,16 @@ final class SmartTileAuthoringController {
     return mask & smartTileEightNeighborMask;
   }
 
+  ProjectSmartTileMaterial _requireMaterial(String materialId) {
+    final material = _state.materials
+        .where((candidate) => candidate.id == materialId)
+        .firstOrNull;
+    if (material == null) {
+      throw ArgumentError('Unknown Smart Tile material "$materialId".');
+    }
+    return material;
+  }
+
   void _ensureAtlasCell({
     required int column,
     required int row,
@@ -682,6 +839,66 @@ final class SmartTileAuthoringController {
     }
     return geometry;
   }
+}
+
+bool _ruleUsesMaterial(SmartTileRule rule, String materialId) {
+  if (rule.centerMatch.materialId == materialId) return true;
+  final signature = rule.signature;
+  return <SmartTileSlotMatch>[
+    signature.northWestCorner,
+    signature.northEdge,
+    signature.northEastCorner,
+    signature.eastEdge,
+    signature.southEastCorner,
+    signature.southEdge,
+    signature.southWestCorner,
+    signature.westEdge,
+  ].any((match) => match.materialId == materialId);
+}
+
+String _slugify(String value) {
+  const replacements = <String, String>{
+    'à': 'a',
+    'â': 'a',
+    'ä': 'a',
+    'á': 'a',
+    'ã': 'a',
+    'å': 'a',
+    'ç': 'c',
+    'é': 'e',
+    'è': 'e',
+    'ê': 'e',
+    'ë': 'e',
+    'í': 'i',
+    'ì': 'i',
+    'î': 'i',
+    'ï': 'i',
+    'ñ': 'n',
+    'ó': 'o',
+    'ò': 'o',
+    'ô': 'o',
+    'ö': 'o',
+    'õ': 'o',
+    'ú': 'u',
+    'ù': 'u',
+    'û': 'u',
+    'ü': 'u',
+    'ý': 'y',
+    'ÿ': 'y',
+    'œ': 'oe',
+    'æ': 'ae',
+  };
+  final normalized = value
+      .toLowerCase()
+      .split('')
+      .map(
+        (character) => replacements[character] ?? character,
+      )
+      .join();
+  final slug = normalized
+      .replaceAll(RegExp('[^a-z0-9]+'), '-')
+      .replaceAll(RegExp('^-+|-+\$'), '');
+  return slug.isEmpty ? 'material' : slug;
 }
 
 SmartTileGridGeometry _geometryFromAtlas(ProjectSmartTileAtlas atlas) {

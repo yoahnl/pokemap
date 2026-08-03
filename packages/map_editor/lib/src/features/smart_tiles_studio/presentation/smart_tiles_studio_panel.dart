@@ -9,6 +9,7 @@ import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../application/smart_tile_atlas_image_loader.dart';
 import '../application/smart_tile_authoring_controller.dart';
+import '../application/smart_tile_connection_profile.dart';
 import '../application/smart_tile_draft_persistence_state.dart';
 import '../application/smart_tile_grid_detector.dart';
 import '../application/smart_tile_guide.dart';
@@ -23,6 +24,9 @@ import 'smart_tiles_studio_shell.dart';
 import 'smart_tiles_studio_stage_header.dart';
 import 'stages/smart_tile_grid_stage.dart';
 import 'stages/smart_tile_image_stage.dart';
+import 'stages/smart_tile_connections_stage.dart';
+import 'stages/smart_tile_material_picker.dart';
+import 'stages/smart_tile_materials_stage.dart';
 import 'stages/smart_tile_usage_stage.dart';
 
 enum SmartTilesStudioTab { atlas, rules, animations, testBench, validation }
@@ -63,6 +67,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   final SmartTileStudioSession _session = SmartTileStudioSession();
   final SmartTileGridDetector _gridDetector = const SmartTileGridDetector();
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _newMaterialNameController =
+      TextEditingController();
   final Map<String, TextEditingController> _gridControllers =
       <String, TextEditingController>{};
   SmartTileAuthoringController _authoring =
@@ -91,6 +97,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       const <SmartTileGridCandidate>[];
   int _selectedGridProposal = 0;
   SmartTileGridGeometry? _pendingGridGeometry;
+  SmartTileConnectionProfileId? _selectedConnectionProfileId;
+  SmartTileTopology? _customConnectionTopology;
   SmartTileTestGrid _testGrid = SmartTileTestGrid.empty(width: 7, height: 7);
 
   @override
@@ -126,13 +134,17 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     if (canonicalDraft != null &&
         canonicalDraft != oldWidget.canonicalDraft &&
         canonicalDraft.targetPresetId == _authoring.state.id) {
-      _authoring.replaceFromCanonicalDraft(canonicalDraft);
+      _authoring.replaceFromCanonicalDraft(
+        canonicalDraft,
+        catalogMaterials: widget.manifest.smartTileCatalog.materials,
+      );
     }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _newMaterialNameController.dispose();
     for (final controller in _gridControllers.values) {
       controller.dispose();
     }
@@ -422,10 +434,13 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           _buildGridStep()
         else if (_session.state.wizardStep ==
             SmartTileStudioWizardStep.materials)
-          _buildMaterialsPlaceholder()
+          _buildMaterialsStep()
         else if (_session.state.wizardStep ==
             SmartTileStudioWizardStep.connections)
-          _buildGuideStep()
+          _buildConnectionsStep()
+        else if (_session.state.wizardStep ==
+            SmartTileStudioWizardStep.variants)
+          _buildVariantsPlaceholder()
         else if (_session.state.wizardStep == SmartTileStudioWizardStep.forms)
           _buildPlacementStep()
         else if (_session.state.wizardStep == SmartTileStudioWizardStep.test)
@@ -589,41 +604,56 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     );
   }
 
-  Widget _buildMaterialsPlaceholder() {
-    return Column(
-      key: const Key('smart-tiles-materials-stage-placeholder'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        const PokeMapEmptyState(
-          title: 'Image et grille prêtes',
-          description:
-              'Le matériau détaillé sera configuré à l’étape suivante du chantier. Vous pouvez déjà poursuivre avec le matériau recommandé.',
-          icon: Icon(CupertinoIcons.paintbrush),
-        ),
-        const SizedBox(height: 14),
-        Align(
-          alignment: Alignment.centerRight,
-          child: PokeMapButton(
-            key: const Key('smart-tiles-materials-next-step'),
-            onPressed: _moveToConnections,
-            trailing: const Icon(CupertinoIcons.chevron_right, size: 14),
-            child: const Text('Configurer les raccords'),
-          ),
-        ),
-      ],
+  Widget _buildMaterialsStep() {
+    final state = _authoring.state;
+    return SmartTileMaterialsStage(
+      items: _materialPickerItems(),
+      defaultMaterialId: state.defaultMaterialId,
+      activeMaterialId: state.activeMaterialId,
+      newMaterialNameController: _newMaterialNameController,
+      canCreateMaterial: _newMaterialNameController.text.trim().isNotEmpty,
+      canContinue: state.materials.isNotEmpty &&
+          state.defaultMaterialId.isNotEmpty &&
+          state.activeMaterialId.isNotEmpty,
+      onActivate: _activateMaterial,
+      onSetDefault: _setDefaultMaterial,
+      onToggleAllowed: _toggleMaterial,
+      onNewMaterialNameChanged: (_) => setState(() {}),
+      onCreateMaterial: _createMaterial,
+      onContinue: _moveToConnections,
     );
   }
 
-  Widget _buildGuideStep() {
+  Widget _buildConnectionsStep() {
+    final usage = _session.state.usage!;
+    final hasSelection = _selectedConnectionProfileId != null &&
+        (_selectedConnectionProfileId != SmartTileConnectionProfileId.custom ||
+            _customConnectionTopology != null);
+    return SmartTileConnectionsStage(
+      usage: usage,
+      selectedProfileId: _selectedConnectionProfileId,
+      customTopology: _customConnectionTopology,
+      onProfileSelected: (profile) {
+        unawaited(_selectConnectionProfile(profile));
+      },
+      onCustomTopologySelected: (topology) {
+        unawaited(_selectCustomConnectionTopology(topology));
+      },
+      onContinue: hasSelection ? _moveToVariants : null,
+      guidePicker: _buildOptionalGuidePicker(),
+    );
+  }
+
+  Widget _buildOptionalGuidePicker() {
     final usage = _session.state.usage!;
     final guides = smartTileGuidesForUsage(usage);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         const PokeMapSectionHeader(
-          title: 'Reconnaître la disposition',
+          title: 'Guide de placement (optionnel)',
           description:
-              'Choisissez le dessin qui ressemble à l’organisation de votre atlas. Aucun code technique à saisir.',
+              'Si votre atlas suit un dessin connu, le guide préremplira les formes sans devenir obligatoire.',
         ),
         const SizedBox(height: 12),
         if (guides.isEmpty)
@@ -647,14 +677,29 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
             ),
             const SizedBox(height: 8),
           ],
+      ],
+    );
+  }
+
+  Widget _buildVariantsPlaceholder() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const PokeMapEmptyState(
+          key: Key('smart-tiles-variants-stage-placeholder'),
+          title: 'Matières et raccords prêts',
+          description:
+              'Les variantes détaillées arrivent dans STN-04.6. Le guide choisi reste facultatif.',
+          icon: Icon(CupertinoIcons.square_stack_3d_up),
+        ),
         const SizedBox(height: 14),
         Align(
           alignment: Alignment.centerRight,
           child: PokeMapButton(
-            key: const Key('smart-tiles-guide-next-step'),
-            onPressed: _session.state.guideId == null ? null : _moveToPlacement,
+            key: const Key('smart-tiles-variants-next-step'),
+            onPressed: _moveToForms,
             trailing: const Icon(CupertinoIcons.chevron_right, size: 14),
-            child: const Text('Placer sur l’atlas'),
+            child: const Text('Configurer les formes'),
           ),
         ),
       ],
@@ -667,10 +712,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     }
     final guideId = _session.state.guideId;
     if (guideId == null) {
-      return const PokeMapEmptyState(
-        title: 'Guide manquant',
-        description: 'Revenez à l’étape Guide avant de placer l’atlas.',
-      );
+      return _buildLegacyMappingStep();
     }
     if (guideId != SmartTileGuideId.erwCorner16) {
       return _buildLegacyMappingStep();
@@ -1407,9 +1449,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         ..configureIdentity(
           id: id,
           name: 'Nouveau Smart Tile',
-          materialId: '$id-material',
-          materialName: 'Matériau du preset',
         );
+      _newMaterialNameController.clear();
       _selectedMask = null;
       _lastMappedFrame = null;
       _lastCandidateId = null;
@@ -1419,6 +1460,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _draftMessage = null;
       _clearSourceImageSelection();
       _selectedRegisteredAtlasId = null;
+      _selectedConnectionProfileId = null;
+      _customConnectionTopology = null;
       _tab = SmartTilesStudioTab.atlas;
     });
   }
@@ -1719,8 +1762,179 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   }
 
   void _moveToConnections() {
-    setState(_session.moveToConnections);
+    if (_authoring.state.materials.isEmpty ||
+        _authoring.state.defaultMaterialId.isEmpty ||
+        _authoring.state.activeMaterialId.isEmpty) {
+      return;
+    }
+    setState(() {
+      if (_selectedConnectionProfileId == null) {
+        final recommended = recommendedSmartTileConnectionProfile(
+          _session.state.usage!,
+        );
+        _selectedConnectionProfileId = recommended.id;
+        _customConnectionTopology = null;
+        _authoring.configureConnections(
+          recommended.resolve(),
+          clearMappings: _authoring.state.mappings.isNotEmpty,
+        );
+      }
+      _session.moveToConnections();
+    });
     _flushDraftAfterStepChange();
+  }
+
+  void _moveToVariants() {
+    setState(_session.moveToVariants);
+    _flushDraftAfterStepChange();
+  }
+
+  void _moveToForms() {
+    setState(_session.moveToForms);
+    _flushDraftAfterStepChange();
+  }
+
+  List<SmartTileMaterialPickerItem> _materialPickerItems() {
+    final allowed = <String, ProjectSmartTileMaterial>{
+      for (final material in _authoring.state.materials) material.id: material,
+    };
+    final projectIds = widget.manifest.smartTileCatalog.materials
+        .map((material) => material.id)
+        .toSet();
+    final all = <String, ProjectSmartTileMaterial>{
+      for (final material in widget.manifest.smartTileCatalog.materials)
+        material.id: material,
+      ...allowed,
+    }.values.toList()
+      ..sort((left, right) => left.name.compareTo(right.name));
+    return <SmartTileMaterialPickerItem>[
+      for (final material in all)
+        SmartTileMaterialPickerItem(
+          material: material,
+          isFromProject: projectIds.contains(material.id),
+          isAllowed: allowed.containsKey(material.id),
+          removalBlockedReason: allowed.containsKey(material.id)
+              ? _materialRemovalReason(material.id)
+              : null,
+        ),
+    ];
+  }
+
+  String? _materialRemovalReason(String materialId) {
+    return switch (_authoring.materialRemovalBlocker(materialId)) {
+      SmartTileMaterialRemovalBlocker.defaultMaterial =>
+        'Choisissez d’abord une autre matière par défaut.',
+      SmartTileMaterialRemovalBlocker.activeMaterial =>
+        'Activez d’abord une autre matière.',
+      SmartTileMaterialRemovalBlocker.mappedMaterial =>
+        'Cette matière est encore utilisée par une forme.',
+      null => null,
+    };
+  }
+
+  void _activateMaterial(ProjectSmartTileMaterial material) {
+    setState(() {
+      if (!_authoring.state.materials
+          .any((candidate) => candidate.id == material.id)) {
+        _authoring.addMaterial(material);
+      } else {
+        _authoring.setActiveMaterial(material.id);
+      }
+    });
+    _notifyDraftChanged();
+  }
+
+  void _setDefaultMaterial(String materialId) {
+    setState(() => _authoring.setDefaultMaterial(materialId));
+    _notifyDraftChanged();
+  }
+
+  void _toggleMaterial(String materialId) {
+    final available = _materialPickerItems()
+        .where((item) => item.material.id == materialId)
+        .firstOrNull;
+    if (available == null) return;
+    setState(() {
+      if (available.isAllowed) {
+        _authoring.removeMaterial(materialId);
+      } else {
+        _authoring.addMaterial(available.material);
+      }
+    });
+    _notifyDraftChanged();
+  }
+
+  void _createMaterial() {
+    final name = _newMaterialNameController.text.trim();
+    if (name.isEmpty) return;
+    setState(() {
+      _authoring.createMaterial(name: name);
+      _newMaterialNameController.clear();
+    });
+    _notifyDraftChanged();
+  }
+
+  Future<void> _selectConnectionProfile(
+    SmartTileConnectionProfile profile,
+  ) async {
+    if (profile.id == SmartTileConnectionProfileId.custom) {
+      setState(() {
+        _selectedConnectionProfileId = profile.id;
+        _customConnectionTopology = null;
+      });
+      return;
+    }
+    await _applyConnectionProfile(profile, profile.resolve());
+  }
+
+  Future<void> _selectCustomConnectionTopology(
+    SmartTileTopology topology,
+  ) async {
+    final profile = smartTileConnectionProfileById(
+      SmartTileConnectionProfileId.custom,
+    );
+    await _applyConnectionProfile(
+      profile,
+      profile.resolve(customTopology: topology),
+      customTopology: topology,
+    );
+  }
+
+  Future<void> _applyConnectionProfile(
+    SmartTileConnectionProfile profile,
+    SmartTileConnectionConfiguration configuration, {
+    SmartTileTopology? customTopology,
+  }) async {
+    final state = _authoring.state;
+    final changesContract = state.topology != configuration.topology ||
+        state.templateHint != configuration.templateHint;
+    var clearMappings = false;
+    if (changesContract && state.mappings.isNotEmpty) {
+      clearMappings = await showPokeMapBinaryConfirmationDialog(
+        context,
+        title: 'Changer le style de raccord',
+        message:
+            'Les formes déjà associées ne décrivent pas la même structure. Les retirer et appliquer « ${profile.label} » ?',
+        secondaryLabel: 'Conserver le style actuel',
+        primaryLabel: 'Changer et retirer les associations',
+        primaryIsDestructive: true,
+        icon: CupertinoIcons.arrow_2_circlepath,
+      );
+      if (!clearMappings || !mounted) return;
+    }
+    setState(() {
+      _authoring.configureConnections(
+        configuration,
+        clearMappings: clearMappings,
+      );
+      _selectedConnectionProfileId = profile.id;
+      _customConnectionTopology = customTopology;
+      if (changesContract) {
+        _guidePlacement = null;
+        _correctionNumber = null;
+      }
+    });
+    _notifyDraftChanged();
   }
 
   void _selectUsage(SmartTileUsage usage) {
@@ -1733,12 +1947,23 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _guidePlacement = null;
       _correctionNumber = null;
       _placementMessage = null;
+      _selectedConnectionProfileId = null;
+      _customConnectionTopology = null;
     });
     _notifyDraftChanged();
   }
 
   void _selectGuide(SmartTileGuideId guideId) {
     setState(() {
+      final profile = smartTileConnectionProfileById(
+        SmartTileConnectionProfileId.corners,
+      );
+      _authoring.configureConnections(
+        profile.resolve(),
+        clearMappings: _authoring.state.mappings.isNotEmpty,
+      );
+      _selectedConnectionProfileId = profile.id;
+      _customConnectionTopology = null;
       _session.chooseGuide(guideId);
       _guidePlacement = null;
       _correctionNumber = null;
@@ -1746,11 +1971,6 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _authoring.clearMappings();
     });
     _notifyDraftChanged();
-  }
-
-  void _moveToPlacement() {
-    setState(_session.moveToPlacement);
-    _flushDraftAfterStepChange();
   }
 
   void _resetPlacementSource() {

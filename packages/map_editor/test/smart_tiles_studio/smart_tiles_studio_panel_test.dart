@@ -319,6 +319,138 @@ void main() {
       expect(latestDraft!.atlases.single.tilesetId, _target.id);
     });
 
+    testWidgets('authors allowed, default, and active materials separately', (
+      tester,
+    ) async {
+      ProjectSmartTileAuthoringDraft? latestDraft;
+      await _pumpGridStage(
+        tester,
+        loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
+        onDraftChanged: (draft) => latestDraft = draft,
+      );
+      await _confirmGridAndOpenMaterials(tester);
+
+      final next = find.byKey(const Key('smart-tiles-materials-next-step'));
+      expect(tester.widget<PokeMapButton>(next).onPressed, isNull);
+
+      final dirt = find.byKey(const Key('smart-tiles-material-dirt'));
+      await tester.ensureVisible(dirt);
+      await tester.tap(dirt);
+      await tester.pump();
+
+      expect(latestDraft!.allowedMaterialIds, <String>['dirt']);
+      expect(latestDraft!.defaultMaterialId, 'dirt');
+      expect(latestDraft!.materials.single.id, 'dirt');
+      expect(find.text('Par défaut'), findsOneWidget);
+      expect(tester.widget<PokeMapButton>(next).onPressed, isNotNull);
+
+      final grass = find.byKey(const Key('smart-tiles-material-grass'));
+      await tester.ensureVisible(grass);
+      await tester.tap(grass);
+      await tester.pump();
+
+      expect(latestDraft!.allowedMaterialIds, <String>['dirt', 'grass']);
+      expect(latestDraft!.defaultMaterialId, 'dirt');
+      expect(
+        tester
+            .widget<PokeMapAssetCard>(
+              find.byKey(const Key('smart-tiles-material-grass')),
+            )
+            .selected,
+        isTrue,
+      );
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(const Key('smart-tiles-material-toggle-dirt')),
+            )
+            .onPressed,
+        isNull,
+      );
+    });
+
+    testWidgets('creates a named material without exposing its canonical id', (
+      tester,
+    ) async {
+      ProjectSmartTileAuthoringDraft? latestDraft;
+      await _pumpGridStage(
+        tester,
+        loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
+        onDraftChanged: (draft) => latestDraft = draft,
+      );
+      await _confirmGridAndOpenMaterials(tester);
+
+      final name = find.byKey(const Key('smart-tiles-new-material-name'));
+      await tester.ensureVisible(name);
+      await tester.enterText(name, 'Sable doux');
+      await tester.pump();
+      final create = find.byKey(const Key('smart-tiles-create-material'));
+      await tester.tap(create);
+      await tester.pump();
+
+      expect(latestDraft!.materials.single.name, 'Sable doux');
+      expect(
+          latestDraft!.materials.single.id, 'smart-tile-material-sable-doux');
+      expect(latestDraft!.defaultMaterialId, latestDraft!.materials.single.id);
+      expect(find.text('Sable doux'), findsOneWidget);
+      expect(find.text('smart-tile-material-sable-doux'), findsNothing);
+    });
+
+    testWidgets('offers six profiles and configures a custom topology', (
+      tester,
+    ) async {
+      ProjectSmartTileAuthoringDraft? latestDraft;
+      await _pumpGridStage(
+        tester,
+        loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
+        onDraftChanged: (draft) => latestDraft = draft,
+      );
+      await _confirmGridAndOpenConnections(tester);
+
+      for (final profile in <String>[
+        'none',
+        'borders',
+        'corners',
+        'organic',
+        'bordersAndCorners',
+        'custom',
+      ]) {
+        expect(
+          find.byKey(Key('smart-tiles-connection-$profile')),
+          findsOneWidget,
+        );
+      }
+      expect(find.text('Recommandé'), findsOneWidget);
+      expect(latestDraft!.topology, SmartTileTopology.blob8);
+      expect(
+        tester
+            .widget<PokeMapAssetCard>(
+              find.byKey(const Key('smart-tiles-connection-organic')),
+            )
+            .selected,
+        isTrue,
+      );
+
+      final custom = find.byKey(const Key('smart-tiles-connection-custom'));
+      await tester.ensureVisible(custom);
+      await tester.tap(custom);
+      await tester.pump();
+      final next = find.byKey(const Key('smart-tiles-connections-next-step'));
+      await tester.ensureVisible(next);
+      expect(tester.widget<PokeMapButton>(next).onPressed, isNull);
+
+      final cardinal = find.byKey(
+        const Key('smart-tiles-custom-topology-cardinal4'),
+      );
+      await tester.ensureVisible(cardinal);
+      await tester.tap(cardinal);
+      await tester.pumpAndSettle();
+
+      expect(latestDraft!.topology, SmartTileTopology.cardinal4);
+      expect(latestDraft!.templateHint, SmartTileTemplateHint.free);
+      expect(tester.widget<PokeMapButton>(next).onPressed, isNotNull);
+    });
+
     testWidgets('adopts a canonically imported project image', (tester) async {
       var imports = 0;
       final importedImage = _fakeImage(width: 96, height: 64);
@@ -645,10 +777,22 @@ Future<void> _pumpGuidedAtlas(
     surfaceSize: surfaceSize,
   );
   await _confirmGridAndOpenConnections(tester);
-  await tester.tap(find.byKey(const Key('smart-tiles-guide-erwCorner16')));
+  final guide = find.byKey(const Key('smart-tiles-guide-erwCorner16'));
+  await tester.ensureVisible(guide);
+  await tester.tap(guide);
   await tester.pump();
-  await tester.tap(find.byKey(const Key('smart-tiles-guide-next-step')));
-  await tester.pump();
+  final connectionsNext = find.byKey(
+    const Key('smart-tiles-connections-next-step'),
+  );
+  await tester.ensureVisible(connectionsNext);
+  await tester.tap(connectionsNext);
+  await tester.pumpAndSettle();
+  final variantsNext = find.byKey(
+    const Key('smart-tiles-variants-next-step'),
+  );
+  await tester.ensureVisible(variantsNext);
+  await tester.tap(variantsNext);
+  await tester.pumpAndSettle();
 }
 
 Future<void> _pumpGridStage(
@@ -682,10 +826,10 @@ Future<void> _pumpGridStage(
 }
 
 Future<void> _confirmGridAndOpenConnections(WidgetTester tester) async {
-  final confirm = find.byKey(const Key('smart-tiles-confirm-grid'));
-  await tester.ensureVisible(confirm);
-  await tester.pumpAndSettle();
-  await tester.tap(confirm);
+  await _confirmGridAndOpenMaterials(tester);
+  final material = find.byKey(const Key('smart-tiles-material-dirt'));
+  await tester.ensureVisible(material);
+  await tester.tap(material);
   await tester.pumpAndSettle();
   final materialsNext = find.byKey(
     const Key('smart-tiles-materials-next-step'),
@@ -693,6 +837,14 @@ Future<void> _confirmGridAndOpenConnections(WidgetTester tester) async {
   await tester.ensureVisible(materialsNext);
   await tester.pumpAndSettle();
   await tester.tap(materialsNext);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _confirmGridAndOpenMaterials(WidgetTester tester) async {
+  final confirm = find.byKey(const Key('smart-tiles-confirm-grid'));
+  await tester.ensureVisible(confirm);
+  await tester.pumpAndSettle();
+  await tester.tap(confirm);
   await tester.pumpAndSettle();
 }
 
