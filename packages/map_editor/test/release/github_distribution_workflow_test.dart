@@ -120,4 +120,35 @@ void main() {
     expect(preflight, contains('notarytool'));
     expect(preflight, isNot(contains('gh release')));
   });
+
+  test('manual dispatch can never satisfy a tagged publication job', () async {
+    final workflow = await File(
+      '../../.github/workflows/pokemap_desktop_release.yml',
+    ).readAsString();
+    const releaseCondition = r"github.event_name == 'push' && "
+        r"startsWith(github.ref, 'refs/tags/pokemap-v')";
+
+    expect(RegExp(RegExp.escape(releaseCondition)).allMatches(workflow),
+        hasLength(9));
+    expect(
+      workflow,
+      isNot(contains(
+        "if: startsWith(github.ref, 'refs/tags/pokemap-v')",
+      )),
+    );
+  });
+
+  test('all stable tag publications share one global concurrency lock',
+      () async {
+    final workflow = await File(
+      '../../.github/workflows/pokemap_desktop_release.yml',
+    ).readAsString();
+
+    expect(workflow, contains('pokemap-desktop-stable-release'));
+    expect(
+      workflow,
+      isNot(contains(r'group: pokemap-desktop-${{ github.ref }}')),
+    );
+    expect(workflow, contains('cancel-in-progress: false'));
+  });
 }

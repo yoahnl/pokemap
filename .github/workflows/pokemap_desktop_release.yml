@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: pokemap-desktop-${{ github.ref }}
+  group: ${{ startsWith(github.ref, 'refs/tags/pokemap-v') && 'pokemap-desktop-stable-release' || format('pokemap-desktop-{0}', github.ref) }}
   cancel-in-progress: false
 
 env:
@@ -29,7 +29,7 @@ env:
 
 jobs:
   validate-release:
-    if: startsWith(github.ref, 'refs/tags/pokemap-v')
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     outputs:
@@ -254,7 +254,7 @@ jobs:
           path: packages/map_editor/build/release/PokeMap-windows-x64.zip
 
   windows-release:
-    if: ${{ startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
     needs: validate-release
     runs-on: windows-2025
     timeout-minutes: 60
@@ -392,7 +392,7 @@ jobs:
           path: packages/map_editor/build/release/PokeMap-linux-x64.tar.gz
 
   linux-release:
-    if: ${{ startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
     needs: validate-release
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -444,7 +444,7 @@ jobs:
           path: packages/map_editor/build/release/PokeMap-Editor-*-linux-x64.tar.gz
 
   macos-release:
-    if: ${{ startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
     needs: validate-release
     runs-on: macos-15
     timeout-minutes: 90
@@ -562,7 +562,7 @@ jobs:
             packages/map_editor/build/release/appcast-macos.xml
 
   assemble-release:
-    if: ${{ startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
     needs:
       - validate-release
       - windows-release
@@ -634,7 +634,7 @@ jobs:
           path: dist/*
 
   create-draft-release:
-    if: ${{ startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
     needs:
       - validate-release
       - assemble-release
@@ -664,7 +664,7 @@ jobs:
             --generate-notes
 
   smoke-download-draft:
-    if: ${{ startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
     needs:
       - validate-release
       - create-draft-release
@@ -711,7 +711,7 @@ jobs:
             --windows-public-key "$POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY"
 
   publish-release:
-    if: ${{ startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
     needs: smoke-download-draft
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -728,7 +728,7 @@ jobs:
             --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = false
 
   promote-stable-feed:
-    if: ${{ startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
     needs:
       - validate-release
       - publish-release
