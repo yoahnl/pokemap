@@ -121,6 +121,46 @@ void main() {
     expect(preflight, isNot(contains('gh release')));
   });
 
+  test('macOS release jobs inject the Sparkle key before code signing',
+      () async {
+    final workflow = await File(
+      '../../.github/workflows/pokemap_desktop_release.yml',
+    ).readAsString();
+    const injection =
+        r'plutil -replace SUPublicEDKey -string "$POKEMAP_SPARKLE_PUBLIC_ED_KEY"';
+
+    expect(RegExp(RegExp.escape(injection)).allMatches(workflow), hasLength(2));
+    expect(
+      workflow,
+      isNot(contains('> macos/Runner/Configs/UpdateKeys.xcconfig')),
+    );
+    expect(
+      RegExp(r'plutil -extract SUPublicEDKey raw').allMatches(workflow),
+      hasLength(2),
+    );
+    expect(
+      RegExp(r'plutil -extract SURequireSignedFeed raw').allMatches(workflow),
+      hasLength(2),
+    );
+    expect(
+      RegExp(r'plutil -extract SUVerifyUpdateBeforeExtraction raw')
+          .allMatches(workflow),
+      hasLength(2),
+    );
+
+    var searchFrom = 0;
+    for (var index = 0; index < 2; index += 1) {
+      final build =
+          workflow.indexOf('flutter build macos --release', searchFrom);
+      final inject = workflow.indexOf(injection, build);
+      final sign = workflow.indexOf('sign_macos_app.sh', inject);
+      expect(build, isNonNegative);
+      expect(inject, greaterThan(build));
+      expect(sign, greaterThan(inject));
+      searchFrom = sign + 1;
+    }
+  });
+
   test('manual dispatch can never satisfy a tagged publication job', () async {
     final workflow = await File(
       '../../.github/workflows/pokemap_desktop_release.yml',

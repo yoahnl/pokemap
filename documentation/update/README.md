@@ -18,7 +18,7 @@ un paquet téléchargeable sans mise à jour automatique.
 
 | Plateforme | Implémentation | Certification réelle | Diffusion stable |
 |---|---|---|---|
-| macOS | Sparkle 2.9.5, signature Developer ID, notarisation et feed signé | PARTIAL : preflight GitHub et cycle `0.3.0 → 0.3.1` à exécuter | Bloquée tant que la release multi-plateforme n’est pas certifiée |
+| macOS | Sparkle 2.9.5, signature Developer ID, notarisation et feed signé | PARTIAL : signature/notarisation Apple prouvées ; feed à revalider après correction, puis cycle `0.3.0 → 0.3.1` | Bloquée tant que la release multi-plateforme n’est pas certifiée |
 | Windows | WinSparkle 0.9.4, Inno Setup et appcast EdDSA | BLOCKED : clés/secrets et test sur machine propre manquants | Bloquée |
 | Linux | archive `.tar.gz` versionnée et checksums | PARTIAL : build GitHub et lancement sur Linux à confirmer | Téléchargement manuel seulement |
 
@@ -279,6 +279,30 @@ POKEMAP_SPARKLE_PUBLIC_ED_KEY
 SPARKLE_PRIVATE_ED_KEY_BASE64
 ```
 
+Le fichier exporté par `generate_keys -x` contient déjà le seed privé Sparkle
+encodé en base64. Il ne faut pourtant pas coller directement ce texte dans
+`SPARKLE_PRIVATE_ED_KEY_BASE64` : le workflow attend le fichier complet,
+lui-même réencodé en base64 pour son transport dans GitHub Actions. La commande
+correcte, qui n'affiche pas la clé, est :
+
+```bash
+base64 < pokemap-sparkle-private.key | tr -d '\n' | \
+  gh secret set SPARKLE_PRIVATE_ED_KEY_BASE64 \
+    --env pokemap-release --repo yoahnl/pokemap
+```
+
+Après un seul décodage par le workflow, le fichier temporaire doit donc rester
+un texte ASCII base64. Pour une clé Sparkle récente, ce texte décodé représente
+exactement 32 octets :
+
+```bash
+test "$(base64 --decode < pokemap-sparkle-private.key | wc -c | tr -d ' ')" = 32
+```
+
+Une clé privée exportée directement dans le secret serait décodée en octets
+binaires par le workflow et `generate_appcast` la refuserait comme texte UTF-8.
+Le preflight manuel permet de détecter cette erreur sans publier de release.
+
 ### Windows — encore manquants
 
 ```text
@@ -492,7 +516,7 @@ sur macOS.
 | UPD-01 | PARTIAL | Garde de fermeture présent, couverture des studios spécialisés incomplète |
 | UPD-02 | PARTIAL | Détection et tests présents, comportement réseau réel à certifier |
 | UPD-03 | PARTIAL | UX implémentée et testée, certification binaire réelle manquante |
-| UPD-04 | PARTIAL | Code Sparkle prêt, preflight GitHub et E2E macOS à exécuter |
+| UPD-04 | PARTIAL | Signature/notarisation Apple prouvées ; feed signé à revalider après correction, puis E2E macOS à exécuter |
 | UPD-05 | BLOCKED | Code présent, secrets et certification Windows manquants |
 | UPD-06 | PARTIAL | Pipeline atomique testé par contrat, aucune release taggée complète exécutée |
 | UPD-07 | BLOCKED | Bootstrap et boucle réelle `0.3.0 → 0.3.1` non exécutés |
@@ -512,7 +536,7 @@ flutter test --no-pub --reporter compact \
   test/features/editor_updates test/release
 ```
 
-Résultat exact : **85 tests réussis**.
+Résultat exact : **86 tests réussis**.
 
 ### Analyse statique
 
@@ -559,6 +583,28 @@ Le build a émis des avertissements tiers Swift/AVFoundation et un avertissement
 sur l’AppIcon enfant non assigné. Il est local, non signé et non notarié : il ne
 remplace donc pas le preflight GitHub.
 
+### Diagnostic du preflight macOS GitHub
+
+Le run [`30798580518`](https://github.com/yoahnl/pokemap/actions/runs/30798580518)
+a été lancé manuellement sans tag ni publication. Ses deux premières tentatives
+ont permis de valider l’essentiel du chemin Apple, puis de trouver deux erreurs
+de configuration distinctes :
+
+1. la première tentative a signé, notarié, staplé et validé l’application avec
+   Gatekeeper, puis a échoué car le secret privé contenait directement le texte
+   exporté par Sparkle au lieu de sa couche base64 de transport ;
+2. après correction du secret, la seconde tentative a de nouveau validé tout le
+   chemin Apple, puis a révélé que l’injection `.xcconfig` conservait des
+   guillemets littéraux autour de `SUPublicEDKey` dans le bundle compilé ;
+3. le correctif remplace cette injection par une écriture directe dans
+   l’`Info.plist` construit, vérifie la valeur et les deux gardes Sparkle, puis
+   signe seulement ensuite le bundle.
+
+La reproduction locale du correctif a confirmé une clé publique compilée de
+32 octets, une signature `sparkle:edSignature` sur l’archive et un bloc de
+signature du feed. Un nouveau preflight GitHub sur le commit corrigé reste
+obligatoire avant de proposer `UPD-04` comme terminé.
+
 ### Limites de validation restantes
 
 - aucun build natif Windows ne peut être exécuté sur le Mac local ;
@@ -566,8 +612,8 @@ remplace donc pas le preflight GitHub.
 - une ancienne tentative de suite Flutter complète a rencontré des échecs
   historiques hors chantier (goldens, fixture Selbrume absente et conflits de
   révisions Border). La suite ciblée update/release reste verte ;
-- un push `main` ne certifie que les previews ; le preflight macOS manuel et la
-  boucle taggée restent des preuves distinctes.
+- le push `main` a certifié les trois previews ; un nouveau preflight macOS sur
+  le correctif et la boucle taggée restent des preuves distinctes.
 
 ## 14. Inventaire complet des fichiers du chantier
 
@@ -581,7 +627,7 @@ Chaque groupe ci-dessous partage la même zone et le même impact :
 | macOS | projet Xcode, plist, entitlements, bridge Swift | intégrer Sparkle dans le runner sandboxé | téléchargement/install natifs vérifiés sur macOS |
 | Windows | CMake, ressources, bridge C++, Inno Setup | intégrer WinSparkle et produire un installateur stable | update Windows possible après certification et secrets |
 | Outils de release | générateurs, packagers et validateurs | refuser les métadonnées/assets incohérents | publication fail-closed et preuves reproductibles |
-| Tests update/release/UI | tests unitaires, widgets, contrats natifs et workflow | couvrir succès, erreurs, sécurité et non-régression | 85 tests ciblés et contrats de distribution vérifiables |
+| Tests update/release/UI | tests unitaires, widgets, contrats natifs et workflow | couvrir succès, erreurs, sécurité et non-régression | 86 tests ciblés et contrats de distribution vérifiables |
 
 ### Workflow et dépendances
 
@@ -725,10 +771,10 @@ doivent être versionnés comme les lockfiles SwiftPM déjà suivis dans
 - **Implémentation :** quatre phases isolées en commits, rebasées sans conflit et
   fusionnées en fast-forward sur `main`.
 - **Tests :** contrats positifs, négatifs, sécurité, UI et publication couverts ;
-  suite ciblée de 85 tests verte après rebase et durcissement final.
-- **Build / Validation :** analyse, scripts natifs et build macOS Release local
-  verts ; signature/notarisation macOS et builds Windows/Linux à confirmer sur
-  les runners GitHub adaptés.
+  suite ciblée de 86 tests verte après rebase et durcissement final.
+- **Build / Validation :** analyse, scripts natifs, build macOS Release local et
+  previews GitHub macOS/Windows/Linux verts ; signature, notarisation et
+  Gatekeeper macOS verts, feed signé à revalider après correction.
 - **Documentation :** un document consolidé dans le dossier explicitement
   demandé, sans multiplier les rapports Markdown.
 - **Critique finale :** la qualification production doit rester refusée tant que
@@ -737,8 +783,9 @@ doivent être versionnés comme les lockfiles SwiftPM déjà suivis dans
 
 ## 17. Prochain ordre de travail recommandé
 
-1. Pousser `main` et attendre les trois previews GitHub.
-2. Lancer `macos-preflight` manuellement et conserver le run comme preuve.
+1. Pousser le correctif d’injection `SUPublicEDKey` sur `main` et attendre les
+   trois previews GitHub.
+2. Relancer `macos-preflight` et conserver le run vert comme preuve.
 3. Raccorder tous les studios spécialisés au registre de travail non sauvegardé.
 4. Automatiser la comparaison du build number avec la dernière release stable.
 5. Quand Windows redevient disponible, générer et sauvegarder sa paire EdDSA.

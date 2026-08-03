@@ -144,17 +144,21 @@ jobs:
             printf '%s' "$POKEMAP_SPARKLE_PUBLIC_ED_KEY" | base64 --decode | wc -c | tr -d ' '
           )"
           test "$SPARKLE_PUBLIC_KEY_BYTES" = 32
-          printf 'POKEMAP_SPARKLE_PUBLIC_ED_KEY = "%s"\n' \
-            "$POKEMAP_SPARKLE_PUBLIC_ED_KEY" \
-            > macos/Runner/Configs/UpdateKeys.xcconfig
           flutter pub get
           flutter test test/release test/features/editor_updates/native_update_phase3_contract_test.dart
           flutter analyze
           flutter build macos --release \
             --build-name="$RELEASE_VERSION" \
             --build-number="$RELEASE_BUILD_NUMBER"
+          APP_PATH="build/macos/Build/Products/Release/PokeMap.app"
+          plutil -replace SUPublicEDKey -string "$POKEMAP_SPARKLE_PUBLIC_ED_KEY" \
+            "$APP_PATH/Contents/Info.plist"
+          test "$(plutil -extract SUPublicEDKey raw "$APP_PATH/Contents/Info.plist")" = \
+            "$POKEMAP_SPARKLE_PUBLIC_ED_KEY"
+          test "$(plutil -extract SURequireSignedFeed raw "$APP_PATH/Contents/Info.plist")" = true
+          test "$(plutil -extract SUVerifyUpdateBeforeExtraction raw "$APP_PATH/Contents/Info.plist")" = true
           ../../apps/pokemap_hub/tool/release/sign_macos_app.sh \
-            --app "build/macos/Build/Products/Release/PokeMap.app" \
+            --app "$APP_PATH" \
             --identity "$DEVELOPER_ID_APPLICATION" \
             --entitlements macos/Runner/Release.entitlements
       - name: Notarize, staple and assess preflight
@@ -495,17 +499,21 @@ jobs:
             printf '%s' "$POKEMAP_SPARKLE_PUBLIC_ED_KEY" | base64 --decode | wc -c | tr -d ' '
           )"
           test "$SPARKLE_PUBLIC_KEY_BYTES" = 32
-          printf 'POKEMAP_SPARKLE_PUBLIC_ED_KEY = "%s"\n' \
-            "$POKEMAP_SPARKLE_PUBLIC_ED_KEY" \
-            > macos/Runner/Configs/UpdateKeys.xcconfig
           flutter pub get
           flutter test test/release test/features/editor_updates/native_update_phase3_contract_test.dart
           flutter analyze
           flutter build macos --release \
             --build-name="$RELEASE_VERSION" \
             --build-number="$RELEASE_BUILD_NUMBER"
+          APP_PATH="build/macos/Build/Products/Release/PokeMap.app"
+          plutil -replace SUPublicEDKey -string "$POKEMAP_SPARKLE_PUBLIC_ED_KEY" \
+            "$APP_PATH/Contents/Info.plist"
+          test "$(plutil -extract SUPublicEDKey raw "$APP_PATH/Contents/Info.plist")" = \
+            "$POKEMAP_SPARKLE_PUBLIC_ED_KEY"
+          test "$(plutil -extract SURequireSignedFeed raw "$APP_PATH/Contents/Info.plist")" = true
+          test "$(plutil -extract SUVerifyUpdateBeforeExtraction raw "$APP_PATH/Contents/Info.plist")" = true
           ../../apps/pokemap_hub/tool/release/sign_macos_app.sh \
-            --app "build/macos/Build/Products/Release/PokeMap.app" \
+            --app "$APP_PATH" \
             --identity "$DEVELOPER_ID_APPLICATION" \
             --entitlements macos/Runner/Release.entitlements
       - name: Notarize, staple and assess PokeMap
